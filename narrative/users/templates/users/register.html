@@ -1,0 +1,189 @@
+<!--
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Registration</title>
+    <style>
+        :root {
+            --bg-primary: #121520;
+            --ui-primary: #2A2F4A;
+            --accent-1: #7E3AF2;
+            --text-primary: #F1F5F9;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Segoe UI', sans-serif;
+            padding: 40px;
+        }
+
+        .form-container {
+            max-width: 500px;
+            margin: 0 auto;
+            background-color: var(--ui-primary);
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        button {
+            background-color: var(--accent-1);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            display: block;
+            margin: 20px auto 0;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            background-color: #1E293B;
+            color: var(--text-primary);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h1>Registration</h1>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next }}" />
+            {{ form.as_p }}
+            <button type="submit">Register</button>
+        </form>
+    </div>
+</body>
+</html>
+-->
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Registration</title>
+    <style>
+        :root {
+            --bg-primary: #121520;
+            --ui-primary: #2A2F4A;
+            --accent-1: #7E3AF2;
+            --text-primary: #F1F5F9;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Segoe UI', sans-serif;
+            padding: 40px;
+            margin: 0;
+        }
+
+        .form-container {
+            max-width: 500px;
+            margin: 0 auto;
+            background-color: var(--ui-primary);
+            padding: 30px 40px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-sizing: border-box;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 25px;
+            font-size: 1.8rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            margin-bottom: 18px;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            background-color: #1E293B;
+            color: var(--text-primary);
+            box-sizing: border-box;
+            transition: border-color 0.2s ease;
+        }
+
+        input:focus {
+            border-color: var(--accent-1);
+            outline: none;
+        }
+
+        button {
+            background-color: var(--accent-1);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            display: block;
+            margin: 15px auto 0;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #9F67F8;
+        }
+
+        form p {
+            margin: 0;
+            padding: 0;
+        }
+
+        .form-error {
+            color: #F43F5E;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h1>Registration</h1>
+
+        <form method="post">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="form-error">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            {% for f in form %}
+                <label for="{{ f.id_for_label }}">{{ f.label }}</label>
+                {{ f }}
+                {% if f.errors %}
+                    <div class="form-error">{{ f.errors }}</div>
+                {% endif %}
+            {% endfor %}
+
+            <button type="submit">Register</button>
+        </form>
+    </div>
+</body>
+</html>

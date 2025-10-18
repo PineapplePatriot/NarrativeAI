@@ -1,0 +1,216 @@
+<!--
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Authorization</title>
+    <style>
+        :root {
+            --bg-primary: #121520;
+            --ui-primary: #2A2F4A;
+            --accent-1: #7E3AF2;
+            --accent-3: #F43F5E;
+            --text-primary: #F1F5F9;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Segoe UI', sans-serif;
+            padding: 40px;
+            margin: 0;
+        }
+
+        .form-container {
+            max-width: 500px;
+            margin: 0 auto;
+            background-color: var(--ui-primary);
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 2rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: bold;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #334155;
+            background-color: #1E293B;
+            color: var(--text-primary);
+        }
+
+        .form-error {
+            color: var(--accent-3);
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+
+        button {
+            background-color: var(--accent-1);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            display: block;
+            margin: 20px auto 0;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #9F67F8;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h1>Authorization</h1>
+
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next }}"/>
+
+            {% if form.non_field_errors %}
+            <div class="form-error">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            {% for f in form %}
+                <label for="{{ f.id_for_label }}">{{ f.label }}</label>
+                {{ f }}
+                {% if f.errors %}
+                    <div class="form-error">{{ f.errors }}</div>
+                {% endif %}
+            {% endfor %}
+
+            <button type="submit">Login</button>
+        </form>
+    </div>
+</body>
+</html>
+-->
+
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Authorization</title>
+    <style>
+        :root {
+            --bg-primary: #121520;
+            --ui-primary: #2A2F4A;
+            --accent-1: #7E3AF2;
+            --accent-3: #F43F5E;
+            --text-primary: #F1F5F9;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Segoe UI', sans-serif;
+            padding: 40px;
+            margin: 0;
+        }
+
+        .form-container {
+            max-width: 500px;
+            margin: 0 auto;
+            background-color: var(--ui-primary);
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 2rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: bold;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #334155;
+            background-color: #1E293B;
+            color: var(--text-primary);
+        }
+
+        .form-error {
+            color: var(--accent-3);
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+
+        .button-group {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        button, .sign-in-link {
+            background-color: var(--accent-1);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover, .sign-in-link:hover {
+            background-color: #9F67F8;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h1>Authorization</h1>
+
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next }}"/>
+
+            {% if form.non_field_errors %}
+            <div class="form-error">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            {% for f in form %}
+                <label for="{{ f.id_for_label }}">{{ f.label }}</label>
+                {{ f }}
+                {% if f.errors %}
+                    <div class="form-error">{{ f.errors }}</div>
+                {% endif %}
+            {% endfor %}
+
+            <div class="button-group">
+                <button type="submit">Log in</button>
+                <a href="{% url 'users:register' %}" class="sign-in-link">Sign in</a>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

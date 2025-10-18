@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Create Worldbook</title>
+  <style>
+    :root{
+      --bg-primary:#121520;--ui-primary:#2A2F4A;--ui-secondary:#1E293B;--ui-tertiary:#0F172A;
+      --accent-1:#7E3AF2;--accent-2:#10B981;--accent-3:#F43F5E;--accent-4:#F59E0B;
+      --text-primary:#F1F5F9;--text-secondary:#94A3B8;--text-muted:#64748B;
+      --border-color:rgba(255,255,255,.1)
+    }
+    *{box-sizing:border-box;margin:0;padding:0;font-family:'Inter','Segoe UI',Tahoma,Verdana,sans-serif}
+    body{background:var(--bg-primary);color:var(--text-primary);min-height:100vh}
+    .container{max-width:900px;margin:0 auto;padding:0 20px}
+    .header{padding:24px 0;border-bottom:1px solid var(--border-color);margin-bottom:20px}
+    .back{display:flex;gap:8px;align-items:center;color:var(--text-secondary);text-decoration:none}
+    .back:hover{color:var(--accent-1)}
+    .back svg{width:16px;height:16px;fill:currentColor}
+    h1{font-size:1.8rem;margin-bottom:6px;background:linear-gradient(135deg,var(--text-primary),var(--accent-1));
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .subtitle{color:var(--text-secondary);margin-bottom:10px}
+    .card{background:var(--ui-primary);border:1px solid var(--border-color);border-radius:12px;padding:18px}
+    .grid{display:grid;grid-template-columns:1fr;gap:12px}
+    label{font-size:.85rem;color:var(--text-secondary)}
+    input,textarea,select{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border-color);
+      background:var(--ui-tertiary);color:var(--text-primary)}
+    textarea{min-height:120px;resize:vertical}
+    .btn{display:inline-flex;gap:8px;align-items:center;border:1px solid var(--border-color);background:var(--ui-secondary);
+      padding:12px 16px;border-radius:10px;color:var(--text-primary);text-decoration:none;cursor:pointer}
+    .btn.primary{background:linear-gradient(135deg,var(--accent-1),#9863FF);border:none}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .entry{padding:12px;border:1px dashed var(--border-color);border-radius:10px;background:var(--ui-secondary)}
+    .entry .row>div{flex:1 1 260px}
+    .tag{display:inline-block;padding:4px 8px;border-radius:999px;border:1px solid var(--border-color);font-size:.8rem;color:var(--text-secondary);margin-right:6px}
+    .switch{position:relative;display:inline-block;width:42px;height:24px}
+    .switch input{display:none}
+    .slider{position:absolute;inset:0;background:#374151;border-radius:999px;cursor:pointer;transition:.2s}
+    .slider:before{content:"";position:absolute;height:18px;width:18px;left:3px;top:3px;background:white;border-radius:50%;transition:.2s}
+    .switch input:checked + .slider{background:#22c55e}
+    .switch input:checked + .slider:before{transform:translateX(18px)}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <a class="back" href="worldbooks-list.html">
+        <svg viewBox="0 0 24 24"><path d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"/></svg>
+        Back to Worldbooks
+      </a>
+      <h1>Create Worldbook</h1>
+      <div class="subtitle">Give it a name, a short description, and optionally pre-seed a few entries.</div>
+    </div>
+
+    <div class="card">
+      <div class="grid">
+        <div>
+          <label>Title</label>
+          <input id="title" placeholder="e.g., VantaLux Lore"/>
+        </div>
+        <div>
+          <label>Description</label>
+          <textarea id="desc" placeholder="Short description of this worldbook..."></textarea>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:14px 0 8px">
+        <div class="subtitle">Seed Entries (optional)</div>
+        <button class="btn" id="addSeedBtn">
+          <svg viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/></svg>
+          Add Entry
+        </button>
+      </div>
+
+      <div id="seedList"></div>
+
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px">
+        <a class="btn" href="worldbooks-list.html">Cancel</a>
+        <button class="btn primary" id="createBtn">
+          <svg viewBox="0 0 24 24"><path d="M12,2A10,10 0 0,1 22,12C22,17.5 17.5,22 12,22A10,10 0 0,1 2,12H4A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4V2M11,6H13V13H11M11,16H13V18H11"/></svg>
+          Create Worldbook
+        </button>
+      </div>
+    </div>
+
+    <div id="serverResponse" style="margin-top:20px"></div>
+  </div>
+
+  <template id="seedTpl">
+    <div class="entry">
+      <div class="row">
+        <div>
+          <label>Key</label>
+          <input placeholder="npc.dottore"/>
+        </div>
+        <div>
+          <label>Tags</label>
+          <input placeholder="character, science"/>
+        </div>
+        <div>
+          <label>Scope</label>
+          <select>
+            <option>global</option>
+            <option>character</option>
+            <option>location</option>
+            <option>scene</option>
+          </select>
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div>
+          <label>Priority (0-100)</label>
+          <input type="number" min="0" max="100" value="50"/>
+        </div>
+        <div>
+          <label>Weight (0-1)</label>
+          <input type="number" min="0" max="1" step="0.05" value="1"/>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:22px">
+          <label style="margin-right:6px">Enabled</label>
+          <label class="switch">
+            <input type="checkbox" checked/>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+      <div style="margin-top:8px">
+        <label>Value / Content</label>
+        <textarea placeholder="Plain text or JSON..."></textarea>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:8px">
+        <button class="btn" onclick="this.closest('.entry').remove()">Remove</button>
+      </div>
+    </div>
+  </template>
+
+   <script>
+    const STORE_KEY='worldbooks';
+    function loadStore(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)||'[]'); }catch{return []} }
+    function saveStore(arr){ localStorage.setItem(STORE_KEY,JSON.stringify(arr)); }
+    function slug(s){ return String(s||'').toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,''); }
+
+    const seedList=document.getElementById('seedList');
+    const addSeedBtn=document.getElementById('addSeedBtn');
+    const seedTpl=document.getElementById('seedTpl');
+    const createBtn=document.getElementById('createBtn');
+
+    addSeedBtn.onclick=()=>{ seedList.appendChild(seedTpl.content.cloneNode(true)); };
+
+    function gatherEntries(){
+      const entries=[];
+      seedList.querySelectorAll('.entry').forEach((el,i)=>{
+        const inputs=el.querySelectorAll('input,select,textarea');
+        const key=inputs[0], tags=inputs[1], scope=inputs[2], prio=inputs[3], weight=inputs[4], enabled=el.querySelector('input[type="checkbox"]'), val=inputs[5];
+        entries.push({
+          id:i+1,
+          key:key.value.trim(),
+          tags:tags.value.split(',').map(s=>s.trim()).filter(Boolean),
+          scope:scope.value,
+          priority:Number(prio.value)||0,
+          weight:Number(weight.value)||0,
+          enabled:Boolean(enabled.checked),
+          value:val.value
+        });
+      });
+      return entries;
+    }
+
+    createBtn.onclick=()=>{
+      const title=document.getElementById('title').value.trim();
+      const desc=document.getElementById('desc').value.trim();
+      if(!title){ alert('Title is required'); return; }
+      const id=slug(title);
+      const payload={id,title,description:desc,entries:gatherEntries(),updatedAt:Date.now()};
+
+      console.log("📦 JSON to send:", payload);
+
+      // Зберігаємо в localStorage
+      let store=loadStore();
+      const already=store.findIndex(w=>w.id===id);
+      if(already>=0){
+        if(!confirm('A worldbook with this title already exists. Overwrite?')) return;
+        store[already]=payload;
+      }else{ store.unshift(payload); }
+      saveStore(store);
+
+      // Відправка на Django
+      fetch("/main/worldbook_create/", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload)
+      })
+      .then(r=>r.json())
+      .then(data=>{
+        console.log("✅ Response from server:", data);
+        // редірект на worldbook_detail
+        window.location.href='/main/worldbook_detail/?wb='+encodeURIComponent(id);
+      })
+      .catch(err=>{ console.error("❌ Error sending:", err); });
+    };
+  </script>
+</body>
+</html>

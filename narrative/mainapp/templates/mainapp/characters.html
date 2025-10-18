@@ -1,0 +1,58 @@
+{%load static%}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Start Chat - Narrative AI</title>
+     <link rel="stylesheet" href="{% static 'mainapp/characters.css' %}">
+</head>
+<body>
+    <div class="min-h-screen flex">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="mb-6">
+                <div class="sidebar-item">
+                    <div class="sidebar-avatar">
+                        <span class="font-bold">C</span>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium">Connection</p>
+                        <p class="text-xs" style="color: var(--success-color);">Claude API Active</p>
+                    </div>
+                </div>
+            </div>
+            <div class="space-y-4">
+                <div class="sidebar-item">
+                    <div class="sidebar-avatar"></div>
+                    <p class="text-sm font-medium">User</p>
+                </div>
+                <div class="sidebar-item">
+                    <div class="sidebar-avatar"></div>
+                    <p class="text-sm font-medium">Chat Settings</p>
+                </div>
+                <div class="sidebar-item">
+                    <div class="sidebar-avatar"></div>
+                    <p class="text-sm font-medium">Chat (Characters)</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="flex-1 p-6">
+            <h1 class="text-3xl font-bold mb-6">Start Chat</h1>
+            <div class="mb-6">
+                <button id="createCharacterBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg shadow-lg">
+                    Create New Character
+                </button>
+            </div>
+            <div id="characterList" class="space-y-4">
+                <!-- Characters will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <script src="data.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>

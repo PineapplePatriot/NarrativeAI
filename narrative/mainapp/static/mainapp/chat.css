@@ -1,0 +1,199 @@
+:root {
+    --bg-primary: #121520;
+    --ui-primary: #2A2F4A;
+    --ui-secondary: #1E293B;
+    --ui-tertiary: #0F172A;
+    --accent-1: #7E3AF2;
+    --accent-2: #10B981;
+    --accent-3: #F43F5E;
+    --text-primary: #F1F5F9;
+    --text-secondary: #94A3B8;
+    --text-muted: #64748B;
+    --border-color: rgba(255, 255, 255, 0.1);
+    --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.chat-container {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+    height: calc(100vh - 100px);
+    position: relative;
+    background-color: var(--ui-secondary);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+.chat-main {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    background-image: url('path/to/background-image.jpg'); /* Placeholder for background image */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.chat-header {
+    padding: 15px 20px;
+    background: linear-gradient(135deg, var(--ui-primary), rgba(42, 47, 74, 0.8));
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.chat-header h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.edit-btn {
+    background-color: var(--accent-1);
+    color: var(--text-primary);
+    padding: 8px 16px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: background-color 0.3s ease;
+}
+
+.edit-btn:hover {
+    background-color: #9863FF;
+}
+
+.chat-content {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.description-box {
+    background-color: rgba(30, 41, 59, 0.9);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.description-box p {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.message-input {
+    display: flex;
+    gap: 10px;
+    padding: 15px 20px;
+    background-color: var(--ui-primary);
+    border-top: 1px solid var(--border-color);
+}
+
+.message-input input {
+    flex: 1;
+    padding: 10px;
+    background-color: var(--ui-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.message-input input:focus {
+    outline: none;
+    border-color: var(--accent-1);
+}
+
+.message-input button {
+    padding: 10px 20px;
+    background-color: var(--accent-1);
+    color: var(--text-primary);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.3s ease;
+}
+
+.message-input button:hover {
+    background-color: #9863FF;
+}
+
+.chat-sidebar {
+    padding: 20px;
+    background-color: var(--ui-primary);
+    border-left: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.sprite-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sprite-container img {
+    max-width: 100%;
+    max-height: 80%;
+    object-fit: contain;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.action-buttons button {
+    flex: 1;
+    padding: 12px;
+    background-color: var(--accent-2);
+    color: var(--text-primary);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.3s ease;
+}
+
+.action-buttons button:hover {
+    background-color: #16a34a;
+}
+
+.back-btn {
+    display: inline-block;
+    margin-top: 20px;
+    color: var(--accent-1);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: opacity 0.3s ease;
+}
+
+.back-btn:hover {
+    opacity: 0.8;
+}

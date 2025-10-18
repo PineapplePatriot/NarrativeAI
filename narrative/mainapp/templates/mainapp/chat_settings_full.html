@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Narrative AI — Chat Settings</title>
+  <style>
+    :root {
+      --bg-primary: #121520;
+      --ui-primary: #2A2F4A;
+      --ui-secondary: #1E293B;
+      --ui-tertiary: #0F172A;
+      --accent-1: #7E3AF2;
+      --accent-2: #10B981;
+      --accent-3: #F43F5E;
+      --accent-4: #F59E0B;
+      --text-primary: #F1F5F9;
+      --text-secondary: #94A3B8;
+      --text-muted: #64748B;
+      --border-color: rgba(255, 255, 255, 0.1);
+      --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+      --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+      --radius: 14px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      background-image:
+        radial-gradient(circle at 20% 35%, rgba(46,49,73,0.15) 0%, transparent 50%),
+        radial-gradient(circle at 75% 44%, rgba(126,58,242,0.08) 0%, transparent 33%),
+        radial-gradient(circle at 40% 80%, rgba(16,185,129,0.05) 0%, transparent 40%);
+      line-height: 1.6;
+    }
+    a { color: var(--accent-1); }
+    .container { max-width: 1280px; margin: 0 auto; padding: 20px; }
+    .top-panel { background: transparent; }
+    .nav-grid { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .nav-item { display:flex; gap:12px; align-items:center; padding:12px; border-radius:10px; text-decoration:none; color:var(--text-primary); border:1px solid transparent; }
+    .nav-item .icon { width:28px; height:28px; fill:var(--text-secondary); }
+    .nav-item.active, .nav-item:hover { background: rgba(126,58,242,0.06); border:1px solid rgba(126,58,242,0.12); }
+    .nav-item-title { font-weight: 700; }
+    .nav-item-subtitle { font-size: .85rem; color: var(--text-secondary); }
+    .page { padding: 24px 0 60px; }
+    .breadcrumbs { color: var(--text-secondary); font-size: .9rem; margin: 8px 0 20px; }
+    .breadcrumbs a { color: var(--text-secondary); text-decoration: none; }
+    .breadcrumbs a:hover { color: var(--accent-1); }
+    .settings-grid { display: grid; grid-template-columns: 280px 1fr; gap: 24px; align-items: start; }
+    .side-rail {
+      background: var(--ui-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 14px;
+      position: sticky; top: 16px; height: fit-content;
+    }
+    .side-rail h4 { font-size: .9rem; color: var(--text-muted); margin: 4px 8px 10px; text-transform: uppercase; letter-spacing: .06em; }
+    .rail-link { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius: 10px; color: var(--text-primary); text-decoration: none; border: 1px solid transparent; }
+    .rail-link:hover { background: rgba(126,58,242,0.08); border-color: var(--border-color); }
+    .rail-link.active { background: rgba(126,58,242,0.14); border-color: rgba(126,58,242,0.35); box-shadow: 0 0 0 2px rgba(126,58,242,0.15) inset; }
+    .card { background: var(--ui-secondary); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 18px; }
+    .card + .card { margin-top: 18px; }
+    .card h3 { font-size: 1.05rem; margin-bottom: 12px; }
+    .subtle { color: var(--text-secondary); font-size: .92rem; }
+    .two-col { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; }
+    .three-col { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 16px; }
+    .field { display: grid; gap: 8px; }
+    .field.inline { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; }
+    .field label { font-weight: 600; font-size: .92rem; }
+    .field small { color: var(--text-secondary); font-size: .8rem; }
+    input[type="text"], input[type="number"], select, textarea {
+      background: var(--ui-primary); color: var(--text-primary);
+      border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 12px;
+    }
+    textarea { min-height: 96px; resize: vertical; }
+    .range-row { display: grid; grid-template-columns: 1fr 72px; align-items: center; gap: 10px; }
+    .range-val { text-align: right; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+    input[type="range"] { width: 100%; }
+    .toggle { display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 999px; background: var(--ui-primary); border: 1px solid var(--border-color); cursor: pointer; user-select: none; }
+    .toggle input { display: none; }
+    .dot { width: 14px; height: 14px; border-radius: 999px; background: #8b8b8b; box-shadow: 0 0 0 2px rgba(0,0,0,.15) inset; }
+    .toggle input:checked + .dot { background: var(--accent-2); box-shadow: 0 0 0 2px rgba(0,0,0,.25) inset, 0 0 0 3px rgba(16,185,129,.25); }
+    .chips { display:flex; flex-wrap: wrap; gap: 8px; }
+    .chip { background: var(--ui-primary); border:1px solid var(--border-color); color: var(--text-primary); padding: 8px 10px; border-radius: 999px; cursor:pointer; font-size:.9rem; user-select:none; }
+    .chip[aria-checked="true"] { background: rgba(126,58,242,.18); border-color: rgba(126,58,242,.45); }
+    .json-preview {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      background: #0b1021; border: 1px solid var(--border-color); border-radius: 12px; padding: 12px; color: #cfe3ff;
+      white-space: pre; overflow: auto; max-height: 300px;
+    }
+    .bar { display:flex; gap:10px; justify-content:flex-end; flex-wrap: wrap; }
+    .btn { background: linear-gradient(135deg, var(--accent-1), #9863FF); color:#fff; border:none; padding:10px 14px; border-radius:10px; cursor:pointer; font-weight:600; }
+    .btn.secondary { background: var(--ui-primary); color: var(--text-primary); border:1px solid var(--border-color); }
+    .btn.ghost { background: transparent; border: 1px dashed var(--border-color); color: var(--text-secondary); }
+    .nsfw-note { font-size: .85rem; color: var(--text-secondary); }
+    .kv-grid { display:grid; grid-template-columns: 1fr 1fr auto; gap:8px; align-items:center; }
+    .kv-grid input { width: 100%; }
+    .muted { color: var(--text-secondary); }
+    .divider { height:1px; background: var(--border-color); margin: 12px 0; }
+    .pill { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background: rgba(126,58,242,.14); border:1px solid rgba(126,58,242,.3); font-size:.85rem; }
+    .note { font-size:.85rem; color: var(--text-secondary); }
+    @media (max-width: 1024px){ .settings-grid{ grid-template-columns: 1fr; } .side-rail{ position: static; } }
+  </style>
+</head>
+<body>
+  <div class="top-panel">
+    <div class="container">
+      <div class="nav-grid">
+        <a class="nav-item" href="index.html" data-section="connection">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73C10.4 5.39 10 4.74 10 4a2 2 0 0 1 2-2Z"/></svg>
+          <div>
+            <div class="nav-item-title">Chat Settings</div>
+            <div class="nav-item-subtitle">Temperature, Prompts</div>
+          </div>
+        </a>
+        <a class="nav-item" href="#" data-section="characters">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M16 4a8 8 0 0 1 7.61 10.61A6 6 0 0 1 16 20H5a5 5 0 0 1 0-10 3 3 0 0 1 5.25-2.92A3.48 3.48 0 0 1 16 8Z"/></svg>
+          <div>
+            <div class="nav-item-title">Chat (Characters)</div>
+            <div class="nav-item-subtitle">Conversations</div>
+          </div>
+        </a>
+        <a class="nav-item" href="#" data-section="user">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M12 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8Zm0 10c4.42 0 8 1.79 8 4v2H4v-2c0-2.21 3.58-4 8-4Z"/></svg>
+          <div>
+            <div class="nav-item-title">User</div>
+            <div class="nav-item-subtitle">Profile & Settings</div>
+          </div>
+        </a>
+        <div class="nav-item active" data-section="settings">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M12 8.5A3.5 3.5 0 1 1 8.5 12 3.5 3.5 0 0 1 12 8.5m7.43 4.47c.04-.32.07-.64.07-.97s-.03-.66-.07-1L21.54 9 20 6.5l-2.5.58a7.6 7.6 0 0 0-1.68-.98L15.5 3h-7l-.32 3.1c-.6.25-1.16.57-1.68.98L4 6.5 2.5 9l2.11 1c-.04.32-.07.64-.07.97s.03.65.07.97L2.5 15 4 17.5l2.5-.58c.52.41 1.08.73 1.68.98L8.5 21h7l.32-3.1c.6-.25 1.16-.57 1.68-.98L20 17.5 21.5 15Z"/></svg>
+          <div>
+            <div class="nav-item-title">Chat Settings</div>
+            <div class="nav-item-subtitle">Temperature, Prompts</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container page">
+    <div class="breadcrumbs"><a href="index.html">Dashboard</a> · <span>Chat Settings</span></div>
+    <div class="settings-grid">
+      <aside class="side-rail">
+        <h4>Sections</h4>
+        <a class="rail-link active" href="#sampling">Model & Sampling</a>
+        <a class="rail-link" href="#output">Output Controls</a>
+        <a class="rail-link" href="#safety">Safety & NSFW</a>
+        <a class="rail-link" href="#prompt">System Prompt Builder</a>
+        <a class="rail-link" href="#presets">Presets & Export</a>
+      </aside>
+
+      <main>
+        <!-- Sampling -->
+        <section id="sampling" class="card">
+          <h3>Model & Sampling</h3>
+          <p class="subtle">Tune decoding like SillyTavern's Connections: temperature, nucleus, top‑k, typical, TFS, Mirostat, penalties, and more.</p>
+
+          <div class="three-col" style="margin-top: 14px;">
+            <div class="field">
+              <label>Model</label>
+              <select id="model">
+                <option>gpt-4o-mini</option>
+                <option>claude-3.5-sonnet</option>
+                <option>mixtral-8x7b</option>
+                <option>nous-hermes-405b</option>
+                <option>llama-3.1-70b-instruct</option>
+              </select>
+              <small>Choose the backend for this chat.</small>
+            </div>
+            <div class="field">
+              <label>Max Tokens</label>
+              <input id="max_tokens" type="number" min="64" max="32768" value="2048" />
+              <small>Upper bound on generated tokens.</small>
+            </div>
+            <div class="field">
+              <label>Seed (optional)</label>
+              <input id="seed" type="number" min="0" placeholder="Random" />
+              <small>Fix for reproducible sampling if supported.</small>
+            </div>
+          </div>
+
+          <div class="two-col" style="margin-top:16px;">
+            <div class="field">
+              <label>Temperature</label>
+              <div class="range-row">
+                <input id="temperature" type="range" min="0" max="2" step="0.01" value="0.9" />
+                <div id="temperature_val" class="range-val">0.90</div>
+              </div>
+              <small>Higher = more creative, lower = more deterministic.</small>
+            </div>
+            <div class="field">
+              <label>Top‑p (nucleus)</label>
+              <div class="range-row">
+                <input id="top_p" type="range" min="0" max="1" step="0.01" value="0.9" />
+                <div id="top_p_val" class="range-val">0.90</div>
+              </div>
+              <small>Keep tokens within cumulative probability p.</small>
+            </div>
+          </div>
+
+          <div class="three-col" style="margin-top:6px;">
+            <div class="field">
+              <label>Top‑k</label>
+              <div class="range-row">
+                <input id="top_k" type="range" min="0" max="200" step="1" value="40" />
+                <div id="top_k_val" class="range-val">40</div>
+              </div>
+              <small>0 disables; higher widens candidate tokens.</small>
+            </div>
+            <div class="field">
+              <label>Typical‑p</label>
+              <div class="range-row">
+                <input id="typical_p" type="range" min="0" max="1" step="0.01" value="1.0" />
+                <div id="typical_p_val" class="range-val">1.00</div>
+              </div>
+              <small>Favor tokens with typical information content.</small>
+            </div>
+            <div class="field">
+              <label>TFS</label>
+              <div class="range-row">
+                <input id="tfs" type="range" min="0" max="1" step="0.01" value="0.9" />
+                <div id="tfs_val" class="range-val">0.90</div>
+              </div>
+              <small>Tail‑free sampling: lower = safer, higher = freer.</small>
+            </div>
+          </div>
+
+          <div class="three-col" style="margin-top:6px;">
+            <div class="field">
+              <label>Mirostat</label>
+              <select id="mirostat">
+                <option value="0">Off</option>
+                <option value="1">Mirostat v1</option>
+                <option value="2">Mirostat v2</option>
+              </select>
+              <small>Entropy‑targeted sampling (LLM dependent).</small>
+            </div>
+            <div class="field">
+              <label>Mirostat τ</label>
+              <div class="range-row">
+                <input id="mirostat_tau" type="range" min="0.1" max="10" step="0.1" value="5.0" />
+                <div id="mirostat_tau_val" class="range-val">5.0</div>
+              </div>
+              <small>Target surprise (lower = safer).</small>
+            </div>
+            <div class="field">
+              <label>Mirostat η</label>
+              <div class="range-row">
+                <input id="mirostat_eta" type="range" min="0.001" max="1" step="0.001" value="0.1" />
+                <div id="mirostat_eta_val" class="range-val">0.100</div>
+              </div>
+              <small>Learning rate for error correction.</small>
+            </div>
+          </div>
+
+          <div class="three-col" style="margin-top:6px;">
+            <div class="field">
+              <label>Presence Penalty</label>
+              <div class="range-row">
+                <input id="presence_penalty" type="range" min="-2" max="2" step="0.01" value="0.0" />
+                <div id="presence_penalty_val" class="range-val">0.00</div>
+              </div>
+              <small>Discourage repetition of seen tokens.</small>
+            </div>
+            <div class="field">
+              <label>Frequency Penalty</label>
+              <div class="range-row">
+                <input id="frequency_penalty" type="range" min="-2" max="2" step="0.01" value="0.0" />
+                <div id="frequency_penalty_val" class="range-val">0.00</div>
+              </div>
+              <small>Penalize frequent tokens (anti‑spam).</small>
+            </div>
+            <div class="field">
+              <label>Repetition Penalty</label>
+              <div class="range-row">
+                <input id="repetition_penalty" type="range" min="0.8" max="1.5" step="0.01" value="1.0" />
+                <div id="repetition_penalty_val" class="range-val">1.00</div>
+              </div>
+              <small>Common in open‑source backends.</small>
+            </div>
+          </div>
+        </section>
+
+        <!-- Output Controls -->
+        <section id="output" class="card">
+          <h3>Output Controls</h3>
+          <p class="subtle">Constrain or format the model’s responses.</p>
+          <div class="three-col">
+            <div class="field">
+              <label>Max Response Tokens</label>
+              <input id="max_response_tokens" type="number" min="32" max="8192" value="1024" />
+              <small>Hard cap for a single reply.</small>
+            </div>
+            <div class="field">
+              <label>Stop Sequences (CSV)</label>
+              <input id="stop_sequences" type="text" placeholder="e.g. ###, END, \nUser:" />
+              <small>Comma‑separated. Applied to sampling.</small>
+            </div>
+            <div class="field">
+              <label>Streaming</label>
+              <label class="toggle"><input id="stream" type="checkbox" checked /><span class="dot"></span> Enabled</label>
+            </div>
+          </div>
+
+          <div class="two-col" style="margin-top:6px;">
+            <div class="field">
+              <label>JSON Mode</label>
+              <label class="toggle"><input id="json_mode" type="checkbox" /><span class="dot"></span> Constrain to JSON</label>
+              <small>For tool outputs or schema‑constrained tasks.</small>
+            </div>
+            <div class="field">
+              <label>Markdown Sanitization</label>
+              <label class="toggle"><input id="sanitize_md" type="checkbox" checked /><span class="dot"></span> Basic sanitize</label>
+              <small>Strip risky HTML in markdown blocks.</small>
+            </div>
+          </div>
+        </section>
+
+        <!-- Safety & NSFW -->
+        <section id="safety" class="card">
+          <h3>Safety & NSFW</h3>
+          <p class="subtle">Gate sensitive content and define style boundaries.</p>
+
+          <div class="two-col">
+            <div class="field">
+              <label>Age Confirmation</label>
+              <div class="two-col">
+                <div class="field">
+                  <label class="toggle"><input id="is_18" type="checkbox" /><span class="dot"></span> I confirm I am 18+</label>
+                </div>
+                <div class="field">
+                  <label class="toggle"><input id="nsfw_enabled" type="checkbox" /><span class="dot"></span> Allow NSFW features</label>
+                </div>
+              </div>
+              <small class="nsfw-note">NSFW toggles only apply when 18+ and enabled.</small>
+            </div>
+            <div class="field">
+              <label>Violence / Gore Level</label>
+              <div class="range-row">
+                <input id="violence_level" type="range" min="0" max="3" step="1" value="1" />
+                <div id="violence_level_val" class="range-val">1</div>
+              </div>
+              <small>0 = none, 3 = graphic (if allowed by policy).</small>
+            </div>
+          </div>
+
+          <div class="three-col" style="margin-top:6px;">
+            <div class="field">
+              <label>NSFW Style</label>
+              <select id="nsfw_style" disabled>
+                <option value="fade-to-black">Fade‑to‑black (subtle)</option>
+                <option value="romantic-soft">Romantic soft</option>
+                <option value="suggestive">Suggestive only</option>
+                <option value="explicit">Explicit (legal, consensual)</option>
+              </select>
+              <small>Requires 18+ and Allow NSFW.</small>
+            </div>
+            <div class="field">
+              <label>Consent Emphasis</label>
+              <label class="toggle"><input id="consent_emphasis" type="checkbox" disabled /><span class="dot"></span> Reinforce consent language</label>
+            </div>
+            <div class="field">
+              <label>Safeword</label>
+              <input id="safeword" type="text" placeholder="Optional" disabled />
+            </div>
+          </div>
+        </section>
+
+        <!-- System Prompt Builder -->
+        <section id="prompt" class="card">
+          <h3>System Prompt Builder</h3>
+          <p class="subtle">Define baseline behavior, persona, and scenario. Add custom fields as JSON.</p>
+
+          <div class="two-col">
+            <div class="field">
+              <label>Persona</label>
+              <textarea id="persona" placeholder="e.g., Mr. G — enthusiastic, supportive, playful when appropriate, precise when technical."></textarea>
+            </div>
+            <div class="field">
+              <label>Behavior Rules</label>
+              <textarea id="rules" placeholder="e.g., Avoid purple prose; give step‑by‑step for algorithms; switch to serious tone for academic tasks."></textarea>
+            </div>
+          </div>
+
+          <div class="two-col">
+            <div class="field">
+              <label>Scenario</label>
+              <textarea id="scenario" placeholder="e.g., Visual‑novel chat with character sprites; respect user’s selected mood and narrative style."></textarea>
+            </div>
+            <div class="field">
+              <label>User Goals</label>
+              <textarea id="goals" placeholder="e.g., Roleplay fluently; configurable moods; safe NSFW when allowed; exportable presets."></textarea>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- Avi Moods -->
+          <div class="field">
+            <label>Avi Mood System</label>
+            <div class="chips" id="mood_chips">
+              <div class="chip" data-mood="balanced" aria-checked="true">Balanced</div>
+              <div class="chip" data-mood="flirty">Flirty</div>
+              <div class="chip" data-mood="wholesome">Wholesome</div>
+              <div class="chip" data-mood="stoic">Stoic</div>
+              <div class="chip" data-mood="tsundere">Tsundere</div>
+              <div class="chip" data-mood="menacing">Menacing</div>
+              <div class="chip" data-mood="academic">Academic</div>
+              <div class="chip" data-mood="dramatic">Dramatic</div>
+            </div>
+            <small class="note">Moods inject small guidance snippets into the system JSON. You can combine with narrative styles below.</small>
+          </div>
+
+          <!-- Narrative styles -->
+          <div class="field" style="margin-top:8px;">
+            <label>Narrative Style</label>
+            <div class="chips" id="style_chips">
+              <div class="chip" data-style="default" aria-checked="true">Default</div>
+              <div class="chip" data-style="purple-lite">Purple‑lite</div>
+              <div class="chip" data-style="noir">Noir</div>
+              <div class="chip" data-style="cinematic">Cinematic</div>
+              <div class="chip" data-style="comedic">Comedic</div>
+              <div class="chip" data-style="poetic">Poetic</div>
+            </div>
+          </div>
+
+          <!-- Roleplay options -->
+          <div class="field" style="margin-top:8px;">
+            <label>Special Roleplay Options</label>
+            <div class="chips" id="rp_chips">
+              <div class="chip" data-rp="vampire">Vampire AU</div>
+              <div class="chip" data-rp="aliens">Aliens</div>
+              <div class="chip" data-rp="mafia">Mafia</div>
+              <div class="chip" data-rp="fantasy">High Fantasy</div>
+              <div class="chip" data-rp="sci-fi">Sci‑Fi</div>
+              <div class="chip" data-rp="omegaverse">Omegaverse</div>
+            </div>
+            <small class="note">Multiple can be selected. These add light scaffolding lines to the prompt JSON.</small>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- Custom key-values -->
+          <div class="field">
+            <label>Custom Fields</label>
+            <div id="kv_list"></div>
+            <button type="button" class="btn ghost" id="add_kv">+ Add Field</button>
+            <small class="note">Add any JSON fields you want included in the system prompt object.</small>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- JSON Preview -->
+          <div class="field">
+            <label>System JSON Preview</label>
+            <pre class="json-preview" id="json_preview">{}</pre>
+          </div>
+        </section>
+
+        <!-- Presets & Export -->
+        <section id="presets" class="card">
+          <h3>Presets & Export</h3>
+          <p class="subtle">Save your current configuration as a preset JSON. Import to restore.</p>
+          <div class="bar" style="margin-top:8px;">
+            <button class="btn secondary" id="reset_defaults">Reset to Defaults</button>
+            <input type="file" id="import_file" accept="application/json" style="display:none" />
+            <button class="btn secondary" id="import_preset">Import Preset</button>
+            <button class="btn" id="export_preset">Export Preset</button>
+            <button class="btn" id="apply_settings">Apply Settings</button>
+          </div>
+          <p class="note" style="margin-top:8px;">Export generates a <span class="pill">.json</span> with model, sampling, output, safety, and prompt data.</p>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    // ------- UTILITIES -------
+    const $ = (s, r = document) => r.querySelector(s);
+    const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+    const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
+
+    // Defaults
+    const DEFAULTS = {
+      model: "gpt-4o-mini",
+      max_tokens: 2048,
+      seed: null,
+      sampling: {
+        temperature: 0.9, top_p: 0.9, top_k: 40, typical_p: 1.0, tfs: 0.9,
+        mirostat: 0, mirostat_tau: 5.0, mirostat_eta: 0.1,
+        presence_penalty: 0.0, frequency_penalty: 0.0, repetition_penalty: 1.0
+      },
+      output: {
+        max_response_tokens: 1024,
+        stop_sequences: [],
+        stream: true,
+        json_mode: false,
+        sanitize_md: true
+      },
+      safety: {
+        is_18: false, nsfw_enabled: false,
+        nsfw_style: "fade-to-black",
+        consent_emphasis: false,
+        safeword: "",
+        violence_level: 1
+      },
+      prompt: {
+        persona: "",
+        rules: "",
+        scenario: "",
+        goals: "",
+        mood: "balanced",
+        narrative_style: "default",
+        roleplay: [],
+        custom: {}
+      }
+    };
+
+    // State
+    let state = JSON.parse(JSON.stringify(DEFAULTS));
+
+    // ------- BIND SLIDERS TO VALUES -------
+    const bindRange = (id) => {
+      const input = $("#" + id);
+      const out = $("#" + id + "_val");
+      if (!input || !out) return;
+      const update = () => {
+        let val = input.value;
+        if (id === "mirostat_eta") val = Number(val).toFixed(3);
+        else if (["temperature","top_p","typical_p","tfs","presence_penalty","frequency_penalty","repetition_penalty"].includes(id)) val = Number(val).toFixed(2);
+        out.textContent = val;
+        writeStateFromUI();
+      };
+      input.addEventListener("input", update);
+      update();
+    };
+
+    ["temperature","top_p","top_k","typical_p","tfs",
+     "mirostat_tau","mirostat_eta","presence_penalty",
+     "frequency_penalty","repetition_penalty","violence_level"]
+     .forEach(bindRange);
+
+    // Mirostat select
+    $("#mirostat")?.addEventListener("change", () => writeStateFromUI());
+
+    // Base selects and inputs
+    ["model","max_tokens","seed","max_response_tokens","stop_sequences"].forEach(id => {
+      const el = $("#" + id);
+      el?.addEventListener("input", () => writeStateFromUI());
+    });
+
+    // Toggles
+    ["stream","json_mode","sanitize_md","is_18","nsfw_enabled","consent_emphasis"].forEach(id => {
+      $("#" + id)?.addEventListener("change", () => {
+        enforceNSFWLocks();
+        writeStateFromUI();
+      });
+    });
+
+    $("#nsfw_style")?.addEventListener("change", () => writeStateFromUI());
+    $("#safeword")?.addEventListener("input", () => writeStateFromUI());
+
+    // Prompt textareas
+    ["persona","rules","scenario","goals"].forEach(id => {
+      $("#" + id)?.addEventListener("input", () => writeStateFromUI());
+    });
+
+    // Mood chips (single select)
+    const moodChips = $("#mood_chips");
+    moodChips?.addEventListener("click", (e) => {
+      const chip = e.target.closest(".chip");
+      if (!chip) return;
+      $$("#mood_chips .chip").forEach(c => c.setAttribute("aria-checked","false"));
+      chip.setAttribute("aria-checked","true");
+      writeStateFromUI();
+    });
+
+    // Style chips (single select)
+    $("#style_chips")?.addEventListener("click", (e) => {
+      const chip = e.target.closest(".chip");
+      if (!chip) return;
+      $$("#style_chips .chip").forEach(c => c.setAttribute("aria-checked","false"));
+      chip.setAttribute("aria-checked","true");
+      writeStateFromUI();
+    });
+
+    // RP chips (multi select)
+    $("#rp_chips")?.addEventListener("click", (e) => {
+      const chip = e.target.closest(".chip");
+      if (!chip) return;
+      const selected = chip.getAttribute("aria-checked") === "true";
+      chip.setAttribute("aria-checked", selected ? "false" : "true");
+      writeStateFromUI();
+    });
+
+    // Custom KV add/remove
+    const kvList = $("#kv_list");
+    $("#add_kv")?.addEventListener("click", () => {
+      addKVRow();
+    });
+
+    function addKVRow(key="", value="") {
+      const row = document.createElement("div");
+      row.className = "kv-grid";
+      row.innerHTML = `
+        <input type="text" class="kv-key" placeholder="key" value="${key}"/>
+        <input type="text" class="kv-val" placeholder="value (JSON auto-coerced)" value='${value}'/>
+        <button type="button" class="btn secondary kv-del">Remove</button>
+      `;
+      kvList.appendChild(row);
+      row.querySelector(".kv-del").addEventListener("click", () => {
+        row.remove();
+        writeStateFromUI();
+      });
+      row.querySelector(".kv-key").addEventListener("input", () => writeStateFromUI());
+      row.querySelector(".kv-val").addEventListener("input", () => writeStateFromUI());
+    }
+
+    // NSFW enablement logic
+    function enforceNSFWLocks() {
+      const is18 = $("#is_18").checked;
+      const enabled = $("#nsfw_enabled").checked && is18;
+      $("#nsfw_style").disabled = !enabled;
+      $("#consent_emphasis").disabled = !enabled;
+      $("#safeword").disabled = !enabled;
+      if (!enabled) {
+        $("#nsfw_style").value = DEFAULTS.safety.nsfw_style;
+        $("#consent_emphasis").checked = DEFAULTS.safety.consent_emphasis;
+        $("#safeword").value = "";
+      }
+    }
+    enforceNSFWLocks();
+
+    // Build a system JSON that includes snippets derived from mood/style/rp.
+    function buildSystemJSON() {
+      const moodSnippets = {
+        balanced: "Keep tone balanced and adaptive to user cues.",
+        flirty: "Add light flirtation, playful banter, and warmth; stay respectful.",
+        wholesome: "Emphasize kindness, encouragement, and cozy vibes.",
+        stoic: "Be concise, reserved, and calm; minimize emotional language.",
+        tsundere: "Alternate between prickly teasing and shy affection; never cruel.",
+        menacing: "Maintain a controlled, ominous edge; avoid glorifying harm.",
+        academic: "Adopt a precise, rigorous style with sources when relevant.",
+        dramatic: "Heighten stakes and cadence; cinematic flair with restraint."
+      };
+      const styleSnippets = {
+        default: "",
+        "purple-lite": "Allow small bursts of colorful language, then return to clarity.",
+        noir: "Use moody, sardonic asides; crisp sentences; sparse metaphors.",
+        cinematic: "Stage scenes with clear beats and visual pacing.",
+        comedic: "Lean into timing, callbacks, and gentle sarcasm.",
+        poetic: "Permit lyrical phrasing in brief, deliberate bursts."
+      };
+      const rpScaffolds = {
+        vampire: "World element: vampirism exists; consent‑first intimacy; mortal/immortal dynamics.",
+        aliens: "World element: extraterrestrial cultures and tech; first‑contact etiquette.",
+        mafia: "World element: organized crime undercurrents; power plays; etiquette of influence.",
+        "sci-fi": "World element: advanced tech, cybernetics, and AI alignment themes.",
+        fantasy: "World element: magic systems with rules; guilds, orders, artifacts.",
+        omegaverse: "World element: secondary genders; bonds require consent and safety logistics."
+      };
+
+      const mood = $("#mood_chips .chip[aria-checked='true']")?.dataset.mood || "balanced";
+      const style = $("#style_chips .chip[aria-checked='true']")?.dataset.style || "default";
+      const rp = $$("#rp_chips .chip[aria-checked='true']").map(c => c.dataset.rp);
+
+      // Gather custom fields
+      const custom = {};
+      $$(".kv-grid").forEach(row => {
+        const k = row.querySelector(".kv-key").value.trim();
+        const vRaw = row.querySelector(".kv-val").value.trim();
+        if (!k) return;
+        let val;
+        try {
+          // Try to coerce basic JSON (numbers, booleans, objects/arrays, strings)
+          val = JSON.parse(vRaw);
+        } catch {
+          val = vRaw;
+        }
+        custom[k] = val;
+      });
+
+      const json = {
+        persona: $("#persona").value.trim(),
+        rules: $("#rules").value.trim(),
+        scenario: $("#scenario").value.trim(),
+        goals: $("#goals").value.trim(),
+        mood,
+        mood_hint: moodSnippets[mood] || "",
+        narrative_style: style,
+        narrative_hint: styleSnippets[style] || "",
+        roleplay: rp,
+        roleplay_scaffolds: rp.map(k => rpScaffolds[k] || ""),
+        custom
+      };
+      return json;
+    }
+
+    // Serialize full preset
+    function buildPreset() {
+      const sys = buildSystemJSON();
+      return {
+        model: state.model,
+        max_tokens: state.max_tokens,
+        seed: state.seed,
+        sampling: state.sampling,
+        output: state.output,
+        safety: state.safety,
+        prompt: sys
+      };
+    }
+
+    // Write state from UI controls
+    function writeStateFromUI() {
+      state.model = $("#model").value;
+      state.max_tokens = Number($("#max_tokens").value);
+      state.seed = $("#seed").value === "" ? null : Number($("#seed").value);
+
+      state.sampling.temperature = Number($("#temperature").value);
+      state.sampling.top_p = Number($("#top_p").value);
+      state.sampling.top_k = Number($("#top_k").value);
+      state.sampling.typical_p = Number($("#typical_p").value);
+      state.sampling.tfs = Number($("#tfs").value);
+      state.sampling.mirostat = Number($("#mirostat").value);
+      state.sampling.mirostat_tau = Number($("#mirostat_tau").value);
+      state.sampling.mirostat_eta = Number($("#mirostat_eta").value);
+      state.sampling.presence_penalty = Number($("#presence_penalty").value);
+      state.sampling.frequency_penalty = Number($("#frequency_penalty").value);
+      state.sampling.repetition_penalty = Number($("#repetition_penalty").value);
+
+      state.output.max_response_tokens = Number($("#max_response_tokens").value);
+      state.output.stop_sequences = $("#stop_sequences").value
+        .split(",")
+        .map(s => s.trim())
+        .filter(Boolean);
+      state.output.stream = $("#stream").checked;
+      state.output.json_mode = $("#json_mode").checked;
+      state.output.sanitize_md = $("#sanitize_md").checked;
+
+      state.safety.is_18 = $("#is_18").checked;
+      state.safety.nsfw_enabled = $("#nsfw_enabled").checked && state.safety.is_18;
+      state.safety.nsfw_style = $("#nsfw_style").value;
+      state.safety.consent_emphasis = $("#consent_emphasis").checked && state.safety.nsfw_enabled;
+      state.safety.safeword = $("#safeword").value;
+      state.safety.violence_level = Number($("#violence_level").value);
+
+      // Update preview
+      const sys = buildSystemJSON();
+      $("#json_preview").textContent = JSON.stringify(sys, null, 2);
+    }
+
+    // Populate UI from state
+    function readStateToUI(s) {
+      $("#model").value = s.model;
+      $("#max_tokens").value = s.max_tokens;
+      $("#seed").value = s.seed ?? "";
+
+      $("#temperature").value = s.sampling.temperature;
+      $("#top_p").value = s.sampling.top_p;
+      $("#top_k").value = s.sampling.top_k;
+      $("#typical_p").value = s.sampling.typical_p;
+      $("#tfs").value = s.sampling.tfs;
+      $("#mirostat").value = s.sampling.mirostat;
+      $("#mirostat_tau").value = s.sampling.mirostat_tau;
+      $("#mirostat_eta").value = s.sampling.mirostat_eta;
+      $("#presence_penalty").value = s.sampling.presence_penalty;
+      $("#frequency_penalty").value = s.sampling.frequency_penalty;
+      $("#repetition_penalty").value = s.sampling.repetition_penalty;
+
+      $("#max_response_tokens").value = s.output.max_response_tokens;
+      $("#stop_sequences").value = (s.output.stop_sequences || []).join(", ");
+      $("#stream").checked = s.output.stream;
+      $("#json_mode").checked = s.output.json_mode;
+      $("#sanitize_md").checked = s.output.sanitize_md;
+
+      $("#is_18").checked = s.safety.is_18;
+      $("#nsfw_enabled").checked = s.safety.nsfw_enabled;
+      $("#nsfw_style").value = s.safety.nsfw_style;
+      $("#consent_emphasis").checked = s.safety.consent_emphasis;
+      $("#safeword").value = s.safety.safeword || "";
+      $("#violence_level").value = s.safety.violence_level;
+      // Update range labels
+      ["temperature","top_p","top_k","typical_p","tfs",
+       "mirostat_tau","mirostat_eta","presence_penalty",
+       "frequency_penalty","repetition_penalty","violence_level"]
+       .forEach(id => {
+         const input = $("#" + id);
+         const out = $("#" + id + "_val");
+         if (!input || !out) return;
+         let val = input.value;
+         if (id === "mirostat_eta") val = Number(val).toFixed(3);
+         else if (["temperature","top_p","typical_p","tfs","presence_penalty","frequency_penalty","repetition_penalty"].includes(id)) val = Number(val).toFixed(2);
+         out.textContent = val;
+       });
+
+      // Prompt
+      $("#persona").value = s.prompt.persona || "";
+      $("#rules").value = s.prompt.rules || "";
+      $("#scenario").value = s.prompt.scenario || "";
+      $("#goals").value = s.prompt.goals || "";
+
+      // Moods/styles chips
+      $$("#mood_chips .chip").forEach(c => c.setAttribute("aria-checked","false"));
+      const moodChip = $(`#mood_chips .chip[data-mood="${s.prompt.mood}"]`) || $(`#mood_chips .chip[data-mood="balanced"]`);
+      moodChip?.setAttribute("aria-checked","true");
+
+      $$("#style_chips .chip").forEach(c => c.setAttribute("aria-checked","false"));
+      const styleChip = $(`#style_chips .chip[data-style="${s.prompt.narrative_style}"]`) || $(`#style_chips .chip[data-style="default"]`);
+      styleChip?.setAttribute("aria-checked","true");
+
+      $$("#rp_chips .chip").forEach(c => c.setAttribute("aria-checked","false"));
+      (s.prompt.roleplay || []).forEach(k => {
+        $(`#rp_chips .chip[data-rp="${k}"]`)?.setAttribute("aria-checked","true");
+      });
+
+      // Custom KV
+      kvList.innerHTML = "";
+      const custom = s.prompt.custom || {};
+      Object.keys(custom).forEach(k => addKVRow(k, typeof custom[k] === "string" ? custom[k] : JSON.stringify(custom[k])));
+
+      enforceNSFWLocks();
+      writeStateFromUI();
+    }
+
+    // Presets
+    $("#reset_defaults")?.addEventListener("click", () => {
+      state = JSON.parse(JSON.stringify(DEFAULTS));
+      readStateToUI(state);
+    });
+
+    $("#export_preset")?.addEventListener("click", () => {
+      const data = buildPreset();
+      const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "chat_settings_preset.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    $("#import_preset")?.addEventListener("click", () => $("#import_file").click());
+    $("#import_file")?.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const obj = JSON.parse(reader.result);
+          // Basic shape check
+          if (!obj || typeof obj !== "object") throw new Error("Invalid preset");
+          state = Object.assign({}, DEFAULTS, obj);
+          // Deep merge some parts to keep keys
+          state.sampling = Object.assign({}, DEFAULTS.sampling, obj.sampling || {});
+          state.output = Object.assign({}, DEFAULTS.output, obj.output || {});
+          state.safety = Object.assign({}, DEFAULTS.safety, obj.safety || {});
+          state.prompt = Object.assign({}, DEFAULTS.prompt, obj.prompt || {});
+          readStateToUI(state);
+        } catch (err) {
+          alert("Failed to import preset: " + err.message);
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = "";
+    });
+
+    $("#apply_settings")?.addEventListener("click", () => {
+      const preset = buildPreset();
+      // For demo: just log. In your app, send this to backend or persist.
+      console.log("APPLY SETTINGS:", preset);
+      alert("Settings applied! (Check console for payload.)");
+    });
+
+    // Init
+    window.addEventListener("DOMContentLoaded", () => {
+      // Seed with one example custom field
+      addKVRow("world.clock_speed", "1.0");
+      addKVRow("style.dialog_tags", '["gaze", "breath", "touch"]');
+      readStateToUI(state);
+    });
+
+    // Left-rail active highlight on scroll (simple)
+    const sections = ["sampling","output","safety","prompt","presets"].map(id => document.getElementById(id));
+    window.addEventListener("scroll", () => {
+      const y = window.scrollY + 100;
+      let active = "sampling";
+      sections.forEach(sec => {
+        if (sec && sec.offsetTop <= y) active = sec.id;
+      });
+      $$(".rail-link").forEach(a => a.classList.toggle("active", a.getAttribute("href") === "#"+active));
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,221 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat - Narrative AI</title>
+    <link rel="stylesheet" href="{% static 'mainapp/chat.css' %}">
+    <style>
+        :root {
+            --bg-primary: #121520;
+            --ui-primary: #2A2F4A;
+            --ui-secondary: #1E293B;
+            --accent-purple: #7E3AF2;
+            --accent-green: #10B981;
+            --accent-pink: #F43F5E;
+            --text-primary: #F1F5F9;
+            --text-secondary: #94A3B8;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .btn-primary,
+        .btn-secondary {
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: background 0.2s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-purple), #9863FF);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        .btn-secondary {
+            background-color: var(--ui-secondary);
+            color: var(--text-secondary);
+            border: 1px solid var(--accent-purple);
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(126, 58, 242, 0.1);
+        }
+
+        .form-input {
+            background-color: var(--ui-secondary);
+            color: var(--text-primary);
+            border: none;
+            border-radius: 6px;
+            padding: 10px 14px;
+        }
+
+        .flex {
+            display: flex;
+        }
+
+        .flex-col {
+            flex-direction: column;
+        }
+
+        .justify-between {
+            justify-content: space-between;
+        }
+
+        .items-center {
+            align-items: center;
+        }
+
+        .text-xl {
+            font-size: 1.25rem;
+        }
+
+        .font-bold {
+            font-weight: 700;
+        }
+
+        .overflow-y-auto {
+            overflow-y: auto;
+        }
+
+        .p-4 {
+            padding: 1rem;
+        }
+
+        .space-x-2 > * + * {
+            margin-left: 0.5rem;
+        }
+
+        .min-h-screen {
+            min-height: 100vh;
+        }
+
+        .bg-secondary {
+            background-color: var(--ui-primary);
+        }
+
+        .message-content {
+            background-color: var(--ui-secondary);
+            border-radius: 8px;
+            padding: 10px 14px;
+            max-width: 75%;
+        }
+
+        .message-content.character {
+            border-left: 4px solid var(--accent-purple);
+        }
+
+        .w-5, .h-5 {
+            width: 1.25rem;
+            height: 1.25rem;
+        }
+
+        .absolute {
+            position: absolute;
+        }
+
+        .top-4 {
+            top: 1rem;
+        }
+
+        .left-4 {
+            left: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .flex-col-mobile {
+                flex-direction: column;
+            }
+
+            .w-full-mobile {
+                width: 100% !important;
+            }
+
+            .h-half-mobile {
+                height: 50vh !important;
+            }
+
+            .absolute {
+                position: static;
+                margin: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="min-h-screen flex flex-col">
+        <!-- Conversation Page -->
+        <div class="flex flex-col-mobile h-screen">
+            <!-- Character Sprite (Left Half) -->
+            <div id="characterSprite" class="w-full-mobile h-half-mobile bg-cover bg-center" style="width: 50%; height: 100%;"></div>
+
+            <!-- Chat Area (Right Half) -->
+            <div class="w-full-mobile flex flex-col bg-secondary" style="width: 50%;">
+                <!-- Header with Edit Button -->
+                <div class="p-4 border-b flex justify-between items-center">
+                    <h2 id="characterName" class="text-xl font-bold">Character Name</h2>
+                    <button id="editCharacterBtn" class="btn-primary">
+                        Edit Character
+                    </button>
+                </div>
+
+                <!-- Scrollable Message Area -->
+                <div id="messageArea" class="flex-1 overflow-y-auto p-4">
+                    <div id="initialMessage" class="mb-4">
+                        <div class="flex items-start">
+                            <div class="message-content character">
+                                <p id="characterDescription">Character description will appear here...</p>
+                                <button id="playAudioBtn" class="mt-2 hidden" style="color: var(--accent-purple); background: none; border: none;">
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M6 4v12l10-6-10-6z" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Dynamic messages will be added here -->
+                </div>
+
+                <!-- Input Panel -->
+                <div class="p-4 border-t">
+                    <div class="flex items-center space-x-2">
+                        <input type="text" id="messageInput" placeholder="Type your message..."
+                               class="flex-1 form-input">
+                        <button id="attachFileBtn" class="btn-secondary" title="Attach File">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M2 3h16v14H2V3zm2 2v10h12V5H4z" />
+                            </svg>
+                        </button>
+                        <button id="continueBtn" class="btn-secondary" title="Continue Message">
+                            Continue
+                        </button>
+                        <button id="impersonateBtn" class="btn-secondary" title="Impersonate">
+                            Impersonate
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button id="backBtn" class="absolute top-4 left-4 btn-secondary">
+            Back
+        </button>
+    </div>
+
+    <script src="{% static 'mainapp/data.js' %}"></script>
+    <script src="{% static 'mainapp/chat.js' %}"></script>
+</body>
+</html>

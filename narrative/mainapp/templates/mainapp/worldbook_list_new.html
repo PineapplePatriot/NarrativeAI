@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>World Books - Narrative AI</title>
+  <style>
+    /* === ВСІ твої стилі === */
+    :root{
+      --bg-primary:#121520;--ui-primary:#2A2F4A;--ui-secondary:#1E293B;--ui-tertiary:#0F172A;
+      --accent-1:#7E3AF2;--accent-2:#10B981;--accent-3:#F43F5E;--accent-4:#F59E0B;
+      --text-primary:#F1F5F9;--text-secondary:#94A3B8;--text-muted:#64748B;
+      --border-color:rgba(255,255,255,.1);
+      --shadow-lg:0 20px 25px -5px rgba(0,0,0,.1)
+    }
+    *{box-sizing:border-box;margin:0;padding:0;font-family:'Inter','Segoe UI',Tahoma,Verdana,sans-serif}
+    body{background:var(--bg-primary);color:var(--text-primary);min-height:100vh;line-height:1.6;
+      background-image:radial-gradient(circle at 20% 35%,rgba(46,49,73,.15) 0%,transparent 50%),
+                      radial-gradient(circle at 75% 44%,rgba(126,58,242,.08) 0%,transparent 33%),
+                      radial-gradient(circle at 40% 80%,rgba(16,185,129,.05) 0%,transparent 40%);}
+    .container{max-width:1400px;margin:0 auto;padding:0 20px}
+    .header{padding:30px 0;border-bottom:1px solid var(--border-color);margin-bottom:30px}
+    .header-content{display:flex;gap:20px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    .back-nav{display:flex;gap:10px;align-items:center;color:var(--text-secondary);text-decoration:none;font-size:.9rem}
+    .back-nav:hover{color:var(--accent-1)}
+    .back-nav svg{width:16px;height:16px;fill:currentColor}
+    .page-title{flex:1;min-width:260px}
+    .page-title h1{font-size:2rem;font-weight:700;margin-bottom:5px;
+      background:linear-gradient(135deg,var(--text-primary),var(--accent-1));
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .page-subtitle{color:var(--text-secondary);font-size:1rem}
+    .actions{display:flex;gap:10px;align-items:center}
+    .btn{background:var(--ui-secondary);border:1px solid var(--border-color);color:#fff;padding:12px 14px;border-radius:10px;
+      font-weight:600;cursor:pointer;display:flex;gap:8px;align-items:center;text-decoration:none}
+    .btn.primary{background:linear-gradient(135deg,var(--accent-1),#9863FF);border:none}
+    .btn:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(126,58,242,.15)}
+    .btn svg{width:18px;height:18px;fill:#fff}
+    .search-bar{background:var(--ui-secondary);border:1px solid var(--border-color);border-radius:10px;padding:12px 16px;
+      color:var(--text-primary);font-size:.9rem;width:300px}
+    .search-bar:focus{outline:none;border-color:var(--accent-1);box-shadow:0 0 0 3px rgba(126,58,242,.1)}
+    .worldbooks-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(350px,1fr));gap:25px;padding:20px 0}
+    .worldbook-card{background:var(--ui-primary);border:1px solid var(--border-color);border-radius:12px;padding:25px;position:relative;overflow:hidden;transition:.3s}
+    .worldbook-card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent-1),var(--accent-2));transform:scaleX(0);transform-origin:left;transition:transform .3s}
+    .worldbook-card:hover{transform:translateY(-3px);border-color:rgba(126,58,242,.3);box-shadow:var(--shadow-lg)}
+    .worldbook-card:hover::before{transform:scaleX(1)}
+    .worldbook-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:15px}
+    .worldbook-icon{width:48px;height:48px;background:linear-gradient(135deg,var(--accent-4),#FCD34D);border-radius:10px;display:flex;align-items:center;justify-content:center}
+    .worldbook-icon svg{width:24px;height:24px;fill:#fff}
+    .worldbook-actions{display:flex;gap:8px}
+    .action-btn{background:var(--ui-secondary);border:1px solid var(--border-color);border-radius:6px;padding:6px;cursor:pointer}
+    .action-btn svg{width:16px;height:16px;fill:var(--text-secondary)}
+    .action-btn.edit:hover svg{fill:var(--accent-1)} .action-btn.delete:hover svg{fill:var(--accent-3)}
+    .worldbook-title{font-size:1.2rem;font-weight:600;margin-bottom:8px}
+    .worldbook-description{color:var(--text-secondary);font-size:.9rem;line-height:1.5;margin-bottom:15px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+    .worldbook-meta{display:flex;justify-content:space-between;align-items:center;padding-top:15px;border-top:1px solid var(--border-color)}
+    .entry-count{display:flex;gap:6px;align-items:center;font-size:.8rem;color:var(--text-muted)}
+    .worldbook-date{font-size:.8rem;color:var(--text-muted)}
+    .empty-state{text-align:center;padding:60px 20px}
+    .empty-icon{width:64px;height:64px;margin:0 auto 20px;opacity:.3}
+    .empty-icon svg{width:100%;height:100%;fill:var(--text-secondary)}
+    .empty-title{font-size:1.5rem;font-weight:600;margin-bottom:10px;color:var(--text-secondary)}
+    .empty-description{color:var(--text-muted);margin-bottom:25px}
+    @media (max-width:900px){.search-bar{width:100%}.actions{width:100%}.header-content{gap:12px}}
+    .toast{position:fixed;right:20px;bottom:20px;background:var(--ui-secondary);border:1px solid var(--border-color);padding:12px 14px;border-radius:10px;display:none}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="header-content">
+        <a href="{% url 'home' %}" class="back-nav">
+          <svg viewBox="0 0 24 24"><path d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"/></svg>
+          Back to Dashboard
+        </a>
+        <div class="page-title">
+          <h1>World Books</h1>
+          <p class="page-subtitle">Manage your story contexts and lore databases</p>
+        </div>
+        <div class="actions">
+          <a class="btn primary" href="{% url 'worldbook_create' %}">
+            <svg viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/></svg>
+            Create New
+          </a>
+        </div>
+      </div>
+    </div>
+
+    {% if worldbooks %}
+    <div class="worldbooks-grid">
+      {% for wb in worldbooks %}
+      <div class="worldbook-card">
+        <div class="worldbook-header">
+          <div class="worldbook-icon">
+            <svg viewBox="0 0 24 24"><path d="M18,22A2,2 0 0,0 20,20V4A2,2 0 0,0 18,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18M6,4H18V20H6V4M7,5V7H17V5H7M7,8V10H17V8H7M7,11V13H17V11H7M7,14V16H14V14H7Z"/></svg>
+          </div>
+          <div class="worldbook-actions">
+            <a class="action-btn edit" title="Edit" href="{% url 'worldbook_detail' wb.slug %}">
+              <svg viewBox="0 0 24 24"><path d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"/></svg>
+            </a>
+            <a class="action-btn delete" title="Delete" href="{% url 'worldbook_detail' wb.slug %}">
+              <svg viewBox="0 0 24 24"><path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/></svg>
+            </a>
+          </div>
+        </div>
+        <h3 class="worldbook-title">{{ wb.title }}</h3>
+        <p class="worldbook-description">{{ wb.description|default:"No description" }}</p>
+        <div class="worldbook-meta">
+          <div class="entry-count">Entries: {{ wb.entry_set.count }}</div>
+          <div class="worldbook-date">Updated: {{ wb.time_update|date:"Y-m-d H:i" }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">
+          <svg viewBox="0 0 24 24"><path d="M19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M19,19H5V5H19V19Z"/></svg>
+        </div>
+        <h2 class="empty-title">No worldbooks yet</h2>
+        <p class="empty-description">Create your first worldbook to start building rich story contexts and character knowledge.</p>
+        <a class="btn primary" href="{% url 'worldbook_create' %}">
+          <svg viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/></svg>
+          Create First Worldbook
+        </a>
+      </div>
+    {% endif %}
+  </div>
+</body>
+</html>

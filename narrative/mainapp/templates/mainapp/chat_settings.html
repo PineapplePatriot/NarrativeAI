@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Narrative AI — Chat Settings</title>
+  <!-- Base theme tokens & components -->
+  <link rel="stylesheet" href="styles.css" />
+  <!-- Page-specific cosmetics kept inline for now so you can copy it out to chat-settings.css later. -->
+  <style>
+        :root {
+            --bg-primary: #121520;
+            --ui-primary: #2A2F4A;
+             --ui-secondary: #1E293B;
+            --ui-tertiary: #0F172A;
+            --accent-1: #7E3AF2;
+            --accent-2: #10B981;
+            --accent-3: #F43F5E;
+            --accent-4: #F59E0B;
+            --text-primary: #F1F5F9;
+            --text-secondary: #94A3B8;
+            --text-muted: #64748B;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            background-image:
+                radial-gradient(circle at 20% 35%, rgba(46, 49, 73, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 75% 44%, rgba(126, 58, 242, 0.08) 0%, transparent 33%),
+                radial-gradient(circle at 40% 80%, rgba(16, 185, 129, 0.05) 0%, transparent 40%);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .top-panel { background: transparent; }
+
+        .nav-grid { display:flex; gap:12px; align-items:center; }
+        .nav-item { display:flex; gap:12px; align-items:center; padding:12px; border-radius:10px; text-decoration:none; color:var(--text-primary); }
+        .nav-item .icon { width:32px; height:32px; fill:var(--text-secondary); }
+        .nav-item.active, .nav-item:hover { background: rgba(126,58,242,0.06); border:1px solid rgba(126,58,242,0.08); }
+
+        .page { padding: 32px 0 60px; }
+        .breadcrumbs { color: var(--text-secondary); font-size: .9rem; margin: 8px 0 20px; }
+        .breadcrumbs a { color: var(--text-secondary); text-decoration: none; }
+        .breadcrumbs a:hover { color: var(--accent-1); }
+
+        .settings-grid {
+          display: grid;
+          grid-template-columns: 280px 1fr;
+          gap: 24px;
+        }
+
+        /* left rail */
+        .side-rail {
+          background: var(--ui-tertiary);
+          border: 1px solid var(--border-color);
+          border-radius: 12px;
+          padding: 14px;
+          position: sticky;
+          top: 92px;
+          height: fit-content;
+        }
+        .side-rail h4 { font-size: .9rem; color: var(--text-muted); margin: 4px 8px 10px; text-transform: uppercase; letter-spacing: .06em; }
+        .rail-link { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; color: var(--text-primary); text-decoration: none; border: 1px solid transparent; }
+        .rail-link:hover { background: rgba(126,58,242,0.08); border-color: var(--border-color); }
+        .rail-link.active { background: rgba(126,58,242,0.14); border-color: rgba(126,58,242,0.35); box-shadow: 0 0 0 2px rgba(126,58,242,0.15) inset; }
+
+        /* content cards */
+        .card { background: var(--ui-secondary); border: 1px solid var(--border-color); border-radius: 14px; padding: 18px; }
+        .card + .card { margin-top: 18px; }
+        .card h3 { font-size: 1.05rem; margin-bottom: 12px; }
+        .subtle { color: var(--text-secondary); font-size: .92rem; }
+
+        .two-col { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; }
+        .three-col { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 16px; }
+
+        .field { display: grid; gap: 8px; }
+        .field label { font-weight: 600; font-size: .92rem; }
+        .field small { color: var(--text-secondary); font-size: .8rem; }
+
+        .range-row { display: grid; grid-template-columns: 1fr 72px; align-items: center; gap: 10px; }
+        .range-val { text-align: right; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+
+        .toggle { display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 999px; background: var(--ui-primary); border: 1px solid var(--border-color); cursor: pointer; user-select: none; }
+        .toggle input { display: none; }
+        .dot { width: 14px; height: 14px; border-radius: 999px; background: #8b8b8b; box-shadow: 0 0 0 2px rgba(0,0,0,.15) inset; }
+        .toggle input:checked + .dot { background: var(--accent-2); box-shadow: 0 0 0 2px rgba(0,0,0,.25) inset, 0 0 0 3px rgba(16,185,129,.25); }
+
+        .chips { display:flex; flex-wrap: wrap; gap: 8px; }
+        .chip { background: var(--ui-primary); border:1px solid var(--border-color); color: var(--text-primary); padding: 8px 10px; border-radius: 999px; cursor:pointer; font-size:.9rem; }
+        .chip[aria-checked="true"] { background: rgba(126,58,242,.18); border-color: rgba(126,58,242,.45); }
+
+        .json-preview { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; background: #0b1021; border: 1px solid var(--border-color); border-radius: 12px; padding: 12px; color: #cfe3ff; white-space: pre; overflow: auto; max-height: 260px; }
+
+        .bar { display:flex; gap:10px; justify-content:flex-end; }
+        .btn { background: linear-gradient(135deg, var(--accent-1), #9863FF); color:#fff; border:none; padding:10px 14px; border-radius:10px; cursor:pointer; font-weight:600; }
+        .btn.secondary { background: var(--ui-primary); color: var(--text-primary); border:1px solid var(--border-color); }
+
+        .nsfw-note { font-size: .85rem; color: var(--text-secondary); }
+
+        @media (max-width: 1024px){ .settings-grid{ grid-template-columns: 1fr; } .side-rail{ position: static; } }
+  </style>
+</head>
+<body>
+  <!-- Reuse the existing top nav visual; mark Chat Settings active and link other tabs to your pages when you add them. -->
+  <div class="top-panel">
+    <div class="container">
+      <div class="nav-grid">
+        <a class="nav-item" href="index.html" data-section="connection">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M12,2A2,2 0 0,1 14,4C14,4.74 13.6,5.39 13,5.73V7H14A7,7 0 0,1 21,14H22A1,1 0 0,1 23,15V18A1,1 0 0,1 22,19H21V20A2,2 0 0,1 19,22H5A2,2 0 0,1 3,20V19H2A1,1 0 0,1 1,18V15A1,1 0 0,1 2,14H3A7,7 0 0,1 10,7H11V5.73C10.4,5.39 10,4.74 10,4A2,2 0 0,1 12,2M7.5,13A2.5,2.5 0 0,0 5,15.5A2.5,2.5 0 0,0 7.5,18A2.5,2.5 0 0,0 10,15.5A2.5,2.5 0 0,0 7.5,13M16.5,13A2.5,2.5 0 0,0 14,15.5A2.5,2.5 0 0,0 16.5,18A2.5,2.5 0 0,0 19,15.5A2.5,2.5 0 0,0 16.5,13Z"></path></svg>
+          <div class="nav-item-content">
+            <div class="nav-item-title">Chat Settings</div>
+            <div class="nav-item-subtitle">Temperature, Prompts</div>
+          </div>
+        </a>
+        <a class="nav-item" href="#" data-section="characters">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M16,4C18.11,4 20.11,4.89 21.61,6.39C23.11,7.89 24,9.89 24,12A8,8 0 0,1 16,20H5A5,5 0 0,1 0,15A5,5 0 0,1 5,10C5.59,7.81 7.69,6 10.25,6C11.42,6 12.58,6.4 13.5,7.08C14.19,6.41 15.04,6 16,6M16,8A3,3 0 0,0 13,11H12V12A1,1 0 0,1 11,13A1,1 0 0,1 10,12V11A3,3 0 0,0 7,8A3,3 0 0,0 4,11A3,3 0 0,0 7,14H16A6,6 0 0,0 22,8A6,6 0 0,0 16,2Z"></path></svg>
+          <div class="nav-item-content">
+            <div class="nav-item-title">Chat (Characters)</div>
+            <div class="nav-item-subtitle">Conversations</div>
+          </div>
+        </a>
+        <a class="nav-item" href="#" data-section="user">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"></path></svg>
+          <div class="nav-item-content">
+            <div class="nav-item-title">User</div>
+            <div class="nav-item-subtitle">Profile & Settings</div>
+          </div>
+        </a>
+        <div class="nav-item active" data-section="settings">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.
+        </svg>
+          <div class="nav-item-content">
+            <div class="nav-item-title">Chat Settings</div>
+            <div class="nav-item-subtitle">Temperature, Prompts</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container page">
+    <div class="breadcrumbs"> <a href="index.html">Dashboard</a> · <span>Chat Settings</span> </div>
+
+    <div class="settings-grid">
+      <!-- Left rail -->
+      <aside class="side-rail">
+        <h4>Sections</h4>
+        <a class="rail-link active" href="#sampling">Model & Sampling</a>
+        <a class="rail-link" href="#output">Output Controls</a>
+        <a class="rail-link" href="#safety">Safety & NSFW</a>
+        <a class="rail-link" href="#prompt">System Prompt Builder</a>
+        <a class="rail-link" href="#presets">Presets & Export</a>
+      </aside>
+
+      <!-- Right content -->
+      <main class="content">
+        <!-- Sampling -->
+        <section id="sampling" class="card">
+          <h3>Model & Sampling</h3>
+          <p class="subtle">Tune decoding like SillyTavern's Connections: temperature, nucleus, top-k, typical, TFS, Mirostat, penalties, and more.</p>
+          <div class="three-col" style="margin-top: 14px;">
+            <div class="field">
+              <label>Model</label>
+              <select id="model">
+                <option>gpt-4o-mini</option>
+                <option>claude-3.5-sonnet</option>
+                <option>mixtral-8x7b</option>
+                <option>nous-hermes-405b</option>
+                <option>llama-3.1-70b-instruct</option>
+              </select>
+              <small>Choose the backend for this chat.</small>
+            </div>
+            <div class="field">
+              <label>Max Tokens</label>
+              <input id="max_tokens" type="number" min="64" max="8000" value="2048" />
+              <small>Upper bound on generated tokens.</small>
+            </div>
+            <div class="field">
+              <label>Seed (optional)</label>
+              <input id="seed" type="number" min="0" placeholder="Random" />
+              <small>Fix for reproducible sampling if supported.</small>
+            </div>
+          </div>
+
+          <div class="two-col" style="margin-top: 16px;">
+            <div class="field">
+              <label>Temperature</label>
+              <div class="range-row">
+                <input id="temperature" type="range" min="0" max="2" step="0.01" value="0.9" />
+                <div id="temperature_val" class="range-val">0.90</div>
+              </div>
+              <small>Higher = more creative, lower = more deterministic.</small>
+            </div>
+            <div class="field">
+              <label>Top‑p (nucleus)</label>
+              <div class="range-row">
+                <input id="top_p" type="range" min="0" max="1" step="0.01" value="0.9" />
+                <div id="top_p_val" class="range-val">0.90</div>
+              </div>
+              <small>Keep tokens within cumulative probability p.</small>
+            </div>
+          </div>
+
+          <div class="three-col" style="margin-top: 6px;">
+            <div class="field">
+              <label>Top‑k</label>
+              <div class="range-row">
+                <input id="top_k" type="range" min="0" max="200" step="1" value="40" />
+                <div id="top_k_val" class="range-val">40</div>
+              </div>
+              <small>0 disables; higher widens candidate tokens.</small>
+            </div>
+            <div class="field">
+              <label>Typical‑p</label>
+              <div class="range-row">
+                <input id="typical_p" type="range" min="0" max="1" step="0.01" value="1.0" />
+                <div id="typical_p_val" class="range-val">1.00</div>
+              </div>
+              <small>Favor tokens with typical information content.</small>
+            </div>
+            <div class="field">
+              <label>TFS</label>
+              <div class="range-row">
+                <input id="tfs" type="range" min="0" max="1" step="0.01" value="0.9" />
+                <div id="tfs_val" class="range-val">0.
