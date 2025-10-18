@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<title>Профіль користувача</title>
+<style>
+:root {
+    --bg-primary: #121520;
+    --ui-primary: #2A2F4A;
+    --accent-1: #7E3AF2;
+    --accent-3: #F43F5E;
+    --text-primary: #F1F5F9;
+}
+body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: 'Segoe UI', sans-serif;
+    padding: 40px;
+    margin: 0;
+}
+.form-container {
+    max-width: 600px;
+    margin: 0 auto;
+    background-color: var(--ui-primary);
+    padding: 30px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+h1 { text-align: center; margin-bottom: 20px; font-size: 2rem; }
+label { display: block; margin-bottom: 6px; font-weight: bold; }
+input, select, textarea {
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #334155;
+    background-color: #1E293B;
+    color: var(--text-primary);
+    box-sizing: border-box;
+}
+.form-error { color: var(--accent-3); font-size: 0.9rem; margin-bottom: 10px; }
+button {
+    background-color: var(--accent-1);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    display: block;
+    margin: 20px auto 0;
+    transition: background-color 0.3s ease;
+}
+button:hover { background-color: #9F67F8; }
+
+.photo-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 20px;
+}
+.photo-wrapper img {
+    width: 150px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid #334155;
+    margin-bottom: 10px;
+}
+.change-photo-btn {
+    cursor: pointer;
+    background-color: var(--accent-1);
+    padding: 8px 12px;
+    border-radius: 6px;
+    color: white;
+    font-size: 0.9rem;
+    text-align: center;
+    display: inline-block;
+}
+.photo-wrapper input[type="file"] {
+    display: none;
+}
+
+a { color: var(--accent-1); text-decoration: none; display: inline-block; margin-top: 20px; font-weight: 500; }
+a:hover { text-decoration: underline; }
+hr { border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 30px 0; }
+</style>
+</head>
+<body>
+<div class="form-container">
+<h1>{{ title }}</h1>
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <!-- Фото профілю -->
+    <div class="photo-wrapper">
+        {% if user.photo %}
+            <img id="photo-preview" src="{{ user.photo.url }}" alt="Profile photo">
+        {% else %}
+            <img id="photo-preview" src="{{ default_image }}" alt="Default photo">
+        {% endif %}
+
+        <label for="{{ form.photo.id_for_label }}" class="change-photo-btn">Change photo</label>
+        {{ form.photo }}
+    </div>
+
+    {% if form.non_field_errors %}
+        <div class="form-error">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <!-- Всі інші поля -->
+    {% for field in form %}
+        {% if field.name != 'photo' %}
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}
+                <div class="form-error">{{ field.errors }}</div>
+            {% endif %}
+        {% endif %}
+    {% endfor %}
+
+    <button type="submit">Save</button>
+</form>
+
+<hr>
+<p><a href="{% url 'users:password_change' %}">Change password</a></p>
+</div>
+
+<script>
+const photoInput = document.getElementById("id_photo");
+const photoPreview = document.getElementById("photo-preview");
+
+photoInput.addEventListener("change", function() {
+    const file = this.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            photoPreview.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+});
+</script>
+</body>
+</html>
