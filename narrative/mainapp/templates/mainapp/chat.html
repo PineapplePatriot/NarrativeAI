@@ -1,6 +1,7 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -95,7 +96,7 @@
             padding: 1rem;
         }
 
-        .space-x-2 > * + * {
+        .space-x-2>*+* {
             margin-left: 0.5rem;
         }
 
@@ -118,7 +119,8 @@
             border-left: 4px solid var(--accent-purple);
         }
 
-        .w-5, .h-5 {
+        .w-5,
+        .h-5 {
             width: 1.25rem;
             height: 1.25rem;
         }
@@ -155,12 +157,14 @@
         }
     </style>
 </head>
+
 <body>
     <div class="min-h-screen flex flex-col">
         <!-- Conversation Page -->
         <div class="flex flex-col-mobile h-screen">
             <!-- Character Sprite (Left Half) -->
-            <div id="characterSprite" class="w-full-mobile h-half-mobile bg-cover bg-center" style="width: 50%; height: 100%;"></div>
+            <div id="characterSprite" class="w-full-mobile h-half-mobile bg-cover bg-center"
+                style="width: 50%; height: 100%;"></div>
 
             <!-- Chat Area (Right Half) -->
             <div class="w-full-mobile flex flex-col bg-secondary" style="width: 50%;">
@@ -178,7 +182,8 @@
                         <div class="flex items-start">
                             <div class="message-content character">
                                 <p id="characterDescription">Character description will appear here...</p>
-                                <button id="playAudioBtn" class="mt-2 hidden" style="color: var(--accent-purple); background: none; border: none;">
+                                <button id="playAudioBtn" class="mt-2 hidden"
+                                    style="color: var(--accent-purple); background: none; border: none;">
                                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                                         <path d="M6 4v12l10-6-10-6z" />
                                     </svg>
@@ -193,7 +198,7 @@
                 <div class="p-4 border-t">
                     <div class="flex items-center space-x-2">
                         <input type="text" id="messageInput" placeholder="Type your message..."
-                               class="flex-1 form-input">
+                            class="flex-1 form-input">
                         <button id="attachFileBtn" class="btn-secondary" title="Attach File">
                             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M2 3h16v14H2V3zm2 2v10h12V5H4z" />
@@ -218,4 +223,5 @@
     <script src="{% static 'mainapp/data.js' %}"></script>
     <script src="{% static 'mainapp/chat.js' %}"></script>
 </body>
+
 </html>

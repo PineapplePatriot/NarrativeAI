@@ -49,7 +49,8 @@ body {
     display: flex;
     flex-direction: column;
     position: relative;
-    background-image: url('path/to/background-image.jpg'); /* Placeholder for background image */
+    background-image: url('path/to/background-image.jpg');
+    /* Placeholder for background image */
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;

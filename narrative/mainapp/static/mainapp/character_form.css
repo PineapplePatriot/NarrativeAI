@@ -119,7 +119,7 @@ input[type="file"] {
     gap: 16px;
 }
 
-.space-y-6 > * + * {
+.space-y-6>*+* {
     margin-top: 1.5rem;
 }
 
