@@ -1,6 +1,7 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Add Character (Proba)</title>
@@ -126,75 +127,77 @@
         }
     </style>
 </head>
-<body>
-<div class="form-container">
-    <h1>Add Character</h1>
-    <form method="POST" enctype="multipart/form-data">
-        {% csrf_token %}
-        <div class="form-error">{{ form.non_field_errors }}</div>
 
-        <!-- Текстові поля -->
-        {% for f in form %}
+<body>
+    <div class="form-container">
+        <h1>Add Character</h1>
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="form-error">{{ form.non_field_errors }}</div>
+
+            <!-- Текстові поля -->
+            {% for f in form %}
             {% if f.field.widget.input_type != "file" %}
-                <div class="form-group">
-                    <label for="{{ f.id_for_label }}">{{ f.label }}</label>
-                    {{ f }}
+            <div class="form-group">
+                <label for="{{ f.id_for_label }}">{{ f.label }}</label>
+                {{ f }}
+                <div class="form-error">{{ f.errors }}</div>
+            </div>
+            {% endif %}
+            {% endfor %}
+
+            <!-- file-поля у сітці 3×3 -->
+            <div class="file-grid">
+                {% for f in form %}
+                {% if f.field.widget.input_type == "file" %}
+                <div class="file-group">
+                    <label>{{ f.label }}</label>
+                    <label class="custom-file-btn" onclick="this.nextElementSibling.click()">Вибрати фото</label>
+                    <input type="file" name="{{ f.name }}" id="{{ f.id_for_label }}" class="file-input">
+                    <div class="file-preview">
+                        {% if f.value %}
+                        <img src="{{ f.value.url }}" alt="current image">
+                        {% else %}
+                        📷
+                        {% endif %}
+                    </div>
                     <div class="form-error">{{ f.errors }}</div>
                 </div>
-            {% endif %}
-        {% endfor %}
-
-        <!-- file-поля у сітці 3×3 -->
-        <div class="file-grid">
-            {% for f in form %}
-                {% if f.field.widget.input_type == "file" %}
-                    <div class="file-group">
-                        <label>{{ f.label }}</label>
-                        <label class="custom-file-btn" onclick="this.nextElementSibling.click()">Вибрати фото</label>
-                        <input type="file" name="{{ f.name }}" id="{{ f.id_for_label }}" class="file-input">
-                        <div class="file-preview">
-                            {% if f.value %}
-                                <img src="{{ f.value.url }}" alt="current image">
-                            {% else %}
-                                📷
-                            {% endif %}
-                        </div>
-                        <div class="form-error">{{ f.errors }}</div>
-                    </div>
                 {% endif %}
-            {% endfor %}
-        </div>
+                {% endfor %}
+            </div>
 
-        {% if object %}
+            {% if object %}
             <button type="submit" class="btn-primary">💾 Save</button>
-        {% else %}
+            {% else %}
             <button type="submit" class="btn-primary">Відправити</button>
-        {% endif %}
-    </form>
-</div>
+            {% endif %}
+        </form>
+    </div>
 
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    document.querySelectorAll('.file-group').forEach(group => {
-        const input = group.querySelector('input[type="file"]');
-        const preview = group.querySelector('.file-preview');
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            document.querySelectorAll('.file-group').forEach(group => {
+                const input = group.querySelector('input[type="file"]');
+                const preview = group.querySelector('.file-preview');
 
-        input.addEventListener('change', function() {
-            preview.innerHTML = '';
-            if (this.files && this.files[0] && this.files[0].type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const img = document.createElement('img');
-                    img.src = e.target.result;
-                    preview.appendChild(img);
-                };
-                reader.readAsDataURL(this.files[0]);
-            } else {
-                preview.textContent = '📷';
-            }
+                input.addEventListener('change', function () {
+                    preview.innerHTML = '';
+                    if (this.files && this.files[0] && this.files[0].type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onload = function (e) {
+                            const img = document.createElement('img');
+                            img.src = e.target.result;
+                            preview.appendChild(img);
+                        };
+                        reader.readAsDataURL(this.files[0]);
+                    } else {
+                        preview.textContent = '📷';
+                    }
+                });
+            });
         });
-    });
-});
-</script>
+    </script>
 </body>
+
 </html>

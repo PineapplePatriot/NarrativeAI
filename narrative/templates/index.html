@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,29 +16,29 @@
             --text-primary: #F1F5F9;
             --text-secondary: #94A3B8;
         }
-        
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        
+
         body {
             background-color: var(--bg-primary);
             color: var(--text-primary);
             min-height: 100vh;
-            background-image: 
+            background-image:
                 radial-gradient(circle at 20% 35%, rgba(46, 49, 73, 0.15) 0%, transparent 50%),
                 radial-gradient(circle at 75% 44%, rgba(126, 58, 242, 0.08) 0%, transparent 33%);
         }
-        
+
         .container {
             max-width: 1400px;
             margin: 0 auto;
             padding: 0 20px;
         }
-        
+
         /* Top Navigation Panel */
         .top-panel {
             background-color: var(--ui-secondary);
@@ -47,14 +48,14 @@
             top: 0;
             z-index: 100;
         }
-        
+
         .nav-grid {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr 1fr;
             gap: 20px;
             align-items: center;
         }
-        
+
         .nav-item {
             background-color: var(--ui-primary);
             border: 1px solid rgba(255, 255, 255, 0.1);
@@ -67,44 +68,44 @@
             gap: 10px;
             position: relative;
         }
-        
+
         .nav-item:hover {
             background-color: rgba(126, 58, 242, 0.1);
             border-color: var(--accent-1);
         }
-        
+
         .nav-item.active {
             background-color: rgba(126, 58, 242, 0.2);
             border-color: var(--accent-1);
         }
-        
+
         .nav-item .icon {
             width: 20px;
             height: 20px;
             fill: var(--text-secondary);
             transition: fill 0.2s ease;
         }
-        
+
         .nav-item:hover .icon,
         .nav-item.active .icon {
             fill: var(--accent-1);
         }
-        
+
         .nav-item-content {
             flex: 1;
         }
-        
+
         .nav-item-title {
             font-weight: 600;
             font-size: 0.9rem;
             margin-bottom: 2px;
         }
-        
+
         .nav-item-subtitle {
             font-size: 0.75rem;
             color: var(--text-secondary);
         }
-        
+
         .status-indicator {
             width: 8px;
             height: 8px;
@@ -113,26 +114,26 @@
             top: 8px;
             right: 8px;
         }
-        
+
         .status-connected {
             background-color: var(--accent-2);
             box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);
         }
-        
+
         .status-disconnected {
             background-color: var(--accent-3);
         }
-        
+
         /* Main Content */
         .main-content {
             padding: 40px 0;
         }
-        
+
         .header-section {
             text-align: center;
             margin-bottom: 60px;
         }
-        
+
         .header-section h1 {
             font-size: 3rem;
             font-weight: 700;
@@ -142,7 +143,7 @@
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
-        
+
         .header-section p {
             font-size: 1.1rem;
             color: var(--text-secondary);
@@ -150,7 +151,7 @@
             margin: 0 auto;
             line-height: 1.6;
         }
-        
+
         /* Quick Actions Grid */
         .quick-actions {
             display: grid;
@@ -158,7 +159,7 @@
             gap: 25px;
             margin-bottom: 50px;
         }
-        
+
         .action-card {
             background-color: var(--ui-primary);
             border: 1px solid rgba(255, 255, 255, 0.05);
@@ -169,7 +170,7 @@
             position: relative;
             overflow: hidden;
         }
-        
+
         .action-card::before {
             content: '';
             position: absolute;
@@ -182,24 +183,24 @@
             transform-origin: left;
             transition: transform 0.3s ease;
         }
-        
+
         .action-card:hover::before {
             transform: scaleX(1);
         }
-        
+
         .action-card:hover {
             transform: translateY(-2px);
             border-color: rgba(126, 58, 242, 0.3);
             box-shadow: 0 8px 32px rgba(126, 58, 242, 0.15);
         }
-        
+
         .action-card-header {
             display: flex;
             align-items: center;
             gap: 15px;
             margin-bottom: 15px;
         }
-        
+
         .action-icon {
             width: 48px;
             height: 48px;
@@ -209,42 +210,42 @@
             align-items: center;
             justify-content: center;
         }
-        
+
         .action-icon .icon {
             width: 24px;
             height: 24px;
             fill: white;
         }
-        
+
         .action-card h3 {
             font-size: 1.2rem;
             font-weight: 600;
             margin-bottom: 5px;
         }
-        
+
         .action-card p {
             color: var(--text-secondary);
             font-size: 0.9rem;
             line-height: 1.5;
         }
-        
+
         /* Recent Sessions */
         .recent-section {
             margin-top: 50px;
         }
-        
+
         .section-header {
             display: flex;
             justify-content: between;
             align-items: center;
             margin-bottom: 25px;
         }
-        
+
         .section-header h2 {
             font-size: 1.5rem;
             font-weight: 600;
         }
-        
+
         .view-all-btn {
             color: var(--accent-1);
             text-decoration: none;
@@ -253,17 +254,17 @@
             cursor: pointer;
             transition: opacity 0.2s ease;
         }
-        
+
         .view-all-btn:hover {
             opacity: 0.8;
         }
-        
+
         .recent-sessions {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 20px;
         }
-        
+
         .session-card {
             background-color: var(--ui-secondary);
             border: 1px solid rgba(255, 255, 255, 0.05);
@@ -272,19 +273,19 @@
             cursor: pointer;
             transition: all 0.2s ease;
         }
-        
+
         .session-card:hover {
             background-color: rgba(46, 49, 73, 0.8);
             border-color: rgba(126, 58, 242, 0.3);
         }
-        
+
         .session-header {
             display: flex;
             align-items: center;
             gap: 12px;
             margin-bottom: 12px;
         }
-        
+
         .session-avatar {
             width: 36px;
             height: 36px;
@@ -297,17 +298,17 @@
             color: white;
             font-weight: 600;
         }
-        
+
         .session-info h4 {
             font-size: 1rem;
             margin-bottom: 2px;
         }
-        
+
         .session-info p {
             font-size: 0.8rem;
             color: var(--text-secondary);
         }
-        
+
         .session-preview {
             font-size: 0.85rem;
             color: var(--text-secondary);
@@ -318,7 +319,7 @@
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
-        
+
         .session-meta {
             display: flex;
             justify-content: space-between;
@@ -326,43 +327,44 @@
             font-size: 0.75rem;
             color: var(--text-secondary);
         }
-        
+
         .session-stats {
             display: flex;
             gap: 15px;
         }
-        
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .nav-grid {
                 grid-template-columns: 1fr 1fr;
                 gap: 10px;
             }
-            
+
             .nav-item {
                 padding: 8px 12px;
             }
-            
+
             .nav-item-title {
                 font-size: 0.8rem;
             }
-            
+
             .nav-item-subtitle {
                 font-size: 0.7rem;
             }
-            
+
             .header-section h1 {
                 font-size: 2rem;
             }
-            
+
             .quick-actions {
                 grid-template-columns: 1fr;
             }
         }
     </style>
 </head>
+
 <body>
-  <!--
+    <!--
     <div class="top-panel">
         <div class="container">
             <div class="nav-grid">
@@ -421,12 +423,14 @@
     </div>
 -->
 
-      <div class="top-panel">
+    <div class="top-panel">
         <div class="container">
             <div class="nav-grid" style="grid-template-columns: repeat(5, 1fr);">
                 <div class="nav-item" onclick="window.location.href='{% url 'worldbook_list' %}'">
                     <svg class="icon" viewBox="0 0 24 24">
-                        <path d="M12,2A2,2 0 0,1 14,4C14,4.74 13.6,5.39 13,5.73V7H14A7,7 0 0,1 21,14H22A1,1 0 0,1 23,15V18A1,1 0 0,1 22,19H21V20A2,2 0 0,1 19,22H5A2,2 0 0,1 3,20V19H2A1,1 0 0,1 1,18V15A1,1 0 0,1 2,14H3A7,7 0 0,1 10,7H11V5.73C10.4,5.39 10,4.74 10,4A2,2 0 0,1 12,2Z"></path>
+                        <path
+                            d="M12,2A2,2 0 0,1 14,4C14,4.74 13.6,5.39 13,5.73V7H14A7,7 0 0,1 21,14H22A1,1 0 0,1 23,15V18A1,1 0 0,1 22,19H21V20A2,2 0 0,1 19,22H5A2,2 0 0,1 3,20V19H2A1,1 0 0,1 1,18V15A1,1 0 0,1 2,14H3A7,7 0 0,1 10,7H11V5.73C10.4,5.39 10,4.74 10,4A2,2 0 0,1 12,2Z">
+                        </path>
                     </svg>
                     <div class="nav-item-content">
                         <div class="nav-item-title">Worldbooks</div>
@@ -436,7 +440,9 @@
 
                 <div class="nav-item" onclick="window.location.href='{% url 'users:profile' %}'">
                     <svg class="icon" viewBox="0 0 24 24">
-                        <path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"></path>
+                        <path
+                            d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z">
+                        </path>
                     </svg>
                     <div class="nav-item-content">
                         <div class="nav-item-title">User</div>
@@ -446,7 +452,9 @@
 
                 <div class="nav-item" onclick="window.location.href='{% url 'chat_settings' %}'">
                     <svg class="icon" viewBox="0 0 24 24">
-                        <path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"></path>
+                        <path
+                            d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z">
+                        </path>
                     </svg>
                     <div class="nav-item-content">
                         <div class="nav-item-title">Chat Settings</div>
@@ -456,7 +464,9 @@
 
                 <div class="nav-item" onclick="window.location.href='{% url 'characters_list' %}'">
                     <svg class="icon" viewBox="0 0 24 24">
-                        <path d="M16,4C18.11,4 20.11,4.89 21.61,6.39C23.11,7.89 24,9.89 24,12A8,8 0 0,1 16,20H5A5,5 0 0,1 0,15A5,5 0 0,1 5,10C5.59,7.81 7.69,6 10.25,6C11.42,6 12.58,6.4 13.5,7.08C14.19,6.41 15.04,6 16,6M16,8A3,3 0 0,0 13,11H12V12A1,1 0 0,1 11,13A1,1 0 0,1 10,12V11A3,3 0 0,0 7,8A3,3 0 0,0 4,11A3,3 0 0,0 7,14H16A6,6 0 0,0 22,8A6,6 0 0,0 16,2Z"></path>
+                        <path
+                            d="M16,4C18.11,4 20.11,4.89 21.61,6.39C23.11,7.89 24,9.89 24,12A8,8 0 0,1 16,20H5A5,5 0 0,1 0,15A5,5 0 0,1 5,10C5.59,7.81 7.69,6 10.25,6C11.42,6 12.58,6.4 13.5,7.08C14.19,6.41 15.04,6 16,6M16,8A3,3 0 0,0 13,11H12V12A1,1 0 0,1 11,13A1,1 0 0,1 10,12V11A3,3 0 0,0 7,8A3,3 0 0,0 4,11A3,3 0 0,0 7,14H16A6,6 0 0,0 22,8A6,6 0 0,0 16,2Z">
+                        </path>
                     </svg>
                     <div class="nav-item-content">
                         <div class="nav-item-title">Chat</div>
@@ -465,9 +475,12 @@
                 </div>
 
                 <!-- 🔹 NEW Logout Button -->
-                <div class="nav-item" onclick="window.location.href='{% url 'users:logout' %}'" style="cursor: pointer;">
+                <div class="nav-item" onclick="window.location.href='{% url 'users:logout' %}'"
+                    style="cursor: pointer;">
                     <svg class="icon" viewBox="0 0 24 24">
-                        <path d="M14.08,15.59L16.67,13H7V11H16.67L14.08,8.41L15.5,7L20.5,12L15.5,17L14.08,15.59M19,3A2,2 0 0,1 21,5V9H19V5H5V19H19V15H21V19A2,2 0 0,1 19,21H5C3.89,21 3,20.1 3,19V5A2,2 0 0,1 5,3H19Z"></path>
+                        <path
+                            d="M14.08,15.59L16.67,13H7V11H16.67L14.08,8.41L15.5,7L20.5,12L15.5,17L14.08,15.59M19,3A2,2 0 0,1 21,5V9H19V5H5V19H19V15H21V19A2,2 0 0,1 19,21H5C3.89,21 3,20.1 3,19V5A2,2 0 0,1 5,3H19Z">
+                        </path>
                     </svg>
                     <div class="nav-item-content">
                         <div class="nav-item-title">Logout</div>
@@ -483,7 +496,8 @@
         <div class="main-content">
             <div class="header-section">
                 <h1>Narrative AI</h1>
-                <p>Create immersive interactive stories with AI characters. Experience visual novels powered by advanced language models, complete with dynamic images, voice generation, and rich storytelling.</p>
+                <p>Create immersive interactive stories with AI characters. Experience visual novels powered by advanced
+                    language models, complete with dynamic images, voice generation, and rich storytelling.</p>
             </div>
 
             <div class="quick-actions">
@@ -491,12 +505,15 @@
                     <div class="action-card-header">
                         <div class="action-icon">
                             <svg class="icon" viewBox="0 0 24 24">
-                                <path d="M12,2C13.1,2 14,2.9 14,4C14,5.1 13.1,6 12,6C10.9,6 10,5.1 10,4C10,2.9 10.9,2 12,2M21,9V7L15,1H5C3.89,1 3,1.89 3,3V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V9M12,8C14.21,8 16,9.79 16,12C16,14.21 14.21,16 12,16C9.79,16 8,14.21 8,12C8,9.79 9.79,8 12,8Z"></path>
+                                <path
+                                    d="M12,2C13.1,2 14,2.9 14,4C14,5.1 13.1,6 12,6C10.9,6 10,5.1 10,4C10,2.9 10.9,2 12,2M21,9V7L15,1H5C3.89,1 3,1.89 3,3V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V9M12,8C14.21,8 16,9.79 16,12C16,14.21 14.21,16 12,16C9.79,16 8,14.21 8,12C8,9.79 9.79,8 12,8Z">
+                                </path>
                             </svg>
                         </div>
                         <div>
                             <h3>Create New Character</h3>
-                            <p>Design a new AI character with custom personality, backstory, and visual appearance. Define their world and relationships.</p>
+                            <p>Design a new AI character with custom personality, backstory, and visual appearance.
+                                Define their world and relationships.</p>
                         </div>
                     </div>
                 </div>
@@ -506,12 +523,15 @@
                     <div class="action-card-header">
                         <div class="action-icon">
                             <svg class="icon" viewBox="0 0 24 24">
-                                <path d="M12,3C16.97,3 21,7.03 21,12C21,16.97 16.97,21 12,21A9,9 0 0,1 3,12A9,9 0 0,1 12,3M12,8.5A3.5,3.5 0 0,0 8.5,12A3.5,3.5 0 0,0 12,15.5A3.5,3.5 0 0,0 15.5,12A3.5,3.5 0 0,0 12,8.5M12,17L15.4,20.5L12,21L8.6,20.5L12,17Z"></path>
+                                <path
+                                    d="M12,3C16.97,3 21,7.03 21,12C21,16.97 16.97,21 12,21A9,9 0 0,1 3,12A9,9 0 0,1 12,3M12,8.5A3.5,3.5 0 0,0 8.5,12A3.5,3.5 0 0,0 12,15.5A3.5,3.5 0 0,0 15.5,12A3.5,3.5 0 0,0 12,8.5M12,17L15.4,20.5L12,21L8.6,20.5L12,17Z">
+                                </path>
                             </svg>
                         </div>
                         <div>
                             <h3>Start New Conversation</h3>
-                            <p>Begin a fresh interactive story with one of your characters. Let AI generate dynamic responses and visuals.</p>
+                            <p>Begin a fresh interactive story with one of your characters. Let AI generate dynamic
+                                responses and visuals.</p>
                         </div>
                     </div>
                 </div>
@@ -520,12 +540,15 @@
                     <div class="action-card-header">
                         <div class="action-icon">
                             <svg class="icon" viewBox="0 0 24 24">
-                                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"></path>
+                                <path
+                                    d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z">
+                                </path>
                             </svg>
                         </div>
                         <div>
                             <h3>Create World Book</h3>
-                            <p>Upload facts and lore to give your characters rich context. Build detailed worlds with RAG-powered knowledge.</p>
+                            <p>Upload facts and lore to give your characters rich context. Build detailed worlds with
+                                RAG-powered knowledge.</p>
                         </div>
                     </div>
                 </div>
@@ -534,12 +557,15 @@
                     <div class="action-card-header">
                         <div class="action-icon">
                             <svg class="icon" viewBox="0 0 24 24">
-                                <path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"></path>
+                                <path
+                                    d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z">
+                                </path>
                             </svg>
                         </div>
                         <div>
                             <h3>Configure APIs</h3>
-                            <p>Set up your AI model connections. Configure OpenAI, Claude, Mistral, and other services for optimal performance.</p>
+                            <p>Set up your AI model connections. Configure OpenAI, Claude, Mistral, and other services
+                                for optimal performance.</p>
                         </div>
                     </div>
                 </div>
@@ -549,40 +575,43 @@
                 <div class="section-header">
                     <h2>Check Out These Characters</h2>
                     <a href="{% url 'characters_list' %}"
-                       style="margin-left: 30px; color: var(--accent-1); text-decoration: none; font-size: 0.9rem; font-weight: 500;">
-                       View all ->
+                        style="margin-left: 30px; color: var(--accent-1); text-decoration: none; font-size: 0.9rem; font-weight: 500;">
+                        View all ->
                     </a>
                 </div>
 
-            <div class="recent-sessions">
-            {% for character in characters|slice:":4" %}
-                <!--<div class="session-card"> -->
-                <div class="session-card" onclick="window.location.href='{% url 'chat' character.slug %}'">
-                    <div class="session-header">
-                        {% if character.photo_neutral %}
-                            <img src="{{ character.photo_neutral.url }}" alt="{{ character.name }}" class="session-avatar" style="width:36px;height:36px;border-radius:50%;object-fit:cover;">
-                        {% else %}
+                <div class="recent-sessions">
+                    {% for character in characters|slice:":4" %}
+                    <!--<div class="session-card"> -->
+                    <div class="session-card" onclick="window.location.href='{% url 'chat' character.slug %}'">
+                        <div class="session-header">
+                            {% if character.photo_neutral %}
+                            <img src="{{ character.photo_neutral.url }}" alt="{{ character.name }}"
+                                class="session-avatar"
+                                style="width:36px;height:36px;border-radius:50%;object-fit:cover;">
+                            {% else %}
                             <div class="session-avatar">{{ character.name|first }}</div>
-                        {% endif %}
-                        <div class="session-info">
-                            <h4>{{ character.name }}</h4>
+                            {% endif %}
+                            <div class="session-info">
+                                <h4>{{ character.name }}</h4>
+                            </div>
+                        </div>
+                        <div class="session-preview">
+                            {{ character.description|truncatechars:120 }}
+                        </div>
+                        <div class="session-meta">
+                            {% if character.tags.all %}
+                            <span>{{ character.tags.all|join:", " }}</span>
+                            {% endif %}
                         </div>
                     </div>
-                    <div class="session-preview">
-                        {{ character.description|truncatechars:120 }}
-                    </div>
-                    <div class="session-meta">
-                        {% if character.tags.all %}
-                            <span>{{ character.tags.all|join:", " }}</span>
-                        {% endif %}
-                    </div>
+                    {% empty %}
+                    <p>No default characters found.</p>
+                    {% endfor %}
                 </div>
-            {% empty %}
-                <p>No default characters found.</p>
-            {% endfor %}
-        </div>
             </div>
         </div>
     </div>
 </body>
+
 </html>

@@ -1,280 +1,530 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Worldbook Detail</title>
   <style>
     /* твій CSS залишив без змін */
-    :root{--bg-primary:#121520;--ui-primary:#2A2F4A;--ui-secondary:#1E293B;--ui-tertiary:#0F172A;--accent-1:#7E3AF2;--accent-2:#10B981;--accent-3:#F43F5E;--accent-4:#F59E0B;--text-primary:#F1F5F9;--text-secondary:#94A3B8;--text-muted:#64748B;--border-color:rgba(255,255,255,.1)}
-    *{box-sizing:border-box;margin:0;padding:0;font-family:'Inter','Segoe UI',Tahoma,Verdana,sans-serif}
-    body{background:var(--bg-primary);color:var(--text-primary);min-height:100vh}
-    .container{max-width:1200px;margin:0 auto;padding:0 20px}
-    .header{padding:24px 0;border-bottom:1px solid var(--border-color);margin-bottom:20px}
-    .row{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
-    .back{display:flex;gap:8px;align-items:center;color:var(--text-secondary);text-decoration:none}
-    .back:hover{color:var(--accent-1)}
-    .back svg{width:16px;height:16px;fill:currentColor}
-    .title{flex:1}
-    .title h1{font-size:1.8rem;margin-bottom:4px;background:linear-gradient(135deg,var(--text-primary),var(--accent-1));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-    .subtitle{color:var(--text-secondary)}
-    .btn{display:inline-flex;gap:8px;align-items:center;border:1px solid var(--border-color);background:var(--ui-secondary);padding:10px 14px;border-radius:10px;color:var(--text-primary);text-decoration:none;cursor:pointer}
-    .btn.primary{background:linear-gradient(135deg,var(--accent-1),#9863FF);border:none}
-    .btn svg{width:16px;height:16px;fill:currentColor}
-    .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .search{background:var(--ui-secondary);border:1px solid var(--border-color);border-radius:10px;padding:10px 12px;width:260px;color:var(--text-primary)}
-    .content{display:grid;grid-template-columns:1fr;gap:16px}
-    .card{background:var(--ui-primary);border:1px solid var(--border-color);border-radius:12px;padding:18px}
-    .entry{padding:14px;border:1px solid var(--border-color);border-radius:10px;background:var(--ui-secondary);margin-bottom:10px}
-    .entry-header{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:8px}
-    .entry-key{font-weight:600}
-    .tag{display:inline-block;padding:4px 8px;border-radius:999px;border:1px solid var(--border-color);font-size:.8rem;color:var(--text-secondary);margin-right:6px}
-    .entry-actions{display:flex;gap:6px}
-    .muted{color:var(--text-muted);font-size:.9rem}
-    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
-    label{font-size:.85rem;color:var(--text-secondary)}
-    input,textarea,select{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border-color);background:var(--ui-tertiary);color:var(--text-primary)}
-    textarea{min-height:90px;resize:vertical}
-    .switch{position:relative;display:inline-block;width:42px;height:24px}
-    .switch input{display:none}
-    .slider{position:absolute;inset:0;background:#374151;border-radius:999px;cursor:pointer;transition:.2s}
-    .slider:before{content:"";position:absolute;height:18px;width:18px;left:3px;top:3px;background:white;border-radius:50%;transition:.2s}
-    input:checked + .slider{background:#22c55e}
-    input:checked + .slider:before{transform:translateX(18px)}
-    .modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:20px}
-    .modal .card{max-width:720px;width:100%}
-    .footer{display:flex;justify-content:flex-end;gap:10px;margin-top:10px}
-    .empty{color:var(--text-muted);text-align:center;padding:28px}
-    .pill{padding:4px 10px;border-radius:999px;border:1px solid var(--border-color);font-size:.8rem;color:var(--text-secondary)}
+    :root {
+      --bg-primary: #121520;
+      --ui-primary: #2A2F4A;
+      --ui-secondary: #1E293B;
+      --ui-tertiary: #0F172A;
+      --accent-1: #7E3AF2;
+      --accent-2: #10B981;
+      --accent-3: #F43F5E;
+      --accent-4: #F59E0B;
+      --text-primary: #F1F5F9;
+      --text-secondary: #94A3B8;
+      --text-muted: #64748B;
+      --border-color: rgba(255, 255, 255, .1)
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', 'Segoe UI', Tahoma, Verdana, sans-serif
+    }
+
+    body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px
+    }
+
+    .header {
+      padding: 24px 0;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 20px
+    }
+
+    .row {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      flex-wrap: wrap
+    }
+
+    .back {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      color: var(--text-secondary);
+      text-decoration: none
+    }
+
+    .back:hover {
+      color: var(--accent-1)
+    }
+
+    .back svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor
+    }
+
+    .title {
+      flex: 1
+    }
+
+    .title h1 {
+      font-size: 1.8rem;
+      margin-bottom: 4px;
+      background: linear-gradient(135deg, var(--text-primary), var(--accent-1));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text
+    }
+
+    .subtitle {
+      color: var(--text-secondary)
+    }
+
+    .btn {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      border: 1px solid var(--border-color);
+      background: var(--ui-secondary);
+      padding: 10px 14px;
+      border-radius: 10px;
+      color: var(--text-primary);
+      text-decoration: none;
+      cursor: pointer
+    }
+
+    .btn.primary {
+      background: linear-gradient(135deg, var(--accent-1), #9863FF);
+      border: none
+    }
+
+    .btn svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap
+    }
+
+    .search {
+      background: var(--ui-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 10px 12px;
+      width: 260px;
+      color: var(--text-primary)
+    }
+
+    .content {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px
+    }
+
+    .card {
+      background: var(--ui-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 18px
+    }
+
+    .entry {
+      padding: 14px;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      background: var(--ui-secondary);
+      margin-bottom: 10px
+    }
+
+    .entry-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px
+    }
+
+    .entry-key {
+      font-weight: 600
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--border-color);
+      font-size: .8rem;
+      color: var(--text-secondary);
+      margin-right: 6px
+    }
+
+    .entry-actions {
+      display: flex;
+      gap: 6px
+    }
+
+    .muted {
+      color: var(--text-muted);
+      font-size: .9rem
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px
+    }
+
+    label {
+      font-size: .85rem;
+      color: var(--text-secondary)
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      background: var(--ui-tertiary);
+      color: var(--text-primary)
+    }
+
+    textarea {
+      min-height: 90px;
+      resize: vertical
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 42px;
+      height: 24px
+    }
+
+    .switch input {
+      display: none
+    }
+
+    .slider {
+      position: absolute;
+      inset: 0;
+      background: #374151;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: .2s
+    }
+
+    .slider:before {
+      content: "";
+      position: absolute;
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      top: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: .2s
+    }
+
+    input:checked+.slider {
+      background: #22c55e
+    }
+
+    input:checked+.slider:before {
+      transform: translateX(18px)
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px
+    }
+
+    .modal .card {
+      max-width: 720px;
+      width: 100%
+    }
+
+    .footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 10px
+    }
+
+    .empty {
+      color: var(--text-muted);
+      text-align: center;
+      padding: 28px
+    }
+
+    .pill {
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border-color);
+      font-size: .8rem;
+      color: var(--text-secondary)
+    }
   </style>
 </head>
+
 <body>
-<div class="container">
-  <div class="header">
-    <div class="row">
-      <a class="back" href="{% url 'worldbook_list' %}">
-        <svg viewBox="0 0 24 24"><path d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"/></svg>
-        Back to Worldbooks
-      </a>
-      <div class="title">
-        <h1 id="wbTitle">Worldbook</h1>
-        <div class="subtitle" id="wbDesc">Worldbuilding notes, entities, locations, rules & more.</div>
+  <div class="container">
+    <div class="header">
+      <div class="row">
+        <a class="back" href="{% url 'worldbook_list' %}">
+          <svg viewBox="0 0 24 24">
+            <path d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z" />
+          </svg>
+          Back to Worldbooks
+        </a>
+        <div class="title">
+          <h1 id="wbTitle">Worldbook</h1>
+          <div class="subtitle" id="wbDesc">Worldbuilding notes, entities, locations, rules & more.</div>
+        </div>
+        <div class="toolbar">
+          <button class="btn primary" id="newEntryBtn">
+            <svg viewBox="0 0 24 24">
+              <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
+            </svg>
+            Add Entry
+          </button>
+          <button class="btn primary" id="saveWorldbookBtn">Save Worldbook</button>
+          <input id="search" class="search" placeholder="Search entries..." />
+        </div>
       </div>
-      <div class="toolbar">
-        <button class="btn primary" id="newEntryBtn">
-          <svg viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/></svg>
-          Add Entry
-        </button>
-        <button class="btn primary" id="saveWorldbookBtn">Save Worldbook</button>
-        <input id="search" class="search" placeholder="Search entries..."/>
+    </div>
+
+    <div class="content">
+      <div class="card">
+        <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div class="pill" id="stats">0 entries • scope: all</div>
+          <div class="row" style="gap:8px">
+            <select id="scopeFilter">
+              <option value="">All scopes</option>
+              <option>global</option>
+              <option>character</option>
+              <option>location</option>
+              <option>scene</option>
+            </select>
+            <select id="enabledFilter">
+              <option value="">All</option>
+              <option value="true">Enabled</option>
+              <option value="false">Disabled</option>
+            </select>
+          </div>
+        </div>
+        <div id="entries"></div>
+        <div class="empty" id="emptyMsg">No entries yet. Click “Add Entry”.</div>
       </div>
     </div>
   </div>
 
-  <div class="content">
+  <!-- Modal -->
+  <div class="modal" id="modal">
     <div class="card">
-      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div class="pill" id="stats">0 entries • scope: all</div>
-        <div class="row" style="gap:8px">
-          <select id="scopeFilter">
-            <option value="">All scopes</option>
+      <h3 id="modalTitle" style="margin-bottom:10px">New Entry</h3>
+      <div class="grid">
+        <div><label>Key</label><input id="fKey" placeholder="e.g., magic.system.rules" /></div>
+        <div><label>Tags (comma-separated)</label><input id="fTags" placeholder="magic, combat, lore" /></div>
+        <div><label>Scope</label><select id="fScope">
             <option>global</option>
             <option>character</option>
             <option>location</option>
             <option>scene</option>
-          </select>
-          <select id="enabledFilter">
-            <option value="">All</option>
-            <option value="true">Enabled</option>
-            <option value="false">Disabled</option>
-          </select>
-        </div>
+          </select></div>
+        <div><label>Priority (0-100)</label><input id="fPriority" type="number" min="0" max="100" value="50" /></div>
+        <div><label>Weight (0-1)</label><input id="fWeight" type="number" min="0" max="1" step="0.05" value="1" /></div>
+        <div><label>Enabled</label><br /><label class="switch"><input id="fEnabled" type="checkbox" checked /><span
+              class="slider"></span></label></div>
+        <div style="grid-column:1/-1"><label>Value / Content</label><textarea id="fValue"
+            placeholder="Detailed lore, JSON, or plain text"></textarea></div>
       </div>
-      <div id="entries"></div>
-      <div class="empty" id="emptyMsg">No entries yet. Click “Add Entry”.</div>
+      <div class="footer">
+        <button class="btn" id="cancelBtn">Cancel</button>
+        <button class="btn primary" id="saveBtn">Save Entry</button>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- Modal -->
-<div class="modal" id="modal">
-  <div class="card">
-    <h3 id="modalTitle" style="margin-bottom:10px">New Entry</h3>
-    <div class="grid">
-      <div><label>Key</label><input id="fKey" placeholder="e.g., magic.system.rules"/></div>
-      <div><label>Tags (comma-separated)</label><input id="fTags" placeholder="magic, combat, lore"/></div>
-      <div><label>Scope</label><select id="fScope"><option>global</option><option>character</option><option>location</option><option>scene</option></select></div>
-      <div><label>Priority (0-100)</label><input id="fPriority" type="number" min="0" max="100" value="50"/></div>
-      <div><label>Weight (0-1)</label><input id="fWeight" type="number" min="0" max="1" step="0.05" value="1"/></div>
-      <div><label>Enabled</label><br/><label class="switch"><input id="fEnabled" type="checkbox" checked/><span class="slider"></span></label></div>
-      <div style="grid-column:1/-1"><label>Value / Content</label><textarea id="fValue" placeholder="Detailed lore, JSON, or plain text"></textarea></div>
-    </div>
-    <div class="footer">
-      <button class="btn" id="cancelBtn">Cancel</button>
-      <button class="btn primary" id="saveBtn">Save Entry</button>
-    </div>
-  </div>
-</div>
+  <script>
+    const entriesEl = document.getElementById('entries');
+    const emptyMsg = document.getElementById('emptyMsg');
+    const statsEl = document.getElementById('stats');
+    const search = document.getElementById('search');
+    const scopeFilter = document.getElementById('scopeFilter');
+    const enabledFilter = document.getElementById('enabledFilter');
 
-<script>
-const entriesEl = document.getElementById('entries');
-const emptyMsg = document.getElementById('emptyMsg');
-const statsEl = document.getElementById('stats');
-const search = document.getElementById('search');
-const scopeFilter = document.getElementById('scopeFilter');
-const enabledFilter = document.getElementById('enabledFilter');
-
-let entries = [];
-let editing = null;
+    let entries = [];
+    let editing = null;
 
 
-function render() {
-  entriesEl.innerHTML = '';
-  const q = search.value.toLowerCase();
-  const scope = scopeFilter.value;
-  const enabled = enabledFilter.value;
-  const filtered = entries.filter(e => {
-    let ok = (e.key+' '+e.value+' '+(e.tags||[]).join(' ')).toLowerCase().includes(q);
-    if(scope) ok = ok && e.scope===scope;
-    if(enabled) ok = ok && String(e.enabled)===enabled;
-    return ok;
-  });
-  filtered.forEach(e => entriesEl.appendChild(entryRow(e)));
-  emptyMsg.style.display = filtered.length ? 'none' : 'block';
-  statsEl.textContent = `${filtered.length} entr${filtered.length===1?'y':'ies'} • scope: ${scope||'all'}`;
-}
+    function render() {
+      entriesEl.innerHTML = '';
+      const q = search.value.toLowerCase();
+      const scope = scopeFilter.value;
+      const enabled = enabledFilter.value;
+      const filtered = entries.filter(e => {
+        let ok = (e.key + ' ' + e.value + ' ' + (e.tags || []).join(' ')).toLowerCase().includes(q);
+        if (scope) ok = ok && e.scope === scope;
+        if (enabled) ok = ok && String(e.enabled) === enabled;
+        return ok;
+      });
+      filtered.forEach(e => entriesEl.appendChild(entryRow(e)));
+      emptyMsg.style.display = filtered.length ? 'none' : 'block';
+      statsEl.textContent = `${filtered.length} entr${filtered.length === 1 ? 'y' : 'ies'} • scope: ${scope || 'all'}`;
+    }
 
-function entryRow(e){
-  const div = document.createElement('div');
-  div.className='entry';
-  div.innerHTML = `
+    function entryRow(e) {
+      const div = document.createElement('div');
+      div.className = 'entry';
+      div.innerHTML = `
     <div class="entry-header">
       <div>
         <div class="entry-key">${e.key}</div>
-        <div class="muted">${e.scope} • priority ${e.priority} • weight ${e.weight} ${e.enabled?'':'• disabled'}</div>
+        <div class="muted">${e.scope} • priority ${e.priority} • weight ${e.weight} ${e.enabled ? '' : '• disabled'}</div>
       </div>
       <div class="entry-actions">
         <button class="btn" title="Edit" onclick="openModal(${e.id})">Edit</button>
         <button class="btn" title="Delete" onclick="del(${e.id})">Delete</button>
       </div>
     </div>
-    <div style="margin-bottom:8px">${escapeHtml(e.value).replace(/\n/g,'<br/>')}</div>
-    <div>${(e.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+    <div style="margin-bottom:8px">${escapeHtml(e.value).replace(/\n/g, '<br/>')}</div>
+    <div>${(e.tags || []).map(t => `<span class="tag">${t}</span>`).join('')}</div>
   `;
-  return div;
-}
-
-function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));}
-
-// --- Modal ---
-const modal=document.getElementById('modal');
-const fKey=document.getElementById('fKey');
-const fTags=document.getElementById('fTags');
-const fScope=document.getElementById('fScope');
-const fPriority=document.getElementById('fPriority');
-const fWeight=document.getElementById('fWeight');
-const fEnabled=document.getElementById('fEnabled');
-const fValue=document.getElementById('fValue');
-const modalTitle=document.getElementById('modalTitle');
-
-document.getElementById('newEntryBtn').onclick=()=>openModal();
-document.getElementById('cancelBtn').onclick=()=>closeModal();
-document.getElementById('saveBtn').onclick=saveEntry;
-document.getElementById('saveWorldbookBtn').onclick=saveWorldbook;
-
-function openModal(id){
-  editing=id||null;
-  if(editing){
-    const e=entries.find(x=>x.id===id);
-    modalTitle.textContent='Edit Entry';
-    fKey.value=e.key; fTags.value=(e.tags||[]).join(', '); fScope.value=e.scope;
-    fPriority.value=e.priority; fWeight.value=e.weight; fEnabled.checked=e.enabled; fValue.value=e.value;
-  } else {
-    modalTitle.textContent='New Entry';
-    fKey.value=''; fTags.value=''; fScope.value='global';
-    fPriority.value=50; fWeight.value=1; fEnabled.checked=true; fValue.value='';
-  }
-  modal.style.display='flex';
-}
-
-function closeModal(){modal.style.display='none';}
-window.addEventListener('keydown', e=>{if(e.key==='Escape') closeModal();});
-
-function saveEntry(){
-  const obj={
-    key:fKey.value.trim(),
-    tags:fTags.value.split(',').map(s=>s.trim()).filter(Boolean),
-    scope:fScope.value,
-    priority:Number(fPriority.value)||0,
-    weight:Number(fWeight.value)||0,
-    enabled:!!fEnabled.checked,
-    value:fValue.value
-  };
-  if(!obj.key){alert('Key is required.');return;}
-  if(editing){
-    const i=entries.findIndex(x=>x.id===editing);
-    entries[i]={...entries[i],...obj};
-  } else {
-    obj.id=(entries.at(-1)?.id||0)+1;
-    entries.push(obj);
-  }
-  closeModal();
-  render();
-}
-
-// --- Save Worldbook (з CSRF) ---
-function getCookie(name) {
-  let cookieValue = null;
-  if (document.cookie && document.cookie !== '') {
-    const cookies = document.cookie.split(';');
-    for (let i = 0; i < cookies.length; i++) {
-      const cookie = cookies[i].trim();
-      if (cookie.substring(0, name.length + 1) === (name + '=')) {
-        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-        break;
-      }
+      return div;
     }
-  }
-  return cookieValue;
-}
-const csrftoken = getCookie('csrftoken');
 
-async function saveWorldbook(){
-  try{
-    const resp = await fetch(window.location.pathname,{
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'X-CSRFToken': csrftoken
-      },
-      body: JSON.stringify({entries})
-    });
-    const resJson=await resp.json();
-    if(!resp.ok) alert('Error saving: '+(resJson.error||'Unknown'));
-    else alert(`Saved ${resJson.count} entr${resJson.count===1?'y':'ies'} successfully.`);
-  }catch(err){alert('Network error: '+err.message);}
-}
+    function escapeHtml(s) { return String(s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m])); }
 
-// --- Delete Entry ---
-function del(id){
-  if(!confirm('Delete this entry?')) return;
-  entries = entries.filter(e => e.id !== id);
-  render();
-}
+    // --- Modal ---
+    const modal = document.getElementById('modal');
+    const fKey = document.getElementById('fKey');
+    const fTags = document.getElementById('fTags');
+    const fScope = document.getElementById('fScope');
+    const fPriority = document.getElementById('fPriority');
+    const fWeight = document.getElementById('fWeight');
+    const fEnabled = document.getElementById('fEnabled');
+    const fValue = document.getElementById('fValue');
+    const modalTitle = document.getElementById('modalTitle');
 
-// --- Load server JSON ---
-{% if json_data %}
-try{
-  const serverData=JSON.parse('{{ json_data|escapejs }}');
-  entries=serverData.entries.map((e,i)=>({...e,id:i+1}));
-  render();
-}catch(err){console.error("Failed to load server JSON:",err);}
-{% endif %}
+    document.getElementById('newEntryBtn').onclick = () => openModal();
+    document.getElementById('cancelBtn').onclick = () => closeModal();
+    document.getElementById('saveBtn').onclick = saveEntry;
+    document.getElementById('saveWorldbookBtn').onclick = saveWorldbook;
 
-search.addEventListener('input',render);
-scopeFilter.addEventListener('change',render);
-enabledFilter.addEventListener('change',render);
-</script>
+    function openModal(id) {
+      editing = id || null;
+      if (editing) {
+        const e = entries.find(x => x.id === id);
+        modalTitle.textContent = 'Edit Entry';
+        fKey.value = e.key; fTags.value = (e.tags || []).join(', '); fScope.value = e.scope;
+        fPriority.value = e.priority; fWeight.value = e.weight; fEnabled.checked = e.enabled; fValue.value = e.value;
+      } else {
+        modalTitle.textContent = 'New Entry';
+        fKey.value = ''; fTags.value = ''; fScope.value = 'global';
+        fPriority.value = 50; fWeight.value = 1; fEnabled.checked = true; fValue.value = '';
+      }
+      modal.style.display = 'flex';
+    }
+
+    function closeModal() { modal.style.display = 'none'; }
+    window.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+    function saveEntry() {
+      const obj = {
+        key: fKey.value.trim(),
+        tags: fTags.value.split(',').map(s => s.trim()).filter(Boolean),
+        scope: fScope.value,
+        priority: Number(fPriority.value) || 0,
+        weight: Number(fWeight.value) || 0,
+        enabled: !!fEnabled.checked,
+        value: fValue.value
+      };
+      if (!obj.key) { alert('Key is required.'); return; }
+      if (editing) {
+        const i = entries.findIndex(x => x.id === editing);
+        entries[i] = { ...entries[i], ...obj };
+      } else {
+        obj.id = (entries.at(-1)?.id || 0) + 1;
+        entries.push(obj);
+      }
+      closeModal();
+      render();
+    }
+
+    // --- Save Worldbook (з CSRF) ---
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+
+    async function saveWorldbook() {
+      try {
+        const resp = await fetch(window.location.pathname, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken
+          },
+          body: JSON.stringify({ entries })
+        });
+        const resJson = await resp.json();
+        if (!resp.ok) alert('Error saving: ' + (resJson.error || 'Unknown'));
+        else alert(`Saved ${resJson.count} entr${resJson.count === 1 ? 'y' : 'ies'} successfully.`);
+      } catch (err) { alert('Network error: ' + err.message); }
+    }
+
+    // --- Delete Entry ---
+    function del(id) {
+      if (!confirm('Delete this entry?')) return;
+      entries = entries.filter(e => e.id !== id);
+      render();
+    }
+
+    // --- Load server JSON ---
+    {% if json_data %}
+    try {
+      const serverData = JSON.parse('{{ json_data|escapejs }}');
+      entries = serverData.entries.map((e, i) => ({ ...e, id: i + 1 }));
+      render();
+    } catch (err) { console.error("Failed to load server JSON:", err); }
+    {% endif %}
+
+    search.addEventListener('input', render);
+    scopeFilter.addEventListener('change', render);
+    enabledFilter.addEventListener('change', render);
+  </script>
 </body>
-</html>
 
+</html>

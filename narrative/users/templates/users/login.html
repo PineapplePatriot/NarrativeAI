@@ -105,6 +105,7 @@
 
 <!DOCTYPE html>
 <html lang="uk">
+
 <head>
     <meta charset="UTF-8">
     <title>Authorization</title>
@@ -131,7 +132,7 @@
             background-color: var(--ui-primary);
             padding: 30px;
             border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         h1 {
@@ -146,7 +147,9 @@
             font-weight: bold;
         }
 
-        input, select, textarea {
+        input,
+        select,
+        textarea {
             width: 100%;
             margin-bottom: 10px;
             padding: 10px;
@@ -169,7 +172,8 @@
             margin-top: 20px;
         }
 
-        button, .sign-in-link {
+        button,
+        .sign-in-link {
             background-color: var(--accent-1);
             color: white;
             border: none;
@@ -181,29 +185,31 @@
             transition: background-color 0.3s ease;
         }
 
-        button:hover, .sign-in-link:hover {
+        button:hover,
+        .sign-in-link:hover {
             background-color: #9F67F8;
         }
     </style>
 </head>
+
 <body>
     <div class="form-container">
         <h1>Authorization</h1>
 
         <form method="post">
             {% csrf_token %}
-            <input type="hidden" name="next" value="{{ next }}"/>
+            <input type="hidden" name="next" value="{{ next }}" />
 
             {% if form.non_field_errors %}
             <div class="form-error">{{ form.non_field_errors }}</div>
             {% endif %}
 
             {% for f in form %}
-                <label for="{{ f.id_for_label }}">{{ f.label }}</label>
-                {{ f }}
-                {% if f.errors %}
-                    <div class="form-error">{{ f.errors }}</div>
-                {% endif %}
+            <label for="{{ f.id_for_label }}">{{ f.label }}</label>
+            {{ f }}
+            {% if f.errors %}
+            <div class="form-error">{{ f.errors }}</div>
+            {% endif %}
             {% endfor %}
 
             <div class="button-group">
@@ -213,4 +219,5 @@
         </form>
     </div>
 </body>
+
 </html>

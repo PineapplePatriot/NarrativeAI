@@ -76,6 +76,7 @@
 -->
 <!DOCTYPE html>
 <html lang="uk">
+
 <head>
     <meta charset="UTF-8">
     <title>Registration</title>
@@ -101,7 +102,7 @@
             background-color: var(--ui-primary);
             padding: 30px 40px;
             border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             box-sizing: border-box;
         }
 
@@ -117,7 +118,9 @@
             font-weight: 600;
         }
 
-        input, select, textarea {
+        input,
+        select,
+        textarea {
             width: 100%;
             margin-bottom: 18px;
             padding: 12px;
@@ -163,6 +166,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="form-container">
         <h1>Registration</h1>
@@ -175,15 +179,16 @@
             {% endif %}
 
             {% for f in form %}
-                <label for="{{ f.id_for_label }}">{{ f.label }}</label>
-                {{ f }}
-                {% if f.errors %}
-                    <div class="form-error">{{ f.errors }}</div>
-                {% endif %}
+            <label for="{{ f.id_for_label }}">{{ f.label }}</label>
+            {{ f }}
+            {% if f.errors %}
+            <div class="form-error">{{ f.errors }}</div>
+            {% endif %}
             {% endfor %}
 
             <button type="submit">Register</button>
         </form>
     </div>
 </body>
+
 </html>
