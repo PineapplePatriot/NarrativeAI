@@ -1017,8 +1017,10 @@
                                 </svg>
                             </button>
                         </div>
-                        <div class="message-text">{{ text }}</div>
-                        <textarea class="edit-textarea" style="display: none;">{{ text }}</textarea>
+                        <div class="message-text" data-raw="{{ text|urlencode }}">{{ text|escape }}</div>
+                        <textarea class="edit-textarea" style="display:none;">{{ text }}</textarea>
+                        <!-- <div class="message-text">{{ text }}</div>
+                        <textarea class="edit-textarea" style="display: none;">{{ text }}</textarea> -->
                         <div class="edit-actions">
                             <button class="edit-btn save-btn"
                                 onclick="saveMessage({{ forloop.counter0 }})">Save</button>
@@ -1108,11 +1110,23 @@
     </div>
 
     <script>
-        // --- Markdown + safe HTML helpers -------------------------------------------
+        function decodeEntities(s) {
+            const t = document.createElement('textarea');
+            t.innerHTML = s;
+            return t.value;
+        }
 
-        // Wrap "quoted" words (outside code spans) with <span class="quoted">…</span>
+        function hydrateExistingMessages() {
+            document.querySelectorAll('.message-text').forEach(el => {
+                const rawAttr = el.getAttribute('data-raw');
+                if (!rawAttr) return;
+                const raw = decodeURIComponent(rawAttr);
+                el.innerHTML = renderChatMessage(raw);
+            });
+        }
+
         function wrapQuoted(text) {
-            const parts = text.split(/(`+[^`]*`+)/g); // keep inline code chunks as-is
+            const parts = text.split(/(`+[^`]*`+)/g);
             return parts.map((part, i) => {
                 if (i % 2 === 1) return part; // code chunk — skip
                 return part.replace(
@@ -1122,9 +1136,8 @@
             }).join('');
         }
 
-        // Configure marked once
         marked.setOptions({
-            breaks: true,    // chat-friendly newlines
+            breaks: true,
             gfm: true,
             headerIds: false,
             mangle: false
@@ -1142,7 +1155,6 @@
                 ALLOWED_ATTR: { 'a': ['href', 'title', 'target', 'rel'], 'span': ['class'] }
             });
 
-            // Ensure safe link behavior
             const tmp = document.createElement('div');
             tmp.innerHTML = clean;
             tmp.querySelectorAll('a').forEach(a => {
@@ -1365,10 +1377,6 @@
                         const rendered = renderChatMessage(newText);
                         messageText.innerHTML = rendered;
                         messageText.setAttribute('data-raw', encodeURIComponent(newText));
-
-                        cancelEdit(index);
-
-                        // Keep textarea synced with the raw text
                         editTextarea.value = newText;
                         cancelEdit(index);
                     } else {
@@ -1389,8 +1397,12 @@
             const editTextarea = message.querySelector('.edit-textarea');
             const messageText = message.querySelector('.message-text');
 
+            const raw = messageText.getAttribute('data-raw')
+                ? decodeURIComponent(messageText.getAttribute('data-raw'))
+                : (messageText.textContent || '');
+
             // Reset textarea value
-            editTextarea.value = messageText.textContent;
+            editTextarea.value = raw;
 
             message.classList.remove('edit-mode');
             editTextarea.style.display = 'none';
@@ -1500,10 +1512,13 @@
             document.body.style.userSelect = '';
         });
 
-        // Initial setup
-        scrollToBottom();
-        updateMessageIndices();
+        document.addEventListener('DOMContentLoaded', () => {
+            hydrateExistingMessages();
+            scrollToBottom();
+            updateMessageIndices();
+        });
     </script>
+
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
 
