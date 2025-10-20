@@ -650,4 +650,3 @@ class UpdateCharacter(LoginRequiredMixin, UpdateView):
 def page_not_found(request, exception):
     print("Hi, hi")
     return HttpResponseNotFound("<h1>Сторінку не знайдено. Вибачте, будь ласка!!!</h1>")
-
