@@ -59,6 +59,9 @@ body {
     align-items: center;
     gap: 10px;
     position: relative;
+
+    text-decoration: none;
+    color: inherit;
 }
 
 .nav-item:hover {
@@ -161,6 +164,8 @@ body {
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
+    text-decoration: none;
+    color: inherit;
 }
 
 .action-card::before {
@@ -264,6 +269,8 @@ body {
     padding: 20px;
     cursor: pointer;
     transition: all 0.2s ease;
+    text-decoration: none;
+    color: inherit;
 }
 
 .session-card:hover {
@@ -306,8 +313,13 @@ body {
     color: var(--text-secondary);
     line-height: 1.4;
     margin-bottom: 10px;
+
     display: -webkit-box;
+    display: box;
+
+    line-clamp: 2;
     -webkit-line-clamp: 2;
+
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
