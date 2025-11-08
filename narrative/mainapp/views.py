@@ -36,7 +36,7 @@ def index_page(request):
     context = {
         'characters': default_characters
     }
-    return render(request, 'index.html', context)
+    return render(request, 'main.html', context)
 
 
 @login_required
