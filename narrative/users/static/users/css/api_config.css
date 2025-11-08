@@ -1,0 +1,173 @@
+:root {
+    --bg-primary: #121520;
+    --ui-primary: #2A2F4A;
+    --accent-1: #7E3AF2;
+    --text-primary: #F1F5F9;
+    --success: #10B981;
+    --warning: #F59E0B;
+    --error: #EF4444;
+}
+
+body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: 'Segoe UI', sans-serif;
+    padding: 40px;
+}
+
+.form-container {
+    max-width: 600px;
+    margin: 0 auto;
+    background-color: var(--ui-primary);
+    padding: 30px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.subtitle {
+    text-align: center;
+    color: rgba(241, 245, 249, 0.7);
+    margin-bottom: 30px;
+    font-size: 0.9rem;
+}
+
+.field-group {
+    margin-bottom: 25px;
+}
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.required {
+    color: var(--error);
+}
+
+.optional {
+    color: rgba(241, 245, 249, 0.6);
+    font-size: 0.85rem;
+}
+
+input,
+select,
+textarea {
+    width: 100%;
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background-color: #1E293B;
+    color: var(--text-primary);
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+    box-sizing: border-box;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    outline: none;
+    border-color: var(--accent-1);
+    box-shadow: 0 0 0 2px rgba(126, 58, 242, 0.2);
+}
+
+.help-text {
+    font-size: 0.8rem;
+    color: rgba(241, 245, 249, 0.6);
+    margin-top: 5px;
+}
+
+.status-indicator {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    margin-left: 8px;
+}
+
+.status-loading {
+    background-color: var(--warning);
+    color: white;
+}
+
+.status-success {
+    background-color: var(--success);
+    color: white;
+}
+
+.status-error {
+    background-color: var(--error);
+    color: white;
+}
+
+.button-group {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 30px;
+}
+
+button {
+    background-color: var(--accent-1);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #6D28D9;
+}
+
+button:disabled {
+    background-color: rgba(126, 58, 242, 0.5);
+    cursor: not-allowed;
+}
+
+.secondary-button {
+    background-color: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--text-primary);
+}
+
+.secondary-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.test-button {
+    background-color: var(--success);
+    font-size: 0.9rem;
+    padding: 8px 16px;
+    margin-top: 10px;
+}
+
+.test-button:hover {
+    background-color: #059669;
+}
+
+#model-dropdown:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.api-section {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.api-section h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: var(--accent-1);
+}

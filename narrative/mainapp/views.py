@@ -25,15 +25,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
-from .utils import build_ai_request
+from .utils import build_ai_request, narrate_text_backend, get_openrouter_key, get_elevenlabs_key
 
-#from django.contrib.auth.decorators import login_required
-#from .utils import build_ai_request
-
-
-
-#def index_page(request):
-#    return render(request, 'index.html')
 
 @login_required
 def index_page(request):
@@ -46,7 +39,7 @@ def index_page(request):
     return render(request, 'index.html', context)
 
 
-
+@login_required
 def characters_list(request):
     return render(request, 'mainapp/characters.html')
 
@@ -54,6 +47,7 @@ def characters_list(request):
 
 #OPENROUTER_API_KEY = "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"  # свій ключ
 
+import re
 
 @login_required
 def chat(request, slug):
@@ -80,24 +74,6 @@ def chat(request, slug):
         character.chat_log_file.name = f"chat_logs/{filename}"
         character.save()
 
-    #--- Load messages & fix old logs ---
-    # def load_messages():
-    #     if os.path.exists(chat_file_path):
-    #         with open(chat_file_path, "r", encoding="utf-8") as f:
-    #             try:
-    #                 messages = json.load(f)
-    #                 fixed_messages = []
-    #                 for msg in messages:
-    #                     if len(msg) == 3:
-    #                         role, time, text = msg
-    #                         fixed_messages.append((role, time, text, "neutral"))
-    #                     elif len(msg) >= 4:
-    #                         fixed_messages.append(tuple(msg[:4]))
-    #                 return fixed_messages
-    #             except json.JSONDecodeError:
-    #                 return []
-    #     else:
-    #         return []
 
     def load_messages():
         if os.path.exists(chat_file_path):
@@ -209,6 +185,8 @@ def chat(request, slug):
                     else:
                         worldbook_slug = None
                     prompt = build_ai_request(request.user, character, chat_settings, worldbook_slug=worldbook_slug, message=user_message)
+
+
                     # --- Формуємо структуровані system messages ---
                     system_messages = []
 
@@ -277,8 +255,15 @@ def chat(request, slug):
                         timeout=15
                     )
                     response.raise_for_status()
+                    print("Responce!!!!!  ", response)
                     result = response.json()
+                    print("Result!!!!!  ", result)
                     reply = result["choices"][0]["message"]["content"]
+                    print("====================!!!!!!")
+                    print("Reply!!!!!  ", reply)
+                    print("====================!!!!!!")
+
+
                 except Exception as e:
                     print(f"Error generating reply: {e}")
                     reply = "Вибачте, сталася помилка при генерації відповіді."
@@ -314,7 +299,11 @@ def chat(request, slug):
                     emo_response.raise_for_status()
                     emo_result = emo_response.json()
                     raw_emotion = emo_result["choices"][0]["message"]["content"].strip().lower()
-                    emotion = raw_emotion.split()[0]  # беремо перше слово
+                    print("RAW_EMO:", raw_emotion)
+                    if not raw_emotion or raw_emotion == " ":
+                        emotion = "neutral"
+                    else:
+                        emotion = raw_emotion.split()[0]  # беремо перше слово
                     if emotion not in ["neutral", "happy", "sad", "angry", "surprised", "scared", "confused", "calm",
                                        "scheming"]:
                         emotion = "neutral"
@@ -334,10 +323,41 @@ def chat(request, slug):
                 # --- Save log ---
                 save_messages(messages)
 
+                # ---Робота зі звуком----
+
+                OPENROUTER_API_KEY = get_openrouter_key(request.user)
+                #ELEVENLABS_API_KEY = get_elevenlabs_key(request.user)
+                #audio_path = narrate_text_backend(reply, request.user, character.name, OPENROUTER_API_KEY, ELEVENLABS_API_KEY, output_dir="media/audio_files")
+
+                try:
+                    # спробуємо отримати ElevenLabs ключ
+                    ELEVENLABS_API_KEY = get_elevenlabs_key(request.user)
+
+                    # якщо ключ є, виконуємо функцію
+                    if ELEVENLABS_API_KEY:
+                        OPENROUTER_API_KEY = get_openrouter_key(request.user)
+                        audio_path = narrate_text_backend(
+                            reply,
+                            request.user,
+                            character.name,
+                            OPENROUTER_API_KEY,
+                            ELEVENLABS_API_KEY,
+                            narrator_voice_id=character.eleven_voice_narr_id or None,
+                            character_voice_id=character.eleven_voice_char_id or None,
+                            output_dir="media/audio_files"
+                        )
+                    else:
+                        audio_path = ""  # ключ порожній → нічого не генеруємо
+
+                except Exception as e:
+                    # якщо сталася будь-яка помилка
+                    audio_path = ""
+
                 return JsonResponse({
                     "reply": reply,
                     "emotion": emotion,
                     "photo_url": photo_url,
+                    "audio_url": audio_path,
                 })
 
     # --- GET request ---
@@ -434,16 +454,13 @@ def chat_settings(request):
     except Exception:
         print("Failed to load settings:", traceback.format_exc())
 
-    #return render(request, "mainapp/chat_settings_v1_06102015.html", {
-    #    "settings": settings_data
-    # nsfw_custom_json = json.dumps(settings_data["nsfw"]["custom"] or {})
-    # prompts_custom_json = json.dumps(settings_data["prompts"]["custom"] or {})
+
     nsfw_custom_json = json.dumps((settings_data.get("nsfw", {}) or {}).get("custom", {}) or {})
     prompts_custom_json = json.dumps((settings_data.get("prompts", {}) or {}).get("custom", {}) or {})
     settings_data["nsfw_custom_json"]= nsfw_custom_json
     settings_data["prompts_custom_json"] = prompts_custom_json
     print(settings_data)
-    return render(request, "mainapp/fixed_chat_settings_new.html", {
+    return render(request, "mainapp/chat_settings.html", {
         "settings": settings_data
     })
 
@@ -488,51 +505,6 @@ def worldbook_create(request):
 
 
 
-
-# @login_required
-# def worldbook_detail(request, slug):
-#     # Дістаємо лише worldbook-и, які належать залогіненому користувачу
-#     wb = get_object_or_404(Worldbook, slug=slug, author=request.user)
-#
-#     if request.method == 'POST':
-#         try:
-#             data = json.loads(request.body)
-#             entries = data.get('entries', [])
-#         except json.JSONDecodeError:
-#             return JsonResponse({"error": "Invalid JSON"}, status=400)
-#
-#         try:
-#             # Зберігаємо всі entries в json_file
-#             json_content = json.dumps({"entries": entries}, indent=2, ensure_ascii=False)
-#             wb.json_file.save(f"{wb.slug}.json", ContentFile(json_content))
-#             wb.save()
-#         except Exception as e:
-#             return JsonResponse({"error": str(e)}, status=500)
-#
-#         return JsonResponse({"status": "ok", "count": len(entries)})
-#
-#     # --- GET-запит ---
-#     entries_data = []
-#     if wb.json_file:
-#         try:
-#             wb.json_file.open('r')
-#             file_content = wb.json_file.read()
-#             wb.json_file.close()
-#             json_data = json.loads(file_content)
-#             entries_data = json_data.get('entries', []) if isinstance(json_data, dict) else []
-#         except Exception:
-#             entries_data = []
-#
-#     worldbook_json = {
-#         "id": wb.slug,
-#         "title": wb.title,
-#         "entries": entries_data
-#     }
-#
-#     return render(request, 'mainapp/worldbook_detail_new2.html', {
-#         'json_data': json.dumps(worldbook_json)
-#     })
-#
 
 @login_required
 def worldbook_detail(request, slug):
@@ -607,15 +579,32 @@ class CharactersList(LoginRequiredMixin, ListView):
         return Character.objects.filter(author=self.request.user)
 
 
+class CharacterBaseView(LoginRequiredMixin):
+    template_name = "mainapp/add_character.html"
+    title_page = None  # child sets this
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["has_eleven_key"] = bool(get_elevenlabs_key(self.request.user))
+        if self.title_page:
+            context["title_page"] = self.title_page
+        return context
 
 
-class AddCharacter(LoginRequiredMixin, CreateView):
+class AddCharacter(CharacterBaseView, CreateView):
     form_class = AddCharacterForm
-    template_name = "mainapp/add_character_proba.html"
     title_page = "Add Character"
     success_url = reverse_lazy('characters_list')
 
+
     def form_valid(self, form):
+        print("Форма валідна!")
+        print("Дані форми:", form.cleaned_data)
         a = form.save(commit=False)
         a.author = self.request.user
         # Формуємо slug: username + "-" + slugified name
@@ -623,19 +612,17 @@ class AddCharacter(LoginRequiredMixin, CreateView):
         base_slug = slugify(a.name)
         a.slug = f"{username}-{base_slug}"
         a.save()
+        print("Збережено об'єкт:", a)
         return super().form_valid(form)
 
 
-
-
-
-class UpdateCharacter(LoginRequiredMixin, UpdateView):
+class UpdateCharacter(CharacterBaseView, UpdateView):
     model = Character
     form_class = AddCharacterForm
-    template_name = "mainapp/add_character_proba.html"
     title_page = "Edit Character"
     slug_field = "slug"
     slug_url_kwarg = "slug"
+
 
     # --- Обмежуємо queryset лише персонажами залогіненого користувача ---
     def get_queryset(self):
@@ -650,3 +637,4 @@ class UpdateCharacter(LoginRequiredMixin, UpdateView):
 def page_not_found(request, exception):
     print("Hi, hi")
     return HttpResponseNotFound("<h1>Сторінку не знайдено. Вибачте, будь ласка!!!</h1>")
+

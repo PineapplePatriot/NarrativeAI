@@ -3,7 +3,7 @@ from django.core.validators import MaxLengthValidator, MinLengthValidator
 from django.utils.deconstruct import deconstructible
 from django.core.exceptions import ValidationError
 
-
+from .utils import get_elevenlabs_key
 from .models import Character, Worldbook, TagPost
 
 #ВСЕ, що нижче, треба повністю змінювати!!!!!!!!!!!!!!!
@@ -13,27 +13,31 @@ emotions = [
     ]
 
 class AddCharacterForm(forms.ModelForm):
+
     worldbook = forms.ModelChoiceField(
-        queryset=Worldbook.objects.all(),
+        queryset=Worldbook.objects.none(),
         empty_label="Worldbook is not chosen",
-        label="Worldbook"
+        label="Worldbook",
+        required=False
     )
 
     tags = forms.ModelMultipleChoiceField(
         queryset=TagPost.objects.all(),
         required=False,
-        widget=forms.CheckboxSelectMultiple,  # або SelectMultiple, якщо хочеш список
-        label="Tags"
+        widget=forms.CheckboxSelectMultiple,
+        label="Tags",
     )
 
     class Meta:
         model = Character
         fields = [
-            'name', 'slug', 'description', 'scenario',
+            'name', 'description', 'scenario',
             'initial_message', 'creator_notes', 'worldbook', 'tags',
             'photo_neutral', 'photo_happy', 'photo_sad', 'photo_angry',
             'photo_surprised', 'photo_scared', 'photo_confused',
             'photo_calm', 'photo_scheming',
+            'eleven_voice_char_name','eleven_voice_char_id',
+            'eleven_voice_narr_name','eleven_voice_narr_id',
         ]
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-input'}),
@@ -41,42 +45,29 @@ class AddCharacterForm(forms.ModelForm):
             'scenario': forms.Textarea(attrs={'cols': 50, 'rows': 5}),
             'initial_message': forms.Textarea(attrs={'cols': 50, 'rows': 5}),
             'creator_notes': forms.Textarea(attrs={'cols': 50, 'rows': 5}),
+            'eleven_voice_char_name': forms.TextInput(attrs={'placeholder': "Введіть імʼя"}),
+            'eleven_voice_char_id': forms.TextInput(attrs={'placeholder': "Введіть ID"}),
+            'eleven_voice_narr_name': forms.TextInput(attrs={'placeholder': "Введіть імʼя"}),
+            'eleven_voice_narr_id': forms.TextInput(attrs={'placeholder': "Введіть ID"}),
         }
-        labels = {'slug': "Slug"}
+        #labels = {'slug': "Slug"}
 
-    # def clean_title(self):
-    #     title = self.cleaned_data['title']
-    #     print(title)
-    #     if len(title) > 50:
-    #         raise ValidationError("Заголовок не більше 50 символів")
+    def __init__(self, *args, **kwargs):
+        # Отримуємо користувача, переданого з view
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        if user is not None:
+            self.fields['worldbook'].queryset = Worldbook.objects.filter(author=user)
 
-# class AddPostForm(forms.Form):
-#     title = forms.CharField(max_length=255, min_length=5,
-#                             label="Заголовок",
-#                             widget=forms.TextInput(attrs={'class': 'form-input'}),
-#                             validators=[
-#                                 UkrainianValidator()
-#                             ],
-#                             error_messages={
-#                                 'min_length': "Занадто коротки йзаголовок",
-#                                 'reqired': "Без назви ніяк",
-#                             })
-#     slug = forms.SlugField(max_length=255, label="Slug",
-#                            validators=[
-#                                MinLengthValidator(5, "Мінімум 5 символів"),
-#                                MaxLengthValidator(100, "Максимум 100 символів"),
-#                            ])
-#     content = forms.CharField(widget=forms.Textarea(attrs={'cols':50, 'rows':5}), required=False, label="Контент")
-#     is_published = forms.BooleanField(required=False, initial=True,label="Статус")
-#     cat = forms.ModelChoiceField(queryset=Category.objects.all(), empty_label="Категорія не вибрана", label="Категорія")
-#     doi = forms.ModelChoiceField(queryset=Doi.objects.all(), empty_label="Doi не присвоєний", required=False, label="DOI")
-#
-#     def clean_title(self):
-#         title = self.cleaned_data['title']
-#         ALLOWED_CHARS = "абвгдеєжзиіїйклмнопрстяює"
-#
-#         if not (set(title) <= set(self.ALLOWED_CHARS)):
-#             raise ValidationError(self.message, code=self.code)
+            self.has_eleven_key = True if get_elevenlabs_key(user) else False
+
+            voice_fields = [
+                'eleven_voice_char_name', 'eleven_voice_char_id',
+                'eleven_voice_narr_name', 'eleven_voice_narr_id',
+            ]
+            for fname in voice_fields:
+                self.fields[fname].required = self.has_eleven_key
+
 
 
 class UploadFileForm(forms.Form):

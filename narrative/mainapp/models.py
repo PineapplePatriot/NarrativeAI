@@ -28,7 +28,6 @@ class Character(models.Model):
     photo_scheming = models.ImageField(upload_to="photos/%Y/%m/%d/", default=None,
                                       blank=True, null=True, verbose_name="Scheming emotion")
 
-
     description = models.TextField(blank=True) # було поле  content
     scenario = models.TextField(blank=True) #нове
     initial_message = models.TextField(blank=True) #нове
@@ -50,6 +49,11 @@ class Character(models.Model):
 
     author=models.ForeignKey(get_user_model(), on_delete=models.SET_NULL,
                              related_name='characters', null=True, default=None)
+
+    eleven_voice_char_name = models.CharField(max_length=128, blank=True)
+    eleven_voice_char_id = models.CharField(max_length=128, blank=True)
+    eleven_voice_narr_name = models.CharField(max_length=128, blank=True)
+    eleven_voice_narr_id = models.CharField(max_length=128, blank=True)
 
     def __str__(self):
         return self.name

@@ -1,0 +1,80 @@
+{% load static %}
+{% load custom_filters %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Add Character (Proba)</title>
+    <link rel="stylesheet" href="{% static 'mainapp/css/character_form.css' %}">
+    <link rel="stylesheet" href="{% static 'mainapp/css/add_character.css' %}">
+</head>
+<body>
+<div class="form-container">
+    <!-- Кнопка назад без обрамлення -->
+    <a href="{% url 'worldbook_list' %}" class="back-btn">← Back to Characters List</a>
+    <h1>Add Character</h1>
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="form-error">{{ form.non_field_errors }}</div>
+
+        <!-- Текстові поля -->
+        {% for f in form %}
+            {% if f.field.widget.input_type != "file" and not f.name|startswith:"eleven_voice_" %}
+                <div class="form-group">
+                    <label for="{{ f.id_for_label }}">{{ f.label }}</label>
+                    {{ f }}
+                    <div class="form-error">{{ f.errors }}</div>
+                </div>
+            {% endif %}
+        {% endfor %}
+
+        {% if has_eleven_key %}
+            <h4>Eleven Labs Voice</h4>
+            <div class="voice-section">
+                <div class="voice-block">
+                    <label>Голос персонаж 1</label>
+                    {{ form.eleven_voice_char_name.label_tag }} {{ form.eleven_voice_char_name }}
+                    {{ form.eleven_voice_char_id.label_tag }} {{ form.eleven_voice_char_id }}
+                </div>
+                <div class="voice-block">
+                    <label>Голос оповідача</label>
+                    {{ form.eleven_voice_narr_name.label_tag }} {{ form.eleven_voice_narr_name }}
+                    {{ form.eleven_voice_narr_id.label_tag }} {{ form.eleven_voice_narr_id }}
+                </div>
+            </div>
+        {% else %}
+            <p><em>🔒 Щоб обрати голос, додайте ваш Eleven Labs API ключ у налаштуваннях.</em></p>
+        {% endif %}
+
+        <!-- file-поля у сітці 3×3 -->
+        <div class="file-grid">
+            {% for f in form %}
+                {% if f.field.widget.input_type == "file" %}
+                    <div class="file-group">
+                        <label>{{ f.label }}</label>
+                        <label class="custom-file-btn" onclick="this.nextElementSibling.click()">Вибрати фото</label>
+                        <input type="file" name="{{ f.name }}" id="{{ f.id_for_label }}" class="file-input">
+                        <div class="file-preview">
+                            {% if f.value %}
+                                <img src="{{ f.value.url }}" alt="current image">
+                            {% else %}
+                                📷
+                            {% endif %}
+                        </div>
+                        <div class="form-error">{{ f.errors }}</div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        {% if object %}
+            <button type="submit" class="btn-primary">💾 Save</button>
+        {% else %}
+            <button type="submit" class="btn-primary">Відправити</button>
+        {% endif %}
+    </form>
+</div>
+<script src="{% static 'mainapp/js/add_character.js' %}"></script>
+
+</body>
+</html>
