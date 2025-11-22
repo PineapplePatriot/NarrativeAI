@@ -1,5 +1,23 @@
 let currentAudio = null;
 
+function updateCharacterImages(photoUrl, photoSecond) {
+    const char1Image = document.querySelector('#char1Container .character-sprite');
+    if (char1Image && photoUrl) {
+        char1Image.src = photoUrl;
+    }
+    
+    if (photoSecond) {
+        const char2Image = document.querySelector('#char2Container .character-sprite');
+        if (char2Image) {
+            char2Image.src = photoSecond;
+        }
+    }
+    
+    const avatars = document.querySelectorAll('.message.assistant .message-avatar img');
+    if (photoUrl) {
+        avatars.forEach(img => img.src = photoUrl);
+    }
+}
 
 document.addEventListener("click", (event) => {
     const btn = event.target.closest("button[data-action]");
@@ -215,14 +233,7 @@ function sendMessage() {
         .then(data => {
             addMessage('assistant', data.reply);
 
-            if (data.photo_url) {
-                const characterSprite = document.querySelector('.character-sprite');
-                if (characterSprite) {
-                    characterSprite.src = data.photo_url;
-                }
-                const avatars = document.querySelectorAll('.message.assistant .message-avatar img');
-                avatars.forEach(img => img.src = data.photo_url);
-            }
+            updateCharacterImages(data.photo_url, data.photo_second);
 
             // Додаємо кнопку аудіо, якщо вона прийшла з сервера
             if (data.audio_url) {

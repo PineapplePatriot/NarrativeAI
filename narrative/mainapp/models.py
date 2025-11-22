@@ -21,12 +21,32 @@ class Character(models.Model):
                                       blank=True, null=True, verbose_name="Surprised emotion")
     photo_scared = models.ImageField(upload_to="photos/%Y/%m/%d/", default=None,
                                       blank=True, null=True, verbose_name="Scared emotion")
-    photo_confused = models.ImageField(upload_to="photos/%Y/%m/%d/", default=None,
+    photo_confused = models.ImageField(upload_to="photosф/%Y/%m/%d/", default=None,
                                       blank=True, null=True, verbose_name="Confused emotion")
     photo_calm = models.ImageField(upload_to="photos/%Y/%m/%d/", default=None,
                                       blank=True, null=True, verbose_name="Calm emotion")
     photo_scheming = models.ImageField(upload_to="photos/%Y/%m/%d/", default=None,
                                       blank=True, null=True, verbose_name="Scheming emotion")
+    
+
+    photo_second_neutral = models.ImageField(upload_to="photos/%Y/%m/%d/", default=None,
+                              blank=True, null=True, verbose_name="Second character - Neutral emotion")
+    photo_second_happy = models.ImageField(upload_to="photos/%Y/%m/%d/", default=None,
+                                      blank=True, null=True, verbose_name="Second character - Happy emotion")
+    photo_second_sad = models.ImageField(upload_to="photos/%Y/%m/%d/", default=None,
+                                      blank=True, null=True, verbose_name="Second character - Sad emotion")
+    photo_second_angry = models.ImageField(upload_to="photos/%Y/%m/%d/", default=None,
+                                      blank=True, null=True, verbose_name="Second character - Angry emotion")
+    photo_second_surprised = models.ImageField(upload_to="photos/%Y/%m/%d/", default=None,
+                                      blank=True, null=True, verbose_name="Second character - Surprised emotion")
+    photo_second_scared = models.ImageField(upload_to="photos/%Y/%m/%d/", default=None,
+                                      blank=True, null=True, verbose_name="Second character - Scared emotion")
+    photo_second_confused = models.ImageField(upload_to="photos/%Y/%m/%d/", default=None,
+                                      blank=True, null=True, verbose_name="Second character - Confused emotion")
+    photo_second_calm = models.ImageField(upload_to="photos/%Y/%m/%d/", default=None,
+                                      blank=True, null=True, verbose_name="Second character - Calm emotion")
+    photo_second_scheming = models.ImageField(upload_to="photos/%Y/%m/%d/", default=None,
+                                      blank=True, null=True, verbose_name="Second character - Scheming emotion")
 
     description = models.TextField(blank=True) # було поле  content
     scenario = models.TextField(blank=True) #нове
@@ -38,6 +58,7 @@ class Character(models.Model):
         verbose_name="Chat log file")
 
     is_default = models.BooleanField(default=False, verbose_name="Default character")  # <- нове поле
+    is_mult = models.BooleanField(default=False)
 
 
     creator_notes = models.TextField(blank=True) #нове
@@ -47,13 +68,12 @@ class Character(models.Model):
     worldbook = models.ForeignKey('Worldbook', on_delete=models.PROTECT, null=True, blank=True, related_name="characters")
     tags = models.ManyToManyField('TagPost', blank=True, related_name='tags')
 
-    author=models.ForeignKey(get_user_model(), on_delete=models.SET_NULL,
+    author= models.ForeignKey(get_user_model(), on_delete=models.SET_NULL,
                              related_name='characters', null=True, default=None)
 
     eleven_voice_char_id = models.CharField(max_length=128, blank=True)
     eleven_voice_narr_id = models.CharField(max_length=128, blank=True)
 
-    is_mult = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name

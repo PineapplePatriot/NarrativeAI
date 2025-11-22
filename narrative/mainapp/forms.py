@@ -26,9 +26,14 @@ class AddCharacterForm(forms.ModelForm):
         fields = [
             'is_mult', 'name', 'description', 'scenario',
             'initial_message', 'creator_notes', 'worldbook',
+            # Char 1
             'photo_neutral', 'photo_happy', 'photo_sad', 'photo_angry',
             'photo_surprised', 'photo_scared', 'photo_confused',
             'photo_calm', 'photo_scheming',
+            # Char 2
+            'photo_second_neutral', 'photo_second_happy', 'photo_second_sad',
+            'photo_second_angry', 'photo_second_surprised', 'photo_second_scared',
+            'photo_second_confused', 'photo_second_calm', 'photo_second_scheming',
             'eleven_voice_char_id', 'eleven_voice_narr_id',
         ]
         widgets = {

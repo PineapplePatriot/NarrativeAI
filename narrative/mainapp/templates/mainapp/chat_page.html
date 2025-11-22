@@ -229,11 +229,24 @@
                 </div>
             </div>
 
-            <div class="character-image-container">
-                {% if photo_neutral %}
-                <img src="{{ photo_neutral }}" alt="{{ character.name }}" class="character-sprite">
-                {% else %}
-                <div class="character-placeholder">E</div>
+            <div class="character-images-wrapper">
+                <div class="character-image-container" id="char1Container">
+                    {% if photo_neutral %}
+                    <img src="{{ photo_neutral }}" alt="{{ character.name }}" class="character-sprite">
+                    {% else %}
+                    <div class="character-placeholder">E</div>
+                    {% endif %}
+                </div>
+
+
+                {% if character.is_mult %}
+                <div class="character-image-container dual" id="char2Container">
+                    {% if photo_second %}
+                    <img src="{{ photo_second }}" alt="Character 2" class="character-sprite">
+                    {% else %}
+                    <div class="character-placeholder">2</div>
+                    {% endif %}
+                </div>
                 {% endif %}
             </div>
         </div>

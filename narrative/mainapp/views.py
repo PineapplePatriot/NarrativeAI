@@ -320,6 +320,13 @@ def chat(request, slug):
                 photo_attr = getattr(character, emotion_field, None)
                 photo_url = photo_attr.url if photo_attr else None
 
+                photo_second = None
+                if character.is_mult:
+                    second_emotion_field = f"photo_second_{emotion}"
+                    photo_second_attr = getattr(character, second_emotion_field, None)
+                    photo_second = photo_second_attr.url if photo_second_attr else None
+
+
                 # --- Save log ---
                 save_messages(messages)
 
@@ -359,6 +366,7 @@ def chat(request, slug):
                     "reply": reply,
                     "emotion": emotion,
                     "photo_url": photo_url,
+                    "photo_second": photo_second,
                     "audio_url": audio_path,
                 })
 
@@ -374,11 +382,21 @@ def chat(request, slug):
         photo_url = character.photo_neutral.url
     else:
         photo_url = None
+    
+    photo_second = None
+    if character.is_mult:
+        second_emotion_field = f"photo_second_{last_emotion}"
+        photo_second_attr = getattr(character, second_emotion_field, None)
+        if photo_second_attr and hasattr(photo_second_attr, 'url'):
+            photo_second = photo_second_attr.url
+        elif character.photo_second_neutral:
+            photo_second = character.photo_second_neutral.url
 
     context = {
         "messages": messages,
         "character": character,
         "photo_url": photo_url,
+        "photo_second": photo_second,
         "photo_neutral": photo_url
     }
 
