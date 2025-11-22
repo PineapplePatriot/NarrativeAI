@@ -410,12 +410,12 @@ def build_defaults(settings_data: dict) -> dict:
             "seed": sampling.get("seed", None),  # becomes null in JSON
         },
         "behaviors": {
-            "streaming": behaviors.get("streaming", True),
+            "streaming": behaviors.get("streaming", False),
             "continue": behaviors.get("continue", False),
             "impersonate": behaviors.get("impersonate", False),
             "add_bos": behaviors.get("add_bos", False),
             "ban_eos": behaviors.get("ban_eos", False),
-            "skip_special": behaviors.get("skip_special", True),
+            "skip_special": behaviors.get("skip_special", False),
         },
         "nsfw": {
             "enabled": nsfw.get("enabled", False),
@@ -612,7 +612,6 @@ def build_defaults(settings_data: dict) -> dict:
                 - Each response should feel distinct from the last
                 - Track your own patterns and break them deliberately.
             """)).strip(),
-            # your custom prompts blob
             "custom": prompts.get("custom", {}),
         },
     }
@@ -689,11 +688,6 @@ def chat_settings(request):
     except Exception:
         print("Failed to load settings:", traceback.format_exc())
 
-
-    # nsfw_custom_json = json.dumps((settings_data.get("nsfw", {}) or {}).get("custom", {}) or {})
-    # prompts_custom_json = json.dumps((settings_data.get("prompts", {}) or {}).get("custom", {}) or {})
-    # settings_data["nsfw_custom_json"]= nsfw_custom_json
-    # settings_data["prompts_custom_json"] = prompts_custom_json
     defaults = build_defaults(settings_data)
     print(settings_data)
     return render(request, "mainapp/chat_settings.html", {

@@ -11,7 +11,7 @@
 <body>
 <div class="form-container">
     <!-- Кнопка назад без обрамлення -->
-    <a href="{% url 'worldbook_list' %}" class="back-btn">← Back to Characters List</a>
+    <a href="{% url 'characters_list' %}" class="back-btn">← Back to Characters List</a>
     <h1>Add Character</h1>
     <form method="POST" enctype="multipart/form-data">
         {% csrf_token %}

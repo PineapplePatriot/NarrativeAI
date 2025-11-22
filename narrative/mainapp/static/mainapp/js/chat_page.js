@@ -1,5 +1,37 @@
 let currentAudio = null;
 
+
+document.addEventListener("click", (event) => {
+    const btn = event.target.closest("button[data-action]");
+    if (!btn) return;
+
+    const action = btn.dataset.action;
+    const index = btn.dataset.index !== undefined ? Number(btn.dataset.index) : null;
+
+    switch (action) {
+        case "edit":
+            if (index !== null) editMessage(index);
+            break;
+        case "delete":
+            if (index !== null) deleteMessage(index);
+            break;
+        case "play-sound": {
+            const url = btn.dataset.audioUrl;
+            if (url) playCharacterAudio(url);
+            break;
+        }
+        case "save-edit":
+            if (index !== null) saveMessage(index);
+            break;
+        case "cancel-edit":
+            if (index !== null) cancelEdit(index);
+            break;
+        default:
+            break;
+    }
+});
+
+
 function playCharacterAudio(audioUrl) {
     if (currentAudio) {
         currentAudio.pause();

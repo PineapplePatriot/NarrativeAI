@@ -24,7 +24,7 @@ class AddCharacterForm(forms.ModelForm):
     class Meta:
         model = Character
         fields = [
-            'name', 'description', 'scenario',
+            'is_mult', 'name', 'description', 'scenario',
             'initial_message', 'creator_notes', 'worldbook',
             'photo_neutral', 'photo_happy', 'photo_sad', 'photo_angry',
             'photo_surprised', 'photo_scared', 'photo_confused',
@@ -32,6 +32,7 @@ class AddCharacterForm(forms.ModelForm):
             'eleven_voice_char_id', 'eleven_voice_narr_id',
         ]
         widgets = {
+            'is_mult': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'name': forms.TextInput(attrs={'class': 'form-input'}),
             'description': forms.Textarea(attrs={'cols': 50, 'rows': 5}),
             'scenario': forms.Textarea(attrs={'cols': 50, 'rows': 5}),
@@ -40,7 +41,7 @@ class AddCharacterForm(forms.ModelForm):
             'eleven_voice_char_id': forms.TextInput(attrs={'placeholder': "Введіть ID"}),
             'eleven_voice_narr_id': forms.TextInput(attrs={'placeholder': "Введіть ID"}),
         }
-        #labels = {'slug': "Slug"}
+        labels = {'is_mult': 'Contains 2 characters',}
 
     def __init__(self, *args, **kwargs):
         # Отримуємо користувача, переданого з view

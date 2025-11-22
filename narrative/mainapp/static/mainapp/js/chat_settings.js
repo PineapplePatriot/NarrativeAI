@@ -351,6 +351,8 @@ function applySettingsToUI(skipMarkAsSaved = false) {
   collectSettings();
   document.getElementById('jsonOutput').textContent = JSON.stringify(settings, null, 2);
 
+  updateRangeValues();
+
   if (!skipMarkAsSaved) {
     markAsSaved();
   }
@@ -464,6 +466,10 @@ function resetDefaults() {
   if (!confirm('Reset all settings to defaults? This cannot be undone.')) return;
   settings = JSON.parse(JSON.stringify(DEFAULTS));
   applySettingsToUI(true);
+
+  updateRangeValues();
+  updateJSON();
+
   markAsChanged();
   showStatus('Settings reset to defaults', 'success');
 }

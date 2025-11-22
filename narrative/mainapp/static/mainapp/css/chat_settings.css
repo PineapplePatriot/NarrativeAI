@@ -134,28 +134,64 @@ input[type="text"]:focus {
 }
 
 input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
     width: 100%;
+    background: transparent;   /* track is handled by pseudo-elements */
+    outline: none;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
     height: 6px;
     border-radius: 3px;
-    background: var(--bg-tertiary);
-    outline: none;
-    -webkit-background-clip: text;
-    background-clip: text;
+    background: var(--bg-tertiary);        /* unfilled track color */
 }
+
 
 input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
+    appearance: none;
     width: 18px;
     height: 18px;
     border-radius: 50%;
     background: var(--purple-primary);
     cursor: pointer;
     transition: all 0.2s;
+    margin-top: -6px;
 }
 
 input[type="range"]::-webkit-slider-thumb:hover {
     background: var(--purple-secondary);
     transform: scale(1.2);
+}
+
+input[type="range"]::-moz-range-track {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--bg-tertiary);
+}
+
+/* Firefox – THUMB */
+input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: none;
+    background: var(--purple-primary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+input[type="range"]::-moz-range-thumb:hover {
+    background: var(--purple-secondary);
+    transform: scale(1.2);
+}
+
+/* Firefox – filled part before the thumb (optional, for nicer effect) */
+input[type="range"]::-moz-range-progress {
+    height: 6px;
+    border-radius: 3px;
+    background: var(--purple-primary);
 }
 
 .range-container {
@@ -549,6 +585,7 @@ textarea {
     border-radius: 10px;
     cursor: pointer;
     transition: background 0.3s;
+    text-decoration: none;
 }
 
 .top-panel .nav-item:hover {
@@ -569,4 +606,5 @@ textarea {
     width: 22px;
     height: 22px;
     fill: currentColor;
+    flex-shrink: 0;
 }
