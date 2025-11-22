@@ -139,7 +139,8 @@ input[type="range"] {
     border-radius: 3px;
     background: var(--bg-tertiary);
     outline: none;
-    -webkit-appearance: none;
+    -webkit-background-clip: text;
+    background-clip: text;
 }
 
 input[type="range"]::-webkit-slider-thumb {
