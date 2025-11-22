@@ -1,15 +1,23 @@
-let djangoSettings = {};
-const settingsScript = document.getElementById('django-settings-data');
-if (settingsScript && settingsScript.textContent.trim() !== "") {
+const DEFAULTS = JSON.parse(
+  document.getElementById("chat-defaults-json").textContent
+);
+
+// will hold final merged settings
+let settings = JSON.parse(JSON.stringify(DEFAULTS));
+let hasUnsavedChanges = false;
+
+function getDjangoSettings() {
+  const script = document.getElementById("django-settings-data");
+  if (!script || !script.textContent.trim()) return {};
   try {
-    djangoSettings = JSON.parse(settingsScript.textContent);
+    return JSON.parse(script.textContent);
   } catch (e) {
     console.error("Invalid Django settings JSON:", e);
+    return {};
   }
 }
 
-settings = mergeDeep(JSON.parse(JSON.stringify(DEFAULTS)), djangoSettings);
-let hasUnsavedChanges = false;
+
 
 // Enable/disable save button based on changes
 function markAsChanged() {
@@ -499,19 +507,19 @@ document.querySelectorAll('textarea').forEach(textarea => {
 // Load settings from Django backend
 function loadSettings() {
   try {
-    // Check if Django provided settings data
-    const settingsScript = document.getElementById('django-settings-data');
-    if (settingsScript && settingsScript.textContent.trim() !== "") {
-      const djangoSettings = JSON.parse(settingsScript.textContent);
+    const djangoSettings = getDjangoSettings();
 
-      if (djangoSettings && Object.keys(djangoSettings).length > 0) {
-        // Merge Django settings with defaults to ensure all fields exist
-        settings = mergeDeep(JSON.parse(JSON.stringify(DEFAULTS)), djangoSettings);
-        console.log('Loaded settings from Django:', settings);
-      }
+    if (djangoSettings && Object.keys(djangoSettings).length > 0) {
+      // Merge Django-provided settings into defaults
+      settings = mergeDeep(JSON.parse(JSON.stringify(DEFAULTS)), djangoSettings);
+      console.log("Loaded settings from Django:", settings);
+    } else {
+      // just defaults
+      settings = JSON.parse(JSON.stringify(DEFAULTS));
     }
   } catch (e) {
-    console.error('Failed to load settings:', e);
+    console.error("Failed to load settings:", e);
+    settings = JSON.parse(JSON.stringify(DEFAULTS));
   }
 
   applySettingsToUI();
