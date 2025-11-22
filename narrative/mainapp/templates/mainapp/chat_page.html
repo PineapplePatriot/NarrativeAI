@@ -162,8 +162,8 @@
                             {% endif %}
 
                         </div>
-                        <div class="message-text" data-raw="{{ text|urlencode }}">{{ text|escape }}</div>
-                        <textarea class="edit-textarea" style="display:none;">{{ text }}</textarea>
+                        <div class="message-text" data-raw="{{ text|urlencode }}">{{ text }}</div>
+                       <textarea class="edit-textarea" style="display:none;">{{ text }}</textarea>
                         <div class="edit-actions">
                             <button class="edit-btn save-btn"
                                 onclick="saveMessage({{ forloop.counter0 }})">Save</button>

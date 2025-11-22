@@ -209,7 +209,7 @@ def get_elevenlabs_key(user):
 
 
 # --- Функція для розбиття тексту на ролі ---
-def split_text_roles(text, OPENROUTER_API_KEY):
+def split_text_roles(text, OPENROUTER_API_KEY, model_name, character_name):
     """
     Викликає LLM для маркування частин тексту за ролями.
     Повертає список словників: [{"role": "narrator", "text": "..."}, ...]
@@ -221,15 +221,25 @@ def split_text_roles(text, OPENROUTER_API_KEY):
         "Content-Type": "application/json"
     }
     prompt = f"""
-Тобі дається текст оповіді. Визнач, які частини тексту говорить наратор, а які персонаж.
-Відповідай у форматі JSON списку об'єктів:
+You are given a piece of narrative text. Your task is to determine which parts are spoken by the narrator and which belong to the character.
+
+Output ONLY a JSON array of objects in the following format:
 [
   {{"role": "narrator", "text": "..."}},
   {{"role": "character", "text": "..."}}
 ]
-Текст: {text}
+
+Use these rules:
+- Narrator lines describe actions, movements, expressions, or inner thoughts in third person.
+- The character speaks all dialogue and first-person lines.
+- Preserve the original text exactly inside each "text" field.
+
+Character’s name: {character_name}
+
+Text to analyze:
+{text}
     """
-    data = {"model": "gpt-4o-mini", "messages": [{"role": "user", "content": prompt}]}
+    data = {"model": model_name, "messages": [{"role": "user", "content": prompt}]}
 
     response = requests.post(url, headers=headers, json=data)
     response.raise_for_status()
@@ -276,6 +286,7 @@ def narrate_text_backend(
         ELEVENLABS_API_KEY,
         narrator_voice_id,
         character_voice_id,
+        MODEL_NAME,
         output_dir=None):
 
     print("OPENROUTER_API_KEY", OPENROUTER_API_KEY)
@@ -291,7 +302,7 @@ def narrate_text_backend(
     filename = f"{username}_{character_name}_{timestamp}.mp3"
     output_file = os.path.join(output_dir, filename)
 
-    parts = split_text_roles(text, OPENROUTER_API_KEY)
+    parts = split_text_roles(text, OPENROUTER_API_KEY, MODEL_NAME, character_name)
     final_audio = AudioSegment.silent(duration=0)
 
     for part in parts:

@@ -31,39 +31,41 @@ function hydrateExistingMessages() {
     });
 }
 
-// Wrap "quoted" words (outside code spans) with <span class="quoted">…</span>
+
 function wrapQuoted(text) {
-    const parts = text.split(/(`+[^`]*`+)/g); // keep inline code chunks as-is
+    const parts = text.split(/(`+[^`]*`+)/g);
     return parts.map((part, i) => {
-        if (i % 2 === 1) return part; // code chunk — skip
-        return part.replace(
-            /(^|[\s(,;])"([^"\n]+)"(?=[\s).,;!?]|$)/g,
-            (_, p1, p2) => `${p1}<span class="quoted">"${p2}"</span>`
+        if (i % 2 === 1) return part;
+
+        return part.replace(/"([^"\n]+)"/g, (_m, inner) =>
+            `<span class="quoted">"${inner}"</span>`
         );
     }).join('');
 }
 
-// Configure marked once
+
 marked.setOptions({
-    breaks: true,    // chat-friendly newlines
+    breaks: true,
     gfm: true,
     headerIds: false,
-    mangle: false
+    mangle: false,
+    html: true
 });
 
-// Render user/assistant text as sanitized HTML
+
 function renderChatMessage(rawText) {
-    const pre = wrapQuoted(rawText);
-    const html = marked.parse(pre);
+    const pre2 = wrapQuoted(rawText);
+    const html = marked.parse(pre2);
+
     const clean = DOMPurify.sanitize(html, {
         ALLOWED_TAGS: [
             'em', 'strong', 'code', 'pre', 'span', 'a', 'p', 'br', 'ul', 'ol', 'li', 'blockquote',
             'table', 'thead', 'tbody', 'tr', 'th', 'td'
         ],
-        ALLOWED_ATTR: { 'a': ['href', 'title', 'target', 'rel'], 'span': ['class'] }
+        ALLOWED_ATTR: ['href', 'title', 'target', 'rel', 'class']
     });
 
-    // Ensure safe link behavior
+
     const tmp = document.createElement('div');
     tmp.innerHTML = clean;
     tmp.querySelectorAll('a').forEach(a => {
@@ -72,7 +74,6 @@ function renderChatMessage(rawText) {
     });
     return tmp.innerHTML;
 }
-// Elements
 const messageInput = document.getElementById('messageInput');
 const sendBtn = document.getElementById('sendBtn');
 const messagesContainer = document.getElementById('messagesContainer');
@@ -85,18 +86,15 @@ let isGenerating = false;
 let currentRequest = null;
 let deleteMessageIndex = -1;
 
-// Auto-resize textarea
 messageInput.addEventListener('input', function () {
     this.style.height = 'auto';
     this.style.height = this.scrollHeight + 'px';
 });
 
-// Add message to chat
 function addMessage(sender, text) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${sender}`;
 
-    // Get current message count for data-index
     const existingMessages = document.querySelectorAll('.message:not(#typingMessage)');
     const messageIndex = existingMessages.length;
     messageDiv.setAttribute('data-index', messageIndex);

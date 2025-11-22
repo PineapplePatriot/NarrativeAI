@@ -344,6 +344,7 @@ def chat(request, slug):
                             ELEVENLABS_API_KEY,
                             narrator_voice_id=character.eleven_voice_narr_id or None,
                             character_voice_id=character.eleven_voice_char_id or None,
+                            MODEL_NAME=MODEL_NAME,
                             output_dir="media/audio_files"
                         )
                     else:
@@ -351,6 +352,7 @@ def chat(request, slug):
 
                 except Exception as e:
                     # якщо сталася будь-яка помилка
+                    print("Exception occured!")
                     audio_path = ""
 
                 return JsonResponse({
