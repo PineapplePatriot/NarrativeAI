@@ -1,0 +1,74 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>World Books - Narrative AI</title>
+  <link rel="stylesheet" href="{% static 'mainapp/css/worldbook_list.css' %}">
+
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="header-content">
+        <a href="{% url 'home' %}" class="back-nav">
+          <svg viewBox="0 0 24 24"><path d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"/></svg>
+          Back to Dashboard
+        </a>
+        <div class="page-title">
+          <h1>World Books</h1>
+          <p class="page-subtitle">Manage your story contexts and lore databases</p>
+        </div>
+        <div class="actions">
+          <a class="btn primary" href="{% url 'worldbook_create' %}">
+            <svg viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/></svg>
+            Create New
+          </a>
+        </div>
+      </div>
+    </div>
+
+    {% if worldbooks %}
+    <div class="worldbooks-grid">
+      {% for wb in worldbooks %}
+      <div class="worldbook-card">
+        <div class="worldbook-header">
+          <div class="worldbook-icon">
+            <svg viewBox="0 0 24 24"><path d="M18,22A2,2 0 0,0 20,20V4A2,2 0 0,0 18,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18M6,4H18V20H6V4M7,5V7H17V5H7M7,8V10H17V8H7M7,11V13H17V11H7M7,14V16H14V14H7Z"/></svg>
+          </div>
+          <div class="worldbook-actions">
+            <a class="action-btn edit" title="Edit" href="{% url 'worldbook_detail' wb.slug %}">
+              <svg viewBox="0 0 24 24"><path d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"/></svg>
+            </a>
+            <a class="action-btn delete" title="Delete" href="{% url 'worldbook_detail' wb.slug %}">
+              <svg viewBox="0 0 24 24"><path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/></svg>
+            </a>
+          </div>
+        </div>
+        <h3 class="worldbook-title">{{ wb.title }}</h3>
+        <p class="worldbook-description">{{ wb.description|default:"No description" }}</p>
+        <div class="worldbook-meta">
+          <div class="entry-count">Entries: {{ wb.entry_set.count }}</div>
+          <div class="worldbook-date">Updated: {{ wb.time_update|date:"Y-m-d H:i" }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">
+          <svg viewBox="0 0 24 24"><path d="M19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M19,19H5V5H19V19Z"/></svg>
+        </div>
+        <h2 class="empty-title">No worldbooks yet</h2>
+        <p class="empty-description">Create your first worldbook to start building rich story contexts and character knowledge.</p>
+        <a class="btn primary" href="{% url 'worldbook_create' %}">
+          <svg viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/></svg>
+          Create First Worldbook
+        </a>
+      </div>
+    {% endif %}
+  </div>
+</body>
+</html>

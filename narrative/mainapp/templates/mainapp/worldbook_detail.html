@@ -1,0 +1,84 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Worldbook Detail</title>
+  <link rel="stylesheet" href="{% static 'mainapp/css/worldbook_detail.css' %}">
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="row">
+      <a class="back" href="{% url 'worldbook_list' %}">
+        <svg viewBox="0 0 24 24"><path d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"/></svg>
+        Back to Worldbooks
+      </a>
+      <div class="title">
+        <h1 id="wbTitle">Worldbook</h1>
+        <div class="subtitle" id="wbDesc">Worldbuilding notes, entities, locations, rules & more.</div>
+      </div>
+      <div class="toolbar">
+        <button class="btn primary" id="newEntryBtn">
+          <svg viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/></svg>
+          Add Entry
+        </button>
+        <button class="btn primary" id="saveWorldbookBtn">Save Worldbook</button>
+        <input id="search" class="search" placeholder="Search entries..."/>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="card">
+      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div class="pill" id="stats">0 entries • scope: all</div>
+        <div class="row" style="gap:8px">
+          <select id="scopeFilter">
+            <option value="">All scopes</option>
+            <option>global</option>
+            <option>character</option>
+            <option>location</option>
+            <option>scene</option>
+          </select>
+          <select id="enabledFilter">
+            <option value="">All</option>
+            <option value="true">Enabled</option>
+            <option value="false">Disabled</option>
+          </select>
+        </div>
+      </div>
+      <div id="entries"></div>
+      <div class="empty" id="emptyMsg">No entries yet. Click “Add Entry”.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal" id="modal">
+  <div class="card">
+    <h3 id="modalTitle" style="margin-bottom:10px">New Entry</h3>
+    <div class="grid">
+      <div><label>Key</label><input id="fKey" placeholder="e.g., magic.system.rules"/></div>
+      <div><label>Tags (comma-separated)</label><input id="fTags" placeholder="magic, combat, lore"/></div>
+      <div><label>Scope</label><select id="fScope"><option>global</option><option>character</option><option>location</option><option>scene</option></select></div>
+      <div><label>Priority (0-100)</label><input id="fPriority" type="number" min="0" max="100" value="50"/></div>
+      <div><label>Weight (0-1)</label><input id="fWeight" type="number" min="0" max="1" step="0.05" value="1"/></div>
+      <div><label>Enabled</label><br/><label class="switch"><input id="fEnabled" type="checkbox" checked/><span class="slider"></span></label></div>
+      <div style="grid-column:1/-1"><label>Value / Content</label><textarea id="fValue" placeholder="Detailed lore, JSON, or plain text"></textarea></div>
+    </div>
+    <div class="footer">
+      <button class="btn" id="cancelBtn">Cancel</button>
+      <button class="btn primary" id="saveBtn">Save Entry</button>
+    </div>
+  </div>
+</div>
+
+
+{{ worldbook_json|json_script:"worldbook-json" }}
+<script src="{% static 'mainapp/js/worldbook_detail.js' %}"></script>
+</body>
+</html>
+

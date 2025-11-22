@@ -1,0 +1,110 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Create Worldbook !@#$</title>
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <link rel="stylesheet" href="{% static 'mainapp/css/worldbook_create.css' %}">
+
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <a class="back" href="{% url 'worldbook_list' %}">
+        <svg viewBox="0 0 24 24"><path d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"/></svg>
+        Back to Worldbooks
+      </a>
+      <h1>Create Worldbook</h1>
+      <div class="subtitle">Give it a name, a short description, and optionally pre-seed a few entries.</div>
+    </div>
+
+    <div class="card">
+      <div class="grid">
+        <div>
+          <label>Title</label>
+          <input id="title" placeholder="e.g., VantaLux Lore"/>
+        </div>
+        <div>
+          <label>Description</label>
+          <textarea id="desc" placeholder="Short description of this worldbook..."></textarea>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:14px 0 8px">
+        <div class="subtitle">Seed Entries (optional)</div>
+        <button class="btn" id="addSeedBtn">
+          <svg viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/></svg>
+          Add Entry
+        </button>
+      </div>
+
+      <div id="seedList"></div>
+
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px">
+        <a class="btn" href="{% url 'worldbook_list' %}">Cancel</a>
+        <button class="btn primary" id="createBtn">
+          <svg viewBox="0 0 24 24"><path d="M12,2A10,10 0 0,1 22,12C22,17.5 17.5,22 12,22A10,10 0 0,1 2,12H4A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4V2M11,6H13V13H11M11,16H13V18H11"/></svg>
+          Create Worldbook
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <template id="seedTpl">
+    <div class="entry">
+      <div class="row">
+        <div>
+          <label>Key</label>
+          <input placeholder="npc.dottore"/>
+        </div>
+        <div>
+          <label>Tags</label>
+          <input placeholder="character, science"/>
+        </div>
+        <div>
+          <label>Scope</label>
+          <select>
+            <option>global</option>
+            <option>character</option>
+            <option>location</option>
+            <option>scene</option>
+          </select>
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div>
+          <label>Priority (0-100)</label>
+          <input type="number" min="0" max="100" value="50"/>
+        </div>
+        <div>
+          <label>Weight (0-1)</label>
+          <input type="number" min="0" max="1" step="0.05" value="1"/>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:22px">
+          <label style="margin-right:6px">Enabled</label>
+          <label class="switch">
+            <input type="checkbox" checked/>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+      <div style="margin-top:8px">
+        <label>Value / Content</label>
+        <textarea class="valueField" placeholder="Plain text or JSON..."></textarea>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:8px">
+        <button class="btn" onclick="this.closest('.entry').remove()">Remove</button>
+      </div>
+    </div>
+  </template>
+
+
+  <script src="{% static 'mainapp/js/worldbook_create.js' %}"></script>
+</body>
+</html>
+
+
+
