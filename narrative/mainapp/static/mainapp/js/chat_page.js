@@ -150,7 +150,7 @@ function addMessage(sender, text) {
                             </svg>
                         </button>
                     </div>
-                    <div class="message-text" data-raw="${encodeURIComponent(text)}">${rendered}</div>
+                    <div class="message-text markdown-output" data-raw="${encodeURIComponent(text)}">${rendered}</div>
                     <textarea class="edit-textarea" style="display: none;"></textarea>
                     <div class="edit-actions">
                         <button class="edit-btn save-btn" onclick="saveMessage(${messageIndex})">Save</button>

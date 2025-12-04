@@ -159,7 +159,10 @@
                             {% endif %}
                         </div>
 
-                        <div class="message-text" data-raw="{{ text|urlencode }}">{{ text }}</div>
+                        <div class="message-text markdown-output"
+                            data-raw="{{ text|urlencode }}">
+                            {{ text }}
+                        </div>
                         <textarea class="edit-textarea" style="display:none;">{{ text }}</textarea>
                         <div class="edit-actions">
                             <button

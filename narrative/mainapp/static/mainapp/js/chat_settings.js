@@ -467,9 +467,6 @@ function resetDefaults() {
   settings = JSON.parse(JSON.stringify(DEFAULTS));
   applySettingsToUI(true);
 
-  updateRangeValues();
-  updateJSON();
-
   markAsChanged();
   showStatus('Settings reset to defaults', 'success');
 }

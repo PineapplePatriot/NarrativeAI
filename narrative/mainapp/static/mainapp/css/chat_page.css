@@ -826,3 +826,9 @@ body {
         height: 525px;
     }
 }
+
+.message-text.markdown-output em,
+.message-text.markdown-output i {
+  color: #999;
+  font-style: italic;
+}

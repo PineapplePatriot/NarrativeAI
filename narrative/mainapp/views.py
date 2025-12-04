@@ -688,7 +688,7 @@ def chat_settings(request):
     except Exception:
         print("Failed to load settings:", traceback.format_exc())
 
-    defaults = build_defaults(settings_data)
+    defaults = build_defaults({})
     print(settings_data)
     return render(request, "mainapp/chat_settings.html", {
         "settings": settings_data,
