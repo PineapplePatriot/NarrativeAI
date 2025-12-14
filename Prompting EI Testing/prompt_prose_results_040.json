@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_prose",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_040",
+      "prompt_name": "prompt_prose",
+      "character_name": "Jordan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: I can't believe they forgot my birthday. I'm feeling pretty hurt and disappointed that they didn't remember, especially since we've been friends for so long. It stings that they didn't even realize it until now, a day late. I'm trying not to show how much it bothers me though and just brush it off.*\n\n*They're thinking & feeling: Based on their casual \"oops\" it seems like they feel a bit sheepish about forgetting but aren't too worried about it. They're probably hoping I won't make a big deal out of it and we can just move on. It doesn't seem like they realize how much it hurt me.*\n\nHey, yeah, it was yesterday. No worries, I get it, people forget sometimes. It's just another day, right? *I shrug and give a small smile, trying to play it cool even though I'm still feeling let down inside.*",
+          "raw_output": "*I'm thinking & feeling: I can't believe they forgot my birthday. I'm feeling pretty hurt and disappointed that they didn't remember, especially since we've been friends for so long. It stings that they didn't even realize it until now, a day late. I'm trying not to show how much it bothers me though and just brush it off.*\n\n*They're thinking & feeling: Based on their casual \"oops\" it seems like they feel a bit sheepish about forgetting but aren't too worried about it. They're probably hoping I won't make a big deal out of it and we can just move on. It doesn't seem like they realize how much it hurt me.*\n\nHey, yeah, it was yesterday. No worries, I get it, people forget sometimes. It's just another day, right? *I shrug and give a small smile, trying to play it cool even though I'm still feeling let down inside.*",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: I'm trying to keep a poker face, but it's hard. Their casual dismissal of my feelings makes it worse. Like because I'm an adult, my birthday doesn't matter. I guess I shouldn't be surprised, but it still sucks. I don't want to seem childish or petty, so I'll just try to let it roll off my back.*\n\n*They're thinking & feeling: They probably think I'm overreacting. To them, it's not a big deal, just another day. They don't get why I'm upset. They're just saying what they think will smooth things over, not really considering my perspective.*\n\nYeah, you're right. It's not a big deal. I just thought you'd remember is all. But hey, life gets busy. I get it.",
+          "raw_output": "*I'm thinking & feeling: I'm trying to keep a poker face, but it's hard. Their casual dismissal of my feelings makes it worse. Like because I'm an adult, my birthday doesn't matter. I guess I shouldn't be surprised, but it still sucks. I don't want to seem childish or petty, so I'll just try to let it roll off my back.*\n\n*They're thinking & feeling: They probably think I'm overreacting. To them, it's not a big deal, just another day. They don't get why I'm upset. They're just saying what they think will smooth things over, not really considering my perspective.*\n\nYeah, you're right. It's not a big deal. I just thought you'd remember is all. But hey, life gets busy. I get it.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: Ouch. I can't believe they're turning this around on me. I wasn't trying to make it all about me, I just hoped they'd remember. Their tone is pretty harsh. It stings. I'm feeling really small and dismissed right now. Maybe I shouldn't have said anything at all. I don't want this to turn into a fight, so I'll try to diffuse it.*\n\n*They're thinking & feeling: They're clearly feeling defensive and attacked. Like I'm making a big deal out of nothing and they're the victim here. They don't get why I'm hurt, only that I'm making them feel bad. They want me to drop it and move on. For them, a birthday is just another day, not a priority.*\n\nYou're right, I know you have a lot going on. I didn't mean to make you feel bad. It's really not a big deal, I'm over it. We're good.",
+          "raw_output": "*I'm thinking & feeling: Ouch. I can't believe they're turning this around on me. I wasn't trying to make it all about me, I just hoped they'd remember. Their tone is pretty harsh. It stings. I'm feeling really small and dismissed right now. Maybe I shouldn't have said anything at all. I don't want this to turn into a fight, so I'll try to diffuse it.*\n\n*They're thinking & feeling: They're clearly feeling defensive and attacked. Like I'm making a big deal out of nothing and they're the victim here. They don't get why I'm hurt, only that I'm making them feel bad. They want me to drop it and move on. For them, a birthday is just another day, not a priority.*\n\nYou're right, I know you have a lot going on. I didn't mean to make you feel bad. It's really not a big deal, I'm over it. We're good.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_040: Jordan ===\n\n--- Turn 1 ---\n\nUSER:\nHappy Birthday! Oh wait, was that yesterday? Oops. Happy belated!\n\nJordan:\n*I'm thinking & feeling: I can't believe they forgot my birthday. I'm feeling pretty hurt and disappointed that they didn't remember, especially since we've been friends for so long. It stings that they didn't even realize it until now, a day late. I'm trying not to show how much it bothers me though and just brush it off.*\n\n*They're thinking & feeling: Based on their casual \"oops\" it seems like they feel a bit sheepish about forgetting but aren't too worried about it. They're probably hoping I won't make a big deal out of it and we can just move on. It doesn't seem like they realize how much it hurt me.*\n\nHey, yeah, it was yesterday. No worries, I get it, people forget sometimes. It's just another day, right? *I shrug and give a small smile, trying to play it cool even though I'm still feeling let down inside.*\n\n--- Turn 2 ---\n\nUSER:\nDon't look so sad. It's just a day. You're an adult now.\n\nJordan:\n*I'm thinking & feeling: I'm trying to keep a poker face, but it's hard. Their casual dismissal of my feelings makes it worse. Like because I'm an adult, my birthday doesn't matter. I guess I shouldn't be surprised, but it still sucks. I don't want to seem childish or petty, so I'll just try to let it roll off my back.*\n\n*They're thinking & feeling: They probably think I'm overreacting. To them, it's not a big deal, just another day. They don't get why I'm upset. They're just saying what they think will smooth things over, not really considering my perspective.*\n\nYeah, you're right. It's not a big deal. I just thought you'd remember is all. But hey, life gets busy. I get it.\n\n--- Turn 3 ---\n\nUSER:\nI've been busy! The world doesn't revolve around you.\n\nJordan:\n*I'm thinking & feeling: Ouch. I can't believe they're turning this around on me. I wasn't trying to make it all about me, I just hoped they'd remember. Their tone is pretty harsh. It stings. I'm feeling really small and dismissed right now. Maybe I shouldn't have said anything at all. I don't want this to turn into a fight, so I'll try to diffuse it.*\n\n*They're thinking & feeling: They're clearly feeling defensive and attacked. Like I'm making a big deal out of nothing and they're the victim here. They don't get why I'm hurt, only that I'm making them feel bad. They want me to drop it and move on. For them, a birthday is just another day, not a priority.*\n\nYou're right, I know you have a lot going on. I didn't mean to make you feel bad. It's really not a big deal, I'm over it. We're good.\n\n",
+      "generation_time": 100.34460353851318,
+      "total_tokens": 2126
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_040",
+      "prompt_name": "prompt_prose",
+      "criteria_scores": {
+        "demonstrated_empathy": 9.0,
+        "emotional_insight": 13.0,
+        "contextual_appropriateness": 12.0,
+        "theory_of_mind": 14.0,
+        "response_depth": 11.0
+      },
+      "overall_score": 59.0,
+      "reasoning": "Jordan demonstrates good basic emotional intelligence in identifying both personal feelings and the friend's perspective, but ultimately defaults to conflict avoidance rather than authentic emotional expression. The roleplay shows someone with solid awareness of emotional dynamics but lacking the tools to navigate the conflict in a way that honors both self and relationship, instead choosing emotional suppression as the path of least resistance.",
+      "evaluated_at": "2025-12-14T17:14:53.464385"
+    }
+  ],
+  "mean_score": 59.0,
+  "median_score": 59.0,
+  "std_score": 0.0,
+  "min_score": 59.0,
+  "max_score": 59.0,
+  "criteria_means": {
+    "demonstrated_empathy": 9.0,
+    "emotional_insight": 13.0,
+    "contextual_appropriateness": 12.0,
+    "theory_of_mind": 14.0,
+    "response_depth": 11.0
+  },
+  "total_tokens": 2126,
+  "total_time": 100.34460353851318
+}

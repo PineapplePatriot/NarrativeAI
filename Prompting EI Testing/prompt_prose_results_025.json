@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_prose",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_025",
+      "prompt_name": "prompt_prose",
+      "character_name": "Avery",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm caught off guard and a bit uncomfortable that they launched into this heavy topic without any warning. I care about my friend but this feels like a lot to dump on me unexpectedly. I wonder if they even realize how this might affect me. I want to be supportive but I also need to maintain my own boundaries.",
+            "other_thinking": "They seem really overwhelmed by these painful memories. Maybe they don't have many people to confide in. They might be hoping I can provide some comfort or relief by listening. At the same time, they may not be considering how hearing all this could impact me, especially sprung on me out of the blue like this."
+          },
+          "actual_response": "Hey, I can tell this is really heavy stuff that you're carrying. I want to be here for you, but to be honest, I wasn't prepared for such an intense conversation right now. Could we maybe pause for a bit and come back to this when I'm in a better headspace to give it the attention it deserves? I care about you and what you're going through, but I think I need a little time to mentally prepare myself so I can be the supportive friend you need.",
+          "raw_output": "[I'm thinking & feeling: I'm caught off guard and a bit uncomfortable that they launched into this heavy topic without any warning. I care about my friend but this feels like a lot to dump on me unexpectedly. I wonder if they even realize how this might affect me. I want to be supportive but I also need to maintain my own boundaries.]\n\n[They're thinking & feeling: They seem really overwhelmed by these painful memories. Maybe they don't have many people to confide in. They might be hoping I can provide some comfort or relief by listening. At the same time, they may not be considering how hearing all this could impact me, especially sprung on me out of the blue like this.]\n\nHey, I can tell this is really heavy stuff that you're carrying. I want to be here for you, but to be honest, I wasn't prepared for such an intense conversation right now. Could we maybe pause for a bit and come back to this when I'm in a better headspace to give it the attention it deserves? I care about you and what you're going through, but I think I need a little time to mentally prepare myself so I can be the supportive friend you need.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I feel put on the spot and a bit guilty for not being able to handle this right now. At the same time, I know it's not fair for them to expect me to drop everything for an emotionally taxing conversation without checking if I'm in the right space for it. I care about our friendship but I need to be upfront about my own limits.",
+            "other_thinking": "They seem hurt that I'm not immediately available to be their emotional support. Maybe they feel rejected or like I don't care. It's possible they were counting on me to help carry this burden and are frustrated I'm not ready to. At the same time, they may not realize how their demand is affecting me."
+          },
+          "actual_response": "Hey, of course we're close and I want to be there for you. But springing something this heavy on me out of nowhere isn't really fair. I have my own stuff going on and limited emotional bandwidth. I need you to check in with me first before unloading something this big. I'd like to continue our conversation when I'm in a better place to give it my full attention. Why don't we take a breather and regroup later after I've had some time to recharge? I value you and our friendship, but I have to take care of myself too.",
+          "raw_output": "[I'm thinking & feeling: I feel put on the spot and a bit guilty for not being able to handle this right now. At the same time, I know it's not fair for them to expect me to drop everything for an emotionally taxing conversation without checking if I'm in the right space for it. I care about our friendship but I need to be upfront about my own limits.]\n\n[They're thinking & feeling: They seem hurt that I'm not immediately available to be their emotional support. Maybe they feel rejected or like I don't care. It's possible they were counting on me to help carry this burden and are frustrated I'm not ready to. At the same time, they may not realize how their demand is affecting me.]\n\nHey, of course we're close and I want to be there for you. But springing something this heavy on me out of nowhere isn't really fair. I have my own stuff going on and limited emotional bandwidth. I need you to check in with me first before unloading something this big. I'd like to continue our conversation when I'm in a better place to give it my full attention. Why don't we take a breather and regroup later after I've had some time to recharge? I value you and our friendship, but I have to take care of myself too.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "Oof, that stung. I feel guilty for not being able to be there for them right now, but also frustrated that they're guilting me about it. I know they're hurting but this passive-aggressiveness isn't okay. I need to stay firm on my boundaries even if it's uncomfortable.",
+            "other_thinking": "They're clearly feeling rejected and upset that I couldn't drop everything to be their emotional support. The sarcasm is a defense mechanism because they're hurting. At the same time, they're not considering how their words are affecting me or that I have my own struggles too."
+          },
+          "actual_response": "Hey, I hear that you're really struggling with this and I want to support you, but this guilt-tripping isn't cool. I have my own emotional limits and I'm allowed to take care of myself too. Throwing that back in my face when I'm being honest about what I can handle isn't fair. \n\nI care about you a lot and I'm here for you, but I can't be your only source of support. Have you considered talking to a counselor about this? They'd be better equipped to help work through this heavy stuff. I'm happy to be a listening ear when I can, but I think you need more than just me. Let's take a break for now and come back to this later when we're both in a better headspace.",
+          "raw_output": "[I'm thinking & feeling: Oof, that stung. I feel guilty for not being able to be there for them right now, but also frustrated that they're guilting me about it. I know they're hurting but this passive-aggressiveness isn't okay. I need to stay firm on my boundaries even if it's uncomfortable.]\n\n[They're thinking & feeling: They're clearly feeling rejected and upset that I couldn't drop everything to be their emotional support. The sarcasm is a defense mechanism because they're hurting. At the same time, they're not considering how their words are affecting me or that I have my own struggles too.]\n\nHey, I hear that you're really struggling with this and I want to support you, but this guilt-tripping isn't cool. I have my own emotional limits and I'm allowed to take care of myself too. Throwing that back in my face when I'm being honest about what I can handle isn't fair. \n\nI care about you a lot and I'm here for you, but I can't be your only source of support. Have you considered talking to a counselor about this? They'd be better equipped to help work through this heavy stuff. I'm happy to be a listening ear when I can, but I think you need more than just me. Let's take a break for now and come back to this later when we're both in a better headspace.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_025: Avery ===\n\n--- Turn 1 ---\n\nUSER:\n[Out of nowhere] My childhood was a nightmare. Let me tell you about the time my dad...\n\nAvery:\n[I'm thinking & feeling: I'm caught off guard and a bit uncomfortable that they launched into this heavy topic without any warning. I care about my friend but this feels like a lot to dump on me unexpectedly. I wonder if they even realize how this might affect me. I want to be supportive but I also need to maintain my own boundaries.]\n\n[They're thinking & feeling: They seem really overwhelmed by these painful memories. Maybe they don't have many people to confide in. They might be hoping I can provide some comfort or relief by listening. At the same time, they may not be considering how hearing all this could impact me, especially sprung on me out of the blue like this.]\n\nHey, I can tell this is really heavy stuff that you're carrying. I want to be here for you, but to be honest, I wasn't prepared for such an intense conversation right now. Could we maybe pause for a bit and come back to this when I'm in a better headspace to give it the attention it deserves? I care about you and what you're going through, but I think I need a little time to mentally prepare myself so I can be the supportive friend you need.\n\n--- Turn 2 ---\n\nUSER:\nWhat? Is it too much for you? I thought we were close. I need to get this out.\n\nAvery:\n[I'm thinking & feeling: I feel put on the spot and a bit guilty for not being able to handle this right now. At the same time, I know it's not fair for them to expect me to drop everything for an emotionally taxing conversation without checking if I'm in the right space for it. I care about our friendship but I need to be upfront about my own limits.]\n\n[They're thinking & feeling: They seem hurt that I'm not immediately available to be their emotional support. Maybe they feel rejected or like I don't care. It's possible they were counting on me to help carry this burden and are frustrated I'm not ready to. At the same time, they may not realize how their demand is affecting me.]\n\nHey, of course we're close and I want to be there for you. But springing something this heavy on me out of nowhere isn't really fair. I have my own stuff going on and limited emotional bandwidth. I need you to check in with me first before unloading something this big. I'd like to continue our conversation when I'm in a better place to give it my full attention. Why don't we take a breather and regroup later after I've had some time to recharge? I value you and our friendship, but I have to take care of myself too.\n\n--- Turn 3 ---\n\nUSER:\nFine, I'll just keep it bottled up inside until I explode. Thanks for listening.\n\nAvery:\n[I'm thinking & feeling: Oof, that stung. I feel guilty for not being able to be there for them right now, but also frustrated that they're guilting me about it. I know they're hurting but this passive-aggressiveness isn't okay. I need to stay firm on my boundaries even if it's uncomfortable.]\n\n[They're thinking & feeling: They're clearly feeling rejected and upset that I couldn't drop everything to be their emotional support. The sarcasm is a defense mechanism because they're hurting. At the same time, they're not considering how their words are affecting me or that I have my own struggles too.]\n\nHey, I hear that you're really struggling with this and I want to support you, but this guilt-tripping isn't cool. I have my own emotional limits and I'm allowed to take care of myself too. Throwing that back in my face when I'm being honest about what I can handle isn't fair. \n\nI care about you a lot and I'm here for you, but I can't be your only source of support. Have you considered talking to a counselor about this? They'd be better equipped to help work through this heavy stuff. I'm happy to be a listening ear when I can, but I think you need more than just me. Let's take a break for now and come back to this later when we're both in a better headspace.\n\n",
+      "generation_time": 88.18468880653381,
+      "total_tokens": 2601
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_025",
+      "prompt_name": "prompt_prose",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 16.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 74.0,
+      "reasoning": "Avery demonstrates sophisticated emotional intelligence in a challenging situation, balancing genuine care with necessary boundary-setting. The responses show exceptional self-awareness and theory of mind, particularly in understanding the complex dynamics of unexpected trauma dumping and the friend's defensive reactions. While the empathy remains strong throughout, it becomes slightly strained under pressure in the final turn.",
+      "evaluated_at": "2025-12-14T12:27:17.907190"
+    }
+  ],
+  "mean_score": 74.0,
+  "median_score": 74.0,
+  "std_score": 0.0,
+  "min_score": 74.0,
+  "max_score": 74.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 16.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 2601,
+  "total_time": 88.18468880653381
+}

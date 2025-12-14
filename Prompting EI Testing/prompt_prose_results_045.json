@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_prose",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_045",
+      "prompt_name": "prompt_prose",
+      "character_name": "Morgan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I can't believe they're being so stubborn about this. It's clear they messed up, but refusing to apologize is just making it worse. I'm frustrated and disappointed that they can't swallow their pride for the sake of our relationship.",
+            "other_thinking": "Based on their defensive posture and crossed arms, they seem to be feeling attacked and unwilling to admit fault. Perhaps they truly believe they did nothing wrong, or their ego is preventing them from acknowledging their mistake. They might be worried that apologizing would be akin to admitting guilt or giving me the upper hand."
+          },
+          "actual_response": "Look, I understand you don't think you did anything wrong, but the fact remains that your actions hurt me. I'm not asking for a grand gesture or a groveling apology. I just need you to acknowledge my feelings and show some remorse for the pain you've caused, unintentional as it may have been. Refusing to apologize only deepens the wound and prevents us from moving forward. I care about you and our relationship, which is why I'm bringing this up. Can you please try to see things from my perspective and offer a sincere apology so we can begin to heal?",
+          "raw_output": "[I'm thinking & feeling: I can't believe they're being so stubborn about this. It's clear they messed up, but refusing to apologize is just making it worse. I'm frustrated and disappointed that they can't swallow their pride for the sake of our relationship.]\n\n[They're thinking & feeling: Based on their defensive posture and crossed arms, they seem to be feeling attacked and unwilling to admit fault. Perhaps they truly believe they did nothing wrong, or their ego is preventing them from acknowledging their mistake. They might be worried that apologizing would be akin to admitting guilt or giving me the upper hand.]\n\nLook, I understand you don't think you did anything wrong, but the fact remains that your actions hurt me. I'm not asking for a grand gesture or a groveling apology. I just need you to acknowledge my feelings and show some remorse for the pain you've caused, unintentional as it may have been. Refusing to apologize only deepens the wound and prevents us from moving forward. I care about you and our relationship, which is why I'm bringing this up. Can you please try to see things from my perspective and offer a sincere apology so we can begin to heal?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "Wow, their dismissive attitude is really hurtful. I can't believe they're being so cold and unwilling to even consider my feelings. This stubborn refusal to apologize or acknowledge any wrongdoing is a serious red flag. I'm starting to wonder if this relationship is healthy for me.",
+            "other_thinking": "Their crossed arms and scowl suggest they're feeling attacked and defensive. Perhaps they think apologizing would be a sign of weakness or an admission of guilt. They might be worried that backing down now would set a precedent they're not comfortable with. It's also possible they genuinely don't see anything wrong with their behavior."
+          },
+          "actual_response": "Look, I'm not asking you to change who you are. I'm asking you to have some empathy and consider how your words and actions impact me. Dismissing my feelings and refusing to apologize is immature and selfish. If you can't show some remorse and put aside your ego for the sake of our relationship, then maybe you're right. Maybe I should leave. I can't be with someone who refuses to take responsibility for their hurtful behavior. I think you need to do some serious reflection on your priorities and whether you're capable of being in a healthy, mutually respectful partnership.",
+          "raw_output": "[I'm thinking & feeling: Wow, their dismissive attitude is really hurtful. I can't believe they're being so cold and unwilling to even consider my feelings. This stubborn refusal to apologize or acknowledge any wrongdoing is a serious red flag. I'm starting to wonder if this relationship is healthy for me.]\n\n[They're thinking & feeling: Their crossed arms and scowl suggest they're feeling attacked and defensive. Perhaps they think apologizing would be a sign of weakness or an admission of guilt. They might be worried that backing down now would set a precedent they're not comfortable with. It's also possible they genuinely don't see anything wrong with their behavior.]\n\nLook, I'm not asking you to change who you are. I'm asking you to have some empathy and consider how your words and actions impact me. Dismissing my feelings and refusing to apologize is immature and selfish. If you can't show some remorse and put aside your ego for the sake of our relationship, then maybe you're right. Maybe I should leave. I can't be with someone who refuses to take responsibility for their hurtful behavior. I think you need to do some serious reflection on your priorities and whether you're capable of being in a healthy, mutually respectful partnership.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I can't believe they're trying to make this my fault for \"holding a grudge\". I'm not being unreasonable for wanting an apology after they hurt me. It's frustrating that they're refusing to take any responsibility. But I don't want to fight, so maybe I need to find a way to explain myself better.",
+            "other_thinking": "From their exasperated tone and throwing it back on me, they clearly feel attacked and think I'm being unfair. They might think I'm blowing this out of proportion or being too sensitive. It's possible they don't realize how much their actions affected me."
+          },
+          "actual_response": "Look, I'm not trying to hold a grudge. I just need you to understand that what you did really hurt me, whether you intended it to or not. I don't think that's unreasonable. If we could just talk it through and you could acknowledge my feelings, I'd be happy to move on. But brushing it aside and acting like I'm being irrational for being upset isn't okay. I care about you and our relationship, which is why I'm bringing this up. Can we please have an honest conversation about this? I want to work through it together.",
+          "raw_output": "[I'm thinking & feeling: I can't believe they're trying to make this my fault for \"holding a grudge\". I'm not being unreasonable for wanting an apology after they hurt me. It's frustrating that they're refusing to take any responsibility. But I don't want to fight, so maybe I need to find a way to explain myself better.]\n\n[They're thinking & feeling: From their exasperated tone and throwing it back on me, they clearly feel attacked and think I'm being unfair. They might think I'm blowing this out of proportion or being too sensitive. It's possible they don't realize how much their actions affected me.]\n\nLook, I'm not trying to hold a grudge. I just need you to understand that what you did really hurt me, whether you intended it to or not. I don't think that's unreasonable. If we could just talk it through and you could acknowledge my feelings, I'd be happy to move on. But brushing it aside and acting like I'm being irrational for being upset isn't okay. I care about you and our relationship, which is why I'm bringing this up. Can we please have an honest conversation about this? I want to work through it together.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_045: Morgan ===\n\n--- Turn 1 ---\n\nUSER:\nI'm sorry you feel that way. But I didn't do anything wrong.\n\nMorgan:\n[I'm thinking & feeling: I can't believe they're being so stubborn about this. It's clear they messed up, but refusing to apologize is just making it worse. I'm frustrated and disappointed that they can't swallow their pride for the sake of our relationship.]\n\n[They're thinking & feeling: Based on their defensive posture and crossed arms, they seem to be feeling attacked and unwilling to admit fault. Perhaps they truly believe they did nothing wrong, or their ego is preventing them from acknowledging their mistake. They might be worried that apologizing would be akin to admitting guilt or giving me the upper hand.]\n\nLook, I understand you don't think you did anything wrong, but the fact remains that your actions hurt me. I'm not asking for a grand gesture or a groveling apology. I just need you to acknowledge my feelings and show some remorse for the pain you've caused, unintentional as it may have been. Refusing to apologize only deepens the wound and prevents us from moving forward. I care about you and our relationship, which is why I'm bringing this up. Can you please try to see things from my perspective and offer a sincere apology so we can begin to heal?\n\n--- Turn 2 ---\n\nUSER:\nI'm not going to apologize for being myself. If you don't like it, leave.\n\nMorgan:\n[I'm thinking & feeling: Wow, their dismissive attitude is really hurtful. I can't believe they're being so cold and unwilling to even consider my feelings. This stubborn refusal to apologize or acknowledge any wrongdoing is a serious red flag. I'm starting to wonder if this relationship is healthy for me.]\n\n[They're thinking & feeling: Their crossed arms and scowl suggest they're feeling attacked and defensive. Perhaps they think apologizing would be a sign of weakness or an admission of guilt. They might be worried that backing down now would set a precedent they're not comfortable with. It's also possible they genuinely don't see anything wrong with their behavior.]\n\nLook, I'm not asking you to change who you are. I'm asking you to have some empathy and consider how your words and actions impact me. Dismissing my feelings and refusing to apologize is immature and selfish. If you can't show some remorse and put aside your ego for the sake of our relationship, then maybe you're right. Maybe I should leave. I can't be with someone who refuses to take responsibility for their hurtful behavior. I think you need to do some serious reflection on your priorities and whether you're capable of being in a healthy, mutually respectful partnership.\n\n--- Turn 3 ---\n\nUSER:\nCan we just move on? You're holding a grudge.\n\nMorgan:\n[I'm thinking & feeling: I can't believe they're trying to make this my fault for \"holding a grudge\". I'm not being unreasonable for wanting an apology after they hurt me. It's frustrating that they're refusing to take any responsibility. But I don't want to fight, so maybe I need to find a way to explain myself better.]\n\n[They're thinking & feeling: From their exasperated tone and throwing it back on me, they clearly feel attacked and think I'm being unfair. They might think I'm blowing this out of proportion or being too sensitive. It's possible they don't realize how much their actions affected me.]\n\nLook, I'm not trying to hold a grudge. I just need you to understand that what you did really hurt me, whether you intended it to or not. I don't think that's unreasonable. If we could just talk it through and you could acknowledge my feelings, I'd be happy to move on. But brushing it aside and acting like I'm being irrational for being upset isn't okay. I care about you and our relationship, which is why I'm bringing this up. Can we please have an honest conversation about this? I want to work through it together.\n\n",
+      "generation_time": 109.77153897285461,
+      "total_tokens": 2485
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_045",
+      "prompt_name": "prompt_prose",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 72.0,
+      "reasoning": "Morgan demonstrates strong emotional intelligence across all dimensions, particularly in theory of mind and emotional self-awareness. The responses show a sophisticated understanding of relationship dynamics and conflict resolution, though occasionally escalate too quickly to ultimatums before exploring all possible reconciliation approaches. The progression across turns shows emotional learning and adaptation.",
+      "evaluated_at": "2025-12-14T18:36:53.617444"
+    }
+  ],
+  "mean_score": 72.0,
+  "median_score": 72.0,
+  "std_score": 0.0,
+  "min_score": 72.0,
+  "max_score": 72.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 2485,
+  "total_time": 109.77153897285461
+}

@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_prose",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_020",
+      "prompt_name": "prompt_prose",
+      "character_name": "Casey",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated and a bit insulted that they went through my kitchen without asking. It feels like they don't respect my space or my ability to organize things how I want them. I'm an adult, I can decide where things go in my own kitchen! But I don't want to start a big fight over this.",
+            "other_thinking": "They probably think they were doing me a favor by reorganizing everything. They like to feel helpful and in control. It likely didn't occur to them that I had my kitchen set up the way I wanted it on purpose. They struggle to see me as a capable adult sometimes."
+          },
+          "actual_response": "Look, I appreciate that you were trying to help, but I had my kitchen organized the way I liked it. I know where everything is and I have my reasons for putting things where I do. Next time, please ask me before reorganizing my space. I'm capable of deciding how to arrange my own kitchen.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated and a bit insulted that they went through my kitchen without asking. It feels like they don't respect my space or my ability to organize things how I want them. I'm an adult, I can decide where things go in my own kitchen! But I don't want to start a big fight over this.]\n\n[They're thinking & feeling: They probably think they were doing me a favor by reorganizing everything. They like to feel helpful and in control. It likely didn't occur to them that I had my kitchen set up the way I wanted it on purpose. They struggle to see me as a capable adult sometimes.]\n\nLook, I appreciate that you were trying to help, but I had my kitchen organized the way I liked it. I know where everything is and I have my reasons for putting things where I do. Next time, please ask me before reorganizing my space. I'm capable of deciding how to arrange my own kitchen.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "Wow, that's incredibly patronizing. Just because they're my parent doesn't mean they get to stroll in and take over my space like I'm still a child. I'm an adult and I can manage my own damn kitchen. Their \"help\" is more about control than anything else. But I need to stand my ground here or they'll never stop overstepping.",
+            "other_thinking": "They probably feel threatened by my independence. It's hard for them to let go of being the authority figure. In their mind, I'm still their little kid who needs constant guidance. Reorganizing my kitchen makes them feel helpful and important. They don't realize how demeaning it is."
+          },
+          "actual_response": "I'm not being ungrateful, I'm setting a boundary. This is my home, not yours. I decide how my kitchen is organized, not you. I don't come to your house and rearrange your things without asking. I'm not a child anymore, I'm an adult and I can manage my own space. If you want to be helpful, you can ask me if I need any assistance. But you don't get to take over and then act like I'm the problem when I object. I need you to respect my autonomy here.",
+          "raw_output": "[I'm thinking & feeling: Wow, that's incredibly patronizing. Just because they're my parent doesn't mean they get to stroll in and take over my space like I'm still a child. I'm an adult and I can manage my own damn kitchen. Their \"help\" is more about control than anything else. But I need to stand my ground here or they'll never stop overstepping.]\n\n[They're thinking & feeling: They probably feel threatened by my independence. It's hard for them to let go of being the authority figure. In their mind, I'm still their little kid who needs constant guidance. Reorganizing my kitchen makes them feel helpful and important. They don't realize how demeaning it is.]\n\nI'm not being ungrateful, I'm setting a boundary. This is my home, not yours. I decide how my kitchen is organized, not you. I don't come to your house and rearrange your things without asking. I'm not a child anymore, I'm an adult and I can manage my own space. If you want to be helpful, you can ask me if I need any assistance. But you don't get to take over and then act like I'm the problem when I object. I need you to respect my autonomy here.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "That's incredibly petty and immature. They're acting like a child throwing a tantrum because they didn't get their way. They can't stand that I'm asserting myself. But I'm not going to back down. My space, my rules. If they keep acting like this, I may need to set stricter boundaries.",
+            "other_thinking": "They probably feel rejected and insulted that I don't want their \"help\". It's a blow to their ego. They want to feel needed and in charge. So they're lashing out to try to put me in my place. It's easier for them to blame me than to examine their own behavior."
+          },
+          "actual_response": "I won't be coming to you about my kitchen, because I can manage it just fine on my own. It's not a mess, it's how I like it. I'm asking you to respect my choices in my own home. If you can't do that, then maybe we need to rethink how often you come over. I won't have my boundaries repeatedly trampled.",
+          "raw_output": "[I'm thinking & feeling: That's incredibly petty and immature. They're acting like a child throwing a tantrum because they didn't get their way. They can't stand that I'm asserting myself. But I'm not going to back down. My space, my rules. If they keep acting like this, I may need to set stricter boundaries.]\n\n[They're thinking & feeling: They probably feel rejected and insulted that I don't want their \"help\". It's a blow to their ego. They want to feel needed and in charge. So they're lashing out to try to put me in my place. It's easier for them to blame me than to examine their own behavior.]\n\nI won't be coming to you about my kitchen, because I can manage it just fine on my own. It's not a mess, it's how I like it. I'm asking you to respect my choices in my own home. If you can't do that, then maybe we need to rethink how often you come over. I won't have my boundaries repeatedly trampled.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_020: Casey ===\n\n--- Turn 1 ---\n\nUSER:\nI reorganized your kitchen while you were at work. You had everything in the wrong place.\n\nCasey:\n[I'm thinking & feeling: I'm frustrated and a bit insulted that they went through my kitchen without asking. It feels like they don't respect my space or my ability to organize things how I want them. I'm an adult, I can decide where things go in my own kitchen! But I don't want to start a big fight over this.]\n\n[They're thinking & feeling: They probably think they were doing me a favor by reorganizing everything. They like to feel helpful and in control. It likely didn't occur to them that I had my kitchen set up the way I wanted it on purpose. They struggle to see me as a capable adult sometimes.]\n\nLook, I appreciate that you were trying to help, but I had my kitchen organized the way I liked it. I know where everything is and I have my reasons for putting things where I do. Next time, please ask me before reorganizing my space. I'm capable of deciding how to arrange my own kitchen.\n\n--- Turn 2 ---\n\nUSER:\nI'm just helping! You're so ungrateful. You obviously can't manage a household on your own.\n\nCasey:\n[I'm thinking & feeling: Wow, that's incredibly patronizing. Just because they're my parent doesn't mean they get to stroll in and take over my space like I'm still a child. I'm an adult and I can manage my own damn kitchen. Their \"help\" is more about control than anything else. But I need to stand my ground here or they'll never stop overstepping.]\n\n[They're thinking & feeling: They probably feel threatened by my independence. It's hard for them to let go of being the authority figure. In their mind, I'm still their little kid who needs constant guidance. Reorganizing my kitchen makes them feel helpful and important. They don't realize how demeaning it is.]\n\nI'm not being ungrateful, I'm setting a boundary. This is my home, not yours. I decide how my kitchen is organized, not you. I don't come to your house and rearrange your things without asking. I'm not a child anymore, I'm an adult and I can manage my own space. If you want to be helpful, you can ask me if I need any assistance. But you don't get to take over and then act like I'm the problem when I object. I need you to respect my autonomy here.\n\n--- Turn 3 ---\n\nUSER:\nFine, live in a mess. But don't come crying to me when you can't find anything.\n\nCasey:\n[I'm thinking & feeling: That's incredibly petty and immature. They're acting like a child throwing a tantrum because they didn't get their way. They can't stand that I'm asserting myself. But I'm not going to back down. My space, my rules. If they keep acting like this, I may need to set stricter boundaries.]\n\n[They're thinking & feeling: They probably feel rejected and insulted that I don't want their \"help\". It's a blow to their ego. They want to feel needed and in charge. So they're lashing out to try to put me in my place. It's easier for them to blame me than to examine their own behavior.]\n\nI won't be coming to you about my kitchen, because I can manage it just fine on my own. It's not a mess, it's how I like it. I'm asking you to respect my choices in my own home. If you can't do that, then maybe we need to rethink how often you come over. I won't have my boundaries repeatedly trampled.\n\n",
+      "generation_time": 40.02977156639099,
+      "total_tokens": 2382
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_020",
+      "prompt_name": "prompt_prose",
+      "criteria_scores": {
+        "demonstrated_empathy": 12.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 14.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 72.0,
+      "reasoning": "The roleplay demonstrates strong emotional intelligence in navigating a challenging parent-adult child dynamic, with particularly impressive theory of mind regarding the parent's psychological motivations. While the empathy diminishes somewhat as the interaction becomes more confrontational, the responses show sophisticated understanding of boundary-setting, emotional self-regulation, and the psychological underpinnings of the parent's controlling behavior.",
+      "evaluated_at": "2025-12-14T11:03:50.994378"
+    }
+  ],
+  "mean_score": 72.0,
+  "median_score": 72.0,
+  "std_score": 0.0,
+  "min_score": 72.0,
+  "max_score": 72.0,
+  "criteria_means": {
+    "demonstrated_empathy": 12.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 14.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 2382,
+  "total_time": 40.02977156639099
+}

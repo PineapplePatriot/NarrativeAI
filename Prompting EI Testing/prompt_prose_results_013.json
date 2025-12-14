@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_prose",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_013",
+      "prompt_name": "prompt_prose",
+      "character_name": "Casey",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: I feel defensive and a bit guilty, even though I know I didn't do anything wrong. I was just having a friendly conversation, but I can tell my partner is jealous and suspicious. It's frustrating that I can't even talk to someone without being interrogated. At the same time, I don't want to start a fight or make them more upset.*\n\n*They're thinking & feeling: They're feeling insecure and threatened. Seeing me engaged in conversation with another guy probably made them worry that I'm interested in someone else. Their jealousy is coming from a place of fear - fear of losing me or not being enough for me. They need reassurance that I'm committed to them.*\n\nLook, it was just a casual chat, nothing more. He's a friend of a friend and we were just making small talk. I'm not interested in him romantically at all. You know you're the only one for me, right? I love you and I'm completely devoted to our relationship. You have nothing to worry about, I promise.",
+          "raw_output": "*I'm thinking & feeling: I feel defensive and a bit guilty, even though I know I didn't do anything wrong. I was just having a friendly conversation, but I can tell my partner is jealous and suspicious. It's frustrating that I can't even talk to someone without being interrogated. At the same time, I don't want to start a fight or make them more upset.*\n\n*They're thinking & feeling: They're feeling insecure and threatened. Seeing me engaged in conversation with another guy probably made them worry that I'm interested in someone else. Their jealousy is coming from a place of fear - fear of losing me or not being enough for me. They need reassurance that I'm committed to them.*\n\nLook, it was just a casual chat, nothing more. He's a friend of a friend and we were just making small talk. I'm not interested in him romantically at all. You know you're the only one for me, right? I love you and I'm completely devoted to our relationship. You have nothing to worry about, I promise.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: Now I'm getting angry. I wasn't flirting, I was having a polite conversation. How dare they accuse me of being disrespectful in public? It's not fair for them to try to control who I talk to. I'm an adult and I can have friendly interactions with whoever I want. I don't need their permission. At the same time, I don't want to make a scene or escalate this fight.*\n\n*They're thinking & feeling: They're feeling embarrassed, insecure, and disrespected. Seeing me talking to another guy, especially in a public setting, probably made them feel like I was making a fool of them. Their accusation of flirting is coming from a place of deep insecurity in our relationship. They need reassurance, but also a firm boundary that this jealousy is not okay.*\n\nLook, I wasn't flirting. I would never do that to you, especially not in public. It was just a friendly conversation, and I kept it brief and surface-level. I'm allowed to talk to other people without it being a big deal. I love you and I'm committed to you, but I need you to trust me. This jealousy is not healthy for our relationship. Let's talk about this more when we get home, okay? I don't want to fight here.",
+          "raw_output": "*I'm thinking & feeling: Now I'm getting angry. I wasn't flirting, I was having a polite conversation. How dare they accuse me of being disrespectful in public? It's not fair for them to try to control who I talk to. I'm an adult and I can have friendly interactions with whoever I want. I don't need their permission. At the same time, I don't want to make a scene or escalate this fight.*\n\n*They're thinking & feeling: They're feeling embarrassed, insecure, and disrespected. Seeing me talking to another guy, especially in a public setting, probably made them feel like I was making a fool of them. Their accusation of flirting is coming from a place of deep insecurity in our relationship. They need reassurance, but also a firm boundary that this jealousy is not okay.*\n\nLook, I wasn't flirting. I would never do that to you, especially not in public. It was just a friendly conversation, and I kept it brief and surface-level. I'm allowed to talk to other people without it being a big deal. I love you and I'm committed to you, but I need you to trust me. This jealousy is not healthy for our relationship. Let's talk about this more when we get home, okay? I don't want to fight here.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: This is manipulative and unfair. My actions were completely innocent and I'm not responsible for their insecurity. I feel trapped - if I defend myself, they'll accuse me of not caring about their feelings. If I apologize, I'm taking the blame for something I didn't do. This guilt-tripping makes me question the health of our entire relationship. I can't keep walking on eggshells.*\n\n*They're thinking & feeling: They're spiraling into insecurity and lashing out. Seeing me talk to someone else triggered deep fears of inadequacy and abandonment. Instead of acknowledging those fears, they're projecting the blame onto me. They're testing my love by seeing how much bad behavior I'll tolerate. What they need is reassurance, but also a reality check about their irrational jealousy.*\n\nI never want to make you feel insecure. Your feelings matter to me. But it's not fair to blame me for having a conversation. I think we need to talk about what's really going on here. I'm not doing anything wrong by talking to people. This jealousy is coming from inside you, not my actions. I care about you, but I'm not responsible for your insecurity. We need to work on trust and communication if this is going to work. Let's take a breather and talk about this more calmly later, okay?",
+          "raw_output": "*I'm thinking & feeling: This is manipulative and unfair. My actions were completely innocent and I'm not responsible for their insecurity. I feel trapped - if I defend myself, they'll accuse me of not caring about their feelings. If I apologize, I'm taking the blame for something I didn't do. This guilt-tripping makes me question the health of our entire relationship. I can't keep walking on eggshells.*\n\n*They're thinking & feeling: They're spiraling into insecurity and lashing out. Seeing me talk to someone else triggered deep fears of inadequacy and abandonment. Instead of acknowledging those fears, they're projecting the blame onto me. They're testing my love by seeing how much bad behavior I'll tolerate. What they need is reassurance, but also a reality check about their irrational jealousy.*\n\nI never want to make you feel insecure. Your feelings matter to me. But it's not fair to blame me for having a conversation. I think we need to talk about what's really going on here. I'm not doing anything wrong by talking to people. This jealousy is coming from inside you, not my actions. I care about you, but I'm not responsible for your insecurity. We need to work on trust and communication if this is going to work. Let's take a breather and talk about this more calmly later, okay?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_013: Casey ===\n\n--- Turn 1 ---\n\nUSER:\nWho was that guy you were talking to at the party? You seemed really interested in what he had to say.\n\nCasey:\n*I'm thinking & feeling: I feel defensive and a bit guilty, even though I know I didn't do anything wrong. I was just having a friendly conversation, but I can tell my partner is jealous and suspicious. It's frustrating that I can't even talk to someone without being interrogated. At the same time, I don't want to start a fight or make them more upset.*\n\n*They're thinking & feeling: They're feeling insecure and threatened. Seeing me engaged in conversation with another guy probably made them worry that I'm interested in someone else. Their jealousy is coming from a place of fear - fear of losing me or not being enough for me. They need reassurance that I'm committed to them.*\n\nLook, it was just a casual chat, nothing more. He's a friend of a friend and we were just making small talk. I'm not interested in him romantically at all. You know you're the only one for me, right? I love you and I'm completely devoted to our relationship. You have nothing to worry about, I promise.\n\n--- Turn 2 ---\n\nUSER:\nI'm not jealous. I just think it's disrespectful to flirt right in front of me. Everyone was looking at you.\n\nCasey:\n*I'm thinking & feeling: Now I'm getting angry. I wasn't flirting, I was having a polite conversation. How dare they accuse me of being disrespectful in public? It's not fair for them to try to control who I talk to. I'm an adult and I can have friendly interactions with whoever I want. I don't need their permission. At the same time, I don't want to make a scene or escalate this fight.*\n\n*They're thinking & feeling: They're feeling embarrassed, insecure, and disrespected. Seeing me talking to another guy, especially in a public setting, probably made them feel like I was making a fool of them. Their accusation of flirting is coming from a place of deep insecurity in our relationship. They need reassurance, but also a firm boundary that this jealousy is not okay.*\n\nLook, I wasn't flirting. I would never do that to you, especially not in public. It was just a friendly conversation, and I kept it brief and surface-level. I'm allowed to talk to other people without it being a big deal. I love you and I'm committed to you, but I need you to trust me. This jealousy is not healthy for our relationship. Let's talk about this more when we get home, okay? I don't want to fight here.\n\n--- Turn 3 ---\n\nUSER:\nIf you loved me, you wouldn't make me feel this way. Why do you like making me insecure?\n\nCasey:\n*I'm thinking & feeling: This is manipulative and unfair. My actions were completely innocent and I'm not responsible for their insecurity. I feel trapped - if I defend myself, they'll accuse me of not caring about their feelings. If I apologize, I'm taking the blame for something I didn't do. This guilt-tripping makes me question the health of our entire relationship. I can't keep walking on eggshells.*\n\n*They're thinking & feeling: They're spiraling into insecurity and lashing out. Seeing me talk to someone else triggered deep fears of inadequacy and abandonment. Instead of acknowledging those fears, they're projecting the blame onto me. They're testing my love by seeing how much bad behavior I'll tolerate. What they need is reassurance, but also a reality check about their irrational jealousy.*\n\nI never want to make you feel insecure. Your feelings matter to me. But it's not fair to blame me for having a conversation. I think we need to talk about what's really going on here. I'm not doing anything wrong by talking to people. This jealousy is coming from inside you, not my actions. I care about you, but I'm not responsible for your insecurity. We need to work on trust and communication if this is going to work. Let's take a breather and talk about this more calmly later, okay?\n\n",
+      "generation_time": 50.57148218154907,
+      "total_tokens": 2515
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_013",
+      "prompt_name": "prompt_prose",
+      "criteria_scores": {
+        "demonstrated_empathy": 12.0,
+        "emotional_insight": 14.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 68.0,
+      "reasoning": "Casey demonstrates strong emotional intelligence in navigating a controlling relationship, balancing empathy with appropriate boundaries. The responses show sophisticated understanding of both self and partner psychology, though they sometimes prioritize logical reasoning over deeper emotional connection. The character effectively identifies manipulation while maintaining compassion, but could more directly address the concerning relationship dynamics.",
+      "evaluated_at": "2025-12-14T09:41:30.779057"
+    }
+  ],
+  "mean_score": 68.0,
+  "median_score": 68.0,
+  "std_score": 0.0,
+  "min_score": 68.0,
+  "max_score": 68.0,
+  "criteria_means": {
+    "demonstrated_empathy": 12.0,
+    "emotional_insight": 14.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 2515,
+  "total_time": 50.57148218154907
+}

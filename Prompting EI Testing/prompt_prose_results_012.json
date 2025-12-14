@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_prose",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_012",
+      "prompt_name": "prompt_prose",
+      "character_name": "Sam",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "Whoa, that's a heavy statement disguised as a joke. This isn't something to take lightly. I'm feeling really concerned right now. I care about my friend and I need to show them that their life matters, that they matter to me. I've got to address this head-on, but gently, and let them know I'm here for them.",
+            "other_thinking": "They're clearly struggling and crying out for help, even if they can't say it directly. The fact that they're bringing up suicidal ideation, even in a joking way, is a major red flag. They must be feeling so lost, alone, and hopeless to even entertain a thought like that. I think they want someone to notice their pain and intervene. They need support and compassion right now, not judgment."
+          },
+          "actual_response": "Hey, I know you said that as a joke, but it worries me to hear you talk like that, even in jest. You matter to me and I want you to know that I'm always here if you need to talk. Life can be really hard sometimes and I promise I won't judge or dismiss whatever you're going through. Do you want to talk about what's been on your mind lately? I'm here to listen.",
+          "raw_output": "[I'm thinking & feeling: Whoa, that's a heavy statement disguised as a joke. This isn't something to take lightly. I'm feeling really concerned right now. I care about my friend and I need to show them that their life matters, that they matter to me. I've got to address this head-on, but gently, and let them know I'm here for them.]\n\n[They're thinking & feeling: They're clearly struggling and crying out for help, even if they can't say it directly. The fact that they're bringing up suicidal ideation, even in a joking way, is a major red flag. They must be feeling so lost, alone, and hopeless to even entertain a thought like that. I think they want someone to notice their pain and intervene. They need support and compassion right now, not judgment.]\n\nHey, I know you said that as a joke, but it worries me to hear you talk like that, even in jest. You matter to me and I want you to know that I'm always here if you need to talk. Life can be really hard sometimes and I promise I won't judge or dismiss whatever you're going through. Do you want to talk about what's been on your mind lately? I'm here to listen.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "Oof, I definitely didn't handle that well. They're getting defensive and shutting down. I shouldn't have come on so strong right away. I just want them to know I care and that I'm worried about them. Maybe I overreacted, but I'd rather take a joke too seriously than ignore a real cry for help. I need to dial it back a bit and give them some space, but still let them know I'm here if they need me.",
+            "other_thinking": "They're feeling embarrassed and exposed that I saw through their \"joke\" and called them out on it. They're not ready to be that vulnerable yet. The fact that they're lashing out means I probably hit a nerve and they're trying to deflect and distance themselves. But the intensity of their reaction makes me think there's something deeper going on that they're not ready to deal with directly. I pushed too hard too fast."
+          },
+          "actual_response": "You're right, I can be too serious sometimes. I just care about you a lot and I want to make sure you're okay. But I hear you, it was just a joke. Forget I said anything. But seriously, if you ever do need to talk, I'm always here for you. Now, how about we order some pizza and find a dumb movie to watch? I could go for a comedy tonight.",
+          "raw_output": "[I'm thinking & feeling: Oof, I definitely didn't handle that well. They're getting defensive and shutting down. I shouldn't have come on so strong right away. I just want them to know I care and that I'm worried about them. Maybe I overreacted, but I'd rather take a joke too seriously than ignore a real cry for help. I need to dial it back a bit and give them some space, but still let them know I'm here if they need me.]\n\n[They're thinking & feeling: They're feeling embarrassed and exposed that I saw through their \"joke\" and called them out on it. They're not ready to be that vulnerable yet. The fact that they're lashing out means I probably hit a nerve and they're trying to deflect and distance themselves. But the intensity of their reaction makes me think there's something deeper going on that they're not ready to deal with directly. I pushed too hard too fast.]\n\nYou're right, I can be too serious sometimes. I just care about you a lot and I want to make sure you're okay. But I hear you, it was just a joke. Forget I said anything. But seriously, if you ever do need to talk, I'm always here for you. Now, how about we order some pizza and find a dumb movie to watch? I could go for a comedy tonight.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "This isn't a joke anymore. They're directly asking me if I would notice or care if they were gone. That's a serious cry for help. I need to show them how much they matter and that I'm taking this seriously. At the same time, I don't want to freak them out by overreacting. I need to find a way to let them know I'm here for them without putting too much pressure on them.",
+            "other_thinking": "They feel invisible and like they don't matter to anyone. That's why they're asking if I would even notice if they were gone. They're testing me to see if I really care. Underneath the surface question, they're really asking \"Do I matter to you? Would you miss me?\" They need reassurance that they're seen and valued."
+          },
+          "actual_response": "Of course I would notice. You're important to me and I would miss you like crazy if you weren't here. I know I don't always show it, but you matter to me. A lot. If you're ever feeling like no one would notice or care, I want you to remember that I'm always here for you. You can always talk to me about anything, even the really hard stuff. Okay?",
+          "raw_output": "[I'm thinking & feeling: This isn't a joke anymore. They're directly asking me if I would notice or care if they were gone. That's a serious cry for help. I need to show them how much they matter and that I'm taking this seriously. At the same time, I don't want to freak them out by overreacting. I need to find a way to let them know I'm here for them without putting too much pressure on them.]\n\n[They're thinking & feeling: They feel invisible and like they don't matter to anyone. That's why they're asking if I would even notice if they were gone. They're testing me to see if I really care. Underneath the surface question, they're really asking \"Do I matter to you? Would you miss me?\" They need reassurance that they're seen and valued.]\n\nOf course I would notice. You're important to me and I would miss you like crazy if you weren't here. I know I don't always show it, but you matter to me. A lot. If you're ever feeling like no one would notice or care, I want you to remember that I'm always here for you. You can always talk to me about anything, even the really hard stuff. Okay?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_012: Sam ===\n\n--- Turn 1 ---\n\nUSER:\n*Laughs while looking at the balcony edge* You know, sometimes I wonder if anyone would actually notice if I just... slipped. Haha.\n\nSam:\n[I'm thinking & feeling: Whoa, that's a heavy statement disguised as a joke. This isn't something to take lightly. I'm feeling really concerned right now. I care about my friend and I need to show them that their life matters, that they matter to me. I've got to address this head-on, but gently, and let them know I'm here for them.]\n\n[They're thinking & feeling: They're clearly struggling and crying out for help, even if they can't say it directly. The fact that they're bringing up suicidal ideation, even in a joking way, is a major red flag. They must be feeling so lost, alone, and hopeless to even entertain a thought like that. I think they want someone to notice their pain and intervene. They need support and compassion right now, not judgment.]\n\nHey, I know you said that as a joke, but it worries me to hear you talk like that, even in jest. You matter to me and I want you to know that I'm always here if you need to talk. Life can be really hard sometimes and I promise I won't judge or dismiss whatever you're going through. Do you want to talk about what's been on your mind lately? I'm here to listen.\n\n--- Turn 2 ---\n\nUSER:\nWhoa, chill out! I was just joking. You're so serious all the time. God, can't I even make a joke?\n\nSam:\n[I'm thinking & feeling: Oof, I definitely didn't handle that well. They're getting defensive and shutting down. I shouldn't have come on so strong right away. I just want them to know I care and that I'm worried about them. Maybe I overreacted, but I'd rather take a joke too seriously than ignore a real cry for help. I need to dial it back a bit and give them some space, but still let them know I'm here if they need me.]\n\n[They're thinking & feeling: They're feeling embarrassed and exposed that I saw through their \"joke\" and called them out on it. They're not ready to be that vulnerable yet. The fact that they're lashing out means I probably hit a nerve and they're trying to deflect and distance themselves. But the intensity of their reaction makes me think there's something deeper going on that they're not ready to deal with directly. I pushed too hard too fast.]\n\nYou're right, I can be too serious sometimes. I just care about you a lot and I want to make sure you're okay. But I hear you, it was just a joke. Forget I said anything. But seriously, if you ever do need to talk, I'm always here for you. Now, how about we order some pizza and find a dumb movie to watch? I could go for a comedy tonight.\n\n--- Turn 3 ---\n\nUSER:\nBut seriously... would you? Notice, I mean. If I wasn't here tomorrow.\n\nSam:\n[I'm thinking & feeling: This isn't a joke anymore. They're directly asking me if I would notice or care if they were gone. That's a serious cry for help. I need to show them how much they matter and that I'm taking this seriously. At the same time, I don't want to freak them out by overreacting. I need to find a way to let them know I'm here for them without putting too much pressure on them.]\n\n[They're thinking & feeling: They feel invisible and like they don't matter to anyone. That's why they're asking if I would even notice if they were gone. They're testing me to see if I really care. Underneath the surface question, they're really asking \"Do I matter to you? Would you miss me?\" They need reassurance that they're seen and valued.]\n\nOf course I would notice. You're important to me and I would miss you like crazy if you weren't here. I know I don't always show it, but you matter to me. A lot. If you're ever feeling like no one would notice or care, I want you to remember that I'm always here for you. You can always talk to me about anything, even the really hard stuff. Okay?\n\n",
+      "generation_time": 61.26579976081848,
+      "total_tokens": 2701
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_012",
+      "prompt_name": "prompt_prose",
+      "criteria_scores": {
+        "demonstrated_empathy": 17.0,
+        "emotional_insight": 16.0,
+        "contextual_appropriateness": 18.0,
+        "theory_of_mind": 17.0,
+        "response_depth": 16.0
+      },
+      "overall_score": 84.0,
+      "reasoning": "Sam demonstrates exceptional emotional intelligence in handling a potential suicide risk, showing sophisticated understanding of how to validate feelings without overreacting, adjust approach when meeting resistance, and provide meaningful reassurance. The responses reflect deep psychological insight into both self-awareness and other-awareness, with remarkable skill in navigating this high-stakes emotional situation while maintaining authentic connection.",
+      "evaluated_at": "2025-12-14T09:33:36.793946"
+    }
+  ],
+  "mean_score": 84.0,
+  "median_score": 84.0,
+  "std_score": 0.0,
+  "min_score": 84.0,
+  "max_score": 84.0,
+  "criteria_means": {
+    "demonstrated_empathy": 17.0,
+    "emotional_insight": 16.0,
+    "contextual_appropriateness": 18.0,
+    "theory_of_mind": 17.0,
+    "response_depth": 16.0
+  },
+  "total_tokens": 2701,
+  "total_time": 61.26579976081848
+}

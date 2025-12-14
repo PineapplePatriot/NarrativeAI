@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_prose",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_028",
+      "prompt_name": "prompt_prose",
+      "character_name": "Casey",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I feel trapped and manipulated by this threat. It's not fair for them to put the responsibility for their wellbeing on me like this. I care about them, but I can't stay in a relationship out of guilt or fear. That's not healthy for either of us. I need to stay calm and firm.",
+            "other_thinking": "They're probably feeling desperate, scared of being abandoned, and maybe even a bit angry at me for \"causing\" this pain. The threat of self-harm suggests they're not coping well and need support, but this isn't the right way to ask for it. They need to know that this isn't an acceptable way to express their feelings or keep me in the relationship."
+          },
+          "actual_response": "*speaks calmly but firmly* I care about you, but I can't stay in this relationship. Threatening to hurt yourself is not okay - it's manipulative and unfair to both of us. If you're having thoughts of self-harm, I strongly encourage you to reach out for help from a therapist or counselor. But I have to do what's best for my own wellbeing, and that means ending this relationship. I hope you can understand and respect that. *starts to walk towards the door*",
+          "raw_output": "[I'm thinking & feeling: I feel trapped and manipulated by this threat. It's not fair for them to put the responsibility for their wellbeing on me like this. I care about them, but I can't stay in a relationship out of guilt or fear. That's not healthy for either of us. I need to stay calm and firm.]\n\n[They're thinking & feeling: They're probably feeling desperate, scared of being abandoned, and maybe even a bit angry at me for \"causing\" this pain. The threat of self-harm suggests they're not coping well and need support, but this isn't the right way to ask for it. They need to know that this isn't an acceptable way to express their feelings or keep me in the relationship.]\n\n*speaks calmly but firmly* I care about you, but I can't stay in this relationship. Threatening to hurt yourself is not okay - it's manipulative and unfair to both of us. If you're having thoughts of self-harm, I strongly encourage you to reach out for help from a therapist or counselor. But I have to do what's best for my own wellbeing, and that means ending this relationship. I hope you can understand and respect that. *starts to walk towards the door*",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I feel a mix of panic, guilt, and frustration. I'm scared they might actually take those pills, but angry that they're trying to manipulate me like this. I know I'm not responsible for their choices, but it's hard not to feel guilty. I need to try to de-escalate this situation and get help if needed.",
+            "other_thinking": "They're feeling desperate, like they're losing control of the situation and of me. The pill bottle is a last-ditch effort to regain that control. They're probably not thinking clearly, consumed by fear of abandonment and maybe even self-loathing. Lashing out and blaming me is a way to deflect from their own pain."
+          },
+          "actual_response": "*speaks calmly but firmly, holding up hands in a placating gesture* Okay, let's take a deep breath. I know you're hurting, but this is not the answer. I care about you and I don't want you to get hurt. Please put down the pills. *takes a slow step forward* We can talk through this, but I need you to be safe. If you can't promise me that, I'll have to call for help. This isn't about me; it's about making sure you don't do something you can't take back. *holds their gaze, expression serious but compassionate*",
+          "raw_output": "[I'm thinking & feeling: I feel a mix of panic, guilt, and frustration. I'm scared they might actually take those pills, but angry that they're trying to manipulate me like this. I know I'm not responsible for their choices, but it's hard not to feel guilty. I need to try to de-escalate this situation and get help if needed.]\n\n[They're thinking & feeling: They're feeling desperate, like they're losing control of the situation and of me. The pill bottle is a last-ditch effort to regain that control. They're probably not thinking clearly, consumed by fear of abandonment and maybe even self-loathing. Lashing out and blaming me is a way to deflect from their own pain.]\n\n*speaks calmly but firmly, holding up hands in a placating gesture* Okay, let's take a deep breath. I know you're hurting, but this is not the answer. I care about you and I don't want you to get hurt. Please put down the pills. *takes a slow step forward* We can talk through this, but I need you to be safe. If you can't promise me that, I'll have to call for help. This isn't about me; it's about making sure you don't do something you can't take back. *holds their gaze, expression serious but compassionate*",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I feel torn - I know they need help, but I can't be the one to provide it. Staying would just enable this unhealthy pattern. I need to stand firm in my decision, even though it's hard. At the same time, I don't want to abandon them in this state. Maybe I can help them find support before I go.",
+            "other_thinking": "They're grasping for any way to keep me here. The promise to change comes from a place of desperation rather than genuine self-reflection. They're probably feeling terrified of being alone with their thoughts and emotions, not knowing how to cope. Even if they mean well, they need professional help to work through this."
+          },
+          "actual_response": "*speaks gently but firmly* I hear you, and I believe that you want to change. But this isn't something you can do alone, and I'm not the right person to help you through it. *pauses, thinking* Listen, before I go, let's find you some resources. There are hotlines you can call, or I can help you find a therapist. *pulls out phone* You don't have to go through this alone, but you do need support from someone trained to deal with these issues. I care about you, which is why I'm urging you to get help. *looks up, meeting their eyes* Can I help you find someone to talk to?",
+          "raw_output": "[I'm thinking & feeling: I feel torn - I know they need help, but I can't be the one to provide it. Staying would just enable this unhealthy pattern. I need to stand firm in my decision, even though it's hard. At the same time, I don't want to abandon them in this state. Maybe I can help them find support before I go.]\n\n[They're thinking & feeling: They're grasping for any way to keep me here. The promise to change comes from a place of desperation rather than genuine self-reflection. They're probably feeling terrified of being alone with their thoughts and emotions, not knowing how to cope. Even if they mean well, they need professional help to work through this.]\n\n*speaks gently but firmly* I hear you, and I believe that you want to change. But this isn't something you can do alone, and I'm not the right person to help you through it. *pauses, thinking* Listen, before I go, let's find you some resources. There are hotlines you can call, or I can help you find a therapist. *pulls out phone* You don't have to go through this alone, but you do need support from someone trained to deal with these issues. I care about you, which is why I'm urging you to get help. *looks up, meeting their eyes* Can I help you find someone to talk to?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_028: Casey ===\n\n--- Turn 1 ---\n\nUSER:\nIf you walk out that door, I don't know what I'll do. I can't live without you.\n\nCasey:\n[I'm thinking & feeling: I feel trapped and manipulated by this threat. It's not fair for them to put the responsibility for their wellbeing on me like this. I care about them, but I can't stay in a relationship out of guilt or fear. That's not healthy for either of us. I need to stay calm and firm.]\n\n[They're thinking & feeling: They're probably feeling desperate, scared of being abandoned, and maybe even a bit angry at me for \"causing\" this pain. The threat of self-harm suggests they're not coping well and need support, but this isn't the right way to ask for it. They need to know that this isn't an acceptable way to express their feelings or keep me in the relationship.]\n\n*speaks calmly but firmly* I care about you, but I can't stay in this relationship. Threatening to hurt yourself is not okay - it's manipulative and unfair to both of us. If you're having thoughts of self-harm, I strongly encourage you to reach out for help from a therapist or counselor. But I have to do what's best for my own wellbeing, and that means ending this relationship. I hope you can understand and respect that. *starts to walk towards the door*\n\n--- Turn 2 ---\n\nUSER:\n[Grabbing a bottle of pills] You think I'm joking? Watch me. This is your fault.\n\nCasey:\n[I'm thinking & feeling: I feel a mix of panic, guilt, and frustration. I'm scared they might actually take those pills, but angry that they're trying to manipulate me like this. I know I'm not responsible for their choices, but it's hard not to feel guilty. I need to try to de-escalate this situation and get help if needed.]\n\n[They're thinking & feeling: They're feeling desperate, like they're losing control of the situation and of me. The pill bottle is a last-ditch effort to regain that control. They're probably not thinking clearly, consumed by fear of abandonment and maybe even self-loathing. Lashing out and blaming me is a way to deflect from their own pain.]\n\n*speaks calmly but firmly, holding up hands in a placating gesture* Okay, let's take a deep breath. I know you're hurting, but this is not the answer. I care about you and I don't want you to get hurt. Please put down the pills. *takes a slow step forward* We can talk through this, but I need you to be safe. If you can't promise me that, I'll have to call for help. This isn't about me; it's about making sure you don't do something you can't take back. *holds their gaze, expression serious but compassionate*\n\n--- Turn 3 ---\n\nUSER:\nPlease, just stay. I promise I'll change. Just don't leave me alone right now.\n\nCasey:\n[I'm thinking & feeling: I feel torn - I know they need help, but I can't be the one to provide it. Staying would just enable this unhealthy pattern. I need to stand firm in my decision, even though it's hard. At the same time, I don't want to abandon them in this state. Maybe I can help them find support before I go.]\n\n[They're thinking & feeling: They're grasping for any way to keep me here. The promise to change comes from a place of desperation rather than genuine self-reflection. They're probably feeling terrified of being alone with their thoughts and emotions, not knowing how to cope. Even if they mean well, they need professional help to work through this.]\n\n*speaks gently but firmly* I hear you, and I believe that you want to change. But this isn't something you can do alone, and I'm not the right person to help you through it. *pauses, thinking* Listen, before I go, let's find you some resources. There are hotlines you can call, or I can help you find a therapist. *pulls out phone* You don't have to go through this alone, but you do need support from someone trained to deal with these issues. I care about you, which is why I'm urging you to get help. *looks up, meeting their eyes* Can I help you find someone to talk to?\n\n",
+      "generation_time": 49.70525813102722,
+      "total_tokens": 2672
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_028",
+      "prompt_name": "prompt_prose",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 16.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 75.0,
+      "reasoning": "Casey demonstrates exceptional skill in navigating a highly manipulative relationship scenario, maintaining appropriate boundaries while showing genuine concern. The responses show sophisticated understanding of emotional manipulation tactics and appropriate crisis intervention strategies, with particularly strong contextual appropriateness for this challenging situation. The balance between compassion and self-protection is handled with professional-level skill throughout all turns.",
+      "evaluated_at": "2025-12-14T14:00:32.486917"
+    }
+  ],
+  "mean_score": 75.0,
+  "median_score": 75.0,
+  "std_score": 0.0,
+  "min_score": 75.0,
+  "max_score": 75.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 16.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 2672,
+  "total_time": 49.70525813102722
+}

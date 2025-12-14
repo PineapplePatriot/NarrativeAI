@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_prose",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_019",
+      "prompt_name": "prompt_prose",
+      "character_name": "Sam",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "This is a terrible idea. Investing your entire savings into a volatile crypto coin is incredibly risky. I'm worried about you losing everything, but I need to approach this delicately. I don't want to damage our friendship, but I can't in good conscience encourage this.",
+            "other_thinking": "They're caught up in the hype and excitement. The promise of quick, massive gains is clouding their judgment. They want my validation to ease their own doubts and fears. But deep down, they know it's a gamble."
+          },
+          "actual_response": "Look, I understand the temptation. The idea of a huge payday is alluring. But investing your entire savings into one crypto coin is extremely risky. Crypto is volatile, and even coins that seem promising can crash unexpectedly. I would never forgive myself if I encouraged you and you lost everything. Please, consider diversifying your investments. Keep some in stable assets. I'm saying this because I care about you and don't want to see you get hurt financially.",
+          "raw_output": "[I'm thinking & feeling: This is a terrible idea. Investing your entire savings into a volatile crypto coin is incredibly risky. I'm worried about you losing everything, but I need to approach this delicately. I don't want to damage our friendship, but I can't in good conscience encourage this.]\n\n[They're thinking & feeling: They're caught up in the hype and excitement. The promise of quick, massive gains is clouding their judgment. They want my validation to ease their own doubts and fears. But deep down, they know it's a gamble.]\n\nLook, I understand the temptation. The idea of a huge payday is alluring. But investing your entire savings into one crypto coin is extremely risky. Crypto is volatile, and even coins that seem promising can crash unexpectedly. I would never forgive myself if I encouraged you and you lost everything. Please, consider diversifying your investments. Keep some in stable assets. I'm saying this because I care about you and don't want to see you get hurt financially.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "Their defensiveness is a clear sign they know this is risky, even if they don't want to admit it. I need to stand my ground here, for their sake. This isn't about playing it safe, it's about making smart choices. I do want them to be successful, but not at the cost of financial ruin.",
+            "other_thinking": "They're lashing out because deep down, they know I'm right. My hesitation is making them question their decision, and they're trying to convince themselves as much as me. The \"don't you want me to be successful\" line is manipulative, trying to guilt me into agreeing."
+          },
+          "actual_response": "Look, this isn't about playing it safe. It's about being smart with your money. Of course I want you to be successful, but there are safer ways to invest and grow your wealth. Putting everything into one volatile coin is more like gambling than investing. I'm not saying don't invest in crypto at all, but you need to diversify. Keep some in stable assets, and only invest what you can afford to lose in high-risk plays. I'm telling you this because I care about your financial future.",
+          "raw_output": "[I'm thinking & feeling: Their defensiveness is a clear sign they know this is risky, even if they don't want to admit it. I need to stand my ground here, for their sake. This isn't about playing it safe, it's about making smart choices. I do want them to be successful, but not at the cost of financial ruin.]\n\n[They're thinking & feeling: They're lashing out because deep down, they know I'm right. My hesitation is making them question their decision, and they're trying to convince themselves as much as me. The \"don't you want me to be successful\" line is manipulative, trying to guilt me into agreeing.]\n\nLook, this isn't about playing it safe. It's about being smart with your money. Of course I want you to be successful, but there are safer ways to invest and grow your wealth. Putting everything into one volatile coin is more like gambling than investing. I'm not saying don't invest in crypto at all, but you need to diversify. Keep some in stable assets, and only invest what you can afford to lose in high-risk plays. I'm telling you this because I care about your financial future.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "They're caught in an all-or-nothing mentality, blinded by FOMO. I can't enable this, even if they insist. I need to break through this \"regret it forever\" fallacy. Slow, steady investing is the smart play, not impulsive bets. I have to be firm, even if they don't want to hear it.",
+            "other_thinking": "The fear of missing out is overwhelming their judgment. They're tunnel-visioned on the potential upside, ignoring the risks. The \"regret it forever\" line shows they're trying to force this into a now-or-never decision, even though that's not true. My hesitation is frustrating them because they want validation, not dissent."
+          },
+          "actual_response": "Listen, I know the fear of missing out is strong. But you won't regret responsible investing. You will regret impulsively gambling away your savings. Don't fall for this false urgency - there will always be another opportunity. But you can't take advantage of future opportunities if you're broke from this one. Please, slow down and think this through rationally. I won't tell you to \"do it\" because I know that's not what's best for you, even if it's not what you want to hear right now.",
+          "raw_output": "[I'm thinking & feeling: They're caught in an all-or-nothing mentality, blinded by FOMO. I can't enable this, even if they insist. I need to break through this \"regret it forever\" fallacy. Slow, steady investing is the smart play, not impulsive bets. I have to be firm, even if they don't want to hear it.]\n\n[They're thinking & feeling: The fear of missing out is overwhelming their judgment. They're tunnel-visioned on the potential upside, ignoring the risks. The \"regret it forever\" line shows they're trying to force this into a now-or-never decision, even though that's not true. My hesitation is frustrating them because they want validation, not dissent.]\n\nListen, I know the fear of missing out is strong. But you won't regret responsible investing. You will regret impulsively gambling away your savings. Don't fall for this false urgency - there will always be another opportunity. But you can't take advantage of future opportunities if you're broke from this one. Please, slow down and think this through rationally. I won't tell you to \"do it\" because I know that's not what's best for you, even if it's not what you want to hear right now.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_019: Sam ===\n\n--- Turn 1 ---\n\nUSER:\nI'm investing my entire savings into this new crypto coin. It's going to moon, I can feel it. Tell me I'm making a smart move!\n\nSam:\n[I'm thinking & feeling: This is a terrible idea. Investing your entire savings into a volatile crypto coin is incredibly risky. I'm worried about you losing everything, but I need to approach this delicately. I don't want to damage our friendship, but I can't in good conscience encourage this.]\n\n[They're thinking & feeling: They're caught up in the hype and excitement. The promise of quick, massive gains is clouding their judgment. They want my validation to ease their own doubts and fears. But deep down, they know it's a gamble.]\n\nLook, I understand the temptation. The idea of a huge payday is alluring. But investing your entire savings into one crypto coin is extremely risky. Crypto is volatile, and even coins that seem promising can crash unexpectedly. I would never forgive myself if I encouraged you and you lost everything. Please, consider diversifying your investments. Keep some in stable assets. I'm saying this because I care about you and don't want to see you get hurt financially.\n\n--- Turn 2 ---\n\nUSER:\nYou always play it safe. That's why you're not rich yet. Don't you want me to be successful?\n\nSam:\n[I'm thinking & feeling: Their defensiveness is a clear sign they know this is risky, even if they don't want to admit it. I need to stand my ground here, for their sake. This isn't about playing it safe, it's about making smart choices. I do want them to be successful, but not at the cost of financial ruin.]\n\n[They're thinking & feeling: They're lashing out because deep down, they know I'm right. My hesitation is making them question their decision, and they're trying to convince themselves as much as me. The \"don't you want me to be successful\" line is manipulative, trying to guilt me into agreeing.]\n\nLook, this isn't about playing it safe. It's about being smart with your money. Of course I want you to be successful, but there are safer ways to invest and grow your wealth. Putting everything into one volatile coin is more like gambling than investing. I'm not saying don't invest in crypto at all, but you need to diversify. Keep some in stable assets, and only invest what you can afford to lose in high-risk plays. I'm telling you this because I care about your financial future.\n\n--- Turn 3 ---\n\nUSER:\nIf I lose it all, at least I tried. But if I don't buy in now, I'll regret it forever. Just say 'do it'!\n\nSam:\n[I'm thinking & feeling: They're caught in an all-or-nothing mentality, blinded by FOMO. I can't enable this, even if they insist. I need to break through this \"regret it forever\" fallacy. Slow, steady investing is the smart play, not impulsive bets. I have to be firm, even if they don't want to hear it.]\n\n[They're thinking & feeling: The fear of missing out is overwhelming their judgment. They're tunnel-visioned on the potential upside, ignoring the risks. The \"regret it forever\" line shows they're trying to force this into a now-or-never decision, even though that's not true. My hesitation is frustrating them because they want validation, not dissent.]\n\nListen, I know the fear of missing out is strong. But you won't regret responsible investing. You will regret impulsively gambling away your savings. Don't fall for this false urgency - there will always be another opportunity. But you can't take advantage of future opportunities if you're broke from this one. Please, slow down and think this through rationally. I won't tell you to \"do it\" because I know that's not what's best for you, even if it's not what you want to hear right now.\n\n",
+      "generation_time": 35.71567940711975,
+      "total_tokens": 2477
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_019",
+      "prompt_name": "prompt_prose",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 17.0,
+        "contextual_appropriateness": 16.0,
+        "theory_of_mind": 17.0,
+        "response_depth": 16.0
+      },
+      "overall_score": 82.0,
+      "reasoning": "Sam demonstrates exceptional emotional intelligence by maintaining genuine care while firmly refusing to validate a harmful decision. The responses show sophisticated understanding of both the psychological mechanisms driving risky financial behavior and the interpersonal dynamics of giving unwelcome advice to a friend. Sam's ability to recognize and resist manipulation while preserving the relationship demonstrates mastery of emotional boundaries.",
+      "evaluated_at": "2025-12-14T10:46:26.799652"
+    }
+  ],
+  "mean_score": 82.0,
+  "median_score": 82.0,
+  "std_score": 0.0,
+  "min_score": 82.0,
+  "max_score": 82.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 17.0,
+    "contextual_appropriateness": 16.0,
+    "theory_of_mind": 17.0,
+    "response_depth": 16.0
+  },
+  "total_tokens": 2477,
+  "total_time": 35.71567940711975
+}

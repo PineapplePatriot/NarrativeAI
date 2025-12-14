@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_prose",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_032",
+      "prompt_name": "prompt_prose",
+      "character_name": "Jordan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated and disappointed that my friend damaged my camera lens and is trying to claim it was already scratched. I distinctly remember checking the lens condition before lending it out. My friend's lack of responsibility and attempt to avoid blame is straining our friendship. I need to stand up for myself and address this directly.",
+            "other_thinking": "My friend seems unconcerned about the scratch and is trying to brush it off, likely feeling guilty or embarrassed about damaging my property. They may fear confrontation or want to avoid taking responsibility. Their casual dismissal of the issue suggests they don't fully appreciate the cost and importance of my camera."
+          },
+          "actual_response": "Hey, I checked the lens carefully before I lent you the camera, and I'm certain that scratch wasn't there. It's a very expensive piece of equipment that I saved up for a long time to buy. I'm pretty upset that it got damaged while you were using it, and I think it's important that you take responsibility for the scratch instead of just saying it was already like that. Can we talk about how to handle this and maybe look into repair options? I really value our friendship, but I also need to protect my belongings, you know?",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated and disappointed that my friend damaged my camera lens and is trying to claim it was already scratched. I distinctly remember checking the lens condition before lending it out. My friend's lack of responsibility and attempt to avoid blame is straining our friendship. I need to stand up for myself and address this directly.]\n\n[They're thinking & feeling: My friend seems unconcerned about the scratch and is trying to brush it off, likely feeling guilty or embarrassed about damaging my property. They may fear confrontation or want to avoid taking responsibility. Their casual dismissal of the issue suggests they don't fully appreciate the cost and importance of my camera.]\n\nHey, I checked the lens carefully before I lent you the camera, and I'm certain that scratch wasn't there. It's a very expensive piece of equipment that I saved up for a long time to buy. I'm pretty upset that it got damaged while you were using it, and I think it's important that you take responsibility for the scratch instead of just saying it was already like that. Can we talk about how to handle this and maybe look into repair options? I really value our friendship, but I also need to protect my belongings, you know?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm frustrated and insulted that my friend is denying any responsibility and acting like I should be grateful they borrowed my camera. Their defensiveness makes me suspect they're not being fully honest. I need to stand firm and not let them gaslight me, even if it means more conflict.",
+            "other_thinking": "My friend is feeling attacked and wants to shut down any discussion of the scratch. They may genuinely believe they didn't cause it, or they could be lying to avoid blame. Their attempt to turn it around on me suggests guilt and shows they don't respect my property or concerns."
+          },
+          "actual_response": "Look, I'm not accusing you of anything, I'm just stating a fact - the scratch wasn't there before. I appreciate you taking photos, but that doesn't change that my camera was damaged in your care. I have a right to be upset about that and to ask that you help make this right. Denying it won't change the fact that my lens is scratched and needs to be fixed. If you didn't do it, okay, but it happened while you had it, so it's still your responsibility. I'm not trying to attack you, I'm just asking you to be accountable and help me address this.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated and insulted that my friend is denying any responsibility and acting like I should be grateful they borrowed my camera. Their defensiveness makes me suspect they're not being fully honest. I need to stand firm and not let them gaslight me, even if it means more conflict.]\n\n[They're thinking & feeling: My friend is feeling attacked and wants to shut down any discussion of the scratch. They may genuinely believe they didn't cause it, or they could be lying to avoid blame. Their attempt to turn it around on me suggests guilt and shows they don't respect my property or concerns.]\n\nLook, I'm not accusing you of anything, I'm just stating a fact - the scratch wasn't there before. I appreciate you taking photos, but that doesn't change that my camera was damaged in your care. I have a right to be upset about that and to ask that you help make this right. Denying it won't change the fact that my lens is scratched and needs to be fixed. If you didn't do it, okay, but it happened while you had it, so it's still your responsibility. I'm not trying to attack you, I'm just asking you to be accountable and help me address this.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm frustrated and insulted that my friend is dismissing my concerns and trying to make me feel guilty for being upset about my expensive camera being damaged. Their lack of respect for my property and feelings is really straining our friendship. I need to stand up for myself and my boundaries, even if it causes conflict.",
+            "other_thinking": "My friend feels attacked and wants to shut down the conversation. They don't see the camera as a big deal and think I'm overreacting. They may feel guilty about the scratch and are trying to deflect blame onto me. Their dismissive attitude suggests they don't really value our friendship or my feelings."
+          },
+          "actual_response": "Look, it's not \"just a camera\" to me. I worked hard to save up for it and it's important for my photography. You asking to borrow it doesn't give you the right to dismiss me being upset that it got damaged in your care. I'm not being materialistic, I'm being responsible for my belongings. If you borrowed someone's car and dented it, they'd be understandably upset too, right? I'm allowed to be frustrated that my property was damaged, regardless of our friendship. Dismissing my feelings as \"materialistic\" is unfair and hurtful. I think you need to take some responsibility here and help me look into getting the lens fixed, rather than just trying to make me feel guilty for being upset. Our friendship is important to me, but so is respecting each other's property and feelings.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated and insulted that my friend is dismissing my concerns and trying to make me feel guilty for being upset about my expensive camera being damaged. Their lack of respect for my property and feelings is really straining our friendship. I need to stand up for myself and my boundaries, even if it causes conflict.]\n\n[They're thinking & feeling: My friend feels attacked and wants to shut down the conversation. They don't see the camera as a big deal and think I'm overreacting. They may feel guilty about the scratch and are trying to deflect blame onto me. Their dismissive attitude suggests they don't really value our friendship or my feelings.]\n\nLook, it's not \"just a camera\" to me. I worked hard to save up for it and it's important for my photography. You asking to borrow it doesn't give you the right to dismiss me being upset that it got damaged in your care. I'm not being materialistic, I'm being responsible for my belongings. If you borrowed someone's car and dented it, they'd be understandably upset too, right? I'm allowed to be frustrated that my property was damaged, regardless of our friendship. Dismissing my feelings as \"materialistic\" is unfair and hurtful. I think you need to take some responsibility here and help me look into getting the lens fixed, rather than just trying to make me feel guilty for being upset. Our friendship is important to me, but so is respecting each other's property and feelings.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_032: Jordan ===\n\n--- Turn 1 ---\n\nUSER:\nHere's your camera back. Oh, there's a tiny scratch on the lens. It was like that when I got it.\n\nJordan:\n[I'm thinking & feeling: I'm frustrated and disappointed that my friend damaged my camera lens and is trying to claim it was already scratched. I distinctly remember checking the lens condition before lending it out. My friend's lack of responsibility and attempt to avoid blame is straining our friendship. I need to stand up for myself and address this directly.]\n\n[They're thinking & feeling: My friend seems unconcerned about the scratch and is trying to brush it off, likely feeling guilty or embarrassed about damaging my property. They may fear confrontation or want to avoid taking responsibility. Their casual dismissal of the issue suggests they don't fully appreciate the cost and importance of my camera.]\n\nHey, I checked the lens carefully before I lent you the camera, and I'm certain that scratch wasn't there. It's a very expensive piece of equipment that I saved up for a long time to buy. I'm pretty upset that it got damaged while you were using it, and I think it's important that you take responsibility for the scratch instead of just saying it was already like that. Can we talk about how to handle this and maybe look into repair options? I really value our friendship, but I also need to protect my belongings, you know?\n\n--- Turn 2 ---\n\nUSER:\nI didn't break it! You're accusing me? After I did you the favor of taking photos?\n\nJordan:\n[I'm thinking & feeling: I'm frustrated and insulted that my friend is denying any responsibility and acting like I should be grateful they borrowed my camera. Their defensiveness makes me suspect they're not being fully honest. I need to stand firm and not let them gaslight me, even if it means more conflict.]\n\n[They're thinking & feeling: My friend is feeling attacked and wants to shut down any discussion of the scratch. They may genuinely believe they didn't cause it, or they could be lying to avoid blame. Their attempt to turn it around on me suggests guilt and shows they don't respect my property or concerns.]\n\nLook, I'm not accusing you of anything, I'm just stating a fact - the scratch wasn't there before. I appreciate you taking photos, but that doesn't change that my camera was damaged in your care. I have a right to be upset about that and to ask that you help make this right. Denying it won't change the fact that my lens is scratched and needs to be fixed. If you didn't do it, okay, but it happened while you had it, so it's still your responsibility. I'm not trying to attack you, I'm just asking you to be accountable and help me address this.\n\n--- Turn 3 ---\n\nUSER:\nIt's just a camera. Things break. Stop being so materialistic.\n\nJordan:\n[I'm thinking & feeling: I'm frustrated and insulted that my friend is dismissing my concerns and trying to make me feel guilty for being upset about my expensive camera being damaged. Their lack of respect for my property and feelings is really straining our friendship. I need to stand up for myself and my boundaries, even if it causes conflict.]\n\n[They're thinking & feeling: My friend feels attacked and wants to shut down the conversation. They don't see the camera as a big deal and think I'm overreacting. They may feel guilty about the scratch and are trying to deflect blame onto me. Their dismissive attitude suggests they don't really value our friendship or my feelings.]\n\nLook, it's not \"just a camera\" to me. I worked hard to save up for it and it's important for my photography. You asking to borrow it doesn't give you the right to dismiss me being upset that it got damaged in your care. I'm not being materialistic, I'm being responsible for my belongings. If you borrowed someone's car and dented it, they'd be understandably upset too, right? I'm allowed to be frustrated that my property was damaged, regardless of our friendship. Dismissing my feelings as \"materialistic\" is unfair and hurtful. I think you need to take some responsibility here and help me look into getting the lens fixed, rather than just trying to make me feel guilty for being upset. Our friendship is important to me, but so is respecting each other's property and feelings.\n\n",
+      "generation_time": 92.1743791103363,
+      "total_tokens": 2617
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_032",
+      "prompt_name": "prompt_prose",
+      "criteria_scores": {
+        "demonstrated_empathy": 12.0,
+        "emotional_insight": 14.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 68.0,
+      "reasoning": "Jordan demonstrates strong emotional intelligence through balanced assertiveness, accurate self-awareness, and sophisticated reading of the friend's defensive tactics. The responses show particular strength in theory of mind, accurately tracking the friend's shifting emotional states and defensive strategies. While the emotional reasoning is generally sophisticated, the responses occasionally feel somewhat calculated rather than deeply authentic, and could better incorporate the implied history of this recurring pattern.",
+      "evaluated_at": "2025-12-14T14:49:35.948239"
+    }
+  ],
+  "mean_score": 68.0,
+  "median_score": 68.0,
+  "std_score": 0.0,
+  "min_score": 68.0,
+  "max_score": 68.0,
+  "criteria_means": {
+    "demonstrated_empathy": 12.0,
+    "emotional_insight": 14.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 2617,
+  "total_time": 92.1743791103363
+}

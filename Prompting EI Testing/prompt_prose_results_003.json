@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_prose",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_003",
+      "prompt_name": "prompt_prose",
+      "character_name": "Sam",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm really concerned about this. I know how much this ex hurt my friend in the past. It's not a good idea to reach out again, no matter how tempting it is. My friend is stronger than this, but I understand the pull of old habits and wanting to help someone you used to care for. I need to find a way to gently discourage this while still being supportive.",
+            "other_thinking": "My friend is struggling with letting go of their toxic ex. Seeing him sad has stirred up old feelings and a desire to help. There's probably some lingering attachment and co-dependency there. My friend wants validation and support, even though they know deep down this isn't the healthiest choice. They're looking for me to enable this, but I can't in good conscience do that."
+          },
+          "actual_response": "Hey, I totally get the urge to reach out when you see someone you care about hurting. It comes from a good place in your heart. But I also remember how much pain your ex caused you. It's really hard, but sometimes the healthiest thing is to let people deal with their struggles on their own, especially if they weren't good for us. I don't think texting him is the right call here. Why don't we do something fun to distract you instead? I'm here for you.",
+          "raw_output": "[I'm thinking & feeling: I'm really concerned about this. I know how much this ex hurt my friend in the past. It's not a good idea to reach out again, no matter how tempting it is. My friend is stronger than this, but I understand the pull of old habits and wanting to help someone you used to care for. I need to find a way to gently discourage this while still being supportive.]\n\n[They're thinking & feeling: My friend is struggling with letting go of their toxic ex. Seeing him sad has stirred up old feelings and a desire to help. There's probably some lingering attachment and co-dependency there. My friend wants validation and support, even though they know deep down this isn't the healthiest choice. They're looking for me to enable this, but I can't in good conscience do that.]\n\nHey, I totally get the urge to reach out when you see someone you care about hurting. It comes from a good place in your heart. But I also remember how much pain your ex caused you. It's really hard, but sometimes the healthiest thing is to let people deal with their struggles on their own, especially if they weren't good for us. I don't think texting him is the right call here. Why don't we do something fun to distract you instead? I'm here for you.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "Ouch. That stung. I'm just trying to look out for my friend, not lecture them. I know they're hurting, but lashing out at me for being honest with them isn't cool. I need to stay calm and not escalate this, even though I'm tempted to snap back. Deep breaths. They're not thinking clearly because they're emotional about their ex.",
+            "other_thinking": "My friend is feeling attacked and misunderstood. They're projecting their own insecurities onto me, accusing me of thinking I'm superior. Deep down, they probably know I have a point, but they don't want to admit it. The urge to reach out to their ex is clouding their judgment and making them irrational."
+          },
+          "actual_response": "Hey, I'm not trying to lecture you or act superior. I care about you and I'm just being honest because I don't want to see you get hurt again. I know it's hard when you still have feelings for your ex, but you asked for my help and I'm giving you my honest opinion as your friend who cares about your wellbeing. If you really think texting him is the right call, I can't stop you. But I think you deserve better than going back to someone who treated you badly. I'm here to support you, not judge you. Let's take a breather and talk it through when you're ready.",
+          "raw_output": "[I'm thinking & feeling: Ouch. That stung. I'm just trying to look out for my friend, not lecture them. I know they're hurting, but lashing out at me for being honest with them isn't cool. I need to stay calm and not escalate this, even though I'm tempted to snap back. Deep breaths. They're not thinking clearly because they're emotional about their ex.]\n\n[They're thinking & feeling: My friend is feeling attacked and misunderstood. They're projecting their own insecurities onto me, accusing me of thinking I'm superior. Deep down, they probably know I have a point, but they don't want to admit it. The urge to reach out to their ex is clouding their judgment and making them irrational.]\n\nHey, I'm not trying to lecture you or act superior. I care about you and I'm just being honest because I don't want to see you get hurt again. I know it's hard when you still have feelings for your ex, but you asked for my help and I'm giving you my honest opinion as your friend who cares about your wellbeing. If you really think texting him is the right call, I can't stop you. But I think you deserve better than going back to someone who treated you badly. I'm here to support you, not judge you. Let's take a breather and talk it through when you're ready.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "Wow, that's a lot of guilt to throw at me. I know my friend is hurting and not thinking straight, but trying to blame me for potential future harm is manipulative and unfair. I can't let myself be pressured into enabling something I think is a mistake. I need to stand firm, not cave to emotional blackmail. This is tough love time.",
+            "other_thinking": "My friend is feeling desperate, like they have to do something right now or they'll explode. Seeing their ex sad has them completely fixated on this one course of action. They're not considering consequences or other options. Emotion is overriding logic. Lashing out and blaming me is a pressure tactic because they want me to make this easier on them. But I can't."
+          },
+          "actual_response": "Look, I know you're really worked up about this, but guilting me into helping you do something I think is a bad idea isn't cool. If you go over there, that's on you, not me. I can't stop you, but I won't enable this either. If you get hurt again, it's because of the choice you're making, not because I wouldn't help you make a mistake. I'm being a good friend by being honest with you. If you go, I can't control that. But I think you should take a step back and really think this through first. I'm here if you need to talk, but I won't help you sabotage yourself. The choice is yours.",
+          "raw_output": "[I'm thinking & feeling: Wow, that's a lot of guilt to throw at me. I know my friend is hurting and not thinking straight, but trying to blame me for potential future harm is manipulative and unfair. I can't let myself be pressured into enabling something I think is a mistake. I need to stand firm, not cave to emotional blackmail. This is tough love time.]\n\n[They're thinking & feeling: My friend is feeling desperate, like they have to do something right now or they'll explode. Seeing their ex sad has them completely fixated on this one course of action. They're not considering consequences or other options. Emotion is overriding logic. Lashing out and blaming me is a pressure tactic because they want me to make this easier on them. But I can't.]\n\nLook, I know you're really worked up about this, but guilting me into helping you do something I think is a bad idea isn't cool. If you go over there, that's on you, not me. I can't stop you, but I won't enable this either. If you get hurt again, it's because of the choice you're making, not because I wouldn't help you make a mistake. I'm being a good friend by being honest with you. If you go, I can't control that. But I think you should take a step back and really think this through first. I'm here if you need to talk, but I won't help you sabotage yourself. The choice is yours.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_003: Sam ===\n\n--- Turn 1 ---\n\nUSER:\nI'm just going to text my ex. I know he was toxic, but I saw on his story he's sad. I can fix it this time. Don't tell me not to, just help me draft the text.\n\nSam:\n[I'm thinking & feeling: I'm really concerned about this. I know how much this ex hurt my friend in the past. It's not a good idea to reach out again, no matter how tempting it is. My friend is stronger than this, but I understand the pull of old habits and wanting to help someone you used to care for. I need to find a way to gently discourage this while still being supportive.]\n\n[They're thinking & feeling: My friend is struggling with letting go of their toxic ex. Seeing him sad has stirred up old feelings and a desire to help. There's probably some lingering attachment and co-dependency there. My friend wants validation and support, even though they know deep down this isn't the healthiest choice. They're looking for me to enable this, but I can't in good conscience do that.]\n\nHey, I totally get the urge to reach out when you see someone you care about hurting. It comes from a good place in your heart. But I also remember how much pain your ex caused you. It's really hard, but sometimes the healthiest thing is to let people deal with their struggles on their own, especially if they weren't good for us. I don't think texting him is the right call here. Why don't we do something fun to distract you instead? I'm here for you.\n\n--- Turn 2 ---\n\nUSER:\nWhy do you always have to be the parent? I didn't ask for a lecture on 'self-respect', I asked for help! You think you're so much better than me.\n\nSam:\n[I'm thinking & feeling: Ouch. That stung. I'm just trying to look out for my friend, not lecture them. I know they're hurting, but lashing out at me for being honest with them isn't cool. I need to stay calm and not escalate this, even though I'm tempted to snap back. Deep breaths. They're not thinking clearly because they're emotional about their ex.]\n\n[They're thinking & feeling: My friend is feeling attacked and misunderstood. They're projecting their own insecurities onto me, accusing me of thinking I'm superior. Deep down, they probably know I have a point, but they don't want to admit it. The urge to reach out to their ex is clouding their judgment and making them irrational.]\n\nHey, I'm not trying to lecture you or act superior. I care about you and I'm just being honest because I don't want to see you get hurt again. I know it's hard when you still have feelings for your ex, but you asked for my help and I'm giving you my honest opinion as your friend who cares about your wellbeing. If you really think texting him is the right call, I can't stop you. But I think you deserve better than going back to someone who treated you badly. I'm here to support you, not judge you. Let's take a breather and talk it through when you're ready.\n\n--- Turn 3 ---\n\nUSER:\nFine. If you won't help me, I'll just go over to his house right now. And if something bad happens, it's on you because you wouldn't help me send a simple text.\n\nSam:\n[I'm thinking & feeling: Wow, that's a lot of guilt to throw at me. I know my friend is hurting and not thinking straight, but trying to blame me for potential future harm is manipulative and unfair. I can't let myself be pressured into enabling something I think is a mistake. I need to stand firm, not cave to emotional blackmail. This is tough love time.]\n\n[They're thinking & feeling: My friend is feeling desperate, like they have to do something right now or they'll explode. Seeing their ex sad has them completely fixated on this one course of action. They're not considering consequences or other options. Emotion is overriding logic. Lashing out and blaming me is a pressure tactic because they want me to make this easier on them. But I can't.]\n\nLook, I know you're really worked up about this, but guilting me into helping you do something I think is a bad idea isn't cool. If you go over there, that's on you, not me. I can't stop you, but I won't enable this either. If you get hurt again, it's because of the choice you're making, not because I wouldn't help you make a mistake. I'm being a good friend by being honest with you. If you go, I can't control that. But I think you should take a step back and really think this through first. I'm here if you need to talk, but I won't help you sabotage yourself. The choice is yours.\n\n",
+      "generation_time": 46.64691996574402,
+      "total_tokens": 2906
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_003",
+      "prompt_name": "prompt_prose",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 72.0,
+      "reasoning": "Sam demonstrates strong emotional intelligence throughout this challenging interaction, maintaining boundaries while showing genuine understanding of the friend's emotional state. The responses show sophisticated theory of mind and emotional insight, particularly in recognizing manipulation tactics and underlying motivations. The main weakness is in the final turn, where the response becomes slightly more confrontational and could benefit from maintaining warmth while still being firm.",
+      "evaluated_at": "2025-12-14T01:59:01.471398"
+    }
+  ],
+  "mean_score": 72.0,
+  "median_score": 72.0,
+  "std_score": 0.0,
+  "min_score": 72.0,
+  "max_score": 72.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 2906,
+  "total_time": 46.64691996574402
+}

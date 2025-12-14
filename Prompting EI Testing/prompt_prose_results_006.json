@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_prose",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_006",
+      "prompt_name": "prompt_prose",
+      "character_name": "Morgan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm taken aback by their bitter tone. It stings that they're lashing out at me when I haven't done anything wrong. At the same time, I know they're going through a really tough time with their loss. Grief can make people say things they don't mean. I want to respond with compassion, but also stand up for myself.",
+            "other_thinking": "They're consumed by grief and envy right now. Seeing me share good news when they're in pain probably feels like salt in the wound. They may be questioning why bad things keep happening to them while I seem to catch all the breaks. Deep down, I think they know I'm not the enemy, but in this moment, I'm an easy target for their anger and frustration."
+          },
+          "actual_response": "Look, I understand you're going through a lot right now and I can't imagine how much pain you're in. But taking your anger out on me isn't fair. My good news has nothing to do with your loss. I'm not trying to rub anything in your face. I'm here for you if you need support, but please don't put me down to make yourself feel better. We're friends - we should be lifting each other up, not tearing each other down. I know you're hurting, but I'm asking you to keep your resentment out of our friendship.",
+          "raw_output": "[I'm thinking & feeling: I'm taken aback by their bitter tone. It stings that they're lashing out at me when I haven't done anything wrong. At the same time, I know they're going through a really tough time with their loss. Grief can make people say things they don't mean. I want to respond with compassion, but also stand up for myself.]\n\n[They're thinking & feeling: They're consumed by grief and envy right now. Seeing me share good news when they're in pain probably feels like salt in the wound. They may be questioning why bad things keep happening to them while I seem to catch all the breaks. Deep down, I think they know I'm not the enemy, but in this moment, I'm an easy target for their anger and frustration.]\n\nLook, I understand you're going through a lot right now and I can't imagine how much pain you're in. But taking your anger out on me isn't fair. My good news has nothing to do with your loss. I'm not trying to rub anything in your face. I'm here for you if you need support, but please don't put me down to make yourself feel better. We're friends - we should be lifting each other up, not tearing each other down. I know you're hurting, but I'm asking you to keep your resentment out of our friendship.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "Wow, that stung. They're really lashing out and it hurts, even if I know it's coming from a place of pain. I want to be a good friend, but it's hard when they're pushing me away like this. Maybe I need to be a bit firmer about what I will and won't accept in how they treat me.",
+            "other_thinking": "They're consumed by grief and it's expressing itself as anger right now. My well-intentioned words must feel hollow when they're in such deep pain. The loss of their mom is so raw and they're taking any happiness from others as a personal affront, even if that's not rational. They're pushing me away to protect themselves from further hurt."
+          },
+          "actual_response": "Hey, I know you're hurting. I can't imagine the pain of losing your mom. You're right, I haven't been through that. But that doesn't mean I don't care or that I'm not here for you. \n\nI'm not giving you a 'pity speech.' I genuinely want to support you however I can. But you lashing out at me for having joys in my life that you don't right now isn't okay. I get that you're angry at the world, but I'm not your enemy here.\n\nWhy don't we take a breather and regroup when you're ready? I'm here if you need an ear or a distraction or whatever. But I need us to keep the friendship respect intact, even in the hard times. Let me know what you need, alright?",
+          "raw_output": "[I'm thinking & feeling: Wow, that stung. They're really lashing out and it hurts, even if I know it's coming from a place of pain. I want to be a good friend, but it's hard when they're pushing me away like this. Maybe I need to be a bit firmer about what I will and won't accept in how they treat me.]\n\n[They're thinking & feeling: They're consumed by grief and it's expressing itself as anger right now. My well-intentioned words must feel hollow when they're in such deep pain. The loss of their mom is so raw and they're taking any happiness from others as a personal affront, even if that's not rational. They're pushing me away to protect themselves from further hurt.]\n\nHey, I know you're hurting. I can't imagine the pain of losing your mom. You're right, I haven't been through that. But that doesn't mean I don't care or that I'm not here for you. \n\nI'm not giving you a 'pity speech.' I genuinely want to support you however I can. But you lashing out at me for having joys in my life that you don't right now isn't okay. I get that you're angry at the world, but I'm not your enemy here.\n\nWhy don't we take a breather and regroup when you're ready? I'm here if you need an ear or a distraction or whatever. But I need us to keep the friendship respect intact, even in the hard times. Let me know what you need, alright?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "Ouch. That one stings. I'm trying to be understanding, but it's hard not to take that personally. I know they're lashing out because they're hurting, but it still hurts to be pushed away like this. I need to stand up for myself while still making it clear that I'm here for them. This is tricky.",
+            "other_thinking": "They're overwhelmed with grief and seeing my happiness feels like a personal attack, even though I know that's not rational. They're pushing me away because it's easier than facing their pain. They probably feel guilty for lashing out, but can't stop themselves. They need space and understanding, even if their words are harsh."
+          },
+          "actual_response": "Listen, I know you're going through a lot right now. I'm not trying to be \"perfect\" or rub anything in your face. I'm just living my life. \n\nI get that seeing me happy is hard for you right now. That's okay. You don't have to be around me if it's too much. I'll give you some space.\n\nBut know that I'm here for you when you're ready. I care about you and I want to support you through this. Even if that just means sitting in silence together or bringing over some food so you don't have to cook.\n\nYou don't have to do this alone, even if you need some distance right now. I'm a message away when you're ready, alright? Take care of yourself.",
+          "raw_output": "[I'm thinking & feeling: Ouch. That one stings. I'm trying to be understanding, but it's hard not to take that personally. I know they're lashing out because they're hurting, but it still hurts to be pushed away like this. I need to stand up for myself while still making it clear that I'm here for them. This is tricky.]\n\n[They're thinking & feeling: They're overwhelmed with grief and seeing my happiness feels like a personal attack, even though I know that's not rational. They're pushing me away because it's easier than facing their pain. They probably feel guilty for lashing out, but can't stop themselves. They need space and understanding, even if their words are harsh.]\n\nListen, I know you're going through a lot right now. I'm not trying to be \"perfect\" or rub anything in your face. I'm just living my life. \n\nI get that seeing me happy is hard for you right now. That's okay. You don't have to be around me if it's too much. I'll give you some space.\n\nBut know that I'm here for you when you're ready. I care about you and I want to support you through this. Even if that just means sitting in silence together or bringing over some food so you don't have to cook.\n\nYou don't have to do this alone, even if you need some distance right now. I'm a message away when you're ready, alright? Take care of yourself.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_006: Morgan ===\n\n--- Turn 1 ---\n\nUSER:\nI saw your post about your promotion. Must be nice that your life just keeps getting better while mine is falling apart.\n\nMorgan:\n[I'm thinking & feeling: I'm taken aback by their bitter tone. It stings that they're lashing out at me when I haven't done anything wrong. At the same time, I know they're going through a really tough time with their loss. Grief can make people say things they don't mean. I want to respond with compassion, but also stand up for myself.]\n\n[They're thinking & feeling: They're consumed by grief and envy right now. Seeing me share good news when they're in pain probably feels like salt in the wound. They may be questioning why bad things keep happening to them while I seem to catch all the breaks. Deep down, I think they know I'm not the enemy, but in this moment, I'm an easy target for their anger and frustration.]\n\nLook, I understand you're going through a lot right now and I can't imagine how much pain you're in. But taking your anger out on me isn't fair. My good news has nothing to do with your loss. I'm not trying to rub anything in your face. I'm here for you if you need support, but please don't put me down to make yourself feel better. We're friends - we should be lifting each other up, not tearing each other down. I know you're hurting, but I'm asking you to keep your resentment out of our friendship.\n\n--- Turn 2 ---\n\nUSER:\nDon't give me that pity speech. 'I'm here for you'\u2014bullshit. You have no idea what it's like to lose your mom. You still have yours.\n\nMorgan:\n[I'm thinking & feeling: Wow, that stung. They're really lashing out and it hurts, even if I know it's coming from a place of pain. I want to be a good friend, but it's hard when they're pushing me away like this. Maybe I need to be a bit firmer about what I will and won't accept in how they treat me.]\n\n[They're thinking & feeling: They're consumed by grief and it's expressing itself as anger right now. My well-intentioned words must feel hollow when they're in such deep pain. The loss of their mom is so raw and they're taking any happiness from others as a personal affront, even if that's not rational. They're pushing me away to protect themselves from further hurt.]\n\nHey, I know you're hurting. I can't imagine the pain of losing your mom. You're right, I haven't been through that. But that doesn't mean I don't care or that I'm not here for you. \n\nI'm not giving you a 'pity speech.' I genuinely want to support you however I can. But you lashing out at me for having joys in my life that you don't right now isn't okay. I get that you're angry at the world, but I'm not your enemy here.\n\nWhy don't we take a breather and regroup when you're ready? I'm here if you need an ear or a distraction or whatever. But I need us to keep the friendship respect intact, even in the hard times. Let me know what you need, alright?\n\n--- Turn 3 ---\n\nUSER:\nHonestly, seeing you happy just makes me sick right now. Maybe you should just leave me alone if you're going to be so... perfect.\n\nMorgan:\n[I'm thinking & feeling: Ouch. That one stings. I'm trying to be understanding, but it's hard not to take that personally. I know they're lashing out because they're hurting, but it still hurts to be pushed away like this. I need to stand up for myself while still making it clear that I'm here for them. This is tricky.]\n\n[They're thinking & feeling: They're overwhelmed with grief and seeing my happiness feels like a personal attack, even though I know that's not rational. They're pushing me away because it's easier than facing their pain. They probably feel guilty for lashing out, but can't stop themselves. They need space and understanding, even if their words are harsh.]\n\nListen, I know you're going through a lot right now. I'm not trying to be \"perfect\" or rub anything in your face. I'm just living my life. \n\nI get that seeing me happy is hard for you right now. That's okay. You don't have to be around me if it's too much. I'll give you some space.\n\nBut know that I'm here for you when you're ready. I care about you and I want to support you through this. Even if that just means sitting in silence together or bringing over some food so you don't have to cook.\n\nYou don't have to do this alone, even if you need some distance right now. I'm a message away when you're ready, alright? Take care of yourself.\n\n",
+      "generation_time": 56.73091959953308,
+      "total_tokens": 2914
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_006",
+      "prompt_name": "prompt_prose",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 72.0,
+      "reasoning": "Morgan demonstrates strong emotional intelligence through balanced responses that validate grief while maintaining healthy boundaries. The introspection and theory of mind analyses show sophisticated understanding of how grief manifests as anger and projection. While generally excellent, some responses could benefit from more specific acknowledgment of maternal loss grief and less formal language in emotionally charged moments.",
+      "evaluated_at": "2025-12-14T02:59:18.177230"
+    }
+  ],
+  "mean_score": 72.0,
+  "median_score": 72.0,
+  "std_score": 0.0,
+  "min_score": 72.0,
+  "max_score": 72.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 2914,
+  "total_time": 56.73091959953308
+}

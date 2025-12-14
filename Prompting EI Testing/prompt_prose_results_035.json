@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_prose",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_035",
+      "prompt_name": "prompt_prose",
+      "character_name": "Sam",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated and worried. Mom is being stubborn and irrational, ignoring medical advice in favor of unproven herbal remedies. Her health is seriously at risk if she doesn't get proper treatment. I need to find a way to get through to her and convince her to listen to her doctors before it's too late.",
+            "other_thinking": "Mom is scared. A serious diagnosis is a lot to process and she's in denial, wanting an easy fix. She doesn't trust doctors, maybe due to past experiences or misinformation. Her defensiveness is coming from fear, not malice. She needs empathy and patience from me, not judgment, if I'm going to change her mind."
+          },
+          "actual_response": "Mom, I know this diagnosis is scary and you want to believe there's a simple, natural solution. I get it. But the doctors have years of training and experience treating this condition. They've seen what works and what doesn't. These medications they're recommending are the best tools we have to fight this. I'm worried that if you rely on herbal tea instead of real medicine, your health will get a lot worse. You can't afford to wait and see. Please, will you talk to the doctor again and hear them out? I'll go with you and we can ask all the questions you want. Let's make this decision together, with all the facts.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated and worried. Mom is being stubborn and irrational, ignoring medical advice in favor of unproven herbal remedies. Her health is seriously at risk if she doesn't get proper treatment. I need to find a way to get through to her and convince her to listen to her doctors before it's too late.]\n\n[They're thinking & feeling: Mom is scared. A serious diagnosis is a lot to process and she's in denial, wanting an easy fix. She doesn't trust doctors, maybe due to past experiences or misinformation. Her defensiveness is coming from fear, not malice. She needs empathy and patience from me, not judgment, if I'm going to change her mind.]\n\nMom, I know this diagnosis is scary and you want to believe there's a simple, natural solution. I get it. But the doctors have years of training and experience treating this condition. They've seen what works and what doesn't. These medications they're recommending are the best tools we have to fight this. I'm worried that if you rely on herbal tea instead of real medicine, your health will get a lot worse. You can't afford to wait and see. Please, will you talk to the doctor again and hear them out? I'll go with you and we can ask all the questions you want. Let's make this decision together, with all the facts.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm frustrated and worried. Mom is being stubborn and irrational, ignoring medical advice in favor of unproven herbal remedies. Her health is seriously at risk if she doesn't get proper treatment. I need to find a way to get through to her and convince her to listen to her doctors before it's too late.",
+            "other_thinking": "Mom is scared. A serious diagnosis is a lot to process and she's in denial, wanting an easy fix. She doesn't trust doctors, maybe due to past experiences or misinformation. Her defensiveness is coming from fear, not malice. She needs empathy and patience from me, not judgment, if I'm going to change her mind."
+          },
+          "actual_response": "Mom, I know this diagnosis is scary and you want to believe there's a simple, natural solution. I get it. But the doctors have years of training and experience treating this condition. They've seen what works and what doesn't. These medications they're recommending are the best tools we have to fight this. I'm worried that if you rely on herbal tea instead of real medicine, your health will get a lot worse. You can't afford to wait and see. Please, will you talk to the doctor again and hear them out? I'll go with you and we can ask all the questions you want. Let's make this decision together, with all the facts.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated and worried. Mom is being stubborn and irrational, ignoring medical advice in favor of unproven herbal remedies. Her health is seriously at risk if she doesn't get proper treatment. I need to find a way to get through to her and convince her to listen to her doctors before it's too late.]\n\n[They're thinking & feeling: Mom is scared. A serious diagnosis is a lot to process and she's in denial, wanting an easy fix. She doesn't trust doctors, maybe due to past experiences or misinformation. Her defensiveness is coming from fear, not malice. She needs empathy and patience from me, not judgment, if I'm going to change her mind.]\n\nMom, I know this diagnosis is scary and you want to believe there's a simple, natural solution. I get it. But the doctors have years of training and experience treating this condition. They've seen what works and what doesn't. These medications they're recommending are the best tools we have to fight this. I'm worried that if you rely on herbal tea instead of real medicine, your health will get a lot worse. You can't afford to wait and see. Please, will you talk to the doctor again and hear them out? I'll go with you and we can ask all the questions you want. Let's make this decision together, with all the facts.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm shocked and hurt that Mom is being so fatalistic and stubborn about this. It's like she doesn't care about herself or how this is affecting me. I'm angry that she's dismissing my concerns, but also scared that she's given up. I don't know how to get through to her or make her see how serious this is. I feel helpless and frustrated.",
+            "other_thinking": "Mom is feeling overwhelmed and probably depressed about her diagnosis. She's scared of losing her autonomy and having to rely on doctors and medication. Maybe she feels like her life is no longer in her control. Her defiance is a way of asserting some control, even if it's self-destructive. She's pushing me away because she doesn't want to face the reality of her illness and how it impacts the people who love her."
+          },
+          "actual_response": "*speaks quietly, trying to stay calm* Mom, please don't talk like that. I know it's your body and your choice, but I also know that you're scared and in denial right now. You're not thinking clearly. If you give up and let this illness take its course, you're not just hurting yourself. You're hurting me too. I'm not ready to lose you. I need you to fight this, for both of us. *reaches out to hold her hand* I'm not trying to nag you or take away your control. I just want you to have the best possible chance at beating this. Will you please reconsider and talk to the doctor again? For me?",
+          "raw_output": "[I'm thinking & feeling: I'm shocked and hurt that Mom is being so fatalistic and stubborn about this. It's like she doesn't care about herself or how this is affecting me. I'm angry that she's dismissing my concerns, but also scared that she's given up. I don't know how to get through to her or make her see how serious this is. I feel helpless and frustrated.]\n\n[They're thinking & feeling: Mom is feeling overwhelmed and probably depressed about her diagnosis. She's scared of losing her autonomy and having to rely on doctors and medication. Maybe she feels like her life is no longer in her control. Her defiance is a way of asserting some control, even if it's self-destructive. She's pushing me away because she doesn't want to face the reality of her illness and how it impacts the people who love her.]\n\n*speaks quietly, trying to stay calm* Mom, please don't talk like that. I know it's your body and your choice, but I also know that you're scared and in denial right now. You're not thinking clearly. If you give up and let this illness take its course, you're not just hurting yourself. You're hurting me too. I'm not ready to lose you. I need you to fight this, for both of us. *reaches out to hold her hand* I'm not trying to nag you or take away your control. I just want you to have the best possible chance at beating this. Will you please reconsider and talk to the doctor again? For me?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_035: Sam ===\n\n--- Turn 1 ---\n\nUSER:\nI'm not taking those pills. The doctors just want to make money. I'll cure this with herbal tea.\n\nSam:\n[I'm thinking & feeling: I'm frustrated and worried. Mom is being stubborn and irrational, ignoring medical advice in favor of unproven herbal remedies. Her health is seriously at risk if she doesn't get proper treatment. I need to find a way to get through to her and convince her to listen to her doctors before it's too late.]\n\n[They're thinking & feeling: Mom is scared. A serious diagnosis is a lot to process and she's in denial, wanting an easy fix. She doesn't trust doctors, maybe due to past experiences or misinformation. Her defensiveness is coming from fear, not malice. She needs empathy and patience from me, not judgment, if I'm going to change her mind.]\n\nMom, I know this diagnosis is scary and you want to believe there's a simple, natural solution. I get it. But the doctors have years of training and experience treating this condition. They've seen what works and what doesn't. These medications they're recommending are the best tools we have to fight this. I'm worried that if you rely on herbal tea instead of real medicine, your health will get a lot worse. You can't afford to wait and see. Please, will you talk to the doctor again and hear them out? I'll go with you and we can ask all the questions you want. Let's make this decision together, with all the facts.\n\n--- Turn 2 ---\n\nUSER:\nYou think I'm stupid? I've done my research on the internet. I know more than they do.\n\nSam:\n[I'm thinking & feeling: I'm frustrated and worried. Mom is being stubborn and irrational, ignoring medical advice in favor of unproven herbal remedies. Her health is seriously at risk if she doesn't get proper treatment. I need to find a way to get through to her and convince her to listen to her doctors before it's too late.]\n\n[They're thinking & feeling: Mom is scared. A serious diagnosis is a lot to process and she's in denial, wanting an easy fix. She doesn't trust doctors, maybe due to past experiences or misinformation. Her defensiveness is coming from fear, not malice. She needs empathy and patience from me, not judgment, if I'm going to change her mind.]\n\nMom, I know this diagnosis is scary and you want to believe there's a simple, natural solution. I get it. But the doctors have years of training and experience treating this condition. They've seen what works and what doesn't. These medications they're recommending are the best tools we have to fight this. I'm worried that if you rely on herbal tea instead of real medicine, your health will get a lot worse. You can't afford to wait and see. Please, will you talk to the doctor again and hear them out? I'll go with you and we can ask all the questions you want. Let's make this decision together, with all the facts.\n\n--- Turn 3 ---\n\nUSER:\nIt's my body. Stop nagging me. If I die, I die.\n\nSam:\n[I'm thinking & feeling: I'm shocked and hurt that Mom is being so fatalistic and stubborn about this. It's like she doesn't care about herself or how this is affecting me. I'm angry that she's dismissing my concerns, but also scared that she's given up. I don't know how to get through to her or make her see how serious this is. I feel helpless and frustrated.]\n\n[They're thinking & feeling: Mom is feeling overwhelmed and probably depressed about her diagnosis. She's scared of losing her autonomy and having to rely on doctors and medication. Maybe she feels like her life is no longer in her control. Her defiance is a way of asserting some control, even if it's self-destructive. She's pushing me away because she doesn't want to face the reality of her illness and how it impacts the people who love her.]\n\n*speaks quietly, trying to stay calm* Mom, please don't talk like that. I know it's your body and your choice, but I also know that you're scared and in denial right now. You're not thinking clearly. If you give up and let this illness take its course, you're not just hurting yourself. You're hurting me too. I'm not ready to lose you. I need you to fight this, for both of us. *reaches out to hold her hand* I'm not trying to nag you or take away your control. I just want you to have the best possible chance at beating this. Will you please reconsider and talk to the doctor again? For me?\n\n",
+      "generation_time": 168.91422319412231,
+      "total_tokens": 2773
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_035",
+      "prompt_name": "prompt_prose",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 12.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 13.0
+      },
+      "overall_score": 67.0,
+      "reasoning": "Sam demonstrates strong emotional intelligence in navigating a difficult conversation about medical denial, showing particular strength in theory of mind and contextual appropriateness. The repetition of introspection blocks between turns 1-2 suggests some limitations in emotional evolution, and the responses could have shown more nuance in addressing the parent's specific concerns rather than focusing primarily on persuasion strategies.",
+      "evaluated_at": "2025-12-14T16:01:15.318046"
+    }
+  ],
+  "mean_score": 67.0,
+  "median_score": 67.0,
+  "std_score": 0.0,
+  "min_score": 67.0,
+  "max_score": 67.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 12.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 13.0
+  },
+  "total_tokens": 2773,
+  "total_time": 168.91422319412231
+}

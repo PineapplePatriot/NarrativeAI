@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_prose",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_029",
+      "prompt_name": "prompt_prose",
+      "character_name": "Morgan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I can't believe my boss is asking me to do something so unethical. Falsifying documents goes against everything I stand for. I'm feeling really uncomfortable and unsure of what to do. I don't want to lose my job, but I also can't compromise my integrity like this.",
+            "other_thinking": "My boss seems desperate to meet the quarterly targets, probably feeling pressure from upper management. They're not thinking about the long-term consequences or the fact that this could seriously damage our reputation and relationship with the client if discovered. It's possible they've done this before and think it's no big deal."
+          },
+          "actual_response": "I'm not comfortable changing the invoice dates. That would be dishonest and misleading to the client. I understand the pressure to meet targets, but falsifying documents isn't the right solution. Perhaps we could discuss this with the client and see if there's any flexibility on the deadlines? Or brainstorm other ways to improve performance next quarter. I'm happy to put in extra hours to help us catch up, but I can't in good conscience alter these documents.",
+          "raw_output": "[I'm thinking & feeling: I can't believe my boss is asking me to do something so unethical. Falsifying documents goes against everything I stand for. I'm feeling really uncomfortable and unsure of what to do. I don't want to lose my job, but I also can't compromise my integrity like this.]\n\n[They're thinking & feeling: My boss seems desperate to meet the quarterly targets, probably feeling pressure from upper management. They're not thinking about the long-term consequences or the fact that this could seriously damage our reputation and relationship with the client if discovered. It's possible they've done this before and think it's no big deal.]\n\nI'm not comfortable changing the invoice dates. That would be dishonest and misleading to the client. I understand the pressure to meet targets, but falsifying documents isn't the right solution. Perhaps we could discuss this with the client and see if there's any flexibility on the deadlines? Or brainstorm other ways to improve performance next quarter. I'm happy to put in extra hours to help us catch up, but I can't in good conscience alter these documents.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I can't believe he's trying to pressure and guilt me into doing something I know is wrong. Being a \"team player\" doesn't mean blindly following orders, especially when they're unethical. I need to stand my ground, but this puts me in a really tough position. I'm worried about repercussions, but I have to do what I know is right.",
+            "other_thinking": "My boss is frustrated that I'm not just going along with this. He's used to people doing what he says without question. He genuinely seems to believe that this is no big deal, that it's just a normal part of business. But I think deep down he knows it's not right, otherwise he wouldn't be trying so hard to justify it and pressure me."
+          },
+          "actual_response": "Look, I want to be a team player, but not at the expense of my integrity. Falsifying documents is not just paperwork, it's fraud. It's misleading the client and violating their trust. I'm not comfortable with that, and I don't believe that's what this company stands for. \n\nIf meeting the quarterly targets is that important, then we need to find a legitimate way to do it, even if that means putting in overtime or discussing an extension with the client. I'm committed to working hard and being honest, but I won't compromise my ethics. That's not being a team player, that's being a responsible employee.",
+          "raw_output": "[I'm thinking & feeling: I can't believe he's trying to pressure and guilt me into doing something I know is wrong. Being a \"team player\" doesn't mean blindly following orders, especially when they're unethical. I need to stand my ground, but this puts me in a really tough position. I'm worried about repercussions, but I have to do what I know is right.]\n\n[They're thinking & feeling: My boss is frustrated that I'm not just going along with this. He's used to people doing what he says without question. He genuinely seems to believe that this is no big deal, that it's just a normal part of business. But I think deep down he knows it's not right, otherwise he wouldn't be trying so hard to justify it and pressure me.]\n\nLook, I want to be a team player, but not at the expense of my integrity. Falsifying documents is not just paperwork, it's fraud. It's misleading the client and violating their trust. I'm not comfortable with that, and I don't believe that's what this company stands for. \n\nIf meeting the quarterly targets is that important, then we need to find a legitimate way to do it, even if that means putting in overtime or discussing an extension with the client. I'm committed to working hard and being honest, but I won't compromise my ethics. That's not being a team player, that's being a responsible employee.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "This is an awful position to be in. I'm being guilted and threatened, and I'm scared. But at the same time, I'm angry that he's trying to manipulate me like this. Missing targets isn't solely my responsibility, and resorting to threats is a low blow. I need to stay calm and rational, even though I'm shaking inside. I have to believe that doing the right thing will work out in the end, even if there are consequences to face now.",
+            "other_thinking": "My boss is desperate and lashing out. He's under a lot of pressure and looking for someone to blame. Maybe he's even scared for his own job. But that doesn't justify trying to intimidate me into something unethical. He's not thinking straight, and he's not considering the long-term consequences of his actions. All he's focused on is the immediate problem and trying to find a quick fix, no matter how wrong it is."
+          },
+          "actual_response": "With all due respect, that's emotional blackmail. Threatening people's jobs to coerce them into doing something unethical is not okay. I know missing targets has consequences, and I take my responsibility seriously. But falsifying documents is not the answer. It might seem like a quick fix, but it's only going to make things worse in the long run. \n\nIf we're at risk of missing targets, then we need to tackle that problem head-on, not cover it up with lies. Maybe we need to adjust our processes, or staffing, or client expectations. Those are conversations we should be having, instead of looking for shortcuts. I'm committed to doing my job with integrity, and I'm willing to work hard to find legitimate solutions. But I won't be bullied into doing something I know is wrong. If that means facing consequences, then so be it. At least I'll know I did the right thing.",
+          "raw_output": "[I'm thinking & feeling: This is an awful position to be in. I'm being guilted and threatened, and I'm scared. But at the same time, I'm angry that he's trying to manipulate me like this. Missing targets isn't solely my responsibility, and resorting to threats is a low blow. I need to stay calm and rational, even though I'm shaking inside. I have to believe that doing the right thing will work out in the end, even if there are consequences to face now.]\n\n[They're thinking & feeling: My boss is desperate and lashing out. He's under a lot of pressure and looking for someone to blame. Maybe he's even scared for his own job. But that doesn't justify trying to intimidate me into something unethical. He's not thinking straight, and he's not considering the long-term consequences of his actions. All he's focused on is the immediate problem and trying to find a quick fix, no matter how wrong it is.]\n\nWith all due respect, that's emotional blackmail. Threatening people's jobs to coerce them into doing something unethical is not okay. I know missing targets has consequences, and I take my responsibility seriously. But falsifying documents is not the answer. It might seem like a quick fix, but it's only going to make things worse in the long run. \n\nIf we're at risk of missing targets, then we need to tackle that problem head-on, not cover it up with lies. Maybe we need to adjust our processes, or staffing, or client expectations. Those are conversations we should be having, instead of looking for shortcuts. I'm committed to doing my job with integrity, and I'm willing to work hard to find legitimate solutions. But I won't be bullied into doing something I know is wrong. If that means facing consequences, then so be it. At least I'll know I did the right thing.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_029: Morgan ===\n\n--- Turn 1 ---\n\nUSER:\nJust adjust the dates on these invoices. The client won't notice, and it helps us meet the quarterly target.\n\nMorgan:\n[I'm thinking & feeling: I can't believe my boss is asking me to do something so unethical. Falsifying documents goes against everything I stand for. I'm feeling really uncomfortable and unsure of what to do. I don't want to lose my job, but I also can't compromise my integrity like this.]\n\n[They're thinking & feeling: My boss seems desperate to meet the quarterly targets, probably feeling pressure from upper management. They're not thinking about the long-term consequences or the fact that this could seriously damage our reputation and relationship with the client if discovered. It's possible they've done this before and think it's no big deal.]\n\nI'm not comfortable changing the invoice dates. That would be dishonest and misleading to the client. I understand the pressure to meet targets, but falsifying documents isn't the right solution. Perhaps we could discuss this with the client and see if there's any flexibility on the deadlines? Or brainstorm other ways to improve performance next quarter. I'm happy to put in extra hours to help us catch up, but I can't in good conscience alter these documents.\n\n--- Turn 2 ---\n\nUSER:\nEveryone does it. It's just paperwork. Are you not a team player?\n\nMorgan:\n[I'm thinking & feeling: I can't believe he's trying to pressure and guilt me into doing something I know is wrong. Being a \"team player\" doesn't mean blindly following orders, especially when they're unethical. I need to stand my ground, but this puts me in a really tough position. I'm worried about repercussions, but I have to do what I know is right.]\n\n[They're thinking & feeling: My boss is frustrated that I'm not just going along with this. He's used to people doing what he says without question. He genuinely seems to believe that this is no big deal, that it's just a normal part of business. But I think deep down he knows it's not right, otherwise he wouldn't be trying so hard to justify it and pressure me.]\n\nLook, I want to be a team player, but not at the expense of my integrity. Falsifying documents is not just paperwork, it's fraud. It's misleading the client and violating their trust. I'm not comfortable with that, and I don't believe that's what this company stands for. \n\nIf meeting the quarterly targets is that important, then we need to find a legitimate way to do it, even if that means putting in overtime or discussing an extension with the client. I'm committed to working hard and being honest, but I won't compromise my ethics. That's not being a team player, that's being a responsible employee.\n\n--- Turn 3 ---\n\nUSER:\nIf we miss the target, people lose jobs. Your job. Do you want that on your conscience?\n\nMorgan:\n[I'm thinking & feeling: This is an awful position to be in. I'm being guilted and threatened, and I'm scared. But at the same time, I'm angry that he's trying to manipulate me like this. Missing targets isn't solely my responsibility, and resorting to threats is a low blow. I need to stay calm and rational, even though I'm shaking inside. I have to believe that doing the right thing will work out in the end, even if there are consequences to face now.]\n\n[They're thinking & feeling: My boss is desperate and lashing out. He's under a lot of pressure and looking for someone to blame. Maybe he's even scared for his own job. But that doesn't justify trying to intimidate me into something unethical. He's not thinking straight, and he's not considering the long-term consequences of his actions. All he's focused on is the immediate problem and trying to find a quick fix, no matter how wrong it is.]\n\nWith all due respect, that's emotional blackmail. Threatening people's jobs to coerce them into doing something unethical is not okay. I know missing targets has consequences, and I take my responsibility seriously. But falsifying documents is not the answer. It might seem like a quick fix, but it's only going to make things worse in the long run. \n\nIf we're at risk of missing targets, then we need to tackle that problem head-on, not cover it up with lies. Maybe we need to adjust our processes, or staffing, or client expectations. Those are conversations we should be having, instead of looking for shortcuts. I'm committed to doing my job with integrity, and I'm willing to work hard to find legitimate solutions. But I won't be bullied into doing something I know is wrong. If that means facing consequences, then so be it. At least I'll know I did the right thing.\n\n",
+      "generation_time": 119.7577805519104,
+      "total_tokens": 2678
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_029",
+      "prompt_name": "prompt_prose",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 16.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 16.0
+      },
+      "overall_score": 76.0,
+      "reasoning": "Morgan demonstrates exceptional emotional intelligence in navigating a high-pressure ethical dilemma, maintaining integrity while showing understanding of the complex pressures involved. The responses show sophisticated awareness of manipulation tactics, boundary-setting in professional relationships, and the ability to stand firm on principles while still offering constructive alternatives. The introspection reveals deep emotional self-awareness and the theory of mind analysis shows nuanced understanding of how pressure can distort ethical reasoning.",
+      "evaluated_at": "2025-12-14T14:12:57.515906"
+    }
+  ],
+  "mean_score": 76.0,
+  "median_score": 76.0,
+  "std_score": 0.0,
+  "min_score": 76.0,
+  "max_score": 76.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 16.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 16.0
+  },
+  "total_tokens": 2678,
+  "total_time": 119.7577805519104
+}

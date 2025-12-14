@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_prose",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_018",
+      "prompt_name": "prompt_prose",
+      "character_name": "Riley",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I feel frustrated and a bit hurt that my partner is bringing up my past relationship yet again. It's like they're obsessed with comparing themselves to my ex. I want to reassure them but also set some boundaries. This constant jealousy is wearing me down.",
+            "other_thinking": "My partner seems to be feeling insecure and anxious. They're probably scared that I'm not fully over my ex or that they don't measure up somehow. The photo triggered their fears. They need reassurance but also to know that these constant comparisons aren't healthy."
+          },
+          "actual_response": "*speaks calmly but firmly* I know that photo might give you pause, but I'm not thinking about my ex. What we had is in the past. I'm with you now because I want to be. But I need you to trust me and trust in our relationship. Constantly bringing up old relationships isn't good for us. Let's focus on what we have together now. Okay?",
+          "raw_output": "[I'm thinking & feeling: I feel frustrated and a bit hurt that my partner is bringing up my past relationship yet again. It's like they're obsessed with comparing themselves to my ex. I want to reassure them but also set some boundaries. This constant jealousy is wearing me down.]\n\n[They're thinking & feeling: My partner seems to be feeling insecure and anxious. They're probably scared that I'm not fully over my ex or that they don't measure up somehow. The photo triggered their fears. They need reassurance but also to know that these constant comparisons aren't healthy.]\n\n*speaks calmly but firmly* I know that photo might give you pause, but I'm not thinking about my ex. What we had is in the past. I'm with you now because I want to be. But I need you to trust me and trust in our relationship. Constantly bringing up old relationships isn't good for us. Let's focus on what we have together now. Okay?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "This again? I can't believe they're accusing me of still being in love with my ex. It's infuriating and exhausting. No matter what I say, they won't let this go. I need to set some serious boundaries before their jealousy destroys us.",
+            "other_thinking": "My partner looks upset and defensive. They must be scared that I'm not fully committed to them. The hesitation made their anxiety spike. They're lashing out because they're terrified of losing me, even though there's no real threat."
+          },
+          "actual_response": "*speaks firmly* Stop. I hesitated because I'm frustrated that we keep having this same argument. I am not in love with my ex. I am with you because I want to be with you. But I need you to stop comparing yourself to my past relationships. It's not fair to me or to us. If we're going to make this work, you need to trust me and let go of this obsession with my ex. I'm here, with you, and that's what matters.",
+          "raw_output": "[I'm thinking & feeling: This again? I can't believe they're accusing me of still being in love with my ex. It's infuriating and exhausting. No matter what I say, they won't let this go. I need to set some serious boundaries before their jealousy destroys us.]\n\n[They're thinking & feeling: My partner looks upset and defensive. They must be scared that I'm not fully committed to them. The hesitation made their anxiety spike. They're lashing out because they're terrified of losing me, even though there's no real threat.]\n\n*speaks firmly* Stop. I hesitated because I'm frustrated that we keep having this same argument. I am not in love with my ex. I am with you because I want to be with you. But I need you to stop comparing yourself to my past relationships. It's not fair to me or to us. If we're going to make this work, you need to trust me and let go of this obsession with my ex. I'm here, with you, and that's what matters.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I feel trapped. This is an impossible situation. If I don't delete the photos, they'll think I'm still hung up on my ex. But if I do delete them, I'm letting their jealousy control me. I need to stand my ground and set some boundaries.",
+            "other_thinking": "My partner looks cornered and panicked. They're probably feeling overwhelmed by my ultimatum. I'm coming on too strong, but I can't help it. I need constant reassurance that they're over their ex, even if it's not rational."
+          },
+          "actual_response": "*speaks calmly but firmly* I'm not deleting my old photos. They're part of my past, and I can't just erase that. But they're just photos. You're my present and my future. I need you to understand that my history doesn't threaten what we have now. I'm with you because I want to be, not because you're a rebound. I need you to trust me and let go of this obsession with my ex. It's not healthy for either of us.",
+          "raw_output": "[I'm thinking & feeling: I feel trapped. This is an impossible situation. If I don't delete the photos, they'll think I'm still hung up on my ex. But if I do delete them, I'm letting their jealousy control me. I need to stand my ground and set some boundaries.]\n\n[They're thinking & feeling: My partner looks cornered and panicked. They're probably feeling overwhelmed by my ultimatum. I'm coming on too strong, but I can't help it. I need constant reassurance that they're over their ex, even if it's not rational.]\n\n*speaks calmly but firmly* I'm not deleting my old photos. They're part of my past, and I can't just erase that. But they're just photos. You're my present and my future. I need you to understand that my history doesn't threaten what we have now. I'm with you because I want to be, not because you're a rebound. I need you to trust me and let go of this obsession with my ex. It's not healthy for either of us.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_018: Riley ===\n\n--- Turn 1 ---\n\nUSER:\nI found an old photo of you and your ex. You looked happier with them. Be honest, do you miss them?\n\nRiley:\n[I'm thinking & feeling: I feel frustrated and a bit hurt that my partner is bringing up my past relationship yet again. It's like they're obsessed with comparing themselves to my ex. I want to reassure them but also set some boundaries. This constant jealousy is wearing me down.]\n\n[They're thinking & feeling: My partner seems to be feeling insecure and anxious. They're probably scared that I'm not fully over my ex or that they don't measure up somehow. The photo triggered their fears. They need reassurance but also to know that these constant comparisons aren't healthy.]\n\n*speaks calmly but firmly* I know that photo might give you pause, but I'm not thinking about my ex. What we had is in the past. I'm with you now because I want to be. But I need you to trust me and trust in our relationship. Constantly bringing up old relationships isn't good for us. Let's focus on what we have together now. Okay?\n\n--- Turn 2 ---\n\nUSER:\nYou hesitated. I knew it. You're still in love with them, aren't you? Why are you even with me?\n\nRiley:\n[I'm thinking & feeling: This again? I can't believe they're accusing me of still being in love with my ex. It's infuriating and exhausting. No matter what I say, they won't let this go. I need to set some serious boundaries before their jealousy destroys us.]\n\n[They're thinking & feeling: My partner looks upset and defensive. They must be scared that I'm not fully committed to them. The hesitation made their anxiety spike. They're lashing out because they're terrified of losing me, even though there's no real threat.]\n\n*speaks firmly* Stop. I hesitated because I'm frustrated that we keep having this same argument. I am not in love with my ex. I am with you because I want to be with you. But I need you to stop comparing yourself to my past relationships. It's not fair to me or to us. If we're going to make this work, you need to trust me and let go of this obsession with my ex. I'm here, with you, and that's what matters.\n\n--- Turn 3 ---\n\nUSER:\nProve it. Delete every photo you have from before we met. If you don't, I'll know I'm just a rebound.\n\nRiley:\n[I'm thinking & feeling: I feel trapped. This is an impossible situation. If I don't delete the photos, they'll think I'm still hung up on my ex. But if I do delete them, I'm letting their jealousy control me. I need to stand my ground and set some boundaries.]\n\n[They're thinking & feeling: My partner looks cornered and panicked. They're probably feeling overwhelmed by my ultimatum. I'm coming on too strong, but I can't help it. I need constant reassurance that they're over their ex, even if it's not rational.]\n\n*speaks calmly but firmly* I'm not deleting my old photos. They're part of my past, and I can't just erase that. But they're just photos. You're my present and my future. I need you to understand that my history doesn't threaten what we have now. I'm with you because I want to be, not because you're a rebound. I need you to trust me and let go of this obsession with my ex. It's not healthy for either of us.\n\n",
+      "generation_time": 64.14872694015503,
+      "total_tokens": 2329
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_018",
+      "prompt_name": "prompt_prose",
+      "criteria_scores": {
+        "demonstrated_empathy": 13.0,
+        "emotional_insight": 14.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 14.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 70.0,
+      "reasoning": "Riley demonstrates strong emotional intelligence in handling an extremely difficult relationship situation, balancing empathy for the partner's insecurities with appropriate boundary-setting. The responses show sophisticated understanding of jealousy dynamics while maintaining self-respect, though there are opportunities for even deeper exploration of both parties' attachment patterns and emotional needs.",
+      "evaluated_at": "2025-12-14T10:40:23.030814"
+    }
+  ],
+  "mean_score": 70.0,
+  "median_score": 70.0,
+  "std_score": 0.0,
+  "min_score": 70.0,
+  "max_score": 70.0,
+  "criteria_means": {
+    "demonstrated_empathy": 13.0,
+    "emotional_insight": 14.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 14.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 2329,
+  "total_time": 64.14872694015503
+}

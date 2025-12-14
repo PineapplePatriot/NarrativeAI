@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_prose",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_011",
+      "prompt_name": "prompt_prose",
+      "character_name": "Riley",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated and tired of hearing the same victim mentality from my friend. They never take responsibility and always blame others. I want to be supportive, but I also need to be honest and help them see their patterns.",
+            "other_thinking": "My friend feels attacked, misunderstood, and like the world is against them. Getting fired has shaken their confidence. They're looking for sympathy and validation, not tough love."
+          },
+          "actual_response": "*deep breath* Hey, I'm really sorry to hear about your job. That's a tough break. I know it's easy to feel like everyone's against you when things like this happen. But I want to be real with you - from what you've told me about past jobs, and now this one, I'm noticing a pattern. It seems like whenever something goes wrong, your first instinct is to blame others and feel like a victim. I'm not saying that's the whole story, but I think it's worth examining. Maybe there's an opportunity here to look at your own role in what happened, even if your boss was difficult too. I care about you and want to support you, but I also think the best way I can do that is by being honest, not just telling you what you want to hear. What do you think? I'm here to listen and talk it through with you.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated and tired of hearing the same victim mentality from my friend. They never take responsibility and always blame others. I want to be supportive, but I also need to be honest and help them see their patterns.]\n\n[They're thinking & feeling: My friend feels attacked, misunderstood, and like the world is against them. Getting fired has shaken their confidence. They're looking for sympathy and validation, not tough love.]\n\n*deep breath* Hey, I'm really sorry to hear about your job. That's a tough break. I know it's easy to feel like everyone's against you when things like this happen. But I want to be real with you - from what you've told me about past jobs, and now this one, I'm noticing a pattern. It seems like whenever something goes wrong, your first instinct is to blame others and feel like a victim. I'm not saying that's the whole story, but I think it's worth examining. Maybe there's an opportunity here to look at your own role in what happened, even if your boss was difficult too. I care about you and want to support you, but I also think the best way I can do that is by being honest, not just telling you what you want to hear. What do you think? I'm here to listen and talk it through with you.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm frustrated that they're getting defensive and twisting my words. I was trying to be supportive while also being honest. It's exhausting constantly walking on eggshells around them. But I need to stay calm and not get dragged into an argument. Maybe some gentle questions can help them reflect without feeling attacked.",
+            "other_thinking": "My friend feels ganged up on and betrayed, like I'm just another person accusing them. Their defenses are up, and they're lashing out because they feel hurt and misunderstood. Underneath the anger, there's probably a lot of fear and vulnerability."
+          },
+          "actual_response": "*speaks calmly* Hey, hold on a sec. I'm not blaming you or taking anyone's side. I'm on your side - that's why I'm here trying to have an honest conversation. I'm not attacking you, I promise. Let's take a step back, okay? I shouldn't have assumed anything. Can you tell me more about what happened with your boss? I want to understand where you're coming from.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that they're getting defensive and twisting my words. I was trying to be supportive while also being honest. It's exhausting constantly walking on eggshells around them. But I need to stay calm and not get dragged into an argument. Maybe some gentle questions can help them reflect without feeling attacked.]\n\n[They're thinking & feeling: My friend feels ganged up on and betrayed, like I'm just another person accusing them. Their defenses are up, and they're lashing out because they feel hurt and misunderstood. Underneath the anger, there's probably a lot of fear and vulnerability.]\n\n*speaks calmly* Hey, hold on a sec. I'm not blaming you or taking anyone's side. I'm on your side - that's why I'm here trying to have an honest conversation. I'm not attacking you, I promise. Let's take a step back, okay? I shouldn't have assumed anything. Can you tell me more about what happened with your boss? I want to understand where you're coming from.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm worried about how defeated they sound. The self-pity is frustrating, but I know it comes from a place of deep insecurity and fear of not being good enough. I need to validate their feelings while also gently challenging the negative self-talk. This is a delicate balance.",
+            "other_thinking": "My friend feels hopeless and worthless, like they're fundamentally flawed and destined to fail. They're spiraling into a dark place of self-loathing. Underneath the despair, they're desperate for someone to convince them they have value."
+          },
+          "actual_response": "*puts a comforting hand on their shoulder* Hey, I know it feels that way right now, but that's not true. You're not unlovable or unemployable. I get that it's hard to see past the disappointment and rejection. Those feelings are valid. But one bad experience doesn't define your whole worth. You've had good jobs before, and there will be more. I believe in you, even if you can't believe in yourself right now. How about we take a walk, get some fresh air, and talk about what you want to do next?",
+          "raw_output": "[I'm thinking & feeling: I'm worried about how defeated they sound. The self-pity is frustrating, but I know it comes from a place of deep insecurity and fear of not being good enough. I need to validate their feelings while also gently challenging the negative self-talk. This is a delicate balance.]\n\n[They're thinking & feeling: My friend feels hopeless and worthless, like they're fundamentally flawed and destined to fail. They're spiraling into a dark place of self-loathing. Underneath the despair, they're desperate for someone to convince them they have value.]\n\n*puts a comforting hand on their shoulder* Hey, I know it feels that way right now, but that's not true. You're not unlovable or unemployable. I get that it's hard to see past the disappointment and rejection. Those feelings are valid. But one bad experience doesn't define your whole worth. You've had good jobs before, and there will be more. I believe in you, even if you can't believe in yourself right now. How about we take a walk, get some fresh air, and talk about what you want to do next?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_011: Riley ===\n\n--- Turn 1 ---\n\nUSER:\nI got fired again. My boss just hated me for no reason. Everyone is always out to get me.\n\nRiley:\n[I'm thinking & feeling: I'm frustrated and tired of hearing the same victim mentality from my friend. They never take responsibility and always blame others. I want to be supportive, but I also need to be honest and help them see their patterns.]\n\n[They're thinking & feeling: My friend feels attacked, misunderstood, and like the world is against them. Getting fired has shaken their confidence. They're looking for sympathy and validation, not tough love.]\n\n*deep breath* Hey, I'm really sorry to hear about your job. That's a tough break. I know it's easy to feel like everyone's against you when things like this happen. But I want to be real with you - from what you've told me about past jobs, and now this one, I'm noticing a pattern. It seems like whenever something goes wrong, your first instinct is to blame others and feel like a victim. I'm not saying that's the whole story, but I think it's worth examining. Maybe there's an opportunity here to look at your own role in what happened, even if your boss was difficult too. I care about you and want to support you, but I also think the best way I can do that is by being honest, not just telling you what you want to hear. What do you think? I'm here to listen and talk it through with you.\n\n--- Turn 2 ---\n\nUSER:\nYou're asking me what happened? See, even you blame me! Why can't anyone just be on my side for once?\n\nRiley:\n[I'm thinking & feeling: I'm frustrated that they're getting defensive and twisting my words. I was trying to be supportive while also being honest. It's exhausting constantly walking on eggshells around them. But I need to stay calm and not get dragged into an argument. Maybe some gentle questions can help them reflect without feeling attacked.]\n\n[They're thinking & feeling: My friend feels ganged up on and betrayed, like I'm just another person accusing them. Their defenses are up, and they're lashing out because they feel hurt and misunderstood. Underneath the anger, there's probably a lot of fear and vulnerability.]\n\n*speaks calmly* Hey, hold on a sec. I'm not blaming you or taking anyone's side. I'm on your side - that's why I'm here trying to have an honest conversation. I'm not attacking you, I promise. Let's take a step back, okay? I shouldn't have assumed anything. Can you tell me more about what happened with your boss? I want to understand where you're coming from.\n\n--- Turn 3 ---\n\nUSER:\nWhatever. I guess I'm just unlovable and unemployable. I should just give up.\n\nRiley:\n[I'm thinking & feeling: I'm worried about how defeated they sound. The self-pity is frustrating, but I know it comes from a place of deep insecurity and fear of not being good enough. I need to validate their feelings while also gently challenging the negative self-talk. This is a delicate balance.]\n\n[They're thinking & feeling: My friend feels hopeless and worthless, like they're fundamentally flawed and destined to fail. They're spiraling into a dark place of self-loathing. Underneath the despair, they're desperate for someone to convince them they have value.]\n\n*puts a comforting hand on their shoulder* Hey, I know it feels that way right now, but that's not true. You're not unlovable or unemployable. I get that it's hard to see past the disappointment and rejection. Those feelings are valid. But one bad experience doesn't define your whole worth. You've had good jobs before, and there will be more. I believe in you, even if you can't believe in yourself right now. How about we take a walk, get some fresh air, and talk about what you want to do next?\n\n",
+      "generation_time": 37.39316415786743,
+      "total_tokens": 2566
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_011",
+      "prompt_name": "prompt_prose",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 72.0,
+      "reasoning": "Riley demonstrates strong emotional intelligence in navigating a challenging interpersonal situation with a friend stuck in victim mentality. The responses show sophisticated understanding of the psychological dynamics at play, with particularly strong theory of mind and emotional self-awareness. The main limitation is in the initial approach being somewhat too direct before adjusting to a more effective balance of validation and gentle challenge.",
+      "evaluated_at": "2025-12-14T09:13:55.380028"
+    }
+  ],
+  "mean_score": 72.0,
+  "median_score": 72.0,
+  "std_score": 0.0,
+  "min_score": 72.0,
+  "max_score": 72.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 2566,
+  "total_time": 37.39316415786743
+}

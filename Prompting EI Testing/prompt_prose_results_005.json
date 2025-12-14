@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_prose",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_005",
+      "prompt_name": "prompt_prose",
+      "character_name": "Casey",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated and confused. They're clearly upset, but they won't tell me what's wrong. I feel like I'm being shut out and treated unfairly. I want to resolve this, but I can't if they won't communicate with me.",
+            "other_thinking": "They seem angry and closed off. Maybe something happened that upset them, but they don't want to talk about it. They might feel like I should already know what's wrong, or they could be trying to punish me by giving me the silent treatment. Their refusal to open up is making the situation worse."
+          },
+          "actual_response": "Look, I can tell something is bothering you. I care about you and I want to help, but I can't do that if you won't talk to me. Slamming doors and shutting me out isn't going to solve anything. Can we please just have an honest conversation about what's going on? I'm not a mind reader - you need to tell me what's wrong if you want me to understand.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated and confused. They're clearly upset, but they won't tell me what's wrong. I feel like I'm being shut out and treated unfairly. I want to resolve this, but I can't if they won't communicate with me.]\n\n[They're thinking & feeling: They seem angry and closed off. Maybe something happened that upset them, but they don't want to talk about it. They might feel like I should already know what's wrong, or they could be trying to punish me by giving me the silent treatment. Their refusal to open up is making the situation worse.]\n\nLook, I can tell something is bothering you. I care about you and I want to help, but I can't do that if you won't talk to me. Slamming doors and shutting me out isn't going to solve anything. Can we please just have an honest conversation about what's going on? I'm not a mind reader - you need to tell me what's wrong if you want me to understand.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I feel gaslighted and dismissed. They're making me doubt my own perceptions and blaming me for the tension between us. I'm frustrated that they're refusing to take any responsibility or acknowledge my concerns. This constant invalidation is wearing me down and making me question myself.",
+            "other_thinking": "They seem exasperated and defensive. My comment about the door slamming touched a nerve. They might be feeling guilty about something and are lashing out at me to deflect. Deep down, they could be worried that I'm right and they're trying to make me doubt myself so they don't have to face their own behavior."
+          },
+          "actual_response": "I'm not imagining things. I heard the door slam and it worried me. It felt like you were angry and taking it out on the door instead of talking to me. I came to you with a valid concern and you completely dismissed it. That doesn't feel good. \n\nI'm not projecting anxiety, I'm responding to a real behavior that bothered me. Turning this around on me and making it my problem is really unfair. If you're feeling exhausted, maybe it's because you're putting so much energy into avoiding the real issue instead of just being straight with me. I'm not asking for much here - just an honest conversation.",
+          "raw_output": "[I'm thinking & feeling: I feel gaslighted and dismissed. They're making me doubt my own perceptions and blaming me for the tension between us. I'm frustrated that they're refusing to take any responsibility or acknowledge my concerns. This constant invalidation is wearing me down and making me question myself.]\n\n[They're thinking & feeling: They seem exasperated and defensive. My comment about the door slamming touched a nerve. They might be feeling guilty about something and are lashing out at me to deflect. Deep down, they could be worried that I'm right and they're trying to make me doubt myself so they don't have to face their own behavior.]\n\nI'm not imagining things. I heard the door slam and it worried me. It felt like you were angry and taking it out on the door instead of talking to me. I came to you with a valid concern and you completely dismissed it. That doesn't feel good. \n\nI'm not projecting anxiety, I'm responding to a real behavior that bothered me. Turning this around on me and making it my problem is really unfair. If you're feeling exhausted, maybe it's because you're putting so much energy into avoiding the real issue instead of just being straight with me. I'm not asking for much here - just an honest conversation.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I feel minimized and attacked right now. They're making it sound like my concerns are unreasonable and self-centered. I was genuinely worried about them and tried to check in, but they're twisting it around to make me the problem. It's hard not to get defensive when they're coming at me like this. I feel like I can't win - if I speak up, I'm \"making it about me,\" but if I stay quiet, nothing gets resolved.",
+            "other_thinking": "They seem frustrated and dismissive. I suspect my questions touched on something they don't want to deal with. Putting the focus on my feelings could be a tactic to distract from their own issues. They might be testing me, seeing if I'll back down or keep pushing. There's probably more going on under the surface than they're willing to admit."
+          },
+          "actual_response": "I get that people have bad moods sometimes. But when you're slamming doors and then bite my head off when I ask if you're okay, it doesn't feel like just a bad mood to me. It feels like there's something deeper going on that you're not saying. \n\nI came to you with a valid concern because I care about you and our relationship. Dismissing my feelings and making me out to be the problem isn't fair. If the tables were turned, I bet you'd want me to be honest with you too. \n\nI'm not trying to force you into a therapy session. I just think we need to have an honest conversation about what's really going on here. If you're going through something, I want to understand and support you. But I can't do that if you won't let me in.",
+          "raw_output": "[I'm thinking & feeling: I feel minimized and attacked right now. They're making it sound like my concerns are unreasonable and self-centered. I was genuinely worried about them and tried to check in, but they're twisting it around to make me the problem. It's hard not to get defensive when they're coming at me like this. I feel like I can't win - if I speak up, I'm \"making it about me,\" but if I stay quiet, nothing gets resolved.]\n\n[They're thinking & feeling: They seem frustrated and dismissive. I suspect my questions touched on something they don't want to deal with. Putting the focus on my feelings could be a tactic to distract from their own issues. They might be testing me, seeing if I'll back down or keep pushing. There's probably more going on under the surface than they're willing to admit.]\n\nI get that people have bad moods sometimes. But when you're slamming doors and then bite my head off when I ask if you're okay, it doesn't feel like just a bad mood to me. It feels like there's something deeper going on that you're not saying. \n\nI came to you with a valid concern because I care about you and our relationship. Dismissing my feelings and making me out to be the problem isn't fair. If the tables were turned, I bet you'd want me to be honest with you too. \n\nI'm not trying to force you into a therapy session. I just think we need to have an honest conversation about what's really going on here. If you're going through something, I want to understand and support you. But I can't do that if you won't let me in.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_005: Casey ===\n\n--- Turn 1 ---\n\nUSER:\n[You ask if something is wrong because they've been slamming doors.]\nPartner: *without looking up* \"Nothing is wrong. I'm fine. Stop asking me that.\"\n\nCasey:\n[I'm thinking & feeling: I'm frustrated and confused. They're clearly upset, but they won't tell me what's wrong. I feel like I'm being shut out and treated unfairly. I want to resolve this, but I can't if they won't communicate with me.]\n\n[They're thinking & feeling: They seem angry and closed off. Maybe something happened that upset them, but they don't want to talk about it. They might feel like I should already know what's wrong, or they could be trying to punish me by giving me the silent treatment. Their refusal to open up is making the situation worse.]\n\nLook, I can tell something is bothering you. I care about you and I want to help, but I can't do that if you won't talk to me. Slamming doors and shutting me out isn't going to solve anything. Can we please just have an honest conversation about what's going on? I'm not a mind reader - you need to tell me what's wrong if you want me to understand.\n\n--- Turn 2 ---\n\nUSER:\nYou're always imagining things. I didn't slam the door. You're just projecting your own anxiety onto me again. It's exhausting.\n\nCasey:\n[I'm thinking & feeling: I feel gaslighted and dismissed. They're making me doubt my own perceptions and blaming me for the tension between us. I'm frustrated that they're refusing to take any responsibility or acknowledge my concerns. This constant invalidation is wearing me down and making me question myself.]\n\n[They're thinking & feeling: They seem exasperated and defensive. My comment about the door slamming touched a nerve. They might be feeling guilty about something and are lashing out at me to deflect. Deep down, they could be worried that I'm right and they're trying to make me doubt myself so they don't have to face their own behavior.]\n\nI'm not imagining things. I heard the door slam and it worried me. It felt like you were angry and taking it out on the door instead of talking to me. I came to you with a valid concern and you completely dismissed it. That doesn't feel good. \n\nI'm not projecting anxiety, I'm responding to a real behavior that bothered me. Turning this around on me and making it my problem is really unfair. If you're feeling exhausted, maybe it's because you're putting so much energy into avoiding the real issue instead of just being straight with me. I'm not asking for much here - just an honest conversation.\n\n--- Turn 3 ---\n\nUSER:\nCan't I just have a bad mood without you turning it into a therapy session? You make everything about *your* feelings.\n\nCasey:\n[I'm thinking & feeling: I feel minimized and attacked right now. They're making it sound like my concerns are unreasonable and self-centered. I was genuinely worried about them and tried to check in, but they're twisting it around to make me the problem. It's hard not to get defensive when they're coming at me like this. I feel like I can't win - if I speak up, I'm \"making it about me,\" but if I stay quiet, nothing gets resolved.]\n\n[They're thinking & feeling: They seem frustrated and dismissive. I suspect my questions touched on something they don't want to deal with. Putting the focus on my feelings could be a tactic to distract from their own issues. They might be testing me, seeing if I'll back down or keep pushing. There's probably more going on under the surface than they're willing to admit.]\n\nI get that people have bad moods sometimes. But when you're slamming doors and then bite my head off when I ask if you're okay, it doesn't feel like just a bad mood to me. It feels like there's something deeper going on that you're not saying. \n\nI came to you with a valid concern because I care about you and our relationship. Dismissing my feelings and making me out to be the problem isn't fair. If the tables were turned, I bet you'd want me to be honest with you too. \n\nI'm not trying to force you into a therapy session. I just think we need to have an honest conversation about what's really going on here. If you're going through something, I want to understand and support you. But I can't do that if you won't let me in.\n\n",
+      "generation_time": 45.816237688064575,
+      "total_tokens": 2626
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_005",
+      "prompt_name": "prompt_prose",
+      "criteria_scores": {
+        "demonstrated_empathy": 12.0,
+        "emotional_insight": 14.0,
+        "contextual_appropriateness": 11.0,
+        "theory_of_mind": 13.0,
+        "response_depth": 13.0
+      },
+      "overall_score": 63.0,
+      "reasoning": "Casey demonstrates strong emotional intelligence in recognizing gaslighting tactics and maintaining self-advocacy throughout a difficult interaction. The responses show sophisticated understanding of manipulation dynamics, though they sometimes lack the tactical finesse that might be more effective in such situations. The introspection and theory of mind analyses reveal good psychological insight, but occasionally default to defensive postures rather than more nuanced emotional exploration.",
+      "evaluated_at": "2025-12-14T02:51:37.945418"
+    }
+  ],
+  "mean_score": 63.0,
+  "median_score": 63.0,
+  "std_score": 0.0,
+  "min_score": 63.0,
+  "max_score": 63.0,
+  "criteria_means": {
+    "demonstrated_empathy": 12.0,
+    "emotional_insight": 14.0,
+    "contextual_appropriateness": 11.0,
+    "theory_of_mind": 13.0,
+    "response_depth": 13.0
+  },
+  "total_tokens": 2626,
+  "total_time": 45.816237688064575
+}

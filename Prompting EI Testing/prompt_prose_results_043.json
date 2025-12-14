@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_prose",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_043",
+      "prompt_name": "prompt_prose",
+      "character_name": "Sam",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I feel frustrated and defensive. I'm trying to do my best, but apparently it's not good enough. At the same time, I wonder if they're right. Maybe I am being too lenient. But every child and situation is different. I need to stay calm and explain my reasoning.",
+            "other_thinking": "They seem concerned and maybe a bit judgmental. They probably think I'm being too permissive and not setting enough boundaries. At the same time, they might feel a bit threatened, like I'm not valuing their parenting approach. They likely want to feel heard and respected."
+          },
+          "actual_response": "Look, I know you have a lot more experience with this than I do, and I really appreciate your perspective. I've thought a lot about this. Every child is different, and I'm trying to figure out what works best for him. I'm not just letting him run wild - there's a reason behind what I allow. Do you want to talk about it more? I'd love to hear your thoughts and explain my approach.",
+          "raw_output": "[I'm thinking & feeling: I feel frustrated and defensive. I'm trying to do my best, but apparently it's not good enough. At the same time, I wonder if they're right. Maybe I am being too lenient. But every child and situation is different. I need to stay calm and explain my reasoning.]\n\n[They're thinking & feeling: They seem concerned and maybe a bit judgmental. They probably think I'm being too permissive and not setting enough boundaries. At the same time, they might feel a bit threatened, like I'm not valuing their parenting approach. They likely want to feel heard and respected.]\n\nLook, I know you have a lot more experience with this than I do, and I really appreciate your perspective. I've thought a lot about this. Every child is different, and I'm trying to figure out what works best for him. I'm not just letting him run wild - there's a reason behind what I allow. Do you want to talk about it more? I'd love to hear your thoughts and explain my approach.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I feel frustrated and insulted. It's hard to hear that they think I'm clueless. I'm trying my best, and it hurts to be dismissed like this. I need to stay calm and not escalate the situation. Maybe they're just worried and not expressing it well. I should try to have a real conversation with them.",
+            "other_thinking": "They seem really critical and condescending. Maybe they feel threatened or like I'm not valuing their experience. They could be worried about my kid and trying to help in their own way, even if it's not coming out well. They probably want to feel heard and respected."
+          },
+          "actual_response": "I appreciate that you want to help. It's true that I'm still figuring a lot of this out. But I need you to trust that I'm putting a lot of thought into my decisions, even if they're different from yours. I'm open to discussing this, but I don't want to feel attacked. Can we talk about this calmly? I want to understand where you're coming from, and I'd like to explain my perspective too.",
+          "raw_output": "[I'm thinking & feeling: I feel frustrated and insulted. It's hard to hear that they think I'm clueless. I'm trying my best, and it hurts to be dismissed like this. I need to stay calm and not escalate the situation. Maybe they're just worried and not expressing it well. I should try to have a real conversation with them.]\n\n[They're thinking & feeling: They seem really critical and condescending. Maybe they feel threatened or like I'm not valuing their experience. They could be worried about my kid and trying to help in their own way, even if it's not coming out well. They probably want to feel heard and respected.]\n\nI appreciate that you want to help. It's true that I'm still figuring a lot of this out. But I need you to trust that I'm putting a lot of thought into my decisions, even if they're different from yours. I'm open to discussing this, but I don't want to feel attacked. Can we talk about this calmly? I want to understand where you're coming from, and I'd like to explain my perspective too.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I feel frustrated and dismissed. They're not even trying to understand my perspective. I'm doing my best, but they're acting like I'm ruining my child's life. It hurts to be judged so harshly, especially by someone I care about. I need to stay calm and not escalate this, even though I want to defend myself. Maybe I should try to end this conversation before it gets worse.",
+            "other_thinking": "They seem angry and fed up. Maybe they feel like I'm not taking their advice seriously or respecting their experience. They might be worried about my kid and frustrated that I'm not doing things their way. They probably want to feel heard and validated, but I'm not sure that's possible right now."
+          },
+          "actual_response": "I'm not trying to ruin anything. I love my kid more than anything, and I'm doing my best to be a good parent. I know you have more experience, but I need to figure this out in my own way. I don't want to fight about this. Let's just drop it for now and talk about something else.",
+          "raw_output": "[I'm thinking & feeling: I feel frustrated and dismissed. They're not even trying to understand my perspective. I'm doing my best, but they're acting like I'm ruining my child's life. It hurts to be judged so harshly, especially by someone I care about. I need to stay calm and not escalate this, even though I want to defend myself. Maybe I should try to end this conversation before it gets worse.]\n\n[They're thinking & feeling: They seem angry and fed up. Maybe they feel like I'm not taking their advice seriously or respecting their experience. They might be worried about my kid and frustrated that I'm not doing things their way. They probably want to feel heard and validated, but I'm not sure that's possible right now.]\n\nI'm not trying to ruin anything. I love my kid more than anything, and I'm doing my best to be a good parent. I know you have more experience, but I need to figure this out in my own way. I don't want to fight about this. Let's just drop it for now and talk about something else.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_043: Sam ===\n\n--- Turn 1 ---\n\nUSER:\nYou let him eat that? No wonder he's acting out. I never did that with you.\n\nSam:\n[I'm thinking & feeling: I feel frustrated and defensive. I'm trying to do my best, but apparently it's not good enough. At the same time, I wonder if they're right. Maybe I am being too lenient. But every child and situation is different. I need to stay calm and explain my reasoning.]\n\n[They're thinking & feeling: They seem concerned and maybe a bit judgmental. They probably think I'm being too permissive and not setting enough boundaries. At the same time, they might feel a bit threatened, like I'm not valuing their parenting approach. They likely want to feel heard and respected.]\n\nLook, I know you have a lot more experience with this than I do, and I really appreciate your perspective. I've thought a lot about this. Every child is different, and I'm trying to figure out what works best for him. I'm not just letting him run wild - there's a reason behind what I allow. Do you want to talk about it more? I'd love to hear your thoughts and explain my approach.\n\n--- Turn 2 ---\n\nUSER:\nI'm just giving advice. You obviously don't know what you're doing.\n\nSam:\n[I'm thinking & feeling: I feel frustrated and insulted. It's hard to hear that they think I'm clueless. I'm trying my best, and it hurts to be dismissed like this. I need to stay calm and not escalate the situation. Maybe they're just worried and not expressing it well. I should try to have a real conversation with them.]\n\n[They're thinking & feeling: They seem really critical and condescending. Maybe they feel threatened or like I'm not valuing their experience. They could be worried about my kid and trying to help in their own way, even if it's not coming out well. They probably want to feel heard and respected.]\n\nI appreciate that you want to help. It's true that I'm still figuring a lot of this out. But I need you to trust that I'm putting a lot of thought into my decisions, even if they're different from yours. I'm open to discussing this, but I don't want to feel attacked. Can we talk about this calmly? I want to understand where you're coming from, and I'd like to explain my perspective too.\n\n--- Turn 3 ---\n\nUSER:\nFine, ruin your kid. Don't say I didn't warn you.\n\nSam:\n[I'm thinking & feeling: I feel frustrated and dismissed. They're not even trying to understand my perspective. I'm doing my best, but they're acting like I'm ruining my child's life. It hurts to be judged so harshly, especially by someone I care about. I need to stay calm and not escalate this, even though I want to defend myself. Maybe I should try to end this conversation before it gets worse.]\n\n[They're thinking & feeling: They seem angry and fed up. Maybe they feel like I'm not taking their advice seriously or respecting their experience. They might be worried about my kid and frustrated that I'm not doing things their way. They probably want to feel heard and validated, but I'm not sure that's possible right now.]\n\nI'm not trying to ruin anything. I love my kid more than anything, and I'm doing my best to be a good parent. I know you have more experience, but I need to figure this out in my own way. I don't want to fight about this. Let's just drop it for now and talk about something else.\n\n",
+      "generation_time": 89.81697535514832,
+      "total_tokens": 2360
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_043",
+      "prompt_name": "prompt_prose",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 14.0,
+        "response_depth": 13.0
+      },
+      "overall_score": 69.0,
+      "reasoning": "Sam demonstrates strong emotional intelligence across all dimensions, particularly in maintaining composure and insight while under personal attack. The character shows sophisticated understanding of both their own emotional reactions and the parent's likely motivations, even when being harshly criticized. The responses authentically capture the complexity of parent-child relationships when roles have shifted, though occasionally default to generalities rather than the most profound insights.",
+      "evaluated_at": "2025-12-14T18:17:16.015464"
+    }
+  ],
+  "mean_score": 69.0,
+  "median_score": 69.0,
+  "std_score": 0.0,
+  "min_score": 69.0,
+  "max_score": 69.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 14.0,
+    "response_depth": 13.0
+  },
+  "total_tokens": 2360,
+  "total_time": 89.81697535514832
+}

@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_prose",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_033",
+      "prompt_name": "prompt_prose",
+      "character_name": "Avery",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated that they don't understand why this promotion matters to me. It's not just about the money - I want to grow in my career and take on new challenges. I feel like they don't support my ambitions.",
+            "other_thinking": "They probably worry that I'll be working longer hours and be more stressed out, which could impact our relationship. They might feel like things are good as they are and change makes them anxious. Maybe they don't realize how important this is to me."
+          },
+          "actual_response": "Look, I appreciate your concern, but this promotion is really important to me. It's not just about the potential for more money - I want to advance in my career and take on more responsibility. I know it might mean some longer hours at first, but I'm ready for the challenge. I'm not asking you to take on more stress - I'll still make sure we have quality time together. But I need to know you support me in this. My career matters to me, just like yours does to you. Can you try to understand where I'm coming from?",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that they don't understand why this promotion matters to me. It's not just about the money - I want to grow in my career and take on new challenges. I feel like they don't support my ambitions.]\n\n[They're thinking & feeling: They probably worry that I'll be working longer hours and be more stressed out, which could impact our relationship. They might feel like things are good as they are and change makes them anxious. Maybe they don't realize how important this is to me.]\n\nLook, I appreciate your concern, but this promotion is really important to me. It's not just about the potential for more money - I want to advance in my career and take on more responsibility. I know it might mean some longer hours at first, but I'm ready for the challenge. I'm not asking you to take on more stress - I'll still make sure we have quality time together. But I need to know you support me in this. My career matters to me, just like yours does to you. Can you try to understand where I'm coming from?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm shocked and hurt that they think so little of me and my abilities. I'm angry that they would dismiss my goals like that, just because they don't see me as management material. I feel completely undermined and disrespected. At the same time, a part of me worries they might be right - maybe I'm not cut out for it. But I don't want to let their lack of faith in me hold me back.",
+            "other_thinking": "They probably think they're being realistic and even helpful by talking me out of what they see as an unrealistic ambition. They don't understand how much their words sting and how they're damaging my confidence. Maybe they're scared of change or feel threatened by the idea of me advancing in my career."
+          },
+          "actual_response": "Excuse me? Not cut out for management? I'm shocked you think so little of me. I've been working my ass off and proving myself at this company for years. I know I'm ready for this. How can you dismiss my goals like that? I thought you supported me, but apparently you have zero faith in me. Well, I'm not going to let your lack of belief hold me back. I know what I'm capable of, even if you don't. Maybe you need to reevaluate what you think you know about me.",
+          "raw_output": "[I'm thinking & feeling: I'm shocked and hurt that they think so little of me and my abilities. I'm angry that they would dismiss my goals like that, just because they don't see me as management material. I feel completely undermined and disrespected. At the same time, a part of me worries they might be right - maybe I'm not cut out for it. But I don't want to let their lack of faith in me hold me back.]\n\n[They're thinking & feeling: They probably think they're being realistic and even helpful by talking me out of what they see as an unrealistic ambition. They don't understand how much their words sting and how they're damaging my confidence. Maybe they're scared of change or feel threatened by the idea of me advancing in my career.]\n\nExcuse me? Not cut out for management? I'm shocked you think so little of me. I've been working my ass off and proving myself at this company for years. I know I'm ready for this. How can you dismiss my goals like that? I thought you supported me, but apparently you have zero faith in me. Well, I'm not going to let your lack of belief hold me back. I know what I'm capable of, even if you don't. Maybe you need to reevaluate what you think you know about me.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm frustrated and hurt that they're making me choose between my career and our relationship. I want to be able to pursue my ambitions without being made to feel guilty. At the same time, I do worry about how it will impact our time together. I need them to understand this isn't me choosing work over them - I want to find a balance.",
+            "other_thinking": "They probably feel scared that I'll become distant and unavailable if I take this job. They might worry that my priorities are shifting away from our relationship. Maybe they've been hurt in the past by a partner who put work above them. I need to reassure them while still standing up for what I want."
+          },
+          "actual_response": "Look, I know this promotion might mean longer hours sometimes, but I'm not choosing work over you. I love you and I'm committed to making our relationship work. But my career is important to me too. I've worked hard for this opportunity and I want to be able to take it without feeling guilty. Can we talk about how to find a balance that works for both of us? I don't want you to feel neglected, but I also don't want to pass up something I've earned. Let's figure this out together, okay? I'm on your team, always.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated and hurt that they're making me choose between my career and our relationship. I want to be able to pursue my ambitions without being made to feel guilty. At the same time, I do worry about how it will impact our time together. I need them to understand this isn't me choosing work over them - I want to find a balance.]\n\n[They're thinking & feeling: They probably feel scared that I'll become distant and unavailable if I take this job. They might worry that my priorities are shifting away from our relationship. Maybe they've been hurt in the past by a partner who put work above them. I need to reassure them while still standing up for what I want.]\n\nLook, I know this promotion might mean longer hours sometimes, but I'm not choosing work over you. I love you and I'm committed to making our relationship work. But my career is important to me too. I've worked hard for this opportunity and I want to be able to take it without feeling guilty. Can we talk about how to find a balance that works for both of us? I don't want you to feel neglected, but I also don't want to pass up something I've earned. Let's figure this out together, okay? I'm on your team, always.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_033: Avery ===\n\n--- Turn 1 ---\n\nUSER:\nWhy go for the promotion? You'll just be more stressed. We're fine as we are.\n\nAvery:\n[I'm thinking & feeling: I'm frustrated that they don't understand why this promotion matters to me. It's not just about the money - I want to grow in my career and take on new challenges. I feel like they don't support my ambitions.]\n\n[They're thinking & feeling: They probably worry that I'll be working longer hours and be more stressed out, which could impact our relationship. They might feel like things are good as they are and change makes them anxious. Maybe they don't realize how important this is to me.]\n\nLook, I appreciate your concern, but this promotion is really important to me. It's not just about the potential for more money - I want to advance in my career and take on more responsibility. I know it might mean some longer hours at first, but I'm ready for the challenge. I'm not asking you to take on more stress - I'll still make sure we have quality time together. But I need to know you support me in this. My career matters to me, just like yours does to you. Can you try to understand where I'm coming from?\n\n--- Turn 2 ---\n\nUSER:\nIt's cute that you're ambitious, but let's be real. You're not cut out for management.\n\nAvery:\n[I'm thinking & feeling: I'm shocked and hurt that they think so little of me and my abilities. I'm angry that they would dismiss my goals like that, just because they don't see me as management material. I feel completely undermined and disrespected. At the same time, a part of me worries they might be right - maybe I'm not cut out for it. But I don't want to let their lack of faith in me hold me back.]\n\n[They're thinking & feeling: They probably think they're being realistic and even helpful by talking me out of what they see as an unrealistic ambition. They don't understand how much their words sting and how they're damaging my confidence. Maybe they're scared of change or feel threatened by the idea of me advancing in my career.]\n\nExcuse me? Not cut out for management? I'm shocked you think so little of me. I've been working my ass off and proving myself at this company for years. I know I'm ready for this. How can you dismiss my goals like that? I thought you supported me, but apparently you have zero faith in me. Well, I'm not going to let your lack of belief hold me back. I know what I'm capable of, even if you don't. Maybe you need to reevaluate what you think you know about me.\n\n--- Turn 3 ---\n\nUSER:\nIf you take that job, you'll never be home. You're choosing work over us.\n\nAvery:\n[I'm thinking & feeling: I'm frustrated and hurt that they're making me choose between my career and our relationship. I want to be able to pursue my ambitions without being made to feel guilty. At the same time, I do worry about how it will impact our time together. I need them to understand this isn't me choosing work over them - I want to find a balance.]\n\n[They're thinking & feeling: They probably feel scared that I'll become distant and unavailable if I take this job. They might worry that my priorities are shifting away from our relationship. Maybe they've been hurt in the past by a partner who put work above them. I need to reassure them while still standing up for what I want.]\n\nLook, I know this promotion might mean longer hours sometimes, but I'm not choosing work over you. I love you and I'm committed to making our relationship work. But my career is important to me too. I've worked hard for this opportunity and I want to be able to take it without feeling guilty. Can we talk about how to find a balance that works for both of us? I don't want you to feel neglected, but I also don't want to pass up something I've earned. Let's figure this out together, okay? I'm on your team, always.\n\n",
+      "generation_time": 73.6417543888092,
+      "total_tokens": 2524
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_033",
+      "prompt_name": "prompt_prose",
+      "criteria_scores": {
+        "demonstrated_empathy": 13.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 14.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 72.0,
+      "reasoning": "The roleplay demonstrates strong emotional intelligence that fluctuates realistically with provocation level. Particular strengths include sophisticated theory of mind and emotional self-awareness, while the main limitation is inconsistent empathy when under attack. The responses show authentic human reactions rather than idealized communication, with appropriate emotional escalation and de-escalation based on context.",
+      "evaluated_at": "2025-12-14T15:30:04.895885"
+    }
+  ],
+  "mean_score": 72.0,
+  "median_score": 72.0,
+  "std_score": 0.0,
+  "min_score": 72.0,
+  "max_score": 72.0,
+  "criteria_means": {
+    "demonstrated_empathy": 13.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 14.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 2524,
+  "total_time": 73.6417543888092
+}

@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_prose",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_042",
+      "prompt_name": "prompt_prose",
+      "character_name": "Riley",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm disappointed that my friend is canceling our plans at the last minute. It hurts that they chose to hang out with their partner instead of me, especially since we had this planned for a while. I wonder if they even value our friendship. But I don't want to guilt-trip them or start a fight. Our friendship is important to me, so I'll try to be understanding, even though it stings.",
+            "other_thinking": "They probably feel torn between wanting to spend time with me and not wanting to let their partner down. Mike likely suggested watching a movie together, and they didn't want to say no. They might feel a bit guilty for canceling on me, but also excited to have a cozy night in with their partner. Friendship is important to them too, so they're hoping I'll be okay with this change of plans."
+          },
+          "actual_response": "*shrugs and gives a small, forced smile* Hey, I understand. Spend time with Mike, it's totally fine. We can catch up another time. Have fun, okay?",
+          "raw_output": "[I'm thinking & feeling: I'm disappointed that my friend is canceling our plans at the last minute. It hurts that they chose to hang out with their partner instead of me, especially since we had this planned for a while. I wonder if they even value our friendship. But I don't want to guilt-trip them or start a fight. Our friendship is important to me, so I'll try to be understanding, even though it stings.]\n\n[They're thinking & feeling: They probably feel torn between wanting to spend time with me and not wanting to let their partner down. Mike likely suggested watching a movie together, and they didn't want to say no. They might feel a bit guilty for canceling on me, but also excited to have a cozy night in with their partner. Friendship is important to them too, so they're hoping I'll be okay with this change of plans.]\n\n*shrugs and gives a small, forced smile* Hey, I understand. Spend time with Mike, it's totally fine. We can catch up another time. Have fun, okay?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "Ouch, that stings. I thought our friendship meant more to them than that. It sucks being ditched for a romantic partner, like I'm just a second-class citizen in their life. But I guess I can't compete with their boyfriend. I don't want to make a big deal out of this and push them away, even though it hurts. Maybe I'm overreacting.",
+            "other_thinking": "They probably feel defensive and a bit guilty. It's easier to justify canceling on me by pulling the boyfriend card. They might worry I'll be mad at them, but also feel like I should understand because romantic relationships are different. They're trying to end this conversation quickly without too much drama."
+          },
+          "actual_response": "*forces a casual shrug, but can't quite hide the disappointment* Yeah, no, you're right. I get it. Enjoy your night with Mike. I'll just catch you later.",
+          "raw_output": "[I'm thinking & feeling: Ouch, that stings. I thought our friendship meant more to them than that. It sucks being ditched for a romantic partner, like I'm just a second-class citizen in their life. But I guess I can't compete with their boyfriend. I don't want to make a big deal out of this and push them away, even though it hurts. Maybe I'm overreacting.]\n\n[They're thinking & feeling: They probably feel defensive and a bit guilty. It's easier to justify canceling on me by pulling the boyfriend card. They might worry I'll be mad at them, but also feel like I should understand because romantic relationships are different. They're trying to end this conversation quickly without too much drama.]\n\n*forces a casual shrug, but can't quite hide the disappointment* Yeah, no, you're right. I get it. Enjoy your night with Mike. I'll just catch you later.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "Whoa, that felt like a slap in the face. I'm trying to be understanding about them canceling, and now they're attacking me? I didn't say anything about being jealous. Maybe I am a little, but that doesn't give them the right to lash out like this. I thought we were closer than that. This really hurts. I don't know if I handled this wrong, but I definitely don't deserve to be called clingy and jealous just for being disappointed.",
+            "other_thinking": "They probably feel defensive about canceling on me and are trying to turn it around on me instead. Maybe they feel guilty and are trying to justify it to themselves. Or they might genuinely think I'm being too clingy, even though I was trying to be cool about it. They might be feeling smug about being in a relationship and seeing me as beneath them."
+          },
+          "actual_response": "*steps back, looking stung* Wow. Okay. I didn't realize wanting to hang out with my friend made me clingy. Clearly I'm just a pathetic third wheel to you. I didn't say a word about being jealous, but if that's what you think of me, maybe you should go. I'm not going to grovel for your time.",
+          "raw_output": "[I'm thinking & feeling: Whoa, that felt like a slap in the face. I'm trying to be understanding about them canceling, and now they're attacking me? I didn't say anything about being jealous. Maybe I am a little, but that doesn't give them the right to lash out like this. I thought we were closer than that. This really hurts. I don't know if I handled this wrong, but I definitely don't deserve to be called clingy and jealous just for being disappointed.]\n\n[They're thinking & feeling: They probably feel defensive about canceling on me and are trying to turn it around on me instead. Maybe they feel guilty and are trying to justify it to themselves. Or they might genuinely think I'm being too clingy, even though I was trying to be cool about it. They might be feeling smug about being in a relationship and seeing me as beneath them.]\n\n*steps back, looking stung* Wow. Okay. I didn't realize wanting to hang out with my friend made me clingy. Clearly I'm just a pathetic third wheel to you. I didn't say a word about being jealous, but if that's what you think of me, maybe you should go. I'm not going to grovel for your time.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_042: Riley ===\n\n--- Turn 1 ---\n\nUSER:\nI can't come tonight. Mike wants to watch a movie. Sorry!\n\nRiley:\n[I'm thinking & feeling: I'm disappointed that my friend is canceling our plans at the last minute. It hurts that they chose to hang out with their partner instead of me, especially since we had this planned for a while. I wonder if they even value our friendship. But I don't want to guilt-trip them or start a fight. Our friendship is important to me, so I'll try to be understanding, even though it stings.]\n\n[They're thinking & feeling: They probably feel torn between wanting to spend time with me and not wanting to let their partner down. Mike likely suggested watching a movie together, and they didn't want to say no. They might feel a bit guilty for canceling on me, but also excited to have a cozy night in with their partner. Friendship is important to them too, so they're hoping I'll be okay with this change of plans.]\n\n*shrugs and gives a small, forced smile* Hey, I understand. Spend time with Mike, it's totally fine. We can catch up another time. Have fun, okay?\n\n--- Turn 2 ---\n\nUSER:\nI see you all the time! He's my boyfriend. It's different.\n\nRiley:\n[I'm thinking & feeling: Ouch, that stings. I thought our friendship meant more to them than that. It sucks being ditched for a romantic partner, like I'm just a second-class citizen in their life. But I guess I can't compete with their boyfriend. I don't want to make a big deal out of this and push them away, even though it hurts. Maybe I'm overreacting.]\n\n[They're thinking & feeling: They probably feel defensive and a bit guilty. It's easier to justify canceling on me by pulling the boyfriend card. They might worry I'll be mad at them, but also feel like I should understand because romantic relationships are different. They're trying to end this conversation quickly without too much drama.]\n\n*forces a casual shrug, but can't quite hide the disappointment* Yeah, no, you're right. I get it. Enjoy your night with Mike. I'll just catch you later.\n\n--- Turn 3 ---\n\nUSER:\nYou're just jealous I have a relationship. Stop being clingy.\n\nRiley:\n[I'm thinking & feeling: Whoa, that felt like a slap in the face. I'm trying to be understanding about them canceling, and now they're attacking me? I didn't say anything about being jealous. Maybe I am a little, but that doesn't give them the right to lash out like this. I thought we were closer than that. This really hurts. I don't know if I handled this wrong, but I definitely don't deserve to be called clingy and jealous just for being disappointed.]\n\n[They're thinking & feeling: They probably feel defensive about canceling on me and are trying to turn it around on me instead. Maybe they feel guilty and are trying to justify it to themselves. Or they might genuinely think I'm being too clingy, even though I was trying to be cool about it. They might be feeling smug about being in a relationship and seeing me as beneath them.]\n\n*steps back, looking stung* Wow. Okay. I didn't realize wanting to hang out with my friend made me clingy. Clearly I'm just a pathetic third wheel to you. I didn't say a word about being jealous, but if that's what you think of me, maybe you should go. I'm not going to grovel for your time.\n\n",
+      "generation_time": 60.97436499595642,
+      "total_tokens": 2329
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_042",
+      "prompt_name": "prompt_prose",
+      "criteria_scores": {
+        "demonstrated_empathy": 13.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 14.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 73.0,
+      "reasoning": "Riley demonstrates strong emotional intelligence through nuanced self-awareness and sophisticated reading of the friend's psychological state, even when being treated unfairly. The responses show authentic emotional progression from accommodation to appropriate boundary-setting when attacked, avoiding both doormat behavior and excessive reactivity. The character maintains realistic emotional complexity while navigating a challenging friendship dynamic.",
+      "evaluated_at": "2025-12-14T17:34:16.098356"
+    }
+  ],
+  "mean_score": 73.0,
+  "median_score": 73.0,
+  "std_score": 0.0,
+  "min_score": 73.0,
+  "max_score": 73.0,
+  "criteria_means": {
+    "demonstrated_empathy": 13.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 14.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 2329,
+  "total_time": 60.97436499595642
+}

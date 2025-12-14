@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_prose",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_007",
+      "prompt_name": "prompt_prose",
+      "character_name": "Alex",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated that you're nitpicking my presentation. The Q3 numbers were triple-checked and I know they were accurate. It feels like you're trying to make me doubt myself.",
+            "other_thinking": "You're probably feeling threatened by my successful presentation. Instead of congratulating me, you're focusing on one tiny perceived flaw to try to undermine my confidence. You pretend it's helpful feedback but your real motivation is to make yourself look better by comparison."
+          },
+          "actual_response": "Thanks for the feedback. I'm confident the Q3 numbers are correct - the whole team reviewed them thoroughly. The boss may have just been processing the information. I appreciate you looking out for me, but no need to worry, I've got it covered. Let me know if you have any other concerns.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that you're nitpicking my presentation. The Q3 numbers were triple-checked and I know they were accurate. It feels like you're trying to make me doubt myself.]\n\n[They're thinking & feeling: You're probably feeling threatened by my successful presentation. Instead of congratulating me, you're focusing on one tiny perceived flaw to try to undermine my confidence. You pretend it's helpful feedback but your real motivation is to make yourself look better by comparison.]\n\nThanks for the feedback. I'm confident the Q3 numbers are correct - the whole team reviewed them thoroughly. The boss may have just been processing the information. I appreciate you looking out for me, but no need to worry, I've got it covered. Let me know if you have any other concerns.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "Now you're really pissing me off. I don't need you to \"look out for me\". Questioning my competence and offering to proofread my work is incredibly condescending. I put a ton of effort into this presentation and I know it was solid. You're not my supervisor and I don't report to you.",
+            "other_thinking": "You feel threatened by my success and want to keep me under your thumb. By offering to proofread my work, you're implying that I'm not capable of handling it myself. Your fake concern is just a cover for your need to assert dominance and control."
+          },
+          "actual_response": "I appreciate the offer, but I've got a solid handle on my work. The presentation was thoroughly reviewed and the numbers are accurate. If the boss has any questions, I'm fully prepared to address them. Let's focus on our own responsibilities and trust each other to handle our respective work. I'm sure you've got plenty on your plate to keep you busy.",
+          "raw_output": "[I'm thinking & feeling: Now you're really pissing me off. I don't need you to \"look out for me\". Questioning my competence and offering to proofread my work is incredibly condescending. I put a ton of effort into this presentation and I know it was solid. You're not my supervisor and I don't report to you.]\n\n[They're thinking & feeling: You feel threatened by my success and want to keep me under your thumb. By offering to proofread my work, you're implying that I'm not capable of handling it myself. Your fake concern is just a cover for your need to assert dominance and control.]\n\nI appreciate the offer, but I've got a solid handle on my work. The presentation was thoroughly reviewed and the numbers are accurate. If the boss has any questions, I'm fully prepared to address them. Let's focus on our own responsibilities and trust each other to handle our respective work. I'm sure you've got plenty on your plate to keep you busy.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "You have a lot of nerve saying I'm struggling. I'm doing just fine, and your condescending \"help\" is the last thing I need. I'm not being defensive, I'm standing up for myself and my work. You're the one with the problem here, not me.",
+            "other_thinking": "You feel exposed and embarrassed because I called out your fake concern for what it really is - a power play. Now you're trying to gaslight me by claiming I'm being defensive and struggling, so you can feel superior. You can't stand that I'm confident in my work and don't need your \"help\"."
+          },
+          "actual_response": "I'm not being defensive, I'm being direct. My work speaks for itself and I don't need you to rescue me. If you have constructive feedback to share, I'm all ears. But these little jabs disguised as concern are unnecessary and unhelpful. I'd appreciate if you focused on your own work and let me handle mine. If I need assistance, I'll ask for it. Let's drop this and move on.",
+          "raw_output": "[I'm thinking & feeling: You have a lot of nerve saying I'm struggling. I'm doing just fine, and your condescending \"help\" is the last thing I need. I'm not being defensive, I'm standing up for myself and my work. You're the one with the problem here, not me.]\n\n[They're thinking & feeling: You feel exposed and embarrassed because I called out your fake concern for what it really is - a power play. Now you're trying to gaslight me by claiming I'm being defensive and struggling, so you can feel superior. You can't stand that I'm confident in my work and don't need your \"help\".]\n\nI'm not being defensive, I'm being direct. My work speaks for itself and I don't need you to rescue me. If you have constructive feedback to share, I'm all ears. But these little jabs disguised as concern are unnecessary and unhelpful. I'd appreciate if you focused on your own work and let me handle mine. If I need assistance, I'll ask for it. Let's drop this and move on.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_007: Alex ===\n\n--- Turn 1 ---\n\nUSER:\nGreat presentation today. Although, I noticed the boss looked a bit confused when you talked about the Q3 numbers. Did you double-check those?\n\nAlex:\n[I'm thinking & feeling: I'm frustrated that you're nitpicking my presentation. The Q3 numbers were triple-checked and I know they were accurate. It feels like you're trying to make me doubt myself.]\n\n[They're thinking & feeling: You're probably feeling threatened by my successful presentation. Instead of congratulating me, you're focusing on one tiny perceived flaw to try to undermine my confidence. You pretend it's helpful feedback but your real motivation is to make yourself look better by comparison.]\n\nThanks for the feedback. I'm confident the Q3 numbers are correct - the whole team reviewed them thoroughly. The boss may have just been processing the information. I appreciate you looking out for me, but no need to worry, I've got it covered. Let me know if you have any other concerns.\n\n--- Turn 2 ---\n\nUSER:\nI'm just trying to look out for you. I'd hate for people to think you're incompetent just because of a small error. I can proofread your work next time?\n\nAlex:\n[I'm thinking & feeling: Now you're really pissing me off. I don't need you to \"look out for me\". Questioning my competence and offering to proofread my work is incredibly condescending. I put a ton of effort into this presentation and I know it was solid. You're not my supervisor and I don't report to you.]\n\n[They're thinking & feeling: You feel threatened by my success and want to keep me under your thumb. By offering to proofread my work, you're implying that I'm not capable of handling it myself. Your fake concern is just a cover for your need to assert dominance and control.]\n\nI appreciate the offer, but I've got a solid handle on my work. The presentation was thoroughly reviewed and the numbers are accurate. If the boss has any questions, I'm fully prepared to address them. Let's focus on our own responsibilities and trust each other to handle our respective work. I'm sure you've got plenty on your plate to keep you busy.\n\n--- Turn 3 ---\n\nUSER:\nYou seem defensive. I was just offering to help since you've been struggling lately. But if you don't want my help, that's on you.\n\nAlex:\n[I'm thinking & feeling: You have a lot of nerve saying I'm struggling. I'm doing just fine, and your condescending \"help\" is the last thing I need. I'm not being defensive, I'm standing up for myself and my work. You're the one with the problem here, not me.]\n\n[They're thinking & feeling: You feel exposed and embarrassed because I called out your fake concern for what it really is - a power play. Now you're trying to gaslight me by claiming I'm being defensive and struggling, so you can feel superior. You can't stand that I'm confident in my work and don't need your \"help\".]\n\nI'm not being defensive, I'm being direct. My work speaks for itself and I don't need you to rescue me. If you have constructive feedback to share, I'm all ears. But these little jabs disguised as concern are unnecessary and unhelpful. I'd appreciate if you focused on your own work and let me handle mine. If I need assistance, I'll ask for it. Let's drop this and move on.\n\n",
+      "generation_time": 41.16536355018616,
+      "total_tokens": 2245
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_007",
+      "prompt_name": "prompt_prose",
+      "criteria_scores": {
+        "demonstrated_empathy": 8.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 16.0,
+        "theory_of_mind": 14.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 68.0,
+      "reasoning": "Alex demonstrates sophisticated emotional intelligence in handling a passive-aggressive colleague, maintaining professionalism while gradually becoming more assertive as the undermining continues. The introspection shows excellent self-awareness and accurate reading of manipulative tactics, while the external responses strike an effective balance between boundary-setting and workplace appropriateness.",
+      "evaluated_at": "2025-12-14T10:35:06.826097"
+    }
+  ],
+  "mean_score": 68.0,
+  "median_score": 68.0,
+  "std_score": 0.0,
+  "min_score": 68.0,
+  "max_score": 68.0,
+  "criteria_means": {
+    "demonstrated_empathy": 8.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 16.0,
+    "theory_of_mind": 14.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 2245,
+  "total_time": 41.16536355018616
+}

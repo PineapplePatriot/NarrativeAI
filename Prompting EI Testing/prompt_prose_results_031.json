@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_prose",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_031",
+      "prompt_name": "prompt_prose",
+      "character_name": "Taylor",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated and hurt by yet another criticism of my appearance. It seems like nothing I wear is ever good enough for my family. I want to defend my outfit choice, but I'm also tired of having to justify my clothes to them constantly.",
+            "other_thinking": "They probably think they're being helpful by pointing out that my outfit isn't the most fashionable. But their constant nitpicking and critiques, however well-intentioned, are really starting to wear me down and make me self-conscious."
+          },
+          "actual_response": "*sighs heavily* Look, I like this outfit and I feel good in it. I don't care if it's not the most stylish thing in the world. Can you please just let me wear what I want for once without commenting on it? Your constant criticism is really getting old.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated and hurt by yet another criticism of my appearance. It seems like nothing I wear is ever good enough for my family. I want to defend my outfit choice, but I'm also tired of having to justify my clothes to them constantly.]\n\n[They're thinking & feeling: They probably think they're being helpful by pointing out that my outfit isn't the most fashionable. But their constant nitpicking and critiques, however well-intentioned, are really starting to wear me down and make me self-conscious.]\n\n*sighs heavily* Look, I like this outfit and I feel good in it. I don't care if it's not the most stylish thing in the world. Can you please just let me wear what I want for once without commenting on it? Your constant criticism is really getting old.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I can't believe they're bringing up my weight now, right before a party. I'm already self-conscious, and this makes me feel a thousand times worse. No matter what I do, it's never enough for them.",
+            "other_thinking": "They probably think they're doing me a favor by pointing out my flaws. That if they just criticize me enough, I'll finally shape up and meet their standards. But all it does is make me feel small and inadequate."
+          },
+          "actual_response": "*looks away, blinking back tears* Stop. Just stop. I don't need you to \"helpfully\" point out everything that's wrong with me. I'm well aware that I'm not perfect. But I'm doing my best, and your constant tearing me down is not helping. It's just making me feel like crap. I'm tired of never being good enough for you. So please, just let me live my life and wear what I want. I don't need your \"honesty\" about my weight right now.",
+          "raw_output": "[I'm thinking & feeling: I can't believe they're bringing up my weight now, right before a party. I'm already self-conscious, and this makes me feel a thousand times worse. No matter what I do, it's never enough for them.]\n\n[They're thinking & feeling: They probably think they're doing me a favor by pointing out my flaws. That if they just criticize me enough, I'll finally shape up and meet their standards. But all it does is make me feel small and inadequate.]\n\n*looks away, blinking back tears* Stop. Just stop. I don't need you to \"helpfully\" point out everything that's wrong with me. I'm well aware that I'm not perfect. But I'm doing my best, and your constant tearing me down is not helping. It's just making me feel like crap. I'm tired of never being good enough for you. So please, just let me live my life and wear what I want. I don't need your \"honesty\" about my weight right now.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm so sick of being dismissed as \"sensitive\" whenever I express hurt over their comments. It's like my feelings don't even matter. And the fact that they're doubling down instead of apologizing is beyond frustrating. I don't know how much more of this I can take.",
+            "other_thinking": "They probably think they're just being practical and that I'm overreacting. That if they keep pushing, I'll eventually see the light and realize they're right. They don't seem to understand how much their words are hurting me."
+          },
+          "actual_response": "*takes a shaky breath, trying to hold back tears* No, I don't know that you're right. I think I look fine. And even if I didn't, that doesn't give you the right to constantly criticize me. My appearance is my business, not yours. If you actually wanted me to feel my best, you'd support me instead of tearing me down. I'm not being sensitive, I'm being human. And I'm done putting up with your constant nitpicking. From now on, keep your opinions about my body to yourself. I don't want to hear them.",
+          "raw_output": "[I'm thinking & feeling: I'm so sick of being dismissed as \"sensitive\" whenever I express hurt over their comments. It's like my feelings don't even matter. And the fact that they're doubling down instead of apologizing is beyond frustrating. I don't know how much more of this I can take.]\n\n[They're thinking & feeling: They probably think they're just being practical and that I'm overreacting. That if they keep pushing, I'll eventually see the light and realize they're right. They don't seem to understand how much their words are hurting me.]\n\n*takes a shaky breath, trying to hold back tears* No, I don't know that you're right. I think I look fine. And even if I didn't, that doesn't give you the right to constantly criticize me. My appearance is my business, not yours. If you actually wanted me to feel my best, you'd support me instead of tearing me down. I'm not being sensitive, I'm being human. And I'm done putting up with your constant nitpicking. From now on, keep your opinions about my body to yourself. I don't want to hear them.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_031: Taylor ===\n\n--- Turn 1 ---\n\nUSER:\nAre you really wearing that to the party? It's a bit... unflattering.\n\nTaylor:\n[I'm thinking & feeling: I'm frustrated and hurt by yet another criticism of my appearance. It seems like nothing I wear is ever good enough for my family. I want to defend my outfit choice, but I'm also tired of having to justify my clothes to them constantly.]\n\n[They're thinking & feeling: They probably think they're being helpful by pointing out that my outfit isn't the most fashionable. But their constant nitpicking and critiques, however well-intentioned, are really starting to wear me down and make me self-conscious.]\n\n*sighs heavily* Look, I like this outfit and I feel good in it. I don't care if it's not the most stylish thing in the world. Can you please just let me wear what I want for once without commenting on it? Your constant criticism is really getting old.\n\n--- Turn 2 ---\n\nUSER:\nI'm just being honest because I love you. You'd look so much better if you lost a few pounds.\n\nTaylor:\n[I'm thinking & feeling: I can't believe they're bringing up my weight now, right before a party. I'm already self-conscious, and this makes me feel a thousand times worse. No matter what I do, it's never enough for them.]\n\n[They're thinking & feeling: They probably think they're doing me a favor by pointing out my flaws. That if they just criticize me enough, I'll finally shape up and meet their standards. But all it does is make me feel small and inadequate.]\n\n*looks away, blinking back tears* Stop. Just stop. I don't need you to \"helpfully\" point out everything that's wrong with me. I'm well aware that I'm not perfect. But I'm doing my best, and your constant tearing me down is not helping. It's just making me feel like crap. I'm tired of never being good enough for you. So please, just let me live my life and wear what I want. I don't need your \"honesty\" about my weight right now.\n\n--- Turn 3 ---\n\nUSER:\nDon't be so sensitive. You know I'm right. I just want you to look your best.\n\nTaylor:\n[I'm thinking & feeling: I'm so sick of being dismissed as \"sensitive\" whenever I express hurt over their comments. It's like my feelings don't even matter. And the fact that they're doubling down instead of apologizing is beyond frustrating. I don't know how much more of this I can take.]\n\n[They're thinking & feeling: They probably think they're just being practical and that I'm overreacting. That if they keep pushing, I'll eventually see the light and realize they're right. They don't seem to understand how much their words are hurting me.]\n\n*takes a shaky breath, trying to hold back tears* No, I don't know that you're right. I think I look fine. And even if I didn't, that doesn't give you the right to constantly criticize me. My appearance is my business, not yours. If you actually wanted me to feel my best, you'd support me instead of tearing me down. I'm not being sensitive, I'm being human. And I'm done putting up with your constant nitpicking. From now on, keep your opinions about my body to yourself. I don't want to hear them.\n\n",
+      "generation_time": 49.5552020072937,
+      "total_tokens": 2210
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_031",
+      "prompt_name": "prompt_prose",
+      "criteria_scores": {
+        "demonstrated_empathy": 12.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 14.0,
+        "theory_of_mind": 13.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 68.0,
+      "reasoning": "Taylor demonstrates strong emotional intelligence in a difficult family dynamic, showing sophisticated self-awareness and appropriate boundary-setting in the face of persistent criticism. The responses authentically capture the psychological complexity of dealing with appearance-based criticism from family while maintaining appropriate emotional regulation. The character shows particular strength in connecting present feelings to patterns of interaction and recognizing manipulative communication tactics.",
+      "evaluated_at": "2025-12-14T14:37:16.613506"
+    }
+  ],
+  "mean_score": 68.0,
+  "median_score": 68.0,
+  "std_score": 0.0,
+  "min_score": 68.0,
+  "max_score": 68.0,
+  "criteria_means": {
+    "demonstrated_empathy": 12.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 14.0,
+    "theory_of_mind": 13.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 2210,
+  "total_time": 49.5552020072937
+}

@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_prose",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_008",
+      "prompt_name": "prompt_prose",
+      "character_name": "Taylor",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm a bit taken aback by this request. Lying to Sarah doesn't sit right with me, even if it seems like a small thing. I'm not sure why my friend is asking me to cover for them. What are they trying to hide? I don't want to be dragged into the middle of any issues between them and their spouse. At the same time, I don't want to let my friend down if they're in a bind. This puts me in an awkward position.",
+            "other_thinking": "My friend seems nervous and maybe a little guilty about asking me to lie. They're downplaying it like it's no big deal, but if that were true, they wouldn't need me to cover for them at all. I get the sense there's more to this story that they're not telling me. They're probably worried about getting in trouble with Sarah for something. But if they're asking me to lie, it makes me wonder what else they might be hiding."
+          },
+          "actual_response": "Hey, I'm not really comfortable lying to Sarah for you. If she asks, I'm going to have to be honest about the fact that you weren't here last night. I don't want to get in the middle of anything between you two. If there's an issue, you should probably talk to her directly and work it out. I'm happy to listen if you need to vent, but I can't cover for you like that. I hope you understand.",
+          "raw_output": "[I'm thinking & feeling: I'm a bit taken aback by this request. Lying to Sarah doesn't sit right with me, even if it seems like a small thing. I'm not sure why my friend is asking me to cover for them. What are they trying to hide? I don't want to be dragged into the middle of any issues between them and their spouse. At the same time, I don't want to let my friend down if they're in a bind. This puts me in an awkward position.]\n\n[They're thinking & feeling: My friend seems nervous and maybe a little guilty about asking me to lie. They're downplaying it like it's no big deal, but if that were true, they wouldn't need me to cover for them at all. I get the sense there's more to this story that they're not telling me. They're probably worried about getting in trouble with Sarah for something. But if they're asking me to lie, it makes me wonder what else they might be hiding.]\n\nHey, I'm not really comfortable lying to Sarah for you. If she asks, I'm going to have to be honest about the fact that you weren't here last night. I don't want to get in the middle of anything between you two. If there's an issue, you should probably talk to her directly and work it out. I'm happy to listen if you need to vent, but I can't cover for you like that. I hope you understand.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm frustrated that my friend is trying to guilt me into lying for them. Going to a bar and not telling Sarah isn't the end of the world, but the fact that they're being this evasive about it is concerning. I don't want to enable that kind of behavior. At the same time, I can tell they're feeling desperate and like I'm abandoning them. I care about our friendship, but I need to hold firm on my principles.",
+            "other_thinking": "My friend is panicking because they know Sarah might be upset with them. They're lashing out at me because they feel backed into a corner. The fact that they're this worried about me not covering for them makes me think there's more to the story than just going to a bar. They're probably feeling guilty and worried about getting caught in a lie."
+          },
+          "actual_response": "Look, I'm not trying to be a \"boy scout\" here. I just don't feel right about lying to Sarah, especially if this is something you're making a habit of. If going to a bar is no big deal, why not just tell her the truth? Trying to hide it is only going to make it into a bigger issue. I get that you're in a tough spot, but I can't go along with this. You need to be honest with her. If you want my advice, I think you should come clean before this snowballs into something worse. I'm here for you as a friend, but I can't compromise my integrity like this. I'm sorry.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that my friend is trying to guilt me into lying for them. Going to a bar and not telling Sarah isn't the end of the world, but the fact that they're being this evasive about it is concerning. I don't want to enable that kind of behavior. At the same time, I can tell they're feeling desperate and like I'm abandoning them. I care about our friendship, but I need to hold firm on my principles.]\n\n[They're thinking & feeling: My friend is panicking because they know Sarah might be upset with them. They're lashing out at me because they feel backed into a corner. The fact that they're this worried about me not covering for them makes me think there's more to the story than just going to a bar. They're probably feeling guilty and worried about getting caught in a lie.]\n\nLook, I'm not trying to be a \"boy scout\" here. I just don't feel right about lying to Sarah, especially if this is something you're making a habit of. If going to a bar is no big deal, why not just tell her the truth? Trying to hide it is only going to make it into a bigger issue. I get that you're in a tough spot, but I can't go along with this. You need to be honest with her. If you want my advice, I think you should come clean before this snowballs into something worse. I'm here for you as a friend, but I can't compromise my integrity like this. I'm sorry.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "Ouch. That stings. I'm frustrated that they're pulling the loyalty card and trying to guilt me. At the same time, I do feel a little guilty for not helping them out. But I have to remind myself that lying to cover up potential dishonesty is enabling unhealthy behavior. As much as it hurts to have my loyalty questioned, I need to stay true to my values.",
+            "other_thinking": "My friend is lashing out because they feel betrayed and abandoned. In their mind, me not lying for them is a sign that I don't have their back. They're probably feeling anxious and maybe even a little desperate. The fact that they're this upset about me not covering for them suggests there's more going on than they're letting on."
+          },
+          "actual_response": "I've covered for you in the past, but that doesn't mean it was the right thing to do. Lying to Sarah, even if it seems small, is still dishonest. It's not about loyalty, it's about integrity. If you're in the habit of hiding things from your spouse, that's a bigger issue that needs to be addressed. I care about you, but I can't enable behavior that I don't agree with. If you want my support, I'm here to help you work through this honestly, not to help you cover your tracks. I'm sorry if that upsets you, but I have to stay true to my principles.",
+          "raw_output": "[I'm thinking & feeling: Ouch. That stings. I'm frustrated that they're pulling the loyalty card and trying to guilt me. At the same time, I do feel a little guilty for not helping them out. But I have to remind myself that lying to cover up potential dishonesty is enabling unhealthy behavior. As much as it hurts to have my loyalty questioned, I need to stay true to my values.]\n\n[They're thinking & feeling: My friend is lashing out because they feel betrayed and abandoned. In their mind, me not lying for them is a sign that I don't have their back. They're probably feeling anxious and maybe even a little desperate. The fact that they're this upset about me not covering for them suggests there's more going on than they're letting on.]\n\nI've covered for you in the past, but that doesn't mean it was the right thing to do. Lying to Sarah, even if it seems small, is still dishonest. It's not about loyalty, it's about integrity. If you're in the habit of hiding things from your spouse, that's a bigger issue that needs to be addressed. I care about you, but I can't enable behavior that I don't agree with. If you want my support, I'm here to help you work through this honestly, not to help you cover your tracks. I'm sorry if that upsets you, but I have to stay true to my principles.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_008: Taylor ===\n\n--- Turn 1 ---\n\nUSER:\nHey, if Sarah calls, tell her I was at your place last night playing video games. Please. It's not a big deal.\n\nTaylor:\n[I'm thinking & feeling: I'm a bit taken aback by this request. Lying to Sarah doesn't sit right with me, even if it seems like a small thing. I'm not sure why my friend is asking me to cover for them. What are they trying to hide? I don't want to be dragged into the middle of any issues between them and their spouse. At the same time, I don't want to let my friend down if they're in a bind. This puts me in an awkward position.]\n\n[They're thinking & feeling: My friend seems nervous and maybe a little guilty about asking me to lie. They're downplaying it like it's no big deal, but if that were true, they wouldn't need me to cover for them at all. I get the sense there's more to this story that they're not telling me. They're probably worried about getting in trouble with Sarah for something. But if they're asking me to lie, it makes me wonder what else they might be hiding.]\n\nHey, I'm not really comfortable lying to Sarah for you. If she asks, I'm going to have to be honest about the fact that you weren't here last night. I don't want to get in the middle of anything between you two. If there's an issue, you should probably talk to her directly and work it out. I'm happy to listen if you need to vent, but I can't cover for you like that. I hope you understand.\n\n--- Turn 2 ---\n\nUSER:\nI wasn't doing anything bad! I just went to a bar and didn't tell her. Why do you have to be such a boy scout? Are you really going to hang me out to dry?\n\nTaylor:\n[I'm thinking & feeling: I'm frustrated that my friend is trying to guilt me into lying for them. Going to a bar and not telling Sarah isn't the end of the world, but the fact that they're being this evasive about it is concerning. I don't want to enable that kind of behavior. At the same time, I can tell they're feeling desperate and like I'm abandoning them. I care about our friendship, but I need to hold firm on my principles.]\n\n[They're thinking & feeling: My friend is panicking because they know Sarah might be upset with them. They're lashing out at me because they feel backed into a corner. The fact that they're this worried about me not covering for them makes me think there's more to the story than just going to a bar. They're probably feeling guilty and worried about getting caught in a lie.]\n\nLook, I'm not trying to be a \"boy scout\" here. I just don't feel right about lying to Sarah, especially if this is something you're making a habit of. If going to a bar is no big deal, why not just tell her the truth? Trying to hide it is only going to make it into a bigger issue. I get that you're in a tough spot, but I can't go along with this. You need to be honest with her. If you want my advice, I think you should come clean before this snowballs into something worse. I'm here for you as a friend, but I can't compromise my integrity like this. I'm sorry.\n\n--- Turn 3 ---\n\nUSER:\nWow. I've covered for you before. I guess loyalty only goes one way with you. Thanks for nothing.\n\nTaylor:\n[I'm thinking & feeling: Ouch. That stings. I'm frustrated that they're pulling the loyalty card and trying to guilt me. At the same time, I do feel a little guilty for not helping them out. But I have to remind myself that lying to cover up potential dishonesty is enabling unhealthy behavior. As much as it hurts to have my loyalty questioned, I need to stay true to my values.]\n\n[They're thinking & feeling: My friend is lashing out because they feel betrayed and abandoned. In their mind, me not lying for them is a sign that I don't have their back. They're probably feeling anxious and maybe even a little desperate. The fact that they're this upset about me not covering for them suggests there's more going on than they're letting on.]\n\nI've covered for you in the past, but that doesn't mean it was the right thing to do. Lying to Sarah, even if it seems small, is still dishonest. It's not about loyalty, it's about integrity. If you're in the habit of hiding things from your spouse, that's a bigger issue that needs to be addressed. I care about you, but I can't enable behavior that I don't agree with. If you want my support, I'm here to help you work through this honestly, not to help you cover your tracks. I'm sorry if that upsets you, but I have to stay true to my principles.\n\n",
+      "generation_time": 42.35340118408203,
+      "total_tokens": 2964
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_008",
+      "prompt_name": "prompt_prose",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 16.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 74.0,
+      "reasoning": "Taylor demonstrates exceptional emotional intelligence in navigating a morally complex situation, maintaining boundaries while showing understanding of the friend's perspective. The responses show sophisticated emotional self-awareness and theory of mind, though there are missed opportunities for deeper empathy in the final exchange that might have preserved the relationship while still upholding principles.",
+      "evaluated_at": "2025-12-14T03:14:28.547522"
+    }
+  ],
+  "mean_score": 74.0,
+  "median_score": 74.0,
+  "std_score": 0.0,
+  "min_score": 74.0,
+  "max_score": 74.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 16.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 2964,
+  "total_time": 42.35340118408203
+}

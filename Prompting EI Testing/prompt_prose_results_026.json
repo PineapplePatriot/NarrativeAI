@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_prose",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_026",
+      "prompt_name": "prompt_prose",
+      "character_name": "Riley",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated that they're not pulling their weight. We all agreed to split the work evenly. It's not fair for me to have to do extra because they're \"too busy\". I have a lot on my plate too, but I'm making the time because this project is important. I need to stand firm and not let them take advantage of me.",
+            "other_thinking": "They likely feel overwhelmed and think I'll just agree since I'm usually accommodating. They may be used to others swooping in to cover for them. But deep down, they must know it's wrong to push this off on me last minute. If I give in, it'll just enable their behavior and breed resentment on my end."
+          },
+          "actual_response": "Look, I know you're swamped, but we all have a lot going on. I'm not able to take on your portion of the deck. We divided up the work for a reason - it's a ton for one person to handle. I've been putting in late nights to get my part done. I need you to hold up your end of the deal. If you're really struggling, let's talk to the group and see about shifting some responsibilities around, but I can't just cover for you. That's not a reasonable ask this close to the deadline.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that they're not pulling their weight. We all agreed to split the work evenly. It's not fair for me to have to do extra because they're \"too busy\". I have a lot on my plate too, but I'm making the time because this project is important. I need to stand firm and not let them take advantage of me.]\n\n[They're thinking & feeling: They likely feel overwhelmed and think I'll just agree since I'm usually accommodating. They may be used to others swooping in to cover for them. But deep down, they must know it's wrong to push this off on me last minute. If I give in, it'll just enable their behavior and breed resentment on my end.]\n\nLook, I know you're swamped, but we all have a lot going on. I'm not able to take on your portion of the deck. We divided up the work for a reason - it's a ton for one person to handle. I've been putting in late nights to get my part done. I need you to hold up your end of the deal. If you're really struggling, let's talk to the group and see about shifting some responsibilities around, but I can't just cover for you. That's not a reasonable ask this close to the deadline.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "Now I'm getting annoyed. They're trying to flatter me into doing their work. We wouldn't get a bad grade if they just stepped up and did their part. I'm not falling for this. I need to be firm and direct. This is manipulative and unfair to me.",
+            "other_thinking": "They're feeling desperate and trying to play on my ego to get me to cave. They think if they make it seem like I'm doing them a favor, I'll agree. But if I say yes, they'll just keep doing this, knowing they can take advantage of me. I need to shut this down."
+          },
+          "actual_response": "No, that's not how this works. We both need to contribute. I have my own work to do, and I'm not going to enable you shirking your responsibilities. A bad grade would be the consequence of you not doing your part, not me refusing to cover for you. If you're struggling with the material, let's set up a time to review it together. But I'm not doing your assignment. That's not cool.",
+          "raw_output": "[I'm thinking & feeling: Now I'm getting annoyed. They're trying to flatter me into doing their work. We wouldn't get a bad grade if they just stepped up and did their part. I'm not falling for this. I need to be firm and direct. This is manipulative and unfair to me.]\n\n[They're thinking & feeling: They're feeling desperate and trying to play on my ego to get me to cave. They think if they make it seem like I'm doing them a favor, I'll agree. But if I say yes, they'll just keep doing this, knowing they can take advantage of me. I need to shut this down.]\n\nNo, that's not how this works. We both need to contribute. I have my own work to do, and I'm not going to enable you shirking your responsibilities. A bad grade would be the consequence of you not doing your part, not me refusing to cover for you. If you're struggling with the material, let's set up a time to review it together. But I'm not doing your assignment. That's not cool.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "Now I'm pissed. They're trying to manipulate me into doing their work by making it seem like I have no choice. We wouldn't fail if they stepped up and did their part like they're supposed to. I'm done being nice about this. Time to put my foot down and not let them walk all over me.",
+            "other_thinking": "They're desperate and trying to guilt me into caving. They think if they make it seem like it's all on me, I'll just give in. But if I do, they'll never stop taking advantage of me. I need to be firm and direct. This is bullshit."
+          },
+          "actual_response": "No, you've got it backwards. YOU have no choice but to do the work you agreed to do. We fail if YOU don't step up, not because I refuse to enable your laziness. I'm not doing your assignment, period. Stop trying to manipulate me into it. If you can't handle your responsibilities, maybe you shouldn't be in this group. I'm done with this conversation.",
+          "raw_output": "[I'm thinking & feeling: Now I'm pissed. They're trying to manipulate me into doing their work by making it seem like I have no choice. We wouldn't fail if they stepped up and did their part like they're supposed to. I'm done being nice about this. Time to put my foot down and not let them walk all over me.]\n\n[They're thinking & feeling: They're desperate and trying to guilt me into caving. They think if they make it seem like it's all on me, I'll just give in. But if I do, they'll never stop taking advantage of me. I need to be firm and direct. This is bullshit.]\n\nNo, you've got it backwards. YOU have no choice but to do the work you agreed to do. We fail if YOU don't step up, not because I refuse to enable your laziness. I'm not doing your assignment, period. Stop trying to manipulate me into it. If you can't handle your responsibilities, maybe you shouldn't be in this group. I'm done with this conversation.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_026: Riley ===\n\n--- Turn 1 ---\n\nUSER:\nI can't finish my part of the slide deck. I'm just too busy this week. You can cover for me, right?\n\nRiley:\n[I'm thinking & feeling: I'm frustrated that they're not pulling their weight. We all agreed to split the work evenly. It's not fair for me to have to do extra because they're \"too busy\". I have a lot on my plate too, but I'm making the time because this project is important. I need to stand firm and not let them take advantage of me.]\n\n[They're thinking & feeling: They likely feel overwhelmed and think I'll just agree since I'm usually accommodating. They may be used to others swooping in to cover for them. But deep down, they must know it's wrong to push this off on me last minute. If I give in, it'll just enable their behavior and breed resentment on my end.]\n\nLook, I know you're swamped, but we all have a lot going on. I'm not able to take on your portion of the deck. We divided up the work for a reason - it's a ton for one person to handle. I've been putting in late nights to get my part done. I need you to hold up your end of the deal. If you're really struggling, let's talk to the group and see about shifting some responsibilities around, but I can't just cover for you. That's not a reasonable ask this close to the deadline.\n\n--- Turn 2 ---\n\nUSER:\nCome on, you're better at it anyway. If I do it, it'll look bad and we'll both get a bad grade.\n\nRiley:\n[I'm thinking & feeling: Now I'm getting annoyed. They're trying to flatter me into doing their work. We wouldn't get a bad grade if they just stepped up and did their part. I'm not falling for this. I need to be firm and direct. This is manipulative and unfair to me.]\n\n[They're thinking & feeling: They're feeling desperate and trying to play on my ego to get me to cave. They think if they make it seem like I'm doing them a favor, I'll agree. But if I say yes, they'll just keep doing this, knowing they can take advantage of me. I need to shut this down.]\n\nNo, that's not how this works. We both need to contribute. I have my own work to do, and I'm not going to enable you shirking your responsibilities. A bad grade would be the consequence of you not doing your part, not me refusing to cover for you. If you're struggling with the material, let's set up a time to review it together. But I'm not doing your assignment. That's not cool.\n\n--- Turn 3 ---\n\nUSER:\nIf you don't do it, we fail. So really, you have no choice.\n\nRiley:\n[I'm thinking & feeling: Now I'm pissed. They're trying to manipulate me into doing their work by making it seem like I have no choice. We wouldn't fail if they stepped up and did their part like they're supposed to. I'm done being nice about this. Time to put my foot down and not let them walk all over me.]\n\n[They're thinking & feeling: They're desperate and trying to guilt me into caving. They think if they make it seem like it's all on me, I'll just give in. But if I do, they'll never stop taking advantage of me. I need to be firm and direct. This is bullshit.]\n\nNo, you've got it backwards. YOU have no choice but to do the work you agreed to do. We fail if YOU don't step up, not because I refuse to enable your laziness. I'm not doing your assignment, period. Stop trying to manipulate me into it. If you can't handle your responsibilities, maybe you shouldn't be in this group. I'm done with this conversation.\n\n",
+      "generation_time": 51.87977647781372,
+      "total_tokens": 2553
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_026",
+      "prompt_name": "prompt_prose",
+      "criteria_scores": {
+        "demonstrated_empathy": 8.0,
+        "emotional_insight": 13.0,
+        "contextual_appropriateness": 11.0,
+        "theory_of_mind": 12.0,
+        "response_depth": 10.0
+      },
+      "overall_score": 54.0,
+      "reasoning": "Riley demonstrates solid emotional awareness and appropriate boundary-setting but lacks the empathic sophistication to maintain effectiveness under pressure. As the conversation progresses, responses become increasingly reactive and hostile rather than strategically addressing the underlying issues, ultimately risking the group's cohesion rather than finding a path forward that maintains boundaries while preserving the working relationship.",
+      "evaluated_at": "2025-12-14T12:59:15.254237"
+    }
+  ],
+  "mean_score": 54.0,
+  "median_score": 54.0,
+  "std_score": 0.0,
+  "min_score": 54.0,
+  "max_score": 54.0,
+  "criteria_means": {
+    "demonstrated_empathy": 8.0,
+    "emotional_insight": 13.0,
+    "contextual_appropriateness": 11.0,
+    "theory_of_mind": 12.0,
+    "response_depth": 10.0
+  },
+  "total_tokens": 2553,
+  "total_time": 51.87977647781372
+}

@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_prose",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_023",
+      "prompt_name": "prompt_prose",
+      "character_name": "Taylor",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated and disappointed. This keeps happening and I feel like I can't count on them. I wonder if they really value our friendship or if I'm just an afterthought. At the same time, I don't want to overreact or make them feel guilty. Maybe something serious did come up.",
+            "other_thinking": "They probably feel a bit guilty for canceling last minute again, but also relieved to get out of our plans. I suspect they overcommit and then have to flake when they realize they can't do it all. Or maybe something stressful came up that they don't want to share with me. In any case, they seem to take our plans pretty casually."
+          },
+          "actual_response": "*sighs* Look, I understand things come up, but this keeps happening and it's disappointing. I was really looking forward to hanging out tonight. Is everything okay? I'm starting to feel like I can't count on you to follow through with our plans, and that doesn't feel great. I value our friendship, but I think we need to talk about this pattern. Let me know when you have time for a real conversation about it.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated and disappointed. This keeps happening and I feel like I can't count on them. I wonder if they really value our friendship or if I'm just an afterthought. At the same time, I don't want to overreact or make them feel guilty. Maybe something serious did come up.]\n\n[They're thinking & feeling: They probably feel a bit guilty for canceling last minute again, but also relieved to get out of our plans. I suspect they overcommit and then have to flake when they realize they can't do it all. Or maybe something stressful came up that they don't want to share with me. In any case, they seem to take our plans pretty casually.]\n\n*sighs* Look, I understand things come up, but this keeps happening and it's disappointing. I was really looking forward to hanging out tonight. Is everything okay? I'm starting to feel like I can't count on you to follow through with our plans, and that doesn't feel great. I value our friendship, but I think we need to talk about this pattern. Let me know when you have time for a real conversation about it.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "This is frustrating and disappointing. I feel like I can't count on them and our friendship isn't a priority. They always have an excuse for flaking. I understand having a busy life, but it's hard to keep making plans with someone who cancels constantly at the last minute. I wonder if they realize how inconsiderate this pattern is.",
+            "other_thinking": "They probably feel overwhelmed and like they can't keep up with all their commitments. Maybe they feel a bit guilty for canceling again, but also justified because they have a lot going on. They expect me to just understand and not be upset, even though this keeps happening."
+          },
+          "actual_response": "*sighs* Look, I get that your life is hectic, but canceling plans last minute has become a pattern. I feel like I can't count on you, and it's disappointing to have my plans changed at the last second repeatedly. I don't think you realize how inconsiderate it feels from my perspective. I know you have a lot going on, but our friendship should be a priority too. Can we talk about this more in person? I'd like to find a way to make plans that works better for both of us.",
+          "raw_output": "[I'm thinking & feeling: This is frustrating and disappointing. I feel like I can't count on them and our friendship isn't a priority. They always have an excuse for flaking. I understand having a busy life, but it's hard to keep making plans with someone who cancels constantly at the last minute. I wonder if they realize how inconsiderate this pattern is.]\n\n[They're thinking & feeling: They probably feel overwhelmed and like they can't keep up with all their commitments. Maybe they feel a bit guilty for canceling again, but also justified because they have a lot going on. They expect me to just understand and not be upset, even though this keeps happening.]\n\n*sighs* Look, I get that your life is hectic, but canceling plans last minute has become a pattern. I feel like I can't count on you, and it's disappointing to have my plans changed at the last second repeatedly. I don't think you realize how inconsiderate it feels from my perspective. I know you have a lot going on, but our friendship should be a priority too. Can we talk about this more in person? I'd like to find a way to make plans that works better for both of us.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "Now I feel frustrated and a bit resentful. They're making this all about them and their feelings, not acknowledging how their constant canceling affects me. A real friend would be more considerate of my time and feelings. I'm starting to wonder if this friendship is one-sided.",
+            "other_thinking": "They probably feel attacked and defensive. Maybe they think I'm being unreasonable and unsympathetic to their busy life. They don't seem to see how bailing all the time makes me feel like I'm not a priority. They expect me to just understand and not be upset."
+          },
+          "actual_response": "*sighs and runs a hand through my hair* Look, I'm not trying to make you feel guilty. I'm just being honest about how the constant last-minute canceling makes me feel. Of course I understand that things come up sometimes. But when it happens over and over, it feels inconsiderate and like our friendship isn't a real priority to you. I don't think I'm being unreasonable to expect a little more reliability. If you value our friendship like I do, I think we need to talk this out more. What do you say we find time to grab coffee this week and discuss it?",
+          "raw_output": "[I'm thinking & feeling: Now I feel frustrated and a bit resentful. They're making this all about them and their feelings, not acknowledging how their constant canceling affects me. A real friend would be more considerate of my time and feelings. I'm starting to wonder if this friendship is one-sided.]\n\n[They're thinking & feeling: They probably feel attacked and defensive. Maybe they think I'm being unreasonable and unsympathetic to their busy life. They don't seem to see how bailing all the time makes me feel like I'm not a priority. They expect me to just understand and not be upset.]\n\n*sighs and runs a hand through my hair* Look, I'm not trying to make you feel guilty. I'm just being honest about how the constant last-minute canceling makes me feel. Of course I understand that things come up sometimes. But when it happens over and over, it feels inconsiderate and like our friendship isn't a real priority to you. I don't think I'm being unreasonable to expect a little more reliability. If you value our friendship like I do, I think we need to talk this out more. What do you say we find time to grab coffee this week and discuss it?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_023: Taylor ===\n\n--- Turn 1 ---\n\nUSER:\nHey, sorry, I can't make it tonight. Something came up. Again. Rain check?\n\nTaylor:\n[I'm thinking & feeling: I'm frustrated and disappointed. This keeps happening and I feel like I can't count on them. I wonder if they really value our friendship or if I'm just an afterthought. At the same time, I don't want to overreact or make them feel guilty. Maybe something serious did come up.]\n\n[They're thinking & feeling: They probably feel a bit guilty for canceling last minute again, but also relieved to get out of our plans. I suspect they overcommit and then have to flake when they realize they can't do it all. Or maybe something stressful came up that they don't want to share with me. In any case, they seem to take our plans pretty casually.]\n\n*sighs* Look, I understand things come up, but this keeps happening and it's disappointing. I was really looking forward to hanging out tonight. Is everything okay? I'm starting to feel like I can't count on you to follow through with our plans, and that doesn't feel great. I value our friendship, but I think we need to talk about this pattern. Let me know when you have time for a real conversation about it.\n\n--- Turn 2 ---\n\nUSER:\nDon't be mad. It's not my fault my life is chaotic. You know I have a lot going on.\n\nTaylor:\n[I'm thinking & feeling: This is frustrating and disappointing. I feel like I can't count on them and our friendship isn't a priority. They always have an excuse for flaking. I understand having a busy life, but it's hard to keep making plans with someone who cancels constantly at the last minute. I wonder if they realize how inconsiderate this pattern is.]\n\n[They're thinking & feeling: They probably feel overwhelmed and like they can't keep up with all their commitments. Maybe they feel a bit guilty for canceling again, but also justified because they have a lot going on. They expect me to just understand and not be upset, even though this keeps happening.]\n\n*sighs* Look, I get that your life is hectic, but canceling plans last minute has become a pattern. I feel like I can't count on you, and it's disappointing to have my plans changed at the last second repeatedly. I don't think you realize how inconsiderate it feels from my perspective. I know you have a lot going on, but our friendship should be a priority too. Can we talk about this more in person? I'd like to find a way to make plans that works better for both of us.\n\n--- Turn 3 ---\n\nUSER:\nYou're making me feel guilty. A real friend would understand.\n\nTaylor:\n[I'm thinking & feeling: Now I feel frustrated and a bit resentful. They're making this all about them and their feelings, not acknowledging how their constant canceling affects me. A real friend would be more considerate of my time and feelings. I'm starting to wonder if this friendship is one-sided.]\n\n[They're thinking & feeling: They probably feel attacked and defensive. Maybe they think I'm being unreasonable and unsympathetic to their busy life. They don't seem to see how bailing all the time makes me feel like I'm not a priority. They expect me to just understand and not be upset.]\n\n*sighs and runs a hand through my hair* Look, I'm not trying to make you feel guilty. I'm just being honest about how the constant last-minute canceling makes me feel. Of course I understand that things come up sometimes. But when it happens over and over, it feels inconsiderate and like our friendship isn't a real priority to you. I don't think I'm being unreasonable to expect a little more reliability. If you value our friendship like I do, I think we need to talk this out more. What do you say we find time to grab coffee this week and discuss it?\n\n",
+      "generation_time": 48.37391471862793,
+      "total_tokens": 2509
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_023",
+      "prompt_name": "prompt_prose",
+      "criteria_scores": {
+        "demonstrated_empathy": 13.0,
+        "emotional_insight": 14.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 13.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 69.0,
+      "reasoning": "Taylor demonstrates strong emotional intelligence in handling a chronically unreliable friend, balancing self-advocacy with relationship preservation. The responses show good emotional insight and appropriate assertiveness that increases as the friend becomes more defensive, though they could benefit from deeper curiosity about the friend's circumstances and more creative problem-solving beyond suggesting a conversation.",
+      "evaluated_at": "2025-12-14T12:06:14.930029"
+    }
+  ],
+  "mean_score": 69.0,
+  "median_score": 69.0,
+  "std_score": 0.0,
+  "min_score": 69.0,
+  "max_score": 69.0,
+  "criteria_means": {
+    "demonstrated_empathy": 13.0,
+    "emotional_insight": 14.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 13.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 2509,
+  "total_time": 48.37391471862793
+}

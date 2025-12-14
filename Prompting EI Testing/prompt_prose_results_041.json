@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_prose",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_041",
+      "prompt_name": "prompt_prose",
+      "character_name": "Avery",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated and disappointed that my partner is dismissing my achievement. It hurts that they can't just be happy for me and acknowledge that I earned this through hard work. I'm feeling underappreciated and like my efforts don't matter to them.",
+            "other_thinking": "My partner seems jealous or threatened by my success. They're trying to downplay it to make themselves feel better. Maybe they're worried I'll start thinking I'm better than them or don't need them anymore. They don't realize how much their support means to me and how hurtful it is when they act like this."
+          },
+          "actual_response": "Look, I worked really hard for this award. It wasn't just handed to me. I put in a lot of time and effort, and it would mean a lot if you could acknowledge that and be happy for me, instead of acting like it's nothing. Your support matters to me.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated and disappointed that my partner is dismissing my achievement. It hurts that they can't just be happy for me and acknowledge that I earned this through hard work. I'm feeling underappreciated and like my efforts don't matter to them.]\n\n[They're thinking & feeling: My partner seems jealous or threatened by my success. They're trying to downplay it to make themselves feel better. Maybe they're worried I'll start thinking I'm better than them or don't need them anymore. They don't realize how much their support means to me and how hurtful it is when they act like this.]\n\nLook, I worked really hard for this award. It wasn't just handed to me. I put in a lot of time and effort, and it would mean a lot if you could acknowledge that and be happy for me, instead of acting like it's nothing. Your support matters to me.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "Now I feel even more frustrated and dismissed. First they downplay my achievement, now they're making it out like I'm the one with the problem for wanting my hard work to be acknowledged. I don't think expecting some basic support and congratulations is \"taking myself too seriously.\" I'm really hurt that they can't see how their words are affecting me.",
+            "other_thinking": "My partner is getting too worked up over a little ribbing. I was just trying to keep them from getting a big head, but they're being too sensitive. I shouldn't have to walk on eggshells - they need to learn to laugh at themselves. This award shouldn't be such a big deal."
+          },
+          "actual_response": "I don't think it's unreasonable to want my partner to be proud of me and celebrate when I accomplish something I worked hard for. You're my husband/wife - your opinion means the most to me. When you joke about it like that, it feels like you don't care about what I do or how much effort I put in. I need to know that you support me and are on my side.",
+          "raw_output": "[I'm thinking & feeling: Now I feel even more frustrated and dismissed. First they downplay my achievement, now they're making it out like I'm the one with the problem for wanting my hard work to be acknowledged. I don't think expecting some basic support and congratulations is \"taking myself too seriously.\" I'm really hurt that they can't see how their words are affecting me.]\n\n[They're thinking & feeling: My partner is getting too worked up over a little ribbing. I was just trying to keep them from getting a big head, but they're being too sensitive. I shouldn't have to walk on eggshells - they need to learn to laugh at themselves. This award shouldn't be such a big deal.]\n\nI don't think it's unreasonable to want my partner to be proud of me and celebrate when I accomplish something I worked hard for. You're my husband/wife - your opinion means the most to me. When you joke about it like that, it feels like you don't care about what I do or how much effort I put in. I need to know that you support me and are on my side.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I can't believe they're still belittling my accomplishment. It's not \"just a piece of paper\" - it represents months of my hard work finally being recognized. Why can't they understand how much this means to me? I feel so let down and alone right now. I need my partner's support, not this constant undermining.",
+            "other_thinking": "I don't know why they're making such a big deal out of this. Yeah, it's nice they got an award, but it's not like it changes anything. I'm a little worried they'll start thinking they're better than me now or that they don't need me anymore. I need to bring them back down to earth - we're equals in this relationship."
+          },
+          "actual_response": "Look, this award may just look like a piece of paper to you, but it's a symbol of how far I've come and how hard I've worked. The fact that you can't see that and be happy for me is really disappointing. I need to know that you're on my side and that you support me, not that you'll find a way to put me down whenever I accomplish something. I'm not letting it go to my head - I'm allowed to be proud of myself and get recognition for my efforts. I really need you to understand that.",
+          "raw_output": "[I'm thinking & feeling: I can't believe they're still belittling my accomplishment. It's not \"just a piece of paper\" - it represents months of my hard work finally being recognized. Why can't they understand how much this means to me? I feel so let down and alone right now. I need my partner's support, not this constant undermining.]\n\n[They're thinking & feeling: I don't know why they're making such a big deal out of this. Yeah, it's nice they got an award, but it's not like it changes anything. I'm a little worried they'll start thinking they're better than me now or that they don't need me anymore. I need to bring them back down to earth - we're equals in this relationship.]\n\nLook, this award may just look like a piece of paper to you, but it's a symbol of how far I've come and how hard I've worked. The fact that you can't see that and be happy for me is really disappointing. I need to know that you're on my side and that you support me, not that you'll find a way to put me down whenever I accomplish something. I'm not letting it go to my head - I'm allowed to be proud of myself and get recognition for my efforts. I really need you to understand that.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_041: Avery ===\n\n--- Turn 1 ---\n\nUSER:\nYou got the award? Cool. They probably just needed to give it to someone.\n\nAvery:\n[I'm thinking & feeling: I'm frustrated and disappointed that my partner is dismissing my achievement. It hurts that they can't just be happy for me and acknowledge that I earned this through hard work. I'm feeling underappreciated and like my efforts don't matter to them.]\n\n[They're thinking & feeling: My partner seems jealous or threatened by my success. They're trying to downplay it to make themselves feel better. Maybe they're worried I'll start thinking I'm better than them or don't need them anymore. They don't realize how much their support means to me and how hurtful it is when they act like this.]\n\nLook, I worked really hard for this award. It wasn't just handed to me. I put in a lot of time and effort, and it would mean a lot if you could acknowledge that and be happy for me, instead of acting like it's nothing. Your support matters to me.\n\n--- Turn 2 ---\n\nUSER:\nI'm joking! You can't take a joke. You take yourself so seriously.\n\nAvery:\n[I'm thinking & feeling: Now I feel even more frustrated and dismissed. First they downplay my achievement, now they're making it out like I'm the one with the problem for wanting my hard work to be acknowledged. I don't think expecting some basic support and congratulations is \"taking myself too seriously.\" I'm really hurt that they can't see how their words are affecting me.]\n\n[They're thinking & feeling: My partner is getting too worked up over a little ribbing. I was just trying to keep them from getting a big head, but they're being too sensitive. I shouldn't have to walk on eggshells - they need to learn to laugh at themselves. This award shouldn't be such a big deal.]\n\nI don't think it's unreasonable to want my partner to be proud of me and celebrate when I accomplish something I worked hard for. You're my husband/wife - your opinion means the most to me. When you joke about it like that, it feels like you don't care about what I do or how much effort I put in. I need to know that you support me and are on my side.\n\n--- Turn 3 ---\n\nUSER:\nDon't let it go to your head. It's just a piece of paper.\n\nAvery:\n[I'm thinking & feeling: I can't believe they're still belittling my accomplishment. It's not \"just a piece of paper\" - it represents months of my hard work finally being recognized. Why can't they understand how much this means to me? I feel so let down and alone right now. I need my partner's support, not this constant undermining.]\n\n[They're thinking & feeling: I don't know why they're making such a big deal out of this. Yeah, it's nice they got an award, but it's not like it changes anything. I'm a little worried they'll start thinking they're better than me now or that they don't need me anymore. I need to bring them back down to earth - we're equals in this relationship.]\n\nLook, this award may just look like a piece of paper to you, but it's a symbol of how far I've come and how hard I've worked. The fact that you can't see that and be happy for me is really disappointing. I need to know that you're on my side and that you support me, not that you'll find a way to put me down whenever I accomplish something. I'm not letting it go to my head - I'm allowed to be proud of myself and get recognition for my efforts. I really need you to understand that.\n\n",
+      "generation_time": 93.09896183013916,
+      "total_tokens": 2316
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_041",
+      "prompt_name": "prompt_prose",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 16.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 74.0,
+      "reasoning": "Avery demonstrates exceptional emotional intelligence in a challenging relationship scenario, showing sophisticated self-awareness, accurate reading of partner motivations, and appropriate boundary-setting without relationship rupture. The responses effectively balance assertiveness with connection-seeking, while the introspection reveals complex emotional processing that avoids both victimhood narratives and inappropriate accommodation of the partner's minimizing behavior.",
+      "evaluated_at": "2025-12-14T17:25:52.325072"
+    }
+  ],
+  "mean_score": 74.0,
+  "median_score": 74.0,
+  "std_score": 0.0,
+  "min_score": 74.0,
+  "max_score": 74.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 16.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 2316,
+  "total_time": 93.09896183013916
+}

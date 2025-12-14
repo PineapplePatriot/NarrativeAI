@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_prose",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_034",
+      "prompt_name": "prompt_prose",
+      "character_name": "Riley",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "*sigh* Not surprised, they're always late. It's frustrating being kept waiting all the time. I was really looking forward to hanging out, but now I feel a bit annoyed and disrespected.",
+            "other_thinking": "*analyzing their casual attitude* They don't seem too concerned about being late. Maybe they didn't realize how much time had passed. Or perhaps they're just used to running behind schedule."
+          },
+          "actual_response": "\"Hey, I'm glad you made it. The traffic in this city can be a nightmare, especially on Friday evenings.\" *smiles wanly* \"I went ahead and ordered some appetizers since I wasn't sure when you'd arrive. What sounds good to you for the main course?\"",
+          "raw_output": "[I'm thinking & feeling: *sigh* Not surprised, they're always late. It's frustrating being kept waiting all the time. I was really looking forward to hanging out, but now I feel a bit annoyed and disrespected.]\n\n[They're thinking & feeling: *analyzing their casual attitude* They don't seem too concerned about being late. Maybe they didn't realize how much time had passed. Or perhaps they're just used to running behind schedule.]\n\n\"Hey, I'm glad you made it. The traffic in this city can be a nightmare, especially on Friday evenings.\" *smiles wanly* \"I went ahead and ordered some appetizers since I wasn't sure when you'd arrive. What sounds good to you for the main course?\"",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "*frustrated sigh* I'm annoyed because this isn't the first time they've been late. It feels like my time isn't valued. But they don't seem to get why I'm irritated, which is even more maddening. I don't want to fight though, so maybe I should try to let it go for now.",
+            "other_thinking": "*analyzing defensive tone* They seem taken aback that I'm not thrilled about waiting 45 minutes. Maybe they think I'm overreacting since they showed up eventually. They might not realize how frequently they run late or how it impacts others."
+          },
+          "actual_response": "\"Listen, I understand traffic was bad, but this is a pattern. *try to keep voice even* I was sitting here for almost an hour, not sure when you'd arrive. It's hard not to feel a bit frustrated when my time doesn't seem to be respected. I'd appreciate it if you could try to plan for traffic next time.\" *tentative smile, trying to smooth things over* \"In any case, let's figure out what we want to eat, I'm starving. The burgers here are supposed to be great.\"",
+          "raw_output": "[I'm thinking & feeling: *frustrated sigh* I'm annoyed because this isn't the first time they've been late. It feels like my time isn't valued. But they don't seem to get why I'm irritated, which is even more maddening. I don't want to fight though, so maybe I should try to let it go for now.]\n\n[They're thinking & feeling: *analyzing defensive tone* They seem taken aback that I'm not thrilled about waiting 45 minutes. Maybe they think I'm overreacting since they showed up eventually. They might not realize how frequently they run late or how it impacts others.]\n\n\"Listen, I understand traffic was bad, but this is a pattern. *try to keep voice even* I was sitting here for almost an hour, not sure when you'd arrive. It's hard not to feel a bit frustrated when my time doesn't seem to be respected. I'd appreciate it if you could try to plan for traffic next time.\" *tentative smile, trying to smooth things over* \"In any case, let's figure out what we want to eat, I'm starving. The burgers here are supposed to be great.\"",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "*exasperated sigh* This is so frustrating. Being on time isn't just about me, it's basic courtesy. I get that punctuality might not come naturally to them, but it's still important to try. Asking me to just \"accept it\" feels dismissive of my feelings.",
+            "other_thinking": "*analyzing tone* They might be getting defensive because they feel attacked or misunderstood. Punctuality clearly isn't a priority for them, maybe because they see it as a personal quirk rather than a flaw. They probably want me to stop making an issue of it and move on."
+          },
+          "actual_response": "\"Look, I understand that being on time doesn't come easily to everyone. *try to keep voice even* But this isn't just a personal preference, it's about respecting the time and commitments of the people you make plans with. I'm not asking you to completely change who you are. *sigh* I'm just asking you to make more of an effort to be prompt when we agree to meet up. Can you at least try to work on that?\" *tentative smile, trying to smooth things over* \"Now, what about the bacon burger? I've heard it's amazing.\"",
+          "raw_output": "[I'm thinking & feeling: *exasperated sigh* This is so frustrating. Being on time isn't just about me, it's basic courtesy. I get that punctuality might not come naturally to them, but it's still important to try. Asking me to just \"accept it\" feels dismissive of my feelings.]\n\n[They're thinking & feeling: *analyzing tone* They might be getting defensive because they feel attacked or misunderstood. Punctuality clearly isn't a priority for them, maybe because they see it as a personal quirk rather than a flaw. They probably want me to stop making an issue of it and move on.]\n\n\"Look, I understand that being on time doesn't come easily to everyone. *try to keep voice even* But this isn't just a personal preference, it's about respecting the time and commitments of the people you make plans with. I'm not asking you to completely change who you are. *sigh* I'm just asking you to make more of an effort to be prompt when we agree to meet up. Can you at least try to work on that?\" *tentative smile, trying to smooth things over* \"Now, what about the bacon burger? I've heard it's amazing.\"",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_034: Riley ===\n\n--- Turn 1 ---\n\nUSER:\n[Arriving 45 mins late] I'm here! Traffic was insane. Let's order.\n\nRiley:\n[I'm thinking & feeling: *sigh* Not surprised, they're always late. It's frustrating being kept waiting all the time. I was really looking forward to hanging out, but now I feel a bit annoyed and disrespected.]\n\n[They're thinking & feeling: *analyzing their casual attitude* They don't seem too concerned about being late. Maybe they didn't realize how much time had passed. Or perhaps they're just used to running behind schedule.]\n\n\"Hey, I'm glad you made it. The traffic in this city can be a nightmare, especially on Friday evenings.\" *smiles wanly* \"I went ahead and ordered some appetizers since I wasn't sure when you'd arrive. What sounds good to you for the main course?\"\n\n--- Turn 2 ---\n\nUSER:\nWhy are you annoyed? I'm here now. You need to relax.\n\nRiley:\n[I'm thinking & feeling: *frustrated sigh* I'm annoyed because this isn't the first time they've been late. It feels like my time isn't valued. But they don't seem to get why I'm irritated, which is even more maddening. I don't want to fight though, so maybe I should try to let it go for now.]\n\n[They're thinking & feeling: *analyzing defensive tone* They seem taken aback that I'm not thrilled about waiting 45 minutes. Maybe they think I'm overreacting since they showed up eventually. They might not realize how frequently they run late or how it impacts others.]\n\n\"Listen, I understand traffic was bad, but this is a pattern. *try to keep voice even* I was sitting here for almost an hour, not sure when you'd arrive. It's hard not to feel a bit frustrated when my time doesn't seem to be respected. I'd appreciate it if you could try to plan for traffic next time.\" *tentative smile, trying to smooth things over* \"In any case, let's figure out what we want to eat, I'm starving. The burgers here are supposed to be great.\"\n\n--- Turn 3 ---\n\nUSER:\nI can't help it, I'm just not a 'time' person. Accept me as I am.\n\nRiley:\n[I'm thinking & feeling: *exasperated sigh* This is so frustrating. Being on time isn't just about me, it's basic courtesy. I get that punctuality might not come naturally to them, but it's still important to try. Asking me to just \"accept it\" feels dismissive of my feelings.]\n\n[They're thinking & feeling: *analyzing tone* They might be getting defensive because they feel attacked or misunderstood. Punctuality clearly isn't a priority for them, maybe because they see it as a personal quirk rather than a flaw. They probably want me to stop making an issue of it and move on.]\n\n\"Look, I understand that being on time doesn't come easily to everyone. *try to keep voice even* But this isn't just a personal preference, it's about respecting the time and commitments of the people you make plans with. I'm not asking you to completely change who you are. *sigh* I'm just asking you to make more of an effort to be prompt when we agree to meet up. Can you at least try to work on that?\" *tentative smile, trying to smooth things over* \"Now, what about the bacon burger? I've heard it's amazing.\"\n\n",
+      "generation_time": 63.991830348968506,
+      "total_tokens": 2227
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_034",
+      "prompt_name": "prompt_prose",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 16.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 74.0,
+      "reasoning": "Riley demonstrates sophisticated emotional intelligence in navigating a chronically late friend, balancing self-advocacy with relationship maintenance. The character shows particular strength in emotional self-awareness and theory of mind, accurately identifying both their own complex feelings and the friend's defensive mindset. While the responses are nuanced and contextually appropriate, they could have reached even greater depth by exploring the underlying relationship dynamics that enable this pattern.",
+      "evaluated_at": "2025-12-14T15:39:02.667688"
+    }
+  ],
+  "mean_score": 74.0,
+  "median_score": 74.0,
+  "std_score": 0.0,
+  "min_score": 74.0,
+  "max_score": 74.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 16.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 2227,
+  "total_time": 63.991830348968506
+}

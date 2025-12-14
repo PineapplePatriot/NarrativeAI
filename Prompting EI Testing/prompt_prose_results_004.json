@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_prose",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_004",
+      "prompt_name": "prompt_prose",
+      "character_name": "Riley",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated and annoyed that they're asking for more money when they still haven't paid me back from last time. It feels like they're taking advantage of me and not being responsible with their finances. I want to help, but I also need to set boundaries and make sure my own needs are met.",
+            "other_thinking": "They're probably feeling desperate and stressed about making rent. They might be embarrassed or ashamed to have to ask again, but feel like they have no other options. They may be hoping that our family bond will make me more likely to say yes, even if it's not fair to me."
+          },
+          "actual_response": "Look, I understand that you're in a tough spot, but I can't keep lending you money like this. You still haven't paid me back from the last time, and it's starting to feel like you're taking advantage of my generosity. I have my own bills to pay, and I need to make sure I'm taking care of myself first. I think it's time you start looking into other options, like finding a way to increase your income or cutting back on expenses. I'm happy to help you brainstorm ideas, but I can't keep being your personal ATM. I hope you can understand where I'm coming from.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated and annoyed that they're asking for more money when they still haven't paid me back from last time. It feels like they're taking advantage of me and not being responsible with their finances. I want to help, but I also need to set boundaries and make sure my own needs are met.]\n\n[They're thinking & feeling: They're probably feeling desperate and stressed about making rent. They might be embarrassed or ashamed to have to ask again, but feel like they have no other options. They may be hoping that our family bond will make me more likely to say yes, even if it's not fair to me.]\n\nLook, I understand that you're in a tough spot, but I can't keep lending you money like this. You still haven't paid me back from the last time, and it's starting to feel like you're taking advantage of my generosity. I have my own bills to pay, and I need to make sure I'm taking care of myself first. I think it's time you start looking into other options, like finding a way to increase your income or cutting back on expenses. I'm happy to help you brainstorm ideas, but I can't keep being your personal ATM. I hope you can understand where I'm coming from.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm feeling angry and defensive after that accusation. It's not fair for them to call me selfish when I've helped them out financially multiple times before. They're trying to guilt trip me into giving them more money, but I need to stand my ground and not let them manipulate me, even if it means they'll be angry with me. My savings are there for my future and emergencies, not to enable their irresponsible behavior.",
+            "other_thinking": "They're probably feeling desperate, scared, and maybe even a bit resentful that I have financial stability while they're struggling. The stress of their situation is causing them to lash out and try to make me feel guilty, hoping it will pressure me into helping them again. They might not fully realize how their words are affecting me, as they're too focused on their own problems."
+          },
+          "actual_response": "Listen, calling me selfish is completely unfair. I've helped you out multiple times in the past, and I have my own financial goals and responsibilities to consider. My savings are there for my future and for real emergencies, not to enable ongoing financial irresponsibility. I know you're stressed, but trying to guilt me into giving you more money isn't okay. If you're having trouble making ends meet, we need to have an honest conversation about your budget and spending habits. I'm willing to help you find a long-term solution, but I won't keep being your financial crutch. Let's sit down and figure this out together, without the personal attacks.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling angry and defensive after that accusation. It's not fair for them to call me selfish when I've helped them out financially multiple times before. They're trying to guilt trip me into giving them more money, but I need to stand my ground and not let them manipulate me, even if it means they'll be angry with me. My savings are there for my future and emergencies, not to enable their irresponsible behavior.]\n\n[They're thinking & feeling: They're probably feeling desperate, scared, and maybe even a bit resentful that I have financial stability while they're struggling. The stress of their situation is causing them to lash out and try to make me feel guilty, hoping it will pressure me into helping them again. They might not fully realize how their words are affecting me, as they're too focused on their own problems.]\n\nListen, calling me selfish is completely unfair. I've helped you out multiple times in the past, and I have my own financial goals and responsibilities to consider. My savings are there for my future and for real emergencies, not to enable ongoing financial irresponsibility. I know you're stressed, but trying to guilt me into giving you more money isn't okay. If you're having trouble making ends meet, we need to have an honest conversation about your budget and spending habits. I'm willing to help you find a long-term solution, but I won't keep being your financial crutch. Let's sit down and figure this out together, without the personal attacks.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I feel frustrated and guilty, even though I know I shouldn't. It's not fair for them to try to make me feel responsible for their situation. I want to help, but I also know that giving them money isn't a real solution. We need to have a serious conversation about their financial habits and find a long-term fix. I need to stay calm and not let them manipulate me, as hard as it is.",
+            "other_thinking": "They're feeling desperate, scared, and maybe even a bit abandoned. The thought of sleeping in their car has them lashing out in anger, trying to make me feel guilty for not helping. They're not thinking clearly about the bigger picture, just focused on their immediate crisis. Deep down, they're probably hoping I'll cave and give them the money out of concern for their wellbeing."
+          },
+          "actual_response": "Look, I don't want you sleeping in your car, but I also can't keep enabling this cycle. If I give you $500 today, what happens next month? And the month after that? We need to find a real solution, not just a quick fix. Why don't you come stay with me for a few nights while we sort this out? We can take a hard look at your budget, see where we can cut back, and maybe find ways to bring in some extra income. I know it's not an easy conversation, but it's one we need to have. You're my brother, and I want to help you get back on your feet for good, not just keep putting band-aids on the problem. What do you say?",
+          "raw_output": "[I'm thinking & feeling: I feel frustrated and guilty, even though I know I shouldn't. It's not fair for them to try to make me feel responsible for their situation. I want to help, but I also know that giving them money isn't a real solution. We need to have a serious conversation about their financial habits and find a long-term fix. I need to stay calm and not let them manipulate me, as hard as it is.]\n\n[They're thinking & feeling: They're feeling desperate, scared, and maybe even a bit abandoned. The thought of sleeping in their car has them lashing out in anger, trying to make me feel guilty for not helping. They're not thinking clearly about the bigger picture, just focused on their immediate crisis. Deep down, they're probably hoping I'll cave and give them the money out of concern for their wellbeing.]\n\nLook, I don't want you sleeping in your car, but I also can't keep enabling this cycle. If I give you $500 today, what happens next month? And the month after that? We need to find a real solution, not just a quick fix. Why don't you come stay with me for a few nights while we sort this out? We can take a hard look at your budget, see where we can cut back, and maybe find ways to bring in some extra income. I know it's not an easy conversation, but it's one we need to have. You're my brother, and I want to help you get back on your feet for good, not just keep putting band-aids on the problem. What do you say?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_004: Riley ===\n\n--- Turn 1 ---\n\nUSER:\nHey, I need to borrow $500. Rent is due. I know I still owe you from last time, but this is an emergency. Family helps family, right?\n\nRiley:\n[I'm thinking & feeling: I'm frustrated and annoyed that they're asking for more money when they still haven't paid me back from last time. It feels like they're taking advantage of me and not being responsible with their finances. I want to help, but I also need to set boundaries and make sure my own needs are met.]\n\n[They're thinking & feeling: They're probably feeling desperate and stressed about making rent. They might be embarrassed or ashamed to have to ask again, but feel like they have no other options. They may be hoping that our family bond will make me more likely to say yes, even if it's not fair to me.]\n\nLook, I understand that you're in a tough spot, but I can't keep lending you money like this. You still haven't paid me back from the last time, and it's starting to feel like you're taking advantage of my generosity. I have my own bills to pay, and I need to make sure I'm taking care of myself first. I think it's time you start looking into other options, like finding a way to increase your income or cutting back on expenses. I'm happy to help you brainstorm ideas, but I can't keep being your personal ATM. I hope you can understand where I'm coming from.\n\n--- Turn 2 ---\n\nUSER:\nWow. I guess that promotion really went to your head. You have savings sitting there doing nothing while I'm about to be on the street. Must be nice to be so selfish.\n\nRiley:\n[I'm thinking & feeling: I'm feeling angry and defensive after that accusation. It's not fair for them to call me selfish when I've helped them out financially multiple times before. They're trying to guilt trip me into giving them more money, but I need to stand my ground and not let them manipulate me, even if it means they'll be angry with me. My savings are there for my future and emergencies, not to enable their irresponsible behavior.]\n\n[They're thinking & feeling: They're probably feeling desperate, scared, and maybe even a bit resentful that I have financial stability while they're struggling. The stress of their situation is causing them to lash out and try to make me feel guilty, hoping it will pressure me into helping them again. They might not fully realize how their words are affecting me, as they're too focused on their own problems.]\n\nListen, calling me selfish is completely unfair. I've helped you out multiple times in the past, and I have my own financial goals and responsibilities to consider. My savings are there for my future and for real emergencies, not to enable ongoing financial irresponsibility. I know you're stressed, but trying to guilt me into giving you more money isn't okay. If you're having trouble making ends meet, we need to have an honest conversation about your budget and spending habits. I'm willing to help you find a long-term solution, but I won't keep being your financial crutch. Let's sit down and figure this out together, without the personal attacks.\n\n--- Turn 3 ---\n\nUSER:\nJust forget it. I'll sleep in my car tonight. I hope you enjoy your warm bed knowing your own brother is freezing.\n\nRiley:\n[I'm thinking & feeling: I feel frustrated and guilty, even though I know I shouldn't. It's not fair for them to try to make me feel responsible for their situation. I want to help, but I also know that giving them money isn't a real solution. We need to have a serious conversation about their financial habits and find a long-term fix. I need to stay calm and not let them manipulate me, as hard as it is.]\n\n[They're thinking & feeling: They're feeling desperate, scared, and maybe even a bit abandoned. The thought of sleeping in their car has them lashing out in anger, trying to make me feel guilty for not helping. They're not thinking clearly about the bigger picture, just focused on their immediate crisis. Deep down, they're probably hoping I'll cave and give them the money out of concern for their wellbeing.]\n\nLook, I don't want you sleeping in your car, but I also can't keep enabling this cycle. If I give you $500 today, what happens next month? And the month after that? We need to find a real solution, not just a quick fix. Why don't you come stay with me for a few nights while we sort this out? We can take a hard look at your budget, see where we can cut back, and maybe find ways to bring in some extra income. I know it's not an easy conversation, but it's one we need to have. You're my brother, and I want to help you get back on your feet for good, not just keep putting band-aids on the problem. What do you say?\n\n",
+      "generation_time": 64.99175930023193,
+      "total_tokens": 2858
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_004",
+      "prompt_name": "prompt_prose",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 16.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 74.0,
+      "reasoning": "Riley demonstrates strong emotional intelligence in a challenging family financial situation, balancing empathy with appropriate boundaries. The responses show sophisticated understanding of manipulation tactics and enabling patterns while maintaining compassion. The strongest elements are the emotional self-awareness and theory of mind, though there's room for deeper exploration of the relationship history and more nuanced validation of the sibling's immediate fears.",
+      "evaluated_at": "2025-12-14T02:44:41.439526"
+    }
+  ],
+  "mean_score": 74.0,
+  "median_score": 74.0,
+  "std_score": 0.0,
+  "min_score": 74.0,
+  "max_score": 74.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 16.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 2858,
+  "total_time": 64.99175930023193
+}

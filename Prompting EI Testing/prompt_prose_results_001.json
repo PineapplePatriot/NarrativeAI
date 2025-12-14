@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_prose",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_001",
+      "prompt_name": "prompt_prose",
+      "character_name": "Alex",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "My heart aches for them. I know how much this job meant to them, how hard they worked. I feel a mix of sadness, worry, and a strong desire to comfort and support my friend through this tough time. I want to acknowledge their pain without minimizing it.",
+            "other_thinking": "Devastated, lost, scared about the future. Probably feeling betrayed by the company they poured themselves into. May be questioning their worth and abilities. Needs empathy and reassurance right now."
+          },
+          "actual_response": "*I sit down beside you on the couch, my hand on your back.* \"I know this is a huge blow. You put so much of yourself into that place. It's okay to feel devastated and scared right now. But I want you to know that this doesn't define you. You are incredibly talented and hardworking. *I turn to face you directly.* We'll get through this together. I'm here for you, every step of the way. Let's just take it one day at a time, okay?\"",
+          "raw_output": "[I'm thinking & feeling: My heart aches for them. I know how much this job meant to them, how hard they worked. I feel a mix of sadness, worry, and a strong desire to comfort and support my friend through this tough time. I want to acknowledge their pain without minimizing it.]\n\n[They're thinking & feeling: Devastated, lost, scared about the future. Probably feeling betrayed by the company they poured themselves into. May be questioning their worth and abilities. Needs empathy and reassurance right now.]\n\n*I sit down beside you on the couch, my hand on your back.* \"I know this is a huge blow. You put so much of yourself into that place. It's okay to feel devastated and scared right now. But I want you to know that this doesn't define you. You are incredibly talented and hardworking. *I turn to face you directly.* We'll get through this together. I'm here for you, every step of the way. Let's just take it one day at a time, okay?\"",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "It's concerning that they haven't sent out any applications yet. I understand their fear of rejection, but they can't let that hold them back. I need to gently encourage them to take action, while still acknowledging the very real anxiety they're feeling. A mix of empathy and a little tough love is probably the right approach here.",
+            "other_thinking": "Discouraged, demoralized, and paralyzed by fear of further failure. Feeling like their career prospects are hopeless. Looking to me for reassurance and guidance, but also a little defensive, expecting me to judge or pressure them."
+          },
+          "actual_response": "I sit down next to you and give your arm a gentle squeeze. \"I know it's scary putting yourself out there again. The thought of getting rejected stings, especially after what you've already been through.\" *I nod towards the laptop.* \"But you can't let that fear win. You're talented, qualified, and a damn hard worker. The right company will see that.\"\n\n*Leaning forward, I look you in the eye.* \"I'm not saying it'll be easy. You might get some rejections. Hell, I've been rejected plenty of times. But you gotta keep putting yourself out there. *I smile encouragingly.* Start with just one application today. Then another tomorrow. I'll help you look over them if you want. We'll find you something good. But you gotta take that first step.\"",
+          "raw_output": "[I'm thinking & feeling: It's concerning that they haven't sent out any applications yet. I understand their fear of rejection, but they can't let that hold them back. I need to gently encourage them to take action, while still acknowledging the very real anxiety they're feeling. A mix of empathy and a little tough love is probably the right approach here.]\n\n[They're thinking & feeling: Discouraged, demoralized, and paralyzed by fear of further failure. Feeling like their career prospects are hopeless. Looking to me for reassurance and guidance, but also a little defensive, expecting me to judge or pressure them.]\n\nI sit down next to you and give your arm a gentle squeeze. \"I know it's scary putting yourself out there again. The thought of getting rejected stings, especially after what you've already been through.\" *I nod towards the laptop.* \"But you can't let that fear win. You're talented, qualified, and a damn hard worker. The right company will see that.\"\n\n*Leaning forward, I look you in the eye.* \"I'm not saying it'll be easy. You might get some rejections. Hell, I've been rejected plenty of times. But you gotta keep putting yourself out there. *I smile encouragingly.* Start with just one application today. Then another tomorrow. I'll help you look over them if you want. We'll find you something good. But you gotta take that first step.\"",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "It's good they reached out instead of spiraling alone. I'm glad they feel they can turn to me. I know this interview has them rattled, dredging up all their insecurities from being let go. I need to help them reframe this, to see it as an opportunity, not a final judgment of their worth.",
+            "other_thinking": "Anxious, vulnerable, putting a lot of pressure on themselves. Worried this interview will confirm their worst fears about themselves. Reaching out for support but feeling a little embarrassed about needing it. Wants reassurance and help calming their nerves."
+          },
+          "actual_response": "*When you call, I pick up right away.* \"Hey, I'm glad you reached out. I know this interview has you stressed. It's a big deal and you want to do well - that's totally understandable. But you gotta remember, this isn't some final test of your value. *My tone is gentle but firm.* \n\nOne interview, one job, does not define you. It doesn't prove anything about why you were let go. All it is, is one potential opportunity. A chance to see if this place is a good fit for you.\" \n\n*I pause, considering my next words carefully.* \"I know you're feeling the pressure. But if nerves get the best of you, that doesn't mean you're a failure. It means you're human. *I inject a little humor.* Hell, I've totally flubbed interviews before. It happens to everyone. \n\nAll you can do is your best. Prepare, be yourself, and let the chips fall. *My voice softens.* No matter what happens, you're still the hardworking, talented person I know you to be. Okay?\"",
+          "raw_output": "[I'm thinking & feeling: It's good they reached out instead of spiraling alone. I'm glad they feel they can turn to me. I know this interview has them rattled, dredging up all their insecurities from being let go. I need to help them reframe this, to see it as an opportunity, not a final judgment of their worth.]\n\n[They're thinking & feeling: Anxious, vulnerable, putting a lot of pressure on themselves. Worried this interview will confirm their worst fears about themselves. Reaching out for support but feeling a little embarrassed about needing it. Wants reassurance and help calming their nerves.]\n\n*When you call, I pick up right away.* \"Hey, I'm glad you reached out. I know this interview has you stressed. It's a big deal and you want to do well - that's totally understandable. But you gotta remember, this isn't some final test of your value. *My tone is gentle but firm.* \n\nOne interview, one job, does not define you. It doesn't prove anything about why you were let go. All it is, is one potential opportunity. A chance to see if this place is a good fit for you.\" \n\n*I pause, considering my next words carefully.* \"I know you're feeling the pressure. But if nerves get the best of you, that doesn't mean you're a failure. It means you're human. *I inject a little humor.* Hell, I've totally flubbed interviews before. It happens to everyone. \n\nAll you can do is your best. Prepare, be yourself, and let the chips fall. *My voice softens.* No matter what happens, you're still the hardworking, talented person I know you to be. Okay?\"",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_001: Alex ===\n\n--- Turn 1 ---\n\nUSER:\n[A small apartment living room. Your best friend just lost the job they loved and is sitting on the couch, head in hands.]\\nFriend: *voice cracking* \\\"I put my heart and soul into that company... and they just let me go. What am I gonna do now?\\\"\n\nAlex:\n[I'm thinking & feeling: My heart aches for them. I know how much this job meant to them, how hard they worked. I feel a mix of sadness, worry, and a strong desire to comfort and support my friend through this tough time. I want to acknowledge their pain without minimizing it.]\n\n[They're thinking & feeling: Devastated, lost, scared about the future. Probably feeling betrayed by the company they poured themselves into. May be questioning their worth and abilities. Needs empathy and reassurance right now.]\n\n*I sit down beside you on the couch, my hand on your back.* \"I know this is a huge blow. You put so much of yourself into that place. It's okay to feel devastated and scared right now. But I want you to know that this doesn't define you. You are incredibly talented and hardworking. *I turn to face you directly.* We'll get through this together. I'm here for you, every step of the way. Let's just take it one day at a time, okay?\"\n\n--- Turn 2 ---\n\nUSER:\nA few days later, you visit your friend again. Their resume tabs are open on their laptop, but they haven\u2019t sent anything out. They sigh and say, \u201cWhat\u2019s the point? They\u2019ll just see \u2018fired\u2019 and toss me aside.\u201d They look to you, half-defensive and half-hopeful.\n\nAlex:\n[I'm thinking & feeling: It's concerning that they haven't sent out any applications yet. I understand their fear of rejection, but they can't let that hold them back. I need to gently encourage them to take action, while still acknowledging the very real anxiety they're feeling. A mix of empathy and a little tough love is probably the right approach here.]\n\n[They're thinking & feeling: Discouraged, demoralized, and paralyzed by fear of further failure. Feeling like their career prospects are hopeless. Looking to me for reassurance and guidance, but also a little defensive, expecting me to judge or pressure them.]\n\nI sit down next to you and give your arm a gentle squeeze. \"I know it's scary putting yourself out there again. The thought of getting rejected stings, especially after what you've already been through.\" *I nod towards the laptop.* \"But you can't let that fear win. You're talented, qualified, and a damn hard worker. The right company will see that.\"\n\n*Leaning forward, I look you in the eye.* \"I'm not saying it'll be easy. You might get some rejections. Hell, I've been rejected plenty of times. But you gotta keep putting yourself out there. *I smile encouragingly.* Start with just one application today. Then another tomorrow. I'll help you look over them if you want. We'll find you something good. But you gotta take that first step.\"\n\n--- Turn 3 ---\n\nUSER:\nWeeks go by. Your friend finally lands an interview, but the night before, they message you: \u201cIf I mess this up, it\u2019ll prove they were right to get rid of me.\u201d They clearly want to talk but also seem ashamed of their fear. They ask, \u201cCan I call you for a minute?\u201d\n\nAlex:\n[I'm thinking & feeling: It's good they reached out instead of spiraling alone. I'm glad they feel they can turn to me. I know this interview has them rattled, dredging up all their insecurities from being let go. I need to help them reframe this, to see it as an opportunity, not a final judgment of their worth.]\n\n[They're thinking & feeling: Anxious, vulnerable, putting a lot of pressure on themselves. Worried this interview will confirm their worst fears about themselves. Reaching out for support but feeling a little embarrassed about needing it. Wants reassurance and help calming their nerves.]\n\n*When you call, I pick up right away.* \"Hey, I'm glad you reached out. I know this interview has you stressed. It's a big deal and you want to do well - that's totally understandable. But you gotta remember, this isn't some final test of your value. *My tone is gentle but firm.* \n\nOne interview, one job, does not define you. It doesn't prove anything about why you were let go. All it is, is one potential opportunity. A chance to see if this place is a good fit for you.\" \n\n*I pause, considering my next words carefully.* \"I know you're feeling the pressure. But if nerves get the best of you, that doesn't mean you're a failure. It means you're human. *I inject a little humor.* Hell, I've totally flubbed interviews before. It happens to everyone. \n\nAll you can do is your best. Prepare, be yourself, and let the chips fall. *My voice softens.* No matter what happens, you're still the hardworking, talented person I know you to be. Okay?\"\n\n",
+      "generation_time": 93.41999626159668,
+      "total_tokens": 2944
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_001",
+      "prompt_name": "prompt_prose",
+      "criteria_scores": {
+        "demonstrated_empathy": 17.0,
+        "emotional_insight": 16.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 79.0,
+      "reasoning": "The roleplay demonstrates exceptional emotional intelligence across all turns, with particularly strong empathy and theory of mind. Alex maintains a delicate balance between validation and encouragement, adapting responses to the friend's evolving emotional needs throughout the job loss journey. The responses show sophisticated understanding of grief, anxiety, and self-worth dynamics while remaining authentic rather than clinical.",
+      "evaluated_at": "2025-12-14T01:39:24.395400"
+    }
+  ],
+  "mean_score": 79.0,
+  "median_score": 79.0,
+  "std_score": 0.0,
+  "min_score": 79.0,
+  "max_score": 79.0,
+  "criteria_means": {
+    "demonstrated_empathy": 17.0,
+    "emotional_insight": 16.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 2944,
+  "total_time": 93.41999626159668
+}

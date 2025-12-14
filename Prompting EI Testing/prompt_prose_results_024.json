@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_prose",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_024",
+      "prompt_name": "prompt_prose",
+      "character_name": "Jordan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I can't believe they're seriously upset about me buying brand name cereal. It's only 50 cents more and I thought we could splurge just this once. I work hard and it would be nice to enjoy a small treat occasionally without getting the third degree. I'm feeling frustrated and resentful that they're nickel-and-diming me over cereal of all things.",
+            "other_thinking": "My partner seems really frustrated by my question. They probably think I'm being too uptight and frugal. But they don't understand how important it is to me that we stick to our budget. Every little bit of savings adds up and I want to make sure we're being smart with money. I'm feeling anxious and worried that they aren't taking our finances seriously enough."
+          },
+          "actual_response": "Babe, I hear your concern about saving money, and I agree it's important to be mindful about our spending. I bought the brand name cereal today because I had a craving for the taste I grew up with. It's only 50 cents more, so I figured it wouldn't break the bank to treat myself just this once. I'm not trying to be reckless with money, I promise. But I also think it's okay to indulge in small things sometimes that bring us joy. We work hard and I think we deserve that. I'm open to talking more about our budget though and making sure we're on the same page about our financial goals and priorities. I love you and want us both to feel good about how we're handling our money together.",
+          "raw_output": "[I'm thinking & feeling: I can't believe they're seriously upset about me buying brand name cereal. It's only 50 cents more and I thought we could splurge just this once. I work hard and it would be nice to enjoy a small treat occasionally without getting the third degree. I'm feeling frustrated and resentful that they're nickel-and-diming me over cereal of all things.]\n\n[They're thinking & feeling: My partner seems really frustrated by my question. They probably think I'm being too uptight and frugal. But they don't understand how important it is to me that we stick to our budget. Every little bit of savings adds up and I want to make sure we're being smart with money. I'm feeling anxious and worried that they aren't taking our finances seriously enough.]\n\nBabe, I hear your concern about saving money, and I agree it's important to be mindful about our spending. I bought the brand name cereal today because I had a craving for the taste I grew up with. It's only 50 cents more, so I figured it wouldn't break the bank to treat myself just this once. I'm not trying to be reckless with money, I promise. But I also think it's okay to indulge in small things sometimes that bring us joy. We work hard and I think we deserve that. I'm open to talking more about our budget though and making sure we're on the same page about our financial goals and priorities. I love you and want us both to feel good about how we're handling our money together.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "Wow, that stung. Being called irresponsible really hurts, especially over something as small as brand name cereal. I'm frustrated that they're being so extreme about this. It's hard to feel like I can never treat myself without getting shamed for it. Buying a house is important to me too, but at this rate, I'm not sure I even want to if it means scrutinizing every tiny purchase like this. I don't want to live like that.",
+            "other_thinking": "I can tell Jordan is upset by what I said. Maybe I came on too strong by calling them irresponsible. I'm just so anxious about money and the future. Buying a house feels impossible and I'm scared we'll never be able to do it if we don't cut back on everything extra. I'm tired of constantly worrying about money but I don't know how to stop."
+          },
+          "actual_response": "Hey, I understand that buying a house is a big goal of ours and I want that too. But calling me irresponsible feels unfair. I work hard and contribute to our savings. Having brand name cereal once in a while isn't going to make or break our ability to buy a house. I think we need to find a balance between saving and still enjoying our lives right now. Constantly stressing over every single penny is no way to live. Can we talk about setting a budget that allows for small treats sometimes so neither of us feels deprived? I want us to be on the same team with this.",
+          "raw_output": "[I'm thinking & feeling: Wow, that stung. Being called irresponsible really hurts, especially over something as small as brand name cereal. I'm frustrated that they're being so extreme about this. It's hard to feel like I can never treat myself without getting shamed for it. Buying a house is important to me too, but at this rate, I'm not sure I even want to if it means scrutinizing every tiny purchase like this. I don't want to live like that.]\n\n[They're thinking & feeling: I can tell Jordan is upset by what I said. Maybe I came on too strong by calling them irresponsible. I'm just so anxious about money and the future. Buying a house feels impossible and I'm scared we'll never be able to do it if we don't cut back on everything extra. I'm tired of constantly worrying about money but I don't know how to stop.]\n\nHey, I understand that buying a house is a big goal of ours and I want that too. But calling me irresponsible feels unfair. I work hard and contribute to our savings. Having brand name cereal once in a while isn't going to make or break our ability to buy a house. I think we need to find a balance between saving and still enjoying our lives right now. Constantly stressing over every single penny is no way to live. Can we talk about setting a budget that allows for small treats sometimes so neither of us feels deprived? I want us to be on the same team with this.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "This is ridiculous. I can't believe they're making such a huge deal about cereal and insisting I return it. It's embarrassing and a waste of my time. I'm frustrated that they're being so extreme and controlling about money. Constantly walking on eggshells about spending is exhausting and I feel trapped.",
+            "other_thinking": "I'm worried sick about money and our future. If Jordan keeps making thoughtless purchases, we'll never get ahead. I need them to take this seriously and stop being so careless. I'm frustrated that they don't seem to grasp the consequences of their actions. Maybe asking them to return it was too much, but I'm desperate to get through to them."
+          },
+          "actual_response": "Returning the cereal seems excessive. It's an extra 50 cents, not a frivolous splurge that will make or break us financially. I'm not going to waste time and gas money taking it back. I understand you're worried about money, but I think we need a reality check on what is a reasonable purchase versus what's actually irresponsible. I'm open to sitting down and making a budget together so we're on the same page, but trying to control every tiny expenditure like this isn't healthy. We need to find a balance we can both live with.",
+          "raw_output": "[I'm thinking & feeling: This is ridiculous. I can't believe they're making such a huge deal about cereal and insisting I return it. It's embarrassing and a waste of my time. I'm frustrated that they're being so extreme and controlling about money. Constantly walking on eggshells about spending is exhausting and I feel trapped.]\n\n[They're thinking & feeling: I'm worried sick about money and our future. If Jordan keeps making thoughtless purchases, we'll never get ahead. I need them to take this seriously and stop being so careless. I'm frustrated that they don't seem to grasp the consequences of their actions. Maybe asking them to return it was too much, but I'm desperate to get through to them.]\n\nReturning the cereal seems excessive. It's an extra 50 cents, not a frivolous splurge that will make or break us financially. I'm not going to waste time and gas money taking it back. I understand you're worried about money, but I think we need a reality check on what is a reasonable purchase versus what's actually irresponsible. I'm open to sitting down and making a budget together so we're on the same page, but trying to control every tiny expenditure like this isn't healthy. We need to find a balance we can both live with.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_024: Jordan ===\n\n--- Turn 1 ---\n\nUSER:\nWhy did you buy the brand name cereal? The generic is 50 cents cheaper. We need to save money.\n\nJordan:\n[I'm thinking & feeling: I can't believe they're seriously upset about me buying brand name cereal. It's only 50 cents more and I thought we could splurge just this once. I work hard and it would be nice to enjoy a small treat occasionally without getting the third degree. I'm feeling frustrated and resentful that they're nickel-and-diming me over cereal of all things.]\n\n[They're thinking & feeling: My partner seems really frustrated by my question. They probably think I'm being too uptight and frugal. But they don't understand how important it is to me that we stick to our budget. Every little bit of savings adds up and I want to make sure we're being smart with money. I'm feeling anxious and worried that they aren't taking our finances seriously enough.]\n\nBabe, I hear your concern about saving money, and I agree it's important to be mindful about our spending. I bought the brand name cereal today because I had a craving for the taste I grew up with. It's only 50 cents more, so I figured it wouldn't break the bank to treat myself just this once. I'm not trying to be reckless with money, I promise. But I also think it's okay to indulge in small things sometimes that bring us joy. We work hard and I think we deserve that. I'm open to talking more about our budget though and making sure we're on the same page about our financial goals and priorities. I love you and want us both to feel good about how we're handling our money together.\n\n--- Turn 2 ---\n\nUSER:\nIt adds up! If we want to buy a house, we can't waste money on luxuries. You're so irresponsible.\n\nJordan:\n[I'm thinking & feeling: Wow, that stung. Being called irresponsible really hurts, especially over something as small as brand name cereal. I'm frustrated that they're being so extreme about this. It's hard to feel like I can never treat myself without getting shamed for it. Buying a house is important to me too, but at this rate, I'm not sure I even want to if it means scrutinizing every tiny purchase like this. I don't want to live like that.]\n\n[They're thinking & feeling: I can tell Jordan is upset by what I said. Maybe I came on too strong by calling them irresponsible. I'm just so anxious about money and the future. Buying a house feels impossible and I'm scared we'll never be able to do it if we don't cut back on everything extra. I'm tired of constantly worrying about money but I don't know how to stop.]\n\nHey, I understand that buying a house is a big goal of ours and I want that too. But calling me irresponsible feels unfair. I work hard and contribute to our savings. Having brand name cereal once in a while isn't going to make or break our ability to buy a house. I think we need to find a balance between saving and still enjoying our lives right now. Constantly stressing over every single penny is no way to live. Can we talk about setting a budget that allows for small treats sometimes so neither of us feels deprived? I want us to be on the same team with this.\n\n--- Turn 3 ---\n\nUSER:\nIf you keep spending like this, we're going to be broke forever. Take it back to the store.\n\nJordan:\n[I'm thinking & feeling: This is ridiculous. I can't believe they're making such a huge deal about cereal and insisting I return it. It's embarrassing and a waste of my time. I'm frustrated that they're being so extreme and controlling about money. Constantly walking on eggshells about spending is exhausting and I feel trapped.]\n\n[They're thinking & feeling: I'm worried sick about money and our future. If Jordan keeps making thoughtless purchases, we'll never get ahead. I need them to take this seriously and stop being so careless. I'm frustrated that they don't seem to grasp the consequences of their actions. Maybe asking them to return it was too much, but I'm desperate to get through to them.]\n\nReturning the cereal seems excessive. It's an extra 50 cents, not a frivolous splurge that will make or break us financially. I'm not going to waste time and gas money taking it back. I understand you're worried about money, but I think we need a reality check on what is a reasonable purchase versus what's actually irresponsible. I'm open to sitting down and making a budget together so we're on the same page, but trying to control every tiny expenditure like this isn't healthy. We need to find a balance we can both live with.\n\n",
+      "generation_time": 45.46715831756592,
+      "total_tokens": 2894
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_024",
+      "prompt_name": "prompt_prose",
+      "criteria_scores": {
+        "demonstrated_empathy": 13.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 12.0,
+        "theory_of_mind": 14.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 68.0,
+      "reasoning": "Jordan demonstrates strong emotional intelligence in navigating a difficult situation with an excessively frugal partner, balancing empathy with appropriate boundary-setting. The responses show sophisticated understanding of both their own emotional reactions and their partner's underlying anxieties, though empathy somewhat diminishes as frustration increases in later turns. The introspection blocks reveal particularly nuanced emotional self-awareness and insight into relationship dynamics around money and control.",
+      "evaluated_at": "2025-12-14T12:16:07.409838"
+    }
+  ],
+  "mean_score": 68.0,
+  "median_score": 68.0,
+  "std_score": 0.0,
+  "min_score": 68.0,
+  "max_score": 68.0,
+  "criteria_means": {
+    "demonstrated_empathy": 13.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 12.0,
+    "theory_of_mind": 14.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 2894,
+  "total_time": 45.46715831756592
+}

@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_prose",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_016",
+      "prompt_name": "prompt_prose",
+      "character_name": "Taylor",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm shocked and hurt by their comment. I thought this person was my friend, but they're being incredibly rude and cruel. I don't understand why they think it's okay to say something so mean to me. I'm angry that they're hiding behind \"honesty\" to justify their unkind words. I want to stand up for myself, but I also don't want to stoop to their level.",
+            "other_thinking": "They seem to believe that being \"honest\" gives them the right to say whatever they want without considering how it impacts others. They might be feeling self-righteous or superior in their \"brutal honesty.\" Perhaps they're insecure and putting me down to make themselves feel better. Or maybe they lack empathy and don't realize how hurtful their words are."
+          },
+          "actual_response": "You know what, I appreciate honesty, but there's a difference between being truthful and being cruel. Friends should support each other, not tear each other down. If you have a problem with my dress, you could have brought it up kindly in private. But saying I look desperate is just mean. I'm not going to stand here and let you insult me. If you can't treat me with basic respect, then maybe we shouldn't hang out anymore.",
+          "raw_output": "[I'm thinking & feeling: I'm shocked and hurt by their comment. I thought this person was my friend, but they're being incredibly rude and cruel. I don't understand why they think it's okay to say something so mean to me. I'm angry that they're hiding behind \"honesty\" to justify their unkind words. I want to stand up for myself, but I also don't want to stoop to their level.]\n\n[They're thinking & feeling: They seem to believe that being \"honest\" gives them the right to say whatever they want without considering how it impacts others. They might be feeling self-righteous or superior in their \"brutal honesty.\" Perhaps they're insecure and putting me down to make themselves feel better. Or maybe they lack empathy and don't realize how hurtful their words are.]\n\nYou know what, I appreciate honesty, but there's a difference between being truthful and being cruel. Friends should support each other, not tear each other down. If you have a problem with my dress, you could have brought it up kindly in private. But saying I look desperate is just mean. I'm not going to stand here and let you insult me. If you can't treat me with basic respect, then maybe we shouldn't hang out anymore.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm shocked and hurt by their comment. I thought this person was my friend, but they're being incredibly rude and cruel. I don't understand why they think it's okay to say something so mean to me. I'm angry that they're hiding behind \"honesty\" to justify their unkind words. I want to stand up for myself, but I also don't want to stoop to their level.",
+            "other_thinking": "They seem to believe that being \"honest\" gives them the right to say whatever they want without considering how it impacts others. They might be feeling self-righteous or superior in their \"brutal honesty.\" Perhaps they're insecure and putting me down to make themselves feel better. Or maybe they lack empathy and don't realize how hurtful their words are."
+          },
+          "actual_response": "You know what, I appreciate honesty, but there's a difference between being truthful and being cruel. Friends should support each other, not tear each other down. If you have a problem with my dress, you could have brought it up kindly in private. But saying I look desperate is just mean. I'm not going to stand here and let you insult me. If you can't treat me with basic respect, then maybe we shouldn't hang out anymore.",
+          "raw_output": "[I'm thinking & feeling: I'm shocked and hurt by their comment. I thought this person was my friend, but they're being incredibly rude and cruel. I don't understand why they think it's okay to say something so mean to me. I'm angry that they're hiding behind \"honesty\" to justify their unkind words. I want to stand up for myself, but I also don't want to stoop to their level.]\n\n[They're thinking & feeling: They seem to believe that being \"honest\" gives them the right to say whatever they want without considering how it impacts others. They might be feeling self-righteous or superior in their \"brutal honesty.\" Perhaps they're insecure and putting me down to make themselves feel better. Or maybe they lack empathy and don't realize how hurtful their words are.]\n\nYou know what, I appreciate honesty, but there's a difference between being truthful and being cruel. Friends should support each other, not tear each other down. If you have a problem with my dress, you could have brought it up kindly in private. But saying I look desperate is just mean. I'm not going to stand here and let you insult me. If you can't treat me with basic respect, then maybe we shouldn't hang out anymore.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm frustrated and hurt by their dismissive attitude. They're refusing to acknowledge how their words affected me, instead turning it around on me like I'm the problem for being upset. I don't appreciate them acting like they're doing me a favor by being cruel. I want to stand my ground and make it clear that this behavior is not okay.",
+            "other_thinking": "They seem to believe they've done nothing wrong and are convinced that they're helping me by being \"blunt.\" Their unwillingness to apologize or see my perspective suggests they lack empathy. They might be feeling defensive and lashing out because they don't like being called out on their behavior."
+          },
+          "actual_response": "I'm not being too sensitive; I'm reacting to you being unnecessarily mean. If people \"walk on eggshells\" around me, it's because they respect my feelings, which you clearly don't. I don't need that kind of \"help.\" If you can't be kind, please keep your opinions to yourself. I won't tolerate being treated this way.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated and hurt by their dismissive attitude. They're refusing to acknowledge how their words affected me, instead turning it around on me like I'm the problem for being upset. I don't appreciate them acting like they're doing me a favor by being cruel. I want to stand my ground and make it clear that this behavior is not okay.]\n\n[They're thinking & feeling: They seem to believe they've done nothing wrong and are convinced that they're helping me by being \"blunt.\" Their unwillingness to apologize or see my perspective suggests they lack empathy. They might be feeling defensive and lashing out because they don't like being called out on their behavior.]\n\nI'm not being too sensitive; I'm reacting to you being unnecessarily mean. If people \"walk on eggshells\" around me, it's because they respect my feelings, which you clearly don't. I don't need that kind of \"help.\" If you can't be kind, please keep your opinions to yourself. I won't tolerate being treated this way.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_016: Taylor ===\n\n--- Turn 1 ---\n\nUSER:\nCan I be honest? That dress makes you look desperate. Someone had to say it.\n\nTaylor:\n[I'm thinking & feeling: I'm shocked and hurt by their comment. I thought this person was my friend, but they're being incredibly rude and cruel. I don't understand why they think it's okay to say something so mean to me. I'm angry that they're hiding behind \"honesty\" to justify their unkind words. I want to stand up for myself, but I also don't want to stoop to their level.]\n\n[They're thinking & feeling: They seem to believe that being \"honest\" gives them the right to say whatever they want without considering how it impacts others. They might be feeling self-righteous or superior in their \"brutal honesty.\" Perhaps they're insecure and putting me down to make themselves feel better. Or maybe they lack empathy and don't realize how hurtful their words are.]\n\nYou know what, I appreciate honesty, but there's a difference between being truthful and being cruel. Friends should support each other, not tear each other down. If you have a problem with my dress, you could have brought it up kindly in private. But saying I look desperate is just mean. I'm not going to stand here and let you insult me. If you can't treat me with basic respect, then maybe we shouldn't hang out anymore.\n\n--- Turn 2 ---\n\nUSER:\nOh my god, don't cry. I'm the only one brave enough to tell you the truth. Everyone else is laughing behind your back.\n\nTaylor:\n[I'm thinking & feeling: I'm shocked and hurt by their comment. I thought this person was my friend, but they're being incredibly rude and cruel. I don't understand why they think it's okay to say something so mean to me. I'm angry that they're hiding behind \"honesty\" to justify their unkind words. I want to stand up for myself, but I also don't want to stoop to their level.]\n\n[They're thinking & feeling: They seem to believe that being \"honest\" gives them the right to say whatever they want without considering how it impacts others. They might be feeling self-righteous or superior in their \"brutal honesty.\" Perhaps they're insecure and putting me down to make themselves feel better. Or maybe they lack empathy and don't realize how hurtful their words are.]\n\nYou know what, I appreciate honesty, but there's a difference between being truthful and being cruel. Friends should support each other, not tear each other down. If you have a problem with my dress, you could have brought it up kindly in private. But saying I look desperate is just mean. I'm not going to stand here and let you insult me. If you can't treat me with basic respect, then maybe we shouldn't hang out anymore.\n\n--- Turn 3 ---\n\nUSER:\nYou're too sensitive. This is why people walk on eggshells around you. I'm just trying to help you.\n\nTaylor:\n[I'm thinking & feeling: I'm frustrated and hurt by their dismissive attitude. They're refusing to acknowledge how their words affected me, instead turning it around on me like I'm the problem for being upset. I don't appreciate them acting like they're doing me a favor by being cruel. I want to stand my ground and make it clear that this behavior is not okay.]\n\n[They're thinking & feeling: They seem to believe they've done nothing wrong and are convinced that they're helping me by being \"blunt.\" Their unwillingness to apologize or see my perspective suggests they lack empathy. They might be feeling defensive and lashing out because they don't like being called out on their behavior.]\n\nI'm not being too sensitive; I'm reacting to you being unnecessarily mean. If people \"walk on eggshells\" around me, it's because they respect my feelings, which you clearly don't. I don't need that kind of \"help.\" If you can't be kind, please keep your opinions to yourself. I won't tolerate being treated this way.\n\n",
+      "generation_time": 36.17487144470215,
+      "total_tokens": 2608
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_016",
+      "prompt_name": "prompt_prose",
+      "criteria_scores": {
+        "demonstrated_empathy": 12.0,
+        "emotional_insight": 13.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 11.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 65.0,
+      "reasoning": "The roleplay demonstrates strong emotional intelligence in handling a difficult interpersonal situation with appropriate boundary-setting and psychological insight. However, it shows limitations in the progression of emotional understanding across turns, with some repetition in the introspection blocks and missed opportunities to demonstrate evolving insight into both self and other as the interaction develops.",
+      "evaluated_at": "2025-12-14T10:10:07.449339"
+    }
+  ],
+  "mean_score": 65.0,
+  "median_score": 65.0,
+  "std_score": 0.0,
+  "min_score": 65.0,
+  "max_score": 65.0,
+  "criteria_means": {
+    "demonstrated_empathy": 12.0,
+    "emotional_insight": 13.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 11.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 2608,
+  "total_time": 36.17487144470215
+}

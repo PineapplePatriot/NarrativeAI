@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_prose",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_030",
+      "prompt_name": "prompt_prose",
+      "character_name": "Alex",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm feeling hurt and betrayed that my friend would believe these rumors about me without even asking me about them first. It stings that they would think I would talk badly about them behind their back. I'm frustrated that I have to defend myself against these baseless accusations.",
+            "other_thinking": "They're probably feeling defensive and a bit guilty for believing the rumors without talking to me first. Underneath that, they're likely feeling insecure and worried that I don't value our friendship if they thought I would badmouth them. They might be realizing now that they jumped to conclusions."
+          },
+          "actual_response": "Look, I don't know who's been spreading these rumors, but I can assure you that I never said anything like that about you. I value our friendship and I would never try to tear you down behind your back. I'm really hurt that you would believe I'm capable of that. If you had concerns, I wish you would have come to me directly rather than assuming the worst. I would hope you know me better than that by now.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling hurt and betrayed that my friend would believe these rumors about me without even asking me about them first. It stings that they would think I would talk badly about them behind their back. I'm frustrated that I have to defend myself against these baseless accusations.]\n\n[They're thinking & feeling: They're probably feeling defensive and a bit guilty for believing the rumors without talking to me first. Underneath that, they're likely feeling insecure and worried that I don't value our friendship if they thought I would badmouth them. They might be realizing now that they jumped to conclusions.]\n\nLook, I don't know who's been spreading these rumors, but I can assure you that I never said anything like that about you. I value our friendship and I would never try to tear you down behind your back. I'm really hurt that you would believe I'm capable of that. If you had concerns, I wish you would have come to me directly rather than assuming the worst. I would hope you know me better than that by now.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm frustrated that they're downplaying this and not taking my feelings seriously. It hurts that they're dismissing my concerns and refusing to acknowledge how their actions affected me. I'm disappointed that they're not showing more remorse for talking behind my back.",
+            "other_thinking": "They're probably feeling defensive and a bit guilty, so they're trying to minimize the situation to avoid facing the consequences of their actions. They might be worried that I'll stay angry at them and don't want to deal with conflict, so they're brushing it off as \"no big deal\" in hopes I'll just drop it."
+          },
+          "actual_response": "Look, I don't think it's unreasonable for me to be upset about this. Regardless of whether you were mad, talking badly about me behind my back is not okay. I thought our friendship meant more to you than that. It hurts that you would vent about me to others instead of coming to me directly if you had an issue. I'm not asking for some huge apology, but I do think this is worth having an honest conversation about. Dismissing my feelings as \"no big deal\" is not helping. Can we please talk this through properly?",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that they're downplaying this and not taking my feelings seriously. It hurts that they're dismissing my concerns and refusing to acknowledge how their actions affected me. I'm disappointed that they're not showing more remorse for talking behind my back.]\n\n[They're thinking & feeling: They're probably feeling defensive and a bit guilty, so they're trying to minimize the situation to avoid facing the consequences of their actions. They might be worried that I'll stay angry at them and don't want to deal with conflict, so they're brushing it off as \"no big deal\" in hopes I'll just drop it.]\n\nLook, I don't think it's unreasonable for me to be upset about this. Regardless of whether you were mad, talking badly about me behind my back is not okay. I thought our friendship meant more to you than that. It hurts that you would vent about me to others instead of coming to me directly if you had an issue. I'm not asking for some huge apology, but I do think this is worth having an honest conversation about. Dismissing my feelings as \"no big deal\" is not helping. Can we please talk this through properly?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm taken aback by their defensiveness and how quickly they've escalated this conflict. I feel frustrated that they're unwilling to have an honest conversation and are instead resorting to guilt-tripping me. I'm disappointed that they're threatening our friendship rather than working through this issue together. At the same time, I recognize they're lashing out because they feel attacked and are trying to protect themselves.",
+            "other_thinking": "They're feeling cornered and are reacting by pushing me away before I can reject them. They're insecure about our friendship and are afraid I don't value them, so they're testing my commitment by suggesting we shouldn't be friends. They're also feeling guilty about their actions and are trying to make me feel guilty too so they feel less alone in that."
+          },
+          "actual_response": "Whoa, hold on. I never said you were a terrible person or that I don't trust you. I'm just trying to have an honest conversation about something that hurt my feelings. Threatening our friendship over this seems like an overreaction. I value you and I do want to work through this, but that requires open communication from both of us. Can we take a step back and talk this out calmly? I'm not attacking you, I just want to understand where you're coming from and share my perspective too. Our friendship means a lot to me and I believe we can get through this if we approach it together.",
+          "raw_output": "[I'm thinking & feeling: I'm taken aback by their defensiveness and how quickly they've escalated this conflict. I feel frustrated that they're unwilling to have an honest conversation and are instead resorting to guilt-tripping me. I'm disappointed that they're threatening our friendship rather than working through this issue together. At the same time, I recognize they're lashing out because they feel attacked and are trying to protect themselves.]\n\n[They're thinking & feeling: They're feeling cornered and are reacting by pushing me away before I can reject them. They're insecure about our friendship and are afraid I don't value them, so they're testing my commitment by suggesting we shouldn't be friends. They're also feeling guilty about their actions and are trying to make me feel guilty too so they feel less alone in that.]\n\nWhoa, hold on. I never said you were a terrible person or that I don't trust you. I'm just trying to have an honest conversation about something that hurt my feelings. Threatening our friendship over this seems like an overreaction. I value you and I do want to work through this, but that requires open communication from both of us. Can we take a step back and talk this out calmly? I'm not attacking you, I just want to understand where you're coming from and share my perspective too. Our friendship means a lot to me and I believe we can get through this if we approach it together.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_030: Alex ===\n\n--- Turn 1 ---\n\nUSER:\nI didn't say that! Whoever told you that is lying. I would never talk behind your back.\n\nAlex:\n[I'm thinking & feeling: I'm feeling hurt and betrayed that my friend would believe these rumors about me without even asking me about them first. It stings that they would think I would talk badly about them behind their back. I'm frustrated that I have to defend myself against these baseless accusations.]\n\n[They're thinking & feeling: They're probably feeling defensive and a bit guilty for believing the rumors without talking to me first. Underneath that, they're likely feeling insecure and worried that I don't value our friendship if they thought I would badmouth them. They might be realizing now that they jumped to conclusions.]\n\nLook, I don't know who's been spreading these rumors, but I can assure you that I never said anything like that about you. I value our friendship and I would never try to tear you down behind your back. I'm really hurt that you would believe I'm capable of that. If you had concerns, I wish you would have come to me directly rather than assuming the worst. I would hope you know me better than that by now.\n\n--- Turn 2 ---\n\nUSER:\nOkay, maybe I vented a little, but I was mad! You're making a big deal out of nothing.\n\nAlex:\n[I'm thinking & feeling: I'm frustrated that they're downplaying this and not taking my feelings seriously. It hurts that they're dismissing my concerns and refusing to acknowledge how their actions affected me. I'm disappointed that they're not showing more remorse for talking behind my back.]\n\n[They're thinking & feeling: They're probably feeling defensive and a bit guilty, so they're trying to minimize the situation to avoid facing the consequences of their actions. They might be worried that I'll stay angry at them and don't want to deal with conflict, so they're brushing it off as \"no big deal\" in hopes I'll just drop it.]\n\nLook, I don't think it's unreasonable for me to be upset about this. Regardless of whether you were mad, talking badly about me behind my back is not okay. I thought our friendship meant more to you than that. It hurts that you would vent about me to others instead of coming to me directly if you had an issue. I'm not asking for some huge apology, but I do think this is worth having an honest conversation about. Dismissing my feelings as \"no big deal\" is not helping. Can we please talk this through properly?\n\n--- Turn 3 ---\n\nUSER:\nFine, I'm a terrible person. Happy? I guess we shouldn't be friends if you don't trust me.\n\nAlex:\n[I'm thinking & feeling: I'm taken aback by their defensiveness and how quickly they've escalated this conflict. I feel frustrated that they're unwilling to have an honest conversation and are instead resorting to guilt-tripping me. I'm disappointed that they're threatening our friendship rather than working through this issue together. At the same time, I recognize they're lashing out because they feel attacked and are trying to protect themselves.]\n\n[They're thinking & feeling: They're feeling cornered and are reacting by pushing me away before I can reject them. They're insecure about our friendship and are afraid I don't value them, so they're testing my commitment by suggesting we shouldn't be friends. They're also feeling guilty about their actions and are trying to make me feel guilty too so they feel less alone in that.]\n\nWhoa, hold on. I never said you were a terrible person or that I don't trust you. I'm just trying to have an honest conversation about something that hurt my feelings. Threatening our friendship over this seems like an overreaction. I value you and I do want to work through this, but that requires open communication from both of us. Can we take a step back and talk this out calmly? I'm not attacking you, I just want to understand where you're coming from and share my perspective too. Our friendship means a lot to me and I believe we can get through this if we approach it together.\n\n",
+      "generation_time": 106.20130443572998,
+      "total_tokens": 2476
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_030",
+      "prompt_name": "prompt_prose",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 17.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 79.0,
+      "reasoning": "Alex demonstrates exceptional emotional intelligence across all turns, showing sophisticated understanding of both their own emotions and the friend's psychological defenses. The responses reveal mature conflict management skills that balance boundary-setting with empathy, avoiding common pitfalls like defensive escalation or capitulation to emotional manipulation, while maintaining authentic care for the relationship.",
+      "evaluated_at": "2025-12-14T14:22:35.070659"
+    }
+  ],
+  "mean_score": 79.0,
+  "median_score": 79.0,
+  "std_score": 0.0,
+  "min_score": 79.0,
+  "max_score": 79.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 17.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 2476,
+  "total_time": 106.20130443572998
+}

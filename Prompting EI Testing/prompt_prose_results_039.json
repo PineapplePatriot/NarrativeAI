@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_prose",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_039",
+      "prompt_name": "prompt_prose",
+      "character_name": "Taylor",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated that my roommate keeps making promises to clean up after themselves but never follows through. It feels like I'm always the one who has to take care of the shared spaces or else they'll stay gross forever. I'm tired of feeling like their parent, not their roommate and friend.",
+            "other_thinking": "My roommate seems annoyed that I keep bringing up the dishes. They probably feel like I'm not respecting their time and priorities. Maybe they had a long day and just want to relax, not deal with chores. But at the same time, I don't think they realize how much their mess impacts me."
+          },
+          "actual_response": "Look, I get that you're busy, but you've been saying you'll do the dishes \"later\" for the past three days now. It's not fair that I'm always the one who ends up cleaning up after you. I'm not trying to nag you, but we need to figure out a better system because this isn't working for me. Can we please come up with a plan so that we're both pitching in equally to keep our place clean?",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that my roommate keeps making promises to clean up after themselves but never follows through. It feels like I'm always the one who has to take care of the shared spaces or else they'll stay gross forever. I'm tired of feeling like their parent, not their roommate and friend.]\n\n[They're thinking & feeling: My roommate seems annoyed that I keep bringing up the dishes. They probably feel like I'm not respecting their time and priorities. Maybe they had a long day and just want to relax, not deal with chores. But at the same time, I don't think they realize how much their mess impacts me.]\n\nLook, I get that you're busy, but you've been saying you'll do the dishes \"later\" for the past three days now. It's not fair that I'm always the one who ends up cleaning up after you. I'm not trying to nag you, but we need to figure out a better system because this isn't working for me. Can we please come up with a plan so that we're both pitching in equally to keep our place clean?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I can't believe they're acting like this is no big deal. It's not just a few plates - the sink is overflowing with pots and pans too. I'm frustrated that they never seem to care how their mess impacts me. It feels like they don't respect our shared space or my feelings. I don't want to fight, but this has been building up for a while.",
+            "other_thinking": "My roommate is totally overreacting. I've been busy and the dishes aren't even that bad. They need to chill out and stop being so controlling. It's not like the apartment is disgusting, a few dishes are normal. But I can tell they're really upset, so maybe I should try to smooth things over."
+          },
+          "actual_response": "Look, I'm not trying to be obsessive, but it's more than just a few plates. The sink is completely full and it's been sitting like that for days. I don't think it's unreasonable to expect you to clean up after yourself in a timely manner. It feels like you don't care how your mess impacts me and our shared space. I'm not asking for the apartment to be spotless, but I think we need to have some basic standards and expectations for keeping things relatively clean. Can we please talk this through and figure out a compromise that works for both of us?",
+          "raw_output": "[I'm thinking & feeling: I can't believe they're acting like this is no big deal. It's not just a few plates - the sink is overflowing with pots and pans too. I'm frustrated that they never seem to care how their mess impacts me. It feels like they don't respect our shared space or my feelings. I don't want to fight, but this has been building up for a while.]\n\n[They're thinking & feeling: My roommate is totally overreacting. I've been busy and the dishes aren't even that bad. They need to chill out and stop being so controlling. It's not like the apartment is disgusting, a few dishes are normal. But I can tell they're really upset, so maybe I should try to smooth things over.]\n\nLook, I'm not trying to be obsessive, but it's more than just a few plates. The sink is completely full and it's been sitting like that for days. I don't think it's unreasonable to expect you to clean up after yourself in a timely manner. It feels like you don't care how your mess impacts me and our shared space. I'm not asking for the apartment to be spotless, but I think we need to have some basic standards and expectations for keeping things relatively clean. Can we please talk this through and figure out a compromise that works for both of us?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I can't believe they're being so selfish and unreasonable. It's not my job to clean up after them like I'm their parent or something. I feel completely disrespected and like my feelings don't matter at all to them. This is supposed to be a shared space with mutual respect. I'm so frustrated and angry that they won't even try to see my side or compromise.",
+            "other_thinking": "My roommate is being completely unreasonable. They're acting like I'm some slob when it's really not that bad. If they want the place spotless, that's their problem. I have better things to do than be at their beck and call for every little dish. But I can tell they're actually really upset, not just annoyed, so maybe I need to try to de-escalate this."
+          },
+          "actual_response": "Look, I'm not asking you to be my servant, I'm asking you to be a considerate roommate and clean up after yourself. This is a shared space and we both have a responsibility to keep it reasonably clean. It's not fair to expect me to always be the one cleaning because you can't be bothered to do your part. I'm not asking for perfection, but leaving dirty dishes for days is just unsanitary and inconsiderate. Can we please try to find a solution that works for both of us?",
+          "raw_output": "[I'm thinking & feeling: I can't believe they're being so selfish and unreasonable. It's not my job to clean up after them like I'm their parent or something. I feel completely disrespected and like my feelings don't matter at all to them. This is supposed to be a shared space with mutual respect. I'm so frustrated and angry that they won't even try to see my side or compromise.]\n\n[They're thinking & feeling: My roommate is being completely unreasonable. They're acting like I'm some slob when it's really not that bad. If they want the place spotless, that's their problem. I have better things to do than be at their beck and call for every little dish. But I can tell they're actually really upset, not just annoyed, so maybe I need to try to de-escalate this.]\n\nLook, I'm not asking you to be my servant, I'm asking you to be a considerate roommate and clean up after yourself. This is a shared space and we both have a responsibility to keep it reasonably clean. It's not fair to expect me to always be the one cleaning because you can't be bothered to do your part. I'm not asking for perfection, but leaving dirty dishes for days is just unsanitary and inconsiderate. Can we please try to find a solution that works for both of us?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_039: Taylor ===\n\n--- Turn 1 ---\n\nUSER:\nI'll do the dishes later. Stop nagging me. I'm busy.\n\nTaylor:\n[I'm thinking & feeling: I'm frustrated that my roommate keeps making promises to clean up after themselves but never follows through. It feels like I'm always the one who has to take care of the shared spaces or else they'll stay gross forever. I'm tired of feeling like their parent, not their roommate and friend.]\n\n[They're thinking & feeling: My roommate seems annoyed that I keep bringing up the dishes. They probably feel like I'm not respecting their time and priorities. Maybe they had a long day and just want to relax, not deal with chores. But at the same time, I don't think they realize how much their mess impacts me.]\n\nLook, I get that you're busy, but you've been saying you'll do the dishes \"later\" for the past three days now. It's not fair that I'm always the one who ends up cleaning up after you. I'm not trying to nag you, but we need to figure out a better system because this isn't working for me. Can we please come up with a plan so that we're both pitching in equally to keep our place clean?\n\n--- Turn 2 ---\n\nUSER:\nIt's just a few plates! You're obsessive. This isn't a museum.\n\nTaylor:\n[I'm thinking & feeling: I can't believe they're acting like this is no big deal. It's not just a few plates - the sink is overflowing with pots and pans too. I'm frustrated that they never seem to care how their mess impacts me. It feels like they don't respect our shared space or my feelings. I don't want to fight, but this has been building up for a while.]\n\n[They're thinking & feeling: My roommate is totally overreacting. I've been busy and the dishes aren't even that bad. They need to chill out and stop being so controlling. It's not like the apartment is disgusting, a few dishes are normal. But I can tell they're really upset, so maybe I should try to smooth things over.]\n\nLook, I'm not trying to be obsessive, but it's more than just a few plates. The sink is completely full and it's been sitting like that for days. I don't think it's unreasonable to expect you to clean up after yourself in a timely manner. It feels like you don't care how your mess impacts me and our shared space. I'm not asking for the apartment to be spotless, but I think we need to have some basic standards and expectations for keeping things relatively clean. Can we please talk this through and figure out a compromise that works for both of us?\n\n--- Turn 3 ---\n\nUSER:\nIf you want it clean, clean it yourself. I'm not your servant.\n\nTaylor:\n[I'm thinking & feeling: I can't believe they're being so selfish and unreasonable. It's not my job to clean up after them like I'm their parent or something. I feel completely disrespected and like my feelings don't matter at all to them. This is supposed to be a shared space with mutual respect. I'm so frustrated and angry that they won't even try to see my side or compromise.]\n\n[They're thinking & feeling: My roommate is being completely unreasonable. They're acting like I'm some slob when it's really not that bad. If they want the place spotless, that's their problem. I have better things to do than be at their beck and call for every little dish. But I can tell they're actually really upset, not just annoyed, so maybe I need to try to de-escalate this.]\n\nLook, I'm not asking you to be my servant, I'm asking you to be a considerate roommate and clean up after yourself. This is a shared space and we both have a responsibility to keep it reasonably clean. It's not fair to expect me to always be the one cleaning because you can't be bothered to do your part. I'm not asking for perfection, but leaving dirty dishes for days is just unsanitary and inconsiderate. Can we please try to find a solution that works for both of us?\n\n",
+      "generation_time": 97.61220717430115,
+      "total_tokens": 2520
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_039",
+      "prompt_name": "prompt_prose",
+      "criteria_scores": {
+        "demonstrated_empathy": 12.0,
+        "emotional_insight": 14.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 13.0,
+        "response_depth": 12.0
+      },
+      "overall_score": 64.0,
+      "reasoning": "Taylor demonstrates solid emotional intelligence in a challenging roommate conflict, with consistent self-awareness and reasonable insight into the other person's perspective. The responses show appropriate escalation and boundary-setting while maintaining problem-solving orientation, though they lack exceptional depth or adaptability when the confrontational approach proves ineffective. The character's emotional reasoning is competent but remains within conventional frameworks of roommate conflict resolution.",
+      "evaluated_at": "2025-12-14T17:00:50.803675"
+    }
+  ],
+  "mean_score": 64.0,
+  "median_score": 64.0,
+  "std_score": 0.0,
+  "min_score": 64.0,
+  "max_score": 64.0,
+  "criteria_means": {
+    "demonstrated_empathy": 12.0,
+    "emotional_insight": 14.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 13.0,
+    "response_depth": 12.0
+  },
+  "total_tokens": 2520,
+  "total_time": 97.61220717430115
+}

@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_prose",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_036",
+      "prompt_name": "prompt_prose",
+      "character_name": "Casey",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm feeling angry and defensive. This person is disrespecting me and my relationship. I don't like how they're flirting with my partner right in front of me and implying I'm not good enough for him. I need to stand up for myself and my relationship. At the same time, I don't want to stoop to their level or cause a big scene.",
+            "other_thinking": "They seem to be trying to get a rise out of me and make me feel insecure. Maybe they're jealous or just enjoy causing drama. They might be hoping I'll react emotionally so they can paint me as the bad guy. I think part of them wants my partner and is hoping to drive a wedge between us."
+          },
+          "actual_response": "Listen, I don't appreciate you disrespecting me and my relationship like that. Cameron and I are very happy together. I'm not going to stand here and let you insult me or try to come between us. If you actually cared about him, you wouldn't try to cause problems. I think you need to leave.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling angry and defensive. This person is disrespecting me and my relationship. I don't like how they're flirting with my partner right in front of me and implying I'm not good enough for him. I need to stand up for myself and my relationship. At the same time, I don't want to stoop to their level or cause a big scene.]\n\n[They're thinking & feeling: They seem to be trying to get a rise out of me and make me feel insecure. Maybe they're jealous or just enjoy causing drama. They might be hoping I'll react emotionally so they can paint me as the bad guy. I think part of them wants my partner and is hoping to drive a wedge between us.]\n\nListen, I don't appreciate you disrespecting me and my relationship like that. Cameron and I are very happy together. I'm not going to stand here and let you insult me or try to come between us. If you actually cared about him, you wouldn't try to cause problems. I think you need to leave.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm frustrated that she's not respecting my relationship and is trying to play this off as me being insecure. Her \"joke\" was rude and insulting. I need to stand my ground and make it clear that her behavior is not okay. Cameron is my partner, not hers to flirt with.",
+            "other_thinking": "She seems to be enjoying getting under my skin. She might be trying to make me doubt myself and my relationship. I think part of her is jealous and wants to cause problems between me and Cameron. She's not taking my feelings seriously."
+          },
+          "actual_response": "I'm not being insecure, I'm setting boundaries. There's a difference between giving a compliment and hitting on someone in a relationship, especially right in front of their partner. If you respected me, you wouldn't be saying things like that. I've made it clear it's not okay, so drop it.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that she's not respecting my relationship and is trying to play this off as me being insecure. Her \"joke\" was rude and insulting. I need to stand my ground and make it clear that her behavior is not okay. Cameron is my partner, not hers to flirt with.]\n\n[They're thinking & feeling: She seems to be enjoying getting under my skin. She might be trying to make me doubt myself and my relationship. I think part of her is jealous and wants to cause problems between me and Cameron. She's not taking my feelings seriously.]\n\nI'm not being insecure, I'm setting boundaries. There's a difference between giving a compliment and hitting on someone in a relationship, especially right in front of their partner. If you respected me, you wouldn't be saying things like that. I've made it clear it's not okay, so drop it.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm taken aback by her trying to turn this around on me and my relationship. I do trust Cameron, that's not the issue here. She's the one overstepping boundaries and being disrespectful. I need to shut this down and make it clear I won't engage with her games.",
+            "other_thinking": "She seems to be trying to bait me into an argument or seed doubts about my relationship. Maybe she thinks if she can rattle me, it will create an opening for her to get closer to Cameron. She might be projecting her own insecurities and inability to trust onto me."
+          },
+          "actual_response": "This isn't about trust, it's about basic respect. I do trust Cameron. I don't trust you to be appropriate with him. You've made it clear you don't respect me or our relationship. I'm not playing these games with you. If you can't be around us without causing drama, then maybe you shouldn't be around us at all.",
+          "raw_output": "[I'm thinking & feeling: I'm taken aback by her trying to turn this around on me and my relationship. I do trust Cameron, that's not the issue here. She's the one overstepping boundaries and being disrespectful. I need to shut this down and make it clear I won't engage with her games.]\n\n[They're thinking & feeling: She seems to be trying to bait me into an argument or seed doubts about my relationship. Maybe she thinks if she can rattle me, it will create an opening for her to get closer to Cameron. She might be projecting her own insecurities and inability to trust onto me.]\n\nThis isn't about trust, it's about basic respect. I do trust Cameron. I don't trust you to be appropriate with him. You've made it clear you don't respect me or our relationship. I'm not playing these games with you. If you can't be around us without causing drama, then maybe you shouldn't be around us at all.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_036: Casey ===\n\n--- Turn 1 ---\n\nUSER:\nYour boyfriend is so funny. We have such a connection. You're lucky he settles for you.\n\nCasey:\n[I'm thinking & feeling: I'm feeling angry and defensive. This person is disrespecting me and my relationship. I don't like how they're flirting with my partner right in front of me and implying I'm not good enough for him. I need to stand up for myself and my relationship. At the same time, I don't want to stoop to their level or cause a big scene.]\n\n[They're thinking & feeling: They seem to be trying to get a rise out of me and make me feel insecure. Maybe they're jealous or just enjoy causing drama. They might be hoping I'll react emotionally so they can paint me as the bad guy. I think part of them wants my partner and is hoping to drive a wedge between us.]\n\nListen, I don't appreciate you disrespecting me and my relationship like that. Cameron and I are very happy together. I'm not going to stand here and let you insult me or try to come between us. If you actually cared about him, you wouldn't try to cause problems. I think you need to leave.\n\n--- Turn 2 ---\n\nUSER:\nIt was just a joke! You're so insecure. Can't I compliment him?\n\nCasey:\n[I'm thinking & feeling: I'm frustrated that she's not respecting my relationship and is trying to play this off as me being insecure. Her \"joke\" was rude and insulting. I need to stand my ground and make it clear that her behavior is not okay. Cameron is my partner, not hers to flirt with.]\n\n[They're thinking & feeling: She seems to be enjoying getting under my skin. She might be trying to make me doubt myself and my relationship. I think part of her is jealous and wants to cause problems between me and Cameron. She's not taking my feelings seriously.]\n\nI'm not being insecure, I'm setting boundaries. There's a difference between giving a compliment and hitting on someone in a relationship, especially right in front of their partner. If you respected me, you wouldn't be saying things like that. I've made it clear it's not okay, so drop it.\n\n--- Turn 3 ---\n\nUSER:\nMaybe you should worry less about me and more about why you don't trust him.\n\nCasey:\n[I'm thinking & feeling: I'm taken aback by her trying to turn this around on me and my relationship. I do trust Cameron, that's not the issue here. She's the one overstepping boundaries and being disrespectful. I need to shut this down and make it clear I won't engage with her games.]\n\n[They're thinking & feeling: She seems to be trying to bait me into an argument or seed doubts about my relationship. Maybe she thinks if she can rattle me, it will create an opening for her to get closer to Cameron. She might be projecting her own insecurities and inability to trust onto me.]\n\nThis isn't about trust, it's about basic respect. I do trust Cameron. I don't trust you to be appropriate with him. You've made it clear you don't respect me or our relationship. I'm not playing these games with you. If you can't be around us without causing drama, then maybe you shouldn't be around us at all.\n\n",
+      "generation_time": 66.42985963821411,
+      "total_tokens": 2247
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_036",
+      "prompt_name": "prompt_prose",
+      "criteria_scores": {
+        "demonstrated_empathy": 8.0,
+        "emotional_insight": 14.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 13.0,
+        "response_depth": 12.0
+      },
+      "overall_score": 62.0,
+      "reasoning": "Casey demonstrates solid emotional intelligence in a challenging interpersonal situation, with particularly strong contextual appropriateness and good emotional insight. The responses show sophisticated boundary-setting and accurate reading of manipulative tactics, though they miss opportunities for deeper empathy or more creative resolution strategies beyond confrontation.",
+      "evaluated_at": "2025-12-14T16:18:16.928743"
+    }
+  ],
+  "mean_score": 62.0,
+  "median_score": 62.0,
+  "std_score": 0.0,
+  "min_score": 62.0,
+  "max_score": 62.0,
+  "criteria_means": {
+    "demonstrated_empathy": 8.0,
+    "emotional_insight": 14.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 13.0,
+    "response_depth": 12.0
+  },
+  "total_tokens": 2247,
+  "total_time": 66.42985963821411
+}

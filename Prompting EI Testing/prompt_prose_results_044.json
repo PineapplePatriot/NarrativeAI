@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_prose",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_044",
+      "prompt_name": "prompt_prose",
+      "character_name": "Casey",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated by their constant negativity, but I care about them and want to help improve their mood if I can. Maybe I can try to gently shift their perspective or at least show them some empathy so they feel heard.",
+            "other_thinking": "They seem really down and stuck in a negative thought spiral right now. The restaurant and weather issues are probably just surface-level frustrations compared to deeper dissatisfaction or stress they're dealing with in their life overall."
+          },
+          "actual_response": "*sighs* I know, it's a bummer when things pile up like this. The rain does make today feel pretty gloomy. And I'm sorry to hear you're going through a tough time in general - that sounds really hard. I'm here for you though. Maybe we could find something small to enjoy today, even if it's not at this restaurant? A funny movie or treating ourselves to a favorite snack? What do you think?",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated by their constant negativity, but I care about them and want to help improve their mood if I can. Maybe I can try to gently shift their perspective or at least show them some empathy so they feel heard.]\n\n[They're thinking & feeling: They seem really down and stuck in a negative thought spiral right now. The restaurant and weather issues are probably just surface-level frustrations compared to deeper dissatisfaction or stress they're dealing with in their life overall.]\n\n*sighs* I know, it's a bummer when things pile up like this. The rain does make today feel pretty gloomy. And I'm sorry to hear you're going through a tough time in general - that sounds really hard. I'm here for you though. Maybe we could find something small to enjoy today, even if it's not at this restaurant? A funny movie or treating ourselves to a favorite snack? What do you think?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "Their negativity is draining, but I shouldn't take it personally. They must be going through a rough time to lash out like this. I want to be supportive, but also set boundaries. Maybe some lighthearted humor could help defuse the tension and show them a different perspective.",
+            "other_thinking": "They seem really stuck in a negative headspace, frustrated with life in general and taking it out on me since I'm here and in a better mood than them. They probably feel like no one understands what they're going through."
+          },
+          "actual_response": "*sighs and smiles wryly* Well, I don't know if I'm \"happy\" happy, but I try to find some bright spots where I can, you know? Life throws a lot at us, so I figure why not celebrate the little wins - a good cup of coffee, a funny meme, the weather finally cooperating for a day. It's the small stuff that gets me through the tough times. But I hear you - it's been a rough go lately. I'm here if you ever want to vent more about what's been going on with you.",
+          "raw_output": "[I'm thinking & feeling: Their negativity is draining, but I shouldn't take it personally. They must be going through a rough time to lash out like this. I want to be supportive, but also set boundaries. Maybe some lighthearted humor could help defuse the tension and show them a different perspective.]\n\n[They're thinking & feeling: They seem really stuck in a negative headspace, frustrated with life in general and taking it out on me since I'm here and in a better mood than them. They probably feel like no one understands what they're going through.]\n\n*sighs and smiles wryly* Well, I don't know if I'm \"happy\" happy, but I try to find some bright spots where I can, you know? Life throws a lot at us, so I figure why not celebrate the little wins - a good cup of coffee, a funny meme, the weather finally cooperating for a day. It's the small stuff that gets me through the tough times. But I hear you - it's been a rough go lately. I'm here if you ever want to vent more about what's been going on with you.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "Ouch, that stings. I'm just trying to help them feel better, but I guess I came across as dismissive of their real struggles. I shouldn't minimize what they're going through. Maybe I need to back off the pep talks and just listen more.",
+            "other_thinking": "They're clearly frustrated that I'm not understanding or validating their negative feelings. They want me to acknowledge that what they're dealing with is legitimately difficult, not just try to put a positive spin on it or change the subject."
+          },
+          "actual_response": "*holds up hands in surrender* You're right, I'm sorry. I don't mean to invalidate what you're feeling or suggest it's not a big deal. If you need to vent, I'm all ears. I know life has been throwing a lot at you lately and it's taking a toll. What's been the hardest part for you to deal with? I'm here to listen.",
+          "raw_output": "[I'm thinking & feeling: Ouch, that stings. I'm just trying to help them feel better, but I guess I came across as dismissive of their real struggles. I shouldn't minimize what they're going through. Maybe I need to back off the pep talks and just listen more.]\n\n[They're thinking & feeling: They're clearly frustrated that I'm not understanding or validating their negative feelings. They want me to acknowledge that what they're dealing with is legitimately difficult, not just try to put a positive spin on it or change the subject.]\n\n*holds up hands in surrender* You're right, I'm sorry. I don't mean to invalidate what you're feeling or suggest it's not a big deal. If you need to vent, I'm all ears. I know life has been throwing a lot at you lately and it's taking a toll. What's been the hardest part for you to deal with? I'm here to listen.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_044: Casey ===\n\n--- Turn 1 ---\n\nUSER:\nThis restaurant sucks. The weather sucks. My life sucks.\n\nCasey:\n[I'm thinking & feeling: I'm frustrated by their constant negativity, but I care about them and want to help improve their mood if I can. Maybe I can try to gently shift their perspective or at least show them some empathy so they feel heard.]\n\n[They're thinking & feeling: They seem really down and stuck in a negative thought spiral right now. The restaurant and weather issues are probably just surface-level frustrations compared to deeper dissatisfaction or stress they're dealing with in their life overall.]\n\n*sighs* I know, it's a bummer when things pile up like this. The rain does make today feel pretty gloomy. And I'm sorry to hear you're going through a tough time in general - that sounds really hard. I'm here for you though. Maybe we could find something small to enjoy today, even if it's not at this restaurant? A funny movie or treating ourselves to a favorite snack? What do you think?\n\n--- Turn 2 ---\n\nUSER:\nWhy are you so happy? It's annoying. Real life is miserable.\n\nCasey:\n[I'm thinking & feeling: Their negativity is draining, but I shouldn't take it personally. They must be going through a rough time to lash out like this. I want to be supportive, but also set boundaries. Maybe some lighthearted humor could help defuse the tension and show them a different perspective.]\n\n[They're thinking & feeling: They seem really stuck in a negative headspace, frustrated with life in general and taking it out on me since I'm here and in a better mood than them. They probably feel like no one understands what they're going through.]\n\n*sighs and smiles wryly* Well, I don't know if I'm \"happy\" happy, but I try to find some bright spots where I can, you know? Life throws a lot at us, so I figure why not celebrate the little wins - a good cup of coffee, a funny meme, the weather finally cooperating for a day. It's the small stuff that gets me through the tough times. But I hear you - it's been a rough go lately. I'm here if you ever want to vent more about what's been going on with you.\n\n--- Turn 3 ---\n\nUSER:\nYou're toxic positivity. Let me vent!\n\nCasey:\n[I'm thinking & feeling: Ouch, that stings. I'm just trying to help them feel better, but I guess I came across as dismissive of their real struggles. I shouldn't minimize what they're going through. Maybe I need to back off the pep talks and just listen more.]\n\n[They're thinking & feeling: They're clearly frustrated that I'm not understanding or validating their negative feelings. They want me to acknowledge that what they're dealing with is legitimately difficult, not just try to put a positive spin on it or change the subject.]\n\n*holds up hands in surrender* You're right, I'm sorry. I don't mean to invalidate what you're feeling or suggest it's not a big deal. If you need to vent, I'm all ears. I know life has been throwing a lot at you lately and it's taking a toll. What's been the hardest part for you to deal with? I'm here to listen.\n\n",
+      "generation_time": 79.85985279083252,
+      "total_tokens": 2220
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_044",
+      "prompt_name": "prompt_prose",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 13.0,
+        "contextual_appropriateness": 12.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 13.0
+      },
+      "overall_score": 67.0,
+      "reasoning": "Casey demonstrates strong emotional intelligence that evolves effectively across the interaction, showing particular strength in theory of mind and adaptability when corrected. The responses reveal good but not exceptional depth, with initial attempts at positivity redirection that miss the mark slightly, followed by more authentic validation when directly confronted. The progression shows genuine learning and adaptation rather than rehearsed responses.",
+      "evaluated_at": "2025-12-14T18:26:47.266455"
+    }
+  ],
+  "mean_score": 67.0,
+  "median_score": 67.0,
+  "std_score": 0.0,
+  "min_score": 67.0,
+  "max_score": 67.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 13.0,
+    "contextual_appropriateness": 12.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 13.0
+  },
+  "total_tokens": 2220,
+  "total_time": 79.85985279083252
+}

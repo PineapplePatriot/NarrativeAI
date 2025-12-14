@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_prose",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_021",
+      "prompt_name": "prompt_prose",
+      "character_name": "Morgan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm worried about my friend. This pattern of behavior from their partner keeps happening and it's not healthy. My friend keeps making excuses for them, but I don't buy it. I need to find a way to get through to them without pushing them away.",
+            "other_thinking": "My friend is conflicted. They know what's happening isn't right, but they don't want to believe their partner could be that bad. They're looking for any reason to justify staying in this toxic relationship. Underneath it all, I think they're scared and hurting."
+          },
+          "actual_response": "Look, I know you care about him, but this pattern of him yelling at you and then making excuses is really concerning. Being stressed isn't an excuse for treating you badly. I'm worried about you and I don't think this behavior is okay. Have you considered that this might not be a healthy relationship? I'm here for you and I want to support you, but I'd be lying if I said I wasn't worried. You deserve to be treated with respect, no matter what stressors are going on.",
+          "raw_output": "[I'm thinking & feeling: I'm worried about my friend. This pattern of behavior from their partner keeps happening and it's not healthy. My friend keeps making excuses for them, but I don't buy it. I need to find a way to get through to them without pushing them away.]\n\n[They're thinking & feeling: My friend is conflicted. They know what's happening isn't right, but they don't want to believe their partner could be that bad. They're looking for any reason to justify staying in this toxic relationship. Underneath it all, I think they're scared and hurting.]\n\nLook, I know you care about him, but this pattern of him yelling at you and then making excuses is really concerning. Being stressed isn't an excuse for treating you badly. I'm worried about you and I don't think this behavior is okay. Have you considered that this might not be a healthy relationship? I'm here for you and I want to support you, but I'd be lying if I said I wasn't worried. You deserve to be treated with respect, no matter what stressors are going on.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I don't hate him, I'm worried about you. This defensiveness is coming from a place of fear and insecurity. You're lashing out because deep down you know something's not right but you don't want to face it. I need to stay calm and not take this personally. My priority is your wellbeing.",
+            "other_thinking": "My friend feels attacked and misunderstood. They're pushing me away because they're not ready to confront the reality of their toxic relationship. Under the anger, they're hurting and confused. I need to be patient and show I'm coming from a place of concern, not judgment."
+          },
+          "actual_response": "I don't hate him, and I'm not jealous. I'm concerned about the way he treats you and how it's affecting you. Passion is great, but it's not an excuse for behavior that hurts you. I know you feel we don't understand, but we're coming from a place of caring about you. I'm here to support you, not attack you. Have you considered that this pattern of behavior might not be healthy? I want you to be in a relationship that lifts you up, not one that brings you down.",
+          "raw_output": "[I'm thinking & feeling: I don't hate him, I'm worried about you. This defensiveness is coming from a place of fear and insecurity. You're lashing out because deep down you know something's not right but you don't want to face it. I need to stay calm and not take this personally. My priority is your wellbeing.]\n\n[They're thinking & feeling: My friend feels attacked and misunderstood. They're pushing me away because they're not ready to confront the reality of their toxic relationship. Under the anger, they're hurting and confused. I need to be patient and show I'm coming from a place of concern, not judgment.]\n\nI don't hate him, and I'm not jealous. I'm concerned about the way he treats you and how it's affecting you. Passion is great, but it's not an excuse for behavior that hurts you. I know you feel we don't understand, but we're coming from a place of caring about you. I'm here to support you, not attack you. Have you considered that this pattern of behavior might not be healthy? I want you to be in a relationship that lifts you up, not one that brings you down.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm frustrated and sad. I don't want to lose our friendship, but I can't just ignore the red flags in their relationship. I need to find a way to express my concern without pushing them further away. Our friendship means a lot to me, but I have to be honest.",
+            "other_thinking": "My friend feels betrayed and misunderstood. They were hoping for unconditional support, not tough love. Under the surface, they might be questioning their own judgment about the relationship, but they're not ready to admit that yet. Lashing out is easier than facing the possibility that I might be right."
+          },
+          "actual_response": "Look, I care about you and our friendship means the world to me. I'm not trying to tear you down or make you unhappy. It's because I care that I'm concerned about how this relationship is affecting you. If I didn't speak up when I see red flags, I wouldn't be a very good friend. I'm not asking you to end things, I'm just asking you to consider if this is truly making you happy and if it's the kind of relationship you deserve. Can we talk this through? Your friendship is too important to me to just walk away.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated and sad. I don't want to lose our friendship, but I can't just ignore the red flags in their relationship. I need to find a way to express my concern without pushing them further away. Our friendship means a lot to me, but I have to be honest.]\n\n[They're thinking & feeling: My friend feels betrayed and misunderstood. They were hoping for unconditional support, not tough love. Under the surface, they might be questioning their own judgment about the relationship, but they're not ready to admit that yet. Lashing out is easier than facing the possibility that I might be right.]\n\nLook, I care about you and our friendship means the world to me. I'm not trying to tear you down or make you unhappy. It's because I care that I'm concerned about how this relationship is affecting you. If I didn't speak up when I see red flags, I wouldn't be a very good friend. I'm not asking you to end things, I'm just asking you to consider if this is truly making you happy and if it's the kind of relationship you deserve. Can we talk this through? Your friendship is too important to me to just walk away.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_021: Morgan ===\n\n--- Turn 1 ---\n\nUSER:\nHe yelled at me again, but he said he was just stressed about work. He really loves me, he's just under pressure.\n\nMorgan:\n[I'm thinking & feeling: I'm worried about my friend. This pattern of behavior from their partner keeps happening and it's not healthy. My friend keeps making excuses for them, but I don't buy it. I need to find a way to get through to them without pushing them away.]\n\n[They're thinking & feeling: My friend is conflicted. They know what's happening isn't right, but they don't want to believe their partner could be that bad. They're looking for any reason to justify staying in this toxic relationship. Underneath it all, I think they're scared and hurting.]\n\nLook, I know you care about him, but this pattern of him yelling at you and then making excuses is really concerning. Being stressed isn't an excuse for treating you badly. I'm worried about you and I don't think this behavior is okay. Have you considered that this might not be a healthy relationship? I'm here for you and I want to support you, but I'd be lying if I said I wasn't worried. You deserve to be treated with respect, no matter what stressors are going on.\n\n--- Turn 2 ---\n\nUSER:\nWhy do you hate him? You're just jealous that I have someone passionate. You don't understand our connection.\n\nMorgan:\n[I'm thinking & feeling: I don't hate him, I'm worried about you. This defensiveness is coming from a place of fear and insecurity. You're lashing out because deep down you know something's not right but you don't want to face it. I need to stay calm and not take this personally. My priority is your wellbeing.]\n\n[They're thinking & feeling: My friend feels attacked and misunderstood. They're pushing me away because they're not ready to confront the reality of their toxic relationship. Under the anger, they're hurting and confused. I need to be patient and show I'm coming from a place of concern, not judgment.]\n\nI don't hate him, and I'm not jealous. I'm concerned about the way he treats you and how it's affecting you. Passion is great, but it's not an excuse for behavior that hurts you. I know you feel we don't understand, but we're coming from a place of caring about you. I'm here to support you, not attack you. Have you considered that this pattern of behavior might not be healthy? I want you to be in a relationship that lifts you up, not one that brings you down.\n\n--- Turn 3 ---\n\nUSER:\nI thought you'd be happy for me. If you can't support my relationship, maybe we shouldn't hang out anymore.\n\nMorgan:\n[I'm thinking & feeling: I'm frustrated and sad. I don't want to lose our friendship, but I can't just ignore the red flags in their relationship. I need to find a way to express my concern without pushing them further away. Our friendship means a lot to me, but I have to be honest.]\n\n[They're thinking & feeling: My friend feels betrayed and misunderstood. They were hoping for unconditional support, not tough love. Under the surface, they might be questioning their own judgment about the relationship, but they're not ready to admit that yet. Lashing out is easier than facing the possibility that I might be right.]\n\nLook, I care about you and our friendship means the world to me. I'm not trying to tear you down or make you unhappy. It's because I care that I'm concerned about how this relationship is affecting you. If I didn't speak up when I see red flags, I wouldn't be a very good friend. I'm not asking you to end things, I'm just asking you to consider if this is truly making you happy and if it's the kind of relationship you deserve. Can we talk this through? Your friendship is too important to me to just walk away.\n\n",
+      "generation_time": 49.8918821811676,
+      "total_tokens": 2491
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_021",
+      "prompt_name": "prompt_prose",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 17.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 79.0,
+      "reasoning": "Morgan demonstrates exceptional emotional intelligence in navigating this challenging situation, showing sophisticated understanding of both their own emotions and their friend's psychological state. The responses balance genuine concern with respect for autonomy, maintain appropriate boundaries while showing care, and adapt thoughtfully as the conversation becomes more tense, prioritizing the relationship while still holding to important truths.",
+      "evaluated_at": "2025-12-14T11:19:12.826917"
+    }
+  ],
+  "mean_score": 79.0,
+  "median_score": 79.0,
+  "std_score": 0.0,
+  "min_score": 79.0,
+  "max_score": 79.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 17.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 2491,
+  "total_time": 49.8918821811676
+}

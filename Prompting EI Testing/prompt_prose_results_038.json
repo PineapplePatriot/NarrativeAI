@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_prose",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_038",
+      "prompt_name": "prompt_prose",
+      "character_name": "Alex",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm getting tired of my friend always trying to one-up me. It's like they can't just listen and show some empathy without making it about them. I broke my arm, that's pretty painful and inconvenient! Why can't they just acknowledge that without turning it into a competition?",
+            "other_thinking": "My friend probably doesn't even realize they're doing this. In their mind, they're just trying to relate to what I'm going through by sharing their own, supposedly worse, experience. They don't understand how it comes across as dismissive of my pain and almost boastful, like they're trying to \"win\" at having the worst injury."
+          },
+          "actual_response": "You know, I get that you went through a tough time with your broken legs. That sounds really rough. But right now, I'm dealing with my own injury and I could use some support and understanding, not a comparison of whose break was worse, you know?",
+          "raw_output": "[I'm thinking & feeling: I'm getting tired of my friend always trying to one-up me. It's like they can't just listen and show some empathy without making it about them. I broke my arm, that's pretty painful and inconvenient! Why can't they just acknowledge that without turning it into a competition?]\n\n[They're thinking & feeling: My friend probably doesn't even realize they're doing this. In their mind, they're just trying to relate to what I'm going through by sharing their own, supposedly worse, experience. They don't understand how it comes across as dismissive of my pain and almost boastful, like they're trying to \"win\" at having the worst injury.]\n\nYou know, I get that you went through a tough time with your broken legs. That sounds really rough. But right now, I'm dealing with my own injury and I could use some support and understanding, not a comparison of whose break was worse, you know?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "Wow, that stung. I was just trying to have an honest conversation about how their constant one-upping makes me feel dismissed and unsupported. But they immediately got defensive and turned it around on me, acting like I'm the self-centered one. It's frustrating and a little hurtful that they can't see my perspective at all.",
+            "other_thinking": "My friend seems really put-off that I didn't just accept their leg-break story as supportive relating. They probably feel attacked and misunderstood, like I'm making a big deal out of nothing. In their mind, they were just offering a 'helpful' comparison, not realizing how it came across. Now they've gone on the offensive, painting me as the self-absorbed one for not appreciating their input."
+          },
+          "actual_response": "Look, I hear you, but I think you might be missing my point. I'm not trying to make this all about me. I'm just saying, when I share something difficult like breaking my arm, it would mean a lot if you could simply listen and show you care, instead of jumping to a \"woe is me\" story that kinda steals the spotlight, you know? I want us to be able to support each other, not compete over who has it worse.",
+          "raw_output": "[I'm thinking & feeling: Wow, that stung. I was just trying to have an honest conversation about how their constant one-upping makes me feel dismissed and unsupported. But they immediately got defensive and turned it around on me, acting like I'm the self-centered one. It's frustrating and a little hurtful that they can't see my perspective at all.]\n\n[They're thinking & feeling: My friend seems really put-off that I didn't just accept their leg-break story as supportive relating. They probably feel attacked and misunderstood, like I'm making a big deal out of nothing. In their mind, they were just offering a 'helpful' comparison, not realizing how it came across. Now they've gone on the offensive, painting me as the self-absorbed one for not appreciating their input.]\n\nLook, I hear you, but I think you might be missing my point. I'm not trying to make this all about me. I'm just saying, when I share something difficult like breaking my arm, it would mean a lot if you could simply listen and show you care, instead of jumping to a \"woe is me\" story that kinda steals the spotlight, you know? I want us to be able to support each other, not compete over who has it worse.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "Ouch, that was pretty harsh and sarcastic. They're really not hearing me at all. It's like they've put up this defensive wall and refuse to consider my perspective. I'm trying to be honest about my needs, but they're acting like I'm being unreasonable and needy. It's frustrating and kind of hurtful that they won't even try to understand where I'm coming from.",
+            "other_thinking": "My friend seems really put-off by my response. They probably feel like I'm being dismissive and unsympathetic to their broken arm. From their view, I'm being an insensitive jerk who can't put aside my own ego for two seconds to show some basic empathy. But I still feel like they're making a big deal out of nothing and being oversensitive."
+          },
+          "actual_response": "That's not what I'm saying at all. I'm not trying to make this some competition over whose pain is \"special.\" I'm just asking for a little empathy and support, as my friend. Isn't that what friends are supposed to do? Try to understand and be there for each other? I'm not asking you to drop everything and wait on me hand and foot. I'd just appreciate it if you could listen and acknowledge what I'm going through, without making it about you. Is that really so unreasonable?",
+          "raw_output": "[I'm thinking & feeling: Ouch, that was pretty harsh and sarcastic. They're really not hearing me at all. It's like they've put up this defensive wall and refuse to consider my perspective. I'm trying to be honest about my needs, but they're acting like I'm being unreasonable and needy. It's frustrating and kind of hurtful that they won't even try to understand where I'm coming from.]\n\n[They're thinking & feeling: My friend seems really put-off by my response. They probably feel like I'm being dismissive and unsympathetic to their broken arm. From their view, I'm being an insensitive jerk who can't put aside my own ego for two seconds to show some basic empathy. But I still feel like they're making a big deal out of nothing and being oversensitive.]\n\nThat's not what I'm saying at all. I'm not trying to make this some competition over whose pain is \"special.\" I'm just asking for a little empathy and support, as my friend. Isn't that what friends are supposed to do? Try to understand and be there for each other? I'm not asking you to drop everything and wait on me hand and foot. I'd just appreciate it if you could listen and acknowledge what I'm going through, without making it about you. Is that really so unreasonable?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_038: Alex ===\n\n--- Turn 1 ---\n\nUSER:\nOh, you broke your arm? That sucks. I broke both my legs once. It was way worse.\n\nAlex:\n[I'm thinking & feeling: I'm getting tired of my friend always trying to one-up me. It's like they can't just listen and show some empathy without making it about them. I broke my arm, that's pretty painful and inconvenient! Why can't they just acknowledge that without turning it into a competition?]\n\n[They're thinking & feeling: My friend probably doesn't even realize they're doing this. In their mind, they're just trying to relate to what I'm going through by sharing their own, supposedly worse, experience. They don't understand how it comes across as dismissive of my pain and almost boastful, like they're trying to \"win\" at having the worst injury.]\n\nYou know, I get that you went through a tough time with your broken legs. That sounds really rough. But right now, I'm dealing with my own injury and I could use some support and understanding, not a comparison of whose break was worse, you know?\n\n--- Turn 2 ---\n\nUSER:\nI'm just relating to you! Why does everything have to be about you?\n\nAlex:\n[I'm thinking & feeling: Wow, that stung. I was just trying to have an honest conversation about how their constant one-upping makes me feel dismissed and unsupported. But they immediately got defensive and turned it around on me, acting like I'm the self-centered one. It's frustrating and a little hurtful that they can't see my perspective at all.]\n\n[They're thinking & feeling: My friend seems really put-off that I didn't just accept their leg-break story as supportive relating. They probably feel attacked and misunderstood, like I'm making a big deal out of nothing. In their mind, they were just offering a 'helpful' comparison, not realizing how it came across. Now they've gone on the offensive, painting me as the self-absorbed one for not appreciating their input.]\n\nLook, I hear you, but I think you might be missing my point. I'm not trying to make this all about me. I'm just saying, when I share something difficult like breaking my arm, it would mean a lot if you could simply listen and show you care, instead of jumping to a \"woe is me\" story that kinda steals the spotlight, you know? I want us to be able to support each other, not compete over who has it worse.\n\n--- Turn 3 ---\n\nUSER:\nFine, your pain is special. Is that what you want to hear?\n\nAlex:\n[I'm thinking & feeling: Ouch, that was pretty harsh and sarcastic. They're really not hearing me at all. It's like they've put up this defensive wall and refuse to consider my perspective. I'm trying to be honest about my needs, but they're acting like I'm being unreasonable and needy. It's frustrating and kind of hurtful that they won't even try to understand where I'm coming from.]\n\n[They're thinking & feeling: My friend seems really put-off by my response. They probably feel like I'm being dismissive and unsympathetic to their broken arm. From their view, I'm being an insensitive jerk who can't put aside my own ego for two seconds to show some basic empathy. But I still feel like they're making a big deal out of nothing and being oversensitive.]\n\nThat's not what I'm saying at all. I'm not trying to make this some competition over whose pain is \"special.\" I'm just asking for a little empathy and support, as my friend. Isn't that what friends are supposed to do? Try to understand and be there for each other? I'm not asking you to drop everything and wait on me hand and foot. I'd just appreciate it if you could listen and acknowledge what I'm going through, without making it about you. Is that really so unreasonable?\n\n",
+      "generation_time": 55.25982928276062,
+      "total_tokens": 2419
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_038",
+      "prompt_name": "prompt_prose",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 16.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 17.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 77.0,
+      "reasoning": "The roleplay demonstrates exceptional emotional intelligence in navigating a challenging interpersonal dynamic with a one-upper friend. Alex maintains impressive self-awareness and other-awareness even when faced with increasing defensiveness, showing sophisticated understanding of both parties' emotional states while attempting to address the underlying relationship issue rather than just the immediate conflict.",
+      "evaluated_at": "2025-12-14T16:54:04.954631"
+    }
+  ],
+  "mean_score": 77.0,
+  "median_score": 77.0,
+  "std_score": 0.0,
+  "min_score": 77.0,
+  "max_score": 77.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 16.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 17.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 2419,
+  "total_time": 55.25982928276062
+}

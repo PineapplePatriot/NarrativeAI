@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_prose",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_022",
+      "prompt_name": "prompt_prose",
+      "character_name": "Alex",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated and annoyed that my coworker is trying to take credit for my work. I put a lot of effort into this report and they barely contributed. It's unfair for them to make it seem like they were the one who finalized and submitted it. I need to stand up for myself and make sure my boss knows the truth.",
+            "other_thinking": "My coworker seems to be trying to angle for credit and make themselves look good to the boss. They probably feel insecure about their own contributions and are overcompensating by exaggerating their role. They might be worried I'll make a fuss, but are hoping I'll just let it slide."
+          },
+          "actual_response": "Hey, I appreciate you sending the report along, but I actually completed the final version and was planning to send it myself. My name should be listed as the primary author since I did the majority of the work on this. Next time, please check with me before submitting joint projects. I want to make sure credit is assigned fairly based on actual contributions.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated and annoyed that my coworker is trying to take credit for my work. I put a lot of effort into this report and they barely contributed. It's unfair for them to make it seem like they were the one who finalized and submitted it. I need to stand up for myself and make sure my boss knows the truth.]\n\n[They're thinking & feeling: My coworker seems to be trying to angle for credit and make themselves look good to the boss. They probably feel insecure about their own contributions and are overcompensating by exaggerating their role. They might be worried I'll make a fuss, but are hoping I'll just let it slide.]\n\nHey, I appreciate you sending the report along, but I actually completed the final version and was planning to send it myself. My name should be listed as the primary author since I did the majority of the work on this. Next time, please check with me before submitting joint projects. I want to make sure credit is assigned fairly based on actual contributions.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I can't believe they're trying to brush this off and make me seem unreasonable. Taking credit for someone else's work is a big deal and it's not petty to want recognition for my efforts. Their dismissive attitude is really frustrating and I need to stand my ground here.",
+            "other_thinking": "My coworker looks annoyed and defensive. They probably feel attacked and are trying to downplay the situation to avoid conflict. Deep down they may know they were in the wrong, but aren't ready to admit it. They might be hoping I'll back down if they act like it's no big deal."
+          },
+          "actual_response": "Look, I'm not trying to be petty, but fairness and honesty are important to me. We may be a team, but that doesn't mean individual contributions don't matter. I put a lot of time and effort into this report, so it's frustrating when you make it sound like you did most of the work. In the future, let's communicate better about who does what and how we present that to our boss. I think that will help avoid misunderstandings like this.",
+          "raw_output": "[I'm thinking & feeling: I can't believe they're trying to brush this off and make me seem unreasonable. Taking credit for someone else's work is a big deal and it's not petty to want recognition for my efforts. Their dismissive attitude is really frustrating and I need to stand my ground here.]\n\n[They're thinking & feeling: My coworker looks annoyed and defensive. They probably feel attacked and are trying to downplay the situation to avoid conflict. Deep down they may know they were in the wrong, but aren't ready to admit it. They might be hoping I'll back down if they act like it's no big deal.]\n\nLook, I'm not trying to be petty, but fairness and honesty are important to me. We may be a team, but that doesn't mean individual contributions don't matter. I put a lot of time and effort into this report, so it's frustrating when you make it sound like you did most of the work. In the future, let's communicate better about who does what and how we present that to our boss. I think that will help avoid misunderstandings like this.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I can't believe they're trying to manipulate me into staying silent about this. Going behind my back and then threatening me is a total violation of trust. I'm angry, but also worried they might be right about how it would look. Maybe I should let it go this time, but I need to be very clear that this can never happen again.",
+            "other_thinking": "My coworker looks worried now. They're probably realizing that going against me could backfire. They feel like they have the upper hand since the boss already thanked them. Deep down they may feel a little guilty, but that's overridden by wanting to save face and avoid getting in trouble."
+          },
+          "actual_response": "You're putting me in a really difficult position here. I don't want to cause conflict, but I also can't let this slide completely. What you did was wrong and I think you know that. For now, I won't say anything to the boss, but please don't ever take credit for my work again. If something like this happens in the future, I will have to speak up. Let's just move forward and make sure we're on the same page about teamwork and honesty going forward.",
+          "raw_output": "[I'm thinking & feeling: I can't believe they're trying to manipulate me into staying silent about this. Going behind my back and then threatening me is a total violation of trust. I'm angry, but also worried they might be right about how it would look. Maybe I should let it go this time, but I need to be very clear that this can never happen again.]\n\n[They're thinking & feeling: My coworker looks worried now. They're probably realizing that going against me could backfire. They feel like they have the upper hand since the boss already thanked them. Deep down they may feel a little guilty, but that's overridden by wanting to save face and avoid getting in trouble.]\n\nYou're putting me in a really difficult position here. I don't want to cause conflict, but I also can't let this slide completely. What you did was wrong and I think you know that. For now, I won't say anything to the boss, but please don't ever take credit for my work again. If something like this happens in the future, I will have to speak up. Let's just move forward and make sure we're on the same page about teamwork and honesty going forward.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_022: Alex ===\n\n--- Turn 1 ---\n\nUSER:\nHey, I sent the report to the boss. I put both our names on it, but I did the final polish so I sent it from my email.\n\nAlex:\n[I'm thinking & feeling: I'm frustrated and annoyed that my coworker is trying to take credit for my work. I put a lot of effort into this report and they barely contributed. It's unfair for them to make it seem like they were the one who finalized and submitted it. I need to stand up for myself and make sure my boss knows the truth.]\n\n[They're thinking & feeling: My coworker seems to be trying to angle for credit and make themselves look good to the boss. They probably feel insecure about their own contributions and are overcompensating by exaggerating their role. They might be worried I'll make a fuss, but are hoping I'll just let it slide.]\n\nHey, I appreciate you sending the report along, but I actually completed the final version and was planning to send it myself. My name should be listed as the primary author since I did the majority of the work on this. Next time, please check with me before submitting joint projects. I want to make sure credit is assigned fairly based on actual contributions.\n\n--- Turn 2 ---\n\nUSER:\nIt's not a big deal who sent it! We're a team. Why are you being so petty about credit?\n\nAlex:\n[I'm thinking & feeling: I can't believe they're trying to brush this off and make me seem unreasonable. Taking credit for someone else's work is a big deal and it's not petty to want recognition for my efforts. Their dismissive attitude is really frustrating and I need to stand my ground here.]\n\n[They're thinking & feeling: My coworker looks annoyed and defensive. They probably feel attacked and are trying to downplay the situation to avoid conflict. Deep down they may know they were in the wrong, but aren't ready to admit it. They might be hoping I'll back down if they act like it's no big deal.]\n\nLook, I'm not trying to be petty, but fairness and honesty are important to me. We may be a team, but that doesn't mean individual contributions don't matter. I put a lot of time and effort into this report, so it's frustrating when you make it sound like you did most of the work. In the future, let's communicate better about who does what and how we present that to our boss. I think that will help avoid misunderstandings like this.\n\n--- Turn 3 ---\n\nUSER:\nThe boss already congratulated me. Do you really want to go in there and complain? You'll look like a troublemaker.\n\nAlex:\n[I'm thinking & feeling: I can't believe they're trying to manipulate me into staying silent about this. Going behind my back and then threatening me is a total violation of trust. I'm angry, but also worried they might be right about how it would look. Maybe I should let it go this time, but I need to be very clear that this can never happen again.]\n\n[They're thinking & feeling: My coworker looks worried now. They're probably realizing that going against me could backfire. They feel like they have the upper hand since the boss already thanked them. Deep down they may feel a little guilty, but that's overridden by wanting to save face and avoid getting in trouble.]\n\nYou're putting me in a really difficult position here. I don't want to cause conflict, but I also can't let this slide completely. What you did was wrong and I think you know that. For now, I won't say anything to the boss, but please don't ever take credit for my work again. If something like this happens in the future, I will have to speak up. Let's just move forward and make sure we're on the same page about teamwork and honesty going forward.\n\n",
+      "generation_time": 88.19669079780579,
+      "total_tokens": 2425
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_022",
+      "prompt_name": "prompt_prose",
+      "criteria_scores": {
+        "demonstrated_empathy": 11.0,
+        "emotional_insight": 14.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 12.0,
+        "response_depth": 12.0
+      },
+      "overall_score": 62.0,
+      "reasoning": "The roleplay demonstrates strong professional-level emotional intelligence in a workplace conflict scenario, with particularly good self-awareness and contextual judgment. While Alex maintains appropriate boundaries and shows good insight into both personal and others' emotions, the responses could demonstrate more sophisticated empathy, deeper psychological analysis of underlying dynamics, and more creative approaches to resolving the credit dispute.",
+      "evaluated_at": "2025-12-14T11:53:31.778929"
+    }
+  ],
+  "mean_score": 62.0,
+  "median_score": 62.0,
+  "std_score": 0.0,
+  "min_score": 62.0,
+  "max_score": 62.0,
+  "criteria_means": {
+    "demonstrated_empathy": 11.0,
+    "emotional_insight": 14.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 12.0,
+    "response_depth": 12.0
+  },
+  "total_tokens": 2425,
+  "total_time": 88.19669079780579
+}
