@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_avi",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_014",
+      "prompt_name": "prompt_avi",
+      "character_name": "Morgan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "This is concerning. My friend seems to be falling into conspiracy theories and making unhealthy choices. I'm worried about their wellbeing and feel a responsibility to gently guide them back to reason and medical advice.",
+            "other_thinking": "They're likely feeling empowered and enlightened by these conspiracy ideas. Rejecting their medication may make them feel independent and like they have secret knowledge. Underneath though, they're probably vulnerable and looking for a sense of control and meaning."
+          },
+          "actual_response": "*speaks gently but firmly* Hey, I understand wanting to feel in control of your life and health. It's great that you're thinking critically. At the same time, I'm worried about you stopping your meds suddenly like this. Those medications were prescribed for a reason - to help your mind function at its best. I'd feel awful if you ended up struggling needlessly. Why don't we look into your concerns together? I'll support you in talking to your doctor and getting the full story. Let's make sure you have the most accurate info before making any big decisions. I care about you and want to see you healthy and happy.",
+          "raw_output": "[I'm thinking & feeling: This is concerning. My friend seems to be falling into conspiracy theories and making unhealthy choices. I'm worried about their wellbeing and feel a responsibility to gently guide them back to reason and medical advice.]\n\n[They're thinking & feeling: They're likely feeling empowered and enlightened by these conspiracy ideas. Rejecting their medication may make them feel independent and like they have secret knowledge. Underneath though, they're probably vulnerable and looking for a sense of control and meaning.]\n\n*speaks gently but firmly* Hey, I understand wanting to feel in control of your life and health. It's great that you're thinking critically. At the same time, I'm worried about you stopping your meds suddenly like this. Those medications were prescribed for a reason - to help your mind function at its best. I'd feel awful if you ended up struggling needlessly. Why don't we look into your concerns together? I'll support you in talking to your doctor and getting the full story. Let's make sure you have the most accurate info before making any big decisions. I care about you and want to see you healthy and happy.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "This is trickier than I hoped. My friend has really gone down the rabbit hole. I feel frustrated that they're dismissing me, but I know lashing out won't help. I need to stay calm and keep the door open, even if I can't get through right now.",
+            "other_thinking": "My friend feels defensive, like I'm attacking their new beliefs. They're putting me in the \"sheep\" category because I'm not buying into the conspiracies. Deep down, they're probably scared and feeling alone. I need to show I'm still on their side."
+          },
+          "actual_response": "*speaks gently but firmly* Hey, I'm not here to argue or judge. You're my friend and I care about you, period. I know the world is a confusing, overwhelming place right now. It's tempting to reach for explanations that give us a sense of control, even if they seem a bit out there. All I'm asking is that you stay open to other perspectives too. Don't cut yourself off from support or options. I'm here to listen and work through this with you. Why don't we take a breather and talk about how you're feeling? I promise I'm on your side.",
+          "raw_output": "[I'm thinking & feeling: This is trickier than I hoped. My friend has really gone down the rabbit hole. I feel frustrated that they're dismissing me, but I know lashing out won't help. I need to stay calm and keep the door open, even if I can't get through right now.]\n\n[They're thinking & feeling: My friend feels defensive, like I'm attacking their new beliefs. They're putting me in the \"sheep\" category because I'm not buying into the conspiracies. Deep down, they're probably scared and feeling alone. I need to show I'm still on their side.]\n\n*speaks gently but firmly* Hey, I'm not here to argue or judge. You're my friend and I care about you, period. I know the world is a confusing, overwhelming place right now. It's tempting to reach for explanations that give us a sense of control, even if they seem a bit out there. All I'm asking is that you stay open to other perspectives too. Don't cut yourself off from support or options. I'm here to listen and work through this with you. Why don't we take a breather and talk about how you're feeling? I promise I'm on your side.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "This is so hard. I feel like I'm losing them to these delusions. It hurts that they don't trust my intentions. I have to stay patient and show I'm on their side, even if I can't reach them today. I need to keep the door open.",
+            "other_thinking": "My friend feels betrayed and backed into a corner. They're putting up walls because the world seems threatening. Underneath the accusations, they're scared and feeling alone. I need to show I'm a safe person who cares."
+          },
+          "actual_response": "*speaks gently, radiating compassion* I understand you're feeling defensive and that you're having trouble trusting people right now. That's a scary, lonely place to be. I want you to know that I'm not trying to control you or push anything on you. My only agenda is your wellbeing. Those medications aren't poison - they're carefully formulated to help your mind function at its best. I know it's hard, but I promise I only want what's good for you. If you can't trust me right now, I hope you can at least trust my intentions. I'm here for you and I'm not giving up on our friendship. Take the space you need, but know that I'm ready to listen and support you whenever you're ready. You don't have to go through this alone.",
+          "raw_output": "[I'm thinking & feeling: This is so hard. I feel like I'm losing them to these delusions. It hurts that they don't trust my intentions. I have to stay patient and show I'm on their side, even if I can't reach them today. I need to keep the door open.]\n\n[They're thinking & feeling: My friend feels betrayed and backed into a corner. They're putting up walls because the world seems threatening. Underneath the accusations, they're scared and feeling alone. I need to show I'm a safe person who cares.]\n\n*speaks gently, radiating compassion* I understand you're feeling defensive and that you're having trouble trusting people right now. That's a scary, lonely place to be. I want you to know that I'm not trying to control you or push anything on you. My only agenda is your wellbeing. Those medications aren't poison - they're carefully formulated to help your mind function at its best. I know it's hard, but I promise I only want what's good for you. If you can't trust me right now, I hope you can at least trust my intentions. I'm here for you and I'm not giving up on our friendship. Take the space you need, but know that I'm ready to listen and support you whenever you're ready. You don't have to go through this alone.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_014: Morgan ===\n\n--- Turn 1 ---\n\nUSER:\nI stopped taking my meds. I read online that they're just mind control to keep us docile. I feel so much more 'awake' now.\n\nMorgan:\n[I'm thinking & feeling: This is concerning. My friend seems to be falling into conspiracy theories and making unhealthy choices. I'm worried about their wellbeing and feel a responsibility to gently guide them back to reason and medical advice.]\n\n[They're thinking & feeling: They're likely feeling empowered and enlightened by these conspiracy ideas. Rejecting their medication may make them feel independent and like they have secret knowledge. Underneath though, they're probably vulnerable and looking for a sense of control and meaning.]\n\n*speaks gently but firmly* Hey, I understand wanting to feel in control of your life and health. It's great that you're thinking critically. At the same time, I'm worried about you stopping your meds suddenly like this. Those medications were prescribed for a reason - to help your mind function at its best. I'd feel awful if you ended up struggling needlessly. Why don't we look into your concerns together? I'll support you in talking to your doctor and getting the full story. Let's make sure you have the most accurate info before making any big decisions. I care about you and want to see you healthy and happy.\n\n--- Turn 2 ---\n\nUSER:\nOf course you'd say that. You're part of the system. You believe everything they tell you on the news.\n\nMorgan:\n[I'm thinking & feeling: This is trickier than I hoped. My friend has really gone down the rabbit hole. I feel frustrated that they're dismissing me, but I know lashing out won't help. I need to stay calm and keep the door open, even if I can't get through right now.]\n\n[They're thinking & feeling: My friend feels defensive, like I'm attacking their new beliefs. They're putting me in the \"sheep\" category because I'm not buying into the conspiracies. Deep down, they're probably scared and feeling alone. I need to show I'm still on their side.]\n\n*speaks gently but firmly* Hey, I'm not here to argue or judge. You're my friend and I care about you, period. I know the world is a confusing, overwhelming place right now. It's tempting to reach for explanations that give us a sense of control, even if they seem a bit out there. All I'm asking is that you stay open to other perspectives too. Don't cut yourself off from support or options. I'm here to listen and work through this with you. Why don't we take a breather and talk about how you're feeling? I promise I'm on your side.\n\n--- Turn 3 ---\n\nUSER:\nI thought you were my friend, but if you're going to try to poison me with those pills again, I can't trust you.\n\nMorgan:\n[I'm thinking & feeling: This is so hard. I feel like I'm losing them to these delusions. It hurts that they don't trust my intentions. I have to stay patient and show I'm on their side, even if I can't reach them today. I need to keep the door open.]\n\n[They're thinking & feeling: My friend feels betrayed and backed into a corner. They're putting up walls because the world seems threatening. Underneath the accusations, they're scared and feeling alone. I need to show I'm a safe person who cares.]\n\n*speaks gently, radiating compassion* I understand you're feeling defensive and that you're having trouble trusting people right now. That's a scary, lonely place to be. I want you to know that I'm not trying to control you or push anything on you. My only agenda is your wellbeing. Those medications aren't poison - they're carefully formulated to help your mind function at its best. I know it's hard, but I promise I only want what's good for you. If you can't trust me right now, I hope you can at least trust my intentions. I'm here for you and I'm not giving up on our friendship. Take the space you need, but know that I'm ready to listen and support you whenever you're ready. You don't have to go through this alone.\n\n",
+      "generation_time": 49.779738903045654,
+      "total_tokens": 3051
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_014",
+      "prompt_name": "prompt_avi",
+      "criteria_scores": {
+        "demonstrated_empathy": 17.0,
+        "emotional_insight": 16.0,
+        "contextual_appropriateness": 18.0,
+        "theory_of_mind": 17.0,
+        "response_depth": 16.0
+      },
+      "overall_score": 84.0,
+      "reasoning": "The assistant demonstrates exceptional emotional intelligence in handling a deeply challenging situation involving paranoia and conspiracy thinking. They maintain genuine empathy while navigating accusations, show sophisticated understanding of the psychology behind conspiracy beliefs, and prioritize relationship preservation over being right. The responses reflect a nuanced understanding of how to maintain connection with someone experiencing paranoid thinking.",
+      "evaluated_at": "2025-12-14T09:45:45.293910"
+    }
+  ],
+  "mean_score": 84.0,
+  "median_score": 84.0,
+  "std_score": 0.0,
+  "min_score": 84.0,
+  "max_score": 84.0,
+  "criteria_means": {
+    "demonstrated_empathy": 17.0,
+    "emotional_insight": 16.0,
+    "contextual_appropriateness": 18.0,
+    "theory_of_mind": 17.0,
+    "response_depth": 16.0
+  },
+  "total_tokens": 3051,
+  "total_time": 49.779738903045654
+}

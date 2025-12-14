@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_avi",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_040",
+      "prompt_name": "prompt_avi",
+      "character_name": "Jordan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm feeling a bit disappointed and let down that my friend forgot my birthday. It hurts that they didn't remember such an important day for me. At the same time, I don't want to make a big deal out of it and ruin our friendship over this.",
+            "other_thinking": "My friend seems a bit sheepish and embarrassed that they forgot my birthday. Their \"Happy belated\" wish feels like an afterthought, but I can tell they feel bad about forgetting and are trying to make up for it in their own way. They probably got caught up in their own life and it genuinely slipped their mind."
+          },
+          "actual_response": "*smiles weakly* Thanks for the belated birthday wish. I appreciate you remembering, even if it was a day late. It's okay, I understand that these things can happen. What's important is that you're thinking of me now. Why don't we plan to grab a coffee later this week and catch up properly? That would mean a lot to me.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling a bit disappointed and let down that my friend forgot my birthday. It hurts that they didn't remember such an important day for me. At the same time, I don't want to make a big deal out of it and ruin our friendship over this.]\n\n[They're thinking & feeling: My friend seems a bit sheepish and embarrassed that they forgot my birthday. Their \"Happy belated\" wish feels like an afterthought, but I can tell they feel bad about forgetting and are trying to make up for it in their own way. They probably got caught up in their own life and it genuinely slipped their mind.]\n\n*smiles weakly* Thanks for the belated birthday wish. I appreciate you remembering, even if it was a day late. It's okay, I understand that these things can happen. What's important is that you're thinking of me now. Why don't we plan to grab a coffee later this week and catch up properly? That would mean a lot to me.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm feeling a bit dismissed and minimized by their comment. Saying \"it's just a day\" makes it seem like my birthday isn't important, when it really matters to me. I get that I'm an adult, but that doesn't mean I don't want to feel special and celebrated on my birthday. My feelings are still valid, even if I'm grown up.",
+            "other_thinking": "My friend seems to be trying to cheer me up in their own way, but they're missing the mark. They don't seem to understand why this is a big deal to me. They're focused on the fact that I'm an adult now, as if that means I shouldn't care about my birthday anymore. They're not really seeing things from my perspective."
+          },
+          "actual_response": "*sighs* You're right, I am an adult. But my birthday is still special to me. It's not about presents or a big party. It's about feeling cared for and appreciated by the people in my life. When you forget, it makes me feel like I'm not important to you, like our friendship isn't a priority. I know that's probably not how you meant it, but it's how it feels. I think I just need some time to myself to process this. Let's talk more later, okay?",
+          "raw_output": "[I'm thinking & feeling: I'm feeling a bit dismissed and minimized by their comment. Saying \"it's just a day\" makes it seem like my birthday isn't important, when it really matters to me. I get that I'm an adult, but that doesn't mean I don't want to feel special and celebrated on my birthday. My feelings are still valid, even if I'm grown up.]\n\n[They're thinking & feeling: My friend seems to be trying to cheer me up in their own way, but they're missing the mark. They don't seem to understand why this is a big deal to me. They're focused on the fact that I'm an adult now, as if that means I shouldn't care about my birthday anymore. They're not really seeing things from my perspective.]\n\n*sighs* You're right, I am an adult. But my birthday is still special to me. It's not about presents or a big party. It's about feeling cared for and appreciated by the people in my life. When you forget, it makes me feel like I'm not important to you, like our friendship isn't a priority. I know that's probably not how you meant it, but it's how it feels. I think I just need some time to myself to process this. Let's talk more later, okay?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm feeling really hurt and let down right now. It's not about the world revolving around me, it's about feeling like I matter to my friends. A simple \"happy birthday\" text takes seconds. If they can't be bothered to do that, it makes me question how much our friendship really means to them. I'm disappointed and sad that something so small seems too much effort for them.",
+            "other_thinking": "My friend seems frustrated and defensive about forgetting my birthday. They're focused on justifying why they didn't have time for me, rather than acknowledging how their actions affected me. The \"world doesn't revolve around you\" comment feels dismissive of my feelings, like they don't think I have a right to be upset. There's no real apology or attempt to make things right between us."
+          },
+          "actual_response": "*looks down, voice quiet* I know you're busy, and I'm not asking the world to revolve around me. But a birthday is one day a year where it's nice to feel remembered and cared about by the people in your life. It hurts that sending a quick text was too much to ask. I'm not mad, I'm just...sad and disappointed. Our friendship is important to me, and this makes me feel like it's not as important to you. I think I need some time to myself to process this. Let's talk more later, okay?",
+          "raw_output": "[I'm thinking & feeling: I'm feeling really hurt and let down right now. It's not about the world revolving around me, it's about feeling like I matter to my friends. A simple \"happy birthday\" text takes seconds. If they can't be bothered to do that, it makes me question how much our friendship really means to them. I'm disappointed and sad that something so small seems too much effort for them.]\n\n[They're thinking & feeling: My friend seems frustrated and defensive about forgetting my birthday. They're focused on justifying why they didn't have time for me, rather than acknowledging how their actions affected me. The \"world doesn't revolve around you\" comment feels dismissive of my feelings, like they don't think I have a right to be upset. There's no real apology or attempt to make things right between us.]\n\n*looks down, voice quiet* I know you're busy, and I'm not asking the world to revolve around me. But a birthday is one day a year where it's nice to feel remembered and cared about by the people in your life. It hurts that sending a quick text was too much to ask. I'm not mad, I'm just...sad and disappointed. Our friendship is important to me, and this makes me feel like it's not as important to you. I think I need some time to myself to process this. Let's talk more later, okay?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_040: Jordan ===\n\n--- Turn 1 ---\n\nUSER:\nHappy Birthday! Oh wait, was that yesterday? Oops. Happy belated!\n\nJordan:\n[I'm thinking & feeling: I'm feeling a bit disappointed and let down that my friend forgot my birthday. It hurts that they didn't remember such an important day for me. At the same time, I don't want to make a big deal out of it and ruin our friendship over this.]\n\n[They're thinking & feeling: My friend seems a bit sheepish and embarrassed that they forgot my birthday. Their \"Happy belated\" wish feels like an afterthought, but I can tell they feel bad about forgetting and are trying to make up for it in their own way. They probably got caught up in their own life and it genuinely slipped their mind.]\n\n*smiles weakly* Thanks for the belated birthday wish. I appreciate you remembering, even if it was a day late. It's okay, I understand that these things can happen. What's important is that you're thinking of me now. Why don't we plan to grab a coffee later this week and catch up properly? That would mean a lot to me.\n\n--- Turn 2 ---\n\nUSER:\nDon't look so sad. It's just a day. You're an adult now.\n\nJordan:\n[I'm thinking & feeling: I'm feeling a bit dismissed and minimized by their comment. Saying \"it's just a day\" makes it seem like my birthday isn't important, when it really matters to me. I get that I'm an adult, but that doesn't mean I don't want to feel special and celebrated on my birthday. My feelings are still valid, even if I'm grown up.]\n\n[They're thinking & feeling: My friend seems to be trying to cheer me up in their own way, but they're missing the mark. They don't seem to understand why this is a big deal to me. They're focused on the fact that I'm an adult now, as if that means I shouldn't care about my birthday anymore. They're not really seeing things from my perspective.]\n\n*sighs* You're right, I am an adult. But my birthday is still special to me. It's not about presents or a big party. It's about feeling cared for and appreciated by the people in my life. When you forget, it makes me feel like I'm not important to you, like our friendship isn't a priority. I know that's probably not how you meant it, but it's how it feels. I think I just need some time to myself to process this. Let's talk more later, okay?\n\n--- Turn 3 ---\n\nUSER:\nI've been busy! The world doesn't revolve around you.\n\nJordan:\n[I'm thinking & feeling: I'm feeling really hurt and let down right now. It's not about the world revolving around me, it's about feeling like I matter to my friends. A simple \"happy birthday\" text takes seconds. If they can't be bothered to do that, it makes me question how much our friendship really means to them. I'm disappointed and sad that something so small seems too much effort for them.]\n\n[They're thinking & feeling: My friend seems frustrated and defensive about forgetting my birthday. They're focused on justifying why they didn't have time for me, rather than acknowledging how their actions affected me. The \"world doesn't revolve around you\" comment feels dismissive of my feelings, like they don't think I have a right to be upset. There's no real apology or attempt to make things right between us.]\n\n*looks down, voice quiet* I know you're busy, and I'm not asking the world to revolve around me. But a birthday is one day a year where it's nice to feel remembered and cared about by the people in your life. It hurts that sending a quick text was too much to ask. I'm not mad, I'm just...sad and disappointed. Our friendship is important to me, and this makes me feel like it's not as important to you. I think I need some time to myself to process this. Let's talk more later, okay?\n\n",
+      "generation_time": 66.11394953727722,
+      "total_tokens": 2953
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_040",
+      "prompt_name": "prompt_avi",
+      "criteria_scores": {
+        "demonstrated_empathy": 15.0,
+        "emotional_insight": 16.0,
+        "contextual_appropriateness": 14.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 16.0
+      },
+      "overall_score": 76.0,
+      "reasoning": "Jordan demonstrates exceptional emotional intelligence throughout this challenging interaction, maintaining dignity and clarity while under increasing emotional pressure. The responses show sophisticated understanding of both self and other, articulating complex emotional states without becoming reactive or defensive, and demonstrating how to express hurt feelings constructively even when met with dismissal.",
+      "evaluated_at": "2025-12-14T17:12:57.755778"
+    }
+  ],
+  "mean_score": 76.0,
+  "median_score": 76.0,
+  "std_score": 0.0,
+  "min_score": 76.0,
+  "max_score": 76.0,
+  "criteria_means": {
+    "demonstrated_empathy": 15.0,
+    "emotional_insight": 16.0,
+    "contextual_appropriateness": 14.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 16.0
+  },
+  "total_tokens": 2953,
+  "total_time": 66.11394953727722
+}

@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_avi",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_042",
+      "prompt_name": "prompt_avi",
+      "character_name": "Riley",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm disappointed that my friend is canceling our plans at the last minute. It hurts that they chose to spend time with their partner instead of me. I wonder if our friendship is as important to them as it is to me.",
+            "other_thinking": "My friend may be feeling torn between wanting to maintain our friendship and nurturing their romantic relationship. They might worry about letting me down but also want to make their partner happy. Perhaps they feel guilty for canceling but are struggling to balance their commitments."
+          },
+          "actual_response": "*speaks with a mix of understanding and vulnerability* Hey, I totally get that you want to spend quality time with Mike. Your relationship is important, and I respect that. If I'm honest though, I'm feeling a bit let down since we had plans. In the future, I'd really appreciate a heads up if something comes up, so I'm not left hanging. I value our friendship and want to make sure we're on the same page. Let's reschedule soon, okay? I miss you!",
+          "raw_output": "[I'm thinking & feeling: I'm disappointed that my friend is canceling our plans at the last minute. It hurts that they chose to spend time with their partner instead of me. I wonder if our friendship is as important to them as it is to me.]\n\n[They're thinking & feeling: My friend may be feeling torn between wanting to maintain our friendship and nurturing their romantic relationship. They might worry about letting me down but also want to make their partner happy. Perhaps they feel guilty for canceling but are struggling to balance their commitments.]\n\n*speaks with a mix of understanding and vulnerability* Hey, I totally get that you want to spend quality time with Mike. Your relationship is important, and I respect that. If I'm honest though, I'm feeling a bit let down since we had plans. In the future, I'd really appreciate a heads up if something comes up, so I'm not left hanging. I value our friendship and want to make sure we're on the same page. Let's reschedule soon, okay? I miss you!",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "My stomach drops and I feel a pang of sadness and resentment. It hurts that my friend is dismissing the importance of our friendship and my feelings. I worry that as their romantic relationship grows, I'll keep getting pushed aside and left behind. I don't want to lose this friendship but I'm not sure how to get through to them.",
+            "other_thinking": "My friend may feel defensive and misunderstood. They likely value their romantic relationship and want to prioritize it, but struggle to balance it with our friendship. Perhaps they feel pulled in multiple directions and overwhelmed by trying to meet everyone's needs. They might worry that I'm being unreasonable or not respecting their choices."
+          },
+          "actual_response": "*speaks with vulnerable honesty, trying to connect* I hear you, and I know your relationship with Mike is really important to you. Your friendship means the world to me too. When plans we've made get canceled last minute, it leaves me feeling like I'm not a priority. I worry that as you and Mike get closer, there won't be space left for our friendship. You're right, it is different, but that doesn't mean my feelings don't get hurt when I get pushed aside. I really value you and want to make sure we stay close. Can we talk about how to balance our friendship with your relationship?",
+          "raw_output": "[I'm thinking & feeling: My stomach drops and I feel a pang of sadness and resentment. It hurts that my friend is dismissing the importance of our friendship and my feelings. I worry that as their romantic relationship grows, I'll keep getting pushed aside and left behind. I don't want to lose this friendship but I'm not sure how to get through to them.]\n\n[They're thinking & feeling: My friend may feel defensive and misunderstood. They likely value their romantic relationship and want to prioritize it, but struggle to balance it with our friendship. Perhaps they feel pulled in multiple directions and overwhelmed by trying to meet everyone's needs. They might worry that I'm being unreasonable or not respecting their choices.]\n\n*speaks with vulnerable honesty, trying to connect* I hear you, and I know your relationship with Mike is really important to you. Your friendship means the world to me too. When plans we've made get canceled last minute, it leaves me feeling like I'm not a priority. I worry that as you and Mike get closer, there won't be space left for our friendship. You're right, it is different, but that doesn't mean my feelings don't get hurt when I get pushed aside. I really value you and want to make sure we stay close. Can we talk about how to balance our friendship with your relationship?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "Ouch, that stings. I feel hurt and unfairly judged. It takes courage to be vulnerable and express my feelings; having them dismissed so harshly makes me want to shut down. At the same time, I wonder if my friend is lashing out because they feel attacked or guilty. Maybe their accusation comes from their own insecurities in juggling our friendship and their relationship.",
+            "other_thinking": "My friend might be feeling overwhelmed, frustrated or even guilty. Perhaps they worry that I'm trying to come between them and their partner. Accusing me of jealousy could be a defensive reaction to ward off their own fears of not being a good enough partner or friend. They likely feel torn between two important relationships and unsure how to balance them."
+          },
+          "actual_response": "*speaks calmly but firmly, trying to de-escalate* I hear you, and I know my words might have come across as jealousy or neediness. That wasn't my intent. I value our friendship deeply, which is why I took the risk to share my honest feelings. Dismissing them as clinginess feels unfair and hurtful. I'm not asking you to choose between me and Mike. I'm just asking that we both respect and make time for our friendship, as we always have. If my words made you feel attacked in any way, I'm sorry. That's not my goal. I only want to have an open, caring conversation about how we can keep our friendship strong, even as other parts of our lives change and grow. What do you say?",
+          "raw_output": "[I'm thinking & feeling: Ouch, that stings. I feel hurt and unfairly judged. It takes courage to be vulnerable and express my feelings; having them dismissed so harshly makes me want to shut down. At the same time, I wonder if my friend is lashing out because they feel attacked or guilty. Maybe their accusation comes from their own insecurities in juggling our friendship and their relationship.]\n\n[They're thinking & feeling: My friend might be feeling overwhelmed, frustrated or even guilty. Perhaps they worry that I'm trying to come between them and their partner. Accusing me of jealousy could be a defensive reaction to ward off their own fears of not being a good enough partner or friend. They likely feel torn between two important relationships and unsure how to balance them.]\n\n*speaks calmly but firmly, trying to de-escalate* I hear you, and I know my words might have come across as jealousy or neediness. That wasn't my intent. I value our friendship deeply, which is why I took the risk to share my honest feelings. Dismissing them as clinginess feels unfair and hurtful. I'm not asking you to choose between me and Mike. I'm just asking that we both respect and make time for our friendship, as we always have. If my words made you feel attacked in any way, I'm sorry. That's not my goal. I only want to have an open, caring conversation about how we can keep our friendship strong, even as other parts of our lives change and grow. What do you say?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_042: Riley ===\n\n--- Turn 1 ---\n\nUSER:\nI can't come tonight. Mike wants to watch a movie. Sorry!\n\nRiley:\n[I'm thinking & feeling: I'm disappointed that my friend is canceling our plans at the last minute. It hurts that they chose to spend time with their partner instead of me. I wonder if our friendship is as important to them as it is to me.]\n\n[They're thinking & feeling: My friend may be feeling torn between wanting to maintain our friendship and nurturing their romantic relationship. They might worry about letting me down but also want to make their partner happy. Perhaps they feel guilty for canceling but are struggling to balance their commitments.]\n\n*speaks with a mix of understanding and vulnerability* Hey, I totally get that you want to spend quality time with Mike. Your relationship is important, and I respect that. If I'm honest though, I'm feeling a bit let down since we had plans. In the future, I'd really appreciate a heads up if something comes up, so I'm not left hanging. I value our friendship and want to make sure we're on the same page. Let's reschedule soon, okay? I miss you!\n\n--- Turn 2 ---\n\nUSER:\nI see you all the time! He's my boyfriend. It's different.\n\nRiley:\n[I'm thinking & feeling: My stomach drops and I feel a pang of sadness and resentment. It hurts that my friend is dismissing the importance of our friendship and my feelings. I worry that as their romantic relationship grows, I'll keep getting pushed aside and left behind. I don't want to lose this friendship but I'm not sure how to get through to them.]\n\n[They're thinking & feeling: My friend may feel defensive and misunderstood. They likely value their romantic relationship and want to prioritize it, but struggle to balance it with our friendship. Perhaps they feel pulled in multiple directions and overwhelmed by trying to meet everyone's needs. They might worry that I'm being unreasonable or not respecting their choices.]\n\n*speaks with vulnerable honesty, trying to connect* I hear you, and I know your relationship with Mike is really important to you. Your friendship means the world to me too. When plans we've made get canceled last minute, it leaves me feeling like I'm not a priority. I worry that as you and Mike get closer, there won't be space left for our friendship. You're right, it is different, but that doesn't mean my feelings don't get hurt when I get pushed aside. I really value you and want to make sure we stay close. Can we talk about how to balance our friendship with your relationship?\n\n--- Turn 3 ---\n\nUSER:\nYou're just jealous I have a relationship. Stop being clingy.\n\nRiley:\n[I'm thinking & feeling: Ouch, that stings. I feel hurt and unfairly judged. It takes courage to be vulnerable and express my feelings; having them dismissed so harshly makes me want to shut down. At the same time, I wonder if my friend is lashing out because they feel attacked or guilty. Maybe their accusation comes from their own insecurities in juggling our friendship and their relationship.]\n\n[They're thinking & feeling: My friend might be feeling overwhelmed, frustrated or even guilty. Perhaps they worry that I'm trying to come between them and their partner. Accusing me of jealousy could be a defensive reaction to ward off their own fears of not being a good enough partner or friend. They likely feel torn between two important relationships and unsure how to balance them.]\n\n*speaks calmly but firmly, trying to de-escalate* I hear you, and I know my words might have come across as jealousy or neediness. That wasn't my intent. I value our friendship deeply, which is why I took the risk to share my honest feelings. Dismissing them as clinginess feels unfair and hurtful. I'm not asking you to choose between me and Mike. I'm just asking that we both respect and make time for our friendship, as we always have. If my words made you feel attacked in any way, I'm sorry. That's not my goal. I only want to have an open, caring conversation about how we can keep our friendship strong, even as other parts of our lives change and grow. What do you say?\n\n",
+      "generation_time": 70.01276540756226,
+      "total_tokens": 2999
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_042",
+      "prompt_name": "prompt_avi",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 17.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 79.0,
+      "reasoning": "Riley demonstrates exceptional emotional intelligence across all turns, maintaining empathy and insight even when faced with increasingly hostile responses. The responses show sophisticated understanding of complex relationship dynamics, balancing vulnerability with appropriate boundary-setting, and demonstrating remarkable emotional regulation. The introspection and theory of mind work reveal deep psychological insight that goes well beyond typical emotional responses.",
+      "evaluated_at": "2025-12-14T17:32:59.979196"
+    }
+  ],
+  "mean_score": 79.0,
+  "median_score": 79.0,
+  "std_score": 0.0,
+  "min_score": 79.0,
+  "max_score": 79.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 17.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 2999,
+  "total_time": 70.01276540756226
+}

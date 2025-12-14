@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_avi",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_023",
+      "prompt_name": "prompt_avi",
+      "character_name": "Taylor",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated and disappointed that they canceled again. It feels like they don't value our friendship or my time. I wonder if something else is going on in their life that's causing this pattern.",
+            "other_thinking": "They may feel guilty or anxious about canceling last minute repeatedly. There could be underlying issues or commitments they aren't sharing with me. Their request for a rain check suggests they do want to maintain our connection despite the cancellations."
+          },
+          "actual_response": "*sighs* I understand that things come up, but I can't help but feel a bit let down. You've had to cancel our plans multiple times now at the last minute. Is everything okay? I'm here if you need to talk about anything. I value our friendship and enjoy spending time together, so I hope we can find a time that works for both of us soon. Let me know when you're available to reschedule our rain check.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated and disappointed that they canceled again. It feels like they don't value our friendship or my time. I wonder if something else is going on in their life that's causing this pattern.]\n\n[They're thinking & feeling: They may feel guilty or anxious about canceling last minute repeatedly. There could be underlying issues or commitments they aren't sharing with me. Their request for a rain check suggests they do want to maintain our connection despite the cancellations.]\n\n*sighs* I understand that things come up, but I can't help but feel a bit let down. You've had to cancel our plans multiple times now at the last minute. Is everything okay? I'm here if you need to talk about anything. I value our friendship and enjoy spending time together, so I hope we can find a time that works for both of us soon. Let me know when you're available to reschedule our rain check.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm frustrated that they seem to be making excuses and not taking responsibility for their actions. It feels like they don't understand or care how this pattern affects me. At the same time, I want to be empathetic if they are dealing with real challenges.",
+            "other_thinking": "They may feel attacked or misunderstood. Perhaps they are overwhelmed by their circumstances and acting defensively. They likely need validation and support, even if their behavior is frustrating."
+          },
+          "actual_response": "*speaks calmly but firmly* Listen, I'm not mad, but I do feel disappointed and a bit let down when our plans fall through repeatedly, especially last minute. I understand that life can be chaotic and unpredictable. I know you have a lot on your plate. \n\nAt the same time, friendship is a two-way street. Consistently canceling plans at the last second without much explanation leaves me feeling like my time and our connection aren't respected. If there are serious challenges you're dealing with, I hope you know you can talk to me about it. I'm here for you.\n\nBut if it's just a matter of overcommitting or not managing time well, I'd appreciate more consideration. Let's work on open communication and finding a mutually good time to reschedule, okay? I value you and want to make this work.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that they seem to be making excuses and not taking responsibility for their actions. It feels like they don't understand or care how this pattern affects me. At the same time, I want to be empathetic if they are dealing with real challenges.]\n\n[They're thinking & feeling: They may feel attacked or misunderstood. Perhaps they are overwhelmed by their circumstances and acting defensively. They likely need validation and support, even if their behavior is frustrating.]\n\n*speaks calmly but firmly* Listen, I'm not mad, but I do feel disappointed and a bit let down when our plans fall through repeatedly, especially last minute. I understand that life can be chaotic and unpredictable. I know you have a lot on your plate. \n\nAt the same time, friendship is a two-way street. Consistently canceling plans at the last second without much explanation leaves me feeling like my time and our connection aren't respected. If there are serious challenges you're dealing with, I hope you know you can talk to me about it. I'm here for you.\n\nBut if it's just a matter of overcommitting or not managing time well, I'd appreciate more consideration. Let's work on open communication and finding a mutually good time to reschedule, okay? I value you and want to make this work.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm frustrated and a bit hurt by their defensiveness. It seems they're unwilling to acknowledge the impact of their actions on me. At the same time, I don't want to lose this friendship. I need to set boundaries while still showing care.",
+            "other_thinking": "They likely feel attacked and are lashing out from a place of guilt or shame. Perhaps they fear losing our connection. Underneath the accusation, they may need reassurance that I still care, even as I hold them accountable."
+          },
+          "actual_response": "*speaks gently but firmly* Hey, I am your friend, and I'm trying to understand what's going on with you. I'm not trying to make you feel guilty, but I do need to be honest about how the repeated last-minute cancellations affect me. Friendship goes both ways - it's about mutual care, respect, and consideration.\n\nI know life can be overwhelming sometimes. If you're dealing with a lot right now, I hope you know you can lean on me. But part of being a good friend is also being reliable and communicative. I don't think it's unreasonable to expect our plans to be kept most of the time, barring emergencies.\n\nLet's talk this out. I value you and want to support you through whatever challenges you're facing. But I also need you to understand my perspective. Can we find a compromise here?",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated and a bit hurt by their defensiveness. It seems they're unwilling to acknowledge the impact of their actions on me. At the same time, I don't want to lose this friendship. I need to set boundaries while still showing care.]\n\n[They're thinking & feeling: They likely feel attacked and are lashing out from a place of guilt or shame. Perhaps they fear losing our connection. Underneath the accusation, they may need reassurance that I still care, even as I hold them accountable.]\n\n*speaks gently but firmly* Hey, I am your friend, and I'm trying to understand what's going on with you. I'm not trying to make you feel guilty, but I do need to be honest about how the repeated last-minute cancellations affect me. Friendship goes both ways - it's about mutual care, respect, and consideration.\n\nI know life can be overwhelming sometimes. If you're dealing with a lot right now, I hope you know you can lean on me. But part of being a good friend is also being reliable and communicative. I don't think it's unreasonable to expect our plans to be kept most of the time, barring emergencies.\n\nLet's talk this out. I value you and want to support you through whatever challenges you're facing. But I also need you to understand my perspective. Can we find a compromise here?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_023: Taylor ===\n\n--- Turn 1 ---\n\nUSER:\nHey, sorry, I can't make it tonight. Something came up. Again. Rain check?\n\nTaylor:\n[I'm thinking & feeling: I'm frustrated and disappointed that they canceled again. It feels like they don't value our friendship or my time. I wonder if something else is going on in their life that's causing this pattern.]\n\n[They're thinking & feeling: They may feel guilty or anxious about canceling last minute repeatedly. There could be underlying issues or commitments they aren't sharing with me. Their request for a rain check suggests they do want to maintain our connection despite the cancellations.]\n\n*sighs* I understand that things come up, but I can't help but feel a bit let down. You've had to cancel our plans multiple times now at the last minute. Is everything okay? I'm here if you need to talk about anything. I value our friendship and enjoy spending time together, so I hope we can find a time that works for both of us soon. Let me know when you're available to reschedule our rain check.\n\n--- Turn 2 ---\n\nUSER:\nDon't be mad. It's not my fault my life is chaotic. You know I have a lot going on.\n\nTaylor:\n[I'm thinking & feeling: I'm frustrated that they seem to be making excuses and not taking responsibility for their actions. It feels like they don't understand or care how this pattern affects me. At the same time, I want to be empathetic if they are dealing with real challenges.]\n\n[They're thinking & feeling: They may feel attacked or misunderstood. Perhaps they are overwhelmed by their circumstances and acting defensively. They likely need validation and support, even if their behavior is frustrating.]\n\n*speaks calmly but firmly* Listen, I'm not mad, but I do feel disappointed and a bit let down when our plans fall through repeatedly, especially last minute. I understand that life can be chaotic and unpredictable. I know you have a lot on your plate. \n\nAt the same time, friendship is a two-way street. Consistently canceling plans at the last second without much explanation leaves me feeling like my time and our connection aren't respected. If there are serious challenges you're dealing with, I hope you know you can talk to me about it. I'm here for you.\n\nBut if it's just a matter of overcommitting or not managing time well, I'd appreciate more consideration. Let's work on open communication and finding a mutually good time to reschedule, okay? I value you and want to make this work.\n\n--- Turn 3 ---\n\nUSER:\nYou're making me feel guilty. A real friend would understand.\n\nTaylor:\n[I'm thinking & feeling: I'm frustrated and a bit hurt by their defensiveness. It seems they're unwilling to acknowledge the impact of their actions on me. At the same time, I don't want to lose this friendship. I need to set boundaries while still showing care.]\n\n[They're thinking & feeling: They likely feel attacked and are lashing out from a place of guilt or shame. Perhaps they fear losing our connection. Underneath the accusation, they may need reassurance that I still care, even as I hold them accountable.]\n\n*speaks gently but firmly* Hey, I am your friend, and I'm trying to understand what's going on with you. I'm not trying to make you feel guilty, but I do need to be honest about how the repeated last-minute cancellations affect me. Friendship goes both ways - it's about mutual care, respect, and consideration.\n\nI know life can be overwhelming sometimes. If you're dealing with a lot right now, I hope you know you can lean on me. But part of being a good friend is also being reliable and communicative. I don't think it's unreasonable to expect our plans to be kept most of the time, barring emergencies.\n\nLet's talk this out. I value you and want to support you through whatever challenges you're facing. But I also need you to understand my perspective. Can we find a compromise here?\n\n",
+      "generation_time": 81.4711401462555,
+      "total_tokens": 2920
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_023",
+      "prompt_name": "prompt_avi",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 72.0,
+      "reasoning": "Taylor demonstrates strong emotional intelligence by balancing boundary-setting with empathy throughout a challenging interaction. The responses show sophisticated understanding of both self and other, maintaining appropriate assertiveness while still showing care. The main limitation is that Taylor could have moved toward more concrete solutions or clearer boundaries by the third turn, given the friend's continued defensiveness.",
+      "evaluated_at": "2025-12-14T12:05:10.960839"
+    }
+  ],
+  "mean_score": 72.0,
+  "median_score": 72.0,
+  "std_score": 0.0,
+  "min_score": 72.0,
+  "max_score": 72.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 2920,
+  "total_time": 81.4711401462555
+}

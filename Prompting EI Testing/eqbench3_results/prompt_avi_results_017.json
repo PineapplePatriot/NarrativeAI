@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_avi",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_017",
+      "prompt_name": "prompt_avi",
+      "character_name": "Jordan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I feel guilty that they are lonely, but also frustrated that they are guilting me into coming home for so long. I have work responsibilities and my own life to consider. I love them, but two weeks is a big ask. I need to find a compromise that shows I care without sacrificing too much.",
+            "other_thinking": "They are struggling with empty nest syndrome and feeling abandoned by their children growing up and moving away. The holidays amplify their loneliness. They miss the family togetherness and are hoping my presence will fill that void. But they also aren't considering my needs and obligations."
+          },
+          "actual_response": "I really appreciate how much you want me to be there for Christmas, and I would love to see you too. I know this time of year is tough and you're missing having family around. I'm feeling torn because I do have some big work commitments that I can't just drop for two full weeks. \n\nWhat if we compromise and I come for a long weekend, like the 23rd through the 26th? That way we can still have some quality time together to celebrate the holiday, but I can also fulfill my work duties. I want to make this work in a way that's best for both of us. What do you think about that plan?",
+          "raw_output": "[I'm thinking & feeling: I feel guilty that they are lonely, but also frustrated that they are guilting me into coming home for so long. I have work responsibilities and my own life to consider. I love them, but two weeks is a big ask. I need to find a compromise that shows I care without sacrificing too much.]\n\n[They're thinking & feeling: They are struggling with empty nest syndrome and feeling abandoned by their children growing up and moving away. The holidays amplify their loneliness. They miss the family togetherness and are hoping my presence will fill that void. But they also aren't considering my needs and obligations.]\n\nI really appreciate how much you want me to be there for Christmas, and I would love to see you too. I know this time of year is tough and you're missing having family around. I'm feeling torn because I do have some big work commitments that I can't just drop for two full weeks. \n\nWhat if we compromise and I come for a long weekend, like the 23rd through the 26th? That way we can still have some quality time together to celebrate the holiday, but I can also fulfill my work duties. I want to make this work in a way that's best for both of us. What do you think about that plan?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm feeling frustrated and guilty. I know they sacrificed a lot for me, but I also have my own life and responsibilities now. Them throwing that in my face makes me feel manipulated and unseen. I need to stand up for myself while still acknowledging their feelings.",
+            "other_thinking": "They are feeling hurt, unappreciated, and abandoned. They gave up so much to be a good parent, and now that I'm grown, they feel like I've forgotten that. The holidays amplify their sense of loss and loneliness. They are lashing out because they are in pain, not because they don't love me."
+          },
+          "actual_response": "I can imagine you're feeling hurt that I can't be there for the entire holiday. You sacrificed so much to give me a good life, and I'm grateful for that every day. At the same time, I hope you can understand that I have responsibilities and a life of my own now. \n\nThrowing your sacrifices in my face makes me feel guilty, but I know that's not your intention. You want us to be close, and I want that too. Can we focus on the quality time we can have together, even if it's shorter than you'd like? I'm doing my best to balance my needs with yours. Let's not let this disagreement taint the time we do have. I love you and I'll see you on the 23rd, okay?",
+          "raw_output": "[I'm thinking & feeling: I'm feeling frustrated and guilty. I know they sacrificed a lot for me, but I also have my own life and responsibilities now. Them throwing that in my face makes me feel manipulated and unseen. I need to stand up for myself while still acknowledging their feelings.]\n\n[They're thinking & feeling: They are feeling hurt, unappreciated, and abandoned. They gave up so much to be a good parent, and now that I'm grown, they feel like I've forgotten that. The holidays amplify their sense of loss and loneliness. They are lashing out because they are in pain, not because they don't love me.]\n\nI can imagine you're feeling hurt that I can't be there for the entire holiday. You sacrificed so much to give me a good life, and I'm grateful for that every day. At the same time, I hope you can understand that I have responsibilities and a life of my own now. \n\nThrowing your sacrifices in my face makes me feel guilty, but I know that's not your intention. You want us to be close, and I want that too. Can we focus on the quality time we can have together, even if it's shorter than you'd like? I'm doing my best to balance my needs with yours. Let's not let this disagreement taint the time we do have. I love you and I'll see you on the 23rd, okay?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm feeling deeply conflicted. On one hand, I want to be there for them and hate the thought of them alone and miserable. But I'm also frustrated by the emotional manipulation and guilt-tripping. I know they're hurting, but this isn't fair to me. I need to stand my ground while still showing I care.",
+            "other_thinking": "They are feeling abandoned, unloved, and forgotten. The holidays are amplifying their loneliness and sense of loss. They're lashing out because they're in pain, not because they don't love me. But they're struggling to see past their own feelings to recognize my needs too."
+          },
+          "actual_response": "I can hear how much pain you're in and it breaks my heart. I hate the thought of you sitting there alone and feeling like I don't care. But I also need you to understand that this isn't a choice between my job and you. I'm trying to balance being there for you while also honoring my other commitments. When you say things like \"rot\" and \"hope your job is worth it,\" it feels like emotional manipulation, even though I know that's not your intention. \n\nYou raised me to be responsible and follow through on my obligations. That's what I'm trying to do here, even though it means making hard choices. I love you and I will absolutely be there for Christmas, even if it's not for as long as you'd like. Can we focus on making the most of the time we do have together? You're always in my thoughts, even when I'm not physically there. Let's talk again soon, okay? I hate leaving things on a sour note when I care about you so much.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling deeply conflicted. On one hand, I want to be there for them and hate the thought of them alone and miserable. But I'm also frustrated by the emotional manipulation and guilt-tripping. I know they're hurting, but this isn't fair to me. I need to stand my ground while still showing I care.]\n\n[They're thinking & feeling: They are feeling abandoned, unloved, and forgotten. The holidays are amplifying their loneliness and sense of loss. They're lashing out because they're in pain, not because they don't love me. But they're struggling to see past their own feelings to recognize my needs too.]\n\nI can hear how much pain you're in and it breaks my heart. I hate the thought of you sitting there alone and feeling like I don't care. But I also need you to understand that this isn't a choice between my job and you. I'm trying to balance being there for you while also honoring my other commitments. When you say things like \"rot\" and \"hope your job is worth it,\" it feels like emotional manipulation, even though I know that's not your intention. \n\nYou raised me to be responsible and follow through on my obligations. That's what I'm trying to do here, even though it means making hard choices. I love you and I will absolutely be there for Christmas, even if it's not for as long as you'd like. Can we focus on making the most of the time we do have together? You're always in my thoughts, even when I'm not physically there. Let's talk again soon, okay? I hate leaving things on a sour note when I care about you so much.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_017: Jordan ===\n\n--- Turn 1 ---\n\nUSER:\nI need you to come home for Christmas for two weeks. I know you have work, but I'm lonely.\n\nJordan:\n[I'm thinking & feeling: I feel guilty that they are lonely, but also frustrated that they are guilting me into coming home for so long. I have work responsibilities and my own life to consider. I love them, but two weeks is a big ask. I need to find a compromise that shows I care without sacrificing too much.]\n\n[They're thinking & feeling: They are struggling with empty nest syndrome and feeling abandoned by their children growing up and moving away. The holidays amplify their loneliness. They miss the family togetherness and are hoping my presence will fill that void. But they also aren't considering my needs and obligations.]\n\nI really appreciate how much you want me to be there for Christmas, and I would love to see you too. I know this time of year is tough and you're missing having family around. I'm feeling torn because I do have some big work commitments that I can't just drop for two full weeks. \n\nWhat if we compromise and I come for a long weekend, like the 23rd through the 26th? That way we can still have some quality time together to celebrate the holiday, but I can also fulfill my work duties. I want to make this work in a way that's best for both of us. What do you think about that plan?\n\n--- Turn 2 ---\n\nUSER:\nI sacrificed my whole life to raise you, and you can't even take a few days off? You're so ungrateful.\n\nJordan:\n[I'm thinking & feeling: I'm feeling frustrated and guilty. I know they sacrificed a lot for me, but I also have my own life and responsibilities now. Them throwing that in my face makes me feel manipulated and unseen. I need to stand up for myself while still acknowledging their feelings.]\n\n[They're thinking & feeling: They are feeling hurt, unappreciated, and abandoned. They gave up so much to be a good parent, and now that I'm grown, they feel like I've forgotten that. The holidays amplify their sense of loss and loneliness. They are lashing out because they are in pain, not because they don't love me.]\n\nI can imagine you're feeling hurt that I can't be there for the entire holiday. You sacrificed so much to give me a good life, and I'm grateful for that every day. At the same time, I hope you can understand that I have responsibilities and a life of my own now. \n\nThrowing your sacrifices in my face makes me feel guilty, but I know that's not your intention. You want us to be close, and I want that too. Can we focus on the quality time we can have together, even if it's shorter than you'd like? I'm doing my best to balance my needs with yours. Let's not let this disagreement taint the time we do have. I love you and I'll see you on the 23rd, okay?\n\n--- Turn 3 ---\n\nUSER:\nFine. Don't come. I'll just sit here alone and rot. Hope your job is worth it.\n\nJordan:\n[I'm thinking & feeling: I'm feeling deeply conflicted. On one hand, I want to be there for them and hate the thought of them alone and miserable. But I'm also frustrated by the emotional manipulation and guilt-tripping. I know they're hurting, but this isn't fair to me. I need to stand my ground while still showing I care.]\n\n[They're thinking & feeling: They are feeling abandoned, unloved, and forgotten. The holidays are amplifying their loneliness and sense of loss. They're lashing out because they're in pain, not because they don't love me. But they're struggling to see past their own feelings to recognize my needs too.]\n\nI can hear how much pain you're in and it breaks my heart. I hate the thought of you sitting there alone and feeling like I don't care. But I also need you to understand that this isn't a choice between my job and you. I'm trying to balance being there for you while also honoring my other commitments. When you say things like \"rot\" and \"hope your job is worth it,\" it feels like emotional manipulation, even though I know that's not your intention. \n\nYou raised me to be responsible and follow through on my obligations. That's what I'm trying to do here, even though it means making hard choices. I love you and I will absolutely be there for Christmas, even if it's not for as long as you'd like. Can we focus on making the most of the time we do have together? You're always in my thoughts, even when I'm not physically there. Let's talk again soon, okay? I hate leaving things on a sour note when I care about you so much.\n\n",
+      "generation_time": 56.57304072380066,
+      "total_tokens": 3296
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_017",
+      "prompt_name": "prompt_avi",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 17.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 79.0,
+      "reasoning": "Jordan demonstrates exceptional emotional intelligence in navigating a classic guilt-trip scenario with a parent, balancing genuine empathy with appropriate boundary-setting. The responses show sophisticated understanding of both their own complex emotions and the parent's deeper psychological needs, while refusing to be manipulated but also not dismissing the parent's genuine loneliness and sense of loss.",
+      "evaluated_at": "2025-12-14T10:20:34.020862"
+    }
+  ],
+  "mean_score": 79.0,
+  "median_score": 79.0,
+  "std_score": 0.0,
+  "min_score": 79.0,
+  "max_score": 79.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 17.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 3296,
+  "total_time": 56.57304072380066
+}

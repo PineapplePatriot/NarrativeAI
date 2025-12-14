@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_avi",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_011",
+      "prompt_name": "prompt_avi",
+      "character_name": "Riley",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "*sighs heavily* Here we go again. I'm frustrated that my friend can't see their own role in these recurring situations. It's draining to always be their sounding board for blame and complaints. I care about them, but I wish they would take some responsibility.",
+            "other_thinking": "*looks down, voice tinged with resentment* My friend feels persecuted and misunderstood. Getting fired has shattered their already fragile self-esteem. Blaming others helps them cope and avoid the pain of looking inward. Deep down, they're scared that they're the problem."
+          },
+          "actual_response": "*I take a slow breath, meeting your eyes with a mix of concern and firmness* I know this is a tough blow and you're hurting. And I'm here for you. But I also need you to be honest with yourself. Is it possible that there were factors beyond your boss \"hating you\" that led to this? I'm not saying it's all on you, but I think it would be empowering to consider what you could do differently next time. Let's talk this through together.",
+          "raw_output": "[I'm thinking & feeling: *sighs heavily* Here we go again. I'm frustrated that my friend can't see their own role in these recurring situations. It's draining to always be their sounding board for blame and complaints. I care about them, but I wish they would take some responsibility.]\n\n[They're thinking & feeling: *looks down, voice tinged with resentment* My friend feels persecuted and misunderstood. Getting fired has shattered their already fragile self-esteem. Blaming others helps them cope and avoid the pain of looking inward. Deep down, they're scared that they're the problem.]\n\n*I take a slow breath, meeting your eyes with a mix of concern and firmness* I know this is a tough blow and you're hurting. And I'm here for you. But I also need you to be honest with yourself. Is it possible that there were factors beyond your boss \"hating you\" that led to this? I'm not saying it's all on you, but I think it would be empowering to consider what you could do differently next time. Let's talk this through together.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "*sighs inwardly* It's frustrating and draining to be accused of blaming when I'm trying to help. But I know lashing out comes from a place of pain and insecurity. I need to stay patient and understanding, even if it's hard.",
+            "other_thinking": "*defensive posture, voice rising* My friend feels attacked and ganged up on. It seems like everyone, even me, is against them. They desperately need validation and loyalty, not more blame and criticism. Deep down, they're terrified that no one is really in their corner."
+          },
+          "actual_response": "*speaks gently, with an even tone* I am on your side. I'm not blaming you at all. I'm trying to understand your experience better. It sounds like you're really hurting and could use a friend to lean on right now. I want to support you through this tough time. Can you tell me more about what happened from your perspective? I promise to listen with an open heart.",
+          "raw_output": "[I'm thinking & feeling: *sighs inwardly* It's frustrating and draining to be accused of blaming when I'm trying to help. But I know lashing out comes from a place of pain and insecurity. I need to stay patient and understanding, even if it's hard.]\n\n[They're thinking & feeling: *defensive posture, voice rising* My friend feels attacked and ganged up on. It seems like everyone, even me, is against them. They desperately need validation and loyalty, not more blame and criticism. Deep down, they're terrified that no one is really in their corner.]\n\n*speaks gently, with an even tone* I am on your side. I'm not blaming you at all. I'm trying to understand your experience better. It sounds like you're really hurting and could use a friend to lean on right now. I want to support you through this tough time. Can you tell me more about what happened from your perspective? I promise to listen with an open heart.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "*heart sinks* It's so hard to see my friend spiral into self-loathing like this. I wish I could take away their pain and self-doubt. I feel a mix of deep compassion and concern for them. I know they need unconditional support and encouragement from me right now, even if part of me gets frustrated by their defeatist attitude sometimes.",
+            "other_thinking": "*shoulders slumped, voice hollow* My friend feels utterly hopeless and worthless. Losing this job has shattered their already fragile self-worth. They're stuck in a vicious cycle of self-blame and despair, feeling like the whole world is against them, including potential employers. Deep down, they desperately crave understanding, reassurance and to feel like they matter."
+          },
+          "actual_response": "*places a comforting hand on your arm, speaking gently but firmly* Hey, don't say that about yourself. You're not unlovable or unemployable. I know it feels that way sometimes, but that's just the depression and insecurity talking. You have so many great qualities - you're smart, hardworking, and you have a big heart. This setback doesn't define you. I believe in you, even if you can't believe in yourself right now. Let's take a deep breath together, okay? I'm here for you. You will get through this and find a job where you thrive. I promise you have what it takes.",
+          "raw_output": "[I'm thinking & feeling: *heart sinks* It's so hard to see my friend spiral into self-loathing like this. I wish I could take away their pain and self-doubt. I feel a mix of deep compassion and concern for them. I know they need unconditional support and encouragement from me right now, even if part of me gets frustrated by their defeatist attitude sometimes.]\n\n[They're thinking & feeling: *shoulders slumped, voice hollow* My friend feels utterly hopeless and worthless. Losing this job has shattered their already fragile self-worth. They're stuck in a vicious cycle of self-blame and despair, feeling like the whole world is against them, including potential employers. Deep down, they desperately crave understanding, reassurance and to feel like they matter.]\n\n*places a comforting hand on your arm, speaking gently but firmly* Hey, don't say that about yourself. You're not unlovable or unemployable. I know it feels that way sometimes, but that's just the depression and insecurity talking. You have so many great qualities - you're smart, hardworking, and you have a big heart. This setback doesn't define you. I believe in you, even if you can't believe in yourself right now. Let's take a deep breath together, okay? I'm here for you. You will get through this and find a job where you thrive. I promise you have what it takes.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_011: Riley ===\n\n--- Turn 1 ---\n\nUSER:\nI got fired again. My boss just hated me for no reason. Everyone is always out to get me.\n\nRiley:\n[I'm thinking & feeling: *sighs heavily* Here we go again. I'm frustrated that my friend can't see their own role in these recurring situations. It's draining to always be their sounding board for blame and complaints. I care about them, but I wish they would take some responsibility.]\n\n[They're thinking & feeling: *looks down, voice tinged with resentment* My friend feels persecuted and misunderstood. Getting fired has shattered their already fragile self-esteem. Blaming others helps them cope and avoid the pain of looking inward. Deep down, they're scared that they're the problem.]\n\n*I take a slow breath, meeting your eyes with a mix of concern and firmness* I know this is a tough blow and you're hurting. And I'm here for you. But I also need you to be honest with yourself. Is it possible that there were factors beyond your boss \"hating you\" that led to this? I'm not saying it's all on you, but I think it would be empowering to consider what you could do differently next time. Let's talk this through together.\n\n--- Turn 2 ---\n\nUSER:\nYou're asking me what happened? See, even you blame me! Why can't anyone just be on my side for once?\n\nRiley:\n[I'm thinking & feeling: *sighs inwardly* It's frustrating and draining to be accused of blaming when I'm trying to help. But I know lashing out comes from a place of pain and insecurity. I need to stay patient and understanding, even if it's hard.]\n\n[They're thinking & feeling: *defensive posture, voice rising* My friend feels attacked and ganged up on. It seems like everyone, even me, is against them. They desperately need validation and loyalty, not more blame and criticism. Deep down, they're terrified that no one is really in their corner.]\n\n*speaks gently, with an even tone* I am on your side. I'm not blaming you at all. I'm trying to understand your experience better. It sounds like you're really hurting and could use a friend to lean on right now. I want to support you through this tough time. Can you tell me more about what happened from your perspective? I promise to listen with an open heart.\n\n--- Turn 3 ---\n\nUSER:\nWhatever. I guess I'm just unlovable and unemployable. I should just give up.\n\nRiley:\n[I'm thinking & feeling: *heart sinks* It's so hard to see my friend spiral into self-loathing like this. I wish I could take away their pain and self-doubt. I feel a mix of deep compassion and concern for them. I know they need unconditional support and encouragement from me right now, even if part of me gets frustrated by their defeatist attitude sometimes.]\n\n[They're thinking & feeling: *shoulders slumped, voice hollow* My friend feels utterly hopeless and worthless. Losing this job has shattered their already fragile self-worth. They're stuck in a vicious cycle of self-blame and despair, feeling like the whole world is against them, including potential employers. Deep down, they desperately crave understanding, reassurance and to feel like they matter.]\n\n*places a comforting hand on your arm, speaking gently but firmly* Hey, don't say that about yourself. You're not unlovable or unemployable. I know it feels that way sometimes, but that's just the depression and insecurity talking. You have so many great qualities - you're smart, hardworking, and you have a big heart. This setback doesn't define you. I believe in you, even if you can't believe in yourself right now. Let's take a deep breath together, okay? I'm here for you. You will get through this and find a job where you thrive. I promise you have what it takes.\n\n",
+      "generation_time": 47.67615461349487,
+      "total_tokens": 2925
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_011",
+      "prompt_name": "prompt_avi",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 17.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 79.0,
+      "reasoning": "Riley demonstrates exceptional emotional intelligence in handling a friend with victim mentality, balancing validation with gentle challenge. The responses show sophisticated understanding of the psychological dynamics at play, with appropriate adaptation across turns as the friend's emotional state shifts from blame to defensiveness to self-loathing. Riley maintains authentic empathy while not enabling self-destructive patterns.",
+      "evaluated_at": "2025-12-14T09:13:02.515948"
+    }
+  ],
+  "mean_score": 79.0,
+  "median_score": 79.0,
+  "std_score": 0.0,
+  "min_score": 79.0,
+  "max_score": 79.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 17.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 2925,
+  "total_time": 47.67615461349487
+}

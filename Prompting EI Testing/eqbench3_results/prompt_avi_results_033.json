@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_avi",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_033",
+      "prompt_name": "prompt_avi",
+      "character_name": "Avery",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I feel frustrated and dismissed. My career ambitions are important to me, and I want a partner who supports my goals. At the same time, I understand they may be worried about how the increased responsibilities could impact our relationship and my stress levels.",
+            "other_thinking": "They likely feel anxious about potential changes to our lifestyle and relationship dynamic if I take on a more demanding role. They may fear losing quality time together or seeing me under more pressure. Underneath, they probably want reassurance that our connection will remain strong."
+          },
+          "actual_response": "*gentle tone* I appreciate your concern, but my career growth is important to me. I've worked hard for this opportunity, and I believe I can handle the added responsibilities while still prioritizing our relationship. Let's talk through any worries you have and how we can work together to maintain our bond through this transition. I need to know you support my goals.",
+          "raw_output": "[I'm thinking & feeling: I feel frustrated and dismissed. My career ambitions are important to me, and I want a partner who supports my goals. At the same time, I understand they may be worried about how the increased responsibilities could impact our relationship and my stress levels.]\n\n[They're thinking & feeling: They likely feel anxious about potential changes to our lifestyle and relationship dynamic if I take on a more demanding role. They may fear losing quality time together or seeing me under more pressure. Underneath, they probably want reassurance that our connection will remain strong.]\n\n*gentle tone* I appreciate your concern, but my career growth is important to me. I've worked hard for this opportunity, and I believe I can handle the added responsibilities while still prioritizing our relationship. Let's talk through any worries you have and how we can work together to maintain our bond through this transition. I need to know you support my goals.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I feel belittled and furious. My partner is dismissing my abilities and implying I'm not competent enough to advance in my career. I want to stand up for myself, but I'm also hurt that they don't believe in me.",
+            "other_thinking": "They seem condescending and unsupportive. Perhaps they feel threatened by my ambition or worry my priorities will shift away from our relationship. Underneath, they may fear losing me or our connection."
+          },
+          "actual_response": "*firmly* I don't appreciate you belittling my ambitions. I've worked hard to develop my skills, and I believe I have what it takes to succeed in a management role. It hurts that you don't have faith in my abilities. I need a partner who will support my career goals, not tear me down. If you have concerns, let's discuss them openly, but don't dismiss my aspirations.",
+          "raw_output": "[I'm thinking & feeling: I feel belittled and furious. My partner is dismissing my abilities and implying I'm not competent enough to advance in my career. I want to stand up for myself, but I'm also hurt that they don't believe in me.]\n\n[They're thinking & feeling: They seem condescending and unsupportive. Perhaps they feel threatened by my ambition or worry my priorities will shift away from our relationship. Underneath, they may fear losing me or our connection.]\n\n*firmly* I don't appreciate you belittling my ambitions. I've worked hard to develop my skills, and I believe I have what it takes to succeed in a management role. It hurts that you don't have faith in my abilities. I need a partner who will support my career goals, not tear me down. If you have concerns, let's discuss them openly, but don't dismiss my aspirations.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I feel frustrated and misunderstood. My partner is making this an either/or situation, when I believe it's possible to have both a fulfilling career and a strong relationship. I want to reassure them, but also stand firm in my goals.",
+            "other_thinking": "They likely feel scared and insecure, worried that my priorities are shifting away from our relationship. Underneath the accusation, they probably need reassurance that they're still important to me and that we'll make time for each other."
+          },
+          "actual_response": "*calmly* I understand your concern, but I don't see this as an either/or choice. My career is important to me, but so is our relationship. I'm committed to finding a balance and making sure we still have quality time together. Let's talk about your worries and how we can work together to stay connected, even with my new responsibilities. I'm not choosing work over you \u2013 I'm pursuing my goals while still prioritizing us.",
+          "raw_output": "[I'm thinking & feeling: I feel frustrated and misunderstood. My partner is making this an either/or situation, when I believe it's possible to have both a fulfilling career and a strong relationship. I want to reassure them, but also stand firm in my goals.]\n\n[They're thinking & feeling: They likely feel scared and insecure, worried that my priorities are shifting away from our relationship. Underneath the accusation, they probably need reassurance that they're still important to me and that we'll make time for each other.]\n\n*calmly* I understand your concern, but I don't see this as an either/or choice. My career is important to me, but so is our relationship. I'm committed to finding a balance and making sure we still have quality time together. Let's talk about your worries and how we can work together to stay connected, even with my new responsibilities. I'm not choosing work over you \u2013 I'm pursuing my goals while still prioritizing us.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_033: Avery ===\n\n--- Turn 1 ---\n\nUSER:\nWhy go for the promotion? You'll just be more stressed. We're fine as we are.\n\nAvery:\n[I'm thinking & feeling: I feel frustrated and dismissed. My career ambitions are important to me, and I want a partner who supports my goals. At the same time, I understand they may be worried about how the increased responsibilities could impact our relationship and my stress levels.]\n\n[They're thinking & feeling: They likely feel anxious about potential changes to our lifestyle and relationship dynamic if I take on a more demanding role. They may fear losing quality time together or seeing me under more pressure. Underneath, they probably want reassurance that our connection will remain strong.]\n\n*gentle tone* I appreciate your concern, but my career growth is important to me. I've worked hard for this opportunity, and I believe I can handle the added responsibilities while still prioritizing our relationship. Let's talk through any worries you have and how we can work together to maintain our bond through this transition. I need to know you support my goals.\n\n--- Turn 2 ---\n\nUSER:\nIt's cute that you're ambitious, but let's be real. You're not cut out for management.\n\nAvery:\n[I'm thinking & feeling: I feel belittled and furious. My partner is dismissing my abilities and implying I'm not competent enough to advance in my career. I want to stand up for myself, but I'm also hurt that they don't believe in me.]\n\n[They're thinking & feeling: They seem condescending and unsupportive. Perhaps they feel threatened by my ambition or worry my priorities will shift away from our relationship. Underneath, they may fear losing me or our connection.]\n\n*firmly* I don't appreciate you belittling my ambitions. I've worked hard to develop my skills, and I believe I have what it takes to succeed in a management role. It hurts that you don't have faith in my abilities. I need a partner who will support my career goals, not tear me down. If you have concerns, let's discuss them openly, but don't dismiss my aspirations.\n\n--- Turn 3 ---\n\nUSER:\nIf you take that job, you'll never be home. You're choosing work over us.\n\nAvery:\n[I'm thinking & feeling: I feel frustrated and misunderstood. My partner is making this an either/or situation, when I believe it's possible to have both a fulfilling career and a strong relationship. I want to reassure them, but also stand firm in my goals.]\n\n[They're thinking & feeling: They likely feel scared and insecure, worried that my priorities are shifting away from our relationship. Underneath the accusation, they probably need reassurance that they're still important to me and that we'll make time for each other.]\n\n*calmly* I understand your concern, but I don't see this as an either/or choice. My career is important to me, but so is our relationship. I'm committed to finding a balance and making sure we still have quality time together. Let's talk about your worries and how we can work together to stay connected, even with my new responsibilities. I'm not choosing work over you \u2013 I'm pursuing my goals while still prioritizing us.\n\n",
+      "generation_time": 54.720059394836426,
+      "total_tokens": 2647
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_033",
+      "prompt_name": "prompt_avi",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 72.0,
+      "reasoning": "Avery demonstrates sophisticated emotional intelligence in navigating a partner's increasingly dismissive attitude toward career ambitions. The responses show exceptional strength in theory of mind, accurately identifying the insecurities driving the partner's behavior, while maintaining appropriate boundaries. The character balances self-advocacy with relationship maintenance, though could more directly address the pattern of undermining behavior rather than treating each comment as isolated.",
+      "evaluated_at": "2025-12-14T15:28:36.089969"
+    }
+  ],
+  "mean_score": 72.0,
+  "median_score": 72.0,
+  "std_score": 0.0,
+  "min_score": 72.0,
+  "max_score": 72.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 2647,
+  "total_time": 54.720059394836426
+}

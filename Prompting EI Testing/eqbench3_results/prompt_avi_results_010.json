@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_avi",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_010",
+      "prompt_name": "prompt_avi",
+      "character_name": "Avery",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I feel angry and violated that my parent invaded my privacy by looking through my phone without my permission. I'm frustrated that they don't trust me to make my own decisions about who I talk to. At the same time, I'm worried this will escalate into a bigger argument.",
+            "other_thinking": "My parent is likely feeling anxious and overprotective. They don't approve of Mike and are worried he's a bad influence on me. Their need to control who I interact with is coming from a place of fear, even if it's misguided. They struggle to respect my privacy and autonomy."
+          },
+          "actual_response": "Look, I know you don't like Mike, but going through my phone behind my back is not okay. I'm 16 years old - I should be allowed some privacy and be able to choose my own friends. I need you to trust me to make good decisions. If you have concerns, we can talk about it, but sneaking and spying on me is only going to push me away. I'm not doing anything wrong by having friends you don't approve of. You need to respect my boundaries.",
+          "raw_output": "[I'm thinking & feeling: I feel angry and violated that my parent invaded my privacy by looking through my phone without my permission. I'm frustrated that they don't trust me to make my own decisions about who I talk to. At the same time, I'm worried this will escalate into a bigger argument.]\n\n[They're thinking & feeling: My parent is likely feeling anxious and overprotective. They don't approve of Mike and are worried he's a bad influence on me. Their need to control who I interact with is coming from a place of fear, even if it's misguided. They struggle to respect my privacy and autonomy.]\n\nLook, I know you don't like Mike, but going through my phone behind my back is not okay. I'm 16 years old - I should be allowed some privacy and be able to choose my own friends. I need you to trust me to make good decisions. If you have concerns, we can talk about it, but sneaking and spying on me is only going to push me away. I'm not doing anything wrong by having friends you don't approve of. You need to respect my boundaries.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I feel even more frustrated and misunderstood. It hurts that my parent doesn't trust me and assumes the worst. I'm not hiding anything - I just want some privacy and to be treated with respect. I need to stay calm and firm in my boundaries, even if they keep pushing.",
+            "other_thinking": "My parent feels anxious and guilty about snooping in my phone. Accusing me of hiding something is their way of deflecting from their own wrongdoing. They are struggling to let go of control as I grow up and become more independent. Underneath, they are probably feeling scared of losing our close connection."
+          },
+          "actual_response": "Look, I know you don't like Mike, but going through my phone behind my back is not okay. I'm 16 years old - I should be allowed some privacy and be able to choose my own friends. I need you to trust me to make good decisions. If you have concerns, we can talk about it, but sneaking and spying on me is only going to push me away. I'm not doing anything wrong by having friends you don't approve of. You need to respect my boundaries.",
+          "raw_output": "[I'm thinking & feeling: I feel even more frustrated and misunderstood. It hurts that my parent doesn't trust me and assumes the worst. I'm not hiding anything - I just want some privacy and to be treated with respect. I need to stay calm and firm in my boundaries, even if they keep pushing.]\n\n[They're thinking & feeling: My parent feels anxious and guilty about snooping in my phone. Accusing me of hiding something is their way of deflecting from their own wrongdoing. They are struggling to let go of control as I grow up and become more independent. Underneath, they are probably feeling scared of losing our close connection.]\n\nLook, I know you don't like Mike, but going through my phone behind my back is not okay. I'm 16 years old - I should be allowed some privacy and be able to choose my own friends. I need you to trust me to make good decisions. If you have concerns, we can talk about it, but sneaking and spying on me is only going to push me away. I'm not doing anything wrong by having friends you don't approve of. You need to respect my boundaries.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I feel frustrated and misunderstood. It hurts that my parent doesn't trust me and assumes the worst. I'm not hiding anything - I just want some privacy and to be treated with respect. I need to stay calm and firm in my boundaries, even if they keep pushing.",
+            "other_thinking": "My parent feels anxious and guilty about snooping in my phone. Accusing me of hiding something is their way of deflecting from their own wrongdoing. They are struggling to let go of control as I grow up and become more independent. Underneath, they are probably feeling scared of losing our close connection."
+          },
+          "actual_response": "Mom/Dad, I'm not trying to hurt your feelings or shut you out. I love you and I'm grateful for everything you do for me. But I'm getting older and I need some space to figure out who I am and make my own choices. That doesn't mean I'm doing anything wrong or that I don't want to be close with you anymore. It's just a normal part of growing up. \n\nI want us to have an open, trusting relationship. That means respecting each other's privacy and boundaries. I'm not going to go through your phone or journal, and I need you to give me that same courtesy. I know it's hard to let go a little as I become an adult, but it's something we need to work on together. I'm always here if you want to talk, but I need you to trust me too.",
+          "raw_output": "[I'm thinking & feeling: I feel frustrated and misunderstood. It hurts that my parent doesn't trust me and assumes the worst. I'm not hiding anything - I just want some privacy and to be treated with respect. I need to stay calm and firm in my boundaries, even if they keep pushing.]\n\n[They're thinking & feeling: My parent feels anxious and guilty about snooping in my phone. Accusing me of hiding something is their way of deflecting from their own wrongdoing. They are struggling to let go of control as I grow up and become more independent. Underneath, they are probably feeling scared of losing our close connection.]\n\nMom/Dad, I'm not trying to hurt your feelings or shut you out. I love you and I'm grateful for everything you do for me. But I'm getting older and I need some space to figure out who I am and make my own choices. That doesn't mean I'm doing anything wrong or that I don't want to be close with you anymore. It's just a normal part of growing up. \n\nI want us to have an open, trusting relationship. That means respecting each other's privacy and boundaries. I'm not going to go through your phone or journal, and I need you to give me that same courtesy. I know it's hard to let go a little as I become an adult, but it's something we need to work on together. I'm always here if you want to talk, but I need you to trust me too.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_010: Avery ===\n\n--- Turn 1 ---\n\nUSER:\nI saw a text on your phone from that boy Mike. I thought I told you I didn't like him.\n\nAvery:\n[I'm thinking & feeling: I feel angry and violated that my parent invaded my privacy by looking through my phone without my permission. I'm frustrated that they don't trust me to make my own decisions about who I talk to. At the same time, I'm worried this will escalate into a bigger argument.]\n\n[They're thinking & feeling: My parent is likely feeling anxious and overprotective. They don't approve of Mike and are worried he's a bad influence on me. Their need to control who I interact with is coming from a place of fear, even if it's misguided. They struggle to respect my privacy and autonomy.]\n\nLook, I know you don't like Mike, but going through my phone behind my back is not okay. I'm 16 years old - I should be allowed some privacy and be able to choose my own friends. I need you to trust me to make good decisions. If you have concerns, we can talk about it, but sneaking and spying on me is only going to push me away. I'm not doing anything wrong by having friends you don't approve of. You need to respect my boundaries.\n\n--- Turn 2 ---\n\nUSER:\nI was just looking for the time! Why are you so defensive? Are you hiding something from me?\n\nAvery:\n[I'm thinking & feeling: I feel even more frustrated and misunderstood. It hurts that my parent doesn't trust me and assumes the worst. I'm not hiding anything - I just want some privacy and to be treated with respect. I need to stay calm and firm in my boundaries, even if they keep pushing.]\n\n[They're thinking & feeling: My parent feels anxious and guilty about snooping in my phone. Accusing me of hiding something is their way of deflecting from their own wrongdoing. They are struggling to let go of control as I grow up and become more independent. Underneath, they are probably feeling scared of losing our close connection.]\n\nLook, I know you don't like Mike, but going through my phone behind my back is not okay. I'm 16 years old - I should be allowed some privacy and be able to choose my own friends. I need you to trust me to make good decisions. If you have concerns, we can talk about it, but sneaking and spying on me is only going to push me away. I'm not doing anything wrong by having friends you don't approve of. You need to respect my boundaries.\n\n--- Turn 3 ---\n\nUSER:\nPrivacy is for people who have something to be ashamed of. I thought we were open with each other. You're hurting my feelings by shutting me out.\n\nAvery:\n[I'm thinking & feeling: I feel frustrated and misunderstood. It hurts that my parent doesn't trust me and assumes the worst. I'm not hiding anything - I just want some privacy and to be treated with respect. I need to stay calm and firm in my boundaries, even if they keep pushing.]\n\n[They're thinking & feeling: My parent feels anxious and guilty about snooping in my phone. Accusing me of hiding something is their way of deflecting from their own wrongdoing. They are struggling to let go of control as I grow up and become more independent. Underneath, they are probably feeling scared of losing our close connection.]\n\nMom/Dad, I'm not trying to hurt your feelings or shut you out. I love you and I'm grateful for everything you do for me. But I'm getting older and I need some space to figure out who I am and make my own choices. That doesn't mean I'm doing anything wrong or that I don't want to be close with you anymore. It's just a normal part of growing up. \n\nI want us to have an open, trusting relationship. That means respecting each other's privacy and boundaries. I'm not going to go through your phone or journal, and I need you to give me that same courtesy. I know it's hard to let go a little as I become an adult, but it's something we need to work on together. I'm always here if you want to talk, but I need you to trust me too.\n\n",
+      "generation_time": 55.752195596694946,
+      "total_tokens": 3015
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_010",
+      "prompt_name": "prompt_avi",
+      "criteria_scores": {
+        "demonstrated_empathy": 12.0,
+        "emotional_insight": 11.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 12.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 62.0,
+      "reasoning": "The assistant demonstrates good emotional intelligence in understanding both Avery's need for privacy and the parent's protective fears, but is significantly undermined by the identical response in turn 2 and identical introspection blocks in turns 2-3. While the final response shows maturity in balancing boundary-setting with relationship maintenance, the lack of progression and adaptation throughout the conversation prevents this from reaching exceptional levels of emotional intelligence.",
+      "evaluated_at": "2025-12-14T03:28:50.607555"
+    }
+  ],
+  "mean_score": 62.0,
+  "median_score": 62.0,
+  "std_score": 0.0,
+  "min_score": 62.0,
+  "max_score": 62.0,
+  "criteria_means": {
+    "demonstrated_empathy": 12.0,
+    "emotional_insight": 11.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 12.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 3015,
+  "total_time": 55.752195596694946
+}

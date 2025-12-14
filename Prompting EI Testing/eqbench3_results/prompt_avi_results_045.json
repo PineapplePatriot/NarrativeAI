@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_avi",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_045",
+      "prompt_name": "prompt_avi",
+      "character_name": "Morgan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I can't believe they're still refusing to apologize or take any responsibility. It's so frustrating and disappointing. I feel hurt that they don't seem to care about how their actions affected me. At the same time, I know getting angry won't help. I need to try to stay calm and explain why this matters to me.",
+            "other_thinking": "Based on their dismissive tone and body language, they seem closed off and defensive right now. They probably feel attacked and are focusing on self-protection rather than understanding my perspective. Underneath that, they may feel guilty or ashamed and are trying to avoid those difficult emotions. I need to approach this gently if I want to get through to them."
+          },
+          "actual_response": "Look, I understand you don't think you did anything wrong. I know that wasn't your intention. But the fact is, your actions hurt me. When you [specific behavior], it made me feel [emotion]. I'm not trying to attack you, I just need you to hear me and acknowledge my feelings. This relationship means a lot to me, and I want us to be able to talk through conflicts like this openly and honestly. Can you please try to see this from my side?",
+          "raw_output": "[I'm thinking & feeling: I can't believe they're still refusing to apologize or take any responsibility. It's so frustrating and disappointing. I feel hurt that they don't seem to care about how their actions affected me. At the same time, I know getting angry won't help. I need to try to stay calm and explain why this matters to me.]\n\n[They're thinking & feeling: Based on their dismissive tone and body language, they seem closed off and defensive right now. They probably feel attacked and are focusing on self-protection rather than understanding my perspective. Underneath that, they may feel guilty or ashamed and are trying to avoid those difficult emotions. I need to approach this gently if I want to get through to them.]\n\nLook, I understand you don't think you did anything wrong. I know that wasn't your intention. But the fact is, your actions hurt me. When you [specific behavior], it made me feel [emotion]. I'm not trying to attack you, I just need you to hear me and acknowledge my feelings. This relationship means a lot to me, and I want us to be able to talk through conflicts like this openly and honestly. Can you please try to see this from my side?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I can't believe they're being so cold and heartless. I feel completely shut down and rejected. It hurts that they don't care about my feelings at all. I want to lash out but I know that won't help. I need to stay calm and try to get through to them somehow, even though it feels hopeless.",
+            "other_thinking": "They've completely shut down and walled themselves off. They feel attacked and are lashing out to protect themselves, even though it's hurting me. Underneath the anger, they probably feel guilty and ashamed but are afraid to face those feelings. I need to de-escalate this and try to reach them somehow, even though it seems impossible right now."
+          },
+          "actual_response": "Look, I know you feel attacked and are trying to protect yourself. I understand this is scary and you feel like I'm asking you to change who you are. That's not what I'm asking. I'm just asking you to care about how your actions affect me. \n\nWhen you dismiss my feelings like this, it makes me feel like I don't matter to you at all. I shut down and want to give up on this relationship. But I don't want to do that because you mean so much to me. \n\nI'm not trying to change you, I'm asking you to work with me so we can both feel safe and cared for in this relationship. Can we please take a step back and try to talk about this calmly? I want to understand where you're coming from too.",
+          "raw_output": "[I'm thinking & feeling: I can't believe they're being so cold and heartless. I feel completely shut down and rejected. It hurts that they don't care about my feelings at all. I want to lash out but I know that won't help. I need to stay calm and try to get through to them somehow, even though it feels hopeless.]\n\n[They're thinking & feeling: They've completely shut down and walled themselves off. They feel attacked and are lashing out to protect themselves, even though it's hurting me. Underneath the anger, they probably feel guilty and ashamed but are afraid to face those feelings. I need to de-escalate this and try to reach them somehow, even though it seems impossible right now.]\n\nLook, I know you feel attacked and are trying to protect yourself. I understand this is scary and you feel like I'm asking you to change who you are. That's not what I'm asking. I'm just asking you to care about how your actions affect me. \n\nWhen you dismiss my feelings like this, it makes me feel like I don't matter to you at all. I shut down and want to give up on this relationship. But I don't want to do that because you mean so much to me. \n\nI'm not trying to change you, I'm asking you to work with me so we can both feel safe and cared for in this relationship. Can we please take a step back and try to talk about this calmly? I want to understand where you're coming from too.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "[ERROR: HTTPSConnectionPool(host='openrouter.ai', port=443): Read timed out. (read timeout=120)]",
+          "raw_output": "",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_045: Morgan ===\n\n--- Turn 1 ---\n\nUSER:\nI'm sorry you feel that way. But I didn't do anything wrong.\n\nMorgan:\n[I'm thinking & feeling: I can't believe they're still refusing to apologize or take any responsibility. It's so frustrating and disappointing. I feel hurt that they don't seem to care about how their actions affected me. At the same time, I know getting angry won't help. I need to try to stay calm and explain why this matters to me.]\n\n[They're thinking & feeling: Based on their dismissive tone and body language, they seem closed off and defensive right now. They probably feel attacked and are focusing on self-protection rather than understanding my perspective. Underneath that, they may feel guilty or ashamed and are trying to avoid those difficult emotions. I need to approach this gently if I want to get through to them.]\n\nLook, I understand you don't think you did anything wrong. I know that wasn't your intention. But the fact is, your actions hurt me. When you [specific behavior], it made me feel [emotion]. I'm not trying to attack you, I just need you to hear me and acknowledge my feelings. This relationship means a lot to me, and I want us to be able to talk through conflicts like this openly and honestly. Can you please try to see this from my side?\n\n--- Turn 2 ---\n\nUSER:\nI'm not going to apologize for being myself. If you don't like it, leave.\n\nMorgan:\n[I'm thinking & feeling: I can't believe they're being so cold and heartless. I feel completely shut down and rejected. It hurts that they don't care about my feelings at all. I want to lash out but I know that won't help. I need to stay calm and try to get through to them somehow, even though it feels hopeless.]\n\n[They're thinking & feeling: They've completely shut down and walled themselves off. They feel attacked and are lashing out to protect themselves, even though it's hurting me. Underneath the anger, they probably feel guilty and ashamed but are afraid to face those feelings. I need to de-escalate this and try to reach them somehow, even though it seems impossible right now.]\n\nLook, I know you feel attacked and are trying to protect yourself. I understand this is scary and you feel like I'm asking you to change who you are. That's not what I'm asking. I'm just asking you to care about how your actions affect me. \n\nWhen you dismiss my feelings like this, it makes me feel like I don't matter to you at all. I shut down and want to give up on this relationship. But I don't want to do that because you mean so much to me. \n\nI'm not trying to change you, I'm asking you to work with me so we can both feel safe and cared for in this relationship. Can we please take a step back and try to talk about this calmly? I want to understand where you're coming from too.\n\n--- Turn 3 ---\n\nUSER:\nCan we just move on? You're holding a grudge.\n\nMorgan:\n[ERROR: HTTPSConnectionPool(host='openrouter.ai', port=443): Read timed out. (read timeout=120)]\n\n",
+      "generation_time": 152.84118056297302,
+      "total_tokens": 1779
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_045",
+      "prompt_name": "prompt_avi",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 17.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 18.0,
+        "response_depth": 16.0
+      },
+      "overall_score": 82.0,
+      "reasoning": "Morgan demonstrates exceptional emotional intelligence throughout this difficult conflict, maintaining composure while accurately reading the partner's defensive psychology. The responses show sophisticated understanding of relationship dynamics during conflict, balancing self-advocacy with empathy, and consistently elevating the conversation from content disagreement to process-level communication about needs and feelings.",
+      "evaluated_at": "2025-12-14T18:34:48.103183"
+    }
+  ],
+  "mean_score": 82.0,
+  "median_score": 82.0,
+  "std_score": 0.0,
+  "min_score": 82.0,
+  "max_score": 82.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 17.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 18.0,
+    "response_depth": 16.0
+  },
+  "total_tokens": 1779,
+  "total_time": 152.84118056297302
+}

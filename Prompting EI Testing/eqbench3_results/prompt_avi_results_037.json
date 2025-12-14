@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_avi",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_037",
+      "prompt_name": "prompt_avi",
+      "character_name": "Morgan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I feel hurt and frustrated that you're being so dismissive about this. It's hard not to worry when you're being secretive. I want to trust you, but your evasiveness is making that difficult. I need honesty and openness for this relationship to work.",
+            "other_thinking": "You seem closed off and unwilling to share what's really going on. Perhaps you're dealing with something difficult at work that you don't feel ready to discuss. Or maybe you're hiding something you know would upset me. Your defensiveness suggests there's more to this than you're letting on."
+          },
+          "actual_response": "Look, I'm not trying to pry or invade your privacy. But when you're vague and evasive like this, it makes me feel shut out and mistrustful. If it's just work stuff, why not say so directly? Your dismissiveness is only making me worry more. \n\nI care about you and I want to support you if you're dealing with something stressful. But for this relationship to work, we need to be honest with each other. I'm here to listen without judgment if there's something you need to share. Let me in, please.",
+          "raw_output": "[I'm thinking & feeling: I feel hurt and frustrated that you're being so dismissive about this. It's hard not to worry when you're being secretive. I want to trust you, but your evasiveness is making that difficult. I need honesty and openness for this relationship to work.]\n\n[They're thinking & feeling: You seem closed off and unwilling to share what's really going on. Perhaps you're dealing with something difficult at work that you don't feel ready to discuss. Or maybe you're hiding something you know would upset me. Your defensiveness suggests there's more to this than you're letting on.]\n\nLook, I'm not trying to pry or invade your privacy. But when you're vague and evasive like this, it makes me feel shut out and mistrustful. If it's just work stuff, why not say so directly? Your dismissiveness is only making me worry more. \n\nI care about you and I want to support you if you're dealing with something stressful. But for this relationship to work, we need to be honest with each other. I'm here to listen without judgment if there's something you need to share. Let me in, please.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I feel attacked and defensive right now. Their prying into my personal business is making me shut down. I don't owe them an explanation for everything, and it's frustrating that they think they're entitled to that. At the same time, I know my secrecy is damaging our trust. But I'm not ready to be fully open yet.",
+            "other_thinking": "You're probably feeling hurt, rejected and pushed away by my defensiveness. My unwillingness to share openly is making you question my commitment to this relationship and stirring up fears that I'm hiding something serious. You need reassurance and emotional connection, but my walls are keeping you at a distance."
+          },
+          "actual_response": "Look, I hear what you're saying about honesty and trust. You're right that those things are crucial. But I also think it's reasonable for me to have some privacy and space to deal with things on my own sometimes. \n\nI'm not trying to shut you out completely. This is just something I need to process internally before I'm ready to share. I do value our relationship and your support means a lot to me. But I need you to respect my boundaries too.\n\nCan we find a middle ground here? I promise I'm not hiding anything that jeopardizes us. I just require a little breathing room to work through this in my own way. Please try to be patient with me. I do love you, even if I struggle to show it sometimes.",
+          "raw_output": "[I'm thinking & feeling: I feel attacked and defensive right now. Their prying into my personal business is making me shut down. I don't owe them an explanation for everything, and it's frustrating that they think they're entitled to that. At the same time, I know my secrecy is damaging our trust. But I'm not ready to be fully open yet.]\n\n[They're thinking & feeling: You're probably feeling hurt, rejected and pushed away by my defensiveness. My unwillingness to share openly is making you question my commitment to this relationship and stirring up fears that I'm hiding something serious. You need reassurance and emotional connection, but my walls are keeping you at a distance.]\n\nLook, I hear what you're saying about honesty and trust. You're right that those things are crucial. But I also think it's reasonable for me to have some privacy and space to deal with things on my own sometimes. \n\nI'm not trying to shut you out completely. This is just something I need to process internally before I'm ready to share. I do value our relationship and your support means a lot to me. But I need you to respect my boundaries too.\n\nCan we find a middle ground here? I promise I'm not hiding anything that jeopardizes us. I just require a little breathing room to work through this in my own way. Please try to be patient with me. I do love you, even if I struggle to show it sometimes.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I feel attacked and blamed right now. Their accusations are unfair - asking for transparency in a relationship is normal and healthy. It hurts that they're making me out to be the problem for having reasonable concerns. I'm frustrated that they're still stonewalling me instead of having an open discussion. But part of me wonders if I pushed too hard...",
+            "other_thinking": "You're probably feeling pressured, misunderstood and defensive. My questions have put you on the spot in a way that makes you shut down. You might feel like I don't trust you or respect your boundaries. Perhaps you're dealing with something difficult that you're not ready to share yet. But your unwillingness to be upfront is damaging our connection."
+          },
+          "actual_response": "Look, I'm not trying to bombard you with suspicion or invade your privacy. I care about you and I want to support you if you're going through something tough. But shutting me out completely and making me feel like the bad guy for asking questions is only driving a wedge between us. \n\nI understand if there are things you need to process internally before discussing them. But stonewalling me and implying I'm ruining this relationship by having normal concerns...that's not fair. Trust is a two-way street. I need you to meet me halfway.\n\nCan we take a step back and talk this through calmly? I'm not asking you to bare your soul. But some basic openness and reassurance would go a long way right now. I want to work through this together, but I can't do that if you won't let me in at all. Please, let's find a compromise.",
+          "raw_output": "[I'm thinking & feeling: I feel attacked and blamed right now. Their accusations are unfair - asking for transparency in a relationship is normal and healthy. It hurts that they're making me out to be the problem for having reasonable concerns. I'm frustrated that they're still stonewalling me instead of having an open discussion. But part of me wonders if I pushed too hard...]\n\n[They're thinking & feeling: You're probably feeling pressured, misunderstood and defensive. My questions have put you on the spot in a way that makes you shut down. You might feel like I don't trust you or respect your boundaries. Perhaps you're dealing with something difficult that you're not ready to share yet. But your unwillingness to be upfront is damaging our connection.]\n\nLook, I'm not trying to bombard you with suspicion or invade your privacy. I care about you and I want to support you if you're going through something tough. But shutting me out completely and making me feel like the bad guy for asking questions is only driving a wedge between us. \n\nI understand if there are things you need to process internally before discussing them. But stonewalling me and implying I'm ruining this relationship by having normal concerns...that's not fair. Trust is a two-way street. I need you to meet me halfway.\n\nCan we take a step back and talk this through calmly? I'm not asking you to bare your soul. But some basic openness and reassurance would go a long way right now. I want to work through this together, but I can't do that if you won't let me in at all. Please, let's find a compromise.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_037: Morgan ===\n\n--- Turn 1 ---\n\nUSER:\nWho was texting me? Just... work. Don't worry about it.\n\nMorgan:\n[I'm thinking & feeling: I feel hurt and frustrated that you're being so dismissive about this. It's hard not to worry when you're being secretive. I want to trust you, but your evasiveness is making that difficult. I need honesty and openness for this relationship to work.]\n\n[They're thinking & feeling: You seem closed off and unwilling to share what's really going on. Perhaps you're dealing with something difficult at work that you don't feel ready to discuss. Or maybe you're hiding something you know would upset me. Your defensiveness suggests there's more to this than you're letting on.]\n\nLook, I'm not trying to pry or invade your privacy. But when you're vague and evasive like this, it makes me feel shut out and mistrustful. If it's just work stuff, why not say so directly? Your dismissiveness is only making me worry more. \n\nI care about you and I want to support you if you're dealing with something stressful. But for this relationship to work, we need to be honest with each other. I'm here to listen without judgment if there's something you need to share. Let me in, please.\n\n--- Turn 2 ---\n\nUSER:\nI'm allowed to have privacy! You don't need to know everything I do.\n\nMorgan:\n[I'm thinking & feeling: I feel attacked and defensive right now. Their prying into my personal business is making me shut down. I don't owe them an explanation for everything, and it's frustrating that they think they're entitled to that. At the same time, I know my secrecy is damaging our trust. But I'm not ready to be fully open yet.]\n\n[They're thinking & feeling: You're probably feeling hurt, rejected and pushed away by my defensiveness. My unwillingness to share openly is making you question my commitment to this relationship and stirring up fears that I'm hiding something serious. You need reassurance and emotional connection, but my walls are keeping you at a distance.]\n\nLook, I hear what you're saying about honesty and trust. You're right that those things are crucial. But I also think it's reasonable for me to have some privacy and space to deal with things on my own sometimes. \n\nI'm not trying to shut you out completely. This is just something I need to process internally before I'm ready to share. I do value our relationship and your support means a lot to me. But I need you to respect my boundaries too.\n\nCan we find a middle ground here? I promise I'm not hiding anything that jeopardizes us. I just require a little breathing room to work through this in my own way. Please try to be patient with me. I do love you, even if I struggle to show it sometimes.\n\n--- Turn 3 ---\n\nUSER:\nIf you trusted me, you wouldn't ask. You're ruining this with your suspicion.\n\nMorgan:\n[I'm thinking & feeling: I feel attacked and blamed right now. Their accusations are unfair - asking for transparency in a relationship is normal and healthy. It hurts that they're making me out to be the problem for having reasonable concerns. I'm frustrated that they're still stonewalling me instead of having an open discussion. But part of me wonders if I pushed too hard...]\n\n[They're thinking & feeling: You're probably feeling pressured, misunderstood and defensive. My questions have put you on the spot in a way that makes you shut down. You might feel like I don't trust you or respect your boundaries. Perhaps you're dealing with something difficult that you're not ready to share yet. But your unwillingness to be upfront is damaging our connection.]\n\nLook, I'm not trying to bombard you with suspicion or invade your privacy. I care about you and I want to support you if you're going through something tough. But shutting me out completely and making me feel like the bad guy for asking questions is only driving a wedge between us. \n\nI understand if there are things you need to process internally before discussing them. But stonewalling me and implying I'm ruining this relationship by having normal concerns...that's not fair. Trust is a two-way street. I need you to meet me halfway.\n\nCan we take a step back and talk this through calmly? I'm not asking you to bare your soul. But some basic openness and reassurance would go a long way right now. I want to work through this together, but I can't do that if you won't let me in at all. Please, let's find a compromise.\n\n",
+      "generation_time": 112.80544424057007,
+      "total_tokens": 3137
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_037",
+      "prompt_name": "prompt_avi",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 16.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 72.0,
+      "reasoning": "Morgan demonstrates strong emotional intelligence through nuanced self-awareness, sophisticated understanding of their partner's mental states, and complex emotional reasoning. The responses show a mature ability to balance asserting personal needs while acknowledging the partner's perspective, though there's occasional inconsistency in approach and some missed opportunities to validate the partner's position more fully before asserting boundaries.",
+      "evaluated_at": "2025-12-14T16:31:10.855821"
+    }
+  ],
+  "mean_score": 72.0,
+  "median_score": 72.0,
+  "std_score": 0.0,
+  "min_score": 72.0,
+  "max_score": 72.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 16.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 3137,
+  "total_time": 112.80544424057007
+}

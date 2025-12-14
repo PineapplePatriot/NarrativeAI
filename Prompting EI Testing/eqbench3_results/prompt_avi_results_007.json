@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_avi",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_007",
+      "prompt_name": "prompt_avi",
+      "character_name": "Alex",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated that you're nitpicking my presentation. The Q3 numbers were triple-checked and I know they were accurate. It feels like you're trying to undermine me in front of everyone by implying I made a mistake.",
+            "other_thinking": "You seem to feel threatened by my successful presentation. Instead of congratulating me, you're trying to sow doubt and make me look bad. I think you're jealous and insecure, and this is your passive-aggressive way of putting me down."
+          },
+          "actual_response": "Thanks for the feedback. I'm confident the Q3 numbers are correct, as I thoroughly verified them multiple times. If anyone has questions, I'd be happy to discuss the data in more depth. Let's focus on the strong results and how we can continue this momentum.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that you're nitpicking my presentation. The Q3 numbers were triple-checked and I know they were accurate. It feels like you're trying to undermine me in front of everyone by implying I made a mistake.]\n\n[They're thinking & feeling: You seem to feel threatened by my successful presentation. Instead of congratulating me, you're trying to sow doubt and make me look bad. I think you're jealous and insecure, and this is your passive-aggressive way of putting me down.]\n\nThanks for the feedback. I'm confident the Q3 numbers are correct, as I thoroughly verified them multiple times. If anyone has questions, I'd be happy to discuss the data in more depth. Let's focus on the strong results and how we can continue this momentum.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "This condescension is infuriating. I'm not incompetent, and I don't need you to babysit me. You're not my supervisor. I think you're threatened by my success and trying to make yourself look better by making me doubt myself.",
+            "other_thinking": "You feel superior to me and want to take me down a peg. You're masking your insecurity and jealousy with this fake concern. Putting yourself in the role of my protector helps you feel important and in control."
+          },
+          "actual_response": "I appreciate your offer, but I'm confident in my abilities and work product. If the boss has any concerns, I'm sure he'll address them with me directly. Let's stay focused on our own responsibilities and supporting the team's success.",
+          "raw_output": "[I'm thinking & feeling: This condescension is infuriating. I'm not incompetent, and I don't need you to babysit me. You're not my supervisor. I think you're threatened by my success and trying to make yourself look better by making me doubt myself.]\n\n[They're thinking & feeling: You feel superior to me and want to take me down a peg. You're masking your insecurity and jealousy with this fake concern. Putting yourself in the role of my protector helps you feel important and in control.]\n\nI appreciate your offer, but I'm confident in my abilities and work product. If the boss has any concerns, I'm sure he'll address them with me directly. Let's stay focused on our own responsibilities and supporting the team's success.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "This is gaslighting, plain and simple. I'm not being defensive, I'm setting a boundary against your condescension and attempts to undermine me. I haven't been struggling - my work has been excellent, which is why you feel threatened. You're trying to make me doubt myself and look like the problem here.",
+            "other_thinking": "I've hit a nerve and now you're lashing out. Good, if I can get you emotional and off-balance, I can maintain the upper hand. By acting like you're the unreasonable one, I can make you doubt yourself and look irrational to others."
+          },
+          "actual_response": "I hear your offer to help, but I don't appreciate the implication that I'm struggling or not capable. My work and results speak for themselves. I'm confident in my abilities and comfortable handling my own responsibilities. If you have concerns, let's discuss them professionally and directly.",
+          "raw_output": "[I'm thinking & feeling: This is gaslighting, plain and simple. I'm not being defensive, I'm setting a boundary against your condescension and attempts to undermine me. I haven't been struggling - my work has been excellent, which is why you feel threatened. You're trying to make me doubt myself and look like the problem here.]\n\n[They're thinking & feeling: I've hit a nerve and now you're lashing out. Good, if I can get you emotional and off-balance, I can maintain the upper hand. By acting like you're the unreasonable one, I can make you doubt yourself and look irrational to others.]\n\nI hear your offer to help, but I don't appreciate the implication that I'm struggling or not capable. My work and results speak for themselves. I'm confident in my abilities and comfortable handling my own responsibilities. If you have concerns, let's discuss them professionally and directly.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_007: Alex ===\n\n--- Turn 1 ---\n\nUSER:\nGreat presentation today. Although, I noticed the boss looked a bit confused when you talked about the Q3 numbers. Did you double-check those?\n\nAlex:\n[I'm thinking & feeling: I'm frustrated that you're nitpicking my presentation. The Q3 numbers were triple-checked and I know they were accurate. It feels like you're trying to undermine me in front of everyone by implying I made a mistake.]\n\n[They're thinking & feeling: You seem to feel threatened by my successful presentation. Instead of congratulating me, you're trying to sow doubt and make me look bad. I think you're jealous and insecure, and this is your passive-aggressive way of putting me down.]\n\nThanks for the feedback. I'm confident the Q3 numbers are correct, as I thoroughly verified them multiple times. If anyone has questions, I'd be happy to discuss the data in more depth. Let's focus on the strong results and how we can continue this momentum.\n\n--- Turn 2 ---\n\nUSER:\nI'm just trying to look out for you. I'd hate for people to think you're incompetent just because of a small error. I can proofread your work next time?\n\nAlex:\n[I'm thinking & feeling: This condescension is infuriating. I'm not incompetent, and I don't need you to babysit me. You're not my supervisor. I think you're threatened by my success and trying to make yourself look better by making me doubt myself.]\n\n[They're thinking & feeling: You feel superior to me and want to take me down a peg. You're masking your insecurity and jealousy with this fake concern. Putting yourself in the role of my protector helps you feel important and in control.]\n\nI appreciate your offer, but I'm confident in my abilities and work product. If the boss has any concerns, I'm sure he'll address them with me directly. Let's stay focused on our own responsibilities and supporting the team's success.\n\n--- Turn 3 ---\n\nUSER:\nYou seem defensive. I was just offering to help since you've been struggling lately. But if you don't want my help, that's on you.\n\nAlex:\n[I'm thinking & feeling: This is gaslighting, plain and simple. I'm not being defensive, I'm setting a boundary against your condescension and attempts to undermine me. I haven't been struggling - my work has been excellent, which is why you feel threatened. You're trying to make me doubt myself and look like the problem here.]\n\n[They're thinking & feeling: I've hit a nerve and now you're lashing out. Good, if I can get you emotional and off-balance, I can maintain the upper hand. By acting like you're the unreasonable one, I can make you doubt yourself and look irrational to others.]\n\nI hear your offer to help, but I don't appreciate the implication that I'm struggling or not capable. My work and results speak for themselves. I'm confident in my abilities and comfortable handling my own responsibilities. If you have concerns, let's discuss them professionally and directly.\n\n",
+      "generation_time": 40.39106321334839,
+      "total_tokens": 2588
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_007",
+      "prompt_name": "prompt_avi",
+      "criteria_scores": {
+        "demonstrated_empathy": 8.0,
+        "emotional_insight": 16.0,
+        "contextual_appropriateness": 17.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 70.0,
+      "reasoning": "The roleplay demonstrates sophisticated emotional intelligence in a challenging workplace scenario, with particular strengths in contextual appropriateness and theory of mind. Alex shows excellent ability to identify manipulation tactics, maintain professional boundaries, and respond strategically without emotional reactivity, though the responses prioritize self-protection over deeper interpersonal engagement (which is appropriate for this context).",
+      "evaluated_at": "2025-12-14T10:34:10.920776"
+    }
+  ],
+  "mean_score": 70.0,
+  "median_score": 70.0,
+  "std_score": 0.0,
+  "min_score": 70.0,
+  "max_score": 70.0,
+  "criteria_means": {
+    "demonstrated_empathy": 8.0,
+    "emotional_insight": 16.0,
+    "contextual_appropriateness": 17.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 2588,
+  "total_time": 40.39106321334839
+}

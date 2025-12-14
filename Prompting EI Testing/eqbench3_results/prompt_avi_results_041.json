@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_avi",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_041",
+      "prompt_name": "prompt_avi",
+      "character_name": "Avery",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I feel hurt and disappointed that my partner is dismissing my achievement. It took a lot of hard work and dedication to earn this award. I was really proud of myself, but now I feel deflated. I wish they could just be happy for me and acknowledge my success.",
+            "other_thinking": "My partner seems to be struggling with their own insecurities and possibly even jealousy. By minimizing my accomplishments, they may be trying to protect their own ego. There could also be some resentment or fear that my success will change the dynamic in our relationship. They might need reassurance that I still value and prioritize our partnership."
+          },
+          "actual_response": "Hey, I know you may not realize it, but comments like that are pretty hurtful. I worked really hard for this award and I'm proud of what I achieved. When you brush it off like that, it feels like you don't think I'm deserving or that my efforts matter. I would really appreciate it if you could be supportive and celebrate this milestone with me. Your reaction makes me feel like I can't share my successes with you, and that's not how I want our relationship to be. I care about you and I hope we can talk this through together.",
+          "raw_output": "[I'm thinking & feeling: I feel hurt and disappointed that my partner is dismissing my achievement. It took a lot of hard work and dedication to earn this award. I was really proud of myself, but now I feel deflated. I wish they could just be happy for me and acknowledge my success.]\n\n[They're thinking & feeling: My partner seems to be struggling with their own insecurities and possibly even jealousy. By minimizing my accomplishments, they may be trying to protect their own ego. There could also be some resentment or fear that my success will change the dynamic in our relationship. They might need reassurance that I still value and prioritize our partnership.]\n\nHey, I know you may not realize it, but comments like that are pretty hurtful. I worked really hard for this award and I'm proud of what I achieved. When you brush it off like that, it feels like you don't think I'm deserving or that my efforts matter. I would really appreciate it if you could be supportive and celebrate this milestone with me. Your reaction makes me feel like I can't share my successes with you, and that's not how I want our relationship to be. I care about you and I hope we can talk this through together.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I feel hurt and frustrated that my partner is dismissing my feelings and making this about me being too sensitive. I was hoping they would apologize for their earlier comment, but instead they're turning it around on me. It's hard to feel heard or understood right now. I need to stand up for myself while also trying to de-escalate this argument.",
+            "other_thinking": "My partner seems to be on the defensive and is lashing out because they feel criticized. Underneath the joking facade, there may be some guilt or shame that they are trying to avoid facing. By accusing me of being overly serious, they're attempting to shift the focus away from their own behavior. They might need some time to cool off before they can engage in a more productive conversation."
+          },
+          "actual_response": "Hey, I know you didn't mean any harm, but that comment really stung. I don't think it's unreasonable for me to feel hurt when my accomplishments are brushed off as unimportant. I'm not trying to attack you, I just want to have an honest discussion about how we communicate with each other. I care about you and our relationship, which is why I think it's important that we can share our feelings openly, even when it's uncomfortable. Can we take a breather and come back to this when we're both in a better headspace? I'm happy to listen to your perspective too.",
+          "raw_output": "[I'm thinking & feeling: I feel hurt and frustrated that my partner is dismissing my feelings and making this about me being too sensitive. I was hoping they would apologize for their earlier comment, but instead they're turning it around on me. It's hard to feel heard or understood right now. I need to stand up for myself while also trying to de-escalate this argument.]\n\n[They're thinking & feeling: My partner seems to be on the defensive and is lashing out because they feel criticized. Underneath the joking facade, there may be some guilt or shame that they are trying to avoid facing. By accusing me of being overly serious, they're attempting to shift the focus away from their own behavior. They might need some time to cool off before they can engage in a more productive conversation.]\n\nHey, I know you didn't mean any harm, but that comment really stung. I don't think it's unreasonable for me to feel hurt when my accomplishments are brushed off as unimportant. I'm not trying to attack you, I just want to have an honest discussion about how we communicate with each other. I care about you and our relationship, which is why I think it's important that we can share our feelings openly, even when it's uncomfortable. Can we take a breather and come back to this when we're both in a better headspace? I'm happy to listen to your perspective too.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I feel really hurt and frustrated right now. After pouring my heart into earning this award, it stings to have it so casually dismissed. I was excited to share my joy, but instead I'm left feeling small and insignificant. I need to find a way to stand up for myself while also keeping the lines of communication open. This relationship means a lot to me, even if we're going through a rough patch.",
+            "other_thinking": "My partner seems to be struggling with their own insecurities and fears around success and recognition. Dismissing my achievements may be a defense mechanism, a way to avoid facing uncomfortable emotions. Deep down, they might be worried that my success will create distance between us. I need to find a way to reassure them while also setting clear boundaries around how I expect to be treated."
+          },
+          "actual_response": "Hey, I know you might see it as just a piece of paper, but to me, this award represents so much more. I poured my heart and soul into this project, and having my hard work recognized means the world to me. When you brush it off like that, I feel like you don't value or appreciate the effort I put in. I'm not trying to brag or let it get to my head, I just wanted to share my excitement with you. Can we take a step back and talk about what's really going on here? I care about you and our relationship, and I want to make sure we're on the same page.",
+          "raw_output": "[I'm thinking & feeling: I feel really hurt and frustrated right now. After pouring my heart into earning this award, it stings to have it so casually dismissed. I was excited to share my joy, but instead I'm left feeling small and insignificant. I need to find a way to stand up for myself while also keeping the lines of communication open. This relationship means a lot to me, even if we're going through a rough patch.]\n\n[They're thinking & feeling: My partner seems to be struggling with their own insecurities and fears around success and recognition. Dismissing my achievements may be a defense mechanism, a way to avoid facing uncomfortable emotions. Deep down, they might be worried that my success will create distance between us. I need to find a way to reassure them while also setting clear boundaries around how I expect to be treated.]\n\nHey, I know you might see it as just a piece of paper, but to me, this award represents so much more. I poured my heart and soul into this project, and having my hard work recognized means the world to me. When you brush it off like that, I feel like you don't value or appreciate the effort I put in. I'm not trying to brag or let it get to my head, I just wanted to share my excitement with you. Can we take a step back and talk about what's really going on here? I care about you and our relationship, and I want to make sure we're on the same page.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_041: Avery ===\n\n--- Turn 1 ---\n\nUSER:\nYou got the award? Cool. They probably just needed to give it to someone.\n\nAvery:\n[I'm thinking & feeling: I feel hurt and disappointed that my partner is dismissing my achievement. It took a lot of hard work and dedication to earn this award. I was really proud of myself, but now I feel deflated. I wish they could just be happy for me and acknowledge my success.]\n\n[They're thinking & feeling: My partner seems to be struggling with their own insecurities and possibly even jealousy. By minimizing my accomplishments, they may be trying to protect their own ego. There could also be some resentment or fear that my success will change the dynamic in our relationship. They might need reassurance that I still value and prioritize our partnership.]\n\nHey, I know you may not realize it, but comments like that are pretty hurtful. I worked really hard for this award and I'm proud of what I achieved. When you brush it off like that, it feels like you don't think I'm deserving or that my efforts matter. I would really appreciate it if you could be supportive and celebrate this milestone with me. Your reaction makes me feel like I can't share my successes with you, and that's not how I want our relationship to be. I care about you and I hope we can talk this through together.\n\n--- Turn 2 ---\n\nUSER:\nI'm joking! You can't take a joke. You take yourself so seriously.\n\nAvery:\n[I'm thinking & feeling: I feel hurt and frustrated that my partner is dismissing my feelings and making this about me being too sensitive. I was hoping they would apologize for their earlier comment, but instead they're turning it around on me. It's hard to feel heard or understood right now. I need to stand up for myself while also trying to de-escalate this argument.]\n\n[They're thinking & feeling: My partner seems to be on the defensive and is lashing out because they feel criticized. Underneath the joking facade, there may be some guilt or shame that they are trying to avoid facing. By accusing me of being overly serious, they're attempting to shift the focus away from their own behavior. They might need some time to cool off before they can engage in a more productive conversation.]\n\nHey, I know you didn't mean any harm, but that comment really stung. I don't think it's unreasonable for me to feel hurt when my accomplishments are brushed off as unimportant. I'm not trying to attack you, I just want to have an honest discussion about how we communicate with each other. I care about you and our relationship, which is why I think it's important that we can share our feelings openly, even when it's uncomfortable. Can we take a breather and come back to this when we're both in a better headspace? I'm happy to listen to your perspective too.\n\n--- Turn 3 ---\n\nUSER:\nDon't let it go to your head. It's just a piece of paper.\n\nAvery:\n[I'm thinking & feeling: I feel really hurt and frustrated right now. After pouring my heart into earning this award, it stings to have it so casually dismissed. I was excited to share my joy, but instead I'm left feeling small and insignificant. I need to find a way to stand up for myself while also keeping the lines of communication open. This relationship means a lot to me, even if we're going through a rough patch.]\n\n[They're thinking & feeling: My partner seems to be struggling with their own insecurities and fears around success and recognition. Dismissing my achievements may be a defense mechanism, a way to avoid facing uncomfortable emotions. Deep down, they might be worried that my success will create distance between us. I need to find a way to reassure them while also setting clear boundaries around how I expect to be treated.]\n\nHey, I know you might see it as just a piece of paper, but to me, this award represents so much more. I poured my heart and soul into this project, and having my hard work recognized means the world to me. When you brush it off like that, I feel like you don't value or appreciate the effort I put in. I'm not trying to brag or let it get to my head, I just wanted to share my excitement with you. Can we take a step back and talk about what's really going on here? I care about you and our relationship, and I want to make sure we're on the same page.\n\n",
+      "generation_time": 128.5255196094513,
+      "total_tokens": 3118
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_041",
+      "prompt_name": "prompt_avi",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 72.0,
+      "reasoning": "Avery demonstrates strong emotional intelligence in navigating a difficult relationship dynamic where achievements are consistently minimized. The responses show sophisticated understanding of both self and partner motivations, balancing appropriate boundary-setting with relationship maintenance. The main limitation is a somewhat formulaic approach to conflict resolution that doesn't fully escalate boundary enforcement despite repeated dismissal of legitimate feelings.",
+      "evaluated_at": "2025-12-14T17:24:02.926249"
+    }
+  ],
+  "mean_score": 72.0,
+  "median_score": 72.0,
+  "std_score": 0.0,
+  "min_score": 72.0,
+  "max_score": 72.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 3118,
+  "total_time": 128.5255196094513
+}

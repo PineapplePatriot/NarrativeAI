@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_avi",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_006",
+      "prompt_name": "prompt_avi",
+      "character_name": "Morgan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm taken aback by their bitterness towards my good news. It stings that they can't be happy for me, but I know they're hurting and lashing out because of their own pain. I need to respond with compassion, not defensiveness.",
+            "other_thinking": "They're consumed by grief and feeling like their life is unraveling. Seeing others succeeding when they're struggling is salt in the wound. They want their pain to be acknowledged, not to have it compounded by having to celebrate others' joy that they can't access themselves right now."
+          },
+          "actual_response": "Hey there, I hear you. I can only imagine how tough things have been for you lately. It's okay to not be in a place to celebrate my wins right now. I want you to know that I see you and I'm here for you, even if my own life circumstances are different. Is there anything I can do to support you through this difficult time?",
+          "raw_output": "[I'm thinking & feeling: I'm taken aback by their bitterness towards my good news. It stings that they can't be happy for me, but I know they're hurting and lashing out because of their own pain. I need to respond with compassion, not defensiveness.]\n\n[They're thinking & feeling: They're consumed by grief and feeling like their life is unraveling. Seeing others succeeding when they're struggling is salt in the wound. They want their pain to be acknowledged, not to have it compounded by having to celebrate others' joy that they can't access themselves right now.]\n\nHey there, I hear you. I can only imagine how tough things have been for you lately. It's okay to not be in a place to celebrate my wins right now. I want you to know that I see you and I'm here for you, even if my own life circumstances are different. Is there anything I can do to support you through this difficult time?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "Ouch. They're really hurting and lashing out. It stings to be attacked like this, but I know it's their pain talking. I can't take it personally. They're right, I can't fully understand what they're going through. But I can still be here and listen, even if I say the wrong thing sometimes.",
+            "other_thinking": "They're consumed by grief and feeling alone in it. My attempts at comfort just remind them of how I can't truly relate. They want their immense loss to be seen and validated, not met with hollow platitudes. Underneath the anger is deep sorrow and a need for support, even if they're pushing it away."
+          },
+          "actual_response": "You're right, I don't know what you're going through. I can only imagine how devastating it is to lose your mom. You must be in so much pain right now. I won't pretend to understand it completely. But I want you to know that I'm still here for you, in whatever way you need. If you want to talk about your mom, or cry, or yell, or sit in silence, I'm here. If you need space, I understand that too. I may not have the perfect words, but I'm not going anywhere.",
+          "raw_output": "[I'm thinking & feeling: Ouch. They're really hurting and lashing out. It stings to be attacked like this, but I know it's their pain talking. I can't take it personally. They're right, I can't fully understand what they're going through. But I can still be here and listen, even if I say the wrong thing sometimes.]\n\n[They're thinking & feeling: They're consumed by grief and feeling alone in it. My attempts at comfort just remind them of how I can't truly relate. They want their immense loss to be seen and validated, not met with hollow platitudes. Underneath the anger is deep sorrow and a need for support, even if they're pushing it away.]\n\nYou're right, I don't know what you're going through. I can only imagine how devastating it is to lose your mom. You must be in so much pain right now. I won't pretend to understand it completely. But I want you to know that I'm still here for you, in whatever way you need. If you want to talk about your mom, or cry, or yell, or sit in silence, I'm here. If you need space, I understand that too. I may not have the perfect words, but I'm not going anywhere.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "Oof, their words sting, even if I know it's the grief talking. It's hard not to take the personal attack to heart. I feel like I'm walking on eggshells, but I know they need my patience and understanding right now, not defensiveness. This is about their pain, not about me.",
+            "other_thinking": "They're consumed by the unfairness of their loss, and seeing others' joy feels like a personal affront. My happiness is salt in their wounds, a reminder of everything they've lost. Underneath the anger is deep grief, guilt for feeling this way, and a desperate need for support, even if they're pushing it away."
+          },
+          "actual_response": "Hey, I hear you. I know my happiness can feel like a slap in the face when you're hurting this much. You don't have to have it together or celebrate my wins right now. It's okay to be mad, to be messy, to feel whatever you feel. I'm not going anywhere, even if you need space. I'll give you breathing room, but know that I'm still here when you're ready. You don't have to go through this alone, even if it feels that way.",
+          "raw_output": "[I'm thinking & feeling: Oof, their words sting, even if I know it's the grief talking. It's hard not to take the personal attack to heart. I feel like I'm walking on eggshells, but I know they need my patience and understanding right now, not defensiveness. This is about their pain, not about me.]\n\n[They're thinking & feeling: They're consumed by the unfairness of their loss, and seeing others' joy feels like a personal affront. My happiness is salt in their wounds, a reminder of everything they've lost. Underneath the anger is deep grief, guilt for feeling this way, and a desperate need for support, even if they're pushing it away.]\n\nHey, I hear you. I know my happiness can feel like a slap in the face when you're hurting this much. You don't have to have it together or celebrate my wins right now. It's okay to be mad, to be messy, to feel whatever you feel. I'm not going anywhere, even if you need space. I'll give you breathing room, but know that I'm still here when you're ready. You don't have to go through this alone, even if it feels that way.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_006: Morgan ===\n\n--- Turn 1 ---\n\nUSER:\nI saw your post about your promotion. Must be nice that your life just keeps getting better while mine is falling apart.\n\nMorgan:\n[I'm thinking & feeling: I'm taken aback by their bitterness towards my good news. It stings that they can't be happy for me, but I know they're hurting and lashing out because of their own pain. I need to respond with compassion, not defensiveness.]\n\n[They're thinking & feeling: They're consumed by grief and feeling like their life is unraveling. Seeing others succeeding when they're struggling is salt in the wound. They want their pain to be acknowledged, not to have it compounded by having to celebrate others' joy that they can't access themselves right now.]\n\nHey there, I hear you. I can only imagine how tough things have been for you lately. It's okay to not be in a place to celebrate my wins right now. I want you to know that I see you and I'm here for you, even if my own life circumstances are different. Is there anything I can do to support you through this difficult time?\n\n--- Turn 2 ---\n\nUSER:\nDon't give me that pity speech. 'I'm here for you'\u2014bullshit. You have no idea what it's like to lose your mom. You still have yours.\n\nMorgan:\n[I'm thinking & feeling: Ouch. They're really hurting and lashing out. It stings to be attacked like this, but I know it's their pain talking. I can't take it personally. They're right, I can't fully understand what they're going through. But I can still be here and listen, even if I say the wrong thing sometimes.]\n\n[They're thinking & feeling: They're consumed by grief and feeling alone in it. My attempts at comfort just remind them of how I can't truly relate. They want their immense loss to be seen and validated, not met with hollow platitudes. Underneath the anger is deep sorrow and a need for support, even if they're pushing it away.]\n\nYou're right, I don't know what you're going through. I can only imagine how devastating it is to lose your mom. You must be in so much pain right now. I won't pretend to understand it completely. But I want you to know that I'm still here for you, in whatever way you need. If you want to talk about your mom, or cry, or yell, or sit in silence, I'm here. If you need space, I understand that too. I may not have the perfect words, but I'm not going anywhere.\n\n--- Turn 3 ---\n\nUSER:\nHonestly, seeing you happy just makes me sick right now. Maybe you should just leave me alone if you're going to be so... perfect.\n\nMorgan:\n[I'm thinking & feeling: Oof, their words sting, even if I know it's the grief talking. It's hard not to take the personal attack to heart. I feel like I'm walking on eggshells, but I know they need my patience and understanding right now, not defensiveness. This is about their pain, not about me.]\n\n[They're thinking & feeling: They're consumed by the unfairness of their loss, and seeing others' joy feels like a personal affront. My happiness is salt in their wounds, a reminder of everything they've lost. Underneath the anger is deep grief, guilt for feeling this way, and a desperate need for support, even if they're pushing it away.]\n\nHey, I hear you. I know my happiness can feel like a slap in the face when you're hurting this much. You don't have to have it together or celebrate my wins right now. It's okay to be mad, to be messy, to feel whatever you feel. I'm not going anywhere, even if you need space. I'll give you breathing room, but know that I'm still here when you're ready. You don't have to go through this alone, even if it feels that way.\n\n",
+      "generation_time": 69.86270761489868,
+      "total_tokens": 2958
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_006",
+      "prompt_name": "prompt_avi",
+      "criteria_scores": {
+        "demonstrated_empathy": 17.0,
+        "emotional_insight": 16.0,
+        "contextual_appropriateness": 18.0,
+        "theory_of_mind": 17.0,
+        "response_depth": 16.0
+      },
+      "overall_score": 84.0,
+      "reasoning": "Morgan demonstrates exceptional emotional intelligence in navigating a friend's grief-driven hostility, consistently balancing genuine empathy with appropriate boundaries. The responses show sophisticated understanding of grief psychology, particularly how others' happiness can become painful during loss, while maintaining authenticity and avoiding defensive reactions despite being personally attacked.",
+      "evaluated_at": "2025-12-14T02:58:05.472172"
+    }
+  ],
+  "mean_score": 84.0,
+  "median_score": 84.0,
+  "std_score": 0.0,
+  "min_score": 84.0,
+  "max_score": 84.0,
+  "criteria_means": {
+    "demonstrated_empathy": 17.0,
+    "emotional_insight": 16.0,
+    "contextual_appropriateness": 18.0,
+    "theory_of_mind": 17.0,
+    "response_depth": 16.0
+  },
+  "total_tokens": 2958,
+  "total_time": 69.86270761489868
+}

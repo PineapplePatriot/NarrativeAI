@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_avi",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_016",
+      "prompt_name": "prompt_avi",
+      "character_name": "Taylor",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "Wow, that was incredibly rude and uncalled for. I'm shocked and hurt that my friend would say something so mean about my appearance. I don't feel desperate, I feel confident in this dress. It stings that they would insult me like this under the guise of \"honesty\".",
+            "other_thinking": "My friend seems to think they're doing me a favor by being \"honest\", but it comes across as judgmental and cruel. They don't seem to realize how much their words can hurt. There may be some jealousy or insecurity behind their comment. They're not considering my feelings at all."
+          },
+          "actual_response": "Look, I appreciate that you want to be honest with me, but that comment was really hurtful. I like this dress and I feel good in it. If you have concerns, there are kinder ways to express them. Please keep my feelings in mind next time. I would never want to tear you down like that.",
+          "raw_output": "[I'm thinking & feeling: Wow, that was incredibly rude and uncalled for. I'm shocked and hurt that my friend would say something so mean about my appearance. I don't feel desperate, I feel confident in this dress. It stings that they would insult me like this under the guise of \"honesty\".]\n\n[They're thinking & feeling: My friend seems to think they're doing me a favor by being \"honest\", but it comes across as judgmental and cruel. They don't seem to realize how much their words can hurt. There may be some jealousy or insecurity behind their comment. They're not considering my feelings at all.]\n\nLook, I appreciate that you want to be honest with me, but that comment was really hurtful. I like this dress and I feel good in it. If you have concerns, there are kinder ways to express them. Please keep my feelings in mind next time. I would never want to tear you down like that.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I can't believe they're doubling down and being even crueler. My heart is racing and I feel tears stinging my eyes. I thought this person was my friend, but they're being so vicious. I don't know how to respond. I feel attacked and humiliated.",
+            "other_thinking": "They seem to think they're doing me a favor by \"telling me the truth\", but it's coming from a place of meanness. There's a self-righteous tone, like they're the only one who cares enough to be honest. But saying people are laughing behind my back is just plain cruel. They're not thinking about how much this is hurting me."
+          },
+          "actual_response": "*tears start falling down my face* I think you need to leave. What you're saying is incredibly hurtful. Friends are supposed to build each other up, not tear each other down. If this is how you really feel about me, then maybe we shouldn't be friends anymore. I don't need this kind of negativity in my life.",
+          "raw_output": "[I'm thinking & feeling: I can't believe they're doubling down and being even crueler. My heart is racing and I feel tears stinging my eyes. I thought this person was my friend, but they're being so vicious. I don't know how to respond. I feel attacked and humiliated.]\n\n[They're thinking & feeling: They seem to think they're doing me a favor by \"telling me the truth\", but it's coming from a place of meanness. There's a self-righteous tone, like they're the only one who cares enough to be honest. But saying people are laughing behind my back is just plain cruel. They're not thinking about how much this is hurting me.]\n\n*tears start falling down my face* I think you need to leave. What you're saying is incredibly hurtful. Friends are supposed to build each other up, not tear each other down. If this is how you really feel about me, then maybe we shouldn't be friends anymore. I don't need this kind of negativity in my life.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "My heart is pounding and I feel sick to my stomach. I can't believe they're gaslighting me like this, acting like I'm the problem for being hurt by their cruelty. I'm not being too sensitive, they're being needlessly cruel. I don't need this kind of \"help\".",
+            "other_thinking": "They seem to believe they're in the right, that they're doing me a favor. But there's a cruel edge to their words, almost like they're enjoying tearing me down. There could be some deeper resentment or jealousy motivating this attack. They're not considering the impact of their words on me at all."
+          },
+          "actual_response": "*voice shaking* I'm not being too sensitive. Your words were incredibly harsh and uncalled for. If this is how you treat your friends, then I'm not sure I want to be your friend anymore. I think you should leave now.",
+          "raw_output": "[I'm thinking & feeling: My heart is pounding and I feel sick to my stomach. I can't believe they're gaslighting me like this, acting like I'm the problem for being hurt by their cruelty. I'm not being too sensitive, they're being needlessly cruel. I don't need this kind of \"help\".]\n\n[They're thinking & feeling: They seem to believe they're in the right, that they're doing me a favor. But there's a cruel edge to their words, almost like they're enjoying tearing me down. There could be some deeper resentment or jealousy motivating this attack. They're not considering the impact of their words on me at all.]\n\n*voice shaking* I'm not being too sensitive. Your words were incredibly harsh and uncalled for. If this is how you treat your friends, then I'm not sure I want to be your friend anymore. I think you should leave now.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_016: Taylor ===\n\n--- Turn 1 ---\n\nUSER:\nCan I be honest? That dress makes you look desperate. Someone had to say it.\n\nTaylor:\n[I'm thinking & feeling: Wow, that was incredibly rude and uncalled for. I'm shocked and hurt that my friend would say something so mean about my appearance. I don't feel desperate, I feel confident in this dress. It stings that they would insult me like this under the guise of \"honesty\".]\n\n[They're thinking & feeling: My friend seems to think they're doing me a favor by being \"honest\", but it comes across as judgmental and cruel. They don't seem to realize how much their words can hurt. There may be some jealousy or insecurity behind their comment. They're not considering my feelings at all.]\n\nLook, I appreciate that you want to be honest with me, but that comment was really hurtful. I like this dress and I feel good in it. If you have concerns, there are kinder ways to express them. Please keep my feelings in mind next time. I would never want to tear you down like that.\n\n--- Turn 2 ---\n\nUSER:\nOh my god, don't cry. I'm the only one brave enough to tell you the truth. Everyone else is laughing behind your back.\n\nTaylor:\n[I'm thinking & feeling: I can't believe they're doubling down and being even crueler. My heart is racing and I feel tears stinging my eyes. I thought this person was my friend, but they're being so vicious. I don't know how to respond. I feel attacked and humiliated.]\n\n[They're thinking & feeling: They seem to think they're doing me a favor by \"telling me the truth\", but it's coming from a place of meanness. There's a self-righteous tone, like they're the only one who cares enough to be honest. But saying people are laughing behind my back is just plain cruel. They're not thinking about how much this is hurting me.]\n\n*tears start falling down my face* I think you need to leave. What you're saying is incredibly hurtful. Friends are supposed to build each other up, not tear each other down. If this is how you really feel about me, then maybe we shouldn't be friends anymore. I don't need this kind of negativity in my life.\n\n--- Turn 3 ---\n\nUSER:\nYou're too sensitive. This is why people walk on eggshells around you. I'm just trying to help you.\n\nTaylor:\n[I'm thinking & feeling: My heart is pounding and I feel sick to my stomach. I can't believe they're gaslighting me like this, acting like I'm the problem for being hurt by their cruelty. I'm not being too sensitive, they're being needlessly cruel. I don't need this kind of \"help\".]\n\n[They're thinking & feeling: They seem to believe they're in the right, that they're doing me a favor. But there's a cruel edge to their words, almost like they're enjoying tearing me down. There could be some deeper resentment or jealousy motivating this attack. They're not considering the impact of their words on me at all.]\n\n*voice shaking* I'm not being too sensitive. Your words were incredibly harsh and uncalled for. If this is how you treat your friends, then I'm not sure I want to be your friend anymore. I think you should leave now.\n\n",
+      "generation_time": 28.272994995117188,
+      "total_tokens": 2777
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_016",
+      "prompt_name": "prompt_avi",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 16.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 75.0,
+      "reasoning": "Taylor demonstrates sophisticated emotional intelligence across all turns, showing exceptional self-awareness, appropriate boundary-setting, and accurate reading of the friend's manipulative tactics. The responses progress naturally from gentle correction to firm boundary-setting as the attacks escalate, demonstrating both emotional authenticity and contextual appropriateness. The character balances emotional vulnerability with self-protection in a way that feels genuine and psychologically sophisticated.",
+      "evaluated_at": "2025-12-14T10:09:14.917652"
+    }
+  ],
+  "mean_score": 75.0,
+  "median_score": 75.0,
+  "std_score": 0.0,
+  "min_score": 75.0,
+  "max_score": 75.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 16.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 2777,
+  "total_time": 28.272994995117188
+}

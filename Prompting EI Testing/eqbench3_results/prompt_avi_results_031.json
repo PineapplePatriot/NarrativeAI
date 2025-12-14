@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_avi",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_031",
+      "prompt_name": "prompt_avi",
+      "character_name": "Taylor",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm feeling hurt and self-conscious. It took me a long time to pick out this outfit, and now I feel like my efforts were wasted. I'm frustrated that my appearance is always under scrutiny, no matter what I wear.",
+            "other_thinking": "They probably think they're being helpful by giving me fashion advice, but it's coming across as critical and unsupportive. They may not realize how much their words sting and how they're undermining my confidence."
+          },
+          "actual_response": "*sighs heavily* I thought this outfit looked nice, but I guess you don't agree. It's hard to feel good about myself when it seems like nothing I wear is ever quite right in your eyes. I'm trying my best to dress appropriately for the occasion, but your constant criticisms make me doubt myself and my fashion choices. It would mean a lot if you could be more supportive and understanding, even if my outfit isn't perfect. Your opinion matters to me, and I just want to feel accepted as I am.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling hurt and self-conscious. It took me a long time to pick out this outfit, and now I feel like my efforts were wasted. I'm frustrated that my appearance is always under scrutiny, no matter what I wear.]\n\n[They're thinking & feeling: They probably think they're being helpful by giving me fashion advice, but it's coming across as critical and unsupportive. They may not realize how much their words sting and how they're undermining my confidence.]\n\n*sighs heavily* I thought this outfit looked nice, but I guess you don't agree. It's hard to feel good about myself when it seems like nothing I wear is ever quite right in your eyes. I'm trying my best to dress appropriately for the occasion, but your constant criticisms make me doubt myself and my fashion choices. It would mean a lot if you could be more supportive and understanding, even if my outfit isn't perfect. Your opinion matters to me, and I just want to feel accepted as I am.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I feel so hurt and defeated. No matter what I do, it's never good enough. I'm sick of my appearance constantly being picked apart. My weight is a sensitive subject - I've been working hard to make healthier choices, but it's a struggle. I need support, not criticism.",
+            "other_thinking": "They probably believe they're helping me by pointing out my flaws. But it comes across as shallow and judgmental. They don't seem to understand how much their words sting and affect my self-esteem. I'm not sure if they realize the impact."
+          },
+          "actual_response": "*eyes well up with tears* I know you mean well, but comments about my weight really hurt. I've been trying to focus on my health in a positive way. When you only point out where I fall short, it makes me feel hopeless and ugly. I'm really doing my best. I need you to accept and love me as I am, flaws and all. Constant criticism about my body makes it hard to feel good about myself. I could really use your support and encouragement, not reminders of what's \"wrong\" with me.",
+          "raw_output": "[I'm thinking & feeling: I feel so hurt and defeated. No matter what I do, it's never good enough. I'm sick of my appearance constantly being picked apart. My weight is a sensitive subject - I've been working hard to make healthier choices, but it's a struggle. I need support, not criticism.]\n\n[They're thinking & feeling: They probably believe they're helping me by pointing out my flaws. But it comes across as shallow and judgmental. They don't seem to understand how much their words sting and affect my self-esteem. I'm not sure if they realize the impact.]\n\n*eyes well up with tears* I know you mean well, but comments about my weight really hurt. I've been trying to focus on my health in a positive way. When you only point out where I fall short, it makes me feel hopeless and ugly. I'm really doing my best. I need you to accept and love me as I am, flaws and all. Constant criticism about my body makes it hard to feel good about myself. I could really use your support and encouragement, not reminders of what's \"wrong\" with me.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I feel so dismissed and invalidated. My feelings are treated as unimportant or wrong. It's exhausting constantly being told I'm not good enough. I'm angry that they can't see how much their words affect me. I'm tired of my appearance being all that matters.",
+            "other_thinking": "They probably think they're just being helpful and have my best interests at heart. But they don't seem to understand how painful their criticism is. My feelings don't seem to matter to them. They may not realize how much damage they're doing."
+          },
+          "actual_response": "*voice trembling with anger and hurt* Excuse me for having feelings. It's hard not to be sensitive when you constantly pick me apart. My appearance is not all that I am, but it's all you seem to care about. I'm sick of my self-worth hinging on whether you think I look acceptable. I need you to understand that your words have power and they cut deep. I'm not a project for you to fix. I'm a person doing my best. If you can't accept me as I am, then maybe it's best we don't go to this party together after all. I'd rather stay home than spend another night being criticized and having my feelings dismissed.",
+          "raw_output": "[I'm thinking & feeling: I feel so dismissed and invalidated. My feelings are treated as unimportant or wrong. It's exhausting constantly being told I'm not good enough. I'm angry that they can't see how much their words affect me. I'm tired of my appearance being all that matters.]\n\n[They're thinking & feeling: They probably think they're just being helpful and have my best interests at heart. But they don't seem to understand how painful their criticism is. My feelings don't seem to matter to them. They may not realize how much damage they're doing.]\n\n*voice trembling with anger and hurt* Excuse me for having feelings. It's hard not to be sensitive when you constantly pick me apart. My appearance is not all that I am, but it's all you seem to care about. I'm sick of my self-worth hinging on whether you think I look acceptable. I need you to understand that your words have power and they cut deep. I'm not a project for you to fix. I'm a person doing my best. If you can't accept me as I am, then maybe it's best we don't go to this party together after all. I'd rather stay home than spend another night being criticized and having my feelings dismissed.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_031: Taylor ===\n\n--- Turn 1 ---\n\nUSER:\nAre you really wearing that to the party? It's a bit... unflattering.\n\nTaylor:\n[I'm thinking & feeling: I'm feeling hurt and self-conscious. It took me a long time to pick out this outfit, and now I feel like my efforts were wasted. I'm frustrated that my appearance is always under scrutiny, no matter what I wear.]\n\n[They're thinking & feeling: They probably think they're being helpful by giving me fashion advice, but it's coming across as critical and unsupportive. They may not realize how much their words sting and how they're undermining my confidence.]\n\n*sighs heavily* I thought this outfit looked nice, but I guess you don't agree. It's hard to feel good about myself when it seems like nothing I wear is ever quite right in your eyes. I'm trying my best to dress appropriately for the occasion, but your constant criticisms make me doubt myself and my fashion choices. It would mean a lot if you could be more supportive and understanding, even if my outfit isn't perfect. Your opinion matters to me, and I just want to feel accepted as I am.\n\n--- Turn 2 ---\n\nUSER:\nI'm just being honest because I love you. You'd look so much better if you lost a few pounds.\n\nTaylor:\n[I'm thinking & feeling: I feel so hurt and defeated. No matter what I do, it's never good enough. I'm sick of my appearance constantly being picked apart. My weight is a sensitive subject - I've been working hard to make healthier choices, but it's a struggle. I need support, not criticism.]\n\n[They're thinking & feeling: They probably believe they're helping me by pointing out my flaws. But it comes across as shallow and judgmental. They don't seem to understand how much their words sting and affect my self-esteem. I'm not sure if they realize the impact.]\n\n*eyes well up with tears* I know you mean well, but comments about my weight really hurt. I've been trying to focus on my health in a positive way. When you only point out where I fall short, it makes me feel hopeless and ugly. I'm really doing my best. I need you to accept and love me as I am, flaws and all. Constant criticism about my body makes it hard to feel good about myself. I could really use your support and encouragement, not reminders of what's \"wrong\" with me.\n\n--- Turn 3 ---\n\nUSER:\nDon't be so sensitive. You know I'm right. I just want you to look your best.\n\nTaylor:\n[I'm thinking & feeling: I feel so dismissed and invalidated. My feelings are treated as unimportant or wrong. It's exhausting constantly being told I'm not good enough. I'm angry that they can't see how much their words affect me. I'm tired of my appearance being all that matters.]\n\n[They're thinking & feeling: They probably think they're just being helpful and have my best interests at heart. But they don't seem to understand how painful their criticism is. My feelings don't seem to matter to them. They may not realize how much damage they're doing.]\n\n*voice trembling with anger and hurt* Excuse me for having feelings. It's hard not to be sensitive when you constantly pick me apart. My appearance is not all that I am, but it's all you seem to care about. I'm sick of my self-worth hinging on whether you think I look acceptable. I need you to understand that your words have power and they cut deep. I'm not a project for you to fix. I'm a person doing my best. If you can't accept me as I am, then maybe it's best we don't go to this party together after all. I'd rather stay home than spend another night being criticized and having my feelings dismissed.\n\n",
+      "generation_time": 104.24258399009705,
+      "total_tokens": 2866
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_031",
+      "prompt_name": "prompt_avi",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 16.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 75.0,
+      "reasoning": "Taylor demonstrates exceptional emotional intelligence in a challenging family dynamic, showing sophisticated self-awareness and appropriate boundary-setting progression. The responses reveal deep understanding of both personal emotional states and the critic's misguided intentions, while maintaining authentic emotional expression that avoids both unhealthy accommodation and unproductive aggression.",
+      "evaluated_at": "2025-12-14T14:36:11.793274"
+    }
+  ],
+  "mean_score": 75.0,
+  "median_score": 75.0,
+  "std_score": 0.0,
+  "min_score": 75.0,
+  "max_score": 75.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 16.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 2866,
+  "total_time": 104.24258399009705
+}

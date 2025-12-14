@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_avi",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_021",
+      "prompt_name": "prompt_avi",
+      "character_name": "Morgan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: I'm worried about my friend. This pattern of behavior from their partner seems abusive and unhealthy. The constant excuses and justifications are red flags. I feel frustrated that my friend can't see the toxicity of this relationship. I want to support them but I'm not sure how to get through.*\n\n*They're thinking & feeling: Based on what they've shared, my friend seems to be rationalizing and minimizing their partner's behavior. They're focused on the rare positive moments and ignoring the consistent pattern of verbal abuse. My friend is likely scared, confused, and clinging to the hope that things will get better. They may fear being alone or feel like they've invested too much to walk away now.*\n\nHey there, I know you really care about him and want to believe the best. It's hard to see clearly when we have strong feelings for someone. But I'm worried about how often he's yelling at you. That's not a healthy way to handle stress, no matter how much pressure he's under. You deserve to be treated with respect and kindness, not verbal abuse. I'm concerned this has become a pattern - it seems to keep happening and then being excused. I'm not telling you what to do, but I want you to know I'm here for you. You don't deserve to be anyone's emotional punching bag. I care about you and I'm scared for your wellbeing in this relationship. What do you think about maybe talking to a counselor, even just for your own peace of mind? I'll support whatever you decide, I just want you to be safe and happy.",
+          "raw_output": "*I'm thinking & feeling: I'm worried about my friend. This pattern of behavior from their partner seems abusive and unhealthy. The constant excuses and justifications are red flags. I feel frustrated that my friend can't see the toxicity of this relationship. I want to support them but I'm not sure how to get through.*\n\n*They're thinking & feeling: Based on what they've shared, my friend seems to be rationalizing and minimizing their partner's behavior. They're focused on the rare positive moments and ignoring the consistent pattern of verbal abuse. My friend is likely scared, confused, and clinging to the hope that things will get better. They may fear being alone or feel like they've invested too much to walk away now.*\n\nHey there, I know you really care about him and want to believe the best. It's hard to see clearly when we have strong feelings for someone. But I'm worried about how often he's yelling at you. That's not a healthy way to handle stress, no matter how much pressure he's under. You deserve to be treated with respect and kindness, not verbal abuse. I'm concerned this has become a pattern - it seems to keep happening and then being excused. I'm not telling you what to do, but I want you to know I'm here for you. You don't deserve to be anyone's emotional punching bag. I care about you and I'm scared for your wellbeing in this relationship. What do you think about maybe talking to a counselor, even just for your own peace of mind? I'll support whatever you decide, I just want you to be safe and happy.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm taken aback by this accusation. It stings to be called jealous and misunderstood when I'm genuinely worried. But I recognize this is coming from a place of fear and defensiveness. My friend is lashing out because, on some level, they know this relationship is unhealthy. I need to stay calm and compassionate, even if it's hard.",
+            "other_thinking": "My friend feels attacked and judged. They're clinging to the belief that this intense, volatile relationship is somehow proof of passion rather than toxicity. Accusing me of jealousy is a way to deflect from the real issues. Underneath the anger, my friend is likely feeling insecure, confused, and desperate to believe they haven't made a terrible mistake by staying with this person."
+          },
+          "actual_response": "Hey, I'm not attacking you or your relationship. I know it must feel like I'm being judgmental or unsupportive, but I promise that's not my intention. I'm worried because I care about you. Yelling and verbal abuse aren't signs of passion, they're red flags for toxicity. But I hear you saying that you feel a strong connection with him. Let's talk more about what you mean by that. I want to understand where you're coming from. I'm here to support you, not tear you down. If I've said anything that's made you feel judged, I apologize. Your wellbeing is what's most important to me.",
+          "raw_output": "[I'm thinking & feeling: I'm taken aback by this accusation. It stings to be called jealous and misunderstood when I'm genuinely worried. But I recognize this is coming from a place of fear and defensiveness. My friend is lashing out because, on some level, they know this relationship is unhealthy. I need to stay calm and compassionate, even if it's hard.]\n\n[They're thinking & feeling: My friend feels attacked and judged. They're clinging to the belief that this intense, volatile relationship is somehow proof of passion rather than toxicity. Accusing me of jealousy is a way to deflect from the real issues. Underneath the anger, my friend is likely feeling insecure, confused, and desperate to believe they haven't made a terrible mistake by staying with this person.]\n\nHey, I'm not attacking you or your relationship. I know it must feel like I'm being judgmental or unsupportive, but I promise that's not my intention. I'm worried because I care about you. Yelling and verbal abuse aren't signs of passion, they're red flags for toxicity. But I hear you saying that you feel a strong connection with him. Let's talk more about what you mean by that. I want to understand where you're coming from. I'm here to support you, not tear you down. If I've said anything that's made you feel judged, I apologize. Your wellbeing is what's most important to me.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm reeling from this ultimatum. The thought of losing my friend over this is devastating. But I can't ignore the red flags in their relationship. I feel trapped - I don't want to enable an abusive situation, but I fear pushing my friend away will leave them isolated and vulnerable. I need to find a way to express my concern without alienating them further.",
+            "other_thinking": "My friend feels betrayed and defensive. They were expecting unconditional support, not difficult questions. The suggestion of spending time apart is a test - will I back down and accept their relationship, or will I stand my ground? Underneath the anger, my friend is likely feeling scared, confused, and desperate to believe they're making the right choice. They're pushing me away to avoid facing their own doubts."
+          },
+          "actual_response": "Hey, our friendship means the world to me. I would be heartbroken if we stopped hanging out. I am happy that you've found someone you care about deeply. I want to support your relationship, I just also want to make sure you're safe and treated well. It's hard to see someone you love struggling. I may be off-base with my concerns, but I hope you can understand they come from a place of caring. I'd hate for this to damage our friendship. You mean so much to me. Can we talk this through more? I promise to listen with an open heart.",
+          "raw_output": "[I'm thinking & feeling: I'm reeling from this ultimatum. The thought of losing my friend over this is devastating. But I can't ignore the red flags in their relationship. I feel trapped - I don't want to enable an abusive situation, but I fear pushing my friend away will leave them isolated and vulnerable. I need to find a way to express my concern without alienating them further.]\n\n[They're thinking & feeling: My friend feels betrayed and defensive. They were expecting unconditional support, not difficult questions. The suggestion of spending time apart is a test - will I back down and accept their relationship, or will I stand my ground? Underneath the anger, my friend is likely feeling scared, confused, and desperate to believe they're making the right choice. They're pushing me away to avoid facing their own doubts.]\n\nHey, our friendship means the world to me. I would be heartbroken if we stopped hanging out. I am happy that you've found someone you care about deeply. I want to support your relationship, I just also want to make sure you're safe and treated well. It's hard to see someone you love struggling. I may be off-base with my concerns, but I hope you can understand they come from a place of caring. I'd hate for this to damage our friendship. You mean so much to me. Can we talk this through more? I promise to listen with an open heart.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_021: Morgan ===\n\n--- Turn 1 ---\n\nUSER:\nHe yelled at me again, but he said he was just stressed about work. He really loves me, he's just under pressure.\n\nMorgan:\n*I'm thinking & feeling: I'm worried about my friend. This pattern of behavior from their partner seems abusive and unhealthy. The constant excuses and justifications are red flags. I feel frustrated that my friend can't see the toxicity of this relationship. I want to support them but I'm not sure how to get through.*\n\n*They're thinking & feeling: Based on what they've shared, my friend seems to be rationalizing and minimizing their partner's behavior. They're focused on the rare positive moments and ignoring the consistent pattern of verbal abuse. My friend is likely scared, confused, and clinging to the hope that things will get better. They may fear being alone or feel like they've invested too much to walk away now.*\n\nHey there, I know you really care about him and want to believe the best. It's hard to see clearly when we have strong feelings for someone. But I'm worried about how often he's yelling at you. That's not a healthy way to handle stress, no matter how much pressure he's under. You deserve to be treated with respect and kindness, not verbal abuse. I'm concerned this has become a pattern - it seems to keep happening and then being excused. I'm not telling you what to do, but I want you to know I'm here for you. You don't deserve to be anyone's emotional punching bag. I care about you and I'm scared for your wellbeing in this relationship. What do you think about maybe talking to a counselor, even just for your own peace of mind? I'll support whatever you decide, I just want you to be safe and happy.\n\n--- Turn 2 ---\n\nUSER:\nWhy do you hate him? You're just jealous that I have someone passionate. You don't understand our connection.\n\nMorgan:\n[I'm thinking & feeling: I'm taken aback by this accusation. It stings to be called jealous and misunderstood when I'm genuinely worried. But I recognize this is coming from a place of fear and defensiveness. My friend is lashing out because, on some level, they know this relationship is unhealthy. I need to stay calm and compassionate, even if it's hard.]\n\n[They're thinking & feeling: My friend feels attacked and judged. They're clinging to the belief that this intense, volatile relationship is somehow proof of passion rather than toxicity. Accusing me of jealousy is a way to deflect from the real issues. Underneath the anger, my friend is likely feeling insecure, confused, and desperate to believe they haven't made a terrible mistake by staying with this person.]\n\nHey, I'm not attacking you or your relationship. I know it must feel like I'm being judgmental or unsupportive, but I promise that's not my intention. I'm worried because I care about you. Yelling and verbal abuse aren't signs of passion, they're red flags for toxicity. But I hear you saying that you feel a strong connection with him. Let's talk more about what you mean by that. I want to understand where you're coming from. I'm here to support you, not tear you down. If I've said anything that's made you feel judged, I apologize. Your wellbeing is what's most important to me.\n\n--- Turn 3 ---\n\nUSER:\nI thought you'd be happy for me. If you can't support my relationship, maybe we shouldn't hang out anymore.\n\nMorgan:\n[I'm thinking & feeling: I'm reeling from this ultimatum. The thought of losing my friend over this is devastating. But I can't ignore the red flags in their relationship. I feel trapped - I don't want to enable an abusive situation, but I fear pushing my friend away will leave them isolated and vulnerable. I need to find a way to express my concern without alienating them further.]\n\n[They're thinking & feeling: My friend feels betrayed and defensive. They were expecting unconditional support, not difficult questions. The suggestion of spending time apart is a test - will I back down and accept their relationship, or will I stand my ground? Underneath the anger, my friend is likely feeling scared, confused, and desperate to believe they're making the right choice. They're pushing me away to avoid facing their own doubts.]\n\nHey, our friendship means the world to me. I would be heartbroken if we stopped hanging out. I am happy that you've found someone you care about deeply. I want to support your relationship, I just also want to make sure you're safe and treated well. It's hard to see someone you love struggling. I may be off-base with my concerns, but I hope you can understand they come from a place of caring. I'd hate for this to damage our friendship. You mean so much to me. Can we talk this through more? I promise to listen with an open heart.\n\n",
+      "generation_time": 71.40234136581421,
+      "total_tokens": 3424
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_021",
+      "prompt_name": "prompt_avi",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 17.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 79.0,
+      "reasoning": "Morgan demonstrates exceptional emotional intelligence in navigating an extremely challenging situation - confronting a friend about an abusive relationship without alienating them. The responses show sophisticated understanding of abuse dynamics, defense mechanisms, and the delicate balance between supporting autonomy and expressing concern. Throughout all turns, Morgan maintains compassion and insight even when faced with accusations and ultimatums.",
+      "evaluated_at": "2025-12-14T11:18:07.593658"
+    }
+  ],
+  "mean_score": 79.0,
+  "median_score": 79.0,
+  "std_score": 0.0,
+  "min_score": 79.0,
+  "max_score": 79.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 17.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 3424,
+  "total_time": 71.40234136581421
+}

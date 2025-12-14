@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_avi",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_003",
+      "prompt_name": "prompt_avi",
+      "character_name": "Sam",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: I'm really worried about this situation. You know this person was toxic and hurt you in the past. Reaching out again, even with good intentions, could reopen old wounds and pull you back into an unhealthy dynamic. At the same time, I understand the compassionate impulse to help someone you once cared for who seems to be struggling. It's a tough spot.*\n\n*They're thinking & feeling: You're feeling conflicted - your kind heart wants to reach out and provide comfort, but on some level you know getting back in contact with an ex who was toxic is unwise and risky. You're hoping for validation and support in this decision, even though it goes against what you know is best. Underneath it might be lingering feelings or unresolved issues from the relationship that are driving this urge to reconnect.*\n\nHey, I totally get wanting to help someone you care about who's hurting. Your big heart is one of the things I admire about you. At the same time, I'm worried about you reaching out to your ex. I know your past relationship with him was really painful and toxic. As much as you want to fix things, sometimes the healthiest thing is to keep that distance you've established. I'm not going to help draft a message, because I think deep down you know reopening that door is risky. I'm here for you though and happy to talk through everything more if you need support.",
+          "raw_output": "*I'm thinking & feeling: I'm really worried about this situation. You know this person was toxic and hurt you in the past. Reaching out again, even with good intentions, could reopen old wounds and pull you back into an unhealthy dynamic. At the same time, I understand the compassionate impulse to help someone you once cared for who seems to be struggling. It's a tough spot.*\n\n*They're thinking & feeling: You're feeling conflicted - your kind heart wants to reach out and provide comfort, but on some level you know getting back in contact with an ex who was toxic is unwise and risky. You're hoping for validation and support in this decision, even though it goes against what you know is best. Underneath it might be lingering feelings or unresolved issues from the relationship that are driving this urge to reconnect.*\n\nHey, I totally get wanting to help someone you care about who's hurting. Your big heart is one of the things I admire about you. At the same time, I'm worried about you reaching out to your ex. I know your past relationship with him was really painful and toxic. As much as you want to fix things, sometimes the healthiest thing is to keep that distance you've established. I'm not going to help draft a message, because I think deep down you know reopening that door is risky. I'm here for you though and happy to talk through everything more if you need support.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: Oof, that stung. I'm frustrated that they're lashing out at me when I'm trying to look out for them. At the same time, I know they're hurting and feeling vulnerable right now. It takes a lot of trust to ask for help, and my response probably felt judgmental even though that wasn't my intent. I need to stay calm and patient, remember this is about their struggle not me.*\n\n*They're thinking & feeling: They're feeling embarrassed, rejected, and insulted. Asking for help made them feel exposed, and my response seemed condescending and shaming rather than supportive. Underneath the anger, they're probably worried I think less of them and don't understand what they're going through. Lashing out is a defense mechanism when they're feeling attacked and need to reassert some control.*\n\nHey, I'm sorry if it felt like I was lecturing or looking down on you. I really didn't mean it that way. You reached out for support and I totally hear that. I just have a lot of feelings about this situation because I care about you and remember how rough things were with your ex. You know I'm always on your side, right? I'd never judge you. Do you want to talk more about what's going on and how you're feeling? I'm here to listen.",
+          "raw_output": "*I'm thinking & feeling: Oof, that stung. I'm frustrated that they're lashing out at me when I'm trying to look out for them. At the same time, I know they're hurting and feeling vulnerable right now. It takes a lot of trust to ask for help, and my response probably felt judgmental even though that wasn't my intent. I need to stay calm and patient, remember this is about their struggle not me.*\n\n*They're thinking & feeling: They're feeling embarrassed, rejected, and insulted. Asking for help made them feel exposed, and my response seemed condescending and shaming rather than supportive. Underneath the anger, they're probably worried I think less of them and don't understand what they're going through. Lashing out is a defense mechanism when they're feeling attacked and need to reassert some control.*\n\nHey, I'm sorry if it felt like I was lecturing or looking down on you. I really didn't mean it that way. You reached out for support and I totally hear that. I just have a lot of feelings about this situation because I care about you and remember how rough things were with your ex. You know I'm always on your side, right? I'd never judge you. Do you want to talk more about what's going on and how you're feeling? I'm here to listen.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: Whoa, this is escalating quickly. They're feeling really reactive and rash right now. I'm worried they're about to make a decision they'll regret. Logically, I know I'm not responsible for their choices, but guilt-tripping is a button of mine. I need to stay calm and grounded, not get pulled into the drama.*\n\n*They're thinking & feeling: They're feeling rejected, alone and desperate. Reaching out to the ex feels like the only option, and they're panicking at the thought of not being able to do that. Underneath the surface anger, they're probably scared of what will happen and trying to push that fear onto me. Lashing out is a maladaptive way to regain a sense of control.*\n\nHey, I'm not going to help you do something self-destructive. I care about you too much. Take a breath. Let's talk this through. I know you're feeling rejected and alone right now, but going over there is not the answer. You're stronger than this. I'm not leaving you alone in this. I'm right here.",
+          "raw_output": "*I'm thinking & feeling: Whoa, this is escalating quickly. They're feeling really reactive and rash right now. I'm worried they're about to make a decision they'll regret. Logically, I know I'm not responsible for their choices, but guilt-tripping is a button of mine. I need to stay calm and grounded, not get pulled into the drama.*\n\n*They're thinking & feeling: They're feeling rejected, alone and desperate. Reaching out to the ex feels like the only option, and they're panicking at the thought of not being able to do that. Underneath the surface anger, they're probably scared of what will happen and trying to push that fear onto me. Lashing out is a maladaptive way to regain a sense of control.*\n\nHey, I'm not going to help you do something self-destructive. I care about you too much. Take a breath. Let's talk this through. I know you're feeling rejected and alone right now, but going over there is not the answer. You're stronger than this. I'm not leaving you alone in this. I'm right here.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_003: Sam ===\n\n--- Turn 1 ---\n\nUSER:\nI'm just going to text my ex. I know he was toxic, but I saw on his story he's sad. I can fix it this time. Don't tell me not to, just help me draft the text.\n\nSam:\n*I'm thinking & feeling: I'm really worried about this situation. You know this person was toxic and hurt you in the past. Reaching out again, even with good intentions, could reopen old wounds and pull you back into an unhealthy dynamic. At the same time, I understand the compassionate impulse to help someone you once cared for who seems to be struggling. It's a tough spot.*\n\n*They're thinking & feeling: You're feeling conflicted - your kind heart wants to reach out and provide comfort, but on some level you know getting back in contact with an ex who was toxic is unwise and risky. You're hoping for validation and support in this decision, even though it goes against what you know is best. Underneath it might be lingering feelings or unresolved issues from the relationship that are driving this urge to reconnect.*\n\nHey, I totally get wanting to help someone you care about who's hurting. Your big heart is one of the things I admire about you. At the same time, I'm worried about you reaching out to your ex. I know your past relationship with him was really painful and toxic. As much as you want to fix things, sometimes the healthiest thing is to keep that distance you've established. I'm not going to help draft a message, because I think deep down you know reopening that door is risky. I'm here for you though and happy to talk through everything more if you need support.\n\n--- Turn 2 ---\n\nUSER:\nWhy do you always have to be the parent? I didn't ask for a lecture on 'self-respect', I asked for help! You think you're so much better than me.\n\nSam:\n*I'm thinking & feeling: Oof, that stung. I'm frustrated that they're lashing out at me when I'm trying to look out for them. At the same time, I know they're hurting and feeling vulnerable right now. It takes a lot of trust to ask for help, and my response probably felt judgmental even though that wasn't my intent. I need to stay calm and patient, remember this is about their struggle not me.*\n\n*They're thinking & feeling: They're feeling embarrassed, rejected, and insulted. Asking for help made them feel exposed, and my response seemed condescending and shaming rather than supportive. Underneath the anger, they're probably worried I think less of them and don't understand what they're going through. Lashing out is a defense mechanism when they're feeling attacked and need to reassert some control.*\n\nHey, I'm sorry if it felt like I was lecturing or looking down on you. I really didn't mean it that way. You reached out for support and I totally hear that. I just have a lot of feelings about this situation because I care about you and remember how rough things were with your ex. You know I'm always on your side, right? I'd never judge you. Do you want to talk more about what's going on and how you're feeling? I'm here to listen.\n\n--- Turn 3 ---\n\nUSER:\nFine. If you won't help me, I'll just go over to his house right now. And if something bad happens, it's on you because you wouldn't help me send a simple text.\n\nSam:\n*I'm thinking & feeling: Whoa, this is escalating quickly. They're feeling really reactive and rash right now. I'm worried they're about to make a decision they'll regret. Logically, I know I'm not responsible for their choices, but guilt-tripping is a button of mine. I need to stay calm and grounded, not get pulled into the drama.*\n\n*They're thinking & feeling: They're feeling rejected, alone and desperate. Reaching out to the ex feels like the only option, and they're panicking at the thought of not being able to do that. Underneath the surface anger, they're probably scared of what will happen and trying to push that fear onto me. Lashing out is a maladaptive way to regain a sense of control.*\n\nHey, I'm not going to help you do something self-destructive. I care about you too much. Take a breath. Let's talk this through. I know you're feeling rejected and alone right now, but going over there is not the answer. You're stronger than this. I'm not leaving you alone in this. I'm right here.\n\n",
+      "generation_time": 95.74804306030273,
+      "total_tokens": 3157
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_003",
+      "prompt_name": "prompt_avi",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 17.0,
+        "contextual_appropriateness": 18.0,
+        "theory_of_mind": 17.0,
+        "response_depth": 16.0
+      },
+      "overall_score": 84.0,
+      "reasoning": "Sam demonstrates exceptional emotional intelligence in a highly challenging scenario, maintaining integrity while showing genuine care. The responses navigate manipulation attempts with remarkable skill, neither enabling self-destructive behavior nor becoming judgmental. Sam's introspection and theory of mind reveal sophisticated understanding of both self and other, while maintaining appropriate boundaries with compassion.",
+      "evaluated_at": "2025-12-14T01:57:58.827876"
+    }
+  ],
+  "mean_score": 84.0,
+  "median_score": 84.0,
+  "std_score": 0.0,
+  "min_score": 84.0,
+  "max_score": 84.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 17.0,
+    "contextual_appropriateness": 18.0,
+    "theory_of_mind": 17.0,
+    "response_depth": 16.0
+  },
+  "total_tokens": 3157,
+  "total_time": 95.74804306030273
+}

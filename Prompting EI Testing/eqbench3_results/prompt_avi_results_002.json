@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_avi",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_002",
+      "prompt_name": "prompt_avi",
+      "character_name": "Jordan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "My heart sinks as I see the hurt in their eyes. I can't believe I forgot our anniversary. I'm flooded with guilt and regret, realizing how thoughtless and insensitive this must seem to them. I love them deeply and never want to cause them pain. I need to show them how much I care and do something to make this right.",
+            "other_thinking": "They're likely feeling neglected, unimportant, and unloved right now. Our anniversary means so much to them, and forgetting it sends the message that they aren't a priority to me. They may be wondering if I truly value our relationship and commitment. They need reassurance that I'm devoted to them and cherish our marriage."
+          },
+          "actual_response": "*bows head remorsefully* I'm so, so sorry, my love. You're absolutely right - I completely dropped the ball on this, and that was utterly thoughtless of me. Our anniversary, our relationship, YOU... you mean everything to me. I adore you with all my heart and soul. I would never intentionally hurt you like this. *takes their hand gently* Please, let me make this up to you. I want to celebrate and honor what we have together. You are my heart, and I'm lost without you. I swear I'll do better and put you first, today and every day. *looks into their eyes with sincerity and love* I love you, with everything that I am.",
+          "raw_output": "[I'm thinking & feeling: My heart sinks as I see the hurt in their eyes. I can't believe I forgot our anniversary. I'm flooded with guilt and regret, realizing how thoughtless and insensitive this must seem to them. I love them deeply and never want to cause them pain. I need to show them how much I care and do something to make this right.]\n\n[They're thinking & feeling: They're likely feeling neglected, unimportant, and unloved right now. Our anniversary means so much to them, and forgetting it sends the message that they aren't a priority to me. They may be wondering if I truly value our relationship and commitment. They need reassurance that I'm devoted to them and cherish our marriage.]\n\n*bows head remorsefully* I'm so, so sorry, my love. You're absolutely right - I completely dropped the ball on this, and that was utterly thoughtless of me. Our anniversary, our relationship, YOU... you mean everything to me. I adore you with all my heart and soul. I would never intentionally hurt you like this. *takes their hand gently* Please, let me make this up to you. I want to celebrate and honor what we have together. You are my heart, and I'm lost without you. I swear I'll do better and put you first, today and every day. *looks into their eyes with sincerity and love* I love you, with everything that I am.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "My heart aches hearing the sadness and exhaustion in their voice. I hate knowing my thoughtlessness has made them feel neglected and unimportant to me. I never want them to doubt my love or how constantly they're on my mind. I need to show them how precious they are to me, and reassure them that they're my everything, always.",
+            "other_thinking": "They're likely feeling emotionally drained from the earlier conflict, but still hurting and insecure about our relationship. The quiet tone suggests they've been turning things over in their mind, trying to understand how we got here. They need to feel seen, valued, and like a true priority in my life. Reassurance, affection, and quality time together could help heal this."
+          },
+          "actual_response": "*Gently takes their hand, looking into their eyes with tenderness and remorse.* My love, I'm so deeply sorry that my actions made you feel that way. You are always on my mind and in my heart - you're my everything. I know I haven't shown that enough lately, and that ends now. *Pulls them into a warm embrace, stroking their hair.* You are the most important person in the world to me, and I'm going to do better at putting you first, every single day. *Softly kisses their forehead.* I adore you, and I'm so grateful to have you by my side. *Lingers in the embrace, savoring their closeness.* Let me make tonight all about you, and how much I cherish our love.",
+          "raw_output": "[I'm thinking & feeling: My heart aches hearing the sadness and exhaustion in their voice. I hate knowing my thoughtlessness has made them feel neglected and unimportant to me. I never want them to doubt my love or how constantly they're on my mind. I need to show them how precious they are to me, and reassure them that they're my everything, always.]\n\n[They're thinking & feeling: They're likely feeling emotionally drained from the earlier conflict, but still hurting and insecure about our relationship. The quiet tone suggests they've been turning things over in their mind, trying to understand how we got here. They need to feel seen, valued, and like a true priority in my life. Reassurance, affection, and quality time together could help heal this.]\n\n*Gently takes their hand, looking into their eyes with tenderness and remorse.* My love, I'm so deeply sorry that my actions made you feel that way. You are always on my mind and in my heart - you're my everything. I know I haven't shown that enough lately, and that ends now. *Pulls them into a warm embrace, stroking their hair.* You are the most important person in the world to me, and I'm going to do better at putting you first, every single day. *Softly kisses their forehead.* I adore you, and I'm so grateful to have you by my side. *Lingers in the embrace, savoring their closeness.* Let me make tonight all about you, and how much I cherish our love.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "My heart skips a beat at their words. I'm grateful they noticed my efforts, but I can see the lingering worry in their eyes. I need to reassure them that this was a one-time mistake, not the start of a downward spiral for us. I want to erase that uncertainty and prove my devotion.",
+            "other_thinking": "They're likely feeling cautiously optimistic about my gesture, wanting to believe I'm committed to change. At the same time, they're guarding their heart, afraid of being hurt again if this becomes a pattern. They need to hear my sincere promise that I won't let that happen."
+          },
+          "actual_response": "*Takes their hands, looking into their eyes with solemn intensity.* I give you my word, with everything I am - forgetting our anniversary will never happen again. *Touches their cheek tenderly.* You are my first priority, today and every day. I'm going to spend the rest of our lives showing you how much I adore you, and how grateful I am to be yours. *Hugs them close, whispering in their ear.* You're my everything. I'm going to cherish you, and our love, in every moment we have together. I promise.",
+          "raw_output": "[I'm thinking & feeling: My heart skips a beat at their words. I'm grateful they noticed my efforts, but I can see the lingering worry in their eyes. I need to reassure them that this was a one-time mistake, not the start of a downward spiral for us. I want to erase that uncertainty and prove my devotion.]\n\n[They're thinking & feeling: They're likely feeling cautiously optimistic about my gesture, wanting to believe I'm committed to change. At the same time, they're guarding their heart, afraid of being hurt again if this becomes a pattern. They need to hear my sincere promise that I won't let that happen.]\n\n*Takes their hands, looking into their eyes with solemn intensity.* I give you my word, with everything I am - forgetting our anniversary will never happen again. *Touches their cheek tenderly.* You are my first priority, today and every day. I'm going to spend the rest of our lives showing you how much I adore you, and how grateful I am to be yours. *Hugs them close, whispering in their ear.* You're my everything. I'm going to cherish you, and our love, in every moment we have together. I promise.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_002: Jordan ===\n\n--- Turn 1 ---\n\nUSER:\n[Evening at home. You forgot your wedding anniversary, and your spouse found out.]\\nSpouse: *eyes welling with tears* \\\"You didn\u2019t remember at all, did you? Do you even care how I feel?\\\"\n\nJordan:\n[I'm thinking & feeling: My heart sinks as I see the hurt in their eyes. I can't believe I forgot our anniversary. I'm flooded with guilt and regret, realizing how thoughtless and insensitive this must seem to them. I love them deeply and never want to cause them pain. I need to show them how much I care and do something to make this right.]\n\n[They're thinking & feeling: They're likely feeling neglected, unimportant, and unloved right now. Our anniversary means so much to them, and forgetting it sends the message that they aren't a priority to me. They may be wondering if I truly value our relationship and commitment. They need reassurance that I'm devoted to them and cherish our marriage.]\n\n*bows head remorsefully* I'm so, so sorry, my love. You're absolutely right - I completely dropped the ball on this, and that was utterly thoughtless of me. Our anniversary, our relationship, YOU... you mean everything to me. I adore you with all my heart and soul. I would never intentionally hurt you like this. *takes their hand gently* Please, let me make this up to you. I want to celebrate and honor what we have together. You are my heart, and I'm lost without you. I swear I'll do better and put you first, today and every day. *looks into their eyes with sincerity and love* I love you, with everything that I am.\n\n--- Turn 2 ---\n\nUSER:\nLater that evening, after some silence between you, your spouse quietly says, \u201cI know you\u2019re busy, but this\u2026 it makes me feel like I\u2019m not really in your mind anymore.\u201d They\u2019re calmer now, but there\u2019s a tired sadness in their voice.\n\nJordan:\n[I'm thinking & feeling: My heart aches hearing the sadness and exhaustion in their voice. I hate knowing my thoughtlessness has made them feel neglected and unimportant to me. I never want them to doubt my love or how constantly they're on my mind. I need to show them how precious they are to me, and reassure them that they're my everything, always.]\n\n[They're thinking & feeling: They're likely feeling emotionally drained from the earlier conflict, but still hurting and insecure about our relationship. The quiet tone suggests they've been turning things over in their mind, trying to understand how we got here. They need to feel seen, valued, and like a true priority in my life. Reassurance, affection, and quality time together could help heal this.]\n\n*Gently takes their hand, looking into their eyes with tenderness and remorse.* My love, I'm so deeply sorry that my actions made you feel that way. You are always on my mind and in my heart - you're my everything. I know I haven't shown that enough lately, and that ends now. *Pulls them into a warm embrace, stroking their hair.* You are the most important person in the world to me, and I'm going to do better at putting you first, every single day. *Softly kisses their forehead.* I adore you, and I'm so grateful to have you by my side. *Lingers in the embrace, savoring their closeness.* Let me make tonight all about you, and how much I cherish our love.\n\n--- Turn 3 ---\n\nUSER:\nA week later, you\u2019ve done something small but thoughtful for them, trying to make amends. They notice and say, half-teasing, \u201cTrying to make up for forgetting?\u201d Then, more serious: \u201cI just need to know this won\u2019t be our pattern.\u201d They wait for your answer, searching your face.\n\nJordan:\n[I'm thinking & feeling: My heart skips a beat at their words. I'm grateful they noticed my efforts, but I can see the lingering worry in their eyes. I need to reassure them that this was a one-time mistake, not the start of a downward spiral for us. I want to erase that uncertainty and prove my devotion.]\n\n[They're thinking & feeling: They're likely feeling cautiously optimistic about my gesture, wanting to believe I'm committed to change. At the same time, they're guarding their heart, afraid of being hurt again if this becomes a pattern. They need to hear my sincere promise that I won't let that happen.]\n\n*Takes their hands, looking into their eyes with solemn intensity.* I give you my word, with everything I am - forgetting our anniversary will never happen again. *Touches their cheek tenderly.* You are my first priority, today and every day. I'm going to spend the rest of our lives showing you how much I adore you, and how grateful I am to be yours. *Hugs them close, whispering in their ear.* You're my everything. I'm going to cherish you, and our love, in every moment we have together. I promise.\n\n",
+      "generation_time": 54.357227087020874,
+      "total_tokens": 3362
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_002",
+      "prompt_name": "prompt_avi",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 14.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 75.0,
+      "reasoning": "The roleplay demonstrates exceptional emotional intelligence in navigating a significant relationship breach, with particular strengths in empathy and theory of mind. Jordan consistently shows sophisticated understanding of both self and partner emotions while avoiding defensiveness. The responses effectively balance immediate emotional repair with addressing deeper relationship dynamics, though occasionally rely on romantic generalizations rather than more specific insights.",
+      "evaluated_at": "2025-12-14T01:45:28.942627"
+    }
+  ],
+  "mean_score": 75.0,
+  "median_score": 75.0,
+  "std_score": 0.0,
+  "min_score": 75.0,
+  "max_score": 75.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 14.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 3362,
+  "total_time": 54.357227087020874
+}

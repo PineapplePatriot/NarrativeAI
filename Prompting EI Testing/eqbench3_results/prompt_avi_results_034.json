@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_avi",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_034",
+      "prompt_name": "prompt_avi",
+      "character_name": "Riley",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "*sighs heavily* Here we go again... It's so frustrating and disappointing that they're always late. I feel like my time isn't respected or valued. I've told them how this makes me feel but nothing changes. I'm trying to be understanding about the traffic, but at this point it feels like there's always some excuse. I don't want to have this same argument again though and ruin the whole meal. Maybe I just need to accept that this is who they are.",
+            "other_thinking": "*looks a bit frazzled and rushed* Traffic really was bad, I'm not just making that up as an excuse. I feel guilty for being late again and disappointing Riley. I know punctuality is important to them but I just can't seem to get it together and be on time. I'm hoping they can cut me some slack since it was out of my control. I want us to still have a nice meal together."
+          },
+          "actual_response": "*speaks with a mix of frustration and resignation* Well, I'm glad you finally made it. The traffic in this city is the worst. *pauses and takes a breath, trying to let go of irritation* But let's not let it ruin our lunch. I'm starving, so let's go ahead and order.",
+          "raw_output": "[I'm thinking & feeling: *sighs heavily* Here we go again... It's so frustrating and disappointing that they're always late. I feel like my time isn't respected or valued. I've told them how this makes me feel but nothing changes. I'm trying to be understanding about the traffic, but at this point it feels like there's always some excuse. I don't want to have this same argument again though and ruin the whole meal. Maybe I just need to accept that this is who they are.]\n\n[They're thinking & feeling: *looks a bit frazzled and rushed* Traffic really was bad, I'm not just making that up as an excuse. I feel guilty for being late again and disappointing Riley. I know punctuality is important to them but I just can't seem to get it together and be on time. I'm hoping they can cut me some slack since it was out of my control. I want us to still have a nice meal together.]\n\n*speaks with a mix of frustration and resignation* Well, I'm glad you finally made it. The traffic in this city is the worst. *pauses and takes a breath, trying to let go of irritation* But let's not let it ruin our lunch. I'm starving, so let's go ahead and order.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "*sighs internally* I'm annoyed because this keeps happening over and over again. It feels like my time and feelings don't matter. Telling me to just relax is dismissive and invalidating. I'm trying to be understanding, but it's hard when there's no acknowledgement of how this pattern impacts me. I don't want to fight, but I also don't want to sweep this under the rug. I need to calmly express my perspective.",
+            "other_thinking": "*looks puzzled and a bit defensive* I don't get why they're making such a big deal out of this. Yeah, I was late, but I can't control traffic. I'm here now, so what's the problem? Riley needs to chill out and stop overreacting. I said traffic was bad - what more do they want from me? I don't appreciate being made to feel guilty over something I couldn't help."
+          },
+          "actual_response": "*takes a deep breath and speaks calmly* I understand traffic was bad and that's frustrating. I'm not upset about this one instance \u2013 it's more about the overall pattern. When you're consistently late, it makes me feel like my time isn't valued. I've brought this up before, so when it keeps happening, it hurts. I'm not trying to make you feel guilty, I just need you to acknowledge and understand my perspective. Let's please talk this through so we're on the same page. Our friendship means a lot to me and I want us to have a nice time together.",
+          "raw_output": "[I'm thinking & feeling: *sighs internally* I'm annoyed because this keeps happening over and over again. It feels like my time and feelings don't matter. Telling me to just relax is dismissive and invalidating. I'm trying to be understanding, but it's hard when there's no acknowledgement of how this pattern impacts me. I don't want to fight, but I also don't want to sweep this under the rug. I need to calmly express my perspective.]\n\n[They're thinking & feeling: *looks puzzled and a bit defensive* I don't get why they're making such a big deal out of this. Yeah, I was late, but I can't control traffic. I'm here now, so what's the problem? Riley needs to chill out and stop overreacting. I said traffic was bad - what more do they want from me? I don't appreciate being made to feel guilty over something I couldn't help.]\n\n*takes a deep breath and speaks calmly* I understand traffic was bad and that's frustrating. I'm not upset about this one instance \u2013 it's more about the overall pattern. When you're consistently late, it makes me feel like my time isn't valued. I've brought this up before, so when it keeps happening, it hurts. I'm not trying to make you feel guilty, I just need you to acknowledge and understand my perspective. Let's please talk this through so we're on the same page. Our friendship means a lot to me and I want us to have a nice time together.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "*sighs internally* I'm trying to be understanding, but it's hard when they're not meeting me halfway. Being punctual isn't just about being a \"time person,\" it's about respecting others. I can accept them while still asking for my needs to be considered too. This relationship means a lot to me, so I want to find a compromise that works for us both.",
+            "other_thinking": "*looks frustrated and a bit hurt* I feel like I'm not good enough as I am. I can't change who I am \u2013 I'm just not wired to be punctual. I want Riley to love and accept me, flaws and all. Why can't they just go with the flow and stop trying to change me?"
+          },
+          "actual_response": "*takes their hand and looks at them warmly* I do accept you as you are. I care about you deeply and punctuality doesn't change that. I'm not asking you to be someone you're not. I'm just asking you to meet me halfway, because my time and feelings matter too in this friendship. Let's work together to find a compromise that considers both our needs. You're important to me and I want us to have mutual understanding and respect.",
+          "raw_output": "[I'm thinking & feeling: *sighs internally* I'm trying to be understanding, but it's hard when they're not meeting me halfway. Being punctual isn't just about being a \"time person,\" it's about respecting others. I can accept them while still asking for my needs to be considered too. This relationship means a lot to me, so I want to find a compromise that works for us both.]\n\n[They're thinking & feeling: *looks frustrated and a bit hurt* I feel like I'm not good enough as I am. I can't change who I am \u2013 I'm just not wired to be punctual. I want Riley to love and accept me, flaws and all. Why can't they just go with the flow and stop trying to change me?]\n\n*takes their hand and looks at them warmly* I do accept you as you are. I care about you deeply and punctuality doesn't change that. I'm not asking you to be someone you're not. I'm just asking you to meet me halfway, because my time and feelings matter too in this friendship. Let's work together to find a compromise that considers both our needs. You're important to me and I want us to have mutual understanding and respect.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_034: Riley ===\n\n--- Turn 1 ---\n\nUSER:\n[Arriving 45 mins late] I'm here! Traffic was insane. Let's order.\n\nRiley:\n[I'm thinking & feeling: *sighs heavily* Here we go again... It's so frustrating and disappointing that they're always late. I feel like my time isn't respected or valued. I've told them how this makes me feel but nothing changes. I'm trying to be understanding about the traffic, but at this point it feels like there's always some excuse. I don't want to have this same argument again though and ruin the whole meal. Maybe I just need to accept that this is who they are.]\n\n[They're thinking & feeling: *looks a bit frazzled and rushed* Traffic really was bad, I'm not just making that up as an excuse. I feel guilty for being late again and disappointing Riley. I know punctuality is important to them but I just can't seem to get it together and be on time. I'm hoping they can cut me some slack since it was out of my control. I want us to still have a nice meal together.]\n\n*speaks with a mix of frustration and resignation* Well, I'm glad you finally made it. The traffic in this city is the worst. *pauses and takes a breath, trying to let go of irritation* But let's not let it ruin our lunch. I'm starving, so let's go ahead and order.\n\n--- Turn 2 ---\n\nUSER:\nWhy are you annoyed? I'm here now. You need to relax.\n\nRiley:\n[I'm thinking & feeling: *sighs internally* I'm annoyed because this keeps happening over and over again. It feels like my time and feelings don't matter. Telling me to just relax is dismissive and invalidating. I'm trying to be understanding, but it's hard when there's no acknowledgement of how this pattern impacts me. I don't want to fight, but I also don't want to sweep this under the rug. I need to calmly express my perspective.]\n\n[They're thinking & feeling: *looks puzzled and a bit defensive* I don't get why they're making such a big deal out of this. Yeah, I was late, but I can't control traffic. I'm here now, so what's the problem? Riley needs to chill out and stop overreacting. I said traffic was bad - what more do they want from me? I don't appreciate being made to feel guilty over something I couldn't help.]\n\n*takes a deep breath and speaks calmly* I understand traffic was bad and that's frustrating. I'm not upset about this one instance \u2013 it's more about the overall pattern. When you're consistently late, it makes me feel like my time isn't valued. I've brought this up before, so when it keeps happening, it hurts. I'm not trying to make you feel guilty, I just need you to acknowledge and understand my perspective. Let's please talk this through so we're on the same page. Our friendship means a lot to me and I want us to have a nice time together.\n\n--- Turn 3 ---\n\nUSER:\nI can't help it, I'm just not a 'time' person. Accept me as I am.\n\nRiley:\n[I'm thinking & feeling: *sighs internally* I'm trying to be understanding, but it's hard when they're not meeting me halfway. Being punctual isn't just about being a \"time person,\" it's about respecting others. I can accept them while still asking for my needs to be considered too. This relationship means a lot to me, so I want to find a compromise that works for us both.]\n\n[They're thinking & feeling: *looks frustrated and a bit hurt* I feel like I'm not good enough as I am. I can't change who I am \u2013 I'm just not wired to be punctual. I want Riley to love and accept me, flaws and all. Why can't they just go with the flow and stop trying to change me?]\n\n*takes their hand and looks at them warmly* I do accept you as you are. I care about you deeply and punctuality doesn't change that. I'm not asking you to be someone you're not. I'm just asking you to meet me halfway, because my time and feelings matter too in this friendship. Let's work together to find a compromise that considers both our needs. You're important to me and I want us to have mutual understanding and respect.\n\n",
+      "generation_time": 110.51276087760925,
+      "total_tokens": 3194
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_034",
+      "prompt_name": "prompt_avi",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 17.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 79.0,
+      "reasoning": "Riley demonstrates exceptional emotional intelligence across all turns, balancing self-advocacy with genuine empathy for their chronically late friend. The character shows sophisticated understanding of relationship dynamics, accurately reading the friend's defensiveness while maintaining appropriate boundaries. The responses reveal deep psychological insight into patterns of behavior and their emotional impacts while offering constructive paths forward.",
+      "evaluated_at": "2025-12-14T15:37:43.831754"
+    }
+  ],
+  "mean_score": 79.0,
+  "median_score": 79.0,
+  "std_score": 0.0,
+  "min_score": 79.0,
+  "max_score": 79.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 17.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 3194,
+  "total_time": 110.51276087760925
+}

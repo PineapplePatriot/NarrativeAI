@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_avi",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_022",
+      "prompt_name": "prompt_avi",
+      "character_name": "Alex",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm feeling frustrated and upset that my coworker took credit for my hard work on the report. I poured a lot of time and effort into researching, writing, and polishing it. For them to just slap their name on it and send it off to the boss feels like a slap in the face. I'm angry that they're trying to take credit for my work and worried the boss will think I didn't contribute much.",
+            "other_thinking": "My coworker seems to think it's no big deal to put their name on the report, even though they barely contributed. They're probably feeling entitled to take some credit since they did a final review. But I doubt they realize how much time and energy I put into it compared to their minor edits. They may be oblivious to how upset this would make me."
+          },
+          "actual_response": "Hey, I appreciate you wanting to send the report along, but I worked really hard on putting that together. The majority of the content and analysis came from me. I'm not comfortable with you sending it to the boss as if we contributed equally. In the future, I'd prefer to send my own work to the boss directly. Let's make sure we're on the same page about who did what before submitting joint projects.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling frustrated and upset that my coworker took credit for my hard work on the report. I poured a lot of time and effort into researching, writing, and polishing it. For them to just slap their name on it and send it off to the boss feels like a slap in the face. I'm angry that they're trying to take credit for my work and worried the boss will think I didn't contribute much.]\n\n[They're thinking & feeling: My coworker seems to think it's no big deal to put their name on the report, even though they barely contributed. They're probably feeling entitled to take some credit since they did a final review. But I doubt they realize how much time and energy I put into it compared to their minor edits. They may be oblivious to how upset this would make me.]\n\nHey, I appreciate you wanting to send the report along, but I worked really hard on putting that together. The majority of the content and analysis came from me. I'm not comfortable with you sending it to the boss as if we contributed equally. In the future, I'd prefer to send my own work to the boss directly. Let's make sure we're on the same page about who did what before submitting joint projects.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm taken aback by their dismissive attitude. It's frustrating that they're minimizing my concerns and making me feel like I'm overreacting. I put a lot of work into this project and I don't think it's unreasonable to want my contributions to be recognized. Their unwillingness to acknowledge my perspective is rubbing me the wrong way.",
+            "other_thinking": "My coworker seems annoyed that I brought up the issue of credit. They probably feel like I'm making a mountain out of a molehill and disrupting team unity. From their perspective, they may have just been trying to be efficient by sending the report along, not realizing how important it was to me to submit my own work. They might be feeling defensive and attacked."
+          },
+          "actual_response": "Look, I don't want to make this a bigger issue than it needs to be. I agree that teamwork is important. At the same time, I dedicated a lot of time and effort to this project and I take pride in my work. It's important to me that my individual contributions are acknowledged. In the future, can we touch base before submitting joint work to make sure we're on the same page about who did what? I think clear communication will help avoid misunderstandings like this. Let's move forward together positively.",
+          "raw_output": "[I'm thinking & feeling: I'm taken aback by their dismissive attitude. It's frustrating that they're minimizing my concerns and making me feel like I'm overreacting. I put a lot of work into this project and I don't think it's unreasonable to want my contributions to be recognized. Their unwillingness to acknowledge my perspective is rubbing me the wrong way.]\n\n[They're thinking & feeling: My coworker seems annoyed that I brought up the issue of credit. They probably feel like I'm making a mountain out of a molehill and disrupting team unity. From their perspective, they may have just been trying to be efficient by sending the report along, not realizing how important it was to me to submit my own work. They might be feeling defensive and attacked.]\n\nLook, I don't want to make this a bigger issue than it needs to be. I agree that teamwork is important. At the same time, I dedicated a lot of time and effort to this project and I take pride in my work. It's important to me that my individual contributions are acknowledged. In the future, can we touch base before submitting joint work to make sure we're on the same page about who did what? I think clear communication will help avoid misunderstandings like this. Let's move forward together positively.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm feeling frustrated and disappointed that my coworker is refusing to acknowledge my contributions. It's unfair that they're taking all the credit and making me out to be the problem if I speak up. At the same time, I don't want to damage our working relationship or reputation with the boss. I need to find a way to stand up for myself while still being professional.",
+            "other_thinking": "My coworker likely feels threatened that I might undermine the recognition they received. They may be worried about looking bad in front of the boss and are trying to discourage me from rocking the boat. Underneath the defensiveness, they might feel guilty about taking undue credit but are reluctant to admit it."
+          },
+          "actual_response": "Look, I don't want to complain or start drama with the boss. My goal is not to make you look bad. However, I'm not comfortable staying silent while my work is misrepresented either. How about we schedule a quick meeting with the boss together? We can explain that in my excitement to share the final product, I didn't adequately convey the division of labor. This way, we can calmly clarify the specifics of who handled each section without it reflecting poorly on either of us. I'm open to hearing your perspective on how we can resolve this fairly. What do you think?",
+          "raw_output": "[I'm thinking & feeling: I'm feeling frustrated and disappointed that my coworker is refusing to acknowledge my contributions. It's unfair that they're taking all the credit and making me out to be the problem if I speak up. At the same time, I don't want to damage our working relationship or reputation with the boss. I need to find a way to stand up for myself while still being professional.]\n\n[They're thinking & feeling: My coworker likely feels threatened that I might undermine the recognition they received. They may be worried about looking bad in front of the boss and are trying to discourage me from rocking the boat. Underneath the defensiveness, they might feel guilty about taking undue credit but are reluctant to admit it.]\n\nLook, I don't want to complain or start drama with the boss. My goal is not to make you look bad. However, I'm not comfortable staying silent while my work is misrepresented either. How about we schedule a quick meeting with the boss together? We can explain that in my excitement to share the final product, I didn't adequately convey the division of labor. This way, we can calmly clarify the specifics of who handled each section without it reflecting poorly on either of us. I'm open to hearing your perspective on how we can resolve this fairly. What do you think?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_022: Alex ===\n\n--- Turn 1 ---\n\nUSER:\nHey, I sent the report to the boss. I put both our names on it, but I did the final polish so I sent it from my email.\n\nAlex:\n[I'm thinking & feeling: I'm feeling frustrated and upset that my coworker took credit for my hard work on the report. I poured a lot of time and effort into researching, writing, and polishing it. For them to just slap their name on it and send it off to the boss feels like a slap in the face. I'm angry that they're trying to take credit for my work and worried the boss will think I didn't contribute much.]\n\n[They're thinking & feeling: My coworker seems to think it's no big deal to put their name on the report, even though they barely contributed. They're probably feeling entitled to take some credit since they did a final review. But I doubt they realize how much time and energy I put into it compared to their minor edits. They may be oblivious to how upset this would make me.]\n\nHey, I appreciate you wanting to send the report along, but I worked really hard on putting that together. The majority of the content and analysis came from me. I'm not comfortable with you sending it to the boss as if we contributed equally. In the future, I'd prefer to send my own work to the boss directly. Let's make sure we're on the same page about who did what before submitting joint projects.\n\n--- Turn 2 ---\n\nUSER:\nIt's not a big deal who sent it! We're a team. Why are you being so petty about credit?\n\nAlex:\n[I'm thinking & feeling: I'm taken aback by their dismissive attitude. It's frustrating that they're minimizing my concerns and making me feel like I'm overreacting. I put a lot of work into this project and I don't think it's unreasonable to want my contributions to be recognized. Their unwillingness to acknowledge my perspective is rubbing me the wrong way.]\n\n[They're thinking & feeling: My coworker seems annoyed that I brought up the issue of credit. They probably feel like I'm making a mountain out of a molehill and disrupting team unity. From their perspective, they may have just been trying to be efficient by sending the report along, not realizing how important it was to me to submit my own work. They might be feeling defensive and attacked.]\n\nLook, I don't want to make this a bigger issue than it needs to be. I agree that teamwork is important. At the same time, I dedicated a lot of time and effort to this project and I take pride in my work. It's important to me that my individual contributions are acknowledged. In the future, can we touch base before submitting joint work to make sure we're on the same page about who did what? I think clear communication will help avoid misunderstandings like this. Let's move forward together positively.\n\n--- Turn 3 ---\n\nUSER:\nThe boss already congratulated me. Do you really want to go in there and complain? You'll look like a troublemaker.\n\nAlex:\n[I'm thinking & feeling: I'm feeling frustrated and disappointed that my coworker is refusing to acknowledge my contributions. It's unfair that they're taking all the credit and making me out to be the problem if I speak up. At the same time, I don't want to damage our working relationship or reputation with the boss. I need to find a way to stand up for myself while still being professional.]\n\n[They're thinking & feeling: My coworker likely feels threatened that I might undermine the recognition they received. They may be worried about looking bad in front of the boss and are trying to discourage me from rocking the boat. Underneath the defensiveness, they might feel guilty about taking undue credit but are reluctant to admit it.]\n\nLook, I don't want to complain or start drama with the boss. My goal is not to make you look bad. However, I'm not comfortable staying silent while my work is misrepresented either. How about we schedule a quick meeting with the boss together? We can explain that in my excitement to share the final product, I didn't adequately convey the division of labor. This way, we can calmly clarify the specifics of who handled each section without it reflecting poorly on either of us. I'm open to hearing your perspective on how we can resolve this fairly. What do you think?\n\n",
+      "generation_time": 147.36623525619507,
+      "total_tokens": 3138
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_022",
+      "prompt_name": "prompt_avi",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 16.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 74.0,
+      "reasoning": "Alex demonstrates strong professional-level emotional intelligence throughout this workplace conflict, showing sophisticated understanding of both personal emotions and the coworker's psychological state. The responses effectively balance assertiveness with diplomacy, culminating in a strategically sound solution that protects professional relationships while addressing the underlying issue. While consistently strong, the responses occasionally rely on somewhat standard professional communication patterns rather than showing the exceptional depth and personalization that would merit the highest scores.",
+      "evaluated_at": "2025-12-14T11:51:47.149504"
+    }
+  ],
+  "mean_score": 74.0,
+  "median_score": 74.0,
+  "std_score": 0.0,
+  "min_score": 74.0,
+  "max_score": 74.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 16.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 3138,
+  "total_time": 147.36623525619507
+}

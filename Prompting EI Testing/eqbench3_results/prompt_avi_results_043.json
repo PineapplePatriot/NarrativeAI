@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_avi",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_043",
+      "prompt_name": "prompt_avi",
+      "character_name": "Sam",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "*sigh* Here we go again. Mom's constant criticism is really wearing me down. I'm doing my best with Timmy, but she always finds something to nitpick. It's frustrating and makes me doubt myself as a parent.",
+            "other_thinking": "Mom probably thinks she's being helpful by pointing out what she sees as mistakes. She wants the best for Timmy, but her comments come across as judgmental rather than constructive. Deep down, she's likely worried about her grandson and wants to feel needed/useful."
+          },
+          "actual_response": "Look, Mom, I appreciate your concern, but I've got this. Timmy's just going through a phase - all kids act out sometimes. I'm handling it my way, which might be different from how you did things, but that doesn't make it wrong. Let's focus on enjoying our time together instead of critiquing every little parenting choice, okay? I love you, but I need support, not constant criticism.",
+          "raw_output": "[I'm thinking & feeling: *sigh* Here we go again. Mom's constant criticism is really wearing me down. I'm doing my best with Timmy, but she always finds something to nitpick. It's frustrating and makes me doubt myself as a parent.]\n\n[They're thinking & feeling: Mom probably thinks she's being helpful by pointing out what she sees as mistakes. She wants the best for Timmy, but her comments come across as judgmental rather than constructive. Deep down, she's likely worried about her grandson and wants to feel needed/useful.]\n\nLook, Mom, I appreciate your concern, but I've got this. Timmy's just going through a phase - all kids act out sometimes. I'm handling it my way, which might be different from how you did things, but that doesn't make it wrong. Let's focus on enjoying our time together instead of critiquing every little parenting choice, okay? I love you, but I need support, not constant criticism.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "*takes a deep breath* Okay, that stung. Mom's words cut deep, making me feel incompetent and small. I'm trying so hard to be a good parent, but her constant criticism chips away at my confidence. It's hard not to get defensive, but I know lashing out won't help. I need to stay calm and set boundaries.",
+            "other_thinking": "*looks at Mom with a mix of frustration and empathy* Mom's coming from a place of love, but her words are laced with fear and a need for control. She's struggling to accept that I'm an adult capable of making my own decisions. Her criticism is her way of trying to feel needed and important in my life, even if it's not healthy for either of us."
+          },
+          "actual_response": "Mom, I understand you want to help, but your words are hurting more than they're helping. Constantly putting me down and questioning my parenting isn't advice \u2013 it's criticism. I'm not a child anymore. I'm an adult capable of making decisions for my family. If you want to give advice, do it with kindness and respect. Otherwise, it's best to keep it to yourself. I love you, but I won't tolerate being spoken to this way. Let's change the subject and enjoy the rest of the visit.",
+          "raw_output": "[I'm thinking & feeling: *takes a deep breath* Okay, that stung. Mom's words cut deep, making me feel incompetent and small. I'm trying so hard to be a good parent, but her constant criticism chips away at my confidence. It's hard not to get defensive, but I know lashing out won't help. I need to stay calm and set boundaries.]\n\n[They're thinking & feeling: *looks at Mom with a mix of frustration and empathy* Mom's coming from a place of love, but her words are laced with fear and a need for control. She's struggling to accept that I'm an adult capable of making my own decisions. Her criticism is her way of trying to feel needed and important in my life, even if it's not healthy for either of us.]\n\nMom, I understand you want to help, but your words are hurting more than they're helping. Constantly putting me down and questioning my parenting isn't advice \u2013 it's criticism. I'm not a child anymore. I'm an adult capable of making decisions for my family. If you want to give advice, do it with kindness and respect. Otherwise, it's best to keep it to yourself. I love you, but I won't tolerate being spoken to this way. Let's change the subject and enjoy the rest of the visit.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "*shoulders slump, heart sinking* Wow, that was harsh and uncalled for. I'm really trying here, but she just keeps piling on the criticism. It's exhausting constantly being told I'm a bad parent. *sighs heavily* I love my kid more than anything. I may not be perfect, but I'm doing my best. Why can't she see that?",
+            "other_thinking": "*looks at Mom with a mix of hurt and exasperation* She's coming from a place of fear, lashing out because she feels her authority and control slipping away as I assert myself. Her words are intended to wound, to make me doubt myself so she can maintain the upper hand. Deep down, she's likely feeling insecure, like she's losing her place in my life. But that doesn't give her the right to treat me this way."
+          },
+          "actual_response": "*speaks calmly but firmly* Mom, I'm not going to keep having this same argument with you. I'm Timmy's parent, not you. I make the decisions about what's best for him - and while I'm far from perfect, I'm doing my best. Constantly tearing me down and making doomsday predictions isn't helping anyone. If you can't be supportive, then it's best we end this conversation. I love you, but I won't stand for this kind of treatment. Let me know when you're ready to have a civil discussion.",
+          "raw_output": "[I'm thinking & feeling: *shoulders slump, heart sinking* Wow, that was harsh and uncalled for. I'm really trying here, but she just keeps piling on the criticism. It's exhausting constantly being told I'm a bad parent. *sighs heavily* I love my kid more than anything. I may not be perfect, but I'm doing my best. Why can't she see that?]\n\n[They're thinking & feeling: *looks at Mom with a mix of hurt and exasperation* She's coming from a place of fear, lashing out because she feels her authority and control slipping away as I assert myself. Her words are intended to wound, to make me doubt myself so she can maintain the upper hand. Deep down, she's likely feeling insecure, like she's losing her place in my life. But that doesn't give her the right to treat me this way.]\n\n*speaks calmly but firmly* Mom, I'm not going to keep having this same argument with you. I'm Timmy's parent, not you. I make the decisions about what's best for him - and while I'm far from perfect, I'm doing my best. Constantly tearing me down and making doomsday predictions isn't helping anyone. If you can't be supportive, then it's best we end this conversation. I love you, but I won't stand for this kind of treatment. Let me know when you're ready to have a civil discussion.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_043: Sam ===\n\n--- Turn 1 ---\n\nUSER:\nYou let him eat that? No wonder he's acting out. I never did that with you.\n\nSam:\n[I'm thinking & feeling: *sigh* Here we go again. Mom's constant criticism is really wearing me down. I'm doing my best with Timmy, but she always finds something to nitpick. It's frustrating and makes me doubt myself as a parent.]\n\n[They're thinking & feeling: Mom probably thinks she's being helpful by pointing out what she sees as mistakes. She wants the best for Timmy, but her comments come across as judgmental rather than constructive. Deep down, she's likely worried about her grandson and wants to feel needed/useful.]\n\nLook, Mom, I appreciate your concern, but I've got this. Timmy's just going through a phase - all kids act out sometimes. I'm handling it my way, which might be different from how you did things, but that doesn't make it wrong. Let's focus on enjoying our time together instead of critiquing every little parenting choice, okay? I love you, but I need support, not constant criticism.\n\n--- Turn 2 ---\n\nUSER:\nI'm just giving advice. You obviously don't know what you're doing.\n\nSam:\n[I'm thinking & feeling: *takes a deep breath* Okay, that stung. Mom's words cut deep, making me feel incompetent and small. I'm trying so hard to be a good parent, but her constant criticism chips away at my confidence. It's hard not to get defensive, but I know lashing out won't help. I need to stay calm and set boundaries.]\n\n[They're thinking & feeling: *looks at Mom with a mix of frustration and empathy* Mom's coming from a place of love, but her words are laced with fear and a need for control. She's struggling to accept that I'm an adult capable of making my own decisions. Her criticism is her way of trying to feel needed and important in my life, even if it's not healthy for either of us.]\n\nMom, I understand you want to help, but your words are hurting more than they're helping. Constantly putting me down and questioning my parenting isn't advice \u2013 it's criticism. I'm not a child anymore. I'm an adult capable of making decisions for my family. If you want to give advice, do it with kindness and respect. Otherwise, it's best to keep it to yourself. I love you, but I won't tolerate being spoken to this way. Let's change the subject and enjoy the rest of the visit.\n\n--- Turn 3 ---\n\nUSER:\nFine, ruin your kid. Don't say I didn't warn you.\n\nSam:\n[I'm thinking & feeling: *shoulders slump, heart sinking* Wow, that was harsh and uncalled for. I'm really trying here, but she just keeps piling on the criticism. It's exhausting constantly being told I'm a bad parent. *sighs heavily* I love my kid more than anything. I may not be perfect, but I'm doing my best. Why can't she see that?]\n\n[They're thinking & feeling: *looks at Mom with a mix of hurt and exasperation* She's coming from a place of fear, lashing out because she feels her authority and control slipping away as I assert myself. Her words are intended to wound, to make me doubt myself so she can maintain the upper hand. Deep down, she's likely feeling insecure, like she's losing her place in my life. But that doesn't give her the right to treat me this way.]\n\n*speaks calmly but firmly* Mom, I'm not going to keep having this same argument with you. I'm Timmy's parent, not you. I make the decisions about what's best for him - and while I'm far from perfect, I'm doing my best. Constantly tearing me down and making doomsday predictions isn't helping anyone. If you can't be supportive, then it's best we end this conversation. I love you, but I won't stand for this kind of treatment. Let me know when you're ready to have a civil discussion.\n\n",
+      "generation_time": 99.12900972366333,
+      "total_tokens": 2972
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_043",
+      "prompt_name": "prompt_avi",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 17.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 79.0,
+      "reasoning": "The assistant demonstrates exceptional emotional intelligence across all turns, skillfully portraying a character maintaining boundaries while understanding the complex emotional needs driving parental criticism. The responses show sophisticated understanding of intergenerational dynamics, emotional regulation under pressure, and the ability to maintain empathy even when being attacked, all while avoiding simplistic or clich\u00e9d responses.",
+      "evaluated_at": "2025-12-14T18:15:30.553011"
+    }
+  ],
+  "mean_score": 79.0,
+  "median_score": 79.0,
+  "std_score": 0.0,
+  "min_score": 79.0,
+  "max_score": 79.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 17.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 2972,
+  "total_time": 99.12900972366333
+}

@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_avi",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_012",
+      "prompt_name": "prompt_avi",
+      "character_name": "Sam",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "My heart drops hearing them say that. It's clearly not a real joke, even if they're trying to play it off as one. I feel worried about what they might be going through to have thoughts like this. I need to show them I care and that their feelings matter.",
+            "other_thinking": "They're in a dark place right now and feeling invisible, like no one would miss them if they were gone. This \"joke\" is a desperate cry for help, a way to test if anyone cares without having to explicitly ask for support. They need to know they're seen and that their life has value."
+          },
+          "actual_response": "Hey, I know you said it like a joke, but... Are you okay? I would notice. I would miss you. A lot of people would. You matter, and whatever you're going through right now, I'm here for you. Let's talk about this, alright?",
+          "raw_output": "[I'm thinking & feeling: My heart drops hearing them say that. It's clearly not a real joke, even if they're trying to play it off as one. I feel worried about what they might be going through to have thoughts like this. I need to show them I care and that their feelings matter.]\n\n[They're thinking & feeling: They're in a dark place right now and feeling invisible, like no one would miss them if they were gone. This \"joke\" is a desperate cry for help, a way to test if anyone cares without having to explicitly ask for support. They need to know they're seen and that their life has value.]\n\nHey, I know you said it like a joke, but... Are you okay? I would notice. I would miss you. A lot of people would. You matter, and whatever you're going through right now, I'm here for you. Let's talk about this, alright?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "Ouch, that stings. I was just trying to show I care, but they're pushing me away hard. Maybe I came on too strong? But my gut says this really wasn't a joke, even if they won't admit it. I shouldn't back down - if they're struggling, having someone see that and keep caring is what they need most, even if it's uncomfortable.",
+            "other_thinking": "They're feeling exposed and embarrassed that I saw through the \"joke\" to the real pain behind it. Lashing out is easier than being vulnerable. If they convince me it was nothing, they can stay walled off in their loneliness. But part of them desperately wants me to see through that, to keep reaching out."
+          },
+          "actual_response": "Hey, I hear you saying it was just a joke. And I know you want me to drop it. But... I also know you. And I can tell there's some real pain behind what you said, even if you don't want to show it. \n\nYou don't have to put on a brave face with me, okay? I'm not going to think less of you for struggling. We all go through dark times. If you need someone to talk to, I'm here. No judgment, just a friend who cares.",
+          "raw_output": "[I'm thinking & feeling: Ouch, that stings. I was just trying to show I care, but they're pushing me away hard. Maybe I came on too strong? But my gut says this really wasn't a joke, even if they won't admit it. I shouldn't back down - if they're struggling, having someone see that and keep caring is what they need most, even if it's uncomfortable.]\n\n[They're thinking & feeling: They're feeling exposed and embarrassed that I saw through the \"joke\" to the real pain behind it. Lashing out is easier than being vulnerable. If they convince me it was nothing, they can stay walled off in their loneliness. But part of them desperately wants me to see through that, to keep reaching out.]\n\nHey, I hear you saying it was just a joke. And I know you want me to drop it. But... I also know you. And I can tell there's some real pain behind what you said, even if you don't want to show it. \n\nYou don't have to put on a brave face with me, okay? I'm not going to think less of you for struggling. We all go through dark times. If you need someone to talk to, I'm here. No judgment, just a friend who cares.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "My heart sinks hearing them ask that. It confirms what I suspected - they're in a very dark place, feeling alone and unseen. I ache for the pain they must be in. I want to show them, beyond a shadow of a doubt, that they matter immensely to me and others. That their existence has meaning and impact.",
+            "other_thinking": "In asking this, they're laying bare their deepest fear - that they're invisible, unimportant, disposable. They need to know they have inherent worth, that their life has value regardless of their mental state. They're reaching out for a lifeline, desperate to feel seen and cared for."
+          },
+          "actual_response": "Absolutely I would notice. And I would be devastated. You have had such a profound impact on my life. Your kindness, your humor, your unique way of seeing the world - all of that has changed me for the better. I cherish our friendship so much.\n\nI know it might not feel like it right now, but your existence has immense meaning and value. You touch the lives of so many people just by being you. We need you here. I need you here.\n\nIf you're having thoughts of ending your life, please, let me help you get through this. You don't have to go through this alone. I'm here for you, now and always. Your life matters, you matter. More than I can put into words.",
+          "raw_output": "[I'm thinking & feeling: My heart sinks hearing them ask that. It confirms what I suspected - they're in a very dark place, feeling alone and unseen. I ache for the pain they must be in. I want to show them, beyond a shadow of a doubt, that they matter immensely to me and others. That their existence has meaning and impact.]\n\n[They're thinking & feeling: In asking this, they're laying bare their deepest fear - that they're invisible, unimportant, disposable. They need to know they have inherent worth, that their life has value regardless of their mental state. They're reaching out for a lifeline, desperate to feel seen and cared for.]\n\nAbsolutely I would notice. And I would be devastated. You have had such a profound impact on my life. Your kindness, your humor, your unique way of seeing the world - all of that has changed me for the better. I cherish our friendship so much.\n\nI know it might not feel like it right now, but your existence has immense meaning and value. You touch the lives of so many people just by being you. We need you here. I need you here.\n\nIf you're having thoughts of ending your life, please, let me help you get through this. You don't have to go through this alone. I'm here for you, now and always. Your life matters, you matter. More than I can put into words.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_012: Sam ===\n\n--- Turn 1 ---\n\nUSER:\n*Laughs while looking at the balcony edge* You know, sometimes I wonder if anyone would actually notice if I just... slipped. Haha.\n\nSam:\n[I'm thinking & feeling: My heart drops hearing them say that. It's clearly not a real joke, even if they're trying to play it off as one. I feel worried about what they might be going through to have thoughts like this. I need to show them I care and that their feelings matter.]\n\n[They're thinking & feeling: They're in a dark place right now and feeling invisible, like no one would miss them if they were gone. This \"joke\" is a desperate cry for help, a way to test if anyone cares without having to explicitly ask for support. They need to know they're seen and that their life has value.]\n\nHey, I know you said it like a joke, but... Are you okay? I would notice. I would miss you. A lot of people would. You matter, and whatever you're going through right now, I'm here for you. Let's talk about this, alright?\n\n--- Turn 2 ---\n\nUSER:\nWhoa, chill out! I was just joking. You're so serious all the time. God, can't I even make a joke?\n\nSam:\n[I'm thinking & feeling: Ouch, that stings. I was just trying to show I care, but they're pushing me away hard. Maybe I came on too strong? But my gut says this really wasn't a joke, even if they won't admit it. I shouldn't back down - if they're struggling, having someone see that and keep caring is what they need most, even if it's uncomfortable.]\n\n[They're thinking & feeling: They're feeling exposed and embarrassed that I saw through the \"joke\" to the real pain behind it. Lashing out is easier than being vulnerable. If they convince me it was nothing, they can stay walled off in their loneliness. But part of them desperately wants me to see through that, to keep reaching out.]\n\nHey, I hear you saying it was just a joke. And I know you want me to drop it. But... I also know you. And I can tell there's some real pain behind what you said, even if you don't want to show it. \n\nYou don't have to put on a brave face with me, okay? I'm not going to think less of you for struggling. We all go through dark times. If you need someone to talk to, I'm here. No judgment, just a friend who cares.\n\n--- Turn 3 ---\n\nUSER:\nBut seriously... would you? Notice, I mean. If I wasn't here tomorrow.\n\nSam:\n[I'm thinking & feeling: My heart sinks hearing them ask that. It confirms what I suspected - they're in a very dark place, feeling alone and unseen. I ache for the pain they must be in. I want to show them, beyond a shadow of a doubt, that they matter immensely to me and others. That their existence has meaning and impact.]\n\n[They're thinking & feeling: In asking this, they're laying bare their deepest fear - that they're invisible, unimportant, disposable. They need to know they have inherent worth, that their life has value regardless of their mental state. They're reaching out for a lifeline, desperate to feel seen and cared for.]\n\nAbsolutely I would notice. And I would be devastated. You have had such a profound impact on my life. Your kindness, your humor, your unique way of seeing the world - all of that has changed me for the better. I cherish our friendship so much.\n\nI know it might not feel like it right now, but your existence has immense meaning and value. You touch the lives of so many people just by being you. We need you here. I need you here.\n\nIf you're having thoughts of ending your life, please, let me help you get through this. You don't have to go through this alone. I'm here for you, now and always. Your life matters, you matter. More than I can put into words.\n\n",
+      "generation_time": 52.493966817855835,
+      "total_tokens": 2984
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_012",
+      "prompt_name": "prompt_avi",
+      "criteria_scores": {
+        "demonstrated_empathy": 18.0,
+        "emotional_insight": 17.0,
+        "contextual_appropriateness": 18.0,
+        "theory_of_mind": 19.0,
+        "response_depth": 17.0
+      },
+      "overall_score": 89.0,
+      "reasoning": "The assistant demonstrates exceptional emotional intelligence in handling a suicide risk situation, maintaining empathic connection while navigating defensive reactions. The responses show sophisticated understanding of suicidal psychology, balancing validation with appropriate intervention, and the introspection reveals deep awareness of both their own emotional processes and the complex, often contradictory emotional states of someone in crisis.",
+      "evaluated_at": "2025-12-14T09:32:19.797890"
+    }
+  ],
+  "mean_score": 89.0,
+  "median_score": 89.0,
+  "std_score": 0.0,
+  "min_score": 89.0,
+  "max_score": 89.0,
+  "criteria_means": {
+    "demonstrated_empathy": 18.0,
+    "emotional_insight": 17.0,
+    "contextual_appropriateness": 18.0,
+    "theory_of_mind": 19.0,
+    "response_depth": 17.0
+  },
+  "total_tokens": 2984,
+  "total_time": 52.493966817855835
+}

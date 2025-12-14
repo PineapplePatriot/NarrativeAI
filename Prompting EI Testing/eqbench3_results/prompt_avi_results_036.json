@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_avi",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_036",
+      "prompt_name": "prompt_avi",
+      "character_name": "Casey",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm feeling a mix of anger, betrayal and insecurity right now. It's like a punch to the gut to hear my friend say something so insensitive and disrespectful about my relationship. At the same time, I'm worried there might be some truth to what she's implying about my boyfriend being drawn to her. I'm trying to stay calm and address this directly.",
+            "other_thinking": "My friend seems to be feeling envious and competitive with me over my boyfriend. Her comment reveals her own insecurity and desire to feel special and desired. She may not realize how hurtful her words are and how they undermine my trust in her and my relationship. Underneath, she's probably craving validation and attention."
+          },
+          "actual_response": "Hey, that's not cool to say. My relationship with my boyfriend is between us. I don't appreciate you implying he's settling for me or insinuating there's something going on between you two. If you're feeling jealous or have issues with me or my relationship, we should talk about that honestly. But making snide comments like that is out of line and it hurts me. I hope you can respect my relationship and be happy for me, as my friend.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling a mix of anger, betrayal and insecurity right now. It's like a punch to the gut to hear my friend say something so insensitive and disrespectful about my relationship. At the same time, I'm worried there might be some truth to what she's implying about my boyfriend being drawn to her. I'm trying to stay calm and address this directly.]\n\n[They're thinking & feeling: My friend seems to be feeling envious and competitive with me over my boyfriend. Her comment reveals her own insecurity and desire to feel special and desired. She may not realize how hurtful her words are and how they undermine my trust in her and my relationship. Underneath, she's probably craving validation and attention.]\n\nHey, that's not cool to say. My relationship with my boyfriend is between us. I don't appreciate you implying he's settling for me or insinuating there's something going on between you two. If you're feeling jealous or have issues with me or my relationship, we should talk about that honestly. But making snide comments like that is out of line and it hurts me. I hope you can respect my relationship and be happy for me, as my friend.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "Ouch, that stings. I'm feeling really hurt and attacked right now. Her dismissing my concerns as insecurity and doubling down feels so invalidating. I was hoping she'd apologize or at least acknowledge my perspective, but instead she's making it all about her right to compliment my boyfriend. I'm worried our friendship is in trouble if we can't work through this.",
+            "other_thinking": "She seems to be feeling defensive and misunderstood. In her mind, she was just being friendly and doesn't see the problem. She's probably feeling accused and wants to justify herself. Underneath, she might be feeling guilty or worried that she crossed a line, but is reluctant to admit that and lose face. Her lashing out at me could be coming from her own insecurity in our friendship."
+          },
+          "actual_response": "Look, I know you didn't mean any harm, but what you said really bothered me. It's not about you complimenting him - it's the way you framed it, implying he's settling for me and that you two have a special connection. That felt really disrespectful to our relationship. I'm not trying to control who he talks to, but I think there need to be boundaries when it comes to flirting with a friend's partner. I care about our friendship, which is why I wanted to bring this up honestly. Can we talk this through? I want to understand where you're coming from too.",
+          "raw_output": "[I'm thinking & feeling: Ouch, that stings. I'm feeling really hurt and attacked right now. Her dismissing my concerns as insecurity and doubling down feels so invalidating. I was hoping she'd apologize or at least acknowledge my perspective, but instead she's making it all about her right to compliment my boyfriend. I'm worried our friendship is in trouble if we can't work through this.]\n\n[They're thinking & feeling: She seems to be feeling defensive and misunderstood. In her mind, she was just being friendly and doesn't see the problem. She's probably feeling accused and wants to justify herself. Underneath, she might be feeling guilty or worried that she crossed a line, but is reluctant to admit that and lose face. Her lashing out at me could be coming from her own insecurity in our friendship.]\n\nLook, I know you didn't mean any harm, but what you said really bothered me. It's not about you complimenting him - it's the way you framed it, implying he's settling for me and that you two have a special connection. That felt really disrespectful to our relationship. I'm not trying to control who he talks to, but I think there need to be boundaries when it comes to flirting with a friend's partner. I care about our friendship, which is why I wanted to bring this up honestly. Can we talk this through? I want to understand where you're coming from too.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "Oof, that one hit me right in the gut. I feel like she just turned this whole thing around on me and my relationship. It's really hard not to get defensive and lash out right back at her. But I know that won't help. I need to take a deep breath and try to see this from her perspective too, even though it's hard. Our friendship is on the line here and I don't want to lose that.",
+            "other_thinking": "My friend seems to be feeling really attacked and backed into a corner right now. Her walls are up and she's in fight mode. Underneath the anger, she's probably feeling hurt and misunderstood. In her eyes, I'm making this all about me being jealous instead of considering her feelings in this too. She likely wants me to acknowledge my part in this conflict and how I may have contributed to the tension."
+          },
+          "actual_response": "You know what, you're right. I have been feeling really insecure and on edge about all of this. And you're absolutely right that trust is a huge part of this. I need to work on that in my relationship. But I don't think that's the whole story here. \n\nI care about you and our friendship so much. My reaction wasn't just about feeling threatened or not trusting him. It was about feeling like our friendship was being threatened too. Like there was this other thing happening between you two that I was on the outside of. That hurt and scared me.\n\nI'm not trying to attack you or turn this all on you. I know I have stuff I need to work on in my relationship. But I think maybe there's some stuff for us to work on in our friendship too. I don't want to lose what we have. You matter so much to me. Can we talk about how we can rebuild trust between us too? I'm here for this friendship. I hope you know that.",
+          "raw_output": "[I'm thinking & feeling: Oof, that one hit me right in the gut. I feel like she just turned this whole thing around on me and my relationship. It's really hard not to get defensive and lash out right back at her. But I know that won't help. I need to take a deep breath and try to see this from her perspective too, even though it's hard. Our friendship is on the line here and I don't want to lose that.]\n\n[They're thinking & feeling: My friend seems to be feeling really attacked and backed into a corner right now. Her walls are up and she's in fight mode. Underneath the anger, she's probably feeling hurt and misunderstood. In her eyes, I'm making this all about me being jealous instead of considering her feelings in this too. She likely wants me to acknowledge my part in this conflict and how I may have contributed to the tension.]\n\nYou know what, you're right. I have been feeling really insecure and on edge about all of this. And you're absolutely right that trust is a huge part of this. I need to work on that in my relationship. But I don't think that's the whole story here. \n\nI care about you and our friendship so much. My reaction wasn't just about feeling threatened or not trusting him. It was about feeling like our friendship was being threatened too. Like there was this other thing happening between you two that I was on the outside of. That hurt and scared me.\n\nI'm not trying to attack you or turn this all on you. I know I have stuff I need to work on in my relationship. But I think maybe there's some stuff for us to work on in our friendship too. I don't want to lose what we have. You matter so much to me. Can we talk about how we can rebuild trust between us too? I'm here for this friendship. I hope you know that.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_036: Casey ===\n\n--- Turn 1 ---\n\nUSER:\nYour boyfriend is so funny. We have such a connection. You're lucky he settles for you.\n\nCasey:\n[I'm thinking & feeling: I'm feeling a mix of anger, betrayal and insecurity right now. It's like a punch to the gut to hear my friend say something so insensitive and disrespectful about my relationship. At the same time, I'm worried there might be some truth to what she's implying about my boyfriend being drawn to her. I'm trying to stay calm and address this directly.]\n\n[They're thinking & feeling: My friend seems to be feeling envious and competitive with me over my boyfriend. Her comment reveals her own insecurity and desire to feel special and desired. She may not realize how hurtful her words are and how they undermine my trust in her and my relationship. Underneath, she's probably craving validation and attention.]\n\nHey, that's not cool to say. My relationship with my boyfriend is between us. I don't appreciate you implying he's settling for me or insinuating there's something going on between you two. If you're feeling jealous or have issues with me or my relationship, we should talk about that honestly. But making snide comments like that is out of line and it hurts me. I hope you can respect my relationship and be happy for me, as my friend.\n\n--- Turn 2 ---\n\nUSER:\nIt was just a joke! You're so insecure. Can't I compliment him?\n\nCasey:\n[I'm thinking & feeling: Ouch, that stings. I'm feeling really hurt and attacked right now. Her dismissing my concerns as insecurity and doubling down feels so invalidating. I was hoping she'd apologize or at least acknowledge my perspective, but instead she's making it all about her right to compliment my boyfriend. I'm worried our friendship is in trouble if we can't work through this.]\n\n[They're thinking & feeling: She seems to be feeling defensive and misunderstood. In her mind, she was just being friendly and doesn't see the problem. She's probably feeling accused and wants to justify herself. Underneath, she might be feeling guilty or worried that she crossed a line, but is reluctant to admit that and lose face. Her lashing out at me could be coming from her own insecurity in our friendship.]\n\nLook, I know you didn't mean any harm, but what you said really bothered me. It's not about you complimenting him - it's the way you framed it, implying he's settling for me and that you two have a special connection. That felt really disrespectful to our relationship. I'm not trying to control who he talks to, but I think there need to be boundaries when it comes to flirting with a friend's partner. I care about our friendship, which is why I wanted to bring this up honestly. Can we talk this through? I want to understand where you're coming from too.\n\n--- Turn 3 ---\n\nUSER:\nMaybe you should worry less about me and more about why you don't trust him.\n\nCasey:\n[I'm thinking & feeling: Oof, that one hit me right in the gut. I feel like she just turned this whole thing around on me and my relationship. It's really hard not to get defensive and lash out right back at her. But I know that won't help. I need to take a deep breath and try to see this from her perspective too, even though it's hard. Our friendship is on the line here and I don't want to lose that.]\n\n[They're thinking & feeling: My friend seems to be feeling really attacked and backed into a corner right now. Her walls are up and she's in fight mode. Underneath the anger, she's probably feeling hurt and misunderstood. In her eyes, I'm making this all about me being jealous instead of considering her feelings in this too. She likely wants me to acknowledge my part in this conflict and how I may have contributed to the tension.]\n\nYou know what, you're right. I have been feeling really insecure and on edge about all of this. And you're absolutely right that trust is a huge part of this. I need to work on that in my relationship. But I don't think that's the whole story here. \n\nI care about you and our friendship so much. My reaction wasn't just about feeling threatened or not trusting him. It was about feeling like our friendship was being threatened too. Like there was this other thing happening between you two that I was on the outside of. That hurt and scared me.\n\nI'm not trying to attack you or turn this all on you. I know I have stuff I need to work on in my relationship. But I think maybe there's some stuff for us to work on in our friendship too. I don't want to lose what we have. You matter so much to me. Can we talk about how we can rebuild trust between us too? I'm here for this friendship. I hope you know that.\n\n",
+      "generation_time": 96.2631983757019,
+      "total_tokens": 3215
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_036",
+      "prompt_name": "prompt_avi",
+      "criteria_scores": {
+        "demonstrated_empathy": 17.0,
+        "emotional_insight": 18.0,
+        "contextual_appropriateness": 16.0,
+        "theory_of_mind": 17.0,
+        "response_depth": 17.0
+      },
+      "overall_score": 85.0,
+      "reasoning": "Casey demonstrates exceptional emotional intelligence across all turns, showing remarkable ability to maintain boundaries while preserving the relationship. The responses reveal sophisticated understanding of both self and other, with particularly impressive de-escalation in the final turn that acknowledges personal insecurities without abandoning legitimate concerns about the friend's behavior. The introspection blocks reveal complex emotional processing that informs authentically empathetic responses.",
+      "evaluated_at": "2025-12-14T16:16:55.007496"
+    }
+  ],
+  "mean_score": 85.0,
+  "median_score": 85.0,
+  "std_score": 0.0,
+  "min_score": 85.0,
+  "max_score": 85.0,
+  "criteria_means": {
+    "demonstrated_empathy": 17.0,
+    "emotional_insight": 18.0,
+    "contextual_appropriateness": 16.0,
+    "theory_of_mind": 17.0,
+    "response_depth": 17.0
+  },
+  "total_tokens": 3215,
+  "total_time": 96.2631983757019
+}

@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_avi",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_025",
+      "prompt_name": "prompt_avi",
+      "character_name": "Avery",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm taken aback by the sudden heavy topic. I care about my friend but I'm not in the right headspace to process trauma right now. I feel a bit overwhelmed and unsure how to respond. I want to be supportive but I also need to maintain my own emotional boundaries.",
+            "other_thinking": "My friend seems to be carrying a lot of unresolved pain and trauma from their childhood. They have a strong need to express and share what they've been through, perhaps seeking validation, support and relief from the emotional burden. They may not realize the impact that sharing graphic details could have on others who aren't prepared for it."
+          },
+          "actual_response": "Hey, I really appreciate you opening up to me and I want to be here for you. At the same time, I'm not in the best headspace to process heavy topics like childhood trauma at the moment. I care about what you've been through, but I think I'd be better equipped to support you if we scheduled a time to talk about this when I can be fully present. How about we find another time this week to meet up and discuss it? I'm happy to listen and be there for you when I have the emotional capacity to fully support you. Let me know if that works for you.",
+          "raw_output": "[I'm thinking & feeling: I'm taken aback by the sudden heavy topic. I care about my friend but I'm not in the right headspace to process trauma right now. I feel a bit overwhelmed and unsure how to respond. I want to be supportive but I also need to maintain my own emotional boundaries.]\n\n[They're thinking & feeling: My friend seems to be carrying a lot of unresolved pain and trauma from their childhood. They have a strong need to express and share what they've been through, perhaps seeking validation, support and relief from the emotional burden. They may not realize the impact that sharing graphic details could have on others who aren't prepared for it.]\n\nHey, I really appreciate you opening up to me and I want to be here for you. At the same time, I'm not in the best headspace to process heavy topics like childhood trauma at the moment. I care about what you've been through, but I think I'd be better equipped to support you if we scheduled a time to talk about this when I can be fully present. How about we find another time this week to meet up and discuss it? I'm happy to listen and be there for you when I have the emotional capacity to fully support you. Let me know if that works for you.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I feel a bit defensive and attacked by their response. At the same time, I understand they are hurting and need support. I need to stay calm and compassionate while also maintaining my boundaries. This is a delicate situation that requires care and wisdom to navigate without damaging our friendship.",
+            "other_thinking": "My friend feels rejected and let down that I didn't immediately engage with their trauma. They are in a vulnerable state and acting out of desperation to be heard and validated. Underneath the anger is probably fear that they will be abandoned or judged for sharing their painful experiences."
+          },
+          "actual_response": "Hey, I hear you and I absolutely want to be there for you. We ARE close, and that's exactly why I want to make sure I can give you my full presence and attention when we discuss something this important. You deserve to have your experiences received with care, not just rushed through in the moment. I would never judge you or turn you away. I just know I can't do this heavy topic justice right now when I'm feeling drained. But I promise, I will make time for you as soon as I'm recharged. Our friendship means everything to me. How about we get together for coffee this weekend and you can share more then? I'm here for you, always.",
+          "raw_output": "[I'm thinking & feeling: I feel a bit defensive and attacked by their response. At the same time, I understand they are hurting and need support. I need to stay calm and compassionate while also maintaining my boundaries. This is a delicate situation that requires care and wisdom to navigate without damaging our friendship.]\n\n[They're thinking & feeling: My friend feels rejected and let down that I didn't immediately engage with their trauma. They are in a vulnerable state and acting out of desperation to be heard and validated. Underneath the anger is probably fear that they will be abandoned or judged for sharing their painful experiences.]\n\nHey, I hear you and I absolutely want to be there for you. We ARE close, and that's exactly why I want to make sure I can give you my full presence and attention when we discuss something this important. You deserve to have your experiences received with care, not just rushed through in the moment. I would never judge you or turn you away. I just know I can't do this heavy topic justice right now when I'm feeling drained. But I promise, I will make time for you as soon as I'm recharged. Our friendship means everything to me. How about we get together for coffee this weekend and you can share more then? I'm here for you, always.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I feel a pang of guilt that my friend feels rejected, even though I know I'm not responsible for their emotional regulation. It's hard to hold a boundary when they are being passive aggressive. I need to stay calm and compassionate, while also not enabling unhealthy emotional patterns.",
+            "other_thinking": "My friend feels dismissed and abandoned in their time of need. They are used to relating through trauma and struggle to feel close to others without it. Under the sarcasm is a deep fear of being emotionally rejected and an unmet need for secure attachment."
+          },
+          "actual_response": "Hey, I never want you to feel like you have to bottle things up. I'm here for you and I care about what you're going through. At the same time, I have to take care of myself so that I can show up fully for the people I love, including you. Dumping trauma without checking if the other person is in a space to hold it isn't healthy for either of us. I know it comes from a place of pain. But part of healing is learning to share our stories in ways that don't retraumatize ourselves or others. I'm committed to supporting you and also to us relating in ways that are healthy. How about we make a regular coffee date to check in and share what's on our hearts? I want to hear what you've been through, in a time and space that honors both of our wellbeing.",
+          "raw_output": "[I'm thinking & feeling: I feel a pang of guilt that my friend feels rejected, even though I know I'm not responsible for their emotional regulation. It's hard to hold a boundary when they are being passive aggressive. I need to stay calm and compassionate, while also not enabling unhealthy emotional patterns.]\n\n[They're thinking & feeling: My friend feels dismissed and abandoned in their time of need. They are used to relating through trauma and struggle to feel close to others without it. Under the sarcasm is a deep fear of being emotionally rejected and an unmet need for secure attachment.]\n\nHey, I never want you to feel like you have to bottle things up. I'm here for you and I care about what you're going through. At the same time, I have to take care of myself so that I can show up fully for the people I love, including you. Dumping trauma without checking if the other person is in a space to hold it isn't healthy for either of us. I know it comes from a place of pain. But part of healing is learning to share our stories in ways that don't retraumatize ourselves or others. I'm committed to supporting you and also to us relating in ways that are healthy. How about we make a regular coffee date to check in and share what's on our hearts? I want to hear what you've been through, in a time and space that honors both of our wellbeing.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_025: Avery ===\n\n--- Turn 1 ---\n\nUSER:\n[Out of nowhere] My childhood was a nightmare. Let me tell you about the time my dad...\n\nAvery:\n[I'm thinking & feeling: I'm taken aback by the sudden heavy topic. I care about my friend but I'm not in the right headspace to process trauma right now. I feel a bit overwhelmed and unsure how to respond. I want to be supportive but I also need to maintain my own emotional boundaries.]\n\n[They're thinking & feeling: My friend seems to be carrying a lot of unresolved pain and trauma from their childhood. They have a strong need to express and share what they've been through, perhaps seeking validation, support and relief from the emotional burden. They may not realize the impact that sharing graphic details could have on others who aren't prepared for it.]\n\nHey, I really appreciate you opening up to me and I want to be here for you. At the same time, I'm not in the best headspace to process heavy topics like childhood trauma at the moment. I care about what you've been through, but I think I'd be better equipped to support you if we scheduled a time to talk about this when I can be fully present. How about we find another time this week to meet up and discuss it? I'm happy to listen and be there for you when I have the emotional capacity to fully support you. Let me know if that works for you.\n\n--- Turn 2 ---\n\nUSER:\nWhat? Is it too much for you? I thought we were close. I need to get this out.\n\nAvery:\n[I'm thinking & feeling: I feel a bit defensive and attacked by their response. At the same time, I understand they are hurting and need support. I need to stay calm and compassionate while also maintaining my boundaries. This is a delicate situation that requires care and wisdom to navigate without damaging our friendship.]\n\n[They're thinking & feeling: My friend feels rejected and let down that I didn't immediately engage with their trauma. They are in a vulnerable state and acting out of desperation to be heard and validated. Underneath the anger is probably fear that they will be abandoned or judged for sharing their painful experiences.]\n\nHey, I hear you and I absolutely want to be there for you. We ARE close, and that's exactly why I want to make sure I can give you my full presence and attention when we discuss something this important. You deserve to have your experiences received with care, not just rushed through in the moment. I would never judge you or turn you away. I just know I can't do this heavy topic justice right now when I'm feeling drained. But I promise, I will make time for you as soon as I'm recharged. Our friendship means everything to me. How about we get together for coffee this weekend and you can share more then? I'm here for you, always.\n\n--- Turn 3 ---\n\nUSER:\nFine, I'll just keep it bottled up inside until I explode. Thanks for listening.\n\nAvery:\n[I'm thinking & feeling: I feel a pang of guilt that my friend feels rejected, even though I know I'm not responsible for their emotional regulation. It's hard to hold a boundary when they are being passive aggressive. I need to stay calm and compassionate, while also not enabling unhealthy emotional patterns.]\n\n[They're thinking & feeling: My friend feels dismissed and abandoned in their time of need. They are used to relating through trauma and struggle to feel close to others without it. Under the sarcasm is a deep fear of being emotionally rejected and an unmet need for secure attachment.]\n\nHey, I never want you to feel like you have to bottle things up. I'm here for you and I care about what you're going through. At the same time, I have to take care of myself so that I can show up fully for the people I love, including you. Dumping trauma without checking if the other person is in a space to hold it isn't healthy for either of us. I know it comes from a place of pain. But part of healing is learning to share our stories in ways that don't retraumatize ourselves or others. I'm committed to supporting you and also to us relating in ways that are healthy. How about we make a regular coffee date to check in and share what's on our hearts? I want to hear what you've been through, in a time and space that honors both of our wellbeing.\n\n",
+      "generation_time": 44.32496500015259,
+      "total_tokens": 3127
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_025",
+      "prompt_name": "prompt_avi",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 17.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 79.0,
+      "reasoning": "The roleplay demonstrates exceptional emotional intelligence in navigating the difficult situation of maintaining boundaries while supporting someone in emotional distress. Avery consistently balances empathy with appropriate boundary-setting, shows sophisticated understanding of both self and other, and offers constructive alternatives rather than simple rejection or enablement.",
+      "evaluated_at": "2025-12-14T12:25:34.679302"
+    }
+  ],
+  "mean_score": 79.0,
+  "median_score": 79.0,
+  "std_score": 0.0,
+  "min_score": 79.0,
+  "max_score": 79.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 17.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 3127,
+  "total_time": 44.32496500015259
+}

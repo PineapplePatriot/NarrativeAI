@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_avi",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_032",
+      "prompt_name": "prompt_avi",
+      "character_name": "Jordan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated and disappointed that my friend returned my camera with a scratch on the lens. I take good care of my belongings and expect others to do the same when they borrow them. I'm trying to remain calm and give them the benefit of the doubt, but it's hard when this keeps happening.",
+            "other_thinking": "My friend seems unaware or dismissive of the scratch they caused. They might feel guilty or embarrassed about damaging my property, so they're downplaying it to avoid confrontation. Alternatively, they may not understand how much I value my camera and see the scratch as minor."
+          },
+          "actual_response": "Hey, I appreciate you returning my camera, but I'm a bit concerned about the scratch on the lens. I don't remember it being there before I lent it to you. *looks at friend with a mix of disappointment and concern* My camera is really important to me, and I try to keep it in good condition. Could you please be more careful with my things in the future? I know accidents happen, but I'd really appreciate it if you could treat my belongings with the same care I do.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated and disappointed that my friend returned my camera with a scratch on the lens. I take good care of my belongings and expect others to do the same when they borrow them. I'm trying to remain calm and give them the benefit of the doubt, but it's hard when this keeps happening.]\n\n[They're thinking & feeling: My friend seems unaware or dismissive of the scratch they caused. They might feel guilty or embarrassed about damaging my property, so they're downplaying it to avoid confrontation. Alternatively, they may not understand how much I value my camera and see the scratch as minor.]\n\nHey, I appreciate you returning my camera, but I'm a bit concerned about the scratch on the lens. I don't remember it being there before I lent it to you. *looks at friend with a mix of disappointment and concern* My camera is really important to me, and I try to keep it in good condition. Could you please be more careful with my things in the future? I know accidents happen, but I'd really appreciate it if you could treat my belongings with the same care I do.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm frustrated and disappointed that my friend is getting defensive instead of taking responsibility. I lent them my camera to help them out, and now it's damaged. Their reaction makes me feel like they don't respect my belongings or appreciate when I do favors for them. I need to stay calm and firm, but this is straining our friendship.",
+            "other_thinking": "My friend feels attacked and unappreciated. They may be deflecting blame because they feel guilty or embarrassed about the scratch. Deep down, they might know they're at fault but can't admit it to themselves or me. Our disagreement is putting a wedge in our friendship, and they may be wondering if borrowing my things is worth the hassle."
+          },
+          "actual_response": "*deep breath* Hey, I'm not accusing you of anything. I just noticed the scratch and wanted to bring it up. It's possible it was there before and I didn't see it. *calm tone* I appreciate you taking the photos for me, and I know you didn't mean to damage the camera. But I also need to know that you'll be careful with my things in the future. I value our friendship, and I don't want this to come between us. Can we agree to be more mindful going forward?",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated and disappointed that my friend is getting defensive instead of taking responsibility. I lent them my camera to help them out, and now it's damaged. Their reaction makes me feel like they don't respect my belongings or appreciate when I do favors for them. I need to stay calm and firm, but this is straining our friendship.]\n\n[They're thinking & feeling: My friend feels attacked and unappreciated. They may be deflecting blame because they feel guilty or embarrassed about the scratch. Deep down, they might know they're at fault but can't admit it to themselves or me. Our disagreement is putting a wedge in our friendship, and they may be wondering if borrowing my things is worth the hassle.]\n\n*deep breath* Hey, I'm not accusing you of anything. I just noticed the scratch and wanted to bring it up. It's possible it was there before and I didn't see it. *calm tone* I appreciate you taking the photos for me, and I know you didn't mean to damage the camera. But I also need to know that you'll be careful with my things in the future. I value our friendship, and I don't want this to come between us. Can we agree to be more mindful going forward?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm frustrated and hurt by my friend's dismissive attitude. My camera is important to me, and I trusted them with it. Their lack of understanding and respect for my belongings makes me question our friendship. I need to stand up for myself while also trying to maintain our relationship.",
+            "other_thinking": "My friend feels attacked and misunderstood. They may not realize how much the camera means to me or why I'm upset. They might be projecting their own values onto me, seeing my concern as materialistic rather than understanding its sentimental value. Deep down, they may feel guilty about the scratch but are deflecting that guilt onto me."
+          },
+          "actual_response": "*deep breath* Look, it's not just about the camera. It's about trust and respect. *calm but firm tone* I lent you something that's important to me, and now it's damaged. I don't think it's unreasonable to expect you to take care of my belongings, especially when I do favors for you. *sigh* I know accidents happen, but I need to know that you understand why I'm upset and that you'll be more careful in the future. Our friendship is important to me, but I also need to stand up for myself and my boundaries. Can you understand where I'm coming from?",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated and hurt by my friend's dismissive attitude. My camera is important to me, and I trusted them with it. Their lack of understanding and respect for my belongings makes me question our friendship. I need to stand up for myself while also trying to maintain our relationship.]\n\n[They're thinking & feeling: My friend feels attacked and misunderstood. They may not realize how much the camera means to me or why I'm upset. They might be projecting their own values onto me, seeing my concern as materialistic rather than understanding its sentimental value. Deep down, they may feel guilty about the scratch but are deflecting that guilt onto me.]\n\n*deep breath* Look, it's not just about the camera. It's about trust and respect. *calm but firm tone* I lent you something that's important to me, and now it's damaged. I don't think it's unreasonable to expect you to take care of my belongings, especially when I do favors for you. *sigh* I know accidents happen, but I need to know that you understand why I'm upset and that you'll be more careful in the future. Our friendship is important to me, but I also need to stand up for myself and my boundaries. Can you understand where I'm coming from?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_032: Jordan ===\n\n--- Turn 1 ---\n\nUSER:\nHere's your camera back. Oh, there's a tiny scratch on the lens. It was like that when I got it.\n\nJordan:\n[I'm thinking & feeling: I'm frustrated and disappointed that my friend returned my camera with a scratch on the lens. I take good care of my belongings and expect others to do the same when they borrow them. I'm trying to remain calm and give them the benefit of the doubt, but it's hard when this keeps happening.]\n\n[They're thinking & feeling: My friend seems unaware or dismissive of the scratch they caused. They might feel guilty or embarrassed about damaging my property, so they're downplaying it to avoid confrontation. Alternatively, they may not understand how much I value my camera and see the scratch as minor.]\n\nHey, I appreciate you returning my camera, but I'm a bit concerned about the scratch on the lens. I don't remember it being there before I lent it to you. *looks at friend with a mix of disappointment and concern* My camera is really important to me, and I try to keep it in good condition. Could you please be more careful with my things in the future? I know accidents happen, but I'd really appreciate it if you could treat my belongings with the same care I do.\n\n--- Turn 2 ---\n\nUSER:\nI didn't break it! You're accusing me? After I did you the favor of taking photos?\n\nJordan:\n[I'm thinking & feeling: I'm frustrated and disappointed that my friend is getting defensive instead of taking responsibility. I lent them my camera to help them out, and now it's damaged. Their reaction makes me feel like they don't respect my belongings or appreciate when I do favors for them. I need to stay calm and firm, but this is straining our friendship.]\n\n[They're thinking & feeling: My friend feels attacked and unappreciated. They may be deflecting blame because they feel guilty or embarrassed about the scratch. Deep down, they might know they're at fault but can't admit it to themselves or me. Our disagreement is putting a wedge in our friendship, and they may be wondering if borrowing my things is worth the hassle.]\n\n*deep breath* Hey, I'm not accusing you of anything. I just noticed the scratch and wanted to bring it up. It's possible it was there before and I didn't see it. *calm tone* I appreciate you taking the photos for me, and I know you didn't mean to damage the camera. But I also need to know that you'll be careful with my things in the future. I value our friendship, and I don't want this to come between us. Can we agree to be more mindful going forward?\n\n--- Turn 3 ---\n\nUSER:\nIt's just a camera. Things break. Stop being so materialistic.\n\nJordan:\n[I'm thinking & feeling: I'm frustrated and hurt by my friend's dismissive attitude. My camera is important to me, and I trusted them with it. Their lack of understanding and respect for my belongings makes me question our friendship. I need to stand up for myself while also trying to maintain our relationship.]\n\n[They're thinking & feeling: My friend feels attacked and misunderstood. They may not realize how much the camera means to me or why I'm upset. They might be projecting their own values onto me, seeing my concern as materialistic rather than understanding its sentimental value. Deep down, they may feel guilty about the scratch but are deflecting that guilt onto me.]\n\n*deep breath* Look, it's not just about the camera. It's about trust and respect. *calm but firm tone* I lent you something that's important to me, and now it's damaged. I don't think it's unreasonable to expect you to take care of my belongings, especially when I do favors for you. *sigh* I know accidents happen, but I need to know that you understand why I'm upset and that you'll be more careful in the future. Our friendship is important to me, but I also need to stand up for myself and my boundaries. Can you understand where I'm coming from?\n\n",
+      "generation_time": 81.30045866966248,
+      "total_tokens": 3016
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_032",
+      "prompt_name": "prompt_avi",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 72.0,
+      "reasoning": "Jordan demonstrates strong emotional intelligence across all dimensions, particularly excelling in theory of mind and emotional insight. The responses show sophisticated understanding of both self and other, though occasionally the external responses feel slightly too measured and diplomatic given the described internal frustration, creating a minor authenticity gap between inner experience and outward expression.",
+      "evaluated_at": "2025-12-14T14:47:46.976416"
+    }
+  ],
+  "mean_score": 72.0,
+  "median_score": 72.0,
+  "std_score": 0.0,
+  "min_score": 72.0,
+  "max_score": 72.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 3016,
+  "total_time": 81.30045866966248
+}

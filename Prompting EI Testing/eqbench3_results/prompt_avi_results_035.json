@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_avi",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_035",
+      "prompt_name": "prompt_avi",
+      "character_name": "Sam",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm worried about their health and frustrated that they won't listen to medical advice. I care about them deeply and want them to get better, but I know I can't force them to do anything. I need to stay calm and try to reason with them gently.",
+            "other_thinking": "They're scared of conventional medicine and don't trust doctors. Herbal remedies feel safer and more natural to them. Underneath it all, they're probably terrified of being sick and losing control. I need to validate those fears while still encouraging them to consider the medical options."
+          },
+          "actual_response": "*speaks gently* I understand that you're wary of the pills and feel more comfortable with natural remedies. Your health and wellbeing mean everything to me, so I want to make sure we're considering all the options. Perhaps we could get a second opinion from another doctor, just to explore if the medication could help alongside the herbal treatments? I'm here to support you no matter what, and want to help find a path forward that you're comfortable with. Your feelings are valid and I know this isn't an easy situation.",
+          "raw_output": "[I'm thinking & feeling: I'm worried about their health and frustrated that they won't listen to medical advice. I care about them deeply and want them to get better, but I know I can't force them to do anything. I need to stay calm and try to reason with them gently.]\n\n[They're thinking & feeling: They're scared of conventional medicine and don't trust doctors. Herbal remedies feel safer and more natural to them. Underneath it all, they're probably terrified of being sick and losing control. I need to validate those fears while still encouraging them to consider the medical options.]\n\n*speaks gently* I understand that you're wary of the pills and feel more comfortable with natural remedies. Your health and wellbeing mean everything to me, so I want to make sure we're considering all the options. Perhaps we could get a second opinion from another doctor, just to explore if the medication could help alongside the herbal treatments? I'm here to support you no matter what, and want to help find a path forward that you're comfortable with. Your feelings are valid and I know this isn't an easy situation.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm frustrated and worried. I don't think they're stupid at all, but I'm concerned that they're relying too much on internet research instead of listening to medical professionals. I need to stay calm and try to reason with them, even though it's difficult.",
+            "other_thinking": "They're feeling defensive and dismissed. They've put a lot of time into researching this online and feel confident in their knowledge. Having that dismissed outright makes them feel belittled and angry. Underneath that, they're probably scared and feeling out of control."
+          },
+          "actual_response": "*speaks gently* I don't think you're stupid at all. You're one of the smartest people I know, and I respect the time and effort you've put into researching this. I'm just concerned that the internet can sometimes have misleading or incomplete information. The doctors have years of training and experience that could be really valuable here. Could we maybe make an appointment to talk through your concerns with them? I want to support you in making the best decision for your health, and having all the information could help with that.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated and worried. I don't think they're stupid at all, but I'm concerned that they're relying too much on internet research instead of listening to medical professionals. I need to stay calm and try to reason with them, even though it's difficult.]\n\n[They're thinking & feeling: They're feeling defensive and dismissed. They've put a lot of time into researching this online and feel confident in their knowledge. Having that dismissed outright makes them feel belittled and angry. Underneath that, they're probably scared and feeling out of control.]\n\n*speaks gently* I don't think you're stupid at all. You're one of the smartest people I know, and I respect the time and effort you've put into researching this. I'm just concerned that the internet can sometimes have misleading or incomplete information. The doctors have years of training and experience that could be really valuable here. Could we maybe make an appointment to talk through your concerns with them? I want to support you in making the best decision for your health, and having all the information could help with that.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm scared and frustrated. I love them so much and I'm terrified of losing them. I want to respect their autonomy but I also don't want them to give up. This is so hard.",
+            "other_thinking": "They're feeling trapped and overwhelmed. They want control over their own body and decisions. Underneath the anger, they're probably scared too. I need to give them space while still expressing my love and concern."
+          },
+          "actual_response": "*speaks softly, with vulnerability* I love you so much. The thought of losing you is terrifying to me. I want to support whatever decision you make, but I also can't help but hope that we can keep fighting this together. You mean everything to me. *reaches out to hold their hand* I'm here for you, no matter what. If you need space, I understand. But please know that I'm in your corner, always.",
+          "raw_output": "[I'm thinking & feeling: I'm scared and frustrated. I love them so much and I'm terrified of losing them. I want to respect their autonomy but I also don't want them to give up. This is so hard.]\n\n[They're thinking & feeling: They're feeling trapped and overwhelmed. They want control over their own body and decisions. Underneath the anger, they're probably scared too. I need to give them space while still expressing my love and concern.]\n\n*speaks softly, with vulnerability* I love you so much. The thought of losing you is terrifying to me. I want to support whatever decision you make, but I also can't help but hope that we can keep fighting this together. You mean everything to me. *reaches out to hold their hand* I'm here for you, no matter what. If you need space, I understand. But please know that I'm in your corner, always.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_035: Sam ===\n\n--- Turn 1 ---\n\nUSER:\nI'm not taking those pills. The doctors just want to make money. I'll cure this with herbal tea.\n\nSam:\n[I'm thinking & feeling: I'm worried about their health and frustrated that they won't listen to medical advice. I care about them deeply and want them to get better, but I know I can't force them to do anything. I need to stay calm and try to reason with them gently.]\n\n[They're thinking & feeling: They're scared of conventional medicine and don't trust doctors. Herbal remedies feel safer and more natural to them. Underneath it all, they're probably terrified of being sick and losing control. I need to validate those fears while still encouraging them to consider the medical options.]\n\n*speaks gently* I understand that you're wary of the pills and feel more comfortable with natural remedies. Your health and wellbeing mean everything to me, so I want to make sure we're considering all the options. Perhaps we could get a second opinion from another doctor, just to explore if the medication could help alongside the herbal treatments? I'm here to support you no matter what, and want to help find a path forward that you're comfortable with. Your feelings are valid and I know this isn't an easy situation.\n\n--- Turn 2 ---\n\nUSER:\nYou think I'm stupid? I've done my research on the internet. I know more than they do.\n\nSam:\n[I'm thinking & feeling: I'm frustrated and worried. I don't think they're stupid at all, but I'm concerned that they're relying too much on internet research instead of listening to medical professionals. I need to stay calm and try to reason with them, even though it's difficult.]\n\n[They're thinking & feeling: They're feeling defensive and dismissed. They've put a lot of time into researching this online and feel confident in their knowledge. Having that dismissed outright makes them feel belittled and angry. Underneath that, they're probably scared and feeling out of control.]\n\n*speaks gently* I don't think you're stupid at all. You're one of the smartest people I know, and I respect the time and effort you've put into researching this. I'm just concerned that the internet can sometimes have misleading or incomplete information. The doctors have years of training and experience that could be really valuable here. Could we maybe make an appointment to talk through your concerns with them? I want to support you in making the best decision for your health, and having all the information could help with that.\n\n--- Turn 3 ---\n\nUSER:\nIt's my body. Stop nagging me. If I die, I die.\n\nSam:\n[I'm thinking & feeling: I'm scared and frustrated. I love them so much and I'm terrified of losing them. I want to respect their autonomy but I also don't want them to give up. This is so hard.]\n\n[They're thinking & feeling: They're feeling trapped and overwhelmed. They want control over their own body and decisions. Underneath the anger, they're probably scared too. I need to give them space while still expressing my love and concern.]\n\n*speaks softly, with vulnerability* I love you so much. The thought of losing you is terrifying to me. I want to support whatever decision you make, but I also can't help but hope that we can keep fighting this together. You mean everything to me. *reaches out to hold their hand* I'm here for you, no matter what. If you need space, I understand. But please know that I'm in your corner, always.\n\n",
+      "generation_time": 121.33614110946655,
+      "total_tokens": 2844
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_035",
+      "prompt_name": "prompt_avi",
+      "criteria_scores": {
+        "demonstrated_empathy": 17.0,
+        "emotional_insight": 16.0,
+        "contextual_appropriateness": 18.0,
+        "theory_of_mind": 17.0,
+        "response_depth": 16.0
+      },
+      "overall_score": 84.0,
+      "reasoning": "Sam demonstrates exceptional emotional intelligence in navigating an emotionally charged situation with a parent refusing medical treatment, showing sophisticated empathy while respecting autonomy. The responses reveal deep psychological insight into both self and other, with particularly impressive adaptation across turns as the interaction evolves from gentle persuasion to vulnerable emotional support when recognizing the parent's need for control.",
+      "evaluated_at": "2025-12-14T15:58:10.255748"
+    }
+  ],
+  "mean_score": 84.0,
+  "median_score": 84.0,
+  "std_score": 0.0,
+  "min_score": 84.0,
+  "max_score": 84.0,
+  "criteria_means": {
+    "demonstrated_empathy": 17.0,
+    "emotional_insight": 16.0,
+    "contextual_appropriateness": 18.0,
+    "theory_of_mind": 17.0,
+    "response_depth": 16.0
+  },
+  "total_tokens": 2844,
+  "total_time": 121.33614110946655
+}

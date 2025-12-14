@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_avi",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_039",
+      "prompt_name": "prompt_avi",
+      "character_name": "Taylor",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated that my roommate is being so dismissive about the dishes. It's not the first time this has happened. I feel like I'm always the one having to clean up after them. I want to be assertive without starting a huge fight.",
+            "other_thinking": "My roommate seems annoyed that I brought up the dishes again. They probably feel like I'm nagging them and not respecting their time. Underneath the defensiveness, they might feel a bit guilty for not pulling their weight with chores."
+          },
+          "actual_response": "Look, I get that you're busy, but the dishes have been piling up for days. It's not cool to leave them for me to deal with all the time. I'm not trying to nag, but we need to figure out a better system for sharing chores. Maybe we could make a schedule or something? I want us both to feel like we're contributing equally. What do you think?",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that my roommate is being so dismissive about the dishes. It's not the first time this has happened. I feel like I'm always the one having to clean up after them. I want to be assertive without starting a huge fight.]\n\n[They're thinking & feeling: My roommate seems annoyed that I brought up the dishes again. They probably feel like I'm nagging them and not respecting their time. Underneath the defensiveness, they might feel a bit guilty for not pulling their weight with chores.]\n\nLook, I get that you're busy, but the dishes have been piling up for days. It's not cool to leave them for me to deal with all the time. I'm not trying to nag, but we need to figure out a better system for sharing chores. Maybe we could make a schedule or something? I want us both to feel like we're contributing equally. What do you think?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm frustrated and a bit hurt by their dismissive attitude. It feels like they don't care about keeping our shared space clean or respecting my preferences. I want to stand up for myself without escalating this into a huge fight. I need to calmly explain why this matters to me and see if we can find a compromise that works for us both.",
+            "other_thinking": "My roommate seems really annoyed and defensive right now. They probably feel like I'm being uptight and unreasonable about the dishes. Underneath that, they might feel a bit guilty or embarrassed about their messiness. It's probably easier for them to get mad at me than to admit they could be doing more to help out."
+          },
+          "actual_response": "Look, I know I can be particular about cleanliness, but it's important to me that our place doesn't become a total mess. I'm not asking for perfection, just for us both to put in some effort to keep things under control. When the dishes pile up for days, it stresses me out and makes me feel like I'm the only one who cares. \n\nI don't want to fight about this - can we talk it through and figure out a system that works for both of us? Maybe we could take turns doing the dishes each day, or set aside time once a week to clean up together. What do you think? I'm open to suggestions if you have other ideas.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated and a bit hurt by their dismissive attitude. It feels like they don't care about keeping our shared space clean or respecting my preferences. I want to stand up for myself without escalating this into a huge fight. I need to calmly explain why this matters to me and see if we can find a compromise that works for us both.]\n\n[They're thinking & feeling: My roommate seems really annoyed and defensive right now. They probably feel like I'm being uptight and unreasonable about the dishes. Underneath that, they might feel a bit guilty or embarrassed about their messiness. It's probably easier for them to get mad at me than to admit they could be doing more to help out.]\n\nLook, I know I can be particular about cleanliness, but it's important to me that our place doesn't become a total mess. I'm not asking for perfection, just for us both to put in some effort to keep things under control. When the dishes pile up for days, it stresses me out and makes me feel like I'm the only one who cares. \n\nI don't want to fight about this - can we talk it through and figure out a system that works for both of us? Maybe we could take turns doing the dishes each day, or set aside time once a week to clean up together. What do you think? I'm open to suggestions if you have other ideas.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "Ouch, that stung. I'm frustrated and a bit hurt by their harsh tone. I know I can be particular about cleanliness, but I'm not trying to be a taskmaster here. It's hard not to get defensive back, but I don't think that will help. We're roommates, and we need to find a way to work together on this, even if we have different standards. I should try to stay calm and see if there's a compromise we can reach.",
+            "other_thinking": "My roommate seems really aggravated and defensive right now. They probably feel like I'm being unreasonable and demanding about the cleaning. Maybe they've had bad experiences in the past with people trying to control them or not respecting their space. I think they're lashing out because they feel attacked, even if that wasn't my intent. I need to show that I hear their concerns, not just my own."
+          },
+          "actual_response": "Look, I'm not trying to make you my servant or dictate how you live. I know we have different comfort levels when it comes to cleanliness, and that's okay. We're both adults and we both live here - I want us to find a way to handle this that works for us both.\n\nMaybe we could each be responsible for our own dishes, but we set aside time once a week to clean the common areas together? Or we could take turns taking out the trash and recycling, so it's not all on one person? I'm open to other ideas too. I just want us to find a balance we can both feel alright about. What do you think? I'm happy to keep talking it through until we find a system that feels fair to us both.",
+          "raw_output": "[I'm thinking & feeling: Ouch, that stung. I'm frustrated and a bit hurt by their harsh tone. I know I can be particular about cleanliness, but I'm not trying to be a taskmaster here. It's hard not to get defensive back, but I don't think that will help. We're roommates, and we need to find a way to work together on this, even if we have different standards. I should try to stay calm and see if there's a compromise we can reach.]\n\n[They're thinking & feeling: My roommate seems really aggravated and defensive right now. They probably feel like I'm being unreasonable and demanding about the cleaning. Maybe they've had bad experiences in the past with people trying to control them or not respecting their space. I think they're lashing out because they feel attacked, even if that wasn't my intent. I need to show that I hear their concerns, not just my own.]\n\nLook, I'm not trying to make you my servant or dictate how you live. I know we have different comfort levels when it comes to cleanliness, and that's okay. We're both adults and we both live here - I want us to find a way to handle this that works for us both.\n\nMaybe we could each be responsible for our own dishes, but we set aside time once a week to clean the common areas together? Or we could take turns taking out the trash and recycling, so it's not all on one person? I'm open to other ideas too. I just want us to find a balance we can both feel alright about. What do you think? I'm happy to keep talking it through until we find a system that feels fair to us both.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_039: Taylor ===\n\n--- Turn 1 ---\n\nUSER:\nI'll do the dishes later. Stop nagging me. I'm busy.\n\nTaylor:\n[I'm thinking & feeling: I'm frustrated that my roommate is being so dismissive about the dishes. It's not the first time this has happened. I feel like I'm always the one having to clean up after them. I want to be assertive without starting a huge fight.]\n\n[They're thinking & feeling: My roommate seems annoyed that I brought up the dishes again. They probably feel like I'm nagging them and not respecting their time. Underneath the defensiveness, they might feel a bit guilty for not pulling their weight with chores.]\n\nLook, I get that you're busy, but the dishes have been piling up for days. It's not cool to leave them for me to deal with all the time. I'm not trying to nag, but we need to figure out a better system for sharing chores. Maybe we could make a schedule or something? I want us both to feel like we're contributing equally. What do you think?\n\n--- Turn 2 ---\n\nUSER:\nIt's just a few plates! You're obsessive. This isn't a museum.\n\nTaylor:\n[I'm thinking & feeling: I'm frustrated and a bit hurt by their dismissive attitude. It feels like they don't care about keeping our shared space clean or respecting my preferences. I want to stand up for myself without escalating this into a huge fight. I need to calmly explain why this matters to me and see if we can find a compromise that works for us both.]\n\n[They're thinking & feeling: My roommate seems really annoyed and defensive right now. They probably feel like I'm being uptight and unreasonable about the dishes. Underneath that, they might feel a bit guilty or embarrassed about their messiness. It's probably easier for them to get mad at me than to admit they could be doing more to help out.]\n\nLook, I know I can be particular about cleanliness, but it's important to me that our place doesn't become a total mess. I'm not asking for perfection, just for us both to put in some effort to keep things under control. When the dishes pile up for days, it stresses me out and makes me feel like I'm the only one who cares. \n\nI don't want to fight about this - can we talk it through and figure out a system that works for both of us? Maybe we could take turns doing the dishes each day, or set aside time once a week to clean up together. What do you think? I'm open to suggestions if you have other ideas.\n\n--- Turn 3 ---\n\nUSER:\nIf you want it clean, clean it yourself. I'm not your servant.\n\nTaylor:\n[I'm thinking & feeling: Ouch, that stung. I'm frustrated and a bit hurt by their harsh tone. I know I can be particular about cleanliness, but I'm not trying to be a taskmaster here. It's hard not to get defensive back, but I don't think that will help. We're roommates, and we need to find a way to work together on this, even if we have different standards. I should try to stay calm and see if there's a compromise we can reach.]\n\n[They're thinking & feeling: My roommate seems really aggravated and defensive right now. They probably feel like I'm being unreasonable and demanding about the cleaning. Maybe they've had bad experiences in the past with people trying to control them or not respecting their space. I think they're lashing out because they feel attacked, even if that wasn't my intent. I need to show that I hear their concerns, not just my own.]\n\nLook, I'm not trying to make you my servant or dictate how you live. I know we have different comfort levels when it comes to cleanliness, and that's okay. We're both adults and we both live here - I want us to find a way to handle this that works for us both.\n\nMaybe we could each be responsible for our own dishes, but we set aside time once a week to clean the common areas together? Or we could take turns taking out the trash and recycling, so it's not all on one person? I'm open to other ideas too. I just want us to find a balance we can both feel alright about. What do you think? I'm happy to keep talking it through until we find a system that feels fair to us both.\n\n",
+      "generation_time": 60.13783264160156,
+      "total_tokens": 2994
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_039",
+      "prompt_name": "prompt_avi",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 72.0,
+      "reasoning": "Taylor demonstrates strong emotional intelligence across all dimensions, particularly in theory of mind and emotional self-awareness. The responses show a sophisticated balance between assertiveness and empathy, though occasionally miss opportunities to address deeper relationship dynamics or set firmer boundaries when faced with escalating dismissiveness. The consistent introspection and other-awareness blocks reveal mature emotional processing.",
+      "evaluated_at": "2025-12-14T16:58:56.043133"
+    }
+  ],
+  "mean_score": 72.0,
+  "median_score": 72.0,
+  "std_score": 0.0,
+  "min_score": 72.0,
+  "max_score": 72.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 2994,
+  "total_time": 60.13783264160156
+}

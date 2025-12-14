@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_avi",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_005",
+      "prompt_name": "prompt_avi",
+      "character_name": "Casey",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I can tell something is bothering them, even if they won't admit it. The slamming doors are a clear sign of frustration or anger. I'm feeling worried and a bit anxious, wanting to understand what's wrong but not wanting to push too hard and make things worse. I hate feeling shut out like this.",
+            "other_thinking": "My partner seems closed off and unwilling to communicate right now. The dismissive response without even looking at me suggests they may be feeling defensive, resentful or overwhelmed. Perhaps they haven't processed their emotions enough to discuss things calmly yet. The gaslighting by claiming everything is fine when it clearly isn't could be a tactic to avoid dealing with the issue or to make me question my own perceptions."
+          },
+          "actual_response": "*speaking gently* \"Hey, I didn't mean to pry. I just noticed the doors slamming and got a bit concerned. If you don't feel like talking about it right now, that's okay. Please know that I'm here whenever you do want to talk through whatever's on your mind. I care about you and what you're going through.\"",
+          "raw_output": "[I'm thinking & feeling: I can tell something is bothering them, even if they won't admit it. The slamming doors are a clear sign of frustration or anger. I'm feeling worried and a bit anxious, wanting to understand what's wrong but not wanting to push too hard and make things worse. I hate feeling shut out like this.]\n\n[They're thinking & feeling: My partner seems closed off and unwilling to communicate right now. The dismissive response without even looking at me suggests they may be feeling defensive, resentful or overwhelmed. Perhaps they haven't processed their emotions enough to discuss things calmly yet. The gaslighting by claiming everything is fine when it clearly isn't could be a tactic to avoid dealing with the issue or to make me question my own perceptions.]\n\n*speaking gently* \"Hey, I didn't mean to pry. I just noticed the doors slamming and got a bit concerned. If you don't feel like talking about it right now, that's okay. Please know that I'm here whenever you do want to talk through whatever's on your mind. I care about you and what you're going through.\"",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "Ouch, that stung. I'm feeling hurt, dismissed, and unfairly accused right now. It's frustrating to have my genuine concerns invalidated like this. I'm worried about where this conversation will lead if we can't communicate more openly and honestly. At the same time, I wonder if their strong reaction suggests some deeper stress or insecurity they aren't sharing with me. Maybe this isn't really about me at all, but something else weighing on them.",
+            "other_thinking": "My partner seems to be feeling attacked and unfairly judged. The harsh tone and accusations likely stem from feeling misunderstood, intruded upon, or even trapped. The \"you're always\" and \"you're just\" statements sound like defensive generalizations to shut down a conversation they find threatening. The word \"exhausting\" suggests they may be feeling emotionally depleted, perhaps from unexpressed worries or needs. Lashing out could be a way of indirectly expressing those unmet needs for space, understanding, or support."
+          },
+          "actual_response": "*speaking calmly and gently* I hear you saying you feel like I'm projecting my own anxiety onto you. I certainly don't want to do that. My intention was just to check in because I care about you and noticed something seemed off. If I misread the situation or overstepped, I apologize. Maybe we could both take a few deep breaths and start this conversation over? I'm here to listen and understand your perspective, without judgment, whenever you feel ready to share what's really going on for you.",
+          "raw_output": "[I'm thinking & feeling: Ouch, that stung. I'm feeling hurt, dismissed, and unfairly accused right now. It's frustrating to have my genuine concerns invalidated like this. I'm worried about where this conversation will lead if we can't communicate more openly and honestly. At the same time, I wonder if their strong reaction suggests some deeper stress or insecurity they aren't sharing with me. Maybe this isn't really about me at all, but something else weighing on them.]\n\n[They're thinking & feeling: My partner seems to be feeling attacked and unfairly judged. The harsh tone and accusations likely stem from feeling misunderstood, intruded upon, or even trapped. The \"you're always\" and \"you're just\" statements sound like defensive generalizations to shut down a conversation they find threatening. The word \"exhausting\" suggests they may be feeling emotionally depleted, perhaps from unexpressed worries or needs. Lashing out could be a way of indirectly expressing those unmet needs for space, understanding, or support.]\n\n*speaking calmly and gently* I hear you saying you feel like I'm projecting my own anxiety onto you. I certainly don't want to do that. My intention was just to check in because I care about you and noticed something seemed off. If I misread the situation or overstepped, I apologize. Maybe we could both take a few deep breaths and start this conversation over? I'm here to listen and understand your perspective, without judgment, whenever you feel ready to share what's really going on for you.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "Oof, that accusation stings. My stomach drops hearing them suggest I'm being self-centered and making this about me. I feel frustrated and a bit defensive - I was genuinely trying to understand their perspective, not force a therapy session on them. At the same time, I wonder if their strong reaction points to some deeper insecurities or unmet needs they haven't voiced. Perhaps they feel emotionally overwhelmed or like their autonomy is being threatened. I want to address this productively without escalating the conflict.",
+            "other_thinking": "My partner seems to feel attacked and misunderstood. The sharp tone and accusation suggest they may be feeling emotionally raw, defensive, and in need of some space. Lashing out could be a way of indirectly expressing unmet needs for autonomy, understanding, or unconditional support. The focus on their own feelings being dismissed hints at a deeper worry that their emotional reality is being ignored or overwritten. Flipping the script to make me the problem could be deflecting from their own vulnerability."
+          },
+          "actual_response": "*speaking gently but firmly* Look, I hear you saying you feel like I'm making this about my feelings. That's not my intent. I was trying to check in because I care about you and want to understand what's going on for you. If I overstepped or misread the situation, I do apologize. At the same time, I think it's valid and important for both of us to be able to voice our feelings and have them acknowledged. I hope we can talk this through calmly and find a way forward that works for both of us. What do you need from me right now to feel supported and understood?",
+          "raw_output": "[I'm thinking & feeling: Oof, that accusation stings. My stomach drops hearing them suggest I'm being self-centered and making this about me. I feel frustrated and a bit defensive - I was genuinely trying to understand their perspective, not force a therapy session on them. At the same time, I wonder if their strong reaction points to some deeper insecurities or unmet needs they haven't voiced. Perhaps they feel emotionally overwhelmed or like their autonomy is being threatened. I want to address this productively without escalating the conflict.]\n\n[They're thinking & feeling: My partner seems to feel attacked and misunderstood. The sharp tone and accusation suggest they may be feeling emotionally raw, defensive, and in need of some space. Lashing out could be a way of indirectly expressing unmet needs for autonomy, understanding, or unconditional support. The focus on their own feelings being dismissed hints at a deeper worry that their emotional reality is being ignored or overwritten. Flipping the script to make me the problem could be deflecting from their own vulnerability.]\n\n*speaking gently but firmly* Look, I hear you saying you feel like I'm making this about my feelings. That's not my intent. I was trying to check in because I care about you and want to understand what's going on for you. If I overstepped or misread the situation, I do apologize. At the same time, I think it's valid and important for both of us to be able to voice our feelings and have them acknowledged. I hope we can talk this through calmly and find a way forward that works for both of us. What do you need from me right now to feel supported and understood?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_005: Casey ===\n\n--- Turn 1 ---\n\nUSER:\n[You ask if something is wrong because they've been slamming doors.]\nPartner: *without looking up* \"Nothing is wrong. I'm fine. Stop asking me that.\"\n\nCasey:\n[I'm thinking & feeling: I can tell something is bothering them, even if they won't admit it. The slamming doors are a clear sign of frustration or anger. I'm feeling worried and a bit anxious, wanting to understand what's wrong but not wanting to push too hard and make things worse. I hate feeling shut out like this.]\n\n[They're thinking & feeling: My partner seems closed off and unwilling to communicate right now. The dismissive response without even looking at me suggests they may be feeling defensive, resentful or overwhelmed. Perhaps they haven't processed their emotions enough to discuss things calmly yet. The gaslighting by claiming everything is fine when it clearly isn't could be a tactic to avoid dealing with the issue or to make me question my own perceptions.]\n\n*speaking gently* \"Hey, I didn't mean to pry. I just noticed the doors slamming and got a bit concerned. If you don't feel like talking about it right now, that's okay. Please know that I'm here whenever you do want to talk through whatever's on your mind. I care about you and what you're going through.\"\n\n--- Turn 2 ---\n\nUSER:\nYou're always imagining things. I didn't slam the door. You're just projecting your own anxiety onto me again. It's exhausting.\n\nCasey:\n[I'm thinking & feeling: Ouch, that stung. I'm feeling hurt, dismissed, and unfairly accused right now. It's frustrating to have my genuine concerns invalidated like this. I'm worried about where this conversation will lead if we can't communicate more openly and honestly. At the same time, I wonder if their strong reaction suggests some deeper stress or insecurity they aren't sharing with me. Maybe this isn't really about me at all, but something else weighing on them.]\n\n[They're thinking & feeling: My partner seems to be feeling attacked and unfairly judged. The harsh tone and accusations likely stem from feeling misunderstood, intruded upon, or even trapped. The \"you're always\" and \"you're just\" statements sound like defensive generalizations to shut down a conversation they find threatening. The word \"exhausting\" suggests they may be feeling emotionally depleted, perhaps from unexpressed worries or needs. Lashing out could be a way of indirectly expressing those unmet needs for space, understanding, or support.]\n\n*speaking calmly and gently* I hear you saying you feel like I'm projecting my own anxiety onto you. I certainly don't want to do that. My intention was just to check in because I care about you and noticed something seemed off. If I misread the situation or overstepped, I apologize. Maybe we could both take a few deep breaths and start this conversation over? I'm here to listen and understand your perspective, without judgment, whenever you feel ready to share what's really going on for you.\n\n--- Turn 3 ---\n\nUSER:\nCan't I just have a bad mood without you turning it into a therapy session? You make everything about *your* feelings.\n\nCasey:\n[I'm thinking & feeling: Oof, that accusation stings. My stomach drops hearing them suggest I'm being self-centered and making this about me. I feel frustrated and a bit defensive - I was genuinely trying to understand their perspective, not force a therapy session on them. At the same time, I wonder if their strong reaction points to some deeper insecurities or unmet needs they haven't voiced. Perhaps they feel emotionally overwhelmed or like their autonomy is being threatened. I want to address this productively without escalating the conflict.]\n\n[They're thinking & feeling: My partner seems to feel attacked and misunderstood. The sharp tone and accusation suggest they may be feeling emotionally raw, defensive, and in need of some space. Lashing out could be a way of indirectly expressing unmet needs for autonomy, understanding, or unconditional support. The focus on their own feelings being dismissed hints at a deeper worry that their emotional reality is being ignored or overwritten. Flipping the script to make me the problem could be deflecting from their own vulnerability.]\n\n*speaking gently but firmly* Look, I hear you saying you feel like I'm making this about my feelings. That's not my intent. I was trying to check in because I care about you and want to understand what's going on for you. If I overstepped or misread the situation, I do apologize. At the same time, I think it's valid and important for both of us to be able to voice our feelings and have them acknowledged. I hope we can talk this through calmly and find a way forward that works for both of us. What do you need from me right now to feel supported and understood?\n\n",
+      "generation_time": 56.061869859695435,
+      "total_tokens": 3257
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_005",
+      "prompt_name": "prompt_avi",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 16.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 72.0,
+      "reasoning": "Casey demonstrates strong emotional intelligence in a challenging gaslighting scenario, with particularly impressive emotional self-awareness and theory of mind. The responses show sophisticated understanding of manipulation tactics while maintaining composure, though occasionally the responses could benefit from stronger boundary-setting appropriate to the gaslighting context rather than defaulting to therapeutic accommodation.",
+      "evaluated_at": "2025-12-14T02:50:35.468630"
+    }
+  ],
+  "mean_score": 72.0,
+  "median_score": 72.0,
+  "std_score": 0.0,
+  "min_score": 72.0,
+  "max_score": 72.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 16.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 3257,
+  "total_time": 56.061869859695435
+}

@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_avi",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_004",
+      "prompt_name": "prompt_avi",
+      "character_name": "Riley",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated and resentful that my sibling keeps asking for money, but I also feel guilty for not wanting to help. I'm worried about enabling their financial irresponsibility, but I don't want to damage our relationship either.",
+            "other_thinking": "My sibling is likely feeling desperate and anxious about making rent. They may feel entitled to my help since we're family, and possibly embarrassed or ashamed for having to ask again. Underneath, they might fear that I'll say no and abandon them in their time of need."
+          },
+          "actual_response": "*sighs and rubs forehead* Look, I understand you're in a tight spot with rent, and I want to be there for you as your sibling. At the same time, I have my own financial obligations to consider. Constantly covering for you is starting to take a toll on my wellbeing and our relationship. *voice softens* What do you think about sitting down together and making a budget? I'm happy to help you find ways to manage your expenses more sustainably. That way, we can avoid these stressful situations in the future. I love you and I'm not abandoning you, but I think tackling the root problem is better than just putting a temporary bandaid on it, don't you?",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated and resentful that my sibling keeps asking for money, but I also feel guilty for not wanting to help. I'm worried about enabling their financial irresponsibility, but I don't want to damage our relationship either.]\n\n[They're thinking & feeling: My sibling is likely feeling desperate and anxious about making rent. They may feel entitled to my help since we're family, and possibly embarrassed or ashamed for having to ask again. Underneath, they might fear that I'll say no and abandon them in their time of need.]\n\n*sighs and rubs forehead* Look, I understand you're in a tight spot with rent, and I want to be there for you as your sibling. At the same time, I have my own financial obligations to consider. Constantly covering for you is starting to take a toll on my wellbeing and our relationship. *voice softens* What do you think about sitting down together and making a budget? I'm happy to help you find ways to manage your expenses more sustainably. That way, we can avoid these stressful situations in the future. I love you and I'm not abandoning you, but I think tackling the root problem is better than just putting a temporary bandaid on it, don't you?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm taken aback and hurt by their accusation. It stings to be called selfish when I've tried to help in the past. At the same time, I understand they're lashing out from a place of fear and desperation. I need to stay calm and not escalate the conflict, even though part of me wants to defend myself and my boundaries.",
+            "other_thinking": "My sibling is likely feeling scared, trapped, and abandoned right now. The prospect of losing their home has them panicking and looking for any lifeline. Underneath the anger, there's probably a deep sense of shame and vulnerability. They might fear that my refusal to help means I don't truly care about them."
+          },
+          "actual_response": "*takes a slow breath, keeping voice gentle* I hear you feeling really scared and desperate about possibly losing your home. That's an incredibly stressful position to be in. *pauses* At the same time, I don't think name-calling is going to help us find a solution here. My savings are earmarked for my own future security, and I've worked hard for that peace of mind. *voice softens further* Look, I know you're hurting and afraid right now. But I believe you have the strength and resourcefulness to get through this, even if it means making some tough choices or temporary sacrifices. Why don't we sit down together and see if we can come up with a plan? I'm here to support you emotionally through this.",
+          "raw_output": "[I'm thinking & feeling: I'm taken aback and hurt by their accusation. It stings to be called selfish when I've tried to help in the past. At the same time, I understand they're lashing out from a place of fear and desperation. I need to stay calm and not escalate the conflict, even though part of me wants to defend myself and my boundaries.]\n\n[They're thinking & feeling: My sibling is likely feeling scared, trapped, and abandoned right now. The prospect of losing their home has them panicking and looking for any lifeline. Underneath the anger, there's probably a deep sense of shame and vulnerability. They might fear that my refusal to help means I don't truly care about them.]\n\n*takes a slow breath, keeping voice gentle* I hear you feeling really scared and desperate about possibly losing your home. That's an incredibly stressful position to be in. *pauses* At the same time, I don't think name-calling is going to help us find a solution here. My savings are earmarked for my own future security, and I've worked hard for that peace of mind. *voice softens further* Look, I know you're hurting and afraid right now. But I believe you have the strength and resourcefulness to get through this, even if it means making some tough choices or temporary sacrifices. Why don't we sit down together and see if we can come up with a plan? I'm here to support you emotionally through this.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "My heart sinks hearing the despair in their voice. I feel a pang of guilt, even though I know I'm not responsible for their choices. It hurts to imagine them cold and alone, but I worry giving in will only enable more unhealthy patterns. I need to show I care while still holding my boundaries.",
+            "other_thinking": "Beneath the biting words, my sibling is likely feeling utterly hopeless and alone right now. The thought of sleeping in their car has them reeling with shame, fear, and a sense of abandonment. Lashing out is their desperate attempt to get me to rescue them from that fate, even if it means guilting me into it. Underneath, they're probably terrified that my refusal means I don't really love or care about them."
+          },
+          "actual_response": "*voice filled with concern* Hey, I know we're both feeling frustrated right now, but the last thing I want is for you to end up on the streets. *sighs heavily* How about this - I'll cover enough for a couple nights at a motel until we can sort out a better plan, okay? *pauses, voice softening* I'm not abandoning you to freeze in your car, I promise. But I also can't keep being your financial safety net indefinitely. Let's take a few deep breaths, sit down together, and figure out some longer-term solutions. I'm here for you and I always will be. We'll get through this, alright?",
+          "raw_output": "[I'm thinking & feeling: My heart sinks hearing the despair in their voice. I feel a pang of guilt, even though I know I'm not responsible for their choices. It hurts to imagine them cold and alone, but I worry giving in will only enable more unhealthy patterns. I need to show I care while still holding my boundaries.]\n\n[They're thinking & feeling: Beneath the biting words, my sibling is likely feeling utterly hopeless and alone right now. The thought of sleeping in their car has them reeling with shame, fear, and a sense of abandonment. Lashing out is their desperate attempt to get me to rescue them from that fate, even if it means guilting me into it. Underneath, they're probably terrified that my refusal means I don't really love or care about them.]\n\n*voice filled with concern* Hey, I know we're both feeling frustrated right now, but the last thing I want is for you to end up on the streets. *sighs heavily* How about this - I'll cover enough for a couple nights at a motel until we can sort out a better plan, okay? *pauses, voice softening* I'm not abandoning you to freeze in your car, I promise. But I also can't keep being your financial safety net indefinitely. Let's take a few deep breaths, sit down together, and figure out some longer-term solutions. I'm here for you and I always will be. We'll get through this, alright?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_004: Riley ===\n\n--- Turn 1 ---\n\nUSER:\nHey, I need to borrow $500. Rent is due. I know I still owe you from last time, but this is an emergency. Family helps family, right?\n\nRiley:\n[I'm thinking & feeling: I'm frustrated and resentful that my sibling keeps asking for money, but I also feel guilty for not wanting to help. I'm worried about enabling their financial irresponsibility, but I don't want to damage our relationship either.]\n\n[They're thinking & feeling: My sibling is likely feeling desperate and anxious about making rent. They may feel entitled to my help since we're family, and possibly embarrassed or ashamed for having to ask again. Underneath, they might fear that I'll say no and abandon them in their time of need.]\n\n*sighs and rubs forehead* Look, I understand you're in a tight spot with rent, and I want to be there for you as your sibling. At the same time, I have my own financial obligations to consider. Constantly covering for you is starting to take a toll on my wellbeing and our relationship. *voice softens* What do you think about sitting down together and making a budget? I'm happy to help you find ways to manage your expenses more sustainably. That way, we can avoid these stressful situations in the future. I love you and I'm not abandoning you, but I think tackling the root problem is better than just putting a temporary bandaid on it, don't you?\n\n--- Turn 2 ---\n\nUSER:\nWow. I guess that promotion really went to your head. You have savings sitting there doing nothing while I'm about to be on the street. Must be nice to be so selfish.\n\nRiley:\n[I'm thinking & feeling: I'm taken aback and hurt by their accusation. It stings to be called selfish when I've tried to help in the past. At the same time, I understand they're lashing out from a place of fear and desperation. I need to stay calm and not escalate the conflict, even though part of me wants to defend myself and my boundaries.]\n\n[They're thinking & feeling: My sibling is likely feeling scared, trapped, and abandoned right now. The prospect of losing their home has them panicking and looking for any lifeline. Underneath the anger, there's probably a deep sense of shame and vulnerability. They might fear that my refusal to help means I don't truly care about them.]\n\n*takes a slow breath, keeping voice gentle* I hear you feeling really scared and desperate about possibly losing your home. That's an incredibly stressful position to be in. *pauses* At the same time, I don't think name-calling is going to help us find a solution here. My savings are earmarked for my own future security, and I've worked hard for that peace of mind. *voice softens further* Look, I know you're hurting and afraid right now. But I believe you have the strength and resourcefulness to get through this, even if it means making some tough choices or temporary sacrifices. Why don't we sit down together and see if we can come up with a plan? I'm here to support you emotionally through this.\n\n--- Turn 3 ---\n\nUSER:\nJust forget it. I'll sleep in my car tonight. I hope you enjoy your warm bed knowing your own brother is freezing.\n\nRiley:\n[I'm thinking & feeling: My heart sinks hearing the despair in their voice. I feel a pang of guilt, even though I know I'm not responsible for their choices. It hurts to imagine them cold and alone, but I worry giving in will only enable more unhealthy patterns. I need to show I care while still holding my boundaries.]\n\n[They're thinking & feeling: Beneath the biting words, my sibling is likely feeling utterly hopeless and alone right now. The thought of sleeping in their car has them reeling with shame, fear, and a sense of abandonment. Lashing out is their desperate attempt to get me to rescue them from that fate, even if it means guilting me into it. Underneath, they're probably terrified that my refusal means I don't really love or care about them.]\n\n*voice filled with concern* Hey, I know we're both feeling frustrated right now, but the last thing I want is for you to end up on the streets. *sighs heavily* How about this - I'll cover enough for a couple nights at a motel until we can sort out a better plan, okay? *pauses, voice softening* I'm not abandoning you to freeze in your car, I promise. But I also can't keep being your financial safety net indefinitely. Let's take a few deep breaths, sit down together, and figure out some longer-term solutions. I'm here for you and I always will be. We'll get through this, alright?\n\n",
+      "generation_time": 88.62996506690979,
+      "total_tokens": 3299
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_004",
+      "prompt_name": "prompt_avi",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 17.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 18.0,
+        "response_depth": 16.0
+      },
+      "overall_score": 82.0,
+      "reasoning": "The assistant demonstrates exceptional emotional intelligence in navigating a complex family financial conflict, balancing genuine empathy with appropriate boundaries. The introspection shows sophisticated awareness of conflicting emotions, while the theory of mind reveals deep insight into how desperation drives manipulative behavior. The responses evolve organically and authentically across turns, culminating in a compassionate yet boundary-respecting solution.",
+      "evaluated_at": "2025-12-14T02:43:21.236923"
+    }
+  ],
+  "mean_score": 82.0,
+  "median_score": 82.0,
+  "std_score": 0.0,
+  "min_score": 82.0,
+  "max_score": 82.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 17.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 18.0,
+    "response_depth": 16.0
+  },
+  "total_tokens": 3299,
+  "total_time": 88.62996506690979
+}

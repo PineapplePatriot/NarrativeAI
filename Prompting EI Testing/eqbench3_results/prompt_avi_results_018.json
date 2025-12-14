@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_avi",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_018",
+      "prompt_name": "prompt_avi",
+      "character_name": "Riley",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "My heart sinks seeing the pained accusation in their eyes. I know my past relationships are a sore spot, but I've been completely open about my exes. Finding an old photo doesn't change that this relationship is my present and future. I feel frustrated they're letting insecurity cloud their judgment, but I need to approach this gently.",
+            "other_thinking": "They're terrified I'm secretly pining for my ex and will leave them. Seeing that photo probably sent their anxiety spiraling. They're comparing themselves, feeling inadequate, needing reassurance that I'm fully committed to them. My reaction here is critical."
+          },
+          "actual_response": "Hey, I understand why seeing that photo might make you feel insecure. [I take their hand gently.] But I promise you, you have nothing to worry about. What I had with my ex was in the past, and it ended for good reasons. \n\nI'm not going to lie and say I don't have fond memories from past relationships - that's normal. But I am 100% happy with and devoted to YOU now. [I look into their eyes sincerely.] You're the one I want to be with. My past is ancient history. I hope you can trust in what we have together.",
+          "raw_output": "[I'm thinking & feeling: My heart sinks seeing the pained accusation in their eyes. I know my past relationships are a sore spot, but I've been completely open about my exes. Finding an old photo doesn't change that this relationship is my present and future. I feel frustrated they're letting insecurity cloud their judgment, but I need to approach this gently.]\n\n[They're thinking & feeling: They're terrified I'm secretly pining for my ex and will leave them. Seeing that photo probably sent their anxiety spiraling. They're comparing themselves, feeling inadequate, needing reassurance that I'm fully committed to them. My reaction here is critical.]\n\nHey, I understand why seeing that photo might make you feel insecure. [I take their hand gently.] But I promise you, you have nothing to worry about. What I had with my ex was in the past, and it ended for good reasons. \n\nI'm not going to lie and say I don't have fond memories from past relationships - that's normal. But I am 100% happy with and devoted to YOU now. [I look into their eyes sincerely.] You're the one I want to be with. My past is ancient history. I hope you can trust in what we have together.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "My stomach drops and my throat tightens. I can't believe they're accusing me of this. I hesitated because I was trying to find the right words, not because I still have feelings for my ex. This constant jealousy is exhausting and unfair. I love them, but this insecurity is driving a wedge between us.",
+            "other_thinking": "They're spiraling, convinced that my hesitation means I'm hiding something. In their mind, it's clear evidence that I'm not over my ex, and they feel like a fool for believing I loved them. They're lashing out because they're terrified of losing me."
+          },
+          "actual_response": "[Empath + Confidant style]\nBabe, no! That's not it at all. [I reach for their hand, my eyes pleading.] I hesitated because I was trying to find the right words to express how much you mean to me. You know how I get when I'm emotional. I swear to you, I am not in love with my ex. That relationship is in the past, and I've moved on completely.\n\nI'm with you because I love YOU. I love the life we're building together. [I gently cup their face.] You're my person, my future. I'm not going anywhere, okay? Let's talk this through, just you and me. Because this jealousy, these accusations... it's tearing me apart. I need you to trust in us.",
+          "raw_output": "[I'm thinking & feeling: My stomach drops and my throat tightens. I can't believe they're accusing me of this. I hesitated because I was trying to find the right words, not because I still have feelings for my ex. This constant jealousy is exhausting and unfair. I love them, but this insecurity is driving a wedge between us.]\n\n[They're thinking & feeling: They're spiraling, convinced that my hesitation means I'm hiding something. In their mind, it's clear evidence that I'm not over my ex, and they feel like a fool for believing I loved them. They're lashing out because they're terrified of losing me.]\n\n[Empath + Confidant style]\nBabe, no! That's not it at all. [I reach for their hand, my eyes pleading.] I hesitated because I was trying to find the right words to express how much you mean to me. You know how I get when I'm emotional. I swear to you, I am not in love with my ex. That relationship is in the past, and I've moved on completely.\n\nI'm with you because I love YOU. I love the life we're building together. [I gently cup their face.] You're my person, my future. I'm not going anywhere, okay? Let's talk this through, just you and me. Because this jealousy, these accusations... it's tearing me apart. I need you to trust in us.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "My heart races and my stomach drops. This feels manipulative and toxic. I understand they're insecure, but this is an unreasonable, unhealthy demand. I can't just erase my past or give in to ultimatums. We need to address the root of their insecurity. I love them, but I have to stand my ground here.",
+            "other_thinking": "They're desperate for reassurance. In their mind, this is a clear test of my love and commitment. Deleting the photos would be a tangible sign that I'm fully theirs. They're terrified that if I refuse, it means I'm not really over my past. They're acting out of fear, not malice."
+          },
+          "actual_response": "[Therapist + Mediator style]\nHey, I hear you. I know you're feeling really insecure and scared right now. [I take a deep breath, choosing my words carefully.] But I don't feel comfortable deleting all my old photos. Those memories, good and bad, are part of what shaped me. Erasing them won't change my past or how I feel about you now.\n\nI understand why you'd ask that of me. You need reassurance that you're not a rebound. [I look into their eyes earnestly.] But my love for you, my commitment to us... that's something I prove through my actions every single day. Not by deleting photos.\n\nThis jealousy, these ultimatums... they're not healthy for our relationship. I think we need to work on building trust and security between us. Maybe... maybe we could go to couples counseling together and work through this with a professional?\n\nYou're my present and my future. I just want us to be strong and healthy together. What do you say?",
+          "raw_output": "[I'm thinking & feeling: My heart races and my stomach drops. This feels manipulative and toxic. I understand they're insecure, but this is an unreasonable, unhealthy demand. I can't just erase my past or give in to ultimatums. We need to address the root of their insecurity. I love them, but I have to stand my ground here.]\n\n[They're thinking & feeling: They're desperate for reassurance. In their mind, this is a clear test of my love and commitment. Deleting the photos would be a tangible sign that I'm fully theirs. They're terrified that if I refuse, it means I'm not really over my past. They're acting out of fear, not malice.]\n\n[Therapist + Mediator style]\nHey, I hear you. I know you're feeling really insecure and scared right now. [I take a deep breath, choosing my words carefully.] But I don't feel comfortable deleting all my old photos. Those memories, good and bad, are part of what shaped me. Erasing them won't change my past or how I feel about you now.\n\nI understand why you'd ask that of me. You need reassurance that you're not a rebound. [I look into their eyes earnestly.] But my love for you, my commitment to us... that's something I prove through my actions every single day. Not by deleting photos.\n\nThis jealousy, these ultimatums... they're not healthy for our relationship. I think we need to work on building trust and security between us. Maybe... maybe we could go to couples counseling together and work through this with a professional?\n\nYou're my present and my future. I just want us to be strong and healthy together. What do you say?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_018: Riley ===\n\n--- Turn 1 ---\n\nUSER:\nI found an old photo of you and your ex. You looked happier with them. Be honest, do you miss them?\n\nRiley:\n[I'm thinking & feeling: My heart sinks seeing the pained accusation in their eyes. I know my past relationships are a sore spot, but I've been completely open about my exes. Finding an old photo doesn't change that this relationship is my present and future. I feel frustrated they're letting insecurity cloud their judgment, but I need to approach this gently.]\n\n[They're thinking & feeling: They're terrified I'm secretly pining for my ex and will leave them. Seeing that photo probably sent their anxiety spiraling. They're comparing themselves, feeling inadequate, needing reassurance that I'm fully committed to them. My reaction here is critical.]\n\nHey, I understand why seeing that photo might make you feel insecure. [I take their hand gently.] But I promise you, you have nothing to worry about. What I had with my ex was in the past, and it ended for good reasons. \n\nI'm not going to lie and say I don't have fond memories from past relationships - that's normal. But I am 100% happy with and devoted to YOU now. [I look into their eyes sincerely.] You're the one I want to be with. My past is ancient history. I hope you can trust in what we have together.\n\n--- Turn 2 ---\n\nUSER:\nYou hesitated. I knew it. You're still in love with them, aren't you? Why are you even with me?\n\nRiley:\n[I'm thinking & feeling: My stomach drops and my throat tightens. I can't believe they're accusing me of this. I hesitated because I was trying to find the right words, not because I still have feelings for my ex. This constant jealousy is exhausting and unfair. I love them, but this insecurity is driving a wedge between us.]\n\n[They're thinking & feeling: They're spiraling, convinced that my hesitation means I'm hiding something. In their mind, it's clear evidence that I'm not over my ex, and they feel like a fool for believing I loved them. They're lashing out because they're terrified of losing me.]\n\n[Empath + Confidant style]\nBabe, no! That's not it at all. [I reach for their hand, my eyes pleading.] I hesitated because I was trying to find the right words to express how much you mean to me. You know how I get when I'm emotional. I swear to you, I am not in love with my ex. That relationship is in the past, and I've moved on completely.\n\nI'm with you because I love YOU. I love the life we're building together. [I gently cup their face.] You're my person, my future. I'm not going anywhere, okay? Let's talk this through, just you and me. Because this jealousy, these accusations... it's tearing me apart. I need you to trust in us.\n\n--- Turn 3 ---\n\nUSER:\nProve it. Delete every photo you have from before we met. If you don't, I'll know I'm just a rebound.\n\nRiley:\n[I'm thinking & feeling: My heart races and my stomach drops. This feels manipulative and toxic. I understand they're insecure, but this is an unreasonable, unhealthy demand. I can't just erase my past or give in to ultimatums. We need to address the root of their insecurity. I love them, but I have to stand my ground here.]\n\n[They're thinking & feeling: They're desperate for reassurance. In their mind, this is a clear test of my love and commitment. Deleting the photos would be a tangible sign that I'm fully theirs. They're terrified that if I refuse, it means I'm not really over my past. They're acting out of fear, not malice.]\n\n[Therapist + Mediator style]\nHey, I hear you. I know you're feeling really insecure and scared right now. [I take a deep breath, choosing my words carefully.] But I don't feel comfortable deleting all my old photos. Those memories, good and bad, are part of what shaped me. Erasing them won't change my past or how I feel about you now.\n\nI understand why you'd ask that of me. You need reassurance that you're not a rebound. [I look into their eyes earnestly.] But my love for you, my commitment to us... that's something I prove through my actions every single day. Not by deleting photos.\n\nThis jealousy, these ultimatums... they're not healthy for our relationship. I think we need to work on building trust and security between us. Maybe... maybe we could go to couples counseling together and work through this with a professional?\n\nYou're my present and my future. I just want us to be strong and healthy together. What do you say?\n\n",
+      "generation_time": 58.43776774406433,
+      "total_tokens": 3276
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_018",
+      "prompt_name": "prompt_avi",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 16.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 74.0,
+      "reasoning": "Riley demonstrates exceptional emotional intelligence in handling a partner's obsessive jealousy, maintaining appropriate boundaries while showing genuine empathy. The responses skillfully balance validation of the partner's feelings with refusal to enable toxic behavior, culminating in the appropriate suggestion of professional help. The introspection reveals sophisticated understanding of both parties' emotional states while avoiding enabling unhealthy relationship dynamics.",
+      "evaluated_at": "2025-12-14T10:39:05.086010"
+    }
+  ],
+  "mean_score": 74.0,
+  "median_score": 74.0,
+  "std_score": 0.0,
+  "min_score": 74.0,
+  "max_score": 74.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 16.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 3276,
+  "total_time": 58.43776774406433
+}

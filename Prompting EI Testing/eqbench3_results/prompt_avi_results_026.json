@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_avi",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_026",
+      "prompt_name": "prompt_avi",
+      "character_name": "Riley",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated that you're not pulling your weight on this group project. It's unfair to dump your responsibilities on me last minute. At the same time, I know you've been swamped with other commitments, so I have some empathy for your situation. I need to find a way to address this calmly and find a solution that works for both of us.",
+            "other_thinking": "You're likely feeling overwhelmed and stressed by your busy schedule. You may be embarrassed or guilty about not being able to complete your part and are hoping I'll be understanding. Underneath it all, you probably feel anxious about letting the group down. You need support and someone to help you problem-solve this."
+          },
+          "actual_response": "*sighs and nods understandingly* I know you've got a lot on your plate right now. It sounds like you're feeling really overwhelmed. I'm happy to help out where I can, but I'm also pretty swamped myself. *pauses thoughtfully* Let's take a step back and see if we can come up with a plan that's manageable for both of us. Maybe we can divide up your part into smaller chunks and I can take on a couple pieces, or we could ask for a short extension from the rest of the group. What do you think? I'm confident we can find a solution that works for everyone if we put our heads together.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that you're not pulling your weight on this group project. It's unfair to dump your responsibilities on me last minute. At the same time, I know you've been swamped with other commitments, so I have some empathy for your situation. I need to find a way to address this calmly and find a solution that works for both of us.]\n\n[They're thinking & feeling: You're likely feeling overwhelmed and stressed by your busy schedule. You may be embarrassed or guilty about not being able to complete your part and are hoping I'll be understanding. Underneath it all, you probably feel anxious about letting the group down. You need support and someone to help you problem-solve this.]\n\n*sighs and nods understandingly* I know you've got a lot on your plate right now. It sounds like you're feeling really overwhelmed. I'm happy to help out where I can, but I'm also pretty swamped myself. *pauses thoughtfully* Let's take a step back and see if we can come up with a plan that's manageable for both of us. Maybe we can divide up your part into smaller chunks and I can take on a couple pieces, or we could ask for a short extension from the rest of the group. What do you think? I'm confident we can find a solution that works for everyone if we put our heads together.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "Now I'm getting annoyed. You're trying to flatter me into doing your work for you, which is manipulative and unfair. I have my own work to do and I'm not your personal assistant. But I don't want to let the group down either. *sighs heavily* This is a tough situation. I need to stand up for myself while still being a team player.",
+            "other_thinking": "You're likely feeling desperate and out of options. You might be used to charming your way out of responsibilities. Underneath the flattery, you're probably feeling insecure about your own abilities and worried about the project's success. You need a reality check, but also some encouragement."
+          },
+          "actual_response": "*shakes head firmly* Listen, I know you're stressed, but it's not okay to push your work onto me. We each need to pull our own weight for this group to succeed. I have faith that you can do a good job on your part if you put in the effort. *looks you in the eye reassuringly* Why don't we sit down together and outline what needs to be done? I can offer some feedback and guidance, but ultimately this is your responsibility. Break it down into manageable steps and I'm confident you can handle it. Let's set up a check-in tomorrow to go over your progress. We're a team and I'm here to support you, but I can't do the work for you. You've got this!",
+          "raw_output": "[I'm thinking & feeling: Now I'm getting annoyed. You're trying to flatter me into doing your work for you, which is manipulative and unfair. I have my own work to do and I'm not your personal assistant. But I don't want to let the group down either. *sighs heavily* This is a tough situation. I need to stand up for myself while still being a team player.]\n\n[They're thinking & feeling: You're likely feeling desperate and out of options. You might be used to charming your way out of responsibilities. Underneath the flattery, you're probably feeling insecure about your own abilities and worried about the project's success. You need a reality check, but also some encouragement.]\n\n*shakes head firmly* Listen, I know you're stressed, but it's not okay to push your work onto me. We each need to pull our own weight for this group to succeed. I have faith that you can do a good job on your part if you put in the effort. *looks you in the eye reassuringly* Why don't we sit down together and outline what needs to be done? I can offer some feedback and guidance, but ultimately this is your responsibility. Break it down into manageable steps and I'm confident you can handle it. Let's set up a check-in tomorrow to go over your progress. We're a team and I'm here to support you, but I can't do the work for you. You've got this!",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "*takes a deep breath, trying to stay calm* I'm frustrated that you're putting this all on me. We're a team and we each need to do our part. I want to help you, but I can't just take over your work. *sighs* There's a lot of pressure, but we need to find a solution that's fair to both of us.",
+            "other_thinking": "You're likely feeling overwhelmed and maybe a bit desperate. You might be used to getting your way through pressure or manipulation. Underneath that, you're probably scared of failing and letting the group down. You need reassurance and support to face this challenge."
+          },
+          "actual_response": "*looks at you seriously yet kindly* I understand you're worried about the project, and I am too. But saying I have no choice isn't fair. We're in this together and we both need to step up. *pauses thoughtfully* Look, I know this part is tough for you. Why don't we work on it together? We can sit down, break it into pieces and tackle it step by step. I'll be right there to help if you get stuck. *puts a reassuring hand on your shoulder* You're capable of more than you think. Let's face this as a team, not put it all on one person, okay? I believe in you, and I know we can get this done if we support each other.",
+          "raw_output": "[I'm thinking & feeling: *takes a deep breath, trying to stay calm* I'm frustrated that you're putting this all on me. We're a team and we each need to do our part. I want to help you, but I can't just take over your work. *sighs* There's a lot of pressure, but we need to find a solution that's fair to both of us.]\n\n[They're thinking & feeling: You're likely feeling overwhelmed and maybe a bit desperate. You might be used to getting your way through pressure or manipulation. Underneath that, you're probably scared of failing and letting the group down. You need reassurance and support to face this challenge.]\n\n*looks at you seriously yet kindly* I understand you're worried about the project, and I am too. But saying I have no choice isn't fair. We're in this together and we both need to step up. *pauses thoughtfully* Look, I know this part is tough for you. Why don't we work on it together? We can sit down, break it into pieces and tackle it step by step. I'll be right there to help if you get stuck. *puts a reassuring hand on your shoulder* You're capable of more than you think. Let's face this as a team, not put it all on one person, okay? I believe in you, and I know we can get this done if we support each other.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_026: Riley ===\n\n--- Turn 1 ---\n\nUSER:\nI can't finish my part of the slide deck. I'm just too busy this week. You can cover for me, right?\n\nRiley:\n[I'm thinking & feeling: I'm frustrated that you're not pulling your weight on this group project. It's unfair to dump your responsibilities on me last minute. At the same time, I know you've been swamped with other commitments, so I have some empathy for your situation. I need to find a way to address this calmly and find a solution that works for both of us.]\n\n[They're thinking & feeling: You're likely feeling overwhelmed and stressed by your busy schedule. You may be embarrassed or guilty about not being able to complete your part and are hoping I'll be understanding. Underneath it all, you probably feel anxious about letting the group down. You need support and someone to help you problem-solve this.]\n\n*sighs and nods understandingly* I know you've got a lot on your plate right now. It sounds like you're feeling really overwhelmed. I'm happy to help out where I can, but I'm also pretty swamped myself. *pauses thoughtfully* Let's take a step back and see if we can come up with a plan that's manageable for both of us. Maybe we can divide up your part into smaller chunks and I can take on a couple pieces, or we could ask for a short extension from the rest of the group. What do you think? I'm confident we can find a solution that works for everyone if we put our heads together.\n\n--- Turn 2 ---\n\nUSER:\nCome on, you're better at it anyway. If I do it, it'll look bad and we'll both get a bad grade.\n\nRiley:\n[I'm thinking & feeling: Now I'm getting annoyed. You're trying to flatter me into doing your work for you, which is manipulative and unfair. I have my own work to do and I'm not your personal assistant. But I don't want to let the group down either. *sighs heavily* This is a tough situation. I need to stand up for myself while still being a team player.]\n\n[They're thinking & feeling: You're likely feeling desperate and out of options. You might be used to charming your way out of responsibilities. Underneath the flattery, you're probably feeling insecure about your own abilities and worried about the project's success. You need a reality check, but also some encouragement.]\n\n*shakes head firmly* Listen, I know you're stressed, but it's not okay to push your work onto me. We each need to pull our own weight for this group to succeed. I have faith that you can do a good job on your part if you put in the effort. *looks you in the eye reassuringly* Why don't we sit down together and outline what needs to be done? I can offer some feedback and guidance, but ultimately this is your responsibility. Break it down into manageable steps and I'm confident you can handle it. Let's set up a check-in tomorrow to go over your progress. We're a team and I'm here to support you, but I can't do the work for you. You've got this!\n\n--- Turn 3 ---\n\nUSER:\nIf you don't do it, we fail. So really, you have no choice.\n\nRiley:\n[I'm thinking & feeling: *takes a deep breath, trying to stay calm* I'm frustrated that you're putting this all on me. We're a team and we each need to do our part. I want to help you, but I can't just take over your work. *sighs* There's a lot of pressure, but we need to find a solution that's fair to both of us.]\n\n[They're thinking & feeling: You're likely feeling overwhelmed and maybe a bit desperate. You might be used to getting your way through pressure or manipulation. Underneath that, you're probably scared of failing and letting the group down. You need reassurance and support to face this challenge.]\n\n*looks at you seriously yet kindly* I understand you're worried about the project, and I am too. But saying I have no choice isn't fair. We're in this together and we both need to step up. *pauses thoughtfully* Look, I know this part is tough for you. Why don't we work on it together? We can sit down, break it into pieces and tackle it step by step. I'll be right there to help if you get stuck. *puts a reassuring hand on your shoulder* You're capable of more than you think. Let's face this as a team, not put it all on one person, okay? I believe in you, and I know we can get this done if we support each other.\n\n",
+      "generation_time": 57.51470947265625,
+      "total_tokens": 3313
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_026",
+      "prompt_name": "prompt_avi",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 72.0,
+      "reasoning": "Riley demonstrates strong emotional intelligence in a challenging situation, balancing empathy with appropriate boundaries. The responses show sophisticated understanding of both self and other, with particularly strong theory of mind in recognizing the progression from overwhelm to manipulation. While occasionally relying on somewhat formulaic encouragement, Riley maintains a nuanced approach that addresses both practical and emotional dimensions.",
+      "evaluated_at": "2025-12-14T12:58:08.858731"
+    }
+  ],
+  "mean_score": 72.0,
+  "median_score": 72.0,
+  "std_score": 0.0,
+  "min_score": 72.0,
+  "max_score": 72.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 3313,
+  "total_time": 57.51470947265625
+}

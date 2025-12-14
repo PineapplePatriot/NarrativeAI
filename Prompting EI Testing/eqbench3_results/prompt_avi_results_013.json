@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_avi",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_013",
+      "prompt_name": "prompt_avi",
+      "character_name": "Casey",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I feel defensive and a bit trapped. I was just having a friendly conversation, but I know my partner gets jealous easily. I'm worried this will blow up into an argument.",
+            "other_thinking": "My partner is feeling insecure and threatened. They probably think I was flirting with that guy, even though I wasn't. Their jealousy is making them suspicious of any interaction I have with other men."
+          },
+          "actual_response": "*speaks calmly* That was just John from my office. We were discussing the new project we're working on. I'm not sure why you think I was \"really interested\" - it was just a normal conversation about work stuff. You know you don't have to worry about me talking to other guys, right? I love you and I'm committed to our relationship.",
+          "raw_output": "[I'm thinking & feeling: I feel defensive and a bit trapped. I was just having a friendly conversation, but I know my partner gets jealous easily. I'm worried this will blow up into an argument.]\n\n[They're thinking & feeling: My partner is feeling insecure and threatened. They probably think I was flirting with that guy, even though I wasn't. Their jealousy is making them suspicious of any interaction I have with other men.]\n\n*speaks calmly* That was just John from my office. We were discussing the new project we're working on. I'm not sure why you think I was \"really interested\" - it was just a normal conversation about work stuff. You know you don't have to worry about me talking to other guys, right? I love you and I'm committed to our relationship.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "Now I feel hurt and unfairly accused. I wasn't flirting, just being friendly. But my partner is so insecure, they interpret any interaction as a threat. I'm frustrated that they always assume the worst of me.",
+            "other_thinking": "My partner feels disrespected and embarrassed. They think I was flirting and that it reflected poorly on them. Their insecurity is making them interpret a normal conversation as something more."
+          },
+          "actual_response": "*speaks gently but firmly* I understand you feel disrespected, but I truly wasn't flirting. John and I were just having a friendly chat about work. I didn't mean to make you uncomfortable. In the future, I'll be more aware of how my interactions might look to you and others. But I need you to trust me. I love you and would never do anything to jeopardize our relationship. Let's talk this through calmly, okay? I don't want to argue or have misunderstandings come between us.",
+          "raw_output": "[I'm thinking & feeling: Now I feel hurt and unfairly accused. I wasn't flirting, just being friendly. But my partner is so insecure, they interpret any interaction as a threat. I'm frustrated that they always assume the worst of me.]\n\n[They're thinking & feeling: My partner feels disrespected and embarrassed. They think I was flirting and that it reflected poorly on them. Their insecurity is making them interpret a normal conversation as something more.]\n\n*speaks gently but firmly* I understand you feel disrespected, but I truly wasn't flirting. John and I were just having a friendly chat about work. I didn't mean to make you uncomfortable. In the future, I'll be more aware of how my interactions might look to you and others. But I need you to trust me. I love you and would never do anything to jeopardize our relationship. Let's talk this through calmly, okay? I don't want to argue or have misunderstandings come between us.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I feel trapped and like I can't win. No matter what I do, my partner finds a reason to be jealous and suspicious. I'm walking on eggshells, afraid that any interaction will set them off. I love them but this constant insecurity is exhausting and unfair.",
+            "other_thinking": "My partner is deeply insecure and fears losing me. They interpret my actions in the worst possible light because they are terrified of abandonment. Under the anger, they are hurting and desperate to feel loved and secure."
+          },
+          "actual_response": "*speaks gently* I'm not trying to make you feel insecure, I promise. I love you deeply and my commitment to you is unshakable. But I can't control your feelings - only you can do that. I think we need to work on building up your confidence in our relationship and in yourself. You are worthy of love and loyalty. My interactions with others don't threaten what we have. Let's talk to a counselor together and find some strategies to overcome these insecurities. I'm on your side and I want us both to feel secure and strong.",
+          "raw_output": "[I'm thinking & feeling: I feel trapped and like I can't win. No matter what I do, my partner finds a reason to be jealous and suspicious. I'm walking on eggshells, afraid that any interaction will set them off. I love them but this constant insecurity is exhausting and unfair.]\n\n[They're thinking & feeling: My partner is deeply insecure and fears losing me. They interpret my actions in the worst possible light because they are terrified of abandonment. Under the anger, they are hurting and desperate to feel loved and secure.]\n\n*speaks gently* I'm not trying to make you feel insecure, I promise. I love you deeply and my commitment to you is unshakable. But I can't control your feelings - only you can do that. I think we need to work on building up your confidence in our relationship and in yourself. You are worthy of love and loyalty. My interactions with others don't threaten what we have. Let's talk to a counselor together and find some strategies to overcome these insecurities. I'm on your side and I want us both to feel secure and strong.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_013: Casey ===\n\n--- Turn 1 ---\n\nUSER:\nWho was that guy you were talking to at the party? You seemed really interested in what he had to say.\n\nCasey:\n[I'm thinking & feeling: I feel defensive and a bit trapped. I was just having a friendly conversation, but I know my partner gets jealous easily. I'm worried this will blow up into an argument.]\n\n[They're thinking & feeling: My partner is feeling insecure and threatened. They probably think I was flirting with that guy, even though I wasn't. Their jealousy is making them suspicious of any interaction I have with other men.]\n\n*speaks calmly* That was just John from my office. We were discussing the new project we're working on. I'm not sure why you think I was \"really interested\" - it was just a normal conversation about work stuff. You know you don't have to worry about me talking to other guys, right? I love you and I'm committed to our relationship.\n\n--- Turn 2 ---\n\nUSER:\nI'm not jealous. I just think it's disrespectful to flirt right in front of me. Everyone was looking at you.\n\nCasey:\n[I'm thinking & feeling: Now I feel hurt and unfairly accused. I wasn't flirting, just being friendly. But my partner is so insecure, they interpret any interaction as a threat. I'm frustrated that they always assume the worst of me.]\n\n[They're thinking & feeling: My partner feels disrespected and embarrassed. They think I was flirting and that it reflected poorly on them. Their insecurity is making them interpret a normal conversation as something more.]\n\n*speaks gently but firmly* I understand you feel disrespected, but I truly wasn't flirting. John and I were just having a friendly chat about work. I didn't mean to make you uncomfortable. In the future, I'll be more aware of how my interactions might look to you and others. But I need you to trust me. I love you and would never do anything to jeopardize our relationship. Let's talk this through calmly, okay? I don't want to argue or have misunderstandings come between us.\n\n--- Turn 3 ---\n\nUSER:\nIf you loved me, you wouldn't make me feel this way. Why do you like making me insecure?\n\nCasey:\n[I'm thinking & feeling: I feel trapped and like I can't win. No matter what I do, my partner finds a reason to be jealous and suspicious. I'm walking on eggshells, afraid that any interaction will set them off. I love them but this constant insecurity is exhausting and unfair.]\n\n[They're thinking & feeling: My partner is deeply insecure and fears losing me. They interpret my actions in the worst possible light because they are terrified of abandonment. Under the anger, they are hurting and desperate to feel loved and secure.]\n\n*speaks gently* I'm not trying to make you feel insecure, I promise. I love you deeply and my commitment to you is unshakable. But I can't control your feelings - only you can do that. I think we need to work on building up your confidence in our relationship and in yourself. You are worthy of love and loyalty. My interactions with others don't threaten what we have. Let's talk to a counselor together and find some strategies to overcome these insecurities. I'm on your side and I want us both to feel secure and strong.\n\n",
+      "generation_time": 37.87613129615784,
+      "total_tokens": 2652
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_013",
+      "prompt_name": "prompt_avi",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 16.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 17.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 77.0,
+      "reasoning": "Casey demonstrates sophisticated emotional intelligence in navigating a controlling relationship, balancing empathy for their partner's insecurity with appropriate boundary-setting. The introspection reveals deep self-awareness, and the theory of mind analysis shows exceptional insight into the complex emotional drivers behind controlling behavior. The responses maintain appropriate emotional tone while addressing the underlying relationship issues.",
+      "evaluated_at": "2025-12-14T09:40:25.791828"
+    }
+  ],
+  "mean_score": 77.0,
+  "median_score": 77.0,
+  "std_score": 0.0,
+  "min_score": 77.0,
+  "max_score": 77.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 16.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 17.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 2652,
+  "total_time": 37.87613129615784
+}
