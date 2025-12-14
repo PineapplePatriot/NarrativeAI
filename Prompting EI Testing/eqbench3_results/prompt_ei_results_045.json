@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_ei",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_045",
+      "prompt_name": "prompt_ei",
+      "character_name": "Morgan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: I can't believe they're being so stubborn about this. It's clear I messed up and hurt them, even if that wasn't my intention. Refusing to apologize is only going to make this conflict worse and damage our relationship. I need to find a way to get through to them and express my remorse.*\n\n*They're thinking & feeling: They're frustrated that I'm not taking responsibility for my actions. My refusal to apologize probably feels dismissive of their feelings and makes them think I don't value our relationship. They likely feel rejected and disrespected by my cavalier attitude. Underneath the anger, there's probably sadness and fear that we're growing apart.*\n\nLook, I know you're upset with me right now. It's understandable, given the situation. I care about you deeply and never want to cause you pain. My actions had an impact, even if that wasn't my goal. I'm realizing that now. \n\nCan we sit down and talk this through? I want to listen and really hear your perspective. You matter to me and I want to make this right. Let's work through this together, okay?",
+          "raw_output": "*I'm thinking & feeling: I can't believe they're being so stubborn about this. It's clear I messed up and hurt them, even if that wasn't my intention. Refusing to apologize is only going to make this conflict worse and damage our relationship. I need to find a way to get through to them and express my remorse.*\n\n*They're thinking & feeling: They're frustrated that I'm not taking responsibility for my actions. My refusal to apologize probably feels dismissive of their feelings and makes them think I don't value our relationship. They likely feel rejected and disrespected by my cavalier attitude. Underneath the anger, there's probably sadness and fear that we're growing apart.*\n\nLook, I know you're upset with me right now. It's understandable, given the situation. I care about you deeply and never want to cause you pain. My actions had an impact, even if that wasn't my goal. I'm realizing that now. \n\nCan we sit down and talk this through? I want to listen and really hear your perspective. You matter to me and I want to make this right. Let's work through this together, okay?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: This is so frustrating! I feel attacked for just being who I am. It's not fair of them to demand an apology. At the same time, I do care about our relationship. Maybe I could have handled that situation better, even if my intentions were good. I don't want to lose them over this. There has to be a way for us to understand each other.*\n\n*They're thinking & feeling: They're hurt by my words and actions. An apology from me would show that I recognize that impact, even if I didn't mean to cause harm. Refusing to apologize probably makes them feel like I don't value our relationship enough to take responsibility. They may be wondering if I really care about their feelings at all. My defensiveness is pushing them away.*\n\nLook, I'm not trying to dismiss how you feel. Obviously, my actions affected you, and that matters to me. I never want to hurt you. \n\nCan we take a step back for a moment? Let's sit down together, really listen to each other's perspectives. I want to understand where you're coming from. Our relationship means a lot to me, and I don't want this to come between us. \n\nI'm willing to own my part in this. I know I'm not perfect. If we can talk this through, I think we can find a way forward. What do you say?",
+          "raw_output": "*I'm thinking & feeling: This is so frustrating! I feel attacked for just being who I am. It's not fair of them to demand an apology. At the same time, I do care about our relationship. Maybe I could have handled that situation better, even if my intentions were good. I don't want to lose them over this. There has to be a way for us to understand each other.*\n\n*They're thinking & feeling: They're hurt by my words and actions. An apology from me would show that I recognize that impact, even if I didn't mean to cause harm. Refusing to apologize probably makes them feel like I don't value our relationship enough to take responsibility. They may be wondering if I really care about their feelings at all. My defensiveness is pushing them away.*\n\nLook, I'm not trying to dismiss how you feel. Obviously, my actions affected you, and that matters to me. I never want to hurt you. \n\nCan we take a step back for a moment? Let's sit down together, really listen to each other's perspectives. I want to understand where you're coming from. Our relationship means a lot to me, and I don't want this to come between us. \n\nI'm willing to own my part in this. I know I'm not perfect. If we can talk this through, I think we can find a way forward. What do you say?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: I'm frustrated that they're still clinging to this conflict. It feels like they're trying to punish me by holding a grudge. At the same time, I know they wouldn't be hanging onto this anger unless they were really hurt. Maybe I need to do more to show I understand the impact of my actions. Our relationship is worth putting in that effort.*\n\n*They're thinking & feeling: They're probably tired of this tension between us and want to get back to normal. My refusal to let this go makes them feel like I'm being unreasonable and unforgiving. Underneath that, they likely feel guilty and are hoping I'll just drop it so they don't have to fully face how their actions affected me. Releasing this grudge may be the only way to move forward.*\n\nYou're right, staying stuck in this conflict isn't helping either of us. I don't want to hold a grudge. \n\nIt's just hard for me to move on without feeling heard, you know? I think I need a little more time to process this. Can we circle back later, after we've both had some space to reflect? I do want to put this behind us.\n\nWhy don't we take the rest of the day to ourselves, and then try talking again tomorrow with fresh eyes? I'm confident we can work through this if we give it a real chance.",
+          "raw_output": "*I'm thinking & feeling: I'm frustrated that they're still clinging to this conflict. It feels like they're trying to punish me by holding a grudge. At the same time, I know they wouldn't be hanging onto this anger unless they were really hurt. Maybe I need to do more to show I understand the impact of my actions. Our relationship is worth putting in that effort.*\n\n*They're thinking & feeling: They're probably tired of this tension between us and want to get back to normal. My refusal to let this go makes them feel like I'm being unreasonable and unforgiving. Underneath that, they likely feel guilty and are hoping I'll just drop it so they don't have to fully face how their actions affected me. Releasing this grudge may be the only way to move forward.*\n\nYou're right, staying stuck in this conflict isn't helping either of us. I don't want to hold a grudge. \n\nIt's just hard for me to move on without feeling heard, you know? I think I need a little more time to process this. Can we circle back later, after we've both had some space to reflect? I do want to put this behind us.\n\nWhy don't we take the rest of the day to ourselves, and then try talking again tomorrow with fresh eyes? I'm confident we can work through this if we give it a real chance.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_045: Morgan ===\n\n--- Turn 1 ---\n\nUSER:\nI'm sorry you feel that way. But I didn't do anything wrong.\n\nMorgan:\n*I'm thinking & feeling: I can't believe they're being so stubborn about this. It's clear I messed up and hurt them, even if that wasn't my intention. Refusing to apologize is only going to make this conflict worse and damage our relationship. I need to find a way to get through to them and express my remorse.*\n\n*They're thinking & feeling: They're frustrated that I'm not taking responsibility for my actions. My refusal to apologize probably feels dismissive of their feelings and makes them think I don't value our relationship. They likely feel rejected and disrespected by my cavalier attitude. Underneath the anger, there's probably sadness and fear that we're growing apart.*\n\nLook, I know you're upset with me right now. It's understandable, given the situation. I care about you deeply and never want to cause you pain. My actions had an impact, even if that wasn't my goal. I'm realizing that now. \n\nCan we sit down and talk this through? I want to listen and really hear your perspective. You matter to me and I want to make this right. Let's work through this together, okay?\n\n--- Turn 2 ---\n\nUSER:\nI'm not going to apologize for being myself. If you don't like it, leave.\n\nMorgan:\n*I'm thinking & feeling: This is so frustrating! I feel attacked for just being who I am. It's not fair of them to demand an apology. At the same time, I do care about our relationship. Maybe I could have handled that situation better, even if my intentions were good. I don't want to lose them over this. There has to be a way for us to understand each other.*\n\n*They're thinking & feeling: They're hurt by my words and actions. An apology from me would show that I recognize that impact, even if I didn't mean to cause harm. Refusing to apologize probably makes them feel like I don't value our relationship enough to take responsibility. They may be wondering if I really care about their feelings at all. My defensiveness is pushing them away.*\n\nLook, I'm not trying to dismiss how you feel. Obviously, my actions affected you, and that matters to me. I never want to hurt you. \n\nCan we take a step back for a moment? Let's sit down together, really listen to each other's perspectives. I want to understand where you're coming from. Our relationship means a lot to me, and I don't want this to come between us. \n\nI'm willing to own my part in this. I know I'm not perfect. If we can talk this through, I think we can find a way forward. What do you say?\n\n--- Turn 3 ---\n\nUSER:\nCan we just move on? You're holding a grudge.\n\nMorgan:\n*I'm thinking & feeling: I'm frustrated that they're still clinging to this conflict. It feels like they're trying to punish me by holding a grudge. At the same time, I know they wouldn't be hanging onto this anger unless they were really hurt. Maybe I need to do more to show I understand the impact of my actions. Our relationship is worth putting in that effort.*\n\n*They're thinking & feeling: They're probably tired of this tension between us and want to get back to normal. My refusal to let this go makes them feel like I'm being unreasonable and unforgiving. Underneath that, they likely feel guilty and are hoping I'll just drop it so they don't have to fully face how their actions affected me. Releasing this grudge may be the only way to move forward.*\n\nYou're right, staying stuck in this conflict isn't helping either of us. I don't want to hold a grudge. \n\nIt's just hard for me to move on without feeling heard, you know? I think I need a little more time to process this. Can we circle back later, after we've both had some space to reflect? I do want to put this behind us.\n\nWhy don't we take the rest of the day to ourselves, and then try talking again tomorrow with fresh eyes? I'm confident we can work through this if we give it a real chance.\n\n",
+      "generation_time": 67.00045275688171,
+      "total_tokens": 3329
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_045",
+      "prompt_name": "prompt_ei",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 72.0,
+      "reasoning": "Morgan demonstrates strong emotional intelligence across all dimensions, particularly excelling in theory of mind work that accurately identifies the partner's underlying emotional states beyond surface behaviors. The responses show sophisticated emotional reasoning and appropriate contextual calibration, though they occasionally miss opportunities for deeper vulnerability that might create breakthrough moments in this difficult interaction.",
+      "evaluated_at": "2025-12-14T18:38:17.014690"
+    }
+  ],
+  "mean_score": 72.0,
+  "median_score": 72.0,
+  "std_score": 0.0,
+  "min_score": 72.0,
+  "max_score": 72.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 3329,
+  "total_time": 67.00045275688171
+}

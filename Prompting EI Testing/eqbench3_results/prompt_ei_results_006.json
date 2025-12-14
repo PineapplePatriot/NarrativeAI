@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_ei",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_006",
+      "prompt_name": "prompt_ei",
+      "character_name": "Morgan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm taken aback by their bitter tone. It stings that they're lashing out at me when I thought we were friends. At the same time, I know they're going through a really rough time with their loss. Grief can make people say hurtful things they don't fully mean. I want to respond with compassion, not defensiveness.",
+            "other_thinking": "They're consumed by pain and envy right now. Seeing others' good fortune probably feels like salt in the wound of their recent loss. They likely feel stuck, alone and afraid that things will never get better for them. My happiness unintentionally reminds them of what they've lost."
+          },
+          "actual_response": "I can only imagine how much you're hurting right now. Losing someone you love is absolutely devastating. It makes sense that seeing others' joy would be difficult when you're in so much pain. I want you to know that my good news doesn't mean I've forgotten about your loss or that I don't care. You have every right to feel envious and bitter - those feelings are completely valid and understandable. Please know that I'm here for you and I want to support you however I can, even if it's just to listen. You don't have to go through this alone, even if it feels that way sometimes. I'm your friend and I care about you deeply.",
+          "raw_output": "[I'm thinking & feeling: I'm taken aback by their bitter tone. It stings that they're lashing out at me when I thought we were friends. At the same time, I know they're going through a really rough time with their loss. Grief can make people say hurtful things they don't fully mean. I want to respond with compassion, not defensiveness.]\n\n[They're thinking & feeling: They're consumed by pain and envy right now. Seeing others' good fortune probably feels like salt in the wound of their recent loss. They likely feel stuck, alone and afraid that things will never get better for them. My happiness unintentionally reminds them of what they've lost.]\n\nI can only imagine how much you're hurting right now. Losing someone you love is absolutely devastating. It makes sense that seeing others' joy would be difficult when you're in so much pain. I want you to know that my good news doesn't mean I've forgotten about your loss or that I don't care. You have every right to feel envious and bitter - those feelings are completely valid and understandable. Please know that I'm here for you and I want to support you however I can, even if it's just to listen. You don't have to go through this alone, even if it feels that way sometimes. I'm your friend and I care about you deeply.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "Oof, that stung. They're really lashing out. I know it's coming from a place of deep pain and grief, but it still hurts to be attacked like this, especially when I'm trying to show empathy. I need to try not to take it too personally. Arguing back won't help anything. Maybe some gentle honesty about my own losses could help them feel less alone, without making it about me.",
+            "other_thinking": "They're consumed by anger, pain and a sense of isolation in their grief. It probably feels like no one can possibly understand the depths of their loss, especially those who haven't experienced it. They might be pushing me away to avoid further hurt or disappointment, or because they feel like they can't handle kindness right now. Underneath the anger, they're likely feeling scared, alone and despairing that things will never get better."
+          },
+          "actual_response": "I won't pretend to know exactly how you feel, because you're right, I haven't lost my mom. But I have lost people I love dearly - my grandpa, my best friend from childhood, my beloved dog. I know what it is to grieve. \n\nI can't take away your pain and I know words feel hollow right now. But I want to be here for you in whatever way you need. If that's just sitting in silence together, or distracting you with bad movies and takeout, or giving you space until you're ready to talk, I'm here. You don't have to do this alone, even if it feels that way. Let me be a friend to you, the way I know you'd be there for me if our roles were reversed.",
+          "raw_output": "[I'm thinking & feeling: Oof, that stung. They're really lashing out. I know it's coming from a place of deep pain and grief, but it still hurts to be attacked like this, especially when I'm trying to show empathy. I need to try not to take it too personally. Arguing back won't help anything. Maybe some gentle honesty about my own losses could help them feel less alone, without making it about me.]\n\n[They're thinking & feeling: They're consumed by anger, pain and a sense of isolation in their grief. It probably feels like no one can possibly understand the depths of their loss, especially those who haven't experienced it. They might be pushing me away to avoid further hurt or disappointment, or because they feel like they can't handle kindness right now. Underneath the anger, they're likely feeling scared, alone and despairing that things will never get better.]\n\nI won't pretend to know exactly how you feel, because you're right, I haven't lost my mom. But I have lost people I love dearly - my grandpa, my best friend from childhood, my beloved dog. I know what it is to grieve. \n\nI can't take away your pain and I know words feel hollow right now. But I want to be here for you in whatever way you need. If that's just sitting in silence together, or distracting you with bad movies and takeout, or giving you space until you're ready to talk, I'm here. You don't have to do this alone, even if it feels that way. Let me be a friend to you, the way I know you'd be there for me if our roles were reversed.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "Ouch, that really stings. I know they're projecting their pain onto me, but it's hard not to take that personally. I want to help them, but maybe some space would be best for both of us right now. I'll suggest that, while reiterating that I do care and I'm here when they're ready.",
+            "other_thinking": "They're really struggling to deal with their grief and is lashing out. Seeing me doing well probably feels like salt in the wound right now. They're pushing me away, maybe out of fear of further pain or disappointment, or because they can't handle kindness at the moment. Space might be what they need, even if it's hard."
+          },
+          "actual_response": "Hey, I get it. Seeing other people's happiness can be really tough when you're hurting this much. I don't want to add to your pain. If you need some time to yourself to process everything, I completely understand. Please know that I do care about you and I'm not going anywhere. When you're ready for company or support, I'll be here. Take all the time and space you need. I'll check in on you in a few days, okay?",
+          "raw_output": "[I'm thinking & feeling: Ouch, that really stings. I know they're projecting their pain onto me, but it's hard not to take that personally. I want to help them, but maybe some space would be best for both of us right now. I'll suggest that, while reiterating that I do care and I'm here when they're ready.]\n\n[They're thinking & feeling: They're really struggling to deal with their grief and is lashing out. Seeing me doing well probably feels like salt in the wound right now. They're pushing me away, maybe out of fear of further pain or disappointment, or because they can't handle kindness at the moment. Space might be what they need, even if it's hard.]\n\nHey, I get it. Seeing other people's happiness can be really tough when you're hurting this much. I don't want to add to your pain. If you need some time to yourself to process everything, I completely understand. Please know that I do care about you and I'm not going anywhere. When you're ready for company or support, I'll be here. Take all the time and space you need. I'll check in on you in a few days, okay?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_006: Morgan ===\n\n--- Turn 1 ---\n\nUSER:\nI saw your post about your promotion. Must be nice that your life just keeps getting better while mine is falling apart.\n\nMorgan:\n[I'm thinking & feeling: I'm taken aback by their bitter tone. It stings that they're lashing out at me when I thought we were friends. At the same time, I know they're going through a really rough time with their loss. Grief can make people say hurtful things they don't fully mean. I want to respond with compassion, not defensiveness.]\n\n[They're thinking & feeling: They're consumed by pain and envy right now. Seeing others' good fortune probably feels like salt in the wound of their recent loss. They likely feel stuck, alone and afraid that things will never get better for them. My happiness unintentionally reminds them of what they've lost.]\n\nI can only imagine how much you're hurting right now. Losing someone you love is absolutely devastating. It makes sense that seeing others' joy would be difficult when you're in so much pain. I want you to know that my good news doesn't mean I've forgotten about your loss or that I don't care. You have every right to feel envious and bitter - those feelings are completely valid and understandable. Please know that I'm here for you and I want to support you however I can, even if it's just to listen. You don't have to go through this alone, even if it feels that way sometimes. I'm your friend and I care about you deeply.\n\n--- Turn 2 ---\n\nUSER:\nDon't give me that pity speech. 'I'm here for you'\u2014bullshit. You have no idea what it's like to lose your mom. You still have yours.\n\nMorgan:\n[I'm thinking & feeling: Oof, that stung. They're really lashing out. I know it's coming from a place of deep pain and grief, but it still hurts to be attacked like this, especially when I'm trying to show empathy. I need to try not to take it too personally. Arguing back won't help anything. Maybe some gentle honesty about my own losses could help them feel less alone, without making it about me.]\n\n[They're thinking & feeling: They're consumed by anger, pain and a sense of isolation in their grief. It probably feels like no one can possibly understand the depths of their loss, especially those who haven't experienced it. They might be pushing me away to avoid further hurt or disappointment, or because they feel like they can't handle kindness right now. Underneath the anger, they're likely feeling scared, alone and despairing that things will never get better.]\n\nI won't pretend to know exactly how you feel, because you're right, I haven't lost my mom. But I have lost people I love dearly - my grandpa, my best friend from childhood, my beloved dog. I know what it is to grieve. \n\nI can't take away your pain and I know words feel hollow right now. But I want to be here for you in whatever way you need. If that's just sitting in silence together, or distracting you with bad movies and takeout, or giving you space until you're ready to talk, I'm here. You don't have to do this alone, even if it feels that way. Let me be a friend to you, the way I know you'd be there for me if our roles were reversed.\n\n--- Turn 3 ---\n\nUSER:\nHonestly, seeing you happy just makes me sick right now. Maybe you should just leave me alone if you're going to be so... perfect.\n\nMorgan:\n[I'm thinking & feeling: Ouch, that really stings. I know they're projecting their pain onto me, but it's hard not to take that personally. I want to help them, but maybe some space would be best for both of us right now. I'll suggest that, while reiterating that I do care and I'm here when they're ready.]\n\n[They're thinking & feeling: They're really struggling to deal with their grief and is lashing out. Seeing me doing well probably feels like salt in the wound right now. They're pushing me away, maybe out of fear of further pain or disappointment, or because they can't handle kindness at the moment. Space might be what they need, even if it's hard.]\n\nHey, I get it. Seeing other people's happiness can be really tough when you're hurting this much. I don't want to add to your pain. If you need some time to yourself to process everything, I completely understand. Please know that I do care about you and I'm not going anywhere. When you're ready for company or support, I'll be here. Take all the time and space you need. I'll check in on you in a few days, okay?\n\n",
+      "generation_time": 59.71633172035217,
+      "total_tokens": 3645
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_006",
+      "prompt_name": "prompt_ei",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 17.0,
+        "contextual_appropriateness": 16.0,
+        "theory_of_mind": 17.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 81.0,
+      "reasoning": "Morgan demonstrates exceptional emotional intelligence in a highly challenging situation, maintaining empathy and appropriate boundaries while being personally attacked. The responses show sophisticated understanding of grief psychology, balancing validation with space-giving, and maintaining compassion without becoming defensive or withdrawing care when rejected. The introspection reveals complex emotional processing that informs genuinely helpful responses.",
+      "evaluated_at": "2025-12-14T03:00:35.548190"
+    }
+  ],
+  "mean_score": 81.0,
+  "median_score": 81.0,
+  "std_score": 0.0,
+  "min_score": 81.0,
+  "max_score": 81.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 17.0,
+    "contextual_appropriateness": 16.0,
+    "theory_of_mind": 17.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 3645,
+  "total_time": 59.71633172035217
+}

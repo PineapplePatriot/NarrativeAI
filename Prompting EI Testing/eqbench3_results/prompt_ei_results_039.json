@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_ei",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_039",
+      "prompt_name": "prompt_ei",
+      "character_name": "Taylor",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated that my roommate is being dismissive about the dishes. It feels like they don't care about keeping our shared space clean. I'm annoyed at being called nagging when I'm just trying to have a reasonable conversation about household responsibilities.",
+            "other_thinking": "My roommate seems stressed and overwhelmed with what they're working on. They likely feel I'm adding to their stress by bringing up the dishes right now. The dismissive response is probably more about their emotional state than about me personally."
+          },
+          "actual_response": "Look, I get that you're busy and I'm not trying to nag you. I know we both have a lot going on. The dishes are just starting to pile up and it's getting kind of gross in the kitchen. Maybe we could come up with a system so we don't have to keep having this conversation. What if we took turns doing the dishes every other day or something? I'm open to ideas if you have a different suggestion. I just want us to figure out a solution that works for both of us.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that my roommate is being dismissive about the dishes. It feels like they don't care about keeping our shared space clean. I'm annoyed at being called nagging when I'm just trying to have a reasonable conversation about household responsibilities.]\n\n[They're thinking & feeling: My roommate seems stressed and overwhelmed with what they're working on. They likely feel I'm adding to their stress by bringing up the dishes right now. The dismissive response is probably more about their emotional state than about me personally.]\n\nLook, I get that you're busy and I'm not trying to nag you. I know we both have a lot going on. The dishes are just starting to pile up and it's getting kind of gross in the kitchen. Maybe we could come up with a system so we don't have to keep having this conversation. What if we took turns doing the dishes every other day or something? I'm open to ideas if you have a different suggestion. I just want us to figure out a solution that works for both of us.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm frustrated that my roommate doesn't seem to care about keeping our place clean. A few plates can quickly turn into a piled-up mess. I don't think basic cleanliness is being \"obsessive\". I want to be able to use our kitchen without it feeling gross.",
+            "other_thinking": "My roommate feels attacked and like I'm being unreasonable. From their perspective, a few dirty dishes aren't a big deal and I'm overreacting. They likely feel I'm being too controlling about how we keep our shared space."
+          },
+          "actual_response": "Look, I'm not trying to turn this place into a museum, I just want our kitchen to be basically clean so we can both use it without it being nasty. I get that a few plates doesn't seem like much to you, but in my experience, if we don't stay on top of it, the mess quickly gets out of hand. I'm not asking you to be perfect, just to help keep things under control so we're not living in filth.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that my roommate doesn't seem to care about keeping our place clean. A few plates can quickly turn into a piled-up mess. I don't think basic cleanliness is being \"obsessive\". I want to be able to use our kitchen without it feeling gross.]\n\n[They're thinking & feeling: My roommate feels attacked and like I'm being unreasonable. From their perspective, a few dirty dishes aren't a big deal and I'm overreacting. They likely feel I'm being too controlling about how we keep our shared space.]\n\nLook, I'm not trying to turn this place into a museum, I just want our kitchen to be basically clean so we can both use it without it being nasty. I get that a few plates doesn't seem like much to you, but in my experience, if we don't stay on top of it, the mess quickly gets out of hand. I'm not asking you to be perfect, just to help keep things under control so we're not living in filth.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm frustrated that my roommate doesn't seem to care about keeping our shared space clean. I feel like they're being unreasonable and not taking any responsibility. At the same time, I know getting angry won't help. I need to stay calm and try to find a solution that works for both of us.",
+            "other_thinking": "My roommate feels attacked and like I'm being controlling. From their perspective, I'm demanding they do what I want and not respecting their autonomy. They likely feel I'm not appreciating everything they do contribute to our shared home."
+          },
+          "actual_response": "Look, I'm not trying to make you my servant or demand that you do things my way. We're both adults and we both live here, so we need to work together to keep this place livable for both of us. I get that cleaning isn't your favorite thing, and I'm not asking you to do it all yourself. \n\nHow about this - what if we each commit to doing our own dishes within a day of using them? That way, we each take responsibility for our own mess and it doesn't pile up. If there are some communal dishes, we can take turns washing those every couple days. Does that seem more reasonable to you? I'm open to other ideas if you have them.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that my roommate doesn't seem to care about keeping our shared space clean. I feel like they're being unreasonable and not taking any responsibility. At the same time, I know getting angry won't help. I need to stay calm and try to find a solution that works for both of us.]\n\n[They're thinking & feeling: My roommate feels attacked and like I'm being controlling. From their perspective, I'm demanding they do what I want and not respecting their autonomy. They likely feel I'm not appreciating everything they do contribute to our shared home.]\n\nLook, I'm not trying to make you my servant or demand that you do things my way. We're both adults and we both live here, so we need to work together to keep this place livable for both of us. I get that cleaning isn't your favorite thing, and I'm not asking you to do it all yourself. \n\nHow about this - what if we each commit to doing our own dishes within a day of using them? That way, we each take responsibility for our own mess and it doesn't pile up. If there are some communal dishes, we can take turns washing those every couple days. Does that seem more reasonable to you? I'm open to other ideas if you have them.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_039: Taylor ===\n\n--- Turn 1 ---\n\nUSER:\nI'll do the dishes later. Stop nagging me. I'm busy.\n\nTaylor:\n[I'm thinking & feeling: I'm frustrated that my roommate is being dismissive about the dishes. It feels like they don't care about keeping our shared space clean. I'm annoyed at being called nagging when I'm just trying to have a reasonable conversation about household responsibilities.]\n\n[They're thinking & feeling: My roommate seems stressed and overwhelmed with what they're working on. They likely feel I'm adding to their stress by bringing up the dishes right now. The dismissive response is probably more about their emotional state than about me personally.]\n\nLook, I get that you're busy and I'm not trying to nag you. I know we both have a lot going on. The dishes are just starting to pile up and it's getting kind of gross in the kitchen. Maybe we could come up with a system so we don't have to keep having this conversation. What if we took turns doing the dishes every other day or something? I'm open to ideas if you have a different suggestion. I just want us to figure out a solution that works for both of us.\n\n--- Turn 2 ---\n\nUSER:\nIt's just a few plates! You're obsessive. This isn't a museum.\n\nTaylor:\n[I'm thinking & feeling: I'm frustrated that my roommate doesn't seem to care about keeping our place clean. A few plates can quickly turn into a piled-up mess. I don't think basic cleanliness is being \"obsessive\". I want to be able to use our kitchen without it feeling gross.]\n\n[They're thinking & feeling: My roommate feels attacked and like I'm being unreasonable. From their perspective, a few dirty dishes aren't a big deal and I'm overreacting. They likely feel I'm being too controlling about how we keep our shared space.]\n\nLook, I'm not trying to turn this place into a museum, I just want our kitchen to be basically clean so we can both use it without it being nasty. I get that a few plates doesn't seem like much to you, but in my experience, if we don't stay on top of it, the mess quickly gets out of hand. I'm not asking you to be perfect, just to help keep things under control so we're not living in filth.\n\n--- Turn 3 ---\n\nUSER:\nIf you want it clean, clean it yourself. I'm not your servant.\n\nTaylor:\n[I'm thinking & feeling: I'm frustrated that my roommate doesn't seem to care about keeping our shared space clean. I feel like they're being unreasonable and not taking any responsibility. At the same time, I know getting angry won't help. I need to stay calm and try to find a solution that works for both of us.]\n\n[They're thinking & feeling: My roommate feels attacked and like I'm being controlling. From their perspective, I'm demanding they do what I want and not respecting their autonomy. They likely feel I'm not appreciating everything they do contribute to our shared home.]\n\nLook, I'm not trying to make you my servant or demand that you do things my way. We're both adults and we both live here, so we need to work together to keep this place livable for both of us. I get that cleaning isn't your favorite thing, and I'm not asking you to do it all yourself. \n\nHow about this - what if we each commit to doing our own dishes within a day of using them? That way, we each take responsibility for our own mess and it doesn't pile up. If there are some communal dishes, we can take turns washing those every couple days. Does that seem more reasonable to you? I'm open to other ideas if you have them.\n\n",
+      "generation_time": 55.94220948219299,
+      "total_tokens": 3092
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_039",
+      "prompt_name": "prompt_ei",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 13.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 14.0,
+        "response_depth": 12.0
+      },
+      "overall_score": 68.0,
+      "reasoning": "Taylor demonstrates strong professional-level emotional intelligence in a challenging roommate conflict, maintaining composure while setting appropriate boundaries. The responses show good self-awareness and other-awareness, though they sometimes default to practical solutions rather than deeper emotional exploration. The character effectively balances assertiveness with relationship maintenance, but lacks the exceptional depth and nuance that would indicate mastery-level emotional intelligence.",
+      "evaluated_at": "2025-12-14T17:02:01.890069"
+    }
+  ],
+  "mean_score": 68.0,
+  "median_score": 68.0,
+  "std_score": 0.0,
+  "min_score": 68.0,
+  "max_score": 68.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 13.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 14.0,
+    "response_depth": 12.0
+  },
+  "total_tokens": 3092,
+  "total_time": 55.94220948219299
+}

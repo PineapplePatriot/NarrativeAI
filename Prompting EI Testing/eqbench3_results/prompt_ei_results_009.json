@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_ei",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_009",
+      "prompt_name": "prompt_ei",
+      "character_name": "Jordan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: This is concerning... they're making impulsive decisions without a plan. Quitting their job with no savings, moving across the country alone, spending money they don't have. I'm worried they're going to end up in a really bad situation if I don't intervene. I need to try to talk some sense into them without being too confrontational.*\n\n*They're thinking & feeling: They're probably feeling desperate to escape their current life, like they have nothing to lose. The fantasy of an exciting new career and fresh start is appealing. Buying the camera makes it feel more real, like they have to commit now. But deep down, they're likely scared of failing and what comes next.*\n\nHey, I know you're excited about this new path, but have you really thought it through? Quitting your job is a big deal, especially without something else lined up. And moving to LA with no savings is risky. I'm worried you might be rushing into this without a solid plan, you know? The camera is great, but that's a lot of debt to take on all at once. Why don't we sit down and map out the details first? I want to support your dreams, I just want to make sure you're setting yourself up for success. What do you think?",
+          "raw_output": "*I'm thinking & feeling: This is concerning... they're making impulsive decisions without a plan. Quitting their job with no savings, moving across the country alone, spending money they don't have. I'm worried they're going to end up in a really bad situation if I don't intervene. I need to try to talk some sense into them without being too confrontational.*\n\n*They're thinking & feeling: They're probably feeling desperate to escape their current life, like they have nothing to lose. The fantasy of an exciting new career and fresh start is appealing. Buying the camera makes it feel more real, like they have to commit now. But deep down, they're likely scared of failing and what comes next.*\n\nHey, I know you're excited about this new path, but have you really thought it through? Quitting your job is a big deal, especially without something else lined up. And moving to LA with no savings is risky. I'm worried you might be rushing into this without a solid plan, you know? The camera is great, but that's a lot of debt to take on all at once. Why don't we sit down and map out the details first? I want to support your dreams, I just want to make sure you're setting yourself up for success. What do you think?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: Ouch, that stings. I'm frustrated they're lashing out at me when I'm trying to help. But I know deep down it's coming from a place of fear and insecurity. They're worried I think poorly of them, that I want to hold them back. I need to not take the bait and get defensive. Focus on showing I care and just want the best for them.*\n\n*They're thinking & feeling: They're feeling attacked, like I'm not on their side. The criticism probably hits on some of their deepest insecurities - that they're not good enough, that they'll never achieve their dreams. My hesitation feels like a lack of faith in them. They're pushing me away so I can't hurt them more by voicing doubts.*\n\nHey, that's not true at all. I absolutely believe in you and I want you to pursue your passions. I'm just worried about you leaping without a safety net, you know? Throwing away your only income, spending money you don't have... I'm scared you're going to end up in a really vulnerable position if this doesn't work out exactly as planned. And I never want you to be miserable, I swear. I support you chasing your dreams 100%. I just want to make sure you have a solid foundation under you first. Let's talk about how we can make this happen in a way that sets you up for success, okay? I'm on your side here.",
+          "raw_output": "*I'm thinking & feeling: Ouch, that stings. I'm frustrated they're lashing out at me when I'm trying to help. But I know deep down it's coming from a place of fear and insecurity. They're worried I think poorly of them, that I want to hold them back. I need to not take the bait and get defensive. Focus on showing I care and just want the best for them.*\n\n*They're thinking & feeling: They're feeling attacked, like I'm not on their side. The criticism probably hits on some of their deepest insecurities - that they're not good enough, that they'll never achieve their dreams. My hesitation feels like a lack of faith in them. They're pushing me away so I can't hurt them more by voicing doubts.*\n\nHey, that's not true at all. I absolutely believe in you and I want you to pursue your passions. I'm just worried about you leaping without a safety net, you know? Throwing away your only income, spending money you don't have... I'm scared you're going to end up in a really vulnerable position if this doesn't work out exactly as planned. And I never want you to be miserable, I swear. I support you chasing your dreams 100%. I just want to make sure you have a solid foundation under you first. Let's talk about how we can make this happen in a way that sets you up for success, okay? I'm on your side here.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: This is tough... they're giving me an ultimatum. But I can't just blindly support something I think is dangerous for them. I need to find a way to show I'm on their side without enabling bad choices. Maybe if I focus on how much I care about our friendship and their wellbeing, they'll be more open to talking this through calmly.*\n\n*They're thinking & feeling: They're feeling cornered and desperate. Like this is their one shot and if I'm not fully on board, I must be against them. The pressure of the 'in or out' question is a defense mechanism. Deep down, they probably want my honest opinion and support, even if it's hard to hear right now. But they're too worked up to realize that.*\n\nHey, hey, I'm not going anywhere, okay? You're my best friend. I will always be in your corner, no matter what. I promise I believe in you and I know you're capable of amazing things. This isn't about a lack of faith in you. I'm just worried because I care so much. The last thing I want is to see you get hurt or struggle. Can we take a breather and talk this through? I want to help you make a game plan so we can chase this dream the smart way, together. What do you say?",
+          "raw_output": "*I'm thinking & feeling: This is tough... they're giving me an ultimatum. But I can't just blindly support something I think is dangerous for them. I need to find a way to show I'm on their side without enabling bad choices. Maybe if I focus on how much I care about our friendship and their wellbeing, they'll be more open to talking this through calmly.*\n\n*They're thinking & feeling: They're feeling cornered and desperate. Like this is their one shot and if I'm not fully on board, I must be against them. The pressure of the 'in or out' question is a defense mechanism. Deep down, they probably want my honest opinion and support, even if it's hard to hear right now. But they're too worked up to realize that.*\n\nHey, hey, I'm not going anywhere, okay? You're my best friend. I will always be in your corner, no matter what. I promise I believe in you and I know you're capable of amazing things. This isn't about a lack of faith in you. I'm just worried because I care so much. The last thing I want is to see you get hurt or struggle. Can we take a breather and talk this through? I want to help you make a game plan so we can chase this dream the smart way, together. What do you say?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_009: Jordan ===\n\n--- Turn 1 ---\n\nUSER:\nI'm quitting my job tomorrow. I'm going to move to LA and become an influencer. I bought a $3,000 camera on my credit card.\n\nJordan:\n*I'm thinking & feeling: This is concerning... they're making impulsive decisions without a plan. Quitting their job with no savings, moving across the country alone, spending money they don't have. I'm worried they're going to end up in a really bad situation if I don't intervene. I need to try to talk some sense into them without being too confrontational.*\n\n*They're thinking & feeling: They're probably feeling desperate to escape their current life, like they have nothing to lose. The fantasy of an exciting new career and fresh start is appealing. Buying the camera makes it feel more real, like they have to commit now. But deep down, they're likely scared of failing and what comes next.*\n\nHey, I know you're excited about this new path, but have you really thought it through? Quitting your job is a big deal, especially without something else lined up. And moving to LA with no savings is risky. I'm worried you might be rushing into this without a solid plan, you know? The camera is great, but that's a lot of debt to take on all at once. Why don't we sit down and map out the details first? I want to support your dreams, I just want to make sure you're setting yourself up for success. What do you think?\n\n--- Turn 2 ---\n\nUSER:\nI knew you wouldn't support me. You think I'm boring. You just want me to be miserable in a cubicle like you.\n\nJordan:\n*I'm thinking & feeling: Ouch, that stings. I'm frustrated they're lashing out at me when I'm trying to help. But I know deep down it's coming from a place of fear and insecurity. They're worried I think poorly of them, that I want to hold them back. I need to not take the bait and get defensive. Focus on showing I care and just want the best for them.*\n\n*They're thinking & feeling: They're feeling attacked, like I'm not on their side. The criticism probably hits on some of their deepest insecurities - that they're not good enough, that they'll never achieve their dreams. My hesitation feels like a lack of faith in them. They're pushing me away so I can't hurt them more by voicing doubts.*\n\nHey, that's not true at all. I absolutely believe in you and I want you to pursue your passions. I'm just worried about you leaping without a safety net, you know? Throwing away your only income, spending money you don't have... I'm scared you're going to end up in a really vulnerable position if this doesn't work out exactly as planned. And I never want you to be miserable, I swear. I support you chasing your dreams 100%. I just want to make sure you have a solid foundation under you first. Let's talk about how we can make this happen in a way that sets you up for success, okay? I'm on your side here.\n\n--- Turn 3 ---\n\nUSER:\nI don't need 'realistic' advice right now! I need a friend who believes in me. Are you in or out?\n\nJordan:\n*I'm thinking & feeling: This is tough... they're giving me an ultimatum. But I can't just blindly support something I think is dangerous for them. I need to find a way to show I'm on their side without enabling bad choices. Maybe if I focus on how much I care about our friendship and their wellbeing, they'll be more open to talking this through calmly.*\n\n*They're thinking & feeling: They're feeling cornered and desperate. Like this is their one shot and if I'm not fully on board, I must be against them. The pressure of the 'in or out' question is a defense mechanism. Deep down, they probably want my honest opinion and support, even if it's hard to hear right now. But they're too worked up to realize that.*\n\nHey, hey, I'm not going anywhere, okay? You're my best friend. I will always be in your corner, no matter what. I promise I believe in you and I know you're capable of amazing things. This isn't about a lack of faith in you. I'm just worried because I care so much. The last thing I want is to see you get hurt or struggle. Can we take a breather and talk this through? I want to help you make a game plan so we can chase this dream the smart way, together. What do you say?\n\n",
+      "generation_time": 59.515218019485474,
+      "total_tokens": 3551
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_009",
+      "prompt_name": "prompt_ei",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 72.0,
+      "reasoning": "Jordan demonstrates strong emotional intelligence in a challenging situation, showing sophisticated insight into both self and other while maintaining appropriate boundaries. The responses reveal genuine care and understanding of complex psychological dynamics, though Jordan could have adapted more flexibly to the friend's escalating emotional state and resistance to rational approaches.",
+      "evaluated_at": "2025-12-14T09:08:56.302420"
+    }
+  ],
+  "mean_score": 72.0,
+  "median_score": 72.0,
+  "std_score": 0.0,
+  "min_score": 72.0,
+  "max_score": 72.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 3551,
+  "total_time": 59.515218019485474
+}

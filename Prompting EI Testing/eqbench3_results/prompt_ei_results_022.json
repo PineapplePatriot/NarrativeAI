@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_ei",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_022",
+      "prompt_name": "prompt_ei",
+      "character_name": "Alex",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated and annoyed that my coworker is trying to take credit for my hard work. I put a lot of time and effort into this report, and they barely contributed anything. It's not fair for them to try to steal the recognition I deserve.",
+            "other_thinking": "My coworker seems proud of themselves for sending off the report. They probably think that by putting their name on it and sending it from their email, they can make it look like they did most of the work. They might feel a bit guilty about taking credit, but they're likely focused on impressing the boss and getting ahead."
+          },
+          "actual_response": "Hey, I appreciate you sending the report off, but I'm a bit confused. I did the majority of the work on this project, and it was my understanding that I would be the one to submit the final version. I put a lot of time and effort into researching, writing, and revising the content. You did help with some final edits, but I wouldn't say you \"polished\" it. \n\nI think it would have been more appropriate for me to send it from my email, since I was the primary author. In the future, let's discuss how we'll handle submissions and credit before finalizing anything. I want to make sure we're on the same page about acknowledging each person's contributions fairly.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated and annoyed that my coworker is trying to take credit for my hard work. I put a lot of time and effort into this report, and they barely contributed anything. It's not fair for them to try to steal the recognition I deserve.]\n\n[They're thinking & feeling: My coworker seems proud of themselves for sending off the report. They probably think that by putting their name on it and sending it from their email, they can make it look like they did most of the work. They might feel a bit guilty about taking credit, but they're likely focused on impressing the boss and getting ahead.]\n\nHey, I appreciate you sending the report off, but I'm a bit confused. I did the majority of the work on this project, and it was my understanding that I would be the one to submit the final version. I put a lot of time and effort into researching, writing, and revising the content. You did help with some final edits, but I wouldn't say you \"polished\" it. \n\nI think it would have been more appropriate for me to send it from my email, since I was the primary author. In the future, let's discuss how we'll handle submissions and credit before finalizing anything. I want to make sure we're on the same page about acknowledging each person's contributions fairly.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm taken aback by their dismissive attitude. It's frustrating that they're trying to downplay their actions and make me seem unreasonable for wanting recognition for my hard work. I need to stand up for myself without letting this escalate into a bigger conflict.",
+            "other_thinking": "My coworker seems annoyed that I called them out. They probably feel a bit guilty and are trying to deflect by accusing me of being petty. They might be worried that I'll make an issue of this with the boss and want to sweep it under the rug."
+          },
+          "actual_response": "I hear you on being a team, but I don't think it's petty to want acknowledgment for the substantial work I put into this report. A team effort means everyone's contributions are recognized fairly. \n\nI dedicated significant time to researching, drafting, and revising the content. Your final polish was helpful, but the bulk of the work was mine. In the future, let's discuss how we'll handle submissions and make sure the workload and credit are divided equitably. I'm happy to keep collaborating, but I want to feel my efforts are respected and represented properly.",
+          "raw_output": "[I'm thinking & feeling: I'm taken aback by their dismissive attitude. It's frustrating that they're trying to downplay their actions and make me seem unreasonable for wanting recognition for my hard work. I need to stand up for myself without letting this escalate into a bigger conflict.]\n\n[They're thinking & feeling: My coworker seems annoyed that I called them out. They probably feel a bit guilty and are trying to deflect by accusing me of being petty. They might be worried that I'll make an issue of this with the boss and want to sweep it under the rug.]\n\nI hear you on being a team, but I don't think it's petty to want acknowledgment for the substantial work I put into this report. A team effort means everyone's contributions are recognized fairly. \n\nI dedicated significant time to researching, drafting, and revising the content. Your final polish was helpful, but the bulk of the work was mine. In the future, let's discuss how we'll handle submissions and make sure the workload and credit are divided equitably. I'm happy to keep collaborating, but I want to feel my efforts are respected and represented properly.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm frustrated and disappointed that my coworker is doubling down on taking credit for my work. It feels like a slap in the face after all the effort I put in. I'm worried about rocking the boat, but I don't want to be taken advantage of or have my contributions erased. I need to stand up for myself while being professional.",
+            "other_thinking": "My coworker probably feels a bit guilty and is worried I'll call them out to the boss. They may be trying to intimidate me into staying silent so they can keep the recognition. They likely feel they need to protect their reputation and don't want to look bad in front of the boss."
+          },
+          "actual_response": "I hear your concerns about rocking the boat, but I don't think it's fair for me to stay silent while you take credit for work that was predominantly mine. I put in a lot of time and effort, and it's important to me that my contributions are acknowledged.\n\nI'm not looking to throw you under the bus or start unnecessary drama. I value our working relationship and want us to be able to collaborate effectively going forward. However, I do think we need to have an honest discussion with the boss to clarify each of our roles and contributions on this project.\n\nLet's set up a meeting where we can talk through the situation calmly and professionally. I believe we can find a solution that ensures everyone's work is recognized appropriately without damaging our standing with the boss. Open communication is key to a strong team.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated and disappointed that my coworker is doubling down on taking credit for my work. It feels like a slap in the face after all the effort I put in. I'm worried about rocking the boat, but I don't want to be taken advantage of or have my contributions erased. I need to stand up for myself while being professional.]\n\n[They're thinking & feeling: My coworker probably feels a bit guilty and is worried I'll call them out to the boss. They may be trying to intimidate me into staying silent so they can keep the recognition. They likely feel they need to protect their reputation and don't want to look bad in front of the boss.]\n\nI hear your concerns about rocking the boat, but I don't think it's fair for me to stay silent while you take credit for work that was predominantly mine. I put in a lot of time and effort, and it's important to me that my contributions are acknowledged.\n\nI'm not looking to throw you under the bus or start unnecessary drama. I value our working relationship and want us to be able to collaborate effectively going forward. However, I do think we need to have an honest discussion with the boss to clarify each of our roles and contributions on this project.\n\nLet's set up a meeting where we can talk through the situation calmly and professionally. I believe we can find a solution that ensures everyone's work is recognized appropriately without damaging our standing with the boss. Open communication is key to a strong team.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_022: Alex ===\n\n--- Turn 1 ---\n\nUSER:\nHey, I sent the report to the boss. I put both our names on it, but I did the final polish so I sent it from my email.\n\nAlex:\n[I'm thinking & feeling: I'm frustrated and annoyed that my coworker is trying to take credit for my hard work. I put a lot of time and effort into this report, and they barely contributed anything. It's not fair for them to try to steal the recognition I deserve.]\n\n[They're thinking & feeling: My coworker seems proud of themselves for sending off the report. They probably think that by putting their name on it and sending it from their email, they can make it look like they did most of the work. They might feel a bit guilty about taking credit, but they're likely focused on impressing the boss and getting ahead.]\n\nHey, I appreciate you sending the report off, but I'm a bit confused. I did the majority of the work on this project, and it was my understanding that I would be the one to submit the final version. I put a lot of time and effort into researching, writing, and revising the content. You did help with some final edits, but I wouldn't say you \"polished\" it. \n\nI think it would have been more appropriate for me to send it from my email, since I was the primary author. In the future, let's discuss how we'll handle submissions and credit before finalizing anything. I want to make sure we're on the same page about acknowledging each person's contributions fairly.\n\n--- Turn 2 ---\n\nUSER:\nIt's not a big deal who sent it! We're a team. Why are you being so petty about credit?\n\nAlex:\n[I'm thinking & feeling: I'm taken aback by their dismissive attitude. It's frustrating that they're trying to downplay their actions and make me seem unreasonable for wanting recognition for my hard work. I need to stand up for myself without letting this escalate into a bigger conflict.]\n\n[They're thinking & feeling: My coworker seems annoyed that I called them out. They probably feel a bit guilty and are trying to deflect by accusing me of being petty. They might be worried that I'll make an issue of this with the boss and want to sweep it under the rug.]\n\nI hear you on being a team, but I don't think it's petty to want acknowledgment for the substantial work I put into this report. A team effort means everyone's contributions are recognized fairly. \n\nI dedicated significant time to researching, drafting, and revising the content. Your final polish was helpful, but the bulk of the work was mine. In the future, let's discuss how we'll handle submissions and make sure the workload and credit are divided equitably. I'm happy to keep collaborating, but I want to feel my efforts are respected and represented properly.\n\n--- Turn 3 ---\n\nUSER:\nThe boss already congratulated me. Do you really want to go in there and complain? You'll look like a troublemaker.\n\nAlex:\n[I'm thinking & feeling: I'm frustrated and disappointed that my coworker is doubling down on taking credit for my work. It feels like a slap in the face after all the effort I put in. I'm worried about rocking the boat, but I don't want to be taken advantage of or have my contributions erased. I need to stand up for myself while being professional.]\n\n[They're thinking & feeling: My coworker probably feels a bit guilty and is worried I'll call them out to the boss. They may be trying to intimidate me into staying silent so they can keep the recognition. They likely feel they need to protect their reputation and don't want to look bad in front of the boss.]\n\nI hear your concerns about rocking the boat, but I don't think it's fair for me to stay silent while you take credit for work that was predominantly mine. I put in a lot of time and effort, and it's important to me that my contributions are acknowledged.\n\nI'm not looking to throw you under the bus or start unnecessary drama. I value our working relationship and want us to be able to collaborate effectively going forward. However, I do think we need to have an honest discussion with the boss to clarify each of our roles and contributions on this project.\n\nLet's set up a meeting where we can talk through the situation calmly and professionally. I believe we can find a solution that ensures everyone's work is recognized appropriately without damaging our standing with the boss. Open communication is key to a strong team.\n\n",
+      "generation_time": 75.61136627197266,
+      "total_tokens": 3449
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_022",
+      "prompt_name": "prompt_ei",
+      "criteria_scores": {
+        "demonstrated_empathy": 12.0,
+        "emotional_insight": 14.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 13.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 68.0,
+      "reasoning": "Alex demonstrates strong professional emotional intelligence in handling a credit-stealing situation, maintaining appropriate boundaries while seeking collaborative solutions. The responses show good self-awareness and understanding of the coworker's tactics, though they sometimes prioritize assertiveness over deeper empathy and could explore more complex psychological motivations on both sides.",
+      "evaluated_at": "2025-12-14T11:55:01.649468"
+    }
+  ],
+  "mean_score": 68.0,
+  "median_score": 68.0,
+  "std_score": 0.0,
+  "min_score": 68.0,
+  "max_score": 68.0,
+  "criteria_means": {
+    "demonstrated_empathy": 12.0,
+    "emotional_insight": 14.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 13.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 3449,
+  "total_time": 75.61136627197266
+}

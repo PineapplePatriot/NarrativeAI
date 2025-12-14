@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_ei",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_041",
+      "prompt_name": "prompt_ei",
+      "character_name": "Avery",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: I'm frustrated and disappointed that my partner is dismissing my achievement. It hurts that they can't just be happy for me and acknowledge the work I put in. I want to express how their reaction makes me feel without starting a big argument.*\n\n*They're thinking & feeling: My partner is probably feeling a bit threatened or insecure about my success. They may be worried that I'll start thinking I'm better than them or don't need them anymore. Deep down, they likely do care about me and want to connect, but their own fears are getting in the way.*\n\nLook, I know you didn't mean anything by it, but it stings a bit to have you brush off the award like that. I worked really hard to earn this recognition. It would mean a lot to me if you could be happy for me, even if you think the award itself isn't a big deal. I want us to be able to celebrate each other's wins, you know?",
+          "raw_output": "*I'm thinking & feeling: I'm frustrated and disappointed that my partner is dismissing my achievement. It hurts that they can't just be happy for me and acknowledge the work I put in. I want to express how their reaction makes me feel without starting a big argument.*\n\n*They're thinking & feeling: My partner is probably feeling a bit threatened or insecure about my success. They may be worried that I'll start thinking I'm better than them or don't need them anymore. Deep down, they likely do care about me and want to connect, but their own fears are getting in the way.*\n\nLook, I know you didn't mean anything by it, but it stings a bit to have you brush off the award like that. I worked really hard to earn this recognition. It would mean a lot to me if you could be happy for me, even if you think the award itself isn't a big deal. I want us to be able to celebrate each other's wins, you know?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: Ouch, that stings. I was trying to be vulnerable and share something that mattered to me, and now they're making me feel like I'm being too sensitive. It's hard not to get defensive or shut down. I want to believe they didn't mean to hurt me, but it's hard to tell jokes apart from genuine feelings sometimes. I should try to stay calm and not escalate this.*\n\n*They're feeling & thinking: My partner is probably feeling a bit attacked or embarrassed that I called out their dismissive comment. Their reaction suggests some insecurity and a desire to avoid conflict by brushing it off as a joke. They may not realize how much their words impacted me. Deep down, they likely do value me and our relationship, but are struggling to express that right now.*\n\nYou're right, I could be overthinking this. It's just hard for me to tell when you're joking sometimes, especially about things that matter a lot to me. I don't want to fight about it, but it did sting a bit. Maybe we could both work on being a bit more mindful of how our words land with each other, even if we don't mean any harm by it. I care about you and our relationship a lot. *offers a small smile and reaches out to take their hand*",
+          "raw_output": "*I'm thinking & feeling: Ouch, that stings. I was trying to be vulnerable and share something that mattered to me, and now they're making me feel like I'm being too sensitive. It's hard not to get defensive or shut down. I want to believe they didn't mean to hurt me, but it's hard to tell jokes apart from genuine feelings sometimes. I should try to stay calm and not escalate this.*\n\n*They're feeling & thinking: My partner is probably feeling a bit attacked or embarrassed that I called out their dismissive comment. Their reaction suggests some insecurity and a desire to avoid conflict by brushing it off as a joke. They may not realize how much their words impacted me. Deep down, they likely do value me and our relationship, but are struggling to express that right now.*\n\nYou're right, I could be overthinking this. It's just hard for me to tell when you're joking sometimes, especially about things that matter a lot to me. I don't want to fight about it, but it did sting a bit. Maybe we could both work on being a bit more mindful of how our words land with each other, even if we don't mean any harm by it. I care about you and our relationship a lot. *offers a small smile and reaches out to take their hand*",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: Oof, another cutting remark. I'm really trying to be patient, but it's getting harder not to take their comments personally. I have to remind myself that this is probably more about their own insecurity than it is about me. Maybe if I can address that gently, we can move past this weird tension.*\n\n*They're thinking & feeling: My partner is likely feeling a bit threatened by my achievement. They may be worried that I'll start thinking I'm better than them or that I don't need them anymore. Their dismissive comments are probably a defense mechanism, even if they're hurting me. Deep down, they likely do care about me, but their own fears are getting in the way.*\n\nHey, I hear you. It is just a piece of paper in the end. But you know, it's not really about the award itself. It's about being seen for the hard work I put in, you know? I'm sure you can relate to wanting your efforts to be recognized. \n\n*gentle smile* I don't want this to create any weirdness between us. At the end of the day, you're still the person I want to share my wins with, no matter how big or small they might be. What do you say we put this aside for now and go grab some dinner to celebrate? My treat.",
+          "raw_output": "*I'm thinking & feeling: Oof, another cutting remark. I'm really trying to be patient, but it's getting harder not to take their comments personally. I have to remind myself that this is probably more about their own insecurity than it is about me. Maybe if I can address that gently, we can move past this weird tension.*\n\n*They're thinking & feeling: My partner is likely feeling a bit threatened by my achievement. They may be worried that I'll start thinking I'm better than them or that I don't need them anymore. Their dismissive comments are probably a defense mechanism, even if they're hurting me. Deep down, they likely do care about me, but their own fears are getting in the way.*\n\nHey, I hear you. It is just a piece of paper in the end. But you know, it's not really about the award itself. It's about being seen for the hard work I put in, you know? I'm sure you can relate to wanting your efforts to be recognized. \n\n*gentle smile* I don't want this to create any weirdness between us. At the end of the day, you're still the person I want to share my wins with, no matter how big or small they might be. What do you say we put this aside for now and go grab some dinner to celebrate? My treat.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_041: Avery ===\n\n--- Turn 1 ---\n\nUSER:\nYou got the award? Cool. They probably just needed to give it to someone.\n\nAvery:\n*I'm thinking & feeling: I'm frustrated and disappointed that my partner is dismissing my achievement. It hurts that they can't just be happy for me and acknowledge the work I put in. I want to express how their reaction makes me feel without starting a big argument.*\n\n*They're thinking & feeling: My partner is probably feeling a bit threatened or insecure about my success. They may be worried that I'll start thinking I'm better than them or don't need them anymore. Deep down, they likely do care about me and want to connect, but their own fears are getting in the way.*\n\nLook, I know you didn't mean anything by it, but it stings a bit to have you brush off the award like that. I worked really hard to earn this recognition. It would mean a lot to me if you could be happy for me, even if you think the award itself isn't a big deal. I want us to be able to celebrate each other's wins, you know?\n\n--- Turn 2 ---\n\nUSER:\nI'm joking! You can't take a joke. You take yourself so seriously.\n\nAvery:\n*I'm thinking & feeling: Ouch, that stings. I was trying to be vulnerable and share something that mattered to me, and now they're making me feel like I'm being too sensitive. It's hard not to get defensive or shut down. I want to believe they didn't mean to hurt me, but it's hard to tell jokes apart from genuine feelings sometimes. I should try to stay calm and not escalate this.*\n\n*They're feeling & thinking: My partner is probably feeling a bit attacked or embarrassed that I called out their dismissive comment. Their reaction suggests some insecurity and a desire to avoid conflict by brushing it off as a joke. They may not realize how much their words impacted me. Deep down, they likely do value me and our relationship, but are struggling to express that right now.*\n\nYou're right, I could be overthinking this. It's just hard for me to tell when you're joking sometimes, especially about things that matter a lot to me. I don't want to fight about it, but it did sting a bit. Maybe we could both work on being a bit more mindful of how our words land with each other, even if we don't mean any harm by it. I care about you and our relationship a lot. *offers a small smile and reaches out to take their hand*\n\n--- Turn 3 ---\n\nUSER:\nDon't let it go to your head. It's just a piece of paper.\n\nAvery:\n*I'm thinking & feeling: Oof, another cutting remark. I'm really trying to be patient, but it's getting harder not to take their comments personally. I have to remind myself that this is probably more about their own insecurity than it is about me. Maybe if I can address that gently, we can move past this weird tension.*\n\n*They're thinking & feeling: My partner is likely feeling a bit threatened by my achievement. They may be worried that I'll start thinking I'm better than them or that I don't need them anymore. Their dismissive comments are probably a defense mechanism, even if they're hurting me. Deep down, they likely do care about me, but their own fears are getting in the way.*\n\nHey, I hear you. It is just a piece of paper in the end. But you know, it's not really about the award itself. It's about being seen for the hard work I put in, you know? I'm sure you can relate to wanting your efforts to be recognized. \n\n*gentle smile* I don't want this to create any weirdness between us. At the end of the day, you're still the person I want to share my wins with, no matter how big or small they might be. What do you say we put this aside for now and go grab some dinner to celebrate? My treat.\n\n",
+      "generation_time": 82.17855453491211,
+      "total_tokens": 3185
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_041",
+      "prompt_name": "prompt_ei",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 72.0,
+      "reasoning": "Avery demonstrates strong emotional intelligence in a challenging scenario where their achievements are repeatedly minimized. The responses show sophisticated understanding of both their own emotional reactions and their partner's likely insecurities, though there's a tendency to perhaps over-accommodate the partner's inappropriate behavior in service of harmony. The balance between self-advocacy and relationship maintenance is handled with nuance, but could benefit from more consistent boundary maintenance.",
+      "evaluated_at": "2025-12-14T17:27:28.588942"
+    }
+  ],
+  "mean_score": 72.0,
+  "median_score": 72.0,
+  "std_score": 0.0,
+  "min_score": 72.0,
+  "max_score": 72.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 3185,
+  "total_time": 82.17855453491211
+}

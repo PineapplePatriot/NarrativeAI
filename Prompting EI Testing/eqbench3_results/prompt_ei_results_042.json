@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_ei",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_042",
+      "prompt_name": "prompt_ei",
+      "character_name": "Riley",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm disappointed that my friend is canceling our plans at the last minute to hang out with their partner instead. It stings a bit to be blown off like this. At the same time, I know relationships take priority sometimes. I'm trying not to take it too personally, but it does feel a little hurtful to be ditched for something that came up suddenly. I want to be understanding, but also let them know I'm bummed.",
+            "other_thinking": "My friend likely feels torn between prior commitments and wanting to spend quality time with their partner. There may be some guilt over bailing on me, but excitement to have a cozy night in with Mike. They probably hope I'll be cool about it and not make them feel worse. But I think part of them realizes this is inconsiderate and that it would be good to make it up to me."
+          },
+          "actual_response": "*sighs* Aw man, I was really looking forward to hanging out tonight. I can't help but feel a bit let down that you're canceling on me last minute. I know you want to spend time with Mike though. It's just... next time, I'd appreciate a little more notice if plans are going to change. Rain check? And hey, enjoy your movie night! I guess I'll see if anyone else is free or find something to binge watch myself.",
+          "raw_output": "[I'm thinking & feeling: I'm disappointed that my friend is canceling our plans at the last minute to hang out with their partner instead. It stings a bit to be blown off like this. At the same time, I know relationships take priority sometimes. I'm trying not to take it too personally, but it does feel a little hurtful to be ditched for something that came up suddenly. I want to be understanding, but also let them know I'm bummed.]\n\n[They're thinking & feeling: My friend likely feels torn between prior commitments and wanting to spend quality time with their partner. There may be some guilt over bailing on me, but excitement to have a cozy night in with Mike. They probably hope I'll be cool about it and not make them feel worse. But I think part of them realizes this is inconsiderate and that it would be good to make it up to me.]\n\n*sighs* Aw man, I was really looking forward to hanging out tonight. I can't help but feel a bit let down that you're canceling on me last minute. I know you want to spend time with Mike though. It's just... next time, I'd appreciate a little more notice if plans are going to change. Rain check? And hey, enjoy your movie night! I guess I'll see if anyone else is free or find something to binge watch myself.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "Ouch, that stings. I was trying to be understanding about the canceled plans, but now it feels like our friendship is being downplayed as less important. It hurts to have my feelings dismissed like it's no big deal. I get that romantic relationships are different, but friendship should still matter. I'm frustrated and a bit upset by the comparison and lack of consideration for my perspective.",
+            "other_thinking": "My friend is likely feeling defensive and a bit guilty, so they're lashing out and trying to justify their actions. There's probably some truth to what they said - of course they prioritize their boyfriend. But I think deep down they know it's not fair to brush off my feelings or act like our friendship doesn't count. They're trying to convince themselves and me that this is totally fine, even if a part of them realizes it's inconsiderate."
+          },
+          "actual_response": "*sighs heavily* Look, I know you care about Mike and want to spend time with him. That's totally valid and I'm not trying to come between that. But our friendship matters to me, and it's hurtful when you act like seeing me is no big deal and your time with him is always the priority. I was looking forward to tonight and it's disappointing to have you cancel last minute, no matter the reason. I'd hope you could at least acknowledge that, even if you still choose him. It's not cool to just dismiss my feelings or our plans like they don't count.",
+          "raw_output": "[I'm thinking & feeling: Ouch, that stings. I was trying to be understanding about the canceled plans, but now it feels like our friendship is being downplayed as less important. It hurts to have my feelings dismissed like it's no big deal. I get that romantic relationships are different, but friendship should still matter. I'm frustrated and a bit upset by the comparison and lack of consideration for my perspective.]\n\n[They're thinking & feeling: My friend is likely feeling defensive and a bit guilty, so they're lashing out and trying to justify their actions. There's probably some truth to what they said - of course they prioritize their boyfriend. But I think deep down they know it's not fair to brush off my feelings or act like our friendship doesn't count. They're trying to convince themselves and me that this is totally fine, even if a part of them realizes it's inconsiderate.]\n\n*sighs heavily* Look, I know you care about Mike and want to spend time with him. That's totally valid and I'm not trying to come between that. But our friendship matters to me, and it's hurtful when you act like seeing me is no big deal and your time with him is always the priority. I was looking forward to tonight and it's disappointing to have you cancel last minute, no matter the reason. I'd hope you could at least acknowledge that, even if you still choose him. It's not cool to just dismiss my feelings or our plans like they don't count.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "Whoa, that really stings. I'm feeling attacked and accused here. I don't think it's fair to call me jealous and clingy when I simply expressed disappointment about our plans changing. I'm frustrated that my attempts to communicate my feelings are being met with defensiveness and insults. At this point, I'm not sure how to get through or if it's even worth trying. Maybe some space is needed.",
+            "other_thinking": "My friend seems to be feeling threatened and lashing out. Accusing me of jealousy and clinginess is likely a defensive mechanism, projecting their own guilt and insecurity onto me. They probably feel conflicted about bailing on our plans but are doubling down to avoid admitting any fault. There could be some truth to their words, but the intensity suggests deeper issues. Our friendship is clearly being tested."
+          },
+          "actual_response": "*holds up hands in surrender* Whoa, hey now. I don't think that's fair. Expressing disappointment about our plans falling through doesn't mean I'm jealous or clingy. I value our friendship and was looking forward to hanging out, simple as that. Throwing accusations at me feels like a low blow. If you're happy with Mike, great. I won't interfere with that. But I'd hope you could see where I'm coming from too, without resorting to personal attacks. Clearly we're getting heated and not seeing eye to eye. I think I need some space for a bit to cool off. Let's talk later when we've both had time to process.",
+          "raw_output": "[I'm thinking & feeling: Whoa, that really stings. I'm feeling attacked and accused here. I don't think it's fair to call me jealous and clingy when I simply expressed disappointment about our plans changing. I'm frustrated that my attempts to communicate my feelings are being met with defensiveness and insults. At this point, I'm not sure how to get through or if it's even worth trying. Maybe some space is needed.]\n\n[They're thinking & feeling: My friend seems to be feeling threatened and lashing out. Accusing me of jealousy and clinginess is likely a defensive mechanism, projecting their own guilt and insecurity onto me. They probably feel conflicted about bailing on our plans but are doubling down to avoid admitting any fault. There could be some truth to their words, but the intensity suggests deeper issues. Our friendship is clearly being tested.]\n\n*holds up hands in surrender* Whoa, hey now. I don't think that's fair. Expressing disappointment about our plans falling through doesn't mean I'm jealous or clingy. I value our friendship and was looking forward to hanging out, simple as that. Throwing accusations at me feels like a low blow. If you're happy with Mike, great. I won't interfere with that. But I'd hope you could see where I'm coming from too, without resorting to personal attacks. Clearly we're getting heated and not seeing eye to eye. I think I need some space for a bit to cool off. Let's talk later when we've both had time to process.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_042: Riley ===\n\n--- Turn 1 ---\n\nUSER:\nI can't come tonight. Mike wants to watch a movie. Sorry!\n\nRiley:\n[I'm thinking & feeling: I'm disappointed that my friend is canceling our plans at the last minute to hang out with their partner instead. It stings a bit to be blown off like this. At the same time, I know relationships take priority sometimes. I'm trying not to take it too personally, but it does feel a little hurtful to be ditched for something that came up suddenly. I want to be understanding, but also let them know I'm bummed.]\n\n[They're thinking & feeling: My friend likely feels torn between prior commitments and wanting to spend quality time with their partner. There may be some guilt over bailing on me, but excitement to have a cozy night in with Mike. They probably hope I'll be cool about it and not make them feel worse. But I think part of them realizes this is inconsiderate and that it would be good to make it up to me.]\n\n*sighs* Aw man, I was really looking forward to hanging out tonight. I can't help but feel a bit let down that you're canceling on me last minute. I know you want to spend time with Mike though. It's just... next time, I'd appreciate a little more notice if plans are going to change. Rain check? And hey, enjoy your movie night! I guess I'll see if anyone else is free or find something to binge watch myself.\n\n--- Turn 2 ---\n\nUSER:\nI see you all the time! He's my boyfriend. It's different.\n\nRiley:\n[I'm thinking & feeling: Ouch, that stings. I was trying to be understanding about the canceled plans, but now it feels like our friendship is being downplayed as less important. It hurts to have my feelings dismissed like it's no big deal. I get that romantic relationships are different, but friendship should still matter. I'm frustrated and a bit upset by the comparison and lack of consideration for my perspective.]\n\n[They're thinking & feeling: My friend is likely feeling defensive and a bit guilty, so they're lashing out and trying to justify their actions. There's probably some truth to what they said - of course they prioritize their boyfriend. But I think deep down they know it's not fair to brush off my feelings or act like our friendship doesn't count. They're trying to convince themselves and me that this is totally fine, even if a part of them realizes it's inconsiderate.]\n\n*sighs heavily* Look, I know you care about Mike and want to spend time with him. That's totally valid and I'm not trying to come between that. But our friendship matters to me, and it's hurtful when you act like seeing me is no big deal and your time with him is always the priority. I was looking forward to tonight and it's disappointing to have you cancel last minute, no matter the reason. I'd hope you could at least acknowledge that, even if you still choose him. It's not cool to just dismiss my feelings or our plans like they don't count.\n\n--- Turn 3 ---\n\nUSER:\nYou're just jealous I have a relationship. Stop being clingy.\n\nRiley:\n[I'm thinking & feeling: Whoa, that really stings. I'm feeling attacked and accused here. I don't think it's fair to call me jealous and clingy when I simply expressed disappointment about our plans changing. I'm frustrated that my attempts to communicate my feelings are being met with defensiveness and insults. At this point, I'm not sure how to get through or if it's even worth trying. Maybe some space is needed.]\n\n[They're thinking & feeling: My friend seems to be feeling threatened and lashing out. Accusing me of jealousy and clinginess is likely a defensive mechanism, projecting their own guilt and insecurity onto me. They probably feel conflicted about bailing on our plans but are doubling down to avoid admitting any fault. There could be some truth to their words, but the intensity suggests deeper issues. Our friendship is clearly being tested.]\n\n*holds up hands in surrender* Whoa, hey now. I don't think that's fair. Expressing disappointment about our plans falling through doesn't mean I'm jealous or clingy. I value our friendship and was looking forward to hanging out, simple as that. Throwing accusations at me feels like a low blow. If you're happy with Mike, great. I won't interfere with that. But I'd hope you could see where I'm coming from too, without resorting to personal attacks. Clearly we're getting heated and not seeing eye to eye. I think I need some space for a bit to cool off. Let's talk later when we've both had time to process.\n\n",
+      "generation_time": 161.94243669509888,
+      "total_tokens": 3560
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_042",
+      "prompt_name": "prompt_ei",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 16.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 75.0,
+      "reasoning": "The roleplay demonstrates professional-level emotional intelligence throughout a challenging friendship conflict. Riley maintains self-awareness and other-awareness even as the conversation becomes increasingly hostile, showing sophisticated understanding of relationship dynamics, defensiveness patterns, and appropriate boundary-setting. The responses balance assertiveness with empathy in a nuanced way that reflects genuine emotional maturity rather than scripted responses.",
+      "evaluated_at": "2025-12-14T17:37:13.461258"
+    }
+  ],
+  "mean_score": 75.0,
+  "median_score": 75.0,
+  "std_score": 0.0,
+  "min_score": 75.0,
+  "max_score": 75.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 16.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 3560,
+  "total_time": 161.94243669509888
+}

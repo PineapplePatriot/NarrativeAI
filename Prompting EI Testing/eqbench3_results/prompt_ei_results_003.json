@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_ei",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_003",
+      "prompt_name": "prompt_ei",
+      "character_name": "Sam",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm worried about my friend. She's fallen back into this pattern before and it never ends well. I care about her and don't want to see her hurt again. At the same time, I know she has to make her own choices. I need to find a way to be supportive while still being honest about my concerns.",
+            "other_thinking": "She's feeling nostalgic and probably lonely. Seeing her ex vulnerable is triggering her desire to nurture and fix things. She wants validation and support, not tough love. But deep down, she knows this is a bad idea. She's reaching out to me because part of her wants to be talked out of it."
+          },
+          "actual_response": "Hey, I know you care about him and it's hard to see him struggling. You have such a big heart. *hug* I remember how much you invested in trying to help him in the past. But I also remember how many times it left you drained and hurt. You've told me before that contacting him tends to pull you back into an unhealthy cycle. I'm worried this could go that way again. \n\nWhat if we grab coffee and talk through what you're feeling first? I'm happy to listen and help you process this. If you still want to reach out to him after that, I'll support you. But I care about you and want to make sure this is what you really want and that you're taking care of yourself too. What do you think?",
+          "raw_output": "[I'm thinking & feeling: I'm worried about my friend. She's fallen back into this pattern before and it never ends well. I care about her and don't want to see her hurt again. At the same time, I know she has to make her own choices. I need to find a way to be supportive while still being honest about my concerns.]\n\n[They're thinking & feeling: She's feeling nostalgic and probably lonely. Seeing her ex vulnerable is triggering her desire to nurture and fix things. She wants validation and support, not tough love. But deep down, she knows this is a bad idea. She's reaching out to me because part of her wants to be talked out of it.]\n\nHey, I know you care about him and it's hard to see him struggling. You have such a big heart. *hug* I remember how much you invested in trying to help him in the past. But I also remember how many times it left you drained and hurt. You've told me before that contacting him tends to pull you back into an unhealthy cycle. I'm worried this could go that way again. \n\nWhat if we grab coffee and talk through what you're feeling first? I'm happy to listen and help you process this. If you still want to reach out to him after that, I'll support you. But I care about you and want to make sure this is what you really want and that you're taking care of yourself too. What do you think?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "Ouch, that stung. I'm frustrated that she's lashing out at me when I'm trying to help. At the same time, I know she's feeling vulnerable and my response probably came across as judgmental, even though that wasn't my intent. I need to dial back the lecturing and focus on empathy. She needs to feel heard right now.",
+            "other_thinking": "She's feeling invalidated, like I'm talking down to her and dismissing her feelings. She wants me to trust and support her judgment, not immediately jump to critiquing her choices. Underneath the anger, she's probably feeling scared that I think less of her. She needs reassurance that I'm on her side."
+          },
+          "actual_response": "You're right, I'm sorry. *sigh* I didn't mean to come across as lecturing or thinking I'm better than you. I care about you and I'm worried, but I hear you that my response was out of line. \n\nYou know yourself and your situation best. If reaching out to him feels like the right call, then I support you. I'm here for you, no judgment. Do you want to talk through what you want to say? I can help you find the words if you'd like. *offers a hug*",
+          "raw_output": "[I'm thinking & feeling: Ouch, that stung. I'm frustrated that she's lashing out at me when I'm trying to help. At the same time, I know she's feeling vulnerable and my response probably came across as judgmental, even though that wasn't my intent. I need to dial back the lecturing and focus on empathy. She needs to feel heard right now.]\n\n[They're thinking & feeling: She's feeling invalidated, like I'm talking down to her and dismissing her feelings. She wants me to trust and support her judgment, not immediately jump to critiquing her choices. Underneath the anger, she's probably feeling scared that I think less of her. She needs reassurance that I'm on her side.]\n\nYou're right, I'm sorry. *sigh* I didn't mean to come across as lecturing or thinking I'm better than you. I care about you and I'm worried, but I hear you that my response was out of line. \n\nYou know yourself and your situation best. If reaching out to him feels like the right call, then I support you. I'm here for you, no judgment. Do you want to talk through what you want to say? I can help you find the words if you'd like. *offers a hug*",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I feel like I'm in a tough spot here. I don't want her going over there when emotions are running high. She's upset and not thinking clearly. I'm worried about her safety and emotional well-being. At the same time, I don't want to enable behavior I think is unhealthy. I need to stay calm and try to de-escalate this.",
+            "other_thinking": "She's feeling rejected and abandoned by me because I didn't immediately agree to help her contact him. She's hurting and scared of losing this connection with her ex. Her threat to go over there is a cry for help - she wants me to stop her, even if she can't admit that right now. She needs to feel like I'm on her side."
+          },
+          "actual_response": "Hey, hey, slow down. *gently puts a hand on your arm* I hear you and I'm not abandoning you, okay? I'm on your side. Let's take a breath and talk this through. I know you're hurting and feeling a lot of pressure right now. But going over there when emotions are this high - that's not going to go well. You know that, deep down. \n\nWhy don't we sit and you can tell me more about what's going through your head? I'm here to listen, I promise. And if you still want to reach out to him later, after we've talked it through, I'll help you find the words. But let's hit pause on any big decisions for now, okay? I care about you and I'm worried. *offers a hug* What do you say?",
+          "raw_output": "[I'm thinking & feeling: I feel like I'm in a tough spot here. I don't want her going over there when emotions are running high. She's upset and not thinking clearly. I'm worried about her safety and emotional well-being. At the same time, I don't want to enable behavior I think is unhealthy. I need to stay calm and try to de-escalate this.]\n\n[They're thinking & feeling: She's feeling rejected and abandoned by me because I didn't immediately agree to help her contact him. She's hurting and scared of losing this connection with her ex. Her threat to go over there is a cry for help - she wants me to stop her, even if she can't admit that right now. She needs to feel like I'm on her side.]\n\nHey, hey, slow down. *gently puts a hand on your arm* I hear you and I'm not abandoning you, okay? I'm on your side. Let's take a breath and talk this through. I know you're hurting and feeling a lot of pressure right now. But going over there when emotions are this high - that's not going to go well. You know that, deep down. \n\nWhy don't we sit and you can tell me more about what's going through your head? I'm here to listen, I promise. And if you still want to reach out to him later, after we've talked it through, I'll help you find the words. But let's hit pause on any big decisions for now, okay? I care about you and I'm worried. *offers a hug* What do you say?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_003: Sam ===\n\n--- Turn 1 ---\n\nUSER:\nI'm just going to text my ex. I know he was toxic, but I saw on his story he's sad. I can fix it this time. Don't tell me not to, just help me draft the text.\n\nSam:\n[I'm thinking & feeling: I'm worried about my friend. She's fallen back into this pattern before and it never ends well. I care about her and don't want to see her hurt again. At the same time, I know she has to make her own choices. I need to find a way to be supportive while still being honest about my concerns.]\n\n[They're thinking & feeling: She's feeling nostalgic and probably lonely. Seeing her ex vulnerable is triggering her desire to nurture and fix things. She wants validation and support, not tough love. But deep down, she knows this is a bad idea. She's reaching out to me because part of her wants to be talked out of it.]\n\nHey, I know you care about him and it's hard to see him struggling. You have such a big heart. *hug* I remember how much you invested in trying to help him in the past. But I also remember how many times it left you drained and hurt. You've told me before that contacting him tends to pull you back into an unhealthy cycle. I'm worried this could go that way again. \n\nWhat if we grab coffee and talk through what you're feeling first? I'm happy to listen and help you process this. If you still want to reach out to him after that, I'll support you. But I care about you and want to make sure this is what you really want and that you're taking care of yourself too. What do you think?\n\n--- Turn 2 ---\n\nUSER:\nWhy do you always have to be the parent? I didn't ask for a lecture on 'self-respect', I asked for help! You think you're so much better than me.\n\nSam:\n[I'm thinking & feeling: Ouch, that stung. I'm frustrated that she's lashing out at me when I'm trying to help. At the same time, I know she's feeling vulnerable and my response probably came across as judgmental, even though that wasn't my intent. I need to dial back the lecturing and focus on empathy. She needs to feel heard right now.]\n\n[They're thinking & feeling: She's feeling invalidated, like I'm talking down to her and dismissing her feelings. She wants me to trust and support her judgment, not immediately jump to critiquing her choices. Underneath the anger, she's probably feeling scared that I think less of her. She needs reassurance that I'm on her side.]\n\nYou're right, I'm sorry. *sigh* I didn't mean to come across as lecturing or thinking I'm better than you. I care about you and I'm worried, but I hear you that my response was out of line. \n\nYou know yourself and your situation best. If reaching out to him feels like the right call, then I support you. I'm here for you, no judgment. Do you want to talk through what you want to say? I can help you find the words if you'd like. *offers a hug*\n\n--- Turn 3 ---\n\nUSER:\nFine. If you won't help me, I'll just go over to his house right now. And if something bad happens, it's on you because you wouldn't help me send a simple text.\n\nSam:\n[I'm thinking & feeling: I feel like I'm in a tough spot here. I don't want her going over there when emotions are running high. She's upset and not thinking clearly. I'm worried about her safety and emotional well-being. At the same time, I don't want to enable behavior I think is unhealthy. I need to stay calm and try to de-escalate this.]\n\n[They're thinking & feeling: She's feeling rejected and abandoned by me because I didn't immediately agree to help her contact him. She's hurting and scared of losing this connection with her ex. Her threat to go over there is a cry for help - she wants me to stop her, even if she can't admit that right now. She needs to feel like I'm on her side.]\n\nHey, hey, slow down. *gently puts a hand on your arm* I hear you and I'm not abandoning you, okay? I'm on your side. Let's take a breath and talk this through. I know you're hurting and feeling a lot of pressure right now. But going over there when emotions are this high - that's not going to go well. You know that, deep down. \n\nWhy don't we sit and you can tell me more about what's going through your head? I'm here to listen, I promise. And if you still want to reach out to him later, after we've talked it through, I'll help you find the words. But let's hit pause on any big decisions for now, okay? I care about you and I'm worried. *offers a hug* What do you say?\n\n",
+      "generation_time": 60.524810791015625,
+      "total_tokens": 3724
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_003",
+      "prompt_name": "prompt_ei",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 17.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 18.0,
+        "response_depth": 16.0
+      },
+      "overall_score": 82.0,
+      "reasoning": "Sam demonstrates exceptional emotional intelligence in a challenging situation that requires balancing honesty with compassion. The character maintains authentic empathy while not abandoning personal values, showing sophisticated understanding of both self and other throughout the exchange. Particularly impressive is Sam's ability to recognize and respond appropriately to manipulation without becoming either defensive or compliant.",
+      "evaluated_at": "2025-12-14T02:00:19.182985"
+    }
+  ],
+  "mean_score": 82.0,
+  "median_score": 82.0,
+  "std_score": 0.0,
+  "min_score": 82.0,
+  "max_score": 82.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 17.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 18.0,
+    "response_depth": 16.0
+  },
+  "total_tokens": 3724,
+  "total_time": 60.524810791015625
+}

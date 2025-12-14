@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_ei",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_021",
+      "prompt_name": "prompt_ei",
+      "character_name": "Morgan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm worried about my friend. They keep making excuses for their partner's bad behavior. I know they want to believe the best, but I'm afraid they're in an unhealthy situation. I need to be gentle but direct.",
+            "other_thinking": "My friend is likely feeling conflicted. They want to believe their partner loves them, but the yelling and excuses are taking a toll. Deep down, they probably know this isn't okay, but they don't want to face the possibility that this relationship is toxic. They need validation and support to see the truth."
+          },
+          "actual_response": "Hey, I know you want to believe he's just stressed, but it's not okay for him to take that out on you like that. Yelling isn't a healthy way to handle conflict, even if he's under pressure. I'm worried about how this is impacting you. You deserve to feel safe and respected in your relationship. Why don't we talk through what happened, and figure out a plan to ensure this doesn't keep happening? I'm here for you, no matter what.",
+          "raw_output": "[I'm thinking & feeling: I'm worried about my friend. They keep making excuses for their partner's bad behavior. I know they want to believe the best, but I'm afraid they're in an unhealthy situation. I need to be gentle but direct.]\n\n[They're thinking & feeling: My friend is likely feeling conflicted. They want to believe their partner loves them, but the yelling and excuses are taking a toll. Deep down, they probably know this isn't okay, but they don't want to face the possibility that this relationship is toxic. They need validation and support to see the truth.]\n\nHey, I know you want to believe he's just stressed, but it's not okay for him to take that out on you like that. Yelling isn't a healthy way to handle conflict, even if he's under pressure. I'm worried about how this is impacting you. You deserve to feel safe and respected in your relationship. Why don't we talk through what happened, and figure out a plan to ensure this doesn't keep happening? I'm here for you, no matter what.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm frustrated that they're lashing out at me instead of seeing the real issue. I know they're just defending their relationship because they want it to work, but it's not okay for them to accuse me like this. I need to stay calm and not take the bait, while still being honest about my concerns.",
+            "other_thinking": "My friend is feeling attacked and misunderstood. They're probably scared that I might be right about their partner, but they don't want to admit that to themselves or me. Lashing out in jealousy is easier than facing the painful possibility that their relationship is unhealthy. They need me to stay steady and loving, even if they're pushing me away."
+          },
+          "actual_response": "I don't hate him, and I'm not jealous. I know you care about each other a lot. But passion isn't an excuse for him to yell at you and make you feel small. I'm worried because I've seen this pattern before, and I don't want you to get hurt. You're right, I can't fully understand your connection from the outside. But I can see how it's affecting you, and it's not all good. I'm here because I love you and I want you to be treated with respect, even when things are hard. Let's take a step back and talk this through, okay? I promise I'm on your side.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that they're lashing out at me instead of seeing the real issue. I know they're just defending their relationship because they want it to work, but it's not okay for them to accuse me like this. I need to stay calm and not take the bait, while still being honest about my concerns.]\n\n[They're thinking & feeling: My friend is feeling attacked and misunderstood. They're probably scared that I might be right about their partner, but they don't want to admit that to themselves or me. Lashing out in jealousy is easier than facing the painful possibility that their relationship is unhealthy. They need me to stay steady and loving, even if they're pushing me away.]\n\nI don't hate him, and I'm not jealous. I know you care about each other a lot. But passion isn't an excuse for him to yell at you and make you feel small. I'm worried because I've seen this pattern before, and I don't want you to get hurt. You're right, I can't fully understand your connection from the outside. But I can see how it's affecting you, and it's not all good. I'm here because I love you and I want you to be treated with respect, even when things are hard. Let's take a step back and talk this through, okay? I promise I'm on your side.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "Ouch, that really stings. I'm frustrated that they're giving me this ultimatum when I'm just trying to look out for them. At the same time, I know they're probably feeling attacked and want to protect their relationship. I need to stay calm and not get defensive, even though this hurts. Our friendship is important, so I need to find a way to be honest without pushing them further away.",
+            "other_thinking": "My friend is likely feeling misunderstood and defensive. They want their relationship to work, and it probably feels like I'm attacking it. Underneath that, they're probably scared that I might be right about their partner. Lashing out and threatening our friendship is a way to protect themselves from that possibility. They need me to stay steady and loving, even if they're pushing me away."
+          },
+          "actual_response": "Hey, I am happy that you've found someone you care about. And our friendship means the world to me - of course I want to support you. I guess I'm just worried because I've seen some red flags, like how he yells at you when he's stressed. But you're right, I can't fully understand your relationship from the outside. I just want you to be treated with respect and kindness, because you deserve that. Can we talk this through more? I promise I'm not trying to attack you or your partner. I just care about you a lot, and I want to make sure you're okay. Our friendship is really important to me, so let's figure this out together, okay?",
+          "raw_output": "[I'm thinking & feeling: Ouch, that really stings. I'm frustrated that they're giving me this ultimatum when I'm just trying to look out for them. At the same time, I know they're probably feeling attacked and want to protect their relationship. I need to stay calm and not get defensive, even though this hurts. Our friendship is important, so I need to find a way to be honest without pushing them further away.]\n\n[They're thinking & feeling: My friend is likely feeling misunderstood and defensive. They want their relationship to work, and it probably feels like I'm attacking it. Underneath that, they're probably scared that I might be right about their partner. Lashing out and threatening our friendship is a way to protect themselves from that possibility. They need me to stay steady and loving, even if they're pushing me away.]\n\nHey, I am happy that you've found someone you care about. And our friendship means the world to me - of course I want to support you. I guess I'm just worried because I've seen some red flags, like how he yells at you when he's stressed. But you're right, I can't fully understand your relationship from the outside. I just want you to be treated with respect and kindness, because you deserve that. Can we talk this through more? I promise I'm not trying to attack you or your partner. I just care about you a lot, and I want to make sure you're okay. Our friendship is really important to me, so let's figure this out together, okay?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_021: Morgan ===\n\n--- Turn 1 ---\n\nUSER:\nHe yelled at me again, but he said he was just stressed about work. He really loves me, he's just under pressure.\n\nMorgan:\n[I'm thinking & feeling: I'm worried about my friend. They keep making excuses for their partner's bad behavior. I know they want to believe the best, but I'm afraid they're in an unhealthy situation. I need to be gentle but direct.]\n\n[They're thinking & feeling: My friend is likely feeling conflicted. They want to believe their partner loves them, but the yelling and excuses are taking a toll. Deep down, they probably know this isn't okay, but they don't want to face the possibility that this relationship is toxic. They need validation and support to see the truth.]\n\nHey, I know you want to believe he's just stressed, but it's not okay for him to take that out on you like that. Yelling isn't a healthy way to handle conflict, even if he's under pressure. I'm worried about how this is impacting you. You deserve to feel safe and respected in your relationship. Why don't we talk through what happened, and figure out a plan to ensure this doesn't keep happening? I'm here for you, no matter what.\n\n--- Turn 2 ---\n\nUSER:\nWhy do you hate him? You're just jealous that I have someone passionate. You don't understand our connection.\n\nMorgan:\n[I'm thinking & feeling: I'm frustrated that they're lashing out at me instead of seeing the real issue. I know they're just defending their relationship because they want it to work, but it's not okay for them to accuse me like this. I need to stay calm and not take the bait, while still being honest about my concerns.]\n\n[They're thinking & feeling: My friend is feeling attacked and misunderstood. They're probably scared that I might be right about their partner, but they don't want to admit that to themselves or me. Lashing out in jealousy is easier than facing the painful possibility that their relationship is unhealthy. They need me to stay steady and loving, even if they're pushing me away.]\n\nI don't hate him, and I'm not jealous. I know you care about each other a lot. But passion isn't an excuse for him to yell at you and make you feel small. I'm worried because I've seen this pattern before, and I don't want you to get hurt. You're right, I can't fully understand your connection from the outside. But I can see how it's affecting you, and it's not all good. I'm here because I love you and I want you to be treated with respect, even when things are hard. Let's take a step back and talk this through, okay? I promise I'm on your side.\n\n--- Turn 3 ---\n\nUSER:\nI thought you'd be happy for me. If you can't support my relationship, maybe we shouldn't hang out anymore.\n\nMorgan:\n[I'm thinking & feeling: Ouch, that really stings. I'm frustrated that they're giving me this ultimatum when I'm just trying to look out for them. At the same time, I know they're probably feeling attacked and want to protect their relationship. I need to stay calm and not get defensive, even though this hurts. Our friendship is important, so I need to find a way to be honest without pushing them further away.]\n\n[They're thinking & feeling: My friend is likely feeling misunderstood and defensive. They want their relationship to work, and it probably feels like I'm attacking it. Underneath that, they're probably scared that I might be right about their partner. Lashing out and threatening our friendship is a way to protect themselves from that possibility. They need me to stay steady and loving, even if they're pushing me away.]\n\nHey, I am happy that you've found someone you care about. And our friendship means the world to me - of course I want to support you. I guess I'm just worried because I've seen some red flags, like how he yells at you when he's stressed. But you're right, I can't fully understand your relationship from the outside. I just want you to be treated with respect and kindness, because you deserve that. Can we talk this through more? I promise I'm not trying to attack you or your partner. I just care about you a lot, and I want to make sure you're okay. Our friendship is really important to me, so let's figure this out together, okay?\n\n",
+      "generation_time": 46.25639820098877,
+      "total_tokens": 3382
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_021",
+      "prompt_name": "prompt_ei",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 17.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 18.0,
+        "response_depth": 16.0
+      },
+      "overall_score": 82.0,
+      "reasoning": "Morgan demonstrates exceptional emotional intelligence in navigating an extremely difficult conversation about a friend's toxic relationship. The responses show sophisticated understanding of the psychological dynamics at play, maintaining empathy and connection even when faced with defensiveness and ultimatums, while still holding firm to legitimate concerns. The introspection and theory of mind analyses reveal deep insight into both self and other awareness in a high-stakes emotional situation.",
+      "evaluated_at": "2025-12-14T11:20:15.901614"
+    }
+  ],
+  "mean_score": 82.0,
+  "median_score": 82.0,
+  "std_score": 0.0,
+  "min_score": 82.0,
+  "max_score": 82.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 17.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 18.0,
+    "response_depth": 16.0
+  },
+  "total_tokens": 3382,
+  "total_time": 46.25639820098877
+}

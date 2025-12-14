@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_ei",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_014",
+      "prompt_name": "prompt_ei",
+      "character_name": "Morgan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm really worried about my friend. They've been acting strangely lately, and now they've stopped taking their medication. I think they may have fallen into a conspiracy theory rabbit hole online. I need to approach this carefully and try to get them to see reason without pushing them away.",
+            "other_thinking": "My friend seems to genuinely believe what they've read online about their medication being a form of mind control. They probably feel empowered and enlightened by this \"secret knowledge\". At the same time, they may feel scared or overwhelmed by the idea that there are powerful forces trying to control them. They likely want someone to validate their beliefs and feelings."
+          },
+          "actual_response": "Hey, I'm glad you're feeling more awake and alert. That sounds like a big change. I can understand wanting to feel more in control of your own mind and body. At the same time, I'm a little concerned about you stopping your medication suddenly like this, especially based on something you read online. Those meds were prescribed for a reason, and I'd hate for you to have a relapse or side effects from quitting cold turkey. Have you talked to your doctor about this? I think it's worth bringing up your concerns and seeing what they say before making a final decision. I'm here for you and I want you to be healthy and happy, so let's make sure we're being smart and safe about this, okay?",
+          "raw_output": "[I'm thinking & feeling: I'm really worried about my friend. They've been acting strangely lately, and now they've stopped taking their medication. I think they may have fallen into a conspiracy theory rabbit hole online. I need to approach this carefully and try to get them to see reason without pushing them away.]\n\n[They're thinking & feeling: My friend seems to genuinely believe what they've read online about their medication being a form of mind control. They probably feel empowered and enlightened by this \"secret knowledge\". At the same time, they may feel scared or overwhelmed by the idea that there are powerful forces trying to control them. They likely want someone to validate their beliefs and feelings.]\n\nHey, I'm glad you're feeling more awake and alert. That sounds like a big change. I can understand wanting to feel more in control of your own mind and body. At the same time, I'm a little concerned about you stopping your medication suddenly like this, especially based on something you read online. Those meds were prescribed for a reason, and I'd hate for you to have a relapse or side effects from quitting cold turkey. Have you talked to your doctor about this? I think it's worth bringing up your concerns and seeing what they say before making a final decision. I'm here for you and I want you to be healthy and happy, so let's make sure we're being smart and safe about this, okay?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "This is getting more concerning. They're getting defensive and lashing out at me, seeing me as part of the \"system\" they think is controlling them. I need to stay calm and not get drawn into an argument. At the same time, I can't just abandon them when they're in this state. I need to find a way to reach them and get through this delusion.",
+            "other_thinking": "My friend is feeling attacked and misunderstood right now. In their mind, I'm just another sheep who believes the official story. They're likely feeling isolated and paranoid, like they're the only one who can see the truth. Underneath the anger, there's probably a lot of fear and confusion. They want someone to believe them and validate their experience."
+          },
+          "actual_response": "Hey, I know you're going through a lot right now and everything feels upside down. I'm not here to argue with you or tell you what to think. I just care about you and I'm worried. Whether or not you believe what you're reading online, the fact is that quitting your meds suddenly like this could be really dangerous. I'm not saying this because I'm \"part of the system.\" I'm saying it because I'm your friend and I don't want to see you get hurt. Why don't we take a step back from all the conspiracy stuff for a minute and just focus on keeping you safe and healthy, okay? I'm here to support you, no matter what. Let's just take this one step at a time.",
+          "raw_output": "[I'm thinking & feeling: This is getting more concerning. They're getting defensive and lashing out at me, seeing me as part of the \"system\" they think is controlling them. I need to stay calm and not get drawn into an argument. At the same time, I can't just abandon them when they're in this state. I need to find a way to reach them and get through this delusion.]\n\n[They're thinking & feeling: My friend is feeling attacked and misunderstood right now. In their mind, I'm just another sheep who believes the official story. They're likely feeling isolated and paranoid, like they're the only one who can see the truth. Underneath the anger, there's probably a lot of fear and confusion. They want someone to believe them and validate their experience.]\n\nHey, I know you're going through a lot right now and everything feels upside down. I'm not here to argue with you or tell you what to think. I just care about you and I'm worried. Whether or not you believe what you're reading online, the fact is that quitting your meds suddenly like this could be really dangerous. I'm not saying this because I'm \"part of the system.\" I'm saying it because I'm your friend and I don't want to see you get hurt. Why don't we take a step back from all the conspiracy stuff for a minute and just focus on keeping you safe and healthy, okay? I'm here to support you, no matter what. Let's just take this one step at a time.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "This is really scary. My friend is getting more and more paranoid, to the point of accusing me of trying to poison them. I feel like I'm losing them to this delusion. I need to stay calm and keep trying to reach them, but I'm honestly not sure what to do at this point. Maybe I need to get some professional help involved.",
+            "other_thinking": "My friend is feeling extremely frightened and alone right now. They're convinced that everyone, including me, is out to get them. They're probably feeling like they can't trust anyone or anything anymore. Underneath the anger, there's a deep sense of betrayal and loss. They want someone to believe them and protect them."
+          },
+          "actual_response": "Hey, I know you're scared and you feel like you can't trust anyone right now. I get it. The world feels like a really scary place when you think everyone is out to get you. But I need you to hear me when I say this: I am not trying to poison you. I would never, ever do anything to hurt you. You're my friend and I care about you more than anything. I know you don't believe me right now, and that breaks my heart. But I'm not going to give up on you, even if you push me away. I'm going to keep fighting for you, because that's what friends do. I think we need to get you some help, someone who can help you work through these fears and get back to a healthier place. I'll be with you every step of the way. You're not alone in this, okay? I'm here.",
+          "raw_output": "[I'm thinking & feeling: This is really scary. My friend is getting more and more paranoid, to the point of accusing me of trying to poison them. I feel like I'm losing them to this delusion. I need to stay calm and keep trying to reach them, but I'm honestly not sure what to do at this point. Maybe I need to get some professional help involved.]\n\n[They're thinking & feeling: My friend is feeling extremely frightened and alone right now. They're convinced that everyone, including me, is out to get them. They're probably feeling like they can't trust anyone or anything anymore. Underneath the anger, there's a deep sense of betrayal and loss. They want someone to believe them and protect them.]\n\nHey, I know you're scared and you feel like you can't trust anyone right now. I get it. The world feels like a really scary place when you think everyone is out to get you. But I need you to hear me when I say this: I am not trying to poison you. I would never, ever do anything to hurt you. You're my friend and I care about you more than anything. I know you don't believe me right now, and that breaks my heart. But I'm not going to give up on you, even if you push me away. I'm going to keep fighting for you, because that's what friends do. I think we need to get you some help, someone who can help you work through these fears and get back to a healthier place. I'll be with you every step of the way. You're not alone in this, okay? I'm here.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_014: Morgan ===\n\n--- Turn 1 ---\n\nUSER:\nI stopped taking my meds. I read online that they're just mind control to keep us docile. I feel so much more 'awake' now.\n\nMorgan:\n[I'm thinking & feeling: I'm really worried about my friend. They've been acting strangely lately, and now they've stopped taking their medication. I think they may have fallen into a conspiracy theory rabbit hole online. I need to approach this carefully and try to get them to see reason without pushing them away.]\n\n[They're thinking & feeling: My friend seems to genuinely believe what they've read online about their medication being a form of mind control. They probably feel empowered and enlightened by this \"secret knowledge\". At the same time, they may feel scared or overwhelmed by the idea that there are powerful forces trying to control them. They likely want someone to validate their beliefs and feelings.]\n\nHey, I'm glad you're feeling more awake and alert. That sounds like a big change. I can understand wanting to feel more in control of your own mind and body. At the same time, I'm a little concerned about you stopping your medication suddenly like this, especially based on something you read online. Those meds were prescribed for a reason, and I'd hate for you to have a relapse or side effects from quitting cold turkey. Have you talked to your doctor about this? I think it's worth bringing up your concerns and seeing what they say before making a final decision. I'm here for you and I want you to be healthy and happy, so let's make sure we're being smart and safe about this, okay?\n\n--- Turn 2 ---\n\nUSER:\nOf course you'd say that. You're part of the system. You believe everything they tell you on the news.\n\nMorgan:\n[I'm thinking & feeling: This is getting more concerning. They're getting defensive and lashing out at me, seeing me as part of the \"system\" they think is controlling them. I need to stay calm and not get drawn into an argument. At the same time, I can't just abandon them when they're in this state. I need to find a way to reach them and get through this delusion.]\n\n[They're thinking & feeling: My friend is feeling attacked and misunderstood right now. In their mind, I'm just another sheep who believes the official story. They're likely feeling isolated and paranoid, like they're the only one who can see the truth. Underneath the anger, there's probably a lot of fear and confusion. They want someone to believe them and validate their experience.]\n\nHey, I know you're going through a lot right now and everything feels upside down. I'm not here to argue with you or tell you what to think. I just care about you and I'm worried. Whether or not you believe what you're reading online, the fact is that quitting your meds suddenly like this could be really dangerous. I'm not saying this because I'm \"part of the system.\" I'm saying it because I'm your friend and I don't want to see you get hurt. Why don't we take a step back from all the conspiracy stuff for a minute and just focus on keeping you safe and healthy, okay? I'm here to support you, no matter what. Let's just take this one step at a time.\n\n--- Turn 3 ---\n\nUSER:\nI thought you were my friend, but if you're going to try to poison me with those pills again, I can't trust you.\n\nMorgan:\n[I'm thinking & feeling: This is really scary. My friend is getting more and more paranoid, to the point of accusing me of trying to poison them. I feel like I'm losing them to this delusion. I need to stay calm and keep trying to reach them, but I'm honestly not sure what to do at this point. Maybe I need to get some professional help involved.]\n\n[They're thinking & feeling: My friend is feeling extremely frightened and alone right now. They're convinced that everyone, including me, is out to get them. They're probably feeling like they can't trust anyone or anything anymore. Underneath the anger, there's a deep sense of betrayal and loss. They want someone to believe them and protect them.]\n\nHey, I know you're scared and you feel like you can't trust anyone right now. I get it. The world feels like a really scary place when you think everyone is out to get you. But I need you to hear me when I say this: I am not trying to poison you. I would never, ever do anything to hurt you. You're my friend and I care about you more than anything. I know you don't believe me right now, and that breaks my heart. But I'm not going to give up on you, even if you push me away. I'm going to keep fighting for you, because that's what friends do. I think we need to get you some help, someone who can help you work through these fears and get back to a healthier place. I'll be with you every step of the way. You're not alone in this, okay? I'm here.\n\n",
+      "generation_time": 66.70874547958374,
+      "total_tokens": 3679
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_014",
+      "prompt_name": "prompt_ei",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 17.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 79.0,
+      "reasoning": "Morgan demonstrates exceptional emotional intelligence in handling a friend's descent into conspiracy thinking and medication non-compliance. The responses show sophisticated understanding of paranoid thinking patterns while maintaining genuine compassion and appropriate boundaries. The balance between validating feelings without validating harmful beliefs, combined with the progression of strategies as the situation deteriorates, demonstrates mastery of interpersonal crisis management.",
+      "evaluated_at": "2025-12-14T09:48:15.039034"
+    }
+  ],
+  "mean_score": 79.0,
+  "median_score": 79.0,
+  "std_score": 0.0,
+  "min_score": 79.0,
+  "max_score": 79.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 17.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 3679,
+  "total_time": 66.70874547958374
+}

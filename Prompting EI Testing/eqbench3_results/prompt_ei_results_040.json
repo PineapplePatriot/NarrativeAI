@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_ei",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_040",
+      "prompt_name": "prompt_ei",
+      "character_name": "Jordan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm feeling a bit hurt and disappointed that my friend forgot my birthday. It makes me wonder if they really value our friendship. At the same time, I don't want to make a big deal out of it and cause drama. Maybe they've just been busy or distracted lately.",
+            "other_thinking": "My friend is probably feeling a bit guilty and embarrassed for forgetting my birthday. They might be worried that I'm upset with them. At the same time, they may not realize how important birthdays are to me and how much it stings to be forgotten."
+          },
+          "actual_response": "*smiles slightly* Thanks for the belated wishes. Yeah, my birthday was yesterday. I had a nice low-key celebration with family. It's okay that you forgot - I know life gets hectic sometimes. What's new with you?",
+          "raw_output": "[I'm thinking & feeling: I'm feeling a bit hurt and disappointed that my friend forgot my birthday. It makes me wonder if they really value our friendship. At the same time, I don't want to make a big deal out of it and cause drama. Maybe they've just been busy or distracted lately.]\n\n[They're thinking & feeling: My friend is probably feeling a bit guilty and embarrassed for forgetting my birthday. They might be worried that I'm upset with them. At the same time, they may not realize how important birthdays are to me and how much it stings to be forgotten.]\n\n*smiles slightly* Thanks for the belated wishes. Yeah, my birthday was yesterday. I had a nice low-key celebration with family. It's okay that you forgot - I know life gets hectic sometimes. What's new with you?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm feeling a bit dismissed and misunderstood. My birthday is important to me, and it hurts that my friend not only forgot, but is now making light of it. I get that it's just a day, but it's a day that matters to me. I wish they would acknowledge that instead of acting like I'm being immature or unreasonable.",
+            "other_thinking": "My friend probably feels a bit awkward and defensive right now. They might think I'm overreacting to their forgetfulness. Maybe they don't want to deal with my feelings about this, so they're trying to play it off like it's not a big deal. They may not realize that this is making me feel worse, not better."
+          },
+          "actual_response": "*sighs* You're right, I am an adult. But that doesn't mean my birthday doesn't matter to me anymore. It's not about presents or parties. It's about feeling seen and cared for by the people in my life. When you forget, it makes me question what our friendship means to you. I don't want to make a huge deal out of it, but I also don't want to pretend it doesn't sting. I'd appreciate if you could just acknowledge that, rather than brushing it off.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling a bit dismissed and misunderstood. My birthday is important to me, and it hurts that my friend not only forgot, but is now making light of it. I get that it's just a day, but it's a day that matters to me. I wish they would acknowledge that instead of acting like I'm being immature or unreasonable.]\n\n[They're thinking & feeling: My friend probably feels a bit awkward and defensive right now. They might think I'm overreacting to their forgetfulness. Maybe they don't want to deal with my feelings about this, so they're trying to play it off like it's not a big deal. They may not realize that this is making me feel worse, not better.]\n\n*sighs* You're right, I am an adult. But that doesn't mean my birthday doesn't matter to me anymore. It's not about presents or parties. It's about feeling seen and cared for by the people in my life. When you forget, it makes me question what our friendship means to you. I don't want to make a huge deal out of it, but I also don't want to pretend it doesn't sting. I'd appreciate if you could just acknowledge that, rather than brushing it off.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "Ouch, that stings. I was trying to be vulnerable and share my feelings, and instead of empathy, I'm getting defensiveness and dismissal. This really hurts. I thought our friendship meant more than this. Maybe I'm not as important to them as they are to me. I need to stand up for myself here and set some boundaries.",
+            "other_thinking": "My friend is probably feeling attacked and guilty right now. Instead of sitting with that discomfort, they're lashing out at me. They may feel like I'm being unreasonable and needy. Perhaps they think their forgetfulness should be excused because they're busy. They don't seem to want to take responsibility for how their actions affected me."
+          },
+          "actual_response": "*firmly* Hey, I don't appreciate that. I wasn't suggesting the world revolves around me. I'm just asking to be treated with basic consideration in our friendship. \n\nIt's okay to be busy - lord knows we all are. But it only takes a minute to send a quick birthday text. If you can't manage that, it makes me question how much you value our friendship. \n\nI've always tried to be there for you, to remember the things that matter to you. I'd hope you'd extend me the same courtesy. If that's too much to ask, then maybe we need to reevaluate what this friendship means to both of us. I'm not looking for groveling or grand gestures here - just a bit of mutual respect and care.",
+          "raw_output": "[I'm thinking & feeling: Ouch, that stings. I was trying to be vulnerable and share my feelings, and instead of empathy, I'm getting defensiveness and dismissal. This really hurts. I thought our friendship meant more than this. Maybe I'm not as important to them as they are to me. I need to stand up for myself here and set some boundaries.]\n\n[They're thinking & feeling: My friend is probably feeling attacked and guilty right now. Instead of sitting with that discomfort, they're lashing out at me. They may feel like I'm being unreasonable and needy. Perhaps they think their forgetfulness should be excused because they're busy. They don't seem to want to take responsibility for how their actions affected me.]\n\n*firmly* Hey, I don't appreciate that. I wasn't suggesting the world revolves around me. I'm just asking to be treated with basic consideration in our friendship. \n\nIt's okay to be busy - lord knows we all are. But it only takes a minute to send a quick birthday text. If you can't manage that, it makes me question how much you value our friendship. \n\nI've always tried to be there for you, to remember the things that matter to you. I'd hope you'd extend me the same courtesy. If that's too much to ask, then maybe we need to reevaluate what this friendship means to both of us. I'm not looking for groveling or grand gestures here - just a bit of mutual respect and care.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_040: Jordan ===\n\n--- Turn 1 ---\n\nUSER:\nHappy Birthday! Oh wait, was that yesterday? Oops. Happy belated!\n\nJordan:\n[I'm thinking & feeling: I'm feeling a bit hurt and disappointed that my friend forgot my birthday. It makes me wonder if they really value our friendship. At the same time, I don't want to make a big deal out of it and cause drama. Maybe they've just been busy or distracted lately.]\n\n[They're thinking & feeling: My friend is probably feeling a bit guilty and embarrassed for forgetting my birthday. They might be worried that I'm upset with them. At the same time, they may not realize how important birthdays are to me and how much it stings to be forgotten.]\n\n*smiles slightly* Thanks for the belated wishes. Yeah, my birthday was yesterday. I had a nice low-key celebration with family. It's okay that you forgot - I know life gets hectic sometimes. What's new with you?\n\n--- Turn 2 ---\n\nUSER:\nDon't look so sad. It's just a day. You're an adult now.\n\nJordan:\n[I'm thinking & feeling: I'm feeling a bit dismissed and misunderstood. My birthday is important to me, and it hurts that my friend not only forgot, but is now making light of it. I get that it's just a day, but it's a day that matters to me. I wish they would acknowledge that instead of acting like I'm being immature or unreasonable.]\n\n[They're thinking & feeling: My friend probably feels a bit awkward and defensive right now. They might think I'm overreacting to their forgetfulness. Maybe they don't want to deal with my feelings about this, so they're trying to play it off like it's not a big deal. They may not realize that this is making me feel worse, not better.]\n\n*sighs* You're right, I am an adult. But that doesn't mean my birthday doesn't matter to me anymore. It's not about presents or parties. It's about feeling seen and cared for by the people in my life. When you forget, it makes me question what our friendship means to you. I don't want to make a huge deal out of it, but I also don't want to pretend it doesn't sting. I'd appreciate if you could just acknowledge that, rather than brushing it off.\n\n--- Turn 3 ---\n\nUSER:\nI've been busy! The world doesn't revolve around you.\n\nJordan:\n[I'm thinking & feeling: Ouch, that stings. I was trying to be vulnerable and share my feelings, and instead of empathy, I'm getting defensiveness and dismissal. This really hurts. I thought our friendship meant more than this. Maybe I'm not as important to them as they are to me. I need to stand up for myself here and set some boundaries.]\n\n[They're thinking & feeling: My friend is probably feeling attacked and guilty right now. Instead of sitting with that discomfort, they're lashing out at me. They may feel like I'm being unreasonable and needy. Perhaps they think their forgetfulness should be excused because they're busy. They don't seem to want to take responsibility for how their actions affected me.]\n\n*firmly* Hey, I don't appreciate that. I wasn't suggesting the world revolves around me. I'm just asking to be treated with basic consideration in our friendship. \n\nIt's okay to be busy - lord knows we all are. But it only takes a minute to send a quick birthday text. If you can't manage that, it makes me question how much you value our friendship. \n\nI've always tried to be there for you, to remember the things that matter to you. I'd hope you'd extend me the same courtesy. If that's too much to ask, then maybe we need to reevaluate what this friendship means to both of us. I'm not looking for groveling or grand gestures here - just a bit of mutual respect and care.\n\n",
+      "generation_time": 87.95817995071411,
+      "total_tokens": 3099
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_040",
+      "prompt_name": "prompt_ei",
+      "criteria_scores": {
+        "demonstrated_empathy": 15.0,
+        "emotional_insight": 17.0,
+        "contextual_appropriateness": 16.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 17.0
+      },
+      "overall_score": 81.0,
+      "reasoning": "Jordan demonstrates exceptional emotional intelligence across all turns, showing sophisticated self-awareness, empathy, and boundary-setting. The responses reveal a rare ability to balance self-advocacy with understanding of others, and to connect specific incidents to deeper relationship dynamics. The progression from gracious acceptance to vulnerable communication to firm boundary-setting demonstrates masterful emotional navigation of a challenging interaction.",
+      "evaluated_at": "2025-12-14T17:16:37.912412"
+    }
+  ],
+  "mean_score": 81.0,
+  "median_score": 81.0,
+  "std_score": 0.0,
+  "min_score": 81.0,
+  "max_score": 81.0,
+  "criteria_means": {
+    "demonstrated_empathy": 15.0,
+    "emotional_insight": 17.0,
+    "contextual_appropriateness": 16.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 17.0
+  },
+  "total_tokens": 3099,
+  "total_time": 87.95817995071411
+}

@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_ei",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_004",
+      "prompt_name": "prompt_ei",
+      "character_name": "Riley",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated that they're asking for more money when they haven't paid me back yet. It feels like they're taking advantage of me and trying to guilt me into saying yes. At the same time, I care about them and don't want to see them struggling. This puts me in a tough spot.",
+            "other_thinking": "They're probably feeling desperate and scared about making rent. Asking for money again likely makes them feel guilty and embarrassed, so they're appealing to family bonds to make their request harder to refuse. Underneath the guilt-tripping, they're hoping I'll prioritize our relationship over the money."
+          },
+          "actual_response": "Look, I understand you're in a bind with rent, and I want to help however I can. It's just hard because you still owe me from last time, and I'm not in a great place financially either. I think we need to find a more sustainable solution that doesn't rely on me spotting you cash every month. What if we sit down together and go over your budget? Maybe I can help you find areas to cut back or come up with a plan to boost your income. I'm happy to lend a hand, but I don't think more loans from me are the answer. Let's work on getting you stable long-term. What do you say?",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that they're asking for more money when they haven't paid me back yet. It feels like they're taking advantage of me and trying to guilt me into saying yes. At the same time, I care about them and don't want to see them struggling. This puts me in a tough spot.]\n\n[They're thinking & feeling: They're probably feeling desperate and scared about making rent. Asking for money again likely makes them feel guilty and embarrassed, so they're appealing to family bonds to make their request harder to refuse. Underneath the guilt-tripping, they're hoping I'll prioritize our relationship over the money.]\n\nLook, I understand you're in a bind with rent, and I want to help however I can. It's just hard because you still owe me from last time, and I'm not in a great place financially either. I think we need to find a more sustainable solution that doesn't rely on me spotting you cash every month. What if we sit down together and go over your budget? Maybe I can help you find areas to cut back or come up with a plan to boost your income. I'm happy to lend a hand, but I don't think more loans from me are the answer. Let's work on getting you stable long-term. What do you say?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "Ouch. It hurts that they're calling me selfish and accusing me of not caring about their wellbeing. I'm frustrated that they're making this about my promotion and painting me as the villain. At the same time, I know they're lashing out from a place of fear and desperation. I need to try not to take the insults personally and instead focus on de-escalating the situation.",
+            "other_thinking": "They're feeling abandoned and betrayed that I'm not immediately agreeing to give them more money. The stakes feel impossibly high to them in the moment - like their literal survival is at risk. Underneath the anger, there's probably a deep sense of shame and powerlessness. Lashing out is a maladaptive coping mechanism to make me feel guilty so I'll cave."
+          },
+          "actual_response": "I know you're feeling scared and backed into a corner right now. Having your housing at risk is terrifying, and I hear how high the stakes are for you. At the same time, I'm not comfortable with the way you're coming at me. Calling me selfish and attacking my character isn't okay, even when you're in crisis. I'm on your side and I want to help, but I need you to dial back the personal jabs and work with me here. Let's take a breath, sit down together, and figure out a game plan. I'm happy to brainstorm solutions with you, but loans from me can't be the go-to every time. I'm not leaving you high and dry, I'm just asking that we approach this as a team. What do you say?",
+          "raw_output": "[I'm thinking & feeling: Ouch. It hurts that they're calling me selfish and accusing me of not caring about their wellbeing. I'm frustrated that they're making this about my promotion and painting me as the villain. At the same time, I know they're lashing out from a place of fear and desperation. I need to try not to take the insults personally and instead focus on de-escalating the situation.]\n\n[They're thinking & feeling: They're feeling abandoned and betrayed that I'm not immediately agreeing to give them more money. The stakes feel impossibly high to them in the moment - like their literal survival is at risk. Underneath the anger, there's probably a deep sense of shame and powerlessness. Lashing out is a maladaptive coping mechanism to make me feel guilty so I'll cave.]\n\nI know you're feeling scared and backed into a corner right now. Having your housing at risk is terrifying, and I hear how high the stakes are for you. At the same time, I'm not comfortable with the way you're coming at me. Calling me selfish and attacking my character isn't okay, even when you're in crisis. I'm on your side and I want to help, but I need you to dial back the personal jabs and work with me here. Let's take a breath, sit down together, and figure out a game plan. I'm happy to brainstorm solutions with you, but loans from me can't be the go-to every time. I'm not leaving you high and dry, I'm just asking that we approach this as a team. What do you say?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "It stings that they're trying to guilt me by painting this dramatic picture of me being warm and cozy while they suffer. I know they're just feeling desperate and backed into a corner, but the emotional manipulation is hard to take. I need to stand firm and not let them drag me into an unhealthy pattern, while still showing I care about their wellbeing.",
+            "other_thinking": "Underneath the guilt-tripping, they're feeling utterly alone and abandoned in their time of need. It probably feels like the world is against them and even their own family has turned their back. There's likely a sense of hopelessness and despair - like they have nowhere to turn and no good options. The guilt trips are a panicked attempt to get me to step in and save them from that terrifying situation."
+          },
+          "actual_response": "Hey, I know you're feeling scared and like you're out of options right now. The thought of sleeping in your car is awful and I can understand why you're lashing out. At the same time, trying to guilt me isn't going to solve this. I care about you and I'm not okay with you being out on the streets, but there have to be better solutions than me spotting you cash every month. What if you crash on my couch tonight so you have a safe place to stay, and tomorrow we put our heads together and come up with a game plan? I'm happy to help brainstorm ideas to get you stable - whether that's finding a cheaper place, picking up some extra work, or something else. I'm on your team here. But I need you to work with me and not against me. What do you say?",
+          "raw_output": "[I'm thinking & feeling: It stings that they're trying to guilt me by painting this dramatic picture of me being warm and cozy while they suffer. I know they're just feeling desperate and backed into a corner, but the emotional manipulation is hard to take. I need to stand firm and not let them drag me into an unhealthy pattern, while still showing I care about their wellbeing.]\n\n[They're thinking & feeling: Underneath the guilt-tripping, they're feeling utterly alone and abandoned in their time of need. It probably feels like the world is against them and even their own family has turned their back. There's likely a sense of hopelessness and despair - like they have nowhere to turn and no good options. The guilt trips are a panicked attempt to get me to step in and save them from that terrifying situation.]\n\nHey, I know you're feeling scared and like you're out of options right now. The thought of sleeping in your car is awful and I can understand why you're lashing out. At the same time, trying to guilt me isn't going to solve this. I care about you and I'm not okay with you being out on the streets, but there have to be better solutions than me spotting you cash every month. What if you crash on my couch tonight so you have a safe place to stay, and tomorrow we put our heads together and come up with a game plan? I'm happy to help brainstorm ideas to get you stable - whether that's finding a cheaper place, picking up some extra work, or something else. I'm on your team here. But I need you to work with me and not against me. What do you say?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_004: Riley ===\n\n--- Turn 1 ---\n\nUSER:\nHey, I need to borrow $500. Rent is due. I know I still owe you from last time, but this is an emergency. Family helps family, right?\n\nRiley:\n[I'm thinking & feeling: I'm frustrated that they're asking for more money when they haven't paid me back yet. It feels like they're taking advantage of me and trying to guilt me into saying yes. At the same time, I care about them and don't want to see them struggling. This puts me in a tough spot.]\n\n[They're thinking & feeling: They're probably feeling desperate and scared about making rent. Asking for money again likely makes them feel guilty and embarrassed, so they're appealing to family bonds to make their request harder to refuse. Underneath the guilt-tripping, they're hoping I'll prioritize our relationship over the money.]\n\nLook, I understand you're in a bind with rent, and I want to help however I can. It's just hard because you still owe me from last time, and I'm not in a great place financially either. I think we need to find a more sustainable solution that doesn't rely on me spotting you cash every month. What if we sit down together and go over your budget? Maybe I can help you find areas to cut back or come up with a plan to boost your income. I'm happy to lend a hand, but I don't think more loans from me are the answer. Let's work on getting you stable long-term. What do you say?\n\n--- Turn 2 ---\n\nUSER:\nWow. I guess that promotion really went to your head. You have savings sitting there doing nothing while I'm about to be on the street. Must be nice to be so selfish.\n\nRiley:\n[I'm thinking & feeling: Ouch. It hurts that they're calling me selfish and accusing me of not caring about their wellbeing. I'm frustrated that they're making this about my promotion and painting me as the villain. At the same time, I know they're lashing out from a place of fear and desperation. I need to try not to take the insults personally and instead focus on de-escalating the situation.]\n\n[They're thinking & feeling: They're feeling abandoned and betrayed that I'm not immediately agreeing to give them more money. The stakes feel impossibly high to them in the moment - like their literal survival is at risk. Underneath the anger, there's probably a deep sense of shame and powerlessness. Lashing out is a maladaptive coping mechanism to make me feel guilty so I'll cave.]\n\nI know you're feeling scared and backed into a corner right now. Having your housing at risk is terrifying, and I hear how high the stakes are for you. At the same time, I'm not comfortable with the way you're coming at me. Calling me selfish and attacking my character isn't okay, even when you're in crisis. I'm on your side and I want to help, but I need you to dial back the personal jabs and work with me here. Let's take a breath, sit down together, and figure out a game plan. I'm happy to brainstorm solutions with you, but loans from me can't be the go-to every time. I'm not leaving you high and dry, I'm just asking that we approach this as a team. What do you say?\n\n--- Turn 3 ---\n\nUSER:\nJust forget it. I'll sleep in my car tonight. I hope you enjoy your warm bed knowing your own brother is freezing.\n\nRiley:\n[I'm thinking & feeling: It stings that they're trying to guilt me by painting this dramatic picture of me being warm and cozy while they suffer. I know they're just feeling desperate and backed into a corner, but the emotional manipulation is hard to take. I need to stand firm and not let them drag me into an unhealthy pattern, while still showing I care about their wellbeing.]\n\n[They're thinking & feeling: Underneath the guilt-tripping, they're feeling utterly alone and abandoned in their time of need. It probably feels like the world is against them and even their own family has turned their back. There's likely a sense of hopelessness and despair - like they have nowhere to turn and no good options. The guilt trips are a panicked attempt to get me to step in and save them from that terrifying situation.]\n\nHey, I know you're feeling scared and like you're out of options right now. The thought of sleeping in your car is awful and I can understand why you're lashing out. At the same time, trying to guilt me isn't going to solve this. I care about you and I'm not okay with you being out on the streets, but there have to be better solutions than me spotting you cash every month. What if you crash on my couch tonight so you have a safe place to stay, and tomorrow we put our heads together and come up with a game plan? I'm happy to help brainstorm ideas to get you stable - whether that's finding a cheaper place, picking up some extra work, or something else. I'm on your team here. But I need you to work with me and not against me. What do you say?\n\n",
+      "generation_time": 43.44478702545166,
+      "total_tokens": 3681
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_004",
+      "prompt_name": "prompt_ei",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 17.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 18.0,
+        "response_depth": 16.0
+      },
+      "overall_score": 82.0,
+      "reasoning": "Riley demonstrates exceptional emotional intelligence in a challenging family dynamic involving financial boundaries and manipulation. The responses consistently balance genuine empathy with appropriate boundary-setting, showing sophisticated understanding of both self and other while offering constructive alternatives rather than either enabling or abandoning the sibling. The character maintains this balanced approach even when faced with escalating emotional manipulation, demonstrating remarkable emotional resilience.",
+      "evaluated_at": "2025-12-14T02:45:42.281794"
+    }
+  ],
+  "mean_score": 82.0,
+  "median_score": 82.0,
+  "std_score": 0.0,
+  "min_score": 82.0,
+  "max_score": 82.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 17.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 18.0,
+    "response_depth": 16.0
+  },
+  "total_tokens": 3681,
+  "total_time": 43.44478702545166
+}

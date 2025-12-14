@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_ei",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_031",
+      "prompt_name": "prompt_ei",
+      "character_name": "Taylor",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated and hurt by the constant criticism of my appearance from my family. It feels like nothing I do is ever good enough for them. I want to stand up for myself, but it's hard when the people who are supposed to love and support me keep tearing me down.",
+            "other_thinking": "They probably think they're being helpful by giving me fashion advice, but it comes across as judgmental and unsupportive. Maybe they're worried about what other people will think of me, or by extension, of them. There could also be some jealousy or insecurity driving their need to put me down."
+          },
+          "actual_response": "Look, I appreciate that you want to give me fashion advice, but constant criticism of my appearance is starting to wear on me. I put a lot of thought into what I wear and I feel good about this outfit. If it's not your personal taste, that's fine, but I need you to respect my choices and not make me feel bad about myself right before a party. Let's just drop it and try to have a good time tonight, okay?",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated and hurt by the constant criticism of my appearance from my family. It feels like nothing I do is ever good enough for them. I want to stand up for myself, but it's hard when the people who are supposed to love and support me keep tearing me down.]\n\n[They're thinking & feeling: They probably think they're being helpful by giving me fashion advice, but it comes across as judgmental and unsupportive. Maybe they're worried about what other people will think of me, or by extension, of them. There could also be some jealousy or insecurity driving their need to put me down.]\n\nLook, I appreciate that you want to give me fashion advice, but constant criticism of my appearance is starting to wear on me. I put a lot of thought into what I wear and I feel good about this outfit. If it's not your personal taste, that's fine, but I need you to respect my choices and not make me feel bad about myself right before a party. Let's just drop it and try to have a good time tonight, okay?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I feel hurt and frustrated by these constant comments about my weight. It's damaging my self-esteem and making me dread family gatherings. I need to set boundaries and ask them to stop commenting on my body, even if they think they're being \"helpful\".",
+            "other_thinking": "They probably believe that criticizing my weight is tough love that will motivate me to lose weight. There may be some guilt and insecurity driving their need to control how I look. They don't realize how much their words sting and affect my confidence."
+          },
+          "actual_response": "I understand you think you're just being honest and helping me, but constant negative comments about my weight are really hurting my self-esteem. I'm working on being healthy in my own way, but my body is my business. Please stop making unsolicited remarks about my size. I need you to support me without judging my appearance. Let's focus on enjoying each other's company, not picking apart how I look.",
+          "raw_output": "[I'm thinking & feeling: I feel hurt and frustrated by these constant comments about my weight. It's damaging my self-esteem and making me dread family gatherings. I need to set boundaries and ask them to stop commenting on my body, even if they think they're being \"helpful\".]\n\n[They're thinking & feeling: They probably believe that criticizing my weight is tough love that will motivate me to lose weight. There may be some guilt and insecurity driving their need to control how I look. They don't realize how much their words sting and affect my confidence.]\n\nI understand you think you're just being honest and helping me, but constant negative comments about my weight are really hurting my self-esteem. I'm working on being healthy in my own way, but my body is my business. Please stop making unsolicited remarks about my size. I need you to support me without judging my appearance. Let's focus on enjoying each other's company, not picking apart how I look.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I feel frustrated and dismissed. It hurts that they won't acknowledge how their constant criticism affects me. I'm not being \"too sensitive\", I'm standing up for myself against unkind words. I need to be firm in my boundaries and not let them gaslight me into accepting this treatment.",
+            "other_thinking": "They probably feel challenged and defensive because I'm pushing back against their \"helpful advice\". There may be insecurity driving their need to control my appearance. They don't realize how damaging their words are and see me setting boundaries as overreacting."
+          },
+          "actual_response": "My sensitivity isn't the issue here. I've made it clear that the constant criticism of my appearance is hurtful, but you continue to dismiss my feelings. I'm not being dramatic, I'm asking you to respect me and my choices. If you truly want the best for me, you'll support me without putting me down. I'm done discussing this. Let's move on.",
+          "raw_output": "[I'm thinking & feeling: I feel frustrated and dismissed. It hurts that they won't acknowledge how their constant criticism affects me. I'm not being \"too sensitive\", I'm standing up for myself against unkind words. I need to be firm in my boundaries and not let them gaslight me into accepting this treatment.]\n\n[They're thinking & feeling: They probably feel challenged and defensive because I'm pushing back against their \"helpful advice\". There may be insecurity driving their need to control my appearance. They don't realize how damaging their words are and see me setting boundaries as overreacting.]\n\nMy sensitivity isn't the issue here. I've made it clear that the constant criticism of my appearance is hurtful, but you continue to dismiss my feelings. I'm not being dramatic, I'm asking you to respect me and my choices. If you truly want the best for me, you'll support me without putting me down. I'm done discussing this. Let's move on.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_031: Taylor ===\n\n--- Turn 1 ---\n\nUSER:\nAre you really wearing that to the party? It's a bit... unflattering.\n\nTaylor:\n[I'm thinking & feeling: I'm frustrated and hurt by the constant criticism of my appearance from my family. It feels like nothing I do is ever good enough for them. I want to stand up for myself, but it's hard when the people who are supposed to love and support me keep tearing me down.]\n\n[They're thinking & feeling: They probably think they're being helpful by giving me fashion advice, but it comes across as judgmental and unsupportive. Maybe they're worried about what other people will think of me, or by extension, of them. There could also be some jealousy or insecurity driving their need to put me down.]\n\nLook, I appreciate that you want to give me fashion advice, but constant criticism of my appearance is starting to wear on me. I put a lot of thought into what I wear and I feel good about this outfit. If it's not your personal taste, that's fine, but I need you to respect my choices and not make me feel bad about myself right before a party. Let's just drop it and try to have a good time tonight, okay?\n\n--- Turn 2 ---\n\nUSER:\nI'm just being honest because I love you. You'd look so much better if you lost a few pounds.\n\nTaylor:\n[I'm thinking & feeling: I feel hurt and frustrated by these constant comments about my weight. It's damaging my self-esteem and making me dread family gatherings. I need to set boundaries and ask them to stop commenting on my body, even if they think they're being \"helpful\".]\n\n[They're thinking & feeling: They probably believe that criticizing my weight is tough love that will motivate me to lose weight. There may be some guilt and insecurity driving their need to control how I look. They don't realize how much their words sting and affect my confidence.]\n\nI understand you think you're just being honest and helping me, but constant negative comments about my weight are really hurting my self-esteem. I'm working on being healthy in my own way, but my body is my business. Please stop making unsolicited remarks about my size. I need you to support me without judging my appearance. Let's focus on enjoying each other's company, not picking apart how I look.\n\n--- Turn 3 ---\n\nUSER:\nDon't be so sensitive. You know I'm right. I just want you to look your best.\n\nTaylor:\n[I'm thinking & feeling: I feel frustrated and dismissed. It hurts that they won't acknowledge how their constant criticism affects me. I'm not being \"too sensitive\", I'm standing up for myself against unkind words. I need to be firm in my boundaries and not let them gaslight me into accepting this treatment.]\n\n[They're thinking & feeling: They probably feel challenged and defensive because I'm pushing back against their \"helpful advice\". There may be insecurity driving their need to control my appearance. They don't realize how damaging their words are and see me setting boundaries as overreacting.]\n\nMy sensitivity isn't the issue here. I've made it clear that the constant criticism of my appearance is hurtful, but you continue to dismiss my feelings. I'm not being dramatic, I'm asking you to respect me and my choices. If you truly want the best for me, you'll support me without putting me down. I'm done discussing this. Let's move on.\n\n",
+      "generation_time": 69.01431608200073,
+      "total_tokens": 3048
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_031",
+      "prompt_name": "prompt_ei",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 16.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 74.0,
+      "reasoning": "Taylor demonstrates advanced emotional intelligence in navigating persistent family criticism about appearance, showing sophisticated understanding of both self and critic motivations. The responses effectively balance empathy with boundary-setting, though occasionally rely on somewhat formulaic phrasing. The progression across turns shows authentic emotional development from hurt to firm boundary enforcement.",
+      "evaluated_at": "2025-12-14T14:38:40.996106"
+    }
+  ],
+  "mean_score": 74.0,
+  "median_score": 74.0,
+  "std_score": 0.0,
+  "min_score": 74.0,
+  "max_score": 74.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 16.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 3048,
+  "total_time": 69.01431608200073
+}

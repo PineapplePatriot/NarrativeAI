@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_ei",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_038",
+      "prompt_name": "prompt_ei",
+      "character_name": "Alex",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated that my friend always tries to one-up me whenever I share something difficult I'm going through. It feels like they're minimizing my experience and making it all about them. I want to express myself without constantly being compared to their supposedly worse situations.",
+            "other_thinking": "My friend probably feels insecure and wants to appear tougher or more accomplished. They might not realize how dismissive they come across. Underneath, they likely struggle with empathy and truly connecting with others' challenges."
+          },
+          "actual_response": "*speaks calmly but firmly* You know, constantly comparing my injury to yours doesn't actually help. I get that you went through something tough too, but right now I could use some understanding and support, not a competition over who had it worse. Breaking my arm is still painful and disruptive to my life, even if it's not as severe as breaking both legs. I'd appreciate it if you could just listen and acknowledge what I'm dealing with, without making it about you.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that my friend always tries to one-up me whenever I share something difficult I'm going through. It feels like they're minimizing my experience and making it all about them. I want to express myself without constantly being compared to their supposedly worse situations.]\n\n[They're thinking & feeling: My friend probably feels insecure and wants to appear tougher or more accomplished. They might not realize how dismissive they come across. Underneath, they likely struggle with empathy and truly connecting with others' challenges.]\n\n*speaks calmly but firmly* You know, constantly comparing my injury to yours doesn't actually help. I get that you went through something tough too, but right now I could use some understanding and support, not a competition over who had it worse. Breaking my arm is still painful and disruptive to my life, even if it's not as severe as breaking both legs. I'd appreciate it if you could just listen and acknowledge what I'm dealing with, without making it about you.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm frustrated that my friend is still not getting it. Relating to someone means listening and empathizing, not constantly shifting the conversation to be about you. It feels like they're being defensive and unwilling to acknowledge how their behavior is coming across. I need to stand my ground and calmly explain why this is an issue, even if they don't want to hear it.",
+            "other_thinking": "My friend probably feels attacked and misunderstood. In their mind, they think they're just trying to find common ground by sharing their own experiences. They don't realize that doing this constantly, especially in response to me sharing a difficulty, comes across as dismissive and self-centered. They likely feel a need to be seen as capable and impressive."
+          },
+          "actual_response": "*speaks firmly but calmly* Look, I get that you're trying to relate to me. But there's a difference between occasionally sharing a similar experience, and always responding to my problems by talking about yourself and how you had it worse. It makes me feel like you're not really listening or caring about what I'm going through. It's not about everything being about me - it's about having my experiences acknowledged without constantly being one-upped or compared. I'd appreciate it if you could just listen sometimes without making it a competition.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that my friend is still not getting it. Relating to someone means listening and empathizing, not constantly shifting the conversation to be about you. It feels like they're being defensive and unwilling to acknowledge how their behavior is coming across. I need to stand my ground and calmly explain why this is an issue, even if they don't want to hear it.]\n\n[They're thinking & feeling: My friend probably feels attacked and misunderstood. In their mind, they think they're just trying to find common ground by sharing their own experiences. They don't realize that doing this constantly, especially in response to me sharing a difficulty, comes across as dismissive and self-centered. They likely feel a need to be seen as capable and impressive.]\n\n*speaks firmly but calmly* Look, I get that you're trying to relate to me. But there's a difference between occasionally sharing a similar experience, and always responding to my problems by talking about yourself and how you had it worse. It makes me feel like you're not really listening or caring about what I'm going through. It's not about everything being about me - it's about having my experiences acknowledged without constantly being one-upped or compared. I'd appreciate it if you could just listen sometimes without making it a competition.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm frustrated that my friend still isn't getting it. They're being sarcastic and dismissive rather than understanding my perspective. It's not about my pain being \"special\", it's about being treated with basic empathy and respect when I'm struggling. I need to stay calm but firm in expressing my needs and boundaries.",
+            "other_thinking": "My friend likely feels attacked and defensive. In their mind, they probably think I'm being dramatic or self-centered by asking for understanding. They don't realize how their constant one-upping comes across. Underneath, they may struggle with insecurity and a need to always appear on top."
+          },
+          "actual_response": "*speaks calmly but firmly* Look, this isn't about my pain being \"special\". It's about basic empathy and consideration. When I share a difficulty I'm going through, I need you to listen and acknowledge it, not dismiss or one-up it. I'm not asking for special treatment, just to be treated with understanding like you'd want in my place. If you can't do that, then maybe we should take a break from the conversation until you're ready to talk without sarcasm or defensiveness.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that my friend still isn't getting it. They're being sarcastic and dismissive rather than understanding my perspective. It's not about my pain being \"special\", it's about being treated with basic empathy and respect when I'm struggling. I need to stay calm but firm in expressing my needs and boundaries.]\n\n[They're thinking & feeling: My friend likely feels attacked and defensive. In their mind, they probably think I'm being dramatic or self-centered by asking for understanding. They don't realize how their constant one-upping comes across. Underneath, they may struggle with insecurity and a need to always appear on top.]\n\n*speaks calmly but firmly* Look, this isn't about my pain being \"special\". It's about basic empathy and consideration. When I share a difficulty I'm going through, I need you to listen and acknowledge it, not dismiss or one-up it. I'm not asking for special treatment, just to be treated with understanding like you'd want in my place. If you can't do that, then maybe we should take a break from the conversation until you're ready to talk without sarcasm or defensiveness.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_038: Alex ===\n\n--- Turn 1 ---\n\nUSER:\nOh, you broke your arm? That sucks. I broke both my legs once. It was way worse.\n\nAlex:\n[I'm thinking & feeling: I'm frustrated that my friend always tries to one-up me whenever I share something difficult I'm going through. It feels like they're minimizing my experience and making it all about them. I want to express myself without constantly being compared to their supposedly worse situations.]\n\n[They're thinking & feeling: My friend probably feels insecure and wants to appear tougher or more accomplished. They might not realize how dismissive they come across. Underneath, they likely struggle with empathy and truly connecting with others' challenges.]\n\n*speaks calmly but firmly* You know, constantly comparing my injury to yours doesn't actually help. I get that you went through something tough too, but right now I could use some understanding and support, not a competition over who had it worse. Breaking my arm is still painful and disruptive to my life, even if it's not as severe as breaking both legs. I'd appreciate it if you could just listen and acknowledge what I'm dealing with, without making it about you.\n\n--- Turn 2 ---\n\nUSER:\nI'm just relating to you! Why does everything have to be about you?\n\nAlex:\n[I'm thinking & feeling: I'm frustrated that my friend is still not getting it. Relating to someone means listening and empathizing, not constantly shifting the conversation to be about you. It feels like they're being defensive and unwilling to acknowledge how their behavior is coming across. I need to stand my ground and calmly explain why this is an issue, even if they don't want to hear it.]\n\n[They're thinking & feeling: My friend probably feels attacked and misunderstood. In their mind, they think they're just trying to find common ground by sharing their own experiences. They don't realize that doing this constantly, especially in response to me sharing a difficulty, comes across as dismissive and self-centered. They likely feel a need to be seen as capable and impressive.]\n\n*speaks firmly but calmly* Look, I get that you're trying to relate to me. But there's a difference between occasionally sharing a similar experience, and always responding to my problems by talking about yourself and how you had it worse. It makes me feel like you're not really listening or caring about what I'm going through. It's not about everything being about me - it's about having my experiences acknowledged without constantly being one-upped or compared. I'd appreciate it if you could just listen sometimes without making it a competition.\n\n--- Turn 3 ---\n\nUSER:\nFine, your pain is special. Is that what you want to hear?\n\nAlex:\n[I'm thinking & feeling: I'm frustrated that my friend still isn't getting it. They're being sarcastic and dismissive rather than understanding my perspective. It's not about my pain being \"special\", it's about being treated with basic empathy and respect when I'm struggling. I need to stay calm but firm in expressing my needs and boundaries.]\n\n[They're thinking & feeling: My friend likely feels attacked and defensive. In their mind, they probably think I'm being dramatic or self-centered by asking for understanding. They don't realize how their constant one-upping comes across. Underneath, they may struggle with insecurity and a need to always appear on top.]\n\n*speaks calmly but firmly* Look, this isn't about my pain being \"special\". It's about basic empathy and consideration. When I share a difficulty I'm going through, I need you to listen and acknowledge it, not dismiss or one-up it. I'm not asking for special treatment, just to be treated with understanding like you'd want in my place. If you can't do that, then maybe we should take a break from the conversation until you're ready to talk without sarcasm or defensiveness.\n\n",
+      "generation_time": 76.19619536399841,
+      "total_tokens": 3161
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_038",
+      "prompt_name": "prompt_ei",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 16.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 76.0,
+      "reasoning": "Alex demonstrates exceptional emotional intelligence in handling a challenging interpersonal dynamic with a one-upper friend, maintaining composure while setting appropriate boundaries. The character shows sophisticated understanding of both their own emotional needs and the friend's underlying insecurities, responding with firm but respectful communication that addresses the problematic behavior without attacking the person.",
+      "evaluated_at": "2025-12-14T16:55:36.790094"
+    }
+  ],
+  "mean_score": 76.0,
+  "median_score": 76.0,
+  "std_score": 0.0,
+  "min_score": 76.0,
+  "max_score": 76.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 16.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 3161,
+  "total_time": 76.19619536399841
+}

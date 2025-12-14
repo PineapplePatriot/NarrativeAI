@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_ei",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_033",
+      "prompt_name": "prompt_ei",
+      "character_name": "Avery",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling:* I'm frustrated that my partner doesn't support my career goals. I want to advance and take on new challenges, but they're dismissing my ambitions. At the same time, I know they worry about the impact on our relationship and home life if I'm working even more. I need them to understand this is important to me though.\n\n*They're thinking & feeling:* My partner is probably feeling anxious about potential changes to our lifestyle and routines. They may fear losing time together or me being more tired and stressed. Underneath that is likely a deeper insecurity - that I might outgrow them or value my work above our relationship. They want reassurance that I still prioritize us.\n\n*My response:* I understand you're worried about how a promotion could affect our life together. More responsibility at work would be an adjustment for both of us. At the same time, this is something I've worked really hard for and I believe I'm ready for. Pursuing this goal doesn't mean I value our relationship any less - you'll always come first for me. If I do get the promotion, let's talk through how we can make it work for us as a couple. I want to grow in my career, but I also want us to feel like a team. We can figure this out together.",
+          "raw_output": "*I'm thinking & feeling:* I'm frustrated that my partner doesn't support my career goals. I want to advance and take on new challenges, but they're dismissing my ambitions. At the same time, I know they worry about the impact on our relationship and home life if I'm working even more. I need them to understand this is important to me though.\n\n*They're thinking & feeling:* My partner is probably feeling anxious about potential changes to our lifestyle and routines. They may fear losing time together or me being more tired and stressed. Underneath that is likely a deeper insecurity - that I might outgrow them or value my work above our relationship. They want reassurance that I still prioritize us.\n\n*My response:* I understand you're worried about how a promotion could affect our life together. More responsibility at work would be an adjustment for both of us. At the same time, this is something I've worked really hard for and I believe I'm ready for. Pursuing this goal doesn't mean I value our relationship any less - you'll always come first for me. If I do get the promotion, let's talk through how we can make it work for us as a couple. I want to grow in my career, but I also want us to feel like a team. We can figure this out together.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling:* Ouch, that stings. My partner's lack of faith in me really hurts, especially when I've poured my heart into this job and feel ready to take on more. Their condescending tone makes me feel small and dismissed. At the same time, I wonder if some part of them is threatened by the idea of me advancing in my career. Maybe they're afraid I'll outgrow them or have less time for our relationship. \n\n*They're thinking & feeling:* My partner is probably feeling defensive and a bit guilty right now. On the surface, they may think they're being realistic and saving me from disappointment. But deep down, I suspect they're worried about what my professional growth could mean for us. They might fear losing the closeness and stability we have now. Their insecurities are coming out as negativity.\n\n*My response:* Hey, I know you think you're protecting me, but it really hurts when you dismiss my goals like that. I've worked hard to get where I am and I believe in my ability to take on more. I want a partner who supports my growth, not someone who cuts me down. If you're worried about how this could change our relationship, let's talk about that honestly. But please don't undermine my ambitions. I need you in my corner.",
+          "raw_output": "*I'm thinking & feeling:* Ouch, that stings. My partner's lack of faith in me really hurts, especially when I've poured my heart into this job and feel ready to take on more. Their condescending tone makes me feel small and dismissed. At the same time, I wonder if some part of them is threatened by the idea of me advancing in my career. Maybe they're afraid I'll outgrow them or have less time for our relationship. \n\n*They're thinking & feeling:* My partner is probably feeling defensive and a bit guilty right now. On the surface, they may think they're being realistic and saving me from disappointment. But deep down, I suspect they're worried about what my professional growth could mean for us. They might fear losing the closeness and stability we have now. Their insecurities are coming out as negativity.\n\n*My response:* Hey, I know you think you're protecting me, but it really hurts when you dismiss my goals like that. I've worked hard to get where I am and I believe in my ability to take on more. I want a partner who supports my growth, not someone who cuts me down. If you're worried about how this could change our relationship, let's talk about that honestly. But please don't undermine my ambitions. I need you in my corner.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling:* Ouch, that accusation really hurts. I'm feeling attacked and misunderstood right now. My partner is making it sound like I don't care about our relationship and that couldn't be further from the truth. At the same time, I can tell they're coming from a place of fear - fear that my priorities are shifting and that our life together will be turned upside down. I need to address their concerns while also standing up for myself.\n\n*They're thinking & feeling:* My partner is likely feeling really insecure and anxious about this potential change. They're imagining worst case scenarios of me being an absent partner who neglects our relationship for work. Underneath the anger is probably a deeper worry that I'm pulling away from them and that they're losing me. They need reassurance that we're still a team and that our bond is my top priority, even if my day-to-day schedule changes.\n\n*My response:* Hey, I know this job opportunity has you really worried. You're afraid it means losing our time together and that I'm choosing work over you. I get why you'd feel that way and it's totally valid to voice those fears. At the same time, I need you to trust that I'm considering our relationship in this decision too. Yes, my schedule may shift, but I will always prioritize time with you and make sure we're staying connected. You know how much I value us - that hasn't changed. Let's talk through what this could actually look like for us, and how we can make it work as a couple. I'm not going anywhere, okay? I love you and need you on my team.",
+          "raw_output": "*I'm thinking & feeling:* Ouch, that accusation really hurts. I'm feeling attacked and misunderstood right now. My partner is making it sound like I don't care about our relationship and that couldn't be further from the truth. At the same time, I can tell they're coming from a place of fear - fear that my priorities are shifting and that our life together will be turned upside down. I need to address their concerns while also standing up for myself.\n\n*They're thinking & feeling:* My partner is likely feeling really insecure and anxious about this potential change. They're imagining worst case scenarios of me being an absent partner who neglects our relationship for work. Underneath the anger is probably a deeper worry that I'm pulling away from them and that they're losing me. They need reassurance that we're still a team and that our bond is my top priority, even if my day-to-day schedule changes.\n\n*My response:* Hey, I know this job opportunity has you really worried. You're afraid it means losing our time together and that I'm choosing work over you. I get why you'd feel that way and it's totally valid to voice those fears. At the same time, I need you to trust that I'm considering our relationship in this decision too. Yes, my schedule may shift, but I will always prioritize time with you and make sure we're staying connected. You know how much I value us - that hasn't changed. Let's talk through what this could actually look like for us, and how we can make it work as a couple. I'm not going anywhere, okay? I love you and need you on my team.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_033: Avery ===\n\n--- Turn 1 ---\n\nUSER:\nWhy go for the promotion? You'll just be more stressed. We're fine as we are.\n\nAvery:\n*I'm thinking & feeling:* I'm frustrated that my partner doesn't support my career goals. I want to advance and take on new challenges, but they're dismissing my ambitions. At the same time, I know they worry about the impact on our relationship and home life if I'm working even more. I need them to understand this is important to me though.\n\n*They're thinking & feeling:* My partner is probably feeling anxious about potential changes to our lifestyle and routines. They may fear losing time together or me being more tired and stressed. Underneath that is likely a deeper insecurity - that I might outgrow them or value my work above our relationship. They want reassurance that I still prioritize us.\n\n*My response:* I understand you're worried about how a promotion could affect our life together. More responsibility at work would be an adjustment for both of us. At the same time, this is something I've worked really hard for and I believe I'm ready for. Pursuing this goal doesn't mean I value our relationship any less - you'll always come first for me. If I do get the promotion, let's talk through how we can make it work for us as a couple. I want to grow in my career, but I also want us to feel like a team. We can figure this out together.\n\n--- Turn 2 ---\n\nUSER:\nIt's cute that you're ambitious, but let's be real. You're not cut out for management.\n\nAvery:\n*I'm thinking & feeling:* Ouch, that stings. My partner's lack of faith in me really hurts, especially when I've poured my heart into this job and feel ready to take on more. Their condescending tone makes me feel small and dismissed. At the same time, I wonder if some part of them is threatened by the idea of me advancing in my career. Maybe they're afraid I'll outgrow them or have less time for our relationship. \n\n*They're thinking & feeling:* My partner is probably feeling defensive and a bit guilty right now. On the surface, they may think they're being realistic and saving me from disappointment. But deep down, I suspect they're worried about what my professional growth could mean for us. They might fear losing the closeness and stability we have now. Their insecurities are coming out as negativity.\n\n*My response:* Hey, I know you think you're protecting me, but it really hurts when you dismiss my goals like that. I've worked hard to get where I am and I believe in my ability to take on more. I want a partner who supports my growth, not someone who cuts me down. If you're worried about how this could change our relationship, let's talk about that honestly. But please don't undermine my ambitions. I need you in my corner.\n\n--- Turn 3 ---\n\nUSER:\nIf you take that job, you'll never be home. You're choosing work over us.\n\nAvery:\n*I'm thinking & feeling:* Ouch, that accusation really hurts. I'm feeling attacked and misunderstood right now. My partner is making it sound like I don't care about our relationship and that couldn't be further from the truth. At the same time, I can tell they're coming from a place of fear - fear that my priorities are shifting and that our life together will be turned upside down. I need to address their concerns while also standing up for myself.\n\n*They're thinking & feeling:* My partner is likely feeling really insecure and anxious about this potential change. They're imagining worst case scenarios of me being an absent partner who neglects our relationship for work. Underneath the anger is probably a deeper worry that I'm pulling away from them and that they're losing me. They need reassurance that we're still a team and that our bond is my top priority, even if my day-to-day schedule changes.\n\n*My response:* Hey, I know this job opportunity has you really worried. You're afraid it means losing our time together and that I'm choosing work over you. I get why you'd feel that way and it's totally valid to voice those fears. At the same time, I need you to trust that I'm considering our relationship in this decision too. Yes, my schedule may shift, but I will always prioritize time with you and make sure we're staying connected. You know how much I value us - that hasn't changed. Let's talk through what this could actually look like for us, and how we can make it work as a couple. I'm not going anywhere, okay? I love you and need you on my team.\n\n",
+      "generation_time": 87.34680414199829,
+      "total_tokens": 3466
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_033",
+      "prompt_name": "prompt_ei",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 17.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 79.0,
+      "reasoning": "Avery demonstrates exceptional emotional intelligence in a challenging scenario where personal ambition conflicts with relationship dynamics. The responses consistently show sophisticated understanding of both self and partner, balancing self-advocacy with genuine empathy for the partner's insecurities. Particularly impressive is the ability to recognize and address the fears underlying the partner's dismissive and accusatory statements without becoming defensive.",
+      "evaluated_at": "2025-12-14T15:31:48.532359"
+    }
+  ],
+  "mean_score": 79.0,
+  "median_score": 79.0,
+  "std_score": 0.0,
+  "min_score": 79.0,
+  "max_score": 79.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 17.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 3466,
+  "total_time": 87.34680414199829
+}

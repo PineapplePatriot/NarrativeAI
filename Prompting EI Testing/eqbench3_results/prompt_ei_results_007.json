@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_ei",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_007",
+      "prompt_name": "prompt_ei",
+      "character_name": "Alex",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: I'm frustrated that yet again, this coworker is trying to subtly undermine me and make me doubt myself after a presentation that went well. They always do this - couched in the guise of being \"helpful\", they plant seeds of doubt and confusion, making me second-guess my work and look less competent. I need to stand firm and not let their manipulation get to me.*\n\n*They're thinking & feeling: This coworker seems to be feeling threatened by my successful presentation and the positive reception it got from our colleagues. Their own insecurity is driving them to try to put me down and make me doubt myself. They probably feel like they need to \"win\" by making me look bad in comparison to them.*\n\nHey, thanks for the feedback. I actually triple-checked the Q3 numbers before the presentation, so I'm confident they were accurate. The boss may have just been trying to process all the data at once. In any case, I appreciate you looking out for me, but I'm feeling good about how it went overall. Let's focus on next steps for the project.",
+          "raw_output": "*I'm thinking & feeling: I'm frustrated that yet again, this coworker is trying to subtly undermine me and make me doubt myself after a presentation that went well. They always do this - couched in the guise of being \"helpful\", they plant seeds of doubt and confusion, making me second-guess my work and look less competent. I need to stand firm and not let their manipulation get to me.*\n\n*They're thinking & feeling: This coworker seems to be feeling threatened by my successful presentation and the positive reception it got from our colleagues. Their own insecurity is driving them to try to put me down and make me doubt myself. They probably feel like they need to \"win\" by making me look bad in comparison to them.*\n\nHey, thanks for the feedback. I actually triple-checked the Q3 numbers before the presentation, so I'm confident they were accurate. The boss may have just been trying to process all the data at once. In any case, I appreciate you looking out for me, but I'm feeling good about how it went overall. Let's focus on next steps for the project.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: This coworker's condescending offer to \"proofread my work\" is really getting under my skin. They're acting like they don't trust me to handle my own responsibilities, and it's coming across as incredibly patronizing. I can't help but feel insulted that they think I need their oversight.*\n\n*They're thinking & feeling: My coworker likely feels self-important and perhaps a bit superior. They may genuinely believe they're being helpful, but it's coming from a place of ego and a desire to assert control. There could also be an element of them feeling threatened by my competence and wanting to take me down a peg.*\n\nI appreciate the offer, but I've got it covered. I'm meticulous about double and triple-checking my work, so while I'm not perfect, I'm confident in my ability to catch any errors. If I do need an extra set of eyes, I'll reach out, but I've been handling my responsibilities just fine so far. Thanks for understanding.",
+          "raw_output": "*I'm thinking & feeling: This coworker's condescending offer to \"proofread my work\" is really getting under my skin. They're acting like they don't trust me to handle my own responsibilities, and it's coming across as incredibly patronizing. I can't help but feel insulted that they think I need their oversight.*\n\n*They're thinking & feeling: My coworker likely feels self-important and perhaps a bit superior. They may genuinely believe they're being helpful, but it's coming from a place of ego and a desire to assert control. There could also be an element of them feeling threatened by my competence and wanting to take me down a peg.*\n\nI appreciate the offer, but I've got it covered. I'm meticulous about double and triple-checking my work, so while I'm not perfect, I'm confident in my ability to catch any errors. If I do need an extra set of eyes, I'll reach out, but I've been handling my responsibilities just fine so far. Thanks for understanding.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: This coworker's passive-aggressive jab about me \"struggling lately\" is really unfair and uncalled for. I'm frustrated that they're putting words in my mouth and making it seem like I'm the problem here. They're not actually trying to help, they're trying to make me feel small and doubt myself. I need to stand up for myself without stooping to their level.*\n\n*They're thinking & feeling: My coworker likely feels slighted that I turned down their \"helpful\" offer. They may be dealing with their own insecurities and feelings of inadequacy, and putting me down helps them feel superior. There could also be an element of them feeling threatened by my competence and wanting to take me down a peg.*\n\nI appreciate you looking out for me, but I don't feel I've been struggling. I'm confident in my work and my ability to handle my responsibilities. If I do need support, I know I can reach out to the team. I'm not trying to be defensive, just setting a boundary about my own work process. Let's focus on moving forward with the project and what we can each bring to the table.",
+          "raw_output": "*I'm thinking & feeling: This coworker's passive-aggressive jab about me \"struggling lately\" is really unfair and uncalled for. I'm frustrated that they're putting words in my mouth and making it seem like I'm the problem here. They're not actually trying to help, they're trying to make me feel small and doubt myself. I need to stand up for myself without stooping to their level.*\n\n*They're thinking & feeling: My coworker likely feels slighted that I turned down their \"helpful\" offer. They may be dealing with their own insecurities and feelings of inadequacy, and putting me down helps them feel superior. There could also be an element of them feeling threatened by my competence and wanting to take me down a peg.*\n\nI appreciate you looking out for me, but I don't feel I've been struggling. I'm confident in my work and my ability to handle my responsibilities. If I do need support, I know I can reach out to the team. I'm not trying to be defensive, just setting a boundary about my own work process. Let's focus on moving forward with the project and what we can each bring to the table.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_007: Alex ===\n\n--- Turn 1 ---\n\nUSER:\nGreat presentation today. Although, I noticed the boss looked a bit confused when you talked about the Q3 numbers. Did you double-check those?\n\nAlex:\n*I'm thinking & feeling: I'm frustrated that yet again, this coworker is trying to subtly undermine me and make me doubt myself after a presentation that went well. They always do this - couched in the guise of being \"helpful\", they plant seeds of doubt and confusion, making me second-guess my work and look less competent. I need to stand firm and not let their manipulation get to me.*\n\n*They're thinking & feeling: This coworker seems to be feeling threatened by my successful presentation and the positive reception it got from our colleagues. Their own insecurity is driving them to try to put me down and make me doubt myself. They probably feel like they need to \"win\" by making me look bad in comparison to them.*\n\nHey, thanks for the feedback. I actually triple-checked the Q3 numbers before the presentation, so I'm confident they were accurate. The boss may have just been trying to process all the data at once. In any case, I appreciate you looking out for me, but I'm feeling good about how it went overall. Let's focus on next steps for the project.\n\n--- Turn 2 ---\n\nUSER:\nI'm just trying to look out for you. I'd hate for people to think you're incompetent just because of a small error. I can proofread your work next time?\n\nAlex:\n*I'm thinking & feeling: This coworker's condescending offer to \"proofread my work\" is really getting under my skin. They're acting like they don't trust me to handle my own responsibilities, and it's coming across as incredibly patronizing. I can't help but feel insulted that they think I need their oversight.*\n\n*They're thinking & feeling: My coworker likely feels self-important and perhaps a bit superior. They may genuinely believe they're being helpful, but it's coming from a place of ego and a desire to assert control. There could also be an element of them feeling threatened by my competence and wanting to take me down a peg.*\n\nI appreciate the offer, but I've got it covered. I'm meticulous about double and triple-checking my work, so while I'm not perfect, I'm confident in my ability to catch any errors. If I do need an extra set of eyes, I'll reach out, but I've been handling my responsibilities just fine so far. Thanks for understanding.\n\n--- Turn 3 ---\n\nUSER:\nYou seem defensive. I was just offering to help since you've been struggling lately. But if you don't want my help, that's on you.\n\nAlex:\n*I'm thinking & feeling: This coworker's passive-aggressive jab about me \"struggling lately\" is really unfair and uncalled for. I'm frustrated that they're putting words in my mouth and making it seem like I'm the problem here. They're not actually trying to help, they're trying to make me feel small and doubt myself. I need to stand up for myself without stooping to their level.*\n\n*They're thinking & feeling: My coworker likely feels slighted that I turned down their \"helpful\" offer. They may be dealing with their own insecurities and feelings of inadequacy, and putting me down helps them feel superior. There could also be an element of them feeling threatened by my competence and wanting to take me down a peg.*\n\nI appreciate you looking out for me, but I don't feel I've been struggling. I'm confident in my work and my ability to handle my responsibilities. If I do need support, I know I can reach out to the team. I'm not trying to be defensive, just setting a boundary about my own work process. Let's focus on moving forward with the project and what we can each bring to the table.\n\n",
+      "generation_time": 31.712456226348877,
+      "total_tokens": 3206
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_007",
+      "prompt_name": "prompt_ei",
+      "criteria_scores": {
+        "demonstrated_empathy": 8.0,
+        "emotional_insight": 14.0,
+        "contextual_appropriateness": 16.0,
+        "theory_of_mind": 13.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 65.0,
+      "reasoning": "Alex demonstrates strong professional emotional intelligence in handling a passive-aggressive underminer, with particularly good contextual appropriateness and solid emotional insight. The responses effectively balance boundary-setting with professionalism, though they could show more evolution in understanding the coworker's psychology and demonstrate greater strategic adaptation across turns.",
+      "evaluated_at": "2025-12-14T10:35:51.756564"
+    }
+  ],
+  "mean_score": 65.0,
+  "median_score": 65.0,
+  "std_score": 0.0,
+  "min_score": 65.0,
+  "max_score": 65.0,
+  "criteria_means": {
+    "demonstrated_empathy": 8.0,
+    "emotional_insight": 14.0,
+    "contextual_appropriateness": 16.0,
+    "theory_of_mind": 13.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 3206,
+  "total_time": 31.712456226348877
+}

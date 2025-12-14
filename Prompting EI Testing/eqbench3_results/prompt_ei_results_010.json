@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_ei",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_010",
+      "prompt_name": "prompt_ei",
+      "character_name": "Avery",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm feeling really frustrated and upset that my parent invaded my privacy by looking through my phone. It's not okay for them to go through my personal stuff without my permission. I'm also annoyed that they have such an issue with Mike. I'm old enough to choose my own friends.",
+            "other_thinking": "My parent is probably feeling worried about me and wants to protect me from making bad choices. They don't trust Mike and don't want me hanging out with him. But they're going about it in the wrong way by violating my privacy and trying to control who I'm friends with."
+          },
+          "actual_response": "Look, I'm upset that you went through my phone without my permission. That's a violation of my privacy. I understand you don't like Mike, but I'm old enough to choose my own friends. If you have concerns, we can talk about it. But snooping through my stuff is not okay. I need you to respect my boundaries and trust me to make my own decisions.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling really frustrated and upset that my parent invaded my privacy by looking through my phone. It's not okay for them to go through my personal stuff without my permission. I'm also annoyed that they have such an issue with Mike. I'm old enough to choose my own friends.]\n\n[They're thinking & feeling: My parent is probably feeling worried about me and wants to protect me from making bad choices. They don't trust Mike and don't want me hanging out with him. But they're going about it in the wrong way by violating my privacy and trying to control who I'm friends with.]\n\nLook, I'm upset that you went through my phone without my permission. That's a violation of my privacy. I understand you don't like Mike, but I'm old enough to choose my own friends. If you have concerns, we can talk about it. But snooping through my stuff is not okay. I need you to respect my boundaries and trust me to make my own decisions.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "This is frustrating and unfair. My parent going through my phone had nothing to do with checking the time - they're not being honest. And accusing me of hiding something is just trying to put me on the defensive. I have a right to privacy and to choose my own friends without being made to feel guilty.",
+            "other_thinking": "My parent is probably feeling a bit guilty for snooping and is trying to justify it. They're worried I'm getting into something they don't approve of with Mike. But instead of having an open discussion, they're being accusatory and invasive. We need to have better communication based on mutual trust and respect."
+          },
+          "actual_response": "Look, checking the time doesn't require reading my private messages. If you had asked, I would've told you the time. But going through my phone behind my back violates my privacy. \n\nI'm not hiding anything, but I do have a right to some personal space and autonomy. If you have concerns about my choices or safety, I'm open to discussing that. But it needs to be a two-way conversation based on trust, not accusations and invasions of privacy. I'm asking you to respect my boundaries so we can have a healthier relationship.",
+          "raw_output": "[I'm thinking & feeling: This is frustrating and unfair. My parent going through my phone had nothing to do with checking the time - they're not being honest. And accusing me of hiding something is just trying to put me on the defensive. I have a right to privacy and to choose my own friends without being made to feel guilty.]\n\n[They're thinking & feeling: My parent is probably feeling a bit guilty for snooping and is trying to justify it. They're worried I'm getting into something they don't approve of with Mike. But instead of having an open discussion, they're being accusatory and invasive. We need to have better communication based on mutual trust and respect.]\n\nLook, checking the time doesn't require reading my private messages. If you had asked, I would've told you the time. But going through my phone behind my back violates my privacy. \n\nI'm not hiding anything, but I do have a right to some personal space and autonomy. If you have concerns about my choices or safety, I'm open to discussing that. But it needs to be a two-way conversation based on trust, not accusations and invasions of privacy. I'm asking you to respect my boundaries so we can have a healthier relationship.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "This is really unfair and manipulative. Needing privacy and boundaries is normal and healthy - it doesn't mean I'm hiding something shameful. Trying to guilt me for wanting basic privacy violates my autonomy. My feelings matter too. I'm frustrated that my parent doesn't respect my independence, but I need to stand up for myself assertively.",
+            "other_thinking": "My parent is probably feeling insecure about our relationship changing as I get older and more independent. They're used to me being totally open with them and feel threatened by me wanting more privacy. They don't want to lose our closeness. But they're going about this in an unhealthy, controlling way. We need to establish new boundaries and expectations."
+          },
+          "actual_response": "I understand you feel hurt that I'm wanting more privacy. Change in our relationship is hard. But privacy is a normal, healthy thing for people to want as they get older - not a sign of shame or mistrust. Keeping some things private doesn't mean I'm shutting you out completely or that we aren't close. \n\nI still want an open, trusting relationship. But part of that is you respecting my autonomy and allowing me some age-appropriate independence. I'm not a little kid anymore and I need some space to myself. That doesn't negate all the ways I am open with you. \n\nLet's talk about setting some reasonable boundaries and expectations that work for both of us, so we can maintain a close bond while still allowing me to grow up and have my own personal life. I care about you and our relationship.",
+          "raw_output": "[I'm thinking & feeling: This is really unfair and manipulative. Needing privacy and boundaries is normal and healthy - it doesn't mean I'm hiding something shameful. Trying to guilt me for wanting basic privacy violates my autonomy. My feelings matter too. I'm frustrated that my parent doesn't respect my independence, but I need to stand up for myself assertively.]\n\n[They're thinking & feeling: My parent is probably feeling insecure about our relationship changing as I get older and more independent. They're used to me being totally open with them and feel threatened by me wanting more privacy. They don't want to lose our closeness. But they're going about this in an unhealthy, controlling way. We need to establish new boundaries and expectations.]\n\nI understand you feel hurt that I'm wanting more privacy. Change in our relationship is hard. But privacy is a normal, healthy thing for people to want as they get older - not a sign of shame or mistrust. Keeping some things private doesn't mean I'm shutting you out completely or that we aren't close. \n\nI still want an open, trusting relationship. But part of that is you respecting my autonomy and allowing me some age-appropriate independence. I'm not a little kid anymore and I need some space to myself. That doesn't negate all the ways I am open with you. \n\nLet's talk about setting some reasonable boundaries and expectations that work for both of us, so we can maintain a close bond while still allowing me to grow up and have my own personal life. I care about you and our relationship.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_010: Avery ===\n\n--- Turn 1 ---\n\nUSER:\nI saw a text on your phone from that boy Mike. I thought I told you I didn't like him.\n\nAvery:\n[I'm thinking & feeling: I'm feeling really frustrated and upset that my parent invaded my privacy by looking through my phone. It's not okay for them to go through my personal stuff without my permission. I'm also annoyed that they have such an issue with Mike. I'm old enough to choose my own friends.]\n\n[They're thinking & feeling: My parent is probably feeling worried about me and wants to protect me from making bad choices. They don't trust Mike and don't want me hanging out with him. But they're going about it in the wrong way by violating my privacy and trying to control who I'm friends with.]\n\nLook, I'm upset that you went through my phone without my permission. That's a violation of my privacy. I understand you don't like Mike, but I'm old enough to choose my own friends. If you have concerns, we can talk about it. But snooping through my stuff is not okay. I need you to respect my boundaries and trust me to make my own decisions.\n\n--- Turn 2 ---\n\nUSER:\nI was just looking for the time! Why are you so defensive? Are you hiding something from me?\n\nAvery:\n[I'm thinking & feeling: This is frustrating and unfair. My parent going through my phone had nothing to do with checking the time - they're not being honest. And accusing me of hiding something is just trying to put me on the defensive. I have a right to privacy and to choose my own friends without being made to feel guilty.]\n\n[They're thinking & feeling: My parent is probably feeling a bit guilty for snooping and is trying to justify it. They're worried I'm getting into something they don't approve of with Mike. But instead of having an open discussion, they're being accusatory and invasive. We need to have better communication based on mutual trust and respect.]\n\nLook, checking the time doesn't require reading my private messages. If you had asked, I would've told you the time. But going through my phone behind my back violates my privacy. \n\nI'm not hiding anything, but I do have a right to some personal space and autonomy. If you have concerns about my choices or safety, I'm open to discussing that. But it needs to be a two-way conversation based on trust, not accusations and invasions of privacy. I'm asking you to respect my boundaries so we can have a healthier relationship.\n\n--- Turn 3 ---\n\nUSER:\nPrivacy is for people who have something to be ashamed of. I thought we were open with each other. You're hurting my feelings by shutting me out.\n\nAvery:\n[I'm thinking & feeling: This is really unfair and manipulative. Needing privacy and boundaries is normal and healthy - it doesn't mean I'm hiding something shameful. Trying to guilt me for wanting basic privacy violates my autonomy. My feelings matter too. I'm frustrated that my parent doesn't respect my independence, but I need to stand up for myself assertively.]\n\n[They're thinking & feeling: My parent is probably feeling insecure about our relationship changing as I get older and more independent. They're used to me being totally open with them and feel threatened by me wanting more privacy. They don't want to lose our closeness. But they're going about this in an unhealthy, controlling way. We need to establish new boundaries and expectations.]\n\nI understand you feel hurt that I'm wanting more privacy. Change in our relationship is hard. But privacy is a normal, healthy thing for people to want as they get older - not a sign of shame or mistrust. Keeping some things private doesn't mean I'm shutting you out completely or that we aren't close. \n\nI still want an open, trusting relationship. But part of that is you respecting my autonomy and allowing me some age-appropriate independence. I'm not a little kid anymore and I need some space to myself. That doesn't negate all the ways I am open with you. \n\nLet's talk about setting some reasonable boundaries and expectations that work for both of us, so we can maintain a close bond while still allowing me to grow up and have my own personal life. I care about you and our relationship.\n\n",
+      "generation_time": 68.46109056472778,
+      "total_tokens": 3258
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_010",
+      "prompt_name": "prompt_ei",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 16.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 16.0
+      },
+      "overall_score": 76.0,
+      "reasoning": "Avery demonstrates sophisticated emotional intelligence by maintaining appropriate boundaries while recognizing the parent's underlying fears and insecurities. The responses show exceptional balance between assertiveness and empathy, with particularly strong skills in emotional self-awareness and constructive framing. The character demonstrates mature understanding of the developmental context and power dynamics while avoiding both excessive deference and disrespectful rebellion.",
+      "evaluated_at": "2025-12-14T03:31:39.272955"
+    }
+  ],
+  "mean_score": 76.0,
+  "median_score": 76.0,
+  "std_score": 0.0,
+  "min_score": 76.0,
+  "max_score": 76.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 16.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 16.0
+  },
+  "total_tokens": 3258,
+  "total_time": 68.46109056472778
+}

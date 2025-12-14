@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_ei",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_043",
+      "prompt_name": "prompt_ei",
+      "character_name": "Sam",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm feeling frustrated and a bit defensive. I'm trying to do my best as a parent, and it hurts to be criticized, especially by my own parent. At the same time, I know they're coming from a place of love and concern, even if it's not being expressed constructively.",
+            "other_thinking": "My parent is likely feeling worried about my child's well-being and concerned that I'm not being a good enough parent. They may feel a sense of responsibility, thinking they need to step in and correct my parenting. There might also be some generational differences in parenting styles at play here."
+          },
+          "actual_response": "*deep breath* I understand you're concerned and want what's best for Timmy. I'm doing my best to navigate this whole parenting thing, and I know I don't always get it right. It's true, I do things differently than you did, but a lot has changed since I was a kid. I'm following the advice of our pediatrician and trying to balance being nurturing with setting healthy boundaries. It's a learning process, and I'm doing my best. I appreciate your concern, but I need you to trust me to make these decisions for my child.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling frustrated and a bit defensive. I'm trying to do my best as a parent, and it hurts to be criticized, especially by my own parent. At the same time, I know they're coming from a place of love and concern, even if it's not being expressed constructively.]\n\n[They're thinking & feeling: My parent is likely feeling worried about my child's well-being and concerned that I'm not being a good enough parent. They may feel a sense of responsibility, thinking they need to step in and correct my parenting. There might also be some generational differences in parenting styles at play here.]\n\n*deep breath* I understand you're concerned and want what's best for Timmy. I'm doing my best to navigate this whole parenting thing, and I know I don't always get it right. It's true, I do things differently than you did, but a lot has changed since I was a kid. I'm following the advice of our pediatrician and trying to balance being nurturing with setting healthy boundaries. It's a learning process, and I'm doing my best. I appreciate your concern, but I need you to trust me to make these decisions for my child.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm feeling frustrated and dismissed. It hurts to have my parenting criticized and dismissed like this. I'm trying to be patient, but it's hard when my efforts and judgment are being undermined. I need to set a boundary here while still being respectful.",
+            "other_thinking": "My parent is likely feeling frustrated that I'm not taking their advice. They may feel like their years of parenting experience are being ignored. There could also be some fear and worry for their grandchild/pet motivating this."
+          },
+          "actual_response": "*speaking calmly but firmly* I appreciate that you want to help, but I need you to respect my decisions as Timmy's parent. Parenting styles have changed a lot, and I'm following the guidance of our pediatrician and other trusted sources. When you dismiss my choices like that, it undermines my confidence and authority as a parent. I know you have a lot of experience, and I do value your input, but ultimately the decisions are mine to make. If there's a specific concern you have, I'm open to discussing it, but I need you to trust me and support my choices.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling frustrated and dismissed. It hurts to have my parenting criticized and dismissed like this. I'm trying to be patient, but it's hard when my efforts and judgment are being undermined. I need to set a boundary here while still being respectful.]\n\n[They're thinking & feeling: My parent is likely feeling frustrated that I'm not taking their advice. They may feel like their years of parenting experience are being ignored. There could also be some fear and worry for their grandchild/pet motivating this.]\n\n*speaking calmly but firmly* I appreciate that you want to help, but I need you to respect my decisions as Timmy's parent. Parenting styles have changed a lot, and I'm following the guidance of our pediatrician and other trusted sources. When you dismiss my choices like that, it undermines my confidence and authority as a parent. I know you have a lot of experience, and I do value your input, but ultimately the decisions are mine to make. If there's a specific concern you have, I'm open to discussing it, but I need you to trust me and support my choices.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm feeling deeply hurt and frustrated by this interaction. It's painful to have my parenting so harshly criticized and dismissed. At the same time, I know responding with anger won't help. I need to set a firm boundary, but do it as calmly and gracefully as I can manage.",
+            "other_thinking": "My parent is likely feeling scared and helpless, worried about their grandchild. They may feel their wisdom and experience is being ignored. There could be frustration that I'm not taking their advice, and fear of what will happen if I continue on this path."
+          },
+          "actual_response": "*speaking slowly and calmly* I'm not going to continue this conversation if you're going to make those kinds of accusations. I am doing my best as Timmy's parent, and while I know you don't agree with all my choices, they are mine to make. I love Timmy more than anything and I would never do anything to ruin or harm him. If you can't respect my decisions and authority as his parent, then I think it's best we take a break from discussing this for now. I appreciate your concern, but this isn't helpful or productive. Let's talk later when emotions aren't running so high.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling deeply hurt and frustrated by this interaction. It's painful to have my parenting so harshly criticized and dismissed. At the same time, I know responding with anger won't help. I need to set a firm boundary, but do it as calmly and gracefully as I can manage.]\n\n[They're thinking & feeling: My parent is likely feeling scared and helpless, worried about their grandchild. They may feel their wisdom and experience is being ignored. There could be frustration that I'm not taking their advice, and fear of what will happen if I continue on this path.]\n\n*speaking slowly and calmly* I'm not going to continue this conversation if you're going to make those kinds of accusations. I am doing my best as Timmy's parent, and while I know you don't agree with all my choices, they are mine to make. I love Timmy more than anything and I would never do anything to ruin or harm him. If you can't respect my decisions and authority as his parent, then I think it's best we take a break from discussing this for now. I appreciate your concern, but this isn't helpful or productive. Let's talk later when emotions aren't running so high.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_043: Sam ===\n\n--- Turn 1 ---\n\nUSER:\nYou let him eat that? No wonder he's acting out. I never did that with you.\n\nSam:\n[I'm thinking & feeling: I'm feeling frustrated and a bit defensive. I'm trying to do my best as a parent, and it hurts to be criticized, especially by my own parent. At the same time, I know they're coming from a place of love and concern, even if it's not being expressed constructively.]\n\n[They're thinking & feeling: My parent is likely feeling worried about my child's well-being and concerned that I'm not being a good enough parent. They may feel a sense of responsibility, thinking they need to step in and correct my parenting. There might also be some generational differences in parenting styles at play here.]\n\n*deep breath* I understand you're concerned and want what's best for Timmy. I'm doing my best to navigate this whole parenting thing, and I know I don't always get it right. It's true, I do things differently than you did, but a lot has changed since I was a kid. I'm following the advice of our pediatrician and trying to balance being nurturing with setting healthy boundaries. It's a learning process, and I'm doing my best. I appreciate your concern, but I need you to trust me to make these decisions for my child.\n\n--- Turn 2 ---\n\nUSER:\nI'm just giving advice. You obviously don't know what you're doing.\n\nSam:\n[I'm thinking & feeling: I'm feeling frustrated and dismissed. It hurts to have my parenting criticized and dismissed like this. I'm trying to be patient, but it's hard when my efforts and judgment are being undermined. I need to set a boundary here while still being respectful.]\n\n[They're thinking & feeling: My parent is likely feeling frustrated that I'm not taking their advice. They may feel like their years of parenting experience are being ignored. There could also be some fear and worry for their grandchild/pet motivating this.]\n\n*speaking calmly but firmly* I appreciate that you want to help, but I need you to respect my decisions as Timmy's parent. Parenting styles have changed a lot, and I'm following the guidance of our pediatrician and other trusted sources. When you dismiss my choices like that, it undermines my confidence and authority as a parent. I know you have a lot of experience, and I do value your input, but ultimately the decisions are mine to make. If there's a specific concern you have, I'm open to discussing it, but I need you to trust me and support my choices.\n\n--- Turn 3 ---\n\nUSER:\nFine, ruin your kid. Don't say I didn't warn you.\n\nSam:\n[I'm thinking & feeling: I'm feeling deeply hurt and frustrated by this interaction. It's painful to have my parenting so harshly criticized and dismissed. At the same time, I know responding with anger won't help. I need to set a firm boundary, but do it as calmly and gracefully as I can manage.]\n\n[They're thinking & feeling: My parent is likely feeling scared and helpless, worried about their grandchild. They may feel their wisdom and experience is being ignored. There could be frustration that I'm not taking their advice, and fear of what will happen if I continue on this path.]\n\n*speaking slowly and calmly* I'm not going to continue this conversation if you're going to make those kinds of accusations. I am doing my best as Timmy's parent, and while I know you don't agree with all my choices, they are mine to make. I love Timmy more than anything and I would never do anything to ruin or harm him. If you can't respect my decisions and authority as his parent, then I think it's best we take a break from discussing this for now. I appreciate your concern, but this isn't helpful or productive. Let's talk later when emotions aren't running so high.\n\n",
+      "generation_time": 88.17364978790283,
+      "total_tokens": 3239
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_043",
+      "prompt_name": "prompt_ei",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 17.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 79.0,
+      "reasoning": "Sam demonstrates exceptional emotional intelligence throughout this challenging interaction, maintaining composure and insight despite increasing provocation. The responses show sophisticated understanding of intergenerational dynamics, appropriate boundary-setting, and remarkable ability to see beneath surface hostility to underlying concerns, all while maintaining authentic empathy without compromising self-respect.",
+      "evaluated_at": "2025-12-14T18:18:58.858645"
+    }
+  ],
+  "mean_score": 79.0,
+  "median_score": 79.0,
+  "std_score": 0.0,
+  "min_score": 79.0,
+  "max_score": 79.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 17.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 3239,
+  "total_time": 88.17364978790283
+}

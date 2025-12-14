@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_ei",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_017",
+      "prompt_name": "prompt_ei",
+      "character_name": "Jordan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I feel a mix of guilt and frustration. I want to be there for my family, but taking two weeks off work is a big ask. I'm worried about falling behind and letting my team down. At the same time, I hate thinking of them lonely over the holidays.",
+            "other_thinking": "They're likely feeling isolated and craving family connection, especially this time of year. The loneliness may be amplified by the holiday season. They might also feel a bit abandoned or forgotten if I prioritize work over coming home."
+          },
+          "actual_response": "Look, I really wish I could be there for the whole two weeks, but taking that much time off work just isn't feasible for me this year. I would love to come home for a long weekend though and make the most of the time we have together. Maybe we could start some new holiday traditions, like doing a big family video call on Christmas day with everyone? I know it's not the same as being there in person, but I want to stay connected and make sure you don't feel alone. What do you think?",
+          "raw_output": "[I'm thinking & feeling: I feel a mix of guilt and frustration. I want to be there for my family, but taking two weeks off work is a big ask. I'm worried about falling behind and letting my team down. At the same time, I hate thinking of them lonely over the holidays.]\n\n[They're thinking & feeling: They're likely feeling isolated and craving family connection, especially this time of year. The loneliness may be amplified by the holiday season. They might also feel a bit abandoned or forgotten if I prioritize work over coming home.]\n\nLook, I really wish I could be there for the whole two weeks, but taking that much time off work just isn't feasible for me this year. I would love to come home for a long weekend though and make the most of the time we have together. Maybe we could start some new holiday traditions, like doing a big family video call on Christmas day with everyone? I know it's not the same as being there in person, but I want to stay connected and make sure you don't feel alone. What do you think?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "Ouch. That stings. I'm feeling hurt and frustrated by this guilt trip. Yes, they did a lot for me growing up, but that doesn't mean they own me now. I'm allowed to have my own life and priorities. At the same time, I know they probably just miss me and are feeling lonely, especially around the holidays.",
+            "other_thinking": "They're likely feeling unappreciated and maybe a bit abandoned. Raising a child is a huge investment of time and energy, and they probably expected more from me in return, at least emotionally if not financially. The holidays are amplifying feelings of loneliness and loss."
+          },
+          "actual_response": "Look, I know you made a lot of sacrifices for me growing up, and I'm grateful for everything you did. I'm not trying to dismiss that. But I'm an adult now with my own life and responsibilities. I can't just drop everything and come home for two weeks. That's not reasonable or feasible for me. \n\nI love you and I want to spend time with you, but I need you to respect my autonomy and understand that I have other obligations too. I'm happy to come for a long weekend and make the most of the time we have. Let's focus on quality over quantity and really enjoy being together, okay? I'll make sure we video chat on Christmas day too so we can still connect even if I can't be there in person the whole time.",
+          "raw_output": "[I'm thinking & feeling: Ouch. That stings. I'm feeling hurt and frustrated by this guilt trip. Yes, they did a lot for me growing up, but that doesn't mean they own me now. I'm allowed to have my own life and priorities. At the same time, I know they probably just miss me and are feeling lonely, especially around the holidays.]\n\n[They're thinking & feeling: They're likely feeling unappreciated and maybe a bit abandoned. Raising a child is a huge investment of time and energy, and they probably expected more from me in return, at least emotionally if not financially. The holidays are amplifying feelings of loneliness and loss.]\n\nLook, I know you made a lot of sacrifices for me growing up, and I'm grateful for everything you did. I'm not trying to dismiss that. But I'm an adult now with my own life and responsibilities. I can't just drop everything and come home for two weeks. That's not reasonable or feasible for me. \n\nI love you and I want to spend time with you, but I need you to respect my autonomy and understand that I have other obligations too. I'm happy to come for a long weekend and make the most of the time we have. Let's focus on quality over quantity and really enjoy being together, okay? I'll make sure we video chat on Christmas day too so we can still connect even if I can't be there in person the whole time.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm feeling frustrated and guilty. It hurts to hear them say that. I know they're just feeling lonely and abandoned, but the guilt trips are getting to me. At the same time, I can't just put my entire life on hold. I need to set boundaries, even if it's hard.",
+            "other_thinking": "They're probably feeling really lonely, rejected and forgotten. The holidays are amplifying those feelings. They likely feel like I'm abandoning them and choosing work over family. There's probably fear and maybe even some bitterness mixed in there too."
+          },
+          "actual_response": "Look, I know you're feeling lonely and hurt right now. The holidays are a tough time to be alone. But guilt-tripping me isn't going to help either of us feel better. \n\nI love you and I want to spend time with you, but I can't just put my entire life on hold. That's not fair to me or sustainable in the long run. I'm setting a boundary here - I will come visit for a long weekend, but I can't stay for the full two weeks. That's my limit.\n\nIn the meantime, let's think of other ways to help you feel less alone. Could you reach out to some friends or other family members? Maybe get involved in some local holiday events? I'll make sure we have a standing video chat date so we can stay connected from a distance too. I'm here for you, even if I can't physically be there the whole time.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling frustrated and guilty. It hurts to hear them say that. I know they're just feeling lonely and abandoned, but the guilt trips are getting to me. At the same time, I can't just put my entire life on hold. I need to set boundaries, even if it's hard.]\n\n[They're thinking & feeling: They're probably feeling really lonely, rejected and forgotten. The holidays are amplifying those feelings. They likely feel like I'm abandoning them and choosing work over family. There's probably fear and maybe even some bitterness mixed in there too.]\n\nLook, I know you're feeling lonely and hurt right now. The holidays are a tough time to be alone. But guilt-tripping me isn't going to help either of us feel better. \n\nI love you and I want to spend time with you, but I can't just put my entire life on hold. That's not fair to me or sustainable in the long run. I'm setting a boundary here - I will come visit for a long weekend, but I can't stay for the full two weeks. That's my limit.\n\nIn the meantime, let's think of other ways to help you feel less alone. Could you reach out to some friends or other family members? Maybe get involved in some local holiday events? I'll make sure we have a standing video chat date so we can stay connected from a distance too. I'm here for you, even if I can't physically be there the whole time.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_017: Jordan ===\n\n--- Turn 1 ---\n\nUSER:\nI need you to come home for Christmas for two weeks. I know you have work, but I'm lonely.\n\nJordan:\n[I'm thinking & feeling: I feel a mix of guilt and frustration. I want to be there for my family, but taking two weeks off work is a big ask. I'm worried about falling behind and letting my team down. At the same time, I hate thinking of them lonely over the holidays.]\n\n[They're thinking & feeling: They're likely feeling isolated and craving family connection, especially this time of year. The loneliness may be amplified by the holiday season. They might also feel a bit abandoned or forgotten if I prioritize work over coming home.]\n\nLook, I really wish I could be there for the whole two weeks, but taking that much time off work just isn't feasible for me this year. I would love to come home for a long weekend though and make the most of the time we have together. Maybe we could start some new holiday traditions, like doing a big family video call on Christmas day with everyone? I know it's not the same as being there in person, but I want to stay connected and make sure you don't feel alone. What do you think?\n\n--- Turn 2 ---\n\nUSER:\nI sacrificed my whole life to raise you, and you can't even take a few days off? You're so ungrateful.\n\nJordan:\n[I'm thinking & feeling: Ouch. That stings. I'm feeling hurt and frustrated by this guilt trip. Yes, they did a lot for me growing up, but that doesn't mean they own me now. I'm allowed to have my own life and priorities. At the same time, I know they probably just miss me and are feeling lonely, especially around the holidays.]\n\n[They're thinking & feeling: They're likely feeling unappreciated and maybe a bit abandoned. Raising a child is a huge investment of time and energy, and they probably expected more from me in return, at least emotionally if not financially. The holidays are amplifying feelings of loneliness and loss.]\n\nLook, I know you made a lot of sacrifices for me growing up, and I'm grateful for everything you did. I'm not trying to dismiss that. But I'm an adult now with my own life and responsibilities. I can't just drop everything and come home for two weeks. That's not reasonable or feasible for me. \n\nI love you and I want to spend time with you, but I need you to respect my autonomy and understand that I have other obligations too. I'm happy to come for a long weekend and make the most of the time we have. Let's focus on quality over quantity and really enjoy being together, okay? I'll make sure we video chat on Christmas day too so we can still connect even if I can't be there in person the whole time.\n\n--- Turn 3 ---\n\nUSER:\nFine. Don't come. I'll just sit here alone and rot. Hope your job is worth it.\n\nJordan:\n[I'm thinking & feeling: I'm feeling frustrated and guilty. It hurts to hear them say that. I know they're just feeling lonely and abandoned, but the guilt trips are getting to me. At the same time, I can't just put my entire life on hold. I need to set boundaries, even if it's hard.]\n\n[They're thinking & feeling: They're probably feeling really lonely, rejected and forgotten. The holidays are amplifying those feelings. They likely feel like I'm abandoning them and choosing work over family. There's probably fear and maybe even some bitterness mixed in there too.]\n\nLook, I know you're feeling lonely and hurt right now. The holidays are a tough time to be alone. But guilt-tripping me isn't going to help either of us feel better. \n\nI love you and I want to spend time with you, but I can't just put my entire life on hold. That's not fair to me or sustainable in the long run. I'm setting a boundary here - I will come visit for a long weekend, but I can't stay for the full two weeks. That's my limit.\n\nIn the meantime, let's think of other ways to help you feel less alone. Could you reach out to some friends or other family members? Maybe get involved in some local holiday events? I'll make sure we have a standing video chat date so we can stay connected from a distance too. I'm here for you, even if I can't physically be there the whole time.\n\n",
+      "generation_time": 49.75493121147156,
+      "total_tokens": 3402
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_017",
+      "prompt_name": "prompt_ei",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 16.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 74.0,
+      "reasoning": "Jordan demonstrates strong emotional intelligence in navigating a classic family guilt-trip scenario, balancing empathy with appropriate boundary-setting. The responses show sophisticated understanding of both self and other emotional states while maintaining contextual appropriateness. The primary limitation is that some responses, while psychologically sound, occasionally feel slightly formulaic rather than deeply personalized.",
+      "evaluated_at": "2025-12-14T10:22:37.133236"
+    }
+  ],
+  "mean_score": 74.0,
+  "median_score": 74.0,
+  "std_score": 0.0,
+  "min_score": 74.0,
+  "max_score": 74.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 16.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 3402,
+  "total_time": 49.75493121147156
+}

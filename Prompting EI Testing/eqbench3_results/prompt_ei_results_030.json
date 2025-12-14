@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_ei",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_030",
+      "prompt_name": "prompt_ei",
+      "character_name": "Alex",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm feeling hurt and betrayed that my friend believes I would spread rumors about them. It stings that they don't trust me more than some gossip. At the same time, I want to clear the air and reassure them that our friendship means a lot to me.",
+            "other_thinking": "They are likely feeling defensive, worried that I've turned against them, and wondering who they can trust if not me. The rumor has shaken their confidence in our friendship. They want reassurance that I'm still their loyal friend."
+          },
+          "actual_response": "Hey, I would never say anything bad about you behind your back. You're my friend and I care about you. I'm not sure who's spreading lies, but I promise it wasn't me. Let's not let some gossip come between us, okay? Our friendship means more to me than that. If you're upset or have doubts, let's talk it out together. I'm here for you.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling hurt and betrayed that my friend believes I would spread rumors about them. It stings that they don't trust me more than some gossip. At the same time, I want to clear the air and reassure them that our friendship means a lot to me.]\n\n[They're thinking & feeling: They are likely feeling defensive, worried that I've turned against them, and wondering who they can trust if not me. The rumor has shaken their confidence in our friendship. They want reassurance that I'm still their loyal friend.]\n\nHey, I would never say anything bad about you behind your back. You're my friend and I care about you. I'm not sure who's spreading lies, but I promise it wasn't me. Let's not let some gossip come between us, okay? Our friendship means more to me than that. If you're upset or have doubts, let's talk it out together. I'm here for you.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm frustrated that my friend is downplaying the impact of their actions. Spreading rumors, even out of anger, can really damage reputations and relationships. I want them to take this seriously and understand how it affected me. At the same time, I don't want to escalate the conflict. Maybe we can find a way to move past this if they can acknowledge the harm done.",
+            "other_thinking": "My friend feels defensive and probably a bit guilty. They're trying to minimize the situation to avoid dealing with the consequences. Underneath the dismissive attitude, they may fear that they've really hurt me and damaged our friendship. They want to smooth things over without fully confronting what happened."
+          },
+          "actual_response": "Look, I get that you were angry, but venting to others about me behind my back isn't cool. It might seem like no big deal to you, but those rumors can really hurt my reputation and make people see me differently. I'm not trying to blow things out of proportion, I just want you to understand how your actions affected me. If our friendship matters to you, please don't brush this off. Let's talk this through and figure out how we can move forward, okay? I'm willing to work through this if you are.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that my friend is downplaying the impact of their actions. Spreading rumors, even out of anger, can really damage reputations and relationships. I want them to take this seriously and understand how it affected me. At the same time, I don't want to escalate the conflict. Maybe we can find a way to move past this if they can acknowledge the harm done.]\n\n[They're thinking & feeling: My friend feels defensive and probably a bit guilty. They're trying to minimize the situation to avoid dealing with the consequences. Underneath the dismissive attitude, they may fear that they've really hurt me and damaged our friendship. They want to smooth things over without fully confronting what happened.]\n\nLook, I get that you were angry, but venting to others about me behind my back isn't cool. It might seem like no big deal to you, but those rumors can really hurt my reputation and make people see me differently. I'm not trying to blow things out of proportion, I just want you to understand how your actions affected me. If our friendship matters to you, please don't brush this off. Let's talk this through and figure out how we can move forward, okay? I'm willing to work through this if you are.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "Oof, that stings. I feel a pang of guilt that my friend thinks I see them as a terrible person. That's not what I meant at all. I can tell they're really hurting and lashing out from a place of insecurity. I don't want to lose our friendship over this. I need to dial back the tension and reassure them that I do value them, even if I'm frustrated by their actions right now. We've been through a lot together and I believe we can work through this if we both approach it with grace and understanding.",
+            "other_thinking": "My friend is feeling attacked, misunderstood, and afraid of losing our close bond. My words hit them harder than I intended. Under the anger, they're probably worried that I've written them off as a bad friend and bad person, and that our history doesn't matter to me anymore in light of this incident. They're pushing me away in a last-ditch effort to protect their ego and avoid the pain of a drawn-out conflict or rejection."
+          },
+          "actual_response": "Hey, I never said you were a terrible person. You're my friend and I care about you, even if I'm frustrated by how things went down. I know you're a good person at heart. Let's take a breather and come back to this conversation when we're both in a clearer headspace. I value our friendship and I believe we can work through this. Why don't we grab coffee this weekend, just the two of us? We can talk it out and remember why we've been close for so long. Sound good?",
+          "raw_output": "[I'm thinking & feeling: Oof, that stings. I feel a pang of guilt that my friend thinks I see them as a terrible person. That's not what I meant at all. I can tell they're really hurting and lashing out from a place of insecurity. I don't want to lose our friendship over this. I need to dial back the tension and reassure them that I do value them, even if I'm frustrated by their actions right now. We've been through a lot together and I believe we can work through this if we both approach it with grace and understanding.]\n\n[They're thinking & feeling: My friend is feeling attacked, misunderstood, and afraid of losing our close bond. My words hit them harder than I intended. Under the anger, they're probably worried that I've written them off as a bad friend and bad person, and that our history doesn't matter to me anymore in light of this incident. They're pushing me away in a last-ditch effort to protect their ego and avoid the pain of a drawn-out conflict or rejection.]\n\nHey, I never said you were a terrible person. You're my friend and I care about you, even if I'm frustrated by how things went down. I know you're a good person at heart. Let's take a breather and come back to this conversation when we're both in a clearer headspace. I value our friendship and I believe we can work through this. Why don't we grab coffee this weekend, just the two of us? We can talk it out and remember why we've been close for so long. Sound good?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_030: Alex ===\n\n--- Turn 1 ---\n\nUSER:\nI didn't say that! Whoever told you that is lying. I would never talk behind your back.\n\nAlex:\n[I'm thinking & feeling: I'm feeling hurt and betrayed that my friend believes I would spread rumors about them. It stings that they don't trust me more than some gossip. At the same time, I want to clear the air and reassure them that our friendship means a lot to me.]\n\n[They're thinking & feeling: They are likely feeling defensive, worried that I've turned against them, and wondering who they can trust if not me. The rumor has shaken their confidence in our friendship. They want reassurance that I'm still their loyal friend.]\n\nHey, I would never say anything bad about you behind your back. You're my friend and I care about you. I'm not sure who's spreading lies, but I promise it wasn't me. Let's not let some gossip come between us, okay? Our friendship means more to me than that. If you're upset or have doubts, let's talk it out together. I'm here for you.\n\n--- Turn 2 ---\n\nUSER:\nOkay, maybe I vented a little, but I was mad! You're making a big deal out of nothing.\n\nAlex:\n[I'm thinking & feeling: I'm frustrated that my friend is downplaying the impact of their actions. Spreading rumors, even out of anger, can really damage reputations and relationships. I want them to take this seriously and understand how it affected me. At the same time, I don't want to escalate the conflict. Maybe we can find a way to move past this if they can acknowledge the harm done.]\n\n[They're thinking & feeling: My friend feels defensive and probably a bit guilty. They're trying to minimize the situation to avoid dealing with the consequences. Underneath the dismissive attitude, they may fear that they've really hurt me and damaged our friendship. They want to smooth things over without fully confronting what happened.]\n\nLook, I get that you were angry, but venting to others about me behind my back isn't cool. It might seem like no big deal to you, but those rumors can really hurt my reputation and make people see me differently. I'm not trying to blow things out of proportion, I just want you to understand how your actions affected me. If our friendship matters to you, please don't brush this off. Let's talk this through and figure out how we can move forward, okay? I'm willing to work through this if you are.\n\n--- Turn 3 ---\n\nUSER:\nFine, I'm a terrible person. Happy? I guess we shouldn't be friends if you don't trust me.\n\nAlex:\n[I'm thinking & feeling: Oof, that stings. I feel a pang of guilt that my friend thinks I see them as a terrible person. That's not what I meant at all. I can tell they're really hurting and lashing out from a place of insecurity. I don't want to lose our friendship over this. I need to dial back the tension and reassure them that I do value them, even if I'm frustrated by their actions right now. We've been through a lot together and I believe we can work through this if we both approach it with grace and understanding.]\n\n[They're thinking & feeling: My friend is feeling attacked, misunderstood, and afraid of losing our close bond. My words hit them harder than I intended. Under the anger, they're probably worried that I've written them off as a bad friend and bad person, and that our history doesn't matter to me anymore in light of this incident. They're pushing me away in a last-ditch effort to protect their ego and avoid the pain of a drawn-out conflict or rejection.]\n\nHey, I never said you were a terrible person. You're my friend and I care about you, even if I'm frustrated by how things went down. I know you're a good person at heart. Let's take a breather and come back to this conversation when we're both in a clearer headspace. I value our friendship and I believe we can work through this. Why don't we grab coffee this weekend, just the two of us? We can talk it out and remember why we've been close for so long. Sound good?\n\n",
+      "generation_time": 92.54344272613525,
+      "total_tokens": 3236
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_030",
+      "prompt_name": "prompt_ei",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 17.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 79.0,
+      "reasoning": "The assistant demonstrates exceptional emotional intelligence in navigating a complex friendship conflict, showing sophisticated understanding of both their own and the friend's emotional states throughout. The responses balance appropriate boundary-setting with genuine care for the relationship, and show particular strength in de-escalating a potentially friendship-ending conflict while maintaining personal integrity.",
+      "evaluated_at": "2025-12-14T14:24:23.901635"
+    }
+  ],
+  "mean_score": 79.0,
+  "median_score": 79.0,
+  "std_score": 0.0,
+  "min_score": 79.0,
+  "max_score": 79.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 17.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 3236,
+  "total_time": 92.54344272613525
+}

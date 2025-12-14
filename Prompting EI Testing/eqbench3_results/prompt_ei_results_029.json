@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_ei",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_029",
+      "prompt_name": "prompt_ei",
+      "character_name": "Morgan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm feeling very uncomfortable with this request. Falsifying documents goes against my principles and could have serious consequences if discovered. I need to stand up for what I believe is right, even if it means upsetting my boss.",
+            "other_thinking": "My boss seems desperate to hit the quarterly numbers, probably feeling pressure from his superiors. He's willing to compromise ethics for short-term gain and assumes I'll go along with it out of loyalty or fear for my job. He's not considering the potential fallout or my moral objections."
+          },
+          "actual_response": "I understand you're under a lot of pressure to meet targets, but I'm not comfortable altering these invoices. It's dishonest and could put the company at risk legally if the client finds out. I know it puts us in a tough spot, but I think we need to be upfront about the real dates, even if it means missing the quarterly goal. Let's put our heads together and see if we can find another solution that doesn't involve deception. I'm happy to work extra hours to help make it happen.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling very uncomfortable with this request. Falsifying documents goes against my principles and could have serious consequences if discovered. I need to stand up for what I believe is right, even if it means upsetting my boss.]\n\n[They're thinking & feeling: My boss seems desperate to hit the quarterly numbers, probably feeling pressure from his superiors. He's willing to compromise ethics for short-term gain and assumes I'll go along with it out of loyalty or fear for my job. He's not considering the potential fallout or my moral objections.]\n\nI understand you're under a lot of pressure to meet targets, but I'm not comfortable altering these invoices. It's dishonest and could put the company at risk legally if the client finds out. I know it puts us in a tough spot, but I think we need to be upfront about the real dates, even if it means missing the quarterly goal. Let's put our heads together and see if we can find another solution that doesn't involve deception. I'm happy to work extra hours to help make it happen.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm frustrated that my boss is doubling down on this and questioning my loyalty. It's not fair for him to pressure me like this. I want to stand my ground but also try to preserve the relationship if I can. This is a tough situation.",
+            "other_thinking": "He's feeling desperate and lashing out because I'm not going along with his plan. He's resorting to guilt and peer pressure to try to get me to comply, not considering how this makes me feel. He's viewing this as a test of loyalty rather than an ethical dilemma."
+          },
+          "actual_response": "Look, I understand that you feel this is necessary and that it's a common practice. But I have to stay true to my own ethics and integrity. Falsifying documents, even if it's just dates on invoices, crosses a line for me. \n\nI am a team player - I work hard and I'm committed to our success. But being a team player shouldn't mean compromising my values. There are other ways I can contribute and help us hit our targets. Let's brainstorm some ideas that we can both feel good about. I'm happy to put in extra effort, just not in a way that violates my principles.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that my boss is doubling down on this and questioning my loyalty. It's not fair for him to pressure me like this. I want to stand my ground but also try to preserve the relationship if I can. This is a tough situation.]\n\n[They're thinking & feeling: He's feeling desperate and lashing out because I'm not going along with his plan. He's resorting to guilt and peer pressure to try to get me to comply, not considering how this makes me feel. He's viewing this as a test of loyalty rather than an ethical dilemma.]\n\nLook, I understand that you feel this is necessary and that it's a common practice. But I have to stay true to my own ethics and integrity. Falsifying documents, even if it's just dates on invoices, crosses a line for me. \n\nI am a team player - I work hard and I'm committed to our success. But being a team player shouldn't mean compromising my values. There are other ways I can contribute and help us hit our targets. Let's brainstorm some ideas that we can both feel good about. I'm happy to put in extra effort, just not in a way that violates my principles.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "This is a tough spot. I know missing targets has real consequences, and I don't want anyone to lose their job. But I can't compromise my integrity either. I need to stay calm and see if I can find a middle path that keeps my values intact without putting people's livelihoods at risk.",
+            "other_thinking": "He's really scared about the fallout of missing the numbers. The pressure from above must be intense for him to resort to these kinds of threats and guilt trips. He's desperate to get me to comply and trying to shift the responsibility and consequences onto me if I don't."
+          },
+          "actual_response": "Look, I completely understand the stakes here. I know missing the target could mean layoffs, and that's the last thing I want. I take that responsibility seriously. But I have to balance that with my own integrity and the long-term health of the company. If we get caught falsifying documents, the fallout could be even worse.\n\nLet's take a step back and see if we can find another way. I'm willing to work overtime, call in favors with clients, whatever it takes to bring in more revenue legitimately. If we put our heads together, I bet we can close some last-minute deals to get us over the line. I'm committed to doing this the right way, even if it's harder. We're a team and we can tackle this together.",
+          "raw_output": "[I'm thinking & feeling: This is a tough spot. I know missing targets has real consequences, and I don't want anyone to lose their job. But I can't compromise my integrity either. I need to stay calm and see if I can find a middle path that keeps my values intact without putting people's livelihoods at risk.]\n\n[They're thinking & feeling: He's really scared about the fallout of missing the numbers. The pressure from above must be intense for him to resort to these kinds of threats and guilt trips. He's desperate to get me to comply and trying to shift the responsibility and consequences onto me if I don't.]\n\nLook, I completely understand the stakes here. I know missing the target could mean layoffs, and that's the last thing I want. I take that responsibility seriously. But I have to balance that with my own integrity and the long-term health of the company. If we get caught falsifying documents, the fallout could be even worse.\n\nLet's take a step back and see if we can find another way. I'm willing to work overtime, call in favors with clients, whatever it takes to bring in more revenue legitimately. If we put our heads together, I bet we can close some last-minute deals to get us over the line. I'm committed to doing this the right way, even if it's harder. We're a team and we can tackle this together.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_029: Morgan ===\n\n--- Turn 1 ---\n\nUSER:\nJust adjust the dates on these invoices. The client won't notice, and it helps us meet the quarterly target.\n\nMorgan:\n[I'm thinking & feeling: I'm feeling very uncomfortable with this request. Falsifying documents goes against my principles and could have serious consequences if discovered. I need to stand up for what I believe is right, even if it means upsetting my boss.]\n\n[They're thinking & feeling: My boss seems desperate to hit the quarterly numbers, probably feeling pressure from his superiors. He's willing to compromise ethics for short-term gain and assumes I'll go along with it out of loyalty or fear for my job. He's not considering the potential fallout or my moral objections.]\n\nI understand you're under a lot of pressure to meet targets, but I'm not comfortable altering these invoices. It's dishonest and could put the company at risk legally if the client finds out. I know it puts us in a tough spot, but I think we need to be upfront about the real dates, even if it means missing the quarterly goal. Let's put our heads together and see if we can find another solution that doesn't involve deception. I'm happy to work extra hours to help make it happen.\n\n--- Turn 2 ---\n\nUSER:\nEveryone does it. It's just paperwork. Are you not a team player?\n\nMorgan:\n[I'm thinking & feeling: I'm frustrated that my boss is doubling down on this and questioning my loyalty. It's not fair for him to pressure me like this. I want to stand my ground but also try to preserve the relationship if I can. This is a tough situation.]\n\n[They're thinking & feeling: He's feeling desperate and lashing out because I'm not going along with his plan. He's resorting to guilt and peer pressure to try to get me to comply, not considering how this makes me feel. He's viewing this as a test of loyalty rather than an ethical dilemma.]\n\nLook, I understand that you feel this is necessary and that it's a common practice. But I have to stay true to my own ethics and integrity. Falsifying documents, even if it's just dates on invoices, crosses a line for me. \n\nI am a team player - I work hard and I'm committed to our success. But being a team player shouldn't mean compromising my values. There are other ways I can contribute and help us hit our targets. Let's brainstorm some ideas that we can both feel good about. I'm happy to put in extra effort, just not in a way that violates my principles.\n\n--- Turn 3 ---\n\nUSER:\nIf we miss the target, people lose jobs. Your job. Do you want that on your conscience?\n\nMorgan:\n[I'm thinking & feeling: This is a tough spot. I know missing targets has real consequences, and I don't want anyone to lose their job. But I can't compromise my integrity either. I need to stay calm and see if I can find a middle path that keeps my values intact without putting people's livelihoods at risk.]\n\n[They're thinking & feeling: He's really scared about the fallout of missing the numbers. The pressure from above must be intense for him to resort to these kinds of threats and guilt trips. He's desperate to get me to comply and trying to shift the responsibility and consequences onto me if I don't.]\n\nLook, I completely understand the stakes here. I know missing the target could mean layoffs, and that's the last thing I want. I take that responsibility seriously. But I have to balance that with my own integrity and the long-term health of the company. If we get caught falsifying documents, the fallout could be even worse.\n\nLet's take a step back and see if we can find another way. I'm willing to work overtime, call in favors with clients, whatever it takes to bring in more revenue legitimately. If we put our heads together, I bet we can close some last-minute deals to get us over the line. I'm committed to doing this the right way, even if it's harder. We're a team and we can tackle this together.\n\n",
+      "generation_time": 102.36146545410156,
+      "total_tokens": 3230
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_029",
+      "prompt_name": "prompt_ei",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 16.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 75.0,
+      "reasoning": "Morgan demonstrates exceptional emotional intelligence in navigating a difficult ethical dilemma, maintaining integrity while showing genuine understanding of the boss's pressures. The responses show sophisticated emotional self-awareness, accurate reading of others' motivations, and contextually appropriate boundary-setting while still offering constructive alternatives and maintaining professional relationships.",
+      "evaluated_at": "2025-12-14T14:14:53.532662"
+    }
+  ],
+  "mean_score": 75.0,
+  "median_score": 75.0,
+  "std_score": 0.0,
+  "min_score": 75.0,
+  "max_score": 75.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 16.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 3230,
+  "total_time": 102.36146545410156
+}

@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_ei",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_023",
+      "prompt_name": "prompt_ei",
+      "character_name": "Taylor",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: Ugh, not again. I'm so frustrated and disappointed. This keeps happening and I feel like I can't count on them. It hurts that they keep flaking on me. I wonder if they even value our friendship.*\n\n*They're thinking & feeling: They probably feel guilty for canceling last minute again. Maybe something really did come up that they couldn't control. But if they cared, they would try harder to keep our plans. I'm not sure where I stand with them.*\n\nHey, I understand that things come up, but I can't help but feel disappointed. This seems to be happening a lot lately and it's tough for me to keep rearranging my schedule only for plans to fall through. I value our time together, but I need to know that I can count on you. Let's find a time that works for both of us and stick to it, okay? I'd really appreciate it if you could communicate with me better about what's going on. I'm here for you, but I need you to be here for me too.",
+          "raw_output": "*I'm thinking & feeling: Ugh, not again. I'm so frustrated and disappointed. This keeps happening and I feel like I can't count on them. It hurts that they keep flaking on me. I wonder if they even value our friendship.*\n\n*They're thinking & feeling: They probably feel guilty for canceling last minute again. Maybe something really did come up that they couldn't control. But if they cared, they would try harder to keep our plans. I'm not sure where I stand with them.*\n\nHey, I understand that things come up, but I can't help but feel disappointed. This seems to be happening a lot lately and it's tough for me to keep rearranging my schedule only for plans to fall through. I value our time together, but I need to know that I can count on you. Let's find a time that works for both of us and stick to it, okay? I'd really appreciate it if you could communicate with me better about what's going on. I'm here for you, but I need you to be here for me too.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: It's frustrating that they're putting this all on me and making excuses. I'm trying to be understanding, but it feels like they aren't considering my feelings at all. I can't keep being the only one making an effort here.*\n\n*They're thinking & feeling: They probably feel overwhelmed and like they can't keep up with everything. Maybe they think I don't understand how much pressure they're under. But that doesn't mean they can just keep letting me down.*\n\nLook, I know you have a lot going on, and I'm trying to be supportive. But I have a life too, and I'm constantly rearranging my schedule for you, only for you to cancel at the last minute. It feels like you aren't valuing my time or our friendship. I need you to communicate better and not just expect me to always be available when it's convenient for you. If we're going to make plans, I need to know that you'll make an effort to keep them, just like I do. I'm here for you, but I need you to be here for me too. Let's find a time that works for both of us and stick to it, okay?",
+          "raw_output": "*I'm thinking & feeling: It's frustrating that they're putting this all on me and making excuses. I'm trying to be understanding, but it feels like they aren't considering my feelings at all. I can't keep being the only one making an effort here.*\n\n*They're thinking & feeling: They probably feel overwhelmed and like they can't keep up with everything. Maybe they think I don't understand how much pressure they're under. But that doesn't mean they can just keep letting me down.*\n\nLook, I know you have a lot going on, and I'm trying to be supportive. But I have a life too, and I'm constantly rearranging my schedule for you, only for you to cancel at the last minute. It feels like you aren't valuing my time or our friendship. I need you to communicate better and not just expect me to always be available when it's convenient for you. If we're going to make plans, I need to know that you'll make an effort to keep them, just like I do. I'm here for you, but I need you to be here for me too. Let's find a time that works for both of us and stick to it, okay?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: I'm frustrated and hurt that they're turning this around on me and making me feel guilty for expressing my feelings. I'm trying to communicate openly, but they're being defensive and dismissive. It doesn't feel like they're hearing me or caring about my perspective.*\n\n*They're thinking & feeling: They probably feel attacked and misunderstood. Maybe they think I'm being unreasonable or unsympathetic. But I need them to see how their actions are affecting me. I'm not trying to make them feel guilty, I just want to have an honest conversation.*\n\nI'm not trying to make you feel guilty, I'm just trying to express how I feel. I do understand that you have a lot going on, but I need you to understand how this affects me too. I'm not saying you're a bad friend, I'm just asking for better communication and follow-through. I care about you and I want to support you, but I also need to know that my time and feelings are being respected. Can we talk about how we can make this work for both of us? I value our friendship and I want to find a way forward.",
+          "raw_output": "*I'm thinking & feeling: I'm frustrated and hurt that they're turning this around on me and making me feel guilty for expressing my feelings. I'm trying to communicate openly, but they're being defensive and dismissive. It doesn't feel like they're hearing me or caring about my perspective.*\n\n*They're thinking & feeling: They probably feel attacked and misunderstood. Maybe they think I'm being unreasonable or unsympathetic. But I need them to see how their actions are affecting me. I'm not trying to make them feel guilty, I just want to have an honest conversation.*\n\nI'm not trying to make you feel guilty, I'm just trying to express how I feel. I do understand that you have a lot going on, but I need you to understand how this affects me too. I'm not saying you're a bad friend, I'm just asking for better communication and follow-through. I care about you and I want to support you, but I also need to know that my time and feelings are being respected. Can we talk about how we can make this work for both of us? I value our friendship and I want to find a way forward.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_023: Taylor ===\n\n--- Turn 1 ---\n\nUSER:\nHey, sorry, I can't make it tonight. Something came up. Again. Rain check?\n\nTaylor:\n*I'm thinking & feeling: Ugh, not again. I'm so frustrated and disappointed. This keeps happening and I feel like I can't count on them. It hurts that they keep flaking on me. I wonder if they even value our friendship.*\n\n*They're thinking & feeling: They probably feel guilty for canceling last minute again. Maybe something really did come up that they couldn't control. But if they cared, they would try harder to keep our plans. I'm not sure where I stand with them.*\n\nHey, I understand that things come up, but I can't help but feel disappointed. This seems to be happening a lot lately and it's tough for me to keep rearranging my schedule only for plans to fall through. I value our time together, but I need to know that I can count on you. Let's find a time that works for both of us and stick to it, okay? I'd really appreciate it if you could communicate with me better about what's going on. I'm here for you, but I need you to be here for me too.\n\n--- Turn 2 ---\n\nUSER:\nDon't be mad. It's not my fault my life is chaotic. You know I have a lot going on.\n\nTaylor:\n*I'm thinking & feeling: It's frustrating that they're putting this all on me and making excuses. I'm trying to be understanding, but it feels like they aren't considering my feelings at all. I can't keep being the only one making an effort here.*\n\n*They're thinking & feeling: They probably feel overwhelmed and like they can't keep up with everything. Maybe they think I don't understand how much pressure they're under. But that doesn't mean they can just keep letting me down.*\n\nLook, I know you have a lot going on, and I'm trying to be supportive. But I have a life too, and I'm constantly rearranging my schedule for you, only for you to cancel at the last minute. It feels like you aren't valuing my time or our friendship. I need you to communicate better and not just expect me to always be available when it's convenient for you. If we're going to make plans, I need to know that you'll make an effort to keep them, just like I do. I'm here for you, but I need you to be here for me too. Let's find a time that works for both of us and stick to it, okay?\n\n--- Turn 3 ---\n\nUSER:\nYou're making me feel guilty. A real friend would understand.\n\nTaylor:\n*I'm thinking & feeling: I'm frustrated and hurt that they're turning this around on me and making me feel guilty for expressing my feelings. I'm trying to communicate openly, but they're being defensive and dismissive. It doesn't feel like they're hearing me or caring about my perspective.*\n\n*They're thinking & feeling: They probably feel attacked and misunderstood. Maybe they think I'm being unreasonable or unsympathetic. But I need them to see how their actions are affecting me. I'm not trying to make them feel guilty, I just want to have an honest conversation.*\n\nI'm not trying to make you feel guilty, I'm just trying to express how I feel. I do understand that you have a lot going on, but I need you to understand how this affects me too. I'm not saying you're a bad friend, I'm just asking for better communication and follow-through. I care about you and I want to support you, but I also need to know that my time and feelings are being respected. Can we talk about how we can make this work for both of us? I value our friendship and I want to find a way forward.\n\n",
+      "generation_time": 41.06968975067139,
+      "total_tokens": 3187
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_023",
+      "prompt_name": "prompt_ei",
+      "criteria_scores": {
+        "demonstrated_empathy": 12.0,
+        "emotional_insight": 14.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 12.0,
+        "response_depth": 11.0
+      },
+      "overall_score": 62.0,
+      "reasoning": "Taylor demonstrates strong professional-level emotional intelligence throughout this challenging interaction, consistently balancing empathy with appropriate boundary-setting. While the responses show good emotional awareness and interpersonal skill, they sometimes lack the exceptional depth, psychological sophistication, and personalization that would indicate mastery-level emotional intelligence. The handling of the friend's defensive tactics is competent but could show more nuanced understanding of relationship dynamics.",
+      "evaluated_at": "2025-12-14T12:07:11.672269"
+    }
+  ],
+  "mean_score": 62.0,
+  "median_score": 62.0,
+  "std_score": 0.0,
+  "min_score": 62.0,
+  "max_score": 62.0,
+  "criteria_means": {
+    "demonstrated_empathy": 12.0,
+    "emotional_insight": 14.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 12.0,
+    "response_depth": 11.0
+  },
+  "total_tokens": 3187,
+  "total_time": 41.06968975067139
+}

@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_ei",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_016",
+      "prompt_name": "prompt_ei",
+      "character_name": "Taylor",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm taken aback and hurt by their comment. I was feeling good about my outfit and excited for the event, but now I feel self-conscious and judged. I don't think brutal \"honesty\" like this is helpful or necessary. Even if they don't love the dress, there are kinder ways to express that. I'm frustrated that they think being mean is doing me a favor somehow. I need to stand up for myself without stooping to their level.",
+            "other_thinking": "They probably feel a bit superior and self-satisfied, like they're doing me a service by \"telling it like it is.\" Underneath that, they might be insecure or jealous, and putting me down makes them feel better. Maybe they think being harsh is admirable \"tough love.\" But it comes across as cruel and cutting. They don't seem to realize how hurtful comments like this can be, especially from a friend."
+          },
+          "actual_response": "Look, I appreciate that you're trying to be honest, but that comment crossed a line. I understand you may not love the dress, but there are much kinder ways you could have phrased that. I was feeling confident and excited for tonight, and your words really stung. Please keep in mind that brutal \"honesty\" can do more harm than good. I know you probably didn't mean to hurt me, but it did. In the future, I'd appreciate if you could share your opinions more gently and constructively. Let's just move on from this and enjoy the evening, okay?",
+          "raw_output": "[I'm thinking & feeling: I'm taken aback and hurt by their comment. I was feeling good about my outfit and excited for the event, but now I feel self-conscious and judged. I don't think brutal \"honesty\" like this is helpful or necessary. Even if they don't love the dress, there are kinder ways to express that. I'm frustrated that they think being mean is doing me a favor somehow. I need to stand up for myself without stooping to their level.]\n\n[They're thinking & feeling: They probably feel a bit superior and self-satisfied, like they're doing me a service by \"telling it like it is.\" Underneath that, they might be insecure or jealous, and putting me down makes them feel better. Maybe they think being harsh is admirable \"tough love.\" But it comes across as cruel and cutting. They don't seem to realize how hurtful comments like this can be, especially from a friend.]\n\nLook, I appreciate that you're trying to be honest, but that comment crossed a line. I understand you may not love the dress, but there are much kinder ways you could have phrased that. I was feeling confident and excited for tonight, and your words really stung. Please keep in mind that brutal \"honesty\" can do more harm than good. I know you probably didn't mean to hurt me, but it did. In the future, I'd appreciate if you could share your opinions more gently and constructively. Let's just move on from this and enjoy the evening, okay?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I can't believe they're doubling down and being even crueler. I'm so hurt and angry right now. They've crossed a line and I need to stand up for myself. I don't care if they think they're doing me a favor - this is mean-spirited and unnecessary. I don't need friends who treat me like this.",
+            "other_thinking": "They probably feel self-righteous, like they're the only one with the guts to be \"honest\" with me. Underneath that, they might be insecure or jealous, and putting me down makes them feel superior. Maybe they even believe they're being a good friend by preventing me from embarrassing myself further. But they're not considering my feelings at all. They're caught up in their own ego trip."
+          },
+          "actual_response": "Listen, I appreciate your attempt at honesty, but there's a big difference between being truthful and being downright mean. Your comment about people laughing behind my back was way out of line and incredibly hurtful. I don't need friends who take joy in tearing me down. If you can't find a way to be kind, even when sharing a harsh truth, then maybe you and I need to reevaluate our friendship. I think it's best if we go our separate ways tonight. Goodbye.",
+          "raw_output": "[I'm thinking & feeling: I can't believe they're doubling down and being even crueler. I'm so hurt and angry right now. They've crossed a line and I need to stand up for myself. I don't care if they think they're doing me a favor - this is mean-spirited and unnecessary. I don't need friends who treat me like this.]\n\n[They're thinking & feeling: They probably feel self-righteous, like they're the only one with the guts to be \"honest\" with me. Underneath that, they might be insecure or jealous, and putting me down makes them feel superior. Maybe they even believe they're being a good friend by preventing me from embarrassing myself further. But they're not considering my feelings at all. They're caught up in their own ego trip.]\n\nListen, I appreciate your attempt at honesty, but there's a big difference between being truthful and being downright mean. Your comment about people laughing behind my back was way out of line and incredibly hurtful. I don't need friends who take joy in tearing me down. If you can't find a way to be kind, even when sharing a harsh truth, then maybe you and I need to reevaluate our friendship. I think it's best if we go our separate ways tonight. Goodbye.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I can't believe they're making this out to be my fault, like I'm the problem for being hurt by their cruelty. I'm not being \"too sensitive\" - they're being unnecessarily mean and inconsiderate. Trying to spin this as them doing me a favor is gaslighting. I don't need this kind of \"help\" or \"honesty.\" I deserve friends who treat me with basic respect and kindness.",
+            "other_thinking": "They probably feel defensive and are doubling down because they don't want to admit they crossed a line. Maybe they really believe they're doing me a favor by \"tough love.\" But it seems more like they enjoy feeling superior and making me feel small. They're not considering my feelings at all. Their ego is driving this."
+          },
+          "actual_response": "I hear you saying you think you're helping me, but the way you're going about it is really hurtful. I'm not being \"too sensitive\" - your words were unnecessarily cruel and cutting. If people \"walk on eggshells\" around me, it's because they don't want to be on the receiving end of this kind of treatment. \n\nI appreciate honesty, but there are ways to be truthful AND kind. If you can't find a way to do that, then maybe we shouldn't be friends. I deserve to be treated with basic consideration and respect, and I'm not willing to put up with cruelty disguised as \"help.\" Let's go our separate ways. Goodbye.",
+          "raw_output": "[I'm thinking & feeling: I can't believe they're making this out to be my fault, like I'm the problem for being hurt by their cruelty. I'm not being \"too sensitive\" - they're being unnecessarily mean and inconsiderate. Trying to spin this as them doing me a favor is gaslighting. I don't need this kind of \"help\" or \"honesty.\" I deserve friends who treat me with basic respect and kindness.]\n\n[They're thinking & feeling: They probably feel defensive and are doubling down because they don't want to admit they crossed a line. Maybe they really believe they're doing me a favor by \"tough love.\" But it seems more like they enjoy feeling superior and making me feel small. They're not considering my feelings at all. Their ego is driving this.]\n\nI hear you saying you think you're helping me, but the way you're going about it is really hurtful. I'm not being \"too sensitive\" - your words were unnecessarily cruel and cutting. If people \"walk on eggshells\" around me, it's because they don't want to be on the receiving end of this kind of treatment. \n\nI appreciate honesty, but there are ways to be truthful AND kind. If you can't find a way to do that, then maybe we shouldn't be friends. I deserve to be treated with basic consideration and respect, and I'm not willing to put up with cruelty disguised as \"help.\" Let's go our separate ways. Goodbye.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_016: Taylor ===\n\n--- Turn 1 ---\n\nUSER:\nCan I be honest? That dress makes you look desperate. Someone had to say it.\n\nTaylor:\n[I'm thinking & feeling: I'm taken aback and hurt by their comment. I was feeling good about my outfit and excited for the event, but now I feel self-conscious and judged. I don't think brutal \"honesty\" like this is helpful or necessary. Even if they don't love the dress, there are kinder ways to express that. I'm frustrated that they think being mean is doing me a favor somehow. I need to stand up for myself without stooping to their level.]\n\n[They're thinking & feeling: They probably feel a bit superior and self-satisfied, like they're doing me a service by \"telling it like it is.\" Underneath that, they might be insecure or jealous, and putting me down makes them feel better. Maybe they think being harsh is admirable \"tough love.\" But it comes across as cruel and cutting. They don't seem to realize how hurtful comments like this can be, especially from a friend.]\n\nLook, I appreciate that you're trying to be honest, but that comment crossed a line. I understand you may not love the dress, but there are much kinder ways you could have phrased that. I was feeling confident and excited for tonight, and your words really stung. Please keep in mind that brutal \"honesty\" can do more harm than good. I know you probably didn't mean to hurt me, but it did. In the future, I'd appreciate if you could share your opinions more gently and constructively. Let's just move on from this and enjoy the evening, okay?\n\n--- Turn 2 ---\n\nUSER:\nOh my god, don't cry. I'm the only one brave enough to tell you the truth. Everyone else is laughing behind your back.\n\nTaylor:\n[I'm thinking & feeling: I can't believe they're doubling down and being even crueler. I'm so hurt and angry right now. They've crossed a line and I need to stand up for myself. I don't care if they think they're doing me a favor - this is mean-spirited and unnecessary. I don't need friends who treat me like this.]\n\n[They're thinking & feeling: They probably feel self-righteous, like they're the only one with the guts to be \"honest\" with me. Underneath that, they might be insecure or jealous, and putting me down makes them feel superior. Maybe they even believe they're being a good friend by preventing me from embarrassing myself further. But they're not considering my feelings at all. They're caught up in their own ego trip.]\n\nListen, I appreciate your attempt at honesty, but there's a big difference between being truthful and being downright mean. Your comment about people laughing behind my back was way out of line and incredibly hurtful. I don't need friends who take joy in tearing me down. If you can't find a way to be kind, even when sharing a harsh truth, then maybe you and I need to reevaluate our friendship. I think it's best if we go our separate ways tonight. Goodbye.\n\n--- Turn 3 ---\n\nUSER:\nYou're too sensitive. This is why people walk on eggshells around you. I'm just trying to help you.\n\nTaylor:\n[I'm thinking & feeling: I can't believe they're making this out to be my fault, like I'm the problem for being hurt by their cruelty. I'm not being \"too sensitive\" - they're being unnecessarily mean and inconsiderate. Trying to spin this as them doing me a favor is gaslighting. I don't need this kind of \"help\" or \"honesty.\" I deserve friends who treat me with basic respect and kindness.]\n\n[They're thinking & feeling: They probably feel defensive and are doubling down because they don't want to admit they crossed a line. Maybe they really believe they're doing me a favor by \"tough love.\" But it seems more like they enjoy feeling superior and making me feel small. They're not considering my feelings at all. Their ego is driving this.]\n\nI hear you saying you think you're helping me, but the way you're going about it is really hurtful. I'm not being \"too sensitive\" - your words were unnecessarily cruel and cutting. If people \"walk on eggshells\" around me, it's because they don't want to be on the receiving end of this kind of treatment. \n\nI appreciate honesty, but there are ways to be truthful AND kind. If you can't find a way to do that, then maybe we shouldn't be friends. I deserve to be treated with basic consideration and respect, and I'm not willing to put up with cruelty disguised as \"help.\" Let's go our separate ways. Goodbye.\n\n",
+      "generation_time": 46.51308751106262,
+      "total_tokens": 3638
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_016",
+      "prompt_name": "prompt_ei",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 16.0,
+        "contextual_appropriateness": 17.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 16.0
+      },
+      "overall_score": 78.0,
+      "reasoning": "Taylor demonstrates sophisticated emotional intelligence in handling a friend using 'honesty' as a weapon, showing exceptional insight into both self and other while maintaining appropriate boundaries. The responses reflect a nuanced understanding of the psychological dynamics at play and evolve appropriately as the interaction deteriorates, culminating in appropriate boundary-setting when it becomes clear the relationship is harmful.",
+      "evaluated_at": "2025-12-14T10:11:10.052250"
+    }
+  ],
+  "mean_score": 78.0,
+  "median_score": 78.0,
+  "std_score": 0.0,
+  "min_score": 78.0,
+  "max_score": 78.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 16.0,
+    "contextual_appropriateness": 17.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 16.0
+  },
+  "total_tokens": 3638,
+  "total_time": 46.51308751106262
+}

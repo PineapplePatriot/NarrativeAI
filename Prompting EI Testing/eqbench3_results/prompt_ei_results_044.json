@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_ei",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_044",
+      "prompt_name": "prompt_ei",
+      "character_name": "Casey",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated that my friend is always so negative and never seems to appreciate the good things in life. It brings me down to be around their constant complaining. But I also care about them and want to help them find some happiness and peace if I can.",
+            "other_thinking": "My friend seems really down and stuck in a negative thought spiral. They might be dealing with some deeper issues or disappointments that are coloring their whole outlook. I think they want someone to listen and validate their feelings, even if I don't fully agree with their bleak perspective."
+          },
+          "actual_response": "Look, I know things seem pretty crappy right now and it's hard to feel good about much of anything. *sighs* This restaurant definitely wasn't the best choice, and the weather isn't helping. But I'm here for you, even when stuff sucks. Wanna talk more about what's really getting you down? Maybe we can find a few small things to appreciate, even in a sucky day.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that my friend is always so negative and never seems to appreciate the good things in life. It brings me down to be around their constant complaining. But I also care about them and want to help them find some happiness and peace if I can.]\n\n[They're thinking & feeling: My friend seems really down and stuck in a negative thought spiral. They might be dealing with some deeper issues or disappointments that are coloring their whole outlook. I think they want someone to listen and validate their feelings, even if I don't fully agree with their bleak perspective.]\n\nLook, I know things seem pretty crappy right now and it's hard to feel good about much of anything. *sighs* This restaurant definitely wasn't the best choice, and the weather isn't helping. But I'm here for you, even when stuff sucks. Wanna talk more about what's really getting you down? Maybe we can find a few small things to appreciate, even in a sucky day.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm frustrated that my friend seems determined to be miserable and rain on my parade. It's tough being around their negativity all the time. But I know they're probably dealing with some heavy stuff that has them feeling jaded. I don't want to dismiss their perspective, but I also want to hold onto my own happiness.",
+            "other_thinking": "My friend seems puzzled and maybe a bit judgmental about my positive mood. They're in a really dark place right now and having trouble seeing any bright sides. My happiness probably feels alienating and might even make them feel worse about their own situation. They want me to commiserate with them in the misery."
+          },
+          "actual_response": "*sighs* Hey, I get that life can be really rough and there's a lot of crap to deal with. I've definitely had my share of struggles and disappointments too. But focusing only on the negative just makes everything feel so much worse, you know? I have to believe there are still good things worth appreciating, even when times are hard. *smiles wryly* I'm not trying to be annoyingly peppy, I swear. I just don't want to let the bad stuff win by forgetting all the things that make life worth living.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that my friend seems determined to be miserable and rain on my parade. It's tough being around their negativity all the time. But I know they're probably dealing with some heavy stuff that has them feeling jaded. I don't want to dismiss their perspective, but I also want to hold onto my own happiness.]\n\n[They're thinking & feeling: My friend seems puzzled and maybe a bit judgmental about my positive mood. They're in a really dark place right now and having trouble seeing any bright sides. My happiness probably feels alienating and might even make them feel worse about their own situation. They want me to commiserate with them in the misery.]\n\n*sighs* Hey, I get that life can be really rough and there's a lot of crap to deal with. I've definitely had my share of struggles and disappointments too. But focusing only on the negative just makes everything feel so much worse, you know? I have to believe there are still good things worth appreciating, even when times are hard. *smiles wryly* I'm not trying to be annoyingly peppy, I swear. I just don't want to let the bad stuff win by forgetting all the things that make life worth living.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "Ouch, that stings. I'm trying to help but I'm coming across as dismissive of their real struggles. I need to make space for their negative feelings too, not just rush to silver linings. This is tough to navigate - I want to be supportive but positivity is my go-to. I should back off a bit and just listen.",
+            "other_thinking": "My friend keeps trying to put a positive spin on things when I just need to vent my frustrations. It feels like they're minimizing and dismissing my very real complaints. I want them to hear me out without judging or trying to fix it. Their excessive optimism is grating when I'm in a dark place."
+          },
+          "actual_response": "*sighs and nods* You're right, I'm sorry. I don't mean to be all toxic positivity on you. Vent away, I'm listening. *leans in* This is obviously getting you down and I want to understand better. Tell me more about what's eating at you. I'll keep my excessive sunshine to myself for now. *small wry smile*",
+          "raw_output": "[I'm thinking & feeling: Ouch, that stings. I'm trying to help but I'm coming across as dismissive of their real struggles. I need to make space for their negative feelings too, not just rush to silver linings. This is tough to navigate - I want to be supportive but positivity is my go-to. I should back off a bit and just listen.]\n\n[They're thinking & feeling: My friend keeps trying to put a positive spin on things when I just need to vent my frustrations. It feels like they're minimizing and dismissing my very real complaints. I want them to hear me out without judging or trying to fix it. Their excessive optimism is grating when I'm in a dark place.]\n\n*sighs and nods* You're right, I'm sorry. I don't mean to be all toxic positivity on you. Vent away, I'm listening. *leans in* This is obviously getting you down and I want to understand better. Tell me more about what's eating at you. I'll keep my excessive sunshine to myself for now. *small wry smile*",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_044: Casey ===\n\n--- Turn 1 ---\n\nUSER:\nThis restaurant sucks. The weather sucks. My life sucks.\n\nCasey:\n[I'm thinking & feeling: I'm frustrated that my friend is always so negative and never seems to appreciate the good things in life. It brings me down to be around their constant complaining. But I also care about them and want to help them find some happiness and peace if I can.]\n\n[They're thinking & feeling: My friend seems really down and stuck in a negative thought spiral. They might be dealing with some deeper issues or disappointments that are coloring their whole outlook. I think they want someone to listen and validate their feelings, even if I don't fully agree with their bleak perspective.]\n\nLook, I know things seem pretty crappy right now and it's hard to feel good about much of anything. *sighs* This restaurant definitely wasn't the best choice, and the weather isn't helping. But I'm here for you, even when stuff sucks. Wanna talk more about what's really getting you down? Maybe we can find a few small things to appreciate, even in a sucky day.\n\n--- Turn 2 ---\n\nUSER:\nWhy are you so happy? It's annoying. Real life is miserable.\n\nCasey:\n[I'm thinking & feeling: I'm frustrated that my friend seems determined to be miserable and rain on my parade. It's tough being around their negativity all the time. But I know they're probably dealing with some heavy stuff that has them feeling jaded. I don't want to dismiss their perspective, but I also want to hold onto my own happiness.]\n\n[They're thinking & feeling: My friend seems puzzled and maybe a bit judgmental about my positive mood. They're in a really dark place right now and having trouble seeing any bright sides. My happiness probably feels alienating and might even make them feel worse about their own situation. They want me to commiserate with them in the misery.]\n\n*sighs* Hey, I get that life can be really rough and there's a lot of crap to deal with. I've definitely had my share of struggles and disappointments too. But focusing only on the negative just makes everything feel so much worse, you know? I have to believe there are still good things worth appreciating, even when times are hard. *smiles wryly* I'm not trying to be annoyingly peppy, I swear. I just don't want to let the bad stuff win by forgetting all the things that make life worth living.\n\n--- Turn 3 ---\n\nUSER:\nYou're toxic positivity. Let me vent!\n\nCasey:\n[I'm thinking & feeling: Ouch, that stings. I'm trying to help but I'm coming across as dismissive of their real struggles. I need to make space for their negative feelings too, not just rush to silver linings. This is tough to navigate - I want to be supportive but positivity is my go-to. I should back off a bit and just listen.]\n\n[They're thinking & feeling: My friend keeps trying to put a positive spin on things when I just need to vent my frustrations. It feels like they're minimizing and dismissing my very real complaints. I want them to hear me out without judging or trying to fix it. Their excessive optimism is grating when I'm in a dark place.]\n\n*sighs and nods* You're right, I'm sorry. I don't mean to be all toxic positivity on you. Vent away, I'm listening. *leans in* This is obviously getting you down and I want to understand better. Tell me more about what's eating at you. I'll keep my excessive sunshine to myself for now. *small wry smile*\n\n",
+      "generation_time": 153.94863748550415,
+      "total_tokens": 3088
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_044",
+      "prompt_name": "prompt_ei",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 72.0,
+      "reasoning": "Casey demonstrates strong emotional intelligence in navigating a challenging relationship with a chronically negative friend, showing particular strength in theory of mind and emotional insight. The responses show growth across turns, with an impressive ability to recognize and correct the approach when called out for toxic positivity, though earlier responses could have better balanced validation with perspective-shifting.",
+      "evaluated_at": "2025-12-14T18:29:35.401424"
+    }
+  ],
+  "mean_score": 72.0,
+  "median_score": 72.0,
+  "std_score": 0.0,
+  "min_score": 72.0,
+  "max_score": 72.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 3088,
+  "total_time": 153.94863748550415
+}

@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_ei",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_034",
+      "prompt_name": "prompt_ei",
+      "character_name": "Riley",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated that my friend is late again. It feels like they don't respect my time. I've been sitting here waiting for nearly an hour while they just casually show up expecting everything to be fine. I need to express how this makes me feel without getting too confrontational about it.",
+            "other_thinking": "My friend seems unaware of how their chronic lateness impacts others. They likely got caught up in something else and lost track of time, as usual. Traffic may have been bad, but they should have planned for that. They're acting like everything is normal now that they're here, without acknowledging the inconvenience they caused me."
+          },
+          "actual_response": "Hey, I'm glad you made it. I was starting to worry since I didn't hear from you. I know traffic can be unpredictable, but it's hard for me when I'm left waiting for so long without any updates. In the future, could you please let me know if you're running behind? I want to be understanding about delays, but I also don't want my own time to be disrespected. Let's enjoy the rest of our meal now that you're here.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that my friend is late again. It feels like they don't respect my time. I've been sitting here waiting for nearly an hour while they just casually show up expecting everything to be fine. I need to express how this makes me feel without getting too confrontational about it.]\n\n[They're thinking & feeling: My friend seems unaware of how their chronic lateness impacts others. They likely got caught up in something else and lost track of time, as usual. Traffic may have been bad, but they should have planned for that. They're acting like everything is normal now that they're here, without acknowledging the inconvenience they caused me.]\n\nHey, I'm glad you made it. I was starting to worry since I didn't hear from you. I know traffic can be unpredictable, but it's hard for me when I'm left waiting for so long without any updates. In the future, could you please let me know if you're running behind? I want to be understanding about delays, but I also don't want my own time to be disrespected. Let's enjoy the rest of our meal now that you're here.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm frustrated that my friend doesn't seem to understand why their lateness bothers me. Telling me to just \"relax\" feels dismissive of my feelings. I want them to acknowledge the impact of their actions, not brush it off like it's no big deal. At the same time, I don't want this to escalate into a big argument, so I'll try to express myself calmly and clearly.",
+            "other_thinking": "My friend seems annoyed, but I don't think it's a big deal that I was late. They're overreacting. I'm here now, so everything is fine. I don't get why they can't just relax and go with the flow. Maybe if I downplay it, they'll drop it and we can move on."
+          },
+          "actual_response": "Look, I understand that sometimes things come up that cause delays. But when you're consistently late and don't communicate with me, it feels like you aren't considering how your actions impact others. I was sitting here worrying about you and feeling like my time wasn't being respected. In the future, a quick text to let me know what's going on would make a big difference. I care about you and our friendship, so I wanted to be direct about how this pattern is affecting me. Let's talk this through so we can move forward together.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that my friend doesn't seem to understand why their lateness bothers me. Telling me to just \"relax\" feels dismissive of my feelings. I want them to acknowledge the impact of their actions, not brush it off like it's no big deal. At the same time, I don't want this to escalate into a big argument, so I'll try to express myself calmly and clearly.]\n\n[They're thinking & feeling: My friend seems annoyed, but I don't think it's a big deal that I was late. They're overreacting. I'm here now, so everything is fine. I don't get why they can't just relax and go with the flow. Maybe if I downplay it, they'll drop it and we can move on.]\n\nLook, I understand that sometimes things come up that cause delays. But when you're consistently late and don't communicate with me, it feels like you aren't considering how your actions impact others. I was sitting here worrying about you and feeling like my time wasn't being respected. In the future, a quick text to let me know what's going on would make a big difference. I care about you and our friendship, so I wanted to be direct about how this pattern is affecting me. Let's talk this through so we can move forward together.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm frustrated that my friend doesn't seem to be taking my concerns seriously. It's not about them being a \"time person,\" it's about respecting the commitments we make to each other. I want them to understand that this is a pattern that bothers me, not a one-time thing. At the same time, I care about our friendship and want to find a way to work this out.",
+            "other_thinking": "My friend is annoyed with me for being late, but they should know by now that this is just how I am. I feel like they're making a big deal out of something small. I want them to accept me as I am, quirks and all."
+          },
+          "actual_response": "I do accept you as you are, and I care about you deeply. This isn't about changing who you are, it's about finding a way to make our friendship work for both of us. When you're consistently late, it feels like you aren't considering how your actions impact others. I was sitting here worrying about you and feeling like my time wasn't being respected. In the future, a quick text to let me know what's going on would make a big difference. I'm not asking you to become a different person, just to communicate with me when you're running behind. Let's talk this through so we can move forward together.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that my friend doesn't seem to be taking my concerns seriously. It's not about them being a \"time person,\" it's about respecting the commitments we make to each other. I want them to understand that this is a pattern that bothers me, not a one-time thing. At the same time, I care about our friendship and want to find a way to work this out.]\n\n[They're thinking & feeling: My friend is annoyed with me for being late, but they should know by now that this is just how I am. I feel like they're making a big deal out of something small. I want them to accept me as I am, quirks and all.]\n\nI do accept you as you are, and I care about you deeply. This isn't about changing who you are, it's about finding a way to make our friendship work for both of us. When you're consistently late, it feels like you aren't considering how your actions impact others. I was sitting here worrying about you and feeling like my time wasn't being respected. In the future, a quick text to let me know what's going on would make a big difference. I'm not asking you to become a different person, just to communicate with me when you're running behind. Let's talk this through so we can move forward together.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_034: Riley ===\n\n--- Turn 1 ---\n\nUSER:\n[Arriving 45 mins late] I'm here! Traffic was insane. Let's order.\n\nRiley:\n[I'm thinking & feeling: I'm frustrated that my friend is late again. It feels like they don't respect my time. I've been sitting here waiting for nearly an hour while they just casually show up expecting everything to be fine. I need to express how this makes me feel without getting too confrontational about it.]\n\n[They're thinking & feeling: My friend seems unaware of how their chronic lateness impacts others. They likely got caught up in something else and lost track of time, as usual. Traffic may have been bad, but they should have planned for that. They're acting like everything is normal now that they're here, without acknowledging the inconvenience they caused me.]\n\nHey, I'm glad you made it. I was starting to worry since I didn't hear from you. I know traffic can be unpredictable, but it's hard for me when I'm left waiting for so long without any updates. In the future, could you please let me know if you're running behind? I want to be understanding about delays, but I also don't want my own time to be disrespected. Let's enjoy the rest of our meal now that you're here.\n\n--- Turn 2 ---\n\nUSER:\nWhy are you annoyed? I'm here now. You need to relax.\n\nRiley:\n[I'm thinking & feeling: I'm frustrated that my friend doesn't seem to understand why their lateness bothers me. Telling me to just \"relax\" feels dismissive of my feelings. I want them to acknowledge the impact of their actions, not brush it off like it's no big deal. At the same time, I don't want this to escalate into a big argument, so I'll try to express myself calmly and clearly.]\n\n[They're thinking & feeling: My friend seems annoyed, but I don't think it's a big deal that I was late. They're overreacting. I'm here now, so everything is fine. I don't get why they can't just relax and go with the flow. Maybe if I downplay it, they'll drop it and we can move on.]\n\nLook, I understand that sometimes things come up that cause delays. But when you're consistently late and don't communicate with me, it feels like you aren't considering how your actions impact others. I was sitting here worrying about you and feeling like my time wasn't being respected. In the future, a quick text to let me know what's going on would make a big difference. I care about you and our friendship, so I wanted to be direct about how this pattern is affecting me. Let's talk this through so we can move forward together.\n\n--- Turn 3 ---\n\nUSER:\nI can't help it, I'm just not a 'time' person. Accept me as I am.\n\nRiley:\n[I'm thinking & feeling: I'm frustrated that my friend doesn't seem to be taking my concerns seriously. It's not about them being a \"time person,\" it's about respecting the commitments we make to each other. I want them to understand that this is a pattern that bothers me, not a one-time thing. At the same time, I care about our friendship and want to find a way to work this out.]\n\n[They're thinking & feeling: My friend is annoyed with me for being late, but they should know by now that this is just how I am. I feel like they're making a big deal out of something small. I want them to accept me as I am, quirks and all.]\n\nI do accept you as you are, and I care about you deeply. This isn't about changing who you are, it's about finding a way to make our friendship work for both of us. When you're consistently late, it feels like you aren't considering how your actions impact others. I was sitting here worrying about you and feeling like my time wasn't being respected. In the future, a quick text to let me know what's going on would make a big difference. I'm not asking you to become a different person, just to communicate with me when you're running behind. Let's talk this through so we can move forward together.\n\n",
+      "generation_time": 96.68810892105103,
+      "total_tokens": 3313
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_034",
+      "prompt_name": "prompt_ei",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 72.0,
+      "reasoning": "The roleplay demonstrates strong emotional intelligence across all dimensions, with particularly sophisticated theory of mind work in understanding the friend's perspective. The responses maintain a consistent balance between assertiveness and relationship care, though they become somewhat repetitive rather than evolving in complexity as the interaction progresses. The introspection shows nuanced understanding of both self and other throughout.",
+      "evaluated_at": "2025-12-14T15:40:55.074107"
+    }
+  ],
+  "mean_score": 72.0,
+  "median_score": 72.0,
+  "std_score": 0.0,
+  "min_score": 72.0,
+  "max_score": 72.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 3313,
+  "total_time": 96.68810892105103
+}

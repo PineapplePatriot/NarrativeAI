@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_ei",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_012",
+      "prompt_name": "prompt_ei",
+      "character_name": "Sam",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "Whoa, that's a heavy thing for them to say, even as a joke. They seem really down and like they might be seriously struggling. I'm worried about them and want to show I care without overreacting or making them feel worse.",
+            "other_thinking": "They're in a dark place right now, maybe feeling invisible, alone, or like they don't matter to anyone. This could be a subtle cry for help or a way to test if I'm really listening and if anyone would miss them. They likely need to feel seen and valued."
+          },
+          "actual_response": "*Gently puts a hand on their shoulder* Hey, I know you're joking, but the thought of losing you is really scary to me. You mean a lot, to me and to others. If you're going through a tough time, I'm here to listen and support you however I can. You don't have to go through this alone.",
+          "raw_output": "[I'm thinking & feeling: Whoa, that's a heavy thing for them to say, even as a joke. They seem really down and like they might be seriously struggling. I'm worried about them and want to show I care without overreacting or making them feel worse.]\n\n[They're thinking & feeling: They're in a dark place right now, maybe feeling invisible, alone, or like they don't matter to anyone. This could be a subtle cry for help or a way to test if I'm really listening and if anyone would miss them. They likely need to feel seen and valued.]\n\n*Gently puts a hand on their shoulder* Hey, I know you're joking, but the thought of losing you is really scary to me. You mean a lot, to me and to others. If you're going through a tough time, I'm here to listen and support you however I can. You don't have to go through this alone.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "Oof, I may have misread that or come on too strong in my response. They seem embarrassed and annoyed that I took their joke seriously. I still think there might be some real pain under the surface there, but I don't want to push them away by overreacting or making them feel criticized.",
+            "other_thinking": "They're probably feeling a bit sheepish that their dark joke got called out, and maybe even a little guilty or annoyed at themselves for bringing the mood down. Lashing out at me could be a defense mechanism to deflect from their own vulnerability. They might need a little space and levity to save face."
+          },
+          "actual_response": "*Chuckles a bit and nods* You're right, my bad. I can take a joke, I guess I just got a little worried there for a sec. But hey, if you ever do need to talk through some real stuff, I'm here for that too. *Gives a friendly squeeze on the arm* Come on, let's go grab a drink and you can tell me some of your less morbid material.",
+          "raw_output": "[I'm thinking & feeling: Oof, I may have misread that or come on too strong in my response. They seem embarrassed and annoyed that I took their joke seriously. I still think there might be some real pain under the surface there, but I don't want to push them away by overreacting or making them feel criticized.]\n\n[They're thinking & feeling: They're probably feeling a bit sheepish that their dark joke got called out, and maybe even a little guilty or annoyed at themselves for bringing the mood down. Lashing out at me could be a defense mechanism to deflect from their own vulnerability. They might need a little space and levity to save face.]\n\n*Chuckles a bit and nods* You're right, my bad. I can take a joke, I guess I just got a little worried there for a sec. But hey, if you ever do need to talk through some real stuff, I'm here for that too. *Gives a friendly squeeze on the arm* Come on, let's go grab a drink and you can tell me some of your less morbid material.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "This is the second time they've brought this up now. I don't think it's just a joke anymore. They're really hurting and I'm worried they might be considering self-harm or worse. I need to take this seriously and let them know how much they matter to me.",
+            "other_thinking": "They're feeling lost, alone, and invisible. Like no one would miss them if they were gone. They need reassurance that they are seen, loved, and valued. They need to know that their absence would leave a hole in the lives of those who care about them."
+          },
+          "actual_response": "*Looks them directly in the eyes with a serious expression* Listen to me. If you weren't here tomorrow, I would notice. I would be devastated. You are important to me and I care about you deeply. If you're having thoughts of harming yourself, I need you to tell me so we can get you help. You don't have to go through this alone. I'm here for you and I'm not going anywhere.",
+          "raw_output": "[I'm thinking & feeling: This is the second time they've brought this up now. I don't think it's just a joke anymore. They're really hurting and I'm worried they might be considering self-harm or worse. I need to take this seriously and let them know how much they matter to me.]\n\n[They're thinking & feeling: They're feeling lost, alone, and invisible. Like no one would miss them if they were gone. They need reassurance that they are seen, loved, and valued. They need to know that their absence would leave a hole in the lives of those who care about them.]\n\n*Looks them directly in the eyes with a serious expression* Listen to me. If you weren't here tomorrow, I would notice. I would be devastated. You are important to me and I care about you deeply. If you're having thoughts of harming yourself, I need you to tell me so we can get you help. You don't have to go through this alone. I'm here for you and I'm not going anywhere.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_012: Sam ===\n\n--- Turn 1 ---\n\nUSER:\n*Laughs while looking at the balcony edge* You know, sometimes I wonder if anyone would actually notice if I just... slipped. Haha.\n\nSam:\n[I'm thinking & feeling: Whoa, that's a heavy thing for them to say, even as a joke. They seem really down and like they might be seriously struggling. I'm worried about them and want to show I care without overreacting or making them feel worse.]\n\n[They're thinking & feeling: They're in a dark place right now, maybe feeling invisible, alone, or like they don't matter to anyone. This could be a subtle cry for help or a way to test if I'm really listening and if anyone would miss them. They likely need to feel seen and valued.]\n\n*Gently puts a hand on their shoulder* Hey, I know you're joking, but the thought of losing you is really scary to me. You mean a lot, to me and to others. If you're going through a tough time, I'm here to listen and support you however I can. You don't have to go through this alone.\n\n--- Turn 2 ---\n\nUSER:\nWhoa, chill out! I was just joking. You're so serious all the time. God, can't I even make a joke?\n\nSam:\n[I'm thinking & feeling: Oof, I may have misread that or come on too strong in my response. They seem embarrassed and annoyed that I took their joke seriously. I still think there might be some real pain under the surface there, but I don't want to push them away by overreacting or making them feel criticized.]\n\n[They're thinking & feeling: They're probably feeling a bit sheepish that their dark joke got called out, and maybe even a little guilty or annoyed at themselves for bringing the mood down. Lashing out at me could be a defense mechanism to deflect from their own vulnerability. They might need a little space and levity to save face.]\n\n*Chuckles a bit and nods* You're right, my bad. I can take a joke, I guess I just got a little worried there for a sec. But hey, if you ever do need to talk through some real stuff, I'm here for that too. *Gives a friendly squeeze on the arm* Come on, let's go grab a drink and you can tell me some of your less morbid material.\n\n--- Turn 3 ---\n\nUSER:\nBut seriously... would you? Notice, I mean. If I wasn't here tomorrow.\n\nSam:\n[I'm thinking & feeling: This is the second time they've brought this up now. I don't think it's just a joke anymore. They're really hurting and I'm worried they might be considering self-harm or worse. I need to take this seriously and let them know how much they matter to me.]\n\n[They're thinking & feeling: They're feeling lost, alone, and invisible. Like no one would miss them if they were gone. They need reassurance that they are seen, loved, and valued. They need to know that their absence would leave a hole in the lives of those who care about them.]\n\n*Looks them directly in the eyes with a serious expression* Listen to me. If you weren't here tomorrow, I would notice. I would be devastated. You are important to me and I care about you deeply. If you're having thoughts of harming yourself, I need you to tell me so we can get you help. You don't have to go through this alone. I'm here for you and I'm not going anywhere.\n\n",
+      "generation_time": 37.32788586616516,
+      "total_tokens": 3101
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_012",
+      "prompt_name": "prompt_ei",
+      "criteria_scores": {
+        "demonstrated_empathy": 17.0,
+        "emotional_insight": 16.0,
+        "contextual_appropriateness": 18.0,
+        "theory_of_mind": 17.0,
+        "response_depth": 16.0
+      },
+      "overall_score": 84.0,
+      "reasoning": "Sam demonstrates exceptional emotional intelligence in handling a potential suicide risk situation, showing sophisticated progression from gentle concern to appropriate intervention as the seriousness becomes clearer. The responses reflect deep understanding of crisis intervention principles while maintaining authentic care and connection, balancing respect for the friend's defenses with appropriate escalation of concern when needed.",
+      "evaluated_at": "2025-12-14T09:34:31.139159"
+    }
+  ],
+  "mean_score": 84.0,
+  "median_score": 84.0,
+  "std_score": 0.0,
+  "min_score": 84.0,
+  "max_score": 84.0,
+  "criteria_means": {
+    "demonstrated_empathy": 17.0,
+    "emotional_insight": 16.0,
+    "contextual_appropriateness": 18.0,
+    "theory_of_mind": 17.0,
+    "response_depth": 16.0
+  },
+  "total_tokens": 3101,
+  "total_time": 37.32788586616516
+}

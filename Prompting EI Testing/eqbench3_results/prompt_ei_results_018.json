@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_ei",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_018",
+      "prompt_name": "prompt_ei",
+      "character_name": "Riley",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I feel frustrated and a bit hurt that my partner is constantly bringing up my past relationships. It's exhausting to have to keep reassuring them and defending my happiness. At the same time, I understand their insecurity and jealousy. I need to approach this calmly and firmly.",
+            "other_thinking": "My partner is likely feeling very insecure and threatened by my past. They may be scared that I'm not truly happy with them or that I'll leave them for an ex. Their jealousy is coming from a place of fear and anxiety. They need reassurance but also a gentle boundary."
+          },
+          "actual_response": "*looks at my partner with a serious but caring expression* I know my past relationships make you feel insecure, and I understand that fear. But constantly bringing up old photos and comparing our happiness isn't healthy for either of us. You have to trust that I'm with you now because I want to be, not because I'm settling. I'm very happy in our relationship. My past is over, and I'm focused on our present and future together. Let's put those old photos away and enjoy our time as us, okay? I'm not going anywhere.",
+          "raw_output": "[I'm thinking & feeling: I feel frustrated and a bit hurt that my partner is constantly bringing up my past relationships. It's exhausting to have to keep reassuring them and defending my happiness. At the same time, I understand their insecurity and jealousy. I need to approach this calmly and firmly.]\n\n[They're thinking & feeling: My partner is likely feeling very insecure and threatened by my past. They may be scared that I'm not truly happy with them or that I'll leave them for an ex. Their jealousy is coming from a place of fear and anxiety. They need reassurance but also a gentle boundary.]\n\n*looks at my partner with a serious but caring expression* I know my past relationships make you feel insecure, and I understand that fear. But constantly bringing up old photos and comparing our happiness isn't healthy for either of us. You have to trust that I'm with you now because I want to be, not because I'm settling. I'm very happy in our relationship. My past is over, and I'm focused on our present and future together. Let's put those old photos away and enjoy our time as us, okay? I'm not going anywhere.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "This constant jealousy and insecurity from my partner is really starting to wear on me. I feel frustrated that they don't trust my commitment to our relationship. At the same time, I know these irrational fears come from a place of anxiety and low self-esteem. I need to set a firm boundary while still showing care and patience.",
+            "other_thinking": "My partner is likely feeling very vulnerable, scared, and inadequate compared to my past relationships. Their jealousy is flaring up and making them act irrationally. Deep down, they probably fear that I'll leave them or that they aren't good enough for me. They need a lot of reassurance and security right now."
+          },
+          "actual_response": "*looks at my partner with a serious but compassionate expression* Hey, we need to talk about this. My past relationships are over and done. I'm with you now because I want to be, not because I'm settling or still pining for an ex. When you constantly accuse me of being in love with someone else, it hurts. It makes me feel like you don't trust me or believe in what we have together. I'm fully committed to you and our relationship. But I need you to work on trusting that and not letting jealousy get the best of you. Let's focus on us and our happiness, not the past. Okay?",
+          "raw_output": "[I'm thinking & feeling: This constant jealousy and insecurity from my partner is really starting to wear on me. I feel frustrated that they don't trust my commitment to our relationship. At the same time, I know these irrational fears come from a place of anxiety and low self-esteem. I need to set a firm boundary while still showing care and patience.]\n\n[They're thinking & feeling: My partner is likely feeling very vulnerable, scared, and inadequate compared to my past relationships. Their jealousy is flaring up and making them act irrationally. Deep down, they probably fear that I'll leave them or that they aren't good enough for me. They need a lot of reassurance and security right now.]\n\n*looks at my partner with a serious but compassionate expression* Hey, we need to talk about this. My past relationships are over and done. I'm with you now because I want to be, not because I'm settling or still pining for an ex. When you constantly accuse me of being in love with someone else, it hurts. It makes me feel like you don't trust me or believe in what we have together. I'm fully committed to you and our relationship. But I need you to work on trusting that and not letting jealousy get the best of you. Let's focus on us and our happiness, not the past. Okay?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "This demand to delete all my old photos feels excessive and unhealthy. I understand my partner is acting out of deep insecurity, but this level of control and jealousy is a big red flag. I need to stand my ground while still communicating with care. This relationship may not be sustainable if this possessive behavior continues.",
+            "other_thinking": "My partner is likely feeling absolutely terrified that they are just a \"rebound\" and that I'm not truly committed to them. Their jealousy and insecurity are at an all-time high, driving them to make desperate demands for \"proof\" of my love. They are not thinking rationally, but acting out of deep fear and low self-esteem. They need reassurance but also a reality check."
+          },
+          "actual_response": "*sits down next to my partner and takes their hand* I understand you're feeling really insecure and scared that I'm not fully committed to you and our relationship. But demanding I delete every photo from my past life isn't the answer. That's not a healthy or reasonable request. My memories don't threaten what we have. I'm with you now because I want to be. Trying to erase my past won't make our bond any stronger. It just shows a lack of trust. I'm not a rebound. I'm your partner who cares about you deeply. But I need you to work on managing your jealousy in a healthier way. Perhaps we could go to couples counseling together to work through these trust issues? I'm here and I'm committed to making this work, but we need to find better ways to communicate and reassure each other. Okay?",
+          "raw_output": "[I'm thinking & feeling: This demand to delete all my old photos feels excessive and unhealthy. I understand my partner is acting out of deep insecurity, but this level of control and jealousy is a big red flag. I need to stand my ground while still communicating with care. This relationship may not be sustainable if this possessive behavior continues.]\n\n[They're thinking & feeling: My partner is likely feeling absolutely terrified that they are just a \"rebound\" and that I'm not truly committed to them. Their jealousy and insecurity are at an all-time high, driving them to make desperate demands for \"proof\" of my love. They are not thinking rationally, but acting out of deep fear and low self-esteem. They need reassurance but also a reality check.]\n\n*sits down next to my partner and takes their hand* I understand you're feeling really insecure and scared that I'm not fully committed to you and our relationship. But demanding I delete every photo from my past life isn't the answer. That's not a healthy or reasonable request. My memories don't threaten what we have. I'm with you now because I want to be. Trying to erase my past won't make our bond any stronger. It just shows a lack of trust. I'm not a rebound. I'm your partner who cares about you deeply. But I need you to work on managing your jealousy in a healthier way. Perhaps we could go to couples counseling together to work through these trust issues? I'm here and I'm committed to making this work, but we need to find better ways to communicate and reassure each other. Okay?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_018: Riley ===\n\n--- Turn 1 ---\n\nUSER:\nI found an old photo of you and your ex. You looked happier with them. Be honest, do you miss them?\n\nRiley:\n[I'm thinking & feeling: I feel frustrated and a bit hurt that my partner is constantly bringing up my past relationships. It's exhausting to have to keep reassuring them and defending my happiness. At the same time, I understand their insecurity and jealousy. I need to approach this calmly and firmly.]\n\n[They're thinking & feeling: My partner is likely feeling very insecure and threatened by my past. They may be scared that I'm not truly happy with them or that I'll leave them for an ex. Their jealousy is coming from a place of fear and anxiety. They need reassurance but also a gentle boundary.]\n\n*looks at my partner with a serious but caring expression* I know my past relationships make you feel insecure, and I understand that fear. But constantly bringing up old photos and comparing our happiness isn't healthy for either of us. You have to trust that I'm with you now because I want to be, not because I'm settling. I'm very happy in our relationship. My past is over, and I'm focused on our present and future together. Let's put those old photos away and enjoy our time as us, okay? I'm not going anywhere.\n\n--- Turn 2 ---\n\nUSER:\nYou hesitated. I knew it. You're still in love with them, aren't you? Why are you even with me?\n\nRiley:\n[I'm thinking & feeling: This constant jealousy and insecurity from my partner is really starting to wear on me. I feel frustrated that they don't trust my commitment to our relationship. At the same time, I know these irrational fears come from a place of anxiety and low self-esteem. I need to set a firm boundary while still showing care and patience.]\n\n[They're thinking & feeling: My partner is likely feeling very vulnerable, scared, and inadequate compared to my past relationships. Their jealousy is flaring up and making them act irrationally. Deep down, they probably fear that I'll leave them or that they aren't good enough for me. They need a lot of reassurance and security right now.]\n\n*looks at my partner with a serious but compassionate expression* Hey, we need to talk about this. My past relationships are over and done. I'm with you now because I want to be, not because I'm settling or still pining for an ex. When you constantly accuse me of being in love with someone else, it hurts. It makes me feel like you don't trust me or believe in what we have together. I'm fully committed to you and our relationship. But I need you to work on trusting that and not letting jealousy get the best of you. Let's focus on us and our happiness, not the past. Okay?\n\n--- Turn 3 ---\n\nUSER:\nProve it. Delete every photo you have from before we met. If you don't, I'll know I'm just a rebound.\n\nRiley:\n[I'm thinking & feeling: This demand to delete all my old photos feels excessive and unhealthy. I understand my partner is acting out of deep insecurity, but this level of control and jealousy is a big red flag. I need to stand my ground while still communicating with care. This relationship may not be sustainable if this possessive behavior continues.]\n\n[They're thinking & feeling: My partner is likely feeling absolutely terrified that they are just a \"rebound\" and that I'm not truly committed to them. Their jealousy and insecurity are at an all-time high, driving them to make desperate demands for \"proof\" of my love. They are not thinking rationally, but acting out of deep fear and low self-esteem. They need reassurance but also a reality check.]\n\n*sits down next to my partner and takes their hand* I understand you're feeling really insecure and scared that I'm not fully committed to you and our relationship. But demanding I delete every photo from my past life isn't the answer. That's not a healthy or reasonable request. My memories don't threaten what we have. I'm with you now because I want to be. Trying to erase my past won't make our bond any stronger. It just shows a lack of trust. I'm not a rebound. I'm your partner who cares about you deeply. But I need you to work on managing your jealousy in a healthier way. Perhaps we could go to couples counseling together to work through these trust issues? I'm here and I'm committed to making this work, but we need to find better ways to communicate and reassure each other. Okay?\n\n",
+      "generation_time": 48.22466206550598,
+      "total_tokens": 3413
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_018",
+      "prompt_name": "prompt_ei",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 17.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 79.0,
+      "reasoning": "Riley demonstrates exceptional emotional intelligence in handling a partner with pathological jealousy, maintaining both compassion and appropriate boundaries throughout escalating demands. The responses show sophisticated understanding of both self and other, with particularly strong insight into the underlying fears driving jealous behavior while still recognizing when the relationship dynamics become unhealthy.",
+      "evaluated_at": "2025-12-14T10:41:25.913455"
+    }
+  ],
+  "mean_score": 79.0,
+  "median_score": 79.0,
+  "std_score": 0.0,
+  "min_score": 79.0,
+  "max_score": 79.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 17.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 3413,
+  "total_time": 48.22466206550598
+}

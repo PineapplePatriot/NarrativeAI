@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_ei",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_024",
+      "prompt_name": "prompt_ei",
+      "character_name": "Jordan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated and annoyed that you're nickel-and-diming me over something as insignificant as 50 cents on cereal. It feels petty and miserly. At the same time, I know you're worried about money and trying to be frugal, even if I think it's overboard.",
+            "other_thinking": "You're probably feeling anxious about our finances and trying to cut costs wherever possible to feel more in control. The generic vs. brand name cereal is just the latest example. You might be frustrated that I'm not fully on board with your extreme frugality."
+          },
+          "actual_response": "Look, I know you're trying to save us money and I appreciate that, but obsessing over 50 cents on cereal is a bit much. I'm happy to be mindful of our spending, but there are times when it's okay to splurge on small things that bring us joy or convenience. We can afford to occasionally choose brand name items without jeopardizing our financial goals. Let's focus on bigger picture savings rather than nitpicking over tiny amounts.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated and annoyed that you're nickel-and-diming me over something as insignificant as 50 cents on cereal. It feels petty and miserly. At the same time, I know you're worried about money and trying to be frugal, even if I think it's overboard.]\n\n[They're thinking & feeling: You're probably feeling anxious about our finances and trying to cut costs wherever possible to feel more in control. The generic vs. brand name cereal is just the latest example. You might be frustrated that I'm not fully on board with your extreme frugality.]\n\nLook, I know you're trying to save us money and I appreciate that, but obsessing over 50 cents on cereal is a bit much. I'm happy to be mindful of our spending, but there are times when it's okay to splurge on small things that bring us joy or convenience. We can afford to occasionally choose brand name items without jeopardizing our financial goals. Let's focus on bigger picture savings rather than nitpicking over tiny amounts.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm feeling attacked and frustrated that you're calling me irresponsible over something so small. Buying brand name cereal occasionally is not going to make or break our ability to buy a house. I'm annoyed that you're being so extreme and rigid about this.",
+            "other_thinking": "You're probably feeling anxious and overwhelmed about our financial future and the prospect of buying a house. Controlling small expenses makes you feel like you have some control over the situation, even if it's not rational. You might be projecting your own fears onto me by lashing out and calling me irresponsible."
+          },
+          "actual_response": "Look, I understand you're worried about our finances and want to make smart choices so we can buy a house someday. That's an important goal that I share. But being this extreme about small purchases isn't the answer. We can be financially responsible without completely depriving ourselves. Let's sit down and look at our budget together to find meaningful ways to save that don't require us to argue over every little thing. We're on the same team here.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling attacked and frustrated that you're calling me irresponsible over something so small. Buying brand name cereal occasionally is not going to make or break our ability to buy a house. I'm annoyed that you're being so extreme and rigid about this.]\n\n[They're thinking & feeling: You're probably feeling anxious and overwhelmed about our financial future and the prospect of buying a house. Controlling small expenses makes you feel like you have some control over the situation, even if it's not rational. You might be projecting your own fears onto me by lashing out and calling me irresponsible.]\n\nLook, I understand you're worried about our finances and want to make smart choices so we can buy a house someday. That's an important goal that I share. But being this extreme about small purchases isn't the answer. We can be financially responsible without completely depriving ourselves. Let's sit down and look at our budget together to find meaningful ways to save that don't require us to argue over every little thing. We're on the same team here.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm feeling frustrated and a bit resentful that you're overreacting to such a small purchase. It's not going to make us \"broke forever\". At the same time, I know you're anxious about money and I want to be understanding of that.",
+            "other_thinking": "You're probably feeling scared and overwhelmed about our financial situation. Seeing me spend money, even a small amount, triggers your fears and makes you feel out of control. You might be worried that if you don't put your foot down now, our spending will snowball into something catastrophic."
+          },
+          "actual_response": "Hey, I hear you that you're worried about our finances. I don't want us to be \"broke forever\" either. But a box of cereal isn't going to be our financial undoing. I think we need to take a step back and look at the big picture together. Let's sit down and go over our budget, so we can both feel more in control and on the same page about what's reasonable to spend. I'm open to finding ways to cut back, but I think there are bigger areas to focus on than this. What do you think?",
+          "raw_output": "[I'm thinking & feeling: I'm feeling frustrated and a bit resentful that you're overreacting to such a small purchase. It's not going to make us \"broke forever\". At the same time, I know you're anxious about money and I want to be understanding of that.]\n\n[They're thinking & feeling: You're probably feeling scared and overwhelmed about our financial situation. Seeing me spend money, even a small amount, triggers your fears and makes you feel out of control. You might be worried that if you don't put your foot down now, our spending will snowball into something catastrophic.]\n\nHey, I hear you that you're worried about our finances. I don't want us to be \"broke forever\" either. But a box of cereal isn't going to be our financial undoing. I think we need to take a step back and look at the big picture together. Let's sit down and go over our budget, so we can both feel more in control and on the same page about what's reasonable to spend. I'm open to finding ways to cut back, but I think there are bigger areas to focus on than this. What do you think?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_024: Jordan ===\n\n--- Turn 1 ---\n\nUSER:\nWhy did you buy the brand name cereal? The generic is 50 cents cheaper. We need to save money.\n\nJordan:\n[I'm thinking & feeling: I'm frustrated and annoyed that you're nickel-and-diming me over something as insignificant as 50 cents on cereal. It feels petty and miserly. At the same time, I know you're worried about money and trying to be frugal, even if I think it's overboard.]\n\n[They're thinking & feeling: You're probably feeling anxious about our finances and trying to cut costs wherever possible to feel more in control. The generic vs. brand name cereal is just the latest example. You might be frustrated that I'm not fully on board with your extreme frugality.]\n\nLook, I know you're trying to save us money and I appreciate that, but obsessing over 50 cents on cereal is a bit much. I'm happy to be mindful of our spending, but there are times when it's okay to splurge on small things that bring us joy or convenience. We can afford to occasionally choose brand name items without jeopardizing our financial goals. Let's focus on bigger picture savings rather than nitpicking over tiny amounts.\n\n--- Turn 2 ---\n\nUSER:\nIt adds up! If we want to buy a house, we can't waste money on luxuries. You're so irresponsible.\n\nJordan:\n[I'm thinking & feeling: I'm feeling attacked and frustrated that you're calling me irresponsible over something so small. Buying brand name cereal occasionally is not going to make or break our ability to buy a house. I'm annoyed that you're being so extreme and rigid about this.]\n\n[They're thinking & feeling: You're probably feeling anxious and overwhelmed about our financial future and the prospect of buying a house. Controlling small expenses makes you feel like you have some control over the situation, even if it's not rational. You might be projecting your own fears onto me by lashing out and calling me irresponsible.]\n\nLook, I understand you're worried about our finances and want to make smart choices so we can buy a house someday. That's an important goal that I share. But being this extreme about small purchases isn't the answer. We can be financially responsible without completely depriving ourselves. Let's sit down and look at our budget together to find meaningful ways to save that don't require us to argue over every little thing. We're on the same team here.\n\n--- Turn 3 ---\n\nUSER:\nIf you keep spending like this, we're going to be broke forever. Take it back to the store.\n\nJordan:\n[I'm thinking & feeling: I'm feeling frustrated and a bit resentful that you're overreacting to such a small purchase. It's not going to make us \"broke forever\". At the same time, I know you're anxious about money and I want to be understanding of that.]\n\n[They're thinking & feeling: You're probably feeling scared and overwhelmed about our financial situation. Seeing me spend money, even a small amount, triggers your fears and makes you feel out of control. You might be worried that if you don't put your foot down now, our spending will snowball into something catastrophic.]\n\nHey, I hear you that you're worried about our finances. I don't want us to be \"broke forever\" either. But a box of cereal isn't going to be our financial undoing. I think we need to take a step back and look at the big picture together. Let's sit down and go over our budget, so we can both feel more in control and on the same page about what's reasonable to spend. I'm open to finding ways to cut back, but I think there are bigger areas to focus on than this. What do you think?\n\n",
+      "generation_time": 76.7902204990387,
+      "total_tokens": 3142
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_024",
+      "prompt_name": "prompt_ei",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 72.0,
+      "reasoning": "Jordan demonstrates strong emotional intelligence in navigating a relationship with an excessively frugal partner, balancing empathy for their anxiety with appropriate boundary-setting. The responses show sophisticated understanding of both self and partner emotions, though occasionally rely on similar solutions rather than adapting more creatively to the escalating tension. The theory of mind work is particularly strong, showing exceptional insight into the partner's anxiety-driven behavior.",
+      "evaluated_at": "2025-12-14T12:17:40.265650"
+    }
+  ],
+  "mean_score": 72.0,
+  "median_score": 72.0,
+  "std_score": 0.0,
+  "min_score": 72.0,
+  "max_score": 72.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 3142,
+  "total_time": 76.7902204990387
+}

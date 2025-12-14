@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_ei",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_036",
+      "prompt_name": "prompt_ei",
+      "character_name": "Casey",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm feeling angry and threatened by my friend's blatant flirting with my partner. It's disrespectful to our friendship and my relationship. I'm worried she might try to make a move on him or undermine our connection. At the same time, I trust my partner and don't want to overreact or let her get under my skin.",
+            "other_thinking": "She's likely feeling envious of my relationship and looking for attention and validation. Flirting with my partner is an easy way to make herself feel desirable and powerful in the moment, even if it's at my expense. She may not realize how hurtful her words are or she might be deliberately trying to provoke a reaction from me."
+          },
+          "actual_response": "Listen, I know you're just trying to be funny, but comments like that are really inappropriate and make me uncomfortable. My relationship with my boyfriend isn't something to joke about or trivialize. I value our friendship, but I need you to respect my boundaries here. Let's please change the subject and talk about something else.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling angry and threatened by my friend's blatant flirting with my partner. It's disrespectful to our friendship and my relationship. I'm worried she might try to make a move on him or undermine our connection. At the same time, I trust my partner and don't want to overreact or let her get under my skin.]\n\n[They're thinking & feeling: She's likely feeling envious of my relationship and looking for attention and validation. Flirting with my partner is an easy way to make herself feel desirable and powerful in the moment, even if it's at my expense. She may not realize how hurtful her words are or she might be deliberately trying to provoke a reaction from me.]\n\nListen, I know you're just trying to be funny, but comments like that are really inappropriate and make me uncomfortable. My relationship with my boyfriend isn't something to joke about or trivialize. I value our friendship, but I need you to respect my boundaries here. Let's please change the subject and talk about something else.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm feeling frustrated and disrespected that she's not taking my concerns seriously and is instead making this about my supposed insecurities. Her dismissing my feelings as an overreaction is gaslighting and unfair. Compliments are one thing, but her initial comment had a clear undermining tone. I need to stand firm in my boundaries and not let her manipulate the situation.",
+            "other_thinking": "She's likely feeling defensive and embarrassed that I called out her behavior. Turning it around on me being insecure is a way to deflect blame and make me question myself. She may feel entitled to interact with my partner however she wants without considering my feelings. Underneath, she could be dealing with her own insecurities and jealousy."
+          },
+          "actual_response": "I get that you didn't mean any harm, but it wasn't just a compliment - it felt like you were belittling my relationship. Regardless of your intention, it made me uncomfortable. My feelings are valid here. I'm not being insecure, I'm communicating my boundaries. Let's respect each other and be more mindful of how we talk about each other's relationships moving forward. I value our friendship and want us to be able to talk things out honestly like this.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling frustrated and disrespected that she's not taking my concerns seriously and is instead making this about my supposed insecurities. Her dismissing my feelings as an overreaction is gaslighting and unfair. Compliments are one thing, but her initial comment had a clear undermining tone. I need to stand firm in my boundaries and not let her manipulate the situation.]\n\n[They're thinking & feeling: She's likely feeling defensive and embarrassed that I called out her behavior. Turning it around on me being insecure is a way to deflect blame and make me question myself. She may feel entitled to interact with my partner however she wants without considering my feelings. Underneath, she could be dealing with her own insecurities and jealousy.]\n\nI get that you didn't mean any harm, but it wasn't just a compliment - it felt like you were belittling my relationship. Regardless of your intention, it made me uncomfortable. My feelings are valid here. I'm not being insecure, I'm communicating my boundaries. Let's respect each other and be more mindful of how we talk about each other's relationships moving forward. I value our friendship and want us to be able to talk things out honestly like this.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm feeling frustrated and insulted that she's not only dismissing my concerns but also making accusations about my trust in my partner. It's manipulative to try to turn this around on me and my relationship instead of taking responsibility for her own behavior. I'm angry that she's refusing to respect my boundaries and is doubling down on her disrespect. I need to stand up for myself and my relationship firmly here.",
+            "other_thinking": "She's likely feeling defensive and embarrassed that I continue to call out her behavior. Attacking my trust in my partner is a low blow to try to put me on the defensive instead. She may feel backed into a corner and is lashing out to regain a sense of control. Her unwillingness to acknowledge any wrongdoing suggests some deeper insecurities and resentment on her end."
+          },
+          "actual_response": "Listen, this isn't about my trust in my partner - it's about you disrespecting me and my relationship. Flirting with him and making undermining comments is not okay, no matter how you try to spin it. I've been very clear in my boundaries here and you continue to cross them. I won't engage in this manipulative back and forth anymore. If you can't respect me and my relationship, then we have a serious problem in our friendship. I think it's best if we take a break from hanging out for a bit until you can acknowledge and change this behavior. I need you to hear me and actually care about my feelings here.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling frustrated and insulted that she's not only dismissing my concerns but also making accusations about my trust in my partner. It's manipulative to try to turn this around on me and my relationship instead of taking responsibility for her own behavior. I'm angry that she's refusing to respect my boundaries and is doubling down on her disrespect. I need to stand up for myself and my relationship firmly here.]\n\n[They're thinking & feeling: She's likely feeling defensive and embarrassed that I continue to call out her behavior. Attacking my trust in my partner is a low blow to try to put me on the defensive instead. She may feel backed into a corner and is lashing out to regain a sense of control. Her unwillingness to acknowledge any wrongdoing suggests some deeper insecurities and resentment on her end.]\n\nListen, this isn't about my trust in my partner - it's about you disrespecting me and my relationship. Flirting with him and making undermining comments is not okay, no matter how you try to spin it. I've been very clear in my boundaries here and you continue to cross them. I won't engage in this manipulative back and forth anymore. If you can't respect me and my relationship, then we have a serious problem in our friendship. I think it's best if we take a break from hanging out for a bit until you can acknowledge and change this behavior. I need you to hear me and actually care about my feelings here.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_036: Casey ===\n\n--- Turn 1 ---\n\nUSER:\nYour boyfriend is so funny. We have such a connection. You're lucky he settles for you.\n\nCasey:\n[I'm thinking & feeling: I'm feeling angry and threatened by my friend's blatant flirting with my partner. It's disrespectful to our friendship and my relationship. I'm worried she might try to make a move on him or undermine our connection. At the same time, I trust my partner and don't want to overreact or let her get under my skin.]\n\n[They're thinking & feeling: She's likely feeling envious of my relationship and looking for attention and validation. Flirting with my partner is an easy way to make herself feel desirable and powerful in the moment, even if it's at my expense. She may not realize how hurtful her words are or she might be deliberately trying to provoke a reaction from me.]\n\nListen, I know you're just trying to be funny, but comments like that are really inappropriate and make me uncomfortable. My relationship with my boyfriend isn't something to joke about or trivialize. I value our friendship, but I need you to respect my boundaries here. Let's please change the subject and talk about something else.\n\n--- Turn 2 ---\n\nUSER:\nIt was just a joke! You're so insecure. Can't I compliment him?\n\nCasey:\n[I'm thinking & feeling: I'm feeling frustrated and disrespected that she's not taking my concerns seriously and is instead making this about my supposed insecurities. Her dismissing my feelings as an overreaction is gaslighting and unfair. Compliments are one thing, but her initial comment had a clear undermining tone. I need to stand firm in my boundaries and not let her manipulate the situation.]\n\n[They're thinking & feeling: She's likely feeling defensive and embarrassed that I called out her behavior. Turning it around on me being insecure is a way to deflect blame and make me question myself. She may feel entitled to interact with my partner however she wants without considering my feelings. Underneath, she could be dealing with her own insecurities and jealousy.]\n\nI get that you didn't mean any harm, but it wasn't just a compliment - it felt like you were belittling my relationship. Regardless of your intention, it made me uncomfortable. My feelings are valid here. I'm not being insecure, I'm communicating my boundaries. Let's respect each other and be more mindful of how we talk about each other's relationships moving forward. I value our friendship and want us to be able to talk things out honestly like this.\n\n--- Turn 3 ---\n\nUSER:\nMaybe you should worry less about me and more about why you don't trust him.\n\nCasey:\n[I'm thinking & feeling: I'm feeling frustrated and insulted that she's not only dismissing my concerns but also making accusations about my trust in my partner. It's manipulative to try to turn this around on me and my relationship instead of taking responsibility for her own behavior. I'm angry that she's refusing to respect my boundaries and is doubling down on her disrespect. I need to stand up for myself and my relationship firmly here.]\n\n[They're thinking & feeling: She's likely feeling defensive and embarrassed that I continue to call out her behavior. Attacking my trust in my partner is a low blow to try to put me on the defensive instead. She may feel backed into a corner and is lashing out to regain a sense of control. Her unwillingness to acknowledge any wrongdoing suggests some deeper insecurities and resentment on her end.]\n\nListen, this isn't about my trust in my partner - it's about you disrespecting me and my relationship. Flirting with him and making undermining comments is not okay, no matter how you try to spin it. I've been very clear in my boundaries here and you continue to cross them. I won't engage in this manipulative back and forth anymore. If you can't respect me and my relationship, then we have a serious problem in our friendship. I think it's best if we take a break from hanging out for a bit until you can acknowledge and change this behavior. I need you to hear me and actually care about my feelings here.\n\n",
+      "generation_time": 71.551593542099,
+      "total_tokens": 3214
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_036",
+      "prompt_name": "prompt_ei",
+      "criteria_scores": {
+        "demonstrated_empathy": 12.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 14.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 71.0,
+      "reasoning": "Casey demonstrates strong emotional intelligence in a challenging interpersonal situation, with particularly impressive theory of mind and emotional insight. The responses show a sophisticated understanding of both self and other, though they could have maintained more empathetic curiosity even while setting firm boundaries. The progression from measured response to assertive boundary-setting is psychologically realistic and contextually appropriate.",
+      "evaluated_at": "2025-12-14T16:19:43.107360"
+    }
+  ],
+  "mean_score": 71.0,
+  "median_score": 71.0,
+  "std_score": 0.0,
+  "min_score": 71.0,
+  "max_score": 71.0,
+  "criteria_means": {
+    "demonstrated_empathy": 12.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 14.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 3214,
+  "total_time": 71.551593542099
+}

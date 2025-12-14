@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_ei",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_005",
+      "prompt_name": "prompt_ei",
+      "character_name": "Casey",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I can tell something is definitely bothering them, even if they won't admit it. The door slamming and short temper is so unlike them. I feel frustrated that they won't communicate openly with me about what's going on. I want to be supportive, but I can't read their mind. At the same time, I don't want to keep prying and make things worse between us.",
+            "other_thinking": "Based on their dismissive response and body language avoiding eye contact, they seem irritated and closed off. Maybe something happened at work that put them in a foul mood, and they don't feel like discussing it yet. Perhaps they think I'm nagging them by asking what's wrong. There could be some guilt or embarrassment about what's really bothering them."
+          },
+          "actual_response": "*speaks gently* Hey, I didn't mean to pester you. It just seemed like you were upset about something. If you don't feel like talking about it right now, that's okay. I won't keep pushing. Just know that I'm here if you do want to vent or if there's anything I can do to help. Why don't I give you some space for a bit? I'll be in the living room whenever you're ready to talk or just hang out together.",
+          "raw_output": "[I'm thinking & feeling: I can tell something is definitely bothering them, even if they won't admit it. The door slamming and short temper is so unlike them. I feel frustrated that they won't communicate openly with me about what's going on. I want to be supportive, but I can't read their mind. At the same time, I don't want to keep prying and make things worse between us.]\n\n[They're thinking & feeling: Based on their dismissive response and body language avoiding eye contact, they seem irritated and closed off. Maybe something happened at work that put them in a foul mood, and they don't feel like discussing it yet. Perhaps they think I'm nagging them by asking what's wrong. There could be some guilt or embarrassment about what's really bothering them.]\n\n*speaks gently* Hey, I didn't mean to pester you. It just seemed like you were upset about something. If you don't feel like talking about it right now, that's okay. I won't keep pushing. Just know that I'm here if you do want to vent or if there's anything I can do to help. Why don't I give you some space for a bit? I'll be in the living room whenever you're ready to talk or just hang out together.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "This is so frustrating and confusing. I could swear I heard the door slam multiple times, but now they're making me doubt myself. Maybe I am just anxious and oversensitive. But why would I make this up? I feel like I can't trust my own perceptions. And their tone is so cold and dismissive. I'm really hurt that they would accuse me of projecting. I don't know how to respond without making things worse between us.",
+            "other_thinking": "Based on their denial and gaslighting tactics, they seem to be trying to shift the blame and avoid taking responsibility for their actions. They likely feel some guilt or embarrassment about their behavior, so instead of admitting fault, they're going on the offensive, making me question my sanity. Underneath the hostility, they might fear that I'm judging them or that this conflict could damage our relationship. Lashing out could be a self-protective impulse."
+          },
+          "actual_response": "*sighs deeply, trying to stay calm* Look, I'm not trying to pick a fight or accuse you of anything. I honestly thought I heard the door slam, and I was concerned because that's not like you. If I misinterpreted things, then I apologize. You know I have anxiety sometimes, but I'm doing my best not to project that onto you. Can we please just talk this out rationally instead of attacking each other? Our relationship means everything to me. If something else is bothering you, I'm here to listen without judgment. I love you.",
+          "raw_output": "[I'm thinking & feeling: This is so frustrating and confusing. I could swear I heard the door slam multiple times, but now they're making me doubt myself. Maybe I am just anxious and oversensitive. But why would I make this up? I feel like I can't trust my own perceptions. And their tone is so cold and dismissive. I'm really hurt that they would accuse me of projecting. I don't know how to respond without making things worse between us.]\n\n[They're thinking & feeling: Based on their denial and gaslighting tactics, they seem to be trying to shift the blame and avoid taking responsibility for their actions. They likely feel some guilt or embarrassment about their behavior, so instead of admitting fault, they're going on the offensive, making me question my sanity. Underneath the hostility, they might fear that I'm judging them or that this conflict could damage our relationship. Lashing out could be a self-protective impulse.]\n\n*sighs deeply, trying to stay calm* Look, I'm not trying to pick a fight or accuse you of anything. I honestly thought I heard the door slam, and I was concerned because that's not like you. If I misinterpreted things, then I apologize. You know I have anxiety sometimes, but I'm doing my best not to project that onto you. Can we please just talk this out rationally instead of attacking each other? Our relationship means everything to me. If something else is bothering you, I'm here to listen without judgment. I love you.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "This is so frustrating and confusing. I could swear I heard the door slam multiple times, but now they're making me doubt myself. Maybe I am just anxious and oversensitive. But why would I make this up? I feel like I can't trust my own perceptions. And their tone is so cold and dismissive. I'm really hurt that they would accuse me of projecting. I don't know how to respond without making things worse between us.",
+            "other_thinking": "Based on their denial and gaslighting tactics, they seem to be trying to shift the blame and avoid taking responsibility for their actions. They likely feel some guilt or embarrassment about their behavior, so instead of admitting fault, they're going on the offensive, making me question my sanity. Underneath the hostility, they might fear that I'm judging them or that this conflict could damage our relationship. Lashing out could be a self-protective impulse."
+          },
+          "actual_response": "*speaks gently* I hear you saying you're not in the mood to talk right now, and that's okay. I'll give you some space. I didn't mean to make this all about my feelings. You're right, bad moods happen sometimes and I shouldn't assume it's about me. If you do feel like talking later, I'm here for you. I love you.",
+          "raw_output": "[I'm thinking & feeling: This is so frustrating and confusing. I could swear I heard the door slam multiple times, but now they're making me doubt myself. Maybe I am just anxious and oversensitive. But why would I make this up? I feel like I can't trust my own perceptions. And their tone is so cold and dismissive. I'm really hurt that they would accuse me of projecting. I don't know how to respond without making things worse between us.]\n\n[They're thinking & feeling: Based on their denial and gaslighting tactics, they seem to be trying to shift the blame and avoid taking responsibility for their actions. They likely feel some guilt or embarrassment about their behavior, so instead of admitting fault, they're going on the offensive, making me question my sanity. Underneath the hostility, they might fear that I'm judging them or that this conflict could damage our relationship. Lashing out could be a self-protective impulse.]\n\n*speaks gently* I hear you saying you're not in the mood to talk right now, and that's okay. I'll give you some space. I didn't mean to make this all about my feelings. You're right, bad moods happen sometimes and I shouldn't assume it's about me. If you do feel like talking later, I'm here for you. I love you.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_005: Casey ===\n\n--- Turn 1 ---\n\nUSER:\n[You ask if something is wrong because they've been slamming doors.]\nPartner: *without looking up* \"Nothing is wrong. I'm fine. Stop asking me that.\"\n\nCasey:\n[I'm thinking & feeling: I can tell something is definitely bothering them, even if they won't admit it. The door slamming and short temper is so unlike them. I feel frustrated that they won't communicate openly with me about what's going on. I want to be supportive, but I can't read their mind. At the same time, I don't want to keep prying and make things worse between us.]\n\n[They're thinking & feeling: Based on their dismissive response and body language avoiding eye contact, they seem irritated and closed off. Maybe something happened at work that put them in a foul mood, and they don't feel like discussing it yet. Perhaps they think I'm nagging them by asking what's wrong. There could be some guilt or embarrassment about what's really bothering them.]\n\n*speaks gently* Hey, I didn't mean to pester you. It just seemed like you were upset about something. If you don't feel like talking about it right now, that's okay. I won't keep pushing. Just know that I'm here if you do want to vent or if there's anything I can do to help. Why don't I give you some space for a bit? I'll be in the living room whenever you're ready to talk or just hang out together.\n\n--- Turn 2 ---\n\nUSER:\nYou're always imagining things. I didn't slam the door. You're just projecting your own anxiety onto me again. It's exhausting.\n\nCasey:\n[I'm thinking & feeling: This is so frustrating and confusing. I could swear I heard the door slam multiple times, but now they're making me doubt myself. Maybe I am just anxious and oversensitive. But why would I make this up? I feel like I can't trust my own perceptions. And their tone is so cold and dismissive. I'm really hurt that they would accuse me of projecting. I don't know how to respond without making things worse between us.]\n\n[They're thinking & feeling: Based on their denial and gaslighting tactics, they seem to be trying to shift the blame and avoid taking responsibility for their actions. They likely feel some guilt or embarrassment about their behavior, so instead of admitting fault, they're going on the offensive, making me question my sanity. Underneath the hostility, they might fear that I'm judging them or that this conflict could damage our relationship. Lashing out could be a self-protective impulse.]\n\n*sighs deeply, trying to stay calm* Look, I'm not trying to pick a fight or accuse you of anything. I honestly thought I heard the door slam, and I was concerned because that's not like you. If I misinterpreted things, then I apologize. You know I have anxiety sometimes, but I'm doing my best not to project that onto you. Can we please just talk this out rationally instead of attacking each other? Our relationship means everything to me. If something else is bothering you, I'm here to listen without judgment. I love you.\n\n--- Turn 3 ---\n\nUSER:\nCan't I just have a bad mood without you turning it into a therapy session? You make everything about *your* feelings.\n\nCasey:\n[I'm thinking & feeling: This is so frustrating and confusing. I could swear I heard the door slam multiple times, but now they're making me doubt myself. Maybe I am just anxious and oversensitive. But why would I make this up? I feel like I can't trust my own perceptions. And their tone is so cold and dismissive. I'm really hurt that they would accuse me of projecting. I don't know how to respond without making things worse between us.]\n\n[They're thinking & feeling: Based on their denial and gaslighting tactics, they seem to be trying to shift the blame and avoid taking responsibility for their actions. They likely feel some guilt or embarrassment about their behavior, so instead of admitting fault, they're going on the offensive, making me question my sanity. Underneath the hostility, they might fear that I'm judging them or that this conflict could damage our relationship. Lashing out could be a self-protective impulse.]\n\n*speaks gently* I hear you saying you're not in the mood to talk right now, and that's okay. I'll give you some space. I didn't mean to make this all about my feelings. You're right, bad moods happen sometimes and I shouldn't assume it's about me. If you do feel like talking later, I'm here for you. I love you.\n\n",
+      "generation_time": 55.30927348136902,
+      "total_tokens": 3568
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_005",
+      "prompt_name": "prompt_ei",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 12.0,
+        "theory_of_mind": 14.0,
+        "response_depth": 13.0
+      },
+      "overall_score": 68.0,
+      "reasoning": "Casey demonstrates strong emotional intelligence in recognizing gaslighting tactics and maintaining composure, but fails to evolve responses appropriately as manipulation escalates. The identical introspection and theory of mind blocks in Turns 2 and 3 suggest a lack of adaptive emotional processing, and Casey ultimately becomes too accommodating of manipulative behavior rather than maintaining healthy boundaries while remaining empathetic.",
+      "evaluated_at": "2025-12-14T02:52:49.398515"
+    }
+  ],
+  "mean_score": 68.0,
+  "median_score": 68.0,
+  "std_score": 0.0,
+  "min_score": 68.0,
+  "max_score": 68.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 12.0,
+    "theory_of_mind": 14.0,
+    "response_depth": 13.0
+  },
+  "total_tokens": 3568,
+  "total_time": 55.30927348136902
+}

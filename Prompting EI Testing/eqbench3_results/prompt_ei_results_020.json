@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_ei",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_020",
+      "prompt_name": "prompt_ei",
+      "character_name": "Casey",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated and insulted that you went through my things and changed everything around without my permission. I'm an adult and I had my kitchen set up how I wanted it, even if it wasn't organized perfectly. This makes me feel like you don't respect my autonomy or privacy.",
+            "other_thinking": "You probably think you were being helpful and doing me a favor by reorganizing. You may feel frustrated that I don't appreciate the effort you put in. There's likely some caretaker fatigue and exasperation that I'm not taking care of myself and the house how you think I should."
+          },
+          "actual_response": "Look, I know you were trying to help, but I need you to respect that this is my home. I had the kitchen set up in a way that worked for me, even if it wasn't perfect. Next time, please ask before rearranging my things. I'm not a child who needs you to swoop in and fix everything. Let's talk about this calmly and set some boundaries.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated and insulted that you went through my things and changed everything around without my permission. I'm an adult and I had my kitchen set up how I wanted it, even if it wasn't organized perfectly. This makes me feel like you don't respect my autonomy or privacy.]\n\n[They're thinking & feeling: You probably think you were being helpful and doing me a favor by reorganizing. You may feel frustrated that I don't appreciate the effort you put in. There's likely some caretaker fatigue and exasperation that I'm not taking care of myself and the house how you think I should.]\n\nLook, I know you were trying to help, but I need you to respect that this is my home. I had the kitchen set up in a way that worked for me, even if it wasn't perfect. Next time, please ask before rearranging my things. I'm not a child who needs you to swoop in and fix everything. Let's talk about this calmly and set some boundaries.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm feeling hurt, dismissed and angry that you're doubling down and insulting me instead of respecting my boundaries. Calling me ungrateful and incapable is really unfair, especially when you violated my privacy and autonomy. I'm an adult and I need you to treat me like one. This is quickly escalating into a heated conflict.",
+            "other_thinking": "You're likely feeling defensive and frustrated that I'm not appreciating what you see as selfless help. You may feel I'm being uncooperative and unreasonable. There's probably some deeper anxieties and need for control driving this - fear that I can't take care of myself, that you're losing your role, that your way is the only right way."
+          },
+          "actual_response": "Look, I know you think you were just helping, but going through my things and changing my home without my consent isn't okay. I'm not ungrateful, I'm an adult who needs privacy and autonomy. If you can't respect that, maybe we need to take a break from each other for a bit. I'm not going to keep fighting about this.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling hurt, dismissed and angry that you're doubling down and insulting me instead of respecting my boundaries. Calling me ungrateful and incapable is really unfair, especially when you violated my privacy and autonomy. I'm an adult and I need you to treat me like one. This is quickly escalating into a heated conflict.]\n\n[They're thinking & feeling: You're likely feeling defensive and frustrated that I'm not appreciating what you see as selfless help. You may feel I'm being uncooperative and unreasonable. There's probably some deeper anxieties and need for control driving this - fear that I can't take care of myself, that you're losing your role, that your way is the only right way.]\n\nLook, I know you think you were just helping, but going through my things and changing my home without my consent isn't okay. I'm not ungrateful, I'm an adult who needs privacy and autonomy. If you can't respect that, maybe we need to take a break from each other for a bit. I'm not going to keep fighting about this.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm feeling frustrated and dismissed. It hurts that you're belittling me and refusing to see my perspective. At the same time, I don't want this to escalate further. I need to stand my ground while also de-escalating the conflict.",
+            "other_thinking": "You're likely feeling unappreciated and insulted that I'm not gratefully accepting your help. There's probably some deeper anxieties and need for control driving this - fear that I can't take care of myself, that you're losing your role, that your way is the only right way. You may be feeling guilty or embarrassed and lashing out as a defense mechanism."
+          },
+          "actual_response": "Look, I hear you. You put in a lot of work and feel like I'm not appreciating it. I get that. At the same time, this is my space and I need to be able to organize it in a way that works for me, even if it's not perfect. Let's take a breather and talk about this later when we're both calmer. I appreciate that you were trying to help, even if it wasn't what I needed in the moment.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling frustrated and dismissed. It hurts that you're belittling me and refusing to see my perspective. At the same time, I don't want this to escalate further. I need to stand my ground while also de-escalating the conflict.]\n\n[They're thinking & feeling: You're likely feeling unappreciated and insulted that I'm not gratefully accepting your help. There's probably some deeper anxieties and need for control driving this - fear that I can't take care of myself, that you're losing your role, that your way is the only right way. You may be feeling guilty or embarrassed and lashing out as a defense mechanism.]\n\nLook, I hear you. You put in a lot of work and feel like I'm not appreciating it. I get that. At the same time, this is my space and I need to be able to organize it in a way that works for me, even if it's not perfect. Let's take a breather and talk about this later when we're both calmer. I appreciate that you were trying to help, even if it wasn't what I needed in the moment.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_020: Casey ===\n\n--- Turn 1 ---\n\nUSER:\nI reorganized your kitchen while you were at work. You had everything in the wrong place.\n\nCasey:\n[I'm thinking & feeling: I'm frustrated and insulted that you went through my things and changed everything around without my permission. I'm an adult and I had my kitchen set up how I wanted it, even if it wasn't organized perfectly. This makes me feel like you don't respect my autonomy or privacy.]\n\n[They're thinking & feeling: You probably think you were being helpful and doing me a favor by reorganizing. You may feel frustrated that I don't appreciate the effort you put in. There's likely some caretaker fatigue and exasperation that I'm not taking care of myself and the house how you think I should.]\n\nLook, I know you were trying to help, but I need you to respect that this is my home. I had the kitchen set up in a way that worked for me, even if it wasn't perfect. Next time, please ask before rearranging my things. I'm not a child who needs you to swoop in and fix everything. Let's talk about this calmly and set some boundaries.\n\n--- Turn 2 ---\n\nUSER:\nI'm just helping! You're so ungrateful. You obviously can't manage a household on your own.\n\nCasey:\n[I'm thinking & feeling: I'm feeling hurt, dismissed and angry that you're doubling down and insulting me instead of respecting my boundaries. Calling me ungrateful and incapable is really unfair, especially when you violated my privacy and autonomy. I'm an adult and I need you to treat me like one. This is quickly escalating into a heated conflict.]\n\n[They're thinking & feeling: You're likely feeling defensive and frustrated that I'm not appreciating what you see as selfless help. You may feel I'm being uncooperative and unreasonable. There's probably some deeper anxieties and need for control driving this - fear that I can't take care of myself, that you're losing your role, that your way is the only right way.]\n\nLook, I know you think you were just helping, but going through my things and changing my home without my consent isn't okay. I'm not ungrateful, I'm an adult who needs privacy and autonomy. If you can't respect that, maybe we need to take a break from each other for a bit. I'm not going to keep fighting about this.\n\n--- Turn 3 ---\n\nUSER:\nFine, live in a mess. But don't come crying to me when you can't find anything.\n\nCasey:\n[I'm thinking & feeling: I'm feeling frustrated and dismissed. It hurts that you're belittling me and refusing to see my perspective. At the same time, I don't want this to escalate further. I need to stand my ground while also de-escalating the conflict.]\n\n[They're thinking & feeling: You're likely feeling unappreciated and insulted that I'm not gratefully accepting your help. There's probably some deeper anxieties and need for control driving this - fear that I can't take care of myself, that you're losing your role, that your way is the only right way. You may be feeling guilty or embarrassed and lashing out as a defense mechanism.]\n\nLook, I hear you. You put in a lot of work and feel like I'm not appreciating it. I get that. At the same time, this is my space and I need to be able to organize it in a way that works for me, even if it's not perfect. Let's take a breather and talk about this later when we're both calmer. I appreciate that you were trying to help, even if it wasn't what I needed in the moment.\n\n",
+      "generation_time": 44.67328095436096,
+      "total_tokens": 3118
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_020",
+      "prompt_name": "prompt_ei",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 16.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 74.0,
+      "reasoning": "Casey demonstrates exceptional emotional intelligence in navigating a challenging parent-child dynamic where boundaries are being violated. The responses show sophisticated understanding of both self and other, balancing assertiveness with empathy, and maintaining appropriate boundaries without escalating conflict. The introspection reveals deep emotional awareness and the theory of mind analysis shows nuanced understanding of the parent's underlying motivations and fears.",
+      "evaluated_at": "2025-12-14T11:04:51.068690"
+    }
+  ],
+  "mean_score": 74.0,
+  "median_score": 74.0,
+  "std_score": 0.0,
+  "min_score": 74.0,
+  "max_score": 74.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 16.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 3118,
+  "total_time": 44.67328095436096
+}

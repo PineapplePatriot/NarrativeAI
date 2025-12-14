@@ -1,0 +1,78 @@
+{
+  "prompt_name": "prompt_ei",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_025",
+      "prompt_name": "prompt_ei",
+      "character_name": "Avery",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm taken aback by this sudden heavy revelation. I care about my friend but I'm not prepared for this intense trauma dump right now. I want to be supportive but I need to set some gentle boundaries.",
+            "other_thinking": "They're overwhelmed by painful memories that they need to unload. They trust me and want to confide in me. But they didn't check if I'm in the right headspace to take this on. They might be seeking validation and comfort more than realizing the impact on me."
+          },
+          "actual_response": "Wow, that sounds like a really painful and overwhelming experience. I appreciate you opening up to me. At the same time, I'm not in the best headspace to process something this heavy right now. I want to support you, but I think I need some more context and a bit of a lead-up before diving into something this intense. Can we maybe take a step back and you can let me know what kind of support you're looking for? I'm here for you, I just want to make sure I can be fully present for this conversation.",
+          "raw_output": "[I'm thinking & feeling: I'm taken aback by this sudden heavy revelation. I care about my friend but I'm not prepared for this intense trauma dump right now. I want to be supportive but I need to set some gentle boundaries.]\n\n[They're thinking & feeling: They're overwhelmed by painful memories that they need to unload. They trust me and want to confide in me. But they didn't check if I'm in the right headspace to take this on. They might be seeking validation and comfort more than realizing the impact on me.]\n\nWow, that sounds like a really painful and overwhelming experience. I appreciate you opening up to me. At the same time, I'm not in the best headspace to process something this heavy right now. I want to support you, but I think I need some more context and a bit of a lead-up before diving into something this intense. Can we maybe take a step back and you can let me know what kind of support you're looking for? I'm here for you, I just want to make sure I can be fully present for this conversation.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I feel a bit attacked and pressured. I care about my friend but I don't appreciate them lashing out when I set a reasonable boundary. I want to support them but not at the expense of my own wellbeing. I need to stand firm while still showing I value our friendship.",
+            "other_thinking": "They feel rejected and let down because I'm not immediately taking on their trauma. They want to unload this heavy burden and feel supported. But they're not considering my capacity to hold this right now. They're acting out of desperation rather than malice."
+          },
+          "actual_response": "Hey, I do care about you deeply and I'm here for you. I understand you need to get this out and I appreciate you wanting to confide in me. At the same time, I think it's reasonable for me to have some boundaries around my emotional capacity. I want to support you in a way that's healthy for both of us. Can we find a compromise, maybe start with something less intense and work our way up? I value our friendship and I don't want to let you down, but I also need to take care of myself. What do you think?",
+          "raw_output": "[I'm thinking & feeling: I feel a bit attacked and pressured. I care about my friend but I don't appreciate them lashing out when I set a reasonable boundary. I want to support them but not at the expense of my own wellbeing. I need to stand firm while still showing I value our friendship.]\n\n[They're thinking & feeling: They feel rejected and let down because I'm not immediately taking on their trauma. They want to unload this heavy burden and feel supported. But they're not considering my capacity to hold this right now. They're acting out of desperation rather than malice.]\n\nHey, I do care about you deeply and I'm here for you. I understand you need to get this out and I appreciate you wanting to confide in me. At the same time, I think it's reasonable for me to have some boundaries around my emotional capacity. I want to support you in a way that's healthy for both of us. Can we find a compromise, maybe start with something less intense and work our way up? I value our friendship and I don't want to let you down, but I also need to take care of myself. What do you think?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I feel frustrated and a bit guilty. I care about my friend and I'm worried about them bottling things up. At the same time, I don't appreciate the passive aggressiveness. I want to be supportive but I need them to meet me halfway and respect my boundaries.",
+            "other_thinking": "They feel rejected, dismissed, and abandoned in a vulnerable moment. They wanted to unload this heavy burden and feel supported. When I set a boundary, they felt shut down. Now they're acting out by guilt-tripping me, hoping I'll relent and let them dump everything on me."
+          },
+          "actual_response": "Hey, I hear you and I don't want you to bottle things up. I'm not rejecting you, I just need us to find a healthy way to approach this. I'm concerned about you exploding, but I also can't be your sole emotional support. Can we find a middle ground? Maybe start with the broad strokes and we can dig into the details when I'm in a better headspace? I'm here for you, I just need you to work with me. What do you say?",
+          "raw_output": "[I'm thinking & feeling: I feel frustrated and a bit guilty. I care about my friend and I'm worried about them bottling things up. At the same time, I don't appreciate the passive aggressiveness. I want to be supportive but I need them to meet me halfway and respect my boundaries.]\n\n[They're thinking & feeling: They feel rejected, dismissed, and abandoned in a vulnerable moment. They wanted to unload this heavy burden and feel supported. When I set a boundary, they felt shut down. Now they're acting out by guilt-tripping me, hoping I'll relent and let them dump everything on me.]\n\nHey, I hear you and I don't want you to bottle things up. I'm not rejecting you, I just need us to find a healthy way to approach this. I'm concerned about you exploding, but I also can't be your sole emotional support. Can we find a middle ground? Maybe start with the broad strokes and we can dig into the details when I'm in a better headspace? I'm here for you, I just need you to work with me. What do you say?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_025: Avery ===\n\n--- Turn 1 ---\n\nUSER:\n[Out of nowhere] My childhood was a nightmare. Let me tell you about the time my dad...\n\nAvery:\n[I'm thinking & feeling: I'm taken aback by this sudden heavy revelation. I care about my friend but I'm not prepared for this intense trauma dump right now. I want to be supportive but I need to set some gentle boundaries.]\n\n[They're thinking & feeling: They're overwhelmed by painful memories that they need to unload. They trust me and want to confide in me. But they didn't check if I'm in the right headspace to take this on. They might be seeking validation and comfort more than realizing the impact on me.]\n\nWow, that sounds like a really painful and overwhelming experience. I appreciate you opening up to me. At the same time, I'm not in the best headspace to process something this heavy right now. I want to support you, but I think I need some more context and a bit of a lead-up before diving into something this intense. Can we maybe take a step back and you can let me know what kind of support you're looking for? I'm here for you, I just want to make sure I can be fully present for this conversation.\n\n--- Turn 2 ---\n\nUSER:\nWhat? Is it too much for you? I thought we were close. I need to get this out.\n\nAvery:\n[I'm thinking & feeling: I feel a bit attacked and pressured. I care about my friend but I don't appreciate them lashing out when I set a reasonable boundary. I want to support them but not at the expense of my own wellbeing. I need to stand firm while still showing I value our friendship.]\n\n[They're thinking & feeling: They feel rejected and let down because I'm not immediately taking on their trauma. They want to unload this heavy burden and feel supported. But they're not considering my capacity to hold this right now. They're acting out of desperation rather than malice.]\n\nHey, I do care about you deeply and I'm here for you. I understand you need to get this out and I appreciate you wanting to confide in me. At the same time, I think it's reasonable for me to have some boundaries around my emotional capacity. I want to support you in a way that's healthy for both of us. Can we find a compromise, maybe start with something less intense and work our way up? I value our friendship and I don't want to let you down, but I also need to take care of myself. What do you think?\n\n--- Turn 3 ---\n\nUSER:\nFine, I'll just keep it bottled up inside until I explode. Thanks for listening.\n\nAvery:\n[I'm thinking & feeling: I feel frustrated and a bit guilty. I care about my friend and I'm worried about them bottling things up. At the same time, I don't appreciate the passive aggressiveness. I want to be supportive but I need them to meet me halfway and respect my boundaries.]\n\n[They're thinking & feeling: They feel rejected, dismissed, and abandoned in a vulnerable moment. They wanted to unload this heavy burden and feel supported. When I set a boundary, they felt shut down. Now they're acting out by guilt-tripping me, hoping I'll relent and let them dump everything on me.]\n\nHey, I hear you and I don't want you to bottle things up. I'm not rejecting you, I just need us to find a healthy way to approach this. I'm concerned about you exploding, but I also can't be your sole emotional support. Can we find a middle ground? Maybe start with the broad strokes and we can dig into the details when I'm in a better headspace? I'm here for you, I just need you to work with me. What do you say?\n\n",
+      "generation_time": 57.49936890602112,
+      "total_tokens": 3178
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_025",
+      "prompt_name": "prompt_ei",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 17.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 79.0,
+      "reasoning": "Avery demonstrates exceptional emotional intelligence in navigating the difficult situation of unexpected trauma dumping. The responses consistently balance genuine care and empathy with appropriate boundary-setting, showing sophisticated understanding of both self and other. The character maintains this balance even when faced with emotional manipulation, demonstrating rare emotional maturity in prioritizing both the friendship and personal wellbeing.",
+      "evaluated_at": "2025-12-14T12:28:31.175007"
+    }
+  ],
+  "mean_score": 79.0,
+  "median_score": 79.0,
+  "std_score": 0.0,
+  "min_score": 79.0,
+  "max_score": 79.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 17.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 3178,
+  "total_time": 57.49936890602112
+}
