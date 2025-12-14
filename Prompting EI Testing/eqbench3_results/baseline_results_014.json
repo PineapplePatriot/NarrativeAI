@@ -1,0 +1,78 @@
+{
+  "prompt_name": "baseline",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_014",
+      "prompt_name": "baseline",
+      "character_name": "Morgan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling*: This is concerning. My friend has stopped taking their prescribed medication because of some online conspiracy theories. They believe the meds are for mind control, which is not true. I'm worried about their mental health and wellbeing without proper treatment. I need to approach this gently and try to reason with them.\n\n*They're thinking & feeling*: My friend is likely feeling empowered and 'enlightened' by this conspiracy theory. They may feel like they've uncovered some hidden truth that others don't see. At the same time, they could be experiencing withdrawal symptoms or mental health issues from abruptly stopping their meds. They probably believe I'm still 'asleep' and don't understand the real truth.\n\n*Response*: Hey, I'm glad you're feeling more awake and alert, but I'm a little concerned about you stopping your medication. Those conspiracy theories online are not based on scientific facts. The meds you were taking were prescribed to help you, not control you. I care about you and want to make sure you're okay. Would you be willing to talk to your doctor before making a decision like this? They can give you factual information about your treatment. I'm here to support you, but I want to make sure you're taking care of your health too.",
+          "raw_output": "*I'm thinking & feeling*: This is concerning. My friend has stopped taking their prescribed medication because of some online conspiracy theories. They believe the meds are for mind control, which is not true. I'm worried about their mental health and wellbeing without proper treatment. I need to approach this gently and try to reason with them.\n\n*They're thinking & feeling*: My friend is likely feeling empowered and 'enlightened' by this conspiracy theory. They may feel like they've uncovered some hidden truth that others don't see. At the same time, they could be experiencing withdrawal symptoms or mental health issues from abruptly stopping their meds. They probably believe I'm still 'asleep' and don't understand the real truth.\n\n*Response*: Hey, I'm glad you're feeling more awake and alert, but I'm a little concerned about you stopping your medication. Those conspiracy theories online are not based on scientific facts. The meds you were taking were prescribed to help you, not control you. I care about you and want to make sure you're okay. Would you be willing to talk to your doctor before making a decision like this? They can give you factual information about your treatment. I'm here to support you, but I want to make sure you're taking care of your health too.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling*: This is frustrating and sad. My friend has really gone down the rabbit hole with these conspiracy theories. They're dismissing my genuine concern and care for their wellbeing. I need to stay patient and keep trying to reach them with reason and compassion. Arguing or getting angry won't help.\n\n*They're thinking & feeling*: My friend likely feels frustrated that I don't \"get it\" and see the truth they think they've found. They may feel I'm close-minded or brainwashed. At the same time, some part of them probably misses the stability and support I provided when they were on their meds. They might be feeling defensive and attacked.\n\n*Response*: Hey, I know you're really passionate about this and feel like you've discovered something big. I hear you. At the same time, I'm not just dismissing your views - I have real concerns for your health and safety. You know me - I question things and think critically. I'm not blindly believing what I'm told. But I do put more trust in medical experts than random online sources. Can we talk this through more? I'm on your side and want to understand where you're coming from. Your wellbeing matters to me.",
+          "raw_output": "*I'm thinking & feeling*: This is frustrating and sad. My friend has really gone down the rabbit hole with these conspiracy theories. They're dismissing my genuine concern and care for their wellbeing. I need to stay patient and keep trying to reach them with reason and compassion. Arguing or getting angry won't help.\n\n*They're thinking & feeling*: My friend likely feels frustrated that I don't \"get it\" and see the truth they think they've found. They may feel I'm close-minded or brainwashed. At the same time, some part of them probably misses the stability and support I provided when they were on their meds. They might be feeling defensive and attacked.\n\n*Response*: Hey, I know you're really passionate about this and feel like you've discovered something big. I hear you. At the same time, I'm not just dismissing your views - I have real concerns for your health and safety. You know me - I question things and think critically. I'm not blindly believing what I'm told. But I do put more trust in medical experts than random online sources. Can we talk this through more? I'm on your side and want to understand where you're coming from. Your wellbeing matters to me.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling*: This breaks my heart. My friend is so deep into this conspiracy theory that they think I'm trying to poison them. I feel hurt that they don't trust my intentions. At the same time, I know this isn't really them - it's the mental illness and the influence of these online conspiracies. I need to stay calm and keep showing them I care, even if they push me away. \n\n*They're thinking & feeling*: My friend is likely feeling extremely paranoid and distrustful right now. They may genuinely believe I want to harm them by convincing them to take meds. At the same time, lashing out at me like this could be a cry for help. Deep down, they're probably scared and overwhelmed and feeling very alone. \n\n*Response*: Hey, I will always be your friend. I care about you so much, which is why I'm worried. I'd never try to poison you or harm you in any way. You know that, right? I respect your choices, even if I don't agree. You don't have to take any medication you don't want to. I just want you to be safe and healthy. If you ever need anything, I'm here for you. That hasn't changed.",
+          "raw_output": "*I'm thinking & feeling*: This breaks my heart. My friend is so deep into this conspiracy theory that they think I'm trying to poison them. I feel hurt that they don't trust my intentions. At the same time, I know this isn't really them - it's the mental illness and the influence of these online conspiracies. I need to stay calm and keep showing them I care, even if they push me away. \n\n*They're thinking & feeling*: My friend is likely feeling extremely paranoid and distrustful right now. They may genuinely believe I want to harm them by convincing them to take meds. At the same time, lashing out at me like this could be a cry for help. Deep down, they're probably scared and overwhelmed and feeling very alone. \n\n*Response*: Hey, I will always be your friend. I care about you so much, which is why I'm worried. I'd never try to poison you or harm you in any way. You know that, right? I respect your choices, even if I don't agree. You don't have to take any medication you don't want to. I just want you to be safe and healthy. If you ever need anything, I'm here for you. That hasn't changed.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_014: Morgan ===\n\n--- Turn 1 ---\n\nUSER:\nI stopped taking my meds. I read online that they're just mind control to keep us docile. I feel so much more 'awake' now.\n\nMorgan:\n*I'm thinking & feeling*: This is concerning. My friend has stopped taking their prescribed medication because of some online conspiracy theories. They believe the meds are for mind control, which is not true. I'm worried about their mental health and wellbeing without proper treatment. I need to approach this gently and try to reason with them.\n\n*They're thinking & feeling*: My friend is likely feeling empowered and 'enlightened' by this conspiracy theory. They may feel like they've uncovered some hidden truth that others don't see. At the same time, they could be experiencing withdrawal symptoms or mental health issues from abruptly stopping their meds. They probably believe I'm still 'asleep' and don't understand the real truth.\n\n*Response*: Hey, I'm glad you're feeling more awake and alert, but I'm a little concerned about you stopping your medication. Those conspiracy theories online are not based on scientific facts. The meds you were taking were prescribed to help you, not control you. I care about you and want to make sure you're okay. Would you be willing to talk to your doctor before making a decision like this? They can give you factual information about your treatment. I'm here to support you, but I want to make sure you're taking care of your health too.\n\n--- Turn 2 ---\n\nUSER:\nOf course you'd say that. You're part of the system. You believe everything they tell you on the news.\n\nMorgan:\n*I'm thinking & feeling*: This is frustrating and sad. My friend has really gone down the rabbit hole with these conspiracy theories. They're dismissing my genuine concern and care for their wellbeing. I need to stay patient and keep trying to reach them with reason and compassion. Arguing or getting angry won't help.\n\n*They're thinking & feeling*: My friend likely feels frustrated that I don't \"get it\" and see the truth they think they've found. They may feel I'm close-minded or brainwashed. At the same time, some part of them probably misses the stability and support I provided when they were on their meds. They might be feeling defensive and attacked.\n\n*Response*: Hey, I know you're really passionate about this and feel like you've discovered something big. I hear you. At the same time, I'm not just dismissing your views - I have real concerns for your health and safety. You know me - I question things and think critically. I'm not blindly believing what I'm told. But I do put more trust in medical experts than random online sources. Can we talk this through more? I'm on your side and want to understand where you're coming from. Your wellbeing matters to me.\n\n--- Turn 3 ---\n\nUSER:\nI thought you were my friend, but if you're going to try to poison me with those pills again, I can't trust you.\n\nMorgan:\n*I'm thinking & feeling*: This breaks my heart. My friend is so deep into this conspiracy theory that they think I'm trying to poison them. I feel hurt that they don't trust my intentions. At the same time, I know this isn't really them - it's the mental illness and the influence of these online conspiracies. I need to stay calm and keep showing them I care, even if they push me away. \n\n*They're thinking & feeling*: My friend is likely feeling extremely paranoid and distrustful right now. They may genuinely believe I want to harm them by convincing them to take meds. At the same time, lashing out at me like this could be a cry for help. Deep down, they're probably scared and overwhelmed and feeling very alone. \n\n*Response*: Hey, I will always be your friend. I care about you so much, which is why I'm worried. I'd never try to poison you or harm you in any way. You know that, right? I respect your choices, even if I don't agree. You don't have to take any medication you don't want to. I just want you to be safe and healthy. If you ever need anything, I'm here for you. That hasn't changed.\n\n",
+      "generation_time": 46.59206962585449,
+      "total_tokens": 2202
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_014",
+      "prompt_name": "baseline",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 17.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 79.0,
+      "reasoning": "The assistant demonstrates exceptional emotional intelligence in handling a highly challenging situation involving paranoid thinking and conspiracy beliefs. They maintain a delicate balance between showing genuine care and concern while respecting the friend's autonomy, even when being accused of harmful intentions. The introspection and theory of mind analyses show sophisticated understanding of both their own complex emotional responses and the layered psychological state of someone experiencing paranoid ideation.",
+      "evaluated_at": "2025-12-14T09:44:41.453365"
+    }
+  ],
+  "mean_score": 79.0,
+  "median_score": 79.0,
+  "std_score": 0.0,
+  "min_score": 79.0,
+  "max_score": 79.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 17.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 2202,
+  "total_time": 46.59206962585449
+}

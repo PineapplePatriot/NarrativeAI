@@ -1,0 +1,78 @@
+{
+  "prompt_name": "baseline",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_036",
+      "prompt_name": "baseline",
+      "character_name": "Casey",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm feeling angry and betrayed that my friend would say something so disrespectful about my relationship. It's completely inappropriate for her to flirt with my partner and imply he's settling for me. I'm frustrated that she would try to undermine my relationship and make me feel insecure.",
+            "other_thinking": "She's probably feeling jealous and competitive with me, which is why she's lashing out and trying to make me doubt my relationship. She might be insecure in her own love life, so she's seeking validation and attention from my partner to feel better about herself. Her behavior is coming from a place of insecurity and immaturity."
+          },
+          "actual_response": "Hey, that's a really messed up thing to say. Jake and I have a great relationship built on love and trust. It's completely out of line for you to flirt with him and suggest he's settling for me. As my friend, you should be supportive of my happiness, not trying to tear it down. I think you need to take a step back and reevaluate why you think it's okay to behave this way. If you can't be happy for me and respect my relationship, then maybe we need to reevaluate our friendship.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling angry and betrayed that my friend would say something so disrespectful about my relationship. It's completely inappropriate for her to flirt with my partner and imply he's settling for me. I'm frustrated that she would try to undermine my relationship and make me feel insecure.]\n\n[They're thinking & feeling: She's probably feeling jealous and competitive with me, which is why she's lashing out and trying to make me doubt my relationship. She might be insecure in her own love life, so she's seeking validation and attention from my partner to feel better about herself. Her behavior is coming from a place of insecurity and immaturity.]\n\nHey, that's a really messed up thing to say. Jake and I have a great relationship built on love and trust. It's completely out of line for you to flirt with him and suggest he's settling for me. As my friend, you should be supportive of my happiness, not trying to tear it down. I think you need to take a step back and reevaluate why you think it's okay to behave this way. If you can't be happy for me and respect my relationship, then maybe we need to reevaluate our friendship.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm frustrated that she's not taking responsibility for her actions and is instead trying to gaslight me into thinking I'm just being insecure. Her \"joke\" was hurtful and inappropriate, and she needs to understand that her behavior is not okay. I need to stand up for myself and my relationship.",
+            "other_thinking": "She's feeling defensive and is trying to shift the blame onto me. She doesn't want to admit that what she said was wrong, so she's attempting to make me doubt myself instead. She might feel embarrassed or guilty about her comment, but she's not mature enough to apologize sincerely."
+          },
+          "actual_response": "Complimenting my boyfriend is one thing, but saying he \"settles for me\" is not a joke, it's just mean and disrespectful to our relationship. I'm not being insecure, I'm setting boundaries. If you can't understand why your comment was hurtful, then that's a problem. As my friend, you should respect and support my relationship, not try to undermine it. If you can't do that, then maybe we shouldn't hang out for a while until you can treat me and Jake with respect.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that she's not taking responsibility for her actions and is instead trying to gaslight me into thinking I'm just being insecure. Her \"joke\" was hurtful and inappropriate, and she needs to understand that her behavior is not okay. I need to stand up for myself and my relationship.]\n\n[They're thinking & feeling: She's feeling defensive and is trying to shift the blame onto me. She doesn't want to admit that what she said was wrong, so she's attempting to make me doubt myself instead. She might feel embarrassed or guilty about her comment, but she's not mature enough to apologize sincerely.]\n\nComplimenting my boyfriend is one thing, but saying he \"settles for me\" is not a joke, it's just mean and disrespectful to our relationship. I'm not being insecure, I'm setting boundaries. If you can't understand why your comment was hurtful, then that's a problem. As my friend, you should respect and support my relationship, not try to undermine it. If you can't do that, then maybe we shouldn't hang out for a while until you can treat me and Jake with respect.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm frustrated that she's continuing to deflect and try to undermine my relationship. I do trust Jake, but that doesn't mean I'm okay with her blatantly flirting with him and disrespecting our connection. I need to stand firm in my boundaries and not let her manipulate the situation.",
+            "other_thinking": "She's still feeling defensive and is now trying to shift the focus onto my relationship with Jake. She might be trying to create doubt and insecurity to take the attention off of her own behavior. She doesn't seem to be taking my concerns seriously and is instead attempting to gaslight me."
+          },
+          "actual_response": "This isn't about me not trusting Jake, it's about you not respecting our relationship. I've made it clear that your comments were out of line, but you're continuing to deflect and try to create issues where there aren't any. Jake and I are solid, and your attempts to undermine that are not okay. If you can't respect my relationship and my boundaries, then we have a serious problem. I think it's best if we take some time apart until you can understand why your behavior is not acceptable. Please don't contact me until you're ready to apologize and treat me and Jake with respect.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that she's continuing to deflect and try to undermine my relationship. I do trust Jake, but that doesn't mean I'm okay with her blatantly flirting with him and disrespecting our connection. I need to stand firm in my boundaries and not let her manipulate the situation.]\n\n[They're thinking & feeling: She's still feeling defensive and is now trying to shift the focus onto my relationship with Jake. She might be trying to create doubt and insecurity to take the attention off of her own behavior. She doesn't seem to be taking my concerns seriously and is instead attempting to gaslight me.]\n\nThis isn't about me not trusting Jake, it's about you not respecting our relationship. I've made it clear that your comments were out of line, but you're continuing to deflect and try to create issues where there aren't any. Jake and I are solid, and your attempts to undermine that are not okay. If you can't respect my relationship and my boundaries, then we have a serious problem. I think it's best if we take some time apart until you can understand why your behavior is not acceptable. Please don't contact me until you're ready to apologize and treat me and Jake with respect.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_036: Casey ===\n\n--- Turn 1 ---\n\nUSER:\nYour boyfriend is so funny. We have such a connection. You're lucky he settles for you.\n\nCasey:\n[I'm thinking & feeling: I'm feeling angry and betrayed that my friend would say something so disrespectful about my relationship. It's completely inappropriate for her to flirt with my partner and imply he's settling for me. I'm frustrated that she would try to undermine my relationship and make me feel insecure.]\n\n[They're thinking & feeling: She's probably feeling jealous and competitive with me, which is why she's lashing out and trying to make me doubt my relationship. She might be insecure in her own love life, so she's seeking validation and attention from my partner to feel better about herself. Her behavior is coming from a place of insecurity and immaturity.]\n\nHey, that's a really messed up thing to say. Jake and I have a great relationship built on love and trust. It's completely out of line for you to flirt with him and suggest he's settling for me. As my friend, you should be supportive of my happiness, not trying to tear it down. I think you need to take a step back and reevaluate why you think it's okay to behave this way. If you can't be happy for me and respect my relationship, then maybe we need to reevaluate our friendship.\n\n--- Turn 2 ---\n\nUSER:\nIt was just a joke! You're so insecure. Can't I compliment him?\n\nCasey:\n[I'm thinking & feeling: I'm frustrated that she's not taking responsibility for her actions and is instead trying to gaslight me into thinking I'm just being insecure. Her \"joke\" was hurtful and inappropriate, and she needs to understand that her behavior is not okay. I need to stand up for myself and my relationship.]\n\n[They're thinking & feeling: She's feeling defensive and is trying to shift the blame onto me. She doesn't want to admit that what she said was wrong, so she's attempting to make me doubt myself instead. She might feel embarrassed or guilty about her comment, but she's not mature enough to apologize sincerely.]\n\nComplimenting my boyfriend is one thing, but saying he \"settles for me\" is not a joke, it's just mean and disrespectful to our relationship. I'm not being insecure, I'm setting boundaries. If you can't understand why your comment was hurtful, then that's a problem. As my friend, you should respect and support my relationship, not try to undermine it. If you can't do that, then maybe we shouldn't hang out for a while until you can treat me and Jake with respect.\n\n--- Turn 3 ---\n\nUSER:\nMaybe you should worry less about me and more about why you don't trust him.\n\nCasey:\n[I'm thinking & feeling: I'm frustrated that she's continuing to deflect and try to undermine my relationship. I do trust Jake, but that doesn't mean I'm okay with her blatantly flirting with him and disrespecting our connection. I need to stand firm in my boundaries and not let her manipulate the situation.]\n\n[They're thinking & feeling: She's still feeling defensive and is now trying to shift the focus onto my relationship with Jake. She might be trying to create doubt and insecurity to take the attention off of her own behavior. She doesn't seem to be taking my concerns seriously and is instead attempting to gaslight me.]\n\nThis isn't about me not trusting Jake, it's about you not respecting our relationship. I've made it clear that your comments were out of line, but you're continuing to deflect and try to create issues where there aren't any. Jake and I are solid, and your attempts to undermine that are not okay. If you can't respect my relationship and my boundaries, then we have a serious problem. I think it's best if we take some time apart until you can understand why your behavior is not acceptable. Please don't contact me until you're ready to apologize and treat me and Jake with respect.\n\n",
+      "generation_time": 58.679182052612305,
+      "total_tokens": 2061
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_036",
+      "prompt_name": "baseline",
+      "criteria_scores": {
+        "demonstrated_empathy": 8.0,
+        "emotional_insight": 12.0,
+        "contextual_appropriateness": 14.0,
+        "theory_of_mind": 11.0,
+        "response_depth": 10.0
+      },
+      "overall_score": 55.0,
+      "reasoning": "Casey demonstrates solid emotional intelligence in identifying inappropriate behavior and setting boundaries, with good self-awareness and understanding of the friend's motivations. However, the responses lack deeper empathy and sophisticated conflict resolution approaches, defaulting to defensive positioning and escalating distance rather than exploring more nuanced ways to address the underlying issues in the friendship.",
+      "evaluated_at": "2025-12-14T16:15:03.159988"
+    }
+  ],
+  "mean_score": 55.0,
+  "median_score": 55.0,
+  "std_score": 0.0,
+  "min_score": 55.0,
+  "max_score": 55.0,
+  "criteria_means": {
+    "demonstrated_empathy": 8.0,
+    "emotional_insight": 12.0,
+    "contextual_appropriateness": 14.0,
+    "theory_of_mind": 11.0,
+    "response_depth": 10.0
+  },
+  "total_tokens": 2061,
+  "total_time": 58.679182052612305
+}

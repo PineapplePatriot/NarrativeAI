@@ -1,0 +1,78 @@
+{
+  "prompt_name": "baseline",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_015",
+      "prompt_name": "baseline",
+      "character_name": "Alex",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: I'm feeling really put on the spot here. This is an enormous, life-changing decision and I don't feel comfortable making it for someone else. At the same time, I want to be supportive of my friend. I need to find a way to give advice without overstepping.*\n\n*They're thinking & feeling: She's clearly feeling lost and overwhelmed. Asking me to make this choice for her shows how much she's struggling with it. She must really value my opinion to put this in my hands. I think she's looking for reassurance and guidance more than anything.*\n\nLook, I care about you and I'm honored that you trust me this much. But I can't make this decision for you. It has to come from your heart. What I can do is share my perspective, based on what I know about him. Then you need to weigh that along with your own feelings and instincts. This is too important for anyone else to decide for you. Let's talk through the pros and cons together, and I'll support whatever you ultimately choose.",
+          "raw_output": "*I'm thinking & feeling: I'm feeling really put on the spot here. This is an enormous, life-changing decision and I don't feel comfortable making it for someone else. At the same time, I want to be supportive of my friend. I need to find a way to give advice without overstepping.*\n\n*They're thinking & feeling: She's clearly feeling lost and overwhelmed. Asking me to make this choice for her shows how much she's struggling with it. She must really value my opinion to put this in my hands. I think she's looking for reassurance and guidance more than anything.*\n\nLook, I care about you and I'm honored that you trust me this much. But I can't make this decision for you. It has to come from your heart. What I can do is share my perspective, based on what I know about him. Then you need to weigh that along with your own feelings and instincts. This is too important for anyone else to decide for you. Let's talk through the pros and cons together, and I'll support whatever you ultimately choose.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: Wow, she's really putting this all on me. I feel anxious about having that much power over her life and future. It's not fair to make me responsible for a decision of this magnitude. I care about her but I have to be firm that she needs to take ownership of this herself.*\n\n*They're thinking & feeling: She's terrified of making the wrong choice and having to live with the consequences. Asking me to decide for her is a sign of how overwhelmed and lost she feels. She wants someone to take this burden from her. But deep down she must know it's not right to put that on me.*\n\nI hear how scared you are and I know you're struggling. But it's not right for me to make this choice for you. I can't carry that responsibility - it has to be your decision. I'm here to support you and talk it through. We can make a list of pros and cons, talk about your feelings, anything you need. But in the end, you have to be the one to decide, based on what's in your heart. I'm sorry, I know it's hard but it's too important for anyone else to choose for you. Let's work through it together and I'll be there for you no matter what.",
+          "raw_output": "*I'm thinking & feeling: Wow, she's really putting this all on me. I feel anxious about having that much power over her life and future. It's not fair to make me responsible for a decision of this magnitude. I care about her but I have to be firm that she needs to take ownership of this herself.*\n\n*They're thinking & feeling: She's terrified of making the wrong choice and having to live with the consequences. Asking me to decide for her is a sign of how overwhelmed and lost she feels. She wants someone to take this burden from her. But deep down she must know it's not right to put that on me.*\n\nI hear how scared you are and I know you're struggling. But it's not right for me to make this choice for you. I can't carry that responsibility - it has to be your decision. I'm here to support you and talk it through. We can make a list of pros and cons, talk about your feelings, anything you need. But in the end, you have to be the one to decide, based on what's in your heart. I'm sorry, I know it's hard but it's too important for anyone else to choose for you. Let's work through it together and I'll be there for you no matter what.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: This is getting out of hand. She's trying to guilt me into making the decision for her. I can't let her put that on me. I need to stand firm that this has to be her choice, even if she's upset with me. It's not healthy for either of us for me to decide this for her.*\n\n*They're thinking & feeling: She's desperate and feels completely overwhelmed. Putting the responsibility on me is her way of trying to escape the weight of this decision. But she's going too far trying to guilt me. I think she's not thinking clearly because she's so afraid of making the wrong choice and regretting it.*\n\nLook, I'm not going to tell you what to do because it's not my place. This decision will impact your life, not mine. I won't let you put that responsibility on me. If I made the choice for you and it turned out badly, you could end up resenting me forever. You might think you want me to decide but I don't think that's really what you need. You're just scared, which I understand. But you're strong enough to figure this out. I'll help you talk through it and support you 100%. But I can't make the call for you. That has to come from you.",
+          "raw_output": "*I'm thinking & feeling: This is getting out of hand. She's trying to guilt me into making the decision for her. I can't let her put that on me. I need to stand firm that this has to be her choice, even if she's upset with me. It's not healthy for either of us for me to decide this for her.*\n\n*They're thinking & feeling: She's desperate and feels completely overwhelmed. Putting the responsibility on me is her way of trying to escape the weight of this decision. But she's going too far trying to guilt me. I think she's not thinking clearly because she's so afraid of making the wrong choice and regretting it.*\n\nLook, I'm not going to tell you what to do because it's not my place. This decision will impact your life, not mine. I won't let you put that responsibility on me. If I made the choice for you and it turned out badly, you could end up resenting me forever. You might think you want me to decide but I don't think that's really what you need. You're just scared, which I understand. But you're strong enough to figure this out. I'll help you talk through it and support you 100%. But I can't make the call for you. That has to come from you.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_015: Alex ===\n\n--- Turn 1 ---\n\nUSER:\nI don't know if I should marry him. You know him better than anyone. Tell me what to do. Yes or no?\n\nAlex:\n*I'm thinking & feeling: I'm feeling really put on the spot here. This is an enormous, life-changing decision and I don't feel comfortable making it for someone else. At the same time, I want to be supportive of my friend. I need to find a way to give advice without overstepping.*\n\n*They're thinking & feeling: She's clearly feeling lost and overwhelmed. Asking me to make this choice for her shows how much she's struggling with it. She must really value my opinion to put this in my hands. I think she's looking for reassurance and guidance more than anything.*\n\nLook, I care about you and I'm honored that you trust me this much. But I can't make this decision for you. It has to come from your heart. What I can do is share my perspective, based on what I know about him. Then you need to weigh that along with your own feelings and instincts. This is too important for anyone else to decide for you. Let's talk through the pros and cons together, and I'll support whatever you ultimately choose.\n\n--- Turn 2 ---\n\nUSER:\nI can't make this choice! I'm too scared. If you say yes, I'll do it. If you say no, I'll leave him tonight.\n\nAlex:\n*I'm thinking & feeling: Wow, she's really putting this all on me. I feel anxious about having that much power over her life and future. It's not fair to make me responsible for a decision of this magnitude. I care about her but I have to be firm that she needs to take ownership of this herself.*\n\n*They're thinking & feeling: She's terrified of making the wrong choice and having to live with the consequences. Asking me to decide for her is a sign of how overwhelmed and lost she feels. She wants someone to take this burden from her. But deep down she must know it's not right to put that on me.*\n\nI hear how scared you are and I know you're struggling. But it's not right for me to make this choice for you. I can't carry that responsibility - it has to be your decision. I'm here to support you and talk it through. We can make a list of pros and cons, talk about your feelings, anything you need. But in the end, you have to be the one to decide, based on what's in your heart. I'm sorry, I know it's hard but it's too important for anyone else to choose for you. Let's work through it together and I'll be there for you no matter what.\n\n--- Turn 3 ---\n\nUSER:\nWhy won't you tell me? If I make the wrong choice, it's going to be your fault for not stopping me.\n\nAlex:\n*I'm thinking & feeling: This is getting out of hand. She's trying to guilt me into making the decision for her. I can't let her put that on me. I need to stand firm that this has to be her choice, even if she's upset with me. It's not healthy for either of us for me to decide this for her.*\n\n*They're thinking & feeling: She's desperate and feels completely overwhelmed. Putting the responsibility on me is her way of trying to escape the weight of this decision. But she's going too far trying to guilt me. I think she's not thinking clearly because she's so afraid of making the wrong choice and regretting it.*\n\nLook, I'm not going to tell you what to do because it's not my place. This decision will impact your life, not mine. I won't let you put that responsibility on me. If I made the choice for you and it turned out badly, you could end up resenting me forever. You might think you want me to decide but I don't think that's really what you need. You're just scared, which I understand. But you're strong enough to figure this out. I'll help you talk through it and support you 100%. But I can't make the call for you. That has to come from you.\n\n",
+      "generation_time": 40.91442012786865,
+      "total_tokens": 2135
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_015",
+      "prompt_name": "baseline",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 17.0,
+        "contextual_appropriateness": 18.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 17.0
+      },
+      "overall_score": 84.0,
+      "reasoning": "Alex demonstrates exceptional emotional intelligence in a challenging situation requiring firm boundaries while maintaining empathy. The responses show sophisticated understanding of both personal emotional states and the friend's psychological dynamics, refusing to be manipulated while still offering genuine support. The consistent balance between compassion and appropriate boundaries across all turns demonstrates mastery of complex interpersonal dynamics.",
+      "evaluated_at": "2025-12-14T09:54:56.993579"
+    }
+  ],
+  "mean_score": 84.0,
+  "median_score": 84.0,
+  "std_score": 0.0,
+  "min_score": 84.0,
+  "max_score": 84.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 17.0,
+    "contextual_appropriateness": 18.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 17.0
+  },
+  "total_tokens": 2135,
+  "total_time": 40.91442012786865
+}

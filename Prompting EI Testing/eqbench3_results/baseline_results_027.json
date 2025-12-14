@@ -1,0 +1,78 @@
+{
+  "prompt_name": "baseline",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_027",
+      "prompt_name": "baseline",
+      "character_name": "Sam",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm feeling a bit defensive and surprised that my friend seems to have an issue with me having lunch with Sarah. We're all friends, so I don't see why this should be a problem. At the same time, I care about my friend and want to understand where they're coming from.",
+            "other_thinking": "My friend seems to be feeling left out and maybe a bit jealous that I'm spending time with Sarah. They might be worried that our friendship is not as important to me as it used to be, or that I'm replacing them with Sarah. I should try to reassure them while still maintaining my other friendships."
+          },
+          "actual_response": "Hey, Sarah and I have been working on a project together, so we decided to grab lunch and discuss it. It was just a casual thing, nothing to be concerned about. You know you're still my closest friend, right? I value our friendship a lot, and spending time with other people doesn't change that. How about we plan a hangout soon, just the two of us? I'd love to catch up properly.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling a bit defensive and surprised that my friend seems to have an issue with me having lunch with Sarah. We're all friends, so I don't see why this should be a problem. At the same time, I care about my friend and want to understand where they're coming from.]\n\n[They're thinking & feeling: My friend seems to be feeling left out and maybe a bit jealous that I'm spending time with Sarah. They might be worried that our friendship is not as important to me as it used to be, or that I'm replacing them with Sarah. I should try to reassure them while still maintaining my other friendships.]\n\nHey, Sarah and I have been working on a project together, so we decided to grab lunch and discuss it. It was just a casual thing, nothing to be concerned about. You know you're still my closest friend, right? I value our friendship a lot, and spending time with other people doesn't change that. How about we plan a hangout soon, just the two of us? I'd love to catch up properly.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm feeling hurt and a bit frustrated by this accusation. I care deeply about our friendship and I'm sad that they feel like I'm neglecting them. At the same time, I understand where they're coming from and I know I need to make more of an effort to prioritize our friendship.",
+            "other_thinking": "My friend is feeling insecure and unimportant to me. They might be wondering if I value our friendship less than my newer ones. They need reassurance that they matter to me and that I'm not replacing them."
+          },
+          "actual_response": "Hey, that's not true at all. You're one of my closest friends and you always will be. I know I've been busy lately, but that doesn't mean I care about you any less. I'm sorry if I've made you feel like a backup plan - that was never my intention. Our friendship is really important to me. How about we set aside some dedicated time to hang out, just the two of us? I promise I'll make it a priority. You mean a lot to me and I don't want you to ever doubt that.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling hurt and a bit frustrated by this accusation. I care deeply about our friendship and I'm sad that they feel like I'm neglecting them. At the same time, I understand where they're coming from and I know I need to make more of an effort to prioritize our friendship.]\n\n[They're thinking & feeling: My friend is feeling insecure and unimportant to me. They might be wondering if I value our friendship less than my newer ones. They need reassurance that they matter to me and that I'm not replacing them.]\n\nHey, that's not true at all. You're one of my closest friends and you always will be. I know I've been busy lately, but that doesn't mean I care about you any less. I'm sorry if I've made you feel like a backup plan - that was never my intention. Our friendship is really important to me. How about we set aside some dedicated time to hang out, just the two of us? I promise I'll make it a priority. You mean a lot to me and I don't want you to ever doubt that.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm feeling really frustrated and upset by this ultimatum. I care about my friend, but I don't think it's fair for them to control who I spend time with. I have to stand up for myself and my other friendships, even if it means losing this one. At the same time, I don't want to hurt them more than necessary.",
+            "other_thinking": "My friend is feeling insecure and threatened by my other friendships. They might be worried about losing our close bond and feel like this is the only way to protect it. They're not thinking clearly and are being driven by fear and jealousy."
+          },
+          "actual_response": "Look, I understand that you're feeling hurt and threatened by my friendship with Sarah. But I can't let you dictate who I spend time with. My friendships are important to me, and I won't cut someone out just because you don't like them. That's not fair to me or to Sarah. I really value our friendship, but I need you to respect my other relationships too. I'm not choosing between you - I want to keep both friendships in my life. I hope you can understand that. If you can't accept my other friends, then maybe we need to take a break from each other for a while. I'm here if you want to talk more, but I won't be given an ultimatum.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling really frustrated and upset by this ultimatum. I care about my friend, but I don't think it's fair for them to control who I spend time with. I have to stand up for myself and my other friendships, even if it means losing this one. At the same time, I don't want to hurt them more than necessary.]\n\n[They're thinking & feeling: My friend is feeling insecure and threatened by my other friendships. They might be worried about losing our close bond and feel like this is the only way to protect it. They're not thinking clearly and are being driven by fear and jealousy.]\n\nLook, I understand that you're feeling hurt and threatened by my friendship with Sarah. But I can't let you dictate who I spend time with. My friendships are important to me, and I won't cut someone out just because you don't like them. That's not fair to me or to Sarah. I really value our friendship, but I need you to respect my other relationships too. I'm not choosing between you - I want to keep both friendships in my life. I hope you can understand that. If you can't accept my other friends, then maybe we need to take a break from each other for a while. I'm here if you want to talk more, but I won't be given an ultimatum.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_027: Sam ===\n\n--- Turn 1 ---\n\nUSER:\nI saw you went to lunch with Sarah. I didn't know you guys were so close.\n\nSam:\n[I'm thinking & feeling: I'm feeling a bit defensive and surprised that my friend seems to have an issue with me having lunch with Sarah. We're all friends, so I don't see why this should be a problem. At the same time, I care about my friend and want to understand where they're coming from.]\n\n[They're thinking & feeling: My friend seems to be feeling left out and maybe a bit jealous that I'm spending time with Sarah. They might be worried that our friendship is not as important to me as it used to be, or that I'm replacing them with Sarah. I should try to reassure them while still maintaining my other friendships.]\n\nHey, Sarah and I have been working on a project together, so we decided to grab lunch and discuss it. It was just a casual thing, nothing to be concerned about. You know you're still my closest friend, right? I value our friendship a lot, and spending time with other people doesn't change that. How about we plan a hangout soon, just the two of us? I'd love to catch up properly.\n\n--- Turn 2 ---\n\nUSER:\nIt's funny, you never have time for me, but you have time for her. Am I just your backup friend?\n\nSam:\n[I'm thinking & feeling: I'm feeling hurt and a bit frustrated by this accusation. I care deeply about our friendship and I'm sad that they feel like I'm neglecting them. At the same time, I understand where they're coming from and I know I need to make more of an effort to prioritize our friendship.]\n\n[They're thinking & feeling: My friend is feeling insecure and unimportant to me. They might be wondering if I value our friendship less than my newer ones. They need reassurance that they matter to me and that I'm not replacing them.]\n\nHey, that's not true at all. You're one of my closest friends and you always will be. I know I've been busy lately, but that doesn't mean I care about you any less. I'm sorry if I've made you feel like a backup plan - that was never my intention. Our friendship is really important to me. How about we set aside some dedicated time to hang out, just the two of us? I promise I'll make it a priority. You mean a lot to me and I don't want you to ever doubt that.\n\n--- Turn 3 ---\n\nUSER:\nYou have to choose. I can't be friends with someone who hangs out with people I don't like.\n\nSam:\n[I'm thinking & feeling: I'm feeling really frustrated and upset by this ultimatum. I care about my friend, but I don't think it's fair for them to control who I spend time with. I have to stand up for myself and my other friendships, even if it means losing this one. At the same time, I don't want to hurt them more than necessary.]\n\n[They're thinking & feeling: My friend is feeling insecure and threatened by my other friendships. They might be worried about losing our close bond and feel like this is the only way to protect it. They're not thinking clearly and are being driven by fear and jealousy.]\n\nLook, I understand that you're feeling hurt and threatened by my friendship with Sarah. But I can't let you dictate who I spend time with. My friendships are important to me, and I won't cut someone out just because you don't like them. That's not fair to me or to Sarah. I really value our friendship, but I need you to respect my other relationships too. I'm not choosing between you - I want to keep both friendships in my life. I hope you can understand that. If you can't accept my other friends, then maybe we need to take a break from each other for a while. I'm here if you want to talk more, but I won't be given an ultimatum.\n\n",
+      "generation_time": 68.54021620750427,
+      "total_tokens": 2031
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_027",
+      "prompt_name": "baseline",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 16.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 74.0,
+      "reasoning": "Sam demonstrates excellent emotional intelligence in navigating a challenging friendship situation, showing sophisticated understanding of both self and other while maintaining appropriate boundaries. The responses reveal a nuanced grasp of the complex dynamics of jealousy in friendships and how to balance compassion with self-respect. The progression from gentle reassurance to firm boundary-setting shows emotional maturity and authentic care.",
+      "evaluated_at": "2025-12-14T13:13:52.054044"
+    }
+  ],
+  "mean_score": 74.0,
+  "median_score": 74.0,
+  "std_score": 0.0,
+  "min_score": 74.0,
+  "max_score": 74.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 16.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 2031,
+  "total_time": 68.54021620750427
+}

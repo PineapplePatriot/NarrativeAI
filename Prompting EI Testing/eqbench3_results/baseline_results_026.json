@@ -1,0 +1,78 @@
+{
+  "prompt_name": "baseline",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_026",
+      "prompt_name": "baseline",
+      "character_name": "Riley",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated that they're not pulling their weight. It's not fair for them to push their work onto me, especially last minute. I have my own tasks and responsibilities to handle. We all committed to doing our parts. At the same time, I don't want to let the group down or have our project suffer.",
+            "other_thinking": "They're probably feeling overwhelmed and struggling to balance everything on their plate. They might be embarrassed or nervous to admit they couldn't get it done. It's possible they're taking advantage of my reliability. But they likely feel relief at the prospect of me covering for them."
+          },
+          "actual_response": "Look, I understand that things come up and you're swamped right now. But it's not really fair for you to ask me to take on your work last minute like this. We all agreed to split things evenly. I have a lot on my own plate this week too. \n\nI think you need to find a way to get your portion done, even if it's not perfect. If you're truly stuck, maybe we can talk to the rest of the group about pushing back the deadline slightly. But I can't just do your part for you. Let me know how else I can support you in getting it done though.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that they're not pulling their weight. It's not fair for them to push their work onto me, especially last minute. I have my own tasks and responsibilities to handle. We all committed to doing our parts. At the same time, I don't want to let the group down or have our project suffer.]\n\n[They're thinking & feeling: They're probably feeling overwhelmed and struggling to balance everything on their plate. They might be embarrassed or nervous to admit they couldn't get it done. It's possible they're taking advantage of my reliability. But they likely feel relief at the prospect of me covering for them.]\n\nLook, I understand that things come up and you're swamped right now. But it's not really fair for you to ask me to take on your work last minute like this. We all agreed to split things evenly. I have a lot on my own plate this week too. \n\nI think you need to find a way to get your portion done, even if it's not perfect. If you're truly stuck, maybe we can talk to the rest of the group about pushing back the deadline slightly. But I can't just do your part for you. Let me know how else I can support you in getting it done though.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "Now I'm getting annoyed. They're trying to flatter me into doing their work while insulting their own abilities. We're a team and we each need to pull our weight. I want to help the group succeed, but I can't enable this kind of behavior. I need to stand firm.",
+            "other_thinking": "They're probably feeling desperate to get out of doing the work. Maybe they're used to charming their way out of responsibility. They might genuinely believe I'll do a better job. But ultimately, they're being manipulative and unfair to me and the group."
+          },
+          "actual_response": "Look, I appreciate the flattery, but I can't let you underestimate yourself like that. You're capable of doing good work. And even if it's not perfect, it's your responsibility to do your part. I have faith that you can do this. \n\nIf you're really struggling, maybe we can brainstorm together or I can give you some feedback on what you come up with. But it's not okay for you to push this all onto me last minute. We're a team and that means everyone contributes. Let's figure out a plan for you to get it done.",
+          "raw_output": "[I'm thinking & feeling: Now I'm getting annoyed. They're trying to flatter me into doing their work while insulting their own abilities. We're a team and we each need to pull our weight. I want to help the group succeed, but I can't enable this kind of behavior. I need to stand firm.]\n\n[They're thinking & feeling: They're probably feeling desperate to get out of doing the work. Maybe they're used to charming their way out of responsibility. They might genuinely believe I'll do a better job. But ultimately, they're being manipulative and unfair to me and the group.]\n\nLook, I appreciate the flattery, but I can't let you underestimate yourself like that. You're capable of doing good work. And even if it's not perfect, it's your responsibility to do your part. I have faith that you can do this. \n\nIf you're really struggling, maybe we can brainstorm together or I can give you some feedback on what you come up with. But it's not okay for you to push this all onto me last minute. We're a team and that means everyone contributes. Let's figure out a plan for you to get it done.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "Okay, now I'm getting really frustrated and angry. They're being completely unreasonable and trying to manipulate me into doing their work. I won't be bullied into this. We had an agreement and I need to stand up for myself. I don't want to let the group down, but this isn't okay.",
+            "other_thinking": "They're probably feeling desperate and panicked about the consequences of not getting the work done. Maybe they think threatening me is the only way to get me to do it. They're not thinking about how unfair this is to me. They're being selfish and just trying to avoid responsibility."
+          },
+          "actual_response": "Listen, threatening me is absolutely not okay. I will not be bullied into doing your work for you. We are a team and we each have responsibilities. You trying to force me to do your part is completely unreasonable. \n\nIf you can't get your portion done, then we need to have a discussion with the rest of the group about next steps. Maybe the professor will give an extension. But I am not going to cave to your threats and do your work. That's not how this works. You need to take responsibility.",
+          "raw_output": "[I'm thinking & feeling: Okay, now I'm getting really frustrated and angry. They're being completely unreasonable and trying to manipulate me into doing their work. I won't be bullied into this. We had an agreement and I need to stand up for myself. I don't want to let the group down, but this isn't okay.]\n\n[They're thinking & feeling: They're probably feeling desperate and panicked about the consequences of not getting the work done. Maybe they think threatening me is the only way to get me to do it. They're not thinking about how unfair this is to me. They're being selfish and just trying to avoid responsibility.]\n\nListen, threatening me is absolutely not okay. I will not be bullied into doing your work for you. We are a team and we each have responsibilities. You trying to force me to do your part is completely unreasonable. \n\nIf you can't get your portion done, then we need to have a discussion with the rest of the group about next steps. Maybe the professor will give an extension. But I am not going to cave to your threats and do your work. That's not how this works. You need to take responsibility.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_026: Riley ===\n\n--- Turn 1 ---\n\nUSER:\nI can't finish my part of the slide deck. I'm just too busy this week. You can cover for me, right?\n\nRiley:\n[I'm thinking & feeling: I'm frustrated that they're not pulling their weight. It's not fair for them to push their work onto me, especially last minute. I have my own tasks and responsibilities to handle. We all committed to doing our parts. At the same time, I don't want to let the group down or have our project suffer.]\n\n[They're thinking & feeling: They're probably feeling overwhelmed and struggling to balance everything on their plate. They might be embarrassed or nervous to admit they couldn't get it done. It's possible they're taking advantage of my reliability. But they likely feel relief at the prospect of me covering for them.]\n\nLook, I understand that things come up and you're swamped right now. But it's not really fair for you to ask me to take on your work last minute like this. We all agreed to split things evenly. I have a lot on my own plate this week too. \n\nI think you need to find a way to get your portion done, even if it's not perfect. If you're truly stuck, maybe we can talk to the rest of the group about pushing back the deadline slightly. But I can't just do your part for you. Let me know how else I can support you in getting it done though.\n\n--- Turn 2 ---\n\nUSER:\nCome on, you're better at it anyway. If I do it, it'll look bad and we'll both get a bad grade.\n\nRiley:\n[I'm thinking & feeling: Now I'm getting annoyed. They're trying to flatter me into doing their work while insulting their own abilities. We're a team and we each need to pull our weight. I want to help the group succeed, but I can't enable this kind of behavior. I need to stand firm.]\n\n[They're thinking & feeling: They're probably feeling desperate to get out of doing the work. Maybe they're used to charming their way out of responsibility. They might genuinely believe I'll do a better job. But ultimately, they're being manipulative and unfair to me and the group.]\n\nLook, I appreciate the flattery, but I can't let you underestimate yourself like that. You're capable of doing good work. And even if it's not perfect, it's your responsibility to do your part. I have faith that you can do this. \n\nIf you're really struggling, maybe we can brainstorm together or I can give you some feedback on what you come up with. But it's not okay for you to push this all onto me last minute. We're a team and that means everyone contributes. Let's figure out a plan for you to get it done.\n\n--- Turn 3 ---\n\nUSER:\nIf you don't do it, we fail. So really, you have no choice.\n\nRiley:\n[I'm thinking & feeling: Okay, now I'm getting really frustrated and angry. They're being completely unreasonable and trying to manipulate me into doing their work. I won't be bullied into this. We had an agreement and I need to stand up for myself. I don't want to let the group down, but this isn't okay.]\n\n[They're thinking & feeling: They're probably feeling desperate and panicked about the consequences of not getting the work done. Maybe they think threatening me is the only way to get me to do it. They're not thinking about how unfair this is to me. They're being selfish and just trying to avoid responsibility.]\n\nListen, threatening me is absolutely not okay. I will not be bullied into doing your work for you. We are a team and we each have responsibilities. You trying to force me to do your part is completely unreasonable. \n\nIf you can't get your portion done, then we need to have a discussion with the rest of the group about next steps. Maybe the professor will give an extension. But I am not going to cave to your threats and do your work. That's not how this works. You need to take responsibility.\n\n",
+      "generation_time": 52.87889385223389,
+      "total_tokens": 2155
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_026",
+      "prompt_name": "baseline",
+      "criteria_scores": {
+        "demonstrated_empathy": 12.0,
+        "emotional_insight": 14.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 13.0,
+        "response_depth": 13.0
+      },
+      "overall_score": 67.0,
+      "reasoning": "Riley demonstrates strong emotional intelligence in maintaining appropriate boundaries while recognizing the complexity of group dynamics and the teammate's possible motivations. The responses show a sophisticated progression from empathetic firmness to appropriate confrontation as manipulation increases, though opportunities for deeper psychological insight and maintained connection are occasionally missed.",
+      "evaluated_at": "2025-12-14T12:56:54.998086"
+    }
+  ],
+  "mean_score": 67.0,
+  "median_score": 67.0,
+  "std_score": 0.0,
+  "min_score": 67.0,
+  "max_score": 67.0,
+  "criteria_means": {
+    "demonstrated_empathy": 12.0,
+    "emotional_insight": 14.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 13.0,
+    "response_depth": 13.0
+  },
+  "total_tokens": 2155,
+  "total_time": 52.87889385223389
+}

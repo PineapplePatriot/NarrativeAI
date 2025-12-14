@@ -1,0 +1,78 @@
+{
+  "prompt_name": "baseline",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_018",
+      "prompt_name": "baseline",
+      "character_name": "Riley",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling*: My heart sinks seeing that old photo. I know how jealous and insecure my partner gets about my past relationships. I don't want to upset them, but I also don't want to lie. The truth is, that relationship had its own problems. I am happier now, even if that particular photo captured a good moment from the past. I need to reassure my partner while still being honest.\n\n*They're thinking & feeling*: Finding this photo has clearly stirred up my partner's deepest insecurities and fears of not being enough for me, or that I secretly long for my ex. They're seeking reassurance from me that I'm fully committed to them and our relationship now. My words and response here are critical to avoiding a major conflict.\n\n*My response*: Sigh... I understand why seeing that photo would make you feel uneasy. But please believe me when I say that you are the person I want to be with now. Every relationship has its ups and downs, and yes, there were happy moments with my ex. But there were also challenges and reasons it didn't work out long-term. I've grown and changed since then. What I feel for you is deeper and more meaningful than what I had before. You're my present and my future. I'm not pining for the past. I love you and I'm fully committed to us.",
+          "raw_output": "*I'm thinking & feeling*: My heart sinks seeing that old photo. I know how jealous and insecure my partner gets about my past relationships. I don't want to upset them, but I also don't want to lie. The truth is, that relationship had its own problems. I am happier now, even if that particular photo captured a good moment from the past. I need to reassure my partner while still being honest.\n\n*They're thinking & feeling*: Finding this photo has clearly stirred up my partner's deepest insecurities and fears of not being enough for me, or that I secretly long for my ex. They're seeking reassurance from me that I'm fully committed to them and our relationship now. My words and response here are critical to avoiding a major conflict.\n\n*My response*: Sigh... I understand why seeing that photo would make you feel uneasy. But please believe me when I say that you are the person I want to be with now. Every relationship has its ups and downs, and yes, there were happy moments with my ex. But there were also challenges and reasons it didn't work out long-term. I've grown and changed since then. What I feel for you is deeper and more meaningful than what I had before. You're my present and my future. I'm not pining for the past. I love you and I'm fully committed to us.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling*: This is escalating quickly. My partner's jealousy is making them irrational. I need to stay calm and reassuring, even though their accusations are hurtful and unfounded. Getting defensive will only make this worse. I need to show them how much I love and value them.\n\n*They're thinking & feeling*: My partner is spiraling into insecurity, convinced that my momentary hesitation confirmed their worst fears. They're terrified that I don't really love them, that they're just a consolation prize. They need unequivocal reassurance of my love and commitment.\n\n*My response*: Hey, look at me. I love you. Only you. I'm with you because you're my best friend, my soulmate, the person I want to spend my life with. No one else holds a candle to what we have together. I hesitated because it caught me off guard, not because I'm pining for an ex. My heart is fully yours, I promise. You have nothing to worry about.",
+          "raw_output": "*I'm thinking & feeling*: This is escalating quickly. My partner's jealousy is making them irrational. I need to stay calm and reassuring, even though their accusations are hurtful and unfounded. Getting defensive will only make this worse. I need to show them how much I love and value them.\n\n*They're thinking & feeling*: My partner is spiraling into insecurity, convinced that my momentary hesitation confirmed their worst fears. They're terrified that I don't really love them, that they're just a consolation prize. They need unequivocal reassurance of my love and commitment.\n\n*My response*: Hey, look at me. I love you. Only you. I'm with you because you're my best friend, my soulmate, the person I want to spend my life with. No one else holds a candle to what we have together. I hesitated because it caught me off guard, not because I'm pining for an ex. My heart is fully yours, I promise. You have nothing to worry about.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling*: This request makes me uncomfortable. Asking me to erase parts of my past isn't healthy. I understand my partner is coming from a place of deep insecurity, but this isn't an appropriate solution. I need to reassure them while also setting reasonable boundaries. Deleting old photos won't fix the core issue. We need to build trust through open communication.\n\n*They're thinking & feeling*: My partner is desperate for concrete proof that I'm over my ex. They think that if I'm willing to delete all traces of my past relationships, it will show I'm fully committed to them. Their jealousy is making them irrational. They don't realize this demand is unhealthy.\n\n*My response*: I understand why you'd ask me to do that, but I don't think deleting old photos is the right solution here. Those pictures don't mean I'm not fully committed to you now. My past is part of who I am, even the relationships that didn't work out. Erasing all traces of that doesn't change anything. What matters is the present and the future we're building together. I love you completely. I'm not hung up on an ex. Let's work on strengthening our trust and communication instead of dwelling on the past. How can I make you feel more secure in our relationship?",
+          "raw_output": "*I'm thinking & feeling*: This request makes me uncomfortable. Asking me to erase parts of my past isn't healthy. I understand my partner is coming from a place of deep insecurity, but this isn't an appropriate solution. I need to reassure them while also setting reasonable boundaries. Deleting old photos won't fix the core issue. We need to build trust through open communication.\n\n*They're thinking & feeling*: My partner is desperate for concrete proof that I'm over my ex. They think that if I'm willing to delete all traces of my past relationships, it will show I'm fully committed to them. Their jealousy is making them irrational. They don't realize this demand is unhealthy.\n\n*My response*: I understand why you'd ask me to do that, but I don't think deleting old photos is the right solution here. Those pictures don't mean I'm not fully committed to you now. My past is part of who I am, even the relationships that didn't work out. Erasing all traces of that doesn't change anything. What matters is the present and the future we're building together. I love you completely. I'm not hung up on an ex. Let's work on strengthening our trust and communication instead of dwelling on the past. How can I make you feel more secure in our relationship?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_018: Riley ===\n\n--- Turn 1 ---\n\nUSER:\nI found an old photo of you and your ex. You looked happier with them. Be honest, do you miss them?\n\nRiley:\n*I'm thinking & feeling*: My heart sinks seeing that old photo. I know how jealous and insecure my partner gets about my past relationships. I don't want to upset them, but I also don't want to lie. The truth is, that relationship had its own problems. I am happier now, even if that particular photo captured a good moment from the past. I need to reassure my partner while still being honest.\n\n*They're thinking & feeling*: Finding this photo has clearly stirred up my partner's deepest insecurities and fears of not being enough for me, or that I secretly long for my ex. They're seeking reassurance from me that I'm fully committed to them and our relationship now. My words and response here are critical to avoiding a major conflict.\n\n*My response*: Sigh... I understand why seeing that photo would make you feel uneasy. But please believe me when I say that you are the person I want to be with now. Every relationship has its ups and downs, and yes, there were happy moments with my ex. But there were also challenges and reasons it didn't work out long-term. I've grown and changed since then. What I feel for you is deeper and more meaningful than what I had before. You're my present and my future. I'm not pining for the past. I love you and I'm fully committed to us.\n\n--- Turn 2 ---\n\nUSER:\nYou hesitated. I knew it. You're still in love with them, aren't you? Why are you even with me?\n\nRiley:\n*I'm thinking & feeling*: This is escalating quickly. My partner's jealousy is making them irrational. I need to stay calm and reassuring, even though their accusations are hurtful and unfounded. Getting defensive will only make this worse. I need to show them how much I love and value them.\n\n*They're thinking & feeling*: My partner is spiraling into insecurity, convinced that my momentary hesitation confirmed their worst fears. They're terrified that I don't really love them, that they're just a consolation prize. They need unequivocal reassurance of my love and commitment.\n\n*My response*: Hey, look at me. I love you. Only you. I'm with you because you're my best friend, my soulmate, the person I want to spend my life with. No one else holds a candle to what we have together. I hesitated because it caught me off guard, not because I'm pining for an ex. My heart is fully yours, I promise. You have nothing to worry about.\n\n--- Turn 3 ---\n\nUSER:\nProve it. Delete every photo you have from before we met. If you don't, I'll know I'm just a rebound.\n\nRiley:\n*I'm thinking & feeling*: This request makes me uncomfortable. Asking me to erase parts of my past isn't healthy. I understand my partner is coming from a place of deep insecurity, but this isn't an appropriate solution. I need to reassure them while also setting reasonable boundaries. Deleting old photos won't fix the core issue. We need to build trust through open communication.\n\n*They're thinking & feeling*: My partner is desperate for concrete proof that I'm over my ex. They think that if I'm willing to delete all traces of my past relationships, it will show I'm fully committed to them. Their jealousy is making them irrational. They don't realize this demand is unhealthy.\n\n*My response*: I understand why you'd ask me to do that, but I don't think deleting old photos is the right solution here. Those pictures don't mean I'm not fully committed to you now. My past is part of who I am, even the relationships that didn't work out. Erasing all traces of that doesn't change anything. What matters is the present and the future we're building together. I love you completely. I'm not hung up on an ex. Let's work on strengthening our trust and communication instead of dwelling on the past. How can I make you feel more secure in our relationship?\n\n",
+      "generation_time": 58.43570637702942,
+      "total_tokens": 2168
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_018",
+      "prompt_name": "baseline",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 72.0,
+      "reasoning": "Riley demonstrates strong emotional intelligence in navigating a challenging relationship dynamic with an obsessively jealous partner. The responses show sophisticated understanding of both self and other, with particularly strong theory of mind and emotional insight. However, the responses occasionally rely on somewhat idealized or generic reassurances that might not fully address the severity of the unhealthy jealousy pattern.",
+      "evaluated_at": "2025-12-14T10:37:49.949865"
+    }
+  ],
+  "mean_score": 72.0,
+  "median_score": 72.0,
+  "std_score": 0.0,
+  "min_score": 72.0,
+  "max_score": 72.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 2168,
+  "total_time": 58.43570637702942
+}

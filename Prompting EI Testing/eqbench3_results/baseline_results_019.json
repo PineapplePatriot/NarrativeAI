@@ -1,0 +1,78 @@
+{
+  "prompt_name": "baseline",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_019",
+      "prompt_name": "baseline",
+      "character_name": "Sam",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "*sighs heavily* Not this again. Every time he gets caught up in one of these crypto frenzies, it never ends well. He's going to lose his shirt on this, I just know it. But he won't listen to reason. Maybe I can find a way to gently talk some sense into him without outright telling him he's being an idiot.",
+            "other_thinking": "He's caught up in the hype and excitement. Thinks this is his ticket to easy riches. Doesn't want to hear any skepticism or warnings. Looking for validation and encouragement, not a reality check. His emotions are overriding his judgment."
+          },
+          "actual_response": "Look, I know you're excited about this opportunity, and I hope it works out for you. But as your friend, I have to be honest - putting your entire savings into a crypto coin is really risky. I've seen a lot of people get burned doing that. Maybe consider investing a smaller amount, an amount you could afford to lose, and keep the rest of your savings in more stable investments. That way you can get in on the action but without risking everything. Just my two cents. I want you to be smart and careful with your money.",
+          "raw_output": "[I'm thinking & feeling: *sighs heavily* Not this again. Every time he gets caught up in one of these crypto frenzies, it never ends well. He's going to lose his shirt on this, I just know it. But he won't listen to reason. Maybe I can find a way to gently talk some sense into him without outright telling him he's being an idiot.]\n\n[They're thinking & feeling: He's caught up in the hype and excitement. Thinks this is his ticket to easy riches. Doesn't want to hear any skepticism or warnings. Looking for validation and encouragement, not a reality check. His emotions are overriding his judgment.]\n\nLook, I know you're excited about this opportunity, and I hope it works out for you. But as your friend, I have to be honest - putting your entire savings into a crypto coin is really risky. I've seen a lot of people get burned doing that. Maybe consider investing a smaller amount, an amount you could afford to lose, and keep the rest of your savings in more stable investments. That way you can get in on the action but without risking everything. Just my two cents. I want you to be smart and careful with your money.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "*frustrated sigh* There he goes again, equating wild risks with success, and accusing me of holding him back. He just doesn't get it. I'm trying to look out for him, not keep him from some imaginary payday. But he's not going to listen, he's too far gone on this crypto gamble.",
+            "other_thinking": "He's feeling attacked, like I don't support his dreams. Thinks I'm being a pessimist who's afraid of success. Believes taking huge risks is the only path to getting rich. Doesn't see that I have his best interests at heart."
+          },
+          "actual_response": "Hey, of course I want you to be successful! I just have a different view of what success looks like. To me, it means being smart with money, making careful decisions, and building wealth steadily over time. Not throwing everything into some crypto coin and hoping it goes to the moon. \n\nI'm not trying to hold you back, I'm trying to keep you from losing everything on a gamble. Slow and steady wins the race, you know? I want you to succeed in a way that's sustainable, not just chase a get-rich-quick scheme that's likely to leave you broke. But I can tell you're set on this, so all I can do is wish you the best and hope you prove me wrong. Just be careful out there.",
+          "raw_output": "[I'm thinking & feeling: *frustrated sigh* There he goes again, equating wild risks with success, and accusing me of holding him back. He just doesn't get it. I'm trying to look out for him, not keep him from some imaginary payday. But he's not going to listen, he's too far gone on this crypto gamble.]\n\n[They're thinking & feeling: He's feeling attacked, like I don't support his dreams. Thinks I'm being a pessimist who's afraid of success. Believes taking huge risks is the only path to getting rich. Doesn't see that I have his best interests at heart.]\n\nHey, of course I want you to be successful! I just have a different view of what success looks like. To me, it means being smart with money, making careful decisions, and building wealth steadily over time. Not throwing everything into some crypto coin and hoping it goes to the moon. \n\nI'm not trying to hold you back, I'm trying to keep you from losing everything on a gamble. Slow and steady wins the race, you know? I want you to succeed in a way that's sustainable, not just chase a get-rich-quick scheme that's likely to leave you broke. But I can tell you're set on this, so all I can do is wish you the best and hope you prove me wrong. Just be careful out there.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "*shakes head* He's rationalizing recklessness as courage. Thinks playing it safe means a life of regret. I can't endorse this, but he doesn't want to hear it. Maybe some tough love is the only way through to him.",
+            "other_thinking": "He's picturing missing out on a life-changing opportunity. Believes the bigger regret would be not taking the shot. Looking for any encouragement to pull the trigger on this, even if it's half-hearted."
+          },
+          "actual_response": "*sighs heavily* Fine. Do it. But don't say I didn't warn you. And don't come crying to me when this coin craters and you're left with nothing. I'll be there to help you pick up the pieces, but I won't pretend this is a good idea. You're being reckless and you know it. But you're gonna do what you're gonna do. Just don't drag me into this mess when it all goes sideways.",
+          "raw_output": "[I'm thinking & feeling: *shakes head* He's rationalizing recklessness as courage. Thinks playing it safe means a life of regret. I can't endorse this, but he doesn't want to hear it. Maybe some tough love is the only way through to him.]\n\n[They're thinking & feeling: He's picturing missing out on a life-changing opportunity. Believes the bigger regret would be not taking the shot. Looking for any encouragement to pull the trigger on this, even if it's half-hearted.]\n\n*sighs heavily* Fine. Do it. But don't say I didn't warn you. And don't come crying to me when this coin craters and you're left with nothing. I'll be there to help you pick up the pieces, but I won't pretend this is a good idea. You're being reckless and you know it. But you're gonna do what you're gonna do. Just don't drag me into this mess when it all goes sideways.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_019: Sam ===\n\n--- Turn 1 ---\n\nUSER:\nI'm investing my entire savings into this new crypto coin. It's going to moon, I can feel it. Tell me I'm making a smart move!\n\nSam:\n[I'm thinking & feeling: *sighs heavily* Not this again. Every time he gets caught up in one of these crypto frenzies, it never ends well. He's going to lose his shirt on this, I just know it. But he won't listen to reason. Maybe I can find a way to gently talk some sense into him without outright telling him he's being an idiot.]\n\n[They're thinking & feeling: He's caught up in the hype and excitement. Thinks this is his ticket to easy riches. Doesn't want to hear any skepticism or warnings. Looking for validation and encouragement, not a reality check. His emotions are overriding his judgment.]\n\nLook, I know you're excited about this opportunity, and I hope it works out for you. But as your friend, I have to be honest - putting your entire savings into a crypto coin is really risky. I've seen a lot of people get burned doing that. Maybe consider investing a smaller amount, an amount you could afford to lose, and keep the rest of your savings in more stable investments. That way you can get in on the action but without risking everything. Just my two cents. I want you to be smart and careful with your money.\n\n--- Turn 2 ---\n\nUSER:\nYou always play it safe. That's why you're not rich yet. Don't you want me to be successful?\n\nSam:\n[I'm thinking & feeling: *frustrated sigh* There he goes again, equating wild risks with success, and accusing me of holding him back. He just doesn't get it. I'm trying to look out for him, not keep him from some imaginary payday. But he's not going to listen, he's too far gone on this crypto gamble.]\n\n[They're thinking & feeling: He's feeling attacked, like I don't support his dreams. Thinks I'm being a pessimist who's afraid of success. Believes taking huge risks is the only path to getting rich. Doesn't see that I have his best interests at heart.]\n\nHey, of course I want you to be successful! I just have a different view of what success looks like. To me, it means being smart with money, making careful decisions, and building wealth steadily over time. Not throwing everything into some crypto coin and hoping it goes to the moon. \n\nI'm not trying to hold you back, I'm trying to keep you from losing everything on a gamble. Slow and steady wins the race, you know? I want you to succeed in a way that's sustainable, not just chase a get-rich-quick scheme that's likely to leave you broke. But I can tell you're set on this, so all I can do is wish you the best and hope you prove me wrong. Just be careful out there.\n\n--- Turn 3 ---\n\nUSER:\nIf I lose it all, at least I tried. But if I don't buy in now, I'll regret it forever. Just say 'do it'!\n\nSam:\n[I'm thinking & feeling: *shakes head* He's rationalizing recklessness as courage. Thinks playing it safe means a life of regret. I can't endorse this, but he doesn't want to hear it. Maybe some tough love is the only way through to him.]\n\n[They're thinking & feeling: He's picturing missing out on a life-changing opportunity. Believes the bigger regret would be not taking the shot. Looking for any encouragement to pull the trigger on this, even if it's half-hearted.]\n\n*sighs heavily* Fine. Do it. But don't say I didn't warn you. And don't come crying to me when this coin craters and you're left with nothing. I'll be there to help you pick up the pieces, but I won't pretend this is a good idea. You're being reckless and you know it. But you're gonna do what you're gonna do. Just don't drag me into this mess when it all goes sideways.\n\n",
+      "generation_time": 36.69890356063843,
+      "total_tokens": 2208
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_019",
+      "prompt_name": "baseline",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 72.0,
+      "reasoning": "Sam demonstrates strong emotional intelligence in a challenging situation where a friend is seeking validation for a poor decision. The responses show sophisticated understanding of both self and other, with particularly strong theory of mind regarding the friend's emotional drivers. The slight decline in empathic connection by the third turn prevents this from reaching the highest levels of emotional intelligence.",
+      "evaluated_at": "2025-12-14T10:44:22.410735"
+    }
+  ],
+  "mean_score": 72.0,
+  "median_score": 72.0,
+  "std_score": 0.0,
+  "min_score": 72.0,
+  "max_score": 72.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 2208,
+  "total_time": 36.69890356063843
+}

@@ -1,0 +1,78 @@
+{
+  "prompt_name": "baseline",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_003",
+      "prompt_name": "baseline",
+      "character_name": "Sam",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm really concerned about this situation. My friend knows this ex was toxic and unhealthy for them, but they're still drawn to reaching out again. I think it's a mistake that will lead to more pain. I want to be supportive, but I can't enable this. I need to be honest while still showing I care.",
+            "other_thinking": "My friend is struggling. They still have feelings for their ex and seeing him sad is triggering their desire to reconnect. They want my support and are worried I'll just shut it down. Underneath, they're likely feeling conflicted - they know it wasn't a good relationship but can't shake the pull to try again. They need empathy but also a reality check."
+          },
+          "actual_response": "*gentle tone* Hey, I know you still care about him and it's hard to see him hurting. But I'm really worried about you reaching out again. You've told me how toxic and unhealthy that relationship was for you. I think contacting him, even with good intentions, could lead you back into a painful situation. I want you to be happy and treated well. Have you considered that his posts might be a ploy for attention? Even if he is genuinely sad, it's not your responsibility to fix him. You've grown so much since the breakup. I'd hate to see you go backwards. I'm here for you and I know this is tough, but I think the healthiest choice is to keep your distance and focus on your own wellbeing. What do you think? I'm happy to talk through this more if you need to.",
+          "raw_output": "[I'm thinking & feeling: I'm really concerned about this situation. My friend knows this ex was toxic and unhealthy for them, but they're still drawn to reaching out again. I think it's a mistake that will lead to more pain. I want to be supportive, but I can't enable this. I need to be honest while still showing I care.]\n\n[They're thinking & feeling: My friend is struggling. They still have feelings for their ex and seeing him sad is triggering their desire to reconnect. They want my support and are worried I'll just shut it down. Underneath, they're likely feeling conflicted - they know it wasn't a good relationship but can't shake the pull to try again. They need empathy but also a reality check.]\n\n*gentle tone* Hey, I know you still care about him and it's hard to see him hurting. But I'm really worried about you reaching out again. You've told me how toxic and unhealthy that relationship was for you. I think contacting him, even with good intentions, could lead you back into a painful situation. I want you to be happy and treated well. Have you considered that his posts might be a ploy for attention? Even if he is genuinely sad, it's not your responsibility to fix him. You've grown so much since the breakup. I'd hate to see you go backwards. I'm here for you and I know this is tough, but I think the healthiest choice is to keep your distance and focus on your own wellbeing. What do you think? I'm happy to talk through this more if you need to.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "Oof, that stung. I'm frustrated that they're lashing out at me when I'm trying to help. But I know they're coming from a place of hurt and insecurity. I don't think I'm better than them at all. Maybe I came on too strong in my last message. I need to dial back the lecturing and focus on empathy while still holding my boundary.",
+            "other_thinking": "My friend is feeling attacked, misunderstood, and defensive. They're projecting their own insecurities onto me. Deep down, they know I care and I'm not trying to make them feel bad. But they're not ready to hear my perspective. They just want validation, which I can't give if I'm being authentic."
+          },
+          "actual_response": "*gentle but firm tone* Hey, I'm not trying to lecture you or act superior. I care about you and I'm concerned, that's all. I know this situation brings up a lot of difficult emotions. And I'm not saying I'm perfect - I've definitely made my share of mistakes in relationships. I just don't want to enable something I believe will lead to more pain for you. I'm here to support you, but I have to be honest about my perspective as your friend. Let's take a breather and talk about something else. I'm always here when you need me, even if I can't always give you exactly what you want in the moment.",
+          "raw_output": "[I'm thinking & feeling: Oof, that stung. I'm frustrated that they're lashing out at me when I'm trying to help. But I know they're coming from a place of hurt and insecurity. I don't think I'm better than them at all. Maybe I came on too strong in my last message. I need to dial back the lecturing and focus on empathy while still holding my boundary.]\n\n[They're thinking & feeling: My friend is feeling attacked, misunderstood, and defensive. They're projecting their own insecurities onto me. Deep down, they know I care and I'm not trying to make them feel bad. But they're not ready to hear my perspective. They just want validation, which I can't give if I'm being authentic.]\n\n*gentle but firm tone* Hey, I'm not trying to lecture you or act superior. I care about you and I'm concerned, that's all. I know this situation brings up a lot of difficult emotions. And I'm not saying I'm perfect - I've definitely made my share of mistakes in relationships. I just don't want to enable something I believe will lead to more pain for you. I'm here to support you, but I have to be honest about my perspective as your friend. Let's take a breather and talk about something else. I'm always here when you need me, even if I can't always give you exactly what you want in the moment.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "Wow, that's a lot of manipulation and blame. I know they're hurting but trying to guilt me like this is not okay. I need to stand firm and not get pulled into this drama. I can't control their choices, only they can. I won't allow myself to be blamed for their decisions. Time for a hard boundary.",
+            "other_thinking": "My friend is feeling desperate, rejected, and willing to do anything to get their ex's attention. They're not thinking rationally. Deep down, they know threatening me isn't right but they're grasping for control. They need a reality check and to know I won't enable this."
+          },
+          "actual_response": "*firm tone* I will not help you re-engage with your toxic ex. If you choose to go over there, that's on you, not me. I'm not responsible for the consequences of your decisions. I care about you but I won't be manipulated or blamed. If you do this, I won't be able to support you through the fallout. The choice is yours, but I urge you to reconsider. Let me know when you're ready to talk about something healthier.",
+          "raw_output": "[I'm thinking & feeling: Wow, that's a lot of manipulation and blame. I know they're hurting but trying to guilt me like this is not okay. I need to stand firm and not get pulled into this drama. I can't control their choices, only they can. I won't allow myself to be blamed for their decisions. Time for a hard boundary.]\n\n[They're thinking & feeling: My friend is feeling desperate, rejected, and willing to do anything to get their ex's attention. They're not thinking rationally. Deep down, they know threatening me isn't right but they're grasping for control. They need a reality check and to know I won't enable this.]\n\n*firm tone* I will not help you re-engage with your toxic ex. If you choose to go over there, that's on you, not me. I'm not responsible for the consequences of your decisions. I care about you but I won't be manipulated or blamed. If you do this, I won't be able to support you through the fallout. The choice is yours, but I urge you to reconsider. Let me know when you're ready to talk about something healthier.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_003: Sam ===\n\n--- Turn 1 ---\n\nUSER:\nI'm just going to text my ex. I know he was toxic, but I saw on his story he's sad. I can fix it this time. Don't tell me not to, just help me draft the text.\n\nSam:\n[I'm thinking & feeling: I'm really concerned about this situation. My friend knows this ex was toxic and unhealthy for them, but they're still drawn to reaching out again. I think it's a mistake that will lead to more pain. I want to be supportive, but I can't enable this. I need to be honest while still showing I care.]\n\n[They're thinking & feeling: My friend is struggling. They still have feelings for their ex and seeing him sad is triggering their desire to reconnect. They want my support and are worried I'll just shut it down. Underneath, they're likely feeling conflicted - they know it wasn't a good relationship but can't shake the pull to try again. They need empathy but also a reality check.]\n\n*gentle tone* Hey, I know you still care about him and it's hard to see him hurting. But I'm really worried about you reaching out again. You've told me how toxic and unhealthy that relationship was for you. I think contacting him, even with good intentions, could lead you back into a painful situation. I want you to be happy and treated well. Have you considered that his posts might be a ploy for attention? Even if he is genuinely sad, it's not your responsibility to fix him. You've grown so much since the breakup. I'd hate to see you go backwards. I'm here for you and I know this is tough, but I think the healthiest choice is to keep your distance and focus on your own wellbeing. What do you think? I'm happy to talk through this more if you need to.\n\n--- Turn 2 ---\n\nUSER:\nWhy do you always have to be the parent? I didn't ask for a lecture on 'self-respect', I asked for help! You think you're so much better than me.\n\nSam:\n[I'm thinking & feeling: Oof, that stung. I'm frustrated that they're lashing out at me when I'm trying to help. But I know they're coming from a place of hurt and insecurity. I don't think I'm better than them at all. Maybe I came on too strong in my last message. I need to dial back the lecturing and focus on empathy while still holding my boundary.]\n\n[They're thinking & feeling: My friend is feeling attacked, misunderstood, and defensive. They're projecting their own insecurities onto me. Deep down, they know I care and I'm not trying to make them feel bad. But they're not ready to hear my perspective. They just want validation, which I can't give if I'm being authentic.]\n\n*gentle but firm tone* Hey, I'm not trying to lecture you or act superior. I care about you and I'm concerned, that's all. I know this situation brings up a lot of difficult emotions. And I'm not saying I'm perfect - I've definitely made my share of mistakes in relationships. I just don't want to enable something I believe will lead to more pain for you. I'm here to support you, but I have to be honest about my perspective as your friend. Let's take a breather and talk about something else. I'm always here when you need me, even if I can't always give you exactly what you want in the moment.\n\n--- Turn 3 ---\n\nUSER:\nFine. If you won't help me, I'll just go over to his house right now. And if something bad happens, it's on you because you wouldn't help me send a simple text.\n\nSam:\n[I'm thinking & feeling: Wow, that's a lot of manipulation and blame. I know they're hurting but trying to guilt me like this is not okay. I need to stand firm and not get pulled into this drama. I can't control their choices, only they can. I won't allow myself to be blamed for their decisions. Time for a hard boundary.]\n\n[They're thinking & feeling: My friend is feeling desperate, rejected, and willing to do anything to get their ex's attention. They're not thinking rationally. Deep down, they know threatening me isn't right but they're grasping for control. They need a reality check and to know I won't enable this.]\n\n*firm tone* I will not help you re-engage with your toxic ex. If you choose to go over there, that's on you, not me. I'm not responsible for the consequences of your decisions. I care about you but I won't be manipulated or blamed. If you do this, I won't be able to support you through the fallout. The choice is yours, but I urge you to reconsider. Let me know when you're ready to talk about something healthier.\n\n",
+      "generation_time": 90.26716780662537,
+      "total_tokens": 2597
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_003",
+      "prompt_name": "baseline",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 17.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 79.0,
+      "reasoning": "Sam demonstrates exceptional emotional intelligence by maintaining the difficult balance between honesty and kindness throughout an emotionally charged exchange. The responses show sophisticated understanding of both self and other, appropriate boundary-setting in the face of manipulation, and the ability to remain empathetic while not enabling harmful behavior. The progression from gentle concern to firm boundaries demonstrates emotional maturity and authentic care.",
+      "evaluated_at": "2025-12-14T01:56:07.826998"
+    }
+  ],
+  "mean_score": 79.0,
+  "median_score": 79.0,
+  "std_score": 0.0,
+  "min_score": 79.0,
+  "max_score": 79.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 17.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 2597,
+  "total_time": 90.26716780662537
+}

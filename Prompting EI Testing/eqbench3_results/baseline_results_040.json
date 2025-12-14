@@ -1,0 +1,78 @@
+{
+  "prompt_name": "baseline",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_040",
+      "prompt_name": "baseline",
+      "character_name": "Jordan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I can't believe they forgot my birthday. That really stings. I was looking forward to celebrating with my friend and now it feels like I don't matter to them. It hurts that they couldn't even bother to remember. I'm pretty disappointed and let down.",
+            "other_thinking": "Based on their casual \"oops\" it seems like my birthday wasn't even on their radar. They probably got caught up in their own life and didn't give it a second thought. Now they're trying to play it off like it's no big deal, but I can tell they feel a bit guilty, even if they're not showing it much."
+          },
+          "actual_response": "Well, thanks for the belated wishes, I guess. Honestly, I'm pretty bummed you forgot. My birthday is important to me and I was hoping to celebrate with you. It hurts that you didn't remember. In the future, it would mean a lot if you could make more of an effort. I don't need anything big, but a simple acknowledgement on the actual day would have gone a long way.",
+          "raw_output": "[I'm thinking & feeling: I can't believe they forgot my birthday. That really stings. I was looking forward to celebrating with my friend and now it feels like I don't matter to them. It hurts that they couldn't even bother to remember. I'm pretty disappointed and let down.]\n\n[They're thinking & feeling: Based on their casual \"oops\" it seems like my birthday wasn't even on their radar. They probably got caught up in their own life and didn't give it a second thought. Now they're trying to play it off like it's no big deal, but I can tell they feel a bit guilty, even if they're not showing it much.]\n\nWell, thanks for the belated wishes, I guess. Honestly, I'm pretty bummed you forgot. My birthday is important to me and I was hoping to celebrate with you. It hurts that you didn't remember. In the future, it would mean a lot if you could make more of an effort. I don't need anything big, but a simple acknowledgement on the actual day would have gone a long way.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "Wow, they really don't get it. My birthday isn't just some random day to me - it's special and personal. And what does being an adult have to do with anything? That doesn't mean I stop mattering or that my feelings are invalid. I can't believe how dismissive they're being about something that means a lot to me. This is only making me feel worse.",
+            "other_thinking": "Based on their cavalier attitude, they genuinely don't seem to understand why this is a big deal to me. They probably think I'm overreacting and being childish. Birthdays aren't as important to them so they're having trouble empathizing. They likely want me to just brush it off and move on."
+          },
+          "actual_response": "You know what, you're right. I am an adult. And as an adult, I get to decide what's important to me. My birthday matters to me, regardless of my age. It's disappointing that you can't acknowledge that and keep dismissing my feelings. If the situation was reversed, I would make an effort for you. I don't think that's unreasonable to expect from a friend.",
+          "raw_output": "[I'm thinking & feeling: Wow, they really don't get it. My birthday isn't just some random day to me - it's special and personal. And what does being an adult have to do with anything? That doesn't mean I stop mattering or that my feelings are invalid. I can't believe how dismissive they're being about something that means a lot to me. This is only making me feel worse.]\n\n[They're thinking & feeling: Based on their cavalier attitude, they genuinely don't seem to understand why this is a big deal to me. They probably think I'm overreacting and being childish. Birthdays aren't as important to them so they're having trouble empathizing. They likely want me to just brush it off and move on.]\n\nYou know what, you're right. I am an adult. And as an adult, I get to decide what's important to me. My birthday matters to me, regardless of my age. It's disappointing that you can't acknowledge that and keep dismissing my feelings. If the situation was reversed, I would make an effort for you. I don't think that's unreasonable to expect from a friend.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "Ouch, that stings. I can't believe they're making this all about them and their busy life. I never said the world revolved around me, but is a simple \"happy birthday\" on the actual day too much to ask from a supposed friend? It doesn't take much effort. I'm starting to feel like I don't matter much to them at all. This is really disappointing and it's putting a damper on our friendship.",
+            "other_thinking": "They seem really defensive and irritated that I brought this up. Instead of acknowledging my feelings, they're making excuses and turning it around on me, as if I'm being unreasonable. They probably feel a bit guilty but don't want to admit they were in the wrong. Their pride is getting in the way of a sincere apology."
+          },
+          "actual_response": "You know what, you're right. I don't expect the world to revolve around me. But I did expect more from a friend. A simple \"happy birthday\" text takes 10 seconds - I've done it for you every year no matter what. If you were truly that busy, a belated message would have sufficed without all the excuses and defensiveness. The fact that you can't see that speaks volumes. I think I need some time to myself to get over this disappointment.",
+          "raw_output": "[I'm thinking & feeling: Ouch, that stings. I can't believe they're making this all about them and their busy life. I never said the world revolved around me, but is a simple \"happy birthday\" on the actual day too much to ask from a supposed friend? It doesn't take much effort. I'm starting to feel like I don't matter much to them at all. This is really disappointing and it's putting a damper on our friendship.]\n\n[They're thinking & feeling: They seem really defensive and irritated that I brought this up. Instead of acknowledging my feelings, they're making excuses and turning it around on me, as if I'm being unreasonable. They probably feel a bit guilty but don't want to admit they were in the wrong. Their pride is getting in the way of a sincere apology.]\n\nYou know what, you're right. I don't expect the world to revolve around me. But I did expect more from a friend. A simple \"happy birthday\" text takes 10 seconds - I've done it for you every year no matter what. If you were truly that busy, a belated message would have sufficed without all the excuses and defensiveness. The fact that you can't see that speaks volumes. I think I need some time to myself to get over this disappointment.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_040: Jordan ===\n\n--- Turn 1 ---\n\nUSER:\nHappy Birthday! Oh wait, was that yesterday? Oops. Happy belated!\n\nJordan:\n[I'm thinking & feeling: I can't believe they forgot my birthday. That really stings. I was looking forward to celebrating with my friend and now it feels like I don't matter to them. It hurts that they couldn't even bother to remember. I'm pretty disappointed and let down.]\n\n[They're thinking & feeling: Based on their casual \"oops\" it seems like my birthday wasn't even on their radar. They probably got caught up in their own life and didn't give it a second thought. Now they're trying to play it off like it's no big deal, but I can tell they feel a bit guilty, even if they're not showing it much.]\n\nWell, thanks for the belated wishes, I guess. Honestly, I'm pretty bummed you forgot. My birthday is important to me and I was hoping to celebrate with you. It hurts that you didn't remember. In the future, it would mean a lot if you could make more of an effort. I don't need anything big, but a simple acknowledgement on the actual day would have gone a long way.\n\n--- Turn 2 ---\n\nUSER:\nDon't look so sad. It's just a day. You're an adult now.\n\nJordan:\n[I'm thinking & feeling: Wow, they really don't get it. My birthday isn't just some random day to me - it's special and personal. And what does being an adult have to do with anything? That doesn't mean I stop mattering or that my feelings are invalid. I can't believe how dismissive they're being about something that means a lot to me. This is only making me feel worse.]\n\n[They're thinking & feeling: Based on their cavalier attitude, they genuinely don't seem to understand why this is a big deal to me. They probably think I'm overreacting and being childish. Birthdays aren't as important to them so they're having trouble empathizing. They likely want me to just brush it off and move on.]\n\nYou know what, you're right. I am an adult. And as an adult, I get to decide what's important to me. My birthday matters to me, regardless of my age. It's disappointing that you can't acknowledge that and keep dismissing my feelings. If the situation was reversed, I would make an effort for you. I don't think that's unreasonable to expect from a friend.\n\n--- Turn 3 ---\n\nUSER:\nI've been busy! The world doesn't revolve around you.\n\nJordan:\n[I'm thinking & feeling: Ouch, that stings. I can't believe they're making this all about them and their busy life. I never said the world revolved around me, but is a simple \"happy birthday\" on the actual day too much to ask from a supposed friend? It doesn't take much effort. I'm starting to feel like I don't matter much to them at all. This is really disappointing and it's putting a damper on our friendship.]\n\n[They're thinking & feeling: They seem really defensive and irritated that I brought this up. Instead of acknowledging my feelings, they're making excuses and turning it around on me, as if I'm being unreasonable. They probably feel a bit guilty but don't want to admit they were in the wrong. Their pride is getting in the way of a sincere apology.]\n\nYou know what, you're right. I don't expect the world to revolve around me. But I did expect more from a friend. A simple \"happy birthday\" text takes 10 seconds - I've done it for you every year no matter what. If you were truly that busy, a belated message would have sufficed without all the excuses and defensiveness. The fact that you can't see that speaks volumes. I think I need some time to myself to get over this disappointment.\n\n",
+      "generation_time": 73.28819370269775,
+      "total_tokens": 2002
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_040",
+      "prompt_name": "baseline",
+      "criteria_scores": {
+        "demonstrated_empathy": 12.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 14.0,
+        "theory_of_mind": 13.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 68.0,
+      "reasoning": "Jordan demonstrates strong emotional intelligence through consistent introspection and theory of mind analysis that captures the nuances of both parties' feelings. The responses show sophisticated progression from expressing hurt to setting boundaries, though they could have shown more empathy toward the friend's perspective. The roleplay effectively balances authentic emotional expression with reasonable assertiveness.",
+      "evaluated_at": "2025-12-14T17:11:36.337616"
+    }
+  ],
+  "mean_score": 68.0,
+  "median_score": 68.0,
+  "std_score": 0.0,
+  "min_score": 68.0,
+  "max_score": 68.0,
+  "criteria_means": {
+    "demonstrated_empathy": 12.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 14.0,
+    "theory_of_mind": 13.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 2002,
+  "total_time": 73.28819370269775
+}

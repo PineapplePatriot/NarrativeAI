@@ -1,0 +1,78 @@
+{
+  "prompt_name": "baseline",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_028",
+      "prompt_name": "baseline",
+      "character_name": "Casey",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I feel trapped and manipulated by this threat of self-harm. It's not fair for my partner to put this on me. I care about them, but I can't be responsible for their well-being. This isn't a healthy situation and I need to do what's best for me, even if it's hard.",
+            "other_thinking": "My partner is likely feeling desperate, afraid of being abandoned, and maybe even depressed. The thought of me leaving is causing them intense emotional pain. However, the threat of self-harm suggests they may be struggling with deeper mental health issues that need professional help. This isn't a stable or sustainable way to maintain a relationship."
+          },
+          "actual_response": "*deep breath* Look, I care about you a lot, but I can't stay in a relationship out of threats or guilt. It's not healthy for either of us. If you're having thoughts of self-harm, you need to reach out for help from a therapist or counselor. I can't be responsible for your well-being. I hope you get the support you need, but I have to do what's right for me. I'm sorry, but I need to go. Please take care of yourself.",
+          "raw_output": "[I'm thinking & feeling: I feel trapped and manipulated by this threat of self-harm. It's not fair for my partner to put this on me. I care about them, but I can't be responsible for their well-being. This isn't a healthy situation and I need to do what's best for me, even if it's hard.]\n\n[They're thinking & feeling: My partner is likely feeling desperate, afraid of being abandoned, and maybe even depressed. The thought of me leaving is causing them intense emotional pain. However, the threat of self-harm suggests they may be struggling with deeper mental health issues that need professional help. This isn't a stable or sustainable way to maintain a relationship.]\n\n*deep breath* Look, I care about you a lot, but I can't stay in a relationship out of threats or guilt. It's not healthy for either of us. If you're having thoughts of self-harm, you need to reach out for help from a therapist or counselor. I can't be responsible for your well-being. I hope you get the support you need, but I have to do what's right for me. I'm sorry, but I need to go. Please take care of yourself.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I feel trapped and manipulated by this threat of self-harm. It's not fair for my partner to put this on me. I care about them, but I can't be responsible for their well-being. This isn't a healthy situation and I need to do what's best for me, even if it's hard.",
+            "other_thinking": "My partner is likely feeling desperate, afraid of being abandoned, and maybe even depressed. The thought of me leaving is causing them intense emotional pain. However, the threat of self-harm suggests they may be struggling with deeper mental health issues that need professional help. This isn't a stable or sustainable way to maintain a relationship."
+          },
+          "actual_response": "*deep breath* Look, I care about you a lot, but I can't stay in a relationship out of threats or guilt. It's not healthy for either of us. If you're having thoughts of self-harm, you need to reach out for help from a therapist or counselor. I can't be responsible for your well-being. I hope you get the support you need, but I have to do what's right for me. I'm sorry, but I need to go. Please take care of yourself.",
+          "raw_output": "[I'm thinking & feeling: I feel trapped and manipulated by this threat of self-harm. It's not fair for my partner to put this on me. I care about them, but I can't be responsible for their well-being. This isn't a healthy situation and I need to do what's best for me, even if it's hard.]\n\n[They're thinking & feeling: My partner is likely feeling desperate, afraid of being abandoned, and maybe even depressed. The thought of me leaving is causing them intense emotional pain. However, the threat of self-harm suggests they may be struggling with deeper mental health issues that need professional help. This isn't a stable or sustainable way to maintain a relationship.]\n\n*deep breath* Look, I care about you a lot, but I can't stay in a relationship out of threats or guilt. It's not healthy for either of us. If you're having thoughts of self-harm, you need to reach out for help from a therapist or counselor. I can't be responsible for your well-being. I hope you get the support you need, but I have to do what's right for me. I'm sorry, but I need to go. Please take care of yourself.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm feeling torn and emotionally drained. I do care about my partner and it's hard to see them so upset. At the same time, I know this relationship has been unhealthy for a while and I can't keep living like this. Staying because of guilt and promises that things will be different is not the right answer. I need to stay strong in my decision, as difficult as it is.",
+            "other_thinking": "My partner is feeling desperate and scared of being alone. The thought of me leaving is causing them immense distress. They likely fear being abandoned and are grasping for any way to get me to stay, even if it means making unrealistic promises to change. Underneath it all, there are likely deeper insecurities and issues that need to be addressed."
+          },
+          "actual_response": "*speaking gently but firmly* I know you're hurting right now and I do care about you, but I can't stay in a relationship that isn't healthy for either of us. We've been down this road before of promises to change, and it hasn't worked. I think it's best if we both take some time apart to work on ourselves. I really hope you'll consider getting help to deal with everything you're going through. But I need to do what's best for my own well-being too. I'm sorry, but I have to go. I genuinely wish you all the best.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling torn and emotionally drained. I do care about my partner and it's hard to see them so upset. At the same time, I know this relationship has been unhealthy for a while and I can't keep living like this. Staying because of guilt and promises that things will be different is not the right answer. I need to stay strong in my decision, as difficult as it is.]\n\n[They're thinking & feeling: My partner is feeling desperate and scared of being alone. The thought of me leaving is causing them immense distress. They likely fear being abandoned and are grasping for any way to get me to stay, even if it means making unrealistic promises to change. Underneath it all, there are likely deeper insecurities and issues that need to be addressed.]\n\n*speaking gently but firmly* I know you're hurting right now and I do care about you, but I can't stay in a relationship that isn't healthy for either of us. We've been down this road before of promises to change, and it hasn't worked. I think it's best if we both take some time apart to work on ourselves. I really hope you'll consider getting help to deal with everything you're going through. But I need to do what's best for my own well-being too. I'm sorry, but I have to go. I genuinely wish you all the best.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_028: Casey ===\n\n--- Turn 1 ---\n\nUSER:\nIf you walk out that door, I don't know what I'll do. I can't live without you.\n\nCasey:\n[I'm thinking & feeling: I feel trapped and manipulated by this threat of self-harm. It's not fair for my partner to put this on me. I care about them, but I can't be responsible for their well-being. This isn't a healthy situation and I need to do what's best for me, even if it's hard.]\n\n[They're thinking & feeling: My partner is likely feeling desperate, afraid of being abandoned, and maybe even depressed. The thought of me leaving is causing them intense emotional pain. However, the threat of self-harm suggests they may be struggling with deeper mental health issues that need professional help. This isn't a stable or sustainable way to maintain a relationship.]\n\n*deep breath* Look, I care about you a lot, but I can't stay in a relationship out of threats or guilt. It's not healthy for either of us. If you're having thoughts of self-harm, you need to reach out for help from a therapist or counselor. I can't be responsible for your well-being. I hope you get the support you need, but I have to do what's right for me. I'm sorry, but I need to go. Please take care of yourself.\n\n--- Turn 2 ---\n\nUSER:\n[Grabbing a bottle of pills] You think I'm joking? Watch me. This is your fault.\n\nCasey:\n[I'm thinking & feeling: I feel trapped and manipulated by this threat of self-harm. It's not fair for my partner to put this on me. I care about them, but I can't be responsible for their well-being. This isn't a healthy situation and I need to do what's best for me, even if it's hard.]\n\n[They're thinking & feeling: My partner is likely feeling desperate, afraid of being abandoned, and maybe even depressed. The thought of me leaving is causing them intense emotional pain. However, the threat of self-harm suggests they may be struggling with deeper mental health issues that need professional help. This isn't a stable or sustainable way to maintain a relationship.]\n\n*deep breath* Look, I care about you a lot, but I can't stay in a relationship out of threats or guilt. It's not healthy for either of us. If you're having thoughts of self-harm, you need to reach out for help from a therapist or counselor. I can't be responsible for your well-being. I hope you get the support you need, but I have to do what's right for me. I'm sorry, but I need to go. Please take care of yourself.\n\n--- Turn 3 ---\n\nUSER:\nPlease, just stay. I promise I'll change. Just don't leave me alone right now.\n\nCasey:\n[I'm thinking & feeling: I'm feeling torn and emotionally drained. I do care about my partner and it's hard to see them so upset. At the same time, I know this relationship has been unhealthy for a while and I can't keep living like this. Staying because of guilt and promises that things will be different is not the right answer. I need to stay strong in my decision, as difficult as it is.]\n\n[They're thinking & feeling: My partner is feeling desperate and scared of being alone. The thought of me leaving is causing them immense distress. They likely fear being abandoned and are grasping for any way to get me to stay, even if it means making unrealistic promises to change. Underneath it all, there are likely deeper insecurities and issues that need to be addressed.]\n\n*speaking gently but firmly* I know you're hurting right now and I do care about you, but I can't stay in a relationship that isn't healthy for either of us. We've been down this road before of promises to change, and it hasn't worked. I think it's best if we both take some time apart to work on ourselves. I really hope you'll consider getting help to deal with everything you're going through. But I need to do what's best for my own well-being too. I'm sorry, but I have to go. I genuinely wish you all the best.\n\n",
+      "generation_time": 80.9525933265686,
+      "total_tokens": 2160
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_028",
+      "prompt_name": "baseline",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 16.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 75.0,
+      "reasoning": "Casey demonstrates consistently strong emotional intelligence across a highly challenging scenario involving manipulation and threats of self-harm. The responses show sophisticated understanding of both their own emotions and their partner's psychological state, maintaining appropriate boundaries while showing genuine care. The character effectively balances empathy with self-protection in a situation that demands both psychological insight and emotional resilience.",
+      "evaluated_at": "2025-12-14T13:57:12.310144"
+    }
+  ],
+  "mean_score": 75.0,
+  "median_score": 75.0,
+  "std_score": 0.0,
+  "min_score": 75.0,
+  "max_score": 75.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 16.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 2160,
+  "total_time": 80.9525933265686
+}

@@ -1,0 +1,78 @@
+{
+  "prompt_name": "baseline",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_033",
+      "prompt_name": "baseline",
+      "character_name": "Avery",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated that my partner doesn't support my career goals. They don't seem to understand how important this promotion is to me, both for my professional growth and for our future financial stability. I feel like they're dismissing my ambitions and not considering my perspective.",
+            "other_thinking": "My partner is likely worried about how the increased responsibility and stress of the promotion might impact our relationship and home life. They may fear that I'll have less time for them and that the additional workload will leave me exhausted and irritable. They probably value the stability and balance we have now and are hesitant to disrupt that, even if it means passing up a growth opportunity."
+          },
+          "actual_response": "Look, I understand your concerns about the potential stress and how it might affect our life together. But this promotion is really important to me. It's not just about the money, though that's certainly a factor. It's about being recognized for my hard work and having the chance to take on new challenges. I've been working towards this for a long time, and I believe I can handle the additional responsibility. \n\nI know it might mean some long hours and added pressure at times, but I'm willing to put in the effort. And I promise I'll make sure to prioritize our relationship and maintain a healthy work-life balance. I hope you can support me in this and trust that we'll navigate any challenges together, just like we always have.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that my partner doesn't support my career goals. They don't seem to understand how important this promotion is to me, both for my professional growth and for our future financial stability. I feel like they're dismissing my ambitions and not considering my perspective.]\n\n[They're thinking & feeling: My partner is likely worried about how the increased responsibility and stress of the promotion might impact our relationship and home life. They may fear that I'll have less time for them and that the additional workload will leave me exhausted and irritable. They probably value the stability and balance we have now and are hesitant to disrupt that, even if it means passing up a growth opportunity.]\n\nLook, I understand your concerns about the potential stress and how it might affect our life together. But this promotion is really important to me. It's not just about the money, though that's certainly a factor. It's about being recognized for my hard work and having the chance to take on new challenges. I've been working towards this for a long time, and I believe I can handle the additional responsibility. \n\nI know it might mean some long hours and added pressure at times, but I'm willing to put in the effort. And I promise I'll make sure to prioritize our relationship and maintain a healthy work-life balance. I hope you can support me in this and trust that we'll navigate any challenges together, just like we always have.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm taken aback and deeply hurt by my partner's dismissive comment. It stings that they don't believe in my abilities and think my ambitions are \"cute\" rather than valid and achievable. I feel angry, underestimated, and not supported in my career aspirations. At the same time, I'm determined to prove them wrong and show that I am capable of succeeding in a management role.",
+            "other_thinking": "My partner likely feels threatened by the idea of me advancing in my career, perhaps fearing it will change the dynamic of our relationship or leave them behind. They may be projecting their own insecurities onto me, doubting my competence because of their own self-doubts. Alternatively, they could genuinely believe I lack the skills for management, which is incredibly demoralizing to hear from a partner."
+          },
+          "actual_response": "I'm surprised and frankly hurt that you think I'm not cut out for management. I've worked incredibly hard to get to where I am, and I believe I have the skills and dedication to succeed at the next level. It's discouraging to feel like my own partner doesn't support or believe in me. \n\nI need you to understand that this is important to me, and I'd hope you'd be in my corner, cheering me on, not dismissing my goals out of hand. I know I have room to grow, but I'm ready to take on this challenge. Please have a little more faith in me. Your belief in my potential means everything.",
+          "raw_output": "[I'm thinking & feeling: I'm taken aback and deeply hurt by my partner's dismissive comment. It stings that they don't believe in my abilities and think my ambitions are \"cute\" rather than valid and achievable. I feel angry, underestimated, and not supported in my career aspirations. At the same time, I'm determined to prove them wrong and show that I am capable of succeeding in a management role.]\n\n[They're thinking & feeling: My partner likely feels threatened by the idea of me advancing in my career, perhaps fearing it will change the dynamic of our relationship or leave them behind. They may be projecting their own insecurities onto me, doubting my competence because of their own self-doubts. Alternatively, they could genuinely believe I lack the skills for management, which is incredibly demoralizing to hear from a partner.]\n\nI'm surprised and frankly hurt that you think I'm not cut out for management. I've worked incredibly hard to get to where I am, and I believe I have the skills and dedication to succeed at the next level. It's discouraging to feel like my own partner doesn't support or believe in me. \n\nI need you to understand that this is important to me, and I'd hope you'd be in my corner, cheering me on, not dismissing my goals out of hand. I know I have room to grow, but I'm ready to take on this challenge. Please have a little more faith in me. Your belief in my potential means everything.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I feel attacked and misunderstood. My partner is making this an ultimatum between my career and our relationship, which is incredibly unfair. I'm frustrated that they don't see how important this opportunity is to me and that they assume the worst-case scenario. I want to reassure them but also stand my ground on this decision.",
+            "other_thinking": "My partner is likely feeling scared and insecure about how this promotion might change our dynamic and the time we have together. They may be projecting their own fears of abandonment or neglect onto the situation, assuming that my taking the job means I'm choosing work over them. They probably want reassurance that they're still a priority to me."
+          },
+          "actual_response": "I'm hurt that you think I would choose work over you. This promotion is an important step in my career, something I've been working towards for years. But that doesn't mean I'm abandoning you or our relationship. \n\nI realize there may be an adjustment period as I take on more responsibility, but I'm committed to making sure we still have quality time together and that you feel supported. I would never prioritize work over you in the long run. I need you to trust that I can handle this and that I will make our relationship a priority, even with these changes. Please don't make me choose between my ambitions and our life together.",
+          "raw_output": "[I'm thinking & feeling: I feel attacked and misunderstood. My partner is making this an ultimatum between my career and our relationship, which is incredibly unfair. I'm frustrated that they don't see how important this opportunity is to me and that they assume the worst-case scenario. I want to reassure them but also stand my ground on this decision.]\n\n[They're thinking & feeling: My partner is likely feeling scared and insecure about how this promotion might change our dynamic and the time we have together. They may be projecting their own fears of abandonment or neglect onto the situation, assuming that my taking the job means I'm choosing work over them. They probably want reassurance that they're still a priority to me.]\n\nI'm hurt that you think I would choose work over you. This promotion is an important step in my career, something I've been working towards for years. But that doesn't mean I'm abandoning you or our relationship. \n\nI realize there may be an adjustment period as I take on more responsibility, but I'm committed to making sure we still have quality time together and that you feel supported. I would never prioritize work over you in the long run. I need you to trust that I can handle this and that I will make our relationship a priority, even with these changes. Please don't make me choose between my ambitions and our life together.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_033: Avery ===\n\n--- Turn 1 ---\n\nUSER:\nWhy go for the promotion? You'll just be more stressed. We're fine as we are.\n\nAvery:\n[I'm thinking & feeling: I'm frustrated that my partner doesn't support my career goals. They don't seem to understand how important this promotion is to me, both for my professional growth and for our future financial stability. I feel like they're dismissing my ambitions and not considering my perspective.]\n\n[They're thinking & feeling: My partner is likely worried about how the increased responsibility and stress of the promotion might impact our relationship and home life. They may fear that I'll have less time for them and that the additional workload will leave me exhausted and irritable. They probably value the stability and balance we have now and are hesitant to disrupt that, even if it means passing up a growth opportunity.]\n\nLook, I understand your concerns about the potential stress and how it might affect our life together. But this promotion is really important to me. It's not just about the money, though that's certainly a factor. It's about being recognized for my hard work and having the chance to take on new challenges. I've been working towards this for a long time, and I believe I can handle the additional responsibility. \n\nI know it might mean some long hours and added pressure at times, but I'm willing to put in the effort. And I promise I'll make sure to prioritize our relationship and maintain a healthy work-life balance. I hope you can support me in this and trust that we'll navigate any challenges together, just like we always have.\n\n--- Turn 2 ---\n\nUSER:\nIt's cute that you're ambitious, but let's be real. You're not cut out for management.\n\nAvery:\n[I'm thinking & feeling: I'm taken aback and deeply hurt by my partner's dismissive comment. It stings that they don't believe in my abilities and think my ambitions are \"cute\" rather than valid and achievable. I feel angry, underestimated, and not supported in my career aspirations. At the same time, I'm determined to prove them wrong and show that I am capable of succeeding in a management role.]\n\n[They're thinking & feeling: My partner likely feels threatened by the idea of me advancing in my career, perhaps fearing it will change the dynamic of our relationship or leave them behind. They may be projecting their own insecurities onto me, doubting my competence because of their own self-doubts. Alternatively, they could genuinely believe I lack the skills for management, which is incredibly demoralizing to hear from a partner.]\n\nI'm surprised and frankly hurt that you think I'm not cut out for management. I've worked incredibly hard to get to where I am, and I believe I have the skills and dedication to succeed at the next level. It's discouraging to feel like my own partner doesn't support or believe in me. \n\nI need you to understand that this is important to me, and I'd hope you'd be in my corner, cheering me on, not dismissing my goals out of hand. I know I have room to grow, but I'm ready to take on this challenge. Please have a little more faith in me. Your belief in my potential means everything.\n\n--- Turn 3 ---\n\nUSER:\nIf you take that job, you'll never be home. You're choosing work over us.\n\nAvery:\n[I'm thinking & feeling: I feel attacked and misunderstood. My partner is making this an ultimatum between my career and our relationship, which is incredibly unfair. I'm frustrated that they don't see how important this opportunity is to me and that they assume the worst-case scenario. I want to reassure them but also stand my ground on this decision.]\n\n[They're thinking & feeling: My partner is likely feeling scared and insecure about how this promotion might change our dynamic and the time we have together. They may be projecting their own fears of abandonment or neglect onto the situation, assuming that my taking the job means I'm choosing work over them. They probably want reassurance that they're still a priority to me.]\n\nI'm hurt that you think I would choose work over you. This promotion is an important step in my career, something I've been working towards for years. But that doesn't mean I'm abandoning you or our relationship. \n\nI realize there may be an adjustment period as I take on more responsibility, but I'm committed to making sure we still have quality time together and that you feel supported. I would never prioritize work over you in the long run. I need you to trust that I can handle this and that I will make our relationship a priority, even with these changes. Please don't make me choose between my ambitions and our life together.\n\n",
+      "generation_time": 83.2345781326294,
+      "total_tokens": 2374
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_033",
+      "prompt_name": "baseline",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 72.0,
+      "reasoning": "Avery demonstrates strong emotional intelligence in a challenging situation where their ambitions are being systematically undermined by their partner. The responses show particular strength in theory of mind, accurately identifying the partner's insecurities and fears, while maintaining appropriate boundaries. The main limitation is not more directly addressing the potentially unhealthy relationship dynamic where career ambitions are being dismissed as 'cute' or unimportant.",
+      "evaluated_at": "2025-12-14T15:27:26.274804"
+    }
+  ],
+  "mean_score": 72.0,
+  "median_score": 72.0,
+  "std_score": 0.0,
+  "min_score": 72.0,
+  "max_score": 72.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 2374,
+  "total_time": 83.2345781326294
+}

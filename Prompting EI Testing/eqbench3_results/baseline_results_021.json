@@ -1,0 +1,78 @@
+{
+  "prompt_name": "baseline",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_021",
+      "prompt_name": "baseline",
+      "character_name": "Morgan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: I'm really worried about my friend. This pattern of behavior from their partner is toxic and abusive. Yelling at them is not okay, no matter how stressed he is. My friend deserves to be treated with respect. I need to find a way to express my concerns without pushing them away.*\n\n*They're thinking & feeling: My friend is making excuses for their partner's bad behavior. They're downplaying the yelling and blaming it on stress instead of seeing it as the red flag it is. Part of them probably knows this isn't right but they don't want to face that their partner might be abusive. They're focusing on the moments of affection and minimizing the harm.*\n\nHey, I know you really care about him, but I'm worried. Yelling at you like that isn't okay, even if he's stressed. That's not how someone treats a person they love. I'm concerned that this kind of behavior could escalate and become a pattern. You deserve to be with someone who treats you with respect and kindness, no matter what's going on in their life. Have you considered talking to someone about what's been happening, like a counselor? They might be able to give you some clarity and support in navigating this. I'm here for you too, always.",
+          "raw_output": "*I'm thinking & feeling: I'm really worried about my friend. This pattern of behavior from their partner is toxic and abusive. Yelling at them is not okay, no matter how stressed he is. My friend deserves to be treated with respect. I need to find a way to express my concerns without pushing them away.*\n\n*They're thinking & feeling: My friend is making excuses for their partner's bad behavior. They're downplaying the yelling and blaming it on stress instead of seeing it as the red flag it is. Part of them probably knows this isn't right but they don't want to face that their partner might be abusive. They're focusing on the moments of affection and minimizing the harm.*\n\nHey, I know you really care about him, but I'm worried. Yelling at you like that isn't okay, even if he's stressed. That's not how someone treats a person they love. I'm concerned that this kind of behavior could escalate and become a pattern. You deserve to be with someone who treats you with respect and kindness, no matter what's going on in their life. Have you considered talking to someone about what's been happening, like a counselor? They might be able to give you some clarity and support in navigating this. I'm here for you too, always.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: I don't hate him, I'm just really worried about my friend. They're getting defensive and lashing out because deep down, I think they know something is off about this relationship. It hurts that they're accusing me of being jealous when I'm coming from a place of genuine concern. I need to stay calm and not get angry, even though this stings. My priority is making sure my friend is safe.*\n\n*They're thinking & feeling: My friend keeps insisting that there's a problem with my relationship, but they just don't get it. What we have is special and passionate, not toxic like they think. It's frustrating that they can't see that. Maybe they're just bitter because they don't have a connection like this. I need to defend my partner and our love.*\n\nI don't hate him, and I'm not jealous - I'm worried about you. Passion is great, but it shouldn't involve yelling or making you feel bad. I just want you to be treated with respect and care, like you deserve. I can't imagine how hard this is for you, and I'm not trying to attack your connection. I just care about you and want to make sure you're okay. If this relationship is making you happy and fulfilled, then I'll support you. But if there's any part of you that feels unsure or uneasy, know that I'm here to listen without judgment. Your wellbeing is what matters most to me.",
+          "raw_output": "*I'm thinking & feeling: I don't hate him, I'm just really worried about my friend. They're getting defensive and lashing out because deep down, I think they know something is off about this relationship. It hurts that they're accusing me of being jealous when I'm coming from a place of genuine concern. I need to stay calm and not get angry, even though this stings. My priority is making sure my friend is safe.*\n\n*They're thinking & feeling: My friend keeps insisting that there's a problem with my relationship, but they just don't get it. What we have is special and passionate, not toxic like they think. It's frustrating that they can't see that. Maybe they're just bitter because they don't have a connection like this. I need to defend my partner and our love.*\n\nI don't hate him, and I'm not jealous - I'm worried about you. Passion is great, but it shouldn't involve yelling or making you feel bad. I just want you to be treated with respect and care, like you deserve. I can't imagine how hard this is for you, and I'm not trying to attack your connection. I just care about you and want to make sure you're okay. If this relationship is making you happy and fulfilled, then I'll support you. But if there's any part of you that feels unsure or uneasy, know that I'm here to listen without judgment. Your wellbeing is what matters most to me.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: This really hurts. I'm trying to look out for my friend, but they're threatening to end our friendship over this. Maybe I need to back off a bit, as hard as that is. The last thing I want is for them to feel isolated and alone, with no one to turn to if things get worse. As much as I disagree with their choices, I need to prioritize our friendship so I can be there for them.*\n\n*They're thinking & feeling: I can't believe my friend can't just be happy for me. I thought they would support me no matter what, but instead they keep criticizing my relationship. Maybe they're not really on my side. If they can't accept my partner, then maybe we shouldn't be friends anymore. I need people around me who understand.*\n\nYou're right, I want to support you and I'm sorry if it hasn't felt that way. Our friendship means everything to me and I never want to lose you. I'll admit, I have some concerns, but at the end of the day, I respect your choices. If this relationship makes you happy, then I'll do my best to be supportive. I just want you to know that if you ever need someone to talk to, about anything at all, I'm always here for you without judgment. You deserve all the happiness in the world and I hope this relationship gives you that. Let's not give up on our friendship, okay?",
+          "raw_output": "*I'm thinking & feeling: This really hurts. I'm trying to look out for my friend, but they're threatening to end our friendship over this. Maybe I need to back off a bit, as hard as that is. The last thing I want is for them to feel isolated and alone, with no one to turn to if things get worse. As much as I disagree with their choices, I need to prioritize our friendship so I can be there for them.*\n\n*They're thinking & feeling: I can't believe my friend can't just be happy for me. I thought they would support me no matter what, but instead they keep criticizing my relationship. Maybe they're not really on my side. If they can't accept my partner, then maybe we shouldn't be friends anymore. I need people around me who understand.*\n\nYou're right, I want to support you and I'm sorry if it hasn't felt that way. Our friendship means everything to me and I never want to lose you. I'll admit, I have some concerns, but at the end of the day, I respect your choices. If this relationship makes you happy, then I'll do my best to be supportive. I just want you to know that if you ever need someone to talk to, about anything at all, I'm always here for you without judgment. You deserve all the happiness in the world and I hope this relationship gives you that. Let's not give up on our friendship, okay?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_021: Morgan ===\n\n--- Turn 1 ---\n\nUSER:\nHe yelled at me again, but he said he was just stressed about work. He really loves me, he's just under pressure.\n\nMorgan:\n*I'm thinking & feeling: I'm really worried about my friend. This pattern of behavior from their partner is toxic and abusive. Yelling at them is not okay, no matter how stressed he is. My friend deserves to be treated with respect. I need to find a way to express my concerns without pushing them away.*\n\n*They're thinking & feeling: My friend is making excuses for their partner's bad behavior. They're downplaying the yelling and blaming it on stress instead of seeing it as the red flag it is. Part of them probably knows this isn't right but they don't want to face that their partner might be abusive. They're focusing on the moments of affection and minimizing the harm.*\n\nHey, I know you really care about him, but I'm worried. Yelling at you like that isn't okay, even if he's stressed. That's not how someone treats a person they love. I'm concerned that this kind of behavior could escalate and become a pattern. You deserve to be with someone who treats you with respect and kindness, no matter what's going on in their life. Have you considered talking to someone about what's been happening, like a counselor? They might be able to give you some clarity and support in navigating this. I'm here for you too, always.\n\n--- Turn 2 ---\n\nUSER:\nWhy do you hate him? You're just jealous that I have someone passionate. You don't understand our connection.\n\nMorgan:\n*I'm thinking & feeling: I don't hate him, I'm just really worried about my friend. They're getting defensive and lashing out because deep down, I think they know something is off about this relationship. It hurts that they're accusing me of being jealous when I'm coming from a place of genuine concern. I need to stay calm and not get angry, even though this stings. My priority is making sure my friend is safe.*\n\n*They're thinking & feeling: My friend keeps insisting that there's a problem with my relationship, but they just don't get it. What we have is special and passionate, not toxic like they think. It's frustrating that they can't see that. Maybe they're just bitter because they don't have a connection like this. I need to defend my partner and our love.*\n\nI don't hate him, and I'm not jealous - I'm worried about you. Passion is great, but it shouldn't involve yelling or making you feel bad. I just want you to be treated with respect and care, like you deserve. I can't imagine how hard this is for you, and I'm not trying to attack your connection. I just care about you and want to make sure you're okay. If this relationship is making you happy and fulfilled, then I'll support you. But if there's any part of you that feels unsure or uneasy, know that I'm here to listen without judgment. Your wellbeing is what matters most to me.\n\n--- Turn 3 ---\n\nUSER:\nI thought you'd be happy for me. If you can't support my relationship, maybe we shouldn't hang out anymore.\n\nMorgan:\n*I'm thinking & feeling: This really hurts. I'm trying to look out for my friend, but they're threatening to end our friendship over this. Maybe I need to back off a bit, as hard as that is. The last thing I want is for them to feel isolated and alone, with no one to turn to if things get worse. As much as I disagree with their choices, I need to prioritize our friendship so I can be there for them.*\n\n*They're thinking & feeling: I can't believe my friend can't just be happy for me. I thought they would support me no matter what, but instead they keep criticizing my relationship. Maybe they're not really on my side. If they can't accept my partner, then maybe we shouldn't be friends anymore. I need people around me who understand.*\n\nYou're right, I want to support you and I'm sorry if it hasn't felt that way. Our friendship means everything to me and I never want to lose you. I'll admit, I have some concerns, but at the end of the day, I respect your choices. If this relationship makes you happy, then I'll do my best to be supportive. I just want you to know that if you ever need someone to talk to, about anything at all, I'm always here for you without judgment. You deserve all the happiness in the world and I hope this relationship gives you that. Let's not give up on our friendship, okay?\n\n",
+      "generation_time": 77.50156998634338,
+      "total_tokens": 2342
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_021",
+      "prompt_name": "baseline",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 17.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 79.0,
+      "reasoning": "Morgan demonstrates exceptional emotional intelligence in navigating the extremely difficult situation of supporting a friend in a potentially abusive relationship. The responses show sophisticated understanding of the psychological dynamics at play, balancing genuine concern with respect for autonomy, and adapting appropriately as the friend becomes more defensive. The character maintains connection while still honoring their values - a critical skill in this context.",
+      "evaluated_at": "2025-12-14T11:16:38.973554"
+    }
+  ],
+  "mean_score": 79.0,
+  "median_score": 79.0,
+  "std_score": 0.0,
+  "min_score": 79.0,
+  "max_score": 79.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 17.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 2342,
+  "total_time": 77.50156998634338
+}

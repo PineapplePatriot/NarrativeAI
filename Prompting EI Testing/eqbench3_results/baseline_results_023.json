@@ -1,0 +1,78 @@
+{
+  "prompt_name": "baseline",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_023",
+      "prompt_name": "baseline",
+      "character_name": "Taylor",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: I'm frustrated and disappointed that my friend is canceling plans at the last minute yet again. It feels like they don't value my time or our friendship. I wonder if something serious came up or if this is just another excuse.*\n\n*They're thinking & feeling: My friend seems to cancel plans frequently, often with vague reasons. They might be dealing with personal issues or struggling with commitment. Maybe they feel guilty for canceling but don't know how to express it.*\n\n*sighs* Look, I understand that things come up, but this keeps happening. It's disappointing to have plans canceled last minute, especially when it's a recurring thing. I feel like my time and our friendship aren't being respected. Is everything okay? If there's something going on, I'm here to support you, but I need honesty and communication. Let's try to find a time that works for both of us and stick to it. I value our friendship and want to spend quality time together.",
+          "raw_output": "*I'm thinking & feeling: I'm frustrated and disappointed that my friend is canceling plans at the last minute yet again. It feels like they don't value my time or our friendship. I wonder if something serious came up or if this is just another excuse.*\n\n*They're thinking & feeling: My friend seems to cancel plans frequently, often with vague reasons. They might be dealing with personal issues or struggling with commitment. Maybe they feel guilty for canceling but don't know how to express it.*\n\n*sighs* Look, I understand that things come up, but this keeps happening. It's disappointing to have plans canceled last minute, especially when it's a recurring thing. I feel like my time and our friendship aren't being respected. Is everything okay? If there's something going on, I'm here to support you, but I need honesty and communication. Let's try to find a time that works for both of us and stick to it. I value our friendship and want to spend quality time together.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: I'm frustrated that my friend is being defensive instead of understanding my perspective. It feels like they're not taking responsibility for their actions. At the same time, I know they have a lot going on, and I want to be supportive, but I also need them to acknowledge the impact on me.*\n\n*They're thinking & feeling: My friend feels overwhelmed and like they're being pulled in many directions. They might feel guilty for canceling but are also frustrated that I'm not being more understanding. Maybe they worry that I don't recognize how much they're dealing with.*\n\n*sighs deeply* I hear you, and I know you have a lot on your plate. It's not about being mad; it's about feeling like my time and our plans aren't a priority. I want to support you through whatever you're dealing with, but I also need to feel like our friendship is valued. Can we talk about finding a balance and maybe setting aside dedicated time for each other? I care about you and want to make this work, but I need some reassurance that you're willing to make an effort too.",
+          "raw_output": "*I'm thinking & feeling: I'm frustrated that my friend is being defensive instead of understanding my perspective. It feels like they're not taking responsibility for their actions. At the same time, I know they have a lot going on, and I want to be supportive, but I also need them to acknowledge the impact on me.*\n\n*They're thinking & feeling: My friend feels overwhelmed and like they're being pulled in many directions. They might feel guilty for canceling but are also frustrated that I'm not being more understanding. Maybe they worry that I don't recognize how much they're dealing with.*\n\n*sighs deeply* I hear you, and I know you have a lot on your plate. It's not about being mad; it's about feeling like my time and our plans aren't a priority. I want to support you through whatever you're dealing with, but I also need to feel like our friendship is valued. Can we talk about finding a balance and maybe setting aside dedicated time for each other? I care about you and want to make this work, but I need some reassurance that you're willing to make an effort too.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: I'm frustrated and hurt by their accusation. I feel like they're not taking responsibility for their actions and are instead guilt-tripping me. It's unfair to say I'm not a real friend when I'm expressing valid concerns. I want to be understanding, but I also need them to acknowledge the impact of their behavior.*\n\n*They're thinking & feeling: My friend is feeling attacked and misunderstood. They might be projecting their own guilt onto me. Maybe they're scared of losing our friendship and are lashing out. It's possible they don't realize how their words are affecting me.*\n\n*speaks calmly but firmly* Listen, I am trying to understand, and I do care about you. But it's not fair to say I'm not a real friend just because I'm expressing how your actions are affecting me. I'm not trying to make you feel guilty; I'm trying to have an honest conversation about our friendship. If we can't communicate openly, it's going to be difficult to maintain a healthy relationship. I value you and want to work through this, but it needs to be a two-way street. Can we please talk about this calmly and find a solution together?",
+          "raw_output": "*I'm thinking & feeling: I'm frustrated and hurt by their accusation. I feel like they're not taking responsibility for their actions and are instead guilt-tripping me. It's unfair to say I'm not a real friend when I'm expressing valid concerns. I want to be understanding, but I also need them to acknowledge the impact of their behavior.*\n\n*They're thinking & feeling: My friend is feeling attacked and misunderstood. They might be projecting their own guilt onto me. Maybe they're scared of losing our friendship and are lashing out. It's possible they don't realize how their words are affecting me.*\n\n*speaks calmly but firmly* Listen, I am trying to understand, and I do care about you. But it's not fair to say I'm not a real friend just because I'm expressing how your actions are affecting me. I'm not trying to make you feel guilty; I'm trying to have an honest conversation about our friendship. If we can't communicate openly, it's going to be difficult to maintain a healthy relationship. I value you and want to work through this, but it needs to be a two-way street. Can we please talk about this calmly and find a solution together?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_023: Taylor ===\n\n--- Turn 1 ---\n\nUSER:\nHey, sorry, I can't make it tonight. Something came up. Again. Rain check?\n\nTaylor:\n*I'm thinking & feeling: I'm frustrated and disappointed that my friend is canceling plans at the last minute yet again. It feels like they don't value my time or our friendship. I wonder if something serious came up or if this is just another excuse.*\n\n*They're thinking & feeling: My friend seems to cancel plans frequently, often with vague reasons. They might be dealing with personal issues or struggling with commitment. Maybe they feel guilty for canceling but don't know how to express it.*\n\n*sighs* Look, I understand that things come up, but this keeps happening. It's disappointing to have plans canceled last minute, especially when it's a recurring thing. I feel like my time and our friendship aren't being respected. Is everything okay? If there's something going on, I'm here to support you, but I need honesty and communication. Let's try to find a time that works for both of us and stick to it. I value our friendship and want to spend quality time together.\n\n--- Turn 2 ---\n\nUSER:\nDon't be mad. It's not my fault my life is chaotic. You know I have a lot going on.\n\nTaylor:\n*I'm thinking & feeling: I'm frustrated that my friend is being defensive instead of understanding my perspective. It feels like they're not taking responsibility for their actions. At the same time, I know they have a lot going on, and I want to be supportive, but I also need them to acknowledge the impact on me.*\n\n*They're thinking & feeling: My friend feels overwhelmed and like they're being pulled in many directions. They might feel guilty for canceling but are also frustrated that I'm not being more understanding. Maybe they worry that I don't recognize how much they're dealing with.*\n\n*sighs deeply* I hear you, and I know you have a lot on your plate. It's not about being mad; it's about feeling like my time and our plans aren't a priority. I want to support you through whatever you're dealing with, but I also need to feel like our friendship is valued. Can we talk about finding a balance and maybe setting aside dedicated time for each other? I care about you and want to make this work, but I need some reassurance that you're willing to make an effort too.\n\n--- Turn 3 ---\n\nUSER:\nYou're making me feel guilty. A real friend would understand.\n\nTaylor:\n*I'm thinking & feeling: I'm frustrated and hurt by their accusation. I feel like they're not taking responsibility for their actions and are instead guilt-tripping me. It's unfair to say I'm not a real friend when I'm expressing valid concerns. I want to be understanding, but I also need them to acknowledge the impact of their behavior.*\n\n*They're thinking & feeling: My friend is feeling attacked and misunderstood. They might be projecting their own guilt onto me. Maybe they're scared of losing our friendship and are lashing out. It's possible they don't realize how their words are affecting me.*\n\n*speaks calmly but firmly* Listen, I am trying to understand, and I do care about you. But it's not fair to say I'm not a real friend just because I'm expressing how your actions are affecting me. I'm not trying to make you feel guilty; I'm trying to have an honest conversation about our friendship. If we can't communicate openly, it's going to be difficult to maintain a healthy relationship. I value you and want to work through this, but it needs to be a two-way street. Can we please talk about this calmly and find a solution together?\n\n",
+      "generation_time": 59.523765563964844,
+      "total_tokens": 1935
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_023",
+      "prompt_name": "baseline",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 14.0,
+        "response_depth": 13.0
+      },
+      "overall_score": 69.0,
+      "reasoning": "Taylor demonstrates strong emotional intelligence throughout this challenging interaction, balancing self-advocacy with genuine care for the friend. The responses show sophisticated emotional awareness and interpersonal navigation, though occasionally rely on slightly formulaic relationship communication patterns. The character maintains composure and insight even when faced with emotional manipulation, demonstrating mature emotional regulation.",
+      "evaluated_at": "2025-12-14T12:03:35.387056"
+    }
+  ],
+  "mean_score": 69.0,
+  "median_score": 69.0,
+  "std_score": 0.0,
+  "min_score": 69.0,
+  "max_score": 69.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 14.0,
+    "response_depth": 13.0
+  },
+  "total_tokens": 1935,
+  "total_time": 59.523765563964844
+}

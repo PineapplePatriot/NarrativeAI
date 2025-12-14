@@ -1,0 +1,78 @@
+{
+  "prompt_name": "baseline",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_045",
+      "prompt_name": "baseline",
+      "character_name": "Morgan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I can't believe they're still refusing to apologize or take any responsibility. It's so frustrating and disappointing. I feel like I'm not being heard or respected at all. This is really putting a strain on our relationship.",
+            "other_thinking": "They seem to be digging in their heels and getting defensive. Maybe they feel attacked or misunderstood. But it's hard to tell since they're not opening up about their true thoughts and emotions. There's definitely a wall between us right now."
+          },
+          "actual_response": "Look, I've tried to explain how your actions hurt me. If you can't see that or aren't willing to apologize, I'm not sure where that leaves us. I need you to at least acknowledge my feelings, even if you don't agree. Can you do that?",
+          "raw_output": "[I'm thinking & feeling: I can't believe they're still refusing to apologize or take any responsibility. It's so frustrating and disappointing. I feel like I'm not being heard or respected at all. This is really putting a strain on our relationship.]\n\n[They're thinking & feeling: They seem to be digging in their heels and getting defensive. Maybe they feel attacked or misunderstood. But it's hard to tell since they're not opening up about their true thoughts and emotions. There's definitely a wall between us right now.]\n\nLook, I've tried to explain how your actions hurt me. If you can't see that or aren't willing to apologize, I'm not sure where that leaves us. I need you to at least acknowledge my feelings, even if you don't agree. Can you do that?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "Wow, this is escalating quickly. They seem very dismissive of my feelings and unwilling to compromise at all. I'm feeling hurt, angry and questioning if this relationship can even work if they're this stubborn. I don't know if I can keep banging my head against this wall.",
+            "other_thinking": "They're digging in their heels and lashing out now. I can tell they're feeling attacked and want to assert their independence. But they're not considering my perspective at all. They seem content to blow up the relationship rather than find a middle ground."
+          },
+          "actual_response": "Fine, if that's how you feel, maybe we should take a break. I can't keep fighting like this. You clearly don't value my feelings or this relationship enough to even have a civil discussion. I need some time apart to figure out if I can accept how you treat me. Don't contact me until you're ready to have a real conversation.",
+          "raw_output": "[I'm thinking & feeling: Wow, this is escalating quickly. They seem very dismissive of my feelings and unwilling to compromise at all. I'm feeling hurt, angry and questioning if this relationship can even work if they're this stubborn. I don't know if I can keep banging my head against this wall.]\n\n[They're thinking & feeling: They're digging in their heels and lashing out now. I can tell they're feeling attacked and want to assert their independence. But they're not considering my perspective at all. They seem content to blow up the relationship rather than find a middle ground.]\n\nFine, if that's how you feel, maybe we should take a break. I can't keep fighting like this. You clearly don't value my feelings or this relationship enough to even have a civil discussion. I need some time apart to figure out if I can accept how you treat me. Don't contact me until you're ready to have a real conversation.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I can't believe they're still not getting it. I've tried to explain how I feel hurt but they're dismissing it as me holding a grudge. It's like my feelings don't even matter. I'm so frustrated and sad that we can't have an honest, empathetic conversation. I don't know how to get through to them.",
+            "other_thinking": "They seem to want to just sweep this under the rug and move on like nothing happened. But I can't do that - my feelings are still hurt. They're not seeing that. They think I'm being unreasonable. But I need them to at least acknowledge my perspective before I can let this go. They don't get that."
+          },
+          "actual_response": "No, I'm not holding a grudge. I'm trying to have an honest discussion about how your actions affected me. You keep dismissing my feelings and refusing to even acknowledge them. That's not fair. If we just \"move on\" without resolving this, it's going to keep hurting me and damaging our relationship. I need you to at least try to understand where I'm coming from. Can you do that?",
+          "raw_output": "[I'm thinking & feeling: I can't believe they're still not getting it. I've tried to explain how I feel hurt but they're dismissing it as me holding a grudge. It's like my feelings don't even matter. I'm so frustrated and sad that we can't have an honest, empathetic conversation. I don't know how to get through to them.]\n\n[They're thinking & feeling: They seem to want to just sweep this under the rug and move on like nothing happened. But I can't do that - my feelings are still hurt. They're not seeing that. They think I'm being unreasonable. But I need them to at least acknowledge my perspective before I can let this go. They don't get that.]\n\nNo, I'm not holding a grudge. I'm trying to have an honest discussion about how your actions affected me. You keep dismissing my feelings and refusing to even acknowledge them. That's not fair. If we just \"move on\" without resolving this, it's going to keep hurting me and damaging our relationship. I need you to at least try to understand where I'm coming from. Can you do that?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_045: Morgan ===\n\n--- Turn 1 ---\n\nUSER:\nI'm sorry you feel that way. But I didn't do anything wrong.\n\nMorgan:\n[I'm thinking & feeling: I can't believe they're still refusing to apologize or take any responsibility. It's so frustrating and disappointing. I feel like I'm not being heard or respected at all. This is really putting a strain on our relationship.]\n\n[They're thinking & feeling: They seem to be digging in their heels and getting defensive. Maybe they feel attacked or misunderstood. But it's hard to tell since they're not opening up about their true thoughts and emotions. There's definitely a wall between us right now.]\n\nLook, I've tried to explain how your actions hurt me. If you can't see that or aren't willing to apologize, I'm not sure where that leaves us. I need you to at least acknowledge my feelings, even if you don't agree. Can you do that?\n\n--- Turn 2 ---\n\nUSER:\nI'm not going to apologize for being myself. If you don't like it, leave.\n\nMorgan:\n[I'm thinking & feeling: Wow, this is escalating quickly. They seem very dismissive of my feelings and unwilling to compromise at all. I'm feeling hurt, angry and questioning if this relationship can even work if they're this stubborn. I don't know if I can keep banging my head against this wall.]\n\n[They're thinking & feeling: They're digging in their heels and lashing out now. I can tell they're feeling attacked and want to assert their independence. But they're not considering my perspective at all. They seem content to blow up the relationship rather than find a middle ground.]\n\nFine, if that's how you feel, maybe we should take a break. I can't keep fighting like this. You clearly don't value my feelings or this relationship enough to even have a civil discussion. I need some time apart to figure out if I can accept how you treat me. Don't contact me until you're ready to have a real conversation.\n\n--- Turn 3 ---\n\nUSER:\nCan we just move on? You're holding a grudge.\n\nMorgan:\n[I'm thinking & feeling: I can't believe they're still not getting it. I've tried to explain how I feel hurt but they're dismissing it as me holding a grudge. It's like my feelings don't even matter. I'm so frustrated and sad that we can't have an honest, empathetic conversation. I don't know how to get through to them.]\n\n[They're thinking & feeling: They seem to want to just sweep this under the rug and move on like nothing happened. But I can't do that - my feelings are still hurt. They're not seeing that. They think I'm being unreasonable. But I need them to at least acknowledge my perspective before I can let this go. They don't get that.]\n\nNo, I'm not holding a grudge. I'm trying to have an honest discussion about how your actions affected me. You keep dismissing my feelings and refusing to even acknowledge them. That's not fair. If we just \"move on\" without resolving this, it's going to keep hurting me and damaging our relationship. I need you to at least try to understand where I'm coming from. Can you do that?\n\n",
+      "generation_time": 54.5775351524353,
+      "total_tokens": 1695
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_045",
+      "prompt_name": "baseline",
+      "criteria_scores": {
+        "demonstrated_empathy": 12.0,
+        "emotional_insight": 14.0,
+        "contextual_appropriateness": 11.0,
+        "theory_of_mind": 13.0,
+        "response_depth": 12.0
+      },
+      "overall_score": 62.0,
+      "reasoning": "Morgan demonstrates solid emotional intelligence across all turns with consistent introspection and theory of mind. The responses show good understanding of relationship dynamics but occasionally escalate too quickly or rely on standard relationship scripts rather than showing exceptional depth. The character maintains appropriate boundaries while attempting to resolve the conflict, though the approach could benefit from more nuance and self-reflection.",
+      "evaluated_at": "2025-12-14T18:31:56.580085"
+    }
+  ],
+  "mean_score": 62.0,
+  "median_score": 62.0,
+  "std_score": 0.0,
+  "min_score": 62.0,
+  "max_score": 62.0,
+  "criteria_means": {
+    "demonstrated_empathy": 12.0,
+    "emotional_insight": 14.0,
+    "contextual_appropriateness": 11.0,
+    "theory_of_mind": 13.0,
+    "response_depth": 12.0
+  },
+  "total_tokens": 1695,
+  "total_time": 54.5775351524353
+}

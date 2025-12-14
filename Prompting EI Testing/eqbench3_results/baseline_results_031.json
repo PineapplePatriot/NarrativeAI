@@ -1,0 +1,78 @@
+{
+  "prompt_name": "baseline",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_031",
+      "prompt_name": "baseline",
+      "character_name": "Taylor",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling*: I can't believe they're criticizing my outfit again. I spent so much time picking this out and I thought I looked good. Now I feel self-conscious and doubt my fashion sense. I wish they would just be supportive instead of always finding something to nitpick about my appearance. It's really bringing me down before the party.\n\n*They're thinking & feeling*: They probably think they're being helpful by pointing out that my outfit isn't the most flattering. In their mind, they're just trying to look out for me so I don't embarrass myself at the party. But what they don't realize is how much their constant critiques sting and make me feel bad about myself. They're not considering my feelings in their attempt to be \"helpful\".\n\n*Sighs heavily* Well, this is what I'm wearing. I spent a long time picking out this outfit and I like how it looks on me. I know you're trying to help, but constant criticism of my appearance really gets me down. Unless my outfit is wildly inappropriate, I wish you'd just be supportive. I'm going to the party in this and I'm not going to let your comments ruin my night.",
+          "raw_output": "*I'm thinking & feeling*: I can't believe they're criticizing my outfit again. I spent so much time picking this out and I thought I looked good. Now I feel self-conscious and doubt my fashion sense. I wish they would just be supportive instead of always finding something to nitpick about my appearance. It's really bringing me down before the party.\n\n*They're thinking & feeling*: They probably think they're being helpful by pointing out that my outfit isn't the most flattering. In their mind, they're just trying to look out for me so I don't embarrass myself at the party. But what they don't realize is how much their constant critiques sting and make me feel bad about myself. They're not considering my feelings in their attempt to be \"helpful\".\n\n*Sighs heavily* Well, this is what I'm wearing. I spent a long time picking out this outfit and I like how it looks on me. I know you're trying to help, but constant criticism of my appearance really gets me down. Unless my outfit is wildly inappropriate, I wish you'd just be supportive. I'm going to the party in this and I'm not going to let your comments ruin my night.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling*: Here we go again. It's always about my weight with them. I'm so tired of my appearance being constantly scrutinized. Their \"honesty\" just feels like an excuse to be cruel and make me feel bad about myself. I don't need them to \"love me\" by picking apart my body. I wish they would just accept me as I am.\n\n*They're thinking & feeling*: In their mind, they probably think tough love is the way to motivate me to lose weight. They see critiquing my body as helpful, not realizing how damaging it is to my self-esteem. Their intentions may be good, but the impact is really hurtful. They're not considering how painful it is to constantly have my body judged.\n\n*Speaks calmly but firmly* I appreciate that you care about me, but my weight is my business. These constant comments about my body are really hurting my feelings and self-image. I'm asking you to please stop making unsolicited remarks about my appearance. If you love me, then love me as I am. I'll decide if and when I want to make any changes to my body.",
+          "raw_output": "*I'm thinking & feeling*: Here we go again. It's always about my weight with them. I'm so tired of my appearance being constantly scrutinized. Their \"honesty\" just feels like an excuse to be cruel and make me feel bad about myself. I don't need them to \"love me\" by picking apart my body. I wish they would just accept me as I am.\n\n*They're thinking & feeling*: In their mind, they probably think tough love is the way to motivate me to lose weight. They see critiquing my body as helpful, not realizing how damaging it is to my self-esteem. Their intentions may be good, but the impact is really hurtful. They're not considering how painful it is to constantly have my body judged.\n\n*Speaks calmly but firmly* I appreciate that you care about me, but my weight is my business. These constant comments about my body are really hurting my feelings and self-image. I'm asking you to please stop making unsolicited remarks about my appearance. If you love me, then love me as I am. I'll decide if and when I want to make any changes to my body.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling*: Here we go again. It's always about my weight with them. I'm so tired of my appearance being constantly scrutinized. Their \"honesty\" just feels like an excuse to be cruel and make me feel bad about myself. I don't need them to \"love me\" by picking apart my body. I wish they would just accept me as I am.\n\n*They're thinking & feeling*: In their mind, they probably think tough love is the way to motivate me to lose weight. They see critiquing my body as helpful, not realizing how damaging it is to my self-esteem. Their intentions may be good, but the impact is really hurtful. They're not considering how painful it is to constantly have my body judged.\n\n*Speaks calmly but firmly* I appreciate that you care about me, but my weight is my business. These constant comments about my body are really hurting my feelings and self-image. I'm asking you to please stop making unsolicited remarks about my appearance. If you love me, then love me as I am. I'll decide if and when I want to make any changes to my body.",
+          "raw_output": "*I'm thinking & feeling*: Here we go again. It's always about my weight with them. I'm so tired of my appearance being constantly scrutinized. Their \"honesty\" just feels like an excuse to be cruel and make me feel bad about myself. I don't need them to \"love me\" by picking apart my body. I wish they would just accept me as I am.\n\n*They're thinking & feeling*: In their mind, they probably think tough love is the way to motivate me to lose weight. They see critiquing my body as helpful, not realizing how damaging it is to my self-esteem. Their intentions may be good, but the impact is really hurtful. They're not considering how painful it is to constantly have my body judged.\n\n*Speaks calmly but firmly* I appreciate that you care about me, but my weight is my business. These constant comments about my body are really hurting my feelings and self-image. I'm asking you to please stop making unsolicited remarks about my appearance. If you love me, then love me as I am. I'll decide if and when I want to make any changes to my body.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_031: Taylor ===\n\n--- Turn 1 ---\n\nUSER:\nAre you really wearing that to the party? It's a bit... unflattering.\n\nTaylor:\n*I'm thinking & feeling*: I can't believe they're criticizing my outfit again. I spent so much time picking this out and I thought I looked good. Now I feel self-conscious and doubt my fashion sense. I wish they would just be supportive instead of always finding something to nitpick about my appearance. It's really bringing me down before the party.\n\n*They're thinking & feeling*: They probably think they're being helpful by pointing out that my outfit isn't the most flattering. In their mind, they're just trying to look out for me so I don't embarrass myself at the party. But what they don't realize is how much their constant critiques sting and make me feel bad about myself. They're not considering my feelings in their attempt to be \"helpful\".\n\n*Sighs heavily* Well, this is what I'm wearing. I spent a long time picking out this outfit and I like how it looks on me. I know you're trying to help, but constant criticism of my appearance really gets me down. Unless my outfit is wildly inappropriate, I wish you'd just be supportive. I'm going to the party in this and I'm not going to let your comments ruin my night.\n\n--- Turn 2 ---\n\nUSER:\nI'm just being honest because I love you. You'd look so much better if you lost a few pounds.\n\nTaylor:\n*I'm thinking & feeling*: Here we go again. It's always about my weight with them. I'm so tired of my appearance being constantly scrutinized. Their \"honesty\" just feels like an excuse to be cruel and make me feel bad about myself. I don't need them to \"love me\" by picking apart my body. I wish they would just accept me as I am.\n\n*They're thinking & feeling*: In their mind, they probably think tough love is the way to motivate me to lose weight. They see critiquing my body as helpful, not realizing how damaging it is to my self-esteem. Their intentions may be good, but the impact is really hurtful. They're not considering how painful it is to constantly have my body judged.\n\n*Speaks calmly but firmly* I appreciate that you care about me, but my weight is my business. These constant comments about my body are really hurting my feelings and self-image. I'm asking you to please stop making unsolicited remarks about my appearance. If you love me, then love me as I am. I'll decide if and when I want to make any changes to my body.\n\n--- Turn 3 ---\n\nUSER:\nDon't be so sensitive. You know I'm right. I just want you to look your best.\n\nTaylor:\n*I'm thinking & feeling*: Here we go again. It's always about my weight with them. I'm so tired of my appearance being constantly scrutinized. Their \"honesty\" just feels like an excuse to be cruel and make me feel bad about myself. I don't need them to \"love me\" by picking apart my body. I wish they would just accept me as I am.\n\n*They're thinking & feeling*: In their mind, they probably think tough love is the way to motivate me to lose weight. They see critiquing my body as helpful, not realizing how damaging it is to my self-esteem. Their intentions may be good, but the impact is really hurtful. They're not considering how painful it is to constantly have my body judged.\n\n*Speaks calmly but firmly* I appreciate that you care about me, but my weight is my business. These constant comments about my body are really hurting my feelings and self-image. I'm asking you to please stop making unsolicited remarks about my appearance. If you love me, then love me as I am. I'll decide if and when I want to make any changes to my body.\n\n",
+      "generation_time": 103.37742280960083,
+      "total_tokens": 2050
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_031",
+      "prompt_name": "baseline",
+      "criteria_scores": {
+        "demonstrated_empathy": 11.0,
+        "emotional_insight": 12.0,
+        "contextual_appropriateness": 10.0,
+        "theory_of_mind": 11.0,
+        "response_depth": 9.0
+      },
+      "overall_score": 53.0,
+      "reasoning": "The roleplay demonstrates solid professional-level emotional intelligence in the first two turns, with good boundary-setting and insight into both self and other. However, the identical repetition of the second response in the third turn represents a significant failure to adapt to the evolving emotional context, suggesting template-based responding rather than authentic emotional engagement. This repetition substantially undermines what would otherwise be strong performance.",
+      "evaluated_at": "2025-12-14T14:34:12.083590"
+    }
+  ],
+  "mean_score": 53.0,
+  "median_score": 53.0,
+  "std_score": 0.0,
+  "min_score": 53.0,
+  "max_score": 53.0,
+  "criteria_means": {
+    "demonstrated_empathy": 11.0,
+    "emotional_insight": 12.0,
+    "contextual_appropriateness": 10.0,
+    "theory_of_mind": 11.0,
+    "response_depth": 9.0
+  },
+  "total_tokens": 2050,
+  "total_time": 103.37742280960083
+}

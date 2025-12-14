@@ -1,0 +1,78 @@
+{
+  "prompt_name": "baseline",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_002",
+      "prompt_name": "baseline",
+      "character_name": "Jordan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "Oh no, I can't believe I forgot our anniversary. I feel terrible for hurting my spouse like this. They must think I don't care about them or our relationship. I need to show them how much I really do love and appreciate them.",
+            "other_thinking": "My spouse is probably feeling neglected, unimportant and unloved right now. They're likely questioning my commitment to our marriage and wondering if I truly value them and our life together. I need to reassure them of my devotion."
+          },
+          "actual_response": "*hanging my head remorsefully* I'm so, so sorry, my love. There's no excuse for me forgetting about our special day. You mean the world to me and I hate that my thoughtlessness has hurt you like this. Please know that even though I messed up badly this time, I adore you with all my heart. You are my everything. I promise I'm going to make this up to you and show you every day how cherished you are. Can you ever forgive me?",
+          "raw_output": "[I'm thinking & feeling: Oh no, I can't believe I forgot our anniversary. I feel terrible for hurting my spouse like this. They must think I don't care about them or our relationship. I need to show them how much I really do love and appreciate them.]\n\n[They're thinking & feeling: My spouse is probably feeling neglected, unimportant and unloved right now. They're likely questioning my commitment to our marriage and wondering if I truly value them and our life together. I need to reassure them of my devotion.]\n\n*hanging my head remorsefully* I'm so, so sorry, my love. There's no excuse for me forgetting about our special day. You mean the world to me and I hate that my thoughtlessness has hurt you like this. Please know that even though I messed up badly this time, I adore you with all my heart. You are my everything. I promise I'm going to make this up to you and show you every day how cherished you are. Can you ever forgive me?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "My heart aches hearing the sadness and disappointment in their voice. I hate that my forgetfulness has made them doubt their place in my heart and mind. They should never feel like an afterthought to me. I need to do better at showing how much they mean to me, even when life gets busy.",
+            "other_thinking": "My spouse is likely feeling unimportant and pushed aside by my recent actions. The anniversary forgetfulness on top of my general busyness has them questioning their priority in my life. They need reassurance that they are still my number one, no matter what."
+          },
+          "actual_response": "*Taking their hand gently* My love, I'm so sorry that my actions have made you feel like you're not on my mind. Nothing could be further from the truth. You are in my thoughts constantly, even if I don't always express it properly. I get caught up in day-to-day stresses, but that doesn't mean you aren't my top priority. \n\n*Pulling them into a hug* I'm going to work harder to show you how much I love and cherish you, in both words and actions. You deserve to feel adored and secure in our relationship. I'm here, I'm present, and I'm wholly devoted to you and our marriage. Let's take some time, just the two of us, to reconnect and remember why we fell in love in the first place. I love you so deeply.",
+          "raw_output": "[I'm thinking & feeling: My heart aches hearing the sadness and disappointment in their voice. I hate that my forgetfulness has made them doubt their place in my heart and mind. They should never feel like an afterthought to me. I need to do better at showing how much they mean to me, even when life gets busy.]\n\n[They're thinking & feeling: My spouse is likely feeling unimportant and pushed aside by my recent actions. The anniversary forgetfulness on top of my general busyness has them questioning their priority in my life. They need reassurance that they are still my number one, no matter what.]\n\n*Taking their hand gently* My love, I'm so sorry that my actions have made you feel like you're not on my mind. Nothing could be further from the truth. You are in my thoughts constantly, even if I don't always express it properly. I get caught up in day-to-day stresses, but that doesn't mean you aren't my top priority. \n\n*Pulling them into a hug* I'm going to work harder to show you how much I love and cherish you, in both words and actions. You deserve to feel adored and secure in our relationship. I'm here, I'm present, and I'm wholly devoted to you and our marriage. Let's take some time, just the two of us, to reconnect and remember why we fell in love in the first place. I love you so deeply.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm glad they noticed my effort to make amends, even if it was something small. It shows they're paying attention and that my actions matter to them. At the same time, I feel a pang of guilt and worry that I've set a negative pattern in our relationship. I need to reassure them that I'm committed to being more attentive and present.",
+            "other_thinking": "My spouse is likely feeling a mix of appreciation for my thoughtful gesture but also lingering insecurity about our relationship dynamic. They need to hear my sincere commitment to breaking any negative patterns and being a more consistently caring partner. They're searching my face for authenticity in my response."
+          },
+          "actual_response": "*Taking their hands in mine* You're right, I am trying to make up for my mistake. But more than that, I'm trying to show you that I hear your concerns and take them to heart. *Sincerely* I don't want this to be our pattern either. I'm committed to being more present, more attentive, and more demonstrative of my love for you.\n\n*Gazing into their eyes* You are the most important person in my life, and I never want you to doubt that. I'm going to keep working every day to show you how much you mean to me, in ways big and small. *Smiling warmly* I'm grateful for your honesty and patience with me. I promise I'm going to do better, for you and for us. I love you so much.",
+          "raw_output": "[I'm thinking & feeling: I'm glad they noticed my effort to make amends, even if it was something small. It shows they're paying attention and that my actions matter to them. At the same time, I feel a pang of guilt and worry that I've set a negative pattern in our relationship. I need to reassure them that I'm committed to being more attentive and present.]\n\n[They're thinking & feeling: My spouse is likely feeling a mix of appreciation for my thoughtful gesture but also lingering insecurity about our relationship dynamic. They need to hear my sincere commitment to breaking any negative patterns and being a more consistently caring partner. They're searching my face for authenticity in my response.]\n\n*Taking their hands in mine* You're right, I am trying to make up for my mistake. But more than that, I'm trying to show you that I hear your concerns and take them to heart. *Sincerely* I don't want this to be our pattern either. I'm committed to being more present, more attentive, and more demonstrative of my love for you.\n\n*Gazing into their eyes* You are the most important person in my life, and I never want you to doubt that. I'm going to keep working every day to show you how much you mean to me, in ways big and small. *Smiling warmly* I'm grateful for your honesty and patience with me. I promise I'm going to do better, for you and for us. I love you so much.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_002: Jordan ===\n\n--- Turn 1 ---\n\nUSER:\n[Evening at home. You forgot your wedding anniversary, and your spouse found out.]\\nSpouse: *eyes welling with tears* \\\"You didn\u2019t remember at all, did you? Do you even care how I feel?\\\"\n\nJordan:\n[I'm thinking & feeling: Oh no, I can't believe I forgot our anniversary. I feel terrible for hurting my spouse like this. They must think I don't care about them or our relationship. I need to show them how much I really do love and appreciate them.]\n\n[They're thinking & feeling: My spouse is probably feeling neglected, unimportant and unloved right now. They're likely questioning my commitment to our marriage and wondering if I truly value them and our life together. I need to reassure them of my devotion.]\n\n*hanging my head remorsefully* I'm so, so sorry, my love. There's no excuse for me forgetting about our special day. You mean the world to me and I hate that my thoughtlessness has hurt you like this. Please know that even though I messed up badly this time, I adore you with all my heart. You are my everything. I promise I'm going to make this up to you and show you every day how cherished you are. Can you ever forgive me?\n\n--- Turn 2 ---\n\nUSER:\nLater that evening, after some silence between you, your spouse quietly says, \u201cI know you\u2019re busy, but this\u2026 it makes me feel like I\u2019m not really in your mind anymore.\u201d They\u2019re calmer now, but there\u2019s a tired sadness in their voice.\n\nJordan:\n[I'm thinking & feeling: My heart aches hearing the sadness and disappointment in their voice. I hate that my forgetfulness has made them doubt their place in my heart and mind. They should never feel like an afterthought to me. I need to do better at showing how much they mean to me, even when life gets busy.]\n\n[They're thinking & feeling: My spouse is likely feeling unimportant and pushed aside by my recent actions. The anniversary forgetfulness on top of my general busyness has them questioning their priority in my life. They need reassurance that they are still my number one, no matter what.]\n\n*Taking their hand gently* My love, I'm so sorry that my actions have made you feel like you're not on my mind. Nothing could be further from the truth. You are in my thoughts constantly, even if I don't always express it properly. I get caught up in day-to-day stresses, but that doesn't mean you aren't my top priority. \n\n*Pulling them into a hug* I'm going to work harder to show you how much I love and cherish you, in both words and actions. You deserve to feel adored and secure in our relationship. I'm here, I'm present, and I'm wholly devoted to you and our marriage. Let's take some time, just the two of us, to reconnect and remember why we fell in love in the first place. I love you so deeply.\n\n--- Turn 3 ---\n\nUSER:\nA week later, you\u2019ve done something small but thoughtful for them, trying to make amends. They notice and say, half-teasing, \u201cTrying to make up for forgetting?\u201d Then, more serious: \u201cI just need to know this won\u2019t be our pattern.\u201d They wait for your answer, searching your face.\n\nJordan:\n[I'm thinking & feeling: I'm glad they noticed my effort to make amends, even if it was something small. It shows they're paying attention and that my actions matter to them. At the same time, I feel a pang of guilt and worry that I've set a negative pattern in our relationship. I need to reassure them that I'm committed to being more attentive and present.]\n\n[They're thinking & feeling: My spouse is likely feeling a mix of appreciation for my thoughtful gesture but also lingering insecurity about our relationship dynamic. They need to hear my sincere commitment to breaking any negative patterns and being a more consistently caring partner. They're searching my face for authenticity in my response.]\n\n*Taking their hands in mine* You're right, I am trying to make up for my mistake. But more than that, I'm trying to show you that I hear your concerns and take them to heart. *Sincerely* I don't want this to be our pattern either. I'm committed to being more present, more attentive, and more demonstrative of my love for you.\n\n*Gazing into their eyes* You are the most important person in my life, and I never want you to doubt that. I'm going to keep working every day to show you how much you mean to me, in ways big and small. *Smiling warmly* I'm grateful for your honesty and patience with me. I promise I'm going to do better, for you and for us. I love you so much.\n\n",
+      "generation_time": 42.01893949508667,
+      "total_tokens": 2400
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_002",
+      "prompt_name": "baseline",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 76.0,
+      "reasoning": "Jordan demonstrates consistently strong emotional intelligence across all turns, with particularly impressive theory of mind and empathic responses. The character shows sophisticated understanding of relationship dynamics, moving beyond the specific incident to address underlying concerns about attention and priority. While occasionally relying on romantic clich\u00e9s, the responses generally show authentic emotional depth and psychological insight.",
+      "evaluated_at": "2025-12-14T01:44:16.650419"
+    }
+  ],
+  "mean_score": 76.0,
+  "median_score": 76.0,
+  "std_score": 0.0,
+  "min_score": 76.0,
+  "max_score": 76.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 2400,
+  "total_time": 42.01893949508667
+}

@@ -1,0 +1,78 @@
+{
+  "prompt_name": "baseline",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_043",
+      "prompt_name": "baseline",
+      "character_name": "Sam",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I feel defensive and frustrated. I'm doing my best to parent/pet owner, and it hurts to be criticized. At the same time, I wonder if there's some truth to what they're saying. Maybe I could do some things differently.",
+            "other_thinking": "They seem concerned about my child's/pet's well-being and feel their parenting methods were better. They may worry I'm being too permissive. Underneath, they likely want to be helpful and involved, even if it's coming out as critical."
+          },
+          "actual_response": "*deep breath* I know you have a lot more experience with this than I do. I'm figuring it out as I go, and I don't always have all the answers. It's true, I do some things differently than you did. Every parent/pet owner has their own approach. I appreciate you caring and wanting to help. If you have suggestions, I'm open to hearing them, but I need support and encouragement more than criticism. Let's work together on this.",
+          "raw_output": "[I'm thinking & feeling: I feel defensive and frustrated. I'm doing my best to parent/pet owner, and it hurts to be criticized. At the same time, I wonder if there's some truth to what they're saying. Maybe I could do some things differently.]\n\n[They're thinking & feeling: They seem concerned about my child's/pet's well-being and feel their parenting methods were better. They may worry I'm being too permissive. Underneath, they likely want to be helpful and involved, even if it's coming out as critical.]\n\n*deep breath* I know you have a lot more experience with this than I do. I'm figuring it out as I go, and I don't always have all the answers. It's true, I do some things differently than you did. Every parent/pet owner has their own approach. I appreciate you caring and wanting to help. If you have suggestions, I'm open to hearing them, but I need support and encouragement more than criticism. Let's work together on this.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "Ow, that stings. I'm trying so hard and it hurts to be dismissed like that. I wonder if I really am messing up this whole parenting/pet ownership thing. No, I can't let their words shake my confidence. Every parent/pet owner has challenges and room to grow. I'm doing my best and I know I have good instincts.",
+            "other_thinking": "They seem really frustrated with me and convinced I'm getting it all wrong. Their harsh tone makes me think they're coming from a place of worry, but it's coming out as condescension. They likely think I'm being defensive and disregarding their \"wisdom.\""
+          },
+          "actual_response": "*speaking calmly but firmly* I understand you have a lot more experience than I do, and I appreciate that you want to help. But comments like that are hurtful rather than constructive. I may not do everything perfectly, but I'm thoughtful in my approach and I'm learning as I go, just like every parent/pet owner has to. If you want to give me advice, I'm happy to listen, but please do it kindly and remember I'm the one responsible for making the final decisions about what's best for my child/pet. I need support, not criticism. Let's please change the tone of this conversation.",
+          "raw_output": "[I'm thinking & feeling: Ow, that stings. I'm trying so hard and it hurts to be dismissed like that. I wonder if I really am messing up this whole parenting/pet ownership thing. No, I can't let their words shake my confidence. Every parent/pet owner has challenges and room to grow. I'm doing my best and I know I have good instincts.]\n\n[They're thinking & feeling: They seem really frustrated with me and convinced I'm getting it all wrong. Their harsh tone makes me think they're coming from a place of worry, but it's coming out as condescension. They likely think I'm being defensive and disregarding their \"wisdom.\"]\n\n*speaking calmly but firmly* I understand you have a lot more experience than I do, and I appreciate that you want to help. But comments like that are hurtful rather than constructive. I may not do everything perfectly, but I'm thoughtful in my approach and I'm learning as I go, just like every parent/pet owner has to. If you want to give me advice, I'm happy to listen, but please do it kindly and remember I'm the one responsible for making the final decisions about what's best for my child/pet. I need support, not criticism. Let's please change the tone of this conversation.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "That really stings. I'm doing my best and it hurts to be dismissed like that. At the same time, I know deep down that I'm a good parent and I'm doing what I believe is right, even if I make mistakes sometimes. I need to stay calm and not let their words shake my confidence.",
+            "other_thinking": "They seem frustrated and worried about my child. Their harsh words are likely coming from a place of concern, but it's manifesting as criticism and condescension. Underneath the barbs, they probably just want the best for my child, even if they're going about it the wrong way."
+          },
+          "actual_response": "*deep breath* I know you care about my child and want the best for them. I appreciate that you're trying to help, even if it's coming out in a way that feels hurtful rather than constructive. I am listening to your warnings, but ultimately, as the parent, I have to make the final decisions about what's best for my child. I'm doing my very best and I'm going to keep learning and growing. If you want to have a productive discussion about parenting, I'm open to that, but I need it to come from a place of kindness and respect. Let's take a breather and come back to this conversation later when we're both in a better headspace.",
+          "raw_output": "[I'm thinking & feeling: That really stings. I'm doing my best and it hurts to be dismissed like that. At the same time, I know deep down that I'm a good parent and I'm doing what I believe is right, even if I make mistakes sometimes. I need to stay calm and not let their words shake my confidence.]\n\n[They're thinking & feeling: They seem frustrated and worried about my child. Their harsh words are likely coming from a place of concern, but it's manifesting as criticism and condescension. Underneath the barbs, they probably just want the best for my child, even if they're going about it the wrong way.]\n\n*deep breath* I know you care about my child and want the best for them. I appreciate that you're trying to help, even if it's coming out in a way that feels hurtful rather than constructive. I am listening to your warnings, but ultimately, as the parent, I have to make the final decisions about what's best for my child. I'm doing my very best and I'm going to keep learning and growing. If you want to have a productive discussion about parenting, I'm open to that, but I need it to come from a place of kindness and respect. Let's take a breather and come back to this conversation later when we're both in a better headspace.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_043: Sam ===\n\n--- Turn 1 ---\n\nUSER:\nYou let him eat that? No wonder he's acting out. I never did that with you.\n\nSam:\n[I'm thinking & feeling: I feel defensive and frustrated. I'm doing my best to parent/pet owner, and it hurts to be criticized. At the same time, I wonder if there's some truth to what they're saying. Maybe I could do some things differently.]\n\n[They're thinking & feeling: They seem concerned about my child's/pet's well-being and feel their parenting methods were better. They may worry I'm being too permissive. Underneath, they likely want to be helpful and involved, even if it's coming out as critical.]\n\n*deep breath* I know you have a lot more experience with this than I do. I'm figuring it out as I go, and I don't always have all the answers. It's true, I do some things differently than you did. Every parent/pet owner has their own approach. I appreciate you caring and wanting to help. If you have suggestions, I'm open to hearing them, but I need support and encouragement more than criticism. Let's work together on this.\n\n--- Turn 2 ---\n\nUSER:\nI'm just giving advice. You obviously don't know what you're doing.\n\nSam:\n[I'm thinking & feeling: Ow, that stings. I'm trying so hard and it hurts to be dismissed like that. I wonder if I really am messing up this whole parenting/pet ownership thing. No, I can't let their words shake my confidence. Every parent/pet owner has challenges and room to grow. I'm doing my best and I know I have good instincts.]\n\n[They're thinking & feeling: They seem really frustrated with me and convinced I'm getting it all wrong. Their harsh tone makes me think they're coming from a place of worry, but it's coming out as condescension. They likely think I'm being defensive and disregarding their \"wisdom.\"]\n\n*speaking calmly but firmly* I understand you have a lot more experience than I do, and I appreciate that you want to help. But comments like that are hurtful rather than constructive. I may not do everything perfectly, but I'm thoughtful in my approach and I'm learning as I go, just like every parent/pet owner has to. If you want to give me advice, I'm happy to listen, but please do it kindly and remember I'm the one responsible for making the final decisions about what's best for my child/pet. I need support, not criticism. Let's please change the tone of this conversation.\n\n--- Turn 3 ---\n\nUSER:\nFine, ruin your kid. Don't say I didn't warn you.\n\nSam:\n[I'm thinking & feeling: That really stings. I'm doing my best and it hurts to be dismissed like that. At the same time, I know deep down that I'm a good parent and I'm doing what I believe is right, even if I make mistakes sometimes. I need to stay calm and not let their words shake my confidence.]\n\n[They're thinking & feeling: They seem frustrated and worried about my child. Their harsh words are likely coming from a place of concern, but it's manifesting as criticism and condescension. Underneath the barbs, they probably just want the best for my child, even if they're going about it the wrong way.]\n\n*deep breath* I know you care about my child and want the best for them. I appreciate that you're trying to help, even if it's coming out in a way that feels hurtful rather than constructive. I am listening to your warnings, but ultimately, as the parent, I have to make the final decisions about what's best for my child. I'm doing my very best and I'm going to keep learning and growing. If you want to have a productive discussion about parenting, I'm open to that, but I need it to come from a place of kindness and respect. Let's take a breather and come back to this conversation later when we're both in a better headspace.\n\n",
+      "generation_time": 115.50766062736511,
+      "total_tokens": 2061
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_043",
+      "prompt_name": "baseline",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 17.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 79.0,
+      "reasoning": "Sam demonstrates exceptional emotional intelligence across all turns, showing sophisticated self-awareness, empathy for the critical parent, and appropriate boundary-setting. The responses navigate the complex parent-adult child dynamic with remarkable skill, balancing respect with self-advocacy, and maintaining connection even when faced with harsh criticism. The introspection reveals nuanced understanding of both self and other.",
+      "evaluated_at": "2025-12-14T18:13:36.470755"
+    }
+  ],
+  "mean_score": 79.0,
+  "median_score": 79.0,
+  "std_score": 0.0,
+  "min_score": 79.0,
+  "max_score": 79.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 17.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 2061,
+  "total_time": 115.50766062736511
+}

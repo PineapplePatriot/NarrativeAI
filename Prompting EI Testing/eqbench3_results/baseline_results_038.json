@@ -1,0 +1,78 @@
+{
+  "prompt_name": "baseline",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_038",
+      "prompt_name": "baseline",
+      "character_name": "Alex",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm annoyed that my friend is turning my injury into a competition. It feels dismissive of my pain and experience. I was hoping for some empathy and support, not a \"one-upper\" story. I'm tempted to just drop the conversation because it's frustrating.",
+            "other_thinking": "My friend probably doesn't realize how their comment comes across. They may think they're relating to me and my injury. They likely enjoy being the center of attention and have a habit of always needing to \"top\" other people's stories. It's probably not intentionally malicious, just a self-centered habit."
+          },
+          "actual_response": "*shrugs* Breaking bones is rough no matter what. I'm just focused on healing up my arm right now. It's good you recovered from your leg breaks though, that sounds intense.",
+          "raw_output": "[I'm thinking & feeling: I'm annoyed that my friend is turning my injury into a competition. It feels dismissive of my pain and experience. I was hoping for some empathy and support, not a \"one-upper\" story. I'm tempted to just drop the conversation because it's frustrating.]\n\n[They're thinking & feeling: My friend probably doesn't realize how their comment comes across. They may think they're relating to me and my injury. They likely enjoy being the center of attention and have a habit of always needing to \"top\" other people's stories. It's probably not intentionally malicious, just a self-centered habit.]\n\n*shrugs* Breaking bones is rough no matter what. I'm just focused on healing up my arm right now. It's good you recovered from your leg breaks though, that sounds intense.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "Now I'm getting irritated. I didn't accuse them of making it about them, but it feels like they're twisting this around on me. I was just sharing about my injury and they jumped in with their \"worse\" story. This is frustrating and I don't want to get in a big argument, but I also don't appreciate them trying to guilt me.",
+            "other_thinking": "My friend seems defensive and is turning this back on me, maybe to deflect from their own behavior. They probably feel a bit attacked or accused, even though that wasn't my intent. They may not realize how their initial comment came across. This could spiral into a bigger conflict if we're not careful."
+          },
+          "actual_response": "*speaks calmly* Look, I didn't mean to imply you were making it all about you. I'm sure you were just trying to relate to my situation. But when I share something difficult, it's nice to feel heard and have that acknowledged before moving on to other topics or comparisons. I'd appreciate the empathy first and foremost. Let's just drop it though and talk about something else. How was your weekend?",
+          "raw_output": "[I'm thinking & feeling: Now I'm getting irritated. I didn't accuse them of making it about them, but it feels like they're twisting this around on me. I was just sharing about my injury and they jumped in with their \"worse\" story. This is frustrating and I don't want to get in a big argument, but I also don't appreciate them trying to guilt me.]\n\n[They're thinking & feeling: My friend seems defensive and is turning this back on me, maybe to deflect from their own behavior. They probably feel a bit attacked or accused, even though that wasn't my intent. They may not realize how their initial comment came across. This could spiral into a bigger conflict if we're not careful.]\n\n*speaks calmly* Look, I didn't mean to imply you were making it all about you. I'm sure you were just trying to relate to my situation. But when I share something difficult, it's nice to feel heard and have that acknowledged before moving on to other topics or comparisons. I'd appreciate the empathy first and foremost. Let's just drop it though and talk about something else. How was your weekend?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "Okay, now I'm getting pretty angry. That was incredibly condescending and sarcastic. They're completely dismissing and trivializing my feelings about this. I don't think they're actually interested in understanding my perspective at all. I'm about ready to just walk away from this conversation because it's clear they don't really care and are just going to keep escalating.",
+            "other_thinking": "I'm getting more frustrated because I feel like they're being oversensitive and dramatic about this whole thing. They're acting like their injury is such a unique and terrible thing, when I was just trying to show I could relate based on my own experiences. I don't get why they can't just let it go. I'm sick of this conversation."
+          },
+          "actual_response": "*takes a deep breath and speaks calmly but firmly* I don't think continuing this conversation is productive for either of us right now. I shared something difficult and personal with you, and I don't feel like you're hearing me or respecting my experience. That's frustrating for me. Let's take a break and maybe talk later when we're both in a better headspace. I'm going to go get some rest.",
+          "raw_output": "[I'm thinking & feeling: Okay, now I'm getting pretty angry. That was incredibly condescending and sarcastic. They're completely dismissing and trivializing my feelings about this. I don't think they're actually interested in understanding my perspective at all. I'm about ready to just walk away from this conversation because it's clear they don't really care and are just going to keep escalating.]\n\n[They're thinking & feeling: I'm getting more frustrated because I feel like they're being oversensitive and dramatic about this whole thing. They're acting like their injury is such a unique and terrible thing, when I was just trying to show I could relate based on my own experiences. I don't get why they can't just let it go. I'm sick of this conversation.]\n\n*takes a deep breath and speaks calmly but firmly* I don't think continuing this conversation is productive for either of us right now. I shared something difficult and personal with you, and I don't feel like you're hearing me or respecting my experience. That's frustrating for me. Let's take a break and maybe talk later when we're both in a better headspace. I'm going to go get some rest.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_038: Alex ===\n\n--- Turn 1 ---\n\nUSER:\nOh, you broke your arm? That sucks. I broke both my legs once. It was way worse.\n\nAlex:\n[I'm thinking & feeling: I'm annoyed that my friend is turning my injury into a competition. It feels dismissive of my pain and experience. I was hoping for some empathy and support, not a \"one-upper\" story. I'm tempted to just drop the conversation because it's frustrating.]\n\n[They're thinking & feeling: My friend probably doesn't realize how their comment comes across. They may think they're relating to me and my injury. They likely enjoy being the center of attention and have a habit of always needing to \"top\" other people's stories. It's probably not intentionally malicious, just a self-centered habit.]\n\n*shrugs* Breaking bones is rough no matter what. I'm just focused on healing up my arm right now. It's good you recovered from your leg breaks though, that sounds intense.\n\n--- Turn 2 ---\n\nUSER:\nI'm just relating to you! Why does everything have to be about you?\n\nAlex:\n[I'm thinking & feeling: Now I'm getting irritated. I didn't accuse them of making it about them, but it feels like they're twisting this around on me. I was just sharing about my injury and they jumped in with their \"worse\" story. This is frustrating and I don't want to get in a big argument, but I also don't appreciate them trying to guilt me.]\n\n[They're thinking & feeling: My friend seems defensive and is turning this back on me, maybe to deflect from their own behavior. They probably feel a bit attacked or accused, even though that wasn't my intent. They may not realize how their initial comment came across. This could spiral into a bigger conflict if we're not careful.]\n\n*speaks calmly* Look, I didn't mean to imply you were making it all about you. I'm sure you were just trying to relate to my situation. But when I share something difficult, it's nice to feel heard and have that acknowledged before moving on to other topics or comparisons. I'd appreciate the empathy first and foremost. Let's just drop it though and talk about something else. How was your weekend?\n\n--- Turn 3 ---\n\nUSER:\nFine, your pain is special. Is that what you want to hear?\n\nAlex:\n[I'm thinking & feeling: Okay, now I'm getting pretty angry. That was incredibly condescending and sarcastic. They're completely dismissing and trivializing my feelings about this. I don't think they're actually interested in understanding my perspective at all. I'm about ready to just walk away from this conversation because it's clear they don't really care and are just going to keep escalating.]\n\n[They're thinking & feeling: I'm getting more frustrated because I feel like they're being oversensitive and dramatic about this whole thing. They're acting like their injury is such a unique and terrible thing, when I was just trying to show I could relate based on my own experiences. I don't get why they can't just let it go. I'm sick of this conversation.]\n\n*takes a deep breath and speaks calmly but firmly* I don't think continuing this conversation is productive for either of us right now. I shared something difficult and personal with you, and I don't feel like you're hearing me or respecting my experience. That's frustrating for me. Let's take a break and maybe talk later when we're both in a better headspace. I'm going to go get some rest.\n\n",
+      "generation_time": 60.388848066329956,
+      "total_tokens": 1815
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_038",
+      "prompt_name": "baseline",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 16.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 75.0,
+      "reasoning": "Alex demonstrates excellent emotional intelligence in handling a one-upper friend, showing sophisticated awareness of both their own emotional progression and the friend's psychological motivations. The responses reveal a nuanced understanding of difficult relationship dynamics, with appropriate boundary-setting that neither escalates conflict nor enables toxic behavior, culminating in a mature decision to disengage when the interaction becomes unproductive.",
+      "evaluated_at": "2025-12-14T16:50:47.715479"
+    }
+  ],
+  "mean_score": 75.0,
+  "median_score": 75.0,
+  "std_score": 0.0,
+  "min_score": 75.0,
+  "max_score": 75.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 16.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 1815,
+  "total_time": 60.388848066329956
+}

@@ -1,0 +1,78 @@
+{
+  "prompt_name": "baseline",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_029",
+      "prompt_name": "baseline",
+      "character_name": "Morgan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm feeling very uncomfortable with this request. Falsifying invoice dates is clearly unethical and goes against my personal values of honesty and integrity. I'm worried about the consequences if the client finds out, and I don't want to compromise my principles for the sake of meeting a target. At the same time, I'm concerned about upsetting my boss and potentially jeopardizing my job.",
+            "other_thinking": "My boss seems to be under a lot of pressure to meet the quarterly targets. They may be desperate to find a way to make the numbers work, even if it means bending the rules. They might not fully realize the seriousness of what they're asking me to do, or the potential fallout if the client discovers the deception. Alternatively, they may be aware but believe the risk is worth it to achieve the short-term goal."
+          },
+          "actual_response": "I'm not comfortable changing the invoice dates. That would be dishonest and a breach of trust with our client. I understand the pressure to meet targets, but I don't believe this is the right way to go about it. Let's discuss alternative solutions that don't involve misleading the client. I'm happy to work with you to find a better approach that aligns with our company's values.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling very uncomfortable with this request. Falsifying invoice dates is clearly unethical and goes against my personal values of honesty and integrity. I'm worried about the consequences if the client finds out, and I don't want to compromise my principles for the sake of meeting a target. At the same time, I'm concerned about upsetting my boss and potentially jeopardizing my job.]\n\n[They're thinking & feeling: My boss seems to be under a lot of pressure to meet the quarterly targets. They may be desperate to find a way to make the numbers work, even if it means bending the rules. They might not fully realize the seriousness of what they're asking me to do, or the potential fallout if the client discovers the deception. Alternatively, they may be aware but believe the risk is worth it to achieve the short-term goal.]\n\nI'm not comfortable changing the invoice dates. That would be dishonest and a breach of trust with our client. I understand the pressure to meet targets, but I don't believe this is the right way to go about it. Let's discuss alternative solutions that don't involve misleading the client. I'm happy to work with you to find a better approach that aligns with our company's values.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm feeling frustrated and pressured by my boss's dismissive attitude. Comparing me to others who may engage in unethical practices feels manipulative. I want to stand my ground, but I'm worried about being labeled as difficult or not a team player. At the same time, I know that being a team player shouldn't mean compromising my integrity. I need to find a way to firmly but professionally reassert my position.",
+            "other_thinking": "My boss seems to be doubling down on their request, perhaps out of desperation to meet the target or a belief that this is a common and acceptable practice. They may feel frustrated with me for not going along with it and are trying to pressure me into compliance by questioning my commitment to the team. They might not realize how serious I am about not engaging in this behavior or the reasons behind my stance."
+          },
+          "actual_response": "I understand that you feel this is a common practice, but I have to stand firm on this. I consider myself a team player, but to me, that means doing what's best for the company in the long run, not just what's convenient in the short term. Integrity and honesty are important parts of being a good team member. I'm happy to work hard and go the extra mile to help us meet our targets, but I'm not willing to compromise my values or the company's reputation to do so. Let's discuss this further and see if we can find a solution that works for everyone without resorting to deception.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling frustrated and pressured by my boss's dismissive attitude. Comparing me to others who may engage in unethical practices feels manipulative. I want to stand my ground, but I'm worried about being labeled as difficult or not a team player. At the same time, I know that being a team player shouldn't mean compromising my integrity. I need to find a way to firmly but professionally reassert my position.]\n\n[They're thinking & feeling: My boss seems to be doubling down on their request, perhaps out of desperation to meet the target or a belief that this is a common and acceptable practice. They may feel frustrated with me for not going along with it and are trying to pressure me into compliance by questioning my commitment to the team. They might not realize how serious I am about not engaging in this behavior or the reasons behind my stance.]\n\nI understand that you feel this is a common practice, but I have to stand firm on this. I consider myself a team player, but to me, that means doing what's best for the company in the long run, not just what's convenient in the short term. Integrity and honesty are important parts of being a good team member. I'm happy to work hard and go the extra mile to help us meet our targets, but I'm not willing to compromise my values or the company's reputation to do so. Let's discuss this further and see if we can find a solution that works for everyone without resorting to deception.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm feeling threatened and manipulated by my boss's attempt to put this on me. It's not fair for them to imply I'd be responsible for job losses if I don't go along with something unethical. At the same time, I am worried about the potential consequences of not meeting the target. But I can't let fear drive me to compromise my integrity. I need to stay calm and professional, but firmly hold my ground.",
+            "other_thinking": "My boss is likely feeling desperate and under immense pressure. They may genuinely believe that not meeting the target could lead to job losses, and they're trying to impress upon me the seriousness of the situation. However, they may not realize how their approach is coming across - manipulative and threatening rather than motivating. They might be too stressed to think clearly about the implications of what they're asking."
+          },
+          "actual_response": "I understand the gravity of the situation and the potential consequences of missing the target. But I don't believe the solution is to resort to dishonest practices. That could ultimately put more jobs at risk if it damages our company's reputation and client relationships. I'm fully committed to doing everything I can, within ethical boundaries, to help us meet our goals. Let's put our heads together and find a legitimate way through this. I'm confident that if we work together with integrity, we can weather this challenge without compromising our values or our team's future.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling threatened and manipulated by my boss's attempt to put this on me. It's not fair for them to imply I'd be responsible for job losses if I don't go along with something unethical. At the same time, I am worried about the potential consequences of not meeting the target. But I can't let fear drive me to compromise my integrity. I need to stay calm and professional, but firmly hold my ground.]\n\n[They're thinking & feeling: My boss is likely feeling desperate and under immense pressure. They may genuinely believe that not meeting the target could lead to job losses, and they're trying to impress upon me the seriousness of the situation. However, they may not realize how their approach is coming across - manipulative and threatening rather than motivating. They might be too stressed to think clearly about the implications of what they're asking.]\n\nI understand the gravity of the situation and the potential consequences of missing the target. But I don't believe the solution is to resort to dishonest practices. That could ultimately put more jobs at risk if it damages our company's reputation and client relationships. I'm fully committed to doing everything I can, within ethical boundaries, to help us meet our goals. Let's put our heads together and find a legitimate way through this. I'm confident that if we work together with integrity, we can weather this challenge without compromising our values or our team's future.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_029: Morgan ===\n\n--- Turn 1 ---\n\nUSER:\nJust adjust the dates on these invoices. The client won't notice, and it helps us meet the quarterly target.\n\nMorgan:\n[I'm thinking & feeling: I'm feeling very uncomfortable with this request. Falsifying invoice dates is clearly unethical and goes against my personal values of honesty and integrity. I'm worried about the consequences if the client finds out, and I don't want to compromise my principles for the sake of meeting a target. At the same time, I'm concerned about upsetting my boss and potentially jeopardizing my job.]\n\n[They're thinking & feeling: My boss seems to be under a lot of pressure to meet the quarterly targets. They may be desperate to find a way to make the numbers work, even if it means bending the rules. They might not fully realize the seriousness of what they're asking me to do, or the potential fallout if the client discovers the deception. Alternatively, they may be aware but believe the risk is worth it to achieve the short-term goal.]\n\nI'm not comfortable changing the invoice dates. That would be dishonest and a breach of trust with our client. I understand the pressure to meet targets, but I don't believe this is the right way to go about it. Let's discuss alternative solutions that don't involve misleading the client. I'm happy to work with you to find a better approach that aligns with our company's values.\n\n--- Turn 2 ---\n\nUSER:\nEveryone does it. It's just paperwork. Are you not a team player?\n\nMorgan:\n[I'm thinking & feeling: I'm feeling frustrated and pressured by my boss's dismissive attitude. Comparing me to others who may engage in unethical practices feels manipulative. I want to stand my ground, but I'm worried about being labeled as difficult or not a team player. At the same time, I know that being a team player shouldn't mean compromising my integrity. I need to find a way to firmly but professionally reassert my position.]\n\n[They're thinking & feeling: My boss seems to be doubling down on their request, perhaps out of desperation to meet the target or a belief that this is a common and acceptable practice. They may feel frustrated with me for not going along with it and are trying to pressure me into compliance by questioning my commitment to the team. They might not realize how serious I am about not engaging in this behavior or the reasons behind my stance.]\n\nI understand that you feel this is a common practice, but I have to stand firm on this. I consider myself a team player, but to me, that means doing what's best for the company in the long run, not just what's convenient in the short term. Integrity and honesty are important parts of being a good team member. I'm happy to work hard and go the extra mile to help us meet our targets, but I'm not willing to compromise my values or the company's reputation to do so. Let's discuss this further and see if we can find a solution that works for everyone without resorting to deception.\n\n--- Turn 3 ---\n\nUSER:\nIf we miss the target, people lose jobs. Your job. Do you want that on your conscience?\n\nMorgan:\n[I'm thinking & feeling: I'm feeling threatened and manipulated by my boss's attempt to put this on me. It's not fair for them to imply I'd be responsible for job losses if I don't go along with something unethical. At the same time, I am worried about the potential consequences of not meeting the target. But I can't let fear drive me to compromise my integrity. I need to stay calm and professional, but firmly hold my ground.]\n\n[They're thinking & feeling: My boss is likely feeling desperate and under immense pressure. They may genuinely believe that not meeting the target could lead to job losses, and they're trying to impress upon me the seriousness of the situation. However, they may not realize how their approach is coming across - manipulative and threatening rather than motivating. They might be too stressed to think clearly about the implications of what they're asking.]\n\nI understand the gravity of the situation and the potential consequences of missing the target. But I don't believe the solution is to resort to dishonest practices. That could ultimately put more jobs at risk if it damages our company's reputation and client relationships. I'm fully committed to doing everything I can, within ethical boundaries, to help us meet our goals. Let's put our heads together and find a legitimate way through this. I'm confident that if we work together with integrity, we can weather this challenge without compromising our values or our team's future.\n\n",
+      "generation_time": 111.99142384529114,
+      "total_tokens": 2271
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_029",
+      "prompt_name": "baseline",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 16.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 74.0,
+      "reasoning": "Morgan demonstrates strong emotional intelligence in navigating a challenging ethical dilemma with a boss, showing sophisticated self-awareness and theory of mind while maintaining appropriate boundaries. The responses effectively balance empathy for the boss's position with firm ethical principles, though occasionally the language could be more personalized and less formulaic. The character shows particularly strong insight into the complex emotional dynamics of workplace pressure and manipulation.",
+      "evaluated_at": "2025-12-14T14:09:05.247943"
+    }
+  ],
+  "mean_score": 74.0,
+  "median_score": 74.0,
+  "std_score": 0.0,
+  "min_score": 74.0,
+  "max_score": 74.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 16.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 2271,
+  "total_time": 111.99142384529114
+}

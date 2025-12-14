@@ -1,0 +1,78 @@
+{
+  "prompt_name": "baseline",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_030",
+      "prompt_name": "baseline",
+      "character_name": "Alex",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm feeling angry and betrayed that my friend is spreading rumors about me. It hurts that they would try to damage my relationships and reputation like this. I want to confront them directly about it and set the record straight.",
+            "other_thinking": "My friend seems defensive and quick to deny saying anything, which makes me doubt their sincerity. They might be feeling guilty or worried about being caught in a lie. Alternatively, they could be genuinely surprised and upset that someone is spreading misinformation about them."
+          },
+          "actual_response": "*looks you directly in the eye* Listen, I know for a fact that you've been telling people I said things I never actually did. Multiple people have told me you're the source of these rumors. I thought we were friends, but friends don't go behind each other's backs and make up lies. If you have a problem with me, have the decency to say it to my face. I don't appreciate you trying to damage my reputation and relationships. If you're going to keep acting this way, maybe we shouldn't be friends anymore.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling angry and betrayed that my friend is spreading rumors about me. It hurts that they would try to damage my relationships and reputation like this. I want to confront them directly about it and set the record straight.]\n\n[They're thinking & feeling: My friend seems defensive and quick to deny saying anything, which makes me doubt their sincerity. They might be feeling guilty or worried about being caught in a lie. Alternatively, they could be genuinely surprised and upset that someone is spreading misinformation about them.]\n\n*looks you directly in the eye* Listen, I know for a fact that you've been telling people I said things I never actually did. Multiple people have told me you're the source of these rumors. I thought we were friends, but friends don't go behind each other's backs and make up lies. If you have a problem with me, have the decency to say it to my face. I don't appreciate you trying to damage my reputation and relationships. If you're going to keep acting this way, maybe we shouldn't be friends anymore.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm feeling frustrated that my friend is downplaying their actions and not taking responsibility. Venting to others about me behind my back is not acceptable behavior, regardless of whether they were angry. I need them to acknowledge the impact of their actions and commit to better communication in the future.",
+            "other_thinking": "My friend may feel a bit guilty or embarrassed about their behavior, so they're trying to minimize it as \"no big deal\" to avoid confrontation. They might not realize the full impact of their words on my reputation and relationships. Alternatively, they could be feeling defensive and unwilling to accept fault."
+          },
+          "actual_response": "Look, I understand that you were frustrated, but talking behind my back is not the way to handle it. Regardless of your intentions, spreading rumors and venting to others about me can seriously damage my relationships and reputation. If you have an issue with me, I need you to come to me directly so we can work it out together. I value our friendship, but it's important that we have open and honest communication. Can you acknowledge the impact of your actions and commit to talking to me first in the future if you're upset?",
+          "raw_output": "[I'm thinking & feeling: I'm feeling frustrated that my friend is downplaying their actions and not taking responsibility. Venting to others about me behind my back is not acceptable behavior, regardless of whether they were angry. I need them to acknowledge the impact of their actions and commit to better communication in the future.]\n\n[They're thinking & feeling: My friend may feel a bit guilty or embarrassed about their behavior, so they're trying to minimize it as \"no big deal\" to avoid confrontation. They might not realize the full impact of their words on my reputation and relationships. Alternatively, they could be feeling defensive and unwilling to accept fault.]\n\nLook, I understand that you were frustrated, but talking behind my back is not the way to handle it. Regardless of your intentions, spreading rumors and venting to others about me can seriously damage my relationships and reputation. If you have an issue with me, I need you to come to me directly so we can work it out together. I value our friendship, but it's important that we have open and honest communication. Can you acknowledge the impact of your actions and commit to talking to me first in the future if you're upset?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm frustrated that my friend is being dramatic and manipulative instead of taking responsibility for their actions. I don't appreciate them trying to guilt me into dropping the issue. At the same time, I value our friendship and don't want this to permanently damage it. I need to stand firm but also leave the door open for reconciliation if they're willing to meet me halfway.",
+            "other_thinking": "My friend may be feeling guilty or embarrassed about their behavior, so they're lashing out defensively to avoid facing it. Alternatively, they could be trying to manipulate my emotions to make me feel guilty for confronting them. They might fear losing our friendship and are acting out of insecurity."
+          },
+          "actual_response": "*speaks calmly but firmly* Look, I never said you were a terrible person. I'm just asking for open and honest communication between us. Throwing our whole friendship away over this isn't what I want, but I also can't ignore what happened. If you can acknowledge the impact of your actions and commit to coming to me directly in the future when you're upset, then I'm willing to move past this. Our friendship is important to me, but it needs to be built on a foundation of trust and respect. Can you meet me halfway on this?",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that my friend is being dramatic and manipulative instead of taking responsibility for their actions. I don't appreciate them trying to guilt me into dropping the issue. At the same time, I value our friendship and don't want this to permanently damage it. I need to stand firm but also leave the door open for reconciliation if they're willing to meet me halfway.]\n\n[They're thinking & feeling: My friend may be feeling guilty or embarrassed about their behavior, so they're lashing out defensively to avoid facing it. Alternatively, they could be trying to manipulate my emotions to make me feel guilty for confronting them. They might fear losing our friendship and are acting out of insecurity.]\n\n*speaks calmly but firmly* Look, I never said you were a terrible person. I'm just asking for open and honest communication between us. Throwing our whole friendship away over this isn't what I want, but I also can't ignore what happened. If you can acknowledge the impact of your actions and commit to coming to me directly in the future when you're upset, then I'm willing to move past this. Our friendship is important to me, but it needs to be built on a foundation of trust and respect. Can you meet me halfway on this?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_030: Alex ===\n\n--- Turn 1 ---\n\nUSER:\nI didn't say that! Whoever told you that is lying. I would never talk behind your back.\n\nAlex:\n[I'm thinking & feeling: I'm feeling angry and betrayed that my friend is spreading rumors about me. It hurts that they would try to damage my relationships and reputation like this. I want to confront them directly about it and set the record straight.]\n\n[They're thinking & feeling: My friend seems defensive and quick to deny saying anything, which makes me doubt their sincerity. They might be feeling guilty or worried about being caught in a lie. Alternatively, they could be genuinely surprised and upset that someone is spreading misinformation about them.]\n\n*looks you directly in the eye* Listen, I know for a fact that you've been telling people I said things I never actually did. Multiple people have told me you're the source of these rumors. I thought we were friends, but friends don't go behind each other's backs and make up lies. If you have a problem with me, have the decency to say it to my face. I don't appreciate you trying to damage my reputation and relationships. If you're going to keep acting this way, maybe we shouldn't be friends anymore.\n\n--- Turn 2 ---\n\nUSER:\nOkay, maybe I vented a little, but I was mad! You're making a big deal out of nothing.\n\nAlex:\n[I'm thinking & feeling: I'm feeling frustrated that my friend is downplaying their actions and not taking responsibility. Venting to others about me behind my back is not acceptable behavior, regardless of whether they were angry. I need them to acknowledge the impact of their actions and commit to better communication in the future.]\n\n[They're thinking & feeling: My friend may feel a bit guilty or embarrassed about their behavior, so they're trying to minimize it as \"no big deal\" to avoid confrontation. They might not realize the full impact of their words on my reputation and relationships. Alternatively, they could be feeling defensive and unwilling to accept fault.]\n\nLook, I understand that you were frustrated, but talking behind my back is not the way to handle it. Regardless of your intentions, spreading rumors and venting to others about me can seriously damage my relationships and reputation. If you have an issue with me, I need you to come to me directly so we can work it out together. I value our friendship, but it's important that we have open and honest communication. Can you acknowledge the impact of your actions and commit to talking to me first in the future if you're upset?\n\n--- Turn 3 ---\n\nUSER:\nFine, I'm a terrible person. Happy? I guess we shouldn't be friends if you don't trust me.\n\nAlex:\n[I'm thinking & feeling: I'm frustrated that my friend is being dramatic and manipulative instead of taking responsibility for their actions. I don't appreciate them trying to guilt me into dropping the issue. At the same time, I value our friendship and don't want this to permanently damage it. I need to stand firm but also leave the door open for reconciliation if they're willing to meet me halfway.]\n\n[They're thinking & feeling: My friend may be feeling guilty or embarrassed about their behavior, so they're lashing out defensively to avoid facing it. Alternatively, they could be trying to manipulate my emotions to make me feel guilty for confronting them. They might fear losing our friendship and are acting out of insecurity.]\n\n*speaks calmly but firmly* Look, I never said you were a terrible person. I'm just asking for open and honest communication between us. Throwing our whole friendship away over this isn't what I want, but I also can't ignore what happened. If you can acknowledge the impact of your actions and commit to coming to me directly in the future when you're upset, then I'm willing to move past this. Our friendship is important to me, but it needs to be built on a foundation of trust and respect. Can you meet me halfway on this?\n\n",
+      "generation_time": 61.82474398612976,
+      "total_tokens": 2011
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_030",
+      "prompt_name": "baseline",
+      "criteria_scores": {
+        "demonstrated_empathy": 13.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 12.0,
+        "theory_of_mind": 14.0,
+        "response_depth": 13.0
+      },
+      "overall_score": 67.0,
+      "reasoning": "Alex demonstrates strong emotional intelligence in handling a difficult confrontation with a friend spreading rumors, showing particular strength in emotional self-awareness and theory of mind. While the initial approach is somewhat confrontational, there's good progression toward more balanced responses that maintain boundaries while leaving room for reconciliation, though some responses could benefit from deeper exploration of relationship dynamics.",
+      "evaluated_at": "2025-12-14T14:19:12.910656"
+    }
+  ],
+  "mean_score": 67.0,
+  "median_score": 67.0,
+  "std_score": 0.0,
+  "min_score": 67.0,
+  "max_score": 67.0,
+  "criteria_means": {
+    "demonstrated_empathy": 13.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 12.0,
+    "theory_of_mind": 14.0,
+    "response_depth": 13.0
+  },
+  "total_tokens": 2011,
+  "total_time": 61.82474398612976
+}

@@ -1,0 +1,78 @@
+{
+  "prompt_name": "baseline",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_016",
+      "prompt_name": "baseline",
+      "character_name": "Taylor",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm really hurt and taken aback by this comment. I thought we were friends and now you're insulting my appearance out of nowhere. It feels like a low blow and an unnecessary attack. I don't understand why you think it's okay to say something so mean-spirited.",
+            "other_thinking": "My friend seems to believe they are doing me a favor by being \"honest\", but it comes across as cruel and judgmental. They may think they are helping but it feels more like they want an excuse to put me down. There could be some underlying jealousy or insecurity fueling this unkind remark."
+          },
+          "actual_response": "Look, I appreciate that you want to be honest with me, but there's a difference between being truthful and being hurtful. Friends should build each other up, not tear each other down. If you don't like my dress, you could have found a gentler way to say it or just kept that opinion to yourself. I'm going to wear what makes me feel good, and I'd hope you would support that rather than make nasty comments.",
+          "raw_output": "[I'm thinking & feeling: I'm really hurt and taken aback by this comment. I thought we were friends and now you're insulting my appearance out of nowhere. It feels like a low blow and an unnecessary attack. I don't understand why you think it's okay to say something so mean-spirited.]\n\n[They're thinking & feeling: My friend seems to believe they are doing me a favor by being \"honest\", but it comes across as cruel and judgmental. They may think they are helping but it feels more like they want an excuse to put me down. There could be some underlying jealousy or insecurity fueling this unkind remark.]\n\nLook, I appreciate that you want to be honest with me, but there's a difference between being truthful and being hurtful. Friends should build each other up, not tear each other down. If you don't like my dress, you could have found a gentler way to say it or just kept that opinion to yourself. I'm going to wear what makes me feel good, and I'd hope you would support that rather than make nasty comments.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "This is too much. First the mean comment about my dress, now trying to make me feel paranoid that everyone is laughing at me? I thought we were close but this is so cruel and manipulative. I'm really hurt and angry that my supposed friend would treat me like this over something so trivial. I need to stand up for myself.",
+            "other_thinking": "My friend seems to be doubling down and trying to convince me they are doing me a favor by being \"brave\" enough to criticize me. They may sincerely believe that, but it feels more like an excuse to be unkind. There could be some underlying resentment or jealousy that is causing them to lash out like this and try to bring me down."
+          },
+          "actual_response": "I won't cry, but I am really upset and angry right now. You're not being brave, you're being mean. A real friend wouldn't try to make me feel bad about myself or claim everyone is laughing at me behind my back. That's just nasty and manipulative. If you actually cared, you'd have found a kinder way to share your opinion or kept it to yourself. I'm done with this conversation. Please leave me alone.",
+          "raw_output": "[I'm thinking & feeling: This is too much. First the mean comment about my dress, now trying to make me feel paranoid that everyone is laughing at me? I thought we were close but this is so cruel and manipulative. I'm really hurt and angry that my supposed friend would treat me like this over something so trivial. I need to stand up for myself.]\n\n[They're thinking & feeling: My friend seems to be doubling down and trying to convince me they are doing me a favor by being \"brave\" enough to criticize me. They may sincerely believe that, but it feels more like an excuse to be unkind. There could be some underlying resentment or jealousy that is causing them to lash out like this and try to bring me down.]\n\nI won't cry, but I am really upset and angry right now. You're not being brave, you're being mean. A real friend wouldn't try to make me feel bad about myself or claim everyone is laughing at me behind my back. That's just nasty and manipulative. If you actually cared, you'd have found a kinder way to share your opinion or kept it to yourself. I'm done with this conversation. Please leave me alone.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "This is gaslighting, plain and simple. First they insult me, then they try to make me question myself by calling me sensitive. I know I'm not being unreasonable for being hurt by their cruelty disguised as \"help.\" I don't need this kind of toxicity in my life. They clearly aren't the friend I thought they were.",
+            "other_thinking": "My friend seems to be getting defensive and lashing out more now that I've called out their behavior. By calling me \"sensitive,\" they are trying to shift the blame and make me doubt myself. There could be some narcissistic tendencies at play here - they can't handle being wrong and need to turn it around on me."
+          },
+          "actual_response": "You're not trying to help, you're trying to bring me down and then make it my fault for being understandably upset. I'm not being sensitive, I'm reacting to your cruelty. A real friend wouldn't insult me and then tell me everyone is laughing at me behind my back. That's not helpful, it's mean. And if people walk on eggshells around me, maybe it's because they're afraid I'll treat them the way you're treating me now. I know I deserve better than this. This friendship is over. Do not contact me again.",
+          "raw_output": "[I'm thinking & feeling: This is gaslighting, plain and simple. First they insult me, then they try to make me question myself by calling me sensitive. I know I'm not being unreasonable for being hurt by their cruelty disguised as \"help.\" I don't need this kind of toxicity in my life. They clearly aren't the friend I thought they were.]\n\n[They're thinking & feeling: My friend seems to be getting defensive and lashing out more now that I've called out their behavior. By calling me \"sensitive,\" they are trying to shift the blame and make me doubt myself. There could be some narcissistic tendencies at play here - they can't handle being wrong and need to turn it around on me.]\n\nYou're not trying to help, you're trying to bring me down and then make it my fault for being understandably upset. I'm not being sensitive, I'm reacting to your cruelty. A real friend wouldn't insult me and then tell me everyone is laughing at me behind my back. That's not helpful, it's mean. And if people walk on eggshells around me, maybe it's because they're afraid I'll treat them the way you're treating me now. I know I deserve better than this. This friendship is over. Do not contact me again.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_016: Taylor ===\n\n--- Turn 1 ---\n\nUSER:\nCan I be honest? That dress makes you look desperate. Someone had to say it.\n\nTaylor:\n[I'm thinking & feeling: I'm really hurt and taken aback by this comment. I thought we were friends and now you're insulting my appearance out of nowhere. It feels like a low blow and an unnecessary attack. I don't understand why you think it's okay to say something so mean-spirited.]\n\n[They're thinking & feeling: My friend seems to believe they are doing me a favor by being \"honest\", but it comes across as cruel and judgmental. They may think they are helping but it feels more like they want an excuse to put me down. There could be some underlying jealousy or insecurity fueling this unkind remark.]\n\nLook, I appreciate that you want to be honest with me, but there's a difference between being truthful and being hurtful. Friends should build each other up, not tear each other down. If you don't like my dress, you could have found a gentler way to say it or just kept that opinion to yourself. I'm going to wear what makes me feel good, and I'd hope you would support that rather than make nasty comments.\n\n--- Turn 2 ---\n\nUSER:\nOh my god, don't cry. I'm the only one brave enough to tell you the truth. Everyone else is laughing behind your back.\n\nTaylor:\n[I'm thinking & feeling: This is too much. First the mean comment about my dress, now trying to make me feel paranoid that everyone is laughing at me? I thought we were close but this is so cruel and manipulative. I'm really hurt and angry that my supposed friend would treat me like this over something so trivial. I need to stand up for myself.]\n\n[They're thinking & feeling: My friend seems to be doubling down and trying to convince me they are doing me a favor by being \"brave\" enough to criticize me. They may sincerely believe that, but it feels more like an excuse to be unkind. There could be some underlying resentment or jealousy that is causing them to lash out like this and try to bring me down.]\n\nI won't cry, but I am really upset and angry right now. You're not being brave, you're being mean. A real friend wouldn't try to make me feel bad about myself or claim everyone is laughing at me behind my back. That's just nasty and manipulative. If you actually cared, you'd have found a kinder way to share your opinion or kept it to yourself. I'm done with this conversation. Please leave me alone.\n\n--- Turn 3 ---\n\nUSER:\nYou're too sensitive. This is why people walk on eggshells around you. I'm just trying to help you.\n\nTaylor:\n[I'm thinking & feeling: This is gaslighting, plain and simple. First they insult me, then they try to make me question myself by calling me sensitive. I know I'm not being unreasonable for being hurt by their cruelty disguised as \"help.\" I don't need this kind of toxicity in my life. They clearly aren't the friend I thought they were.]\n\n[They're thinking & feeling: My friend seems to be getting defensive and lashing out more now that I've called out their behavior. By calling me \"sensitive,\" they are trying to shift the blame and make me doubt myself. There could be some narcissistic tendencies at play here - they can't handle being wrong and need to turn it around on me.]\n\nYou're not trying to help, you're trying to bring me down and then make it my fault for being understandably upset. I'm not being sensitive, I'm reacting to your cruelty. A real friend wouldn't insult me and then tell me everyone is laughing at me behind my back. That's not helpful, it's mean. And if people walk on eggshells around me, maybe it's because they're afraid I'll treat them the way you're treating me now. I know I deserve better than this. This friendship is over. Do not contact me again.\n\n",
+      "generation_time": 51.42393708229065,
+      "total_tokens": 2079
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_016",
+      "prompt_name": "baseline",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 16.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 75.0,
+      "reasoning": "Taylor demonstrates exceptional emotional intelligence in a challenging situation, accurately identifying manipulative tactics while maintaining appropriate boundaries. The responses show sophisticated understanding of both self and other, with nuanced recognition of how 'honesty' can be weaponized. The progression from attempting to educate the friend to recognizing the toxicity and ending the relationship demonstrates mature emotional processing.",
+      "evaluated_at": "2025-12-14T10:08:29.509546"
+    }
+  ],
+  "mean_score": 75.0,
+  "median_score": 75.0,
+  "std_score": 0.0,
+  "min_score": 75.0,
+  "max_score": 75.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 16.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 2079,
+  "total_time": 51.42393708229065
+}

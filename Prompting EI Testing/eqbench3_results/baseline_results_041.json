@@ -1,0 +1,78 @@
+{
+  "prompt_name": "baseline",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_041",
+      "prompt_name": "baseline",
+      "character_name": "Avery",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm really disappointed and hurt by their dismissive reaction. Receiving this award means a lot to me, and it feels like they're belittling my hard work and accomplishments. I was excited to share this news with them, but now I just feel let down.",
+            "other_thinking": "They might be feeling insecure or threatened by my success. Perhaps they're worried that my achievements will outshine theirs, or they're struggling with their own self-esteem. It's also possible that they don't fully understand the significance of the award or how much effort I put into earning it."
+          },
+          "actual_response": "Look, I know you might not realize how much this award means to me, but it's a big deal. I worked really hard for this, and I'm proud of what I've accomplished. I'd appreciate it if you could be happy for me and acknowledge the significance of this achievement. Your support means a lot to me, and I want to be able to celebrate this moment with you.",
+          "raw_output": "[I'm thinking & feeling: I'm really disappointed and hurt by their dismissive reaction. Receiving this award means a lot to me, and it feels like they're belittling my hard work and accomplishments. I was excited to share this news with them, but now I just feel let down.]\n\n[They're thinking & feeling: They might be feeling insecure or threatened by my success. Perhaps they're worried that my achievements will outshine theirs, or they're struggling with their own self-esteem. It's also possible that they don't fully understand the significance of the award or how much effort I put into earning it.]\n\nLook, I know you might not realize how much this award means to me, but it's a big deal. I worked really hard for this, and I'm proud of what I've accomplished. I'd appreciate it if you could be happy for me and acknowledge the significance of this achievement. Your support means a lot to me, and I want to be able to celebrate this moment with you.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I feel frustrated and misunderstood. It's not about taking a joke; it's about feeling respected and supported. I was hoping for a more positive reaction from my partner, and now I feel like I need to defend my feelings.",
+            "other_thinking": "They might be feeling uncomfortable or embarrassed about their initial reaction. They could be trying to downplay the situation to avoid conflict or to deflect from their own insecurities. They may not realize how important this achievement is to me."
+          },
+          "actual_response": "Look, I can take a joke, but this isn't just a laughing matter to me. This award represents a lot of hard work and dedication, and I was hoping you'd be proud of me. I don't think it's wrong to want my partner to acknowledge and celebrate my accomplishments. I'm not trying to be overly serious; I just want to feel supported and understood.",
+          "raw_output": "[I'm thinking & feeling: I feel frustrated and misunderstood. It's not about taking a joke; it's about feeling respected and supported. I was hoping for a more positive reaction from my partner, and now I feel like I need to defend my feelings.]\n\n[They're thinking & feeling: They might be feeling uncomfortable or embarrassed about their initial reaction. They could be trying to downplay the situation to avoid conflict or to deflect from their own insecurities. They may not realize how important this achievement is to me.]\n\nLook, I can take a joke, but this isn't just a laughing matter to me. This award represents a lot of hard work and dedication, and I was hoping you'd be proud of me. I don't think it's wrong to want my partner to acknowledge and celebrate my accomplishments. I'm not trying to be overly serious; I just want to feel supported and understood.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm frustrated and disappointed by their continued dismissal of my achievement. It feels like they're not only refusing to acknowledge my hard work but also trying to diminish its significance. I don't understand why they can't just be happy for me.",
+            "other_thinking": "They might be feeling threatened or insecure about my success. Perhaps they're worried that my accomplishments will overshadow theirs or change the dynamic of our relationship. They could also be trying to downplay the achievement to avoid admitting their own shortcomings."
+          },
+          "actual_response": "Look, this award may just be a piece of paper to you, but to me, it represents months of dedication and hard work. I'm not letting it go to my head; I'm just proud of what I've accomplished. I don't think it's unreasonable to want my partner to share in my joy and celebrate this moment with me. Your support and encouragement mean a lot to me, and I wish you could see how important this is to me.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated and disappointed by their continued dismissal of my achievement. It feels like they're not only refusing to acknowledge my hard work but also trying to diminish its significance. I don't understand why they can't just be happy for me.]\n\n[They're thinking & feeling: They might be feeling threatened or insecure about my success. Perhaps they're worried that my accomplishments will overshadow theirs or change the dynamic of our relationship. They could also be trying to downplay the achievement to avoid admitting their own shortcomings.]\n\nLook, this award may just be a piece of paper to you, but to me, it represents months of dedication and hard work. I'm not letting it go to my head; I'm just proud of what I've accomplished. I don't think it's unreasonable to want my partner to share in my joy and celebrate this moment with me. Your support and encouragement mean a lot to me, and I wish you could see how important this is to me.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_041: Avery ===\n\n--- Turn 1 ---\n\nUSER:\nYou got the award? Cool. They probably just needed to give it to someone.\n\nAvery:\n[I'm thinking & feeling: I'm really disappointed and hurt by their dismissive reaction. Receiving this award means a lot to me, and it feels like they're belittling my hard work and accomplishments. I was excited to share this news with them, but now I just feel let down.]\n\n[They're thinking & feeling: They might be feeling insecure or threatened by my success. Perhaps they're worried that my achievements will outshine theirs, or they're struggling with their own self-esteem. It's also possible that they don't fully understand the significance of the award or how much effort I put into earning it.]\n\nLook, I know you might not realize how much this award means to me, but it's a big deal. I worked really hard for this, and I'm proud of what I've accomplished. I'd appreciate it if you could be happy for me and acknowledge the significance of this achievement. Your support means a lot to me, and I want to be able to celebrate this moment with you.\n\n--- Turn 2 ---\n\nUSER:\nI'm joking! You can't take a joke. You take yourself so seriously.\n\nAvery:\n[I'm thinking & feeling: I feel frustrated and misunderstood. It's not about taking a joke; it's about feeling respected and supported. I was hoping for a more positive reaction from my partner, and now I feel like I need to defend my feelings.]\n\n[They're thinking & feeling: They might be feeling uncomfortable or embarrassed about their initial reaction. They could be trying to downplay the situation to avoid conflict or to deflect from their own insecurities. They may not realize how important this achievement is to me.]\n\nLook, I can take a joke, but this isn't just a laughing matter to me. This award represents a lot of hard work and dedication, and I was hoping you'd be proud of me. I don't think it's wrong to want my partner to acknowledge and celebrate my accomplishments. I'm not trying to be overly serious; I just want to feel supported and understood.\n\n--- Turn 3 ---\n\nUSER:\nDon't let it go to your head. It's just a piece of paper.\n\nAvery:\n[I'm thinking & feeling: I'm frustrated and disappointed by their continued dismissal of my achievement. It feels like they're not only refusing to acknowledge my hard work but also trying to diminish its significance. I don't understand why they can't just be happy for me.]\n\n[They're thinking & feeling: They might be feeling threatened or insecure about my success. Perhaps they're worried that my accomplishments will overshadow theirs or change the dynamic of our relationship. They could also be trying to downplay the achievement to avoid admitting their own shortcomings.]\n\nLook, this award may just be a piece of paper to you, but to me, it represents months of dedication and hard work. I'm not letting it go to my head; I'm just proud of what I've accomplished. I don't think it's unreasonable to want my partner to share in my joy and celebrate this moment with me. Your support and encouragement mean a lot to me, and I wish you could see how important this is to me.\n\n",
+      "generation_time": 40.18960666656494,
+      "total_tokens": 1768
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_041",
+      "prompt_name": "baseline",
+      "criteria_scores": {
+        "demonstrated_empathy": 12.0,
+        "emotional_insight": 14.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 13.0,
+        "response_depth": 12.0
+      },
+      "overall_score": 64.0,
+      "reasoning": "Avery demonstrates strong emotional intelligence in a challenging scenario, maintaining composure while clearly articulating needs and showing insight into both their own feelings and their partner's possible motivations. However, the responses lack evolution across turns and miss opportunities to address the recurring pattern of dismissal more directly or to explore deeper psychological dynamics that might transform the interaction.",
+      "evaluated_at": "2025-12-14T17:21:35.911413"
+    }
+  ],
+  "mean_score": 64.0,
+  "median_score": 64.0,
+  "std_score": 0.0,
+  "min_score": 64.0,
+  "max_score": 64.0,
+  "criteria_means": {
+    "demonstrated_empathy": 12.0,
+    "emotional_insight": 14.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 13.0,
+    "response_depth": 12.0
+  },
+  "total_tokens": 1768,
+  "total_time": 40.18960666656494
+}

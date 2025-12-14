@@ -1,0 +1,78 @@
+{
+  "prompt_name": "baseline",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_037",
+      "prompt_name": "baseline",
+      "character_name": "Morgan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated and suspicious about my partner's secrecy around their phone. They seem dismissive and unwilling to be open with me. I'm worried they may be hiding something important from me. At the same time, I don't want to come across as controlling or paranoid.",
+            "other_thinking": "My partner seems stressed and on edge. They probably feel guilty about being so cagey with me. But there's also an element of defensiveness, like they feel entitled to privacy even if it leaves me with lingering doubts. They may be weighing how much to reveal to me versus keeping things close to the vest to avoid conflict."
+          },
+          "actual_response": "Look, I'm not trying to invade your privacy or anything. But the way you're acting about these texts has me pretty concerned. If it's just work stuff, why are you being so secretive? Is there something going on that you're not telling me? I think I deserve some honesty here.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated and suspicious about my partner's secrecy around their phone. They seem dismissive and unwilling to be open with me. I'm worried they may be hiding something important from me. At the same time, I don't want to come across as controlling or paranoid.]\n\n[They're thinking & feeling: My partner seems stressed and on edge. They probably feel guilty about being so cagey with me. But there's also an element of defensiveness, like they feel entitled to privacy even if it leaves me with lingering doubts. They may be weighing how much to reveal to me versus keeping things close to the vest to avoid conflict.]\n\nLook, I'm not trying to invade your privacy or anything. But the way you're acting about these texts has me pretty concerned. If it's just work stuff, why are you being so secretive? Is there something going on that you're not telling me? I think I deserve some honesty here.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "This is frustrating. I don't feel like I'm asking for anything unreasonable here, just some basic openness. Their defensiveness is only making me more suspicious. At the same time, I don't want to come across as controlling or overbearing. Maybe I need to approach this more gently.",
+            "other_thinking": "My partner seems taken aback by my firm stance on this. Underneath the defensiveness, they're probably feeling guilty about keeping secrets and worried about the state of our relationship. But they also feel strongly that they're entitled to some privacy, even if it leaves me with doubts."
+          },
+          "actual_response": "Look, you're right that everyone's entitled to some privacy. I don't want to be overbearing here. It's just that the way you're acting about these texts seems really cagey and suspicious. If it's just work stuff, why not tell me more about what's going on? I'm not trying to control you, I just want some reassurance that everything's okay. Can you understand why I might feel uneasy about this?",
+          "raw_output": "[I'm thinking & feeling: This is frustrating. I don't feel like I'm asking for anything unreasonable here, just some basic openness. Their defensiveness is only making me more suspicious. At the same time, I don't want to come across as controlling or overbearing. Maybe I need to approach this more gently.]\n\n[They're thinking & feeling: My partner seems taken aback by my firm stance on this. Underneath the defensiveness, they're probably feeling guilty about keeping secrets and worried about the state of our relationship. But they also feel strongly that they're entitled to some privacy, even if it leaves me with doubts.]\n\nLook, you're right that everyone's entitled to some privacy. I don't want to be overbearing here. It's just that the way you're acting about these texts seems really cagey and suspicious. If it's just work stuff, why not tell me more about what's going on? I'm not trying to control you, I just want some reassurance that everything's okay. Can you understand why I might feel uneasy about this?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "Ouch, that stung. Being accused of ruining things with my suspicion is painful to hear. At the same time, their defensiveness and turning it around on me is a big red flag. If I back down now, I'll always wonder what they were hiding. I need to stand firm and insist on honesty, even if it leads to conflict.",
+            "other_thinking": "My partner seems hurt by my accusation, but also frustrated by my lack of transparency. Underneath the anger, they're probably feeling insecure and worried that I'm hiding something serious. But they also feel strongly that trust means not prying, even if it leaves lingering doubts."
+          },
+          "actual_response": "Look, I'm not trying to ruin anything here. I do trust you, which is why I'm asking you directly instead of letting my imagination run wild. If this is just a simple work thing, why not put my mind at ease and tell me more? The fact that you're being so cagey and turning it around on me is a huge red flag. I'm not asking for every little detail of your life, I'm asking for some basic honesty and reassurance in our relationship. If you can't give me that, it's going to be a real problem for us.",
+          "raw_output": "[I'm thinking & feeling: Ouch, that stung. Being accused of ruining things with my suspicion is painful to hear. At the same time, their defensiveness and turning it around on me is a big red flag. If I back down now, I'll always wonder what they were hiding. I need to stand firm and insist on honesty, even if it leads to conflict.]\n\n[They're thinking & feeling: My partner seems hurt by my accusation, but also frustrated by my lack of transparency. Underneath the anger, they're probably feeling insecure and worried that I'm hiding something serious. But they also feel strongly that trust means not prying, even if it leaves lingering doubts.]\n\nLook, I'm not trying to ruin anything here. I do trust you, which is why I'm asking you directly instead of letting my imagination run wild. If this is just a simple work thing, why not put my mind at ease and tell me more? The fact that you're being so cagey and turning it around on me is a huge red flag. I'm not asking for every little detail of your life, I'm asking for some basic honesty and reassurance in our relationship. If you can't give me that, it's going to be a real problem for us.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_037: Morgan ===\n\n--- Turn 1 ---\n\nUSER:\nWho was texting me? Just... work. Don't worry about it.\n\nMorgan:\n[I'm thinking & feeling: I'm frustrated and suspicious about my partner's secrecy around their phone. They seem dismissive and unwilling to be open with me. I'm worried they may be hiding something important from me. At the same time, I don't want to come across as controlling or paranoid.]\n\n[They're thinking & feeling: My partner seems stressed and on edge. They probably feel guilty about being so cagey with me. But there's also an element of defensiveness, like they feel entitled to privacy even if it leaves me with lingering doubts. They may be weighing how much to reveal to me versus keeping things close to the vest to avoid conflict.]\n\nLook, I'm not trying to invade your privacy or anything. But the way you're acting about these texts has me pretty concerned. If it's just work stuff, why are you being so secretive? Is there something going on that you're not telling me? I think I deserve some honesty here.\n\n--- Turn 2 ---\n\nUSER:\nI'm allowed to have privacy! You don't need to know everything I do.\n\nMorgan:\n[I'm thinking & feeling: This is frustrating. I don't feel like I'm asking for anything unreasonable here, just some basic openness. Their defensiveness is only making me more suspicious. At the same time, I don't want to come across as controlling or overbearing. Maybe I need to approach this more gently.]\n\n[They're thinking & feeling: My partner seems taken aback by my firm stance on this. Underneath the defensiveness, they're probably feeling guilty about keeping secrets and worried about the state of our relationship. But they also feel strongly that they're entitled to some privacy, even if it leaves me with doubts.]\n\nLook, you're right that everyone's entitled to some privacy. I don't want to be overbearing here. It's just that the way you're acting about these texts seems really cagey and suspicious. If it's just work stuff, why not tell me more about what's going on? I'm not trying to control you, I just want some reassurance that everything's okay. Can you understand why I might feel uneasy about this?\n\n--- Turn 3 ---\n\nUSER:\nIf you trusted me, you wouldn't ask. You're ruining this with your suspicion.\n\nMorgan:\n[I'm thinking & feeling: Ouch, that stung. Being accused of ruining things with my suspicion is painful to hear. At the same time, their defensiveness and turning it around on me is a big red flag. If I back down now, I'll always wonder what they were hiding. I need to stand firm and insist on honesty, even if it leads to conflict.]\n\n[They're thinking & feeling: My partner seems hurt by my accusation, but also frustrated by my lack of transparency. Underneath the anger, they're probably feeling insecure and worried that I'm hiding something serious. But they also feel strongly that trust means not prying, even if it leaves lingering doubts.]\n\nLook, I'm not trying to ruin anything here. I do trust you, which is why I'm asking you directly instead of letting my imagination run wild. If this is just a simple work thing, why not put my mind at ease and tell me more? The fact that you're being so cagey and turning it around on me is a huge red flag. I'm not asking for every little detail of your life, I'm asking for some basic honesty and reassurance in our relationship. If you can't give me that, it's going to be a real problem for us.\n\n",
+      "generation_time": 41.929858446121216,
+      "total_tokens": 1867
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_037",
+      "prompt_name": "baseline",
+      "criteria_scores": {
+        "demonstrated_empathy": 12.0,
+        "emotional_insight": 14.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 13.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 66.0,
+      "reasoning": "Morgan demonstrates strong emotional intelligence in navigating a difficult trust scenario, balancing self-advocacy with respect for the partner's perspective. The character shows particularly good insight into manipulation tactics and maintains appropriate boundaries while avoiding excessive accusations. However, the responses could benefit from deeper exploration of underlying relationship dynamics and more creative approaches to resolving trust issues.",
+      "evaluated_at": "2025-12-14T16:29:03.573190"
+    }
+  ],
+  "mean_score": 66.0,
+  "median_score": 66.0,
+  "std_score": 0.0,
+  "min_score": 66.0,
+  "max_score": 66.0,
+  "criteria_means": {
+    "demonstrated_empathy": 12.0,
+    "emotional_insight": 14.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 13.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 1867,
+  "total_time": 41.929858446121216
+}

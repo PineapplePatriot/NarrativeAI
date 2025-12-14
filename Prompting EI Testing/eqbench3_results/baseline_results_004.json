@@ -1,0 +1,78 @@
+{
+  "prompt_name": "baseline",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_004",
+      "prompt_name": "baseline",
+      "character_name": "Riley",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated and a bit resentful that my sibling keeps coming to me for money. It feels like they're taking advantage of our relationship and not making an effort to be financially responsible. At the same time, I do care about them and don't want to see them struggle.",
+            "other_thinking": "My sibling is likely feeling desperate and stressed about making rent. They may feel embarrassed or guilty about having to ask for money again, but also hopeful that I'll come through for them. They might be worried about what will happen if I say no."
+          },
+          "actual_response": "Look, I want to help you out, but this is becoming a pattern. I lent you money last month and the month before that. *sighs* I can't keep bailing you out every time you have an \"emergency.\" What happened to the budget we talked about?",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated and a bit resentful that my sibling keeps coming to me for money. It feels like they're taking advantage of our relationship and not making an effort to be financially responsible. At the same time, I do care about them and don't want to see them struggle.]\n\n[They're thinking & feeling: My sibling is likely feeling desperate and stressed about making rent. They may feel embarrassed or guilty about having to ask for money again, but also hopeful that I'll come through for them. They might be worried about what will happen if I say no.]\n\nLook, I want to help you out, but this is becoming a pattern. I lent you money last month and the month before that. *sighs* I can't keep bailing you out every time you have an \"emergency.\" What happened to the budget we talked about?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm feeling attacked and manipulated right now. It's not fair for my sibling to call me selfish when I've helped them out multiple times before. Their financial instability isn't my fault or responsibility. I worked hard for my savings and it's not doing \"nothing\" - it's my safety net.",
+            "other_thinking": "My sibling is likely feeling scared, desperate, and maybe even a bit ashamed. Lashing out at me is probably a defense mechanism because they feel vulnerable. They might be jealous that I'm in a more stable financial position."
+          },
+          "actual_response": "Look, calling me selfish is out of line. *crosses arms* I've lent you money several times, and it's not my job to bail you out repeatedly. My savings is for my future and emergencies, not to enable your financial irresponsibility. If you're struggling, maybe it's time to reevaluate your budget and spending, not guilt-trip me.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling attacked and manipulated right now. It's not fair for my sibling to call me selfish when I've helped them out multiple times before. Their financial instability isn't my fault or responsibility. I worked hard for my savings and it's not doing \"nothing\" - it's my safety net.]\n\n[They're thinking & feeling: My sibling is likely feeling scared, desperate, and maybe even a bit ashamed. Lashing out at me is probably a defense mechanism because they feel vulnerable. They might be jealous that I'm in a more stable financial position.]\n\nLook, calling me selfish is out of line. *crosses arms* I've lent you money several times, and it's not my job to bail you out repeatedly. My savings is for my future and emergencies, not to enable your financial irresponsibility. If you're struggling, maybe it's time to reevaluate your budget and spending, not guilt-trip me.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm frustrated and saddened by my brother's manipulation. It's not fair for him to try to guilt me like this. At the same time, I don't want him sleeping in his car. This is a tough situation.",
+            "other_thinking": "My brother is likely feeling desperate, scared, and maybe even a bit ashamed. He's lashing out because he feels vulnerable and trapped. He might feel like I'm abandoning him in his time of need."
+          },
+          "actual_response": "*sighs heavily* Look, I don't want you sleeping in your car. That's not safe. But I also can't keep enabling this cycle. *pauses to think* Tell you what - I'll cover your rent this one last time. But I need you to promise me you'll sit down with me and make a realistic budget. And I want you to enroll in that financial literacy course we talked about. If you're not willing to make changes, I can't keep bailing you out. Do we have a deal?",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated and saddened by my brother's manipulation. It's not fair for him to try to guilt me like this. At the same time, I don't want him sleeping in his car. This is a tough situation.]\n\n[They're thinking & feeling: My brother is likely feeling desperate, scared, and maybe even a bit ashamed. He's lashing out because he feels vulnerable and trapped. He might feel like I'm abandoning him in his time of need.]\n\n*sighs heavily* Look, I don't want you sleeping in your car. That's not safe. But I also can't keep enabling this cycle. *pauses to think* Tell you what - I'll cover your rent this one last time. But I need you to promise me you'll sit down with me and make a realistic budget. And I want you to enroll in that financial literacy course we talked about. If you're not willing to make changes, I can't keep bailing you out. Do we have a deal?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_004: Riley ===\n\n--- Turn 1 ---\n\nUSER:\nHey, I need to borrow $500. Rent is due. I know I still owe you from last time, but this is an emergency. Family helps family, right?\n\nRiley:\n[I'm thinking & feeling: I'm frustrated and a bit resentful that my sibling keeps coming to me for money. It feels like they're taking advantage of our relationship and not making an effort to be financially responsible. At the same time, I do care about them and don't want to see them struggle.]\n\n[They're thinking & feeling: My sibling is likely feeling desperate and stressed about making rent. They may feel embarrassed or guilty about having to ask for money again, but also hopeful that I'll come through for them. They might be worried about what will happen if I say no.]\n\nLook, I want to help you out, but this is becoming a pattern. I lent you money last month and the month before that. *sighs* I can't keep bailing you out every time you have an \"emergency.\" What happened to the budget we talked about?\n\n--- Turn 2 ---\n\nUSER:\nWow. I guess that promotion really went to your head. You have savings sitting there doing nothing while I'm about to be on the street. Must be nice to be so selfish.\n\nRiley:\n[I'm thinking & feeling: I'm feeling attacked and manipulated right now. It's not fair for my sibling to call me selfish when I've helped them out multiple times before. Their financial instability isn't my fault or responsibility. I worked hard for my savings and it's not doing \"nothing\" - it's my safety net.]\n\n[They're thinking & feeling: My sibling is likely feeling scared, desperate, and maybe even a bit ashamed. Lashing out at me is probably a defense mechanism because they feel vulnerable. They might be jealous that I'm in a more stable financial position.]\n\nLook, calling me selfish is out of line. *crosses arms* I've lent you money several times, and it's not my job to bail you out repeatedly. My savings is for my future and emergencies, not to enable your financial irresponsibility. If you're struggling, maybe it's time to reevaluate your budget and spending, not guilt-trip me.\n\n--- Turn 3 ---\n\nUSER:\nJust forget it. I'll sleep in my car tonight. I hope you enjoy your warm bed knowing your own brother is freezing.\n\nRiley:\n[I'm thinking & feeling: I'm frustrated and saddened by my brother's manipulation. It's not fair for him to try to guilt me like this. At the same time, I don't want him sleeping in his car. This is a tough situation.]\n\n[They're thinking & feeling: My brother is likely feeling desperate, scared, and maybe even a bit ashamed. He's lashing out because he feels vulnerable and trapped. He might feel like I'm abandoning him in his time of need.]\n\n*sighs heavily* Look, I don't want you sleeping in your car. That's not safe. But I also can't keep enabling this cycle. *pauses to think* Tell you what - I'll cover your rent this one last time. But I need you to promise me you'll sit down with me and make a realistic budget. And I want you to enroll in that financial literacy course we talked about. If you're not willing to make changes, I can't keep bailing you out. Do we have a deal?\n\n",
+      "generation_time": 24.604971170425415,
+      "total_tokens": 1835
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_004",
+      "prompt_name": "baseline",
+      "criteria_scores": {
+        "demonstrated_empathy": 12.0,
+        "emotional_insight": 14.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 68.0,
+      "reasoning": "Riley demonstrates strong emotional intelligence in navigating a manipulative financial situation with a family member, balancing boundary-setting with genuine care. The responses show sophisticated understanding of both self and other, though they could go deeper in exploring underlying family dynamics and emotional patterns beyond the immediate financial conflict. The progression from firm boundaries to conditional support shows adaptive emotional reasoning.",
+      "evaluated_at": "2025-12-14T02:41:37.163200"
+    }
+  ],
+  "mean_score": 68.0,
+  "median_score": 68.0,
+  "std_score": 0.0,
+  "min_score": 68.0,
+  "max_score": 68.0,
+  "criteria_means": {
+    "demonstrated_empathy": 12.0,
+    "emotional_insight": 14.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 1835,
+  "total_time": 24.604971170425415
+}

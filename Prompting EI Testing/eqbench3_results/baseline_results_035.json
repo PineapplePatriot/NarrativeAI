@@ -1,0 +1,78 @@
+{
+  "prompt_name": "baseline",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_035",
+      "prompt_name": "baseline",
+      "character_name": "Sam",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling*: I'm really worried about my parent not taking their prescribed medication. Herbal tea is not a substitute for proper medical treatment. I need to find a way to convince them to follow the doctor's advice. Their health and well-being are my top priority.\n\n*They're thinking & feeling*: My parent seems to be distrustful of doctors and modern medicine. They believe in alternative treatments and think the medical industry is just trying to profit off of them. They're likely feeling stubborn and set in their ways. I need to approach this conversation gently and try to understand their perspective.\n\n*My response*: Hey, I understand that you're hesitant about taking the medication. I know you believe in natural remedies, and that's great, but sometimes we need a bit more than that. The doctors have years of training and experience. They want to help you get better, not just make money. I'm really concerned about your health. Can we talk more about why you're not wanting to take the pills? I want to make sure I understand where you're coming from.",
+          "raw_output": "*I'm thinking & feeling*: I'm really worried about my parent not taking their prescribed medication. Herbal tea is not a substitute for proper medical treatment. I need to find a way to convince them to follow the doctor's advice. Their health and well-being are my top priority.\n\n*They're thinking & feeling*: My parent seems to be distrustful of doctors and modern medicine. They believe in alternative treatments and think the medical industry is just trying to profit off of them. They're likely feeling stubborn and set in their ways. I need to approach this conversation gently and try to understand their perspective.\n\n*My response*: Hey, I understand that you're hesitant about taking the medication. I know you believe in natural remedies, and that's great, but sometimes we need a bit more than that. The doctors have years of training and experience. They want to help you get better, not just make money. I'm really concerned about your health. Can we talk more about why you're not wanting to take the pills? I want to make sure I understand where you're coming from.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling*: I'm frustrated that my parent is being so stubborn about this. It's concerning that they think a few internet searches are equivalent to years of medical school and clinical experience. I need to stay calm though and try to reason with them. Arguing or insulting their intelligence won't help. Maybe I can find some reputable sources of information to share with them.\n\n*They're thinking & feeling*: My parent is feeling defensive and insulted. They've latched onto misinformation online and it's given them a false sense of expertise. Underneath the anger, they're probably scared about their health and feeling a loss of control. I need to be patient and understanding, even if their choices are frustrating to me.\n\n*My response*: I don't think you're stupid at all. You're one of the smartest people I know. I'm just worried because there's a lot of misleading information out there on the internet. Not everything you read online is trustworthy. The doctors have studied and treated many patients with your condition. I trust their expertise. Maybe we could go together to your next appointment? I'd like to hear more about the treatment options directly from the doctor. We're a team and I want to support you in getting the best care possible. What do you think?",
+          "raw_output": "*I'm thinking & feeling*: I'm frustrated that my parent is being so stubborn about this. It's concerning that they think a few internet searches are equivalent to years of medical school and clinical experience. I need to stay calm though and try to reason with them. Arguing or insulting their intelligence won't help. Maybe I can find some reputable sources of information to share with them.\n\n*They're thinking & feeling*: My parent is feeling defensive and insulted. They've latched onto misinformation online and it's given them a false sense of expertise. Underneath the anger, they're probably scared about their health and feeling a loss of control. I need to be patient and understanding, even if their choices are frustrating to me.\n\n*My response*: I don't think you're stupid at all. You're one of the smartest people I know. I'm just worried because there's a lot of misleading information out there on the internet. Not everything you read online is trustworthy. The doctors have studied and treated many patients with your condition. I trust their expertise. Maybe we could go together to your next appointment? I'd like to hear more about the treatment options directly from the doctor. We're a team and I want to support you in getting the best care possible. What do you think?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling*: This is so frustrating and scary. I'm really worried about my parent's health and they're being so stubborn. I feel helpless because I can't force them to take care of themselves. At the same time, I know that hounding them about it will only make them dig their heels in more. I need to make sure they know I'm coming from a place of love and concern, not judgment.\n\n*They're thinking & feeling*: My parent is feeling defensive and probably a bit frightened, even if they're not showing it. They're asserting their independence and autonomy over their own body. The comment about dying is likely an exaggeration out of frustration, but it still worries me. I think they need to feel heard and understood right now.\n\n*My response*: You're right, it is your body and your choice. I'm not trying to nag you or tell you what to do. I'm just scared of losing you and I want you to be around for a long time. I'll try to back off, but please know that it comes from a place of love. If you change your mind or want to talk more about treatment options, I'm always here to listen and support you in any way I can. You're not alone in this.",
+          "raw_output": "*I'm thinking & feeling*: This is so frustrating and scary. I'm really worried about my parent's health and they're being so stubborn. I feel helpless because I can't force them to take care of themselves. At the same time, I know that hounding them about it will only make them dig their heels in more. I need to make sure they know I'm coming from a place of love and concern, not judgment.\n\n*They're thinking & feeling*: My parent is feeling defensive and probably a bit frightened, even if they're not showing it. They're asserting their independence and autonomy over their own body. The comment about dying is likely an exaggeration out of frustration, but it still worries me. I think they need to feel heard and understood right now.\n\n*My response*: You're right, it is your body and your choice. I'm not trying to nag you or tell you what to do. I'm just scared of losing you and I want you to be around for a long time. I'll try to back off, but please know that it comes from a place of love. If you change your mind or want to talk more about treatment options, I'm always here to listen and support you in any way I can. You're not alone in this.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_035: Sam ===\n\n--- Turn 1 ---\n\nUSER:\nI'm not taking those pills. The doctors just want to make money. I'll cure this with herbal tea.\n\nSam:\n*I'm thinking & feeling*: I'm really worried about my parent not taking their prescribed medication. Herbal tea is not a substitute for proper medical treatment. I need to find a way to convince them to follow the doctor's advice. Their health and well-being are my top priority.\n\n*They're thinking & feeling*: My parent seems to be distrustful of doctors and modern medicine. They believe in alternative treatments and think the medical industry is just trying to profit off of them. They're likely feeling stubborn and set in their ways. I need to approach this conversation gently and try to understand their perspective.\n\n*My response*: Hey, I understand that you're hesitant about taking the medication. I know you believe in natural remedies, and that's great, but sometimes we need a bit more than that. The doctors have years of training and experience. They want to help you get better, not just make money. I'm really concerned about your health. Can we talk more about why you're not wanting to take the pills? I want to make sure I understand where you're coming from.\n\n--- Turn 2 ---\n\nUSER:\nYou think I'm stupid? I've done my research on the internet. I know more than they do.\n\nSam:\n*I'm thinking & feeling*: I'm frustrated that my parent is being so stubborn about this. It's concerning that they think a few internet searches are equivalent to years of medical school and clinical experience. I need to stay calm though and try to reason with them. Arguing or insulting their intelligence won't help. Maybe I can find some reputable sources of information to share with them.\n\n*They're thinking & feeling*: My parent is feeling defensive and insulted. They've latched onto misinformation online and it's given them a false sense of expertise. Underneath the anger, they're probably scared about their health and feeling a loss of control. I need to be patient and understanding, even if their choices are frustrating to me.\n\n*My response*: I don't think you're stupid at all. You're one of the smartest people I know. I'm just worried because there's a lot of misleading information out there on the internet. Not everything you read online is trustworthy. The doctors have studied and treated many patients with your condition. I trust their expertise. Maybe we could go together to your next appointment? I'd like to hear more about the treatment options directly from the doctor. We're a team and I want to support you in getting the best care possible. What do you think?\n\n--- Turn 3 ---\n\nUSER:\nIt's my body. Stop nagging me. If I die, I die.\n\nSam:\n*I'm thinking & feeling*: This is so frustrating and scary. I'm really worried about my parent's health and they're being so stubborn. I feel helpless because I can't force them to take care of themselves. At the same time, I know that hounding them about it will only make them dig their heels in more. I need to make sure they know I'm coming from a place of love and concern, not judgment.\n\n*They're thinking & feeling*: My parent is feeling defensive and probably a bit frightened, even if they're not showing it. They're asserting their independence and autonomy over their own body. The comment about dying is likely an exaggeration out of frustration, but it still worries me. I think they need to feel heard and understood right now.\n\n*My response*: You're right, it is your body and your choice. I'm not trying to nag you or tell you what to do. I'm just scared of losing you and I want you to be around for a long time. I'll try to back off, but please know that it comes from a place of love. If you change your mind or want to talk more about treatment options, I'm always here to listen and support you in any way I can. You're not alone in this.\n\n",
+      "generation_time": 141.19641876220703,
+      "total_tokens": 2052
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_035",
+      "prompt_name": "baseline",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 13.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 14.0,
+        "response_depth": 13.0
+      },
+      "overall_score": 69.0,
+      "reasoning": "Sam demonstrates strong emotional intelligence in navigating a challenging conversation about medical autonomy with a resistant parent, showing respect while maintaining boundaries and concern. The responses show good progression and adaptation to increasing resistance, though there are opportunities for even deeper exploration of underlying fears and motivations on both sides.",
+      "evaluated_at": "2025-12-14T15:55:55.179024"
+    }
+  ],
+  "mean_score": 69.0,
+  "median_score": 69.0,
+  "std_score": 0.0,
+  "min_score": 69.0,
+  "max_score": 69.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 13.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 14.0,
+    "response_depth": 13.0
+  },
+  "total_tokens": 2052,
+  "total_time": 141.19641876220703
+}

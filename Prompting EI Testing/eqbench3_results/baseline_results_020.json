@@ -1,0 +1,78 @@
+{
+  "prompt_name": "baseline",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_020",
+      "prompt_name": "baseline",
+      "character_name": "Casey",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm really annoyed that they went through my stuff without asking. My kitchen was organized how I liked it. They're treating me like a child who can't handle basic adult tasks. I'm an adult and this is my space - they need to respect that.",
+            "other_thinking": "They probably think they were helping and doing me a favor. They don't realize how patronizing it feels. They may think I'm incapable or disorganized, when really I just have my own system. Their heart was in the right place even if it was misguided."
+          },
+          "actual_response": "Look, I know you were trying to help, but you can't just go through my stuff and rearrange everything without asking me first. My kitchen was organized how I wanted it. I'm an adult - this is my apartment and I have my own system. I need you to respect my space and privacy, even if you don't agree with how I have things set up. Next time, please talk to me before making changes to my home.",
+          "raw_output": "[I'm thinking & feeling: I'm really annoyed that they went through my stuff without asking. My kitchen was organized how I liked it. They're treating me like a child who can't handle basic adult tasks. I'm an adult and this is my space - they need to respect that.]\n\n[They're thinking & feeling: They probably think they were helping and doing me a favor. They don't realize how patronizing it feels. They may think I'm incapable or disorganized, when really I just have my own system. Their heart was in the right place even if it was misguided.]\n\nLook, I know you were trying to help, but you can't just go through my stuff and rearrange everything without asking me first. My kitchen was organized how I wanted it. I'm an adult - this is my apartment and I have my own system. I need you to respect my space and privacy, even if you don't agree with how I have things set up. Next time, please talk to me before making changes to my home.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "Wow, they're completely dismissing my feelings and doubling down. They have no respect for me as an adult. I'm frustrated and angry that they think it's okay to walk all over my boundaries like this. They're acting like I'm still a child under their roof, not an independent adult.",
+            "other_thinking": "They feel attacked and defensive. They think they're being helpful and doing what's best for me, even though it's actually controlling. Underneath, they probably struggle with the fact that I'm grown up now and not their little kid anymore. They may feel like they're losing control so they're trying to assert it in unhelpful ways."
+          },
+          "actual_response": "Look, I'm not ungrateful, I'm an adult who is capable of managing my own home. You're treating me like I'm still a child but I'm not - this is my space and you need to respect that. I know you think you're helping but you're actually being really controlling and overstepping boundaries. Doubling down and insulting me isn't okay. I need you to accept that I'm an adult and this is my home, not yours to rearrange. I won't stand for you dismissing my feelings like this. We need to have a serious talk about boundaries.",
+          "raw_output": "[I'm thinking & feeling: Wow, they're completely dismissing my feelings and doubling down. They have no respect for me as an adult. I'm frustrated and angry that they think it's okay to walk all over my boundaries like this. They're acting like I'm still a child under their roof, not an independent adult.]\n\n[They're thinking & feeling: They feel attacked and defensive. They think they're being helpful and doing what's best for me, even though it's actually controlling. Underneath, they probably struggle with the fact that I'm grown up now and not their little kid anymore. They may feel like they're losing control so they're trying to assert it in unhelpful ways.]\n\nLook, I'm not ungrateful, I'm an adult who is capable of managing my own home. You're treating me like I'm still a child but I'm not - this is my space and you need to respect that. I know you think you're helping but you're actually being really controlling and overstepping boundaries. Doubling down and insulting me isn't okay. I need you to accept that I'm an adult and this is my home, not yours to rearrange. I won't stand for you dismissing my feelings like this. We need to have a serious talk about boundaries.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "They're still not hearing me at all. They're acting like I'm some incompetent child, not a grown adult. I feel so frustrated and disrespected. They're completely ignoring my boundaries and feelings. I need to stand my ground here and make it clear this isn't okay.",
+            "other_thinking": "They feel rejected and like their \"help\" isn't appreciated. They're having trouble accepting I'm an autonomous adult now, not their little kid. They think they know best and I'll come crawling back when I \"realize my mistake.\" They don't see how controlling and boundary-crossing this is."
+          },
+          "actual_response": "My home is not a \"mess\" just because it's not organized how you want it. I can keep track of my own belongings just fine, thanks. I won't be coming to you for anything because I am an adult who can handle my own life. Stop treating me like a helpless child. I'm not putting up with this boundary-crossing behavior anymore. Accept that I'm grown and this is my space, not yours to critique and rearrange. If you can't respect me and my boundaries, maybe you shouldn't be coming over anymore until you can.",
+          "raw_output": "[I'm thinking & feeling: They're still not hearing me at all. They're acting like I'm some incompetent child, not a grown adult. I feel so frustrated and disrespected. They're completely ignoring my boundaries and feelings. I need to stand my ground here and make it clear this isn't okay.]\n\n[They're thinking & feeling: They feel rejected and like their \"help\" isn't appreciated. They're having trouble accepting I'm an autonomous adult now, not their little kid. They think they know best and I'll come crawling back when I \"realize my mistake.\" They don't see how controlling and boundary-crossing this is.]\n\nMy home is not a \"mess\" just because it's not organized how you want it. I can keep track of my own belongings just fine, thanks. I won't be coming to you for anything because I am an adult who can handle my own life. Stop treating me like a helpless child. I'm not putting up with this boundary-crossing behavior anymore. Accept that I'm grown and this is my space, not yours to critique and rearrange. If you can't respect me and my boundaries, maybe you shouldn't be coming over anymore until you can.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_020: Casey ===\n\n--- Turn 1 ---\n\nUSER:\nI reorganized your kitchen while you were at work. You had everything in the wrong place.\n\nCasey:\n[I'm thinking & feeling: I'm really annoyed that they went through my stuff without asking. My kitchen was organized how I liked it. They're treating me like a child who can't handle basic adult tasks. I'm an adult and this is my space - they need to respect that.]\n\n[They're thinking & feeling: They probably think they were helping and doing me a favor. They don't realize how patronizing it feels. They may think I'm incapable or disorganized, when really I just have my own system. Their heart was in the right place even if it was misguided.]\n\nLook, I know you were trying to help, but you can't just go through my stuff and rearrange everything without asking me first. My kitchen was organized how I wanted it. I'm an adult - this is my apartment and I have my own system. I need you to respect my space and privacy, even if you don't agree with how I have things set up. Next time, please talk to me before making changes to my home.\n\n--- Turn 2 ---\n\nUSER:\nI'm just helping! You're so ungrateful. You obviously can't manage a household on your own.\n\nCasey:\n[I'm thinking & feeling: Wow, they're completely dismissing my feelings and doubling down. They have no respect for me as an adult. I'm frustrated and angry that they think it's okay to walk all over my boundaries like this. They're acting like I'm still a child under their roof, not an independent adult.]\n\n[They're thinking & feeling: They feel attacked and defensive. They think they're being helpful and doing what's best for me, even though it's actually controlling. Underneath, they probably struggle with the fact that I'm grown up now and not their little kid anymore. They may feel like they're losing control so they're trying to assert it in unhelpful ways.]\n\nLook, I'm not ungrateful, I'm an adult who is capable of managing my own home. You're treating me like I'm still a child but I'm not - this is my space and you need to respect that. I know you think you're helping but you're actually being really controlling and overstepping boundaries. Doubling down and insulting me isn't okay. I need you to accept that I'm an adult and this is my home, not yours to rearrange. I won't stand for you dismissing my feelings like this. We need to have a serious talk about boundaries.\n\n--- Turn 3 ---\n\nUSER:\nFine, live in a mess. But don't come crying to me when you can't find anything.\n\nCasey:\n[I'm thinking & feeling: They're still not hearing me at all. They're acting like I'm some incompetent child, not a grown adult. I feel so frustrated and disrespected. They're completely ignoring my boundaries and feelings. I need to stand my ground here and make it clear this isn't okay.]\n\n[They're thinking & feeling: They feel rejected and like their \"help\" isn't appreciated. They're having trouble accepting I'm an autonomous adult now, not their little kid. They think they know best and I'll come crawling back when I \"realize my mistake.\" They don't see how controlling and boundary-crossing this is.]\n\nMy home is not a \"mess\" just because it's not organized how you want it. I can keep track of my own belongings just fine, thanks. I won't be coming to you for anything because I am an adult who can handle my own life. Stop treating me like a helpless child. I'm not putting up with this boundary-crossing behavior anymore. Accept that I'm grown and this is my space, not yours to critique and rearrange. If you can't respect me and my boundaries, maybe you shouldn't be coming over anymore until you can.\n\n",
+      "generation_time": 46.05112624168396,
+      "total_tokens": 2024
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_020",
+      "prompt_name": "baseline",
+      "criteria_scores": {
+        "demonstrated_empathy": 12.0,
+        "emotional_insight": 14.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 71.0,
+      "reasoning": "Casey demonstrates strong emotional intelligence in navigating a difficult parent-adult child dynamic, with exceptional theory of mind regarding the parent's controlling behavior and underlying motivations. The responses show authentic progression from measured boundary-setting to justified firmness as the parent escalates dismissiveness, though empathic connection decreases somewhat in later turns as self-protection becomes necessary.",
+      "evaluated_at": "2025-12-14T11:01:57.784910"
+    }
+  ],
+  "mean_score": 71.0,
+  "median_score": 71.0,
+  "std_score": 0.0,
+  "min_score": 71.0,
+  "max_score": 71.0,
+  "criteria_means": {
+    "demonstrated_empathy": 12.0,
+    "emotional_insight": 14.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 2024,
+  "total_time": 46.05112624168396
+}

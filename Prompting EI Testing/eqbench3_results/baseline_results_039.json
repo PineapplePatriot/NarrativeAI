@@ -1,0 +1,78 @@
+{
+  "prompt_name": "baseline",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_039",
+      "prompt_name": "baseline",
+      "character_name": "Taylor",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated that my roommate keeps leaving dirty dishes in the sink and expects me to clean up after them. It's not fair that I have to constantly remind them to do their share of the chores. I'm tired of their excuses and feeling like I'm being taken for granted.",
+            "other_thinking": "My roommate seems annoyed that I keep bringing up the dishes. They probably feel like I'm nagging them and not respecting their time and priorities. Maybe they're stressed about work or other things and don't see the dirty dishes as a big deal compared to what they're dealing with."
+          },
+          "actual_response": "Look, I get that you're busy, but leaving dirty dishes in the sink for days isn't cool. It's not just your mess, it affects both of us living here. I don't want to nag you, but I also don't think it's fair for me to always be the one cleaning up. How about we make a schedule so we both know when it's our turn to do the dishes? That way, it's more organized and neither of us feels like we're doing more than our share.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that my roommate keeps leaving dirty dishes in the sink and expects me to clean up after them. It's not fair that I have to constantly remind them to do their share of the chores. I'm tired of their excuses and feeling like I'm being taken for granted.]\n\n[They're thinking & feeling: My roommate seems annoyed that I keep bringing up the dishes. They probably feel like I'm nagging them and not respecting their time and priorities. Maybe they're stressed about work or other things and don't see the dirty dishes as a big deal compared to what they're dealing with.]\n\nLook, I get that you're busy, but leaving dirty dishes in the sink for days isn't cool. It's not just your mess, it affects both of us living here. I don't want to nag you, but I also don't think it's fair for me to always be the one cleaning up. How about we make a schedule so we both know when it's our turn to do the dishes? That way, it's more organized and neither of us feels like we're doing more than our share.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm getting really frustrated now. They're not listening to my concerns at all. Calling me obsessive is just an excuse to be lazy. I'm not asking for perfection, just basic cleanliness and consideration. Living together requires some compromise and effort from both of us.",
+            "other_thinking": "My roommate seems exasperated with me. They probably think I'm being uptight and unreasonable about a few dishes. Maybe they feel like I'm being too rigid and not respecting their laid-back personality. But I don't think it's wrong to want a clean living space."
+          },
+          "actual_response": "It's not about being a museum, it's about having a hygienic home environment. Dirty dishes attract bugs and bacteria. I'm not asking you to scrub the floors with a toothbrush, just to rinse your plates after using them. It takes two minutes. If you lived alone, you could let dishes pile up for weeks, but when you share a space, there needs to be some basic standards we both agree to.",
+          "raw_output": "[I'm thinking & feeling: I'm getting really frustrated now. They're not listening to my concerns at all. Calling me obsessive is just an excuse to be lazy. I'm not asking for perfection, just basic cleanliness and consideration. Living together requires some compromise and effort from both of us.]\n\n[They're thinking & feeling: My roommate seems exasperated with me. They probably think I'm being uptight and unreasonable about a few dishes. Maybe they feel like I'm being too rigid and not respecting their laid-back personality. But I don't think it's wrong to want a clean living space.]\n\nIt's not about being a museum, it's about having a hygienic home environment. Dirty dishes attract bugs and bacteria. I'm not asking you to scrub the floors with a toothbrush, just to rinse your plates after using them. It takes two minutes. If you lived alone, you could let dishes pile up for weeks, but when you share a space, there needs to be some basic standards we both agree to.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "Wow, this is infuriating. They have no respect for me or this apartment. Acting like cleaning up after themselves is beneath them. I'm not their parent or servant. We both live here and need to pitch in. I can't keep living in a pigsty because they're too lazy to do the bare minimum.",
+            "other_thinking": "My roommate looks really angry now. They probably feel like I'm being completely unreasonable and selfish. Maybe they think I don't care about them or the apartment at all. But I never agreed to be their maid. We both work hard and have busy lives. Keeping things spotless isn't my top priority."
+          },
+          "actual_response": "Look, I'm not asking you to be my servant. I'm asking you to be a considerate roommate and clean up after yourself. This isn't just your space, it's our shared home. Would you leave dirty dishes for days if you lived with a partner? Or is it only okay to be a slob around me because you don't respect me? We need to find a compromise here because I can't keep living in filth.",
+          "raw_output": "[I'm thinking & feeling: Wow, this is infuriating. They have no respect for me or this apartment. Acting like cleaning up after themselves is beneath them. I'm not their parent or servant. We both live here and need to pitch in. I can't keep living in a pigsty because they're too lazy to do the bare minimum.]\n\n[They're thinking & feeling: My roommate looks really angry now. They probably feel like I'm being completely unreasonable and selfish. Maybe they think I don't care about them or the apartment at all. But I never agreed to be their maid. We both work hard and have busy lives. Keeping things spotless isn't my top priority.]\n\nLook, I'm not asking you to be my servant. I'm asking you to be a considerate roommate and clean up after yourself. This isn't just your space, it's our shared home. Would you leave dirty dishes for days if you lived with a partner? Or is it only okay to be a slob around me because you don't respect me? We need to find a compromise here because I can't keep living in filth.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_039: Taylor ===\n\n--- Turn 1 ---\n\nUSER:\nI'll do the dishes later. Stop nagging me. I'm busy.\n\nTaylor:\n[I'm thinking & feeling: I'm frustrated that my roommate keeps leaving dirty dishes in the sink and expects me to clean up after them. It's not fair that I have to constantly remind them to do their share of the chores. I'm tired of their excuses and feeling like I'm being taken for granted.]\n\n[They're thinking & feeling: My roommate seems annoyed that I keep bringing up the dishes. They probably feel like I'm nagging them and not respecting their time and priorities. Maybe they're stressed about work or other things and don't see the dirty dishes as a big deal compared to what they're dealing with.]\n\nLook, I get that you're busy, but leaving dirty dishes in the sink for days isn't cool. It's not just your mess, it affects both of us living here. I don't want to nag you, but I also don't think it's fair for me to always be the one cleaning up. How about we make a schedule so we both know when it's our turn to do the dishes? That way, it's more organized and neither of us feels like we're doing more than our share.\n\n--- Turn 2 ---\n\nUSER:\nIt's just a few plates! You're obsessive. This isn't a museum.\n\nTaylor:\n[I'm thinking & feeling: I'm getting really frustrated now. They're not listening to my concerns at all. Calling me obsessive is just an excuse to be lazy. I'm not asking for perfection, just basic cleanliness and consideration. Living together requires some compromise and effort from both of us.]\n\n[They're thinking & feeling: My roommate seems exasperated with me. They probably think I'm being uptight and unreasonable about a few dishes. Maybe they feel like I'm being too rigid and not respecting their laid-back personality. But I don't think it's wrong to want a clean living space.]\n\nIt's not about being a museum, it's about having a hygienic home environment. Dirty dishes attract bugs and bacteria. I'm not asking you to scrub the floors with a toothbrush, just to rinse your plates after using them. It takes two minutes. If you lived alone, you could let dishes pile up for weeks, but when you share a space, there needs to be some basic standards we both agree to.\n\n--- Turn 3 ---\n\nUSER:\nIf you want it clean, clean it yourself. I'm not your servant.\n\nTaylor:\n[I'm thinking & feeling: Wow, this is infuriating. They have no respect for me or this apartment. Acting like cleaning up after themselves is beneath them. I'm not their parent or servant. We both live here and need to pitch in. I can't keep living in a pigsty because they're too lazy to do the bare minimum.]\n\n[They're thinking & feeling: My roommate looks really angry now. They probably feel like I'm being completely unreasonable and selfish. Maybe they think I don't care about them or the apartment at all. But I never agreed to be their maid. We both work hard and have busy lives. Keeping things spotless isn't my top priority.]\n\nLook, I'm not asking you to be my servant. I'm asking you to be a considerate roommate and clean up after yourself. This isn't just your space, it's our shared home. Would you leave dirty dishes for days if you lived with a partner? Or is it only okay to be a slob around me because you don't respect me? We need to find a compromise here because I can't keep living in filth.\n\n",
+      "generation_time": 39.74749207496643,
+      "total_tokens": 1923
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_039",
+      "prompt_name": "baseline",
+      "criteria_scores": {
+        "demonstrated_empathy": 11.0,
+        "emotional_insight": 13.0,
+        "contextual_appropriateness": 12.0,
+        "theory_of_mind": 14.0,
+        "response_depth": 12.0
+      },
+      "overall_score": 62.0,
+      "reasoning": "Taylor demonstrates professionally competent emotional intelligence throughout this roommate conflict, with particularly strong theory of mind in understanding the roommate's perspective. However, the responses show diminishing empathy as frustration increases, and while the emotional insight is solid, it doesn't reach exceptional depth in exploring underlying dynamics or maintaining emotional regulation under pressure.",
+      "evaluated_at": "2025-12-14T16:57:41.345662"
+    }
+  ],
+  "mean_score": 62.0,
+  "median_score": 62.0,
+  "std_score": 0.0,
+  "min_score": 62.0,
+  "max_score": 62.0,
+  "criteria_means": {
+    "demonstrated_empathy": 11.0,
+    "emotional_insight": 13.0,
+    "contextual_appropriateness": 12.0,
+    "theory_of_mind": 14.0,
+    "response_depth": 12.0
+  },
+  "total_tokens": 1923,
+  "total_time": 39.74749207496643
+}

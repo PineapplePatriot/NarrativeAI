@@ -1,0 +1,78 @@
+{
+  "prompt_name": "baseline",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_017",
+      "prompt_name": "baseline",
+      "character_name": "Jordan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I feel guilty that they are lonely, but frustrated that they are guilting me into coming home for so long when I have work responsibilities. I love them and want to spend time with them, but two weeks is a lot to ask. I need to find a compromise that allows me to both support my family and honor my commitments at work.",
+            "other_thinking": "They are likely feeling isolated and craving the comfort of family during the holidays. My absence probably exacerbates their loneliness. They may fear that my job is pulling me away from the family permanently and want to reinforce our bond. Guilt-tripping me is their attempt to get me to prioritize them, even if it's not the healthiest approach."
+          },
+          "actual_response": "Look, I really want to spend time with you for the holidays, and I understand you've been feeling lonely. My job is important to me though, and two weeks is longer than I can reasonably take off. How about I come home for a long weekend around Christmas? We can have some quality time together, but I can still meet my obligations at work. I'm happy to call and video chat more often too, so we can stay connected even when I'm not there in person. What do you think?",
+          "raw_output": "[I'm thinking & feeling: I feel guilty that they are lonely, but frustrated that they are guilting me into coming home for so long when I have work responsibilities. I love them and want to spend time with them, but two weeks is a lot to ask. I need to find a compromise that allows me to both support my family and honor my commitments at work.]\n\n[They're thinking & feeling: They are likely feeling isolated and craving the comfort of family during the holidays. My absence probably exacerbates their loneliness. They may fear that my job is pulling me away from the family permanently and want to reinforce our bond. Guilt-tripping me is their attempt to get me to prioritize them, even if it's not the healthiest approach.]\n\nLook, I really want to spend time with you for the holidays, and I understand you've been feeling lonely. My job is important to me though, and two weeks is longer than I can reasonably take off. How about I come home for a long weekend around Christmas? We can have some quality time together, but I can still meet my obligations at work. I'm happy to call and video chat more often too, so we can stay connected even when I'm not there in person. What do you think?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I feel frustrated and guilty. I know they sacrificed a lot for me, but I have my own life and responsibilities now. Throwing that sacrifice in my face to guilt me into doing what they want isn't fair. I need to stand up for myself while still acknowledging their feelings and what they've done for me.",
+            "other_thinking": "They are likely feeling unappreciated, like the sacrifices they made are being taken for granted. Seeing me prioritize work over family probably makes them fear those sacrifices were for nothing, that they're losing me. Guilt-tripping is their desperate attempt to regain that closeness and get me to show my appreciation through my actions."
+          },
+          "actual_response": "I understand that you made a lot of sacrifices to raise me, and I'm grateful for everything you've done. I'm not trying to be unappreciative. But I have my own life now, with my own responsibilities. You can't guilt me into dropping everything every time you want me to. I'm offering to come visit for a long weekend so we can spend some quality time together. That's a reasonable compromise that allows me to both maintain my adult life and spend time with you. I hope you can understand that.",
+          "raw_output": "[I'm thinking & feeling: I feel frustrated and guilty. I know they sacrificed a lot for me, but I have my own life and responsibilities now. Throwing that sacrifice in my face to guilt me into doing what they want isn't fair. I need to stand up for myself while still acknowledging their feelings and what they've done for me.]\n\n[They're thinking & feeling: They are likely feeling unappreciated, like the sacrifices they made are being taken for granted. Seeing me prioritize work over family probably makes them fear those sacrifices were for nothing, that they're losing me. Guilt-tripping is their desperate attempt to regain that closeness and get me to show my appreciation through my actions.]\n\nI understand that you made a lot of sacrifices to raise me, and I'm grateful for everything you've done. I'm not trying to be unappreciative. But I have my own life now, with my own responsibilities. You can't guilt me into dropping everything every time you want me to. I'm offering to come visit for a long weekend so we can spend some quality time together. That's a reasonable compromise that allows me to both maintain my adult life and spend time with you. I hope you can understand that.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I feel frustrated and guilty. They're really laying on the guilt thick, trying to make me feel like a terrible person for not dropping everything to come home. At the same time, I worry about them being alone and unhappy. I want to be there for them, but not like this, not by giving in to emotional manipulation.",
+            "other_thinking": "They are likely feeling abandoned, afraid of being left alone, their sacrifices unappreciated. My resisting their guilt-tripping probably makes them feel like they're losing their hold on me. Lashing out with passive-aggressive jabs is their way of expressing their hurt and trying to regain control of the situation."
+          },
+          "actual_response": "I'm not going to engage with this kind of manipulative guilt-tripping. I said I would come visit for a long weekend, and I meant it. That invitation stands. I want to spend time with you, but I have my own life, and I need you to respect that. If you choose to sit alone and be miserable instead, that's on you, not me. I love you, but I'm not going to be emotionally blackmailed into doing what you want. I hope you can understand and respect my choices as an adult.",
+          "raw_output": "[I'm thinking & feeling: I feel frustrated and guilty. They're really laying on the guilt thick, trying to make me feel like a terrible person for not dropping everything to come home. At the same time, I worry about them being alone and unhappy. I want to be there for them, but not like this, not by giving in to emotional manipulation.]\n\n[They're thinking & feeling: They are likely feeling abandoned, afraid of being left alone, their sacrifices unappreciated. My resisting their guilt-tripping probably makes them feel like they're losing their hold on me. Lashing out with passive-aggressive jabs is their way of expressing their hurt and trying to regain control of the situation.]\n\nI'm not going to engage with this kind of manipulative guilt-tripping. I said I would come visit for a long weekend, and I meant it. That invitation stands. I want to spend time with you, but I have my own life, and I need you to respect that. If you choose to sit alone and be miserable instead, that's on you, not me. I love you, but I'm not going to be emotionally blackmailed into doing what you want. I hope you can understand and respect my choices as an adult.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_017: Jordan ===\n\n--- Turn 1 ---\n\nUSER:\nI need you to come home for Christmas for two weeks. I know you have work, but I'm lonely.\n\nJordan:\n[I'm thinking & feeling: I feel guilty that they are lonely, but frustrated that they are guilting me into coming home for so long when I have work responsibilities. I love them and want to spend time with them, but two weeks is a lot to ask. I need to find a compromise that allows me to both support my family and honor my commitments at work.]\n\n[They're thinking & feeling: They are likely feeling isolated and craving the comfort of family during the holidays. My absence probably exacerbates their loneliness. They may fear that my job is pulling me away from the family permanently and want to reinforce our bond. Guilt-tripping me is their attempt to get me to prioritize them, even if it's not the healthiest approach.]\n\nLook, I really want to spend time with you for the holidays, and I understand you've been feeling lonely. My job is important to me though, and two weeks is longer than I can reasonably take off. How about I come home for a long weekend around Christmas? We can have some quality time together, but I can still meet my obligations at work. I'm happy to call and video chat more often too, so we can stay connected even when I'm not there in person. What do you think?\n\n--- Turn 2 ---\n\nUSER:\nI sacrificed my whole life to raise you, and you can't even take a few days off? You're so ungrateful.\n\nJordan:\n[I'm thinking & feeling: I feel frustrated and guilty. I know they sacrificed a lot for me, but I have my own life and responsibilities now. Throwing that sacrifice in my face to guilt me into doing what they want isn't fair. I need to stand up for myself while still acknowledging their feelings and what they've done for me.]\n\n[They're thinking & feeling: They are likely feeling unappreciated, like the sacrifices they made are being taken for granted. Seeing me prioritize work over family probably makes them fear those sacrifices were for nothing, that they're losing me. Guilt-tripping is their desperate attempt to regain that closeness and get me to show my appreciation through my actions.]\n\nI understand that you made a lot of sacrifices to raise me, and I'm grateful for everything you've done. I'm not trying to be unappreciative. But I have my own life now, with my own responsibilities. You can't guilt me into dropping everything every time you want me to. I'm offering to come visit for a long weekend so we can spend some quality time together. That's a reasonable compromise that allows me to both maintain my adult life and spend time with you. I hope you can understand that.\n\n--- Turn 3 ---\n\nUSER:\nFine. Don't come. I'll just sit here alone and rot. Hope your job is worth it.\n\nJordan:\n[I'm thinking & feeling: I feel frustrated and guilty. They're really laying on the guilt thick, trying to make me feel like a terrible person for not dropping everything to come home. At the same time, I worry about them being alone and unhappy. I want to be there for them, but not like this, not by giving in to emotional manipulation.]\n\n[They're thinking & feeling: They are likely feeling abandoned, afraid of being left alone, their sacrifices unappreciated. My resisting their guilt-tripping probably makes them feel like they're losing their hold on me. Lashing out with passive-aggressive jabs is their way of expressing their hurt and trying to regain control of the situation.]\n\nI'm not going to engage with this kind of manipulative guilt-tripping. I said I would come visit for a long weekend, and I meant it. That invitation stands. I want to spend time with you, but I have my own life, and I need you to respect that. If you choose to sit alone and be miserable instead, that's on you, not me. I love you, but I'm not going to be emotionally blackmailed into doing what you want. I hope you can understand and respect my choices as an adult.\n\n",
+      "generation_time": 50.47756505012512,
+      "total_tokens": 2183
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_017",
+      "prompt_name": "baseline",
+      "criteria_scores": {
+        "demonstrated_empathy": 12.0,
+        "emotional_insight": 14.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 68.0,
+      "reasoning": "The assistant demonstrates strong emotional intelligence in navigating a classic family manipulation scenario, with particularly sophisticated theory of mind regarding the parent's motivations. While the boundary-setting is appropriate and necessary, the empathetic connection diminishes somewhat as the manipulation intensifies, showing room for improvement in maintaining compassion while still being firm.",
+      "evaluated_at": "2025-12-14T10:19:22.378227"
+    }
+  ],
+  "mean_score": 68.0,
+  "median_score": 68.0,
+  "std_score": 0.0,
+  "min_score": 68.0,
+  "max_score": 68.0,
+  "criteria_means": {
+    "demonstrated_empathy": 12.0,
+    "emotional_insight": 14.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 2183,
+  "total_time": 50.47756505012512
+}

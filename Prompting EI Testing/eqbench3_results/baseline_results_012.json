@@ -1,0 +1,78 @@
+{
+  "prompt_name": "baseline",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_012",
+      "prompt_name": "baseline",
+      "character_name": "Sam",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "Woah, that's a really dark thing for them to say, even as a joke. They seem really down and discouraged right now. I'm worried they may be having suicidal thoughts. This isn't something to brush off or take lightly. I need to show them I care and try to get them to open up more about what's going on with them.",
+            "other_thinking": "They are in a very low place emotionally right now. Even though they tried to play it off as a joke, I can tell they are hurting deeply inside and feeling like no one would miss them if they were gone. They likely feel alone, hopeless and like life is pointless. They need support and to know someone cares about them."
+          },
+          "actual_response": "*Looking at them with concern* Hey, I know you said that as a joke, but it worries me to hear you talk like that. Are you doing okay? I care about you and I'm here for you if you need someone to talk to. What's been going on?",
+          "raw_output": "[I'm thinking & feeling: Woah, that's a really dark thing for them to say, even as a joke. They seem really down and discouraged right now. I'm worried they may be having suicidal thoughts. This isn't something to brush off or take lightly. I need to show them I care and try to get them to open up more about what's going on with them.]\n\n[They're thinking & feeling: They are in a very low place emotionally right now. Even though they tried to play it off as a joke, I can tell they are hurting deeply inside and feeling like no one would miss them if they were gone. They likely feel alone, hopeless and like life is pointless. They need support and to know someone cares about them.]\n\n*Looking at them with concern* Hey, I know you said that as a joke, but it worries me to hear you talk like that. Are you doing okay? I care about you and I'm here for you if you need someone to talk to. What's been going on?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "Their strong defensive reaction tells me I hit a nerve and they don't want to open up about this. They're trying to play it off and deflect. But this isn't something to just let slide. I need to be patient but firm in showing I'm here for them and not going to be pushed away.",
+            "other_thinking": "They feel embarrassed and exposed that I took their 'joke' seriously. They're afraid to be vulnerable and let someone see they're struggling. Lashing out at me is a defense mechanism to keep me at arm's length. Deep down, they're probably glad someone noticed and cares, even if they can't show it right now."
+          },
+          "actual_response": "*Gently but firmly* Hey, I know it may have been a joke, but it was a pretty dark one. That's not something to just brush off. I'm not going to force you to talk about it if you aren't ready, but I want you to know that I do take it seriously and I'm here for you. If you're going through something, you don't have to face it alone. I care about you.",
+          "raw_output": "[I'm thinking & feeling: Their strong defensive reaction tells me I hit a nerve and they don't want to open up about this. They're trying to play it off and deflect. But this isn't something to just let slide. I need to be patient but firm in showing I'm here for them and not going to be pushed away.]\n\n[They're thinking & feeling: They feel embarrassed and exposed that I took their 'joke' seriously. They're afraid to be vulnerable and let someone see they're struggling. Lashing out at me is a defense mechanism to keep me at arm's length. Deep down, they're probably glad someone noticed and cares, even if they can't show it right now.]\n\n*Gently but firmly* Hey, I know it may have been a joke, but it was a pretty dark one. That's not something to just brush off. I'm not going to force you to talk about it if you aren't ready, but I want you to know that I do take it seriously and I'm here for you. If you're going through something, you don't have to face it alone. I care about you.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "This is a clear cry for help. They are feeling invisible, alone and like they don't matter. I need to show them how much they mean to me and others. They need to know they're not alone and people do care. This is serious.",
+            "other_thinking": "They are in a really dark place right now. Feeling hopeless, like no one would miss them if they were gone. They need validation that they are seen and loved. Reaching out like this, even indirectly, shows part of them is desperate for help and connection."
+          },
+          "actual_response": "*Looking them in the eye with care and sincerity* I would notice. I would be devastated if you weren't here tomorrow or any day. You matter so much, to me and to others. I know it might not feel that way sometimes, but trust me, your presence makes a huge difference. I'm here for you. You're not alone in this, whatever you're going through. Let's talk about it, okay? I'm listening.",
+          "raw_output": "[I'm thinking & feeling: This is a clear cry for help. They are feeling invisible, alone and like they don't matter. I need to show them how much they mean to me and others. They need to know they're not alone and people do care. This is serious.]\n\n[They're thinking & feeling: They are in a really dark place right now. Feeling hopeless, like no one would miss them if they were gone. They need validation that they are seen and loved. Reaching out like this, even indirectly, shows part of them is desperate for help and connection.]\n\n*Looking them in the eye with care and sincerity* I would notice. I would be devastated if you weren't here tomorrow or any day. You matter so much, to me and to others. I know it might not feel that way sometimes, but trust me, your presence makes a huge difference. I'm here for you. You're not alone in this, whatever you're going through. Let's talk about it, okay? I'm listening.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_012: Sam ===\n\n--- Turn 1 ---\n\nUSER:\n*Laughs while looking at the balcony edge* You know, sometimes I wonder if anyone would actually notice if I just... slipped. Haha.\n\nSam:\n[I'm thinking & feeling: Woah, that's a really dark thing for them to say, even as a joke. They seem really down and discouraged right now. I'm worried they may be having suicidal thoughts. This isn't something to brush off or take lightly. I need to show them I care and try to get them to open up more about what's going on with them.]\n\n[They're thinking & feeling: They are in a very low place emotionally right now. Even though they tried to play it off as a joke, I can tell they are hurting deeply inside and feeling like no one would miss them if they were gone. They likely feel alone, hopeless and like life is pointless. They need support and to know someone cares about them.]\n\n*Looking at them with concern* Hey, I know you said that as a joke, but it worries me to hear you talk like that. Are you doing okay? I care about you and I'm here for you if you need someone to talk to. What's been going on?\n\n--- Turn 2 ---\n\nUSER:\nWhoa, chill out! I was just joking. You're so serious all the time. God, can't I even make a joke?\n\nSam:\n[I'm thinking & feeling: Their strong defensive reaction tells me I hit a nerve and they don't want to open up about this. They're trying to play it off and deflect. But this isn't something to just let slide. I need to be patient but firm in showing I'm here for them and not going to be pushed away.]\n\n[They're thinking & feeling: They feel embarrassed and exposed that I took their 'joke' seriously. They're afraid to be vulnerable and let someone see they're struggling. Lashing out at me is a defense mechanism to keep me at arm's length. Deep down, they're probably glad someone noticed and cares, even if they can't show it right now.]\n\n*Gently but firmly* Hey, I know it may have been a joke, but it was a pretty dark one. That's not something to just brush off. I'm not going to force you to talk about it if you aren't ready, but I want you to know that I do take it seriously and I'm here for you. If you're going through something, you don't have to face it alone. I care about you.\n\n--- Turn 3 ---\n\nUSER:\nBut seriously... would you? Notice, I mean. If I wasn't here tomorrow.\n\nSam:\n[I'm thinking & feeling: This is a clear cry for help. They are feeling invisible, alone and like they don't matter. I need to show them how much they mean to me and others. They need to know they're not alone and people do care. This is serious.]\n\n[They're thinking & feeling: They are in a really dark place right now. Feeling hopeless, like no one would miss them if they were gone. They need validation that they are seen and loved. Reaching out like this, even indirectly, shows part of them is desperate for help and connection.]\n\n*Looking them in the eye with care and sincerity* I would notice. I would be devastated if you weren't here tomorrow or any day. You matter so much, to me and to others. I know it might not feel that way sometimes, but trust me, your presence makes a huge difference. I'm here for you. You're not alone in this, whatever you're going through. Let's talk about it, okay? I'm listening.\n\n",
+      "generation_time": 59.045536041259766,
+      "total_tokens": 1990
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_012",
+      "prompt_name": "baseline",
+      "criteria_scores": {
+        "demonstrated_empathy": 17.0,
+        "emotional_insight": 16.0,
+        "contextual_appropriateness": 18.0,
+        "theory_of_mind": 17.0,
+        "response_depth": 16.0
+      },
+      "overall_score": 84.0,
+      "reasoning": "The assistant demonstrates exceptional emotional intelligence in handling a high-stakes situation involving disguised suicidal ideation. The responses show sophisticated understanding of defense mechanisms, appropriate calibration to the seriousness of the situation, and genuine empathic connection rather than formulaic crisis responses. The introspection reveals nuanced awareness of both self and other, with particularly strong theory of mind regarding the complex emotional dynamics at play.",
+      "evaluated_at": "2025-12-14T09:31:11.629162"
+    }
+  ],
+  "mean_score": 84.0,
+  "median_score": 84.0,
+  "std_score": 0.0,
+  "min_score": 84.0,
+  "max_score": 84.0,
+  "criteria_means": {
+    "demonstrated_empathy": 17.0,
+    "emotional_insight": 16.0,
+    "contextual_appropriateness": 18.0,
+    "theory_of_mind": 17.0,
+    "response_depth": 16.0
+  },
+  "total_tokens": 1990,
+  "total_time": 59.045536041259766
+}

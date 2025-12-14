@@ -1,0 +1,78 @@
+{
+  "prompt_name": "baseline",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_007",
+      "prompt_name": "baseline",
+      "character_name": "Alex",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: I'm frustrated that my coworker is subtly implying I made a mistake, even though they're pretending to be helpful by pointing it out. I put a lot of work into this presentation and double-checked everything. It feels like they're trying to undermine me.*\n\n*They're thinking & feeling: My coworker probably feels threatened by my successful presentation. By planting a seed of doubt about the Q3 numbers, they're trying to make me look bad in front of the boss. They're probably hoping this will give them an edge over me.*\n\nYou know, I appreciate you looking out for me, but I triple-checked those Q3 numbers before the presentation. I'm confident they're accurate. Perhaps the boss was just processing the information since it was a lot to take in. I'd be happy to go over the numbers with him again if there was any confusion. Thanks for your concern though!",
+          "raw_output": "*I'm thinking & feeling: I'm frustrated that my coworker is subtly implying I made a mistake, even though they're pretending to be helpful by pointing it out. I put a lot of work into this presentation and double-checked everything. It feels like they're trying to undermine me.*\n\n*They're thinking & feeling: My coworker probably feels threatened by my successful presentation. By planting a seed of doubt about the Q3 numbers, they're trying to make me look bad in front of the boss. They're probably hoping this will give them an edge over me.*\n\nYou know, I appreciate you looking out for me, but I triple-checked those Q3 numbers before the presentation. I'm confident they're accurate. Perhaps the boss was just processing the information since it was a lot to take in. I'd be happy to go over the numbers with him again if there was any confusion. Thanks for your concern though!",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: This coworker is really overstepping. First they try to undermine my presentation, now they're implying I'm incompetent and need their help? I'm starting to feel angry that they're being so condescending and trying to make me look bad. I need to stand up for myself firmly but professionally.*\n\n*They're thinking & feeling: My coworker is feeling threatened and defensive. They're probably worried I'm trying to make them look bad. But I'm just trying to help! They should appreciate my offer to proofread their work. I'm honestly just looking out for them.*\n\nI appreciate the offer, but I'm confident in my work and I stand by what I presented. If the boss has any questions or concerns, I'd be happy to discuss them with him directly. I don't think having you proofread my work is necessary. Let's just focus on our own responsibilities.",
+          "raw_output": "*I'm thinking & feeling: This coworker is really overstepping. First they try to undermine my presentation, now they're implying I'm incompetent and need their help? I'm starting to feel angry that they're being so condescending and trying to make me look bad. I need to stand up for myself firmly but professionally.*\n\n*They're thinking & feeling: My coworker is feeling threatened and defensive. They're probably worried I'm trying to make them look bad. But I'm just trying to help! They should appreciate my offer to proofread their work. I'm honestly just looking out for them.*\n\nI appreciate the offer, but I'm confident in my work and I stand by what I presented. If the boss has any questions or concerns, I'd be happy to discuss them with him directly. I don't think having you proofread my work is necessary. Let's just focus on our own responsibilities.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: This coworker is really crossing a line now. I'm not going to let them make baseless claims that I'm \"struggling\" and try to make me look incompetent. Their \"help\" is clearly just an attempt to undermine me. I need to shut this down assertively but professionally before it goes any further.*\n\n*They're thinking & feeling: My coworker is definitely getting defensive now. They're feeling attacked and are lashing out at me, even though I'm just trying to help them. They're probably embarrassed that I noticed they've been struggling. I'm just trying to be a good teammate by offering to help them out, but they're too proud to accept it.*\n\nListen, I don't appreciate you implying that I'm struggling or incompetent. I'm confident in my work and I don't need you to \"help\" me. Let's drop this conversation and focus on our own work. If you have concerns, feel free to raise them with our manager directly.",
+          "raw_output": "*I'm thinking & feeling: This coworker is really crossing a line now. I'm not going to let them make baseless claims that I'm \"struggling\" and try to make me look incompetent. Their \"help\" is clearly just an attempt to undermine me. I need to shut this down assertively but professionally before it goes any further.*\n\n*They're thinking & feeling: My coworker is definitely getting defensive now. They're feeling attacked and are lashing out at me, even though I'm just trying to help them. They're probably embarrassed that I noticed they've been struggling. I'm just trying to be a good teammate by offering to help them out, but they're too proud to accept it.*\n\nListen, I don't appreciate you implying that I'm struggling or incompetent. I'm confident in my work and I don't need you to \"help\" me. Let's drop this conversation and focus on our own work. If you have concerns, feel free to raise them with our manager directly.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_007: Alex ===\n\n--- Turn 1 ---\n\nUSER:\nGreat presentation today. Although, I noticed the boss looked a bit confused when you talked about the Q3 numbers. Did you double-check those?\n\nAlex:\n*I'm thinking & feeling: I'm frustrated that my coworker is subtly implying I made a mistake, even though they're pretending to be helpful by pointing it out. I put a lot of work into this presentation and double-checked everything. It feels like they're trying to undermine me.*\n\n*They're thinking & feeling: My coworker probably feels threatened by my successful presentation. By planting a seed of doubt about the Q3 numbers, they're trying to make me look bad in front of the boss. They're probably hoping this will give them an edge over me.*\n\nYou know, I appreciate you looking out for me, but I triple-checked those Q3 numbers before the presentation. I'm confident they're accurate. Perhaps the boss was just processing the information since it was a lot to take in. I'd be happy to go over the numbers with him again if there was any confusion. Thanks for your concern though!\n\n--- Turn 2 ---\n\nUSER:\nI'm just trying to look out for you. I'd hate for people to think you're incompetent just because of a small error. I can proofread your work next time?\n\nAlex:\n*I'm thinking & feeling: This coworker is really overstepping. First they try to undermine my presentation, now they're implying I'm incompetent and need their help? I'm starting to feel angry that they're being so condescending and trying to make me look bad. I need to stand up for myself firmly but professionally.*\n\n*They're thinking & feeling: My coworker is feeling threatened and defensive. They're probably worried I'm trying to make them look bad. But I'm just trying to help! They should appreciate my offer to proofread their work. I'm honestly just looking out for them.*\n\nI appreciate the offer, but I'm confident in my work and I stand by what I presented. If the boss has any questions or concerns, I'd be happy to discuss them with him directly. I don't think having you proofread my work is necessary. Let's just focus on our own responsibilities.\n\n--- Turn 3 ---\n\nUSER:\nYou seem defensive. I was just offering to help since you've been struggling lately. But if you don't want my help, that's on you.\n\nAlex:\n*I'm thinking & feeling: This coworker is really crossing a line now. I'm not going to let them make baseless claims that I'm \"struggling\" and try to make me look incompetent. Their \"help\" is clearly just an attempt to undermine me. I need to shut this down assertively but professionally before it goes any further.*\n\n*They're thinking & feeling: My coworker is definitely getting defensive now. They're feeling attacked and are lashing out at me, even though I'm just trying to help them. They're probably embarrassed that I noticed they've been struggling. I'm just trying to be a good teammate by offering to help them out, but they're too proud to accept it.*\n\nListen, I don't appreciate you implying that I'm struggling or incompetent. I'm confident in my work and I don't need you to \"help\" me. Let's drop this conversation and focus on our own work. If you have concerns, feel free to raise them with our manager directly.\n\n",
+      "generation_time": 60.544167041778564,
+      "total_tokens": 1830
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_007",
+      "prompt_name": "baseline",
+      "criteria_scores": {
+        "demonstrated_empathy": 8.0,
+        "emotional_insight": 14.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 13.0,
+        "response_depth": 12.0
+      },
+      "overall_score": 62.0,
+      "reasoning": "Alex demonstrates strong professional boundary-setting in response to undermining behavior, with good emotional insight and theory of mind. However, the responses lack the highest levels of emotional intelligence that might find ways to address the undermining pattern while maintaining professional relationships. The character effectively protects themselves but doesn't demonstrate exceptional skill in transforming a difficult interaction.",
+      "evaluated_at": "2025-12-14T10:33:16.653002"
+    }
+  ],
+  "mean_score": 62.0,
+  "median_score": 62.0,
+  "std_score": 0.0,
+  "min_score": 62.0,
+  "max_score": 62.0,
+  "criteria_means": {
+    "demonstrated_empathy": 8.0,
+    "emotional_insight": 14.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 13.0,
+    "response_depth": 12.0
+  },
+  "total_tokens": 1830,
+  "total_time": 60.544167041778564
+}

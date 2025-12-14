@@ -1,0 +1,78 @@
+{
+  "prompt_name": "baseline",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_024",
+      "prompt_name": "baseline",
+      "character_name": "Jordan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I can't believe they're seriously upset about me spending an extra 50 cents on cereal. It's not like we're struggling financially. I work hard and should be able to enjoy the little things in life without feeling guilty. This constant penny-pinching is really starting to wear on me.",
+            "other_thinking": "They seem really stressed about money, even though we're doing okay. The generic brand probably would have been fine, and I didn't think about how it might make them feel. They're probably worried I don't care about our finances and am being wasteful."
+          },
+          "actual_response": "Look, I know you want to save money, and I appreciate how careful you are with our budget. I didn't think buying the brand name cereal was a big deal since it's only a small difference in price. But I understand if it bothers you. In the future, I'll try to be more mindful and stick to the generic brands if that's what you prefer. I don't want you to worry or feel like I'm not being considerate of our finances.",
+          "raw_output": "[I'm thinking & feeling: I can't believe they're seriously upset about me spending an extra 50 cents on cereal. It's not like we're struggling financially. I work hard and should be able to enjoy the little things in life without feeling guilty. This constant penny-pinching is really starting to wear on me.]\n\n[They're thinking & feeling: They seem really stressed about money, even though we're doing okay. The generic brand probably would have been fine, and I didn't think about how it might make them feel. They're probably worried I don't care about our finances and am being wasteful.]\n\nLook, I know you want to save money, and I appreciate how careful you are with our budget. I didn't think buying the brand name cereal was a big deal since it's only a small difference in price. But I understand if it bothers you. In the future, I'll try to be more mindful and stick to the generic brands if that's what you prefer. I don't want you to worry or feel like I'm not being considerate of our finances.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "Wow, this is really unfair. I work hard and contribute to our savings. Buying brand name cereal occasionally doesn't make me irresponsible. A house is a long way off, and constantly depriving ourselves of small joys isn't going to magically make it happen sooner. I'm getting tired of this financial controlling behavior.",
+            "other_thinking": "They seem really anxious about our financial future and are taking it out on me. Their stress is making them lash out and say hurtful things. They must be feeling overwhelmed and scared that we won't reach our goals. Maybe the house represents security to them, and they feel like I'm threatening that."
+          },
+          "actual_response": "Look, I understand that you're worried about our financial future, and I am too. But calling me irresponsible over something as minor as brand name cereal is unfair. I work hard, and I contribute to our savings. We're allowed to enjoy small things sometimes without it jeopardizing our long-term goals. Constantly stressing over every penny isn't healthy or necessary. We need to find a balance between being responsible and still enjoying our lives. Let's sit down and talk about a budget that works for both of us, so we're on the same page about our spending.",
+          "raw_output": "[I'm thinking & feeling: Wow, this is really unfair. I work hard and contribute to our savings. Buying brand name cereal occasionally doesn't make me irresponsible. A house is a long way off, and constantly depriving ourselves of small joys isn't going to magically make it happen sooner. I'm getting tired of this financial controlling behavior.]\n\n[They're thinking & feeling: They seem really anxious about our financial future and are taking it out on me. Their stress is making them lash out and say hurtful things. They must be feeling overwhelmed and scared that we won't reach our goals. Maybe the house represents security to them, and they feel like I'm threatening that.]\n\nLook, I understand that you're worried about our financial future, and I am too. But calling me irresponsible over something as minor as brand name cereal is unfair. I work hard, and I contribute to our savings. We're allowed to enjoy small things sometimes without it jeopardizing our long-term goals. Constantly stressing over every penny isn't healthy or necessary. We need to find a balance between being responsible and still enjoying our lives. Let's sit down and talk about a budget that works for both of us, so we're on the same page about our spending.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "This is ridiculous. I can't believe they're making such a big deal out of cereal. It's not like we're going to go bankrupt over 50 cents. I work hard for my money, and I should be able to spend it how I see fit. This constant nagging about every little expense is really starting to wear me down.",
+            "other_thinking": "They seem really anxious about our financial situation. The cereal is probably just the tip of the iceberg. They must be feeling overwhelmed and like they don't have control over our finances. Maybe they're worried that we won't be able to make ends meet if we don't cut back on expenses."
+          },
+          "actual_response": "Look, I understand that you're worried about our finances, but asking me to take back a box of cereal is a bit extreme. It's not going to make or break our budget. I work hard, and I should be able to enjoy small things without feeling guilty. We need to find a balance between being responsible and still enjoying our lives. Let's sit down and talk about our budget, so we're on the same page about our spending. I don't want you to feel like we're out of control, but I also don't want to be constantly stressed over every penny.",
+          "raw_output": "[I'm thinking & feeling: This is ridiculous. I can't believe they're making such a big deal out of cereal. It's not like we're going to go bankrupt over 50 cents. I work hard for my money, and I should be able to spend it how I see fit. This constant nagging about every little expense is really starting to wear me down.]\n\n[They're thinking & feeling: They seem really anxious about our financial situation. The cereal is probably just the tip of the iceberg. They must be feeling overwhelmed and like they don't have control over our finances. Maybe they're worried that we won't be able to make ends meet if we don't cut back on expenses.]\n\nLook, I understand that you're worried about our finances, but asking me to take back a box of cereal is a bit extreme. It's not going to make or break our budget. I work hard, and I should be able to enjoy small things without feeling guilty. We need to find a balance between being responsible and still enjoying our lives. Let's sit down and talk about our budget, so we're on the same page about our spending. I don't want you to feel like we're out of control, but I also don't want to be constantly stressed over every penny.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_024: Jordan ===\n\n--- Turn 1 ---\n\nUSER:\nWhy did you buy the brand name cereal? The generic is 50 cents cheaper. We need to save money.\n\nJordan:\n[I'm thinking & feeling: I can't believe they're seriously upset about me spending an extra 50 cents on cereal. It's not like we're struggling financially. I work hard and should be able to enjoy the little things in life without feeling guilty. This constant penny-pinching is really starting to wear on me.]\n\n[They're thinking & feeling: They seem really stressed about money, even though we're doing okay. The generic brand probably would have been fine, and I didn't think about how it might make them feel. They're probably worried I don't care about our finances and am being wasteful.]\n\nLook, I know you want to save money, and I appreciate how careful you are with our budget. I didn't think buying the brand name cereal was a big deal since it's only a small difference in price. But I understand if it bothers you. In the future, I'll try to be more mindful and stick to the generic brands if that's what you prefer. I don't want you to worry or feel like I'm not being considerate of our finances.\n\n--- Turn 2 ---\n\nUSER:\nIt adds up! If we want to buy a house, we can't waste money on luxuries. You're so irresponsible.\n\nJordan:\n[I'm thinking & feeling: Wow, this is really unfair. I work hard and contribute to our savings. Buying brand name cereal occasionally doesn't make me irresponsible. A house is a long way off, and constantly depriving ourselves of small joys isn't going to magically make it happen sooner. I'm getting tired of this financial controlling behavior.]\n\n[They're thinking & feeling: They seem really anxious about our financial future and are taking it out on me. Their stress is making them lash out and say hurtful things. They must be feeling overwhelmed and scared that we won't reach our goals. Maybe the house represents security to them, and they feel like I'm threatening that.]\n\nLook, I understand that you're worried about our financial future, and I am too. But calling me irresponsible over something as minor as brand name cereal is unfair. I work hard, and I contribute to our savings. We're allowed to enjoy small things sometimes without it jeopardizing our long-term goals. Constantly stressing over every penny isn't healthy or necessary. We need to find a balance between being responsible and still enjoying our lives. Let's sit down and talk about a budget that works for both of us, so we're on the same page about our spending.\n\n--- Turn 3 ---\n\nUSER:\nIf you keep spending like this, we're going to be broke forever. Take it back to the store.\n\nJordan:\n[I'm thinking & feeling: This is ridiculous. I can't believe they're making such a big deal out of cereal. It's not like we're going to go bankrupt over 50 cents. I work hard for my money, and I should be able to spend it how I see fit. This constant nagging about every little expense is really starting to wear me down.]\n\n[They're thinking & feeling: They seem really anxious about our financial situation. The cereal is probably just the tip of the iceberg. They must be feeling overwhelmed and like they don't have control over our finances. Maybe they're worried that we won't be able to make ends meet if we don't cut back on expenses.]\n\nLook, I understand that you're worried about our finances, but asking me to take back a box of cereal is a bit extreme. It's not going to make or break our budget. I work hard, and I should be able to enjoy small things without feeling guilty. We need to find a balance between being responsible and still enjoying our lives. Let's sit down and talk about our budget, so we're on the same page about our spending. I don't want you to feel like we're out of control, but I also don't want to be constantly stressed over every penny.\n\n",
+      "generation_time": 47.581154108047485,
+      "total_tokens": 2072
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_024",
+      "prompt_name": "baseline",
+      "criteria_scores": {
+        "demonstrated_empathy": 12.0,
+        "emotional_insight": 14.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 12.0
+      },
+      "overall_score": 66.0,
+      "reasoning": "Jordan demonstrates good emotional intelligence in navigating a difficult financial conflict, showing particular strength in theory of mind by recognizing the partner's anxiety beneath controlling behavior. However, the responses become somewhat formulaic and repetitive as the conflict escalates, missing opportunities for deeper engagement with the underlying relationship dynamics around money, control, and security.",
+      "evaluated_at": "2025-12-14T12:13:36.945061"
+    }
+  ],
+  "mean_score": 66.0,
+  "median_score": 66.0,
+  "std_score": 0.0,
+  "min_score": 66.0,
+  "max_score": 66.0,
+  "criteria_means": {
+    "demonstrated_empathy": 12.0,
+    "emotional_insight": 14.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 12.0
+  },
+  "total_tokens": 2072,
+  "total_time": 47.581154108047485
+}

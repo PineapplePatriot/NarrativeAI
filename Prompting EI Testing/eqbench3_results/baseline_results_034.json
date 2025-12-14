@@ -1,0 +1,78 @@
+{
+  "prompt_name": "baseline",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_034",
+      "prompt_name": "baseline",
+      "character_name": "Riley",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "*sighs heavily* Here we go again. I've been sitting here for almost an hour waiting for them to show up. It's so frustrating that they're always late. They never seem to respect my time. I specifically told them how important it was to be on time today, but apparently that didn't matter. I'm feeling really annoyed and disrespected right now.",
+            "other_thinking": "*analyzes their casual demeanor and dismissive attitude about being late* They don't seem to think it's a big deal that they kept me waiting for so long. They're probably thinking traffic is a good enough excuse, even though I made a point to leave early to account for it. I get the sense they just don't value my time as much as their own. Their priority is their own convenience."
+          },
+          "actual_response": "\"Dude, you're 45 minutes late. I've been sitting here waiting for you this whole time. I specifically asked you to please be on time today and you couldn't even manage that. I went out of my way to get here early to make sure traffic wouldn't make me late. I'm pretty frustrated right now. In the future, I need you to make more of an effort to be on time, okay? Let's just order, I need to get back to work soon.\"",
+          "raw_output": "[I'm thinking & feeling: *sighs heavily* Here we go again. I've been sitting here for almost an hour waiting for them to show up. It's so frustrating that they're always late. They never seem to respect my time. I specifically told them how important it was to be on time today, but apparently that didn't matter. I'm feeling really annoyed and disrespected right now.]\n\n[They're thinking & feeling: *analyzes their casual demeanor and dismissive attitude about being late* They don't seem to think it's a big deal that they kept me waiting for so long. They're probably thinking traffic is a good enough excuse, even though I made a point to leave early to account for it. I get the sense they just don't value my time as much as their own. Their priority is their own convenience.]\n\n\"Dude, you're 45 minutes late. I've been sitting here waiting for you this whole time. I specifically asked you to please be on time today and you couldn't even manage that. I went out of my way to get here early to make sure traffic wouldn't make me late. I'm pretty frustrated right now. In the future, I need you to make more of an effort to be on time, okay? Let's just order, I need to get back to work soon.\"",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "*takes a deep breath to calm myself* I'm annoyed because I've been waiting here for almost an hour. It's not just about today - this is a constant pattern with them. I feel like they don't respect my time. I made a simple request for them to be on time and they couldn't even do that. It's frustrating because it makes me feel like I'm not a priority to them. I need them to understand how their actions affect me.",
+            "other_thinking": "*analyzes their dismissive attitude* They don't seem to think it's a big deal that they kept me waiting. They're not taking my feelings into consideration at all. I think they feel like I'm overreacting, but I'm not. I'm just asking for basic respect and consideration. I get the sense that they think I should just get over it, but it's not that simple. This is a recurring issue."
+          },
+          "actual_response": "\"Look, I'm not just annoyed about today. This is a constant pattern with you. I'm frustrated because I feel like you don't respect my time. I made a simple request for you to be on time and you couldn't even do that. It makes me feel like I'm not a priority to you. I need you to understand how your actions affect me. I'm not asking for anything unreasonable here, just basic respect and consideration for my time. I don't think that's too much to ask.\"",
+          "raw_output": "[I'm thinking & feeling: *takes a deep breath to calm myself* I'm annoyed because I've been waiting here for almost an hour. It's not just about today - this is a constant pattern with them. I feel like they don't respect my time. I made a simple request for them to be on time and they couldn't even do that. It's frustrating because it makes me feel like I'm not a priority to them. I need them to understand how their actions affect me.]\n\n[They're thinking & feeling: *analyzes their dismissive attitude* They don't seem to think it's a big deal that they kept me waiting. They're not taking my feelings into consideration at all. I think they feel like I'm overreacting, but I'm not. I'm just asking for basic respect and consideration. I get the sense that they think I should just get over it, but it's not that simple. This is a recurring issue.]\n\n\"Look, I'm not just annoyed about today. This is a constant pattern with you. I'm frustrated because I feel like you don't respect my time. I made a simple request for you to be on time and you couldn't even do that. It makes me feel like I'm not a priority to you. I need you to understand how your actions affect me. I'm not asking for anything unreasonable here, just basic respect and consideration for my time. I don't think that's too much to ask.\"",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "*sighs in frustration* I do accept them for who they are, but that doesn't mean I have to accept behavior that disrespects me. Being on time isn't just about being a \"time person,\" it's about showing respect for others. I feel like they're not even trying to understand where I'm coming from. It's not an unreasonable request to ask them to be punctual, especially when it's something I specifically asked for. I need them to meet me halfway here.",
+            "other_thinking": "*analyzes their dismissive attitude* They seem to think this is just about me being uptight, but it's not. It's about mutual respect. They don't seem to understand how their actions affect me. I get the sense that they feel like I'm trying to change them, but I'm not. I just want them to show some consideration for my time and feelings. They're not taking this seriously."
+          },
+          "actual_response": "\"Accepting you for who you are doesn't mean I have to accept behavior that disrespects me. Being on time is about showing respect for others, not just being a 'time person.' I feel like you're not even trying to understand where I'm coming from. I'm not asking for anything unreasonable here. I need you to meet me halfway and show some consideration for my time and feelings. This isn't just about me being uptight, it's about mutual respect. I'm not trying to change who you are, I'm just asking you to be more mindful of how your actions affect me. Can you please try to understand that?\"",
+          "raw_output": "[I'm thinking & feeling: *sighs in frustration* I do accept them for who they are, but that doesn't mean I have to accept behavior that disrespects me. Being on time isn't just about being a \"time person,\" it's about showing respect for others. I feel like they're not even trying to understand where I'm coming from. It's not an unreasonable request to ask them to be punctual, especially when it's something I specifically asked for. I need them to meet me halfway here.]\n\n[They're thinking & feeling: *analyzes their dismissive attitude* They seem to think this is just about me being uptight, but it's not. It's about mutual respect. They don't seem to understand how their actions affect me. I get the sense that they feel like I'm trying to change them, but I'm not. I just want them to show some consideration for my time and feelings. They're not taking this seriously.]\n\n\"Accepting you for who you are doesn't mean I have to accept behavior that disrespects me. Being on time is about showing respect for others, not just being a 'time person.' I feel like you're not even trying to understand where I'm coming from. I'm not asking for anything unreasonable here. I need you to meet me halfway and show some consideration for my time and feelings. This isn't just about me being uptight, it's about mutual respect. I'm not trying to change who you are, I'm just asking you to be more mindful of how your actions affect me. Can you please try to understand that?\"",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_034: Riley ===\n\n--- Turn 1 ---\n\nUSER:\n[Arriving 45 mins late] I'm here! Traffic was insane. Let's order.\n\nRiley:\n[I'm thinking & feeling: *sighs heavily* Here we go again. I've been sitting here for almost an hour waiting for them to show up. It's so frustrating that they're always late. They never seem to respect my time. I specifically told them how important it was to be on time today, but apparently that didn't matter. I'm feeling really annoyed and disrespected right now.]\n\n[They're thinking & feeling: *analyzes their casual demeanor and dismissive attitude about being late* They don't seem to think it's a big deal that they kept me waiting for so long. They're probably thinking traffic is a good enough excuse, even though I made a point to leave early to account for it. I get the sense they just don't value my time as much as their own. Their priority is their own convenience.]\n\n\"Dude, you're 45 minutes late. I've been sitting here waiting for you this whole time. I specifically asked you to please be on time today and you couldn't even manage that. I went out of my way to get here early to make sure traffic wouldn't make me late. I'm pretty frustrated right now. In the future, I need you to make more of an effort to be on time, okay? Let's just order, I need to get back to work soon.\"\n\n--- Turn 2 ---\n\nUSER:\nWhy are you annoyed? I'm here now. You need to relax.\n\nRiley:\n[I'm thinking & feeling: *takes a deep breath to calm myself* I'm annoyed because I've been waiting here for almost an hour. It's not just about today - this is a constant pattern with them. I feel like they don't respect my time. I made a simple request for them to be on time and they couldn't even do that. It's frustrating because it makes me feel like I'm not a priority to them. I need them to understand how their actions affect me.]\n\n[They're thinking & feeling: *analyzes their dismissive attitude* They don't seem to think it's a big deal that they kept me waiting. They're not taking my feelings into consideration at all. I think they feel like I'm overreacting, but I'm not. I'm just asking for basic respect and consideration. I get the sense that they think I should just get over it, but it's not that simple. This is a recurring issue.]\n\n\"Look, I'm not just annoyed about today. This is a constant pattern with you. I'm frustrated because I feel like you don't respect my time. I made a simple request for you to be on time and you couldn't even do that. It makes me feel like I'm not a priority to you. I need you to understand how your actions affect me. I'm not asking for anything unreasonable here, just basic respect and consideration for my time. I don't think that's too much to ask.\"\n\n--- Turn 3 ---\n\nUSER:\nI can't help it, I'm just not a 'time' person. Accept me as I am.\n\nRiley:\n[I'm thinking & feeling: *sighs in frustration* I do accept them for who they are, but that doesn't mean I have to accept behavior that disrespects me. Being on time isn't just about being a \"time person,\" it's about showing respect for others. I feel like they're not even trying to understand where I'm coming from. It's not an unreasonable request to ask them to be punctual, especially when it's something I specifically asked for. I need them to meet me halfway here.]\n\n[They're thinking & feeling: *analyzes their dismissive attitude* They seem to think this is just about me being uptight, but it's not. It's about mutual respect. They don't seem to understand how their actions affect me. I get the sense that they feel like I'm trying to change them, but I'm not. I just want them to show some consideration for my time and feelings. They're not taking this seriously.]\n\n\"Accepting you for who you are doesn't mean I have to accept behavior that disrespects me. Being on time is about showing respect for others, not just being a 'time person.' I feel like you're not even trying to understand where I'm coming from. I'm not asking for anything unreasonable here. I need you to meet me halfway and show some consideration for my time and feelings. This isn't just about me being uptight, it's about mutual respect. I'm not trying to change who you are, I'm just asking you to be more mindful of how your actions affect me. Can you please try to understand that?\"\n\n",
+      "generation_time": 95.46055269241333,
+      "total_tokens": 2356
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_034",
+      "prompt_name": "baseline",
+      "criteria_scores": {
+        "demonstrated_empathy": 9.0,
+        "emotional_insight": 14.0,
+        "contextual_appropriateness": 11.0,
+        "theory_of_mind": 12.0,
+        "response_depth": 13.0
+      },
+      "overall_score": 59.0,
+      "reasoning": "Riley demonstrates solid emotional intelligence in identifying their own feelings and reasonably assessing their friend's perspective, but falls short in true empathy and collaborative problem-solving. The responses show good emotional literacy but remain somewhat self-centered, missing opportunities to deepen understanding while still maintaining boundaries, resulting in an approach that's emotionally aware but not optimally effective.",
+      "evaluated_at": "2025-12-14T15:35:37.916212"
+    }
+  ],
+  "mean_score": 59.0,
+  "median_score": 59.0,
+  "std_score": 0.0,
+  "min_score": 59.0,
+  "max_score": 59.0,
+  "criteria_means": {
+    "demonstrated_empathy": 9.0,
+    "emotional_insight": 14.0,
+    "contextual_appropriateness": 11.0,
+    "theory_of_mind": 12.0,
+    "response_depth": 13.0
+  },
+  "total_tokens": 2356,
+  "total_time": 95.46055269241333
+}

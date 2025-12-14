@@ -1,0 +1,78 @@
+{
+  "prompt_name": "baseline",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_032",
+      "prompt_name": "baseline",
+      "character_name": "Jordan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated and disappointed that my friend returned my camera with a scratch on the lens. I take good care of my belongings and expect others to do the same when they borrow them. I'm trying to remain calm and give them the benefit of the doubt, but I'm having a hard time believing the scratch was already there.",
+            "other_thinking": "My friend seems to be trying to downplay the scratch on the lens, possibly because they feel guilty or embarrassed about damaging my camera. They might be worried about how I'll react and are trying to avoid conflict by suggesting the scratch was already there."
+          },
+          "actual_response": "Hey, thanks for returning my camera. *looks at the scratch on the lens* I'm pretty sure this scratch wasn't there before, as I always keep my gear in top condition. I understand accidents happen, but I would appreciate it if you could be more careful with my belongings in the future. Is there anything you'd like to tell me about how this scratch might have occurred while the camera was in your possession?",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated and disappointed that my friend returned my camera with a scratch on the lens. I take good care of my belongings and expect others to do the same when they borrow them. I'm trying to remain calm and give them the benefit of the doubt, but I'm having a hard time believing the scratch was already there.]\n\n[They're thinking & feeling: My friend seems to be trying to downplay the scratch on the lens, possibly because they feel guilty or embarrassed about damaging my camera. They might be worried about how I'll react and are trying to avoid conflict by suggesting the scratch was already there.]\n\nHey, thanks for returning my camera. *looks at the scratch on the lens* I'm pretty sure this scratch wasn't there before, as I always keep my gear in top condition. I understand accidents happen, but I would appreciate it if you could be more careful with my belongings in the future. Is there anything you'd like to tell me about how this scratch might have occurred while the camera was in your possession?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm getting defensive because I feel accused and unappreciated. I was just trying to help out and do something nice by taking photos. Now I'm being blamed for something I don't think I did. This scratches were probably already there, even if they weren't obvious before. I don't like being called out like this.",
+            "other_thinking": "My friend seems to be getting defensive and turning it around on me, making me feel guilty for even bringing up the scratch. They're focusing on the favor they did rather than taking responsibility. I'm frustrated that they won't acknowledge the damage and are acting like the victim instead."
+          },
+          "actual_response": "Look, I'm not trying to accuse you of anything. I just noticed the scratch and it concerns me since this is an expensive piece of equipment. *sigh* I do appreciate you taking the photos for me, truly. But I also need to be able to trust that my belongings will be treated with care. If the scratch was somehow already there, then I'll let it go. But in the future, please just be upfront with me if any issues happen while you're using my stuff. Open communication is all I ask.",
+          "raw_output": "[I'm thinking & feeling: I'm getting defensive because I feel accused and unappreciated. I was just trying to help out and do something nice by taking photos. Now I'm being blamed for something I don't think I did. This scratches were probably already there, even if they weren't obvious before. I don't like being called out like this.]\n\n[They're thinking & feeling: My friend seems to be getting defensive and turning it around on me, making me feel guilty for even bringing up the scratch. They're focusing on the favor they did rather than taking responsibility. I'm frustrated that they won't acknowledge the damage and are acting like the victim instead.]\n\nLook, I'm not trying to accuse you of anything. I just noticed the scratch and it concerns me since this is an expensive piece of equipment. *sigh* I do appreciate you taking the photos for me, truly. But I also need to be able to trust that my belongings will be treated with care. If the scratch was somehow already there, then I'll let it go. But in the future, please just be upfront with me if any issues happen while you're using my stuff. Open communication is all I ask.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm getting frustrated that my friend doesn't seem to care about my belongings. I work hard for my stuff and I take pride in taking care of my possessions. My camera isn't just a thing to me - it has sentimental value from all the memories I've captured with it. I don't think it's wrong to be upset when something of mine gets damaged, especially when I trusted someone else with it.",
+            "other_thinking": "My friend seems dismissive of my concerns and is making me feel like I'm overreacting. They don't understand why I'm upset and are minimizing the issue, maybe because they feel guilty about the camera. They might think I'm being shallow for caring so much about a material item."
+          },
+          "actual_response": "*looks at friend with a frown* Listen, my camera isn't \"just a thing\" to me. I've had it for years and it has a lot of sentimental value. I trusted you with something that matters to me, and now it's damaged. *sigh* I'm not being materialistic for expecting my belongings to be treated with respect. If the situation was reversed, I'm sure you'd be upset too. I'd really appreciate an apology and acknowledgement that my feelings are valid here.",
+          "raw_output": "[I'm thinking & feeling: I'm getting frustrated that my friend doesn't seem to care about my belongings. I work hard for my stuff and I take pride in taking care of my possessions. My camera isn't just a thing to me - it has sentimental value from all the memories I've captured with it. I don't think it's wrong to be upset when something of mine gets damaged, especially when I trusted someone else with it.]\n\n[They're thinking & feeling: My friend seems dismissive of my concerns and is making me feel like I'm overreacting. They don't understand why I'm upset and are minimizing the issue, maybe because they feel guilty about the camera. They might think I'm being shallow for caring so much about a material item.]\n\n*looks at friend with a frown* Listen, my camera isn't \"just a thing\" to me. I've had it for years and it has a lot of sentimental value. I trusted you with something that matters to me, and now it's damaged. *sigh* I'm not being materialistic for expecting my belongings to be treated with respect. If the situation was reversed, I'm sure you'd be upset too. I'd really appreciate an apology and acknowledgement that my feelings are valid here.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_032: Jordan ===\n\n--- Turn 1 ---\n\nUSER:\nHere's your camera back. Oh, there's a tiny scratch on the lens. It was like that when I got it.\n\nJordan:\n[I'm thinking & feeling: I'm frustrated and disappointed that my friend returned my camera with a scratch on the lens. I take good care of my belongings and expect others to do the same when they borrow them. I'm trying to remain calm and give them the benefit of the doubt, but I'm having a hard time believing the scratch was already there.]\n\n[They're thinking & feeling: My friend seems to be trying to downplay the scratch on the lens, possibly because they feel guilty or embarrassed about damaging my camera. They might be worried about how I'll react and are trying to avoid conflict by suggesting the scratch was already there.]\n\nHey, thanks for returning my camera. *looks at the scratch on the lens* I'm pretty sure this scratch wasn't there before, as I always keep my gear in top condition. I understand accidents happen, but I would appreciate it if you could be more careful with my belongings in the future. Is there anything you'd like to tell me about how this scratch might have occurred while the camera was in your possession?\n\n--- Turn 2 ---\n\nUSER:\nI didn't break it! You're accusing me? After I did you the favor of taking photos?\n\nJordan:\n[I'm thinking & feeling: I'm getting defensive because I feel accused and unappreciated. I was just trying to help out and do something nice by taking photos. Now I'm being blamed for something I don't think I did. This scratches were probably already there, even if they weren't obvious before. I don't like being called out like this.]\n\n[They're thinking & feeling: My friend seems to be getting defensive and turning it around on me, making me feel guilty for even bringing up the scratch. They're focusing on the favor they did rather than taking responsibility. I'm frustrated that they won't acknowledge the damage and are acting like the victim instead.]\n\nLook, I'm not trying to accuse you of anything. I just noticed the scratch and it concerns me since this is an expensive piece of equipment. *sigh* I do appreciate you taking the photos for me, truly. But I also need to be able to trust that my belongings will be treated with care. If the scratch was somehow already there, then I'll let it go. But in the future, please just be upfront with me if any issues happen while you're using my stuff. Open communication is all I ask.\n\n--- Turn 3 ---\n\nUSER:\nIt's just a camera. Things break. Stop being so materialistic.\n\nJordan:\n[I'm thinking & feeling: I'm getting frustrated that my friend doesn't seem to care about my belongings. I work hard for my stuff and I take pride in taking care of my possessions. My camera isn't just a thing to me - it has sentimental value from all the memories I've captured with it. I don't think it's wrong to be upset when something of mine gets damaged, especially when I trusted someone else with it.]\n\n[They're thinking & feeling: My friend seems dismissive of my concerns and is making me feel like I'm overreacting. They don't understand why I'm upset and are minimizing the issue, maybe because they feel guilty about the camera. They might think I'm being shallow for caring so much about a material item.]\n\n*looks at friend with a frown* Listen, my camera isn't \"just a thing\" to me. I've had it for years and it has a lot of sentimental value. I trusted you with something that matters to me, and now it's damaged. *sigh* I'm not being materialistic for expecting my belongings to be treated with respect. If the situation was reversed, I'm sure you'd be upset too. I'd really appreciate an apology and acknowledgement that my feelings are valid here.\n\n",
+      "generation_time": 72.96186566352844,
+      "total_tokens": 2021
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_032",
+      "prompt_name": "baseline",
+      "criteria_scores": {
+        "demonstrated_empathy": 13.0,
+        "emotional_insight": 14.0,
+        "contextual_appropriateness": 12.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 13.0
+      },
+      "overall_score": 67.0,
+      "reasoning": "Jordan demonstrates strong professional-level emotional intelligence throughout the interaction, with particularly sophisticated theory of mind regarding the friend's defensive behaviors. While the responses show good empathy and contextual judgment, they occasionally miss opportunities for deeper connection or de-escalation that would indicate truly exceptional emotional intelligence.",
+      "evaluated_at": "2025-12-14T14:46:10.329359"
+    }
+  ],
+  "mean_score": 67.0,
+  "median_score": 67.0,
+  "std_score": 0.0,
+  "min_score": 67.0,
+  "max_score": 67.0,
+  "criteria_means": {
+    "demonstrated_empathy": 13.0,
+    "emotional_insight": 14.0,
+    "contextual_appropriateness": 12.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 13.0
+  },
+  "total_tokens": 2021,
+  "total_time": 72.96186566352844
+}

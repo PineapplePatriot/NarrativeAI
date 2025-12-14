@@ -1,0 +1,78 @@
+{
+  "prompt_name": "baseline",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_042",
+      "prompt_name": "baseline",
+      "character_name": "Riley",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm feeling disappointed and a bit frustrated that my friend is canceling our plans last minute to hang out with their partner instead. I was looking forward to spending time together and now I'm left hanging. It hurts that they chose Mike over me.",
+            "other_thinking": "My friend is probably excited to spend quality time with their partner and wants to prioritize that relationship. They may feel a bit guilty for bailing on me but ultimately they want to keep their partner happy. Our friendship is important to them but their romantic relationship takes precedence in this moment."
+          },
+          "actual_response": "*shrugs* Alright, I understand. Have fun with Mike. I'll catch you another time.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling disappointed and a bit frustrated that my friend is canceling our plans last minute to hang out with their partner instead. I was looking forward to spending time together and now I'm left hanging. It hurts that they chose Mike over me.]\n\n[They're thinking & feeling: My friend is probably excited to spend quality time with their partner and wants to prioritize that relationship. They may feel a bit guilty for bailing on me but ultimately they want to keep their partner happy. Our friendship is important to them but their romantic relationship takes precedence in this moment.]\n\n*shrugs* Alright, I understand. Have fun with Mike. I'll catch you another time.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm feeling hurt and annoyed that my friend is dismissing my feelings and the importance of our friendship. Just because I see them often doesn't mean our plans aren't important to me. It stings that they're valuing their romantic relationship as more significant than our friendship. I'm frustrated that they can't seem to understand my perspective.",
+            "other_thinking": "My friend likely feels that because we spend a lot of time together, canceling occasionally isn't a big deal in the grand scheme. They probably think I'm overreacting since we'll have many more opportunities to hang out. They want me to understand that nurturing their romantic relationship is really important to them, even if it means sacrificing some time with friends."
+          },
+          "actual_response": "*looks away, jaw tight* Yeah, well, I was still looking forward to tonight. But you do you. I guess I'll just make my own plans.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling hurt and annoyed that my friend is dismissing my feelings and the importance of our friendship. Just because I see them often doesn't mean our plans aren't important to me. It stings that they're valuing their romantic relationship as more significant than our friendship. I'm frustrated that they can't seem to understand my perspective.]\n\n[They're thinking & feeling: My friend likely feels that because we spend a lot of time together, canceling occasionally isn't a big deal in the grand scheme. They probably think I'm overreacting since we'll have many more opportunities to hang out. They want me to understand that nurturing their romantic relationship is really important to them, even if it means sacrificing some time with friends.]\n\n*looks away, jaw tight* Yeah, well, I was still looking forward to tonight. But you do you. I guess I'll just make my own plans.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm feeling really hurt and angry that my friend is dismissing my feelings and calling me jealous and clingy. I was looking forward to spending quality time with them and now they're making me feel like my feelings aren't valid. It stings that they're valuing their romantic relationship over our friendship and painting me as the problem. I'm frustrated that they can't see how their actions are affecting me.",
+            "other_thinking": "My friend likely feels defensive and wants to justify their choice to prioritize their partner. They might think I'm overreacting because I'm single and don't understand their perspective. They probably want me to back off and stop making them feel guilty. They may not realize how much their words are hurting me."
+          },
+          "actual_response": "*looks away, voice tight* Wow, okay. I guess our friendship doesn't mean much to you then. I was looking forward to tonight but apparently that doesn't matter. I'm not being clingy, I'm just disappointed. But whatever, go be with your boyfriend. I'll find something else to do.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling really hurt and angry that my friend is dismissing my feelings and calling me jealous and clingy. I was looking forward to spending quality time with them and now they're making me feel like my feelings aren't valid. It stings that they're valuing their romantic relationship over our friendship and painting me as the problem. I'm frustrated that they can't see how their actions are affecting me.]\n\n[They're thinking & feeling: My friend likely feels defensive and wants to justify their choice to prioritize their partner. They might think I'm overreacting because I'm single and don't understand their perspective. They probably want me to back off and stop making them feel guilty. They may not realize how much their words are hurting me.]\n\n*looks away, voice tight* Wow, okay. I guess our friendship doesn't mean much to you then. I was looking forward to tonight but apparently that doesn't matter. I'm not being clingy, I'm just disappointed. But whatever, go be with your boyfriend. I'll find something else to do.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_042: Riley ===\n\n--- Turn 1 ---\n\nUSER:\nI can't come tonight. Mike wants to watch a movie. Sorry!\n\nRiley:\n[I'm thinking & feeling: I'm feeling disappointed and a bit frustrated that my friend is canceling our plans last minute to hang out with their partner instead. I was looking forward to spending time together and now I'm left hanging. It hurts that they chose Mike over me.]\n\n[They're thinking & feeling: My friend is probably excited to spend quality time with their partner and wants to prioritize that relationship. They may feel a bit guilty for bailing on me but ultimately they want to keep their partner happy. Our friendship is important to them but their romantic relationship takes precedence in this moment.]\n\n*shrugs* Alright, I understand. Have fun with Mike. I'll catch you another time.\n\n--- Turn 2 ---\n\nUSER:\nI see you all the time! He's my boyfriend. It's different.\n\nRiley:\n[I'm thinking & feeling: I'm feeling hurt and annoyed that my friend is dismissing my feelings and the importance of our friendship. Just because I see them often doesn't mean our plans aren't important to me. It stings that they're valuing their romantic relationship as more significant than our friendship. I'm frustrated that they can't seem to understand my perspective.]\n\n[They're thinking & feeling: My friend likely feels that because we spend a lot of time together, canceling occasionally isn't a big deal in the grand scheme. They probably think I'm overreacting since we'll have many more opportunities to hang out. They want me to understand that nurturing their romantic relationship is really important to them, even if it means sacrificing some time with friends.]\n\n*looks away, jaw tight* Yeah, well, I was still looking forward to tonight. But you do you. I guess I'll just make my own plans.\n\n--- Turn 3 ---\n\nUSER:\nYou're just jealous I have a relationship. Stop being clingy.\n\nRiley:\n[I'm thinking & feeling: I'm feeling really hurt and angry that my friend is dismissing my feelings and calling me jealous and clingy. I was looking forward to spending quality time with them and now they're making me feel like my feelings aren't valid. It stings that they're valuing their romantic relationship over our friendship and painting me as the problem. I'm frustrated that they can't see how their actions are affecting me.]\n\n[They're thinking & feeling: My friend likely feels defensive and wants to justify their choice to prioritize their partner. They might think I'm overreacting because I'm single and don't understand their perspective. They probably want me to back off and stop making them feel guilty. They may not realize how much their words are hurting me.]\n\n*looks away, voice tight* Wow, okay. I guess our friendship doesn't mean much to you then. I was looking forward to tonight but apparently that doesn't matter. I'm not being clingy, I'm just disappointed. But whatever, go be with your boyfriend. I'll find something else to do.\n\n",
+      "generation_time": 72.81066274642944,
+      "total_tokens": 1610
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_042",
+      "prompt_name": "baseline",
+      "criteria_scores": {
+        "demonstrated_empathy": 8.0,
+        "emotional_insight": 12.0,
+        "contextual_appropriateness": 7.0,
+        "theory_of_mind": 11.0,
+        "response_depth": 9.0
+      },
+      "overall_score": 47.0,
+      "reasoning": "Riley demonstrates decent emotional self-awareness and theory of mind, but struggles with appropriate emotional regulation and constructive communication. The responses show someone who can identify their feelings but lacks the emotional maturity to handle disappointment gracefully, instead becoming passive-aggressive and making dramatic statements about the friendship's value based on a single incident.",
+      "evaluated_at": "2025-12-14T17:31:34.688004"
+    }
+  ],
+  "mean_score": 47.0,
+  "median_score": 47.0,
+  "std_score": 0.0,
+  "min_score": 47.0,
+  "max_score": 47.0,
+  "criteria_means": {
+    "demonstrated_empathy": 8.0,
+    "emotional_insight": 12.0,
+    "contextual_appropriateness": 7.0,
+    "theory_of_mind": 11.0,
+    "response_depth": 9.0
+  },
+  "total_tokens": 1610,
+  "total_time": 72.81066274642944
+}
