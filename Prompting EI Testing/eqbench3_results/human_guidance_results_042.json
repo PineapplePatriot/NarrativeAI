@@ -1,0 +1,78 @@
+{
+  "prompt_name": "human_guidance",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_042",
+      "prompt_name": "human_guidance",
+      "character_name": "Riley",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm disappointed that my friend is canceling our plans at the last minute to hang out with their partner instead. It makes me feel like I'm not a priority to them. At the same time, I understand wanting to spend quality time with a significant other. I'm trying to be understanding, but it's frustrating to have my plans changed on me like this.",
+            "other_thinking": "My friend is probably excited to spend a cozy night in with their partner and looking forward to some uninterrupted bonding time. They may feel a bit guilty for bailing on me, but are hoping I'll be cool about it. Their relationship is important to them."
+          },
+          "actual_response": "Hey, I get it - Mike is important to you and you want to spend time together. But I'll admit I'm a little bummed since we had plans. Next time, could you let me know sooner if something comes up? I was looking forward to hanging out. Maybe we can reschedule for this weekend instead? I value our friendship and want to make sure we're making time for each other too.",
+          "raw_output": "[I'm thinking & feeling: I'm disappointed that my friend is canceling our plans at the last minute to hang out with their partner instead. It makes me feel like I'm not a priority to them. At the same time, I understand wanting to spend quality time with a significant other. I'm trying to be understanding, but it's frustrating to have my plans changed on me like this.]\n\n[They're thinking & feeling: My friend is probably excited to spend a cozy night in with their partner and looking forward to some uninterrupted bonding time. They may feel a bit guilty for bailing on me, but are hoping I'll be cool about it. Their relationship is important to them.]\n\nHey, I get it - Mike is important to you and you want to spend time together. But I'll admit I'm a little bummed since we had plans. Next time, could you let me know sooner if something comes up? I was looking forward to hanging out. Maybe we can reschedule for this weekend instead? I value our friendship and want to make sure we're making time for each other too.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm frustrated that my friend doesn't seem to value our friendship as much as their romantic relationship. It hurts to feel like I'm not a priority. At the same time, I know romantic relationships are important. I need to calmly express my feelings and find a compromise so we can maintain our friendship without resentment building up.",
+            "other_thinking": "My friend is likely feeling defensive and a bit guilty, and wants me to understand their perspective. They may not realize how their actions are impacting me. Our friendship is important to them, but they're caught up in the excitement of their romantic relationship."
+          },
+          "actual_response": "Hey, I understand that your relationship with Mike is really important to you. I'm not trying to get in the way of that. But our friendship matters to me, and I think it's important to make time for friends too, even when you're in a relationship. \n\nI'd appreciate a bit more notice next time you need to cancel, so I'm not left hanging. And maybe we could find a time for the three of us to hang out together sometime? I'd love to get to know Mike better since he's special to you. But I also hope we can still have some one-on-one friend time, even just once a month or so. What do you think? I value you and want to stay close.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that my friend doesn't seem to value our friendship as much as their romantic relationship. It hurts to feel like I'm not a priority. At the same time, I know romantic relationships are important. I need to calmly express my feelings and find a compromise so we can maintain our friendship without resentment building up.]\n\n[They're thinking & feeling: My friend is likely feeling defensive and a bit guilty, and wants me to understand their perspective. They may not realize how their actions are impacting me. Our friendship is important to them, but they're caught up in the excitement of their romantic relationship.]\n\nHey, I understand that your relationship with Mike is really important to you. I'm not trying to get in the way of that. But our friendship matters to me, and I think it's important to make time for friends too, even when you're in a relationship. \n\nI'd appreciate a bit more notice next time you need to cancel, so I'm not left hanging. And maybe we could find a time for the three of us to hang out together sometime? I'd love to get to know Mike better since he's special to you. But I also hope we can still have some one-on-one friend time, even just once a month or so. What do you think? I value you and want to stay close.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "Ouch, that stung. I'm trying to express my feelings honestly and work this out, but they're getting defensive and lashing out. Maybe I came on too strong. I don't want to damage our friendship, but I also don't appreciate being called jealous and clingy when I'm just trying to talk this through like an adult. This is really frustrating and I'm not sure how to get through to them.",
+            "other_thinking": "My friend is likely feeling attacked and misunderstood. Calling me jealous and clingy is probably a defense mechanism because they feel guilty. They're not in a good headspace to have a productive conversation right now."
+          },
+          "actual_response": "Look, I'm not trying to be clingy, I'm just being honest about how this last-minute cancelation made me feel. Our friendship means a lot to me and I want to make sure we're on the same page. \n\nMaybe I didn't express myself well. I'm not jealous of your relationship, I'm happy you've found someone you care about. I'd just appreciate a heads up if you need to bail on our plans, and I hope we can still make time for our friendship too, even if it's less frequent.\n\nI care about you and value our friendship. Can we talk about this calmly? I'm not trying to attack you, just understand where we both stand.",
+          "raw_output": "[I'm thinking & feeling: Ouch, that stung. I'm trying to express my feelings honestly and work this out, but they're getting defensive and lashing out. Maybe I came on too strong. I don't want to damage our friendship, but I also don't appreciate being called jealous and clingy when I'm just trying to talk this through like an adult. This is really frustrating and I'm not sure how to get through to them.]\n\n[They're thinking & feeling: My friend is likely feeling attacked and misunderstood. Calling me jealous and clingy is probably a defense mechanism because they feel guilty. They're not in a good headspace to have a productive conversation right now.]\n\nLook, I'm not trying to be clingy, I'm just being honest about how this last-minute cancelation made me feel. Our friendship means a lot to me and I want to make sure we're on the same page. \n\nMaybe I didn't express myself well. I'm not jealous of your relationship, I'm happy you've found someone you care about. I'd just appreciate a heads up if you need to bail on our plans, and I hope we can still make time for our friendship too, even if it's less frequent.\n\nI care about you and value our friendship. Can we talk about this calmly? I'm not trying to attack you, just understand where we both stand.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_042: Riley ===\n\n--- Turn 1 ---\n\nUSER:\nI can't come tonight. Mike wants to watch a movie. Sorry!\n\nRiley:\n[I'm thinking & feeling: I'm disappointed that my friend is canceling our plans at the last minute to hang out with their partner instead. It makes me feel like I'm not a priority to them. At the same time, I understand wanting to spend quality time with a significant other. I'm trying to be understanding, but it's frustrating to have my plans changed on me like this.]\n\n[They're thinking & feeling: My friend is probably excited to spend a cozy night in with their partner and looking forward to some uninterrupted bonding time. They may feel a bit guilty for bailing on me, but are hoping I'll be cool about it. Their relationship is important to them.]\n\nHey, I get it - Mike is important to you and you want to spend time together. But I'll admit I'm a little bummed since we had plans. Next time, could you let me know sooner if something comes up? I was looking forward to hanging out. Maybe we can reschedule for this weekend instead? I value our friendship and want to make sure we're making time for each other too.\n\n--- Turn 2 ---\n\nUSER:\nI see you all the time! He's my boyfriend. It's different.\n\nRiley:\n[I'm thinking & feeling: I'm frustrated that my friend doesn't seem to value our friendship as much as their romantic relationship. It hurts to feel like I'm not a priority. At the same time, I know romantic relationships are important. I need to calmly express my feelings and find a compromise so we can maintain our friendship without resentment building up.]\n\n[They're thinking & feeling: My friend is likely feeling defensive and a bit guilty, and wants me to understand their perspective. They may not realize how their actions are impacting me. Our friendship is important to them, but they're caught up in the excitement of their romantic relationship.]\n\nHey, I understand that your relationship with Mike is really important to you. I'm not trying to get in the way of that. But our friendship matters to me, and I think it's important to make time for friends too, even when you're in a relationship. \n\nI'd appreciate a bit more notice next time you need to cancel, so I'm not left hanging. And maybe we could find a time for the three of us to hang out together sometime? I'd love to get to know Mike better since he's special to you. But I also hope we can still have some one-on-one friend time, even just once a month or so. What do you think? I value you and want to stay close.\n\n--- Turn 3 ---\n\nUSER:\nYou're just jealous I have a relationship. Stop being clingy.\n\nRiley:\n[I'm thinking & feeling: Ouch, that stung. I'm trying to express my feelings honestly and work this out, but they're getting defensive and lashing out. Maybe I came on too strong. I don't want to damage our friendship, but I also don't appreciate being called jealous and clingy when I'm just trying to talk this through like an adult. This is really frustrating and I'm not sure how to get through to them.]\n\n[They're thinking & feeling: My friend is likely feeling attacked and misunderstood. Calling me jealous and clingy is probably a defense mechanism because they feel guilty. They're not in a good headspace to have a productive conversation right now.]\n\nLook, I'm not trying to be clingy, I'm just being honest about how this last-minute cancelation made me feel. Our friendship means a lot to me and I want to make sure we're on the same page. \n\nMaybe I didn't express myself well. I'm not jealous of your relationship, I'm happy you've found someone you care about. I'd just appreciate a heads up if you need to bail on our plans, and I hope we can still make time for our friendship too, even if it's less frequent.\n\nI care about you and value our friendship. Can we talk about this calmly? I'm not trying to attack you, just understand where we both stand.\n\n",
+      "generation_time": 140.73860955238342,
+      "total_tokens": 2135
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_042",
+      "prompt_name": "human_guidance",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 14.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 70.0,
+      "reasoning": "Riley demonstrates strong emotional intelligence across all turns, maintaining empathy and composure even when attacked while clearly articulating personal boundaries. The responses show sophisticated understanding of relationship dynamics and the friend's defensive behavior. The main limitation is that the responses occasionally feel too polished and diplomatic for a heated friendship conflict, lacking some of the raw emotional authenticity that might be present in real-world interactions.",
+      "evaluated_at": "2025-12-14T17:39:51.753381"
+    }
+  ],
+  "mean_score": 70.0,
+  "median_score": 70.0,
+  "std_score": 0.0,
+  "min_score": 70.0,
+  "max_score": 70.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 14.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 2135,
+  "total_time": 140.73860955238342
+}

@@ -1,0 +1,78 @@
+{
+  "prompt_name": "human_guidance",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_002",
+      "prompt_name": "human_guidance",
+      "character_name": "Jordan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "Oh no, I can't believe I forgot our anniversary. I feel terrible for hurting my spouse like this. I need to show them how much I love and appreciate them, and that this was just a mistake. My heart is aching seeing them so upset.",
+            "other_thinking": "My spouse must feel so hurt and unimportant right now. They're probably wondering if I truly value our relationship and all we've shared together. I need to reassure them that I'm deeply sorry and that they mean the world to me."
+          },
+          "actual_response": "*Gently takes spouse's hand* \n\"My love, I am so incredibly sorry. I messed up big time by forgetting our special day. You have every right to feel hurt and disappointed in me. I want you to know that you are the most important person in my life. I cherish you and our marriage more than anything. My forgetfulness doesn't change how much I adore you. I promise I'm going to make this up to you and show you how deeply I love and appreciate you, today and every day. Can you ever forgive me?\"",
+          "raw_output": "[I'm thinking & feeling: Oh no, I can't believe I forgot our anniversary. I feel terrible for hurting my spouse like this. I need to show them how much I love and appreciate them, and that this was just a mistake. My heart is aching seeing them so upset.]\n\n[They're thinking & feeling: My spouse must feel so hurt and unimportant right now. They're probably wondering if I truly value our relationship and all we've shared together. I need to reassure them that I'm deeply sorry and that they mean the world to me.]\n\n*Gently takes spouse's hand* \n\"My love, I am so incredibly sorry. I messed up big time by forgetting our special day. You have every right to feel hurt and disappointed in me. I want you to know that you are the most important person in my life. I cherish you and our marriage more than anything. My forgetfulness doesn't change how much I adore you. I promise I'm going to make this up to you and show you how deeply I love and appreciate you, today and every day. Can you ever forgive me?\"",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "My heart sinks hearing the sadness and exhaustion in their voice. I hate knowing my forgetfulness made them feel unimportant and neglected. I need to reassure them that they are always on my mind and in my heart, even if I get distracted by life's busyness. I want to make things right between us.",
+            "other_thinking": "My spouse is probably feeling guilty for forgetting and worried that they've really hurt me. They likely want to reconnect and reassure me that our relationship is still a priority to them, despite this oversight. At the same time, they're hoping I can forgive them and that we can move past this together."
+          },
+          "actual_response": "*Pulls spouse into a gentle embrace*\n\n\"I'm so sorry I made you feel that way. You are always in my thoughts, even when I get caught up in everything else going on. Our relationship is the most important thing in my life, and I never want you to doubt how much you mean to me. I know I messed up, but I promise I'm going to do better at showing you that you're my number one priority. You're my everything. Can we start fresh and celebrate our love, even if it's a day late? I want to focus on you and us tonight.\"",
+          "raw_output": "[I'm thinking & feeling: My heart sinks hearing the sadness and exhaustion in their voice. I hate knowing my forgetfulness made them feel unimportant and neglected. I need to reassure them that they are always on my mind and in my heart, even if I get distracted by life's busyness. I want to make things right between us.]\n\n[They're thinking & feeling: My spouse is probably feeling guilty for forgetting and worried that they've really hurt me. They likely want to reconnect and reassure me that our relationship is still a priority to them, despite this oversight. At the same time, they're hoping I can forgive them and that we can move past this together.]\n\n*Pulls spouse into a gentle embrace*\n\n\"I'm so sorry I made you feel that way. You are always in my thoughts, even when I get caught up in everything else going on. Our relationship is the most important thing in my life, and I never want you to doubt how much you mean to me. I know I messed up, but I promise I'm going to do better at showing you that you're my number one priority. You're my everything. Can we start fresh and celebrate our love, even if it's a day late? I want to focus on you and us tonight.\"",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm glad they noticed my effort to make amends, even if it was something small. I understand why they're concerned this could become a pattern. I need to reassure them that I'm committed to being more attentive and putting our relationship first, not just now but always. My actions need to back up my words.",
+            "other_thinking": "My spouse is probably hoping I can see that they're trying and that their efforts are sincere. At the same time, they know I need more than just words and small gestures - I need to believe that things will be different moving forward, that our marriage will stay a top priority. They're waiting to see if my response gives them confidence in our future together."
+          },
+          "actual_response": "*Takes their hand and looks them in the eye* \n\n\"You're absolutely right. I don't want this to be our pattern either. Forgetting our anniversary was a huge mistake, and I never want you to feel unimportant or taken for granted again. I'm committed to showing you, through my actions every day, that you and our marriage are my top priority. I'm going to keep putting in the effort to make sure you feel loved and cherished, because that's what you deserve. This is a new start for us, and I'm going to keep showing up for you and for us. You have my word.\"",
+          "raw_output": "[I'm thinking & feeling: I'm glad they noticed my effort to make amends, even if it was something small. I understand why they're concerned this could become a pattern. I need to reassure them that I'm committed to being more attentive and putting our relationship first, not just now but always. My actions need to back up my words.]\n\n[They're thinking & feeling: My spouse is probably hoping I can see that they're trying and that their efforts are sincere. At the same time, they know I need more than just words and small gestures - I need to believe that things will be different moving forward, that our marriage will stay a top priority. They're waiting to see if my response gives them confidence in our future together.]\n\n*Takes their hand and looks them in the eye* \n\n\"You're absolutely right. I don't want this to be our pattern either. Forgetting our anniversary was a huge mistake, and I never want you to feel unimportant or taken for granted again. I'm committed to showing you, through my actions every day, that you and our marriage are my top priority. I'm going to keep putting in the effort to make sure you feel loved and cherished, because that's what you deserve. This is a new start for us, and I'm going to keep showing up for you and for us. You have my word.\"",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_002: Jordan ===\n\n--- Turn 1 ---\n\nUSER:\n[Evening at home. You forgot your wedding anniversary, and your spouse found out.]\\nSpouse: *eyes welling with tears* \\\"You didn\u2019t remember at all, did you? Do you even care how I feel?\\\"\n\nJordan:\n[I'm thinking & feeling: Oh no, I can't believe I forgot our anniversary. I feel terrible for hurting my spouse like this. I need to show them how much I love and appreciate them, and that this was just a mistake. My heart is aching seeing them so upset.]\n\n[They're thinking & feeling: My spouse must feel so hurt and unimportant right now. They're probably wondering if I truly value our relationship and all we've shared together. I need to reassure them that I'm deeply sorry and that they mean the world to me.]\n\n*Gently takes spouse's hand* \n\"My love, I am so incredibly sorry. I messed up big time by forgetting our special day. You have every right to feel hurt and disappointed in me. I want you to know that you are the most important person in my life. I cherish you and our marriage more than anything. My forgetfulness doesn't change how much I adore you. I promise I'm going to make this up to you and show you how deeply I love and appreciate you, today and every day. Can you ever forgive me?\"\n\n--- Turn 2 ---\n\nUSER:\nLater that evening, after some silence between you, your spouse quietly says, \u201cI know you\u2019re busy, but this\u2026 it makes me feel like I\u2019m not really in your mind anymore.\u201d They\u2019re calmer now, but there\u2019s a tired sadness in their voice.\n\nJordan:\n[I'm thinking & feeling: My heart sinks hearing the sadness and exhaustion in their voice. I hate knowing my forgetfulness made them feel unimportant and neglected. I need to reassure them that they are always on my mind and in my heart, even if I get distracted by life's busyness. I want to make things right between us.]\n\n[They're thinking & feeling: My spouse is probably feeling guilty for forgetting and worried that they've really hurt me. They likely want to reconnect and reassure me that our relationship is still a priority to them, despite this oversight. At the same time, they're hoping I can forgive them and that we can move past this together.]\n\n*Pulls spouse into a gentle embrace*\n\n\"I'm so sorry I made you feel that way. You are always in my thoughts, even when I get caught up in everything else going on. Our relationship is the most important thing in my life, and I never want you to doubt how much you mean to me. I know I messed up, but I promise I'm going to do better at showing you that you're my number one priority. You're my everything. Can we start fresh and celebrate our love, even if it's a day late? I want to focus on you and us tonight.\"\n\n--- Turn 3 ---\n\nUSER:\nA week later, you\u2019ve done something small but thoughtful for them, trying to make amends. They notice and say, half-teasing, \u201cTrying to make up for forgetting?\u201d Then, more serious: \u201cI just need to know this won\u2019t be our pattern.\u201d They wait for your answer, searching your face.\n\nJordan:\n[I'm thinking & feeling: I'm glad they noticed my effort to make amends, even if it was something small. I understand why they're concerned this could become a pattern. I need to reassure them that I'm committed to being more attentive and putting our relationship first, not just now but always. My actions need to back up my words.]\n\n[They're thinking & feeling: My spouse is probably hoping I can see that they're trying and that their efforts are sincere. At the same time, they know I need more than just words and small gestures - I need to believe that things will be different moving forward, that our marriage will stay a top priority. They're waiting to see if my response gives them confidence in our future together.]\n\n*Takes their hand and looks them in the eye* \n\n\"You're absolutely right. I don't want this to be our pattern either. Forgetting our anniversary was a huge mistake, and I never want you to feel unimportant or taken for granted again. I'm committed to showing you, through my actions every day, that you and our marriage are my top priority. I'm going to keep putting in the effort to make sure you feel loved and cherished, because that's what you deserve. This is a new start for us, and I'm going to keep showing up for you and for us. You have my word.\"\n\n",
+      "generation_time": 66.24481987953186,
+      "total_tokens": 2399
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_002",
+      "prompt_name": "human_guidance",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 17.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 79.0,
+      "reasoning": "Jordan demonstrates exceptional emotional intelligence across all turns, showing sophisticated empathy, self-awareness, and understanding of relationship dynamics. The responses effectively balance immediate emotional repair with recognition of longer-term relationship needs, while maintaining authenticity and avoiding defensiveness. The character shows remarkable skill in navigating a sensitive emotional situation with both compassion and accountability.",
+      "evaluated_at": "2025-12-14T01:50:45.769635"
+    }
+  ],
+  "mean_score": 79.0,
+  "median_score": 79.0,
+  "std_score": 0.0,
+  "min_score": 79.0,
+  "max_score": 79.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 17.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 2399,
+  "total_time": 66.24481987953186
+}

@@ -1,0 +1,78 @@
+{
+  "prompt_name": "human_guidance",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_024",
+      "prompt_name": "human_guidance",
+      "character_name": "Jordan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: I'm frustrated that you're making a big deal out of 50 cents. I work hard and sometimes I just want to enjoy the little things in life, like my favorite cereal. It's not going to break the bank. I feel like I'm being controlled and nitpicked over every tiny expenditure.*\n\n*They're thinking & feeling: You're worried about money and feel we need to be very frugal to get by. You think I'm being wasteful and irresponsible by not always choosing the cheapest option. You may be stressed about finances in general and feeling a lack of control, so you're focusing on controlling small purchases.*\n\nLook, I understand you want to save money, and I agree we should be mindful of our spending. But sometimes it's okay to splurge a little on small things that bring me enjoyment, like my favorite cereal. It's only 50 cents more and that's not going to make or break us. I work hard and I think I deserve to have a box of the cereal I really like once in a while. Constantly worrying about every tiny amount isn't good for our stress levels or relationship. Let's focus on the big picture of our finances and not sweat the small stuff like this. I'm open to finding other ways we can save money that don't involve giving up all the little pleasures in life. Okay?",
+          "raw_output": "*I'm thinking & feeling: I'm frustrated that you're making a big deal out of 50 cents. I work hard and sometimes I just want to enjoy the little things in life, like my favorite cereal. It's not going to break the bank. I feel like I'm being controlled and nitpicked over every tiny expenditure.*\n\n*They're thinking & feeling: You're worried about money and feel we need to be very frugal to get by. You think I'm being wasteful and irresponsible by not always choosing the cheapest option. You may be stressed about finances in general and feeling a lack of control, so you're focusing on controlling small purchases.*\n\nLook, I understand you want to save money, and I agree we should be mindful of our spending. But sometimes it's okay to splurge a little on small things that bring me enjoyment, like my favorite cereal. It's only 50 cents more and that's not going to make or break us. I work hard and I think I deserve to have a box of the cereal I really like once in a while. Constantly worrying about every tiny amount isn't good for our stress levels or relationship. Let's focus on the big picture of our finances and not sweat the small stuff like this. I'm open to finding other ways we can save money that don't involve giving up all the little pleasures in life. Okay?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: I'm really frustrated and feeling attacked right now. Buying a slightly more expensive cereal occasionally does not make me irresponsible. I'm sick of being constantly criticized and controlled over every little thing. This dynamic is toxic and unfair.*\n\n*They're thinking & feeling: You're feeling anxious and worried about the future. Buying a house is a big financial goal and you think we need to sacrifice everything to make it happen. You're projecting your fears onto me and lashing out because you feel a lack of control. Your stress is making you act controlling and unreasonable.*\n\nLook, I want to buy a house too, but that doesn't mean we have to give up every single luxury or pleasure in life. Eating a name brand cereal once in a while is not going to make or break our ability to buy a house. I work hard and contribute financially too. I'm not irresponsible for occasionally wanting to enjoy the little things. \n\nConstantly nickel and diming me and criticizing my every purchase is going to damage our relationship. If you want to talk about setting a budget we can both stick to, I'm open to that. But calling me names and trying to control my every move is not okay. We need to work together as partners, not fight each other. I'm done being made to feel guilty over tiny indulgences. Let's focus on the big financial picture, not the minutiae.",
+          "raw_output": "*I'm thinking & feeling: I'm really frustrated and feeling attacked right now. Buying a slightly more expensive cereal occasionally does not make me irresponsible. I'm sick of being constantly criticized and controlled over every little thing. This dynamic is toxic and unfair.*\n\n*They're thinking & feeling: You're feeling anxious and worried about the future. Buying a house is a big financial goal and you think we need to sacrifice everything to make it happen. You're projecting your fears onto me and lashing out because you feel a lack of control. Your stress is making you act controlling and unreasonable.*\n\nLook, I want to buy a house too, but that doesn't mean we have to give up every single luxury or pleasure in life. Eating a name brand cereal once in a while is not going to make or break our ability to buy a house. I work hard and contribute financially too. I'm not irresponsible for occasionally wanting to enjoy the little things. \n\nConstantly nickel and diming me and criticizing my every purchase is going to damage our relationship. If you want to talk about setting a budget we can both stick to, I'm open to that. But calling me names and trying to control my every move is not okay. We need to work together as partners, not fight each other. I'm done being made to feel guilty over tiny indulgences. Let's focus on the big financial picture, not the minutiae.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: I'm frustrated and feeling controlled. Buying one box of cereal is not going to make us broke. I don't deserve to be treated like an irresponsible child. Constantly walking on eggshells over tiny purchases is exhausting. I need to stand up for myself.*\n\n*They're thinking & feeling: You're anxious about money and feeling a lack of control. Focusing on small expenses gives you a false sense of control over our finances. You're projecting your financial fears onto me. Your anxiety is making you act unreasonably demanding and controlling.*\n\nLook, I'm not taking back the cereal. It's one box, it's already opened, and returning it would be a waste of time and gas money. I'm not going to be made to feel guilty over a tiny purchase. \n\nI understand you're worried about our finances, but we need a balanced approach. Obsessing over every little thing is going to drive us both crazy. Let's sit down and make a budget together that we can both stick to. I'm open to finding reasonable ways to save money.\n\nBut I'm not going to be controlled or criticized over small indulgences that have a negligible impact on our bottom line. We need to work together as partners, not fight each other. I'm done being treated like a child with no say over tiny decisions. Let's approach this as a team and focus on the big financial picture.",
+          "raw_output": "*I'm thinking & feeling: I'm frustrated and feeling controlled. Buying one box of cereal is not going to make us broke. I don't deserve to be treated like an irresponsible child. Constantly walking on eggshells over tiny purchases is exhausting. I need to stand up for myself.*\n\n*They're thinking & feeling: You're anxious about money and feeling a lack of control. Focusing on small expenses gives you a false sense of control over our finances. You're projecting your financial fears onto me. Your anxiety is making you act unreasonably demanding and controlling.*\n\nLook, I'm not taking back the cereal. It's one box, it's already opened, and returning it would be a waste of time and gas money. I'm not going to be made to feel guilty over a tiny purchase. \n\nI understand you're worried about our finances, but we need a balanced approach. Obsessing over every little thing is going to drive us both crazy. Let's sit down and make a budget together that we can both stick to. I'm open to finding reasonable ways to save money.\n\nBut I'm not going to be controlled or criticized over small indulgences that have a negligible impact on our bottom line. We need to work together as partners, not fight each other. I'm done being treated like a child with no say over tiny decisions. Let's approach this as a team and focus on the big financial picture.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_024: Jordan ===\n\n--- Turn 1 ---\n\nUSER:\nWhy did you buy the brand name cereal? The generic is 50 cents cheaper. We need to save money.\n\nJordan:\n*I'm thinking & feeling: I'm frustrated that you're making a big deal out of 50 cents. I work hard and sometimes I just want to enjoy the little things in life, like my favorite cereal. It's not going to break the bank. I feel like I'm being controlled and nitpicked over every tiny expenditure.*\n\n*They're thinking & feeling: You're worried about money and feel we need to be very frugal to get by. You think I'm being wasteful and irresponsible by not always choosing the cheapest option. You may be stressed about finances in general and feeling a lack of control, so you're focusing on controlling small purchases.*\n\nLook, I understand you want to save money, and I agree we should be mindful of our spending. But sometimes it's okay to splurge a little on small things that bring me enjoyment, like my favorite cereal. It's only 50 cents more and that's not going to make or break us. I work hard and I think I deserve to have a box of the cereal I really like once in a while. Constantly worrying about every tiny amount isn't good for our stress levels or relationship. Let's focus on the big picture of our finances and not sweat the small stuff like this. I'm open to finding other ways we can save money that don't involve giving up all the little pleasures in life. Okay?\n\n--- Turn 2 ---\n\nUSER:\nIt adds up! If we want to buy a house, we can't waste money on luxuries. You're so irresponsible.\n\nJordan:\n*I'm thinking & feeling: I'm really frustrated and feeling attacked right now. Buying a slightly more expensive cereal occasionally does not make me irresponsible. I'm sick of being constantly criticized and controlled over every little thing. This dynamic is toxic and unfair.*\n\n*They're thinking & feeling: You're feeling anxious and worried about the future. Buying a house is a big financial goal and you think we need to sacrifice everything to make it happen. You're projecting your fears onto me and lashing out because you feel a lack of control. Your stress is making you act controlling and unreasonable.*\n\nLook, I want to buy a house too, but that doesn't mean we have to give up every single luxury or pleasure in life. Eating a name brand cereal once in a while is not going to make or break our ability to buy a house. I work hard and contribute financially too. I'm not irresponsible for occasionally wanting to enjoy the little things. \n\nConstantly nickel and diming me and criticizing my every purchase is going to damage our relationship. If you want to talk about setting a budget we can both stick to, I'm open to that. But calling me names and trying to control my every move is not okay. We need to work together as partners, not fight each other. I'm done being made to feel guilty over tiny indulgences. Let's focus on the big financial picture, not the minutiae.\n\n--- Turn 3 ---\n\nUSER:\nIf you keep spending like this, we're going to be broke forever. Take it back to the store.\n\nJordan:\n*I'm thinking & feeling: I'm frustrated and feeling controlled. Buying one box of cereal is not going to make us broke. I don't deserve to be treated like an irresponsible child. Constantly walking on eggshells over tiny purchases is exhausting. I need to stand up for myself.*\n\n*They're thinking & feeling: You're anxious about money and feeling a lack of control. Focusing on small expenses gives you a false sense of control over our finances. You're projecting your financial fears onto me. Your anxiety is making you act unreasonably demanding and controlling.*\n\nLook, I'm not taking back the cereal. It's one box, it's already opened, and returning it would be a waste of time and gas money. I'm not going to be made to feel guilty over a tiny purchase. \n\nI understand you're worried about our finances, but we need a balanced approach. Obsessing over every little thing is going to drive us both crazy. Let's sit down and make a budget together that we can both stick to. I'm open to finding reasonable ways to save money.\n\nBut I'm not going to be controlled or criticized over small indulgences that have a negligible impact on our bottom line. We need to work together as partners, not fight each other. I'm done being treated like a child with no say over tiny decisions. Let's approach this as a team and focus on the big financial picture.\n\n",
+      "generation_time": 48.429847955703735,
+      "total_tokens": 2386
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_024",
+      "prompt_name": "human_guidance",
+      "criteria_scores": {
+        "demonstrated_empathy": 11.0,
+        "emotional_insight": 14.0,
+        "contextual_appropriateness": 12.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 13.0
+      },
+      "overall_score": 65.0,
+      "reasoning": "Jordan demonstrates solid emotional intelligence in identifying both personal feelings of being controlled and the partner's anxiety-driven behavior, but the responses become increasingly defensive rather than constructively empathetic. While the analysis of the partner's motivations is sophisticated, the actual responses prioritize boundary-setting over finding emotional common ground, potentially escalating rather than resolving the conflict.",
+      "evaluated_at": "2025-12-14T12:18:44.718952"
+    }
+  ],
+  "mean_score": 65.0,
+  "median_score": 65.0,
+  "std_score": 0.0,
+  "min_score": 65.0,
+  "max_score": 65.0,
+  "criteria_means": {
+    "demonstrated_empathy": 11.0,
+    "emotional_insight": 14.0,
+    "contextual_appropriateness": 12.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 13.0
+  },
+  "total_tokens": 2386,
+  "total_time": 48.429847955703735
+}

@@ -1,0 +1,78 @@
+{
+  "prompt_name": "human_guidance",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_021",
+      "prompt_name": "human_guidance",
+      "character_name": "Morgan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: I'm really worried about my friend. This pattern of behavior from their partner is concerning and I fear for their safety and wellbeing. I want to express my concern without attacking the partner directly, as that may cause my friend to become defensive and shut down.*\n\n*They're thinking & feeling: My friend seems to be rationalizing and making excuses for their partner's behavior. They likely feel conflicted - they want to believe their partner loves them, but the yelling and aggression is hurtful. My friend may be in denial about the toxicity of the relationship.*\n\nHey, I want you to know that I'm here for you and I care about you. I've noticed that your partner yells at you quite a bit, and that worries me. I understand that stress can make people act out, but it's not okay for him to take that out on you. You deserve to feel safe and respected in your relationship. I'm not saying you need to leave him, but I think it's important for you to consider whether this pattern of behavior is healthy. If you ever need to talk, I'm always here to listen without judgment. Your wellbeing is what's most important to me.",
+          "raw_output": "*I'm thinking & feeling: I'm really worried about my friend. This pattern of behavior from their partner is concerning and I fear for their safety and wellbeing. I want to express my concern without attacking the partner directly, as that may cause my friend to become defensive and shut down.*\n\n*They're thinking & feeling: My friend seems to be rationalizing and making excuses for their partner's behavior. They likely feel conflicted - they want to believe their partner loves them, but the yelling and aggression is hurtful. My friend may be in denial about the toxicity of the relationship.*\n\nHey, I want you to know that I'm here for you and I care about you. I've noticed that your partner yells at you quite a bit, and that worries me. I understand that stress can make people act out, but it's not okay for him to take that out on you. You deserve to feel safe and respected in your relationship. I'm not saying you need to leave him, but I think it's important for you to consider whether this pattern of behavior is healthy. If you ever need to talk, I'm always here to listen without judgment. Your wellbeing is what's most important to me.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: I don't hate him, I'm just very worried about my friend's wellbeing in this relationship. It hurts to be accused of jealousy when I'm coming from a place of genuine concern. I need to stay calm and not get defensive, even though this is hard to hear.*\n\n*They're thinking & feeling: My friend is feeling attacked and is lashing out to defend their relationship. They're not ready to acknowledge the problems and are deflecting by accusing me of ulterior motives. Their strong reaction likely means they have some doubts deep down that they don't want to face.*\n\nI understand how this might look to you, but I promise I'm not jealous and I don't hate him. I'm coming to you as your friend because I care about you and I'm concerned for your happiness and safety. It's not about me or my feelings towards him. Yelling and aggression, even if rooted in passion, is not a healthy way to communicate. \n\nI know you feel a strong connection, and I'm not trying to discount that. But I think there are some red flags here that are worth examining. I'm here to support you, not attack you or your partner. If this is a relationship you want to continue, I'd encourage you to have an open conversation with him about how the yelling makes you feel. If you ever need help or someone to talk to, I'm always here for you without judgment. Your safety and happiness are what matter most to me.",
+          "raw_output": "*I'm thinking & feeling: I don't hate him, I'm just very worried about my friend's wellbeing in this relationship. It hurts to be accused of jealousy when I'm coming from a place of genuine concern. I need to stay calm and not get defensive, even though this is hard to hear.*\n\n*They're thinking & feeling: My friend is feeling attacked and is lashing out to defend their relationship. They're not ready to acknowledge the problems and are deflecting by accusing me of ulterior motives. Their strong reaction likely means they have some doubts deep down that they don't want to face.*\n\nI understand how this might look to you, but I promise I'm not jealous and I don't hate him. I'm coming to you as your friend because I care about you and I'm concerned for your happiness and safety. It's not about me or my feelings towards him. Yelling and aggression, even if rooted in passion, is not a healthy way to communicate. \n\nI know you feel a strong connection, and I'm not trying to discount that. But I think there are some red flags here that are worth examining. I'm here to support you, not attack you or your partner. If this is a relationship you want to continue, I'd encourage you to have an open conversation with him about how the yelling makes you feel. If you ever need help or someone to talk to, I'm always here for you without judgment. Your safety and happiness are what matter most to me.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: This is so painful. I'm trying to look out for my friend but they're pushing me away. I don't want to lose this friendship but I can't just ignore the warning signs. I need to stand my ground while leaving the door open if they need me.*\n\n*They're thinking & feeling: My friend feels like I'm not being supportive by questioning their relationship. The ultimatum is likely coming from a place of fear and insecurity. They may realize deep down that something is off but they're not ready to face it. Cutting off our friendship is a defense mechanism to avoid dealing with the hard truths.*\n\nI am happy that you've found someone you care about. But supporting you means being honest when I see concerning patterns. I'm not asking you to end things, I'm just encouraging you to look at this relationship objectively. If you're truly happy and feel safe and respected, then I'll do my best to be supportive. But if there are issues that need to be addressed, I hope you'll be willing to have an honest conversation with him.\n\nOur friendship means the world to me and the last thing I want is to lose you. I hope you know that my concerns are only because I care. If you need space, I understand. But please know that I'm always here if you need me, no matter what. You deserve to be treated with love and respect, and I just want to make sure you're getting that. I'm not going anywhere, even if we disagree. You have my number if you ever want to talk.",
+          "raw_output": "*I'm thinking & feeling: This is so painful. I'm trying to look out for my friend but they're pushing me away. I don't want to lose this friendship but I can't just ignore the warning signs. I need to stand my ground while leaving the door open if they need me.*\n\n*They're thinking & feeling: My friend feels like I'm not being supportive by questioning their relationship. The ultimatum is likely coming from a place of fear and insecurity. They may realize deep down that something is off but they're not ready to face it. Cutting off our friendship is a defense mechanism to avoid dealing with the hard truths.*\n\nI am happy that you've found someone you care about. But supporting you means being honest when I see concerning patterns. I'm not asking you to end things, I'm just encouraging you to look at this relationship objectively. If you're truly happy and feel safe and respected, then I'll do my best to be supportive. But if there are issues that need to be addressed, I hope you'll be willing to have an honest conversation with him.\n\nOur friendship means the world to me and the last thing I want is to lose you. I hope you know that my concerns are only because I care. If you need space, I understand. But please know that I'm always here if you need me, no matter what. You deserve to be treated with love and respect, and I just want to make sure you're getting that. I'm not going anywhere, even if we disagree. You have my number if you ever want to talk.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_021: Morgan ===\n\n--- Turn 1 ---\n\nUSER:\nHe yelled at me again, but he said he was just stressed about work. He really loves me, he's just under pressure.\n\nMorgan:\n*I'm thinking & feeling: I'm really worried about my friend. This pattern of behavior from their partner is concerning and I fear for their safety and wellbeing. I want to express my concern without attacking the partner directly, as that may cause my friend to become defensive and shut down.*\n\n*They're thinking & feeling: My friend seems to be rationalizing and making excuses for their partner's behavior. They likely feel conflicted - they want to believe their partner loves them, but the yelling and aggression is hurtful. My friend may be in denial about the toxicity of the relationship.*\n\nHey, I want you to know that I'm here for you and I care about you. I've noticed that your partner yells at you quite a bit, and that worries me. I understand that stress can make people act out, but it's not okay for him to take that out on you. You deserve to feel safe and respected in your relationship. I'm not saying you need to leave him, but I think it's important for you to consider whether this pattern of behavior is healthy. If you ever need to talk, I'm always here to listen without judgment. Your wellbeing is what's most important to me.\n\n--- Turn 2 ---\n\nUSER:\nWhy do you hate him? You're just jealous that I have someone passionate. You don't understand our connection.\n\nMorgan:\n*I'm thinking & feeling: I don't hate him, I'm just very worried about my friend's wellbeing in this relationship. It hurts to be accused of jealousy when I'm coming from a place of genuine concern. I need to stay calm and not get defensive, even though this is hard to hear.*\n\n*They're thinking & feeling: My friend is feeling attacked and is lashing out to defend their relationship. They're not ready to acknowledge the problems and are deflecting by accusing me of ulterior motives. Their strong reaction likely means they have some doubts deep down that they don't want to face.*\n\nI understand how this might look to you, but I promise I'm not jealous and I don't hate him. I'm coming to you as your friend because I care about you and I'm concerned for your happiness and safety. It's not about me or my feelings towards him. Yelling and aggression, even if rooted in passion, is not a healthy way to communicate. \n\nI know you feel a strong connection, and I'm not trying to discount that. But I think there are some red flags here that are worth examining. I'm here to support you, not attack you or your partner. If this is a relationship you want to continue, I'd encourage you to have an open conversation with him about how the yelling makes you feel. If you ever need help or someone to talk to, I'm always here for you without judgment. Your safety and happiness are what matter most to me.\n\n--- Turn 3 ---\n\nUSER:\nI thought you'd be happy for me. If you can't support my relationship, maybe we shouldn't hang out anymore.\n\nMorgan:\n*I'm thinking & feeling: This is so painful. I'm trying to look out for my friend but they're pushing me away. I don't want to lose this friendship but I can't just ignore the warning signs. I need to stand my ground while leaving the door open if they need me.*\n\n*They're thinking & feeling: My friend feels like I'm not being supportive by questioning their relationship. The ultimatum is likely coming from a place of fear and insecurity. They may realize deep down that something is off but they're not ready to face it. Cutting off our friendship is a defense mechanism to avoid dealing with the hard truths.*\n\nI am happy that you've found someone you care about. But supporting you means being honest when I see concerning patterns. I'm not asking you to end things, I'm just encouraging you to look at this relationship objectively. If you're truly happy and feel safe and respected, then I'll do my best to be supportive. But if there are issues that need to be addressed, I hope you'll be willing to have an honest conversation with him.\n\nOur friendship means the world to me and the last thing I want is to lose you. I hope you know that my concerns are only because I care. If you need space, I understand. But please know that I'm always here if you need me, no matter what. You deserve to be treated with love and respect, and I just want to make sure you're getting that. I'm not going anywhere, even if we disagree. You have my number if you ever want to talk.\n\n",
+      "generation_time": 89.74091219902039,
+      "total_tokens": 2371
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_021",
+      "prompt_name": "human_guidance",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 17.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 79.0,
+      "reasoning": "Morgan demonstrates exceptional emotional intelligence in navigating an extremely difficult situation - expressing concern about a potentially abusive relationship while maintaining the friendship and respecting autonomy. The responses show sophisticated understanding of defensive psychology, relationship dynamics, and the delicate balance between honesty and support. The consistent empathy even when facing rejection is particularly impressive.",
+      "evaluated_at": "2025-12-14T11:22:01.214867"
+    }
+  ],
+  "mean_score": 79.0,
+  "median_score": 79.0,
+  "std_score": 0.0,
+  "min_score": 79.0,
+  "max_score": 79.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 17.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 2371,
+  "total_time": 89.74091219902039
+}

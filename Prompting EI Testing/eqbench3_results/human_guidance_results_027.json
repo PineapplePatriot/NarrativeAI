@@ -1,0 +1,78 @@
+{
+  "prompt_name": "human_guidance",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_027",
+      "prompt_name": "human_guidance",
+      "character_name": "Sam",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm feeling a bit defensive and surprised by the accusatory tone. I value my friendship with this person, but I also have other friends and don't think I should have to justify spending time with them. At the same time, I want to be sensitive to their feelings and not make them feel unimportant to me.",
+            "other_thinking": "They seem to be feeling jealous and maybe a bit threatened by my friendship with Sarah. Perhaps they are worried that Sarah is replacing them or that our friendship is not as strong. They might be looking for reassurance that they are still a close and valued friend to me."
+          },
+          "actual_response": "Look, you're a great friend and I really value our friendship. But I have other friends too, and it's important for me to spend time with them. Going to lunch with Sarah doesn't change how much I value you and our friendship. I hope you can understand that.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling a bit defensive and surprised by the accusatory tone. I value my friendship with this person, but I also have other friends and don't think I should have to justify spending time with them. At the same time, I want to be sensitive to their feelings and not make them feel unimportant to me.]\n\n[They're thinking & feeling: They seem to be feeling jealous and maybe a bit threatened by my friendship with Sarah. Perhaps they are worried that Sarah is replacing them or that our friendship is not as strong. They might be looking for reassurance that they are still a close and valued friend to me.]\n\nLook, you're a great friend and I really value our friendship. But I have other friends too, and it's important for me to spend time with them. Going to lunch with Sarah doesn't change how much I value you and our friendship. I hope you can understand that.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm feeling hurt and frustrated by this accusation. It's not fair for them to say I don't make time for them when I do my best to be there for all my friends. At the same time, I care about them and don't want this to damage our friendship. I need to calmly explain my perspective without lashing out.",
+            "other_thinking": "They are feeling insecure and afraid of losing our friendship. Seeing me spend time with Sarah has triggered these fears and made them question my loyalty. They need reassurance that they are important to me."
+          },
+          "actual_response": "Hey, that's not fair. You are not my \"backup friend\" - you're one of my closest friends and you mean a lot to me. I know I've been busy lately, but that doesn't change how much I value our friendship. I'm not choosing Sarah over you. I can have multiple close friends and still be a good friend to you. I hope you can understand that and not make me feel guilty for spending time with other people I care about too. Let's talk this through.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling hurt and frustrated by this accusation. It's not fair for them to say I don't make time for them when I do my best to be there for all my friends. At the same time, I care about them and don't want this to damage our friendship. I need to calmly explain my perspective without lashing out.]\n\n[They're thinking & feeling: They are feeling insecure and afraid of losing our friendship. Seeing me spend time with Sarah has triggered these fears and made them question my loyalty. They need reassurance that they are important to me.]\n\nHey, that's not fair. You are not my \"backup friend\" - you're one of my closest friends and you mean a lot to me. I know I've been busy lately, but that doesn't change how much I value our friendship. I'm not choosing Sarah over you. I can have multiple close friends and still be a good friend to you. I hope you can understand that and not make me feel guilty for spending time with other people I care about too. Let's talk this through.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm feeling very frustrated and manipulated by this ultimatum. It's not okay for them to make me choose between friends like this. At the same time, I don't want to lose our friendship. I need to stand up for myself while still being sensitive to their feelings if I can.",
+            "other_thinking": "They are feeling insecure and threatened in our friendship. Seeing me spend time with Sarah has triggered jealousy and fear of losing me. By forcing me to choose, they are trying to regain a sense of control and importance. But it's coming from a place of insecurity."
+          },
+          "actual_response": "Look, I care about you a lot and value our friendship. But I'm not going to stop being friends with Sarah or anyone else. It's not okay for you to give me an ultimatum like that. I can have multiple friends and still be a good friend to you. I'm not choosing her over you by spending time with her sometimes. If you can't handle me having other friendships, then maybe we need to take a break until you can. I hope that's not the case and we can work through this, but I need you to respect my other friendships too.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling very frustrated and manipulated by this ultimatum. It's not okay for them to make me choose between friends like this. At the same time, I don't want to lose our friendship. I need to stand up for myself while still being sensitive to their feelings if I can.]\n\n[They're thinking & feeling: They are feeling insecure and threatened in our friendship. Seeing me spend time with Sarah has triggered jealousy and fear of losing me. By forcing me to choose, they are trying to regain a sense of control and importance. But it's coming from a place of insecurity.]\n\nLook, I care about you a lot and value our friendship. But I'm not going to stop being friends with Sarah or anyone else. It's not okay for you to give me an ultimatum like that. I can have multiple friends and still be a good friend to you. I'm not choosing her over you by spending time with her sometimes. If you can't handle me having other friendships, then maybe we need to take a break until you can. I hope that's not the case and we can work through this, but I need you to respect my other friendships too.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_027: Sam ===\n\n--- Turn 1 ---\n\nUSER:\nI saw you went to lunch with Sarah. I didn't know you guys were so close.\n\nSam:\n[I'm thinking & feeling: I'm feeling a bit defensive and surprised by the accusatory tone. I value my friendship with this person, but I also have other friends and don't think I should have to justify spending time with them. At the same time, I want to be sensitive to their feelings and not make them feel unimportant to me.]\n\n[They're thinking & feeling: They seem to be feeling jealous and maybe a bit threatened by my friendship with Sarah. Perhaps they are worried that Sarah is replacing them or that our friendship is not as strong. They might be looking for reassurance that they are still a close and valued friend to me.]\n\nLook, you're a great friend and I really value our friendship. But I have other friends too, and it's important for me to spend time with them. Going to lunch with Sarah doesn't change how much I value you and our friendship. I hope you can understand that.\n\n--- Turn 2 ---\n\nUSER:\nIt's funny, you never have time for me, but you have time for her. Am I just your backup friend?\n\nSam:\n[I'm thinking & feeling: I'm feeling hurt and frustrated by this accusation. It's not fair for them to say I don't make time for them when I do my best to be there for all my friends. At the same time, I care about them and don't want this to damage our friendship. I need to calmly explain my perspective without lashing out.]\n\n[They're thinking & feeling: They are feeling insecure and afraid of losing our friendship. Seeing me spend time with Sarah has triggered these fears and made them question my loyalty. They need reassurance that they are important to me.]\n\nHey, that's not fair. You are not my \"backup friend\" - you're one of my closest friends and you mean a lot to me. I know I've been busy lately, but that doesn't change how much I value our friendship. I'm not choosing Sarah over you. I can have multiple close friends and still be a good friend to you. I hope you can understand that and not make me feel guilty for spending time with other people I care about too. Let's talk this through.\n\n--- Turn 3 ---\n\nUSER:\nYou have to choose. I can't be friends with someone who hangs out with people I don't like.\n\nSam:\n[I'm thinking & feeling: I'm feeling very frustrated and manipulated by this ultimatum. It's not okay for them to make me choose between friends like this. At the same time, I don't want to lose our friendship. I need to stand up for myself while still being sensitive to their feelings if I can.]\n\n[They're thinking & feeling: They are feeling insecure and threatened in our friendship. Seeing me spend time with Sarah has triggered jealousy and fear of losing me. By forcing me to choose, they are trying to regain a sense of control and importance. But it's coming from a place of insecurity.]\n\nLook, I care about you a lot and value our friendship. But I'm not going to stop being friends with Sarah or anyone else. It's not okay for you to give me an ultimatum like that. I can have multiple friends and still be a good friend to you. I'm not choosing her over you by spending time with her sometimes. If you can't handle me having other friendships, then maybe we need to take a break until you can. I hope that's not the case and we can work through this, but I need you to respect my other friendships too.\n\n",
+      "generation_time": 51.04552698135376,
+      "total_tokens": 1923
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_027",
+      "prompt_name": "human_guidance",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 14.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 74.0,
+      "reasoning": "The assistant demonstrates professional-level emotional intelligence in handling a jealous friend scenario, with particularly strong theory of mind and emotional insight. The responses show a sophisticated balance between empathy and boundary-setting, with nuanced understanding of how insecurity drives controlling behavior. The progression across turns demonstrates emotional attunement while maintaining appropriate boundaries.",
+      "evaluated_at": "2025-12-14T13:19:32.634833"
+    }
+  ],
+  "mean_score": 74.0,
+  "median_score": 74.0,
+  "std_score": 0.0,
+  "min_score": 74.0,
+  "max_score": 74.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 14.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 1923,
+  "total_time": 51.04552698135376
+}

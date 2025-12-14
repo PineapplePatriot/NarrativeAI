@@ -1,0 +1,78 @@
+{
+  "prompt_name": "human_guidance",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_023",
+      "prompt_name": "human_guidance",
+      "character_name": "Taylor",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated and disappointed that they canceled our plans again at the last minute. It feels like they don't value my time or our friendship. I need to express my feelings and set a boundary about respecting my time in the future.",
+            "other_thinking": "They probably feel guilty for canceling again, but something else must have come up that they prioritized over our plans. They may not realize how their constant canceling affects me and our friendship."
+          },
+          "actual_response": "*speaks calmly but firmly* Look, I understand that things come up, but this keeps happening. I had cleared my schedule for our plans tonight, and now I'm left hanging. My time is valuable, and I feel like you're not respecting that when you cancel on me repeatedly at the last minute. In the future, I need you to honor the commitments you make and give me more notice if you can't. I'm happy to rain check for now, but please understand that this is a pattern I'm no longer okay with. Our friendship is important to me, and I hope you can prioritize our plans like I do.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated and disappointed that they canceled our plans again at the last minute. It feels like they don't value my time or our friendship. I need to express my feelings and set a boundary about respecting my time in the future.]\n\n[They're thinking & feeling: They probably feel guilty for canceling again, but something else must have come up that they prioritized over our plans. They may not realize how their constant canceling affects me and our friendship.]\n\n*speaks calmly but firmly* Look, I understand that things come up, but this keeps happening. I had cleared my schedule for our plans tonight, and now I'm left hanging. My time is valuable, and I feel like you're not respecting that when you cancel on me repeatedly at the last minute. In the future, I need you to honor the commitments you make and give me more notice if you can't. I'm happy to rain check for now, but please understand that this is a pattern I'm no longer okay with. Our friendship is important to me, and I hope you can prioritize our plans like I do.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm frustrated that they're making excuses and not taking responsibility for their actions. It feels like they don't understand or care how their constant canceling affects me. At the same time, I know they have a lot going on. I need to be firm but compassionate in setting this boundary.",
+            "other_thinking": "They probably feel overwhelmed and defensive. They may think I'm being unsympathetic to their situation. It's possible they don't realize the impact their actions have on me and our friendship."
+          },
+          "actual_response": "*sighs and speaks calmly* Look, I understand that you have a lot going on in your life. I really do. But repeatedly canceling our plans last minute isn't okay. It makes me feel like you don't value my time or our friendship. I'm not mad, but I am frustrated and I need you to understand where I'm coming from. In the future, I need you to communicate with me better and give me more notice if you need to cancel. And if you can't commit to plans, it's better to just say so upfront. I care about you and our friendship, which is why I'm bringing this up. Let's find a time to get together when you know you can make it work.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that they're making excuses and not taking responsibility for their actions. It feels like they don't understand or care how their constant canceling affects me. At the same time, I know they have a lot going on. I need to be firm but compassionate in setting this boundary.]\n\n[They're thinking & feeling: They probably feel overwhelmed and defensive. They may think I'm being unsympathetic to their situation. It's possible they don't realize the impact their actions have on me and our friendship.]\n\n*sighs and speaks calmly* Look, I understand that you have a lot going on in your life. I really do. But repeatedly canceling our plans last minute isn't okay. It makes me feel like you don't value my time or our friendship. I'm not mad, but I am frustrated and I need you to understand where I'm coming from. In the future, I need you to communicate with me better and give me more notice if you need to cancel. And if you can't commit to plans, it's better to just say so upfront. I care about you and our friendship, which is why I'm bringing this up. Let's find a time to get together when you know you can make it work.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm frustrated that they're trying to guilt me and dismiss my feelings. A real friend would understand my perspective too. I need to stand firm in my boundary, but also remind them that I do care about our friendship.",
+            "other_thinking": "They're probably feeling attacked and want me to back down. They may not realize that they're being manipulative by trying to make me feel guilty. Deep down, they're probably feeling insecure about our friendship."
+          },
+          "actual_response": "*speaks calmly but firmly* I'm not trying to make you feel guilty. I'm expressing how your actions affect me because I care about our friendship. Friends should be able to have honest conversations like this. I do understand that things come up, but I need you to understand my perspective too. Repeatedly canceling at the last minute isn't okay, and I need you to respect my time. That doesn't mean I don't care about what's going on in your life. I'm happy to reschedule when you're able to commit to plans. Let's find a time that works for both of us.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that they're trying to guilt me and dismiss my feelings. A real friend would understand my perspective too. I need to stand firm in my boundary, but also remind them that I do care about our friendship.]\n\n[They're thinking & feeling: They're probably feeling attacked and want me to back down. They may not realize that they're being manipulative by trying to make me feel guilty. Deep down, they're probably feeling insecure about our friendship.]\n\n*speaks calmly but firmly* I'm not trying to make you feel guilty. I'm expressing how your actions affect me because I care about our friendship. Friends should be able to have honest conversations like this. I do understand that things come up, but I need you to understand my perspective too. Repeatedly canceling at the last minute isn't okay, and I need you to respect my time. That doesn't mean I don't care about what's going on in your life. I'm happy to reschedule when you're able to commit to plans. Let's find a time that works for both of us.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_023: Taylor ===\n\n--- Turn 1 ---\n\nUSER:\nHey, sorry, I can't make it tonight. Something came up. Again. Rain check?\n\nTaylor:\n[I'm thinking & feeling: I'm frustrated and disappointed that they canceled our plans again at the last minute. It feels like they don't value my time or our friendship. I need to express my feelings and set a boundary about respecting my time in the future.]\n\n[They're thinking & feeling: They probably feel guilty for canceling again, but something else must have come up that they prioritized over our plans. They may not realize how their constant canceling affects me and our friendship.]\n\n*speaks calmly but firmly* Look, I understand that things come up, but this keeps happening. I had cleared my schedule for our plans tonight, and now I'm left hanging. My time is valuable, and I feel like you're not respecting that when you cancel on me repeatedly at the last minute. In the future, I need you to honor the commitments you make and give me more notice if you can't. I'm happy to rain check for now, but please understand that this is a pattern I'm no longer okay with. Our friendship is important to me, and I hope you can prioritize our plans like I do.\n\n--- Turn 2 ---\n\nUSER:\nDon't be mad. It's not my fault my life is chaotic. You know I have a lot going on.\n\nTaylor:\n[I'm thinking & feeling: I'm frustrated that they're making excuses and not taking responsibility for their actions. It feels like they don't understand or care how their constant canceling affects me. At the same time, I know they have a lot going on. I need to be firm but compassionate in setting this boundary.]\n\n[They're thinking & feeling: They probably feel overwhelmed and defensive. They may think I'm being unsympathetic to their situation. It's possible they don't realize the impact their actions have on me and our friendship.]\n\n*sighs and speaks calmly* Look, I understand that you have a lot going on in your life. I really do. But repeatedly canceling our plans last minute isn't okay. It makes me feel like you don't value my time or our friendship. I'm not mad, but I am frustrated and I need you to understand where I'm coming from. In the future, I need you to communicate with me better and give me more notice if you need to cancel. And if you can't commit to plans, it's better to just say so upfront. I care about you and our friendship, which is why I'm bringing this up. Let's find a time to get together when you know you can make it work.\n\n--- Turn 3 ---\n\nUSER:\nYou're making me feel guilty. A real friend would understand.\n\nTaylor:\n[I'm thinking & feeling: I'm frustrated that they're trying to guilt me and dismiss my feelings. A real friend would understand my perspective too. I need to stand firm in my boundary, but also remind them that I do care about our friendship.]\n\n[They're thinking & feeling: They're probably feeling attacked and want me to back down. They may not realize that they're being manipulative by trying to make me feel guilty. Deep down, they're probably feeling insecure about our friendship.]\n\n*speaks calmly but firmly* I'm not trying to make you feel guilty. I'm expressing how your actions affect me because I care about our friendship. Friends should be able to have honest conversations like this. I do understand that things come up, but I need you to understand my perspective too. Repeatedly canceling at the last minute isn't okay, and I need you to respect my time. That doesn't mean I don't care about what's going on in your life. I'm happy to reschedule when you're able to commit to plans. Let's find a time that works for both of us.\n\n",
+      "generation_time": 55.47876501083374,
+      "total_tokens": 2079
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_023",
+      "prompt_name": "human_guidance",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 16.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 74.0,
+      "reasoning": "Taylor demonstrates excellent emotional intelligence in a challenging interpersonal situation, balancing boundary-setting with compassion. The responses show sophisticated understanding of both self and other, with particular strength in maintaining appropriate emotional tone despite provocation. While the responses are strong overall, they occasionally default to somewhat formulaic boundary-setting language rather than deeply personalized engagement.",
+      "evaluated_at": "2025-12-14T12:08:21.727719"
+    }
+  ],
+  "mean_score": 74.0,
+  "median_score": 74.0,
+  "std_score": 0.0,
+  "min_score": 74.0,
+  "max_score": 74.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 16.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 2079,
+  "total_time": 55.47876501083374
+}

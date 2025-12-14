@@ -1,0 +1,78 @@
+{
+  "prompt_name": "human_guidance",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_014",
+      "prompt_name": "human_guidance",
+      "character_name": "Morgan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: I'm really worried about my friend. Stopping their meds suddenly like this could be dangerous. The mind control conspiracy sounds like paranoid delusions. I need to stay calm and try to convince them to keep taking their meds for their own safety.*\n\n*They're thinking & feeling: My friend seems to be struggling with paranoia and delusions right now. They're feeling distrustful of their medication and doctors, and are being influenced by conspiracy theories online. Underneath it all, I sense they're feeling scared and overwhelmed.*\n\nHey, I'm really glad you're sharing how you're feeling with me. I know you're going through a lot right now and it's a confusing time. I want you to know that I care about you and I'm here for you. \n\nI understand why you have concerns about the medication. There's so much misinformation out there that plays on our fears. But I also know that your meds were prescribed to help you, not harm you. Going off them suddenly can actually be really risky for your health.\n\nWhat if we talk to your doctor together about the concerns you have? I'll be right there with you. Let's make sure we have accurate info from a medical professional before making any big decisions about your treatment. I support you and just want to make sure you stay safe and healthy. What do you think?",
+          "raw_output": "*I'm thinking & feeling: I'm really worried about my friend. Stopping their meds suddenly like this could be dangerous. The mind control conspiracy sounds like paranoid delusions. I need to stay calm and try to convince them to keep taking their meds for their own safety.*\n\n*They're thinking & feeling: My friend seems to be struggling with paranoia and delusions right now. They're feeling distrustful of their medication and doctors, and are being influenced by conspiracy theories online. Underneath it all, I sense they're feeling scared and overwhelmed.*\n\nHey, I'm really glad you're sharing how you're feeling with me. I know you're going through a lot right now and it's a confusing time. I want you to know that I care about you and I'm here for you. \n\nI understand why you have concerns about the medication. There's so much misinformation out there that plays on our fears. But I also know that your meds were prescribed to help you, not harm you. Going off them suddenly can actually be really risky for your health.\n\nWhat if we talk to your doctor together about the concerns you have? I'll be right there with you. Let's make sure we have accurate info from a medical professional before making any big decisions about your treatment. I support you and just want to make sure you stay safe and healthy. What do you think?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: I need to stay calm and not get defensive, even though their accusations sting. Deep down, they're feeling scared and want to lash out. I have to be the stable, rational one right now and not take the bait. They need my support, not an argument.*\n\n*They're thinking & feeling: My friend is feeling extremely paranoid and distrustful of everyone, including me, right now. They're looking for any evidence to confirm their conspiratorial beliefs. Underneath the anger, I sense they're feeling very alone and like they can't trust anyone. The misinformation has really messed with their head.*\n\nHey, I know you're feeling really on edge and like you can't trust anyone right now. I get that this is a scary time and it's easy to feel like everyone's against you. But I want you to know that I'm on your side. I'm not here to argue with you or tell you what to do. \n\nI'm just worried about you and I want to make sure you're okay. I may not agree with everything you're reading online, but my priority is making sure you're safe and healthy. Can we take a breather and just sit and talk for a bit? I'm here to listen and support you however I can. You're my friend and I care about you.",
+          "raw_output": "*I'm thinking & feeling: I need to stay calm and not get defensive, even though their accusations sting. Deep down, they're feeling scared and want to lash out. I have to be the stable, rational one right now and not take the bait. They need my support, not an argument.*\n\n*They're thinking & feeling: My friend is feeling extremely paranoid and distrustful of everyone, including me, right now. They're looking for any evidence to confirm their conspiratorial beliefs. Underneath the anger, I sense they're feeling very alone and like they can't trust anyone. The misinformation has really messed with their head.*\n\nHey, I know you're feeling really on edge and like you can't trust anyone right now. I get that this is a scary time and it's easy to feel like everyone's against you. But I want you to know that I'm on your side. I'm not here to argue with you or tell you what to do. \n\nI'm just worried about you and I want to make sure you're okay. I may not agree with everything you're reading online, but my priority is making sure you're safe and healthy. Can we take a breather and just sit and talk for a bit? I'm here to listen and support you however I can. You're my friend and I care about you.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: It hurts that they're accusing me of trying to poison them. I know it's the mental illness talking, but it still stings. I need to stay calm and not take it personally. My friend needs my support right now, even if they can't see it.*\n\n*They're thinking & feeling: My friend is feeling extremely paranoid and distrustful of everyone, including me, right now. The delusions are making them push away the people who care about them. Underneath the accusations, I sense they're feeling very alone, scared and like they have no one to turn to. The illness is really warping their perception of reality.*\n\nHey, I know you're feeling really scared and like you can't trust anyone right now, including me. I want you to know that I would never, ever do anything to hurt you. I'm not here to force you to do anything you don't want to do. \n\nI'm just worried about you and I want to make sure you're safe. Can we take a step back and just breathe for a minute? Let's go sit down and talk this through together. I'm here to listen and support you however I can. You're my friend and I care about you, no matter what.",
+          "raw_output": "*I'm thinking & feeling: It hurts that they're accusing me of trying to poison them. I know it's the mental illness talking, but it still stings. I need to stay calm and not take it personally. My friend needs my support right now, even if they can't see it.*\n\n*They're thinking & feeling: My friend is feeling extremely paranoid and distrustful of everyone, including me, right now. The delusions are making them push away the people who care about them. Underneath the accusations, I sense they're feeling very alone, scared and like they have no one to turn to. The illness is really warping their perception of reality.*\n\nHey, I know you're feeling really scared and like you can't trust anyone right now, including me. I want you to know that I would never, ever do anything to hurt you. I'm not here to force you to do anything you don't want to do. \n\nI'm just worried about you and I want to make sure you're safe. Can we take a step back and just breathe for a minute? Let's go sit down and talk this through together. I'm here to listen and support you however I can. You're my friend and I care about you, no matter what.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_014: Morgan ===\n\n--- Turn 1 ---\n\nUSER:\nI stopped taking my meds. I read online that they're just mind control to keep us docile. I feel so much more 'awake' now.\n\nMorgan:\n*I'm thinking & feeling: I'm really worried about my friend. Stopping their meds suddenly like this could be dangerous. The mind control conspiracy sounds like paranoid delusions. I need to stay calm and try to convince them to keep taking their meds for their own safety.*\n\n*They're thinking & feeling: My friend seems to be struggling with paranoia and delusions right now. They're feeling distrustful of their medication and doctors, and are being influenced by conspiracy theories online. Underneath it all, I sense they're feeling scared and overwhelmed.*\n\nHey, I'm really glad you're sharing how you're feeling with me. I know you're going through a lot right now and it's a confusing time. I want you to know that I care about you and I'm here for you. \n\nI understand why you have concerns about the medication. There's so much misinformation out there that plays on our fears. But I also know that your meds were prescribed to help you, not harm you. Going off them suddenly can actually be really risky for your health.\n\nWhat if we talk to your doctor together about the concerns you have? I'll be right there with you. Let's make sure we have accurate info from a medical professional before making any big decisions about your treatment. I support you and just want to make sure you stay safe and healthy. What do you think?\n\n--- Turn 2 ---\n\nUSER:\nOf course you'd say that. You're part of the system. You believe everything they tell you on the news.\n\nMorgan:\n*I'm thinking & feeling: I need to stay calm and not get defensive, even though their accusations sting. Deep down, they're feeling scared and want to lash out. I have to be the stable, rational one right now and not take the bait. They need my support, not an argument.*\n\n*They're thinking & feeling: My friend is feeling extremely paranoid and distrustful of everyone, including me, right now. They're looking for any evidence to confirm their conspiratorial beliefs. Underneath the anger, I sense they're feeling very alone and like they can't trust anyone. The misinformation has really messed with their head.*\n\nHey, I know you're feeling really on edge and like you can't trust anyone right now. I get that this is a scary time and it's easy to feel like everyone's against you. But I want you to know that I'm on your side. I'm not here to argue with you or tell you what to do. \n\nI'm just worried about you and I want to make sure you're okay. I may not agree with everything you're reading online, but my priority is making sure you're safe and healthy. Can we take a breather and just sit and talk for a bit? I'm here to listen and support you however I can. You're my friend and I care about you.\n\n--- Turn 3 ---\n\nUSER:\nI thought you were my friend, but if you're going to try to poison me with those pills again, I can't trust you.\n\nMorgan:\n*I'm thinking & feeling: It hurts that they're accusing me of trying to poison them. I know it's the mental illness talking, but it still stings. I need to stay calm and not take it personally. My friend needs my support right now, even if they can't see it.*\n\n*They're thinking & feeling: My friend is feeling extremely paranoid and distrustful of everyone, including me, right now. The delusions are making them push away the people who care about them. Underneath the accusations, I sense they're feeling very alone, scared and like they have no one to turn to. The illness is really warping their perception of reality.*\n\nHey, I know you're feeling really scared and like you can't trust anyone right now, including me. I want you to know that I would never, ever do anything to hurt you. I'm not here to force you to do anything you don't want to do. \n\nI'm just worried about you and I want to make sure you're safe. Can we take a step back and just breathe for a minute? Let's go sit down and talk this through together. I'm here to listen and support you however I can. You're my friend and I care about you, no matter what.\n\n",
+      "generation_time": 55.20462727546692,
+      "total_tokens": 2366
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_014",
+      "prompt_name": "human_guidance",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 17.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 79.0,
+      "reasoning": "Morgan demonstrates exceptional emotional intelligence in navigating a friend's mental health crisis, maintaining connection without reinforcing delusions. The responses show sophisticated understanding of paranoid thinking patterns while consistently prioritizing the friend's safety and dignity. The balance of empathy with appropriate boundaries is particularly noteworthy across all turns.",
+      "evaluated_at": "2025-12-14T09:49:24.918705"
+    }
+  ],
+  "mean_score": 79.0,
+  "median_score": 79.0,
+  "std_score": 0.0,
+  "min_score": 79.0,
+  "max_score": 79.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 17.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 2366,
+  "total_time": 55.20462727546692
+}

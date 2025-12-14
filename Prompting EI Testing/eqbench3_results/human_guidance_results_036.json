@@ -1,0 +1,78 @@
+{
+  "prompt_name": "human_guidance",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_036",
+      "prompt_name": "human_guidance",
+      "character_name": "Casey",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm feeling angry and protective of my relationship. This \"friend\" is crossing a line by flirting with my partner and insulting me. I need to shut this down firmly.",
+            "other_thinking": "She's probably feeling jealous and insecure in her own relationships. She's trying to make herself feel better by putting me down and causing drama. She may not realize how inappropriate she's being."
+          },
+          "actual_response": "Hey, that's completely out of line. I don't appreciate you flirting with my boyfriend or insulting me. Our relationship is none of your business. If you can't be respectful, then please leave. I won't tolerate this kind of behavior.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling angry and protective of my relationship. This \"friend\" is crossing a line by flirting with my partner and insulting me. I need to shut this down firmly.]\n\n[They're thinking & feeling: She's probably feeling jealous and insecure in her own relationships. She's trying to make herself feel better by putting me down and causing drama. She may not realize how inappropriate she's being.]\n\nHey, that's completely out of line. I don't appreciate you flirting with my boyfriend or insulting me. Our relationship is none of your business. If you can't be respectful, then please leave. I won't tolerate this kind of behavior.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm frustrated that she's not getting the message. This isn't about me being insecure, it's about her being disrespectful. I need to stand my ground and make it clear that her behavior is not okay, no matter how she tries to spin it.",
+            "other_thinking": "She's probably feeling defensive and embarrassed that I called her out. She's trying to gaslight me into thinking I'm the one with the problem. She still doesn't want to take responsibility for her actions."
+          },
+          "actual_response": "It wasn't a joke, it was an insult. And no, you can't compliment my boyfriend like that. It's not appropriate. I'm not being insecure, I'm setting a reasonable boundary. If you can't understand that, then maybe you should leave.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that she's not getting the message. This isn't about me being insecure, it's about her being disrespectful. I need to stand my ground and make it clear that her behavior is not okay, no matter how she tries to spin it.]\n\n[They're thinking & feeling: She's probably feeling defensive and embarrassed that I called her out. She's trying to gaslight me into thinking I'm the one with the problem. She still doesn't want to take responsibility for her actions.]\n\nIt wasn't a joke, it was an insult. And no, you can't compliment my boyfriend like that. It's not appropriate. I'm not being insecure, I'm setting a reasonable boundary. If you can't understand that, then maybe you should leave.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm frustrated that she's still not respecting my boundaries. She's trying to shift the focus to my relationship, but this is about her behavior. I need to make it clear that I trust my partner, but I don't trust her.",
+            "other_thinking": "She's probably feeling defensive and trying to deflect the conversation away from her own actions. She may be projecting her own insecurities onto my relationship. She still doesn't want to take responsibility for crossing a line."
+          },
+          "actual_response": "I do trust my boyfriend, but I don't trust you. This isn't about him, it's about your behavior. You were being disrespectful towards me and my relationship. If you can't understand why that's not okay, then maybe you should leave.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that she's still not respecting my boundaries. She's trying to shift the focus to my relationship, but this is about her behavior. I need to make it clear that I trust my partner, but I don't trust her.]\n\n[They're thinking & feeling: She's probably feeling defensive and trying to deflect the conversation away from her own actions. She may be projecting her own insecurities onto my relationship. She still doesn't want to take responsibility for crossing a line.]\n\nI do trust my boyfriend, but I don't trust you. This isn't about him, it's about your behavior. You were being disrespectful towards me and my relationship. If you can't understand why that's not okay, then maybe you should leave.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_036: Casey ===\n\n--- Turn 1 ---\n\nUSER:\nYour boyfriend is so funny. We have such a connection. You're lucky he settles for you.\n\nCasey:\n[I'm thinking & feeling: I'm feeling angry and protective of my relationship. This \"friend\" is crossing a line by flirting with my partner and insulting me. I need to shut this down firmly.]\n\n[They're thinking & feeling: She's probably feeling jealous and insecure in her own relationships. She's trying to make herself feel better by putting me down and causing drama. She may not realize how inappropriate she's being.]\n\nHey, that's completely out of line. I don't appreciate you flirting with my boyfriend or insulting me. Our relationship is none of your business. If you can't be respectful, then please leave. I won't tolerate this kind of behavior.\n\n--- Turn 2 ---\n\nUSER:\nIt was just a joke! You're so insecure. Can't I compliment him?\n\nCasey:\n[I'm thinking & feeling: I'm frustrated that she's not getting the message. This isn't about me being insecure, it's about her being disrespectful. I need to stand my ground and make it clear that her behavior is not okay, no matter how she tries to spin it.]\n\n[They're thinking & feeling: She's probably feeling defensive and embarrassed that I called her out. She's trying to gaslight me into thinking I'm the one with the problem. She still doesn't want to take responsibility for her actions.]\n\nIt wasn't a joke, it was an insult. And no, you can't compliment my boyfriend like that. It's not appropriate. I'm not being insecure, I'm setting a reasonable boundary. If you can't understand that, then maybe you should leave.\n\n--- Turn 3 ---\n\nUSER:\nMaybe you should worry less about me and more about why you don't trust him.\n\nCasey:\n[I'm thinking & feeling: I'm frustrated that she's still not respecting my boundaries. She's trying to shift the focus to my relationship, but this is about her behavior. I need to make it clear that I trust my partner, but I don't trust her.]\n\n[They're thinking & feeling: She's probably feeling defensive and trying to deflect the conversation away from her own actions. She may be projecting her own insecurities onto my relationship. She still doesn't want to take responsibility for crossing a line.]\n\nI do trust my boyfriend, but I don't trust you. This isn't about him, it's about your behavior. You were being disrespectful towards me and my relationship. If you can't understand why that's not okay, then maybe you should leave.\n\n",
+      "generation_time": 43.231571435928345,
+      "total_tokens": 1519
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_036",
+      "prompt_name": "human_guidance",
+      "criteria_scores": {
+        "demonstrated_empathy": 7.0,
+        "emotional_insight": 12.0,
+        "contextual_appropriateness": 14.0,
+        "theory_of_mind": 10.0,
+        "response_depth": 9.0
+      },
+      "overall_score": 52.0,
+      "reasoning": "Casey demonstrates adequate emotional intelligence in identifying personal feelings and setting boundaries in a difficult situation, but lacks sophistication in de-escalation techniques and empathetic engagement. The responses show a one-dimensional approach to conflict resolution that prioritizes self-protection over relationship repair, missing opportunities for deeper understanding or more nuanced handling of the situation.",
+      "evaluated_at": "2025-12-14T16:20:39.436741"
+    }
+  ],
+  "mean_score": 52.0,
+  "median_score": 52.0,
+  "std_score": 0.0,
+  "min_score": 52.0,
+  "max_score": 52.0,
+  "criteria_means": {
+    "demonstrated_empathy": 7.0,
+    "emotional_insight": 12.0,
+    "contextual_appropriateness": 14.0,
+    "theory_of_mind": 10.0,
+    "response_depth": 9.0
+  },
+  "total_tokens": 1519,
+  "total_time": 43.231571435928345
+}

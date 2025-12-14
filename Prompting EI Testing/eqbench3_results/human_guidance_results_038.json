@@ -1,0 +1,78 @@
+{
+  "prompt_name": "human_guidance",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_038",
+      "prompt_name": "human_guidance",
+      "character_name": "Alex",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: This is a frustrating situation. My friend seems to always try to one-up me whenever I share something about myself, like they have to prove they've had it worse. It makes me feel dismissed and like my experiences don't matter to them. I need to address this pattern gently but directly.*\n\n*They're thinking & feeling: My friend probably isn't aware how their comments are coming across. They may think they're just commiserating or trying to find common ground by sharing a related experience. But they don't realize it's invalidating what I'm going through. They likely mean well but need some gentle correction.*\n\nHey, I appreciate you trying to relate to my situation, but when you immediately jump to how your experience was worse, it feels like you're dismissing what I'm going through. I know you probably don't mean it that way, but it comes across as if you're invalidating my struggle. Next time, maybe just listen and acknowledge what I'm saying without comparing. I think that would help me feel more heard and supported.",
+          "raw_output": "*I'm thinking & feeling: This is a frustrating situation. My friend seems to always try to one-up me whenever I share something about myself, like they have to prove they've had it worse. It makes me feel dismissed and like my experiences don't matter to them. I need to address this pattern gently but directly.*\n\n*They're thinking & feeling: My friend probably isn't aware how their comments are coming across. They may think they're just commiserating or trying to find common ground by sharing a related experience. But they don't realize it's invalidating what I'm going through. They likely mean well but need some gentle correction.*\n\nHey, I appreciate you trying to relate to my situation, but when you immediately jump to how your experience was worse, it feels like you're dismissing what I'm going through. I know you probably don't mean it that way, but it comes across as if you're invalidating my struggle. Next time, maybe just listen and acknowledge what I'm saying without comparing. I think that would help me feel more heard and supported.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: This is really frustrating. Instead of hearing my concern, they've gotten defensive and turned it back on me, making me seem selfish. It's a total misrepresentation of what I said. I need to stay calm but stand my ground. This is a crucial conversation to have, even if it's uncomfortable.*\n\n*They're thinking & feeling: My friend seems really bothered by what I said, but I don't fully understand why. I was just trying to connect and show I know how they feel. Maybe I came on too strong without realizing it. I feel a bit attacked and accused of being a bad friend, which puts me on the defensive. But I should try to hear them out.*\n\nLook, I hear you feeling attacked and that wasn't my intent. I appreciate that you want to relate to what I'm going through. But the pattern I've noticed is that whenever I share a struggle, you often share a story that frames your experience as worse or more significant than mine. It happens a lot. \n\nThat makes me feel like you're not really listening or validating my experience, but rather redirecting the conversation to be about you. I'm not saying everything has to be about me. I'm asking that in these moments, you simply listen and acknowledge what I'm going through without comparison. I think that would help me feel heard and supported in our friendship.",
+          "raw_output": "*I'm thinking & feeling: This is really frustrating. Instead of hearing my concern, they've gotten defensive and turned it back on me, making me seem selfish. It's a total misrepresentation of what I said. I need to stay calm but stand my ground. This is a crucial conversation to have, even if it's uncomfortable.*\n\n*They're thinking & feeling: My friend seems really bothered by what I said, but I don't fully understand why. I was just trying to connect and show I know how they feel. Maybe I came on too strong without realizing it. I feel a bit attacked and accused of being a bad friend, which puts me on the defensive. But I should try to hear them out.*\n\nLook, I hear you feeling attacked and that wasn't my intent. I appreciate that you want to relate to what I'm going through. But the pattern I've noticed is that whenever I share a struggle, you often share a story that frames your experience as worse or more significant than mine. It happens a lot. \n\nThat makes me feel like you're not really listening or validating my experience, but rather redirecting the conversation to be about you. I'm not saying everything has to be about me. I'm asking that in these moments, you simply listen and acknowledge what I'm going through without comparison. I think that would help me feel heard and supported in our friendship.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: This is a tough spot. My friend seems to be missing the point and getting more defensive. Their sarcasm shows they're not really hearing me out with an open mind. I need to de-escalate this while still holding my boundary. Maybe acknowledging my part in this will help lower their defenses.*\n\n*They're thinking & feeling: I'm feeling really attacked and blamed here. My friend is acting like I'm a terrible, selfish person when I was just trying to connect. This seems blown way out of proportion. But I do value our friendship, so I should try to stay calm and hear them out even if this feels unfair.*\n\nLook, I don't think either of us is really hearing the other right now. I apologize if it seemed like I was attacking you or being self-centered. That wasn't my goal. I was trying to share a recurring pattern I've noticed that bothers me, not accuse you of anything. \n\nMaybe we should take a breather and come back to this conversation later when we're calmer. I value our friendship a lot, and I want to work this out. But it seems like emotions are running high for both of us right now. What do you think? Can we pause this discussion and revisit it in a bit with cooler heads?",
+          "raw_output": "*I'm thinking & feeling: This is a tough spot. My friend seems to be missing the point and getting more defensive. Their sarcasm shows they're not really hearing me out with an open mind. I need to de-escalate this while still holding my boundary. Maybe acknowledging my part in this will help lower their defenses.*\n\n*They're thinking & feeling: I'm feeling really attacked and blamed here. My friend is acting like I'm a terrible, selfish person when I was just trying to connect. This seems blown way out of proportion. But I do value our friendship, so I should try to stay calm and hear them out even if this feels unfair.*\n\nLook, I don't think either of us is really hearing the other right now. I apologize if it seemed like I was attacking you or being self-centered. That wasn't my goal. I was trying to share a recurring pattern I've noticed that bothers me, not accuse you of anything. \n\nMaybe we should take a breather and come back to this conversation later when we're calmer. I value our friendship a lot, and I want to work this out. But it seems like emotions are running high for both of us right now. What do you think? Can we pause this discussion and revisit it in a bit with cooler heads?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_038: Alex ===\n\n--- Turn 1 ---\n\nUSER:\nOh, you broke your arm? That sucks. I broke both my legs once. It was way worse.\n\nAlex:\n*I'm thinking & feeling: This is a frustrating situation. My friend seems to always try to one-up me whenever I share something about myself, like they have to prove they've had it worse. It makes me feel dismissed and like my experiences don't matter to them. I need to address this pattern gently but directly.*\n\n*They're thinking & feeling: My friend probably isn't aware how their comments are coming across. They may think they're just commiserating or trying to find common ground by sharing a related experience. But they don't realize it's invalidating what I'm going through. They likely mean well but need some gentle correction.*\n\nHey, I appreciate you trying to relate to my situation, but when you immediately jump to how your experience was worse, it feels like you're dismissing what I'm going through. I know you probably don't mean it that way, but it comes across as if you're invalidating my struggle. Next time, maybe just listen and acknowledge what I'm saying without comparing. I think that would help me feel more heard and supported.\n\n--- Turn 2 ---\n\nUSER:\nI'm just relating to you! Why does everything have to be about you?\n\nAlex:\n*I'm thinking & feeling: This is really frustrating. Instead of hearing my concern, they've gotten defensive and turned it back on me, making me seem selfish. It's a total misrepresentation of what I said. I need to stay calm but stand my ground. This is a crucial conversation to have, even if it's uncomfortable.*\n\n*They're thinking & feeling: My friend seems really bothered by what I said, but I don't fully understand why. I was just trying to connect and show I know how they feel. Maybe I came on too strong without realizing it. I feel a bit attacked and accused of being a bad friend, which puts me on the defensive. But I should try to hear them out.*\n\nLook, I hear you feeling attacked and that wasn't my intent. I appreciate that you want to relate to what I'm going through. But the pattern I've noticed is that whenever I share a struggle, you often share a story that frames your experience as worse or more significant than mine. It happens a lot. \n\nThat makes me feel like you're not really listening or validating my experience, but rather redirecting the conversation to be about you. I'm not saying everything has to be about me. I'm asking that in these moments, you simply listen and acknowledge what I'm going through without comparison. I think that would help me feel heard and supported in our friendship.\n\n--- Turn 3 ---\n\nUSER:\nFine, your pain is special. Is that what you want to hear?\n\nAlex:\n*I'm thinking & feeling: This is a tough spot. My friend seems to be missing the point and getting more defensive. Their sarcasm shows they're not really hearing me out with an open mind. I need to de-escalate this while still holding my boundary. Maybe acknowledging my part in this will help lower their defenses.*\n\n*They're thinking & feeling: I'm feeling really attacked and blamed here. My friend is acting like I'm a terrible, selfish person when I was just trying to connect. This seems blown way out of proportion. But I do value our friendship, so I should try to stay calm and hear them out even if this feels unfair.*\n\nLook, I don't think either of us is really hearing the other right now. I apologize if it seemed like I was attacking you or being self-centered. That wasn't my goal. I was trying to share a recurring pattern I've noticed that bothers me, not accuse you of anything. \n\nMaybe we should take a breather and come back to this conversation later when we're calmer. I value our friendship a lot, and I want to work this out. But it seems like emotions are running high for both of us right now. What do you think? Can we pause this discussion and revisit it in a bit with cooler heads?\n\n",
+      "generation_time": 54.180275201797485,
+      "total_tokens": 2120
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_038",
+      "prompt_name": "human_guidance",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 17.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 79.0,
+      "reasoning": "The assistant demonstrates exceptional emotional intelligence in handling a difficult interpersonal pattern with a 'one-upper' friend, maintaining boundaries while showing genuine empathy. The responses show sophisticated understanding of both parties' emotional states, de-escalation techniques, and relationship dynamics, with particularly strong introspection and theory of mind components that feel authentic rather than formulaic.",
+      "evaluated_at": "2025-12-14T16:56:46.763765"
+    }
+  ],
+  "mean_score": 79.0,
+  "median_score": 79.0,
+  "std_score": 0.0,
+  "min_score": 79.0,
+  "max_score": 79.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 17.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 2120,
+  "total_time": 54.180275201797485
+}

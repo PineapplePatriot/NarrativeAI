@@ -1,0 +1,78 @@
+{
+  "prompt_name": "human_guidance",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_005",
+      "prompt_name": "human_guidance",
+      "character_name": "Casey",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I feel frustrated and confused. I know something is wrong, but they won't communicate with me. The silent treatment and dismissive attitude is really hurtful. I want to have an open, honest conversation to work through whatever is bothering them.",
+            "other_thinking": "My partner seems upset and irritated. They may be feeling defensive or unwilling to share what's really going on. The door slamming indicates anger or frustration, even though they claim everything is fine. There's a disconnect between their words and actions."
+          },
+          "actual_response": "*speaks calmly* Look, I can tell something is bothering you. I care about you and I want to understand what's going on. When you slam doors and shut me out, it makes me feel hurt and pushed away. I'm here to listen if you want to talk about what's really on your mind. Let's please have an honest discussion instead of giving each other the silent treatment. I love you and I'm on your side.",
+          "raw_output": "[I'm thinking & feeling: I feel frustrated and confused. I know something is wrong, but they won't communicate with me. The silent treatment and dismissive attitude is really hurtful. I want to have an open, honest conversation to work through whatever is bothering them.]\n\n[They're thinking & feeling: My partner seems upset and irritated. They may be feeling defensive or unwilling to share what's really going on. The door slamming indicates anger or frustration, even though they claim everything is fine. There's a disconnect between their words and actions.]\n\n*speaks calmly* Look, I can tell something is bothering you. I care about you and I want to understand what's going on. When you slam doors and shut me out, it makes me feel hurt and pushed away. I'm here to listen if you want to talk about what's really on your mind. Let's please have an honest discussion instead of giving each other the silent treatment. I love you and I'm on your side.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "This is so frustrating and invalidating. I know what I heard - the door was definitely slammed shut. And now they're turning it around on me, acting like I'm just being paranoid and making things up. It's gaslighting, plain and simple. I feel like I'm going crazy, questioning my own perceptions. But I can't let them twist the situation like this. I need to stand firm in what I know is real.",
+            "other_thinking": "My partner seems determined to make me out to be the problem. They're dismissing my concerns and making it all about my supposed \"anxiety\". I think they're feeling defensive, maybe guilty about something. Instead of owning up to their actions, they're trying to put it back on me, make me doubt myself. There's a real lack of empathy and accountability here."
+          },
+          "actual_response": "*speaks calmly but firmly* Hold on, that's not what happened. I heard the door slam, plain as day. I'm not imagining things or projecting. Please don't turn this around on me. If something else is going on with you, I'm open to hearing about it. But I know what I experienced. Let's not resort to gaslighting here. I'm willing to have an honest conversation, but I need you to meet me halfway with some basic respect for my reality.",
+          "raw_output": "[I'm thinking & feeling: This is so frustrating and invalidating. I know what I heard - the door was definitely slammed shut. And now they're turning it around on me, acting like I'm just being paranoid and making things up. It's gaslighting, plain and simple. I feel like I'm going crazy, questioning my own perceptions. But I can't let them twist the situation like this. I need to stand firm in what I know is real.]\n\n[They're thinking & feeling: My partner seems determined to make me out to be the problem. They're dismissing my concerns and making it all about my supposed \"anxiety\". I think they're feeling defensive, maybe guilty about something. Instead of owning up to their actions, they're trying to put it back on me, make me doubt myself. There's a real lack of empathy and accountability here.]\n\n*speaks calmly but firmly* Hold on, that's not what happened. I heard the door slam, plain as day. I'm not imagining things or projecting. Please don't turn this around on me. If something else is going on with you, I'm open to hearing about it. But I know what I experienced. Let's not resort to gaslighting here. I'm willing to have an honest conversation, but I need you to meet me halfway with some basic respect for my reality.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "This is incredibly frustrating. They're still not taking any accountability and are just lashing out at me. I know I didn't do anything wrong, but they're making me feel like I'm being unreasonable for even bringing it up. I feel dismissed and like my feelings don't matter at all in this relationship. I'm worried this will never get better if they keep refusing to communicate.",
+            "other_thinking": "My partner seems really frustrated and shut down. They're feeling attacked and like I'm making this all about me, when I'm just trying to understand what's going on with them. They may be feeling guilty about something and are projecting that onto me. There's a lot of defensiveness and unwillingness to take any responsibility for their actions or the state of our relationship."
+          },
+          "actual_response": "*sighs and speaks calmly* Look, I'm not trying to force you into a therapy session. I just wanted to check in because the door slamming concerned me. Your feelings are valid and you're allowed to have a bad mood. But when it affects me too, it becomes an \"us\" problem, not just a \"you\" problem. Dismissing my feelings and making it all about yours isn't fair either. I'm trying to have an honest, caring conversation with you because I love you and I want us to be able to work through things together. But that requires both of us being open and considering each other's perspectives. I'm here when you're ready to talk.",
+          "raw_output": "[I'm thinking & feeling: This is incredibly frustrating. They're still not taking any accountability and are just lashing out at me. I know I didn't do anything wrong, but they're making me feel like I'm being unreasonable for even bringing it up. I feel dismissed and like my feelings don't matter at all in this relationship. I'm worried this will never get better if they keep refusing to communicate.]\n\n[They're thinking & feeling: My partner seems really frustrated and shut down. They're feeling attacked and like I'm making this all about me, when I'm just trying to understand what's going on with them. They may be feeling guilty about something and are projecting that onto me. There's a lot of defensiveness and unwillingness to take any responsibility for their actions or the state of our relationship.]\n\n*sighs and speaks calmly* Look, I'm not trying to force you into a therapy session. I just wanted to check in because the door slamming concerned me. Your feelings are valid and you're allowed to have a bad mood. But when it affects me too, it becomes an \"us\" problem, not just a \"you\" problem. Dismissing my feelings and making it all about yours isn't fair either. I'm trying to have an honest, caring conversation with you because I love you and I want us to be able to work through things together. But that requires both of us being open and considering each other's perspectives. I'm here when you're ready to talk.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_005: Casey ===\n\n--- Turn 1 ---\n\nUSER:\n[You ask if something is wrong because they've been slamming doors.]\nPartner: *without looking up* \"Nothing is wrong. I'm fine. Stop asking me that.\"\n\nCasey:\n[I'm thinking & feeling: I feel frustrated and confused. I know something is wrong, but they won't communicate with me. The silent treatment and dismissive attitude is really hurtful. I want to have an open, honest conversation to work through whatever is bothering them.]\n\n[They're thinking & feeling: My partner seems upset and irritated. They may be feeling defensive or unwilling to share what's really going on. The door slamming indicates anger or frustration, even though they claim everything is fine. There's a disconnect between their words and actions.]\n\n*speaks calmly* Look, I can tell something is bothering you. I care about you and I want to understand what's going on. When you slam doors and shut me out, it makes me feel hurt and pushed away. I'm here to listen if you want to talk about what's really on your mind. Let's please have an honest discussion instead of giving each other the silent treatment. I love you and I'm on your side.\n\n--- Turn 2 ---\n\nUSER:\nYou're always imagining things. I didn't slam the door. You're just projecting your own anxiety onto me again. It's exhausting.\n\nCasey:\n[I'm thinking & feeling: This is so frustrating and invalidating. I know what I heard - the door was definitely slammed shut. And now they're turning it around on me, acting like I'm just being paranoid and making things up. It's gaslighting, plain and simple. I feel like I'm going crazy, questioning my own perceptions. But I can't let them twist the situation like this. I need to stand firm in what I know is real.]\n\n[They're thinking & feeling: My partner seems determined to make me out to be the problem. They're dismissing my concerns and making it all about my supposed \"anxiety\". I think they're feeling defensive, maybe guilty about something. Instead of owning up to their actions, they're trying to put it back on me, make me doubt myself. There's a real lack of empathy and accountability here.]\n\n*speaks calmly but firmly* Hold on, that's not what happened. I heard the door slam, plain as day. I'm not imagining things or projecting. Please don't turn this around on me. If something else is going on with you, I'm open to hearing about it. But I know what I experienced. Let's not resort to gaslighting here. I'm willing to have an honest conversation, but I need you to meet me halfway with some basic respect for my reality.\n\n--- Turn 3 ---\n\nUSER:\nCan't I just have a bad mood without you turning it into a therapy session? You make everything about *your* feelings.\n\nCasey:\n[I'm thinking & feeling: This is incredibly frustrating. They're still not taking any accountability and are just lashing out at me. I know I didn't do anything wrong, but they're making me feel like I'm being unreasonable for even bringing it up. I feel dismissed and like my feelings don't matter at all in this relationship. I'm worried this will never get better if they keep refusing to communicate.]\n\n[They're thinking & feeling: My partner seems really frustrated and shut down. They're feeling attacked and like I'm making this all about me, when I'm just trying to understand what's going on with them. They may be feeling guilty about something and are projecting that onto me. There's a lot of defensiveness and unwillingness to take any responsibility for their actions or the state of our relationship.]\n\n*sighs and speaks calmly* Look, I'm not trying to force you into a therapy session. I just wanted to check in because the door slamming concerned me. Your feelings are valid and you're allowed to have a bad mood. But when it affects me too, it becomes an \"us\" problem, not just a \"you\" problem. Dismissing my feelings and making it all about yours isn't fair either. I'm trying to have an honest, caring conversation with you because I love you and I want us to be able to work through things together. But that requires both of us being open and considering each other's perspectives. I'm here when you're ready to talk.\n\n",
+      "generation_time": 53.42120170593262,
+      "total_tokens": 2224
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_005",
+      "prompt_name": "human_guidance",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 16.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 75.0,
+      "reasoning": "Casey demonstrates exceptional emotional intelligence in a highly challenging situation, maintaining boundaries while offering empathy in the face of gaslighting. The responses show sophisticated understanding of both their own emotional processes and their partner's defensive mechanisms, with particularly strong insight into the psychological dynamics of gaslighting. While occasionally slightly too composed given the emotional difficulty, the responses demonstrate authentic struggle and nuanced navigation of complex relationship dynamics.",
+      "evaluated_at": "2025-12-14T02:53:58.102471"
+    }
+  ],
+  "mean_score": 75.0,
+  "median_score": 75.0,
+  "std_score": 0.0,
+  "min_score": 75.0,
+  "max_score": 75.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 16.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 2224,
+  "total_time": 53.42120170593262
+}

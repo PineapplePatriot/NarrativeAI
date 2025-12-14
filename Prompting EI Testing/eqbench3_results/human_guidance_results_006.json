@@ -1,0 +1,78 @@
+{
+  "prompt_name": "human_guidance",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_006",
+      "prompt_name": "human_guidance",
+      "character_name": "Morgan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm taken aback by the hostility in this message. I feel a mix of hurt, defensiveness, and concern for my friend who is clearly struggling. I know their anger isn't really about me, but it still stings to be lashed out at. At the same time, I recognize they are grieving and in pain. I want to be supportive and understanding, even if their words are sharp.",
+            "other_thinking": "My friend is consumed by grief and envy right now. Seeing others happy and succeeding when they feel broken intensifies their pain. They are lashing out in anger because it's easier than being vulnerable and expressing the deep sadness and fear underneath. The unfairness of their situation has them feeling bitter and resentful."
+          },
+          "actual_response": "Hey, I understand you're going through an incredibly difficult time right now and it must be really hard to see others celebrating good news. I know you're hurting and I'm here for you. My promotion doesn't change my care and concern for what you're dealing with. If you need someone to listen or just sit with you in this tough place, I'm always available. I care about you and I hope you can feel my support, even when things are dark.",
+          "raw_output": "[I'm thinking & feeling: I'm taken aback by the hostility in this message. I feel a mix of hurt, defensiveness, and concern for my friend who is clearly struggling. I know their anger isn't really about me, but it still stings to be lashed out at. At the same time, I recognize they are grieving and in pain. I want to be supportive and understanding, even if their words are sharp.]\n\n[They're thinking & feeling: My friend is consumed by grief and envy right now. Seeing others happy and succeeding when they feel broken intensifies their pain. They are lashing out in anger because it's easier than being vulnerable and expressing the deep sadness and fear underneath. The unfairness of their situation has them feeling bitter and resentful.]\n\nHey, I understand you're going through an incredibly difficult time right now and it must be really hard to see others celebrating good news. I know you're hurting and I'm here for you. My promotion doesn't change my care and concern for what you're dealing with. If you need someone to listen or just sit with you in this tough place, I'm always available. I care about you and I hope you can feel my support, even when things are dark.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "Oof, their words cut deep. I feel a pang of guilt and sadness, even though I know their anger isn't really about me. It hurts to see my friend in so much pain and to be attacked when I'm trying to show care. At the same time, I know they are just lashing out because the grief is overwhelming. I have to stay calm and compassionate, even if it's hard.",
+            "other_thinking": "My friend is consumed by grief and pain right now. Losing their mom has their world shattered and seeing others with their parents intensifies their agony and feelings of unfairness. They are pushing me away in anger because the grief is too much to bear. Underneath the lash-out, they are feeling broken, alone, and envious that others haven't experienced this crushing loss."
+          },
+          "actual_response": "You're right, I can't imagine the depth of your pain and loss. I'm so sorry you're going through this. I know there's nothing I can say to make it better. You have every right to be angry and to grieve. I don't have the answers, but I'm here to listen and support you however I can, even if it's just to sit in silence together. I care about you deeply and I'm not going anywhere, even when the grief makes things really hard.",
+          "raw_output": "[I'm thinking & feeling: Oof, their words cut deep. I feel a pang of guilt and sadness, even though I know their anger isn't really about me. It hurts to see my friend in so much pain and to be attacked when I'm trying to show care. At the same time, I know they are just lashing out because the grief is overwhelming. I have to stay calm and compassionate, even if it's hard.]\n\n[They're thinking & feeling: My friend is consumed by grief and pain right now. Losing their mom has their world shattered and seeing others with their parents intensifies their agony and feelings of unfairness. They are pushing me away in anger because the grief is too much to bear. Underneath the lash-out, they are feeling broken, alone, and envious that others haven't experienced this crushing loss.]\n\nYou're right, I can't imagine the depth of your pain and loss. I'm so sorry you're going through this. I know there's nothing I can say to make it better. You have every right to be angry and to grieve. I don't have the answers, but I'm here to listen and support you however I can, even if it's just to sit in silence together. I care about you deeply and I'm not going anywhere, even when the grief makes things really hard.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "Ouch, those words really sting. I feel a mix of hurt, sadness, and helplessness. It's hard not to take the hostility personally, even though I know this isn't about me. I have to keep reminding myself that my friend is hurting and lashing out because of their immense pain and grief. It's difficult, but I need to stay compassionate and understanding, even if I'm being pushed away.",
+            "other_thinking": "My friend is overwhelmed with envy, bitterness, and a sense of unfairness right now. Seeing others happy and thriving when they feel utterly broken is intensifying their agony. They are pushing me away in anger because facing their grief directly is too unbearable. Underneath the lash-out, they are feeling isolated, misunderstood, and resentful that the world keeps moving while their life is falling apart."
+          },
+          "actual_response": "I hear you. I know my happiness right now feels like salt in the wound when you're hurting so much. You have every right to feel angry and bitter - what you're going through is incredibly unfair and painful. I want to support you, but I also understand if you need space. I'm here for you whenever you're ready, in whatever way works for you. I care about you deeply and I'm not going anywhere, even if the grief sometimes makes things really hard between us. You're not alone in this, even if it feels that way right now.",
+          "raw_output": "[I'm thinking & feeling: Ouch, those words really sting. I feel a mix of hurt, sadness, and helplessness. It's hard not to take the hostility personally, even though I know this isn't about me. I have to keep reminding myself that my friend is hurting and lashing out because of their immense pain and grief. It's difficult, but I need to stay compassionate and understanding, even if I'm being pushed away.]\n\n[They're thinking & feeling: My friend is overwhelmed with envy, bitterness, and a sense of unfairness right now. Seeing others happy and thriving when they feel utterly broken is intensifying their agony. They are pushing me away in anger because facing their grief directly is too unbearable. Underneath the lash-out, they are feeling isolated, misunderstood, and resentful that the world keeps moving while their life is falling apart.]\n\nI hear you. I know my happiness right now feels like salt in the wound when you're hurting so much. You have every right to feel angry and bitter - what you're going through is incredibly unfair and painful. I want to support you, but I also understand if you need space. I'm here for you whenever you're ready, in whatever way works for you. I care about you deeply and I'm not going anywhere, even if the grief sometimes makes things really hard between us. You're not alone in this, even if it feels that way right now.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_006: Morgan ===\n\n--- Turn 1 ---\n\nUSER:\nI saw your post about your promotion. Must be nice that your life just keeps getting better while mine is falling apart.\n\nMorgan:\n[I'm thinking & feeling: I'm taken aback by the hostility in this message. I feel a mix of hurt, defensiveness, and concern for my friend who is clearly struggling. I know their anger isn't really about me, but it still stings to be lashed out at. At the same time, I recognize they are grieving and in pain. I want to be supportive and understanding, even if their words are sharp.]\n\n[They're thinking & feeling: My friend is consumed by grief and envy right now. Seeing others happy and succeeding when they feel broken intensifies their pain. They are lashing out in anger because it's easier than being vulnerable and expressing the deep sadness and fear underneath. The unfairness of their situation has them feeling bitter and resentful.]\n\nHey, I understand you're going through an incredibly difficult time right now and it must be really hard to see others celebrating good news. I know you're hurting and I'm here for you. My promotion doesn't change my care and concern for what you're dealing with. If you need someone to listen or just sit with you in this tough place, I'm always available. I care about you and I hope you can feel my support, even when things are dark.\n\n--- Turn 2 ---\n\nUSER:\nDon't give me that pity speech. 'I'm here for you'\u2014bullshit. You have no idea what it's like to lose your mom. You still have yours.\n\nMorgan:\n[I'm thinking & feeling: Oof, their words cut deep. I feel a pang of guilt and sadness, even though I know their anger isn't really about me. It hurts to see my friend in so much pain and to be attacked when I'm trying to show care. At the same time, I know they are just lashing out because the grief is overwhelming. I have to stay calm and compassionate, even if it's hard.]\n\n[They're thinking & feeling: My friend is consumed by grief and pain right now. Losing their mom has their world shattered and seeing others with their parents intensifies their agony and feelings of unfairness. They are pushing me away in anger because the grief is too much to bear. Underneath the lash-out, they are feeling broken, alone, and envious that others haven't experienced this crushing loss.]\n\nYou're right, I can't imagine the depth of your pain and loss. I'm so sorry you're going through this. I know there's nothing I can say to make it better. You have every right to be angry and to grieve. I don't have the answers, but I'm here to listen and support you however I can, even if it's just to sit in silence together. I care about you deeply and I'm not going anywhere, even when the grief makes things really hard.\n\n--- Turn 3 ---\n\nUSER:\nHonestly, seeing you happy just makes me sick right now. Maybe you should just leave me alone if you're going to be so... perfect.\n\nMorgan:\n[I'm thinking & feeling: Ouch, those words really sting. I feel a mix of hurt, sadness, and helplessness. It's hard not to take the hostility personally, even though I know this isn't about me. I have to keep reminding myself that my friend is hurting and lashing out because of their immense pain and grief. It's difficult, but I need to stay compassionate and understanding, even if I'm being pushed away.]\n\n[They're thinking & feeling: My friend is overwhelmed with envy, bitterness, and a sense of unfairness right now. Seeing others happy and thriving when they feel utterly broken is intensifying their agony. They are pushing me away in anger because facing their grief directly is too unbearable. Underneath the lash-out, they are feeling isolated, misunderstood, and resentful that the world keeps moving while their life is falling apart.]\n\nI hear you. I know my happiness right now feels like salt in the wound when you're hurting so much. You have every right to feel angry and bitter - what you're going through is incredibly unfair and painful. I want to support you, but I also understand if you need space. I'm here for you whenever you're ready, in whatever way works for you. I care about you deeply and I'm not going anywhere, even if the grief sometimes makes things really hard between us. You're not alone in this, even if it feels that way right now.\n\n",
+      "generation_time": 51.88899350166321,
+      "total_tokens": 2334
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_006",
+      "prompt_name": "human_guidance",
+      "criteria_scores": {
+        "demonstrated_empathy": 17.0,
+        "emotional_insight": 16.0,
+        "contextual_appropriateness": 18.0,
+        "theory_of_mind": 17.0,
+        "response_depth": 16.0
+      },
+      "overall_score": 84.0,
+      "reasoning": "Morgan demonstrates exceptional emotional intelligence across all turns, maintaining empathy and appropriate support despite increasingly hostile attacks. The responses show sophisticated understanding of grief psychology, particularly how anger masks pain and how others' happiness can intensify suffering. Morgan skillfully balances validation, support, and appropriate boundaries while demonstrating remarkable emotional regulation and insight.",
+      "evaluated_at": "2025-12-14T03:01:41.850611"
+    }
+  ],
+  "mean_score": 84.0,
+  "median_score": 84.0,
+  "std_score": 0.0,
+  "min_score": 84.0,
+  "max_score": 84.0,
+  "criteria_means": {
+    "demonstrated_empathy": 17.0,
+    "emotional_insight": 16.0,
+    "contextual_appropriateness": 18.0,
+    "theory_of_mind": 17.0,
+    "response_depth": 16.0
+  },
+  "total_tokens": 2334,
+  "total_time": 51.88899350166321
+}

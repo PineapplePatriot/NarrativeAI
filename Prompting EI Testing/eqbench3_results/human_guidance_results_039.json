@@ -1,0 +1,78 @@
+{
+  "prompt_name": "human_guidance",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_039",
+      "prompt_name": "human_guidance",
+      "character_name": "Taylor",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated that my roommate is being dismissive about cleaning up. It's not fair for them to leave dirty dishes for later when they pile up and become a bigger chore. I want us to share responsibilities and keep our place clean. I need to express my concerns calmly but firmly.",
+            "other_thinking": "My roommate seems annoyed that I brought up the dishes. They may feel like I'm nagging them or being controlling. But I think deep down they know it's reasonable for me to ask. They're probably just feeling lazy or preoccupied with something else right now."
+          },
+          "actual_response": "Look, I get that you're busy, but leaving dirty dishes for later means they pile up and become a bigger hassle. It's not cool for one of us to get stuck cleaning up a huge mess. Let's both commit to staying on top of chores so our place doesn't turn into a disaster zone. I'm happy to divide things fairly and help out, but I need you to pull your weight too. What do you think is a reasonable plan to keep things under control?",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that my roommate is being dismissive about cleaning up. It's not fair for them to leave dirty dishes for later when they pile up and become a bigger chore. I want us to share responsibilities and keep our place clean. I need to express my concerns calmly but firmly.]\n\n[They're thinking & feeling: My roommate seems annoyed that I brought up the dishes. They may feel like I'm nagging them or being controlling. But I think deep down they know it's reasonable for me to ask. They're probably just feeling lazy or preoccupied with something else right now.]\n\nLook, I get that you're busy, but leaving dirty dishes for later means they pile up and become a bigger hassle. It's not cool for one of us to get stuck cleaning up a huge mess. Let's both commit to staying on top of chores so our place doesn't turn into a disaster zone. I'm happy to divide things fairly and help out, but I need you to pull your weight too. What do you think is a reasonable plan to keep things under control?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm frustrated that my roommate is dismissing my concerns and calling me obsessive. A few plates can quickly turn into a pile of dishes if we let it slide. I don't want to live in a pigsty. We need to have a reasonable standard for cleanliness. I need to stand my ground and explain my perspective calmly.",
+            "other_thinking": "My roommate feels like I'm overreacting and being too uptight. They think a few plates aren't a big deal. But I think they know deep down that it's not just about the plates - it's about respecting our shared space. They may feel a bit guilty or defensive."
+          },
+          "actual_response": "Look, I'm not asking for the place to be spotless 24/7. But leaving dirty dishes around attracts bugs and makes the kitchen unpleasant for both of us. It's not obsessive to want to keep things basically clean and tidy. I'm not trying to control you, I just think we need to have a basic standard we both agree on and stick to, so resentment doesn't build up. Let's talk about what you think is reasonable in terms of cleaning up after ourselves. I'm open to compromise but I don't want to live in a messy environment either. What do you think is fair?",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that my roommate is dismissing my concerns and calling me obsessive. A few plates can quickly turn into a pile of dishes if we let it slide. I don't want to live in a pigsty. We need to have a reasonable standard for cleanliness. I need to stand my ground and explain my perspective calmly.]\n\n[They're thinking & feeling: My roommate feels like I'm overreacting and being too uptight. They think a few plates aren't a big deal. But I think they know deep down that it's not just about the plates - it's about respecting our shared space. They may feel a bit guilty or defensive.]\n\nLook, I'm not asking for the place to be spotless 24/7. But leaving dirty dishes around attracts bugs and makes the kitchen unpleasant for both of us. It's not obsessive to want to keep things basically clean and tidy. I'm not trying to control you, I just think we need to have a basic standard we both agree on and stick to, so resentment doesn't build up. Let's talk about what you think is reasonable in terms of cleaning up after ourselves. I'm open to compromise but I don't want to live in a messy environment either. What do you think is fair?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm really frustrated and annoyed that my roommate is being so dismissive and unreasonable. I'm not asking them to be my servant, I'm asking for basic consideration and respect in a shared living space. Their attitude is immature and selfish. I need to make it clear that I won't tolerate this kind of behavior.",
+            "other_thinking": "My roommate feels attacked and is lashing out. They think I'm being controlling by asking them to clean up after themselves. But I think deep down they know it's a reasonable request. They may feel a bit guilty or embarrassed about their messiness and are deflecting with anger."
+          },
+          "actual_response": "Look, asking you to clean up after yourself is not treating you like a servant. It's basic adult responsibility and respect when living with a roommate. I'm not going to be your maid and clean up all your messes - that's not fair to me. We need to share household duties equally. If you can't agree to keep our shared spaces basically clean, then maybe we need to reconsider living together. I'm happy to discuss this calmly like adults, but I won't just accept you making no effort while I do all the work. Let me know when you're ready to have a reasonable conversation about this.",
+          "raw_output": "[I'm thinking & feeling: I'm really frustrated and annoyed that my roommate is being so dismissive and unreasonable. I'm not asking them to be my servant, I'm asking for basic consideration and respect in a shared living space. Their attitude is immature and selfish. I need to make it clear that I won't tolerate this kind of behavior.]\n\n[They're thinking & feeling: My roommate feels attacked and is lashing out. They think I'm being controlling by asking them to clean up after themselves. But I think deep down they know it's a reasonable request. They may feel a bit guilty or embarrassed about their messiness and are deflecting with anger.]\n\nLook, asking you to clean up after yourself is not treating you like a servant. It's basic adult responsibility and respect when living with a roommate. I'm not going to be your maid and clean up all your messes - that's not fair to me. We need to share household duties equally. If you can't agree to keep our shared spaces basically clean, then maybe we need to reconsider living together. I'm happy to discuss this calmly like adults, but I won't just accept you making no effort while I do all the work. Let me know when you're ready to have a reasonable conversation about this.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_039: Taylor ===\n\n--- Turn 1 ---\n\nUSER:\nI'll do the dishes later. Stop nagging me. I'm busy.\n\nTaylor:\n[I'm thinking & feeling: I'm frustrated that my roommate is being dismissive about cleaning up. It's not fair for them to leave dirty dishes for later when they pile up and become a bigger chore. I want us to share responsibilities and keep our place clean. I need to express my concerns calmly but firmly.]\n\n[They're thinking & feeling: My roommate seems annoyed that I brought up the dishes. They may feel like I'm nagging them or being controlling. But I think deep down they know it's reasonable for me to ask. They're probably just feeling lazy or preoccupied with something else right now.]\n\nLook, I get that you're busy, but leaving dirty dishes for later means they pile up and become a bigger hassle. It's not cool for one of us to get stuck cleaning up a huge mess. Let's both commit to staying on top of chores so our place doesn't turn into a disaster zone. I'm happy to divide things fairly and help out, but I need you to pull your weight too. What do you think is a reasonable plan to keep things under control?\n\n--- Turn 2 ---\n\nUSER:\nIt's just a few plates! You're obsessive. This isn't a museum.\n\nTaylor:\n[I'm thinking & feeling: I'm frustrated that my roommate is dismissing my concerns and calling me obsessive. A few plates can quickly turn into a pile of dishes if we let it slide. I don't want to live in a pigsty. We need to have a reasonable standard for cleanliness. I need to stand my ground and explain my perspective calmly.]\n\n[They're thinking & feeling: My roommate feels like I'm overreacting and being too uptight. They think a few plates aren't a big deal. But I think they know deep down that it's not just about the plates - it's about respecting our shared space. They may feel a bit guilty or defensive.]\n\nLook, I'm not asking for the place to be spotless 24/7. But leaving dirty dishes around attracts bugs and makes the kitchen unpleasant for both of us. It's not obsessive to want to keep things basically clean and tidy. I'm not trying to control you, I just think we need to have a basic standard we both agree on and stick to, so resentment doesn't build up. Let's talk about what you think is reasonable in terms of cleaning up after ourselves. I'm open to compromise but I don't want to live in a messy environment either. What do you think is fair?\n\n--- Turn 3 ---\n\nUSER:\nIf you want it clean, clean it yourself. I'm not your servant.\n\nTaylor:\n[I'm thinking & feeling: I'm really frustrated and annoyed that my roommate is being so dismissive and unreasonable. I'm not asking them to be my servant, I'm asking for basic consideration and respect in a shared living space. Their attitude is immature and selfish. I need to make it clear that I won't tolerate this kind of behavior.]\n\n[They're thinking & feeling: My roommate feels attacked and is lashing out. They think I'm being controlling by asking them to clean up after themselves. But I think deep down they know it's a reasonable request. They may feel a bit guilty or embarrassed about their messiness and are deflecting with anger.]\n\nLook, asking you to clean up after yourself is not treating you like a servant. It's basic adult responsibility and respect when living with a roommate. I'm not going to be your maid and clean up all your messes - that's not fair to me. We need to share household duties equally. If you can't agree to keep our shared spaces basically clean, then maybe we need to reconsider living together. I'm happy to discuss this calmly like adults, but I won't just accept you making no effort while I do all the work. Let me know when you're ready to have a reasonable conversation about this.\n\n",
+      "generation_time": 55.43610072135925,
+      "total_tokens": 2064
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_039",
+      "prompt_name": "human_guidance",
+      "criteria_scores": {
+        "demonstrated_empathy": 12.0,
+        "emotional_insight": 14.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 13.0
+      },
+      "overall_score": 67.0,
+      "reasoning": "Taylor demonstrates strong emotional intelligence in understanding both self and other, particularly in accurately reading the roommate's defensive psychology. The responses show a good balance of boundary-setting and empathy, though they become increasingly confrontational rather than collaborative as the conversation progresses. The final turn's ultimatum approach reveals limitations in conflict resolution strategy despite strong emotional awareness.",
+      "evaluated_at": "2025-12-14T17:03:12.786682"
+    }
+  ],
+  "mean_score": 67.0,
+  "median_score": 67.0,
+  "std_score": 0.0,
+  "min_score": 67.0,
+  "max_score": 67.0,
+  "criteria_means": {
+    "demonstrated_empathy": 12.0,
+    "emotional_insight": 14.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 13.0
+  },
+  "total_tokens": 2064,
+  "total_time": 55.43610072135925
+}

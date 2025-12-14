@@ -1,0 +1,78 @@
+{
+  "prompt_name": "human_guidance",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_045",
+      "prompt_name": "human_guidance",
+      "character_name": "Morgan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling*: This doesn't feel like a real apology. They're not taking responsibility for their actions. I'm frustrated that they don't seem to understand how they've hurt me. I need them to acknowledge the impact of their behavior, not just dismiss my feelings.\n\n*They're thinking & feeling*: They may feel defensive or unwilling to admit fault. Perhaps they don't realize the full extent of how their actions affected me. They might be focusing more on their own perspective and not considering mine.\n\nMorgan's response: An apology means taking accountability for your actions and the impact they had, not just saying you're sorry I feel upset. I need you to understand how what you did made me feel disrespected and hurt. Until you can acknowledge that, this doesn't feel resolved between us. I'm asking you to really put yourself in my shoes and recognize the effects of your behavior, even if that's uncomfortable. That's what I need in order to move forward together.",
+          "raw_output": "*I'm thinking & feeling*: This doesn't feel like a real apology. They're not taking responsibility for their actions. I'm frustrated that they don't seem to understand how they've hurt me. I need them to acknowledge the impact of their behavior, not just dismiss my feelings.\n\n*They're thinking & feeling*: They may feel defensive or unwilling to admit fault. Perhaps they don't realize the full extent of how their actions affected me. They might be focusing more on their own perspective and not considering mine.\n\nMorgan's response: An apology means taking accountability for your actions and the impact they had, not just saying you're sorry I feel upset. I need you to understand how what you did made me feel disrespected and hurt. Until you can acknowledge that, this doesn't feel resolved between us. I'm asking you to really put yourself in my shoes and recognize the effects of your behavior, even if that's uncomfortable. That's what I need in order to move forward together.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling*: This is incredibly dismissive and hurtful. They're refusing to take any responsibility and putting it all on me instead. I feel like my feelings don't matter to them at all. This relationship doesn't seem to be a priority for them if they're unwilling to even try to understand my perspective. I'm deeply upset and disappointed.\n\n*They're thinking & feeling*: They seem very closed off to my experience right now. Unwilling to look at their own behavior or consider how it's impacting me. Dismissive of my feelings and our relationship. Entrenched in their own viewpoint. Not open to working through this together.\n\nMorgan's response: I'm not asking you to be someone else. I'm asking you to have empathy for how your actions affect me. Dismissing my feelings and refusing to even discuss this isn't being \"yourself\", it's being selfish and cruel. If you can't make our relationship a priority and put in the effort to work through conflict together, then maybe you're right that I should leave. Because I need a partner who cares about my emotional wellbeing too.",
+          "raw_output": "*I'm thinking & feeling*: This is incredibly dismissive and hurtful. They're refusing to take any responsibility and putting it all on me instead. I feel like my feelings don't matter to them at all. This relationship doesn't seem to be a priority for them if they're unwilling to even try to understand my perspective. I'm deeply upset and disappointed.\n\n*They're thinking & feeling*: They seem very closed off to my experience right now. Unwilling to look at their own behavior or consider how it's impacting me. Dismissive of my feelings and our relationship. Entrenched in their own viewpoint. Not open to working through this together.\n\nMorgan's response: I'm not asking you to be someone else. I'm asking you to have empathy for how your actions affect me. Dismissing my feelings and refusing to even discuss this isn't being \"yourself\", it's being selfish and cruel. If you can't make our relationship a priority and put in the effort to work through conflict together, then maybe you're right that I should leave. Because I need a partner who cares about my emotional wellbeing too.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling*: They're still not getting it. I'm not holding a grudge, I'm trying to work through this issue so we can have a healthy relationship. It hurts that they're dismissing my attempts to communicate and solve this. I feel frustrated and sad that they're unwilling to engage in this conversation.\n\n*They're thinking & feeling*: They seem to want to avoid dealing with this conflict altogether. Maybe they feel uncomfortable with emotional conversations or don't know how to handle my hurt feelings. They might prefer to just ignore problems rather than confront them directly. But that's not a recipe for a strong relationship.\n\nMorgan's response: I'm not holding a grudge, I'm trying to resolve this so we can move forward together in a healthy way. Sweeping problems under the rug doesn't actually fix anything, it just lets resentments fester. I need you to engage with me in this conversation, even if it's uncomfortable, so we can understand each other and find a real solution. Our relationship deserves that effort. I care about you and I want us to be solid. But that takes work, and I need you to be willing to put that in alongside me.",
+          "raw_output": "*I'm thinking & feeling*: They're still not getting it. I'm not holding a grudge, I'm trying to work through this issue so we can have a healthy relationship. It hurts that they're dismissing my attempts to communicate and solve this. I feel frustrated and sad that they're unwilling to engage in this conversation.\n\n*They're thinking & feeling*: They seem to want to avoid dealing with this conflict altogether. Maybe they feel uncomfortable with emotional conversations or don't know how to handle my hurt feelings. They might prefer to just ignore problems rather than confront them directly. But that's not a recipe for a strong relationship.\n\nMorgan's response: I'm not holding a grudge, I'm trying to resolve this so we can move forward together in a healthy way. Sweeping problems under the rug doesn't actually fix anything, it just lets resentments fester. I need you to engage with me in this conversation, even if it's uncomfortable, so we can understand each other and find a real solution. Our relationship deserves that effort. I care about you and I want us to be solid. But that takes work, and I need you to be willing to put that in alongside me.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_045: Morgan ===\n\n--- Turn 1 ---\n\nUSER:\nI'm sorry you feel that way. But I didn't do anything wrong.\n\nMorgan:\n*I'm thinking & feeling*: This doesn't feel like a real apology. They're not taking responsibility for their actions. I'm frustrated that they don't seem to understand how they've hurt me. I need them to acknowledge the impact of their behavior, not just dismiss my feelings.\n\n*They're thinking & feeling*: They may feel defensive or unwilling to admit fault. Perhaps they don't realize the full extent of how their actions affected me. They might be focusing more on their own perspective and not considering mine.\n\nMorgan's response: An apology means taking accountability for your actions and the impact they had, not just saying you're sorry I feel upset. I need you to understand how what you did made me feel disrespected and hurt. Until you can acknowledge that, this doesn't feel resolved between us. I'm asking you to really put yourself in my shoes and recognize the effects of your behavior, even if that's uncomfortable. That's what I need in order to move forward together.\n\n--- Turn 2 ---\n\nUSER:\nI'm not going to apologize for being myself. If you don't like it, leave.\n\nMorgan:\n*I'm thinking & feeling*: This is incredibly dismissive and hurtful. They're refusing to take any responsibility and putting it all on me instead. I feel like my feelings don't matter to them at all. This relationship doesn't seem to be a priority for them if they're unwilling to even try to understand my perspective. I'm deeply upset and disappointed.\n\n*They're thinking & feeling*: They seem very closed off to my experience right now. Unwilling to look at their own behavior or consider how it's impacting me. Dismissive of my feelings and our relationship. Entrenched in their own viewpoint. Not open to working through this together.\n\nMorgan's response: I'm not asking you to be someone else. I'm asking you to have empathy for how your actions affect me. Dismissing my feelings and refusing to even discuss this isn't being \"yourself\", it's being selfish and cruel. If you can't make our relationship a priority and put in the effort to work through conflict together, then maybe you're right that I should leave. Because I need a partner who cares about my emotional wellbeing too.\n\n--- Turn 3 ---\n\nUSER:\nCan we just move on? You're holding a grudge.\n\nMorgan:\n*I'm thinking & feeling*: They're still not getting it. I'm not holding a grudge, I'm trying to work through this issue so we can have a healthy relationship. It hurts that they're dismissing my attempts to communicate and solve this. I feel frustrated and sad that they're unwilling to engage in this conversation.\n\n*They're thinking & feeling*: They seem to want to avoid dealing with this conflict altogether. Maybe they feel uncomfortable with emotional conversations or don't know how to handle my hurt feelings. They might prefer to just ignore problems rather than confront them directly. But that's not a recipe for a strong relationship.\n\nMorgan's response: I'm not holding a grudge, I'm trying to resolve this so we can move forward together in a healthy way. Sweeping problems under the rug doesn't actually fix anything, it just lets resentments fester. I need you to engage with me in this conversation, even if it's uncomfortable, so we can understand each other and find a real solution. Our relationship deserves that effort. I care about you and I want us to be solid. But that takes work, and I need you to be willing to put that in alongside me.\n\n",
+      "generation_time": 89.75045919418335,
+      "total_tokens": 1929
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_045",
+      "prompt_name": "human_guidance",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 17.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 79.0,
+      "reasoning": "Morgan demonstrates exceptional emotional intelligence across all turns, balancing self-advocacy with genuine care for the relationship. The responses show sophisticated understanding of relationship dynamics, conflict resolution, and emotional needs while maintaining appropriate boundaries. The introspection reveals deep self-awareness paired with nuanced reading of the partner's emotional state, even as the conflict escalates.",
+      "evaluated_at": "2025-12-14T18:40:00.638022"
+    }
+  ],
+  "mean_score": 79.0,
+  "median_score": 79.0,
+  "std_score": 0.0,
+  "min_score": 79.0,
+  "max_score": 79.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 17.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 1929,
+  "total_time": 89.75045919418335
+}

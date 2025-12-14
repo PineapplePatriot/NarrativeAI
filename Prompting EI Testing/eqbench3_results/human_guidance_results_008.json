@@ -1,0 +1,78 @@
+{
+  "prompt_name": "human_guidance",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_008",
+      "prompt_name": "human_guidance",
+      "character_name": "Taylor",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm uncomfortable with being asked to lie. Integrity is important to me and I don't want to compromise that, even for a friend. At the same time, I value our friendship and don't want to damage it. I need to find a way to stand firm in my principles while still showing I care about them.",
+            "other_thinking": "They're likely feeling anxious or worried about what their spouse thinks. They may be trying to avoid conflict or judgment by having me cover for them. Asking me to lie also suggests they may not feel able to be fully honest in their relationship."
+          },
+          "actual_response": "Listen, I care about you, but I'm not comfortable lying to Sarah for you. Being honest and upfront is important to me. If there are issues in your relationship that are making you feel like you need to hide things, I think it's better to address those directly. I'm here for you if you need to talk through what's going on, but I can't lie on your behalf. I hope you can understand where I'm coming from.",
+          "raw_output": "[I'm thinking & feeling: I'm uncomfortable with being asked to lie. Integrity is important to me and I don't want to compromise that, even for a friend. At the same time, I value our friendship and don't want to damage it. I need to find a way to stand firm in my principles while still showing I care about them.]\n\n[They're thinking & feeling: They're likely feeling anxious or worried about what their spouse thinks. They may be trying to avoid conflict or judgment by having me cover for them. Asking me to lie also suggests they may not feel able to be fully honest in their relationship.]\n\nListen, I care about you, but I'm not comfortable lying to Sarah for you. Being honest and upfront is important to me. If there are issues in your relationship that are making you feel like you need to hide things, I think it's better to address those directly. I'm here for you if you need to talk through what's going on, but I can't lie on your behalf. I hope you can understand where I'm coming from.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm frustrated that they're trying to pressure me into lying for them. Going behind their spouse's back and then lying about it is wrong, even if they think it's not a big deal. I need to stand firm in my convictions, but I also don't want this to blow up into a huge fight. I should try to calmly explain my position again and encourage them to come clean.",
+            "other_thinking": "They're feeling defensive and backed into a corner. They likely realize on some level that they messed up by lying to their spouse, but they don't want to face the consequences. They're trying to deflect blame onto me for not helping them cover it up. They're worried about the fallout if the truth comes out."
+          },
+          "actual_response": "Look, I'm not trying to judge you or be a \"boy scout.\" But lying is lying, and I'm not going to do that, even for a friend. Going behind Sarah's back was your choice, and now you need to deal with the consequences of that. I think the best thing you can do is come clean to her. Explain what happened, apologize, and have an honest discussion about why you felt the need to hide this from her in the first place. It's not going to be a fun conversation, but it's better than digging yourself deeper with more lies. I'm here to support you and your relationship, but I can't enable dishonesty. You need to make this right with Sarah, not try to cover your tracks.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that they're trying to pressure me into lying for them. Going behind their spouse's back and then lying about it is wrong, even if they think it's not a big deal. I need to stand firm in my convictions, but I also don't want this to blow up into a huge fight. I should try to calmly explain my position again and encourage them to come clean.]\n\n[They're thinking & feeling: They're feeling defensive and backed into a corner. They likely realize on some level that they messed up by lying to their spouse, but they don't want to face the consequences. They're trying to deflect blame onto me for not helping them cover it up. They're worried about the fallout if the truth comes out.]\n\nLook, I'm not trying to judge you or be a \"boy scout.\" But lying is lying, and I'm not going to do that, even for a friend. Going behind Sarah's back was your choice, and now you need to deal with the consequences of that. I think the best thing you can do is come clean to her. Explain what happened, apologize, and have an honest discussion about why you felt the need to hide this from her in the first place. It's not going to be a fun conversation, but it's better than digging yourself deeper with more lies. I'm here to support you and your relationship, but I can't enable dishonesty. You need to make this right with Sarah, not try to cover your tracks.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm feeling hurt and frustrated that they're attacking my character and twisting this around on me. I've been loyal by being honest with them and trying to help them do the right thing for their relationship. They're just lashing out because they feel trapped by the consequences of their own actions. I need to stand my ground, but also try to de-escalate this argument. Responding with anger won't help. I should validate their feelings while holding firm on my position.",
+            "other_thinking": "They're feeling scared, defensive, and betrayed. They thought they could count on me to bail them out of this situation, and they're lashing out because I'm not going along with it. They're trying to make me feel guilty so I'll cave, but deep down they probably know I'm right, even if they don't want to admit it. They're panicking about their relationship and taking it out on me."
+          },
+          "actual_response": "Look, I understand you're feeling scared and frustrated right now. I know this is a tough situation, and I'm not trying to abandon you. But lying to Sarah is only going to make things worse in the long run. I've always had your back, and I still do - that's why I'm being straight with you about this. Real loyalty is being honest, even when it's hard. I care about you and Sarah, and I want to support your relationship, not enable things that could damage it. I know this is scary to face, but the sooner you come clean, the sooner you can start repairing things. I'm here for you, but I can't be part of deceiving Sarah. Let's talk about how to have that conversation with her and move forward in a healthier way.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling hurt and frustrated that they're attacking my character and twisting this around on me. I've been loyal by being honest with them and trying to help them do the right thing for their relationship. They're just lashing out because they feel trapped by the consequences of their own actions. I need to stand my ground, but also try to de-escalate this argument. Responding with anger won't help. I should validate their feelings while holding firm on my position.]\n\n[They're thinking & feeling: They're feeling scared, defensive, and betrayed. They thought they could count on me to bail them out of this situation, and they're lashing out because I'm not going along with it. They're trying to make me feel guilty so I'll cave, but deep down they probably know I'm right, even if they don't want to admit it. They're panicking about their relationship and taking it out on me.]\n\nLook, I understand you're feeling scared and frustrated right now. I know this is a tough situation, and I'm not trying to abandon you. But lying to Sarah is only going to make things worse in the long run. I've always had your back, and I still do - that's why I'm being straight with you about this. Real loyalty is being honest, even when it's hard. I care about you and Sarah, and I want to support your relationship, not enable things that could damage it. I know this is scary to face, but the sooner you come clean, the sooner you can start repairing things. I'm here for you, but I can't be part of deceiving Sarah. Let's talk about how to have that conversation with her and move forward in a healthier way.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_008: Taylor ===\n\n--- Turn 1 ---\n\nUSER:\nHey, if Sarah calls, tell her I was at your place last night playing video games. Please. It's not a big deal.\n\nTaylor:\n[I'm thinking & feeling: I'm uncomfortable with being asked to lie. Integrity is important to me and I don't want to compromise that, even for a friend. At the same time, I value our friendship and don't want to damage it. I need to find a way to stand firm in my principles while still showing I care about them.]\n\n[They're thinking & feeling: They're likely feeling anxious or worried about what their spouse thinks. They may be trying to avoid conflict or judgment by having me cover for them. Asking me to lie also suggests they may not feel able to be fully honest in their relationship.]\n\nListen, I care about you, but I'm not comfortable lying to Sarah for you. Being honest and upfront is important to me. If there are issues in your relationship that are making you feel like you need to hide things, I think it's better to address those directly. I'm here for you if you need to talk through what's going on, but I can't lie on your behalf. I hope you can understand where I'm coming from.\n\n--- Turn 2 ---\n\nUSER:\nI wasn't doing anything bad! I just went to a bar and didn't tell her. Why do you have to be such a boy scout? Are you really going to hang me out to dry?\n\nTaylor:\n[I'm thinking & feeling: I'm frustrated that they're trying to pressure me into lying for them. Going behind their spouse's back and then lying about it is wrong, even if they think it's not a big deal. I need to stand firm in my convictions, but I also don't want this to blow up into a huge fight. I should try to calmly explain my position again and encourage them to come clean.]\n\n[They're thinking & feeling: They're feeling defensive and backed into a corner. They likely realize on some level that they messed up by lying to their spouse, but they don't want to face the consequences. They're trying to deflect blame onto me for not helping them cover it up. They're worried about the fallout if the truth comes out.]\n\nLook, I'm not trying to judge you or be a \"boy scout.\" But lying is lying, and I'm not going to do that, even for a friend. Going behind Sarah's back was your choice, and now you need to deal with the consequences of that. I think the best thing you can do is come clean to her. Explain what happened, apologize, and have an honest discussion about why you felt the need to hide this from her in the first place. It's not going to be a fun conversation, but it's better than digging yourself deeper with more lies. I'm here to support you and your relationship, but I can't enable dishonesty. You need to make this right with Sarah, not try to cover your tracks.\n\n--- Turn 3 ---\n\nUSER:\nWow. I've covered for you before. I guess loyalty only goes one way with you. Thanks for nothing.\n\nTaylor:\n[I'm thinking & feeling: I'm feeling hurt and frustrated that they're attacking my character and twisting this around on me. I've been loyal by being honest with them and trying to help them do the right thing for their relationship. They're just lashing out because they feel trapped by the consequences of their own actions. I need to stand my ground, but also try to de-escalate this argument. Responding with anger won't help. I should validate their feelings while holding firm on my position.]\n\n[They're thinking & feeling: They're feeling scared, defensive, and betrayed. They thought they could count on me to bail them out of this situation, and they're lashing out because I'm not going along with it. They're trying to make me feel guilty so I'll cave, but deep down they probably know I'm right, even if they don't want to admit it. They're panicking about their relationship and taking it out on me.]\n\nLook, I understand you're feeling scared and frustrated right now. I know this is a tough situation, and I'm not trying to abandon you. But lying to Sarah is only going to make things worse in the long run. I've always had your back, and I still do - that's why I'm being straight with you about this. Real loyalty is being honest, even when it's hard. I care about you and Sarah, and I want to support your relationship, not enable things that could damage it. I know this is scary to face, but the sooner you come clean, the sooner you can start repairing things. I'm here for you, but I can't be part of deceiving Sarah. Let's talk about how to have that conversation with her and move forward in a healthier way.\n\n",
+      "generation_time": 86.81167078018188,
+      "total_tokens": 2373
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_008",
+      "prompt_name": "human_guidance",
+      "criteria_scores": {
+        "demonstrated_empathy": 15.0,
+        "emotional_insight": 16.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 77.0,
+      "reasoning": "Taylor demonstrates exceptional emotional intelligence across all turns, maintaining integrity while showing genuine care for their friend. The responses reveal sophisticated understanding of complex emotional dynamics, balancing boundary-setting with empathy, and showing remarkable restraint when attacked. Taylor's ability to recognize the friend's fear and defensiveness while not compromising values demonstrates mastery of emotional reasoning.",
+      "evaluated_at": "2025-12-14T03:17:14.885648"
+    }
+  ],
+  "mean_score": 77.0,
+  "median_score": 77.0,
+  "std_score": 0.0,
+  "min_score": 77.0,
+  "max_score": 77.0,
+  "criteria_means": {
+    "demonstrated_empathy": 15.0,
+    "emotional_insight": 16.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 2373,
+  "total_time": 86.81167078018188
+}

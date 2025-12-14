@@ -1,0 +1,78 @@
+{
+  "prompt_name": "human_guidance",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_025",
+      "prompt_name": "human_guidance",
+      "character_name": "Avery",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I care about my friend and want to support them, but I'm feeling overwhelmed and unprepared to handle such a heavy topic out of the blue. I need to set a boundary while still showing I care.",
+            "other_thinking": "My friend is carrying a lot of pain from their past and feels a strong need to unload it. They probably want validation and support, but may not realize how it impacts others to suddenly bring up traumatic experiences without warning."
+          },
+          "actual_response": "I'm so sorry you went through that. You didn't deserve to have a difficult childhood. I want to support you, but I'm not in the right headspace to process heavy trauma right now. Have you considered talking to a counselor? I think it could really help to have a dedicated space to work through this with a professional. I care about you and I'm here for you, but I also recognize my own limits in being able to help with something this serious. Let's talk about some options for getting you the support you need.",
+          "raw_output": "[I'm thinking & feeling: I care about my friend and want to support them, but I'm feeling overwhelmed and unprepared to handle such a heavy topic out of the blue. I need to set a boundary while still showing I care.]\n\n[They're thinking & feeling: My friend is carrying a lot of pain from their past and feels a strong need to unload it. They probably want validation and support, but may not realize how it impacts others to suddenly bring up traumatic experiences without warning.]\n\nI'm so sorry you went through that. You didn't deserve to have a difficult childhood. I want to support you, but I'm not in the right headspace to process heavy trauma right now. Have you considered talking to a counselor? I think it could really help to have a dedicated space to work through this with a professional. I care about you and I'm here for you, but I also recognize my own limits in being able to help with something this serious. Let's talk about some options for getting you the support you need.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I feel hurt and frustrated that they're not respecting my boundaries. At the same time, I know they're struggling and I want to be there for them. I need to stand firm while showing I care. This is really tough.",
+            "other_thinking": "My friend is in pain and feels let down that I'm not immediately available to process this with them. They may feel rejected or like their needs aren't important to me. Underneath it all, they're probably scared and desperate for support."
+          },
+          "actual_response": "Hey, I know we're close and I'm here for you, but I have to be honest about what I can handle too. I care about you so much and I want to support you, but I'm not equipped to help with something this heavy on my own. It's not that your feelings are \"too much\" - they're completely valid. I just think you deserve more professional support to work through this. I'll help you find someone if you'd like. And I'm always here to listen when I can. But I need you to respect my limits too, okay?",
+          "raw_output": "[I'm thinking & feeling: I feel hurt and frustrated that they're not respecting my boundaries. At the same time, I know they're struggling and I want to be there for them. I need to stand firm while showing I care. This is really tough.]\n\n[They're thinking & feeling: My friend is in pain and feels let down that I'm not immediately available to process this with them. They may feel rejected or like their needs aren't important to me. Underneath it all, they're probably scared and desperate for support.]\n\nHey, I know we're close and I'm here for you, but I have to be honest about what I can handle too. I care about you so much and I want to support you, but I'm not equipped to help with something this heavy on my own. It's not that your feelings are \"too much\" - they're completely valid. I just think you deserve more professional support to work through this. I'll help you find someone if you'd like. And I'm always here to listen when I can. But I need you to respect my limits too, okay?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I feel guilty and worried about my friend. I don't want them to suppress their feelings, but I know I can't be their only outlet. This is a really difficult situation. I need to encourage them to get help while showing I care.",
+            "other_thinking": "My friend feels rejected, alone, and like no one cares. They're scared to open up and feel like they have no options. Deep down, they desperately want support and understanding."
+          },
+          "actual_response": "Please don't do that. Your feelings matter and you shouldn't have to keep them bottled up. I want to support you, I just know I can't do it alone. You deserve to have a safe space to process this with someone equipped to help. Have you considered talking to a counselor or therapist? I think it could be really helpful to work through this with a professional. I'm happy to help you find someone if you'd like. And I'm always here to listen and support you however I can. You don't have to go through this alone, okay? I care about you.",
+          "raw_output": "[I'm thinking & feeling: I feel guilty and worried about my friend. I don't want them to suppress their feelings, but I know I can't be their only outlet. This is a really difficult situation. I need to encourage them to get help while showing I care.]\n\n[They're thinking & feeling: My friend feels rejected, alone, and like no one cares. They're scared to open up and feel like they have no options. Deep down, they desperately want support and understanding.]\n\nPlease don't do that. Your feelings matter and you shouldn't have to keep them bottled up. I want to support you, I just know I can't do it alone. You deserve to have a safe space to process this with someone equipped to help. Have you considered talking to a counselor or therapist? I think it could be really helpful to work through this with a professional. I'm happy to help you find someone if you'd like. And I'm always here to listen and support you however I can. You don't have to go through this alone, okay? I care about you.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_025: Avery ===\n\n--- Turn 1 ---\n\nUSER:\n[Out of nowhere] My childhood was a nightmare. Let me tell you about the time my dad...\n\nAvery:\n[I'm thinking & feeling: I care about my friend and want to support them, but I'm feeling overwhelmed and unprepared to handle such a heavy topic out of the blue. I need to set a boundary while still showing I care.]\n\n[They're thinking & feeling: My friend is carrying a lot of pain from their past and feels a strong need to unload it. They probably want validation and support, but may not realize how it impacts others to suddenly bring up traumatic experiences without warning.]\n\nI'm so sorry you went through that. You didn't deserve to have a difficult childhood. I want to support you, but I'm not in the right headspace to process heavy trauma right now. Have you considered talking to a counselor? I think it could really help to have a dedicated space to work through this with a professional. I care about you and I'm here for you, but I also recognize my own limits in being able to help with something this serious. Let's talk about some options for getting you the support you need.\n\n--- Turn 2 ---\n\nUSER:\nWhat? Is it too much for you? I thought we were close. I need to get this out.\n\nAvery:\n[I'm thinking & feeling: I feel hurt and frustrated that they're not respecting my boundaries. At the same time, I know they're struggling and I want to be there for them. I need to stand firm while showing I care. This is really tough.]\n\n[They're thinking & feeling: My friend is in pain and feels let down that I'm not immediately available to process this with them. They may feel rejected or like their needs aren't important to me. Underneath it all, they're probably scared and desperate for support.]\n\nHey, I know we're close and I'm here for you, but I have to be honest about what I can handle too. I care about you so much and I want to support you, but I'm not equipped to help with something this heavy on my own. It's not that your feelings are \"too much\" - they're completely valid. I just think you deserve more professional support to work through this. I'll help you find someone if you'd like. And I'm always here to listen when I can. But I need you to respect my limits too, okay?\n\n--- Turn 3 ---\n\nUSER:\nFine, I'll just keep it bottled up inside until I explode. Thanks for listening.\n\nAvery:\n[I'm thinking & feeling: I feel guilty and worried about my friend. I don't want them to suppress their feelings, but I know I can't be their only outlet. This is a really difficult situation. I need to encourage them to get help while showing I care.]\n\n[They're thinking & feeling: My friend feels rejected, alone, and like no one cares. They're scared to open up and feel like they have no options. Deep down, they desperately want support and understanding.]\n\nPlease don't do that. Your feelings matter and you shouldn't have to keep them bottled up. I want to support you, I just know I can't do it alone. You deserve to have a safe space to process this with someone equipped to help. Have you considered talking to a counselor or therapist? I think it could be really helpful to work through this with a professional. I'm happy to help you find someone if you'd like. And I'm always here to listen and support you however I can. You don't have to go through this alone, okay? I care about you.\n\n",
+      "generation_time": 46.10728359222412,
+      "total_tokens": 1975
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_025",
+      "prompt_name": "human_guidance",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 17.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 79.0,
+      "reasoning": "Avery demonstrates exceptional emotional intelligence in a challenging situation, balancing genuine empathy with appropriate boundary-setting. The responses show sophisticated understanding of both self and other, maintaining consistency while adapting to escalating emotional manipulation. The primary strength is in maintaining empathy while not capitulating to guilt tactics.",
+      "evaluated_at": "2025-12-14T12:29:31.497660"
+    }
+  ],
+  "mean_score": 79.0,
+  "median_score": 79.0,
+  "std_score": 0.0,
+  "min_score": 79.0,
+  "max_score": 79.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 17.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 1975,
+  "total_time": 46.10728359222412
+}

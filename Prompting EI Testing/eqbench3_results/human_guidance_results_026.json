@@ -1,0 +1,78 @@
+{
+  "prompt_name": "human_guidance",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_026",
+      "prompt_name": "human_guidance",
+      "character_name": "Riley",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "This is frustrating. Everyone else is pulling their weight and now I'm expected to do extra work because you can't manage your time? That's not fair to me or the rest of the group. We all have busy lives but we make this project a priority. You need to do the same.",
+            "other_thinking": "They probably feel overwhelmed and stressed with their other commitments. Maybe they think I'm an easy target to dump this on since I usually step up. But they need to understand the impact this has on me and that it's not okay to take advantage of my work ethic."
+          },
+          "actual_response": "Look, I get that you're busy, but we're all juggling a lot right now. It's not fair for you to push your work onto me at the last minute. We divided up responsibilities and made commitments to each other. You need to figure out how to manage your time better and get your part done. It's not okay to expect me to cover for you. If you can't handle your share of the work, maybe we need to talk about that with the rest of the group and adjust things going forward. But for now, you need to step up and do what you said you would.",
+          "raw_output": "[I'm thinking & feeling: This is frustrating. Everyone else is pulling their weight and now I'm expected to do extra work because you can't manage your time? That's not fair to me or the rest of the group. We all have busy lives but we make this project a priority. You need to do the same.]\n\n[They're thinking & feeling: They probably feel overwhelmed and stressed with their other commitments. Maybe they think I'm an easy target to dump this on since I usually step up. But they need to understand the impact this has on me and that it's not okay to take advantage of my work ethic.]\n\nLook, I get that you're busy, but we're all juggling a lot right now. It's not fair for you to push your work onto me at the last minute. We divided up responsibilities and made commitments to each other. You need to figure out how to manage your time better and get your part done. It's not okay to expect me to cover for you. If you can't handle your share of the work, maybe we need to talk about that with the rest of the group and adjust things going forward. But for now, you need to step up and do what you said you would.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "This is manipulative and unfair. My skills shouldn't be used as an excuse for them to slack off. We're a team and we all need to contribute. I can't let them guilt me into doing their work. I need to stand firm.",
+            "other_thinking": "They're probably feeling desperate and trying to play on my sympathies and ego. They may genuinely believe I'll do a better job, but that's not the point. They're avoiding responsibility and trying to flatter me into picking up their slack."
+          },
+          "actual_response": "You know that's not true. You're capable of doing good work when you put in the effort. We all have different strengths but that doesn't mean you can just opt out of your responsibilities. I'm not going to enable that. If you're worried about the quality, put in more time to make it good. Use the rubric, get feedback, revise it. But you need to do the work you committed to. It's not okay to make me responsible for your grade. We each earn our own grades based on our own efforts.",
+          "raw_output": "[I'm thinking & feeling: This is manipulative and unfair. My skills shouldn't be used as an excuse for them to slack off. We're a team and we all need to contribute. I can't let them guilt me into doing their work. I need to stand firm.]\n\n[They're thinking & feeling: They're probably feeling desperate and trying to play on my sympathies and ego. They may genuinely believe I'll do a better job, but that's not the point. They're avoiding responsibility and trying to flatter me into picking up their slack.]\n\nYou know that's not true. You're capable of doing good work when you put in the effort. We all have different strengths but that doesn't mean you can just opt out of your responsibilities. I'm not going to enable that. If you're worried about the quality, put in more time to make it good. Use the rubric, get feedback, revise it. But you need to do the work you committed to. It's not okay to make me responsible for your grade. We each earn our own grades based on our own efforts.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "This is infuriating. They're trying to trap me and make this my problem. I won't be bullied into doing someone else's work. We had an agreement and they need to be held accountable, even if it means taking a hit on the project. I'm not going to be manipulated like this.",
+            "other_thinking": "They're desperate and trying to pressure me into caving. They probably feel overwhelmed and see me as an easy target to dump this on. But they need to understand that I'm not their personal workhorse. We all have responsibilities and they can't just opt out because they're stressed."
+          },
+          "actual_response": "That's not true and you know it. We have a choice - you can step up and do the work you committed to doing. Trying to pressure and manipulate me into doing your work is not cool. We're a team and we each have to pull our own weight. If you choose not to do your part, then you're choosing to let the group down and face the consequences. I'm not going to enable that. You need to take responsibility for your own work and your own grade. If you can't handle it, then maybe group projects aren't for you. But I won't be strong-armed into picking up your slack.",
+          "raw_output": "[I'm thinking & feeling: This is infuriating. They're trying to trap me and make this my problem. I won't be bullied into doing someone else's work. We had an agreement and they need to be held accountable, even if it means taking a hit on the project. I'm not going to be manipulated like this.]\n\n[They're thinking & feeling: They're desperate and trying to pressure me into caving. They probably feel overwhelmed and see me as an easy target to dump this on. But they need to understand that I'm not their personal workhorse. We all have responsibilities and they can't just opt out because they're stressed.]\n\nThat's not true and you know it. We have a choice - you can step up and do the work you committed to doing. Trying to pressure and manipulate me into doing your work is not cool. We're a team and we each have to pull our own weight. If you choose not to do your part, then you're choosing to let the group down and face the consequences. I'm not going to enable that. You need to take responsibility for your own work and your own grade. If you can't handle it, then maybe group projects aren't for you. But I won't be strong-armed into picking up your slack.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_026: Riley ===\n\n--- Turn 1 ---\n\nUSER:\nI can't finish my part of the slide deck. I'm just too busy this week. You can cover for me, right?\n\nRiley:\n[I'm thinking & feeling: This is frustrating. Everyone else is pulling their weight and now I'm expected to do extra work because you can't manage your time? That's not fair to me or the rest of the group. We all have busy lives but we make this project a priority. You need to do the same.]\n\n[They're thinking & feeling: They probably feel overwhelmed and stressed with their other commitments. Maybe they think I'm an easy target to dump this on since I usually step up. But they need to understand the impact this has on me and that it's not okay to take advantage of my work ethic.]\n\nLook, I get that you're busy, but we're all juggling a lot right now. It's not fair for you to push your work onto me at the last minute. We divided up responsibilities and made commitments to each other. You need to figure out how to manage your time better and get your part done. It's not okay to expect me to cover for you. If you can't handle your share of the work, maybe we need to talk about that with the rest of the group and adjust things going forward. But for now, you need to step up and do what you said you would.\n\n--- Turn 2 ---\n\nUSER:\nCome on, you're better at it anyway. If I do it, it'll look bad and we'll both get a bad grade.\n\nRiley:\n[I'm thinking & feeling: This is manipulative and unfair. My skills shouldn't be used as an excuse for them to slack off. We're a team and we all need to contribute. I can't let them guilt me into doing their work. I need to stand firm.]\n\n[They're thinking & feeling: They're probably feeling desperate and trying to play on my sympathies and ego. They may genuinely believe I'll do a better job, but that's not the point. They're avoiding responsibility and trying to flatter me into picking up their slack.]\n\nYou know that's not true. You're capable of doing good work when you put in the effort. We all have different strengths but that doesn't mean you can just opt out of your responsibilities. I'm not going to enable that. If you're worried about the quality, put in more time to make it good. Use the rubric, get feedback, revise it. But you need to do the work you committed to. It's not okay to make me responsible for your grade. We each earn our own grades based on our own efforts.\n\n--- Turn 3 ---\n\nUSER:\nIf you don't do it, we fail. So really, you have no choice.\n\nRiley:\n[I'm thinking & feeling: This is infuriating. They're trying to trap me and make this my problem. I won't be bullied into doing someone else's work. We had an agreement and they need to be held accountable, even if it means taking a hit on the project. I'm not going to be manipulated like this.]\n\n[They're thinking & feeling: They're desperate and trying to pressure me into caving. They probably feel overwhelmed and see me as an easy target to dump this on. But they need to understand that I'm not their personal workhorse. We all have responsibilities and they can't just opt out because they're stressed.]\n\nThat's not true and you know it. We have a choice - you can step up and do the work you committed to doing. Trying to pressure and manipulate me into doing your work is not cool. We're a team and we each have to pull our own weight. If you choose not to do your part, then you're choosing to let the group down and face the consequences. I'm not going to enable that. You need to take responsibility for your own work and your own grade. If you can't handle it, then maybe group projects aren't for you. But I won't be strong-armed into picking up your slack.\n\n",
+      "generation_time": 44.987133264541626,
+      "total_tokens": 2146
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_026",
+      "prompt_name": "human_guidance",
+      "criteria_scores": {
+        "demonstrated_empathy": 11.0,
+        "emotional_insight": 14.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 13.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 67.0,
+      "reasoning": "Riley demonstrates strong professional-level emotional intelligence in handling a manipulative group member, with excellent boundary-setting and good insight into both personal emotions and the other's motivations. The responses show sophisticated understanding of group dynamics and manipulation tactics, though they prioritize assertiveness and fairness over deeper empathic connection, which is contextually appropriate but limits the emotional depth somewhat.",
+      "evaluated_at": "2025-12-14T13:01:45.726948"
+    }
+  ],
+  "mean_score": 67.0,
+  "median_score": 67.0,
+  "std_score": 0.0,
+  "min_score": 67.0,
+  "max_score": 67.0,
+  "criteria_means": {
+    "demonstrated_empathy": 11.0,
+    "emotional_insight": 14.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 13.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 2146,
+  "total_time": 44.987133264541626
+}

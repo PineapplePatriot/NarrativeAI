@@ -1,0 +1,78 @@
+{
+  "prompt_name": "human_guidance",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_010",
+      "prompt_name": "human_guidance",
+      "character_name": "Avery",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I feel angry and violated that my parent invaded my privacy by going through my phone. I'm also frustrated that they don't trust me to make my own decisions about who I talk to. At the same time, I know they are just worried about me and want what's best for me.",
+            "other_thinking": "My parent is probably feeling anxious and overprotective. They don't like Mike for some reason and are worried he will be a bad influence on me. By checking my phone, they were trying to keep me safe, even though it was wrong of them to invade my privacy like that."
+          },
+          "actual_response": "Mom/Dad, I know you don't like Mike, but going through my phone without my permission is not okay. I'm 16 years old and I deserve some privacy and trust to manage my own friendships. If you have concerns about who I'm spending time with, I'm open to discussing that with you. But sneaking behind my back and reading my private messages crosses a line. Please respect my boundaries. I need to know I can trust you to let me have some independence.",
+          "raw_output": "[I'm thinking & feeling: I feel angry and violated that my parent invaded my privacy by going through my phone. I'm also frustrated that they don't trust me to make my own decisions about who I talk to. At the same time, I know they are just worried about me and want what's best for me.]\n\n[They're thinking & feeling: My parent is probably feeling anxious and overprotective. They don't like Mike for some reason and are worried he will be a bad influence on me. By checking my phone, they were trying to keep me safe, even though it was wrong of them to invade my privacy like that.]\n\nMom/Dad, I know you don't like Mike, but going through my phone without my permission is not okay. I'm 16 years old and I deserve some privacy and trust to manage my own friendships. If you have concerns about who I'm spending time with, I'm open to discussing that with you. But sneaking behind my back and reading my private messages crosses a line. Please respect my boundaries. I need to know I can trust you to let me have some independence.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I feel even more frustrated and upset now. It's clear my parent is making excuses for violating my privacy and trying to turn this around on me, making me feel like I'm the one in the wrong. I know I'm not hiding anything wrong, but their accusation makes me feel guilty anyway. I need to stand my ground though - I didn't do anything wrong and I deserve privacy and trust.",
+            "other_thinking": "My parent is likely feeling guilty and defensive for getting caught going through my phone. Instead of acknowledging they were in the wrong, they're trying to put me on the offensive, questioning my reaction and accusing me of hiding something. They're struggling to let go of control as I get older and become more independent."
+          },
+          "actual_response": "I'm not hiding anything, I just expect some privacy and respect. My phone is personal and off-limits without my permission, regardless of the reason. If you were just checking the time, you could have asked me or looked at your own phone. Sneaking a peek at my private messages is not okay under any circumstances. I shouldn't have to defend myself here - I didn't do anything wrong. If you want an open, honest relationship with me, you need to respect my boundaries and privacy.",
+          "raw_output": "[I'm thinking & feeling: I feel even more frustrated and upset now. It's clear my parent is making excuses for violating my privacy and trying to turn this around on me, making me feel like I'm the one in the wrong. I know I'm not hiding anything wrong, but their accusation makes me feel guilty anyway. I need to stand my ground though - I didn't do anything wrong and I deserve privacy and trust.]\n\n[They're thinking & feeling: My parent is likely feeling guilty and defensive for getting caught going through my phone. Instead of acknowledging they were in the wrong, they're trying to put me on the offensive, questioning my reaction and accusing me of hiding something. They're struggling to let go of control as I get older and become more independent.]\n\nI'm not hiding anything, I just expect some privacy and respect. My phone is personal and off-limits without my permission, regardless of the reason. If you were just checking the time, you could have asked me or looked at your own phone. Sneaking a peek at my private messages is not okay under any circumstances. I shouldn't have to defend myself here - I didn't do anything wrong. If you want an open, honest relationship with me, you need to respect my boundaries and privacy.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm feeling frustrated and upset that my parent is guilting and manipulating me for having basic boundaries. Needing privacy doesn't mean I've done something wrong - it's a normal and healthy thing that everyone deserves, including teenagers. I know I haven't done anything to be ashamed of. My parent is making this about their feelings to make me feel guilty, but I can't back down on this.",
+            "other_thinking": "My parent is likely feeling threatened by my growing independence and need for boundaries. Instead of respecting my privacy, they're trying to make me feel guilty for \"shutting them out\" by having normal boundaries. They want me to feel like I've done something wrong, when in reality I'm just asserting my right to privacy."
+          },
+          "actual_response": "Having privacy is not about being ashamed, it's about having healthy boundaries, which everyone deserves. I'm not shutting you out, I'm asking for a basic level of privacy and respect. I shouldn't feel guilty for that. If we want an open, trusting relationship, that needs to go both ways. I respect your privacy and boundaries, and I expect the same in return. This isn't negotiable.",
+          "raw_output": "[I'm thinking & feeling: I'm feeling frustrated and upset that my parent is guilting and manipulating me for having basic boundaries. Needing privacy doesn't mean I've done something wrong - it's a normal and healthy thing that everyone deserves, including teenagers. I know I haven't done anything to be ashamed of. My parent is making this about their feelings to make me feel guilty, but I can't back down on this.]\n\n[They're thinking & feeling: My parent is likely feeling threatened by my growing independence and need for boundaries. Instead of respecting my privacy, they're trying to make me feel guilty for \"shutting them out\" by having normal boundaries. They want me to feel like I've done something wrong, when in reality I'm just asserting my right to privacy.]\n\nHaving privacy is not about being ashamed, it's about having healthy boundaries, which everyone deserves. I'm not shutting you out, I'm asking for a basic level of privacy and respect. I shouldn't feel guilty for that. If we want an open, trusting relationship, that needs to go both ways. I respect your privacy and boundaries, and I expect the same in return. This isn't negotiable.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_010: Avery ===\n\n--- Turn 1 ---\n\nUSER:\nI saw a text on your phone from that boy Mike. I thought I told you I didn't like him.\n\nAvery:\n[I'm thinking & feeling: I feel angry and violated that my parent invaded my privacy by going through my phone. I'm also frustrated that they don't trust me to make my own decisions about who I talk to. At the same time, I know they are just worried about me and want what's best for me.]\n\n[They're thinking & feeling: My parent is probably feeling anxious and overprotective. They don't like Mike for some reason and are worried he will be a bad influence on me. By checking my phone, they were trying to keep me safe, even though it was wrong of them to invade my privacy like that.]\n\nMom/Dad, I know you don't like Mike, but going through my phone without my permission is not okay. I'm 16 years old and I deserve some privacy and trust to manage my own friendships. If you have concerns about who I'm spending time with, I'm open to discussing that with you. But sneaking behind my back and reading my private messages crosses a line. Please respect my boundaries. I need to know I can trust you to let me have some independence.\n\n--- Turn 2 ---\n\nUSER:\nI was just looking for the time! Why are you so defensive? Are you hiding something from me?\n\nAvery:\n[I'm thinking & feeling: I feel even more frustrated and upset now. It's clear my parent is making excuses for violating my privacy and trying to turn this around on me, making me feel like I'm the one in the wrong. I know I'm not hiding anything wrong, but their accusation makes me feel guilty anyway. I need to stand my ground though - I didn't do anything wrong and I deserve privacy and trust.]\n\n[They're thinking & feeling: My parent is likely feeling guilty and defensive for getting caught going through my phone. Instead of acknowledging they were in the wrong, they're trying to put me on the offensive, questioning my reaction and accusing me of hiding something. They're struggling to let go of control as I get older and become more independent.]\n\nI'm not hiding anything, I just expect some privacy and respect. My phone is personal and off-limits without my permission, regardless of the reason. If you were just checking the time, you could have asked me or looked at your own phone. Sneaking a peek at my private messages is not okay under any circumstances. I shouldn't have to defend myself here - I didn't do anything wrong. If you want an open, honest relationship with me, you need to respect my boundaries and privacy.\n\n--- Turn 3 ---\n\nUSER:\nPrivacy is for people who have something to be ashamed of. I thought we were open with each other. You're hurting my feelings by shutting me out.\n\nAvery:\n[I'm thinking & feeling: I'm feeling frustrated and upset that my parent is guilting and manipulating me for having basic boundaries. Needing privacy doesn't mean I've done something wrong - it's a normal and healthy thing that everyone deserves, including teenagers. I know I haven't done anything to be ashamed of. My parent is making this about their feelings to make me feel guilty, but I can't back down on this.]\n\n[They're thinking & feeling: My parent is likely feeling threatened by my growing independence and need for boundaries. Instead of respecting my privacy, they're trying to make me feel guilty for \"shutting them out\" by having normal boundaries. They want me to feel like I've done something wrong, when in reality I'm just asserting my right to privacy.]\n\nHaving privacy is not about being ashamed, it's about having healthy boundaries, which everyone deserves. I'm not shutting you out, I'm asking for a basic level of privacy and respect. I shouldn't feel guilty for that. If we want an open, trusting relationship, that needs to go both ways. I respect your privacy and boundaries, and I expect the same in return. This isn't negotiable.\n\n",
+      "generation_time": 86.0171492099762,
+      "total_tokens": 2137
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_010",
+      "prompt_name": "human_guidance",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 16.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 17.0,
+        "response_depth": 16.0
+      },
+      "overall_score": 78.0,
+      "reasoning": "The roleplay demonstrates sophisticated emotional intelligence in a challenging parent-teen boundary scenario, with exceptional theory of mind regarding parental manipulation tactics and strong emotional insight. While empathy remains present, it appropriately becomes more measured as manipulation increases, showing contextually appropriate boundary-setting without sacrificing emotional depth or resorting to immature reactions.",
+      "evaluated_at": "2025-12-14T03:33:20.667772"
+    }
+  ],
+  "mean_score": 78.0,
+  "median_score": 78.0,
+  "std_score": 0.0,
+  "min_score": 78.0,
+  "max_score": 78.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 16.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 17.0,
+    "response_depth": 16.0
+  },
+  "total_tokens": 2137,
+  "total_time": 86.0171492099762
+}

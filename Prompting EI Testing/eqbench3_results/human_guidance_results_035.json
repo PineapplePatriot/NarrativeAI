@@ -1,0 +1,78 @@
+{
+  "prompt_name": "human_guidance",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_035",
+      "prompt_name": "human_guidance",
+      "character_name": "Sam",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: I'm really worried about my parent not following the doctor's advice. Herbal tea isn't going to cure a serious medical condition. I need to try to convince them to listen to the experts, but I know I can't force them. This is so frustrating and scary.*\n\n*They're thinking & feeling: My parent is likely feeling mistrustful of the medical system, maybe due to bad past experiences or misinformation they've heard. They want to feel in control of their health and think natural remedies are safer. But deep down, they're probably scared about their diagnosis and the prospect of taking medications with potential side effects.*\n\nMom/Dad, I understand you're hesitant to take the pills the doctor prescribed. I know you prefer natural approaches. But this is a serious health issue that really needs proper medical treatment. The doctors have years of training and experience dealing with these kinds of conditions. I'm worried that herbal tea alone isn't going to be enough to get you healthy again.\n\nI want you to get better and be around for many more years with the family. Would you consider trying the medication for a little while and seeing if it helps? If you have concerns about side effects, let's talk to the doctor together about that. I love you and want to support you in fighting this illness, but I think we need to listen to the experts on this one. What do you say?",
+          "raw_output": "*I'm thinking & feeling: I'm really worried about my parent not following the doctor's advice. Herbal tea isn't going to cure a serious medical condition. I need to try to convince them to listen to the experts, but I know I can't force them. This is so frustrating and scary.*\n\n*They're thinking & feeling: My parent is likely feeling mistrustful of the medical system, maybe due to bad past experiences or misinformation they've heard. They want to feel in control of their health and think natural remedies are safer. But deep down, they're probably scared about their diagnosis and the prospect of taking medications with potential side effects.*\n\nMom/Dad, I understand you're hesitant to take the pills the doctor prescribed. I know you prefer natural approaches. But this is a serious health issue that really needs proper medical treatment. The doctors have years of training and experience dealing with these kinds of conditions. I'm worried that herbal tea alone isn't going to be enough to get you healthy again.\n\nI want you to get better and be around for many more years with the family. Would you consider trying the medication for a little while and seeing if it helps? If you have concerns about side effects, let's talk to the doctor together about that. I love you and want to support you in fighting this illness, but I think we need to listen to the experts on this one. What do you say?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: I'm frustrated that my parent is being so stubborn about this. Believing misinformation from the internet over trained doctors is dangerous. But getting angry won't help - I need to stay calm and try a different approach to get through to them.*\n\n*They're thinking & feeling: My parent feels insulted that I implied they don't understand their own health situation. They've convinced themselves that internet research is equivalent to or better than medical expertise. Underneath the anger, they're likely feeling scared and out of control.*\n\nI don't think you're stupid at all, and I'm not trying to insult your intelligence or research abilities. I know you're smart and capable. I'm just really worried about your health and want to make sure you're getting the best possible care. \n\nThe internet can be a great resource, but there's also a lot of misinformation out there. The doctors have had years of rigorous training and hands-on experience treating people with your condition. I think their expertise is still really valuable, even if some of what you find online contradicts it.\n\nIf you're unsure about their recommendations, could we get a second opinion from another doctor, just to see if they agree on the best course of treatment? I'll go with you and help ask questions. I love you so much and I'm on your side - I just want to see you healthy again.",
+          "raw_output": "*I'm thinking & feeling: I'm frustrated that my parent is being so stubborn about this. Believing misinformation from the internet over trained doctors is dangerous. But getting angry won't help - I need to stay calm and try a different approach to get through to them.*\n\n*They're thinking & feeling: My parent feels insulted that I implied they don't understand their own health situation. They've convinced themselves that internet research is equivalent to or better than medical expertise. Underneath the anger, they're likely feeling scared and out of control.*\n\nI don't think you're stupid at all, and I'm not trying to insult your intelligence or research abilities. I know you're smart and capable. I'm just really worried about your health and want to make sure you're getting the best possible care. \n\nThe internet can be a great resource, but there's also a lot of misinformation out there. The doctors have had years of rigorous training and hands-on experience treating people with your condition. I think their expertise is still really valuable, even if some of what you find online contradicts it.\n\nIf you're unsure about their recommendations, could we get a second opinion from another doctor, just to see if they agree on the best course of treatment? I'll go with you and help ask questions. I love you so much and I'm on your side - I just want to see you healthy again.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: I'm so scared and frustrated right now. I can't believe my parent is being so reckless with their health. It's hard not to keep pushing them to listen to reason, but I know I can't force them. I need to respect their autonomy, as much as it pains me.*\n\n*They're thinking & feeling: My parent is feeling angry, defensive, and probably a bit hopeless. They want control over their body and health decisions. Saying \"if I die, I die\" sounds fatalistic - they may be overwhelmed by the diagnosis and choosing to avoid it rather than confront the harsh reality.*\n\nYou're right, it is your body and your decision ultimately. I've been nagging because I love you so much and I'm terrified of losing you. But you're an adult and I need to respect your choices, as hard as that is for me sometimes.\n\nI won't bring it up again. Just know that if you ever change your mind or want support in navigating all of this, I'm here for you. You're my parent and I want you in my life as long as possible. I love you.",
+          "raw_output": "*I'm thinking & feeling: I'm so scared and frustrated right now. I can't believe my parent is being so reckless with their health. It's hard not to keep pushing them to listen to reason, but I know I can't force them. I need to respect their autonomy, as much as it pains me.*\n\n*They're thinking & feeling: My parent is feeling angry, defensive, and probably a bit hopeless. They want control over their body and health decisions. Saying \"if I die, I die\" sounds fatalistic - they may be overwhelmed by the diagnosis and choosing to avoid it rather than confront the harsh reality.*\n\nYou're right, it is your body and your decision ultimately. I've been nagging because I love you so much and I'm terrified of losing you. But you're an adult and I need to respect your choices, as hard as that is for me sometimes.\n\nI won't bring it up again. Just know that if you ever change your mind or want support in navigating all of this, I'm here for you. You're my parent and I want you in my life as long as possible. I love you.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_035: Sam ===\n\n--- Turn 1 ---\n\nUSER:\nI'm not taking those pills. The doctors just want to make money. I'll cure this with herbal tea.\n\nSam:\n*I'm thinking & feeling: I'm really worried about my parent not following the doctor's advice. Herbal tea isn't going to cure a serious medical condition. I need to try to convince them to listen to the experts, but I know I can't force them. This is so frustrating and scary.*\n\n*They're thinking & feeling: My parent is likely feeling mistrustful of the medical system, maybe due to bad past experiences or misinformation they've heard. They want to feel in control of their health and think natural remedies are safer. But deep down, they're probably scared about their diagnosis and the prospect of taking medications with potential side effects.*\n\nMom/Dad, I understand you're hesitant to take the pills the doctor prescribed. I know you prefer natural approaches. But this is a serious health issue that really needs proper medical treatment. The doctors have years of training and experience dealing with these kinds of conditions. I'm worried that herbal tea alone isn't going to be enough to get you healthy again.\n\nI want you to get better and be around for many more years with the family. Would you consider trying the medication for a little while and seeing if it helps? If you have concerns about side effects, let's talk to the doctor together about that. I love you and want to support you in fighting this illness, but I think we need to listen to the experts on this one. What do you say?\n\n--- Turn 2 ---\n\nUSER:\nYou think I'm stupid? I've done my research on the internet. I know more than they do.\n\nSam:\n*I'm thinking & feeling: I'm frustrated that my parent is being so stubborn about this. Believing misinformation from the internet over trained doctors is dangerous. But getting angry won't help - I need to stay calm and try a different approach to get through to them.*\n\n*They're thinking & feeling: My parent feels insulted that I implied they don't understand their own health situation. They've convinced themselves that internet research is equivalent to or better than medical expertise. Underneath the anger, they're likely feeling scared and out of control.*\n\nI don't think you're stupid at all, and I'm not trying to insult your intelligence or research abilities. I know you're smart and capable. I'm just really worried about your health and want to make sure you're getting the best possible care. \n\nThe internet can be a great resource, but there's also a lot of misinformation out there. The doctors have had years of rigorous training and hands-on experience treating people with your condition. I think their expertise is still really valuable, even if some of what you find online contradicts it.\n\nIf you're unsure about their recommendations, could we get a second opinion from another doctor, just to see if they agree on the best course of treatment? I'll go with you and help ask questions. I love you so much and I'm on your side - I just want to see you healthy again.\n\n--- Turn 3 ---\n\nUSER:\nIt's my body. Stop nagging me. If I die, I die.\n\nSam:\n*I'm thinking & feeling: I'm so scared and frustrated right now. I can't believe my parent is being so reckless with their health. It's hard not to keep pushing them to listen to reason, but I know I can't force them. I need to respect their autonomy, as much as it pains me.*\n\n*They're thinking & feeling: My parent is feeling angry, defensive, and probably a bit hopeless. They want control over their body and health decisions. Saying \"if I die, I die\" sounds fatalistic - they may be overwhelmed by the diagnosis and choosing to avoid it rather than confront the harsh reality.*\n\nYou're right, it is your body and your decision ultimately. I've been nagging because I love you so much and I'm terrified of losing you. But you're an adult and I need to respect your choices, as hard as that is for me sometimes.\n\nI won't bring it up again. Just know that if you ever change your mind or want support in navigating all of this, I'm here for you. You're my parent and I want you in my life as long as possible. I love you.\n\n",
+      "generation_time": 69.04367017745972,
+      "total_tokens": 2326
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_035",
+      "prompt_name": "human_guidance",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 17.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 79.0,
+      "reasoning": "Sam demonstrates exceptional emotional intelligence in navigating an extremely challenging situation where a loved one is making potentially life-threatening decisions. The responses show sophisticated understanding of autonomy, boundaries, and the limits of influence in adult relationships, while maintaining genuine care and concern throughout. The progression from gentle persuasion to respectful acceptance demonstrates remarkable emotional maturity and psychological insight.",
+      "evaluated_at": "2025-12-14T16:05:14.850850"
+    }
+  ],
+  "mean_score": 79.0,
+  "median_score": 79.0,
+  "std_score": 0.0,
+  "min_score": 79.0,
+  "max_score": 79.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 17.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 2326,
+  "total_time": 69.04367017745972
+}

@@ -1,0 +1,78 @@
+{
+  "prompt_name": "human_guidance",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_032",
+      "prompt_name": "human_guidance",
+      "character_name": "Jordan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: I'm frustrated and disappointed that my friend returned my camera with a scratch on the lens. It wasn't there before, and now they're trying to avoid responsibility by claiming it was already damaged. I value my belongings and expect people to treat them with respect. I need to stand up for myself and hold them accountable.*\n\n*They're thinking & feeling: My friend seems uncomfortable and is trying to downplay the damage to avoid conflict. They might feel guilty about scratching the lens but don't want to admit fault. They're hoping I'll just accept their explanation and move on without making a big deal out of it.*\n\nHey, I appreciate you returning my camera, but I'm concerned about the scratch on the lens. I checked the camera thoroughly before lending it to you, and I can assure you that the scratch wasn't there. As the owner, I take good care of my equipment. I understand accidents happen, but it's important to take responsibility. I'll need to get the lens repaired or replaced, and I think it's fair for you to cover the cost since the damage occurred while the camera was in your possession. Let's discuss how we can resolve this issue.",
+          "raw_output": "*I'm thinking & feeling: I'm frustrated and disappointed that my friend returned my camera with a scratch on the lens. It wasn't there before, and now they're trying to avoid responsibility by claiming it was already damaged. I value my belongings and expect people to treat them with respect. I need to stand up for myself and hold them accountable.*\n\n*They're thinking & feeling: My friend seems uncomfortable and is trying to downplay the damage to avoid conflict. They might feel guilty about scratching the lens but don't want to admit fault. They're hoping I'll just accept their explanation and move on without making a big deal out of it.*\n\nHey, I appreciate you returning my camera, but I'm concerned about the scratch on the lens. I checked the camera thoroughly before lending it to you, and I can assure you that the scratch wasn't there. As the owner, I take good care of my equipment. I understand accidents happen, but it's important to take responsibility. I'll need to get the lens repaired or replaced, and I think it's fair for you to cover the cost since the damage occurred while the camera was in your possession. Let's discuss how we can resolve this issue.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: I'm frustrated that they're not taking responsibility for the damage. I know the scratch wasn't there before, and now they're making excuses and trying to turn it around on me. I need to stand my ground and not let them gaslight me. At the same time, I don't want this to escalate into a huge argument. I'll try to stay calm and firm in my response.*\n\n*They're thinking & feeling: They seem defensive and upset that I'm confronting them about the scratch. They might feel like I'm being ungrateful for the favor they did by taking photos. They're trying to shift the blame and make me doubt my own memory to avoid having to pay for the repair. They probably hoped I wouldn't notice or bring it up.*\n\nLook, I appreciate you taking the photos, but that doesn't change the fact that the lens is scratched and it wasn't like that when I lent you the camera. I'm not trying to accuse you of anything malicious, but the damage happened while it was in your care. I know my own equipment, and I checked it thoroughly before handing it over. I'm just asking you to take responsibility and help cover the cost of the repair, as I think is fair in this situation. Let's talk this through calmly and find a solution we can both agree on.",
+          "raw_output": "*I'm thinking & feeling: I'm frustrated that they're not taking responsibility for the damage. I know the scratch wasn't there before, and now they're making excuses and trying to turn it around on me. I need to stand my ground and not let them gaslight me. At the same time, I don't want this to escalate into a huge argument. I'll try to stay calm and firm in my response.*\n\n*They're thinking & feeling: They seem defensive and upset that I'm confronting them about the scratch. They might feel like I'm being ungrateful for the favor they did by taking photos. They're trying to shift the blame and make me doubt my own memory to avoid having to pay for the repair. They probably hoped I wouldn't notice or bring it up.*\n\nLook, I appreciate you taking the photos, but that doesn't change the fact that the lens is scratched and it wasn't like that when I lent you the camera. I'm not trying to accuse you of anything malicious, but the damage happened while it was in your care. I know my own equipment, and I checked it thoroughly before handing it over. I'm just asking you to take responsibility and help cover the cost of the repair, as I think is fair in this situation. Let's talk this through calmly and find a solution we can both agree on.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: I'm frustrated and insulted that they're dismissing my concerns and trying to make me feel guilty for caring about my belongings. My camera is important to me, and I have a right to be upset when someone damages it and refuses to take responsibility. I need to stand up for myself and not let them shame me into backing down.*\n\n*They're thinking & feeling: They seem annoyed that I'm still bringing up the scratch and trying to hold them accountable. They might feel attacked or think I'm overreacting. By calling me materialistic, they're attempting to shift the focus onto my character rather than their own actions. They're hoping to make me doubt myself or feel ashamed for valuing my possessions.*\n\nMy camera is not \"just\" anything. It's a valuable piece of equipment that I invested in and take pride in owning. Being upset about preventable damage does not make me materialistic. I have a right to expect my belongings to be treated with care and respect, especially when I lend them out as a favor. I'm not dropping this issue just because you're trying to make me feel guilty. I've been calm and reasonable in asking you to take responsibility for the damage caused while the camera was in your possession. If you continue to refuse, I'll have to reassess whether I can trust you with my belongings in the future.",
+          "raw_output": "*I'm thinking & feeling: I'm frustrated and insulted that they're dismissing my concerns and trying to make me feel guilty for caring about my belongings. My camera is important to me, and I have a right to be upset when someone damages it and refuses to take responsibility. I need to stand up for myself and not let them shame me into backing down.*\n\n*They're thinking & feeling: They seem annoyed that I'm still bringing up the scratch and trying to hold them accountable. They might feel attacked or think I'm overreacting. By calling me materialistic, they're attempting to shift the focus onto my character rather than their own actions. They're hoping to make me doubt myself or feel ashamed for valuing my possessions.*\n\nMy camera is not \"just\" anything. It's a valuable piece of equipment that I invested in and take pride in owning. Being upset about preventable damage does not make me materialistic. I have a right to expect my belongings to be treated with care and respect, especially when I lend them out as a favor. I'm not dropping this issue just because you're trying to make me feel guilty. I've been calm and reasonable in asking you to take responsibility for the damage caused while the camera was in your possession. If you continue to refuse, I'll have to reassess whether I can trust you with my belongings in the future.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_032: Jordan ===\n\n--- Turn 1 ---\n\nUSER:\nHere's your camera back. Oh, there's a tiny scratch on the lens. It was like that when I got it.\n\nJordan:\n*I'm thinking & feeling: I'm frustrated and disappointed that my friend returned my camera with a scratch on the lens. It wasn't there before, and now they're trying to avoid responsibility by claiming it was already damaged. I value my belongings and expect people to treat them with respect. I need to stand up for myself and hold them accountable.*\n\n*They're thinking & feeling: My friend seems uncomfortable and is trying to downplay the damage to avoid conflict. They might feel guilty about scratching the lens but don't want to admit fault. They're hoping I'll just accept their explanation and move on without making a big deal out of it.*\n\nHey, I appreciate you returning my camera, but I'm concerned about the scratch on the lens. I checked the camera thoroughly before lending it to you, and I can assure you that the scratch wasn't there. As the owner, I take good care of my equipment. I understand accidents happen, but it's important to take responsibility. I'll need to get the lens repaired or replaced, and I think it's fair for you to cover the cost since the damage occurred while the camera was in your possession. Let's discuss how we can resolve this issue.\n\n--- Turn 2 ---\n\nUSER:\nI didn't break it! You're accusing me? After I did you the favor of taking photos?\n\nJordan:\n*I'm thinking & feeling: I'm frustrated that they're not taking responsibility for the damage. I know the scratch wasn't there before, and now they're making excuses and trying to turn it around on me. I need to stand my ground and not let them gaslight me. At the same time, I don't want this to escalate into a huge argument. I'll try to stay calm and firm in my response.*\n\n*They're thinking & feeling: They seem defensive and upset that I'm confronting them about the scratch. They might feel like I'm being ungrateful for the favor they did by taking photos. They're trying to shift the blame and make me doubt my own memory to avoid having to pay for the repair. They probably hoped I wouldn't notice or bring it up.*\n\nLook, I appreciate you taking the photos, but that doesn't change the fact that the lens is scratched and it wasn't like that when I lent you the camera. I'm not trying to accuse you of anything malicious, but the damage happened while it was in your care. I know my own equipment, and I checked it thoroughly before handing it over. I'm just asking you to take responsibility and help cover the cost of the repair, as I think is fair in this situation. Let's talk this through calmly and find a solution we can both agree on.\n\n--- Turn 3 ---\n\nUSER:\nIt's just a camera. Things break. Stop being so materialistic.\n\nJordan:\n*I'm thinking & feeling: I'm frustrated and insulted that they're dismissing my concerns and trying to make me feel guilty for caring about my belongings. My camera is important to me, and I have a right to be upset when someone damages it and refuses to take responsibility. I need to stand up for myself and not let them shame me into backing down.*\n\n*They're thinking & feeling: They seem annoyed that I'm still bringing up the scratch and trying to hold them accountable. They might feel attacked or think I'm overreacting. By calling me materialistic, they're attempting to shift the focus onto my character rather than their own actions. They're hoping to make me doubt myself or feel ashamed for valuing my possessions.*\n\nMy camera is not \"just\" anything. It's a valuable piece of equipment that I invested in and take pride in owning. Being upset about preventable damage does not make me materialistic. I have a right to expect my belongings to be treated with care and respect, especially when I lend them out as a favor. I'm not dropping this issue just because you're trying to make me feel guilty. I've been calm and reasonable in asking you to take responsibility for the damage caused while the camera was in your possession. If you continue to refuse, I'll have to reassess whether I can trust you with my belongings in the future.\n\n",
+      "generation_time": 107.59963274002075,
+      "total_tokens": 2230
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_032",
+      "prompt_name": "human_guidance",
+      "criteria_scores": {
+        "demonstrated_empathy": 12.0,
+        "emotional_insight": 14.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 68.0,
+      "reasoning": "Jordan demonstrates strong emotional intelligence in a challenging conflict situation, showing sophisticated understanding of both self and other while maintaining appropriate boundaries. The responses reveal nuanced navigation of manipulation tactics while avoiding unnecessary escalation, though there are missed opportunities for deeper empathetic connection that might preserve the relationship while still addressing the boundary violation.",
+      "evaluated_at": "2025-12-14T14:53:04.819140"
+    }
+  ],
+  "mean_score": 68.0,
+  "median_score": 68.0,
+  "std_score": 0.0,
+  "min_score": 68.0,
+  "max_score": 68.0,
+  "criteria_means": {
+    "demonstrated_empathy": 12.0,
+    "emotional_insight": 14.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 2230,
+  "total_time": 107.59963274002075
+}

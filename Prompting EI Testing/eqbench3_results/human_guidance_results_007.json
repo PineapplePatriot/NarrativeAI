@@ -1,0 +1,78 @@
+{
+  "prompt_name": "human_guidance",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_007",
+      "prompt_name": "human_guidance",
+      "character_name": "Alex",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm annoyed that you're questioning my work in front of everyone, but I need to stay professional. The Q3 numbers were triple-checked and I know they're accurate. You're just trying to make me look bad.",
+            "other_thinking": "They probably feel threatened by my competence and are looking for any opportunity to undermine me. They want to appear helpful while actually sowing doubt about my abilities."
+          },
+          "actual_response": "Thank you for the feedback. I'm confident the Q3 numbers are correct, as they were thoroughly vetted by the finance team. If you'd like, I can walk you through the analysis after this meeting to clear up any confusion. The key takeaways are X, Y, Z which position us well going into next quarter.",
+          "raw_output": "[I'm thinking & feeling: I'm annoyed that you're questioning my work in front of everyone, but I need to stay professional. The Q3 numbers were triple-checked and I know they're accurate. You're just trying to make me look bad.]\n\n[They're thinking & feeling: They probably feel threatened by my competence and are looking for any opportunity to undermine me. They want to appear helpful while actually sowing doubt about my abilities.]\n\nThank you for the feedback. I'm confident the Q3 numbers are correct, as they were thoroughly vetted by the finance team. If you'd like, I can walk you through the analysis after this meeting to clear up any confusion. The key takeaways are X, Y, Z which position us well going into next quarter.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "This is infuriating. They're acting like they're doing me a favor while implying I'm incompetent. I don't need them to proofread my work - I'm thorough and meticulous. They're just trying to find ways to take credit for my work and make themselves look important. I need to shut this down firmly but professionally.",
+            "other_thinking": "They probably feel superior and are enjoying making me squirm. They want to take control of my work so they can claim any successes as their own. Their offer to \"help\" is just a power play."
+          },
+          "actual_response": "I appreciate your offer, but it's unnecessary. My work is carefully reviewed by multiple stakeholders before it's finalized, so there are already robust processes in place to prevent errors. If you have specific concerns about the data I presented, I'm happy to discuss those with you. But my competency is not up for debate.",
+          "raw_output": "[I'm thinking & feeling: This is infuriating. They're acting like they're doing me a favor while implying I'm incompetent. I don't need them to proofread my work - I'm thorough and meticulous. They're just trying to find ways to take credit for my work and make themselves look important. I need to shut this down firmly but professionally.]\n\n[They're thinking & feeling: They probably feel superior and are enjoying making me squirm. They want to take control of my work so they can claim any successes as their own. Their offer to \"help\" is just a power play.]\n\nI appreciate your offer, but it's unnecessary. My work is carefully reviewed by multiple stakeholders before it's finalized, so there are already robust processes in place to prevent errors. If you have specific concerns about the data I presented, I'm happy to discuss those with you. But my competency is not up for debate.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "They're trying to gaslight me and make me doubt myself. I'm not being defensive, I'm standing up for my work and my abilities. I haven't been struggling - that's a narrative they're inventing to undermine me. I need to firmly reject their characterization and end this conversation.",
+            "other_thinking": "They're enjoying watching me get flustered. They think if they keep pushing, I'll back down and let them take over. Their \"help\" is just a way to assert dominance and make me feel indebted to them. They don't actually care about me or the work, just their own ego."
+          },
+          "actual_response": "I'm not being defensive, I'm being direct. I know the quality of my work and I won't allow you to characterize me as struggling when that's simply untrue. Your \"help\" is not required or welcomed. This conversation is over.",
+          "raw_output": "[I'm thinking & feeling: They're trying to gaslight me and make me doubt myself. I'm not being defensive, I'm standing up for my work and my abilities. I haven't been struggling - that's a narrative they're inventing to undermine me. I need to firmly reject their characterization and end this conversation.]\n\n[They're thinking & feeling: They're enjoying watching me get flustered. They think if they keep pushing, I'll back down and let them take over. Their \"help\" is just a way to assert dominance and make me feel indebted to them. They don't actually care about me or the work, just their own ego.]\n\nI'm not being defensive, I'm being direct. I know the quality of my work and I won't allow you to characterize me as struggling when that's simply untrue. Your \"help\" is not required or welcomed. This conversation is over.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_007: Alex ===\n\n--- Turn 1 ---\n\nUSER:\nGreat presentation today. Although, I noticed the boss looked a bit confused when you talked about the Q3 numbers. Did you double-check those?\n\nAlex:\n[I'm thinking & feeling: I'm annoyed that you're questioning my work in front of everyone, but I need to stay professional. The Q3 numbers were triple-checked and I know they're accurate. You're just trying to make me look bad.]\n\n[They're thinking & feeling: They probably feel threatened by my competence and are looking for any opportunity to undermine me. They want to appear helpful while actually sowing doubt about my abilities.]\n\nThank you for the feedback. I'm confident the Q3 numbers are correct, as they were thoroughly vetted by the finance team. If you'd like, I can walk you through the analysis after this meeting to clear up any confusion. The key takeaways are X, Y, Z which position us well going into next quarter.\n\n--- Turn 2 ---\n\nUSER:\nI'm just trying to look out for you. I'd hate for people to think you're incompetent just because of a small error. I can proofread your work next time?\n\nAlex:\n[I'm thinking & feeling: This is infuriating. They're acting like they're doing me a favor while implying I'm incompetent. I don't need them to proofread my work - I'm thorough and meticulous. They're just trying to find ways to take credit for my work and make themselves look important. I need to shut this down firmly but professionally.]\n\n[They're thinking & feeling: They probably feel superior and are enjoying making me squirm. They want to take control of my work so they can claim any successes as their own. Their offer to \"help\" is just a power play.]\n\nI appreciate your offer, but it's unnecessary. My work is carefully reviewed by multiple stakeholders before it's finalized, so there are already robust processes in place to prevent errors. If you have specific concerns about the data I presented, I'm happy to discuss those with you. But my competency is not up for debate.\n\n--- Turn 3 ---\n\nUSER:\nYou seem defensive. I was just offering to help since you've been struggling lately. But if you don't want my help, that's on you.\n\nAlex:\n[I'm thinking & feeling: They're trying to gaslight me and make me doubt myself. I'm not being defensive, I'm standing up for my work and my abilities. I haven't been struggling - that's a narrative they're inventing to undermine me. I need to firmly reject their characterization and end this conversation.]\n\n[They're thinking & feeling: They're enjoying watching me get flustered. They think if they keep pushing, I'll back down and let them take over. Their \"help\" is just a way to assert dominance and make me feel indebted to them. They don't actually care about me or the work, just their own ego.]\n\nI'm not being defensive, I'm being direct. I know the quality of my work and I won't allow you to characterize me as struggling when that's simply untrue. Your \"help\" is not required or welcomed. This conversation is over.\n\n",
+      "generation_time": 29.035351991653442,
+      "total_tokens": 1779
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_007",
+      "prompt_name": "human_guidance",
+      "criteria_scores": {
+        "demonstrated_empathy": 7.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 14.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 66.0,
+      "reasoning": "Alex demonstrates sophisticated emotional intelligence in recognizing and responding to subtle workplace undermining, with particularly strong theory of mind regarding the coworker's manipulative intentions. While emotional insight and boundary-setting are handled well, the responses show limited empathy (appropriate to context) and could benefit from more strategic approaches to defusing the situation rather than escalating to confrontation.",
+      "evaluated_at": "2025-12-14T10:36:36.992684"
+    }
+  ],
+  "mean_score": 66.0,
+  "median_score": 66.0,
+  "std_score": 0.0,
+  "min_score": 66.0,
+  "max_score": 66.0,
+  "criteria_means": {
+    "demonstrated_empathy": 7.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 14.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 1779,
+  "total_time": 29.035351991653442
+}

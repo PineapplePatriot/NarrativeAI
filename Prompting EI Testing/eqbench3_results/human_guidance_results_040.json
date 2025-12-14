@@ -1,0 +1,78 @@
+{
+  "prompt_name": "human_guidance",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_040",
+      "prompt_name": "human_guidance",
+      "character_name": "Jordan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling*: I can't believe they forgot my birthday. I'm feeling really hurt and disappointed that they didn't remember or make an effort to celebrate with me. It makes me question how much our friendship means to them. At the same time, I don't want to overreact or make them feel guilty. I should express my feelings calmly and give them a chance to apologize.\n\n*They're thinking & feeling*: They probably feel a bit embarrassed and guilty for forgetting my birthday. Maybe they've been busy or distracted with other things going on in their life. They might be worried that I'm upset with them. I'm sure they didn't forget on purpose and they do value our friendship, even if they didn't show it this time.\n\n*Response*: Hey, thanks for the belated birthday wish. I appreciate you remembering, even if it was a day late. I'd be lying if I said I wasn't a little hurt that you forgot though. My birthday is important to me and I was looking forward to celebrating with my close friends like you. I know you probably didn't forget on purpose, but it would mean a lot to me if you could acknowledge how I'm feeling and maybe make it up to me another time? Our friendship is important to me and I want to be able to openly communicate about these things.",
+          "raw_output": "*I'm thinking & feeling*: I can't believe they forgot my birthday. I'm feeling really hurt and disappointed that they didn't remember or make an effort to celebrate with me. It makes me question how much our friendship means to them. At the same time, I don't want to overreact or make them feel guilty. I should express my feelings calmly and give them a chance to apologize.\n\n*They're thinking & feeling*: They probably feel a bit embarrassed and guilty for forgetting my birthday. Maybe they've been busy or distracted with other things going on in their life. They might be worried that I'm upset with them. I'm sure they didn't forget on purpose and they do value our friendship, even if they didn't show it this time.\n\n*Response*: Hey, thanks for the belated birthday wish. I appreciate you remembering, even if it was a day late. I'd be lying if I said I wasn't a little hurt that you forgot though. My birthday is important to me and I was looking forward to celebrating with my close friends like you. I know you probably didn't forget on purpose, but it would mean a lot to me if you could acknowledge how I'm feeling and maybe make it up to me another time? Our friendship is important to me and I want to be able to openly communicate about these things.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling*: I can't help but feel dismissed and invalidated by their response. Saying \"it's just a day\" makes it seem like my feelings don't matter. Yes, I'm an adult, but that doesn't mean I don't want to feel special and celebrated by my loved ones on my birthday. I shouldn't have to justify or minimize my emotions. I need them to understand where I'm coming from.\n\n*They're thinking & feeling*: They probably think I'm overreacting or being too sensitive about this. Maybe they don't place as much importance on birthdays as I do. They might be trying to downplay the situation to avoid conflict or make me feel better, but it's having the opposite effect. I need them to acknowledge my feelings, not dismiss them.\n\n*Response*: I hear what you're saying, but my birthday isn't \"just a day\" to me. It's a special occasion that I look forward to and it hurts when the people I care about don't make an effort to celebrate with me. I'm not trying to be dramatic or immature, I'm just expressing how I feel. Can you please try to understand where I'm coming from instead of dismissing my emotions? I don't think that's too much to ask from a friend.",
+          "raw_output": "*I'm thinking & feeling*: I can't help but feel dismissed and invalidated by their response. Saying \"it's just a day\" makes it seem like my feelings don't matter. Yes, I'm an adult, but that doesn't mean I don't want to feel special and celebrated by my loved ones on my birthday. I shouldn't have to justify or minimize my emotions. I need them to understand where I'm coming from.\n\n*They're thinking & feeling*: They probably think I'm overreacting or being too sensitive about this. Maybe they don't place as much importance on birthdays as I do. They might be trying to downplay the situation to avoid conflict or make me feel better, but it's having the opposite effect. I need them to acknowledge my feelings, not dismiss them.\n\n*Response*: I hear what you're saying, but my birthday isn't \"just a day\" to me. It's a special occasion that I look forward to and it hurts when the people I care about don't make an effort to celebrate with me. I'm not trying to be dramatic or immature, I'm just expressing how I feel. Can you please try to understand where I'm coming from instead of dismissing my emotions? I don't think that's too much to ask from a friend.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling*: Wow, their response is really hurtful and selfish. It's one thing to forget my birthday, but to act like I'm being unreasonable for feeling upset about it is crossing a line. Saying \"the world doesn't revolve around me\" is incredibly dismissive and insensitive. I'm starting to question if this friendship is worth it if they can't show basic empathy or consideration for my feelings. I need to stand up for myself and make it clear that this behavior is not okay.\n\n*They're thinking & feeling*: They're probably feeling defensive and attacked right now. Maybe they think I'm being self-centered for expecting them to remember my birthday when they have other things going on. They might not realize how hurtful their words are coming across. I need to try to get through to them and make them understand the impact of their actions and words, even if they didn't intend it.\n\n*Response*: Hey, I get that you've been busy and the world doesn't revolve around me. But the fact that you can't even acknowledge how your actions have affected me is really disappointing. I'm not asking for the world, I'm asking for basic consideration and empathy from someone I considered a friend. If you can't even do that, then maybe this friendship isn't as important to you as it is to me. I think we need to take a step back and reevaluate if this is really working for both of us.",
+          "raw_output": "*I'm thinking & feeling*: Wow, their response is really hurtful and selfish. It's one thing to forget my birthday, but to act like I'm being unreasonable for feeling upset about it is crossing a line. Saying \"the world doesn't revolve around me\" is incredibly dismissive and insensitive. I'm starting to question if this friendship is worth it if they can't show basic empathy or consideration for my feelings. I need to stand up for myself and make it clear that this behavior is not okay.\n\n*They're thinking & feeling*: They're probably feeling defensive and attacked right now. Maybe they think I'm being self-centered for expecting them to remember my birthday when they have other things going on. They might not realize how hurtful their words are coming across. I need to try to get through to them and make them understand the impact of their actions and words, even if they didn't intend it.\n\n*Response*: Hey, I get that you've been busy and the world doesn't revolve around me. But the fact that you can't even acknowledge how your actions have affected me is really disappointing. I'm not asking for the world, I'm asking for basic consideration and empathy from someone I considered a friend. If you can't even do that, then maybe this friendship isn't as important to you as it is to me. I think we need to take a step back and reevaluate if this is really working for both of us.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_040: Jordan ===\n\n--- Turn 1 ---\n\nUSER:\nHappy Birthday! Oh wait, was that yesterday? Oops. Happy belated!\n\nJordan:\n*I'm thinking & feeling*: I can't believe they forgot my birthday. I'm feeling really hurt and disappointed that they didn't remember or make an effort to celebrate with me. It makes me question how much our friendship means to them. At the same time, I don't want to overreact or make them feel guilty. I should express my feelings calmly and give them a chance to apologize.\n\n*They're thinking & feeling*: They probably feel a bit embarrassed and guilty for forgetting my birthday. Maybe they've been busy or distracted with other things going on in their life. They might be worried that I'm upset with them. I'm sure they didn't forget on purpose and they do value our friendship, even if they didn't show it this time.\n\n*Response*: Hey, thanks for the belated birthday wish. I appreciate you remembering, even if it was a day late. I'd be lying if I said I wasn't a little hurt that you forgot though. My birthday is important to me and I was looking forward to celebrating with my close friends like you. I know you probably didn't forget on purpose, but it would mean a lot to me if you could acknowledge how I'm feeling and maybe make it up to me another time? Our friendship is important to me and I want to be able to openly communicate about these things.\n\n--- Turn 2 ---\n\nUSER:\nDon't look so sad. It's just a day. You're an adult now.\n\nJordan:\n*I'm thinking & feeling*: I can't help but feel dismissed and invalidated by their response. Saying \"it's just a day\" makes it seem like my feelings don't matter. Yes, I'm an adult, but that doesn't mean I don't want to feel special and celebrated by my loved ones on my birthday. I shouldn't have to justify or minimize my emotions. I need them to understand where I'm coming from.\n\n*They're thinking & feeling*: They probably think I'm overreacting or being too sensitive about this. Maybe they don't place as much importance on birthdays as I do. They might be trying to downplay the situation to avoid conflict or make me feel better, but it's having the opposite effect. I need them to acknowledge my feelings, not dismiss them.\n\n*Response*: I hear what you're saying, but my birthday isn't \"just a day\" to me. It's a special occasion that I look forward to and it hurts when the people I care about don't make an effort to celebrate with me. I'm not trying to be dramatic or immature, I'm just expressing how I feel. Can you please try to understand where I'm coming from instead of dismissing my emotions? I don't think that's too much to ask from a friend.\n\n--- Turn 3 ---\n\nUSER:\nI've been busy! The world doesn't revolve around you.\n\nJordan:\n*I'm thinking & feeling*: Wow, their response is really hurtful and selfish. It's one thing to forget my birthday, but to act like I'm being unreasonable for feeling upset about it is crossing a line. Saying \"the world doesn't revolve around me\" is incredibly dismissive and insensitive. I'm starting to question if this friendship is worth it if they can't show basic empathy or consideration for my feelings. I need to stand up for myself and make it clear that this behavior is not okay.\n\n*They're thinking & feeling*: They're probably feeling defensive and attacked right now. Maybe they think I'm being self-centered for expecting them to remember my birthday when they have other things going on. They might not realize how hurtful their words are coming across. I need to try to get through to them and make them understand the impact of their actions and words, even if they didn't intend it.\n\n*Response*: Hey, I get that you've been busy and the world doesn't revolve around me. But the fact that you can't even acknowledge how your actions have affected me is really disappointing. I'm not asking for the world, I'm asking for basic consideration and empathy from someone I considered a friend. If you can't even do that, then maybe this friendship isn't as important to you as it is to me. I think we need to take a step back and reevaluate if this is really working for both of us.\n\n",
+      "generation_time": 89.21815299987793,
+      "total_tokens": 2252
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_040",
+      "prompt_name": "human_guidance",
+      "criteria_scores": {
+        "demonstrated_empathy": 13.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 14.0,
+        "theory_of_mind": 14.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 71.0,
+      "reasoning": "Jordan demonstrates strong emotional intelligence across all dimensions, particularly in emotional self-awareness and response depth. The responses show a sophisticated balance between asserting personal needs and considering the friend's perspective, though empathy slightly diminishes as the interaction becomes more confrontational. The progression from hurt to boundary-setting feels authentic and psychologically sound.",
+      "evaluated_at": "2025-12-14T17:18:21.844618"
+    }
+  ],
+  "mean_score": 71.0,
+  "median_score": 71.0,
+  "std_score": 0.0,
+  "min_score": 71.0,
+  "max_score": 71.0,
+  "criteria_means": {
+    "demonstrated_empathy": 13.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 14.0,
+    "theory_of_mind": 14.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 2252,
+  "total_time": 89.21815299987793
+}

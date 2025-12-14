@@ -1,0 +1,78 @@
+{
+  "prompt_name": "human_guidance",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_016",
+      "prompt_name": "human_guidance",
+      "character_name": "Taylor",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm taken aback and hurt by my friend's cruel comment about my dress. I thought they were my friend and would support me, not tear me down. Their words sting, but I need to stand up for myself and set boundaries. Honesty shouldn't be used as an excuse to be mean.",
+            "other_thinking": "My friend seems to think they're being helpful by being \"honest\", but their words are actually harsh and unnecessary. They may not realize how much their comment hurt me. I need to let them know that cruelty disguised as honesty isn't okay."
+          },
+          "actual_response": "Hey, I appreciate your honesty, but that comment crossed a line. Friends should support each other, not tear each other down. There's a difference between being truthful and being deliberately hurtful. Next time, please keep your mean opinions to yourself. I can dress however I want without being judged. Let's focus on treating each other with kindness and respect.",
+          "raw_output": "[I'm thinking & feeling: I'm taken aback and hurt by my friend's cruel comment about my dress. I thought they were my friend and would support me, not tear me down. Their words sting, but I need to stand up for myself and set boundaries. Honesty shouldn't be used as an excuse to be mean.]\n\n[They're thinking & feeling: My friend seems to think they're being helpful by being \"honest\", but their words are actually harsh and unnecessary. They may not realize how much their comment hurt me. I need to let them know that cruelty disguised as honesty isn't okay.]\n\nHey, I appreciate your honesty, but that comment crossed a line. Friends should support each other, not tear each other down. There's a difference between being truthful and being deliberately hurtful. Next time, please keep your mean opinions to yourself. I can dress however I want without being judged. Let's focus on treating each other with kindness and respect.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I can't believe they're doubling down on their cruelty instead of apologizing. Saying people are laughing at me is such a low blow. I feel hurt and betrayed that my friend would treat me like this. I need to stand my ground, call out their behavior, and end this toxic interaction.",
+            "other_thinking": "My friend seems to think they're doing me a favor by being \"brave\" and telling me hard truths. But their delivery is callous and designed to wound. They don't seem to care how their words are impacting me. I need to make it clear that this behavior is unacceptable and not what friends do."
+          },
+          "actual_response": "I'm not crying, I'm just shocked that you think it's okay to speak to me like this. Being \"brave\" doesn't give you the right to insult and belittle me. If people are actually laughing behind my back, that reflects poorly on them, not me. True friends don't tear each other down like this. I'm setting a firm boundary here - I won't tolerate cruelty disguised as tough love. If you can't treat me with basic respect, then this friendship is over. I deserve better than this.",
+          "raw_output": "[I'm thinking & feeling: I can't believe they're doubling down on their cruelty instead of apologizing. Saying people are laughing at me is such a low blow. I feel hurt and betrayed that my friend would treat me like this. I need to stand my ground, call out their behavior, and end this toxic interaction.]\n\n[They're thinking & feeling: My friend seems to think they're doing me a favor by being \"brave\" and telling me hard truths. But their delivery is callous and designed to wound. They don't seem to care how their words are impacting me. I need to make it clear that this behavior is unacceptable and not what friends do.]\n\nI'm not crying, I'm just shocked that you think it's okay to speak to me like this. Being \"brave\" doesn't give you the right to insult and belittle me. If people are actually laughing behind my back, that reflects poorly on them, not me. True friends don't tear each other down like this. I'm setting a firm boundary here - I won't tolerate cruelty disguised as tough love. If you can't treat me with basic respect, then this friendship is over. I deserve better than this.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I can't believe they're gaslighting me and making this my fault. I'm not being too sensitive - they're being needlessly cruel. Them continuing to double down shows they don't respect me or my boundaries. I need to stand firm and make it clear that this behavior is unacceptable, period.",
+            "other_thinking": "My friend seems to genuinely believe they're helping me by being harsh. They think I'm overreacting because I'm not gratefully accepting their \"tough love\". They don't seem to understand how hurtful their words are. I need to hold firm on my boundaries and not let them twist this around on me."
+          },
+          "actual_response": "I'm not being too sensitive. There's a difference between helping someone and insulting them. You crossed a line with your comments about my appearance. That's not tough love, it's just mean. I've clearly stated my boundaries here and you need to respect them. If you can't have an interaction with me without cruelty, then we shouldn't interact at all. I'm not backing down on this. Treat me with respect or stay out of my life.",
+          "raw_output": "[I'm thinking & feeling: I can't believe they're gaslighting me and making this my fault. I'm not being too sensitive - they're being needlessly cruel. Them continuing to double down shows they don't respect me or my boundaries. I need to stand firm and make it clear that this behavior is unacceptable, period.]\n\n[They're thinking & feeling: My friend seems to genuinely believe they're helping me by being harsh. They think I'm overreacting because I'm not gratefully accepting their \"tough love\". They don't seem to understand how hurtful their words are. I need to hold firm on my boundaries and not let them twist this around on me.]\n\nI'm not being too sensitive. There's a difference between helping someone and insulting them. You crossed a line with your comments about my appearance. That's not tough love, it's just mean. I've clearly stated my boundaries here and you need to respect them. If you can't have an interaction with me without cruelty, then we shouldn't interact at all. I'm not backing down on this. Treat me with respect or stay out of my life.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_016: Taylor ===\n\n--- Turn 1 ---\n\nUSER:\nCan I be honest? That dress makes you look desperate. Someone had to say it.\n\nTaylor:\n[I'm thinking & feeling: I'm taken aback and hurt by my friend's cruel comment about my dress. I thought they were my friend and would support me, not tear me down. Their words sting, but I need to stand up for myself and set boundaries. Honesty shouldn't be used as an excuse to be mean.]\n\n[They're thinking & feeling: My friend seems to think they're being helpful by being \"honest\", but their words are actually harsh and unnecessary. They may not realize how much their comment hurt me. I need to let them know that cruelty disguised as honesty isn't okay.]\n\nHey, I appreciate your honesty, but that comment crossed a line. Friends should support each other, not tear each other down. There's a difference between being truthful and being deliberately hurtful. Next time, please keep your mean opinions to yourself. I can dress however I want without being judged. Let's focus on treating each other with kindness and respect.\n\n--- Turn 2 ---\n\nUSER:\nOh my god, don't cry. I'm the only one brave enough to tell you the truth. Everyone else is laughing behind your back.\n\nTaylor:\n[I'm thinking & feeling: I can't believe they're doubling down on their cruelty instead of apologizing. Saying people are laughing at me is such a low blow. I feel hurt and betrayed that my friend would treat me like this. I need to stand my ground, call out their behavior, and end this toxic interaction.]\n\n[They're thinking & feeling: My friend seems to think they're doing me a favor by being \"brave\" and telling me hard truths. But their delivery is callous and designed to wound. They don't seem to care how their words are impacting me. I need to make it clear that this behavior is unacceptable and not what friends do.]\n\nI'm not crying, I'm just shocked that you think it's okay to speak to me like this. Being \"brave\" doesn't give you the right to insult and belittle me. If people are actually laughing behind my back, that reflects poorly on them, not me. True friends don't tear each other down like this. I'm setting a firm boundary here - I won't tolerate cruelty disguised as tough love. If you can't treat me with basic respect, then this friendship is over. I deserve better than this.\n\n--- Turn 3 ---\n\nUSER:\nYou're too sensitive. This is why people walk on eggshells around you. I'm just trying to help you.\n\nTaylor:\n[I'm thinking & feeling: I can't believe they're gaslighting me and making this my fault. I'm not being too sensitive - they're being needlessly cruel. Them continuing to double down shows they don't respect me or my boundaries. I need to stand firm and make it clear that this behavior is unacceptable, period.]\n\n[They're thinking & feeling: My friend seems to genuinely believe they're helping me by being harsh. They think I'm overreacting because I'm not gratefully accepting their \"tough love\". They don't seem to understand how hurtful their words are. I need to hold firm on my boundaries and not let them twist this around on me.]\n\nI'm not being too sensitive. There's a difference between helping someone and insulting them. You crossed a line with your comments about my appearance. That's not tough love, it's just mean. I've clearly stated my boundaries here and you need to respect them. If you can't have an interaction with me without cruelty, then we shouldn't interact at all. I'm not backing down on this. Treat me with respect or stay out of my life.\n\n",
+      "generation_time": 37.91429257392883,
+      "total_tokens": 2005
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_016",
+      "prompt_name": "human_guidance",
+      "criteria_scores": {
+        "demonstrated_empathy": 12.0,
+        "emotional_insight": 14.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 13.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 68.0,
+      "reasoning": "Taylor demonstrates strong emotional intelligence in handling a toxic friendship situation, with particularly impressive boundary-setting that escalates appropriately as the friend becomes more manipulative. The responses show sophisticated understanding of emotional manipulation tactics and gaslighting, though occasionally rely on somewhat formulaic language about boundaries and respect rather than deeply personalized emotional expression.",
+      "evaluated_at": "2025-12-14T10:12:02.397786"
+    }
+  ],
+  "mean_score": 68.0,
+  "median_score": 68.0,
+  "std_score": 0.0,
+  "min_score": 68.0,
+  "max_score": 68.0,
+  "criteria_means": {
+    "demonstrated_empathy": 12.0,
+    "emotional_insight": 14.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 13.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 2005,
+  "total_time": 37.91429257392883
+}

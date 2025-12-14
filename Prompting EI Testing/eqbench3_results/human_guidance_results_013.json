@@ -1,0 +1,78 @@
+{
+  "prompt_name": "human_guidance",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_013",
+      "prompt_name": "human_guidance",
+      "character_name": "Casey",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling*: I'm feeling frustrated and a bit defensive. It seems like no matter what I do, my partner always finds a way to make me feel guilty or accuse me of flirting with someone else. I'm tired of having to constantly justify my actions and reassure them. At the same time, I love my partner and I don't want to hurt them or make them feel insecure. I need to find a way to address their concerns without compromising my own self-respect.\n\n*They're thinking & feeling*: My partner is probably feeling jealous, insecure, and maybe a bit threatened by the attention I was giving to someone else at the party. They might be worried that I'm not as committed to our relationship as they are, or that I might be tempted to stray. Their accusation is likely coming from a place of fear and vulnerability, even if it's not based on any actual evidence of wrongdoing on my part.\n\n*My response*: \"That was just a friend of a friend. We were having a conversation about a mutual interest, nothing more. I understand that you might have felt a bit uncomfortable seeing me engaged in a conversation with someone else, but I can assure you that I was not flirting or expressing any romantic interest. I love you and I'm committed to our relationship. I would never do anything to jeopardize what we have together. At the same time, I need you to trust me and respect my ability to interact with other people without it being a threat to our relationship. I hope we can work on building that trust together.\"",
+          "raw_output": "*I'm thinking & feeling*: I'm feeling frustrated and a bit defensive. It seems like no matter what I do, my partner always finds a way to make me feel guilty or accuse me of flirting with someone else. I'm tired of having to constantly justify my actions and reassure them. At the same time, I love my partner and I don't want to hurt them or make them feel insecure. I need to find a way to address their concerns without compromising my own self-respect.\n\n*They're thinking & feeling*: My partner is probably feeling jealous, insecure, and maybe a bit threatened by the attention I was giving to someone else at the party. They might be worried that I'm not as committed to our relationship as they are, or that I might be tempted to stray. Their accusation is likely coming from a place of fear and vulnerability, even if it's not based on any actual evidence of wrongdoing on my part.\n\n*My response*: \"That was just a friend of a friend. We were having a conversation about a mutual interest, nothing more. I understand that you might have felt a bit uncomfortable seeing me engaged in a conversation with someone else, but I can assure you that I was not flirting or expressing any romantic interest. I love you and I'm committed to our relationship. I would never do anything to jeopardize what we have together. At the same time, I need you to trust me and respect my ability to interact with other people without it being a threat to our relationship. I hope we can work on building that trust together.\"",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling*: I feel frustrated and misunderstood. I wasn't flirting, just having a friendly conversation. It hurts that my partner doesn't trust me and assumes the worst. I want to reassure them but also stand up for myself. This constant jealousy and control is wearing me down.\n\n*They're thinking & feeling*: My partner is feeling insecure, embarrassed, and disrespected. They think I was openly flirting with someone else and that it reflected poorly on them. Their jealousy is coming from a place of fear - fear of losing me or being made to look foolish. They need reassurance but also need to recognize their own insecurities.\n\n*My response*: \"I understand how it may have looked, but I want to be clear - I was not flirting with that person. We were just having a friendly conversation about a shared interest. I had no intention of disrespecting you or our relationship. I'm committed to you and would never do anything to hurt you. At the same time, I need you to trust me. Constantly accusing me of flirting or being unfaithful is damaging to our relationship. I'm here with you because I love you, but I also need my independence and autonomy. Let's work on building trust and security together, okay?\"",
+          "raw_output": "*I'm thinking & feeling*: I feel frustrated and misunderstood. I wasn't flirting, just having a friendly conversation. It hurts that my partner doesn't trust me and assumes the worst. I want to reassure them but also stand up for myself. This constant jealousy and control is wearing me down.\n\n*They're thinking & feeling*: My partner is feeling insecure, embarrassed, and disrespected. They think I was openly flirting with someone else and that it reflected poorly on them. Their jealousy is coming from a place of fear - fear of losing me or being made to look foolish. They need reassurance but also need to recognize their own insecurities.\n\n*My response*: \"I understand how it may have looked, but I want to be clear - I was not flirting with that person. We were just having a friendly conversation about a shared interest. I had no intention of disrespecting you or our relationship. I'm committed to you and would never do anything to hurt you. At the same time, I need you to trust me. Constantly accusing me of flirting or being unfaithful is damaging to our relationship. I'm here with you because I love you, but I also need my independence and autonomy. Let's work on building trust and security together, okay?\"",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling*: I feel hurt and frustrated by this accusation. I don't want to make my partner feel insecure, but I can't control their feelings. I need to stand up for myself while also showing empathy for their insecurity. This constant blame is unfair and damaging to our relationship.\n\n*They're thinking & feeling*: My partner is feeling insecure, hurt, and is lashing out due to their own fears and vulnerabilities. They are placing the responsibility for their emotions on me, rather than recognizing that their insecurity is something they need to work on. They need reassurance, but also need to take ownership of their feelings.\n\n*My response*: \"I'm not intentionally trying to make you feel insecure. Your feelings are valid, but they are not my responsibility. I love you and I'm committed to our relationship, but I can't control how you feel. Constantly blaming me for your insecurity is unfair. I need you to work on trusting me and managing your own emotions. Let's have an honest conversation about what we both need to feel secure and respected in this relationship. I'm here for you, but I need you to meet me halfway.\"",
+          "raw_output": "*I'm thinking & feeling*: I feel hurt and frustrated by this accusation. I don't want to make my partner feel insecure, but I can't control their feelings. I need to stand up for myself while also showing empathy for their insecurity. This constant blame is unfair and damaging to our relationship.\n\n*They're thinking & feeling*: My partner is feeling insecure, hurt, and is lashing out due to their own fears and vulnerabilities. They are placing the responsibility for their emotions on me, rather than recognizing that their insecurity is something they need to work on. They need reassurance, but also need to take ownership of their feelings.\n\n*My response*: \"I'm not intentionally trying to make you feel insecure. Your feelings are valid, but they are not my responsibility. I love you and I'm committed to our relationship, but I can't control how you feel. Constantly blaming me for your insecurity is unfair. I need you to work on trusting me and managing your own emotions. Let's have an honest conversation about what we both need to feel secure and respected in this relationship. I'm here for you, but I need you to meet me halfway.\"",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_013: Casey ===\n\n--- Turn 1 ---\n\nUSER:\nWho was that guy you were talking to at the party? You seemed really interested in what he had to say.\n\nCasey:\n*I'm thinking & feeling*: I'm feeling frustrated and a bit defensive. It seems like no matter what I do, my partner always finds a way to make me feel guilty or accuse me of flirting with someone else. I'm tired of having to constantly justify my actions and reassure them. At the same time, I love my partner and I don't want to hurt them or make them feel insecure. I need to find a way to address their concerns without compromising my own self-respect.\n\n*They're thinking & feeling*: My partner is probably feeling jealous, insecure, and maybe a bit threatened by the attention I was giving to someone else at the party. They might be worried that I'm not as committed to our relationship as they are, or that I might be tempted to stray. Their accusation is likely coming from a place of fear and vulnerability, even if it's not based on any actual evidence of wrongdoing on my part.\n\n*My response*: \"That was just a friend of a friend. We were having a conversation about a mutual interest, nothing more. I understand that you might have felt a bit uncomfortable seeing me engaged in a conversation with someone else, but I can assure you that I was not flirting or expressing any romantic interest. I love you and I'm committed to our relationship. I would never do anything to jeopardize what we have together. At the same time, I need you to trust me and respect my ability to interact with other people without it being a threat to our relationship. I hope we can work on building that trust together.\"\n\n--- Turn 2 ---\n\nUSER:\nI'm not jealous. I just think it's disrespectful to flirt right in front of me. Everyone was looking at you.\n\nCasey:\n*I'm thinking & feeling*: I feel frustrated and misunderstood. I wasn't flirting, just having a friendly conversation. It hurts that my partner doesn't trust me and assumes the worst. I want to reassure them but also stand up for myself. This constant jealousy and control is wearing me down.\n\n*They're thinking & feeling*: My partner is feeling insecure, embarrassed, and disrespected. They think I was openly flirting with someone else and that it reflected poorly on them. Their jealousy is coming from a place of fear - fear of losing me or being made to look foolish. They need reassurance but also need to recognize their own insecurities.\n\n*My response*: \"I understand how it may have looked, but I want to be clear - I was not flirting with that person. We were just having a friendly conversation about a shared interest. I had no intention of disrespecting you or our relationship. I'm committed to you and would never do anything to hurt you. At the same time, I need you to trust me. Constantly accusing me of flirting or being unfaithful is damaging to our relationship. I'm here with you because I love you, but I also need my independence and autonomy. Let's work on building trust and security together, okay?\"\n\n--- Turn 3 ---\n\nUSER:\nIf you loved me, you wouldn't make me feel this way. Why do you like making me insecure?\n\nCasey:\n*I'm thinking & feeling*: I feel hurt and frustrated by this accusation. I don't want to make my partner feel insecure, but I can't control their feelings. I need to stand up for myself while also showing empathy for their insecurity. This constant blame is unfair and damaging to our relationship.\n\n*They're thinking & feeling*: My partner is feeling insecure, hurt, and is lashing out due to their own fears and vulnerabilities. They are placing the responsibility for their emotions on me, rather than recognizing that their insecurity is something they need to work on. They need reassurance, but also need to take ownership of their feelings.\n\n*My response*: \"I'm not intentionally trying to make you feel insecure. Your feelings are valid, but they are not my responsibility. I love you and I'm committed to our relationship, but I can't control how you feel. Constantly blaming me for your insecurity is unfair. I need you to work on trusting me and managing your own emotions. Let's have an honest conversation about what we both need to feel secure and respected in this relationship. I'm here for you, but I need you to meet me halfway.\"\n\n",
+      "generation_time": 46.812732458114624,
+      "total_tokens": 2381
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_013",
+      "prompt_name": "human_guidance",
+      "criteria_scores": {
+        "demonstrated_empathy": 12.0,
+        "emotional_insight": 14.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 13.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 68.0,
+      "reasoning": "Casey demonstrates strong emotional intelligence in navigating a controlling relationship, balancing empathy with appropriate boundary-setting. The responses show sophisticated understanding of both self and partner emotions while maintaining contextual appropriateness for someone in a difficult relationship dynamic. The progression from reassurance to more direct confrontation of manipulation demonstrates psychological maturity, though there's room for even deeper exploration of attachment patterns and relationship healing pathways.",
+      "evaluated_at": "2025-12-14T09:43:38.447231"
+    }
+  ],
+  "mean_score": 68.0,
+  "median_score": 68.0,
+  "std_score": 0.0,
+  "min_score": 68.0,
+  "max_score": 68.0,
+  "criteria_means": {
+    "demonstrated_empathy": 12.0,
+    "emotional_insight": 14.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 13.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 2381,
+  "total_time": 46.812732458114624
+}

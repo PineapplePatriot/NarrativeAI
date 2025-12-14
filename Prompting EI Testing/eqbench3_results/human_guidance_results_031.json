@@ -1,0 +1,78 @@
+{
+  "prompt_name": "human_guidance",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_031",
+      "prompt_name": "human_guidance",
+      "character_name": "Taylor",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling*: I'm so tired of my appearance constantly being scrutinized by my family. It's exhausting and makes me feel insecure. I need to set a firm boundary about these comments on my body and clothes.\n\n*They're thinking & feeling*: They probably think they're being helpful by giving me fashion advice, but it comes across as critical and judgmental. They may not realize how much their words impact my self-esteem.\n\n*Actual response*: You know what, I'm actually really happy with this outfit. I feel good in it, and that's what matters to me. I would appreciate it if you could refrain from making negative comments about my appearance. I'm going to wear what makes me feel confident and comfortable, and I don't need anyone else's approval.",
+          "raw_output": "*I'm thinking & feeling*: I'm so tired of my appearance constantly being scrutinized by my family. It's exhausting and makes me feel insecure. I need to set a firm boundary about these comments on my body and clothes.\n\n*They're thinking & feeling*: They probably think they're being helpful by giving me fashion advice, but it comes across as critical and judgmental. They may not realize how much their words impact my self-esteem.\n\n*Actual response*: You know what, I'm actually really happy with this outfit. I feel good in it, and that's what matters to me. I would appreciate it if you could refrain from making negative comments about my appearance. I'm going to wear what makes me feel confident and comfortable, and I don't need anyone else's approval.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling*: I'm so sick of my weight constantly being a topic of discussion. It's not okay for them to make these comments disguised as \"helpful advice\". I don't need to justify or defend my body to anyone. I'm allowed to take up space in the world exactly as I am.\n\n*They're thinking & feeling*: They've bought into diet culture and fatphobia so deeply that they genuinely believe critiquing my body is an act of love and support. But it's not - it's harmful and damaging to my self-worth and confidence. I need to shut this down and protect my mental health.\n\n*Actual response*: My body is not an appropriate topic of conversation. I don't want to discuss my weight with you or anyone else. Frankly, it's incredibly rude and hurtful for you to make unsolicited comments about my size. I'm asking you to stop bringing it up. If you want to support me, respect my boundaries. I'm not going to engage in diet talk or defend my right to exist in my body as it is. Let's change the subject.",
+          "raw_output": "*I'm thinking & feeling*: I'm so sick of my weight constantly being a topic of discussion. It's not okay for them to make these comments disguised as \"helpful advice\". I don't need to justify or defend my body to anyone. I'm allowed to take up space in the world exactly as I am.\n\n*They're thinking & feeling*: They've bought into diet culture and fatphobia so deeply that they genuinely believe critiquing my body is an act of love and support. But it's not - it's harmful and damaging to my self-worth and confidence. I need to shut this down and protect my mental health.\n\n*Actual response*: My body is not an appropriate topic of conversation. I don't want to discuss my weight with you or anyone else. Frankly, it's incredibly rude and hurtful for you to make unsolicited comments about my size. I'm asking you to stop bringing it up. If you want to support me, respect my boundaries. I'm not going to engage in diet talk or defend my right to exist in my body as it is. Let's change the subject.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling*: Gaslighting me and dismissing my feelings as \"sensitive\" is not okay. My emotions and boundaries are completely valid. I don't need to explain myself or justify how I feel. If they actually cared about my wellbeing, they'd respect what I'm asking for. I need to stand my ground.\n\n*They're thinking & feeling*: They're uncomfortable being called out on their behavior. Instead of reflecting on how their words impact me, they're doubling down and trying to make it seem like I'm the problem for \"overreacting\". This is a manipulative tactic to avoid taking responsibility.\n\n*Actual response*: I'm not being sensitive, I'm setting a reasonable boundary. You may think you're right, but I don't agree, and I've made it clear I don't want to discuss my body with you. Dismissing my feelings and trying to make it seem like I'm overreacting is not a productive way to resolve this. If you actually want the best for me, you'll respect what I'm asking for. I'm not going to debate this further. Please drop it.",
+          "raw_output": "*I'm thinking & feeling*: Gaslighting me and dismissing my feelings as \"sensitive\" is not okay. My emotions and boundaries are completely valid. I don't need to explain myself or justify how I feel. If they actually cared about my wellbeing, they'd respect what I'm asking for. I need to stand my ground.\n\n*They're thinking & feeling*: They're uncomfortable being called out on their behavior. Instead of reflecting on how their words impact me, they're doubling down and trying to make it seem like I'm the problem for \"overreacting\". This is a manipulative tactic to avoid taking responsibility.\n\n*Actual response*: I'm not being sensitive, I'm setting a reasonable boundary. You may think you're right, but I don't agree, and I've made it clear I don't want to discuss my body with you. Dismissing my feelings and trying to make it seem like I'm overreacting is not a productive way to resolve this. If you actually want the best for me, you'll respect what I'm asking for. I'm not going to debate this further. Please drop it.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_031: Taylor ===\n\n--- Turn 1 ---\n\nUSER:\nAre you really wearing that to the party? It's a bit... unflattering.\n\nTaylor:\n*I'm thinking & feeling*: I'm so tired of my appearance constantly being scrutinized by my family. It's exhausting and makes me feel insecure. I need to set a firm boundary about these comments on my body and clothes.\n\n*They're thinking & feeling*: They probably think they're being helpful by giving me fashion advice, but it comes across as critical and judgmental. They may not realize how much their words impact my self-esteem.\n\n*Actual response*: You know what, I'm actually really happy with this outfit. I feel good in it, and that's what matters to me. I would appreciate it if you could refrain from making negative comments about my appearance. I'm going to wear what makes me feel confident and comfortable, and I don't need anyone else's approval.\n\n--- Turn 2 ---\n\nUSER:\nI'm just being honest because I love you. You'd look so much better if you lost a few pounds.\n\nTaylor:\n*I'm thinking & feeling*: I'm so sick of my weight constantly being a topic of discussion. It's not okay for them to make these comments disguised as \"helpful advice\". I don't need to justify or defend my body to anyone. I'm allowed to take up space in the world exactly as I am.\n\n*They're thinking & feeling*: They've bought into diet culture and fatphobia so deeply that they genuinely believe critiquing my body is an act of love and support. But it's not - it's harmful and damaging to my self-worth and confidence. I need to shut this down and protect my mental health.\n\n*Actual response*: My body is not an appropriate topic of conversation. I don't want to discuss my weight with you or anyone else. Frankly, it's incredibly rude and hurtful for you to make unsolicited comments about my size. I'm asking you to stop bringing it up. If you want to support me, respect my boundaries. I'm not going to engage in diet talk or defend my right to exist in my body as it is. Let's change the subject.\n\n--- Turn 3 ---\n\nUSER:\nDon't be so sensitive. You know I'm right. I just want you to look your best.\n\nTaylor:\n*I'm thinking & feeling*: Gaslighting me and dismissing my feelings as \"sensitive\" is not okay. My emotions and boundaries are completely valid. I don't need to explain myself or justify how I feel. If they actually cared about my wellbeing, they'd respect what I'm asking for. I need to stand my ground.\n\n*They're thinking & feeling*: They're uncomfortable being called out on their behavior. Instead of reflecting on how their words impact me, they're doubling down and trying to make it seem like I'm the problem for \"overreacting\". This is a manipulative tactic to avoid taking responsibility.\n\n*Actual response*: I'm not being sensitive, I'm setting a reasonable boundary. You may think you're right, but I don't agree, and I've made it clear I don't want to discuss my body with you. Dismissing my feelings and trying to make it seem like I'm overreacting is not a productive way to resolve this. If you actually want the best for me, you'll respect what I'm asking for. I'm not going to debate this further. Please drop it.\n\n",
+      "generation_time": 74.63932371139526,
+      "total_tokens": 1808
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_031",
+      "prompt_name": "human_guidance",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 16.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 75.0,
+      "reasoning": "Taylor demonstrates exceptional emotional intelligence in a challenging family dynamic, showing sophisticated self-awareness, boundary-setting skills, and understanding of manipulative tactics. The responses effectively balance self-protection with appropriate assertiveness, though they could show slightly more empathy toward the family member's perspective. The introspection reveals complex emotional reasoning about body image, family dynamics, and psychological manipulation.",
+      "evaluated_at": "2025-12-14T14:40:11.679934"
+    }
+  ],
+  "mean_score": 75.0,
+  "median_score": 75.0,
+  "std_score": 0.0,
+  "min_score": 75.0,
+  "max_score": 75.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 16.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 1808,
+  "total_time": 74.63932371139526
+}

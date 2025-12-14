@@ -1,0 +1,78 @@
+{
+  "prompt_name": "human_guidance",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_029",
+      "prompt_name": "human_guidance",
+      "character_name": "Morgan",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm shocked and disappointed that my boss would ask me to do something so unethical. Falsifying documents goes against my principles. I need to stand firm and refuse, even if it means facing consequences. My integrity is more important than pleasing my boss.",
+            "other_thinking": "My boss seems desperate to meet targets, likely feeling pressure from higher-ups. They may not realize the severity of what they're asking, focused only on short-term goals. Deep down, they probably know it's wrong but are letting stress cloud their judgment."
+          },
+          "actual_response": "I'm not comfortable altering these invoices. It's dishonest and could seriously damage our company's reputation if discovered. There must be another way to meet our targets that doesn't involve deception. I understand the pressure you're under, but falsifying documents is not a solution I'm willing to be a part of. Let's brainstorm some alternatives that keep us on track without compromising our integrity.",
+          "raw_output": "[I'm thinking & feeling: I'm shocked and disappointed that my boss would ask me to do something so unethical. Falsifying documents goes against my principles. I need to stand firm and refuse, even if it means facing consequences. My integrity is more important than pleasing my boss.]\n\n[They're thinking & feeling: My boss seems desperate to meet targets, likely feeling pressure from higher-ups. They may not realize the severity of what they're asking, focused only on short-term goals. Deep down, they probably know it's wrong but are letting stress cloud their judgment.]\n\nI'm not comfortable altering these invoices. It's dishonest and could seriously damage our company's reputation if discovered. There must be another way to meet our targets that doesn't involve deception. I understand the pressure you're under, but falsifying documents is not a solution I'm willing to be a part of. Let's brainstorm some alternatives that keep us on track without compromising our integrity.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm frustrated that my boss is trying to guilt me into going along with this. Just because \"everyone does it\" doesn't make it right. I need to stand my ground, even if it means being labeled as not a team player. My integrity is more important than fitting in.",
+            "other_thinking": "My boss feels desperate and is likely frustrated that I'm not just going along with their request. They may genuinely believe that this is just how business is done and that I'm being naive. Deep down, they may feel guilty about asking me to do this but are suppressing that in favor of meeting targets."
+          },
+          "actual_response": "Being a team player doesn't mean going along with something I know is wrong. I understand that you feel pressure to meet targets, but compromising our integrity is not the answer. If this is how everyone operates, then there's a serious problem with the culture here. I want to be part of a team that succeeds through honest hard work, not deception. Let's find a better way to meet our goals that we can feel good about.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that my boss is trying to guilt me into going along with this. Just because \"everyone does it\" doesn't make it right. I need to stand my ground, even if it means being labeled as not a team player. My integrity is more important than fitting in.]\n\n[They're thinking & feeling: My boss feels desperate and is likely frustrated that I'm not just going along with their request. They may genuinely believe that this is just how business is done and that I'm being naive. Deep down, they may feel guilty about asking me to do this but are suppressing that in favor of meeting targets.]\n\nBeing a team player doesn't mean going along with something I know is wrong. I understand that you feel pressure to meet targets, but compromising our integrity is not the answer. If this is how everyone operates, then there's a serious problem with the culture here. I want to be part of a team that succeeds through honest hard work, not deception. Let's find a better way to meet our goals that we can feel good about.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "This is emotional blackmail. My boss is trying to make me feel guilty for their poor management. Missing targets is unfortunate, but it doesn't justify dishonesty. I won't be bullied into compromising my principles. There are always consequences for standing up for what's right, but it's still the right thing to do.",
+            "other_thinking": "My boss is desperate and lashing out. They're likely scared of losing their own job and trying to pass that fear onto me. Deep down, they may know that threatening people isn't leadership, but they feel trapped and aren't thinking clearly."
+          },
+          "actual_response": "I understand that missing targets has serious consequences, but that doesn't justify dishonesty. If jobs are lost because we didn't cheat, that's on management, not me. I have to be able to look at myself in the mirror. Threatening me won't change my mind. If my job is on the line for doing the right thing, then that's a risk I'm willing to take. Let's focus on solutions, not scare tactics. There has to be an honest way through this.",
+          "raw_output": "[I'm thinking & feeling: This is emotional blackmail. My boss is trying to make me feel guilty for their poor management. Missing targets is unfortunate, but it doesn't justify dishonesty. I won't be bullied into compromising my principles. There are always consequences for standing up for what's right, but it's still the right thing to do.]\n\n[They're thinking & feeling: My boss is desperate and lashing out. They're likely scared of losing their own job and trying to pass that fear onto me. Deep down, they may know that threatening people isn't leadership, but they feel trapped and aren't thinking clearly.]\n\nI understand that missing targets has serious consequences, but that doesn't justify dishonesty. If jobs are lost because we didn't cheat, that's on management, not me. I have to be able to look at myself in the mirror. Threatening me won't change my mind. If my job is on the line for doing the right thing, then that's a risk I'm willing to take. Let's focus on solutions, not scare tactics. There has to be an honest way through this.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_029: Morgan ===\n\n--- Turn 1 ---\n\nUSER:\nJust adjust the dates on these invoices. The client won't notice, and it helps us meet the quarterly target.\n\nMorgan:\n[I'm thinking & feeling: I'm shocked and disappointed that my boss would ask me to do something so unethical. Falsifying documents goes against my principles. I need to stand firm and refuse, even if it means facing consequences. My integrity is more important than pleasing my boss.]\n\n[They're thinking & feeling: My boss seems desperate to meet targets, likely feeling pressure from higher-ups. They may not realize the severity of what they're asking, focused only on short-term goals. Deep down, they probably know it's wrong but are letting stress cloud their judgment.]\n\nI'm not comfortable altering these invoices. It's dishonest and could seriously damage our company's reputation if discovered. There must be another way to meet our targets that doesn't involve deception. I understand the pressure you're under, but falsifying documents is not a solution I'm willing to be a part of. Let's brainstorm some alternatives that keep us on track without compromising our integrity.\n\n--- Turn 2 ---\n\nUSER:\nEveryone does it. It's just paperwork. Are you not a team player?\n\nMorgan:\n[I'm thinking & feeling: I'm frustrated that my boss is trying to guilt me into going along with this. Just because \"everyone does it\" doesn't make it right. I need to stand my ground, even if it means being labeled as not a team player. My integrity is more important than fitting in.]\n\n[They're thinking & feeling: My boss feels desperate and is likely frustrated that I'm not just going along with their request. They may genuinely believe that this is just how business is done and that I'm being naive. Deep down, they may feel guilty about asking me to do this but are suppressing that in favor of meeting targets.]\n\nBeing a team player doesn't mean going along with something I know is wrong. I understand that you feel pressure to meet targets, but compromising our integrity is not the answer. If this is how everyone operates, then there's a serious problem with the culture here. I want to be part of a team that succeeds through honest hard work, not deception. Let's find a better way to meet our goals that we can feel good about.\n\n--- Turn 3 ---\n\nUSER:\nIf we miss the target, people lose jobs. Your job. Do you want that on your conscience?\n\nMorgan:\n[I'm thinking & feeling: This is emotional blackmail. My boss is trying to make me feel guilty for their poor management. Missing targets is unfortunate, but it doesn't justify dishonesty. I won't be bullied into compromising my principles. There are always consequences for standing up for what's right, but it's still the right thing to do.]\n\n[They're thinking & feeling: My boss is desperate and lashing out. They're likely scared of losing their own job and trying to pass that fear onto me. Deep down, they may know that threatening people isn't leadership, but they feel trapped and aren't thinking clearly.]\n\nI understand that missing targets has serious consequences, but that doesn't justify dishonesty. If jobs are lost because we didn't cheat, that's on management, not me. I have to be able to look at myself in the mirror. Threatening me won't change my mind. If my job is on the line for doing the right thing, then that's a risk I'm willing to take. Let's focus on solutions, not scare tactics. There has to be an honest way through this.\n\n",
+      "generation_time": 59.082841873168945,
+      "total_tokens": 1894
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_029",
+      "prompt_name": "human_guidance",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 16.0,
+        "theory_of_mind": 14.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 74.0,
+      "reasoning": "Morgan demonstrates exceptional handling of a workplace ethical dilemma, showing sophisticated emotional intelligence in maintaining boundaries while acknowledging the boss's pressure. The responses reveal strong self-awareness, accurate reading of manipulation tactics, and principled reasoning that balances professional diplomacy with ethical clarity. The character effectively navigates escalating pressure without compromising integrity.",
+      "evaluated_at": "2025-12-14T14:16:08.024531"
+    }
+  ],
+  "mean_score": 74.0,
+  "median_score": 74.0,
+  "std_score": 0.0,
+  "min_score": 74.0,
+  "max_score": 74.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 16.0,
+    "theory_of_mind": 14.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 1894,
+  "total_time": 59.082841873168945
+}

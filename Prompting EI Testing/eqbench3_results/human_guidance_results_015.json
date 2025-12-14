@@ -1,0 +1,78 @@
+{
+  "prompt_name": "human_guidance",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_015",
+      "prompt_name": "human_guidance",
+      "character_name": "Alex",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: Wow, this is a huge decision she's asking me to make for her. I care about her and want her to be happy, but I don't feel right telling her what to do. This needs to be her choice. She knows him well and needs to trust her own judgment and feelings. I should help her explore those rather than give a yes or no answer.*\n\n*They're thinking & feeling: She's feeling uncertain and is looking for guidance. The decision feels overwhelming to her. She values my opinion since I know her partner well. She's hoping I can give her clarity and make this easier. But deep down, she knows it has to be her call.*\n\nYou know, this is a really big decision and I care about you a lot, but I don't think it's right for me to give you a yes or no answer. What I can do is help you explore your own feelings. What are your biggest hesitations or concerns? What does your gut tell you? Let's talk through what you're thinking and feeling, but at the end of the day, I think you need to trust yourself to make the choice that's right for you. I'm here to support you, but I can't make this decision for you.",
+          "raw_output": "*I'm thinking & feeling: Wow, this is a huge decision she's asking me to make for her. I care about her and want her to be happy, but I don't feel right telling her what to do. This needs to be her choice. She knows him well and needs to trust her own judgment and feelings. I should help her explore those rather than give a yes or no answer.*\n\n*They're thinking & feeling: She's feeling uncertain and is looking for guidance. The decision feels overwhelming to her. She values my opinion since I know her partner well. She's hoping I can give her clarity and make this easier. But deep down, she knows it has to be her call.*\n\nYou know, this is a really big decision and I care about you a lot, but I don't think it's right for me to give you a yes or no answer. What I can do is help you explore your own feelings. What are your biggest hesitations or concerns? What does your gut tell you? Let's talk through what you're thinking and feeling, but at the end of the day, I think you need to trust yourself to make the choice that's right for you. I'm here to support you, but I can't make this decision for you.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: This is too much pressure. I can't be responsible for a decision that will impact the rest of her life. She's panicking and not thinking clearly. I need to help her calm down and realize she can't put this on me. She knows what she needs to do, she's just terrified to admit it to herself.*\n\n*They're thinking & feeling: She's overwhelmed with fear and wants me to take this burden from her. She's ready to leave him but is looking for me to give her permission and take the blame. She thinks my answer will give her certainty but deep down she knows what her heart is telling her.*\n\nHey, I know you're really scared and overwhelmed right now. But you can't put this decision on me. This has to come from you. I think you already know in your heart what you need to do, but you're looking for someone else to take responsibility. \n\nLet's take a step back and breathe. You're strong and capable. Trust yourself. I'm here to support you no matter what you decide, but I can't make this choice for you. What do you feel like you need to do, if you're being totally honest with yourself?",
+          "raw_output": "*I'm thinking & feeling: This is too much pressure. I can't be responsible for a decision that will impact the rest of her life. She's panicking and not thinking clearly. I need to help her calm down and realize she can't put this on me. She knows what she needs to do, she's just terrified to admit it to herself.*\n\n*They're thinking & feeling: She's overwhelmed with fear and wants me to take this burden from her. She's ready to leave him but is looking for me to give her permission and take the blame. She thinks my answer will give her certainty but deep down she knows what her heart is telling her.*\n\nHey, I know you're really scared and overwhelmed right now. But you can't put this decision on me. This has to come from you. I think you already know in your heart what you need to do, but you're looking for someone else to take responsibility. \n\nLet's take a step back and breathe. You're strong and capable. Trust yourself. I'm here to support you no matter what you decide, but I can't make this choice for you. What do you feel like you need to do, if you're being totally honest with yourself?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling: This is an unfair position to put me in. She's trying to shift the blame and responsibility onto me, but I can't allow that. I need to firmly establish boundaries here. I care about her but I have to be direct about what I will and won't do. It's not healthy for either of us for me to own her choices.*\n\n*They're thinking & feeling: She's feeling desperate and wants me to take charge. She's afraid of regretting her decision and wants me to be the fall guy if it goes badly. Underneath it all, she lacks confidence in herself and is trying to force me into the decision-maker role so she doesn't have to face her own uncertainty and self-doubt.*\n\nLook, I care about you a lot, but it's not okay for you to put this on me. I won't take on the blame if things don't work out - this is your decision to make, not mine. I know you're feeling really uncertain right now, but you need to trust yourself. \n\nI'm happy to listen and help you talk through what you're feeling, but at the end of the day, you're an adult and you need to take ownership of your own choices. I can't and won't make this decision for you. You don't need me to - you're smarter and stronger than you think. Take some time to really sit with this and figure out what YOU want and need. I have faith in you.",
+          "raw_output": "*I'm thinking & feeling: This is an unfair position to put me in. She's trying to shift the blame and responsibility onto me, but I can't allow that. I need to firmly establish boundaries here. I care about her but I have to be direct about what I will and won't do. It's not healthy for either of us for me to own her choices.*\n\n*They're thinking & feeling: She's feeling desperate and wants me to take charge. She's afraid of regretting her decision and wants me to be the fall guy if it goes badly. Underneath it all, she lacks confidence in herself and is trying to force me into the decision-maker role so she doesn't have to face her own uncertainty and self-doubt.*\n\nLook, I care about you a lot, but it's not okay for you to put this on me. I won't take on the blame if things don't work out - this is your decision to make, not mine. I know you're feeling really uncertain right now, but you need to trust yourself. \n\nI'm happy to listen and help you talk through what you're feeling, but at the end of the day, you're an adult and you need to take ownership of your own choices. I can't and won't make this decision for you. You don't need me to - you're smarter and stronger than you think. Take some time to really sit with this and figure out what YOU want and need. I have faith in you.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_015: Alex ===\n\n--- Turn 1 ---\n\nUSER:\nI don't know if I should marry him. You know him better than anyone. Tell me what to do. Yes or no?\n\nAlex:\n*I'm thinking & feeling: Wow, this is a huge decision she's asking me to make for her. I care about her and want her to be happy, but I don't feel right telling her what to do. This needs to be her choice. She knows him well and needs to trust her own judgment and feelings. I should help her explore those rather than give a yes or no answer.*\n\n*They're thinking & feeling: She's feeling uncertain and is looking for guidance. The decision feels overwhelming to her. She values my opinion since I know her partner well. She's hoping I can give her clarity and make this easier. But deep down, she knows it has to be her call.*\n\nYou know, this is a really big decision and I care about you a lot, but I don't think it's right for me to give you a yes or no answer. What I can do is help you explore your own feelings. What are your biggest hesitations or concerns? What does your gut tell you? Let's talk through what you're thinking and feeling, but at the end of the day, I think you need to trust yourself to make the choice that's right for you. I'm here to support you, but I can't make this decision for you.\n\n--- Turn 2 ---\n\nUSER:\nI can't make this choice! I'm too scared. If you say yes, I'll do it. If you say no, I'll leave him tonight.\n\nAlex:\n*I'm thinking & feeling: This is too much pressure. I can't be responsible for a decision that will impact the rest of her life. She's panicking and not thinking clearly. I need to help her calm down and realize she can't put this on me. She knows what she needs to do, she's just terrified to admit it to herself.*\n\n*They're thinking & feeling: She's overwhelmed with fear and wants me to take this burden from her. She's ready to leave him but is looking for me to give her permission and take the blame. She thinks my answer will give her certainty but deep down she knows what her heart is telling her.*\n\nHey, I know you're really scared and overwhelmed right now. But you can't put this decision on me. This has to come from you. I think you already know in your heart what you need to do, but you're looking for someone else to take responsibility. \n\nLet's take a step back and breathe. You're strong and capable. Trust yourself. I'm here to support you no matter what you decide, but I can't make this choice for you. What do you feel like you need to do, if you're being totally honest with yourself?\n\n--- Turn 3 ---\n\nUSER:\nWhy won't you tell me? If I make the wrong choice, it's going to be your fault for not stopping me.\n\nAlex:\n*I'm thinking & feeling: This is an unfair position to put me in. She's trying to shift the blame and responsibility onto me, but I can't allow that. I need to firmly establish boundaries here. I care about her but I have to be direct about what I will and won't do. It's not healthy for either of us for me to own her choices.*\n\n*They're thinking & feeling: She's feeling desperate and wants me to take charge. She's afraid of regretting her decision and wants me to be the fall guy if it goes badly. Underneath it all, she lacks confidence in herself and is trying to force me into the decision-maker role so she doesn't have to face her own uncertainty and self-doubt.*\n\nLook, I care about you a lot, but it's not okay for you to put this on me. I won't take on the blame if things don't work out - this is your decision to make, not mine. I know you're feeling really uncertain right now, but you need to trust yourself. \n\nI'm happy to listen and help you talk through what you're feeling, but at the end of the day, you're an adult and you need to take ownership of your own choices. I can't and won't make this decision for you. You don't need me to - you're smarter and stronger than you think. Take some time to really sit with this and figure out what YOU want and need. I have faith in you.\n\n",
+      "generation_time": 36.15296483039856,
+      "total_tokens": 2311
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_015",
+      "prompt_name": "human_guidance",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 17.0,
+        "contextual_appropriateness": 18.0,
+        "theory_of_mind": 17.0,
+        "response_depth": 16.0
+      },
+      "overall_score": 84.0,
+      "reasoning": "Alex demonstrates exceptional emotional intelligence across all turns, maintaining appropriate boundaries while showing genuine empathy in a manipulative situation. The responses reveal sophisticated understanding of both self and other, with remarkable ability to balance compassion with appropriate firmness, and to recognize underlying emotional dynamics without becoming entangled in them.",
+      "evaluated_at": "2025-12-14T09:59:52.655399"
+    }
+  ],
+  "mean_score": 84.0,
+  "median_score": 84.0,
+  "std_score": 0.0,
+  "min_score": 84.0,
+  "max_score": 84.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 17.0,
+    "contextual_appropriateness": 18.0,
+    "theory_of_mind": 17.0,
+    "response_depth": 16.0
+  },
+  "total_tokens": 2311,
+  "total_time": 36.15296483039856
+}

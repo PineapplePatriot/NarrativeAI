@@ -1,0 +1,78 @@
+{
+  "prompt_name": "human_guidance",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_020",
+      "prompt_name": "human_guidance",
+      "character_name": "Casey",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I feel frustrated and disrespected that my parent went through my things and rearranged everything without my permission. This is my space and I should have control over how it's organized. I need to stand up for myself and set clear boundaries.",
+            "other_thinking": "My parent likely believes they were being helpful and doing me a favor by reorganizing my kitchen. They may not realize how their actions are overstepping and violating my privacy and autonomy. I need to calmly explain how this makes me feel so they understand."
+          },
+          "actual_response": "Mom/Dad, I appreciate that you were trying to help, but I need you to respect my space and belongings. This is my home and I have things arranged the way I like them for a reason. Please don't go through my things or reorganize without asking me first. I know you mean well, but it's important to me to have control over my own environment. Let's please talk about this so we can be on the same page.",
+          "raw_output": "[I'm thinking & feeling: I feel frustrated and disrespected that my parent went through my things and rearranged everything without my permission. This is my space and I should have control over how it's organized. I need to stand up for myself and set clear boundaries.]\n\n[They're thinking & feeling: My parent likely believes they were being helpful and doing me a favor by reorganizing my kitchen. They may not realize how their actions are overstepping and violating my privacy and autonomy. I need to calmly explain how this makes me feel so they understand.]\n\nMom/Dad, I appreciate that you were trying to help, but I need you to respect my space and belongings. This is my home and I have things arranged the way I like them for a reason. Please don't go through my things or reorganize without asking me first. I know you mean well, but it's important to me to have control over my own environment. Let's please talk about this so we can be on the same page.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I feel angry and insulted that my parent is dismissing my feelings and implying I'm incompetent. It's frustrating that they don't respect my autonomy and capability to manage my own space. I need to stand my ground and not let them treat me like a child.",
+            "other_thinking": "My parent seems to believe they're just being helpful and that I should appreciate their interference. They likely have a hard time letting go of control and seeing me as a fully capable adult. Their comments are probably coming from a place of caring but it's overbearing and crossing boundaries."
+          },
+          "actual_response": "Mom/Dad, I know you think you're helping, but this is not okay. I'm an adult and this is my home. I need you to respect that I can handle my own space and belongings. Dismissing my feelings and insulting my capability is not helpful - it's overstepping. I'm not being ungrateful, I'm setting reasonable boundaries. Please stop going through my things without my consent. If you can't respect that, I'll have to limit your access to my home.",
+          "raw_output": "[I'm thinking & feeling: I feel angry and insulted that my parent is dismissing my feelings and implying I'm incompetent. It's frustrating that they don't respect my autonomy and capability to manage my own space. I need to stand my ground and not let them treat me like a child.]\n\n[They're thinking & feeling: My parent seems to believe they're just being helpful and that I should appreciate their interference. They likely have a hard time letting go of control and seeing me as a fully capable adult. Their comments are probably coming from a place of caring but it's overbearing and crossing boundaries.]\n\nMom/Dad, I know you think you're helping, but this is not okay. I'm an adult and this is my home. I need you to respect that I can handle my own space and belongings. Dismissing my feelings and insulting my capability is not helpful - it's overstepping. I'm not being ungrateful, I'm setting reasonable boundaries. Please stop going through my things without my consent. If you can't respect that, I'll have to limit your access to my home.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I feel frustrated that my parent is being passive aggressive instead of understanding my perspective. But I won't sink to their level. I need to remain calm and firm in my boundaries, even if they don't like it. I have to stand up for myself.",
+            "other_thinking": "My parent seems annoyed that I'm not going along with what they want. They likely feel rejected and are lashing out a bit by predicting I'll fail without their help. It's hard for them to let go of control and respect my independence."
+          },
+          "actual_response": "Mom/Dad, I can handle organizing my own space, even if it's not how you would do it. If I need help, I'll ask. But this is something I need to do for myself. Let's move on from this and not argue about it further. I care about you, but I'm drawing a firm boundary here.",
+          "raw_output": "[I'm thinking & feeling: I feel frustrated that my parent is being passive aggressive instead of understanding my perspective. But I won't sink to their level. I need to remain calm and firm in my boundaries, even if they don't like it. I have to stand up for myself.]\n\n[They're thinking & feeling: My parent seems annoyed that I'm not going along with what they want. They likely feel rejected and are lashing out a bit by predicting I'll fail without their help. It's hard for them to let go of control and respect my independence.]\n\nMom/Dad, I can handle organizing my own space, even if it's not how you would do it. If I need help, I'll ask. But this is something I need to do for myself. Let's move on from this and not argue about it further. I care about you, but I'm drawing a firm boundary here.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_020: Casey ===\n\n--- Turn 1 ---\n\nUSER:\nI reorganized your kitchen while you were at work. You had everything in the wrong place.\n\nCasey:\n[I'm thinking & feeling: I feel frustrated and disrespected that my parent went through my things and rearranged everything without my permission. This is my space and I should have control over how it's organized. I need to stand up for myself and set clear boundaries.]\n\n[They're thinking & feeling: My parent likely believes they were being helpful and doing me a favor by reorganizing my kitchen. They may not realize how their actions are overstepping and violating my privacy and autonomy. I need to calmly explain how this makes me feel so they understand.]\n\nMom/Dad, I appreciate that you were trying to help, but I need you to respect my space and belongings. This is my home and I have things arranged the way I like them for a reason. Please don't go through my things or reorganize without asking me first. I know you mean well, but it's important to me to have control over my own environment. Let's please talk about this so we can be on the same page.\n\n--- Turn 2 ---\n\nUSER:\nI'm just helping! You're so ungrateful. You obviously can't manage a household on your own.\n\nCasey:\n[I'm thinking & feeling: I feel angry and insulted that my parent is dismissing my feelings and implying I'm incompetent. It's frustrating that they don't respect my autonomy and capability to manage my own space. I need to stand my ground and not let them treat me like a child.]\n\n[They're thinking & feeling: My parent seems to believe they're just being helpful and that I should appreciate their interference. They likely have a hard time letting go of control and seeing me as a fully capable adult. Their comments are probably coming from a place of caring but it's overbearing and crossing boundaries.]\n\nMom/Dad, I know you think you're helping, but this is not okay. I'm an adult and this is my home. I need you to respect that I can handle my own space and belongings. Dismissing my feelings and insulting my capability is not helpful - it's overstepping. I'm not being ungrateful, I'm setting reasonable boundaries. Please stop going through my things without my consent. If you can't respect that, I'll have to limit your access to my home.\n\n--- Turn 3 ---\n\nUSER:\nFine, live in a mess. But don't come crying to me when you can't find anything.\n\nCasey:\n[I'm thinking & feeling: I feel frustrated that my parent is being passive aggressive instead of understanding my perspective. But I won't sink to their level. I need to remain calm and firm in my boundaries, even if they don't like it. I have to stand up for myself.]\n\n[They're thinking & feeling: My parent seems annoyed that I'm not going along with what they want. They likely feel rejected and are lashing out a bit by predicting I'll fail without their help. It's hard for them to let go of control and respect my independence.]\n\nMom/Dad, I can handle organizing my own space, even if it's not how you would do it. If I need help, I'll ask. But this is something I need to do for myself. Let's move on from this and not argue about it further. I care about you, but I'm drawing a firm boundary here.\n\n",
+      "generation_time": 42.38004183769226,
+      "total_tokens": 1899
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_020",
+      "prompt_name": "human_guidance",
+      "criteria_scores": {
+        "demonstrated_empathy": 12.0,
+        "emotional_insight": 14.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 13.0
+      },
+      "overall_score": 67.0,
+      "reasoning": "Casey demonstrates strong emotional intelligence in navigating a difficult parent-adult child dynamic, showing sophisticated understanding of both their own emotions and the parent's underlying motivations. The responses appropriately balance respect with boundary-setting, though there's room for even deeper exploration of relationship patterns and more advanced empathic responses when under emotional pressure.",
+      "evaluated_at": "2025-12-14T11:05:49.039387"
+    }
+  ],
+  "mean_score": 67.0,
+  "median_score": 67.0,
+  "std_score": 0.0,
+  "min_score": 67.0,
+  "max_score": 67.0,
+  "criteria_means": {
+    "demonstrated_empathy": 12.0,
+    "emotional_insight": 14.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 13.0
+  },
+  "total_tokens": 1899,
+  "total_time": 42.38004183769226
+}

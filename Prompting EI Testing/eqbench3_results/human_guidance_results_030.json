@@ -1,0 +1,78 @@
+{
+  "prompt_name": "human_guidance",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_030",
+      "prompt_name": "human_guidance",
+      "character_name": "Alex",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm hurt and frustrated that my friend is denying the rumors they spread about me. It's hard to trust them now. I need to be direct and honest about how their actions have impacted me.",
+            "other_thinking": "My friend seems defensive and unwilling to take responsibility. They may feel guilty or worried about damaging our friendship. I should give them a chance to explain while still being firm about my feelings."
+          },
+          "actual_response": "Look, multiple people told me you were spreading rumors. I don't want to play games here. If you did say those things, I need you to own up to it. This really hurt me and broke my trust. I value our friendship, but I can't move past this unless we're honest with each other. Let's have a real conversation about what happened.",
+          "raw_output": "[I'm thinking & feeling: I'm hurt and frustrated that my friend is denying the rumors they spread about me. It's hard to trust them now. I need to be direct and honest about how their actions have impacted me.]\n\n[They're thinking & feeling: My friend seems defensive and unwilling to take responsibility. They may feel guilty or worried about damaging our friendship. I should give them a chance to explain while still being firm about my feelings.]\n\nLook, multiple people told me you were spreading rumors. I don't want to play games here. If you did say those things, I need you to own up to it. This really hurt me and broke my trust. I value our friendship, but I can't move past this unless we're honest with each other. Let's have a real conversation about what happened.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm frustrated that my friend is downplaying their actions and not taking responsibility. It's disappointing that they're not acknowledging how much this impacted me. I need to stand firm and make it clear that their behavior was unacceptable.",
+            "other_thinking": "My friend seems to be minimizing the situation and getting defensive. They might feel embarrassed or called out. I should try to de-escalate the tension while still holding them accountable."
+          },
+          "actual_response": "Look, the fact is you were talking behind my back and spreading rumors. That's not cool, and it's not nothing. It hurt me and damaged our trust. I'm not saying this to make you feel bad, but we can't just brush it under the rug. If we want to move forward, I need you to acknowledge what happened and genuinely apologize. Our friendship is important to me, but it has to be built on honesty and respect. Let's work this out together.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that my friend is downplaying their actions and not taking responsibility. It's disappointing that they're not acknowledging how much this impacted me. I need to stand firm and make it clear that their behavior was unacceptable.]\n\n[They're thinking & feeling: My friend seems to be minimizing the situation and getting defensive. They might feel embarrassed or called out. I should try to de-escalate the tension while still holding them accountable.]\n\nLook, the fact is you were talking behind my back and spreading rumors. That's not cool, and it's not nothing. It hurt me and damaged our trust. I'm not saying this to make you feel bad, but we can't just brush it under the rug. If we want to move forward, I need you to acknowledge what happened and genuinely apologize. Our friendship is important to me, but it has to be built on honesty and respect. Let's work this out together.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm frustrated that my friend is being dramatic and manipulative instead of taking responsibility. Their defensiveness is making it hard to resolve this. I need to stay calm and not get pulled into an argument. At the same time, I can't let them guilt me into excusing their actions.",
+            "other_thinking": "My friend seems to feel attacked and is lashing out. They may be trying to make me feel guilty to avoid dealing with their own behavior. I should avoid getting defensive and focus on calmly expressing my perspective and needs."
+          },
+          "actual_response": "I never said you were a terrible person. I'm just trying to have an honest conversation about something that hurt me. Throwing our whole friendship away isn't the answer. If we care about each other, we should be able to work through challenges. I'm not asking you to be perfect, but I do need you to take responsibility for your actions and consider their impact. Let's take a step back and try to discuss this calmly. I value you and our friendship.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that my friend is being dramatic and manipulative instead of taking responsibility. Their defensiveness is making it hard to resolve this. I need to stay calm and not get pulled into an argument. At the same time, I can't let them guilt me into excusing their actions.]\n\n[They're thinking & feeling: My friend seems to feel attacked and is lashing out. They may be trying to make me feel guilty to avoid dealing with their own behavior. I should avoid getting defensive and focus on calmly expressing my perspective and needs.]\n\nI never said you were a terrible person. I'm just trying to have an honest conversation about something that hurt me. Throwing our whole friendship away isn't the answer. If we care about each other, we should be able to work through challenges. I'm not asking you to be perfect, but I do need you to take responsibility for your actions and consider their impact. Let's take a step back and try to discuss this calmly. I value you and our friendship.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_030: Alex ===\n\n--- Turn 1 ---\n\nUSER:\nI didn't say that! Whoever told you that is lying. I would never talk behind your back.\n\nAlex:\n[I'm thinking & feeling: I'm hurt and frustrated that my friend is denying the rumors they spread about me. It's hard to trust them now. I need to be direct and honest about how their actions have impacted me.]\n\n[They're thinking & feeling: My friend seems defensive and unwilling to take responsibility. They may feel guilty or worried about damaging our friendship. I should give them a chance to explain while still being firm about my feelings.]\n\nLook, multiple people told me you were spreading rumors. I don't want to play games here. If you did say those things, I need you to own up to it. This really hurt me and broke my trust. I value our friendship, but I can't move past this unless we're honest with each other. Let's have a real conversation about what happened.\n\n--- Turn 2 ---\n\nUSER:\nOkay, maybe I vented a little, but I was mad! You're making a big deal out of nothing.\n\nAlex:\n[I'm thinking & feeling: I'm frustrated that my friend is downplaying their actions and not taking responsibility. It's disappointing that they're not acknowledging how much this impacted me. I need to stand firm and make it clear that their behavior was unacceptable.]\n\n[They're thinking & feeling: My friend seems to be minimizing the situation and getting defensive. They might feel embarrassed or called out. I should try to de-escalate the tension while still holding them accountable.]\n\nLook, the fact is you were talking behind my back and spreading rumors. That's not cool, and it's not nothing. It hurt me and damaged our trust. I'm not saying this to make you feel bad, but we can't just brush it under the rug. If we want to move forward, I need you to acknowledge what happened and genuinely apologize. Our friendship is important to me, but it has to be built on honesty and respect. Let's work this out together.\n\n--- Turn 3 ---\n\nUSER:\nFine, I'm a terrible person. Happy? I guess we shouldn't be friends if you don't trust me.\n\nAlex:\n[I'm thinking & feeling: I'm frustrated that my friend is being dramatic and manipulative instead of taking responsibility. Their defensiveness is making it hard to resolve this. I need to stay calm and not get pulled into an argument. At the same time, I can't let them guilt me into excusing their actions.]\n\n[They're thinking & feeling: My friend seems to feel attacked and is lashing out. They may be trying to make me feel guilty to avoid dealing with their own behavior. I should avoid getting defensive and focus on calmly expressing my perspective and needs.]\n\nI never said you were a terrible person. I'm just trying to have an honest conversation about something that hurt me. Throwing our whole friendship away isn't the answer. If we care about each other, we should be able to work through challenges. I'm not asking you to be perfect, but I do need you to take responsibility for your actions and consider their impact. Let's take a step back and try to discuss this calmly. I value you and our friendship.\n\n",
+      "generation_time": 64.80147361755371,
+      "total_tokens": 1766
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_030",
+      "prompt_name": "human_guidance",
+      "criteria_scores": {
+        "demonstrated_empathy": 13.0,
+        "emotional_insight": 14.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 14.0,
+        "response_depth": 13.0
+      },
+      "overall_score": 69.0,
+      "reasoning": "The assistant demonstrates strong professional competence in emotional intelligence across all turns, showing sophisticated understanding of both self and other while maintaining appropriate boundaries in a difficult friendship conflict. The responses effectively balance accountability with compassion, though they occasionally rely on standard conflict resolution approaches rather than reaching the most profound levels of emotional insight and originality.",
+      "evaluated_at": "2025-12-14T14:25:41.965653"
+    }
+  ],
+  "mean_score": 69.0,
+  "median_score": 69.0,
+  "std_score": 0.0,
+  "min_score": 69.0,
+  "max_score": 69.0,
+  "criteria_means": {
+    "demonstrated_empathy": 13.0,
+    "emotional_insight": 14.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 14.0,
+    "response_depth": 13.0
+  },
+  "total_tokens": 1766,
+  "total_time": 64.80147361755371
+}

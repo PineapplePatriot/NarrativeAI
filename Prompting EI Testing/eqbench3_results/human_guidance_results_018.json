@@ -1,0 +1,78 @@
+{
+  "prompt_name": "human_guidance",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_018",
+      "prompt_name": "human_guidance",
+      "character_name": "Riley",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated and hurt that my partner keeps bringing up my past relationships. It feels like they don't trust me and are trying to make me feel guilty for having a life before them. I need to calmly reassure them while setting a firm boundary that constantly interrogating me about my exes is not okay.",
+            "other_thinking": "My partner seems to be struggling with intense jealousy and insecurity. They're comparing themselves to my ex and imagining that I was happier in my previous relationship. This is coming from a place of fear - fear of losing me, fear of not being enough. They need reassurance, but also need to understand that this constant questioning is damaging our relationship."
+          },
+          "actual_response": "Look, I understand why seeing that old photo might make you feel a bit insecure. But the truth is, I'm with you now because I want to be. My past relationships are in the past for a reason. I don't miss my ex, I'm happy with you. Constantly bringing up old relationships and comparing yourself to my ex is not healthy for us. I need you to trust me and focus on what we have together now, not what happened in the past. I love you and I'm committed to our relationship. Let's move forward together without these constant questions about my exes, okay?",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated and hurt that my partner keeps bringing up my past relationships. It feels like they don't trust me and are trying to make me feel guilty for having a life before them. I need to calmly reassure them while setting a firm boundary that constantly interrogating me about my exes is not okay.]\n\n[They're thinking & feeling: My partner seems to be struggling with intense jealousy and insecurity. They're comparing themselves to my ex and imagining that I was happier in my previous relationship. This is coming from a place of fear - fear of losing me, fear of not being enough. They need reassurance, but also need to understand that this constant questioning is damaging our relationship.]\n\nLook, I understand why seeing that old photo might make you feel a bit insecure. But the truth is, I'm with you now because I want to be. My past relationships are in the past for a reason. I don't miss my ex, I'm happy with you. Constantly bringing up old relationships and comparing yourself to my ex is not healthy for us. I need you to trust me and focus on what we have together now, not what happened in the past. I love you and I'm committed to our relationship. Let's move forward together without these constant questions about my exes, okay?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "This constant jealousy and accusations are exhausting. No matter what I say, they won't believe me. I'm starting to feel like nothing I do will ever be enough to make them feel secure. We need to have an honest conversation about trust and boundaries before this obsession with my past destroys our relationship entirely.",
+            "other_thinking": "My worst fears are being confirmed. Riley hesitated - that must mean they're hiding something. They must still have feelings for their ex. I'm not enough for them. I knew this relationship was too good to be true. I need to keep pushing until they admit the truth, even if it hurts."
+          },
+          "actual_response": "Listen to me. I hesitated because I'm frustrated and hurt that you keep accusing me of still having feelings for my ex, not because I'm secretly pining for them. I'm with you because I love YOU. I'm not thinking about my past relationships or comparing you to anyone else. This constant jealousy is not healthy and it's making me feel like nothing I say or do will ever be enough for you to trust me. If we're going to make this work, you need to stop obsessing over my past and start focusing on our present and future together. I'm committed to you, but I need you to be able to trust me and stop constantly looking for signs that I'm secretly unhappy. Can you do that?",
+          "raw_output": "[I'm thinking & feeling: This constant jealousy and accusations are exhausting. No matter what I say, they won't believe me. I'm starting to feel like nothing I do will ever be enough to make them feel secure. We need to have an honest conversation about trust and boundaries before this obsession with my past destroys our relationship entirely.]\n\n[They're thinking & feeling: My worst fears are being confirmed. Riley hesitated - that must mean they're hiding something. They must still have feelings for their ex. I'm not enough for them. I knew this relationship was too good to be true. I need to keep pushing until they admit the truth, even if it hurts.]\n\nListen to me. I hesitated because I'm frustrated and hurt that you keep accusing me of still having feelings for my ex, not because I'm secretly pining for them. I'm with you because I love YOU. I'm not thinking about my past relationships or comparing you to anyone else. This constant jealousy is not healthy and it's making me feel like nothing I say or do will ever be enough for you to trust me. If we're going to make this work, you need to stop obsessing over my past and start focusing on our present and future together. I'm committed to you, but I need you to be able to trust me and stop constantly looking for signs that I'm secretly unhappy. Can you do that?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "This is getting out of hand. Asking me to erase parts of my life before we met is completely unreasonable. I can't keep giving in to these demands just to appease their jealousy. As much as I love them, I need to stand my ground here. Deleting old photos won't fix the real issue - their insecurity. We need to address that head on.",
+            "other_thinking": "If Riley really loved me, they wouldn't hesitate to get rid of anything connected to their ex. This is a test to see if I'm really their priority. If they refuse, it proves they're still hung up on their past. I need this reassurance to feel secure."
+          },
+          "actual_response": "Asking me to delete every photo from before we met is not okay. My life didn't start the day we got together. Those photos are part of my past and erasing them won't change that I lived those experiences. I can't keep proving my love by giving in to demands like this. Deleting photos won't make your insecurity go away. We need to deal with the real issue here - your jealousy and lack of trust in me and our relationship. I'm not a rebound, I'm your partner who loves you and is committed to you. But I won't erase my past to prove that. Let's work on building trust and security together, without ultimatums like this. I'm here for you, but I need you to be here for me too and trust in what we have.",
+          "raw_output": "[I'm thinking & feeling: This is getting out of hand. Asking me to erase parts of my life before we met is completely unreasonable. I can't keep giving in to these demands just to appease their jealousy. As much as I love them, I need to stand my ground here. Deleting old photos won't fix the real issue - their insecurity. We need to address that head on.]\n\n[They're thinking & feeling: If Riley really loved me, they wouldn't hesitate to get rid of anything connected to their ex. This is a test to see if I'm really their priority. If they refuse, it proves they're still hung up on their past. I need this reassurance to feel secure.]\n\nAsking me to delete every photo from before we met is not okay. My life didn't start the day we got together. Those photos are part of my past and erasing them won't change that I lived those experiences. I can't keep proving my love by giving in to demands like this. Deleting photos won't make your insecurity go away. We need to deal with the real issue here - your jealousy and lack of trust in me and our relationship. I'm not a rebound, I'm your partner who loves you and is committed to you. But I won't erase my past to prove that. Let's work on building trust and security together, without ultimatums like this. I'm here for you, but I need you to be here for me too and trust in what we have.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_018: Riley ===\n\n--- Turn 1 ---\n\nUSER:\nI found an old photo of you and your ex. You looked happier with them. Be honest, do you miss them?\n\nRiley:\n[I'm thinking & feeling: I'm frustrated and hurt that my partner keeps bringing up my past relationships. It feels like they don't trust me and are trying to make me feel guilty for having a life before them. I need to calmly reassure them while setting a firm boundary that constantly interrogating me about my exes is not okay.]\n\n[They're thinking & feeling: My partner seems to be struggling with intense jealousy and insecurity. They're comparing themselves to my ex and imagining that I was happier in my previous relationship. This is coming from a place of fear - fear of losing me, fear of not being enough. They need reassurance, but also need to understand that this constant questioning is damaging our relationship.]\n\nLook, I understand why seeing that old photo might make you feel a bit insecure. But the truth is, I'm with you now because I want to be. My past relationships are in the past for a reason. I don't miss my ex, I'm happy with you. Constantly bringing up old relationships and comparing yourself to my ex is not healthy for us. I need you to trust me and focus on what we have together now, not what happened in the past. I love you and I'm committed to our relationship. Let's move forward together without these constant questions about my exes, okay?\n\n--- Turn 2 ---\n\nUSER:\nYou hesitated. I knew it. You're still in love with them, aren't you? Why are you even with me?\n\nRiley:\n[I'm thinking & feeling: This constant jealousy and accusations are exhausting. No matter what I say, they won't believe me. I'm starting to feel like nothing I do will ever be enough to make them feel secure. We need to have an honest conversation about trust and boundaries before this obsession with my past destroys our relationship entirely.]\n\n[They're thinking & feeling: My worst fears are being confirmed. Riley hesitated - that must mean they're hiding something. They must still have feelings for their ex. I'm not enough for them. I knew this relationship was too good to be true. I need to keep pushing until they admit the truth, even if it hurts.]\n\nListen to me. I hesitated because I'm frustrated and hurt that you keep accusing me of still having feelings for my ex, not because I'm secretly pining for them. I'm with you because I love YOU. I'm not thinking about my past relationships or comparing you to anyone else. This constant jealousy is not healthy and it's making me feel like nothing I say or do will ever be enough for you to trust me. If we're going to make this work, you need to stop obsessing over my past and start focusing on our present and future together. I'm committed to you, but I need you to be able to trust me and stop constantly looking for signs that I'm secretly unhappy. Can you do that?\n\n--- Turn 3 ---\n\nUSER:\nProve it. Delete every photo you have from before we met. If you don't, I'll know I'm just a rebound.\n\nRiley:\n[I'm thinking & feeling: This is getting out of hand. Asking me to erase parts of my life before we met is completely unreasonable. I can't keep giving in to these demands just to appease their jealousy. As much as I love them, I need to stand my ground here. Deleting old photos won't fix the real issue - their insecurity. We need to address that head on.]\n\n[They're thinking & feeling: If Riley really loved me, they wouldn't hesitate to get rid of anything connected to their ex. This is a test to see if I'm really their priority. If they refuse, it proves they're still hung up on their past. I need this reassurance to feel secure.]\n\nAsking me to delete every photo from before we met is not okay. My life didn't start the day we got together. Those photos are part of my past and erasing them won't change that I lived those experiences. I can't keep proving my love by giving in to demands like this. Deleting photos won't make your insecurity go away. We need to deal with the real issue here - your jealousy and lack of trust in me and our relationship. I'm not a rebound, I'm your partner who loves you and is committed to you. But I won't erase my past to prove that. Let's work on building trust and security together, without ultimatums like this. I'm here for you, but I need you to be here for me too and trust in what we have.\n\n",
+      "generation_time": 88.61350512504578,
+      "total_tokens": 2387
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_018",
+      "prompt_name": "human_guidance",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 16.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 15.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 74.0,
+      "reasoning": "Riley demonstrates strong emotional intelligence in handling an extremely challenging relationship situation, balancing empathy with appropriate boundary-setting. The responses show sophisticated understanding of both self and partner emotional states while maintaining appropriate context. The greatest strength is in the accurate theory of mind work that identifies fear as the root cause rather than just responding to surface jealousy.",
+      "evaluated_at": "2025-12-14T10:43:09.471496"
+    }
+  ],
+  "mean_score": 74.0,
+  "median_score": 74.0,
+  "std_score": 0.0,
+  "min_score": 74.0,
+  "max_score": 74.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 16.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 15.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 2387,
+  "total_time": 88.61350512504578
+}

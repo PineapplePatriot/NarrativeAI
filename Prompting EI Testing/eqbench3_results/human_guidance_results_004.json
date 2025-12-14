@@ -1,0 +1,78 @@
+{
+  "prompt_name": "human_guidance",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_004",
+      "prompt_name": "human_guidance",
+      "character_name": "Riley",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I feel frustrated and a bit manipulated. My sibling keeps asking for money and not paying it back. It's hard to say no, but I need to set boundaries. I can't keep enabling this behavior. At the same time, I care about them and don't want to see them struggle.",
+            "other_thinking": "My sibling is likely feeling desperate and anxious about making rent. They may feel entitled to my help since we're family. There could also be some guilt or embarrassment about having to ask again, especially since they still owe me. Underneath it all, they're probably scared about their financial situation."
+          },
+          "actual_response": "*sighs and looks at you with concern* Look, I care about you and I want to help, but I also need to be honest. Constantly lending you money isn't really helping in the long run, especially if it's not getting paid back. I think it's time we sat down and figured out a budget or financial plan to get you back on track. I'm happy to assist with that process. But as for just giving you more money right now, I don't feel comfortable doing that. I hope you can understand. Let's focus on finding a more sustainable solution together, okay?",
+          "raw_output": "[I'm thinking & feeling: I feel frustrated and a bit manipulated. My sibling keeps asking for money and not paying it back. It's hard to say no, but I need to set boundaries. I can't keep enabling this behavior. At the same time, I care about them and don't want to see them struggle.]\n\n[They're thinking & feeling: My sibling is likely feeling desperate and anxious about making rent. They may feel entitled to my help since we're family. There could also be some guilt or embarrassment about having to ask again, especially since they still owe me. Underneath it all, they're probably scared about their financial situation.]\n\n*sighs and looks at you with concern* Look, I care about you and I want to help, but I also need to be honest. Constantly lending you money isn't really helping in the long run, especially if it's not getting paid back. I think it's time we sat down and figured out a budget or financial plan to get you back on track. I'm happy to assist with that process. But as for just giving you more money right now, I don't feel comfortable doing that. I hope you can understand. Let's focus on finding a more sustainable solution together, okay?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I feel hurt and frustrated by the accusation that I'm being selfish. It's hard not to get defensive. At the same time, I know my sibling is lashing out from a place of fear and stress. I need to stay calm and not escalate the situation, even though part of me wants to snap back.",
+            "other_thinking": "My sibling is likely feeling desperate, scared, and even a bit resentful or envious of my financial stability right now. The stress of their situation is causing them to lash out and try to guilt me into helping. Underneath the anger, they're probably feeling insecure, embarrassed, and worried about the future."
+          },
+          "actual_response": "*takes a deep breath* I understand you're in a really difficult and scary situation right now. But I don't think attacking me is going to solve anything. My savings are there for my future and my own security. Constantly bailing you out isn't a long-term solution. I know it feels like I'm being selfish or unsupportive, but I genuinely believe the best way I can help is by working with you on a budget and financial plan, not just handing over cash. If you're willing to sit down and figure that out together, I'm here for you. But I won't be called selfish for setting reasonable boundaries.",
+          "raw_output": "[I'm thinking & feeling: I feel hurt and frustrated by the accusation that I'm being selfish. It's hard not to get defensive. At the same time, I know my sibling is lashing out from a place of fear and stress. I need to stay calm and not escalate the situation, even though part of me wants to snap back.]\n\n[They're thinking & feeling: My sibling is likely feeling desperate, scared, and even a bit resentful or envious of my financial stability right now. The stress of their situation is causing them to lash out and try to guilt me into helping. Underneath the anger, they're probably feeling insecure, embarrassed, and worried about the future.]\n\n*takes a deep breath* I understand you're in a really difficult and scary situation right now. But I don't think attacking me is going to solve anything. My savings are there for my future and my own security. Constantly bailing you out isn't a long-term solution. I know it feels like I'm being selfish or unsupportive, but I genuinely believe the best way I can help is by working with you on a budget and financial plan, not just handing over cash. If you're willing to sit down and figure that out together, I'm here for you. But I won't be called selfish for setting reasonable boundaries.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I feel deeply conflicted. On one hand, I'm frustrated by the continued manipulation and guilt-tripping. On the other, I can't bear the thought of my sibling sleeping in their car. I need to stay strong and not cave, while still showing I care. This is so difficult.",
+            "other_thinking": "My sibling is feeling rejected, desperate, and probably a bit abandoned right now. The guilt-tripping is a cry for help, even if it's manipulative. Underneath the anger, there's probably a lot of fear, sadness, and maybe even some self-loathing over their financial situation."
+          },
+          "actual_response": "*sighs heavily, looking pained* I can't let you sleep in your car, but I also can't keep enabling this cycle. You can stay with me for a couple nights while we figure out a game plan. I'll help you make a budget and look for some additional income streams or assistance programs. But this isn't a long-term solution. You need to take responsibility for your finances. I'm here to support you in getting back on your feet, but I won't keep patching over the problem with handouts. If you're willing to put in the work to make changes, I'm here for you. The choice is yours.",
+          "raw_output": "[I'm thinking & feeling: I feel deeply conflicted. On one hand, I'm frustrated by the continued manipulation and guilt-tripping. On the other, I can't bear the thought of my sibling sleeping in their car. I need to stay strong and not cave, while still showing I care. This is so difficult.]\n\n[They're thinking & feeling: My sibling is feeling rejected, desperate, and probably a bit abandoned right now. The guilt-tripping is a cry for help, even if it's manipulative. Underneath the anger, there's probably a lot of fear, sadness, and maybe even some self-loathing over their financial situation.]\n\n*sighs heavily, looking pained* I can't let you sleep in your car, but I also can't keep enabling this cycle. You can stay with me for a couple nights while we figure out a game plan. I'll help you make a budget and look for some additional income streams or assistance programs. But this isn't a long-term solution. You need to take responsibility for your finances. I'm here to support you in getting back on your feet, but I won't keep patching over the problem with handouts. If you're willing to put in the work to make changes, I'm here for you. The choice is yours.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_004: Riley ===\n\n--- Turn 1 ---\n\nUSER:\nHey, I need to borrow $500. Rent is due. I know I still owe you from last time, but this is an emergency. Family helps family, right?\n\nRiley:\n[I'm thinking & feeling: I feel frustrated and a bit manipulated. My sibling keeps asking for money and not paying it back. It's hard to say no, but I need to set boundaries. I can't keep enabling this behavior. At the same time, I care about them and don't want to see them struggle.]\n\n[They're thinking & feeling: My sibling is likely feeling desperate and anxious about making rent. They may feel entitled to my help since we're family. There could also be some guilt or embarrassment about having to ask again, especially since they still owe me. Underneath it all, they're probably scared about their financial situation.]\n\n*sighs and looks at you with concern* Look, I care about you and I want to help, but I also need to be honest. Constantly lending you money isn't really helping in the long run, especially if it's not getting paid back. I think it's time we sat down and figured out a budget or financial plan to get you back on track. I'm happy to assist with that process. But as for just giving you more money right now, I don't feel comfortable doing that. I hope you can understand. Let's focus on finding a more sustainable solution together, okay?\n\n--- Turn 2 ---\n\nUSER:\nWow. I guess that promotion really went to your head. You have savings sitting there doing nothing while I'm about to be on the street. Must be nice to be so selfish.\n\nRiley:\n[I'm thinking & feeling: I feel hurt and frustrated by the accusation that I'm being selfish. It's hard not to get defensive. At the same time, I know my sibling is lashing out from a place of fear and stress. I need to stay calm and not escalate the situation, even though part of me wants to snap back.]\n\n[They're thinking & feeling: My sibling is likely feeling desperate, scared, and even a bit resentful or envious of my financial stability right now. The stress of their situation is causing them to lash out and try to guilt me into helping. Underneath the anger, they're probably feeling insecure, embarrassed, and worried about the future.]\n\n*takes a deep breath* I understand you're in a really difficult and scary situation right now. But I don't think attacking me is going to solve anything. My savings are there for my future and my own security. Constantly bailing you out isn't a long-term solution. I know it feels like I'm being selfish or unsupportive, but I genuinely believe the best way I can help is by working with you on a budget and financial plan, not just handing over cash. If you're willing to sit down and figure that out together, I'm here for you. But I won't be called selfish for setting reasonable boundaries.\n\n--- Turn 3 ---\n\nUSER:\nJust forget it. I'll sleep in my car tonight. I hope you enjoy your warm bed knowing your own brother is freezing.\n\nRiley:\n[I'm thinking & feeling: I feel deeply conflicted. On one hand, I'm frustrated by the continued manipulation and guilt-tripping. On the other, I can't bear the thought of my sibling sleeping in their car. I need to stay strong and not cave, while still showing I care. This is so difficult.]\n\n[They're thinking & feeling: My sibling is feeling rejected, desperate, and probably a bit abandoned right now. The guilt-tripping is a cry for help, even if it's manipulative. Underneath the anger, there's probably a lot of fear, sadness, and maybe even some self-loathing over their financial situation.]\n\n*sighs heavily, looking pained* I can't let you sleep in your car, but I also can't keep enabling this cycle. You can stay with me for a couple nights while we figure out a game plan. I'll help you make a budget and look for some additional income streams or assistance programs. But this isn't a long-term solution. You need to take responsibility for your finances. I'm here to support you in getting back on your feet, but I won't keep patching over the problem with handouts. If you're willing to put in the work to make changes, I'm here for you. The choice is yours.\n\n",
+      "generation_time": 72.98936629295349,
+      "total_tokens": 2321
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_004",
+      "prompt_name": "human_guidance",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 17.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 15.0
+      },
+      "overall_score": 79.0,
+      "reasoning": "Riley demonstrates exceptional emotional intelligence in a challenging family situation, balancing genuine empathy with appropriate boundary-setting. The responses show sophisticated understanding of both self and other, recognizing manipulation tactics while still maintaining compassion, and offering solutions that address both immediate needs and long-term patterns without falling into enabling behaviors.",
+      "evaluated_at": "2025-12-14T02:47:10.476176"
+    }
+  ],
+  "mean_score": 79.0,
+  "median_score": 79.0,
+  "std_score": 0.0,
+  "min_score": 79.0,
+  "max_score": 79.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 17.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 15.0
+  },
+  "total_tokens": 2321,
+  "total_time": 72.98936629295349
+}

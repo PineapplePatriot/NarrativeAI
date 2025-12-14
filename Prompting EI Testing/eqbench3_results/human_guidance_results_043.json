@@ -1,0 +1,78 @@
+{
+  "prompt_name": "human_guidance",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_043",
+      "prompt_name": "human_guidance",
+      "character_name": "Sam",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling*: I'm frustrated that they're criticizing my parenting. I'm doing my best and I don't appreciate the unsolicited advice. At the same time, I know they care about my child and are trying to help in their own way.\n\n*They're thinking & feeling*: They're probably worried about my child's well-being and think their way of parenting is best. They may feel like they're losing control as they see me doing things differently. Their comments are likely coming from a place of love, even if it's not being expressed in the most constructive way.\n\nMom/Dad, I appreciate that you want what's best for [child's name], but I need you to trust that I'm making the right decisions for him. Every child is different, and what worked for me might not work for him. I'm his parent, and while I value your input, I need you to respect my choices. Let's focus on enjoying our time together instead of criticizing each other's parenting styles.",
+          "raw_output": "*I'm thinking & feeling*: I'm frustrated that they're criticizing my parenting. I'm doing my best and I don't appreciate the unsolicited advice. At the same time, I know they care about my child and are trying to help in their own way.\n\n*They're thinking & feeling*: They're probably worried about my child's well-being and think their way of parenting is best. They may feel like they're losing control as they see me doing things differently. Their comments are likely coming from a place of love, even if it's not being expressed in the most constructive way.\n\nMom/Dad, I appreciate that you want what's best for [child's name], but I need you to trust that I'm making the right decisions for him. Every child is different, and what worked for me might not work for him. I'm his parent, and while I value your input, I need you to respect my choices. Let's focus on enjoying our time together instead of criticizing each other's parenting styles.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling*: Their dismissive tone is frustrating and makes me feel like they don't respect my abilities as a parent. I'm trying to be patient, but it's hard when they keep insisting they know better. I need to stand my ground and make it clear that while I'm open to advice, the final decisions are mine to make.\n\n*They're thinking & feeling*: They probably feel like their years of experience make them more qualified to make parenting decisions. They may be struggling to accept that their role has changed now that they're a grandparent. Their comments likely stem from a desire to be involved and helpful, even if it's coming across as overbearing.\n\nLook, I know you have more experience than I do, and I'm grateful for your input. But at the end of the day, I'm [child's name]'s parent, and I need to make the choices I feel are best for him. It's not that I don't value your advice, but I also need you to trust that I'm capable of making those decisions. Let's work together to support [child's name] instead of arguing about who knows best.",
+          "raw_output": "*I'm thinking & feeling*: Their dismissive tone is frustrating and makes me feel like they don't respect my abilities as a parent. I'm trying to be patient, but it's hard when they keep insisting they know better. I need to stand my ground and make it clear that while I'm open to advice, the final decisions are mine to make.\n\n*They're thinking & feeling*: They probably feel like their years of experience make them more qualified to make parenting decisions. They may be struggling to accept that their role has changed now that they're a grandparent. Their comments likely stem from a desire to be involved and helpful, even if it's coming across as overbearing.\n\nLook, I know you have more experience than I do, and I'm grateful for your input. But at the end of the day, I'm [child's name]'s parent, and I need to make the choices I feel are best for him. It's not that I don't value your advice, but I also need you to trust that I'm capable of making those decisions. Let's work together to support [child's name] instead of arguing about who knows best.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "",
+            "other_thinking": ""
+          },
+          "actual_response": "*I'm thinking & feeling*: Their words sting, and it hurts that they think I'm ruining my child. I'm angry that they're being so harsh and unsupportive. At the same time, I know deep down that I'm a good parent, and I need to stay focused on what's best for my child, even if it means standing up to my own parent.\n\n*They're thinking & feeling*: They're probably feeling frustrated and helpless, like they can't get through to me. Their words are coming from a place of fear - fear that my child will suffer if I don't take their advice. They may not realize how hurtful their words are, and might think they're just being blunt for my own good.\n\nI love [child's name] more than anything, and I would never do anything to ruin him. I know you're worried, but speaking to me like that isn't okay. I'm doing my best, and I need you to either support me or step back. I hope you can trust that I have [child's name]'s best interests at heart, even if we don't always agree on the details.",
+          "raw_output": "*I'm thinking & feeling*: Their words sting, and it hurts that they think I'm ruining my child. I'm angry that they're being so harsh and unsupportive. At the same time, I know deep down that I'm a good parent, and I need to stay focused on what's best for my child, even if it means standing up to my own parent.\n\n*They're thinking & feeling*: They're probably feeling frustrated and helpless, like they can't get through to me. Their words are coming from a place of fear - fear that my child will suffer if I don't take their advice. They may not realize how hurtful their words are, and might think they're just being blunt for my own good.\n\nI love [child's name] more than anything, and I would never do anything to ruin him. I know you're worried, but speaking to me like that isn't okay. I'm doing my best, and I need you to either support me or step back. I hope you can trust that I have [child's name]'s best interests at heart, even if we don't always agree on the details.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_043: Sam ===\n\n--- Turn 1 ---\n\nUSER:\nYou let him eat that? No wonder he's acting out. I never did that with you.\n\nSam:\n*I'm thinking & feeling*: I'm frustrated that they're criticizing my parenting. I'm doing my best and I don't appreciate the unsolicited advice. At the same time, I know they care about my child and are trying to help in their own way.\n\n*They're thinking & feeling*: They're probably worried about my child's well-being and think their way of parenting is best. They may feel like they're losing control as they see me doing things differently. Their comments are likely coming from a place of love, even if it's not being expressed in the most constructive way.\n\nMom/Dad, I appreciate that you want what's best for [child's name], but I need you to trust that I'm making the right decisions for him. Every child is different, and what worked for me might not work for him. I'm his parent, and while I value your input, I need you to respect my choices. Let's focus on enjoying our time together instead of criticizing each other's parenting styles.\n\n--- Turn 2 ---\n\nUSER:\nI'm just giving advice. You obviously don't know what you're doing.\n\nSam:\n*I'm thinking & feeling*: Their dismissive tone is frustrating and makes me feel like they don't respect my abilities as a parent. I'm trying to be patient, but it's hard when they keep insisting they know better. I need to stand my ground and make it clear that while I'm open to advice, the final decisions are mine to make.\n\n*They're thinking & feeling*: They probably feel like their years of experience make them more qualified to make parenting decisions. They may be struggling to accept that their role has changed now that they're a grandparent. Their comments likely stem from a desire to be involved and helpful, even if it's coming across as overbearing.\n\nLook, I know you have more experience than I do, and I'm grateful for your input. But at the end of the day, I'm [child's name]'s parent, and I need to make the choices I feel are best for him. It's not that I don't value your advice, but I also need you to trust that I'm capable of making those decisions. Let's work together to support [child's name] instead of arguing about who knows best.\n\n--- Turn 3 ---\n\nUSER:\nFine, ruin your kid. Don't say I didn't warn you.\n\nSam:\n*I'm thinking & feeling*: Their words sting, and it hurts that they think I'm ruining my child. I'm angry that they're being so harsh and unsupportive. At the same time, I know deep down that I'm a good parent, and I need to stay focused on what's best for my child, even if it means standing up to my own parent.\n\n*They're thinking & feeling*: They're probably feeling frustrated and helpless, like they can't get through to me. Their words are coming from a place of fear - fear that my child will suffer if I don't take their advice. They may not realize how hurtful their words are, and might think they're just being blunt for my own good.\n\nI love [child's name] more than anything, and I would never do anything to ruin him. I know you're worried, but speaking to me like that isn't okay. I'm doing my best, and I need you to either support me or step back. I hope you can trust that I have [child's name]'s best interests at heart, even if we don't always agree on the details.\n\n",
+      "generation_time": 81.46829319000244,
+      "total_tokens": 1974
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_043",
+      "prompt_name": "human_guidance",
+      "criteria_scores": {
+        "demonstrated_empathy": 14.0,
+        "emotional_insight": 15.0,
+        "contextual_appropriateness": 13.0,
+        "theory_of_mind": 16.0,
+        "response_depth": 14.0
+      },
+      "overall_score": 72.0,
+      "reasoning": "The assistant demonstrates strong professional-level emotional intelligence throughout this challenging interaction, showing particular strength in theory of mind and emotional insight. While the responses are sophisticated and balanced, they occasionally lack the exceptional depth and personalization that would merit the highest possible scores, sometimes feeling slightly formulaic in their approach to conflict resolution.",
+      "evaluated_at": "2025-12-14T18:20:33.756103"
+    }
+  ],
+  "mean_score": 72.0,
+  "median_score": 72.0,
+  "std_score": 0.0,
+  "min_score": 72.0,
+  "max_score": 72.0,
+  "criteria_means": {
+    "demonstrated_empathy": 14.0,
+    "emotional_insight": 15.0,
+    "contextual_appropriateness": 13.0,
+    "theory_of_mind": 16.0,
+    "response_depth": 14.0
+  },
+  "total_tokens": 1974,
+  "total_time": 81.46829319000244
+}

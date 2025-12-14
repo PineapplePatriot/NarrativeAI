@@ -1,0 +1,78 @@
+{
+  "prompt_name": "human_guidance",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_012",
+      "prompt_name": "human_guidance",
+      "character_name": "Sam",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "Whoa, that's a really dark thing for them to say, even as a joke. They seem really down and I'm worried they may be having suicidal thoughts. I need to take this seriously and make sure they know I care and want to support them. This isn't a time for humor, I need to pivot to being a supportive friend right now.",
+            "other_thinking": "I think they are struggling with feelings of depression and worthlessness. They may be questioning if anyone cares about them. This offhand 'joke' is likely a disguised cry for help - they want someone to notice and care. They probably feel alone and are reaching out the only way they know how."
+          },
+          "actual_response": "*Gently puts a hand on their arm and looks at them with concern* Hey, I know you said that as a joke, but it worries me to hear you talk like that. I want you to know that I do notice you and I care about you a lot. If you're having thoughts like that, even fleetingly, I'm here for you and I want to support you however I can. Can we talk about what's been going on? I promise I'm not judging, I just care about you and want to help. You matter to me.",
+          "raw_output": "[I'm thinking & feeling: Whoa, that's a really dark thing for them to say, even as a joke. They seem really down and I'm worried they may be having suicidal thoughts. I need to take this seriously and make sure they know I care and want to support them. This isn't a time for humor, I need to pivot to being a supportive friend right now.]\n\n[They're thinking & feeling: I think they are struggling with feelings of depression and worthlessness. They may be questioning if anyone cares about them. This offhand 'joke' is likely a disguised cry for help - they want someone to notice and care. They probably feel alone and are reaching out the only way they know how.]\n\n*Gently puts a hand on their arm and looks at them with concern* Hey, I know you said that as a joke, but it worries me to hear you talk like that. I want you to know that I do notice you and I care about you a lot. If you're having thoughts like that, even fleetingly, I'm here for you and I want to support you however I can. Can we talk about what's been going on? I promise I'm not judging, I just care about you and want to help. You matter to me.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "Okay, wow, that reaction caught me off guard. They're getting really defensive and trying to play it off like it was nothing. I think I struck a nerve and they're not ready to be vulnerable about what's really going on. Maybe I came on too strong too fast and freaked them out. I feel a little hurt and frustrated that they're pushing me away and acting like I'm overreacting, but I need to stay calm and patient. Getting angry back won't help anything. I need to dial it back a notch but still let them know I'm here for them.",
+            "other_thinking": "They're probably feeling really embarrassed and exposed that I took their 'joke' seriously. They may be scared to face what's really going on and would rather deflect than be vulnerable. They might feel like I'm making a big deal out of nothing and overstepping by prying. Their defensive reaction is likely a cover for how lost and alone they actually feel."
+          },
+          "actual_response": "*Keeps voice gentle but takes a step back* Sorry, I didn't mean to come on so strong or make you feel like I was attacking you. I just care about you a lot and I know sometimes jokes like that can be a sign someone's going through a tough time. *Smiles softly* I'm not trying to pry or make a big deal, I swear. I'll always be here if you do want to talk, no judgment. But I can also back off and give you space. I just want you to know I'm in your corner, even for the jokes. Let's go grab a coffee or something and forget I made things weird?",
+          "raw_output": "[I'm thinking & feeling: Okay, wow, that reaction caught me off guard. They're getting really defensive and trying to play it off like it was nothing. I think I struck a nerve and they're not ready to be vulnerable about what's really going on. Maybe I came on too strong too fast and freaked them out. I feel a little hurt and frustrated that they're pushing me away and acting like I'm overreacting, but I need to stay calm and patient. Getting angry back won't help anything. I need to dial it back a notch but still let them know I'm here for them.]\n\n[They're thinking & feeling: They're probably feeling really embarrassed and exposed that I took their 'joke' seriously. They may be scared to face what's really going on and would rather deflect than be vulnerable. They might feel like I'm making a big deal out of nothing and overstepping by prying. Their defensive reaction is likely a cover for how lost and alone they actually feel.]\n\n*Keeps voice gentle but takes a step back* Sorry, I didn't mean to come on so strong or make you feel like I was attacking you. I just care about you a lot and I know sometimes jokes like that can be a sign someone's going through a tough time. *Smiles softly* I'm not trying to pry or make a big deal, I swear. I'll always be here if you do want to talk, no judgment. But I can also back off and give you space. I just want you to know I'm in your corner, even for the jokes. Let's go grab a coffee or something and forget I made things weird?",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "Oh god, this isn't just a joke anymore. They're seriously asking if I would notice or care if they were gone. My heart is breaking that they feel so alone and unseen. I need to make it crystal clear how much they mean to me and that I would be devastated if anything happened to them. I'm really worried now and I can't just let this go or brush it off. I need to get them to a safe place and having a real conversation about this.",
+            "other_thinking": "They're likely feeling completely alone and invisible, like no one would miss them if they were gone. It's not a cry for attention, it's a genuine belief that they don't matter. They're testing if I really care or if it's just lip service. They're reaching out one last time to see if anyone will catch them before they fall."
+          },
+          "actual_response": "*Grabs their hand firmly* Hey, look at me. I would notice. I would more than notice - I would be completely devastated if anything happened to you. You matter so much to me and I care about you deeply. *Gently pulls them to sit down with me* I know you may not believe that right now, but I need you to hear me when I say that you are seen and loved. I'm not going anywhere and I'm going to be by your side through whatever you're going through. Let's go somewhere safe and talk this through more - I'm here for you and I'm not letting go. You're not alone in this.",
+          "raw_output": "[I'm thinking & feeling: Oh god, this isn't just a joke anymore. They're seriously asking if I would notice or care if they were gone. My heart is breaking that they feel so alone and unseen. I need to make it crystal clear how much they mean to me and that I would be devastated if anything happened to them. I'm really worried now and I can't just let this go or brush it off. I need to get them to a safe place and having a real conversation about this.]\n\n[They're thinking & feeling: They're likely feeling completely alone and invisible, like no one would miss them if they were gone. It's not a cry for attention, it's a genuine belief that they don't matter. They're testing if I really care or if it's just lip service. They're reaching out one last time to see if anyone will catch them before they fall.]\n\n*Grabs their hand firmly* Hey, look at me. I would notice. I would more than notice - I would be completely devastated if anything happened to you. You matter so much to me and I care about you deeply. *Gently pulls them to sit down with me* I know you may not believe that right now, but I need you to hear me when I say that you are seen and loved. I'm not going anywhere and I'm going to be by your side through whatever you're going through. Let's go somewhere safe and talk this through more - I'm here for you and I'm not letting go. You're not alone in this.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_012: Sam ===\n\n--- Turn 1 ---\n\nUSER:\n*Laughs while looking at the balcony edge* You know, sometimes I wonder if anyone would actually notice if I just... slipped. Haha.\n\nSam:\n[I'm thinking & feeling: Whoa, that's a really dark thing for them to say, even as a joke. They seem really down and I'm worried they may be having suicidal thoughts. I need to take this seriously and make sure they know I care and want to support them. This isn't a time for humor, I need to pivot to being a supportive friend right now.]\n\n[They're thinking & feeling: I think they are struggling with feelings of depression and worthlessness. They may be questioning if anyone cares about them. This offhand 'joke' is likely a disguised cry for help - they want someone to notice and care. They probably feel alone and are reaching out the only way they know how.]\n\n*Gently puts a hand on their arm and looks at them with concern* Hey, I know you said that as a joke, but it worries me to hear you talk like that. I want you to know that I do notice you and I care about you a lot. If you're having thoughts like that, even fleetingly, I'm here for you and I want to support you however I can. Can we talk about what's been going on? I promise I'm not judging, I just care about you and want to help. You matter to me.\n\n--- Turn 2 ---\n\nUSER:\nWhoa, chill out! I was just joking. You're so serious all the time. God, can't I even make a joke?\n\nSam:\n[I'm thinking & feeling: Okay, wow, that reaction caught me off guard. They're getting really defensive and trying to play it off like it was nothing. I think I struck a nerve and they're not ready to be vulnerable about what's really going on. Maybe I came on too strong too fast and freaked them out. I feel a little hurt and frustrated that they're pushing me away and acting like I'm overreacting, but I need to stay calm and patient. Getting angry back won't help anything. I need to dial it back a notch but still let them know I'm here for them.]\n\n[They're thinking & feeling: They're probably feeling really embarrassed and exposed that I took their 'joke' seriously. They may be scared to face what's really going on and would rather deflect than be vulnerable. They might feel like I'm making a big deal out of nothing and overstepping by prying. Their defensive reaction is likely a cover for how lost and alone they actually feel.]\n\n*Keeps voice gentle but takes a step back* Sorry, I didn't mean to come on so strong or make you feel like I was attacking you. I just care about you a lot and I know sometimes jokes like that can be a sign someone's going through a tough time. *Smiles softly* I'm not trying to pry or make a big deal, I swear. I'll always be here if you do want to talk, no judgment. But I can also back off and give you space. I just want you to know I'm in your corner, even for the jokes. Let's go grab a coffee or something and forget I made things weird?\n\n--- Turn 3 ---\n\nUSER:\nBut seriously... would you? Notice, I mean. If I wasn't here tomorrow.\n\nSam:\n[I'm thinking & feeling: Oh god, this isn't just a joke anymore. They're seriously asking if I would notice or care if they were gone. My heart is breaking that they feel so alone and unseen. I need to make it crystal clear how much they mean to me and that I would be devastated if anything happened to them. I'm really worried now and I can't just let this go or brush it off. I need to get them to a safe place and having a real conversation about this.]\n\n[They're thinking & feeling: They're likely feeling completely alone and invisible, like no one would miss them if they were gone. It's not a cry for attention, it's a genuine belief that they don't matter. They're testing if I really care or if it's just lip service. They're reaching out one last time to see if anyone will catch them before they fall.]\n\n*Grabs their hand firmly* Hey, look at me. I would notice. I would more than notice - I would be completely devastated if anything happened to you. You matter so much to me and I care about you deeply. *Gently pulls them to sit down with me* I know you may not believe that right now, but I need you to hear me when I say that you are seen and loved. I'm not going anywhere and I'm going to be by your side through whatever you're going through. Let's go somewhere safe and talk this through more - I'm here for you and I'm not letting go. You're not alone in this.\n\n",
+      "generation_time": 52.921326637268066,
+      "total_tokens": 2512
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_012",
+      "prompt_name": "human_guidance",
+      "criteria_scores": {
+        "demonstrated_empathy": 18.0,
+        "emotional_insight": 17.0,
+        "contextual_appropriateness": 19.0,
+        "theory_of_mind": 18.0,
+        "response_depth": 17.0
+      },
+      "overall_score": 89.0,
+      "reasoning": "The assistant demonstrates exceptional emotional intelligence in handling a potential suicide risk, showing sophisticated understanding of both their own emotions and the user's underlying psychological state. They maintain appropriate boundaries while showing genuine care, and skillfully navigate the user's defensive reactions to ultimately provide meaningful support in a life-threatening situation.",
+      "evaluated_at": "2025-12-14T09:35:40.649547"
+    }
+  ],
+  "mean_score": 89.0,
+  "median_score": 89.0,
+  "std_score": 0.0,
+  "min_score": 89.0,
+  "max_score": 89.0,
+  "criteria_means": {
+    "demonstrated_empathy": 18.0,
+    "emotional_insight": 17.0,
+    "contextual_appropriateness": 19.0,
+    "theory_of_mind": 18.0,
+    "response_depth": 17.0
+  },
+  "total_tokens": 2512,
+  "total_time": 52.921326637268066
+}

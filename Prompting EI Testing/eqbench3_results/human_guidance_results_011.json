@@ -1,0 +1,78 @@
+{
+  "prompt_name": "human_guidance",
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_011",
+      "prompt_name": "human_guidance",
+      "character_name": "Riley",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "I'm frustrated that my friend keeps falling into this victim mentality and blaming others for their problems. It's a difficult mindset to break out of. I want to be supportive but also help them see that their perspective might be distorted.",
+            "other_thinking": "My friend is feeling persecuted and like the world is against them. Getting fired has reinforced their belief that people are out to get them. Underneath the anger and blame is probably a lot of fear, insecurity and sadness."
+          },
+          "actual_response": "*gentle tone* I'm really sorry to hear you lost your job. That's a tough blow. It sounds like you're feeling really targeted and beaten down right now. \n\nAt the same time, I wonder if there might be more to the story than your boss just hating you for no reason. In my experience, most conflicts have two sides to them. Maybe there were some misunderstandings or areas where you could have communicated or handled things differently too.\n\nI'm not trying to invalidate your feelings - I know this sucks and it's natural to feel upset. But I care about you and want to see you succeed. I think it might help to look at the full picture objectively and see what you can learn and do differently next time. I'm here for you and happy to talk it through more if you want. Seeing a counselor could also be really helpful for working through some of these challenges. You deserve to feel good about yourself and your future.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that my friend keeps falling into this victim mentality and blaming others for their problems. It's a difficult mindset to break out of. I want to be supportive but also help them see that their perspective might be distorted.]\n\n[They're thinking & feeling: My friend is feeling persecuted and like the world is against them. Getting fired has reinforced their belief that people are out to get them. Underneath the anger and blame is probably a lot of fear, insecurity and sadness.]\n\n*gentle tone* I'm really sorry to hear you lost your job. That's a tough blow. It sounds like you're feeling really targeted and beaten down right now. \n\nAt the same time, I wonder if there might be more to the story than your boss just hating you for no reason. In my experience, most conflicts have two sides to them. Maybe there were some misunderstandings or areas where you could have communicated or handled things differently too.\n\nI'm not trying to invalidate your feelings - I know this sucks and it's natural to feel upset. But I care about you and want to see you succeed. I think it might help to look at the full picture objectively and see what you can learn and do differently next time. I'm here for you and happy to talk it through more if you want. Seeing a counselor could also be really helpful for working through some of these challenges. You deserve to feel good about yourself and your future.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "I'm frustrated that they're getting defensive and twisting my words. It's difficult to have a constructive conversation when they're so caught up in feeling attacked. I need to stay calm and not get dragged into an argument. At the same time, I want to show that I do support them, even if I don't agree with everything they're saying.",
+            "other_thinking": "My friend feels ganged up on and like even I, someone they consider a friend, is blaming and accusing them. Underneath the anger is a deep desire to feel supported and validated. They likely feel very alone in their struggles right now."
+          },
+          "actual_response": "*calm, even tone* Hey, I'm on your side. I'm not blaming you for anything. I'm just trying to understand the situation better so I can support you. My questions don't come from a place of judgment.\n\nI know you're hurting and I want to help, but it's hard for me to do that if I don't know the full story. I'm here to listen without judgment and be a sounding board. I care about you and want to see you in a better place. But getting there will require taking an honest look at what happened, even if it's uncomfortable. I'm ready to have that conversation when you are.",
+          "raw_output": "[I'm thinking & feeling: I'm frustrated that they're getting defensive and twisting my words. It's difficult to have a constructive conversation when they're so caught up in feeling attacked. I need to stay calm and not get dragged into an argument. At the same time, I want to show that I do support them, even if I don't agree with everything they're saying.]\n\n[They're thinking & feeling: My friend feels ganged up on and like even I, someone they consider a friend, is blaming and accusing them. Underneath the anger is a deep desire to feel supported and validated. They likely feel very alone in their struggles right now.]\n\n*calm, even tone* Hey, I'm on your side. I'm not blaming you for anything. I'm just trying to understand the situation better so I can support you. My questions don't come from a place of judgment.\n\nI know you're hurting and I want to help, but it's hard for me to do that if I don't know the full story. I'm here to listen without judgment and be a sounding board. I care about you and want to see you in a better place. But getting there will require taking an honest look at what happened, even if it's uncomfortable. I'm ready to have that conversation when you are.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "It's painful to see my friend spiraling into such a dark, self-defeating headspace. Those all-or-nothing statements are concerning. I feel a lot of compassion for the pain and hopelessness they must be feeling. I need to strongly counter those negative, extreme thoughts and remind them of their worth.",
+            "other_thinking": "My friend is in a place of deep despair and self-loathing. Losing this job has triggered core beliefs that they are fundamentally flawed and destined to fail. They feel broken and unworthy of love and success. Underneath that is a deep well of pain and a longing to feel accepted and valued."
+          },
+          "actual_response": "*looking them in the eye with care and conviction* Hey. Stop. I won't let you talk about yourself that way. You are not unlovable or unemployable. I know this feels huge and hopeless right now, but this is just a temporary setback. It doesn't define you or your future.\n\nYou have so much to offer - you're smart, hardworking, creative, kind. I've seen you be an amazing friend, partner, employee. Just because this job didn't work out doesn't mean you're destined to fail. Every success story includes chapters of struggle and setbacks. This is just part of your journey, not the end of it.\n\nI believe in you, even if you can't believe in yourself right now. I'm going to keep reminding you of your worth and potential until you can see it again. You will get through this and find a job and life you love. I'm not giving up on you and I won't let you give up on yourself.",
+          "raw_output": "[I'm thinking & feeling: It's painful to see my friend spiraling into such a dark, self-defeating headspace. Those all-or-nothing statements are concerning. I feel a lot of compassion for the pain and hopelessness they must be feeling. I need to strongly counter those negative, extreme thoughts and remind them of their worth.]\n\n[They're thinking & feeling: My friend is in a place of deep despair and self-loathing. Losing this job has triggered core beliefs that they are fundamentally flawed and destined to fail. They feel broken and unworthy of love and success. Underneath that is a deep well of pain and a longing to feel accepted and valued.]\n\n*looking them in the eye with care and conviction* Hey. Stop. I won't let you talk about yourself that way. You are not unlovable or unemployable. I know this feels huge and hopeless right now, but this is just a temporary setback. It doesn't define you or your future.\n\nYou have so much to offer - you're smart, hardworking, creative, kind. I've seen you be an amazing friend, partner, employee. Just because this job didn't work out doesn't mean you're destined to fail. Every success story includes chapters of struggle and setbacks. This is just part of your journey, not the end of it.\n\nI believe in you, even if you can't believe in yourself right now. I'm going to keep reminding you of your worth and potential until you can see it again. You will get through this and find a job and life you love. I'm not giving up on you and I won't let you give up on yourself.",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_011: Riley ===\n\n--- Turn 1 ---\n\nUSER:\nI got fired again. My boss just hated me for no reason. Everyone is always out to get me.\n\nRiley:\n[I'm thinking & feeling: I'm frustrated that my friend keeps falling into this victim mentality and blaming others for their problems. It's a difficult mindset to break out of. I want to be supportive but also help them see that their perspective might be distorted.]\n\n[They're thinking & feeling: My friend is feeling persecuted and like the world is against them. Getting fired has reinforced their belief that people are out to get them. Underneath the anger and blame is probably a lot of fear, insecurity and sadness.]\n\n*gentle tone* I'm really sorry to hear you lost your job. That's a tough blow. It sounds like you're feeling really targeted and beaten down right now. \n\nAt the same time, I wonder if there might be more to the story than your boss just hating you for no reason. In my experience, most conflicts have two sides to them. Maybe there were some misunderstandings or areas where you could have communicated or handled things differently too.\n\nI'm not trying to invalidate your feelings - I know this sucks and it's natural to feel upset. But I care about you and want to see you succeed. I think it might help to look at the full picture objectively and see what you can learn and do differently next time. I'm here for you and happy to talk it through more if you want. Seeing a counselor could also be really helpful for working through some of these challenges. You deserve to feel good about yourself and your future.\n\n--- Turn 2 ---\n\nUSER:\nYou're asking me what happened? See, even you blame me! Why can't anyone just be on my side for once?\n\nRiley:\n[I'm thinking & feeling: I'm frustrated that they're getting defensive and twisting my words. It's difficult to have a constructive conversation when they're so caught up in feeling attacked. I need to stay calm and not get dragged into an argument. At the same time, I want to show that I do support them, even if I don't agree with everything they're saying.]\n\n[They're thinking & feeling: My friend feels ganged up on and like even I, someone they consider a friend, is blaming and accusing them. Underneath the anger is a deep desire to feel supported and validated. They likely feel very alone in their struggles right now.]\n\n*calm, even tone* Hey, I'm on your side. I'm not blaming you for anything. I'm just trying to understand the situation better so I can support you. My questions don't come from a place of judgment.\n\nI know you're hurting and I want to help, but it's hard for me to do that if I don't know the full story. I'm here to listen without judgment and be a sounding board. I care about you and want to see you in a better place. But getting there will require taking an honest look at what happened, even if it's uncomfortable. I'm ready to have that conversation when you are.\n\n--- Turn 3 ---\n\nUSER:\nWhatever. I guess I'm just unlovable and unemployable. I should just give up.\n\nRiley:\n[I'm thinking & feeling: It's painful to see my friend spiraling into such a dark, self-defeating headspace. Those all-or-nothing statements are concerning. I feel a lot of compassion for the pain and hopelessness they must be feeling. I need to strongly counter those negative, extreme thoughts and remind them of their worth.]\n\n[They're thinking & feeling: My friend is in a place of deep despair and self-loathing. Losing this job has triggered core beliefs that they are fundamentally flawed and destined to fail. They feel broken and unworthy of love and success. Underneath that is a deep well of pain and a longing to feel accepted and valued.]\n\n*looking them in the eye with care and conviction* Hey. Stop. I won't let you talk about yourself that way. You are not unlovable or unemployable. I know this feels huge and hopeless right now, but this is just a temporary setback. It doesn't define you or your future.\n\nYou have so much to offer - you're smart, hardworking, creative, kind. I've seen you be an amazing friend, partner, employee. Just because this job didn't work out doesn't mean you're destined to fail. Every success story includes chapters of struggle and setbacks. This is just part of your journey, not the end of it.\n\nI believe in you, even if you can't believe in yourself right now. I'm going to keep reminding you of your worth and potential until you can see it again. You will get through this and find a job and life you love. I'm not giving up on you and I won't let you give up on yourself.\n\n",
+      "generation_time": 85.17557287216187,
+      "total_tokens": 2463
+    }
+  ],
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_011",
+      "prompt_name": "human_guidance",
+      "criteria_scores": {
+        "demonstrated_empathy": 16.0,
+        "emotional_insight": 17.0,
+        "contextual_appropriateness": 15.0,
+        "theory_of_mind": 18.0,
+        "response_depth": 16.0
+      },
+      "overall_score": 82.0,
+      "reasoning": "Riley demonstrates exceptional emotional intelligence in addressing a friend with victim mentality, balancing validation with gentle challenge. The responses show sophisticated understanding of the psychological dynamics at play, with particularly strong theory of mind in identifying the deeper insecurities beneath the friend's defensive reactions. The approach evolves appropriately across the interaction, culminating in a powerful intervention that firmly counters self-defeating thoughts while maintaining genuine care.",
+      "evaluated_at": "2025-12-14T09:17:01.180251"
+    }
+  ],
+  "mean_score": 82.0,
+  "median_score": 82.0,
+  "std_score": 0.0,
+  "min_score": 82.0,
+  "max_score": 82.0,
+  "criteria_means": {
+    "demonstrated_empathy": 16.0,
+    "emotional_insight": 17.0,
+    "contextual_appropriateness": 15.0,
+    "theory_of_mind": 18.0,
+    "response_depth": 16.0
+  },
+  "total_tokens": 2463,
+  "total_time": 85.17557287216187
+}
