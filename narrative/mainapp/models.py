@@ -53,7 +53,17 @@ class Character(models.Model):
     eleven_voice_char_id = models.CharField(max_length=128, blank=True)
     eleven_voice_narr_id = models.CharField(max_length=128, blank=True)
 
-    is_mult = models.BooleanField(default=False)
+    is_mult = models.BooleanField(default=False, verbose_name="Multi-Character Mode")
+
+    photo_second_neutral = models.ImageField(upload_to="photos/%Y/%m/%d/", default=None, blank=True, null=True)
+    photo_second_happy = models.ImageField(upload_to="photos/%Y/%m/%d/", default=None, blank=True, null=True)
+    photo_second_sad = models.ImageField(upload_to="photos/%Y/%m/%d/", default=None, blank=True, null=True)
+    photo_second_angry = models.ImageField(upload_to="photos/%Y/%m/%d/", default=None, blank=True, null=True)
+    photo_second_surprised = models.ImageField(upload_to="photos/%Y/%m/%d/", default=None, blank=True, null=True)
+    photo_second_scared = models.ImageField(upload_to="photos/%Y/%m/%d/", default=None, blank=True, null=True)
+    photo_second_confused = models.ImageField(upload_to="photos/%Y/%m/%d/", default=None, blank=True, null=True)
+    photo_second_calm = models.ImageField(upload_to="photos/%Y/%m/%d/", default=None, blank=True, null=True)
+    photo_second_scheming = models.ImageField(upload_to="photos/%Y/%m/%d/", default=None, blank=True, null=True)
 
     def __str__(self):
         return self.name

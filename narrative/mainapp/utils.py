@@ -69,7 +69,7 @@ def get_worldbook_matches(message, worldbook_slug, top_k=5, similarity_threshold
     return results
 
 
-def build_ai_request(user, character: Character, chat_settings: ChatSettings, worldbook_slug=None, message: str = None):
+def build_ai_request(user, character: Character, chat_settings: ChatSettings, worldbook_slug=None, message: str = None, guidance=None, impersonate=None, persistent_guides=None, summary=None):
     """
     Формує JSON-запит для моделі ШІ (структурований і читабельний).
     Використовує message як останнє повідомлення користувача.
@@ -142,6 +142,21 @@ def build_ai_request(user, character: Character, chat_settings: ChatSettings, wo
             print(f"Worldbook match error: {e}")
             worldbook_matches = []
 
+
+    if summary:
+        system_prompts["StorySummary"] = f"PREVIOUS STORY SUMMARY: {summary}\n(Older messages are omitted. Rely on this context.)"
+    if persistent_guides and isinstance(persistent_guides, dict):
+        context_block = []
+        if persistent_guides.get("situation"): context_block.append(f"CURRENT SITUATION: {persistent_guides['situation']}")
+        if persistent_guides.get("clothes"): context_block.append(f"OUTFIT: {persistent_guides['clothes']}")
+        if persistent_guides.get("state"): context_block.append(f"PHYSICAL STATE: {persistent_guides['state']}")
+        if persistent_guides.get("thinking"): context_block.append(f"INNER THOUGHTS: {persistent_guides['thinking']}")
+        if context_block:
+            system_prompts["WorldContext"] = "\n".join(context_block)
+
+    # 3. Director's Note (Guidance) Injection
+    if guidance:
+        system_prompts["DirectorNote"] = f"URGENT INSTRUCTION FOR NEXT RESPONSE: {guidance}"
     # Формуємо фінальний JSON
     ai_request = {
         "Core": core_data,
@@ -154,7 +169,21 @@ def build_ai_request(user, character: Character, chat_settings: ChatSettings, wo
     }
 
 
-    print(ai_request)
+    engagement_settings = {}
+    try:
+        base_dir = os.path.join(settings.MEDIA_ROOT, "chat_settings2")
+        file_path = os.path.join(base_dir, f"chat_settings2_{user.id}_active.json")
+        if os.path.exists(file_path):
+            with open(file_path, "r", encoding="utf-8") as f:
+                engagement_settings = json.load(f)
+    except Exception as e:
+        print(f"Failed to load chat_settings2 for user {user.id}: {e}")
+        engagement_settings = {}
+
+    ai_request["PromptingGroundSettings"] = engagement_settings
+    # -------------------------------------------------------------------------------
+
+    # print(ai_request)
     return ai_request
 
 

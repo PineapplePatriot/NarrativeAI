@@ -4,27 +4,33 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Add Character (Proba)</title>
-    <link rel="stylesheet" href="{% static 'mainapp/css/character_form.css' %}">
-    <link rel="stylesheet" href="{% static 'mainapp/css/add_character.css' %}">
+    <title>Add Character</title>
+    <link rel="stylesheet" href="{% static 'mainapp/css/character_form.css' %}?v={% now 'U' %}">
+    <link rel="stylesheet" href="{% static 'mainapp/css/add_character.css' %}?v={% now 'U' %}">
 </head>
 <body>
 <div class="form-container">
-    <!-- Кнопка назад без обрамлення -->
     <a href="{% url 'characters_list' %}" class="back-btn">← Back to Characters List</a>
     <h1>Add Character</h1>
     <form method="POST" enctype="multipart/form-data">
         {% csrf_token %}
         <div class="form-error">{{ form.non_field_errors }}</div>
 
-        <!-- Текстові поля -->
         {% for f in form %}
             {% if f.field.widget.input_type != "file" and not f.name|startswith:"eleven_voice_" %}
-                <div class="form-group">
-                    <label for="{{ f.id_for_label }}">{{ f.label }}</label>
-                    {{ f }}
+
+                {% if f.field.widget.input_type == "checkbox" %}
+                    <div class="form-group custom-checkbox-wrapper">
+                        {{ f }} <label for="{{ f.id_for_label }}">{{ f.label }}</label> </div>
                     <div class="form-error">{{ f.errors }}</div>
-                </div>
+                {% else %}
+                    <div class="form-group">
+                        <label for="{{ f.id_for_label }}">{{ f.label }}</label>
+                        {{ f }}
+                        <div class="form-error">{{ f.errors }}</div>
+                    </div>
+                {% endif %}
+
             {% endif %}
         {% endfor %}
 
@@ -44,13 +50,12 @@
             <p><em>🔒 Щоб обрати голос, додайте ваш Eleven Labs API ключ у налаштуваннях.</em></p>
         {% endif %}
 
-        <!-- file-поля у сітці 3×3 -->
         <div class="file-grid">
             {% for f in form %}
                 {% if f.field.widget.input_type == "file" %}
-                    <div class="file-group">
+                    <div class="file-group" data-field-name="{{ f.name }}">
                         <label>{{ f.label }}</label>
-                        <label class="custom-file-btn" onclick="this.nextElementSibling.click()">Вибрати фото</label>
+                        <label class="custom-file-btn" onclick="this.nextElementSibling.click()">Choose photo</label>
                         <input type="file" name="{{ f.name }}" id="{{ f.id_for_label }}" class="file-input">
                         <div class="file-preview">
                             {% if f.value %}
@@ -72,7 +77,8 @@
         {% endif %}
     </form>
 </div>
-<script src="{% static 'mainapp/js/add_character.js' %}"></script>
+
+<script src="{% static 'mainapp/js/add_character.js' %}?v={% now 'U' %}"></script>
 
 </body>
 </html>

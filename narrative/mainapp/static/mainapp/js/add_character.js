@@ -18,4 +18,29 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
     });
+    const isMultCheckbox = document.getElementById('id_is_mult');
+    const fileGroups = document.querySelectorAll('.file-group');
+
+    function toggleSecondCharFields() {
+        if (!isMultCheckbox) return;
+
+        const isChecked = isMultCheckbox.checked;
+
+        fileGroups.forEach(group => {
+            const fieldName = group.getAttribute('data-field-name');
+
+            if (fieldName && fieldName.includes('second')) {
+                if (isChecked) {
+                    group.style.display = 'flex';
+                } else {
+                    group.style.display = 'none';
+                }
+            }
+        });
+    }
+
+    if (isMultCheckbox) {
+        toggleSecondCharFields();
+        isMultCheckbox.addEventListener('change', toggleSecondCharFields);
+    }
 });

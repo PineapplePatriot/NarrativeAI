@@ -74,19 +74,39 @@ def chat(request, slug):
         character.chat_log_file.name = f"chat_logs/{filename}"
         character.save()
 
+    chat_state = {
+        "summary": "",
+        "context_guides": {},
+        "current_bg": "",
+        "current_music": {}
+    }
 
     def load_messages():
         if os.path.exists(chat_file_path):
             with open(chat_file_path, "r", encoding="utf-8") as f:
                 try:
-                    messages_list = json.load(f)
+                    data = json.load(f)
+
+                    if isinstance(data, dict):
+                        chat_state["summary"] = data.get("summary", "")
+                        chat_state["context_guides"] = data.get("context_guides", {})
+                        chat_state["current_bg"] = data.get("current_bg", "")
+                        chat_state["current_music"] = data.get("current_music", {})
+                        messages_list = data.get("messages", [])
+                    else:
+                        messages_list = data
+
+
                     fixed_messages = []
                     for msg in messages_list:
-                        if len(msg) == 3:
-                            role, time, text = msg
-                            fixed_messages.append((role, time, text, "neutral"))
-                        elif len(msg) >= 4:
-                            fixed_messages.append(tuple(msg[:4]))
+
+                        if len(msg) == 3: # (role, time, text)
+                            fixed_messages.append((msg[0], msg[1], msg[2], "neutral", 1))
+                        elif len(msg) == 4: # (role, time, text, emotion)
+                            fixed_messages.append((msg[0], msg[1], msg[2], msg[3], 1))
+                        elif len(msg) >= 5: # New format
+                            fixed_messages.append(tuple(msg[:5]))
+
                     return fixed_messages
                 except json.JSONDecodeError:
                     return []
@@ -95,21 +115,28 @@ def chat(request, slug):
 
     # --- Save messages to file ---
     def save_messages(messages):
+        full_data = {
+            "messages": messages,
+            "summary": chat_state["summary"],
+            "context_guides": chat_state["context_guides"],
+            "current_bg": chat_state["current_bg"],
+            "current_music": chat_state["current_music"]
+        }
         with open(chat_file_path, "w", encoding="utf-8") as f:
-            json.dump(messages, f, ensure_ascii=False, indent=2)
+            json.dump(full_data, f, ensure_ascii=False, indent=2)
 
     messages = load_messages()
 
     # --- Initial assistant message ---
     if not messages and character.initial_message:
-        messages.append(("assistant", datetime.now().strftime("%H:%M"), character.initial_message, "neutral"))
+        # Added ', 1' at the end for char_count
+        messages.append(("assistant", datetime.now().strftime("%H:%M"), character.initial_message, "neutral", 1))
         save_messages(messages)
 
     # --- POST request ---
     if request.method == "POST":
         data = json.loads(request.body)
         action = data.get("action", "chat")
-
         # Handle edit action
         if action == "edit":
             try:
@@ -121,8 +148,8 @@ def chat(request, slug):
 
                 if 0 <= index < len(messages):
                     # Update the message text, keep other fields
-                    role, time, old_text, emotion = messages[index]
-                    messages[index] = (role, time, new_text, emotion)
+                    role, time, old_text, emotion, char_count = messages[index] # <--- FIXED
+                    messages[index] = (role, time, new_text, emotion, char_count)
                     save_messages(messages)
                     return JsonResponse({"success": True})
                 else:
@@ -147,11 +174,181 @@ def chat(request, slug):
             except (ValueError, KeyError) as e:
                 return JsonResponse({"success": False, "error": "Invalid request data"})
 
+        # --- 2. NEW: Magic Pencil (Expand) ---
+        elif action == "expand":
+            text = data.get("text", "")
+            perspective = data.get("perspective", "The User")
+            if not text: return JsonResponse({"success": False})
+
+            # Context: Last 10 messages
+            recent = messages[-10:]
+            hist_txt = "\n".join([f"{m[0].upper()}: {m[2]}" for m in recent])
+
+            sys_msg = (f"Rewrite this draft: '{text}'. Expand it into a full roleplay response as {perspective}. "
+                       f"Match the tone of:\n{hist_txt}\nOutput ONLY the result.")
+
+            try:
+                resp = requests.post("https://openrouter.ai/api/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}"},
+                    json={"model": MODEL_NAME, "messages": [{"role": "system", "content": sys_msg}]}
+                )
+                return JsonResponse({"success": True, "text": resp.json()["choices"][0]["message"]["content"]})
+            except Exception as e: return JsonResponse({"success": False, "error": str(e)})
+
+        # --- 3. NEW: Spellcheck ---
+        elif action == "spellcheck":
+            text = data.get("text", "")
+            if not text: return JsonResponse({"success": False})
+            try:
+                resp = requests.post("https://openrouter.ai/api/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}"},
+                    json={"model": MODEL_NAME, "messages": [{"role": "system", "content": "Correct grammar/spelling only. Output ONLY fixed text."}, {"role": "user", "content": text}]}
+                )
+                return JsonResponse({"success": True, "text": resp.json()["choices"][0]["message"]["content"]})
+            except: return JsonResponse({"success": False})
+
+        # --- 4. NEW: Save Guides & Summary ---
+        elif action == "save_guides":
+            chat_state["context_guides"] = data.get("guides", {})
+            save_messages(messages) # Updates file
+            return JsonResponse({"success": True})
+
+        # ... inside chat view POST handler ...
+        elif action == "summarize":
+            mode = data.get("mode", "append") # Get mode, default to append
+            current_summary = chat_state["summary"]
+
+            if len(messages) < 2:
+                return JsonResponse({"success": False, "error": "Not enough history."})
+
+            prompt_text = ""
+
+            if mode == 'regen':
+                # Summarize EVERYTHING
+                txt = "\n".join([f"{m[0]}: {m[2]}" for m in messages])
+                sys_prompt = "Summarize this entire roleplay story concisely. Capture key events and current status. Be clear and precise, focus on describing events and reactions in detail. The summary should include Tone, Setting, Events, Current emotional state."
+                prompt_text = txt
+            else:
+                # APPEND mode: take last X messages only
+                # We grab the last 10 messages to summarize recent events
+                recent_msgs = messages[-10:]
+                txt = "\n".join([f"{m[0]}: {m[2]}" for m in recent_msgs])
+                sys_prompt = f"Existing summary: {current_summary}\n\nTask: Read the recent conversation below and create a short paragraph summarizing ONLY the new events, advancing the existing summary."
+                prompt_text = txt
+
+            try:
+                resp = requests.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}"},
+                    json={
+                        "model": MODEL_NAME,
+                        "messages": [
+                            {"role": "system", "content": sys_prompt},
+                            {"role": "user", "content": prompt_text}
+                        ]
+                    }
+                )
+                new_text = resp.json()["choices"][0]["message"]["content"]
+
+                if mode == 'regen':
+                    chat_state["summary"] = new_text
+                else:
+                    # Append new summary text to the old one
+                    if current_summary:
+                         chat_state["summary"] = current_summary + "\n\n" + new_text
+                    else:
+                         chat_state["summary"] = new_text
+
+                save_messages(messages) # Saves the new summary state to file
+                return JsonResponse({"success": True, "summary": chat_state["summary"]})
+            except Exception as e: 
+                return JsonResponse({"success": False, "error": str(e)})
+
+        # --- 5. NEW: Regenerate/Continue Logic ---
+        elif action == "regenerate":
+            if messages and messages[-1][0] == "assistant":
+                messages.pop()
+                save_messages(messages)
+            pass # Fall through to generation
+
+        # --- 5. CONTINUE (Fixed) ---
+        elif action == "continue":
+            if not messages or messages[-1][0] != "assistant":
+                return JsonResponse({"success": False, "error": "Can only continue the AI's last message."})
+
+            # 1. Get the partial text and remove it from the history list used for the prompt
+            last_text = messages[-1][2]
+            # We slice everything EXCEPT the last message to give the AI context
+            history_context = messages[:-1]
+
+            # 2. Build the System Prompt manually for this specific task
+            # We instruct the AI that it is continuing a specific text.
+            system_instruction = (
+                f"Your last response was cut-off. You are continuing the following text exactly where it stopped. "
+                f"Do not repeat the beginning. Output only the continuation and give it an ending logical for the message.\n\n"
+                f"TEXT SO FAR:\n{last_text}"
+            )
+
+            # 3. Construct API Messages
+            api_messages = [{"role": "system", "content": system_instruction}]
+
+            # Add recent history (last 5 messages) for context, so it remembers the topic
+            for role, time, text, emo, char_count in history_context[-5:]: # <--- FIXED
+                api_messages.append({"role": "assistant" if role == "assistant" else "user", "content": text})
+
+            try:
+                # 4. Call API
+                response = requests.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}"},
+                    json={
+                        "model": MODEL_NAME,
+                        "messages": api_messages,
+                        "max_tokens": 500 # Give it room to write
+                    },
+                    timeout=20
+                )
+                response.raise_for_status()
+                new_chunk = response.json()["choices"][0]["message"]["content"]
+
+                # 5. Combine and Save
+                full_text = last_text + " " + new_chunk
+                # Preserve char_count (index 4)
+                last_msg = messages[-1]
+                messages[-1] = ("assistant", last_msg[1], full_text, last_msg[3], last_msg[4])
+                save_messages(messages)
+
+                return JsonResponse({"success": True, "reply": full_text})
+
+            except Exception as e:
+                print(f"Continue Error: {e}")
+                return JsonResponse({"success": False, "error": str(e)})
+        elif action == "save_media":
+            m_type = data.get("type")
+            url = data.get("url")
+            name = data.get("name")
+
+            if m_type == "bg":
+                chat_state["current_bg"] = url
+            elif m_type == "music":
+                if url:
+                    chat_state["current_music"] = {"url": url, "name": name}
+                else:
+                    chat_state["current_music"] = {} # Clear/Stop music
+
+            save_messages(messages)
+            return JsonResponse({"success": True})
         # Handle regular chat message
-        else:
+        if action in ["chat", "regenerate", "continue"]:
             user_message = data.get("message", "").strip()
-            if user_message:
-                messages.append(("user", datetime.now().strftime("%H:%M"), user_message, "neutral"))
+            guidance = data.get("guidance", "")
+
+            if action == "continue":
+                guidance = "CONTINUE the last response exactly where it ended. Do not repeat text. Flow naturally and logically finish it."
+
+            if action == "chat" and user_message:
+                # Added ', 1' at the end for char_count
+                messages.append(("user", datetime.now().strftime("%H:%M"), user_message, "neutral", 1))
 
                 # --- Prepare history for API ---
                 api_messages = []
@@ -161,7 +358,7 @@ def chat(request, slug):
                     api_messages.append({"role": "system", "content": character.system_prompt})
 
                 # Add conversation history
-                for role, time, text, emotion in messages:
+                for role, time, text, emotion, char_count in messages: # <--- FIXED
                     if role == "user":
                         api_messages.append({"role": "user", "content": text})
                     elif role == "assistant":
@@ -184,7 +381,17 @@ def chat(request, slug):
                         worldbook_slug = worldbook.slug
                     else:
                         worldbook_slug = None
-                    prompt = build_ai_request(request.user, character, chat_settings, worldbook_slug=worldbook_slug, message=user_message)
+
+                    # if action in ["chat", "regenerate"]:
+                    prompt = build_ai_request(
+                        request.user,
+                        character,
+                        chat_settings,
+                        worldbook_slug=worldbook_slug,
+                        message=user_message if action == "chat" else None,
+                        guidance=guidance,                             # <--- INJECTION 1
+                        persistent_guides=chat_state["context_guides"],# <--- INJECTION 2
+                        summary=chat_state["summary"])
 
 
                     # --- Формуємо структуровані system messages ---
@@ -232,12 +439,54 @@ def chat(request, slug):
                             "content": f"[WORLDBOOK MATCHES]\n{json.dumps(prompt['WorldbookMatches'], indent=2, ensure_ascii=False)}"
                         })
 
+                    user_persona_txt = ""
+                    if "UserPersona" in prompt and prompt["UserPersona"]:
+                         user_persona_txt = prompt["UserPersona"].get("persona_description", "") or ""
+
+                    user_display_name = request.user.name if request.user.name else request.user.username
+
+                    replacements = {
+                        "{{char}}": character.name or "",
+                        "{{user}}": user_display_name,
+                        "{{persona}}": user_persona_txt,
+                        "{{description}}": character.description or "",
+                        "{{creator_notes}}": character.creator_notes or "",
+                        "{{scenario}}": character.scenario or "",
+                    }
+
+                    def apply_macros(text):
+                        if not text: return ""
+                        for key, val in replacements.items():
+                            text = text.replace(key, str(val))
+                        return text
+
+                    if "PromptingGroundSettings" in prompt and prompt["PromptingGroundSettings"]:
+                        pg_settings = prompt["PromptingGroundSettings"]
+                        active_rules = []
+
+                        for category_name, rules in pg_settings.items():
+                            for key, rule_data in rules.items():
+                                name = rule_data.get("name", key)
+                                content = rule_data.get("content", "")
+                                processed_content = apply_macros(content)
+
+                                active_rules.append(f"### {name}\n{processed_content}")
+
+                        if active_rules:
+                            formatted_settings = "\n\n".join(active_rules)
+                            system_messages.append({
+                                "role": "system",
+                                "content": f"[NARRATIVE INSTRUCTIONS]\n{formatted_settings}"
+                            })
+
                     # --- Підготовка payload: system_messages перед api_messages ---
                     payload = {
                         "model": MODEL_NAME,
                         "messages": system_messages + api_messages,  # <-- Останнім буде user-повідомлення
                         **prompt.get("Core", {})
                     }
+
+                    print(system_messages)
 
                     # --- Друк payload у консоль ---
                     print("=== OpenRouter API Request ===")
@@ -268,59 +517,77 @@ def chat(request, slug):
                     print(f"Error generating reply: {e}")
                     reply = "Вибачте, сталася помилка при генерації відповіді."
 
+                char_count = 1
+                emotion_char_1 = "neutral"
+                emotion_char_2 = "neutral"
+
                 # --- Classify emotion ---
                 try:
-                    emo_messages = [
-                        {
-                            "role": "system",
-                            "content": (
-                                "Classify the following text into exactly one word "
-                                "from [neutral, happy, sad, angry, surprised, scared, confused, calm, scheming]. "
-                                "Output only the word."
-                            )
-                        },
-                        {"role": "user", "content": reply}
-                    ]
-                    emo_response = requests.post(
-                        url="https://openrouter.ai/api/v1/chat/completions",
-                        headers={
-                            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                            "Content-Type": "application/json",
-                        },
-                        data=json.dumps({
-                            #"model": "nousresearch/hermes-3-llama-3.1-405b",
-                            "model": MODEL_NAME,
-                            "messages": emo_messages,
-                            "max_tokens": 5,
-                            "temperature": 0.0
-                        }),
-                        timeout=10
+                    valid_emotions = ["neutral", "happy", "sad", "angry", "surprised", "scared", "confused", "calm", "scheming"]
+
+                    # Prompt asks LLM who is speaking (1, 2, or both) and their emotions
+                    classification_system_prompt = (
+                        f"You are an analysis tool. The main character is named '{character.name}'.\n"
+                        "Analyze the last message and determine who is speaking.\n"
+                        "Rules:\n"
+                        f"1. If ONLY '{character.name}' is speaking, set 'speaking' to '1'.\n"
+                        f"2. If ONLY the other character is speaking, set 'speaking' to '2'.\n"
+                        "3. If BOTH characters are speaking, set 'speaking' to 'both'.\n"
+                        "4. Determine the emotion for the speaking character(s) from this list: "
+                        f"{json.dumps(valid_emotions)}.\n"
+                        "Return ONLY a JSON object with this format:\n"
+                        '{ "speaking": "1" or "2" or "both", "emotion_1": "...", "emotion_2": "..." }'
                     )
-                    emo_response.raise_for_status()
-                    emo_result = emo_response.json()
-                    raw_emotion = emo_result["choices"][0]["message"]["content"].strip().lower()
-                    print("RAW_EMO:", raw_emotion)
-                    if not raw_emotion or raw_emotion == " ":
-                        emotion = "neutral"
+
+                    class_response = requests.post(
+                        url="https://openrouter.ai/api/v1/chat/completions",
+                        headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}"},
+                        json={
+                            "model": MODEL_NAME,
+                            "messages": [
+                                {"role": "system", "content": classification_system_prompt},
+                                {"role": "user", "content": reply}
+                            ],
+                            "max_tokens": 100,
+                            "temperature": 0.0,
+                            "response_format": { "type": "json_object" }
+                        },
+                        timeout=5
+                    )
+                    class_data = json.loads(class_response.json()["choices"][0]["message"]["content"])
+
+                    speaker = str(class_data.get("speaking", "1")).lower()
+                    emotion_char_1 = class_data.get("emotion_1", "neutral")
+                    emotion_char_2 = class_data.get("emotion_2", "neutral")
+
+                    print(f"[CLASSIFICATION] Speaker: {speaker} | Emo1: {emotion_char_1} | Emo2: {emotion_char_2}")
+
+                    # Logic: Determine layout (char_count)
+                    # 1 = Main Only, 2 = Both, 3 = Second Only
+                    if character.is_mult:
+                        if speaker == "both": char_count = 2
+                        elif speaker == "2": char_count = 3
+                        else: char_count = 1
                     else:
-                        emotion = raw_emotion.split()[0]  # беремо перше слово
-                    if emotion not in ["neutral", "happy", "sad", "angry", "surprised", "scared", "confused", "calm",
-                                       "scheming"]:
-                        emotion = "neutral"
+                        char_count = 1
+
                 except Exception as e:
-                    print(f"Error classifying emotion: {e}")
-                    emotion = "neutral"
+                    print(f"Classification failed: {e}")
+                    emotion_char_1 = "neutral"
 
-                # --- Append assistant message with emotion ---
-                messages.append(("assistant", datetime.now().strftime("%H:%M"), reply, emotion))
+                # Store emotions as "happy|sad" string
+                final_emotion_str = f"{emotion_char_1}|{emotion_char_2}"
+                messages.append(("assistant", datetime.now().strftime("%H:%M"), reply, final_emotion_str, char_count))
 
-                # --- Select photo for emotion ---
-                emotion_field = f"photo_{emotion}"
-                #photo_url = getattr(character, emotion_field).url if getattr(character, emotion_field) else None
-                photo_attr = getattr(character, emotion_field, None)
-                photo_url = photo_attr.url if photo_attr else None
+                # --- Get Photo URLs ---
+                def get_photo(prefix, emo):
+                    attr = getattr(character, f"{prefix}_{emo}", None)
+                    if not attr: attr = getattr(character, f"{prefix}_neutral", None)
+                    return attr.url if attr else None
 
-                # --- Save log ---
+                photo_url = get_photo("photo", emotion_char_1)
+                photo_second = get_photo("photo_second", emotion_char_2) if (character.is_mult or char_count >= 2) else None
+
                 save_messages(messages)
 
                 # ---Робота зі звуком----
@@ -355,31 +622,80 @@ def chat(request, slug):
                     print("Exception occured!")
                     audio_path = ""
 
+
                 return JsonResponse({
                     "reply": reply,
-                    "emotion": emotion,
+                    "emotion": final_emotion_str,
                     "photo_url": photo_url,
+                    "photo_second": photo_second,
+                    "char_count": char_count,
                     "audio_url": audio_path,
                 })
 
     # --- GET request ---
-    last_emotion = messages[-1][3] if messages else "neutral"
-    emotion_field = f"photo_{last_emotion}"
-    #photo_url = getattr(character, emotion_field).url if getattr(character, emotion_field) else None
-    photo_attr = getattr(character, f"photo_{last_emotion}", None)
-    # fallback на photo_neutral
-    if photo_attr and hasattr(photo_attr, 'url'):
-        photo_url = photo_attr.url
-    elif character.photo_neutral:
-        photo_url = character.photo_neutral.url
+    if messages and messages[-1][0] == "assistant":
+        # Handle tuple size differences safely (old vs new messages)
+        msg_tuple = messages[-1]
+        last_emotion_str = msg_tuple[3] if len(msg_tuple) >= 4 else "neutral"
+        char_count = msg_tuple[4] if len(msg_tuple) >= 5 else 1
     else:
-        photo_url = None
+        last_emotion_str = "neutral|neutral"
+        char_count = 2 if character.is_mult else 1
+
+    # 2. Parse "emo1|emo2" string
+    if "|" in last_emotion_str:
+        parts = last_emotion_str.split("|")
+        emo1 = parts[0]
+        emo2 = parts[1] if len(parts) > 1 else "neutral"
+    else:
+        # Backward compatibility
+        emo1 = last_emotion_str
+        emo2 = "neutral"
+
+    # 3. Helper to get URL with explicit Fallback
+    def get_valid_photo_url(char_obj, prefix, emo):
+        # A. Try specific emotion
+        attr_name = f"{prefix}_{emo}"
+        if hasattr(char_obj, attr_name):
+            field = getattr(char_obj, attr_name)
+            if field and field.name:  # Check if file actually exists
+                return field.url
+
+        # B. Fallback to Neutral
+        neutral_name = f"{prefix}_neutral"
+        if hasattr(char_obj, neutral_name):
+            field = getattr(char_obj, neutral_name)
+            if field and field.name:
+                return field.url
+
+        return None
+
+    # 4. Get the URLs
+    photo_url = get_valid_photo_url(character, "photo", emo1)
+
+    # Only load second photo if needed (optimization)
+    if character.is_mult or char_count >= 2:
+        photo_second = get_valid_photo_url(character, "photo_second", emo2)
+    else:
+        photo_second = None
+    print(photo_url)
+
+    user_avatar = None
+    if hasattr(request.user, 'photo') and request.user.photo:
+        user_avatar = request.user.photo.url
 
     context = {
         "messages": messages,
         "character": character,
         "photo_url": photo_url,
-        "photo_neutral": photo_url
+        "photo_second": photo_second,
+        "char_count": char_count,
+        "photo_neutral": photo_url,
+        "summary": chat_state["summary"],
+        "context_guides": json.dumps(chat_state["context_guides"]),
+        "current_bg": chat_state["current_bg"],
+        "current_music": json.dumps(chat_state["current_music"]),
+        "user_avatar": user_avatar
     }
 
     return render(request, "mainapp/chat_page.html", context)
@@ -735,6 +1051,56 @@ def worldbook_create(request):
         return render(request, "mainapp/worldbook_create.html")
 
 
+@login_required
+def chat_settings2(request):
+    base_dir = os.path.join(settings.MEDIA_ROOT, "chat_settings2")
+    os.makedirs(base_dir, exist_ok=True)
+
+    # File 1: Full UI State (for reloading the settings page)
+    ui_file_path = os.path.join(base_dir, f"chat_settings2_{request.user.id}.json")
+
+    # File 2: Active Context (Clean JSON for the LLM)
+    active_file_path = os.path.join(base_dir, f"chat_settings2_{request.user.id}_active.json")
+
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body.decode("utf-8"))
+
+            # Check if we are receiving the new dual-structure
+            if "full_settings" in data and "active_settings" in data:
+                full_settings = data["full_settings"]
+                active_settings = data["active_settings"]
+            else:
+                # Fallback for old structure (just in case)
+                full_settings = data
+                active_settings = data # This implies logic is needed in Chat, but better safe than sorry
+
+            # Save Full Settings (for UI)
+            with open(ui_file_path, "w", encoding="utf-8") as f:
+                json.dump(full_settings, f, ensure_ascii=False, indent=2)
+
+            # Save Active Settings (for Chat)
+            with open(active_file_path, "w", encoding="utf-8") as f:
+                json.dump(active_settings, f, ensure_ascii=False, indent=2)
+
+            return JsonResponse({"status": "ok"})
+        except Exception as e:
+            print("Failed to save chat_settings2:", e)
+            return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
+    # GET: Load the FULL settings for the UI
+    settings_data = {}
+    if os.path.exists(ui_file_path):
+        try:
+            with open(ui_file_path, "r", encoding="utf-8") as f:
+                settings_data = json.load(f)
+        except Exception:
+            settings_data = {}
+
+    return render(request, "mainapp/chat_settings2.html", {
+        "settings_json": json.dumps(settings_data, ensure_ascii=False),
+    })
+
 
 
 @login_required
@@ -869,3 +1235,60 @@ def page_not_found(request, exception):
     print("Hi, hi")
     return HttpResponseNotFound("<h1>Сторінку не знайдено. Вибачте, будь ласка!!!</h1>")
 
+
+# In mainapp/views.py
+
+@login_required
+def get_media_resources(request):
+    # Define paths inside your MEDIA_ROOT
+    bg_dir = os.path.join(settings.MEDIA_ROOT, "backgrounds")
+    music_dir = os.path.join(settings.MEDIA_ROOT, "music")
+
+    # Auto-create directories so you don't get FileNotFoundError
+    os.makedirs(bg_dir, exist_ok=True)
+    os.makedirs(os.path.join(bg_dir, "custom"), exist_ok=True)
+    os.makedirs(music_dir, exist_ok=True)
+    os.makedirs(os.path.join(music_dir, "custom"), exist_ok=True)
+
+    def get_files(directory, url_prefix):
+        files = []
+        if os.path.exists(directory):
+            # 1. Scan main folder
+            for f in os.listdir(directory):
+                if f.lower().endswith(('.png', '.jpg', '.jpeg', '.webp', '.mp3', '.wav', '.ogg')):
+                    files.append({"name": f, "url": f"{settings.MEDIA_URL}{url_prefix}/{f}"})
+
+            # 2. Scan 'custom' subfolder (user uploads)
+            custom_dir = os.path.join(directory, "custom")
+            if os.path.exists(custom_dir):
+                for f in os.listdir(custom_dir):
+                    if f.lower().endswith(('.png', '.jpg', '.jpeg', '.webp', '.mp3', '.wav', '.ogg')):
+                        files.append({"name": f"Custom: {f}", "url": f"{settings.MEDIA_URL}{url_prefix}/custom/{f}"})
+        return sorted(files, key=lambda x: x['name'])
+
+    if request.method == "POST" and request.FILES:
+        try:
+            file_type = request.POST.get("type")
+            if "file" in request.FILES:
+                f = request.FILES["file"]
+                target_dir = bg_dir if file_type == "bg" else music_dir
+                prefix = "backgrounds" if file_type == "bg" else "music"
+
+                # Save to 'custom' subfolder to keep main folder clean
+                custom_path = os.path.join(target_dir, "custom", f.name)
+                with open(custom_path, 'wb+') as dest:
+                    for chunk in f.chunks(): dest.write(chunk)
+
+                return JsonResponse({
+                    "success": True,
+                    "url": f"{settings.MEDIA_URL}{prefix}/custom/{f.name}",
+                    "name": f"Custom: {f.name}"
+                })
+        except Exception as e:
+            return JsonResponse({"success": False, "error": str(e)})
+
+    # Return lists for GET requests
+    return JsonResponse({
+        "backgrounds": get_files(bg_dir, "backgrounds"), 
+        "music": get_files(music_dir, "music")
+    })

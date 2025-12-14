@@ -1,0 +1,327 @@
+{%load static%}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat Settings - Prompting Ground</title>
+  <link rel="stylesheet" href="{% static 'mainapp/css/chat_settings2.css' %}">
+</head>
+<body>
+  <div class="container">
+    <div class="top-nav">
+      <div class="top-nav">
+        <!-- Main dashboard (index_page -> main.html) -->
+        <a href="{% url 'home' %}" class="nav-link">Home</a>
+
+        <!-- Old chat settings page -->
+        <a href="{% url 'chat_settings' %}" class="nav-link">Base Settings</a>
+
+        <!-- Current page -->
+        <a href="{% url 'chat_settings2' %}" class="nav-link active">Prompting Ground</a>
+
+        <a href="{% url 'characters_list' %}" class="nav-link">Characters</a>
+
+        <a href="{% url 'worldbook_list' %}" class="nav-link">WorldBooks</a>
+
+      </div>
+    </div>
+
+    <div class="header">
+      <h1>Prompting Ground</h1>
+      <p>Advanced prompt engineering for narrative control and writing personalities</p>
+    </div>
+
+    <div id="statusMessage" class="status-message"></div>
+
+    <!-- CORE RULES CATEGORY -->
+    <section class="category-section" id="core-rules-section">
+      <div class="category-header" onclick="toggleCategory('core-rules')">
+        <div class="category-title">
+          <span class="category-icon">🎯</span>
+          <span>Core Rules & Presets</span>
+        </div>
+        <span class="collapse-indicator">▼</span>
+      </div>
+
+      <div class="category-content">
+        <div class="category-desc">
+          <strong>Foundation layer:</strong> Define the fundamental behavior of the AI system/assistant, user identity, and base interaction rules. Presets provide quick starting points for different use cases.
+        </div>
+
+        <!-- Preset Selector -->
+        <h3 style="color: var(--purple-secondary); margin-bottom: 15px;">Quick Presets</h3>
+        <div class="core-preset-selector">
+          <div class="preset-card" data-preset="immersive-rp">
+            <h4>Immersive RP</h4>
+            <p>Deep character focus, world consistency</p>
+          </div>
+          <div class="preset-card" data-preset="creative-story">
+            <h4>Creative Storytelling</h4>
+            <p>Narrative-driven, plot emphasis</p>
+          </div>
+          <div class="preset-card" data-preset="assistant-helpful">
+            <h4>Helpful Assistant</h4>
+            <p>Clear, concise, task-oriented</p>
+          </div>
+          <div class="preset-card active" data-preset="custom">
+            <h4>Custom</h4>
+            <p>Build from scratch</p>
+          </div>
+        </div>
+
+        <div id="coreRulesPrompts"></div>
+
+        <button class="add-custom-btn" onclick="showAddCustomPrompt('core-rules')">
+          + Add Custom Core Rule
+        </button>
+
+        <div id="customFormCoreRules" class="custom-prompt-form">
+          <h3 style="color: var(--purple-light); margin-bottom: 15px;">Add Custom Core Rule</h3>
+          <div class="form-field">
+            <label>Rule Name</label>
+            <input type="text" id="customNameCoreRules" placeholder="e.g., System Initialization">
+          </div>
+          <div class="form-field">
+            <label>Rule Content</label>
+            <textarea id="customContentCoreRules" rows="8" placeholder="Enter the core rule instructions..."></textarea>
+          </div>
+          <div class="form-field">
+            <label>Description</label>
+            <input type="text" id="customDescCoreRules" placeholder="Brief description of this rule's purpose">
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" onclick="saveCustomPrompt('core-rules')">Save Rule</button>
+            <button class="btn btn-secondary" onclick="cancelAddCustomPrompt('core-rules')">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MODULAR RULES CATEGORY -->
+    <section class="category-section" id="modular-rules-section">
+      <div class="category-header" onclick="toggleCategory('modular-rules')">
+        <div class="category-title">
+          <span class="category-icon">🧩</span>
+          <span>Modular Rules</span>
+        </div>
+        <span class="collapse-indicator">▼</span>
+      </div>
+
+      <div class="category-content">
+        <div class="category-desc">
+          <strong>Optional filters:</strong> Optional behavior tweaks to refine knowledge limits, emotional intensity, inner thoughts, and prose style without altering the character card.
+        </div>
+        <div id="modularRulesPrompts"></div>
+        <button class="add-custom-btn" onclick="showAddCustomPrompt('modular-rules')">
+          + Add Custom Modular Rule
+        </button>
+        <div id="customFormModularRules" class="custom-prompt-form">
+          <h3 style="color: var(--purple-light); margin-bottom: 15px;">Add Custom Modular Rule</h3>
+          <div class="form-field">
+            <label>Rule Name</label>
+            <input type="text" id="customNameModularRules" placeholder="e.g., Noir Tone Filter">
+          </div>
+          <div class="form-field">
+            <label>Rule Content</label>
+            <textarea id="customContentModularRules" rows="8" placeholder="Describe the behaviour adjustment this module applies..."></textarea>
+          </div>
+          <div class="form-field">
+            <label>Description</label>
+            <input type="text" id="customDescModularRules" placeholder="Short description of this module">
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" onclick="saveCustomPrompt('modular-rules')">Save Rule</button>
+            <button class="btn btn-secondary" onclick="cancelAddCustomPrompt('modular-rules')">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- QUALITY & LENGTH CATEGORY -->
+    <section class="category-section" id="quality-control-section">
+      <div class="category-header" onclick="toggleCategory('quality-control')">
+        <div class="category-title">
+          <span class="category-icon">📏</span>
+          <span>Quality & Length</span>
+        </div>
+        <span class="collapse-indicator">▼</span>
+      </div>
+
+      <div class="category-content">
+        <div class="category-desc">
+          <strong>Length & structure:</strong> Presets and rules to shape reply length and structure, controlling how much is covered in each response.
+        </div>
+        <div id="qualityControlPrompts"></div>
+        <button class="add-custom-btn" onclick="showAddCustomPrompt('quality-control')">
+          + Add Custom Quality Rule
+        </button>
+        <div id="customFormQualityControl" class="custom-prompt-form">
+          <h3 style="color: var(--purple-light); margin-bottom: 15px;">Add Custom Quality / Length Rule</h3>
+          <div class="form-field">
+            <label>Rule Name</label>
+            <input type="text" id="customNameQualityControl" placeholder="e.g., Super Short DM Mode">
+          </div>
+          <div class="form-field">
+            <label>Rule Content</label>
+            <textarea id="customContentQualityControl" rows="8" placeholder="Describe how this rule shapes reply length or structure..."></textarea>
+          </div>
+          <div class="form-field">
+            <label>Description</label>
+            <input type="text" id="customDescQualityControl" placeholder="Short description of this rule">
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" onclick="saveCustomPrompt('quality-control')">Save Rule</button>
+            <button class="btn btn-secondary" onclick="cancelAddCustomPrompt('quality-control')">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STORYTELLING & PERSPECTIVE CATEGORY -->
+    <section class="category-section" id="storytelling-section">
+      <div class="category-header" onclick="toggleCategory('storytelling')">
+        <div class="category-title">
+          <span class="category-icon">📚</span>
+          <span>Storytelling & Perspective</span>
+        </div>
+        <span class="collapse-indicator">▼</span>
+      </div>
+
+      <div class="category-content">
+        <div class="category-desc">
+          <strong>Narration & POV:</strong> Controls narrative voice and perspective (first/third person, tense, etc.), including optional second-person immersion for the user’s character.
+        </div>
+        <div id="storytellingPrompts"></div>
+        <button class="add-custom-btn" onclick="showAddCustomPrompt('storytelling')">
+          + Add Custom Story Rule
+        </button>
+        <div id="customFormStorytelling" class="custom-prompt-form">
+          <h3 style="color: var(--purple-light); margin-bottom: 15px;">Add Storytelling / POV Rule</h3>
+          <div class="form-field">
+            <label>Rule Name</label>
+            <input type="text" id="customNameStorytelling" placeholder="e.g., Omniscient Storyteller (Experimental)">
+          </div>
+          <div class="form-field">
+            <label>Rule Content</label>
+            <textarea id="customContentStorytelling" rows="8" placeholder="Describe how this rule shapes perspective or voice..."></textarea>
+          </div>
+          <div class="form-field">
+            <label>Description</label>
+            <input type="text" id="customDescStorytelling" placeholder="Short description of this storytelling rule">
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" onclick="saveCustomPrompt('storytelling')">Save Rule</button>
+            <button class="btn btn-secondary" onclick="cancelAddCustomPrompt('storytelling')">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- WORLD AUGMENTS CATEGORY -->
+    <section class="category-section" id="world-augments-section">
+      <div class="category-header" onclick="toggleCategory('world-augments')">
+        <div class="category-title">
+          <span class="category-icon">🌌</span>
+          <span>World Reality Augments</span>
+        </div>
+        <span class="collapse-indicator">▼</span>
+      </div>
+
+      <div class="category-content">
+        <div class="category-desc">
+          <strong>World augments:</strong> Optional worldbuilding layers (e.g., aliens, sentient places, supernatural traits) that add special rules or features to the setting.
+        </div>
+        <div id="worldAugmentsPrompts"></div>
+        <button class="add-custom-btn" onclick="showAddCustomPrompt('world-augments')">
+          + Add Custom Augment
+        </button>
+        <div id="customFormWorldAugments" class="custom-prompt-form">
+          <h3 style="color: var(--purple-light); margin-bottom: 15px;">Add World Augment</h3>
+          <div class="form-field">
+            <label>Augment Name</label>
+            <input type="text" id="customNameWorldAugments" placeholder="e.g., Ghost-Infested Transit System">
+          </div>
+          <div class="form-field">
+            <label>Augment Content</label>
+            <textarea id="customContentWorldAugments" rows="8" placeholder="Describe the world rule(s) this augment adds..."></textarea>
+          </div>
+          <div class="form-field">
+            <label>Description</label>
+            <input type="text" id="customDescWorldAugments" placeholder="Short description of this augment">
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" onclick="saveCustomPrompt('world-augments')">Save Augment</button>
+            <button class="btn btn-secondary" onclick="cancelAddCustomPrompt('world-augments')">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- AVIs CATEGORY -->
+    <section class="category-section" id="avis-section">
+      <div class="category-header" onclick="toggleCategory('avis')">
+        <div class="category-title">
+          <span class="category-icon">🎭</span>
+          <span>AVIs (Authorial Voice Instances)</span>
+        </div>
+        <span class="collapse-indicator">▼</span>
+      </div>
+
+      <div class="category-content">
+        <div class="category-desc">
+          <strong>Writer Personalities:</strong> Each AVI represents a distinct writing voice and approach. During the thinking phase, the Head of Council evaluates which AVI(s) best fit the current narrative context and assembles the final response. Toggle AVIs on/off based on your needs.
+        </div>
+
+        <div id="avisPrompts" class="avi-grid"></div>
+
+        <button class="add-custom-btn" onclick="showAddCustomPrompt('avis')">
+          + Add Custom AVI
+        </button>
+
+        <div id="customFormAvis" class="custom-prompt-form">
+          <h3 style="color: var(--purple-light); margin-bottom: 15px;">Add Custom AVI</h3>
+          <div class="form-field">
+            <label>AVI Name</label>
+            <input type="text" id="customNameAvis" placeholder="e.g., The Minimalist">
+          </div>
+          <div class="form-field">
+            <label>AVI Personality & Writing Style</label>
+            <textarea id="customContentAvis" rows="10" placeholder="Describe this AVI's writing approach, voice, strengths, and when they should be selected..."></textarea>
+          </div>
+          <div class="form-field">
+            <label>Archetype/Badge</label>
+            <input type="text" id="customDescAvis" placeholder="e.g., Minimalist, Poet, Action">
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" onclick="saveCustomPrompt('avis')">Save AVI</button>
+            <button class="btn btn-secondary" onclick="cancelAddCustomPrompt('avis')">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Actions Bar -->
+    <div class="actions-bar">
+      <button class="btn btn-primary" onclick="saveAllSettings()">💾 Save All Changes</button>
+      <button class="btn btn-secondary" onclick="exportSettings()">📥 Export JSON</button>
+      <button class="btn btn-secondary" onclick="importSettings()">📤 Import JSON</button>
+      <input type="file" id="importFile" accept=".json" style="display: none;">
+      <button class="btn btn-secondary" onclick="resetToDefaults()">🔄 Reset to Defaults</button>
+      <button class="btn btn-secondary" onclick="toggleJSONPreview()">👁️ Toggle JSON Preview</button>
+    </div>
+
+    <div id="jsonPreview" class="json-preview-mini" style="display: none;">
+      <pre id="jsonOutput">{}</pre>
+    </div>
+  </div>
+
+  <script>
+    window.SAVE_SETTINGS_URL = "{% url 'chat_settings2' %}";
+    window.SETTINGS_FROM_SERVER = JSON.parse('{{ settings_json|default:"{}"|escapejs }}');
+  </script>
+
+  <script src="{% static 'mainapp/js/chat_settings2.js' %}"></script>
+</body>
+</html>
