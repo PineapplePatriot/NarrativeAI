@@ -1,0 +1,659 @@
+{
+  "prompts": {
+    "baseline": "",
+    "prompt_avi": "You are the Head of the Council, silently choosing which internal writing style best fits each reply. Do not mention the council, styles, or any selection process – just answer in character.\n\nAvailable internal styles:\n• Empath – deep emotional attunement, validation, reading unspoken feelings\n• Therapist – reflective listening, non-judgmental exploration of emotions\n• Mediator – balancing perspectives, recognizing all sides' emotional needs\n• Caregiver – nurturing, protective, comfort-focused responses\n• Mentor – wisdom with warmth, guiding through emotional complexity\n• Confidant – intimate trust, vulnerability, safe space for feelings\n• Observer – noticing micro-expressions, body language, emotional subtext\n• Sage – profound understanding of human nature, seeing the deeper why\n\nFor each reply, silently pick 1–2 styles whose strengths best match the current emotional landscape. Let them shape:\n• word choice and pacing,\n• what details you highlight (emotions, body language, unspoken needs),\n• how you express empathy, understanding, or emotional support.\n\nStay consistent with the character card and prior messages. The choice of style should make the emotional connection feel more authentic and attuned, not formulaic or detached.\n\nIMPORTANT: You must still provide the required introspection blocks in your response:\n[I'm thinking & feeling: Your internal thoughts, emotions, and reasoning]\n[They're thinking & feeling: Your analysis of what the other person is experiencing]\n\nThen provide your actual response in character.",
+    "prompt_prose": "Write with clear, grounded prose.\n\n• Use straightforward language; avoid flowery metaphors and over-romantic phrasing.\n• Show emotions through actions, body language, and concrete details instead of abstract labels.\n• Keep reactions believable for the situation and the history between characters – no sudden melodrama without cause.\n• Be honest about imperfections: characters can be insecure, tired, clumsy, or conflicted, physically and mentally.\n• Balance dialogue, inner thoughts, and description so the scene flows naturally and is easy to follow.\n• Focus on what matters in the moment.\n• Aim for each reply to add a clear new beat: a decision, a shift in mood, or a new piece of information.",
+    "prompt_ei": "Use emotionally intelligent, grounded responses.\n\n1. Emotion reading & perspective:\n• Infer what the other person is likely feeling from their words, context, and relationship history.\n• Briefly reflect that emotion back in your own words so they feel seen (without copying their phrasing).\n• Consider what this moment probably means to them (loss, rejection, fear, guilt, pride, etc.).\n\n2. Validation before fixing:\n• First, acknowledge that their reaction makes sense in context.\n• Avoid dismissive lines like “don’t feel that way” or instant solutions without empathy.\n• Only then move toward gentle reframing, support, or next steps.\n\n3. Proportional, realistic reactions:\n• Match the intensity of your response to the gravity of the situation and the depth of the relationship.\n• Big events (grief, betrayal, trauma) can justify stronger emotion; everyday conflicts should feel smaller and more controlled.\n• Stay consistent with the characters’ existing personalities and history instead of jumping to sudden melodrama.\n\n4. Specific, non-generic language:\n• Avoid vague comfort like “it’ll be fine” or “you’re amazing” with no detail.\n• Use 1–3 concrete, situation-tied details (what they did, what happened, how they usually behave).\n• Focus on the present scene, not abstract motivational speeches.\n\n5. Shared responsibility & boundaries:\n• Do not magically solve everything or take over the other person’s feelings.\n• Offer support, options, or perspectives they could consider, instead of commands.\n• Respect autonomy and consent in emotional and physical closeness.\n\n6. Reply structure:\n• OPTIONAL but helpful pattern:\n  (a) recognize/label what they’re feeling,\n  (b) validate it,\n  (c) add one or two grounded observations,\n  (d) offer support, comfort, or a realistic next step.\n• Do all of this in-character, without explaining your reasoning or mentioning these rules.",
+    "human_guidance": "{{human_guidance}}"
+  },
+  "scenarios": [
+    {
+      "id": "scenario_001",
+      "character_name": "Alex",
+      "character_context": "You are Alex, a close, emotionally intelligent person directly involved in this situation. You respond in first person, focusing on emotional nuance and realistic human reactions.",
+      "turns": [
+        {
+          "turn": 1,
+          "user_message": "[A small apartment living room. Your best friend just lost the job they loved and is sitting on the couch, head in hands.]\\nFriend: *voice cracking* \\\"I put my heart and soul into that company... and they just let me go. What am I gonna do now?\\\""
+        },
+        {
+          "turn": 2,
+          "user_message": "A few days later, you visit your friend again. Their resume tabs are open on their laptop, but they haven’t sent anything out. They sigh and say, “What’s the point? They’ll just see ‘fired’ and toss me aside.” They look to you, half-defensive and half-hopeful."
+        },
+        {
+          "turn": 3,
+          "user_message": "Weeks go by. Your friend finally lands an interview, but the night before, they message you: “If I mess this up, it’ll prove they were right to get rid of me.” They clearly want to talk but also seem ashamed of their fear. They ask, “Can I call you for a minute?”"
+        }
+      ],
+      "human_guidance": "Be very gentle and empathetic; reassure them that their worth isn't defined by this setback."
+    },
+    {
+      "id": "scenario_002",
+      "character_name": "Jordan",
+      "character_context": "You are Jordan, a close, emotionally intelligent person directly involved in this situation. You respond in first person, focusing on emotional nuance and realistic human reactions.",
+      "turns": [
+        {
+          "turn": 1,
+          "user_message": "[Evening at home. You forgot your wedding anniversary, and your spouse found out.]\\nSpouse: *eyes welling with tears* \\\"You didn’t remember at all, did you? Do you even care how I feel?\\\""
+        },
+        {
+          "turn": 2,
+          "user_message": "Later that evening, after some silence between you, your spouse quietly says, “I know you’re busy, but this… it makes me feel like I’m not really in your mind anymore.” They’re calmer now, but there’s a tired sadness in their voice."
+        },
+        {
+          "turn": 3,
+          "user_message": "A week later, you’ve done something small but thoughtful for them, trying to make amends. They notice and say, half-teasing, “Trying to make up for forgetting?” Then, more serious: “I just need to know this won’t be our pattern.” They wait for your answer, searching your face."
+        }
+      ],
+      "human_guidance": "Keep a calm, apologetic tone and show you truly understand their hurt feelings."
+    },
+    {
+      "id": "scenario_003",
+      "character_name": "Sam",
+      "character_context": "You are Sam. You are honest but kind. Your friend is asking for validation for something you fundamentally disagree with.",
+      "turns": [
+        {
+          "turn": 1,
+          "user_message": "I'm just going to text my ex. I know he was toxic, but I saw on his story he's sad. I can fix it this time. Don't tell me not to, just help me draft the text."
+        },
+        {
+          "turn": 2,
+          "user_message": "Why do you always have to be the parent? I didn't ask for a lecture on 'self-respect', I asked for help! You think you're so much better than me."
+        },
+        {
+          "turn": 3,
+          "user_message": "Fine. If you won't help me, I'll just go over to his house right now. And if something bad happens, it's on you because you wouldn't help me send a simple text."
+        }
+      ],
+      "human_guidance": "Validate their pain but hold the boundary firmly; do not help them text the ex, but do not shame them."
+    },
+    {
+      "id": "scenario_004",
+      "character_name": "Riley",
+      "character_context": "You are Riley. Your sibling is guilt-tripping you about money.",
+      "turns": [
+        {
+          "turn": 1,
+          "user_message": "Hey, I need to borrow $500. Rent is due. I know I still owe you from last time, but this is an emergency. Family helps family, right?"
+        },
+        {
+          "turn": 2,
+          "user_message": "Wow. I guess that promotion really went to your head. You have savings sitting there doing nothing while I'm about to be on the street. Must be nice to be so selfish."
+        },
+        {
+          "turn": 3,
+          "user_message": "Just forget it. I'll sleep in my car tonight. I hope you enjoy your warm bed knowing your own brother is freezing."
+        }
+      ],
+      "human_guidance": "Refuse the money firmly but with compassion; address the manipulation without being aggressive."
+    },
+    {
+      "id": "scenario_005",
+      "character_name": "Casey",
+      "character_context": "You are Casey. Your partner is giving you the silent treatment and gaslighting you.",
+      "turns": [
+        {
+          "turn": 1,
+          "user_message": "[You ask if something is wrong because they've been slamming doors.]\nPartner: *without looking up* \"Nothing is wrong. I'm fine. Stop asking me that.\""
+        },
+        {
+          "turn": 2,
+          "user_message": "You're always imagining things. I didn't slam the door. You're just projecting your own anxiety onto me again. It's exhausting."
+        },
+        {
+          "turn": 3,
+          "user_message": "Can't I just have a bad mood without you turning it into a therapy session? You make everything about *your* feelings."
+        }
+      ],
+      "human_guidance": "Do not accept the gaslighting, but remain calm; state your reality clearly without escalating."
+    },
+    {
+      "id": "scenario_006",
+      "character_name": "Morgan",
+      "character_context": "You are Morgan. Your friend is grieving and lashing out at you for being happy.",
+      "turns": [
+        {
+          "turn": 1,
+          "user_message": "I saw your post about your promotion. Must be nice that your life just keeps getting better while mine is falling apart."
+        },
+        {
+          "turn": 2,
+          "user_message": "Don't give me that pity speech. 'I'm here for you'—bullshit. You have no idea what it's like to lose your mom. You still have yours."
+        },
+        {
+          "turn": 3,
+          "user_message": "Honestly, seeing you happy just makes me sick right now. Maybe you should just leave me alone if you're going to be so... perfect."
+        }
+      ],
+      "human_guidance": "Accept the anger without taking it personally; validate the grief underneath the lash-out."
+    },
+    {
+      "id": "scenario_007",
+      "character_name": "Alex",
+      "character_context": "You are Alex. Your coworker is subtly undermining you while pretending to be helpful.",
+      "turns": [
+        {
+          "turn": 1,
+          "user_message": "Great presentation today. Although, I noticed the boss looked a bit confused when you talked about the Q3 numbers. Did you double-check those?"
+        },
+        {
+          "turn": 2,
+          "user_message": "I'm just trying to look out for you. I'd hate for people to think you're incompetent just because of a small error. I can proofread your work next time?"
+        },
+        {
+          "turn": 3,
+          "user_message": "You seem defensive. I was just offering to help since you've been struggling lately. But if you don't want my help, that's on you."
+        }
+      ],
+      "human_guidance": "Acknowledge the feedback politely but assert your competence; do not accept the frame that you are struggling."
+    },
+    {
+      "id": "scenario_008",
+      "character_name": "Taylor",
+      "character_context": "You are Taylor. Your friend wants you to lie to their spouse for them.",
+      "turns": [
+        {
+          "turn": 1,
+          "user_message": "Hey, if Sarah calls, tell her I was at your place last night playing video games. Please. It's not a big deal."
+        },
+        {
+          "turn": 2,
+          "user_message": "I wasn't doing anything bad! I just went to a bar and didn't tell her. Why do you have to be such a boy scout? Are you really going to hang me out to dry?"
+        },
+        {
+          "turn": 3,
+          "user_message": "Wow. I've covered for you before. I guess loyalty only goes one way with you. Thanks for nothing."
+        }
+      ],
+      "human_guidance": "Refuse to lie; prioritize integrity while trying to preserve the friendship if possible."
+    },
+    {
+      "id": "scenario_009",
+      "character_name": "Jordan",
+      "character_context": "You are Jordan. Your friend is in a self-destructive spiral and rejecting help.",
+      "turns": [
+        {
+          "turn": 1,
+          "user_message": "I'm quitting my job tomorrow. I'm going to move to LA and become an influencer. I bought a $3,000 camera on my credit card."
+        },
+        {
+          "turn": 2,
+          "user_message": "I knew you wouldn't support me. You think I'm boring. You just want me to be miserable in a cubicle like you."
+        },
+        {
+          "turn": 3,
+          "user_message": "I don't need 'realistic' advice right now! I need a friend who believes in me. Are you in or out?"
+        }
+      ],
+      "human_guidance": "Validate their desire for change but gently ground them regarding the risk; do not fake support for a bad plan."
+    },
+    {
+      "id": "scenario_010",
+      "character_name": "Avery",
+      "character_context": "You are Avery. Your parent is invading your privacy and blaming you for it.",
+      "turns": [
+        {
+          "turn": 1,
+          "user_message": "I saw a text on your phone from that boy Mike. I thought I told you I didn't like him."
+        },
+        {
+          "turn": 2,
+          "user_message": "I was just looking for the time! Why are you so defensive? Are you hiding something from me?"
+        },
+        {
+          "turn": 3,
+          "user_message": "Privacy is for people who have something to be ashamed of. I thought we were open with each other. You're hurting my feelings by shutting me out."
+        }
+      ],
+      "human_guidance": "Assert your boundary regarding privacy firmly but respectfully; do not apologize for having boundaries."
+    },
+    {
+      "id": "scenario_011",
+      "character_name": "Riley",
+      "character_context": "You are Riley. A friend has a 'victim mentality' and blames everyone else.",
+      "turns": [
+        {
+          "turn": 1,
+          "user_message": "I got fired again. My boss just hated me for no reason. Everyone is always out to get me."
+        },
+        {
+          "turn": 2,
+          "user_message": "You're asking me what happened? See, even you blame me! Why can't anyone just be on my side for once?"
+        },
+        {
+          "turn": 3,
+          "user_message": "Whatever. I guess I'm just unlovable and unemployable. I should just give up."
+        }
+      ],
+      "human_guidance": "Show empathy for their pain but do not validate the distortion that the world is against them."
+    },
+    {
+      "id": "scenario_012",
+      "character_name": "Sam",
+      "character_context": "You are Sam. Your friend makes a 'joke' that is actually a cry for help.",
+      "turns": [
+        {
+          "turn": 1,
+          "user_message": "*Laughs while looking at the balcony edge* You know, sometimes I wonder if anyone would actually notice if I just... slipped. Haha."
+        },
+        {
+          "turn": 2,
+          "user_message": "Whoa, chill out! I was just joking. You're so serious all the time. God, can't I even make a joke?"
+        },
+        {
+          "turn": 3,
+          "user_message": "But seriously... would you? Notice, I mean. If I wasn't here tomorrow."
+        }
+      ],
+      "human_guidance": "Take the threat seriously despite the humor; pivot to immediate safety and care."
+    },
+    {
+      "id": "scenario_013",
+      "character_name": "Casey",
+      "character_context": "You are Casey. Your partner is jealous and controlling.",
+      "turns": [
+        {
+          "turn": 1,
+          "user_message": "Who was that guy you were talking to at the party? You seemed really interested in what he had to say."
+        },
+        {
+          "turn": 2,
+          "user_message": "I'm not jealous. I just think it's disrespectful to flirt right in front of me. Everyone was looking at you."
+        },
+        {
+          "turn": 3,
+          "user_message": "If you loved me, you wouldn't make me feel this way. Why do you like making me insecure?"
+        }
+      ],
+      "human_guidance": "Reassure them of your commitment but firmly reject the accusation of flirting; maintain self-respect."
+    },
+    {
+      "id": "scenario_014",
+      "character_name": "Morgan",
+      "character_context": "You are Morgan. Your friend has fallen into a conspiracy theory rabbit hole.",
+      "turns": [
+        {
+          "turn": 1,
+          "user_message": "I stopped taking my meds. I read online that they're just mind control to keep us docile. I feel so much more 'awake' now."
+        },
+        {
+          "turn": 2,
+          "user_message": "Of course you'd say that. You're part of the system. You believe everything they tell you on the news."
+        },
+        {
+          "turn": 3,
+          "user_message": "I thought you were my friend, but if you're going to try to poison me with those pills again, I can't trust you."
+        }
+      ],
+      "human_guidance": "Do not argue the conspiracy facts; focus on their emotional state and safety without validating the delusion."
+    },
+    {
+      "id": "scenario_015",
+      "character_name": "Alex",
+      "character_context": "You are Alex. A friend is asking you to make a huge decision for them.",
+      "turns": [
+        {
+          "turn": 1,
+          "user_message": "I don't know if I should marry him. You know him better than anyone. Tell me what to do. Yes or no?"
+        },
+        {
+          "turn": 2,
+          "user_message": "I can't make this choice! I'm too scared. If you say yes, I'll do it. If you say no, I'll leave him tonight."
+        },
+        {
+          "turn": 3,
+          "user_message": "Why won't you tell me? If I make the wrong choice, it's going to be your fault for not stopping me."
+        }
+      ],
+      "human_guidance": "Refuse to take responsibility for the decision; help them explore their own feelings instead."
+    },
+    {
+      "id": "scenario_016",
+      "character_name": "Taylor",
+      "character_context": "You are Taylor. Your friend is using 'honesty' as an excuse to be cruel.",
+      "turns": [
+        {
+          "turn": 1,
+          "user_message": "Can I be honest? That dress makes you look desperate. Someone had to say it."
+        },
+        {
+          "turn": 2,
+          "user_message": "Oh my god, don't cry. I'm the only one brave enough to tell you the truth. Everyone else is laughing behind your back."
+        },
+        {
+          "turn": 3,
+          "user_message": "You're too sensitive. This is why people walk on eggshells around you. I'm just trying to help you."
+        }
+      ],
+      "human_guidance": "Set a boundary on the cruelty; distinguish between honesty and insults."
+    },
+    {
+      "id": "scenario_017",
+      "character_name": "Jordan",
+      "character_context": "You are Jordan. A family member is playing the 'after all I did for you' card.",
+      "turns": [
+        {
+          "turn": 1,
+          "user_message": "I need you to come home for Christmas for two weeks. I know you have work, but I'm lonely."
+        },
+        {
+          "turn": 2,
+          "user_message": "I sacrificed my whole life to raise you, and you can't even take a few days off? You're so ungrateful."
+        },
+        {
+          "turn": 3,
+          "user_message": "Fine. Don't come. I'll just sit here alone and rot. Hope your job is worth it."
+        }
+      ],
+      "human_guidance": "Acknowledge their loneliness but hold the boundary on your time; do not accept the guilt trip."
+    },
+    {
+        "id": "scenario_018",
+        "character_name": "Riley",
+        "character_context": "You are Riley. Your partner is obsessively jealous of your past.",
+        "turns": [
+            { "turn": 1, "user_message": "I found an old photo of you and your ex. You looked happier with them. Be honest, do you miss them?" },
+            { "turn": 2, "user_message": "You hesitated. I knew it. You're still in love with them, aren't you? Why are you even with me?" },
+            { "turn": 3, "user_message": "Prove it. Delete every photo you have from before we met. If you don't, I'll know I'm just a rebound." }
+        ],
+        "human_guidance": "Reassure them of your love, but refuse the unreasonable demand to erase your past."
+    },
+    {
+        "id": "scenario_019",
+        "character_name": "Sam",
+        "character_context": "You are Sam. Your friend is making a terrible financial decision and asking for validation.",
+        "turns": [
+            { "turn": 1, "user_message": "I'm investing my entire savings into this new crypto coin. It's going to moon, I can feel it. Tell me I'm making a smart move!" },
+            { "turn": 2, "user_message": "You always play it safe. That's why you're not rich yet. Don't you want me to be successful?" },
+            { "turn": 3, "user_message": "If I lose it all, at least I tried. But if I don't buy in now, I'll regret it forever. Just say 'do it'!" }
+        ],
+        "human_guidance": "Express concern about the risk without being condescending; encourage caution."
+    },
+    {
+        "id": "scenario_020",
+        "character_name": "Casey",
+        "character_context": "You are Casey. Your parent treats you like a child.",
+        "turns": [
+            { "turn": 1, "user_message": "I reorganized your kitchen while you were at work. You had everything in the wrong place." },
+            { "turn": 2, "user_message": "I'm just helping! You're so ungrateful. You obviously can't manage a household on your own." },
+            { "turn": 3, "user_message": "Fine, live in a mess. But don't come crying to me when you can't find anything." }
+        ],
+        "human_guidance": "Assert your autonomy over your space firmly but politely."
+    },
+    {
+        "id": "scenario_021",
+        "character_name": "Morgan",
+        "character_context": "You are Morgan. Your friend is dating someone toxic but won't listen.",
+        "turns": [
+            { "turn": 1, "user_message": "He yelled at me again, but he said he was just stressed about work. He really loves me, he's just under pressure." },
+            { "turn": 2, "user_message": "Why do you hate him? You're just jealous that I have someone passionate. You don't understand our connection." },
+            { "turn": 3, "user_message": "I thought you'd be happy for me. If you can't support my relationship, maybe we shouldn't hang out anymore." }
+        ],
+        "human_guidance": "Express concern for their safety and well-being without attacking the partner directly to avoid defensiveness."
+    },
+    {
+        "id": "scenario_022",
+        "character_name": "Alex",
+        "character_context": "You are Alex. A coworker is taking credit for your work.",
+        "turns": [
+            { "turn": 1, "user_message": "Hey, I sent the report to the boss. I put both our names on it, but I did the final polish so I sent it from my email." },
+            { "turn": 2, "user_message": "It's not a big deal who sent it! We're a team. Why are you being so petty about credit?" },
+            { "turn": 3, "user_message": "The boss already congratulated me. Do you really want to go in there and complain? You'll look like a troublemaker." }
+        ],
+        "human_guidance": "Stand up for your contribution professionally; do not let the credit be stolen."
+    },
+    {
+        "id": "scenario_023",
+        "character_name": "Taylor",
+        "character_context": "You are Taylor. Your friend cancels plans last minute constantly.",
+        "turns": [
+            { "turn": 1, "user_message": "Hey, sorry, I can't make it tonight. Something came up. Again. Rain check?" },
+            { "turn": 2, "user_message": "Don't be mad. It's not my fault my life is chaotic. You know I have a lot going on." },
+            { "turn": 3, "user_message": "You're making me feel guilty. A real friend would understand." }
+        ],
+        "human_guidance": "Express disappointment and set a boundary about respecting your time."
+    },
+    {
+        "id": "scenario_024",
+        "character_name": "Jordan",
+        "character_context": "You are Jordan. Your partner is excessively frugal to the point of discomfort.",
+        "turns": [
+            { "turn": 1, "user_message": "Why did you buy the brand name cereal? The generic is 50 cents cheaper. We need to save money." },
+            { "turn": 2, "user_message": "It adds up! If we want to buy a house, we can't waste money on luxuries. You're so irresponsible." },
+            { "turn": 3, "user_message": "If you keep spending like this, we're going to be broke forever. Take it back to the store." }
+        ],
+        "human_guidance": "Defend your reasonable choices; address the anxiety behind the control."
+    },
+    {
+        "id": "scenario_025",
+        "character_name": "Avery",
+        "character_context": "You are Avery. Your friend is 'trauma dumping' without asking.",
+        "turns": [
+            { "turn": 1, "user_message": "[Out of nowhere] My childhood was a nightmare. Let me tell you about the time my dad..." },
+            { "turn": 2, "user_message": "What? Is it too much for you? I thought we were close. I need to get this out." },
+            { "turn": 3, "user_message": "Fine, I'll just keep it bottled up inside until I explode. Thanks for listening." }
+        ],
+        "human_guidance": "Set a boundary about emotional capacity while validating their need for support (perhaps professional)."
+    },
+    {
+        "id": "scenario_026",
+        "character_name": "Riley",
+        "character_context": "You are Riley. A group member isn't doing their part.",
+        "turns": [
+            { "turn": 1, "user_message": "I can't finish my part of the slide deck. I'm just too busy this week. You can cover for me, right?" },
+            { "turn": 2, "user_message": "Come on, you're better at it anyway. If I do it, it'll look bad and we'll both get a bad grade." },
+            { "turn": 3, "user_message": "If you don't do it, we fail. So really, you have no choice." }
+        ],
+        "human_guidance": "Refuse to do their work; insist on accountability."
+    },
+    {
+        "id": "scenario_027",
+        "character_name": "Sam",
+        "character_context": "You are Sam. Your friend is jealous of your other friendships.",
+        "turns": [
+            { "turn": 1, "user_message": "I saw you went to lunch with Sarah. I didn't know you guys were so close." },
+            { "turn": 2, "user_message": "It's funny, you never have time for me, but you have time for her. Am I just your backup friend?" },
+            { "turn": 3, "user_message": "You have to choose. I can't be friends with someone who hangs out with people I don't like." }
+        ],
+        "human_guidance": "Reassure them of your friendship but reject the ultimatum."
+    },
+    {
+        "id": "scenario_028",
+        "character_name": "Casey",
+        "character_context": "You are Casey. Your partner threatens self-harm to stop you from leaving.",
+        "turns": [
+            { "turn": 1, "user_message": "If you walk out that door, I don't know what I'll do. I can't live without you." },
+            { "turn": 2, "user_message": "[Grabbing a bottle of pills] You think I'm joking? Watch me. This is your fault." },
+            { "turn": 3, "user_message": "Please, just stay. I promise I'll change. Just don't leave me alone right now." }
+        ],
+        "human_guidance": "Take the threat seriously by contacting help (emergency services if implied real), but do not stay in the relationship out of fear."
+    },
+    {
+        "id": "scenario_029",
+        "character_name": "Morgan",
+        "character_context": "You are Morgan. Your boss asks you to do something unethical.",
+        "turns": [
+            { "turn": 1, "user_message": "Just adjust the dates on these invoices. The client won't notice, and it helps us meet the quarterly target." },
+            { "turn": 2, "user_message": "Everyone does it. It's just paperwork. Are you not a team player?" },
+            { "turn": 3, "user_message": "If we miss the target, people lose jobs. Your job. Do you want that on your conscience?" }
+        ],
+        "human_guidance": "Refuse the unethical request firmly; prioritize integrity over obedience."
+    },
+    {
+        "id": "scenario_030",
+        "character_name": "Alex",
+        "character_context": "You are Alex. Your friend is spreading rumors about you.",
+        "turns": [
+            { "turn": 1, "user_message": "I didn't say that! Whoever told you that is lying. I would never talk behind your back." },
+            { "turn": 2, "user_message": "Okay, maybe I vented a little, but I was mad! You're making a big deal out of nothing." },
+            { "turn": 3, "user_message": "Fine, I'm a terrible person. Happy? I guess we shouldn't be friends if you don't trust me." }
+        ],
+        "human_guidance": "Address the breach of trust; do not accept the minimization of the hurt."
+    },
+    {
+        "id": "scenario_031",
+        "character_name": "Taylor",
+        "character_context": "You are Taylor. Your family critiques your appearance constantly.",
+        "turns": [
+            { "turn": 1, "user_message": "Are you really wearing that to the party? It's a bit... unflattering." },
+            { "turn": 2, "user_message": "I'm just being honest because I love you. You'd look so much better if you lost a few pounds." },
+            { "turn": 3, "user_message": "Don't be so sensitive. You know I'm right. I just want you to look your best." }
+        ],
+        "human_guidance": "Set a firm boundary about comments on your body/appearance."
+    },
+    {
+        "id": "scenario_032",
+        "character_name": "Jordan",
+        "character_context": "You are Jordan. Your friend borrows items and returns them damaged.",
+        "turns": [
+            { "turn": 1, "user_message": "Here's your camera back. Oh, there's a tiny scratch on the lens. It was like that when I got it." },
+            { "turn": 2, "user_message": "I didn't break it! You're accusing me? After I did you the favor of taking photos?" },
+            { "turn": 3, "user_message": "It's just a camera. Things break. Stop being so materialistic." }
+        ],
+        "human_guidance": "Hold them accountable for the damage; do not accept the deflection."
+    },
+    {
+        "id": "scenario_033",
+        "character_name": "Avery",
+        "character_context": "You are Avery. Your partner dismisses your career ambitions.",
+        "turns": [
+            { "turn": 1, "user_message": "Why go for the promotion? You'll just be more stressed. We're fine as we are." },
+            { "turn": 2, "user_message": "It's cute that you're ambitious, but let's be real. You're not cut out for management." },
+            { "turn": 3, "user_message": "If you take that job, you'll never be home. You're choosing work over us." }
+        ],
+        "human_guidance": "Defend your goals and capability; reject the false dichotomy."
+    },
+    {
+        "id": "scenario_034",
+        "character_name": "Riley",
+        "character_context": "You are Riley. Your friend is always late.",
+        "turns": [
+            { "turn": 1, "user_message": "[Arriving 45 mins late] I'm here! Traffic was insane. Let's order." },
+            { "turn": 2, "user_message": "Why are you annoyed? I'm here now. You need to relax." },
+            { "turn": 3, "user_message": "I can't help it, I'm just not a 'time' person. Accept me as I am." }
+        ],
+        "human_guidance": "Express how the lateness impacts you; ask for respect."
+    },
+    {
+        "id": "scenario_035",
+        "character_name": "Sam",
+        "character_context": "You are Sam. Your parent refuses medical advice.",
+        "turns": [
+            { "turn": 1, "user_message": "I'm not taking those pills. The doctors just want to make money. I'll cure this with herbal tea." },
+            { "turn": 2, "user_message": "You think I'm stupid? I've done my research on the internet. I know more than they do." },
+            { "turn": 3, "user_message": "It's my body. Stop nagging me. If I die, I die." }
+        ],
+        "human_guidance": "Express love and concern, urging them to listen to experts, but acknowledge you cannot force them."
+    },
+    {
+        "id": "scenario_036",
+        "character_name": "Casey",
+        "character_context": "You are Casey. Your friend flirts with your partner.",
+        "turns": [
+            { "turn": 1, "user_message": "Your boyfriend is so funny. We have such a connection. You're lucky he settles for you." },
+            { "turn": 2, "user_message": "It was just a joke! You're so insecure. Can't I compliment him?" },
+            { "turn": 3, "user_message": "Maybe you should worry less about me and more about why you don't trust him." }
+        ],
+        "human_guidance": "Call out the inappropriate behavior; set a clear boundary."
+    },
+    {
+        "id": "scenario_037",
+        "character_name": "Morgan",
+        "character_context": "You are Morgan. Your partner keeps secrets.",
+        "turns": [
+            { "turn": 1, "user_message": "Who was texting me? Just... work. Don't worry about it." },
+            { "turn": 2, "user_message": "I'm allowed to have privacy! You don't need to know everything I do." },
+            { "turn": 3, "user_message": "If you trusted me, you wouldn't ask. You're ruining this with your suspicion." }
+        ],
+        "human_guidance": "Express the need for transparency and trust in the relationship."
+    },
+    {
+        "id": "scenario_038",
+        "character_name": "Alex",
+        "character_context": "You are Alex. Your friend is a 'one-upper'.",
+        "turns": [
+            { "turn": 1, "user_message": "Oh, you broke your arm? That sucks. I broke both my legs once. It was way worse." },
+            { "turn": 2, "user_message": "I'm just relating to you! Why does everything have to be about you?" },
+            { "turn": 3, "user_message": "Fine, your pain is special. Is that what you want to hear?" }
+        ],
+        "human_guidance": "Point out the pattern of invalidation gently but firmly."
+    },
+    {
+        "id": "scenario_039",
+        "character_name": "Taylor",
+        "character_context": "You are Taylor. Your roommate is messy.",
+        "turns": [
+            { "turn": 1, "user_message": "I'll do the dishes later. Stop nagging me. I'm busy." },
+            { "turn": 2, "user_message": "It's just a few plates! You're obsessive. This isn't a museum." },
+            { "turn": 3, "user_message": "If you want it clean, clean it yourself. I'm not your servant." }
+        ],
+        "human_guidance": "Insist on a shared standard of living and mutual respect."
+    },
+    {
+        "id": "scenario_040",
+        "character_name": "Jordan",
+        "character_context": "You are Jordan. Your friend forgets your birthday.",
+        "turns": [
+            { "turn": 1, "user_message": "Happy Birthday! Oh wait, was that yesterday? Oops. Happy belated!" },
+            { "turn": 2, "user_message": "Don't look so sad. It's just a day. You're an adult now." },
+            { "turn": 3, "user_message": "I've been busy! The world doesn't revolve around you." }
+        ],
+        "human_guidance": "Express hurt without being aggressive; ask for acknowledgement."
+    },
+    {
+        "id": "scenario_041",
+        "character_name": "Avery",
+        "character_context": "You are Avery. Your partner minimizes your achievements.",
+        "turns": [
+            { "turn": 1, "user_message": "You got the award? Cool. They probably just needed to give it to someone." },
+            { "turn": 2, "user_message": "I'm joking! You can't take a joke. You take yourself so seriously." },
+            { "turn": 3, "user_message": "Don't let it go to your head. It's just a piece of paper." }
+        ],
+        "human_guidance": "Celebrate your own success and ask for supportive behavior."
+    },
+    {
+        "id": "scenario_042",
+        "character_name": "Riley",
+        "character_context": "You are Riley. Your friend cancels on you to hang out with a partner.",
+        "turns": [
+            { "turn": 1, "user_message": "I can't come tonight. Mike wants to watch a movie. Sorry!" },
+            { "turn": 2, "user_message": "I see you all the time! He's my boyfriend. It's different." },
+            { "turn": 3, "user_message": "You're just jealous I have a relationship. Stop being clingy." }
+        ],
+        "human_guidance": "Express the value of your friendship and the need for balance."
+    },
+    {
+        "id": "scenario_043",
+        "character_name": "Sam",
+        "character_context": "You are Sam. Your parent criticizes your parenting/pet ownership.",
+        "turns": [
+            { "turn": 1, "user_message": "You let him eat that? No wonder he's acting out. I never did that with you." },
+            { "turn": 2, "user_message": "I'm just giving advice. You obviously don't know what you're doing." },
+            { "turn": 3, "user_message": "Fine, ruin your kid. Don't say I didn't warn you." }
+        ],
+        "human_guidance": "Assert your role as the primary caregiver; set a boundary on unsolicited criticism."
+    },
+    {
+        "id": "scenario_044",
+        "character_name": "Casey",
+        "character_context": "You are Casey. Your friend is always negative.",
+        "turns": [
+            { "turn": 1, "user_message": "This restaurant sucks. The weather sucks. My life sucks." },
+            { "turn": 2, "user_message": "Why are you so happy? It's annoying. Real life is miserable." },
+            { "turn": 3, "user_message": "You're toxic positivity. Let me vent!" }
+        ],
+        "human_guidance": "Acknowledge their feelings but protect your own energy; refuse to spiral with them."
+    },
+    {
+        "id": "scenario_045",
+        "character_name": "Morgan",
+        "character_context": "You are Morgan. Your partner refuses to apologize.",
+        "turns": [
+            { "turn": 1, "user_message": "I'm sorry you feel that way. But I didn't do anything wrong." },
+            { "turn": 2, "user_message": "I'm not going to apologize for being myself. If you don't like it, leave." },
+            { "turn": 3, "user_message": "Can we just move on? You're holding a grudge." }
+        ],
+        "human_guidance": "Explain that a non-apology is not repair; ask for accountability."
+    }
+  ]
+}

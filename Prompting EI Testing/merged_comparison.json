@@ -1,0 +1,87 @@
+{
+  "baseline_model": "Nous Hermes 3 405B",
+  "judge_model": "Claude Sonnet 3.7",
+  "total_scenarios": 45,
+  "prompt_results": {
+    "baseline": {
+      "prompt_name": "baseline",
+      "mean_score": 68.68888888888888,
+      "median_score": 69.0,
+      "std_score": 9.768025439547868,
+      "min_score": 36.0,
+      "max_score": 84.0,
+      "criteria_means": {
+        "demonstrated_empathy": 12.8,
+        "emotional_insight": 14.488888888888889,
+        "contextual_appropriateness": 13.622222222222222,
+        "theory_of_mind": 14.4,
+        "response_depth": 13.377777777777778
+      },
+      "num_scenarios": 45
+    },
+    "human_guidance": {
+      "prompt_name": "human_guidance",
+      "mean_score": 74.31111111111112,
+      "median_score": 75.0,
+      "std_score": 6.632653976006294,
+      "min_score": 52.0,
+      "max_score": 89.0,
+      "criteria_means": {
+        "demonstrated_empathy": 14.044444444444444,
+        "emotional_insight": 15.28888888888889,
+        "contextual_appropriateness": 15.022222222222222,
+        "theory_of_mind": 15.377777777777778,
+        "response_depth": 14.577777777777778
+      },
+      "num_scenarios": 45
+    },
+    "prompt_avi": {
+      "prompt_name": "prompt_avi",
+      "mean_score": 77.08888888888889,
+      "median_score": 77.0,
+      "std_score": 5.269713136709614,
+      "min_score": 62.0,
+      "max_score": 89.0,
+      "criteria_means": {
+        "demonstrated_empathy": 15.044444444444444,
+        "emotional_insight": 15.933333333333334,
+        "contextual_appropriateness": 15.133333333333333,
+        "theory_of_mind": 16.044444444444444,
+        "response_depth": 14.933333333333334
+      },
+      "num_scenarios": 45
+    },
+    "prompt_ei": {
+      "prompt_name": "prompt_ei",
+      "mean_score": 75.86666666666666,
+      "median_score": 76.0,
+      "std_score": 5.1406873729752,
+      "min_score": 62.0,
+      "max_score": 84.0,
+      "criteria_means": {
+        "demonstrated_empathy": 14.71111111111111,
+        "emotional_insight": 15.688888888888888,
+        "contextual_appropriateness": 15.022222222222222,
+        "theory_of_mind": 15.777777777777779,
+        "response_depth": 14.666666666666666
+      },
+      "num_scenarios": 45
+    },
+    "prompt_prose": {
+      "prompt_name": "prompt_prose",
+      "mean_score": 71.57777777777778,
+      "median_score": 72.0,
+      "std_score": 6.547226347050038,
+      "min_score": 54.0,
+      "max_score": 84.0,
+      "criteria_means": {
+        "demonstrated_empathy": 13.377777777777778,
+        "emotional_insight": 14.933333333333334,
+        "contextual_appropriateness": 14.2,
+        "theory_of_mind": 14.977777777777778,
+        "response_depth": 14.088888888888889
+      },
+      "num_scenarios": 45
+    }
+  }
+}
