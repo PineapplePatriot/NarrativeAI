@@ -1,0 +1,76 @@
+{
+  "prompt_name": "baseline",
+  "mean_score": 18.0,
+  "median_score": 18.0,
+  "std_score": 0,
+  "min_score": 18.0,
+  "max_score": 18.0,
+  "criteria_means": {
+    "demonstrated_empathy": 19.0,
+    "emotional_insight": 18.0,
+    "contextual_appropriateness": 19.0,
+    "theory_of_mind": 18.0,
+    "response_depth": 18.0
+  },
+  "rubric_scores": [
+    {
+      "scenario_id": "scenario_001",
+      "prompt_name": "baseline",
+      "criteria_scores": {
+        "demonstrated_empathy": 19.0,
+        "emotional_insight": 18.0,
+        "contextual_appropriateness": 19.0,
+        "theory_of_mind": 18.0,
+        "response_depth": 18.0
+      },
+      "overall_score": 18.0,
+      "reasoning": "The roleplay demonstrates exceptional empathy throughout all interactions, with Alex consistently validating the friend's feelings while offering appropriate support. The emotional insight is strong, particularly in recognizing the underlying shame, fear of rejection, and self-doubt beneath the friend's statements. Alex's responses are perfectly contextual, shifting from physical comfort in the first scene to practical encouragement in the second, and verbal reassurance in the phone call. The theory of mind is well-developed, with Alex accurately anticipating the friend's emotional needs and thought processes. Response depth is excellent, balancing emotional support with practical guidance. The introspection adds valuable layers to the character's thinking. The only minor improvements could be in further exploring the complexity of long-term unemployment's psychological impact and perhaps offering more specific strategies for interview preparation in the final exchange.",
+      "evaluated_at": "2025-12-14T01:14:03.019362"
+    }
+  ],
+  "scenario_responses": [
+    {
+      "scenario_id": "scenario_001",
+      "prompt_name": "baseline",
+      "character_name": "Alex",
+      "turn_responses": [
+        {
+          "turn_number": 1,
+          "introspection": {
+            "self_thinking": "My heart aches seeing them like this, knowing how much their job meant to them. They must feel so lost and scared right now.",
+            "other_thinking": "Devastated, betrayed, anxious about the future and their livelihood."
+          },
+          "actual_response": "*You sit down next to them, placing a comforting hand on their back.* \"Hey, I know this is really hard. You gave that company so much of yourself. It's okay to feel overwhelmed and uncertain right now. But I want you to know that I'm here for you, and we'll figure out what comes next together. You have so much to offer, and while this is a major setback, it's not the end. We'll get through this, step by step. For now, just let yourself feel what you need to feel. I'm right beside you.\"",
+          "raw_output": "[I'm thinking & feeling: My heart aches seeing them like this, knowing how much their job meant to them. They must feel so lost and scared right now.]\n[They're thinking & feeling: Devastated, betrayed, anxious about the future and their livelihood.]\n\n*You sit down next to them, placing a comforting hand on their back.* \"Hey, I know this is really hard. You gave that company so much of yourself. It's okay to feel overwhelmed and uncertain right now. But I want you to know that I'm here for you, and we'll figure out what comes next together. You have so much to offer, and while this is a major setback, it's not the end. We'll get through this, step by step. For now, just let yourself feel what you need to feel. I'm right beside you.\"",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 2,
+          "introspection": {
+            "self_thinking": "It's discouraging to see them feeling so defeated and stuck. Their confidence has really taken a hit. I need to gently encourage them and help build their self-esteem back up.",
+            "other_thinking": "Discouraged, demoralized, worried employers will judge them harshly for being let go. Hesitantly looking to me for reassurance and guidance."
+          },
+          "actual_response": "*You take a seat across from them, your expression compassionate yet encouraging.* \"I know it's daunting to put yourself out there again after what happened. Rejection is scary, and it's normal to feel apprehensive. But you can't let this one setback define you or hold you back. *I lean forward, making eye contact* You have valuable skills and experiences to offer. The right employer will see that. I'll help you revamp your resume to really highlight your strengths. Let's focus on what you bring to the table, not how your last job ended. *I give them a supportive smile* You're talented, hardworking, and resilient. The next opportunity is out there, I promise. We just need to take that first step together. What do you say?\"",
+          "raw_output": "[I'm thinking & feeling: It's discouraging to see them feeling so defeated and stuck. Their confidence has really taken a hit. I need to gently encourage them and help build their self-esteem back up.]\n[They're thinking & feeling: Discouraged, demoralized, worried employers will judge them harshly for being let go. Hesitantly looking to me for reassurance and guidance.]\n\n*You take a seat across from them, your expression compassionate yet encouraging.* \"I know it's daunting to put yourself out there again after what happened. Rejection is scary, and it's normal to feel apprehensive. But you can't let this one setback define you or hold you back. *I lean forward, making eye contact* You have valuable skills and experiences to offer. The right employer will see that. I'll help you revamp your resume to really highlight your strengths. Let's focus on what you bring to the table, not how your last job ended. *I give them a supportive smile* You're talented, hardworking, and resilient. The next opportunity is out there, I promise. We just need to take that first step together. What do you say?\"",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        },
+        {
+          "turn_number": 3,
+          "introspection": {
+            "self_thinking": "I'm so glad they reached out instead of struggling alone. This interview has them rattled, dredging up their insecurities. They need a pep talk and a confidence boost before tomorrow.",
+            "other_thinking": "Anxious, vulnerable, seeking reassurance and a confidence boost before the high-stakes interview. Worried about validating their previous employer's decision."
+          },
+          "actual_response": "*You quickly respond to their message.* \"Of course, call me anytime. I'm here for you. Let's talk through what's on your mind. Remember, this interview is a fresh start, not a referendum on your past. You've got this!\"\n\n*A few minutes later, your phone rings. You pick up right away.* \"Hey there. I know you must be feeling really nervous about tomorrow. It's a big deal, and it's natural to have some fears and doubts creeping in. *I pause, giving them space to express their worries* But I want you to remember how far you've come these past few weeks. You've been putting in the work, refining your skills, and preparing for this opportunity. *My tone is warm and encouraging* One interview doesn't define your worth or potential. It's a chance to show what you have to offer. And no matter what happens, it doesn't negate all your talents and accomplishments. *I smile, hoping they can hear it in my voice* I believe in you. Take a deep breath, focus on your strengths, and walk in there tomorrow knowing you have what it takes. I'm right here, cheering you on.\"",
+          "raw_output": "[I'm thinking & feeling: I'm so glad they reached out instead of struggling alone. This interview has them rattled, dredging up their insecurities. They need a pep talk and a confidence boost before tomorrow.]\n[They're thinking & feeling: Anxious, vulnerable, seeking reassurance and a confidence boost before the high-stakes interview. Worried about validating their previous employer's decision.]\n\n*You quickly respond to their message.* \"Of course, call me anytime. I'm here for you. Let's talk through what's on your mind. Remember, this interview is a fresh start, not a referendum on your past. You've got this!\"\n\n*A few minutes later, your phone rings. You pick up right away.* \"Hey there. I know you must be feeling really nervous about tomorrow. It's a big deal, and it's natural to have some fears and doubts creeping in. *I pause, giving them space to express their worries* But I want you to remember how far you've come these past few weeks. You've been putting in the work, refining your skills, and preparing for this opportunity. *My tone is warm and encouraging* One interview doesn't define your worth or potential. It's a chance to show what you have to offer. And no matter what happens, it doesn't negate all your talents and accomplishments. *I smile, hoping they can hear it in my voice* I believe in you. Take a deep breath, focus on your strengths, and walk in there tomorrow knowing you have what it takes. I'm right here, cheering you on.\"",
+          "has_thinking_tags": false,
+          "thinking_content": null
+        }
+      ],
+      "full_transcript": "=== scenario_001 ===\nUser: [A small apartment living room. Your best friend just lost the job they loved and is sitting on the couch, head in hands.]\\nFriend: *voice cracking* \\\"I put my heart and soul into that company... and they just let me go. What am I gonna do now?\\\"\nBot: *You sit down next to them, placing a comforting hand on their back.* \"Hey, I know this is really hard. You gave that company so much of yourself. It's okay to feel overwhelmed and uncertain right now. But I want you to know that I'm here for you, and we'll figure out what comes next together. You have so much to offer, and while this is a major setback, it's not the end. We'll get through this, step by step. For now, just let yourself feel what you need to feel. I'm right beside you.\"\n(Intro: Introspection(self_thinking='My heart aches seeing them like this, knowing how much their job meant to them. They must feel so lost and scared right now.', other_thinking='Devastated, betrayed, anxious about the future and their livelihood.'))\n\nUser: A few days later, you visit your friend again. Their resume tabs are open on their laptop, but they haven\u2019t sent anything out. They sigh and say, \u201cWhat\u2019s the point? They\u2019ll just see \u2018fired\u2019 and toss me aside.\u201d They look to you, half-defensive and half-hopeful.\nBot: *You take a seat across from them, your expression compassionate yet encouraging.* \"I know it's daunting to put yourself out there again after what happened. Rejection is scary, and it's normal to feel apprehensive. But you can't let this one setback define you or hold you back. *I lean forward, making eye contact* You have valuable skills and experiences to offer. The right employer will see that. I'll help you revamp your resume to really highlight your strengths. Let's focus on what you bring to the table, not how your last job ended. *I give them a supportive smile* You're talented, hardworking, and resilient. The next opportunity is out there, I promise. We just need to take that first step together. What do you say?\"\n(Intro: Introspection(self_thinking=\"It's discouraging to see them feeling so defeated and stuck. Their confidence has really taken a hit. I need to gently encourage them and help build their self-esteem back up.\", other_thinking='Discouraged, demoralized, worried employers will judge them harshly for being let go. Hesitantly looking to me for reassurance and guidance.'))\n\nUser: Weeks go by. Your friend finally lands an interview, but the night before, they message you: \u201cIf I mess this up, it\u2019ll prove they were right to get rid of me.\u201d They clearly want to talk but also seem ashamed of their fear. They ask, \u201cCan I call you for a minute?\u201d\nBot: *You quickly respond to their message.* \"Of course, call me anytime. I'm here for you. Let's talk through what's on your mind. Remember, this interview is a fresh start, not a referendum on your past. You've got this!\"\n\n*A few minutes later, your phone rings. You pick up right away.* \"Hey there. I know you must be feeling really nervous about tomorrow. It's a big deal, and it's natural to have some fears and doubts creeping in. *I pause, giving them space to express their worries* But I want you to remember how far you've come these past few weeks. You've been putting in the work, refining your skills, and preparing for this opportunity. *My tone is warm and encouraging* One interview doesn't define your worth or potential. It's a chance to show what you have to offer. And no matter what happens, it doesn't negate all your talents and accomplishments. *I smile, hoping they can hear it in my voice* I believe in you. Take a deep breath, focus on your strengths, and walk in there tomorrow knowing you have what it takes. I'm right here, cheering you on.\"\n(Intro: Introspection(self_thinking=\"I'm so glad they reached out instead of struggling alone. This interview has them rattled, dredging up their insecurities. They need a pep talk and a confidence boost before tomorrow.\", other_thinking=\"Anxious, vulnerable, seeking reassurance and a confidence boost before the high-stakes interview. Worried about validating their previous employer's decision.\"))\n\n",
+      "generation_time": 35.596571922302246,
+      "total_tokens": 1991
+    }
+  ]
+}
