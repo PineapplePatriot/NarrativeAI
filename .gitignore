@@ -22,7 +22,8 @@ desktop.ini
 
 # --- Django specific ---
 db.sqlite3
-media/
+media
+
 staticfiles/
 *.log
 
