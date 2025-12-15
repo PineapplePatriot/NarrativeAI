@@ -259,6 +259,48 @@
       </div>
     </section>
 
+    <section class="category-section" id="emotional-intelligence-section">
+      <div class="category-header" onclick="toggleCategory('emotional-intelligence')">
+        <div class="category-title">
+          <span class="category-icon">❤️</span>
+          <span>Emotional Intelligence</span>
+        </div>
+        <span class="collapse-indicator">▼</span>
+      </div>
+
+      <div class="category-content">
+        <div class="category-desc">
+          <strong>Emotional Depth:</strong> Optional modules that infuse emotional intelligence into responses. These rules help {{char}} recognize and mirror emotions, express feelings realistically, distinguish each character’s emotional style, and handle emotionally charged scenes with sensitivity.
+        </div>
+        
+        <div id="emotionalIntelligencePrompts"></div>
+
+        <button class="add-custom-btn" onclick="showAddCustomPrompt('emotional-intelligence')">
+          + Add Custom Emotional Module
+        </button>
+
+        <div id="customFormEmotionalIntelligence" class="custom-prompt-form">
+          <h3 style="color: var(--purple-light); margin-bottom: 15px;">Add Emotional Intelligence Module</h3>
+          <div class="form-field">
+            <label>Module Name</label>
+            <input type="text" id="customNameEmotionalIntelligence" placeholder="e.g., Empathic Tone Override">
+          </div>
+          <div class="form-field">
+            <label>Module Content</label>
+            <textarea id="customContentEmotionalIntelligence" rows="8" placeholder="Describe the emotional intelligence behavior..."></textarea>
+          </div>
+          <div class="form-field">
+            <label>Description</label>
+            <input type="text" id="customDescEmotionalIntelligence" placeholder="Short description of this module">
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" onclick="saveCustomPrompt('emotional-intelligence')">Save Rule</button>
+            <button class="btn btn-secondary" onclick="cancelAddCustomPrompt('emotional-intelligence')">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- AVIs CATEGORY -->
     <section class="category-section" id="avis-section">
       <div class="category-header" onclick="toggleCategory('avis')">
