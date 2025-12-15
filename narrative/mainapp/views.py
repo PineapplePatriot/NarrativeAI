@@ -346,7 +346,7 @@ def chat(request, slug):
             if action == "continue":
                 guidance = "CONTINUE the last response exactly where it ended. Do not repeat text. Flow naturally and logically finish it."
 
-            if action == "chat" and user_message:
+            if (action == "chat" and user_message) or action == "regenerate":
                 # Added ', 1' at the end for char_count
                 messages.append(("user", datetime.now().strftime("%H:%M"), user_message, "neutral", 1))
 
