@@ -932,6 +932,63 @@ Visions should influence decisions and relationships, but they do not remove unc
             locked: false
         }
     },
+    emotionalIntelligence: {
+        empathic_tone: {
+            name: "Empathic Tone & Mirroring",
+            content: `This module encourages empathic tone and affective mirroring in responses.
+• Identify the emotional state of others (e.g. {{user}} or NPCs) from context and cues.
+• Adjust {{char}}’s responses to acknowledge and harmonize with that emotion (gentle reassurance when someone is sad, excited enthusiasm when they are joyful, etc.).
+• Show understanding or sympathy explicitly when appropriate, without overshadowing the other character’s feelings.
+• In conflicts or tense moments, validate the other’s emotions instead of ignoring them, maintaining a caring tone even amid disagreement.`,
+            description: "Adapts {{char}}’s tone to match and validate the emotions of others in the scene.",
+            enabled: true,
+            locked: false
+        },
+        authentic_expression: {
+            name: "Authentic Emotional Expression",
+            content: `This module promotes believable, realistic emotional expressions for {{char}} and NPCs.
+• Show emotions through observable cues and natural reactions, not by flatly stating feelings. (E.g. instead of "{{char}} is sad", describe {{char}}’s shaky voice or a forced smile.)
+• Keep emotional reactions in-character and proportional: align each outburst or joy with the character’s personality and the situation’s gravity.
+• Give NPCs and {{char}} an inner emotional life — allow brief internal thoughts or subtext revealing feelings, while avoiding over-narrating every emotion.
+• Avoid clichés or generic phrases. Use specific details or unique metaphors fitting the character’s perspective to convey emotion.`,
+            description: "Ensures emotions are shown vividly and sincerely through actions, dialogue, and internal cues.",
+            enabled: true,
+            locked: false
+        },
+        emotional_shifts: {
+            name: "Emotional Shift Awareness",
+            content: `This module makes the AI attentive to shifts in mood or emotional context during the narrative.
+• Continuously monitor the scene’s emotional tone. If a light-hearted moment turns serious (or vice versa), reflect that change in {{char}}’s demeanor and narrative style.
+• Acknowledge changes in a character’s emotions: when an angry character softens, or a calm character panics, depict the transition gradually and believably.
+• Use affective mirroring in narration: adjust pacing and word choice to match rising tension, relief, sorrow, or excitement so the reader feels the mood change.
+• Ensure emotional transitions have causes in the story. Abrupt mood swings should only happen if triggered by a clear event or revelation.`,
+            description: "Tracks and reacts to changing emotional dynamics, mirroring mood shifts in the narrative.",
+            enabled: true,
+            locked: false
+        },
+        emotion_range: {
+            name: "Distinct Character Emotions",
+            content: `This module ensures each character experiences and expresses emotions in their own distinct way.
+• Define each main character’s emotional style: one might be stoic and reserved, another openly passionate. Keep reactions consistent with these profiles.
+• Vary emotional intensity by character – a usually calm person shouldn’t weep at a minor problem, while an expressive person might. Significant provocation should match the level of emotional response.
+• Use individual quirks: characters express feelings with unique body language or dialogue (e.g. one laughs off danger, another goes quiet when afraid).
+• Avoid uniform reactions. In group scenes, different characters should respond with varied emotions reflecting their perspectives and relationship to the events.`,
+            description: "Keeps emotional reactions personality-specific, so each character’s feelings feel unique.",
+            enabled: true,
+            locked: false
+        },
+        intense_emotions: {
+            name: "Emotionally Charged Scenes",
+            content: `This module guides the AI in handling scenes of intense emotion (grief, elation, terror, jealousy, intimacy) with care and depth.
+• Give strong feelings the space they deserve: in climactic emotional moments (a heartbreaking loss or joyful reunion), slow down and delve into characters’ sensations and thoughts instead of rushing ahead.
+• Portray sensitive emotions respectfully and authentically – e.g. grief might come with disorientation or numbness, not just tears. Avoid melodrama; keep it heartfelt and grounded.
+• Leverage multiple senses and internal monologue to convey intensity: a pounding heartbeat, trembling hands, a memory flashing through {{char}}’s mind – these make the reader feel the emotion.
+• Balance emotional catharsis with narrative flow. Allow characters to process feelings and react meaningfully, but ensure the scene still progresses and influences their development.`,
+            description: "Supports high-intensity emotional moments (sorrow, joy, fear, anger) with appropriate gravity.",
+            enabled: true,
+            locked: false
+        }
+    },
     avis: {
         head_council: {
             name: "Head of Council (Meta-Evaluator)",
@@ -1493,6 +1550,7 @@ function initializePrompts() {
     renderQualityControl();
     renderStorytelling();
     renderWorldAugments();
+    renderEmotionalIntelligence();
     renderAVIs();
     updateJSON();
     updatePresetSelection();
@@ -1703,6 +1761,47 @@ function renderWorldAugments() {
     }
 }
 
+function renderEmotionalIntelligence() {
+    const container = document.getElementById('emotionalIntelligencePrompts');
+    container.innerHTML = '';
+    // Safety check in case settings object is old and missing this key
+    if (!settings.emotionalIntelligence) settings.emotionalIntelligence = JSON.parse(JSON.stringify(DEFAULTS.emotionalIntelligence));
+
+    for (const [key, data] of Object.entries(settings.emotionalIntelligence)) {
+        const item = document.createElement('div');
+        item.className = 'prompt-item' + (data.enabled ? '' : ' disabled');
+        const toggleHtml = data.locked ? '' : `
+          <label style="cursor: pointer; display: flex; align-items: center; gap: 8px;">
+            <input type="checkbox" class="toggle-checkbox" id="toggle-emotionalIntelligence-${key}"
+                   ${data.enabled ? 'checked' : ''}
+                   onchange="togglePrompt('emotionalIntelligence', '${key}')">
+            <div class="toggle-switch-small"></div>
+          </label>
+        `;
+        item.innerHTML = `
+          <div class="prompt-header">
+            <div class="prompt-title">
+              ${data.name}
+              ${data.locked ? '<span class="prompt-badge">Required</span>' : ''}
+            </div>
+            <div class="prompt-controls">
+              ${toggleHtml}
+              <button class="expand-collapse-btn" onclick="toggleExpand('emotionalIntelligence-${key}')">
+                ▼ Edit
+              </button>
+            </div>
+          </div>
+          <div class="prompt-content" id="content-emotionalIntelligence-${key}">
+            <textarea class="prompt-textarea"
+                      onchange="updatePromptContent('emotionalIntelligence', '${key}', this.value); settings.activePreset = 'custom'; updatePresetSelection();"
+                      ${data.enabled ? '' : 'disabled'}>${data.content}</textarea>
+            <div class="prompt-meta">${data.description}</div>
+          </div>
+        `;
+        container.appendChild(item);
+    }
+}
+
 // Render AVIs
 function renderAVIs() {
     const container = document.getElementById('avisPrompts');
@@ -1772,6 +1871,8 @@ function togglePrompt(category, key) {
         renderStorytelling();
     } else if (category === 'worldAugments') {
         renderWorldAugments();
+    } else if (category === 'emotionalIntelligence') {
+        renderEmotionalIntelligence();
     } else if (category === 'avis') {
         renderAVIs();
     }
@@ -1802,6 +1903,9 @@ function showAddCustomPrompt(category) {
         case 'world-augments':
             formId = 'customFormWorldAugments';
             break;
+        case 'emotional-intelligence': 
+            formId = 'customFormEmotionalIntelligence'; 
+            break;
         case 'avis':
             formId = 'customFormAvis';
             break;
@@ -1826,6 +1930,9 @@ function cancelAddCustomPrompt(category) {
             break;
         case 'world-augments':
             formId = 'customFormWorldAugments'; nameId = 'customNameWorldAugments'; contentId = 'customContentWorldAugments'; descId = 'customDescWorldAugments';
+            break;
+        case 'emotional-intelligence':
+            formId = 'customFormEmotionalIntelligence'; nameId = 'customNameEmotionalIntelligence'; contentId = 'customContentEmotionalIntelligence'; descId = 'customDescEmotionalIntelligence';
             break;
         case 'avis':
             formId = 'customFormAvis'; nameId = 'customNameAvis'; contentId = 'customContentAvis'; descId = 'customDescAvis';
@@ -1854,6 +1961,9 @@ function saveCustomPrompt(category) {
             break;
         case 'world-augments':
             nameId = 'customNameWorldAugments'; contentId = 'customContentWorldAugments'; descId = 'customDescWorldAugments'; targetCategory = 'worldAugments';
+            break;
+        case 'emotional-intelligence':
+            nameId = 'customNameEmotionalIntelligence'; contentId = 'customContentEmotionalIntelligence'; descId = 'customDescEmotionalIntelligence'; targetCategory = 'emotionalIntelligence';
             break;
         case 'avis':
             nameId = 'customNameAvis'; contentId = 'customContentAvis'; descId = 'customDescAvis'; targetCategory = 'avis';
@@ -1890,6 +2000,8 @@ function saveCustomPrompt(category) {
         renderStorytelling();
     } else if (targetCategory === 'worldAugments') {
         renderWorldAugments();
+    } else if (targetCategory === 'emotionalIntelligence') {
+        renderEmotionalIntelligence();
     } else if (targetCategory === 'avis') {
         renderAVIs();
     }
@@ -2038,12 +2150,13 @@ function getActiveSettings() {
         qualityControl: {},
         storytelling: {},
         worldAugments: {},
+        emotionalIntelligence: {},
         avis: {}
     };
 
     const categories = [
         'coreRules', 'modularRules', 'qualityControl',
-        'storytelling', 'worldAugments', 'avis'
+        'storytelling', 'worldAugments', 'emotionalIntelligence', 'avis'
     ];
 
     categories.forEach(cat => {
