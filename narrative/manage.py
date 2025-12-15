@@ -3,6 +3,7 @@
 import os
 import sys
 
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 def main():
     """Run administrative tasks."""

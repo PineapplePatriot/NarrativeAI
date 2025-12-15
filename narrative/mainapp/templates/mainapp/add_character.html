@@ -38,16 +38,20 @@
             <h4>Eleven Labs Voice</h4>
             <div class="voice-section">
                 <div class="voice-block">
-                    <label>Голос персонаж 1</label>
+                    <label>Voice Character 1</label>
                     {{ form.eleven_voice_char_id.label_tag }} {{ form.eleven_voice_char_id }}
                 </div>
+                <div class="voice-block" id="second-char-voice-container" style="display: none;">
+                    <label>Voice Character 2</label>
+                    {{ form.eleven_voice_second_id }}
+                </div>
                 <div class="voice-block">
-                    <label>Голос оповідача</label>
+                    <label>Voice Narrator</label>
                     {{ form.eleven_voice_narr_id.label_tag }} {{ form.eleven_voice_narr_id }}
                 </div>
             </div>
         {% else %}
-            <p><em>🔒 Щоб обрати голос, додайте ваш Eleven Labs API ключ у налаштуваннях.</em></p>
+            <p><em>🔒 To select a voice, add your Eleven Labs API key in settings.</em></p>
         {% endif %}
 
         <div class="file-grid">

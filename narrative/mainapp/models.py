@@ -52,6 +52,7 @@ class Character(models.Model):
 
     eleven_voice_char_id = models.CharField(max_length=128, blank=True)
     eleven_voice_narr_id = models.CharField(max_length=128, blank=True)
+    eleven_voice_second_id = models.CharField(max_length=128, blank=True, verbose_name="2nd Character Voice ID")
 
     is_mult = models.BooleanField(default=False, verbose_name="Multi-Character Mode")
 

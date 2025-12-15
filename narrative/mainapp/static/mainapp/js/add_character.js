@@ -20,6 +20,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
     const isMultCheckbox = document.getElementById('id_is_mult');
     const fileGroups = document.querySelectorAll('.file-group');
+    const secondVoiceContainer = document.getElementById('second-char-voice-container');
 
     function toggleSecondCharFields() {
         if (!isMultCheckbox) return;
@@ -37,6 +38,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             }
         });
+
+        if (secondVoiceContainer) {
+            secondVoiceContainer.style.display = isChecked ? 'block' : 'none';
+        }
     }
 
     if (isMultCheckbox) {

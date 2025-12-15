@@ -188,7 +188,11 @@
                 {% endfor %}
 
                 <div class="message" id="typingMessage" style="display: none;">
-                    <div class="message-avatar">E</div>
+                    {% if photo_neutral %}
+                        <img src="{{ photo_neutral }}" class="message-avatar" style="object-fit:cover;">
+                    {% else %}
+                        <div class="message-avatar">E</div>
+                    {% endif %}
                     <div class="message-content">
                         <div class="typing-indicator">
                             <span>{{character.name}} is typing</span>

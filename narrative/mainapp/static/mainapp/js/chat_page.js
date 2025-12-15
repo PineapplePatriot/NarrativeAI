@@ -172,17 +172,14 @@ function addMessage(sender, text, specificAvatarUrl = null) {
     let avatarHtml = '';
 
     if (sender === 'user') {
-        // Check the global variable set in HTML
         if (window.USER_AVATAR) {
             avatarHtml = `<img src="${window.USER_AVATAR}" class="message-avatar" style="object-fit:cover;">`;
         } else {
             avatarHtml = '<div class="message-avatar">You</div>';
         }
     } else {
-        // For assistant, allow passing a specific emotion avatar, or fallback to current global
-        const url = specificAvatarUrl || window.INIT_PHOTO_URL;
-        if (url) {
-            avatarHtml = `<img src="${url}" class="message-avatar" style="object-fit:cover;">`;
+        if (specificAvatarUrl) {
+            avatarHtml = `<img src="${specificAvatarUrl}" class="message-avatar" style="object-fit:cover;">`;
         } else {
             avatarHtml = '<div class="message-avatar">E</div>';
         }
@@ -263,7 +260,13 @@ function sendMessage() {
     })
         .then(response => response.json())
         .then(data => {
-            addMessage('assistant', data.reply);
+            let avatarToUse = data.photo_url;
+
+
+            if (Number(data.char_count) === 3 && data.photo_second) {
+                avatarToUse = data.photo_second;
+            }
+            addMessage('assistant', data.reply, avatarToUse);
             updateCharacterImages(data.photo_url, data.photo_second, data.char_count);
 
             if (data.photo_url) {
@@ -531,6 +534,7 @@ document.addEventListener('mouseup', () => {
 document.addEventListener('DOMContentLoaded', () => {
     hydrateExistingMessages();
     scrollToBottom();
+    fixHistoryAvatars();
     updateMessageIndices();
     if (window.SAVED_MUSIC && window.SAVED_MUSIC.url) {
         bgMusic.src = window.SAVED_MUSIC.url;
@@ -747,7 +751,7 @@ sendMessage = function () {
     if (!txt && !guide) return;
     if (isGenerating) return;
 
-    if (txt) { addMessage('user', txt); messageInput.value = ''; messageInput.style.height = 'auto'; }
+    if (txt) { addMessage('user', txt, window.USER_AVATAR); messageInput.value = ''; messageInput.style.height = 'auto'; }
     document.getElementById('guidanceInput').value = '';
 
     isGenerating = true; sendBtn.disabled = true; stopContainer.style.display = 'block'; typingMessage.style.display = 'flex'; scrollToBottom();
@@ -756,9 +760,54 @@ sendMessage = function () {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
         body: JSON.stringify({ action: 'chat', message: txt, guidance: guide })
     }).then(r => r.json()).then(d => {
-        addMessage('assistant', d.reply);
+        let avatarToUse = d.photo_url; // Default to Char 1
+
+        // If char_count is 3 (Second Char Only) AND we have a second photo, use it.
+        if (Number(d.char_count) === 3 && d.photo_second) {
+            avatarToUse = d.photo_second;
+        }
+
+        // Fallback to initial photo if specific emotion photo is missing
+        if (!avatarToUse) {
+            avatarToUse = window.INIT_PHOTO_URL;
+        }
+
+        // Pass the calculated avatar to addMessage
+        addMessage('assistant', d.reply, avatarToUse);
+
         updateCharacterImages(d.photo_url, d.photo_second, d.char_count);
-        if (d.audio_url) playCharacterAudio(d.audio_url);
+        if (d.audio_url) {
+            // A. Auto-play
+            playCharacterAudio(d.audio_url);
+
+            // B. Add the button to the DOM
+            const messages = document.querySelectorAll('.message.assistant');
+            if (messages.length) {
+                const lastMessage = messages[messages.length - 1];
+                const actionsDiv = lastMessage.querySelector('.message-actions');
+                // Create Play Button
+                const audioBtn = document.createElement('button');
+                audioBtn.className = 'message-btn play-sound';
+                audioBtn.onclick = () => playCharacterAudio(d.audio_url);
+                audioBtn.innerHTML = `
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.06c1.48-.74 2.5-2.26 2.5-4.03z"/>
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                    </svg>`;
+
+                // Create Pause Button
+                const pauseBtn = document.createElement('button');
+                pauseBtn.className = 'message-btn pause-sound';
+                pauseBtn.onclick = pauseCharacterAudio;
+                pauseBtn.innerHTML = `
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <path d="M6 6h12v12H6z"/>
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                    </svg>`;
+                actionsDiv.appendChild(audioBtn);
+                actionsDiv.appendChild(pauseBtn);
+            }
+        }
     }).finally(() => { isGenerating = false; sendBtn.disabled = false; stopContainer.style.display = 'none'; typingMessage.style.display = 'none'; scrollToBottom(); updateMessageIndices(); });
 };
 
@@ -804,4 +853,22 @@ function initCharactersFromLastAssistantMessage() {
         window.INIT_PHOTO_SECOND,
         charCount
     );
+}
+
+function fixHistoryAvatars() {
+    const messages = document.querySelectorAll('.message.assistant');
+
+    messages.forEach(msg => {
+        const charCount = Number(msg.dataset.charCount);
+        const avatarImg = msg.querySelector('.message-avatar');
+
+        // If it's an image tag and we have a second photo URL
+        if (avatarImg && avatarImg.tagName === 'IMG' && window.INIT_PHOTO_SECOND) {
+            // Logic: If char_count is 3, it refers to Character 2
+            if (charCount === 3) {
+                // Update the src to the second character's photo
+                avatarImg.src = window.INIT_PHOTO_SECOND;
+            }
+        }
+    });
 }

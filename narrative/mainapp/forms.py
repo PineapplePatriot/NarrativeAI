@@ -35,7 +35,7 @@ class AddCharacterForm(forms.ModelForm):
             'photo_second_angry', 'photo_second_surprised', 'photo_second_scared',
             'photo_second_confused', 'photo_second_calm', 'photo_second_scheming',
 
-            'eleven_voice_char_id', 'eleven_voice_narr_id',
+            'eleven_voice_char_id', 'eleven_voice_narr_id', 'eleven_voice_second_id'
         ]
         widgets = {
             'is_mult': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
@@ -46,6 +46,7 @@ class AddCharacterForm(forms.ModelForm):
             'creator_notes': forms.Textarea(attrs={'cols': 50, 'rows': 5}),
             'eleven_voice_char_id': forms.TextInput(attrs={'placeholder': "Введіть ID"}),
             'eleven_voice_narr_id': forms.TextInput(attrs={'placeholder': "Введіть ID"}),
+            'eleven_voice_second_id': forms.TextInput(attrs={'placeholder': "Character 2 Voice ID"}),
         }
         labels = {'is_mult': 'Contains 2 characters',}
 
@@ -61,9 +62,13 @@ class AddCharacterForm(forms.ModelForm):
             voice_fields = [
                 'eleven_voice_char_id',
                 'eleven_voice_narr_id',
+                'eleven_voice_second_id'
             ]
             for fname in voice_fields:
-                self.fields[fname].required = self.has_eleven_key
+                if fname != "eleven_voice_second_id":
+                    self.fields[fname].required = self.has_eleven_key
+                else:
+                    self.fields[fname].required = False
 
 
 

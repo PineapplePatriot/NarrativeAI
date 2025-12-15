@@ -603,6 +603,7 @@ def chat(request, slug):
                     # якщо ключ є, виконуємо функцію
                     if ELEVENLABS_API_KEY:
                         OPENROUTER_API_KEY = get_openrouter_key(request.user)
+                        use_mult_audio = character.is_mult or (char_count > 1)
                         audio_path = narrate_text_backend(
                             reply,
                             request.user,
@@ -611,8 +612,10 @@ def chat(request, slug):
                             ELEVENLABS_API_KEY,
                             narrator_voice_id=character.eleven_voice_narr_id or None,
                             character_voice_id=character.eleven_voice_char_id or None,
+                            second_character_voice_id=character.eleven_voice_second_id or None,
                             MODEL_NAME=MODEL_NAME,
-                            output_dir="media/audio_files"
+                            output_dir="media/audio_files",
+                            is_mult=use_mult_audio
                         )
                     else:
                         audio_path = ""  # ключ порожній → нічого не генеруємо

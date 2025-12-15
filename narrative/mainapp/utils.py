@@ -238,7 +238,7 @@ def get_elevenlabs_key(user):
 
 
 # --- Функція для розбиття тексту на ролі ---
-def split_text_roles(text, OPENROUTER_API_KEY, model_name, character_name):
+def split_text_roles(text, OPENROUTER_API_KEY, model_name, character_name, has_second_char=False):
     """
     Викликає LLM для маркування частин тексту за ролями.
     Повертає список словників: [{"role": "narrator", "text": "..."}, ...]
@@ -249,25 +249,49 @@ def split_text_roles(text, OPENROUTER_API_KEY, model_name, character_name):
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
         "Content-Type": "application/json"
     }
-    prompt = f"""
-You are given a piece of narrative text. Your task is to determine which parts are spoken by the narrator and which belong to the character.
+    if has_second_char:
+        # --- PROMPT FOR 2 CHARACTERS + NARRATOR ---
+        prompt = f"""
+You are an audio script analyzer. Split the narrative text into parts based on who is speaking.
 
-Output ONLY a JSON array of objects in the following format:
+Roles:
+1. "narrator": Descriptions, actions, internal thoughts, and setting scenes.
+2. "character": Dialogue spoken by the main character ({character_name}).
+3. "character_2": Dialogue spoken by ANY other character (not {character_name}).
+
+Output ONLY a JSON array of objects:
+[
+  {{"role": "narrator", "text": "..."}},
+  {{"role": "character", "text": "..."}},
+  {{"role": "character_2", "text": "..."}}
+]
+
+Rules:
+- Preserve original text exactly.
+- Do not summarize.
+- "character_2" applies to any speaker who is NOT {character_name}.
+
+Text to analyze:
+{text}
+        """
+    else:
+        # --- PROMPT FOR 1 CHARACTER + NARRATOR ---
+        prompt = f"""
+You are an audio script analyzer. Split the narrative text into parts.
+
+Roles:
+1. "narrator": Descriptions, actions, and inner thoughts.
+2. "character": Dialogue spoken by {character_name}.
+
+Output ONLY a JSON array:
 [
   {{"role": "narrator", "text": "..."}},
   {{"role": "character", "text": "..."}}
 ]
 
-Use these rules:
-- Narrator lines describe actions, movements, expressions, or inner thoughts in third person.
-- The character speaks all dialogue and first-person lines.
-- Preserve the original text exactly inside each "text" field.
-
-Character’s name: {character_name}
-
 Text to analyze:
 {text}
-    """
+        """
     data = {"model": model_name, "messages": [{"role": "user", "content": prompt}]}
 
     response = requests.post(url, headers=headers, json=data)
@@ -315,8 +339,10 @@ def narrate_text_backend(
         ELEVENLABS_API_KEY,
         narrator_voice_id,
         character_voice_id,
+        second_character_voice_id,
         MODEL_NAME,
-        output_dir=None):
+        output_dir=None,
+        is_mult=False):
 
     print("OPENROUTER_API_KEY", OPENROUTER_API_KEY)
     print("ELEVENLABS_API_KEY", ELEVENLABS_API_KEY)
@@ -331,18 +357,33 @@ def narrate_text_backend(
     filename = f"{username}_{character_name}_{timestamp}.mp3"
     output_file = os.path.join(output_dir, filename)
 
-    parts = split_text_roles(text, OPENROUTER_API_KEY, MODEL_NAME, character_name)
+    parts = split_text_roles(text, OPENROUTER_API_KEY, MODEL_NAME, character_name, has_second_char=is_mult)
     final_audio = AudioSegment.silent(duration=0)
 
+
     for part in parts:
-        voice_id = narrator_voice_id if part["role"] == "narrator" else character_voice_id
+        role = part["role"]
+        voice_id = None
+
+        if role == "narrator":
+            voice_id = narrator_voice_id
+        elif role == "character":
+            voice_id = character_voice_id
+        elif role == "character_2":
+            voice_id = second_character_voice_id
+            if not voice_id:
+                voice_id = narrator_voice_id
 
         if not voice_id:
-            continue;
+            continue
 
-        audio_bytes = synthesize_speech(part["text"], voice_id, ELEVENLABS_API_KEY)
-        audio_segment = AudioSegment.from_file(audio_bytes, format="mp3")
-        final_audio += audio_segment
+        try:
+            audio_bytes = synthesize_speech(part["text"], voice_id, ELEVENLABS_API_KEY)
+            audio_segment = AudioSegment.from_file(audio_bytes, format="mp3")
+            final_audio += audio_segment
+        except Exception as e:
+            print(f"Audio chunk failed: {e}")
+            continue
 
     final_audio.export(output_file, format="mp3")
 
