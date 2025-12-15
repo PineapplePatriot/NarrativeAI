@@ -6,65 +6,110 @@ from sentence_transformers import util
 from users.models import ApiConfig
 
 
-def get_worldbook_matches(message, worldbook_slug, top_k=5, similarity_threshold=0.01):
-    print("INFO-----------", message, worldbook_slug)
+def get_worldbook_matches(chat_history, current_message, worldbook_slug, top_k=3, similarity_threshold=0.2):
+    """
+    Improved RAG:
+    1. Uses context from history (not just the last message).
+    2. Searches against Key + Value content (not just keys).
+    3. Filters based on a higher threshold to reduce hallucinations.
+    """
+    print(f"INFO----------- Finding matches for WB: {worldbook_slug}")
 
     try:
         wb = Worldbook.objects.get(slug=worldbook_slug)
     except Worldbook.DoesNotExist:
-        print("Worldbook.DoesNotExist")
-        return {"AdditionalContext": []}
+        return []
 
     if not wb.json_file:
-        print("not wb.json_file")
-        return {"AdditionalContext": []}
+        return []
 
-    # Читаємо JSON файл
+    # 1. Load Data
     with wb.json_file.open('rb') as f:
         text = io.TextIOWrapper(f, encoding='utf-8').read()
         data = json.loads(text)
 
-    # Збираємо всі пари key/value з верхнього рівня та з entries
-    keys = []
-    values = []
+    entries = []
 
-    # Верхній рівень
-    for k, v in data.items():
-        if k == "entries":
-            continue  # обробимо окремо
-        keys.append(k)
-        values.append(v)
+    # Normalize data structure (handle both simple dicts and SillyTavern/V2 formats)
+    raw_entries = data.get("entries", [])
+    if not raw_entries:
+        # Try top level items if 'entries' key doesn't exist
+        for k, v in data.items():
+            if isinstance(v, str):
+                raw_entries.append({"key": k, "value": v})
 
-    # Вкладений список entries
-    for entry in data.get("entries", []):
-        if "key" in entry and "value" in entry:
-            keys.append(entry["key"])
-            values.append(entry["value"])
+    for entry in raw_entries:
+        # Support various JSON formats (keys, key, keyword, etc)
+        keys = entry.get("key") or entry.get("keys") or entry.get("keyword") or []
+        content = entry.get("value") or entry.get("content") or ""
 
-    if not keys:
-        return {"AdditionalContext": []}
+        # Determine if this is a "constant" (always active) entry
+        # Many worldbook formats use 'constant': true or 'secondary_keys': []
+        is_constant = entry.get("constant", False)
 
-    print("Keys:", keys)
-    print("Values:", values)
+        if isinstance(keys, list):
+            keys = ", ".join(keys) # Flatten list of keys to string
 
-    # Створюємо ембедінги
-    key_embeddings = model.encode(keys, convert_to_tensor=True)
-    message_embedding = model.encode(message, convert_to_tensor=True)
+        if keys and content:
+            entries.append({
+                "keys": str(keys),
+                "content": str(content),
+                "text_to_embed": f"{keys}: {content}", # Search against full context
+                "constant": is_constant
+            })
 
-    # Косинусна схожість
-    cos_scores = util.cos_sim(message_embedding, key_embeddings)[0]
+    if not entries:
+        return []
 
-    # Вибираємо індекси з cos_score > similarity_threshold
+    # 2. Construct Search Query (Contextual)
+    # Combine the last few messages to capture "what are we talking about?"
+    # Format: "User: Hello. Character: Hi. User: What is that?"
+    query_context = ""
+    if chat_history:
+        # Take last 2 interactions + current message
+        recent_history = chat_history[-2:] 
+        for msg in recent_history:
+            # msg format is likely [role, time, content, mood] based on your previous code
+            role = msg[0]
+            content = msg[2]
+            query_context += f"{role}: {content}\n"
+
+    query_context += f"user: {current_message}"
+
+    print(f"DEBUG: RAG Query Context: {query_context}")
+
+    # 3. Embedding and Search
+    # Embed the corpus (all entries)
+    corpus_texts = [e["text_to_embed"] for e in entries]
+    corpus_embeddings = model.encode(corpus_texts, convert_to_tensor=True)
+
+    # Embed the query
+    query_embedding = model.encode(query_context, convert_to_tensor=True)
+
+    # Calculate Cosine Similarity
+    cos_scores = util.cos_sim(query_embedding, corpus_embeddings)[0]
+
+    results = []
+
+    # First, add ALL constant entries (Always Context)
+    for entry in entries:
+        if entry["constant"]:
+             results.append({"key": entry["keys"], "value": entry["content"], "source": "constant"})
+
+    # Then add semantic matches
     valid_scores = [(idx, float(score)) for idx, score in enumerate(cos_scores) if score > similarity_threshold]
-
-    # Сортуємо за схожістю
     valid_scores.sort(key=lambda x: x[1], reverse=True)
 
-    # Беремо топ-K
-    top_indices = [idx for idx, _ in valid_scores[:top_k]]
+    existing_contents = {r["value"] for r in results}
 
-    # Формуємо фінальний список ключ-значення
-    results = [{"key": keys[idx], "value": values[idx]} for idx in top_indices]
+    for idx, score in valid_scores[:top_k]:
+        entry = entries[idx]
+        if entry["content"] not in existing_contents:
+            results.append({
+                "key": entry["keys"],
+                "value": entry["content"],
+                "score": score
+            })
 
     return results
 
@@ -99,30 +144,35 @@ def build_ai_request(user, character: Character, chat_settings: ChatSettings, wo
         "creator_notes": character.creator_notes,
     }
 
+
     # 3. Chat history та останнє повідомлення користувача
     chat_history = []
     last_user_message = None
+    last_user_message_text = message
 
-    if message is not None:
-        # Використовуємо передане повідомлення
-        last_user_message = ("user", "now", message, "neutral")  # можна замінити "now" на datetime.now().strftime("%H:%M")
-        chat_history = []  # не беремо історію з файлу, або можна передати частину історії з messages, якщо потрібно
-    elif character.chat_log_file and hasattr(character.chat_log_file, "path"):
+    # Load full chat log once (used in both paths)
+    all_messages = []
+    if character.chat_log_file and hasattr(character.chat_log_file, "path"):
         try:
             with open(character.chat_log_file.path, "r", encoding="utf-8") as f:
-                messages = json.load(f)
-
-            user_messages = [msg for msg in messages if msg[0] == "user"]
-
-            if user_messages:
-                last_user_message = user_messages[-1]
-
-                last_user_index = messages.index(last_user_message)
-                chat_history = messages[max(0, last_user_index - 5):last_user_index]
-
+                all_messages = json.load(f)
         except Exception:
-            chat_history = []
-            last_user_message = None
+            all_messages = []
+
+    if message is not None and message != "":
+        # Real-time chat: use recent file history + current message as "now"
+        chat_history = all_messages[-10:]  # keep last N turns
+        last_user_message = ["user", "now", message, "neutral"]
+    else:
+        # Continue/regenerate: last user message comes from file
+        user_messages = [msg for msg in all_messages if msg[0] == "user"]
+        if user_messages:
+            last_user_message = user_messages[-1]
+            last_user_message_text = last_user_message[2]
+
+            last_idx = all_messages.index(last_user_message)
+            chat_history = all_messages[max(0, last_idx - 10):last_idx]
+
 
     # 4. User persona
     user_persona = {
@@ -134,14 +184,33 @@ def build_ai_request(user, character: Character, chat_settings: ChatSettings, wo
 
     # 5. Worldbook matches
     worldbook_matches = []
-    print("LAST_USER_MESSAGE", last_user_message)
-    if last_user_message and worldbook_slug:
+    world_info_text = ""
+
+    if last_user_message_text and worldbook_slug:
         try:
-            worldbook_matches = get_worldbook_matches(last_user_message[2], worldbook_slug, top_k=5)
+            matches = get_worldbook_matches(
+                chat_history,                # pass history
+                last_user_message_text,      # pass current message text
+                worldbook_slug,
+                top_k=3
+            )
+
+            # If your get_worldbook_matches returns dicts like {"key":..., "value":...}
+            if matches:
+                world_info_text = "### World Information (Context):\n"
+                for m in matches:
+                    world_info_text += f"- [{m.get('key','?')}]: {m.get('value','')}\n"
+
+                # keep both forms if you want
+                worldbook_matches = matches
+
         except Exception as e:
             print(f"Worldbook match error: {e}")
             worldbook_matches = []
+            world_info_text = ""
 
+    if world_info_text:
+        system_prompts["WorldInfo"] = world_info_text
 
     if summary:
         system_prompts["StorySummary"] = f"PREVIOUS STORY SUMMARY: {summary}\n(Older messages are omitted. Rely on this context.)"
