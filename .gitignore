@@ -110,3 +110,4 @@ myenv/
 # App data that ships with the code (the rule above ignores user/settings JSON)
 !narrative/mainapp/data/*.json
 !narrative/mainapp/data/models/*.json
+!narrative/mainapp/data/starters/*.json

@@ -147,9 +147,11 @@ narrative/                  Django project (run manage.py from here)
 │   ├── presets.py          presets: block format, macros, request assembly, SillyTavern import/export
 │   ├── samplers.py         sampler settings and context trimming
 │   ├── model_profiles.py   what each model does with each setting (reads data/models/)
+│   ├── starters.py         ready-made presets per model (reads data/starters/)
 │   ├── chats.py            several chats per character: files, branches, swipes, summary pieces
 │   ├── data/               built-in prompt library the default preset is made from
-│   │   └── models/         one profile per model: accepted settings, sources, style notes
+│   │   ├── models/         one profile per model: accepted settings, sources, style notes
+│   │   └── starters/       ready-made presets per model (Back-and-forth, Rich scene, Director seat)
 │   ├── tests.py            automated tests
 │   ├── templates/          pages (HTML)
 │   └── static/             page scripts (JS) and styles (CSS)

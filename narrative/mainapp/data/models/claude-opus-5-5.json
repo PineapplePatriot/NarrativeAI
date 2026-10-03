@@ -113,5 +113,9 @@
       "Every character becoming witty"
     ]
   },
-  "starters": {}
+  "starters": {
+    "back_and_forth": "opus-back-and-forth",
+    "rich_scene": "opus-rich-scene",
+    "director": "opus-director"
+  }
 }

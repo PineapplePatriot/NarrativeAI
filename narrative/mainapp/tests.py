@@ -1500,3 +1500,58 @@ class SamplerPageProfileTests(ChatPromptTests):
         self.assertEqual(data["profile"]["name"], "MiMo v2.6 Pro")
         self.assertEqual(data["status"]["temperature"]["status"], "fixed")  # thinking on by default
         self.assertIn("Claude Opus 5.5", data["known_models"])
+
+
+class StarterTests(ChatPromptTests):
+    """Ready-made presets per model (mainapp/data/starters/*.json)."""
+
+    def test_every_starter_is_a_sound_preset_for_its_model(self):
+        from mainapp import model_profiles, presets, samplers, starters
+        all_s = starters.all_starters()
+        self.assertEqual(len(all_s), 6)
+        for s in all_s:
+            profile = next(p for p in model_profiles.all_profiles() if p["id"] == s["model"])
+            self.assertEqual(profile["starters"][s["experience"]], s["id"])
+            preset = presets.normalize(s["preset"])
+            markers = [b["marker"] for b in preset["blocks"] if b["kind"] == "marker"]
+            self.assertIn("chat_history", markers, s["id"])
+            # it sends nothing the model fixes or doesn't have
+            model = profile["ids"]["openrouter"]
+            params, skipped = samplers.to_api_params(preset["samplers"], model)
+            self.assertEqual(skipped, [], s["id"])
+            # every macro is known and the request assembles
+            built = presets.assemble(preset, {"chat_history": True}, [{"role": "user", "content": "Hi"}],
+                                     {"char": "Rose", "user": "Anya"}, model)
+            self.assertFalse([n for n in built["notes"] if "nknown macro" in n], s["id"])
+            text = "\n".join(m["content"] for m in built["messages"])
+            self.assertIn("Rose", text)
+            self.assertNotIn("{{", text, s["id"])
+            # explicit content is opt-in
+            mature = [b for b in preset["blocks"] if b["name"].startswith("Mature")]
+            self.assertTrue(mature and not mature[0]["enabled"], s["id"])
+
+    def test_using_a_starter_makes_an_active_copy_with_credit(self):
+        from mainapp.models import Preset
+        resp = self.client.post(reverse("presets"), json.dumps({"action": "use_starter", "starter": "mimo-rich-scene"}),
+                                content_type="application/json")
+        self.assertEqual(resp.status_code, 200)
+        obj = Preset.objects.get(id=resp.json()["selected"])
+        self.assertTrue(obj.is_active)
+        self.assertEqual(obj.name, "Rich scene · MiMo v2.6 Pro")
+        self.assertEqual(obj.data["extras"]["starter"]["id"], "mimo-rich-scene")
+        self.assertIn("rentry.org", obj.data["extras"]["starter"]["based_on"][0]["url"])
+        # used twice: a second copy, not an overwrite
+        resp = self.client.post(reverse("presets"), json.dumps({"action": "use_starter", "starter": "mimo-rich-scene"}),
+                                content_type="application/json")
+        self.assertEqual(Preset.objects.get(id=resp.json()["selected"]).name, "Rich scene · MiMo v2.6 Pro (2)")
+        bad = self.client.post(reverse("presets"), json.dumps({"action": "use_starter", "starter": "nope"}),
+                               content_type="application/json")
+        self.assertEqual(bad.status_code, 400)
+
+    def test_page_lists_the_users_model_first(self):
+        from users.models import ConnectionProfile
+        ConnectionProfile.objects.filter(user=self.user).update(model="anthropic/claude-opus-5-5")
+        groups = self.client.get(reverse("presets")).context["preset_page"]["starters"]
+        self.assertTrue(groups[0]["yours"])
+        self.assertEqual(groups[0]["model_name"], "Claude Opus 5.5")
+        self.assertEqual([s["title"] for s in groups[0]["starters"]], ["Back-and-forth", "Rich scene", "Director seat"])

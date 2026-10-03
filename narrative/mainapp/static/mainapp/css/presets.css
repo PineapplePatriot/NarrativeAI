@@ -295,3 +295,13 @@ button.legend:hover { color: var(--text-primary) }
     .layout > main { order: 2; min-width: 0; }
     .layout .macro-help { order: 3; }
 }
+
+/* Starters */
+.starters-card .starter { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin-top: 8px; background: rgba(15, 23, 42, .35); }
+.starter-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.starter p { margin: 4px 0 0; font-size: .82rem; color: var(--text-muted); line-height: 1.4; }
+.starter .credit { font-size: .75rem; }
+.starter .credit a, #extrasNote a { color: #c4b5fd; }
+.starter-model { font-size: .82rem; color: var(--text-muted); margin: 4px 0 0; }
+.starter-group { margin-top: 10px; }
+.starter-group > summary { cursor: pointer; font-size: .85rem; color: var(--text-muted); }

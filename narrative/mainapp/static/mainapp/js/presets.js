@@ -71,8 +71,12 @@ function renderHead() {
     if (regex.length) extras.push(`${regex.length} regex scripts`);
     if (preset.extras.function_calling) extras.push('function calling');
     if ((preset.extras.unused_prompts || []).length) extras.push(`${preset.extras.unused_prompts.length} unused prompts`);
-    $('extrasNote').textContent = extras.length
-        ? `Kept from SillyTavern for export, but not used here yet: ${extras.join(', ')}.` : '';
+    const starter = preset.extras.starter;
+    const credit = starter && (starter.based_on || []).length
+        ? ` Made from a starter, based on ${starter.based_on.map(b => `<a href="${esc(b.url)}" target="_blank" rel="noopener">${esc(b.name)}</a> by ${esc(b.author)}`).join(' and ')}.`
+        : (starter ? ' Made from a starter.' : '');
+    $('extrasNote').innerHTML = (extras.length
+        ? `Kept from SillyTavern for export, but not used here yet: ${esc(extras.join(', '))}.` : '') + credit;
 }
 
 document.querySelector('.toolbar').addEventListener('click', async e => {
@@ -518,6 +522,33 @@ $('newDefaultBtn').onclick = async () => {
     try { await flushSave(); goTo((await act({ action: 'new_default' })).selected); }
     catch (err) { alert(err.message); }
 };
+
+// ---------------------------------------------------------------- Starters
+function starterCard(s) {
+    const credit = (s.based_on || []).map(b => `<a href="${esc(b.url)}" target="_blank" rel="noopener" title="${esc(b.used || '')}">${esc(b.name)}</a>`).join(', ');
+    return `
+      <div class="starter">
+        <div class="starter-head"><b>${esc(s.title)}</b>
+          <button type="button" class="secondary small" data-starter="${esc(s.id)}">Use</button></div>
+        <p>${esc(s.tagline)}</p>
+        ${credit ? `<p class="credit">Based on ${credit}</p>` : ''}
+      </div>`;
+}
+function renderStarters() {
+    const groups = DATA.starters || [];
+    $('starterList').innerHTML = groups.map(g => g.yours
+        ? `<p class="starter-model">For your model, <b>${esc(g.model_name)}</b></p>${g.starters.map(starterCard).join('')}`
+        : `<details class="starter-group"><summary>For ${esc(g.model_name)}</summary>${g.starters.map(starterCard).join('')}</details>`
+    ).join('') || '<p class="help">No starters yet.</p>';
+}
+$('starterList').addEventListener('click', async e => {
+    const btn = e.target.closest('[data-starter]');
+    if (!btn) return;
+    btn.disabled = true;
+    try { await flushSave(); goTo((await act({ action: 'use_starter', starter: btn.dataset.starter })).selected); }
+    catch (err) { alert(err.message); btn.disabled = false; }
+});
+renderStarters();
 
 // ------------------------------------------------------------------ Macros
 $('macroHelp').innerHTML = DATA.macro_help.map(([macro, what]) =>

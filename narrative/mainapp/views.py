@@ -24,7 +24,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
-from . import ai_client, chats, model_profiles, presets, samplers, trackers
+from . import ai_client, chats, model_profiles, presets, samplers, starters, trackers
 from .utils import build_ai_request, narrate_text_backend, get_elevenlabs_key
 from .lorebook import (
     normalize_book, load_worldbook, save_worldbook, activate, format_for_prompt, to_sillytavern,
@@ -903,6 +903,11 @@ def preset_list(request):
         elif action == "new_default":
             obj = Preset.objects.create(user=request.user, data=presets.build_default(request.user),
                                         name=presets.unique_name(request.user, presets.DEFAULT_NAME))
+        elif action == "use_starter":
+            try:
+                obj = starters.apply(request.user, data.get("starter"))
+            except ValueError as e:
+                return JsonResponse({"error": str(e)}, status=400)
         elif obj is None:
             return JsonResponse({"error": "Preset not found."}, status=404)
         elif action == "activate":
@@ -964,7 +969,16 @@ def preset_list(request):
         "macro_help": presets.MACRO_HELP,
         "post_processing": presets.POST_PROCESSING,
         "characters": [{"slug": c.slug, "name": c.name} for c in Character.objects.filter(author=request.user)],
+        "starters": starters.for_page(_chat_model(request.user)),
+        "starter_of": (presets.normalize(selected.data)["extras"].get("starter") or {}).get("id"),
     }})
+
+
+def _chat_model(user):
+    try:
+        return ai_client.resolve(user, "chat")[1]
+    except ai_client.NoConnection:
+        return ""
 
 
 @login_required
