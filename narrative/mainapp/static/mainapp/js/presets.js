@@ -11,7 +11,8 @@ let dragId = null;
 function esc(s) {
     return String(s ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
 }
-const approxTokens = s => Math.floor((s || '').length / 3) + 4;
+// Rough size of what is actually sent: {{// comments}} never are
+const approxTokens = s => Math.floor((s || '').replace(/\{\{\/\/[\s\S]*?\}\}/g, '').length / 3) + 4;
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random())).replace(/-/g, '');
 const blockById = id => preset.blocks.find(b => b.id === id);
 
@@ -102,11 +103,13 @@ function groupOf(headerId) {
     return [start, end];
 }
 
+const ROLE_ICON = { system: '⚙', user: '🙂', assistant: '🤖' };
+const PALETTE = ['#a78bfa', '#67e8f9', '#f9a8d4', '#fcd34d', '#86efac', '#fda4af', '#93c5fd', '#fdba74'];
+
 function badges(b) {
     const out = [];
-    if (b.kind === 'marker') out.push('<span class="tag slot" title="Filled in by the app">slot</span>');
-    if (b.role !== 'system') out.push(`<span class="tag">${b.role}</span>`);
-    if (b.position === 'in_chat') out.push(`<span class="tag" title="Inside the chat, ${b.depth} message(s) from the end">in chat @${b.depth}</span>`);
+    if (b.role !== 'system') out.push(`<span class="chip role-${b.role}" title="Sent as a ${b.role} message">${ROLE_ICON[b.role]} ${b.role}</span>`);
+    if (b.position === 'in_chat') out.push(`<span class="chip in-chat" data-depth-chip title="Inside the chat, ${b.depth} message(s) from the end">⤵ in chat @${b.depth}</span>`);
     return out.join('');
 }
 
@@ -143,11 +146,13 @@ function editor(b) {
 }
 
 function blockRow(b) {
+    const isSlot = b.kind === 'marker';
     const tokens = b.kind === 'prompt' ? `<span class="tokens" data-row-tokens>~${approxTokens(b.content)}</span>` : '';
     return `
-      <div class="block ${b.enabled ? 'on' : ''} ${open.has(b.id) ? 'editing' : ''}" draggable="true" data-id="${esc(b.id)}">
+      <div class="block ${b.enabled ? 'on' : ''} ${isSlot ? 'slot' : ''} ${open.has(b.id) ? 'editing' : ''}" draggable="true" data-id="${esc(b.id)}">
         <span class="handle" title="Drag to move">⠿</span>
-        <input type="checkbox" data-toggle="${esc(b.id)}" ${b.enabled ? 'checked' : ''} title="On / off">
+        <label class="switch" title="On / off"><input type="checkbox" data-toggle="${esc(b.id)}" ${b.enabled ? 'checked' : ''}><span></span></label>
+        ${isSlot ? '<span class="slot-icon" title="Slot: filled in by the app">🔌</span>' : ''}
         <button type="button" class="block-name" data-open="${esc(b.id)}">${esc(b.name)}</button>
         ${badges(b)}${tokens}
         <span class="moves">
@@ -158,29 +163,98 @@ function blockRow(b) {
       ${open.has(b.id) ? editor(b) : ''}`;
 }
 
+// The list as groups: [{header|null, blocks, color}]
+function groupList() {
+    const out = [];
+    let current = { header: null, blocks: [] };
+    for (const b of preset.blocks) {
+        if (b.kind === 'header') {
+            if (current.header || current.blocks.length) out.push(current);
+            current = { header: b, blocks: [] };
+        } else current.blocks.push(b);
+    }
+    if (current.header || current.blocks.length) out.push(current);
+    out.forEach((g, i) => { g.key = g.header ? g.header.id : '__top'; g.color = PALETTE[i % PALETTE.length]; });
+    return out;
+}
+
+const FOLD_KEY = `presetFold:${preset.id}`;
+function saveFolds() { try { localStorage.setItem(FOLD_KEY, JSON.stringify([...collapsed])); } catch (e) { /* optional */ } }
+(function loadFolds() {
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem(FOLD_KEY)); } catch (e) { saved = null; }
+    if (Array.isArray(saved)) saved.forEach(k => collapsed.add(k));
+    else if (preset.blocks.length > 30) preset.blocks.filter(b => b.kind === 'header').forEach(b => collapsed.add(b.id));
+})();
+
+function matches(b, q, onlyOn) {
+    if (onlyOn && !b.enabled) return false;
+    if (!q) return true;
+    return (b.name + ' ' + (b.content || '') + ' ' + (b.marker ? DATA.markers[b.marker] : '')).toLowerCase().includes(q);
+}
+
 function renderBlocks() {
     const all = preset.blocks.filter(b => b.kind !== 'header');
-    $('blockCount').textContent = `${all.filter(b => b.enabled).length} of ${all.length} on`;
-    let html = '';
-    let hidden = false;
-    preset.blocks.forEach((b, i) => {
-        if (b.kind === 'header') {
-            const [start, end] = groupOf(b.id);
-            const inGroup = preset.blocks.slice(start + 1, end);
-            const on = inGroup.filter(x => x.enabled).length;
-            hidden = collapsed.has(b.id);
-            html += `<div class="group-head ${open.has(b.id) ? 'editing' : ''}" draggable="true" data-id="${esc(b.id)}">
-                <span class="handle" title="Drag to move the whole group">⠿</span>
-                <button type="button" class="fold" data-fold="${esc(b.id)}">${hidden ? '▸' : '▾'}</button>
-                <button type="button" class="block-name" data-open="${esc(b.id)}">${esc(b.name)}</button>
-                <span class="count">${on}/${inGroup.length}</span></div>
-                ${open.has(b.id) ? editor(b) : ''}`;
-        } else if (!hidden) {
-            html += blockRow(b);
-        }
-    });
-    $('blocks').innerHTML = html || '<p class="help">No blocks yet. Add one below.</p>';
+    $('blockCount').textContent = `${all.filter(b => b.enabled).length} of ${all.length} blocks on`;
+    const q = $('search').value.trim().toLowerCase();
+    const onlyOn = $('onlyOn').checked;
+    const filtering = q || onlyOn;
+
+    const html = groupList().map(g => {
+        const shown = g.blocks.filter(b => matches(b, q, onlyOn));
+        if (filtering && !shown.length && !(g.header && matches(g.header, q, false) && !onlyOn)) return '';
+        const on = g.blocks.filter(b => b.enabled);
+        const folded = !filtering && collapsed.has(g.key);
+        const pct = g.blocks.length ? Math.round(on.length / g.blocks.length * 100) : 0;
+        const head = g.header
+            ? `<div class="group-head ${open.has(g.header.id) ? 'editing' : ''}" draggable="true" data-id="${esc(g.header.id)}">
+                 <span class="handle" title="Drag to move the whole group">⠿</span>
+                 <button type="button" class="fold" data-fold="${esc(g.key)}">${folded ? '▸' : '▾'}</button>
+                 <button type="button" class="block-name" data-open="${esc(g.header.id)}" title="Click to rename">${esc(g.header.name)}</button>
+                 <span class="meter" title="${on.length} of ${g.blocks.length} on"><span style="width:${pct}%"></span></span>
+                 <span class="count">${on.length}/${g.blocks.length}</span>
+               </div>
+               ${open.has(g.header.id) ? editor(g.header) : ''}`
+            : `<div class="group-head plain"><button type="button" class="fold" data-fold="__top">${folded ? '▸' : '▾'}</button>
+                 <span class="muted-title">Not in a group</span><span class="count">${on.length}/${g.blocks.length}</span></div>`;
+        const body = folded
+            ? `<div class="folded-chips" data-fold="${esc(g.key)}">${on.slice(0, 8).map(b => `<span class="mini">${esc(b.name)}</span>`).join('')}
+                 ${on.length > 8 ? `<span class="mini more">+${on.length - 8} more</span>` : ''}
+                 ${!on.length ? '<span class="mini off">all off</span>' : ''}</div>`
+            : `<div class="group-body">${(filtering ? shown : g.blocks).map(blockRow).join('') || '<p class="help">Empty group. Drag blocks here.</p>'}</div>`;
+        return `<section class="gcard" id="group-${esc(g.key)}" style="--accent:${g.color}">${head}${body}</section>`;
+    }).join('');
+    $('blocks').innerHTML = html || '<p class="help">No blocks match.</p>';
     renderSlotPicker();
+    renderMap();
+}
+
+// The request map: enabled blocks in order, sized by length; the chat shows as its own segment
+function renderMap() {
+    const segments = [];
+    for (const g of groupList()) {
+        let tokens = 0;
+        for (const b of g.blocks) {
+            if (!b.enabled) continue;
+            if (b.kind === 'marker' && b.marker === 'chat_history') {
+                if (tokens) segments.push({ g, tokens }); tokens = 0;
+                segments.push({ chat: true, tokens: 0 });
+            } else if (b.kind === 'prompt' && b.position !== 'in_chat') tokens += approxTokens(b.content);
+            else if (b.kind === 'marker') tokens += 40;  // slots: rough size, filled at send time
+        }
+        if (tokens) segments.push({ g, tokens });
+    }
+    const total = segments.reduce((n, s) => n + s.tokens, 0) || 1;
+    $('map').innerHTML = segments.map(s => s.chat
+        ? `<span class="seg chat" title="Chat history goes here">💬 chat</span>`
+        : `<button type="button" class="seg" data-jump="${esc(s.g.key)}" style="flex:${Math.max(s.tokens / total * 100, 2.5)};background:${s.g.color}"
+             title="${esc(s.g.header ? s.g.header.name : 'Not in a group')}: ~${s.tokens} tokens"></button>`).join('')
+        || '<span class="help">Nothing is switched on.</span>';
+    const inChat = preset.blocks.filter(b => b.enabled && b.position === 'in_chat' && b.kind !== 'header').length;
+    $('mapLegend').innerHTML = groupList().filter(g => g.blocks.some(b => b.enabled)).map(g =>
+        `<button type="button" class="legend" data-jump="${esc(g.key)}"><i style="background:${g.color}"></i>${esc(g.header ? g.header.name : 'Not in a group')}</button>`).join('')
+        + (inChat ? `<span class="legend static">⤵ ${inChat} block${inChat > 1 ? 's' : ''} inside the chat</span>` : '')
+        + `<span class="legend static">≈ ${segments.reduce((n, s) => n + s.tokens, 0)} tokens before the chat & lore</span>`;
 }
 
 function renderSlotPicker() {
@@ -191,8 +265,24 @@ function renderSlotPicker() {
     $('addSlot').disabled = !missing.length;
 }
 
+function jumpTo(key) {
+    collapsed.delete(key); saveFolds();
+    $('search').value = ''; $('onlyOn').checked = false;
+    renderBlocks();
+    const el = document.getElementById(`group-${key}`);
+    if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 1200); }
+}
+document.querySelector('[data-panel="blocks"] .map').addEventListener('click', e => { const t = e.target.closest('[data-jump]'); if (t) jumpTo(t.dataset.jump); });
+$('mapLegend').addEventListener('click', e => { const t = e.target.closest('[data-jump]'); if (t) jumpTo(t.dataset.jump); });
+$('search').addEventListener('input', renderBlocks);
+$('onlyOn').addEventListener('change', renderBlocks);
+$('foldAll').onclick = () => { groupList().forEach(g => collapsed.add(g.key)); saveFolds(); renderBlocks(); };
+$('unfoldAll').onclick = () => { collapsed.clear(); saveFolds(); renderBlocks(); };
+
 // Clicks: open editor, fold group, move, delete, duplicate
 $('blocks').addEventListener('click', e => {
+    const chips = e.target.closest('.folded-chips');
+    if (chips) { collapsed.delete(chips.dataset.fold); saveFolds(); renderBlocks(); return; }
     const t = e.target.closest('button');
     if (!t) return;
     if (t.dataset.open) {
@@ -200,7 +290,7 @@ $('blocks').addEventListener('click', e => {
         renderBlocks();
     } else if (t.dataset.fold) {
         collapsed.has(t.dataset.fold) ? collapsed.delete(t.dataset.fold) : collapsed.add(t.dataset.fold);
-        renderBlocks();
+        saveFolds(); renderBlocks();
     } else if (t.dataset.move) {
         const id = t.closest('[data-id]').dataset.id;
         const i = preset.blocks.findIndex(b => b.id === id);
@@ -256,7 +346,8 @@ $('blocks').addEventListener('input', e => {
     }
     if (f === 'depth') {
         const row = $('blocks').querySelector(`[data-id="${CSS.escape(b.id)}"]`);
-        row.querySelectorAll('.tag').forEach(t => { if (t.textContent.startsWith('in chat')) t.textContent = `in chat @${b.depth}`; });
+        const chip = row.querySelector('[data-depth-chip]');
+        if (chip) chip.textContent = `⤵ in chat @${b.depth}`;
     }
     scheduleSave();
 });
@@ -426,4 +517,14 @@ $('previewBtn').onclick = async () => {
     }
 };
 
-renderList(); renderHead(); renderBlocks(); renderUtility();
+// ------------------------------------------------------------------- Tabs
+function showTab(tab) {
+    document.querySelectorAll('[data-panel]').forEach(el => { el.hidden = el.dataset.panel !== tab; });
+    document.querySelectorAll('#tabs [data-tab]').forEach(el => el.classList.toggle('active', el.dataset.tab === tab));
+    try { localStorage.setItem('presetTab', tab); } catch (e) { /* optional */ }
+}
+$('tabs').addEventListener('click', e => { const t = e.target.closest('[data-tab]'); if (t) showTab(t.dataset.tab); });
+let startTab = 'blocks';
+try { startTab = localStorage.getItem('presetTab') || 'blocks'; } catch (e) { /* optional */ }
+
+renderList(); renderHead(); renderBlocks(); renderUtility(); showTab(startTab);
