@@ -24,7 +24,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
-from . import ai_client
+from . import ai_client, trackers
 from .utils import build_ai_request, narrate_text_backend, get_elevenlabs_key
 from .lorebook import (
     normalize_book, load_worldbook, save_worldbook, activate, format_for_prompt, to_sillytavern,
@@ -79,6 +79,7 @@ def chat(request, slug):
     chat_state = {
         "summary": "",
         "summary_upto": None,  # number of messages already covered by the summary
+        "trackers": {},        # tracker values, locks and "upto" (see mainapp/trackers.py)
         "context_guides": {},
         "current_bg": "",
         "current_music": {}
@@ -93,6 +94,7 @@ def chat(request, slug):
                     if isinstance(data, dict):
                         chat_state["summary"] = data.get("summary", "")
                         chat_state["summary_upto"] = data.get("summary_upto")
+                        chat_state["trackers"] = data.get("trackers") or {}
                         chat_state["context_guides"] = data.get("context_guides", {})
                         chat_state["current_bg"] = data.get("current_bg", "")
                         chat_state["current_music"] = data.get("current_music", {})
@@ -123,6 +125,7 @@ def chat(request, slug):
             "messages": messages,
             "summary": chat_state["summary"],
             "summary_upto": chat_state["summary_upto"],
+            "trackers": chat_state["trackers"],
             "context_guides": chat_state["context_guides"],
             "current_bg": chat_state["current_bg"],
             "current_music": chat_state["current_music"]
@@ -217,6 +220,41 @@ def chat(request, slug):
             return JsonResponse({"success": True})
 
         # ... inside chat view POST handler ...
+        elif action in ("update_trackers", "save_trackers", "clear_trackers"):
+            config = trackers.normalize_config(character.tracker_config)
+            state = trackers.normalize_state(chat_state["trackers"], config)
+
+            if action == "save_trackers":  # manual edits and locks from the panel
+                state = trackers.normalize_state(
+                    {"values": data.get("values"), "locks": data.get("locks"), "upto": state["upto"]}, config)
+            elif action == "clear_trackers":
+                state = {"values": {}, "locks": [], "upto": len(messages)}
+            else:
+                only = [t for t in data.get("only") or [] if isinstance(t, str)] or None
+                if not trackers.enabled_trackers(config):
+                    return JsonResponse({"success": False, "error": "No trackers are turned on for this character."})
+                # Messages since the last run (at least the last 4, at most 16)
+                upto = state["upto"] if isinstance(state["upto"], int) else 0
+                recent = messages[min(upto, len(messages)):]
+                recent = (messages[-4:] if len(recent) < 4 else recent)[-16:]
+                user_name = request.user.name or request.user.username
+                named = [(user_name if m[0] == "user" else character.name, m[2]) for m in recent]
+                try:
+                    reply_text = ai_client.complete(
+                        request.user, "trackers",
+                        trackers.update_messages(config, state, named, character.name, user_name, only),
+                        temperature=0.2, response_format={"type": "json_object"})
+                    update = trackers.parse_update(reply_text)
+                except (ai_client.AIError, ValueError) as e:
+                    return JsonResponse({"success": False, "error": str(e)})
+                changed = trackers.apply_update(config, state, update, only)
+                if not only:
+                    state["upto"] = len(messages)
+
+            chat_state["trackers"] = state
+            save_messages(messages)
+            return JsonResponse({"success": True, "state": state, "changed": changed if action == "update_trackers" else []})
+
         elif action == "summarize":
             mode = data.get("mode", "append")  # "append" new events, or "regen" from scratch
             current_summary = chat_state["summary"]
@@ -550,6 +588,13 @@ def chat(request, slug):
                 summary_due = (summary_task.mode == summary_task.MODE_AUTO
                                and len(messages) - summarized >= summary_task.interval)
 
+                # Trackers: same idea, if any tracker is on for this character
+                tracker_task = ai_client.get_task_setting(request.user, "trackers")
+                tracked = (chat_state["trackers"] or {}).get("upto") or 0
+                trackers_due = (bool(trackers.enabled_trackers(trackers.normalize_config(character.tracker_config)))
+                                and tracker_task.mode == tracker_task.MODE_AUTO
+                                and len(messages) - tracked >= tracker_task.interval)
+
                 return JsonResponse({
                     "reply": reply,
                     "emotion": final_emotion_str,
@@ -559,6 +604,7 @@ def chat(request, slug):
                     "audio_url": audio_path,
                     "lore": lore_report,
                     "summary_due": summary_due,
+                    "trackers_due": trackers_due,
                 })
 
     # --- GET request ---
@@ -624,10 +670,49 @@ def chat(request, slug):
         "context_guides": json.dumps(chat_state["context_guides"]),
         "current_bg": chat_state["current_bg"],
         "current_music": json.dumps(chat_state["current_music"]),
-        "user_avatar": user_avatar
+        "user_avatar": user_avatar,
+        "trackers_data": _tracker_page_data(request.user, character, chat_state["trackers"]),
     }
 
     return render(request, "mainapp/chat_page.html", context)
+
+
+def _tracker_page_data(user, character, raw_state):
+    """Everything the chat page's tracker HUD and panel need."""
+    config = trackers.normalize_config(character.tracker_config)
+    task = ai_client.get_task_setting(user, "trackers")
+    return {
+        "panels": trackers.PANELS,
+        "specs": [trackers.tracker_spec(t["id"], config) for t in trackers.TRACKERS],
+        "config": config,
+        "state": trackers.normalize_state(raw_state, config),
+        "schedule": {"mode": task.mode, "interval": task.interval},
+        "setup_url": reverse("tracker_setup", args=[character.slug]),
+    }
+
+
+@login_required
+def tracker_setup(request, slug):
+    """Per-character tracker setup: which trackers are on, custom fields, layout."""
+    character = get_object_or_404(Character, slug=slug, author=request.user)
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body.decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            return JsonResponse({"error": "Invalid request."}, status=400)
+        character.tracker_config = trackers.normalize_config(data)
+        character.save(update_fields=["tracker_config"])
+        return JsonResponse({"status": "ok", "config": character.tracker_config})
+
+    return render(request, "mainapp/tracker_setup.html", {
+        "character": character,
+        "setup_data": {
+            "panels": trackers.PANELS,
+            "trackers": trackers.TRACKERS,
+            "config": trackers.normalize_config(character.tracker_config),
+            "field_types": trackers.FIELD_TYPES,
+        },
+    })
 
 
 import textwrap

@@ -3,6 +3,9 @@ import json
 from users.models import ApiConfig
 from mainapp import ai_client
 from mainapp.lorebook import load_worldbook, activate, format_for_prompt
+from mainapp.trackers import (normalize_config as normalize_tracker_config,
+                              normalize_state as normalize_tracker_state,
+                              format_for_prompt as format_trackers)
 
 
 def build_ai_request(user, character: Character, chat_settings: ChatSettings, worldbook_slug=None, message: str = None, guidance=None, impersonate=None, persistent_guides=None, summary=None):
@@ -49,9 +52,10 @@ def build_ai_request(user, character: Character, chat_settings: ChatSettings, wo
                 all_messages = json.load(f)
         except Exception:
             all_messages = []
-        # Chat logs are saved as {"messages": [...], "summary": ..., ...}; very old ones as a bare list
-        if isinstance(all_messages, dict):
-            all_messages = all_messages.get("messages", [])
+    # Chat logs are saved as {"messages": [...], "summary": ..., ...}; very old ones as a bare list
+    chat_file_data = all_messages if isinstance(all_messages, dict) else {}
+    if isinstance(all_messages, dict):
+        all_messages = all_messages.get("messages", [])
 
     if message is not None and message != "":
         # Real-time chat: use recent file history + current message as "now"
@@ -94,6 +98,12 @@ def build_ai_request(user, character: Character, chat_settings: ChatSettings, wo
         except Exception as e:
             print(f"Lorebook activation error: {e}")
             lore_report = {"book": worldbook_slug, "report": [], "notes": [f"Lorebook error: {e}"]}
+
+    # Story trackers the user chose to add to the prompt
+    tracker_config = normalize_tracker_config(character.tracker_config)
+    story_state = format_trackers(tracker_config, normalize_tracker_state(chat_file_data.get("trackers"), tracker_config))
+    if story_state:
+        system_prompts["StoryState"] = story_state
 
     if summary:
         system_prompts["StorySummary"] = f"PREVIOUS STORY SUMMARY: {summary}\n(Older messages are omitted. Rely on this context.)"

@@ -1,0 +1,50 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Trackers - {{ character.name }}</title>
+  <link rel="stylesheet" href="{% static 'mainapp/css/tracker_setup.css' %}">
+</head>
+<body>
+<div class="page">
+  <a class="back" href="{% url 'chat' character.slug %}">← Back to chat with {{ character.name }}</a>
+  <h1>Story trackers for {{ character.name }}</h1>
+  <p class="subtitle">
+    Trackers keep a running record of the story (where you are, who's around, how they feel, your stats...)
+    using a separate, cheap AI call after replies. Turn on the ones that suit your story.
+    How often they run and which model they use is set on the
+    <a href="{% url 'users:api_config' %}">Connections page</a> under “Story trackers”.
+  </p>
+
+  <div id="panels"></div>
+
+  <section class="card">
+    <h2>🧩 Custom tracker fields</h2>
+    <p class="help">Define your own fields: currencies, counters, flags, anything. Turn on “Custom tracker” above to use them.</p>
+    <div id="customFields"></div>
+    <button type="button" class="secondary" id="addFieldBtn">+ Add field</button>
+  </section>
+
+  <section class="card">
+    <h2>🖥️ Layout</h2>
+    <label class="check"><input type="checkbox" id="layoutHud"> Show a strip of tracker pills above the chat</label>
+    <label class="check"><input type="checkbox" id="layoutPanel"> Show the tracker side panel</label>
+    <label class="inline">Side panel position
+      <select id="layoutSide"><option value="right">Right</option><option value="left">Left</option></select>
+    </label>
+  </section>
+
+  <div class="save-bar">
+    <span class="status" id="saveStatus"></span>
+    <button type="button" id="saveBtn">Save</button>
+  </div>
+</div>
+
+{{ setup_data|json_script:"setup-data" }}
+<script>const SAVE_URL = "{% url 'tracker_setup' character.slug %}";</script>
+<script src="{% static 'mainapp/js/tracker_setup.js' %}"></script>
+</body>
+</html>

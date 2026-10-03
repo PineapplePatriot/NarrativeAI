@@ -121,6 +121,8 @@
                 </div>
             </div>
 
+            <div class="tracker-hud" id="trackerHud" hidden></div>
+
             <div class="messages-container" id="messagesContainer">
                 {% for sender, time, text, emotion, char_count in messages %}
                 <div class="message {{ sender }}" data-index="{{ forloop.counter0 }}" data-emotion="{{ emotion }}" data-char-count="{{ char_count }}">
@@ -234,6 +236,15 @@
                             <input type="text" class="tool-input" id="ctx_clothes" placeholder="Clothes..." onchange="saveContext()">
                             <input type="text" class="tool-input" id="ctx_state" placeholder="State..." onchange="saveContext()">
                             <input type="text" class="tool-input" id="ctx_thinking" placeholder="Thinking..." onchange="saveContext()">
+                        </div>
+                    </div>
+
+                    <div class="tool-section">
+                        <span class="tool-label">📊 Story trackers</span>
+                        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
+                            <button class="tool-action-btn" onclick="window.Trackers && Trackers.update()">↻ Update</button>
+                            <button class="tool-action-btn" onclick="window.Trackers && Trackers.open()">▤ Panel</button>
+                            <a class="tool-action-btn" href="{% url 'tracker_setup' character.slug %}" style="text-align:center; text-decoration:none;">⚙ Setup</a>
                         </div>
                     </div>
 
@@ -371,6 +382,9 @@
         window.INIT_CHAR_COUNT = {{ char_count|default:1 }};
         window.USER_AVATAR = "{{ user_avatar|default:'' }}";
     </script>
+    <aside class="tracker-panel" id="trackerPanel" hidden></aside>
+    {{ trackers_data|json_script:"trackers-data" }}
+    <script src="{% static 'mainapp/js/trackers.js' %}?v={% now 'U' %}"></script>
     <script src="{% static 'mainapp/js/chat_page.js' %}?v={% now 'U' %}"></script>
 
 </body>

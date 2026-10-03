@@ -493,3 +493,147 @@ class ConnectionsPageTests(TestCase):
                    "tasks": [{"task": "summary", "profile_id": None}]})
         self.assertIsNone(TaskSetting.objects.get(user=self.user, task="summary").profile)
         self.assertEqual(ConnectionProfile.objects.filter(user=self.user).count(), 1)
+
+
+class TrackerLogicTests(SimpleTestCase):
+    def config(self, *ids, **extra):
+        from mainapp.trackers import normalize_config
+        return normalize_config({"trackers": {i: {"on": True} for i in ids}, **extra})
+
+    def spec(self, tid, config=None):
+        from mainapp.trackers import tracker_spec
+        return tracker_spec(tid, config or self.config(tid))
+
+    def test_defaults_only_world_on(self):
+        from mainapp.trackers import enabled_trackers, normalize_config
+        self.assertEqual([s["id"] for s in enabled_trackers(normalize_config({}))], ["world"])
+
+    def test_object_merge_respects_locks(self):
+        from mainapp.trackers import merge
+        old = {"location": "Tavern", "weather": "Rain"}
+        new = merge(self.spec("world"), old, {"location": "Docks", "weather": "Sun", "bogus": 1},
+                    {"world.weather"})
+        self.assertEqual(new, {"location": "Docks", "weather": "Rain"})
+
+    def test_list_merge_locks_fields_and_keeps_locked_items(self):
+        from mainapp.trackers import merge
+        spec = self.spec("characters")
+        old = [{"name": "Rose", "mood": "calm", "appearance": "", "outfit": "red coat", "thoughts": ""},
+               {"name": "Guard", "mood": "bored", "appearance": "", "outfit": "", "thoughts": ""}]
+        update = [{"name": "rose", "mood": "angry", "outfit": "nothing"}]  # Guard dropped
+        locks = {"characters[rose].outfit", "characters[guard].mood"}
+        result = merge(spec, old, update, locks)
+        self.assertEqual([(i["name"], i["mood"], i["outfit"]) for i in result],
+                         [("rose", "angry", "red coat"), ("Guard", "bored", "")])
+
+    def test_coercion(self):
+        from mainapp.trackers import coerce_tracker
+        rel = coerce_tracker(self.spec("relationships"), [
+            {"name": "Rose", "affection": "250", "trust": "about 40", "tension": None},
+            {"name": "rose", "affection": 1},  # duplicate key
+            {"affection": 5},                  # no key
+        ])
+        self.assertEqual(len(rel), 1)
+        self.assertEqual((rel[0]["affection"], rel[0]["trust"], rel[0]["tension"]), (100, 40, 0))
+        world = coerce_tracker(self.spec("world"), {"present": "Rose, Guard; Cat"})
+        self.assertEqual(world["present"], ["Rose", "Guard", "Cat"])
+
+    def test_custom_fields(self):
+        from mainapp.trackers import coerce_tracker, enabled_trackers
+        config = self.config("custom", custom_fields=[
+            {"label": "Gold coins", "type": "number"}, {"label": "Sanity", "type": "meter", "min": 0, "max": 10},
+            {"label": ""}, {"label": "Gold coins"}])
+        self.assertEqual([f["key"] for f in config["custom_fields"]], ["gold_coins", "sanity", "gold_coins_"])
+        spec = self.spec("custom", config)
+        self.assertEqual(coerce_tracker(spec, {"gold_coins": "12 gp", "sanity": 99}), {"gold_coins": 12, "sanity": 10})
+        # A custom tracker with no fields is not "on"
+        self.assertNotIn("custom", [s["id"] for s in enabled_trackers(self.config("custom"))])
+
+    def test_parse_update_tolerates_fences(self):
+        from mainapp.trackers import parse_update
+        self.assertEqual(parse_update('Sure!\n```json\n{"world": {"time": "dusk"}}\n```'), {"world": {"time": "dusk"}})
+        with self.assertRaises(ValueError):
+            parse_update("I cannot do that")
+
+    def test_apply_update_only_and_prompt_text(self):
+        from mainapp.trackers import apply_update, format_for_prompt, normalize_state
+        config = self.config("world", "relationships")
+        config["trackers"]["relationships"]["prompt"] = False
+        state = normalize_state({}, config)
+        changed = apply_update(config, state, {
+            "world": {"location": "Lab", "present": ["Rose"]},
+            "relationships": [{"name": "Rose", "trust": 30}],
+            "stats": [{"name": "HP", "value": 3}],  # not enabled: ignored
+        }, only=None)
+        self.assertEqual(changed, ["world", "relationships"])
+        text = format_for_prompt(config, state)
+        self.assertIn("Location: Lab", text)
+        self.assertNotIn("Rose: ", text)  # relationships not added to the prompt
+
+        changed = apply_update(config, state, {"world": {"location": "Street"}, "relationships": []},
+                               only=["relationships"])
+        self.assertEqual(state["values"]["world"]["location"], "Lab")
+        self.assertEqual(changed, ["relationships"])
+
+
+class TrackerChatTests(ChatPromptTests):
+    """Tracker actions in the chat view (reuses the fake AI from ChatPromptTests)."""
+
+    def setUp(self):
+        super().setUp()
+        self.character.tracker_config = {"trackers": {"world": {"on": True}, "characters": {"on": True}}}
+        self.character.save()
+        self.tracker_reply = '{"world": {"location": "Alchemy lab", "weather": "storm"}}'
+
+    def fake_post(self, url, headers=None, json=None, timeout=None):
+        from unittest import mock
+        if json["messages"][0]["content"].startswith("You keep the story-state trackers"):
+            self.all_calls.append(json)
+            resp = mock.Mock(status_code=200)
+            resp.json.return_value = {"choices": [{"message": {"content": self.tracker_reply}}]}
+            return resp
+        return super().fake_post(url, headers, json, timeout)
+
+    def test_update_save_lock_and_prompt(self):
+        reply = self.post({"action": "chat", "message": "I step into the lab."}).json()
+        self.assertTrue(reply["trackers_due"])  # default: automatic every 2 messages
+
+        state = self.post({"action": "update_trackers"}).json()["state"]
+        self.assertEqual(state["values"]["world"]["location"], "Alchemy lab")
+        self.assertEqual(state["upto"], 3)
+
+        # Lock the weather by hand, then the AI tries to change it
+        state["values"]["world"]["weather"] = "clear"
+        state["locks"] = ["world.weather"]
+        self.post({"action": "save_trackers", "values": state["values"], "locks": state["locks"]})
+        self.tracker_reply = '{"world": {"weather": "hail", "time": "midnight"}}'
+        state = self.post({"action": "update_trackers"}).json()["state"]
+        self.assertEqual(state["values"]["world"]["weather"], "clear")
+        self.assertEqual(state["values"]["world"]["time"], "midnight")
+
+        # The state reaches the main prompt
+        self.post({"action": "chat", "message": "What time is it?"})
+        system_text = "\n".join(m["content"] for m in self.sent[-1]["messages"] if m["role"] == "system")
+        self.assertIn("Location: Alchemy lab", system_text)
+
+    def test_bad_tracker_reply_is_reported(self):
+        self.tracker_reply = "Sorry, I can't."
+        resp = self.post({"action": "update_trackers"}).json()
+        self.assertFalse(resp["success"])
+        self.assertIn("JSON", resp["error"])
+
+    def test_no_trackers_means_not_due(self):
+        self.character.tracker_config = {"trackers": {"world": {"on": False}}}
+        self.character.save()
+        self.assertFalse(self.post({"action": "chat", "message": "Hi"}).json()["trackers_due"])
+
+    def test_setup_page_saves_config(self):
+        url = reverse("tracker_setup", args=[self.character.slug])
+        self.assertEqual(self.client.get(url).status_code, 200)
+        resp = self.client.post(url, json.dumps({"trackers": {"stats": {"on": True, "prompt": False}},
+                                                 "layout": {"side": "left", "hud": False}}),
+                                content_type="application/json")
+        config = resp.json()["config"]
+        self.assertTrue(config["trackers"]["stats"]["on"])
+        self.assertFalse(config["trackers"]["stats"]["prompt"])
+        self.assertEqual((config["layout"]["side"], config["layout"]["hud"]), ("left", False))

@@ -24,6 +24,15 @@ TASKS = {
         "schedulable": True,
         "default_mode": TaskSetting.MODE_MANUAL,
     },
+    "trackers": {
+        "label": "Story trackers",
+        "help": "Updates the trackers you turned on for a character (world, relationships, stats...). "
+                "One call covers all of them, so a cheap fast model works well.",
+        "timeout": 90,
+        "schedulable": True,
+        "default_mode": TaskSetting.MODE_AUTO,
+        "default_interval": 2,
+    },
     "emotion": {
         "label": "Emotion & speaker detection",
         "help": "Picks character sprites after every reply: one extra call per message, "
@@ -57,8 +66,10 @@ def get_task_setting(user, task):
     """The saved setting for a task, or an unsaved default one."""
     setting = TaskSetting.objects.filter(user=user, task=task).select_related("profile").first()
     if setting is None:
+        info = TASKS.get(task, {})
         setting = TaskSetting(user=user, task=task,
-                              mode=TASKS.get(task, {}).get("default_mode", TaskSetting.MODE_MANUAL))
+                              mode=info.get("default_mode", TaskSetting.MODE_MANUAL),
+                              interval=info.get("default_interval", 10))
     return setting
 
 

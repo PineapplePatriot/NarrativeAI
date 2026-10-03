@@ -271,6 +271,7 @@ function sendMessage() {
             updateCharacterImages(data.photo_url, data.photo_second, data.char_count);
             renderLore(data.lore);
             if (data.summary_due) generateSummary('append', true);
+            if (window.Trackers) Trackers.afterReply(data);
 
             if (data.photo_url) {
                 const characterSprite = document.querySelector('.character-sprite');
@@ -853,6 +854,7 @@ function confirmRegenerate() {
             if (d.error) { showChatError(d.error); return; }
             addMessage('assistant', d.reply); updateCharacterImages(d.photo_url, d.photo_second, d.char_count); renderLore(d.lore);
             if (d.summary_due) generateSummary('append', true);
+            if (window.Trackers) Trackers.afterReply(d);
         })
         .finally(() => { isGenerating = false; typingMessage.style.display = 'none'; updateMessageIndices(); });
 }
