@@ -31,13 +31,13 @@ from .models import ApiConfig, ConnectionProfile, TaskSetting
 class LoginUser(LoginView):
     form_class = LoginUserForm
     template_name = 'users/login.html'
-    extra_context = {'title': "Авторизація"}
+    extra_context = {"title": "Log in"}
 
 
 class RegisterUser(CreateView):
     form_class = RegisterUserForm
     template_name = 'users/register.html'
-    extra_context = {'title' : "Реєстрація"}
+    extra_context = {"title": "Create an account"}
     success_url = reverse_lazy('users:api_config')  # після успішної реєстрації
 
     def form_valid(self, form):

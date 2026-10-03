@@ -34,11 +34,15 @@ from .lorebook import (
 
 @login_required
 def index_page(request):
-    # Беремо лише дефолтні персонажі для поточного користувача
-    default_characters = Character.objects.filter(author=request.user, is_default=True)
-
+    # Your characters, the ones you played most recently first
+    from django.db.models import F, Max
+    characters = (Character.objects.filter(author=request.user)
+                  .annotate(last_played=Max("chats__time_update"))
+                  .order_by(F("last_played").desc(nulls_last=True), "-id"))
     context = {
-        'characters': default_characters
+        "characters": characters[:8],
+        "character_count": characters.count(),
+        "has_connection": ai_client.has_connection(request.user),
     }
     return render(request, 'main.html', context)
 
@@ -1149,8 +1153,11 @@ class CharactersList(LoginRequiredMixin, ListView):
     # paginate_by = 3
 
     def get_queryset(self):
-        # повертаємо тільки персонажів, створених поточним користувачем
-        return Character.objects.filter(author=self.request.user)
+        # Only your own characters, the ones you played most recently first
+        from django.db.models import Count, F, Max
+        return (Character.objects.filter(author=self.request.user)
+                .annotate(last_played=Max("chats__time_update"), chat_count=Count("chats"))
+                .order_by(F("last_played").desc(nulls_last=True), "-id"))
 
 
 class CharacterBaseView(LoginRequiredMixin):
@@ -1210,7 +1217,7 @@ class UpdateCharacter(CharacterBaseView, UpdateView):
 
 def page_not_found(request, exception):
     print("Hi, hi")
-    return HttpResponseNotFound("<h1>Сторінку не знайдено. Вибачте, будь ласка!!!</h1>")
+    return HttpResponseNotFound("<h1>Page not found.</h1>")
 
 
 # In mainapp/views.py

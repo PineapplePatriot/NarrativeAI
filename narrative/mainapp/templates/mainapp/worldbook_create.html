@@ -9,8 +9,10 @@
   <meta name="csrf-token" content="{{ csrf_token }}">
   <link rel="stylesheet" href="{% static 'mainapp/css/worldbook_create.css' %}">
 
+    <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
 </head>
 <body>
+{% include "partials/topbar.html" with active="worldbooks" %}
   <div class="container">
     <div class="header">
       <a class="back" href="{% url 'worldbook_list' %}">

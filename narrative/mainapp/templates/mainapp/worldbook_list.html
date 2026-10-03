@@ -8,8 +8,10 @@
   <title>World Books - Narrative AI</title>
   <link rel="stylesheet" href="{% static 'mainapp/css/worldbook_list.css' %}">
 
+    <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
 </head>
 <body>
+{% include "partials/topbar.html" with active="worldbooks" %}
   <div class="container">
     <div class="header">
       <div class="header-content">

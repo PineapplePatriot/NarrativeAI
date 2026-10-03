@@ -8,11 +8,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Connections - Narrative AI</title>
     <link rel="stylesheet" href="{% static 'users/css/api_config.css' %}">
+    <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
 </head>
 
 <body>
+{% include "partials/topbar.html" with active="connections" %}
     <div class="page">
-        <a class="back" href="{{ next_url|default:'/' }}">← Back</a>
+        {% if next_url %}<a class="back" href="{{ next_url }}">← Back to where you were</a>{% endif %}
         <h1>Connections</h1>
         <p class="subtitle">Where your AI requests go, and which model each feature uses.</p>
 

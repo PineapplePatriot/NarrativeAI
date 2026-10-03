@@ -1,0 +1,24 @@
+{% load static %}
+{# One top bar for every signed-in page. Include with: {% include "partials/topbar.html" with active="presets" %} #}
+<header class="na-topbar">
+  <a class="na-brand" href="{% url 'home' %}" title="Home">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.4 6.9L21 9.3l-5.3 4.3L17.6 21 12 17l-5.6 4 1.9-7.4L3 9.3l6.6-.4z"/></svg>
+    <span>Narrative AI</span>
+  </a>
+  <nav class="na-links" aria-label="Main">
+    <a href="{% url 'characters_list' %}" class="{% if active == 'characters' %}active{% endif %}">Characters</a>
+    <a href="{% url 'worldbook_list' %}" class="{% if active == 'worldbooks' %}active{% endif %}">Worldbooks</a>
+    <a href="{% url 'presets' %}" class="{% if active == 'presets' %}active{% endif %}">Presets</a>
+    <a href="{% url 'samplers' %}" class="{% if active == 'samplers' %}active{% endif %}">Samplers</a>
+    <a href="{% url 'users:api_config' %}" class="{% if active == 'connections' %}active{% endif %}">Connections</a>
+  </nav>
+  <div class="na-user">
+    <a href="{% url 'users:profile' %}" class="na-profile{% if active == 'profile' %} active{% endif %}" title="Your profile and persona">
+      {% if request.user.photo %}<img src="{{ request.user.photo.url }}" alt="">{% else %}<span class="na-initial">{{ request.user.username|first|upper }}</span>{% endif %}
+      <span class="na-username">{{ request.user.username }}</span>
+    </a>
+    <a href="{% url 'users:logout' %}" class="na-logout" title="Log out" aria-label="Log out">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.08 15.59L16.67 13H7v-2h9.67l-2.59-2.59L15.5 7l5 5-5 5-1.42-1.41zM19 3a2 2 0 012 2v4h-2V5H5v14h14v-4h2v4a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h14z"/></svg>
+    </a>
+  </div>
+</header>

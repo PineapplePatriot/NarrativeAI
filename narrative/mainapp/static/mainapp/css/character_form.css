@@ -171,3 +171,4 @@ input[type="file"] {
 .form-select {
     width: 100%;
 }
+body { padding: 0 16px 48px; }

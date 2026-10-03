@@ -4,14 +4,17 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Add Character</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if object %}Edit {{ object.name }}{% else %}New character{% endif %} - Narrative AI</title>
     <link rel="stylesheet" href="{% static 'mainapp/css/character_form.css' %}?v={% now 'U' %}">
     <link rel="stylesheet" href="{% static 'mainapp/css/add_character.css' %}?v={% now 'U' %}">
+    <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
 </head>
 <body>
+{% include "partials/topbar.html" with active="characters" %}
 <div class="form-container">
-    <a href="{% url 'characters_list' %}" class="back-btn">← Back to Characters List</a>
-    <h1>Add Character</h1>
+    {% if object %}<a href="{% url 'chat' object.slug %}" class="back-btn">← Back to the chat with {{ object.name }}</a>{% else %}<a href="{% url 'characters_list' %}" class="back-btn">← Back to characters</a>{% endif %}
+    <h1>{% if object %}Edit {{ object.name }}{% else %}New character{% endif %}</h1>
     <form method="POST" enctype="multipart/form-data">
         {% csrf_token %}
         <div class="form-error">{{ form.non_field_errors }}</div>
@@ -77,7 +80,7 @@
         {% if object %}
             <button type="submit" class="btn-primary">💾 Save</button>
         {% else %}
-            <button type="submit" class="btn-primary">Відправити</button>
+            <button type="submit" class="btn-primary">Create character</button>
         {% endif %}
     </form>
 </div>

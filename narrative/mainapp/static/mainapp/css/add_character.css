@@ -202,3 +202,17 @@ textarea {
     object-fit: cover;
     border-radius: 10px;
 }
+/* Readable title on the dark card; selects match the text inputs */
+h1 { color: #ddd6fe; }
+select { font-size: 0.95rem; }
+
+/* The shared top bar spans the page; the form keeps the spacing */
+*, *::before, *::after { box-sizing: border-box; }
+body { padding: 0 16px 48px; }
+body > .na-topbar { margin: 0 -16px 32px; }
+.file-grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+@media (max-width: 600px) {
+    .form-container { padding: 20px 16px; }
+    .file-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+}
+body { margin: 0; }

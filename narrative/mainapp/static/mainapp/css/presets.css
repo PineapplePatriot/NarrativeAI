@@ -288,3 +288,10 @@ button.legend:hover { color: var(--text-primary) }
 .ctx-bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--success), var(--warning)) }
 .gtokens { font-size: .74rem; color: var(--text-muted); font-weight: normal; white-space: nowrap; margin-left: auto }
 .gcard .group-head .meter { margin-left: 0 }
+
+/* Phones: your presets first, then the editor, the macro cheat sheet last */
+@media (max-width: 860px) {
+    .layout > aside { display: contents; }
+    .layout > main { order: 2; min-width: 0; }
+    .layout .macro-help { order: 3; }
+}

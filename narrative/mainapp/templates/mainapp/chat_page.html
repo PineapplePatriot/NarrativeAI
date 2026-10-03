@@ -8,76 +8,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Narrative AI - Chat with {{character.name}}</title>
     <link rel="stylesheet" href="{% static 'mainapp/css/chat_page.css' %}">
+    <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
 </head>
 
 <body>
-
-    <!-- header -->
-    <div class="top-panel">
-        <div class="container">
-            <div class="nav-grid" style="grid-auto-flow: column; gap: 10px; white-space: nowrap;">
-
-                <a class="nav-item" href="{% url 'worldbook_list' %}">
-                    <svg class="icon" viewBox="0 0 24 24">
-                        <path
-                            d="M12,2A2,2 0 0,1 14,4C14,4.74 13.6,5.39 13,5.73V7H14A7,7 0 0,1 21,14H22A1,1 0 0,1 23,15V18A1,1 0 0,1 22,19H21V20A2,2 0 0,1 19,22H5A2,2 0 0,1 3,20V19H2A1,1 0 0,1 1,18V15A1,1 0 0,1 2,14H3A7,7 0 0,1 10,7H11V5.73C10.4,5.39 10,4.74 10,4A2,2 0 0,1 12,2M7.5,13A2.5,2.5 0 0,0 5,15.5A2.5,2.5 0 0,0 7.5,18A2.5,2.5 0 0,0 10,15.5A2.5,2.5 0 0,0 7.5,13M16.5,13A2.5,2.5 0 0,0 14,15.5A2.5,2.5 0 0,0 16.5,18A2.5,2.5 0 0,0 19,15.5A2.5,2.5 0 0,0 16.5,13Z">
-                        </path>
-                    </svg>
-                    <div>
-                        <div class="nav-item-title">Worldbooks</div>
-                        <div class="nav-item-subtitle">World Description</div>
-                    </div>
-                </a>
-
-                <a class="nav-item" href="{% url 'users:api_config' %}">
-                    <svg class="icon" viewBox="0 0 24 24" style="width:24px; height:24px; margin-bottom:5px;">
-                        <path d="M4 4H20V20H4V4ZM6 6V18H18V6H6ZM9 9H15V11H9V9ZM9 13H15V15H9V13Z" />
-                    </svg>
-                    <div>
-                        <div class="nav-item-title">API Configuration</div>
-                        <div class="nav-item-subtitle">Keys & Models</div>
-                    </div>
-                </a>
-
-                <a class="nav-item" href="{% url 'presets' %}">
-                    <svg class="icon" viewBox="0 0 24 24">
-                        <path
-                            d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z">
-                        </path>
-                    </svg>
-                    <div>
-                        <div class="nav-item-title">Presets</div>
-                        <div class="nav-item-subtitle">Prompts & samplers</div>
-                    </div>
-                </a>
-
-                <a class="nav-item" href="{% url 'characters_list' %}">
-                    <svg class="icon" viewBox="0 0 24 24">
-                        <path
-                            d="M16,4C18.11,4 20.11,4.89 21.61,6.39C23.11,7.89 24,9.89 24,12A8,8 0 0,1 16,20H5A5,5 0 0,1 0,15A5,5 0 0,1 5,10C5.59,7.81 7.69,6 10.25,6C11.42,6 12.58,6.4 13.5,7.08C14.19,6.41 15.04,6 16,6M16,8A3,3 0 0,0 13,11H12V12A1,1 0 0,1 11,13A1,1 0 0,1 10,12V11A3,3 0 0,0 7,8A3,3 0 0,0 4,11A3,3 0 0,0 7,14H16A6,6 0 0,0 22,8A6,6 0 0,0 16,2Z">
-                        </path>
-                    </svg>
-                    <div>
-                        <div class="nav-item-title">Characters</div>
-                        <div class="nav-item-subtitle">Chatting</div>
-                    </div>
-                </a>
-
-                <div class="nav-item" onclick="window.location.href='/'">
-                    <svg class="icon" viewBox="0 0 24 24">
-                        <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
-                    </svg>
-                    <div>
-                        <div class="nav-item-title">Home</div>
-                        <div class="nav-item-subtitle">Home page</div>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-    </div>
-
-
+{% include "partials/topbar.html" with active="characters" %}
 
     <div class="chat-container">
         <audio id="bgMusicPlayer" loop></audio>
@@ -101,7 +36,7 @@
                             style="width:100%; height:100%; border-radius:50%; object-fit:cover;">
                     </div>
                     {% else %}
-                    <div class="character-avatar">E</div>
+                    <div class="character-avatar">{{ character.name|first|upper }}</div>
                     {% endif %}
                     <div class="character-details">
                         <h3>{{ character.name }}</h3>
@@ -110,9 +45,9 @@
                 </div>
                 <div class="header-actions">
                     <button class="header-btn" id="chatsBtn" onclick="Chats.toggle()" title="Your chats with {{ character.name }}">💬 Chats</button>
-                    <button class="header-btn" onclick="openMediaModal('bg')"><svg class="icon" viewBox="0 0 24 24"><path d="M21,19V5C21,3.89 20.1,3 19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19M8.5,13.5L11,16.51L14.5,12L19,18H5L8.5,13.5Z"/></svg> BG</button>
-                    <button class="header-btn" onclick="openMediaModal('music')"><svg class="icon" viewBox="0 0 24 24"><path d="M21,3V15.5A3.5,3.5 0 0,1 17.5,19A3.5,3.5 0 0,1 14,15.5A3.5,3.5 0 0,1 17.5,12C18.04,12 18.55,12.12 19,12.34V6.47L9,8.6V17.5A3.5,3.5 0 0,1 5.5,21A3.5,3.5 0 0,1 2,17.5A3.5,3.5 0 0,1 5.5,14C6.04,14 6.55,14.12 7,14.34V6L21,3Z"/></svg> Music</button>
-                    <a href="{% url 'character' character.slug %}" class="header-btn">
+                    <button class="header-btn" onclick="openMediaModal('bg')" title="Background"><svg class="icon" viewBox="0 0 24 24"><path d="M21,19V5C21,3.89 20.1,3 19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19M8.5,13.5L11,16.51L14.5,12L19,18H5L8.5,13.5Z"/></svg> BG</button>
+                    <button class="header-btn" onclick="openMediaModal('music')" title="Music"><svg class="icon" viewBox="0 0 24 24"><path d="M21,3V15.5A3.5,3.5 0 0,1 17.5,19A3.5,3.5 0 0,1 14,15.5A3.5,3.5 0 0,1 17.5,12C18.04,12 18.55,12.12 19,12.34V6.47L9,8.6V17.5A3.5,3.5 0 0,1 5.5,21A3.5,3.5 0 0,1 2,17.5A3.5,3.5 0 0,1 5.5,14C6.04,14 6.55,14.12 7,14.34V6L21,3Z"/></svg> Music</button>
+                    <a href="{% url 'character' character.slug %}" class="header-btn" title="Edit {{ character.name }}">
                         <svg class="icon" viewBox="0 0 24 24">
                             <path
                                 d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
@@ -131,7 +66,7 @@
                     {% if photo_neutral %}
                     <img src="{{ photo_neutral }}" alt="{{ character.name }}" class="message-avatar">
                     {% else %}
-                    <div class="message-avatar">E</div>
+                    <div class="message-avatar">{{ character.name|first|upper }}</div>
                     {% endif %}
                     {% else %}
                         {% if user_avatar %}
@@ -199,7 +134,7 @@
                     {% if photo_neutral %}
                         <img src="{{ photo_neutral }}" class="message-avatar" style="object-fit:cover;">
                     {% else %}
-                        <div class="message-avatar">E</div>
+                        <div class="message-avatar">{{ character.name|first|upper }}</div>
                     {% endif %}
                     <div class="message-content">
                         <div class="typing-indicator">
@@ -305,7 +240,7 @@
                     {% if photo_url %}
                         <img src="{{ photo_url }}" class="character-sprite">
                     {% else %}
-                        <div class="character-placeholder">1</div>
+                        <div class="character-placeholder"><span>{{ character.name|first|upper }}</span><small>No sprite yet. Add pictures for each emotion on the <a href="{% url 'character' character.slug %}">Edit page</a>.</small></div>
                     {% endif %}
                 </div>
 
@@ -315,7 +250,7 @@
                     {% if photo_second %}
                         <img src="{{ photo_second }}" class="character-sprite">
                     {% else %}
-                        <div class="character-placeholder">2</div>
+                        <div class="character-placeholder"><span>2</span><small>No sprite for the second character yet.</small></div>
                     {% endif %}
                 </div>
             </div>
@@ -416,6 +351,7 @@
         window.INIT_PHOTO_URL = "{{ photo_url|default:'' }}";
         window.INIT_PHOTO_SECOND = "{{ photo_second|default:'' }}";
         window.INIT_CHAR_COUNT = {{ char_count|default:1 }};
+        window.CHAR_INITIAL = "{{ character.name|first|upper|escapejs }}";
         window.USER_AVATAR = "{{ user_avatar|default:'' }}";
         window.STREAM_REPLIES = {{ stream_replies|yesno:"true,false" }};
     </script>

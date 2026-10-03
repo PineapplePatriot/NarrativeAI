@@ -1,17 +1,17 @@
 {% load static %}
 
 <!DOCTYPE html>
-<html lang="uk">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Профіль користувача</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - Narrative AI</title>
     <link rel="stylesheet" href="{% static 'users/css/profile.css' %}">
+    <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
 </head>
 <body>
+{% include "partials/topbar.html" with active="profile" %}
     <div class="form-container">
-
-        <!-- Home button зверху зліва -->
-        <a href="{% url 'home' %}" style="display:inline-block; margin-bottom: 20px;">← Home</a>
 
         <h1>{{ title }}</h1>
 
@@ -24,7 +24,8 @@
                 {% if user.photo %}
                     <img id="photo-preview" src="{{ user.photo.url }}" alt="Profile photo">
                 {% else %}
-                    <img id="photo-preview" src="{{ default_image }}" alt="Default photo">
+                    <img id="photo-preview" alt="Profile photo" hidden>
+                    <span class="photo-initial" id="photo-initial">{{ user.username|first|upper }}</span>
                 {% endif %}
 
                 <label for="{{ form.photo.id_for_label }}" class="change-photo-btn">Change photo</label>
@@ -50,7 +51,7 @@
         </form>
 
         <hr>
-        <p><a href="{% url 'users:password_change' %}">Change password</a></p>
+        <p class="profile-links"><a href="{% url 'users:password_change' %}">Change password</a></p>
     </div>
 
     <script src="{% static 'users/js/profile.js' %}"></script>

@@ -1,15 +1,17 @@
 {% load static %}
 
 <!DOCTYPE html>
-<html lang="uk">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Registration</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create an account - Narrative AI</title>
     <link rel="stylesheet" href="{% static 'users/css/register.css' %}">
 </head>
 <body>
+    <div class="auth-brand">✦ Narrative AI</div>
     <div class="form-container">
-        <h1>Registration</h1>
+        <h1>Create an account</h1>
 
         <form method="post">
             {% csrf_token %}
@@ -26,8 +28,9 @@
                 {% endif %}
             {% endfor %}
 
-            <button type="submit">Register</button>
+            <button type="submit">Create account</button>
         </form>
+        <p class="auth-switch">Already have an account? <a href="{% url 'users:login' %}">Log in</a></p>
     </div>
 </body>
 </html>

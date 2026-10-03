@@ -61,7 +61,8 @@ class ProfileUserForm(forms.ModelForm):
             'username': forms.TextInput(attrs={'class': 'form-input'}),
             'email': forms.EmailInput(attrs={'class': 'form-input'}),
             'persona_name': forms.TextInput(attrs={'class': 'form-input'}),
-            'persona_description': forms.TextInput(attrs={'class': 'form-input'}),
+            'persona_description': forms.Textarea(attrs={'class': 'form-input', 'rows': 4,
+                                                         'placeholder': 'Who you are in the story: look, personality, background.'}),
         }
 
 class UserPasswordChangeForm(PasswordChangeForm):

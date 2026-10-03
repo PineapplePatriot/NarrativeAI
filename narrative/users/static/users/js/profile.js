@@ -7,6 +7,9 @@ photoInput.addEventListener("change", function () {
         const reader = new FileReader();
         reader.onload = function (e) {
             photoPreview.src = e.target.result;
+            photoPreview.hidden = false;
+            const initial = document.getElementById("photo-initial");
+            if (initial) initial.remove();
         };
         reader.readAsDataURL(file);
     }

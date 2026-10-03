@@ -352,4 +352,4 @@ body {
     .character-actions {
         flex-direction: column;
     }
-}
+}.search-icon { z-index: 1; pointer-events: none; }

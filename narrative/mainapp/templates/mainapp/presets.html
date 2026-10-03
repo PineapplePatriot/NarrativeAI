@@ -8,10 +8,11 @@
   <title>Presets - Narrative AI</title>
   <link rel="stylesheet" href="{% static 'mainapp/css/tracker_setup.css' %}">
   <link rel="stylesheet" href="{% static 'mainapp/css/presets.css' %}">
+    <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
 </head>
 <body>
+{% include "partials/topbar.html" with active="presets" %}
 <div class="page wide">
-  <a class="back" href="javascript:history.back()">← Back</a>
   <h1>Presets</h1>
   <p class="subtitle">
     A preset is the recipe for every request to the main chat model: which prompt blocks are sent, in what order,
