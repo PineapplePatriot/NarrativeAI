@@ -24,7 +24,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
-from . import ai_client, trackers
+from . import ai_client, samplers, trackers
 from .utils import build_ai_request, narrate_text_backend, get_elevenlabs_key
 from .lorebook import (
     normalize_book, load_worldbook, save_worldbook, activate, format_for_prompt, to_sillytavern,
@@ -326,7 +326,11 @@ def chat(request, slug):
 
             try:
                 # 4. Call API
-                new_chunk = ai_client.complete(request.user, "chat", api_messages, max_tokens=500)
+                sampler_values = samplers.for_user(request.user)
+                _, chat_model = ai_client.resolve(request.user, "chat")
+                sampler_params, _ = samplers.to_api_params(sampler_values, chat_model)
+                sampler_params.setdefault("max_tokens", 500)  # a continuation is short unless set
+                new_chunk = ai_client.complete(request.user, "chat", api_messages, **sampler_params)
 
                 # 5. Combine and Save
                 full_text = last_text + " " + new_chunk
@@ -369,6 +373,7 @@ def chat(request, slug):
                     messages.append(("user", datetime.now().strftime("%H:%M"), user_message, "neutral", 1))
 
                 lore_report = None
+                context_dropped = 0
 
                 # --- Prepare history for API ---
                 api_messages = []
@@ -417,12 +422,6 @@ def chat(request, slug):
 
                     # --- Формуємо структуровані system messages ---
                     system_messages = []
-
-                    if "Core" in prompt and prompt["Core"]:
-                        system_messages.append({
-                            "role": "system",
-                            "content": f"[CORE SETTINGS]\n{json.dumps(prompt['Core'], indent=2, ensure_ascii=False)}"
-                        })
 
                     if "SystemPrompts" in prompt and prompt["SystemPrompts"]:
                         system_messages.append({
@@ -485,10 +484,13 @@ def chat(request, slug):
                                 "content": f"[NARRATIVE INSTRUCTIONS]\n{formatted_settings}"
                             })
 
-                    # System messages first, then the chat turns (the last one is the user's)
-                    # TODO(presets): Core samplers are still passed as-is until the preset rework
-                    reply = ai_client.complete(request.user, "chat", system_messages + api_messages,
-                                               **prompt.get("Core", {}))
+                    # System messages first, then the chat turns (the last one is the user's),
+                    # trimmed to the context size; samplers go as real API parameters
+                    sampler_values = samplers.for_user(request.user)
+                    _, chat_model = ai_client.resolve(request.user, "chat")
+                    sampler_params, _ = samplers.to_api_params(sampler_values, chat_model)
+                    chat_turns, context_dropped = samplers.trim_history(system_messages, api_messages, sampler_values)
+                    reply = ai_client.complete(request.user, "chat", system_messages + chat_turns, **sampler_params)
 
                 except ai_client.AIError as e:
                     # Keep the user's message so they can press Regenerate
@@ -605,6 +607,7 @@ def chat(request, slug):
                     "lore": lore_report,
                     "summary_due": summary_due,
                     "trackers_due": trackers_due,
+                    "context_dropped": context_dropped,
                 })
 
     # --- GET request ---
@@ -689,6 +692,34 @@ def _tracker_page_data(user, character, raw_state):
         "schedule": {"mode": task.mode, "interval": task.interval},
         "setup_url": reverse("tracker_setup", args=[character.slug]),
     }
+
+
+@login_required
+def sampler_settings(request):
+    """Samplers for the main chat: each one can be switched off (= model default)."""
+    settings_obj, _ = ChatSettings.objects.get_or_create(author=request.user)
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body.decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            return JsonResponse({"error": "Invalid request."}, status=400)
+        settings_obj.samplers = samplers.normalize(data)
+        settings_obj.save(update_fields=["samplers"])
+        return JsonResponse({"status": "ok", "samplers": settings_obj.samplers})
+
+    try:
+        _, model = ai_client.resolve(request.user, "chat")
+    except ai_client.NoConnection:
+        model = ""
+    return render(request, "mainapp/samplers.html", {
+        "sampler_data": {
+            "specs": samplers.SAMPLERS,
+            "values": samplers.normalize(settings_obj.samplers),
+            "model": model,
+            "locked": sorted(samplers.locked_for_model(model)),
+            "all_locked": sorted(samplers.SAMPLING_LOCKED),
+        },
+    })
 
 
 @login_required

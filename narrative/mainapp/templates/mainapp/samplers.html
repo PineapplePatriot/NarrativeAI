@@ -1,0 +1,36 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Samplers - Narrative AI</title>
+  <link rel="stylesheet" href="{% static 'mainapp/css/tracker_setup.css' %}">
+  <link rel="stylesheet" href="{% static 'mainapp/css/samplers.css' %}">
+</head>
+<body>
+<div class="page">
+  <a class="back" href="javascript:history.back()">← Back</a>
+  <h1>Samplers</h1>
+  <p class="subtitle">
+    Fine-tuning for how the main chat model writes. Switched-off samplers are not sent at all, so the model
+    uses its own defaults. That is the safe choice when unsure.
+    The model itself is chosen on the <a href="{% url 'users:api_config' %}">Connections page</a>.
+  </p>
+
+  <div class="banner" id="modelBanner"></div>
+
+  <section class="card" id="samplers"></section>
+
+  <div class="save-bar">
+    <span class="status" id="saveStatus"></span>
+    <button type="button" id="saveBtn">Save</button>
+  </div>
+</div>
+
+{{ sampler_data|json_script:"sampler-data" }}
+<script>const SAVE_URL = "{% url 'samplers' %}";</script>
+<script src="{% static 'mainapp/js/samplers.js' %}"></script>
+</body>
+</html>

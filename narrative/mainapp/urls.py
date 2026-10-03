@@ -9,6 +9,7 @@ path('character_edit/<slug:slug>', views.UpdateCharacter.as_view(), name="charac
 path('chat/<slug:slug>', views.chat, name="chat"),
 path('characters_list/', views.CharactersList.as_view(), name="characters_list"),
 path('chat_settings/', views.chat_settings, name="chat_settings"),
+path('samplers/', views.sampler_settings, name="samplers"),
 path('trackers/<slug:slug>', views.tracker_setup, name="tracker_setup"),
 path('chat_settings2/', views.chat_settings2, name="chat_settings2"),
 path('worldbook_create/', views.worldbook_create, name='worldbook_create'),

@@ -123,6 +123,8 @@ from django.contrib.auth import get_user_model
 
 class ChatSettings(models.Model):
     json_file = models.FileField(upload_to='settings_json/', blank=True, null=True)
+    # Sampler on/off switches and values for the main chat (see mainapp/samplers.py)
+    samplers = models.JSONField(default=dict, blank=True)
     author = models.OneToOneField(
         get_user_model(),
         on_delete=models.SET_NULL,

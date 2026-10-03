@@ -25,7 +25,8 @@ def build_ai_request(user, character: Character, chat_settings: ChatSettings, wo
             settings_data = {}
 
     # Витягуємо ядро (core) і системні промпти
-    core_keys = {"max_tokens", "seed", "sampling"}
+    # Old sampler/behavior settings are not prompt text (samplers now live in ChatSettings.samplers)
+    core_keys = {"max_tokens", "seed", "sampling", "behaviors"}
     core_data = {k: settings_data[k] for k in core_keys if k in settings_data}
     system_prompts = {k: v for k, v in settings_data.items() if k not in core_keys}
 

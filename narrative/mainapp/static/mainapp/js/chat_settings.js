@@ -263,25 +263,7 @@ function togglePrompt(id) {
 
 // Collect settings from UI
 function collectSettings() {
-  settings.sampling.temperature = parseFloat(document.getElementById('temperature').value);
-  settings.sampling.top_p = parseFloat(document.getElementById('top_p').value);
-  settings.sampling.top_k = parseInt(document.getElementById('top_k').value);
-  settings.sampling.min_p = parseFloat(document.getElementById('min_p').value);
-  settings.sampling.frequency_penalty = parseFloat(document.getElementById('frequency_penalty').value);
-  settings.sampling.presence_penalty = parseFloat(document.getElementById('presence_penalty').value);
-  settings.sampling.repetition_penalty = parseFloat(document.getElementById('repetition_penalty').value);
-  settings.sampling.tfs = parseFloat(document.getElementById('tfs').value);
-  settings.sampling.context_size = parseInt(document.getElementById('context_size').value);
-  settings.sampling.max_tokens = parseInt(document.getElementById('max_tokens').value);
-  settings.sampling.stop_sequences = document.getElementById('stop_sequences').value;
-  settings.sampling.seed = document.getElementById('seed').value || null;
 
-  settings.behaviors.streaming = document.getElementById('enable_streaming').checked;
-  settings.behaviors.continue = document.getElementById('enable_continue').checked;
-  settings.behaviors.impersonate = document.getElementById('enable_impersonate').checked;
-  settings.behaviors.add_bos = document.getElementById('add_bos_token').checked;
-  settings.behaviors.ban_eos = document.getElementById('ban_eos_token').checked;
-  settings.behaviors.skip_special = document.getElementById('skip_special_tokens').checked;
 
   settings.nsfw.is_18 = document.getElementById('is_18').checked;
   settings.nsfw.enabled = document.getElementById('nsfw_enabled').checked;
@@ -310,25 +292,7 @@ function updateJSON() {
 
 // Apply settings to UI
 function applySettingsToUI(skipMarkAsSaved = false) {
-  document.getElementById('temperature').value = settings.sampling.temperature;
-  document.getElementById('top_p').value = settings.sampling.top_p;
-  document.getElementById('top_k').value = settings.sampling.top_k;
-  document.getElementById('min_p').value = settings.sampling.min_p;
-  document.getElementById('frequency_penalty').value = settings.sampling.frequency_penalty;
-  document.getElementById('presence_penalty').value = settings.sampling.presence_penalty;
-  document.getElementById('repetition_penalty').value = settings.sampling.repetition_penalty;
-  document.getElementById('tfs').value = settings.sampling.tfs;
-  document.getElementById('context_size').value = settings.sampling.context_size;
-  document.getElementById('max_tokens').value = settings.sampling.max_tokens;
-  document.getElementById('stop_sequences').value = settings.sampling.stop_sequences || '';
-  document.getElementById('seed').value = settings.sampling.seed || '';
 
-  document.getElementById('enable_streaming').checked = settings.behaviors.streaming;
-  document.getElementById('enable_continue').checked = settings.behaviors.continue;
-  document.getElementById('enable_impersonate').checked = settings.behaviors.impersonate;
-  document.getElementById('add_bos_token').checked = settings.behaviors.add_bos;
-  document.getElementById('ban_eos_token').checked = settings.behaviors.ban_eos;
-  document.getElementById('skip_special_tokens').checked = settings.behaviors.skip_special;
 
   document.getElementById('is_18').checked = settings.nsfw.is_18;
   document.getElementById('nsfw_enabled').checked = settings.nsfw.enabled;
@@ -344,37 +308,16 @@ function applySettingsToUI(skipMarkAsSaved = false) {
   initNSFWStyles();
   renderCustomNSFW();
   renderCustomPrompts();
-  updateRangeValues();
   toggleNSFWAccess();
 
   // Update JSON without marking as changed
   collectSettings();
   document.getElementById('jsonOutput').textContent = JSON.stringify(settings, null, 2);
 
-  updateRangeValues();
 
   if (!skipMarkAsSaved) {
     markAsSaved();
   }
-}
-
-// Update range display values
-function updateRangeValues() {
-  const ranges = [
-    { id: 'temperature', display: 'tempValue', decimals: 2 },
-    { id: 'top_p', display: 'topPValue', decimals: 2 },
-    { id: 'top_k', display: 'topKValue', decimals: 0 },
-    { id: 'min_p', display: 'minPValue', decimals: 2 },
-    { id: 'frequency_penalty', display: 'freqPenValue', decimals: 2 },
-    { id: 'presence_penalty', display: 'presPenValue', decimals: 2 },
-    { id: 'repetition_penalty', display: 'repPenValue', decimals: 2 },
-    { id: 'tfs', display: 'tfsValue', decimals: 2 }
-  ];
-
-  ranges.forEach(r => {
-    const val = document.getElementById(r.id).value;
-    document.getElementById(r.display).textContent = parseFloat(val).toFixed(r.decimals);
-  });
 }
 
 // Toggle NSFW access
@@ -479,24 +422,8 @@ function showStatus(message, type) {
   setTimeout(() => statusEl.classList.remove('show'), 3000);
 }
 
-// Event listeners for ranges
-const rangeInputs = ['temperature', 'top_p', 'top_k', 'min_p', 'frequency_penalty',
-  'presence_penalty', 'repetition_penalty', 'tfs'];
-rangeInputs.forEach(id => {
-  document.getElementById(id).addEventListener('input', () => {
-    updateRangeValues();
-    updateJSON();
-  });
-});
-
-// Event listeners for other inputs
-['context_size', 'max_tokens', 'stop_sequences', 'seed'].forEach(id => {
-  document.getElementById(id).addEventListener('input', updateJSON);
-});
-
 // Checkboxes
-['enable_streaming', 'enable_continue', 'enable_impersonate', 'add_bos_token',
-  'ban_eos_token', 'skip_special_tokens', 'nsfw_enabled'].forEach(id => {
+['nsfw_enabled'].forEach(id => {
     document.getElementById(id).addEventListener('change', updateJSON);
   });
 

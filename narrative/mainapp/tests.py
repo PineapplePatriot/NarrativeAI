@@ -637,3 +637,63 @@ class TrackerChatTests(ChatPromptTests):
         self.assertTrue(config["trackers"]["stats"]["on"])
         self.assertFalse(config["trackers"]["stats"]["prompt"])
         self.assertEqual((config["layout"]["side"], config["layout"]["hud"]), ("left", False))
+
+
+class SamplerTests(SimpleTestCase):
+    def test_everything_off_by_default_and_clamped(self):
+        from mainapp.samplers import normalize, to_api_params
+        values = normalize({"temperature": {"on": True, "value": 9}, "top_k": {"value": "abc"}})
+        self.assertEqual(values["temperature"], {"on": True, "value": 2})
+        self.assertEqual(values["top_k"], {"on": False, "value": 0})
+        self.assertEqual(to_api_params(normalize({}), "any/model"), ({}, []))
+
+    def test_params_and_model_guard(self):
+        from mainapp.samplers import normalize, to_api_params
+        values = normalize({
+            "temperature": {"on": True, "value": 0.7}, "top_p": {"on": True, "value": 0.9},
+            "max_tokens": {"on": True, "value": 4000}, "context_size": {"on": True, "value": 8000},
+            "reasoning_effort": {"on": True, "value": "high"}, "stop": {"on": True, "value": "\\nUser:, ###"},
+        })
+        params, skipped = to_api_params(values, "mistralai/mistral-large")
+        self.assertEqual(params, {"temperature": 0.7, "top_p": 0.9, "max_tokens": 4000,
+                                  "reasoning": {"effort": "high"}, "stop": ["\nUser:", "###"]})
+        self.assertEqual(skipped, [])
+        for model in ("anthropic/claude-opus-5.5", "anthropic/claude-opus-4.7", "anthropic/claude-sonnet-5.5",
+                      "anthropic/claude-fable-5.1"):
+            params, skipped = to_api_params(values, model)
+            self.assertNotIn("temperature", params, model)
+            self.assertEqual(sorted(skipped), ["temperature", "top_p"])
+        for model in ("anthropic/claude-sonnet-4.6", "anthropic/claude-haiku-4.5", "anthropic/claude-opus-4.6"):
+            self.assertIn("temperature", to_api_params(values, model)[0], model)
+
+    def test_trim_history_keeps_newest_and_starts_with_user(self):
+        from mainapp.samplers import normalize, trim_history
+        system = [{"role": "system", "content": "s" * 300}]
+        chat = [{"role": "user" if i % 2 == 0 else "assistant", "content": f"{i} " + "x" * 297} for i in range(10)]
+        values = normalize({"context_size": {"on": True, "value": 1024}})
+        kept, dropped = trim_history(system, chat, values)
+        self.assertEqual(kept[-1], chat[-1])
+        self.assertEqual(kept[0]["role"], "user")
+        self.assertEqual(dropped, len(chat) - len(kept))
+        self.assertTrue(0 < len(kept) < len(chat))
+        # Off = nothing trimmed
+        self.assertEqual(trim_history(system, chat, normalize({}))[1], 0)
+
+
+class SamplerChatTests(ChatPromptTests):
+    def test_samplers_sent_as_parameters_not_prompt_text(self):
+        from mainapp.models import ChatSettings
+        ChatSettings.objects.create(author=self.user, samplers={
+            "temperature": {"on": True, "value": 0.6}, "max_tokens": {"on": True, "value": 1234}})
+        self.post({"action": "chat", "message": "Hello"})
+        payload = self.sent[-1]
+        self.assertEqual((payload["temperature"], payload["max_tokens"]), (0.6, 1234))
+        self.assertNotIn("sampling", payload)
+        self.assertFalse(any("[CORE SETTINGS]" in m["content"] for m in payload["messages"]))
+
+    def test_sampler_page_saves(self):
+        url = reverse("samplers")
+        self.assertContains(self.client.get(url), "test/model")
+        resp = self.client.post(url, json.dumps({"verbosity": {"on": True, "value": "low"}}),
+                                content_type="application/json")
+        self.assertEqual(resp.json()["samplers"]["verbosity"], {"on": True, "value": "low"})
