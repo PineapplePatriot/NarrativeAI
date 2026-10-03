@@ -1,6 +1,6 @@
 # Bulba: build plan (draft for discussion)
 
-Status: proposal, 3 October 2026. Nothing here is built yet. Research lives in `research/`
+Status: agreed direction, 3 October 2026 (decisions below). Nothing here is built yet. Research lives in `research/`
 (start with `research/research-summary.md`). This plan turns that research into pieces of this app.
 
 ## What Bulba is
@@ -39,10 +39,11 @@ Kept in the repo under `narrative/mainapp/bulba/` so they are versioned and revi
 - **Model profiles**, one file per model (`models/claude-opus-5-5.json`, `models/mimo-v2-6-pro.json`):
   - *capabilities*: exact IDs per provider, which settings are accepted/fixed/ignored, reasoning
     controls, context/output limits, sources and the date they were checked.
-  - *temperament notes*: how the model tends to write ("Opus: banter, emotional range";
-    "Kimi: goes off the rails"), each labelled with where it comes from (your first-hand use,
-    a community report, official docs) and its status (hypothesis until tested). The research
-    does not cover this; it says such claims need tying to named sources, so we record them that way.
+  - *temperament notes*: how the model tends to write, from `research/05-model-styles.md`
+    (community reports with dates and links) and your first-hand notes (Opus 5.5: banter and
+    emotional development; Fable 5.1 calmer with dark fiction in your setup), each labelled with its
+    source and kept as a hypothesis until tested. Includes the model's *onboarding probes* (for MiMo:
+    "Should affection make them easier to deal with, or should some of their difficult habits remain?").
   - *starters*: which preset implements each experience on this model (see 3).
 - **Interview guide** (how to ask): condensed from `research/03-taste-elicitation.md` and
   `research/agent-instructions.md`: one question at a time, plain language, A/B pairs that change one
@@ -77,9 +78,14 @@ wholesale. You and I reword them after the MVP.
 
 ### 4. The agent itself
 
-- **Its own task on the Connections page**, locked to the *chat* model: the model you will roleplay
-  with writes your preset and the samples. No silent fallback to a cheaper model; if the call fails,
-  the work is kept and you can retry. (A cheap model may still do bookkeeping, clearly labelled.)
+- **Two models, two jobs.** Bulba itself (the conversation, the questions, writing and editing the
+  preset) runs on a model *we* pick and keep fixed. **Every writing sample** (A/B pairs, drafts, the
+  final test) always comes from the model the user will chat with, through their own connection.
+  No silent fallback for samples; if a call fails, the work is kept and you can retry. This differs
+  from the research ("the selected model writes the setup") on purpose: it keeps Bulba consistent and
+  cheaper, while the user still only ever judges real output from their own model.
+- **All traffic through OpenRouter** (`xiaomi/mimo-v2.6-pro`, `anthropic/claude-opus-5-5`). The direct
+  Xiaomi API is not recommended by the community for RP.
 - **Tools** (function calling, which OpenRouter supports for both models). Bulba never sees API keys.
   - Read: presets, the active preset, model profile, characters, persona, lorebooks, connection
     settings (without keys), the last messages of a chat (only when you point it at one).
@@ -91,8 +97,9 @@ wholesale. You and I reword them after the MVP.
 - **Memory per user**: the conversation, the current stage, preference records (your wording, what
   Bulba thinks it means, scope, firm/flexible, tentative/confirmed, evidence) and draft versions.
   You can see, edit and delete every preference.
-- **Costs visible**: guided setup with Opus generates many samples. Show a running estimate and let
-  you set a limit per session.
+- **Costs visible**: show a running total per session, with a default **$5 limit** (adjustable)
+  covering guided sessions on expensive models (Opus, Fable).
+- **Voice**: friendly and plain, a little sarcastic, never trying too hard.
 
 ### 5. The Bulba page and panel
 
@@ -119,13 +126,11 @@ that didn't transfer. Never any keys.
 6. Handover: fresh test with the finished setup, apply, export.
 7. A small pilot with you as judge (the research's protocol, scaled down), then more models.
 
-## Decisions I need from you
+## Decisions (3 October 2026)
 
-1. **Bulba's voice.** Friendly and plain, as the research says. Any character on top of that?
-   (A name like Bulba suggests something playful.)
-2. **Apply or ask?** I suggest Bulba always proposes and you press Apply. Fine, or should small
-   changes apply directly?
-3. **Your model notes.** Tell me what you have seen from each model (Opus, MiMo, Kimi and others)
-   in a few lines each, and I'll record them as first-hand notes in the profiles.
-4. **Provider.** OpenRouter for both, or MiMo directly (its own API)?
-5. **Spending limit.** A default cap per guided session (for example $2), adjustable?
+1. **Voice:** a little sarcastic, mostly just not trying too hard.
+2. **Apply:** Bulba proposes, you press Apply (a safeguard), with Undo.
+3. **Model notes:** `research/05-model-styles.md` plus your first-hand notes above.
+4. **Provider:** OpenRouter only.
+5. **Spending limit:** $5 per guided session by default, adjustable.
+6. **Models:** Bulba runs on a model we pick; writing samples always come from the user's chat model.
