@@ -160,3 +160,20 @@ class CharacterTemplate(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class Preset(models.Model):
+    """A prompt preset (blocks, samplers, utility prompts). One per user is active. See mainapp/presets.py."""
+    user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name="presets")
+    name = models.CharField(max_length=200)
+    data = models.JSONField(default=dict, blank=True)
+    is_active = models.BooleanField(default=False)
+    time_create = models.DateTimeField(auto_now_add=True)
+    time_update = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["name"]
+        constraints = [models.UniqueConstraint(fields=["user", "name"], name="unique_preset_name_per_user")]
+
+    def __str__(self):
+        return self.name

@@ -138,13 +138,10 @@ def trim_history(system_messages, chat_messages, samplers):
         kept.append(msg)
         used += cost
     kept.reverse()
-    # Chat must start with a user turn for some providers
-    while len(kept) > 1 and kept[0]["role"] == "assistant":
-        kept.pop(0)
     return kept, len(chat_messages) - len(kept)
 
 
 def for_user(user):
-    from mainapp.models import ChatSettings
-    settings_obj = ChatSettings.objects.filter(author=user).only("samplers").first()
-    return normalize(settings_obj.samplers if settings_obj else {})
+    """Samplers of the user's active preset."""
+    from mainapp import presets
+    return normalize(presets.get_active(user).data.get("samplers"))

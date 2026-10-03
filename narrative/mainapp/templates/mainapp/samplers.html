@@ -14,8 +14,9 @@
   <a class="back" href="javascript:history.back()">← Back</a>
   <h1>Samplers</h1>
   <p class="subtitle">
-    Fine-tuning for how the main chat model writes. Switched-off samplers are not sent at all, so the model
-    uses its own defaults. That is the safe choice when unsure.
+    Fine-tuning for how the main chat model writes, saved in your active preset
+    <b>{{ preset_name }}</b> (<a href="{% url 'presets' %}">switch presets</a>).
+    Switched-off samplers are not sent at all, so the model uses its own defaults. That is the safe choice when unsure.
     The model itself is chosen on the <a href="{% url 'users:api_config' %}">Connections page</a>.
   </p>
 

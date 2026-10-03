@@ -24,7 +24,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
-from . import ai_client, samplers, trackers
+from . import ai_client, presets, samplers, trackers
 from .utils import build_ai_request, narrate_text_backend, get_elevenlabs_key
 from .lorebook import (
     normalize_book, load_worldbook, save_worldbook, activate, format_for_prompt, to_sillytavern,
@@ -420,77 +420,13 @@ def chat(request, slug):
                     lore_report = prompt.get("LoreReport")
 
 
-                    # --- Формуємо структуровані system messages ---
-                    system_messages = []
-
-                    if "SystemPrompts" in prompt and prompt["SystemPrompts"]:
-                        system_messages.append({
-                            "role": "system",
-                            "content": f"[SYSTEM PROMPTS]\n{json.dumps(prompt['SystemPrompts'], indent=2, ensure_ascii=False)}"
-                        })
-
-                    if "CharacterDescription" in prompt and prompt["CharacterDescription"]:
-                        system_messages.append({
-                            "role": "system",
-                            "content": f"[CHARACTER DESCRIPTION]\n{json.dumps(prompt['CharacterDescription'], indent=2, ensure_ascii=False)}"
-                        })
-
-                    if "UserPersona" in prompt and prompt["UserPersona"]:
-                        system_messages.append({
-                            "role": "system",
-                            "content": f"[USER PERSONA]\n{json.dumps(prompt['UserPersona'], indent=2, ensure_ascii=False)}"
-                        })
-
-                    # Chat history and the last user message are sent once, as real
-                    # user/assistant turns (api_messages), not repeated here as JSON.
-
-                    user_persona_txt = ""
-                    if "UserPersona" in prompt and prompt["UserPersona"]:
-                         user_persona_txt = prompt["UserPersona"].get("persona_description", "") or ""
-
-                    user_display_name = request.user.name if request.user.name else request.user.username
-
-                    replacements = {
-                        "{{char}}": character.name or "",
-                        "{{user}}": user_display_name,
-                        "{{persona}}": user_persona_txt,
-                        "{{description}}": character.description or "",
-                        "{{creator_notes}}": character.creator_notes or "",
-                        "{{scenario}}": character.scenario or "",
-                    }
-
-                    def apply_macros(text):
-                        if not text: return ""
-                        for key, val in replacements.items():
-                            text = text.replace(key, str(val))
-                        return text
-
-                    if "PromptingGroundSettings" in prompt and prompt["PromptingGroundSettings"]:
-                        pg_settings = prompt["PromptingGroundSettings"]
-                        active_rules = []
-
-                        for category_name, rules in pg_settings.items():
-                            for key, rule_data in rules.items():
-                                name = rule_data.get("name", key)
-                                content = rule_data.get("content", "")
-                                processed_content = apply_macros(content)
-
-                                active_rules.append(f"### {name}\n{processed_content}")
-
-                        if active_rules:
-                            formatted_settings = "\n\n".join(active_rules)
-                            system_messages.append({
-                                "role": "system",
-                                "content": f"[NARRATIVE INSTRUCTIONS]\n{formatted_settings}"
-                            })
-
-                    # System messages first, then the chat turns (the last one is the user's),
-                    # trimmed to the context size; samplers go as real API parameters
-                    sampler_values = samplers.for_user(request.user)
+                    # --- Build the request from the active preset ---
+                    preset = presets.normalize(presets.get_active(request.user).data)
                     _, chat_model = ai_client.resolve(request.user, "chat")
-                    sampler_params, _ = samplers.to_api_params(sampler_values, chat_model)
-                    chat_turns, context_dropped = samplers.trim_history(system_messages, api_messages, sampler_values)
-                    reply = ai_client.complete(request.user, "chat", system_messages + chat_turns, **sampler_params)
+                    built = presets.assemble(preset, prompt_slots(request.user, character, prompt),
+                                             api_messages, prompt_names(request.user, character), chat_model)
+                    context_dropped = built["dropped"]
+                    reply = ai_client.complete(request.user, "chat", built["messages"], **built["params"])
 
                 except ai_client.AIError as e:
                     # Keep the user's message so they can press Regenerate
@@ -680,6 +616,28 @@ def chat(request, slug):
     return render(request, "mainapp/chat_page.html", context)
 
 
+def prompt_names(user, character):
+    """{{char}} and {{user}}: the persona name wins over the account name."""
+    return {"char": character.name or "Character",
+            "user": getattr(user, "persona_name", None) or user.name or user.username}
+
+
+def prompt_slots(user, character, prompt):
+    """Text for the preset's slots (markers), from the character, persona and build_ai_request."""
+    extra = prompt.get("SystemPrompts", {})
+    return {
+        "char_description": character.description or "",
+        "char_personality": character.creator_notes or "",
+        "scenario": character.scenario or "",
+        "persona": getattr(user, "persona_description", None) or "",
+        "lore": extra.get("WorldInfo", ""),
+        "summary": extra.get("StorySummary", ""),
+        "trackers": extra.get("StoryState", ""),
+        "world_context": extra.get("WorldContext", ""),
+        "director_note": extra.get("DirectorNote", ""),
+    }
+
+
 def _tracker_page_data(user, character, raw_state):
     """Everything the chat page's tracker HUD and panel need."""
     config = trackers.normalize_config(character.tracker_config)
@@ -694,27 +652,152 @@ def _tracker_page_data(user, character, raw_state):
     }
 
 
+def _preset_summary(obj):
+    data = presets.normalize(obj.data)
+    return {"id": obj.id, "name": obj.name, "active": obj.is_active,
+            "blocks": sum(1 for b in data["blocks"] if b["kind"] != "header"),
+            "enabled": sum(1 for b in data["blocks"] if b["enabled"] and b["kind"] != "header"),
+            "updated": obj.time_update.strftime("%Y-%m-%d %H:%M")}
+
+
+def _preset_preview(user, preset, character):
+    """What the active chat with `character` would send right now with `preset`."""
+    chat_settings = ChatSettings.objects.filter(author=user).first()
+    chat_file = {}
+    if character.chat_log_file and os.path.exists(character.chat_log_file.path):
+        try:
+            with open(character.chat_log_file.path, "r", encoding="utf-8") as f:
+                loaded = json.load(f)
+                chat_file = loaded if isinstance(loaded, dict) else {"messages": loaded}
+        except (OSError, ValueError):
+            chat_file = {}
+    worldbook_slug = character.worldbook.slug if character.worldbook and character.worldbook.author == user else None
+    prompt = build_ai_request(user, character, chat_settings, worldbook_slug=worldbook_slug,
+                              persistent_guides=chat_file.get("context_guides") or {},
+                              summary=chat_file.get("summary") or "")
+    history = [{"role": "assistant" if m[0] == "assistant" else "user", "content": m[2]}
+               for m in chat_file.get("messages", []) if isinstance(m, (list, tuple)) and len(m) > 2]
+    history.append({"role": "user", "content": "(your next message)"})
+    try:
+        _, model = ai_client.resolve(user, "chat")
+    except ai_client.NoConnection:
+        model = ""
+    built = presets.assemble(preset, prompt_slots(user, character, prompt), history,
+                             prompt_names(user, character), model)
+    return {"messages": built["preview"], "params": built["params"], "notes": built["notes"],
+            "variables": built["variables"], "model": model}
+
+
 @login_required
-def sampler_settings(request):
-    """Samplers for the main chat: each one can be switched off (= model default)."""
-    settings_obj, _ = ChatSettings.objects.get_or_create(author=request.user)
+def preset_list(request):
+    from .models import Preset
+    presets.get_active(request.user)  # makes sure the default exists
+
     if request.method == "POST":
         try:
             data = json.loads(request.body.decode("utf-8"))
         except (ValueError, UnicodeDecodeError):
             return JsonResponse({"error": "Invalid request."}, status=400)
-        settings_obj.samplers = samplers.normalize(data)
-        settings_obj.save(update_fields=["samplers"])
-        return JsonResponse({"status": "ok", "samplers": settings_obj.samplers})
+        action = data.get("action")
+        obj = Preset.objects.filter(user=request.user, id=data.get("id")).first()
+
+        if action == "import":
+            try:
+                preset, suggested = presets.from_any(data.get("data"))
+            except (ValueError, TypeError, AttributeError) as e:
+                return JsonResponse({"error": str(e)}, status=400)
+            obj = Preset.objects.create(user=request.user, data=preset,
+                                        name=presets.unique_name(request.user, data.get("name") or suggested))
+        elif action == "new_default":
+            obj = Preset.objects.create(user=request.user, data=presets.build_default(request.user),
+                                        name=presets.unique_name(request.user, presets.DEFAULT_NAME))
+        elif obj is None:
+            return JsonResponse({"error": "Preset not found."}, status=404)
+        elif action == "activate":
+            presets.activate(obj)
+        elif action == "rename":
+            obj.name = presets.unique_name(request.user, data.get("name"), exclude_id=obj.id)
+            obj.save(update_fields=["name"])
+        elif action == "duplicate":
+            obj = Preset.objects.create(user=request.user, data=obj.data,
+                                        name=presets.unique_name(request.user, f"{obj.name} copy"))
+        elif action == "delete":
+            if Preset.objects.filter(user=request.user).count() <= 1:
+                return JsonResponse({"error": "You need at least one preset."}, status=400)
+            was_active = obj.is_active
+            obj.delete()
+            if was_active:
+                presets.activate(Preset.objects.filter(user=request.user).first())
+            obj = presets.get_active(request.user)
+        elif action == "save":  # block on/off switches and options
+            preset = presets.normalize(obj.data)
+            enabled = data.get("enabled") if isinstance(data.get("enabled"), dict) else {}
+            for block in preset["blocks"]:
+                if block["id"] in enabled:
+                    block["enabled"] = bool(enabled[block["id"]])
+            if data.get("post_processing") in presets.POST_PROCESSING:
+                preset["options"]["post_processing"] = data["post_processing"]
+            obj.data = preset
+            obj.save(update_fields=["data", "time_update"])
+        elif action == "preview":
+            character = Character.objects.filter(author=request.user, slug=data.get("character")).first()
+            if character is None:
+                return JsonResponse({"error": "Pick one of your characters to preview with."}, status=400)
+            return JsonResponse(_preset_preview(request.user, presets.normalize(obj.data), character))
+        else:
+            return JsonResponse({"error": "Unknown action."}, status=400)
+
+        return JsonResponse({"status": "ok", "selected": obj.id,
+                             "presets": [_preset_summary(p) for p in Preset.objects.filter(user=request.user)],
+                             "preset": {"id": obj.id, "name": obj.name, **presets.normalize(obj.data)}})
+
+    selected = Preset.objects.filter(user=request.user, id=request.GET.get("id")).first() \
+        or presets.get_active(request.user)
+    return render(request, "mainapp/presets.html", {"preset_page": {
+        "presets": [_preset_summary(p) for p in Preset.objects.filter(user=request.user)],
+        "preset": {"id": selected.id, "name": selected.name, **presets.normalize(selected.data)},
+        "markers": presets.MARKERS,
+        "post_processing": presets.POST_PROCESSING,
+        "characters": [{"slug": c.slug, "name": c.name} for c in Character.objects.filter(author=request.user)],
+    }})
+
+
+@login_required
+def preset_export(request, preset_id):
+    from .models import Preset
+    obj = get_object_or_404(Preset, user=request.user, id=preset_id)
+    preset = presets.normalize(obj.data)
+    if request.GET.get("format") == "sillytavern":
+        payload, suffix = presets.to_sillytavern(preset), "_sillytavern"
+    else:
+        payload, suffix = presets.to_native(preset, obj.name), ""
+    response = HttpResponse(json.dumps(payload, ensure_ascii=False, indent=2), content_type="application/json")
+    response["Content-Disposition"] = f'attachment; filename="{slugify(obj.name) or "preset"}{suffix}.json"'
+    return response
+
+
+@login_required
+def sampler_settings(request):
+    """Samplers of the active preset: each one can be switched off (= model default)."""
+    preset_obj = presets.get_active(request.user)
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body.decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            return JsonResponse({"error": "Invalid request."}, status=400)
+        preset_obj.data = {**preset_obj.data, "samplers": samplers.normalize(data)}
+        preset_obj.save(update_fields=["data", "time_update"])
+        return JsonResponse({"status": "ok", "samplers": preset_obj.data["samplers"]})
 
     try:
         _, model = ai_client.resolve(request.user, "chat")
     except ai_client.NoConnection:
         model = ""
     return render(request, "mainapp/samplers.html", {
+        "preset_name": preset_obj.name,
         "sampler_data": {
             "specs": samplers.SAMPLERS,
-            "values": samplers.normalize(settings_obj.samplers),
+            "values": samplers.normalize(preset_obj.data.get("samplers")),
             "model": model,
             "locked": sorted(samplers.locked_for_model(model)),
             "all_locked": sorted(samplers.SAMPLING_LOCKED),

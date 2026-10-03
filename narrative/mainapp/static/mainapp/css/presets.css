@@ -1,0 +1,112 @@
+.page.wide { max-width: 1200px }
+.layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 16px; align-items: start }
+@media (max-width: 860px) { .layout { grid-template-columns: 1fr } }
+
+.preset-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: rgba(15, 23, 42, .4);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 8px
+}
+.preset-item:hover { border-color: var(--accent-1) }
+.preset-item.selected { border-color: var(--accent-1); background: rgba(126, 58, 242, .12) }
+.preset-item .name { display: block; font-weight: 600; margin-bottom: 2px }
+.preset-item .meta { font-size: .78rem; color: var(--text-muted) }
+.preset-item .active { color: var(--success); font-weight: 600 }
+
+.btn-like {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: .92rem;
+    text-decoration: none;
+    color: var(--text-primary)
+}
+.btn-like.secondary { border: 1px solid var(--border) }
+.btn-like.secondary:hover { border-color: var(--accent-1) }
+.btn-like.small { padding: 6px 10px; font-size: .85rem }
+aside .btn-like, .full { width: 100%; margin-top: 8px }
+
+.preset-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px }
+.preset-head h2 { margin: 0; font-size: 1.3rem }
+.badge-active { color: var(--success); border: 1px solid rgba(16, 185, 129, .5); border-radius: 999px; padding: 4px 12px; font-size: .85rem }
+.toolbar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px }
+.section-head { display: flex; justify-content: space-between; align-items: baseline }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap }
+.row select { width: auto; min-width: 200px }
+
+.group { margin-bottom: 6px }
+.group-head {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    background: var(--ui-secondary);
+    border: none;
+    color: var(--text-primary);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-weight: 600;
+    font-size: .92rem;
+    text-align: left
+}
+.group-head .count { color: var(--text-muted); font-weight: normal; font-size: .8rem }
+.group-body { padding: 4px 0 4px 8px }
+
+.block { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 6px }
+.block:hover { background: rgba(255, 255, 255, .03) }
+.block:not(.on) .block-name { color: var(--text-muted) }
+.switch-row input { width: auto; accent-color: var(--accent-1); margin: 0 }
+.block-name {
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    padding: 2px 0;
+    font-size: .9rem;
+    text-align: left;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap
+}
+.block-name:hover { color: #b794f6 }
+.tag.slot { color: #67e8f9 }
+.tokens { font-size: .72rem; color: var(--text-muted); white-space: nowrap }
+pre.block-content, .msg pre {
+    white-space: pre-wrap;
+    font-size: .8rem;
+    background: var(--ui-tertiary, #0F172A);
+    border-radius: 8px;
+    padding: 10px;
+    margin: 4px 0 8px 28px;
+    max-height: 320px;
+    overflow: auto;
+    color: var(--text-muted)
+}
+
+#preview { margin-top: 12px }
+.msg { border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; margin-bottom: 6px }
+.msg summary { cursor: pointer; display: flex; gap: 8px; align-items: baseline }
+.msg .role { font-weight: 700; font-size: .8rem; text-transform: uppercase; min-width: 72px }
+.msg.system .role { color: #b794f6 }
+.msg.user .role { color: #67e8f9 }
+.msg.assistant .role { color: #fbbf24 }
+.msg .sources { color: var(--text-muted); font-size: .82rem; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.msg pre { margin-left: 0 }
+.warn { color: var(--warning); font-size: .85rem; margin: 4px 0 }
+.tag {
+    font-size: .7rem;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--ui-secondary);
+    color: var(--text-muted);
+    white-space: nowrap
+}

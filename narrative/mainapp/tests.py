@@ -697,3 +697,250 @@ class SamplerChatTests(ChatPromptTests):
         resp = self.client.post(url, json.dumps({"verbosity": {"on": True, "value": "low"}}),
                                 content_type="application/json")
         self.assertEqual(resp.json()["samplers"]["verbosity"], {"on": True, "value": "low"})
+
+
+ST_PRESET = {
+    "temperature": 0.9, "top_p": 1, "top_k": 0, "openai_max_tokens": 900, "reasoning_effort": "auto",
+    "squash_system_messages": False, "continue_nudge_prompt": "[Go on]", "assistant_prefill": "",
+    "extensions": {"regex_scripts": [{"scriptName": "Pretty"}]}, "function_calling": True,
+    "prompts": [
+        {"identifier": "main", "name": "Main", "role": "system", "content": "You are {{char}}. {{getvar::tone}}"},
+        {"identifier": "hdr", "name": "── Toggles", "role": "system", "content": ""},
+        {"identifier": "tone", "name": "Grim tone", "role": "system", "content": "{{setvar::tone::Be grim.}}{{// note}}"},
+        {"identifier": "nudge", "name": "Nudge", "role": "user", "content": "[Stay in character]",
+         "injection_position": 1, "injection_depth": 0, "injection_order": 100},
+        {"identifier": "deep", "name": "Deep", "role": "system", "content": "DEEP",
+         "injection_position": 1, "injection_depth": 2},
+        {"identifier": "chatHistory", "name": "Chat History", "marker": True},
+        {"identifier": "charDescription", "name": "Char Description", "marker": True},
+        {"identifier": "worldInfoAfter", "name": "World Info (after)", "marker": True},
+        {"identifier": "jailbreak", "name": "Post-History", "role": "system", "content": "Reply as {{char}} only."},
+        {"identifier": "orphan", "name": "Not in order", "content": "x"},
+    ],
+    "prompt_order": [
+        {"character_id": 100000, "order": [{"identifier": "main", "enabled": True}]},
+        {"character_id": 100001, "order": [
+            {"identifier": "main", "enabled": True}, {"identifier": "charDescription", "enabled": True},
+            {"identifier": "hdr", "enabled": True}, {"identifier": "tone", "enabled": True},
+            {"identifier": "nudge", "enabled": True}, {"identifier": "deep", "enabled": True},
+            {"identifier": "worldInfoAfter", "enabled": True},
+            {"identifier": "chatHistory", "enabled": True}, {"identifier": "jailbreak", "enabled": True}]},
+    ],
+}
+HISTORY = [{"role": "assistant", "content": "Hello."}, {"role": "user", "content": "Hi."},
+           {"role": "assistant", "content": "What now?"}, {"role": "user", "content": "Let's go."}]
+NAMES = {"char": "Rose", "user": "Ann"}
+
+
+class PresetImportTests(SimpleTestCase):
+    def test_sillytavern_import(self):
+        from mainapp.presets import from_any
+        preset, _ = from_any(ST_PRESET)
+        kinds = [(b["id"], b["kind"]) for b in preset["blocks"]]
+        self.assertEqual(kinds[:3], [("main", "prompt"), ("charDescription", "marker"), ("hdr", "header")])
+        nudge = next(b for b in preset["blocks"] if b["id"] == "nudge")
+        self.assertEqual((nudge["position"], nudge["depth"], nudge["role"]), ("in_chat", 0, "user"))
+        s = preset["samplers"]
+        self.assertEqual(s["temperature"], {"on": True, "value": 0.9})
+        self.assertFalse(s["top_p"]["on"])       # neutral value: left off
+        self.assertFalse(s["reasoning_effort"]["on"])  # "auto"
+        self.assertEqual(s["max_tokens"], {"on": True, "value": 900})
+        self.assertEqual(preset["utility"]["continue_nudge"], "[Go on]")
+        self.assertTrue(preset["extras"]["function_calling"])
+        self.assertEqual(preset["extras"]["unused_prompts"][0]["identifier"], "orphan")
+
+    def test_round_trip(self):
+        from mainapp.presets import from_any, to_sillytavern
+        preset, _ = from_any(ST_PRESET)
+        again, _ = from_any(to_sillytavern(preset))
+        self.assertEqual(again["blocks"], preset["blocks"])
+        self.assertEqual(again["samplers"], preset["samplers"])
+        self.assertEqual(to_sillytavern(again)["extensions"], ST_PRESET["extensions"])
+
+    def test_native_round_trip_and_bad_file(self):
+        from mainapp.presets import from_any, to_native
+        preset, _ = from_any(ST_PRESET)
+        again, name = from_any(to_native(preset, "Mine"))
+        self.assertEqual((again, name), (preset, "Mine"))
+        with self.assertRaises(ValueError):
+            from_any({"hello": 1})
+
+
+class MacroTests(SimpleTestCase):
+    def run_macros(self, text, values=None):
+        import random
+        from mainapp.presets import MacroContext, expand
+        ctx = MacroContext({"char": "Rose", "user": "Ann", "description": "", **(values or {})}, random.Random(3))
+        expand(text, ctx, collect=True)
+        return expand(text, ctx), ctx
+
+    def test_variables_work_in_any_order(self):
+        out, _ = self.run_macros("[{{getvar::mood}}]{{setvar::mood::calm}}")
+        self.assertEqual(out, "[calm]")
+
+    def test_conditionals(self):
+        out, _ = self.run_macros("{{setvar::g::Noir}}{{#if .g}}G={{getvar::g}}{{/if}}"
+                                 "{{#if .missing}}no{{else}}yes{{/if}}{{#if !description}}empty{{/if}}")
+        self.assertEqual(out, "G=Noiryesempty")
+
+    def test_misc_macros(self):
+        out, ctx = self.run_macros("{{char}}/{{user}}{{// gone}}\n{{trim}}\nA{{noop}} {{roll: 1d1+2}} "
+                                   "{{random::x::x}} {{random: y, y}} {{incvar::n}}{{incvar::n}}{{getvar::n}} {{madeup}}")
+        self.assertEqual(out, "Rose/AnnA 3 x y 2 {{madeup}}")
+        self.assertIn("madeup", ctx.unknown)
+
+
+class PresetAssemblyTests(SimpleTestCase):
+    def assemble(self, preset=None, model="some/model", **opts):
+        import random
+        from mainapp.presets import assemble, from_any
+        preset = preset or from_any(ST_PRESET)[0]
+        preset["options"].update(opts)
+        return assemble(preset, {"char_description": "An alchemist.", "lore": "[Lore] Dragons exist."},
+                        HISTORY, NAMES, model, random.Random(1))
+
+    def test_order_slots_and_injections(self):
+        r = self.assemble()
+        roles = [(m["role"], m["content"][:12]) for m in r["messages"]]
+        self.assertEqual(roles, [
+            ("system", "You are Rose"), ("system", "An alchemist"), ("system", "[Lore] Drago"),
+            ("assistant", "Hello."), ("user", "Hi."), ("system", "DEEP"), ("assistant", "What now?"),
+            ("user", "Let's go."), ("user", "[Stay in cha"), ("system", "Reply as Ros")])
+        self.assertEqual(r["messages"][0]["content"], "You are Rose. Be grim.")
+        self.assertEqual(r["params"], {"temperature": 0.9, "max_tokens": 900})
+
+    def test_disabled_blocks_and_missing_history(self):
+        from mainapp.presets import from_any
+        preset = from_any(ST_PRESET)[0]
+        for b in preset["blocks"]:
+            if b["id"] in ("tone", "chatHistory"):
+                b["enabled"] = False
+        r = self.assemble(preset)
+        self.assertEqual(r["messages"][0]["content"], "You are Rose.")  # variable gone with its block
+        self.assertNotIn("Let's go.", [m["content"] for m in r["messages"]])
+        self.assertTrue(any("Chat history" in n for n in r["notes"]))
+
+    def test_post_processing_modes(self):
+        merged = self.assemble(post_processing="merge")["messages"]
+        self.assertEqual(merged[0]["role"], "system")
+        self.assertTrue(all(a["role"] != b["role"] for a, b in zip(merged, merged[1:])))
+
+        strict = self.assemble(post_processing="strict")["messages"]
+        self.assertEqual([m["role"] for m in strict][:2], ["system", "user"])
+        self.assertEqual(sum(m["role"] == "system" for m in strict), 1)
+
+        single = self.assemble(post_processing="single_user")["messages"]
+        self.assertEqual(len(single), 1)
+        self.assertEqual(single[0]["role"], "user")
+        self.assertIn("Ann: Let's go.", single[0]["content"])
+        self.assertIn("Rose: What now?", single[0]["content"])
+
+    def test_prefill_dropped_for_models_that_reject_it(self):
+        from mainapp.presets import from_any
+        preset = from_any(ST_PRESET)[0]
+        preset["utility"]["assistant_prefill"] = "*Rose*"
+        self.assertEqual(self.assemble(preset, model="mistral/x")["messages"][-1],
+                         {"role": "assistant", "content": "*Rose*"})
+        r = self.assemble(from_any({**ST_PRESET, "assistant_prefill": "*Rose*"})[0], model="anthropic/claude-opus-5.5")
+        self.assertNotEqual(r["messages"][-1]["role"], "assistant")
+        self.assertTrue(any("prefill" in n for n in r["notes"]))
+        self.assertNotIn("temperature", r["params"])
+
+
+class DefaultPresetTests(TestCase):
+    def setUp(self):
+        import shutil
+        import tempfile
+        media = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, media, ignore_errors=True)
+        override = override_settings(MEDIA_ROOT=media)
+        override.enable()
+        self.addCleanup(override.disable)
+        self.media = media
+        self.user = get_user_model().objects.create_user(username="pre", password="pw12345!")
+
+    def test_fresh_user_gets_library_defaults(self):
+        from mainapp.presets import get_active, normalize
+        obj = get_active(self.user)
+        preset = normalize(obj.data)
+        names = {b["name"]: b for b in preset["blocks"]}
+        self.assertTrue(names["System/Assistant Identity"]["enabled"])
+        self.assertFalse(names["The Goth"]["enabled"])  # AVI voices start off
+        self.assertEqual([b["marker"] for b in preset["blocks"] if b["kind"] == "marker"][-2:],
+                         ["chat_history", "director_note"])
+        self.assertEqual(get_active(self.user).id, obj.id)  # created once
+
+    def test_old_settings_are_carried_over(self):
+        import os
+        from django.core.files.base import ContentFile
+        from mainapp.models import ChatSettings
+        from mainapp.presets import get_active, normalize
+        cs = ChatSettings(author=self.user, samplers={"temperature": {"on": True, "value": 0.5}})
+        cs.json_file.save("s.json", ContentFile(json.dumps({"prompts": {
+            "system": "OLD MAIN", "jailbreak": "OLD JB", "continue": "Keep going!", "custom": {"c1": {"name": "Mine", "prompt": "CUSTOM"}}},
+            "nsfw": {"styles": {"dark": {"name": "Dark", "prompt": "DARK"}}}}).encode()), save=True)
+        os.makedirs(os.path.join(self.media, "chat_settings2"), exist_ok=True)
+        with open(os.path.join(self.media, "chat_settings2", f"chat_settings2_{self.user.id}.json"), "w") as f:
+            json.dump({"avis": {"goth": {"enabled": True, "content": "MY GOTH"}}}, f)
+        preset = normalize(get_active(self.user).data)
+        by_name = {b["name"]: b for b in preset["blocks"]}
+        self.assertTrue(by_name["Main prompt"]["enabled"])
+        self.assertTrue(by_name["Mine"]["enabled"])
+        self.assertFalse(by_name["Dark"]["enabled"])
+        self.assertEqual((by_name["The Goth"]["content"], by_name["The Goth"]["enabled"]), ("MY GOTH", True))
+        self.assertFalse(by_name["System/Assistant Identity"]["enabled"])  # not on in the saved Prompting Ground
+        names = [b["name"] for b in preset["blocks"]]
+        self.assertGreater(names.index("Post-history instructions"), names.index("Chat history"))
+        self.assertEqual(preset["utility"]["continue_nudge"], "Keep going!")
+        self.assertEqual(preset["samplers"]["temperature"], {"on": True, "value": 0.5})
+
+
+class PresetPageTests(ChatPromptTests):
+    def page_post(self, data):
+        return self.client.post(reverse("presets"), json.dumps(data), content_type="application/json")
+
+    def test_import_activate_toggle_and_chat_uses_it(self):
+        from mainapp.models import Preset
+        self.assertEqual(self.client.get(reverse("presets")).status_code, 200)
+        resp = self.page_post({"action": "import", "data": ST_PRESET, "name": "Tavern"}).json()
+        tavern = Preset.objects.get(id=resp["selected"])
+        self.assertFalse(tavern.is_active)
+        self.page_post({"action": "activate", "id": tavern.id})
+        self.page_post({"action": "save", "id": tavern.id, "enabled": {"jailbreak": False},
+                        "post_processing": "merge"})
+
+        self.post({"action": "chat", "message": "Hello there"})
+        sent = self.sent[-1]
+        text = "\n".join(m["content"] for m in sent["messages"])
+        self.assertIn("You are Rose. Be grim.", text)
+        self.assertNotIn("Reply as Rose only.", text)
+        self.assertNotIn("[SYSTEM PROMPTS]", text)
+        self.assertEqual(sent["temperature"], 0.9)
+
+        preview = self.page_post({"action": "preview", "id": tavern.id, "character": self.character.slug}).json()
+        self.assertTrue(preview["messages"])
+
+        export = self.client.get(reverse("preset_export", args=[tavern.id]) + "?format=sillytavern")
+        self.assertEqual(json.loads(export.content)["prompt_order"][0]["character_id"], 100001)
+
+    def test_cannot_delete_last_preset(self):
+        from mainapp.presets import get_active
+        only = get_active(self.user)
+        self.assertEqual(self.page_post({"action": "delete", "id": only.id}).status_code, 400)
+
+    def test_samplers_page_edits_active_preset(self):
+        from mainapp.presets import get_active
+        self.client.post(reverse("samplers"), json.dumps({"max_tokens": {"on": True, "value": 777}}),
+                         content_type="application/json")
+        self.assertEqual(get_active(self.user).data["samplers"]["max_tokens"], {"on": True, "value": 777})
+
+
+class PrefillGuardTests(SimpleTestCase):
+    def test_chat_ending_with_character_turn_is_kept(self):
+        import random
+        from mainapp.presets import assemble, from_any
+        preset = from_any(ST_PRESET)[0]
+        preset["blocks"] = [b for b in preset["blocks"] if b["id"] in ("main", "chatHistory")]
+        r = assemble(preset, {}, HISTORY[:3], NAMES, "anthropic/claude-opus-5.5", random.Random(1))
+        self.assertEqual(r["messages"][-1], {"role": "assistant", "content": "What now?"})
+        self.assertFalse(any("prefill" in n for n in r["notes"]))

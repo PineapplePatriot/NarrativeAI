@@ -1,0 +1,85 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Presets - Narrative AI</title>
+  <link rel="stylesheet" href="{% static 'mainapp/css/tracker_setup.css' %}">
+  <link rel="stylesheet" href="{% static 'mainapp/css/presets.css' %}">
+</head>
+<body>
+<div class="page wide">
+  <a class="back" href="javascript:history.back()">← Back</a>
+  <h1>Presets</h1>
+  <p class="subtitle">
+    A preset is the recipe for every request to the main chat model: which prompt blocks are sent, in what order,
+    where the chat goes, and the <a href="{% url 'samplers' %}">samplers</a>.
+    You can keep several and switch between them. One is active for all chats.
+    SillyTavern chat-completion presets can be imported as they are.
+  </p>
+
+  <div class="layout">
+    <aside>
+      <section class="card">
+        <h2>Your presets</h2>
+        <div id="presetList"></div>
+        <label class="btn-like secondary">⬆ Import preset<input type="file" id="importFile" accept=".json,application/json" hidden></label>
+        <button type="button" class="secondary full" id="newDefaultBtn">+ New default preset</button>
+        <p class="help" id="importStatus"></p>
+      </section>
+    </aside>
+
+    <main>
+      <section class="card">
+        <div class="preset-head">
+          <h2 id="presetName"></h2>
+          <span id="activeBadge"></span>
+        </div>
+        <div class="toolbar">
+          <button type="button" class="secondary small" data-act="rename">Rename</button>
+          <button type="button" class="secondary small" data-act="duplicate">Duplicate</button>
+          <a class="btn-like secondary small" id="exportLink">Export</a>
+          <a class="btn-like secondary small" id="exportStLink">Export for SillyTavern</a>
+          <button type="button" class="danger small" data-act="delete">Delete</button>
+        </div>
+        <label class="inline">Send as
+          <select id="postProcessing"></select>
+        </label>
+        <p class="help" id="extrasNote"></p>
+      </section>
+
+      <section class="card">
+        <div class="section-head">
+          <h2>Prompt blocks</h2>
+          <span class="help" id="blockCount"></span>
+        </div>
+        <p class="help">Switch blocks on or off; changes save automatically. Click a block's name to read it.
+          Editing text and reordering come in the next update.</p>
+        <div id="blocks"></div>
+      </section>
+
+      <section class="card">
+        <h2>🔍 Preview the request</h2>
+        <p class="help">Exactly what would be sent for your next message in a chat, with macros filled in.</p>
+        <div class="row">
+          <select id="previewCharacter"></select>
+          <button type="button" id="previewBtn">Preview</button>
+        </div>
+        <div id="preview"></div>
+      </section>
+    </main>
+  </div>
+</div>
+
+{{ preset_page|json_script:"preset-data" }}
+<script>
+  const URLS = {
+    page: "{% url 'presets' %}",
+    export: "{% url 'preset_export' 0 %}",
+  };
+</script>
+<script src="{% static 'mainapp/js/presets.js' %}"></script>
+</body>
+</html>
