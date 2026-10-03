@@ -112,7 +112,7 @@ python manage.py migrate
 
 ## First steps in the app
 
-1. **Create an account:** on the login page, follow the link under the form (it currently says "Sign in") to the registration page.
+1. **Create an account** with the link under the login form.
 2. **Connections:** paste your API key, pick a model and press **Save**. The app sends you here automatically if you open a chat without a connection. This page is also where you choose cheaper models for summaries, trackers and emotion detection.
 3. **Characters:** create a character (name, description, first message, sprites) and start chatting.
 4. *Optional:*
