@@ -216,3 +216,30 @@ body > .na-topbar { margin: 0 -16px 32px; }
     .file-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
 }
 body { margin: 0; }
+
+/* Folded sections: Sprites and Advanced */
+.form-section {
+    margin: 18px 0;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 12px;
+    background: rgba(15, 23, 42, 0.35);
+}
+.form-section > summary {
+    cursor: pointer;
+    list-style: none;
+    padding: 14px 16px;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    font-weight: 600;
+}
+.form-section > summary::-webkit-details-marker { display: none; }
+.form-section > summary::after { content: '▸'; margin-left: auto; color: #94a3b8; transition: transform .15s; }
+.form-section[open] > summary::after { transform: rotate(90deg); }
+.form-section > summary small { color: #94a3b8; font-weight: 400; }
+.form-section > :not(summary) { margin-left: 16px; margin-right: 16px; }
+.form-section > :last-child { margin-bottom: 16px; }
+.form-section .file-grid { margin-top: 8px; }
+.form-section h4 { margin-top: 16px; margin-bottom: 8px; }
+.section-help { color: #94a3b8; font-size: 0.85rem; line-height: 1.5; margin-top: 0; }
+.section-help a { color: #c4b5fd; }

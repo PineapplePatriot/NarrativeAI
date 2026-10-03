@@ -1,4 +1,14 @@
 document.addEventListener("DOMContentLoaded", function () {
+    // "3 of 9 added" on the folded Sprites section; open it when a sprite has an error
+    const spriteCount = document.getElementById('spriteCount');
+    function countSprites() {
+        const groups = [...document.querySelectorAll('.file-group')].filter(g => g.style.display !== 'none');
+        const added = groups.filter(g => g.querySelector('.file-preview img')).length;
+        if (spriteCount) spriteCount.textContent = `${added} of ${groups.length} added`;
+    }
+    const sprites = document.getElementById('spritesSection');
+    if (sprites && [...sprites.querySelectorAll('.form-error')].some(e => e.textContent.trim())) sprites.open = true;
+
     document.querySelectorAll('.file-group').forEach(group => {
         const input = group.querySelector('input[type="file"]');
         const preview = group.querySelector('.file-preview');
@@ -11,6 +21,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     const img = document.createElement('img');
                     img.src = e.target.result;
                     preview.appendChild(img);
+                    countSprites();
                 };
                 reader.readAsDataURL(this.files[0]);
             } else {
@@ -42,10 +53,12 @@ document.addEventListener("DOMContentLoaded", function () {
         if (secondVoiceContainer) {
             secondVoiceContainer.style.display = isChecked ? 'block' : 'none';
         }
+        countSprites();
     }
 
     if (isMultCheckbox) {
         toggleSecondCharFields();
         isMultCheckbox.addEventListener('change', toggleSecondCharFields);
     }
+    countSprites();
 });
