@@ -1,3 +1,9 @@
+import json
+
+from django.db import transaction
+from django.http import JsonResponse
+from django.utils.http import url_has_allowed_host_and_scheme
+
 # --- Django auth ---
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.contrib.auth.decorators import login_required
@@ -18,9 +24,8 @@ from narrative import settings
 from .forms import (
     LoginUserForm, RegisterUserForm,
     ProfileUserForm, UserPasswordChangeForm,
-    ApiConfigForm
 )
-from .models import ApiConfig
+from .models import ApiConfig, ConnectionProfile, TaskSetting
 
 
 class LoginUser(LoginView):
@@ -60,21 +65,153 @@ class UserPasswordChange(LoginRequiredMixin, PasswordChangeView):
     template_name = "users/password_change_form.html"
 
 
-@method_decorator(login_required, name="dispatch")
-class ApiConfigView(UpdateView):
-    model = ApiConfig
-    form_class = ApiConfigForm
-    template_name = "users/api_config.html"
-    success_url = reverse_lazy("home")
+def _connections_state(user):
+    from mainapp.ai_client import TASKS, get_task_setting
 
-    def get_object(self, queryset=None):
-        obj, created = ApiConfig.objects.get_or_create(user=self.request.user)
-        return obj
+    profiles = [{
+        "id": p.id, "name": p.name, "provider": p.provider, "base_url": p.base_url,
+        "model": p.model, "key_hint": p.key_hint, "has_key": bool(p.api_key),
+    } for p in ConnectionProfile.objects.filter(user=user)]
 
-    def form_valid(self, form):
-        # переконаємось, що user завжди присвоєно
-        form.instance.user = self.request.user
-        return super().form_valid(form)
+    tasks = []
+    for task, info in TASKS.items():
+        ts = get_task_setting(user, task)
+        tasks.append({
+            "task": task, "label": info["label"], "help": info["help"],
+            "schedulable": info.get("schedulable", False), "toggleable": info.get("toggleable", False),
+            "profile_id": ts.profile_id, "model": ts.model, "enabled": ts.enabled,
+            "mode": ts.mode, "interval": ts.interval,
+        })
+    api_config = ApiConfig.objects.filter(user=user).first()
+    eleven = api_config.eleven_key if api_config else ""
+    return {
+        "profiles": profiles,
+        "tasks": tasks,
+        "providers": [{"value": v, "label": l} for v, l in ConnectionProfile.PROVIDERS],
+        "eleven_key_hint": f"…{eleven[-4:]}" if len(eleven) >= 8 else ("set" if eleven else ""),
+    }
+
+
+class ConnectionsError(Exception):
+    pass
+
+
+@transaction.atomic
+def _save_connections(user, data):
+    from mainapp.ai_client import TASKS
+
+    valid_providers = {v for v, _ in ConnectionProfile.PROVIDERS}
+    existing = {p.id: p for p in ConnectionProfile.objects.filter(user=user)}
+    ref_to_profile = {}  # client id (int or "new-1") -> saved profile
+    seen_names = set()
+
+    incoming = data.get("profiles", [])
+    keep_ids = {p.get("id") for p in incoming if isinstance(p.get("id"), int)}
+    for pid, profile in existing.items():
+        if pid not in keep_ids:
+            profile.delete()
+
+    for item in incoming:
+        name = (item.get("name") or "").strip()
+        if not name:
+            raise ConnectionsError("Every connection needs a name.")
+        if name.lower() in seen_names:
+            raise ConnectionsError(f'Two connections are called "{name}".')
+        seen_names.add(name.lower())
+
+        provider = item.get("provider")
+        if provider not in valid_providers:
+            raise ConnectionsError(f'"{name}": unknown provider.')
+        model = (item.get("model") or "").strip()
+        if not model:
+            raise ConnectionsError(f'"{name}": choose a model.')
+        base_url = (item.get("base_url") or "").strip()
+        if provider == ConnectionProfile.PROVIDER_CUSTOM and not base_url.startswith(("http://", "https://")):
+            raise ConnectionsError(f'"{name}": enter the API base URL, starting with http:// or https://.')
+
+        profile = existing.get(item.get("id")) if isinstance(item.get("id"), int) else None
+        if profile is None:
+            profile = ConnectionProfile(user=user)
+        new_key = (item.get("api_key") or "").strip()
+        if new_key:
+            profile.api_key = new_key  # blank means "keep the saved key"
+        if provider == ConnectionProfile.PROVIDER_OPENROUTER and not profile.api_key:
+            raise ConnectionsError(f'"{name}": enter your OpenRouter API key.')
+
+        profile.name, profile.provider, profile.base_url, profile.model = name, provider, base_url, model
+        profile.save()
+        ref_to_profile[item.get("id")] = profile
+
+    for item in data.get("tasks", []):
+        task = item.get("task")
+        if task not in TASKS:
+            continue
+        ts, _ = TaskSetting.objects.get_or_create(user=user, task=task)
+        ts.profile = ref_to_profile.get(item.get("profile_id"))
+        ts.model = (item.get("model") or "").strip()
+        ts.enabled = bool(item.get("enabled", True)) if TASKS[task].get("toggleable") else True
+        if TASKS[task].get("schedulable"):
+            ts.mode = item.get("mode") if item.get("mode") in dict(TaskSetting.MODES) else TaskSetting.MODE_MANUAL
+            try:
+                ts.interval = max(1, int(item.get("interval") or 10))
+            except (TypeError, ValueError):
+                ts.interval = 10
+        ts.save()
+
+    # The main chat always has a connection once any exists
+    chat = TaskSetting.objects.filter(user=user, task="chat").first()
+    first = ConnectionProfile.objects.filter(user=user).first()
+    if first and (chat is None or chat.profile is None):
+        chat = chat or TaskSetting(user=user, task="chat")
+        chat.profile = first
+        chat.save()
+
+    api_config, _ = ApiConfig.objects.get_or_create(user=user)
+    if data.get("clear_eleven_key"):
+        api_config.eleven_key = ""
+    elif (data.get("eleven_key") or "").strip():
+        api_config.eleven_key = data["eleven_key"].strip()
+    api_config.save()
+
+
+@login_required
+def connections(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body.decode("utf-8"))
+            _save_connections(request.user, data)
+        except (ValueError, UnicodeDecodeError):
+            return JsonResponse({"error": "Invalid request."}, status=400)
+        except ConnectionsError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"status": "ok", "state": _connections_state(request.user)})
+
+    next_url = request.GET.get("next", "")
+    if not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+        next_url = ""
+    return render(request, "users/api_config.html", {
+        "state": _connections_state(request.user),
+        "next_url": next_url,
+    })
+
+
+@login_required
+def connections_test(request):
+    from mainapp.ai_client import test_connection
+
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only"}, status=405)
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return JsonResponse({"error": "Invalid request."}, status=400)
+
+    api_key = (data.get("api_key") or "").strip()
+    if not api_key and isinstance(data.get("id"), int):
+        saved = ConnectionProfile.objects.filter(user=request.user, id=data["id"]).first()
+        api_key = saved.api_key if saved else ""
+    ok, message = test_connection(data.get("provider"), data.get("base_url"), api_key, data.get("model"))
+    return JsonResponse({"ok": ok, "message": message})
 
 
 class MyLogoutView(View):

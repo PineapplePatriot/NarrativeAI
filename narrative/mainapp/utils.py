@@ -1,6 +1,7 @@
 from mainapp.models import Character, Worldbook, ChatSettings
 import json
 from users.models import ApiConfig
+from mainapp import ai_client
 from mainapp.lorebook import load_worldbook, activate, format_for_prompt
 
 
@@ -150,47 +151,19 @@ import os
 
 
 
-def get_openrouter_key(user):
-    """
-    Повертає OpenRouter API ключ для заданого користувача.
-    """
-    try:
-        api_config = user.api_config
-    except ApiConfig.DoesNotExist:
-        raise ValueError(f"API configuration not found for user {user.username}")
-
-    if not api_config.chat_key:
-        raise ValueError(f"OpenRouter API key is missing for user {user.username}")
-
-    return api_config.chat_key
-
-
 def get_elevenlabs_key(user):
-    """
-    Повертає ElevenLabs API ключ для заданого користувача.
-    Якщо ключ порожній, повертає None.
-    """
-    try:
-        api_config = user.api_config
-    except ApiConfig.DoesNotExist:
-        raise ValueError(f"API configuration not found for user {user.username}")
-
-    # eleven_key може бути порожнім
-    return api_config.eleven_key if api_config.eleven_key else None
+    """ElevenLabs API key for the user, or None if they have not set one."""
+    api_config = ApiConfig.objects.filter(user=user).first()
+    return api_config.eleven_key if api_config and api_config.eleven_key else None
 
 
 # --- Функція для розбиття тексту на ролі ---
-def split_text_roles(text, OPENROUTER_API_KEY, model_name, character_name, has_second_char=False):
+def split_text_roles(text, user, character_name, has_second_char=False):
     """
     Викликає LLM для маркування частин тексту за ролями.
     Повертає список словників: [{"role": "narrator", "text": "..."}, ...]
     Без використання json.loads на неперевірений JSON.
     """
-    url = "https://openrouter.ai/api/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-        "Content-Type": "application/json"
-    }
     if has_second_char:
         # --- PROMPT FOR 2 CHARACTERS + NARRATOR ---
         prompt = f"""
@@ -234,11 +207,7 @@ Output ONLY a JSON array:
 Text to analyze:
 {text}
         """
-    data = {"model": model_name, "messages": [{"role": "user", "content": prompt}]}
-
-    response = requests.post(url, headers=headers, json=data)
-    response.raise_for_status()
-    llm_text = response.json()["choices"][0]["message"]["content"]
+    llm_text = ai_client.complete(user, "voice_split", [{"role": "user", "content": prompt}])
 
     # видаляємо ```json або ```
     llm_text = re.sub(r"```(?:json)?\n?", "", llm_text)
@@ -275,19 +244,15 @@ from django.conf import settings
 
 def narrate_text_backend(
         text,
-        username,
+        user,
         character_name,
-        OPENROUTER_API_KEY,
         ELEVENLABS_API_KEY,
         narrator_voice_id,
         character_voice_id,
         second_character_voice_id,
-        MODEL_NAME,
         output_dir=None,
         is_mult=False):
-
-    print("OPENROUTER_API_KEY", OPENROUTER_API_KEY)
-    print("ELEVENLABS_API_KEY", ELEVENLABS_API_KEY)
+    username = user.username
     if output_dir is None:
         output_dir = os.path.join(settings.MEDIA_ROOT, "audio_files")
     else:
@@ -299,7 +264,7 @@ def narrate_text_backend(
     filename = f"{username}_{character_name}_{timestamp}.mp3"
     output_file = os.path.join(output_dir, filename)
 
-    parts = split_text_roles(text, OPENROUTER_API_KEY, MODEL_NAME, character_name, has_second_char=is_mult)
+    parts = split_text_roles(text, user, character_name, has_second_char=is_mult)
     final_audio = AudioSegment.silent(duration=0)
 
 

@@ -1,7 +1,6 @@
 # --- Standard library ---
 import json
 import os
-import requests
 import traceback
 from datetime import datetime
 
@@ -25,7 +24,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
-from .utils import build_ai_request, narrate_text_backend, get_openrouter_key, get_elevenlabs_key
+from . import ai_client
+from .utils import build_ai_request, narrate_text_backend, get_elevenlabs_key
 from .lorebook import (
     normalize_book, load_worldbook, save_worldbook, activate, format_for_prompt, to_sillytavern,
     DEFAULT_SETTINGS as LORE_DEFAULT_SETTINGS, DEFAULT_ENTRY as LORE_DEFAULT_ENTRY,
@@ -49,7 +49,6 @@ def characters_list(request):
 
 
 
-#OPENROUTER_API_KEY = "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"  # свій ключ
 
 import re
 
@@ -57,13 +56,12 @@ import re
 def chat(request, slug):
     character = get_object_or_404(Character, slug=slug)
 
-    #--- Дістаємо ApiConfig користувача ---
-    api_config = getattr(request.user, "api_config", None)
-    if not api_config or not api_config.chat_key:
-        return JsonResponse({"error": "API key is not configured for this user."}, status=400)
-
-    OPENROUTER_API_KEY = api_config.chat_key
-    MODEL_NAME = api_config.or_model or "nousresearch/hermes-3-llama-3.1-405b"
+    # A main AI connection is needed before chatting
+    if not ai_client.has_connection(request.user):
+        if request.method == "POST":
+            return JsonResponse({"error": "No AI connection is set up yet. Add one on the Connections page."},
+                                status=400)
+        return redirect(f"{reverse('users:api_config')}?next={request.path}")
 
     # --- Chat log file ---
     if character.chat_log_file:
@@ -80,6 +78,7 @@ def chat(request, slug):
 
     chat_state = {
         "summary": "",
+        "summary_upto": None,  # number of messages already covered by the summary
         "context_guides": {},
         "current_bg": "",
         "current_music": {}
@@ -93,6 +92,7 @@ def chat(request, slug):
 
                     if isinstance(data, dict):
                         chat_state["summary"] = data.get("summary", "")
+                        chat_state["summary_upto"] = data.get("summary_upto")
                         chat_state["context_guides"] = data.get("context_guides", {})
                         chat_state["current_bg"] = data.get("current_bg", "")
                         chat_state["current_music"] = data.get("current_music", {})
@@ -122,6 +122,7 @@ def chat(request, slug):
         full_data = {
             "messages": messages,
             "summary": chat_state["summary"],
+            "summary_upto": chat_state["summary_upto"],
             "context_guides": chat_state["context_guides"],
             "current_bg": chat_state["current_bg"],
             "current_music": chat_state["current_music"]
@@ -192,24 +193,22 @@ def chat(request, slug):
                        f"Match the tone of:\n{hist_txt}\nOutput ONLY the result.")
 
             try:
-                resp = requests.post("https://openrouter.ai/api/v1/chat/completions",
-                    headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}"},
-                    json={"model": MODEL_NAME, "messages": [{"role": "system", "content": sys_msg}]}
-                )
-                return JsonResponse({"success": True, "text": resp.json()["choices"][0]["message"]["content"]})
-            except Exception as e: return JsonResponse({"success": False, "error": str(e)})
+                text = ai_client.complete(request.user, "writing_tools", [{"role": "system", "content": sys_msg}])
+                return JsonResponse({"success": True, "text": text})
+            except ai_client.AIError as e:
+                return JsonResponse({"success": False, "error": str(e)})
 
         # --- 3. NEW: Spellcheck ---
         elif action == "spellcheck":
             text = data.get("text", "")
             if not text: return JsonResponse({"success": False})
             try:
-                resp = requests.post("https://openrouter.ai/api/v1/chat/completions",
-                    headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}"},
-                    json={"model": MODEL_NAME, "messages": [{"role": "system", "content": "Correct grammar/spelling only. Output ONLY fixed text."}, {"role": "user", "content": text}]}
-                )
-                return JsonResponse({"success": True, "text": resp.json()["choices"][0]["message"]["content"]})
-            except: return JsonResponse({"success": False})
+                fixed = ai_client.complete(request.user, "writing_tools", [
+                    {"role": "system", "content": "Correct grammar/spelling only. Output ONLY fixed text."},
+                    {"role": "user", "content": text}])
+                return JsonResponse({"success": True, "text": fixed})
+            except ai_client.AIError as e:
+                return JsonResponse({"success": False, "error": str(e)})
 
         # --- 4. NEW: Save Guides & Summary ---
         elif action == "save_guides":
@@ -219,54 +218,41 @@ def chat(request, slug):
 
         # ... inside chat view POST handler ...
         elif action == "summarize":
-            mode = data.get("mode", "append") # Get mode, default to append
+            mode = data.get("mode", "append")  # "append" new events, or "regen" from scratch
             current_summary = chat_state["summary"]
 
             if len(messages) < 2:
                 return JsonResponse({"success": False, "error": "Not enough history."})
 
-            prompt_text = ""
-
-            if mode == 'regen':
-                # Summarize EVERYTHING
-                txt = "\n".join([f"{m[0]}: {m[2]}" for m in messages])
-                sys_prompt = "Summarize this entire roleplay story concisely. Capture key events and current status. Be clear and precise, focus on describing events and reactions in detail. The summary should include Tone, Setting, Events, Current emotional state."
-                prompt_text = txt
+            if mode == "regen":
+                to_summarize = messages
+                sys_prompt = ("Summarize this entire roleplay story concisely. Capture key events and current status. "
+                              "Be clear and precise, focus on describing events and reactions in detail. "
+                              "The summary should include Tone, Setting, Events, Current emotional state.")
             else:
-                # APPEND mode: take last X messages only
-                # We grab the last 10 messages to summarize recent events
-                recent_msgs = messages[-10:]
-                txt = "\n".join([f"{m[0]}: {m[2]}" for m in recent_msgs])
-                sys_prompt = f"Existing summary: {current_summary}\n\nTask: Read the recent conversation below and create a short paragraph summarizing ONLY the new events, advancing the existing summary."
-                prompt_text = txt
+                upto = chat_state["summary_upto"]
+                # Chats summarized before this was tracked: fall back to the last 10 messages
+                to_summarize = messages[-10:] if upto is None else messages[min(upto, len(messages)):]
+                if not to_summarize:
+                    return JsonResponse({"success": False, "error": "Nothing new to summarize yet."})
+                sys_prompt = (f"Existing summary: {current_summary}\n\nTask: Read the recent conversation below "
+                              "and create a short paragraph summarizing ONLY the new events, advancing the existing summary.")
+            prompt_text = "\n".join(f"{m[0]}: {m[2]}" for m in to_summarize)
 
             try:
-                resp = requests.post(
-                    "https://openrouter.ai/api/v1/chat/completions",
-                    headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}"},
-                    json={
-                        "model": MODEL_NAME,
-                        "messages": [
-                            {"role": "system", "content": sys_prompt},
-                            {"role": "user", "content": prompt_text}
-                        ]
-                    }
-                )
-                new_text = resp.json()["choices"][0]["message"]["content"]
-
-                if mode == 'regen':
-                    chat_state["summary"] = new_text
-                else:
-                    # Append new summary text to the old one
-                    if current_summary:
-                         chat_state["summary"] = current_summary + "\n\n" + new_text
-                    else:
-                         chat_state["summary"] = new_text
-
-                save_messages(messages) # Saves the new summary state to file
-                return JsonResponse({"success": True, "summary": chat_state["summary"]})
-            except Exception as e: 
+                new_text = ai_client.complete(request.user, "summary", [
+                    {"role": "system", "content": sys_prompt},
+                    {"role": "user", "content": prompt_text}])
+            except ai_client.AIError as e:
                 return JsonResponse({"success": False, "error": str(e)})
+
+            if mode == "regen" or not current_summary:
+                chat_state["summary"] = new_text
+            else:
+                chat_state["summary"] = current_summary + "\n\n" + new_text
+            chat_state["summary_upto"] = len(messages)
+            save_messages(messages)
+            return JsonResponse({"success": True, "summary": chat_state["summary"]})
 
         # --- 5. NEW: Regenerate/Continue Logic ---
         elif action == "regenerate":
@@ -302,18 +288,7 @@ def chat(request, slug):
 
             try:
                 # 4. Call API
-                response = requests.post(
-                    "https://openrouter.ai/api/v1/chat/completions",
-                    headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}"},
-                    json={
-                        "model": MODEL_NAME,
-                        "messages": api_messages,
-                        "max_tokens": 500 # Give it room to write
-                    },
-                    timeout=20
-                )
-                response.raise_for_status()
-                new_chunk = response.json()["choices"][0]["message"]["content"]
+                new_chunk = ai_client.complete(request.user, "chat", api_messages, max_tokens=500)
 
                 # 5. Combine and Save
                 full_text = last_text + " " + new_chunk
@@ -472,50 +447,28 @@ def chat(request, slug):
                                 "content": f"[NARRATIVE INSTRUCTIONS]\n{formatted_settings}"
                             })
 
-                    # --- Підготовка payload: system_messages перед api_messages ---
-                    payload = {
-                        "model": MODEL_NAME,
-                        "messages": system_messages + api_messages,  # <-- Останнім буде user-повідомлення
-                        **prompt.get("Core", {})
-                    }
+                    # System messages first, then the chat turns (the last one is the user's)
+                    # TODO(presets): Core samplers are still passed as-is until the preset rework
+                    reply = ai_client.complete(request.user, "chat", system_messages + api_messages,
+                                               **prompt.get("Core", {}))
 
-                    print(system_messages)
-
-                    # --- Друк payload у консоль ---
-                    print("=== OpenRouter API Request ===")
-                    #print(json.dumps(payload, indent=2, ensure_ascii=False))
-                    print("================================")
-
-                    # --- Виклик API ---
-                    response = requests.post(
-                        url="https://openrouter.ai/api/v1/chat/completions",
-                        headers={
-                            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                            "Content-Type": "application/json",
-                        },
-                        json=payload,
-                        timeout=15
-                    )
-                    response.raise_for_status()
-                    print("Responce!!!!!  ", response)
-                    result = response.json()
-                    print("Result!!!!!  ", result)
-                    reply = result["choices"][0]["message"]["content"]
-                    print("====================!!!!!!")
-                    print("Reply!!!!!  ", reply)
-                    print("====================!!!!!!")
-
-
+                except ai_client.AIError as e:
+                    # Keep the user's message so they can press Regenerate
+                    save_messages(messages)
+                    return JsonResponse({"error": str(e)}, status=502)
                 except Exception as e:
-                    print(f"Error generating reply: {e}")
-                    reply = "Вибачте, сталася помилка при генерації відповіді."
+                    print(f"Error generating reply: {traceback.format_exc()}")
+                    save_messages(messages)
+                    return JsonResponse({"error": f"Something went wrong while building the prompt: {e}"}, status=500)
 
                 char_count = 1
                 emotion_char_1 = "neutral"
                 emotion_char_2 = "neutral"
 
-                # --- Classify emotion ---
+                # --- Classify emotion (optional, can be turned off on the Connections page) ---
                 try:
+                    if not ai_client.is_enabled(request.user, "emotion"):
+                        raise ai_client.AIError("emotion detection is turned off")
                     valid_emotions = ["neutral", "happy", "sad", "angry", "surprised", "scared", "confused", "calm", "scheming"]
 
                     # Prompt asks LLM who is speaking (1, 2, or both) and their emotions
@@ -532,22 +485,11 @@ def chat(request, slug):
                         '{ "speaking": "1" or "2" or "both", "emotion_1": "...", "emotion_2": "..." }'
                     )
 
-                    class_response = requests.post(
-                        url="https://openrouter.ai/api/v1/chat/completions",
-                        headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}"},
-                        json={
-                            "model": MODEL_NAME,
-                            "messages": [
-                                {"role": "system", "content": classification_system_prompt},
-                                {"role": "user", "content": reply}
-                            ],
-                            "max_tokens": 100,
-                            "temperature": 0.0,
-                            "response_format": { "type": "json_object" }
-                        },
-                        timeout=5
-                    )
-                    class_data = json.loads(class_response.json()["choices"][0]["message"]["content"])
+                    class_text = ai_client.complete(request.user, "emotion", [
+                        {"role": "system", "content": classification_system_prompt},
+                        {"role": "user", "content": reply}],
+                        max_tokens=100, temperature=0.0, response_format={"type": "json_object"})
+                    class_data = json.loads(class_text)
 
                     speaker = str(class_data.get("speaking", "1")).lower()
                     emotion_char_1 = class_data.get("emotion_1", "neutral")
@@ -583,41 +525,30 @@ def chat(request, slug):
 
                 save_messages(messages)
 
-                # ---Робота зі звуком----
-
-                OPENROUTER_API_KEY = get_openrouter_key(request.user)
-                #ELEVENLABS_API_KEY = get_elevenlabs_key(request.user)
-                #audio_path = narrate_text_backend(reply, request.user, character.name, OPENROUTER_API_KEY, ELEVENLABS_API_KEY, output_dir="media/audio_files")
-
-                try:
-                    # спробуємо отримати ElevenLabs ключ
-                    ELEVENLABS_API_KEY = get_elevenlabs_key(request.user)
-
-                    # якщо ключ є, виконуємо функцію
-                    if ELEVENLABS_API_KEY:
-                        OPENROUTER_API_KEY = get_openrouter_key(request.user)
-                        use_mult_audio = character.is_mult or (char_count > 1)
+                # --- Voice (ElevenLabs), only if the user has a key ---
+                audio_path = ""
+                ELEVENLABS_API_KEY = get_elevenlabs_key(request.user)
+                if ELEVENLABS_API_KEY:
+                    try:
                         audio_path = narrate_text_backend(
                             reply,
                             request.user,
                             character.name,
-                            OPENROUTER_API_KEY,
                             ELEVENLABS_API_KEY,
                             narrator_voice_id=character.eleven_voice_narr_id or None,
                             character_voice_id=character.eleven_voice_char_id or None,
                             second_character_voice_id=character.eleven_voice_second_id or None,
-                            MODEL_NAME=MODEL_NAME,
                             output_dir="media/audio_files",
-                            is_mult=use_mult_audio
+                            is_mult=character.is_mult or (char_count > 1),
                         )
-                    else:
-                        audio_path = ""  # ключ порожній → нічого не генеруємо
+                    except Exception as e:
+                        print(f"Voice generation failed: {e}")
 
-                except Exception as e:
-                    # якщо сталася будь-яка помилка
-                    print("Exception occured!")
-                    audio_path = ""
-
+                # Automatic summary: tell the page to run one in the background
+                summary_task = ai_client.get_task_setting(request.user, "summary")
+                summarized = chat_state["summary_upto"] or 0
+                summary_due = (summary_task.mode == summary_task.MODE_AUTO
+                               and len(messages) - summarized >= summary_task.interval)
 
                 return JsonResponse({
                     "reply": reply,
@@ -627,6 +558,7 @@ def chat(request, slug):
                     "char_count": char_count,
                     "audio_url": audio_path,
                     "lore": lore_report,
+                    "summary_due": summary_due,
                 })
 
     # --- GET request ---

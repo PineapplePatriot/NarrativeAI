@@ -260,6 +260,7 @@ function sendMessage() {
     })
         .then(response => response.json())
         .then(data => {
+            if (data.error) { showChatError(data.error); return; }
             let avatarToUse = data.photo_url;
 
 
@@ -269,6 +270,7 @@ function sendMessage() {
             addMessage('assistant', data.reply, avatarToUse);
             updateCharacterImages(data.photo_url, data.photo_second, data.char_count);
             renderLore(data.lore);
+            if (data.summary_due) generateSummary('append', true);
 
             if (data.photo_url) {
                 const characterSprite = document.querySelector('.character-sprite');
@@ -571,6 +573,16 @@ function populateFields() {
 populateFields();
 
 // Toggle Tools
+// Shows a failed generation in the chat; the user's message is kept, so Regenerate retries it
+function showChatError(text) {
+    const div = document.createElement('div');
+    div.className = 'chat-error';
+    div.textContent = `⚠️ ${text} — press Regenerate to try again.`;
+    messagesContainer.insertBefore(div, typingMessage);
+    setTimeout(() => div.remove(), 15000);
+    scrollToBottom();
+}
+
 // Shows which worldbook entries were added to the last prompt, and why
 function renderLore(lore) {
     const box = document.getElementById('loreDisplay');
@@ -599,10 +611,11 @@ function saveContext() {
 
 // Actions
 // Update this function signature to accept 'mode'
-function generateSummary(mode) {
+// auto = started after a reply because the summary is set to run every N messages
+function generateSummary(mode, auto = false) {
     const summaryBox = document.getElementById('summaryDisplay');
     const originalText = summaryBox.innerText;
-    summaryBox.innerText = mode === 'regen' ? "Regenerating full summary..." : "Appending recent events...";
+    summaryBox.innerText = mode === 'regen' ? "Regenerating full summary..." : (auto ? "Updating summary automatically..." : "Appending recent events...");
 
     // Lock buttons roughly
     const btns = document.querySelectorAll('.tool-section .tool-action-btn');
@@ -619,7 +632,8 @@ function generateSummary(mode) {
                 document.getElementById('summaryDisplay').innerText = d.summary;
             } else {
                 summaryBox.innerText = originalText; // Revert on error
-                alert(d.error);
+                if (auto) console.warn('Automatic summary failed:', d.error);
+                else alert(d.error);
             }
         })
         .finally(() => {
@@ -835,7 +849,11 @@ function confirmRegenerate() {
     closeRegenModal();
     isGenerating = true; typingMessage.style.display = 'flex'; scrollToBottom();
     fetch(window.location.href, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') }, body: JSON.stringify({ action: 'regenerate', guidance: g }) })
-        .then(r => r.json()).then(d => { addMessage('assistant', d.reply); updateCharacterImages(d.photo_url, d.photo_second, d.char_count); renderLore(d.lore); })
+        .then(r => r.json()).then(d => {
+            if (d.error) { showChatError(d.error); return; }
+            addMessage('assistant', d.reply); updateCharacterImages(d.photo_url, d.photo_second, d.char_count); renderLore(d.lore);
+            if (d.summary_due) generateSummary('append', true);
+        })
         .finally(() => { isGenerating = false; typingMessage.style.display = 'none'; updateMessageIndices(); });
 }
 

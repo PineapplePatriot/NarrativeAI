@@ -271,28 +271,36 @@ class ChatPromptTests(TestCase):
         self.addCleanup(override.disable)
 
         from mainapp.models import Character
-        from users.models import ApiConfig
+        from users.models import ConnectionProfile
 
         self.user = get_user_model().objects.create_user(username="chatter", password="pw12345!")
-        ApiConfig.objects.create(user=self.user, chat_key="test-key", or_model="test/model")
+        ConnectionProfile.objects.create(user=self.user, name="Main", api_key="test-key", model="test/model")
         self.character = Character.objects.create(name="Rose", slug="rose-chat-test", author=self.user,
                                                   initial_message="Hello, traveller.")
         self.client.force_login(self.user)
         self.url = reverse("chat", args=[self.character.slug])
-        self.sent = []  # payloads of the main chat calls
+        self.sent = []      # payloads of the main chat calls
+        self.all_calls = []  # every payload, including emotion/summary calls
+        self.reply_status = 200
 
     def fake_post(self, url, headers=None, json=None, timeout=None):
         from unittest import mock
-        if json and "response_format" not in json:  # skip the emotion classifier call
+        self.all_calls.append(json)
+        first = json["messages"][0]["content"]
+        is_emotion = "response_format" in json
+        is_summary = first.startswith(("Existing summary", "Summarize this entire"))
+        if not (is_emotion or is_summary):
             self.sent.append(json)
         resp = mock.Mock()
-        resp.json.return_value = {"choices": [{"message": {"content": "A reply."}}]}
-        resp.raise_for_status.return_value = None
+        resp.status_code = self.reply_status
+        payload = ({"choices": [{"message": {"content": "A reply."}}]} if self.reply_status < 400
+                   else {"error": {"message": "Invalid credentials"}})
+        resp.json.return_value = payload
         return resp
 
     def post(self, data):
         from unittest import mock
-        with mock.patch("mainapp.views.requests.post", side_effect=self.fake_post):
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=self.fake_post):
             return self.client.post(self.url, json.dumps(data), content_type="application/json")
 
     def saved_messages(self):
@@ -319,3 +327,169 @@ class ChatPromptTests(TestCase):
         self.assertEqual([m[0] for m in after], ["assistant", "user", "assistant"])
         self.assertFalse(any(m[0] == "user" and not m[2] for m in after))
         self.assertEqual(self.sent[-1]["messages"][-1], {"role": "user", "content": "Hi!"})
+
+    def test_ai_error_is_shown_and_user_message_kept(self):
+        self.reply_status = 401
+        resp = self.post({"action": "chat", "message": "Hello?"})
+        self.assertEqual(resp.status_code, 502)
+        self.assertIn("Invalid credentials", resp.json()["error"])
+        self.assertEqual([m[0] for m in self.saved_messages()], ["assistant", "user"])
+        # Regenerate then answers the kept message
+        self.reply_status = 200
+        self.post({"action": "regenerate"})
+        self.assertEqual([m[0] for m in self.saved_messages()], ["assistant", "user", "assistant"])
+
+    def test_emotion_detection_can_be_turned_off(self):
+        from users.models import TaskSetting
+        self.post({"action": "chat", "message": "Hi"})
+        self.assertTrue(any("response_format" in c for c in self.all_calls))
+        TaskSetting.objects.create(user=self.user, task="emotion", enabled=False)
+        self.all_calls.clear()
+        self.post({"action": "chat", "message": "Hi again"})
+        self.assertFalse(any("response_format" in c for c in self.all_calls))
+
+    def test_summary_append_only_covers_new_messages(self):
+        self.post({"action": "chat", "message": "We enter the cave."})
+        self.post({"action": "summarize", "mode": "append"})
+        summary_call = self.all_calls[-1]["messages"][1]["content"]
+        self.assertIn("We enter the cave.", summary_call)
+
+        self.post({"action": "chat", "message": "A dragon wakes up."})
+        self.post({"action": "summarize", "mode": "append"})
+        summary_call = self.all_calls[-1]["messages"][1]["content"]
+        self.assertIn("A dragon wakes up.", summary_call)
+        self.assertNotIn("We enter the cave.", summary_call)
+
+        resp = self.post({"action": "summarize", "mode": "append"})
+        self.assertFalse(resp.json()["success"])  # nothing new
+
+    def test_automatic_summary_is_flagged_when_due(self):
+        from users.models import TaskSetting
+        TaskSetting.objects.create(user=self.user, task="summary", mode="auto", interval=4)
+        first = self.post({"action": "chat", "message": "One"}).json()  # greeting + 2 = 3 messages
+        self.assertFalse(first["summary_due"])
+        second = self.post({"action": "chat", "message": "Two"}).json()  # 5 messages
+        self.assertTrue(second["summary_due"])
+
+    def test_chat_page_redirects_without_connection(self):
+        from users.models import ConnectionProfile
+        ConnectionProfile.objects.filter(user=self.user).delete()
+        resp = self.client.get(self.url)
+        self.assertRedirects(resp, reverse("users:api_config") + f"?next={self.url}", fetch_redirect_response=False)
+
+
+class TaskRoutingTests(TestCase):
+    def setUp(self):
+        from users.models import ConnectionProfile
+        self.user = get_user_model().objects.create_user(username="router", password="pw12345!")
+        self.main = ConnectionProfile.objects.create(user=self.user, name="Main", api_key="k1", model="big/model")
+        self.cheap = ConnectionProfile.objects.create(user=self.user, name="Cheap", api_key="k2", model="small/model")
+
+    def test_task_without_setting_uses_main(self):
+        from mainapp.ai_client import resolve
+        self.assertEqual(resolve(self.user, "summary"), (self.main, "big/model"))
+
+    def test_task_follows_main_chat_model_override(self):
+        from mainapp.ai_client import resolve
+        from users.models import TaskSetting
+        TaskSetting.objects.create(user=self.user, task="chat", profile=self.main, model="big/other")
+        self.assertEqual(resolve(self.user, "summary"), (self.main, "big/other"))
+
+    def test_task_with_own_profile_and_override(self):
+        from mainapp.ai_client import resolve
+        from users.models import TaskSetting
+        TaskSetting.objects.create(user=self.user, task="summary", profile=self.cheap)
+        self.assertEqual(resolve(self.user, "summary"), (self.cheap, "small/model"))
+        TaskSetting.objects.filter(task="summary").update(model="small/v2")
+        self.assertEqual(resolve(self.user, "summary"), (self.cheap, "small/v2"))
+
+    def test_request_goes_to_profile_url_with_its_key(self):
+        from unittest import mock
+        from mainapp.ai_client import complete
+        from users.models import ConnectionProfile, TaskSetting
+        local = ConnectionProfile.objects.create(user=self.user, name="Local", provider="openai_compatible",
+                                                 base_url="http://localhost:5001/v1/", model="local-model")
+        TaskSetting.objects.create(user=self.user, task="emotion", profile=local)
+        with mock.patch("mainapp.ai_client.requests.post") as post:
+            post.return_value.status_code = 200
+            post.return_value.json.return_value = {"choices": [{"message": {"content": "ok"}}]}
+            self.assertEqual(complete(self.user, "emotion", [], temperature=0, max_tokens=None), "ok")
+        url, = post.call_args.args
+        self.assertEqual(url, "http://localhost:5001/v1/chat/completions")
+        self.assertNotIn("Authorization", post.call_args.kwargs["headers"])
+        self.assertEqual(post.call_args.kwargs["json"], {"model": "local-model", "messages": [], "temperature": 0})
+
+    def test_error_inside_200_response(self):
+        from unittest import mock
+        from mainapp.ai_client import AIError, complete
+        with mock.patch("mainapp.ai_client.requests.post") as post:
+            post.return_value.status_code = 200
+            post.return_value.json.return_value = {"error": {"message": "Model is overloaded"}}
+            with self.assertRaisesMessage(AIError, "Model is overloaded"):
+                complete(self.user, "chat", [])
+
+    def test_no_connection(self):
+        from mainapp.ai_client import NoConnection, complete
+        other = get_user_model().objects.create_user(username="nobody", password="pw12345!")
+        with self.assertRaises(NoConnection):
+            complete(other, "chat", [])
+
+
+class ConnectionsPageTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(username="conn", password="pw12345!")
+        self.client.force_login(self.user)
+        self.url = reverse("users:api_config")
+
+    def save(self, data):
+        return self.client.post(self.url, json.dumps(data), content_type="application/json")
+
+    def test_first_setup_and_key_kept_when_blank(self):
+        from users.models import ConnectionProfile, TaskSetting
+        resp = self.save({"profiles": [{"id": "new-1", "name": "Main", "provider": "openrouter",
+                                        "api_key": "sk-or-secret-1234", "model": "a/b"}], "tasks": []})
+        self.assertEqual(resp.status_code, 200, resp.content)
+        profile = ConnectionProfile.objects.get(user=self.user)
+        self.assertEqual(TaskSetting.objects.get(user=self.user, task="chat").profile, profile)
+        # The key never goes back to the browser
+        self.assertNotIn("sk-or-secret", resp.content.decode())
+        self.assertNotIn("sk-or-secret", self.client.get(self.url).content.decode())
+
+        self.save({"profiles": [{"id": profile.id, "name": "Main", "provider": "openrouter",
+                                 "api_key": "", "model": "a/c"}], "tasks": []})
+        profile.refresh_from_db()
+        self.assertEqual((profile.api_key, profile.model), ("sk-or-secret-1234", "a/c"))
+
+    def test_task_can_point_at_new_profile(self):
+        from users.models import TaskSetting
+        resp = self.save({
+            "profiles": [
+                {"id": "new-1", "name": "Main", "provider": "openrouter", "api_key": "k", "model": "big"},
+                {"id": "new-2", "name": "Cheap", "provider": "openrouter", "api_key": "k", "model": "small"},
+            ],
+            "tasks": [{"task": "summary", "profile_id": "new-2", "model": "", "mode": "auto", "interval": 6}],
+        })
+        self.assertEqual(resp.status_code, 200, resp.content)
+        ts = TaskSetting.objects.get(user=self.user, task="summary")
+        self.assertEqual((ts.profile.name, ts.mode, ts.interval), ("Cheap", "auto", 6))
+
+    def test_validation(self):
+        resp = self.save({"profiles": [{"id": "new-1", "name": "Main", "provider": "openrouter",
+                                        "api_key": "", "model": "a/b"}]})
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("API key", resp.json()["error"])
+        resp = self.save({"profiles": [{"id": "new-1", "name": "Local", "provider": "openai_compatible",
+                                        "base_url": "localhost", "model": "m"}]})
+        self.assertIn("base URL", resp.json()["error"])
+
+    def test_removing_profile_resets_tasks(self):
+        from users.models import ConnectionProfile, TaskSetting
+        self.save({"profiles": [
+            {"id": "new-1", "name": "Main", "provider": "openrouter", "api_key": "k", "model": "big"},
+            {"id": "new-2", "name": "Cheap", "provider": "openrouter", "api_key": "k", "model": "small"}],
+            "tasks": [{"task": "summary", "profile_id": "new-2"}]})
+        main = ConnectionProfile.objects.get(name="Main")
+        self.save({"profiles": [{"id": main.id, "name": "Main", "provider": "openrouter", "model": "big"}],
+                   "tasks": [{"task": "summary", "profile_id": None}]})
+        self.assertIsNone(TaskSetting.objects.get(user=self.user, task="summary").profile)
+        self.assertEqual(ConnectionProfile.objects.filter(user=self.user).count(), 1)

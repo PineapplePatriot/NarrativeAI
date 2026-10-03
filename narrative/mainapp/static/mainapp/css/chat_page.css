@@ -1261,3 +1261,14 @@ body {
 .lore-box { max-height: 180px; overflow-y: auto; }
 .lore-row { padding: 4px 0; border-bottom: 1px solid rgba(255, 255, 255, .06); }
 .lore-row:last-child { border-bottom: none; }
+
+.chat-error {
+    margin: 8px auto;
+    max-width: 80%;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(244, 63, 94, .5);
+    background: rgba(244, 63, 94, .12);
+    color: #fecdd3;
+    font-size: .9rem;
+}
