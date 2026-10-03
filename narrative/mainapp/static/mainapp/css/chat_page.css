@@ -1405,3 +1405,16 @@ body {
     animation: stream-blink 1s steps(2, start) infinite;
 }
 @keyframes stream-blink { to { visibility: hidden; } }
+
+/* ---------- Chats drawer ---------- */
+.chat-title-line { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.branch-note { color: var(--text-muted); font-size: 0.85em; }
+.header-btn.active { border-color: var(--accent-1); }
+.chat-card.current { border-color: var(--accent-1); }
+.chat-card header { gap: 6px; }
+.chat-card .chat-name { color: var(--text-primary); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-card .chat-name:hover { text-decoration: underline; }
+.chat-card header span { display: flex; gap: 4px; flex: 0 0 auto; }
+.icon-btn.small { padding: 0 6px; font-size: 0.8rem; }
+.chat-preview { font-size: 0.82rem; color: var(--text-secondary); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.chat-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }

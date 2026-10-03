@@ -8,8 +8,8 @@ from mainapp.trackers import (normalize_config as normalize_tracker_config,
                               format_for_prompt as format_trackers)
 
 
-def build_ai_request(user, character: Character, worldbook_slug=None, message: str = None, guidance=None,
-                     persistent_guides=None, summary=None):
+def build_ai_request(user, character: Character, chat=None, worldbook_slug=None, message: str = None,
+                     guidance=None, persistent_guides=None, summary=None):
     """
     Collects the per-message context that fills a preset's slots: lore matches,
     story trackers, summary, the manual World State notes and the director's note.
@@ -19,18 +19,10 @@ def build_ai_request(user, character: Character, worldbook_slug=None, message: s
     """
     system_prompts = {}
 
-    # Recent chat from the file (the new message is not saved yet)
-    all_messages = []
-    if character.chat_log_file and hasattr(character.chat_log_file, "path"):
-        try:
-            with open(character.chat_log_file.path, "r", encoding="utf-8") as f:
-                all_messages = json.load(f)
-        except Exception:
-            all_messages = []
-    # Chat logs are saved as {"messages": [...], "summary": ..., ...}; very old ones as a bare list
-    chat_file_data = all_messages if isinstance(all_messages, dict) else {}
-    if isinstance(all_messages, dict):
-        all_messages = all_messages.get("messages", [])
+    # Recent chat from the chat's file (the new message is not saved yet)
+    from mainapp import chats
+    chat_file_data = chats.read(chat) if chat is not None else {}
+    all_messages = chat_file_data.get("messages", [])
 
     last_user_message_text = message
     if message:

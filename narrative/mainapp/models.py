@@ -177,3 +177,20 @@ class Preset(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class Chat(models.Model):
+    """One conversation with a character. A character can have many; branches point to their parent."""
+    character = models.ForeignKey('Character', on_delete=models.CASCADE, related_name="chats")
+    title = models.CharField(max_length=200, default="Chat")
+    log_file = models.FileField(upload_to="chat_logs/", blank=True, null=True)
+    parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name="branches")
+    branch_point = models.PositiveIntegerField(null=True, blank=True, help_text="Messages copied from the parent")
+    time_create = models.DateTimeField(auto_now_add=True)
+    time_update = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-time_update"]
+
+    def __str__(self):
+        return f"{self.character.name}: {self.title}"

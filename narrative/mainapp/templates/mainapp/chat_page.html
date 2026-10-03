@@ -105,10 +105,11 @@
                     {% endif %}
                     <div class="character-details">
                         <h3>{{ character.name }}</h3>
-                        <p>{{ character.description|truncatechars:75 }}</p>
+                        <p class="chat-title-line"><span id="chatTitle">{{ chat.title }}</span>{% if chat.parent %} · <span class="branch-note">⑂ branched from “{{ chat.parent.title }}” at message {{ chat.branch_point }}</span>{% endif %}</p>
                     </div>
                 </div>
                 <div class="header-actions">
+                    <button class="header-btn" id="chatsBtn" onclick="Chats.toggle()" title="Your chats with {{ character.name }}">💬 Chats</button>
                     <button class="header-btn" onclick="openMediaModal('bg')"><svg class="icon" viewBox="0 0 24 24"><path d="M21,19V5C21,3.89 20.1,3 19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19M8.5,13.5L11,16.51L14.5,12L19,18H5L8.5,13.5Z"/></svg> BG</button>
                     <button class="header-btn" onclick="openMediaModal('music')"><svg class="icon" viewBox="0 0 24 24"><path d="M21,3V15.5A3.5,3.5 0 0,1 17.5,19A3.5,3.5 0 0,1 14,15.5A3.5,3.5 0 0,1 17.5,12C18.04,12 18.55,12.12 19,12.34V6.47L9,8.6V17.5A3.5,3.5 0 0,1 5.5,21A3.5,3.5 0 0,1 2,17.5A3.5,3.5 0 0,1 5.5,14C6.04,14 6.55,14.12 7,14.34V6L21,3Z"/></svg> Music</button>
                     <a href="{% url 'character' character.slug %}" class="header-btn">
@@ -384,9 +385,16 @@
         window.STREAM_REPLIES = {{ stream_replies|yesno:"true,false" }};
     </script>
     <aside class="tracker-panel" id="trackerPanel" hidden></aside>
+    <aside class="tracker-panel left chats-panel" id="chatsPanel" hidden>
+        <div class="tp-head"><strong>💬 Chats</strong><span><button class="icon-btn" onclick="Chats.create()">+ New chat</button><button class="icon-btn" onclick="Chats.toggle()">✕</button></span></div>
+        <div class="tp-body" id="chatsList"></div>
+        <div class="tp-foot">Each chat keeps its own messages, summary and trackers. The character, lorebooks and preset are shared.</div>
+    </aside>
+    {{ chat_list|json_script:"chats-data" }}
     {{ trackers_data|json_script:"trackers-data" }}
     <script src="{% static 'mainapp/js/trackers.js' %}?v={% now 'U' %}"></script>
     <script src="{% static 'mainapp/js/chat_page.js' %}?v={% now 'U' %}"></script>
+    <script src="{% static 'mainapp/js/chats.js' %}?v={% now 'U' %}"></script>
 
 </body>
 

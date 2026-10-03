@@ -24,7 +24,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
-from . import ai_client, presets, samplers, trackers
+from . import ai_client, chats, presets, samplers, trackers
 from .utils import build_ai_request, narrate_text_backend, get_elevenlabs_key
 from .lorebook import (
     normalize_book, load_worldbook, save_worldbook, activate, format_for_prompt, to_sillytavern,
@@ -64,18 +64,11 @@ def chat(request, slug):
                                 status=400)
         return redirect(f"{reverse('users:api_config')}?next={request.path}")
 
-    # --- Chat log file ---
-    if character.chat_log_file:
-        chat_file_path = character.chat_log_file.path
-    else:
-        username = request.user.username
-        filename = f"{username}_{character.slug}_chat.json"
-        #filename = f"{character.slug}_chat.json"
-        chat_dir = os.path.join(settings.MEDIA_ROOT, "chat_logs")
-        os.makedirs(chat_dir, exist_ok=True)
-        chat_file_path = os.path.join(chat_dir, filename)
-        character.chat_log_file.name = f"chat_logs/{filename}"
-        character.save()
+    # --- Which chat (a character can have many) ---
+    chat_obj = chats.current(character, request.GET.get("chat"))
+    if not chat_obj.log_file:
+        chats.write(chat_obj, {"messages": chats.greeting(character)})
+    chat_file_path = chat_obj.log_file.path
 
     chat_state = {
         "summary": "",
@@ -133,6 +126,7 @@ def chat(request, slug):
         }
         with open(chat_file_path, "w", encoding="utf-8") as f:
             json.dump(full_data, f, ensure_ascii=False, indent=2)
+        chat_obj.save(update_fields=["time_update"])
 
     messages = load_messages()
 
@@ -146,8 +140,28 @@ def chat(request, slug):
     if request.method == "POST":
         data = json.loads(request.body)
         action = data.get("action", "chat")
+        # --- Chats: list, new, rename, delete ---
+        if action in ("list_chats", "new_chat", "rename_chat", "delete_chat"):
+            go_to = None
+            if action == "new_chat":
+                go_to = chats.create(character).id
+            elif action in ("rename_chat", "delete_chat"):
+                target = character.chats.filter(id=data.get("id")).first()
+                if target is None:
+                    return JsonResponse({"success": False, "error": "No such chat."}, status=404)
+                if action == "rename_chat":
+                    target.title = (data.get("title") or "").strip()[:200] or target.title
+                    target.save(update_fields=["title"])
+                else:
+                    was_open = target.id == chat_obj.id
+                    chats.delete(target)
+                    if was_open:
+                        go_to = chats.current(character).id
+            return JsonResponse({"success": True, "chats": chats.summary_list(character, chat_obj.id),
+                                 "go_to": go_to})
+
         # Handle edit action
-        if action == "edit":
+        elif action == "edit":
             try:
                 index = int(data.get("index"))
                 new_text = data.get("text", "").strip()
@@ -404,6 +418,7 @@ def chat(request, slug):
                     prompt = build_ai_request(
                         request.user,
                         character,
+                        chat=chat_obj,
                         worldbook_slug=worldbook_slug,
                         message=user_message if action == "chat" else None,
                         guidance=guidance,                             # <--- INJECTION 1
@@ -646,6 +661,8 @@ def chat(request, slug):
         "user_avatar": user_avatar,
         "trackers_data": _tracker_page_data(request.user, character, chat_state["trackers"]),
         "stream_replies": presets.normalize(presets.get_active(request.user).data)["options"]["streaming"],
+        "chat": chat_obj,
+        "chat_list": chats.summary_list(character, chat_obj.id),
     }
 
     return render(request, "mainapp/chat_page.html", context)
@@ -697,16 +714,10 @@ def _preset_summary(obj):
 
 def _preset_preview(user, preset, character):
     """What the active chat with `character` would send right now with `preset`."""
-    chat_file = {}
-    if character.chat_log_file and os.path.exists(character.chat_log_file.path):
-        try:
-            with open(character.chat_log_file.path, "r", encoding="utf-8") as f:
-                loaded = json.load(f)
-                chat_file = loaded if isinstance(loaded, dict) else {"messages": loaded}
-        except (OSError, ValueError):
-            chat_file = {}
+    chat = chats.current(character)
+    chat_file = chats.read(chat)
     worldbook_slug = character.worldbook.slug if character.worldbook and character.worldbook.author == user else None
-    prompt = build_ai_request(user, character, worldbook_slug=worldbook_slug,
+    prompt = build_ai_request(user, character, chat=chat, worldbook_slug=worldbook_slug,
                               persistent_guides=chat_file.get("context_guides") or {},
                               summary=chat_file.get("summary") or "")
     history = [{"role": "assistant" if m[0] == "assistant" else "user", "content": m[2]}

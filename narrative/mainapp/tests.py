@@ -303,10 +303,9 @@ class ChatPromptTests(TestCase):
         with mock.patch("mainapp.ai_client.requests.post", side_effect=self.fake_post):
             return self.client.post(self.url, json.dumps(data), content_type="application/json")
 
-    def saved_messages(self):
-        self.character.refresh_from_db()
-        with open(self.character.chat_log_file.path, encoding="utf-8") as f:
-            return json.load(f)["messages"]
+    def saved_messages(self, chat=None):
+        from mainapp import chats
+        return chats.read(chat or self.character.chats.first())["messages"]
 
     def test_history_is_sent_once(self):
         self.post({"action": "chat", "message": "Where is the tower?"})
@@ -1105,3 +1104,76 @@ class PrivateMediaTests(SimpleTestCase):
         for path in ("/media/chat_logs/demo_rose_chat.json", "/media/worldbooks_json/x.json",
                      "/media/settings_json/a.json", "/media/chat_settings2/b.json"):
             self.assertEqual(self.client.get(path).status_code, 404, path)
+
+
+class MultipleChatsTests(ChatPromptTests):
+    def chat_url(self, chat):
+        return f"{self.url}?chat={chat.id}"
+
+    def post_to(self, chat, data):
+        from unittest import mock
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=self.fake_post):
+            return self.client.post(self.chat_url(chat), json.dumps(data), content_type="application/json")
+
+    def test_first_visit_creates_a_chat_with_the_greeting(self):
+        self.client.get(self.url)
+        self.assertEqual(self.character.chats.count(), 1)
+        self.assertEqual(self.saved_messages()[0][2], "Hello, traveller.")
+
+    def test_new_chat_starts_fresh_and_keeps_the_old_one(self):
+        self.post({"action": "chat", "message": "First chat message"})
+        first = self.character.chats.get()
+        data = self.post({"action": "new_chat"}).json()
+        second = self.character.chats.get(id=data["go_to"])
+        self.assertEqual(len(data["chats"]), 2)
+        self.assertEqual([m[2] for m in self.saved_messages(second)], ["Hello, traveller."])
+        self.post_to(second, {"action": "chat", "message": "Second chat message"})
+        self.assertIn("First chat message", [m[2] for m in self.saved_messages(first)])
+        self.assertNotIn("Second chat message", [m[2] for m in self.saved_messages(first)])
+        self.assertIn("Second chat message", [m[2] for m in self.saved_messages(second)])
+        # The history sent to the model is only this chat's
+        joined = "\n".join(m["content"] for m in self.sent[-1]["messages"])
+        self.assertNotIn("First chat message", joined)
+
+    def test_without_an_id_the_most_recent_chat_opens(self):
+        self.client.get(self.url)
+        first = self.character.chats.get()
+        second_id = self.post({"action": "new_chat"}).json()["go_to"]
+        self.post_to(first, {"action": "chat", "message": "Back to the first"})
+        page = self.client.get(self.url)
+        self.assertEqual(page.context["chat"].id, first.id)
+        page = self.client.get(f"{self.url}?chat={second_id}")
+        self.assertEqual(page.context["chat"].id, second_id)
+
+    def test_rename_and_delete(self):
+        self.client.get(self.url)
+        first = self.character.chats.get()
+        second_id = self.post({"action": "new_chat"}).json()["go_to"]
+        data = self.post_to(first, {"action": "rename_chat", "id": second_id, "title": "  Side quest "}).json()
+        self.assertIn("Side quest", [c["title"] for c in data["chats"]])
+        path = first.log_file.path
+        data = self.post_to(first, {"action": "delete_chat", "id": first.id}).json()
+        self.assertEqual(data["go_to"], second_id)
+        self.assertEqual(list(self.character.chats.values_list("id", flat=True)), [second_id])
+        import os
+        self.assertFalse(os.path.exists(path))
+
+    def test_other_characters_chats_are_off_limits(self):
+        from mainapp.models import Character
+        self.client.get(self.url)
+        other = Character.objects.create(name="Other", slug="other-chat-test", author=self.user)
+        self.client.get(reverse("chat", args=[other.slug]))
+        other_chat = other.chats.get()
+        self.assertEqual(self.client.get(f"{self.url}?chat={other_chat.id}").status_code, 404)
+        resp = self.post({"action": "delete_chat", "id": other_chat.id})
+        self.assertEqual(resp.status_code, 404)
+        self.assertTrue(other.chats.exists())
+
+    def test_old_single_log_becomes_chat_1(self):
+        from django.core.files.base import ContentFile
+        old = [["assistant", "10:00", "From the old days", "neutral"]]
+        self.character.chat_log_file.save("old.json", ContentFile(json.dumps(old)), save=True)
+        self.client.get(self.url)
+        chat = self.character.chats.get()
+        self.assertEqual(chat.title, "Chat 1")
+        self.assertEqual(self.saved_messages(chat)[0][2], "From the old days")
