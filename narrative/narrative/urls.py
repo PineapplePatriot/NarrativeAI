@@ -15,10 +15,15 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path, include
+from django.http import Http404
+from django.urls import path, include, re_path
 from narrative import settings
 from django.conf.urls.static import static
 from mainapp.views import index_page
+
+
+def private_media(request, *args):
+    raise Http404()
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -28,4 +33,10 @@ urlpatterns = [
 
 ]
 if settings.DEBUG:
+    # Private files live in media too (chat logs, lorebooks, old settings). They are only
+    # read by the app itself, so never hand them out by URL; everything else (sprites,
+    # backgrounds, music, voice clips) is served for the pages that show it.
+    urlpatterns += [
+        re_path(r"^media/(chat_logs|worldbooks_json|settings_json|chat_settings2)/", private_media),
+    ]
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

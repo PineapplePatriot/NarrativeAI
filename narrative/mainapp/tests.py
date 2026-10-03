@@ -1083,3 +1083,25 @@ class StreamChatTests(ChatPromptTests):
             resp = self.client.post(self.url, json.dumps({"action": "chat", "message": "Hi", "stream": True}),
                                     content_type="application/json")
         self.assertEqual(resp.json()["reply"], "A reply.")
+
+
+class CharacterAccessTests(ChatPromptTests):
+    def test_other_users_cannot_open_or_post_to_a_chat(self):
+        from users.models import ConnectionProfile
+        intruder = get_user_model().objects.create_user(username="intruder", password="pw12345!")
+        ConnectionProfile.objects.create(user=intruder, name="Main", api_key="k", model="m")
+        self.client.force_login(intruder)
+        self.assertEqual(self.client.get(self.url).status_code, 404)
+        resp = self.client.post(self.url, json.dumps({"action": "chat", "message": "hi"}),
+                                content_type="application/json")
+        self.assertEqual(resp.status_code, 404)
+        self.client.logout()
+        self.assertEqual(self.client.get(self.url).status_code, 302)  # to the login page
+
+
+@override_settings(DEBUG=True)
+class PrivateMediaTests(SimpleTestCase):
+    def test_chat_logs_and_lorebooks_are_not_served(self):
+        for path in ("/media/chat_logs/demo_rose_chat.json", "/media/worldbooks_json/x.json",
+                     "/media/settings_json/a.json", "/media/chat_settings2/b.json"):
+            self.assertEqual(self.client.get(path).status_code, 404, path)

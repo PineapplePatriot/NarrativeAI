@@ -54,7 +54,8 @@ import re
 
 @login_required
 def chat(request, slug):
-    character = get_object_or_404(Character, slug=slug)
+    # Only your own characters (and their chats) are reachable
+    character = get_object_or_404(Character, slug=slug, author=request.user)
 
     # A main AI connection is needed before chatting
     if not ai_client.has_connection(request.user):
