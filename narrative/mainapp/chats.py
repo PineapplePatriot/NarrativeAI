@@ -137,3 +137,54 @@ def version_info(messages):
     extras = _extras(messages[-1])
     versions = extras.get("swipes") or []
     return {"count": max(len(versions), 1), "current": extras.get("swipe", 0) if versions else 0}
+
+
+# --- Summary pieces: each summary run remembers which messages it covered ---
+# "summary_parts": [{"text", "from", "to"}] covers messages[from:to]. "summary" and
+# "summary_upto" are still written (joined text / end of the last piece) for older code.
+
+def summary_parts(data, message_count):
+    parts = data.get("summary_parts")
+    if isinstance(parts, list):
+        return [p for p in parts if isinstance(p, dict) and p.get("text")]
+    # Chats from before pieces: the whole summary is one piece
+    if data.get("summary"):
+        upto = data.get("summary_upto")
+        return [{"text": data["summary"], "from": 0,
+                 "to": upto if isinstance(upto, int) else message_count}]
+    return []
+
+
+def summary_text(parts):
+    return "\n\n".join(p["text"] for p in parts)
+
+
+def summary_upto(parts):
+    return parts[-1]["to"] if parts else 0
+
+
+def parts_within(parts, count):
+    """The pieces that only cover the first `count` messages (deleting messages drops the rest)."""
+    return [p for p in parts if p["to"] <= count]
+
+
+# --- Tracker snapshots: the tracker state after each update, by message count ---
+MAX_SNAPSHOTS = 40
+
+
+def add_snapshot(history, state, at):
+    history = [s for s in history if s.get("at") != at]
+    history.append({"at": at, "state": json.loads(json.dumps(state))})
+    return history[-MAX_SNAPSHOTS:]
+
+
+def trackers_at(history, current_state, count):
+    """Tracker state as it was with `count` messages, and the snapshots up to then."""
+    kept = [s for s in history if isinstance(s, dict) and s.get("at", 0) <= count]
+    if kept:
+        return json.loads(json.dumps(kept[-1]["state"])), kept
+    if history:  # snapshots exist, but all are from later messages
+        return {"values": {}, "locks": [], "upto": 0}, []
+    # No snapshots (older chats): keep the current state unless it was built from later messages
+    upto = (current_state or {}).get("upto") or 0
+    return (current_state if upto <= count else {"values": {}, "locks": [], "upto": 0}), []

@@ -314,6 +314,7 @@
         update,
         open() { setPanelOpen(true); renderPanel(); },
         afterReply(resp) { if (resp && resp.trackers_due) update(); },
+        setState(next) { if (next) { state = next; render(); } },  // e.g. rewound after deleting messages
         get enabled() { return enabled.length > 0; },
     };
 

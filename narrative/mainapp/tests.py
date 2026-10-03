@@ -1272,3 +1272,117 @@ class SwipeStreamTests(StreamChatTests):
             iter(resp.streaming_content)
             resp.close()
         self.assertEqual(self.saved_messages()[-1][2], "Once upon a time.")
+
+
+class SummaryPartsAndBranchTests(TrackerChatTests):
+    """Summary pieces follow deletes, trackers rewind, and branches take what they need."""
+
+    def setUp(self):
+        super().setUp()
+        self.summaries = iter(f"Summary {n}." for n in range(1, 20))
+
+    def fake_post(self, url, headers=None, json=None, timeout=None, **kwargs):
+        first = json["messages"][0]["content"]
+        resp = super().fake_post(url, headers, json, timeout)
+        if first.startswith(("Existing summary", "Summarize this entire")):
+            resp.json.return_value = {"choices": [{"message": {"content": next(self.summaries)}}]}
+        return resp
+
+    def chat_file(self, chat=None):
+        from mainapp import chats
+        return chats.read(chat or self.character.chats.first())
+
+    def build_story(self):
+        """greeting, user, reply (summary 1 covers 3) + user, reply (summary 2 covers 5)."""
+        self.post({"action": "chat", "message": "One"})
+        self.post({"action": "summarize"})
+        self.post({"action": "update_trackers"})          # snapshot at 3
+        self.post({"action": "chat", "message": "Two"})
+        self.post({"action": "summarize"})
+        self.tracker_reply = '{"world": {"location": "Cellar"}}'
+        self.post({"action": "update_trackers"})          # snapshot at 5
+
+    def test_summary_is_kept_in_pieces(self):
+        self.build_story()
+        data = self.chat_file()
+        self.assertEqual([(p["from"], p["to"]) for p in data["summary_parts"]], [(0, 3), (3, 5)])
+        self.assertEqual(data["summary"], "Summary 1.\n\nSummary 2.")
+        self.assertEqual(data["summary_upto"], 5)
+        # The second run only sent the new messages, with the first piece as context
+        call = [c for c in self.all_calls if c["messages"][0]["content"].startswith("Existing summary")][-1]
+        self.assertIn("Summary 1.", call["messages"][0]["content"])
+        self.assertNotIn("One", call["messages"][1]["content"])
+        self.assertIn("Two", call["messages"][1]["content"])
+
+    def test_delete_drops_summary_pieces_and_rewinds_trackers(self):
+        self.build_story()
+        resp = self.post({"action": "delete", "index": 4}).json()  # removes the second reply
+        self.assertEqual(resp["summary"], "Summary 1.")
+        self.assertEqual(resp["summary_upto"], 3)
+        self.assertEqual(resp["trackers"]["values"]["world"]["location"], "Alchemy lab")
+        data = self.chat_file()
+        self.assertEqual(len(data["summary_parts"]), 1)
+        self.assertEqual([s["at"] for s in data["tracker_history"]], [3])
+        # Deleting into the first piece clears the summary
+        resp = self.post({"action": "delete", "index": 1}).json()
+        self.assertEqual((resp["summary"], resp["summary_upto"]), ("", 0))
+        self.assertEqual(resp["trackers"]["values"], {})
+
+    def test_regen_replaces_all_pieces(self):
+        self.build_story()
+        data = self.post({"action": "summarize", "mode": "regen"}).json()
+        self.assertEqual(data["summary"], "Summary 3.")
+        self.assertEqual([(p["from"], p["to"]) for p in self.chat_file()["summary_parts"]], [(0, 5)])
+
+    def test_branch_info(self):
+        self.build_story()
+        info = self.post({"action": "branch_info", "index": 3}).json()  # messages 1-4
+        self.assertEqual(info["count"], 4)
+        self.assertEqual(info["summary"], "Summary 1.")  # piece 2 covered message 5
+        self.assertTrue(info["has_trackers"])
+        self.assertEqual(info["summary_model"], "test/model")
+        self.assertFalse(self.post({"action": "branch_info", "index": 99}).json()["success"])
+
+    def branch(self, **body):
+        from unittest import mock
+        original = self.character.chats.get(parent=None)  # the address names the chat in the browser
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=self.fake_post):
+            resp = self.client.post(f"{self.url}?chat={original.id}",
+                                    json.dumps({"action": "branch", "index": 3, **body}),
+                                    content_type="application/json").json()
+        self.assertTrue(resp["success"], resp)
+        from mainapp.models import Chat
+        return Chat.objects.get(id=resp["go_to"])
+
+    def test_branch_transfer(self):
+        self.build_story()
+        original = self.character.chats.get()
+        branch = self.branch(summary_mode="transfer")
+        self.assertEqual((branch.parent, branch.branch_point), (original, 4))
+        self.assertEqual(branch.title, "Chat 1 ⑂ 1")
+        data = self.chat_file(branch)
+        self.assertEqual([m[2] for m in data["messages"]][1:], ["One", "A reply.", "Two"])
+        self.assertEqual(data["summary"], "Summary 1.")
+        self.assertEqual(data["trackers"]["values"]["world"]["location"], "Alchemy lab")
+        # The original is untouched
+        self.assertEqual(len(self.chat_file(original)["messages"]), 5)
+        self.assertEqual(self.chat_file(original)["summary_upto"], 5)
+
+    def test_branch_transfer_edited_rerun_and_clear(self):
+        self.build_story()
+        data = self.chat_file(self.branch(summary_mode="transfer", summary_text="My own words."))
+        self.assertEqual(data["summary_parts"], [{"text": "My own words.", "from": 0, "to": 3}])
+        calls = len(self.all_calls)
+        data = self.chat_file(self.branch(summary_mode="rerun"))
+        self.assertEqual(data["summary_parts"], [{"text": "Summary 3.", "from": 0, "to": 4}])
+        self.assertEqual(len(self.all_calls), calls + 1)
+        data = self.chat_file(self.branch(summary_mode="clear", trackers_mode="clear"))
+        self.assertEqual((data["summary"], data["summary_parts"], data["trackers"]), ("", [], {}))
+        self.assertEqual(self.character.chats.get(title="Chat 1").branches.count(), 3)
+
+    def test_branch_keeps_swipes_and_page_shows_it(self):
+        self.build_story()
+        branch = self.branch(summary_mode="clear")
+        page = self.client.get(f"{self.url}?chat={branch.id}")
+        self.assertContains(page, "at message 4")
+        self.assertEqual(page.context["chat"].id, branch.id)

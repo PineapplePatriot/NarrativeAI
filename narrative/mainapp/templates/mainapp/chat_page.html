@@ -105,7 +105,7 @@
                     {% endif %}
                     <div class="character-details">
                         <h3>{{ character.name }}</h3>
-                        <p class="chat-title-line"><span id="chatTitle">{{ chat.title }}</span>{% if chat.parent %} · <span class="branch-note">⑂ branched from “{{ chat.parent.title }}” at message {{ chat.branch_point }}</span>{% endif %}</p>
+                        <p class="chat-title-line"><span id="chatTitle">{{ chat.title }}</span>{% if chat.parent %} · <a class="branch-note" href="?chat={{ chat.parent.id }}" title="Open the chat this branched from">⑂ from “{{ chat.parent.title }}” at message {{ chat.branch_point }}</a>{% endif %}</p>
                     </div>
                 </div>
                 <div class="header-actions">
@@ -148,6 +148,11 @@
                                     <path
                                         d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
                                 </svg>
+                            </button>
+
+                            <button class="message-btn branch" type="button" data-action="branch"
+                                data-index="{{ forloop.counter0 }}" title="Branch: a new chat from this message">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M6 3a3 3 0 0 0-1 5.83v6.34A3 3 0 1 0 7 15.17V13.5c0-.83.67-1.5 1.5-1.5h5A3.5 3.5 0 0 0 17 8.5v-.67a3 3 0 1 0-2 0v.67c0 .83-.67 1.5-1.5 1.5h-5c-.53 0-1.03.1-1.5.28V8.83A3 3 0 0 0 6 3z"/></svg>
                             </button>
 
                             <button class="message-btn delete" type="button" data-action="delete"
@@ -257,6 +262,7 @@
                     <div class="tool-section">
                         <span class="tool-label">📚 Summary</span>
                         <div class="summary-box" id="summaryDisplay">{{ summary|default:"No summary yet." }}</div>
+                        <div class="summary-coverage" id="summaryCoverage" data-upto="{{ summary_upto|default:0 }}"></div>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                             <button class="tool-action-btn" onclick="generateSummary('append')">➕ Append Recent</button>
                             <button class="tool-action-btn" onclick="generateSummary('regen')">🔄 Regenerate All</button>
@@ -351,6 +357,35 @@
                 <button class="modal-btn secondary" style="width:100%; margin-top:10px;" onclick="resetMedia()">Reset / None</button>
             </div>
         </div>
+    </div>
+
+    <div class="modal-overlay" id="branchModal">
+    <div class="modal branch-modal">
+        <div class="modal-header">
+            <div class="modal-title">⑂ Branch from message <span id="branchCount"></span></div>
+        </div>
+        <div class="modal-content">
+            <p class="branch-help">A new chat starts with messages 1–<span class="branch-n"></span>. This chat stays as it is.</p>
+            <div class="branch-group">
+                <div class="branch-label">📚 Summary</div>
+                <label class="branch-option"><input type="radio" name="branchSummary" value="transfer"> <span><strong>Transfer</strong> the summary of these messages (you can edit it below)</span></label>
+                <textarea id="branchSummaryText" class="branch-textarea" rows="5"></textarea>
+                <label class="branch-option"><input type="radio" name="branchSummary" value="rerun"> <span><strong>Re-run</strong>: summarize all <span class="branch-n"></span> messages again with <span id="branchModel"></span>. <em>Costs tokens</em>, more for long chats.</span></label>
+                <label class="branch-option"><input type="radio" name="branchSummary" value="clear"> <span><strong>Leave clear</strong>: start without a summary</span></label>
+            </div>
+            <div class="branch-group">
+                <div class="branch-label">📊 Trackers</div>
+                <label class="branch-option"><input type="radio" name="branchTrackers" value="copy" checked> <span><strong>Copy</strong> them as they were at this message</span></label>
+                <label class="branch-option"><input type="radio" name="branchTrackers" value="clear"> <span><strong>Start empty</strong></span></label>
+                <p class="branch-help" id="branchTrackersNote"></p>
+            </div>
+            <p class="branch-error" id="branchError"></p>
+        </div>
+        <div class="modal-actions">
+            <button class="modal-btn secondary" onclick="closeBranchModal()">Cancel</button>
+            <button class="modal-btn primary" id="branchConfirm" onclick="confirmBranch()">Create branch</button>
+        </div>
+    </div>
     </div>
 
     <div class="modal-overlay" id="regenModal">

@@ -52,6 +52,20 @@ def characters_list(request):
 
 import re
 
+def _summarize(user, messages, existing=""):
+    """One summary piece for `messages`, continuing `existing` when there is one."""
+    if existing:
+        sys_prompt = (f"Existing summary: {existing}\n\nTask: Read the recent conversation below "
+                      "and create a short paragraph summarizing ONLY the new events, advancing the existing summary.")
+    else:
+        sys_prompt = ("Summarize this entire roleplay story concisely. Capture key events and current status. "
+                      "Be clear and precise, focus on describing events and reactions in detail. "
+                      "The summary should include Tone, Setting, Events, Current emotional state.")
+    prompt_text = "\n".join(f"{m[0]}: {m[2]}" for m in messages)
+    return ai_client.complete(user, "summary", [{"role": "system", "content": sys_prompt},
+                                                {"role": "user", "content": prompt_text}])
+
+
 def _photo(character, prefix, emotion):
     """The sprite for an emotion, falling back to neutral."""
     image = getattr(character, f"{prefix}_{emotion}", None) or getattr(character, f"{prefix}_neutral", None)
@@ -77,13 +91,20 @@ def chat(request, slug):
     chat_file_path = chat_obj.log_file.path
 
     chat_state = {
-        "summary": "",
-        "summary_upto": None,  # number of messages already covered by the summary
-        "trackers": {},        # tracker values, locks and "upto" (see mainapp/trackers.py)
+        "summary": "",          # all summary pieces joined (what the prompt gets)
+        "summary_upto": 0,      # number of messages already covered by the summary
+        "summary_parts": [],    # [{"text", "from", "to"}], see chats.summary_parts
+        "trackers": {},         # tracker values, locks and "upto" (see mainapp/trackers.py)
+        "tracker_history": [],  # snapshots of the trackers by message count (for deletes and branches)
         "context_guides": {},
         "current_bg": "",
         "current_music": {}
     }
+
+    def set_summary(parts):
+        chat_state["summary_parts"] = parts
+        chat_state["summary"] = chats.summary_text(parts)
+        chat_state["summary_upto"] = chats.summary_upto(parts)
 
     def load_messages():
         if os.path.exists(chat_file_path):
@@ -92,9 +113,9 @@ def chat(request, slug):
                     data = json.load(f)
 
                     if isinstance(data, dict):
-                        chat_state["summary"] = data.get("summary", "")
-                        chat_state["summary_upto"] = data.get("summary_upto")
+                        set_summary(chats.summary_parts(data, len(data.get("messages") or [])))
                         chat_state["trackers"] = data.get("trackers") or {}
+                        chat_state["tracker_history"] = data.get("tracker_history") or []
                         chat_state["context_guides"] = data.get("context_guides", {})
                         chat_state["current_bg"] = data.get("current_bg", "")
                         chat_state["current_music"] = data.get("current_music", {})
@@ -126,7 +147,9 @@ def chat(request, slug):
             "messages": messages,
             "summary": chat_state["summary"],
             "summary_upto": chat_state["summary_upto"],
+            "summary_parts": chat_state["summary_parts"],
             "trackers": chat_state["trackers"],
+            "tracker_history": chat_state["tracker_history"],
             "context_guides": chat_state["context_guides"],
             "current_bg": chat_state["current_bg"],
             "current_music": chat_state["current_music"]
@@ -196,8 +219,15 @@ def chat(request, slug):
                 if 0 <= index < len(messages):
                     # Delete message and all subsequent messages
                     messages = messages[:index]
+                    # Summary pieces that covered deleted messages go; trackers rewind to before them
+                    set_summary(chats.parts_within(chat_state["summary_parts"], len(messages)))
+                    chat_state["trackers"], chat_state["tracker_history"] = chats.trackers_at(
+                        chat_state["tracker_history"], chat_state["trackers"], len(messages))
                     save_messages(messages)
-                    return JsonResponse({"success": True, "swipes": chats.version_info(messages)})
+                    config = trackers.normalize_config(character.tracker_config)
+                    return JsonResponse({"success": True, "swipes": chats.version_info(messages),
+                                         "summary": chat_state["summary"], "summary_upto": chat_state["summary_upto"],
+                                         "trackers": trackers.normalize_state(chat_state["trackers"], config)})
                 else:
                     return JsonResponse({"success": False, "error": "Invalid message index"})
 
@@ -274,45 +304,75 @@ def chat(request, slug):
                     state["upto"] = len(messages)
 
             chat_state["trackers"] = state
+            chat_state["tracker_history"] = chats.add_snapshot(chat_state["tracker_history"], state, len(messages))
             save_messages(messages)
             return JsonResponse({"success": True, "state": state, "changed": changed if action == "update_trackers" else []})
 
         elif action == "summarize":
             mode = data.get("mode", "append")  # "append" new events, or "regen" from scratch
-            current_summary = chat_state["summary"]
-
             if len(messages) < 2:
                 return JsonResponse({"success": False, "error": "Not enough history."})
-
-            if mode == "regen":
-                to_summarize = messages
-                sys_prompt = ("Summarize this entire roleplay story concisely. Capture key events and current status. "
-                              "Be clear and precise, focus on describing events and reactions in detail. "
-                              "The summary should include Tone, Setting, Events, Current emotional state.")
-            else:
-                upto = chat_state["summary_upto"]
-                # Chats summarized before this was tracked: fall back to the last 10 messages
-                to_summarize = messages[-10:] if upto is None else messages[min(upto, len(messages)):]
-                if not to_summarize:
-                    return JsonResponse({"success": False, "error": "Nothing new to summarize yet."})
-                sys_prompt = (f"Existing summary: {current_summary}\n\nTask: Read the recent conversation below "
-                              "and create a short paragraph summarizing ONLY the new events, advancing the existing summary.")
-            prompt_text = "\n".join(f"{m[0]}: {m[2]}" for m in to_summarize)
-
+            parts = [] if mode == "regen" else chat_state["summary_parts"]
+            start = min(chats.summary_upto(parts), len(messages))
+            if start >= len(messages):
+                return JsonResponse({"success": False, "error": "Nothing new to summarize yet."})
             try:
-                new_text = ai_client.complete(request.user, "summary", [
-                    {"role": "system", "content": sys_prompt},
-                    {"role": "user", "content": prompt_text}])
+                new_text = _summarize(request.user, messages[start:], chats.summary_text(parts))
             except ai_client.AIError as e:
                 return JsonResponse({"success": False, "error": str(e)})
-
-            if mode == "regen" or not current_summary:
-                chat_state["summary"] = new_text
-            else:
-                chat_state["summary"] = current_summary + "\n\n" + new_text
-            chat_state["summary_upto"] = len(messages)
+            set_summary(parts + [{"text": new_text, "from": start, "to": len(messages)}])
             save_messages(messages)
-            return JsonResponse({"success": True, "summary": chat_state["summary"]})
+            return JsonResponse({"success": True, "summary": chat_state["summary"],
+                                 "summary_upto": chat_state["summary_upto"]})
+
+        # --- Branches: a new chat with the messages up to here ---
+        elif action in ("branch_info", "branch"):
+            try:
+                count = int(data.get("index")) + 1
+            except (TypeError, ValueError):
+                count = 0
+            if not 1 <= count <= len(messages):
+                return JsonResponse({"success": False, "error": "No such message."})
+            parts = chats.parts_within(chat_state["summary_parts"], count)
+            tracker_state, tracker_history = chats.trackers_at(
+                chat_state["tracker_history"], chat_state["trackers"], count)
+            if action == "branch_info":
+                _, summary_model = ai_client.resolve(request.user, "summary")
+                return JsonResponse({"success": True, "count": count, "summary": chats.summary_text(parts),
+                                     "summary_upto": chats.summary_upto(parts), "summary_model": summary_model,
+                                     "has_trackers": bool((tracker_state or {}).get("values"))})
+
+            summary_mode = data.get("summary_mode", "transfer")
+            if summary_mode == "rerun":
+                try:
+                    parts = [{"text": _summarize(request.user, messages[:count]), "from": 0, "to": count}]
+                except ai_client.AIError as e:
+                    return JsonResponse({"success": False, "error": str(e)})
+            elif summary_mode == "transfer":
+                edited = data.get("summary_text")
+                if isinstance(edited, str) and edited.strip() != chats.summary_text(parts).strip():
+                    # An edited summary becomes one piece covering what the pieces covered
+                    parts = ([{"text": edited.strip(), "from": 0, "to": chats.summary_upto(parts) or count}]
+                             if edited.strip() else [])
+            else:
+                parts = []
+            if data.get("trackers_mode") == "clear":
+                tracker_state, tracker_history = {}, []
+
+            branch_data = {
+                "messages": messages[:count],
+                "summary": chats.summary_text(parts),
+                "summary_upto": chats.summary_upto(parts),
+                "summary_parts": parts,
+                "trackers": tracker_state,
+                "tracker_history": tracker_history,
+                "context_guides": chat_state["context_guides"],
+                "current_bg": chat_state["current_bg"],
+                "current_music": chat_state["current_music"],
+            }
+            title = f"{chat_obj.title} ⑂ {chat_obj.branches.count() + 1}"[:200]
+            branch = chats.create(character, title, branch_data, parent=chat_obj, branch_point=count)
+            return JsonResponse({"success": True, "go_to": branch.id})
 
         # --- 5. NEW: Regenerate/Continue Logic ---
         elif action == "regenerate":
@@ -680,6 +740,7 @@ def chat(request, slug):
         "char_count": char_count,
         "photo_neutral": photo_url,
         "summary": chat_state["summary"],
+        "summary_upto": chat_state["summary_upto"],
         "context_guides": json.dumps(chat_state["context_guides"]),
         "current_bg": chat_state["current_bg"],
         "current_music": json.dumps(chat_state["current_music"]),

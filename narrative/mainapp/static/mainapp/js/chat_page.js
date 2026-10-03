@@ -60,6 +60,9 @@ document.addEventListener("click", (event) => {
         case "cancel-edit":
             if (index !== null) cancelEdit(index);
             break;
+        case "branch":
+            if (index !== null) openBranchModal(index);
+            break;
         default:
             break;
     }
@@ -193,6 +196,7 @@ function addMessage(sender, text, specificAvatarUrl = null) {
                 <button class="message-btn edit" onclick="editMessage(${messageIndex})">
                     <svg class="icon" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
                 </button>
+                <button class="message-btn branch" type="button" data-action="branch" data-index="${messageIndex}" title="Branch: a new chat from this message"><svg class="icon" viewBox="0 0 24 24"><path d="M6 3a3 3 0 0 0-1 5.83v6.34A3 3 0 1 0 7 15.17V13.5c0-.83.67-1.5 1.5-1.5h5A3.5 3.5 0 0 0 17 8.5v-.67a3 3 0 1 0-2 0v.67c0 .83-.67 1.5-1.5 1.5h-5c-.53 0-1.03.1-1.5.28V8.83A3 3 0 0 0 6 3z"/></svg></button>
                 <button class="message-btn delete" onclick="deleteMessage(${messageIndex})">
                     <svg class="icon" viewBox="0 0 24 24"><path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/></svg>
                 </button>
@@ -429,6 +433,7 @@ function updateMessageIndices() {
         if (deleteBtn) deleteBtn.setAttribute('onclick', `deleteMessage(${index})`);
         if (saveBtn) saveBtn.setAttribute('onclick', `saveMessage(${index})`);
         if (cancelBtn) cancelBtn.setAttribute('onclick', `cancelEdit(${index})`);
+        message.querySelectorAll('[data-index]').forEach(el => el.dataset.index = index);
     });
 }
 
@@ -555,6 +560,9 @@ function confirmDelete() {
                 }
                 updateMessageIndices();
                 setSwipes(data.swipes);
+                // Summary pieces covering deleted messages are gone; trackers rewound to before them
+                setSummary(data.summary, data.summary_upto);
+                if (window.Trackers && Trackers.setState) Trackers.setState(data.trackers);
             } else {
                 alert('Error deleting message: ' + (data.error || 'Unknown error'));
             }
@@ -719,7 +727,7 @@ function generateSummary(mode, auto = false) {
     })
         .then(r => r.json()).then(d => {
             if (d.success) {
-                document.getElementById('summaryDisplay').innerText = d.summary;
+                setSummary(d.summary, d.summary_upto);
             } else {
                 summaryBox.innerText = originalText; // Revert on error
                 if (auto) console.warn('Automatic summary failed:', d.error);
@@ -1016,3 +1024,81 @@ function fixHistoryAvatars() {
 }
 setSwipes(JSON.parse(document.getElementById('swipes-data')?.textContent || 'null'));
 scrollToBottom();
+
+// --- Summary box: the text and which messages it covers ---
+function setSummary(text, upto) {
+    document.getElementById('summaryDisplay').innerText = text || 'No summary yet.';
+    const cov = document.getElementById('summaryCoverage');
+    if (!cov) return;
+    cov.dataset.upto = upto || 0;
+    cov.textContent = text && upto ? `Covers messages 1–${upto}` : '';
+}
+(() => {
+    const cov = document.getElementById('summaryCoverage');
+    const upto = Number(cov && cov.dataset.upto);
+    if (upto) cov.textContent = `Covers messages 1–${upto}`;
+})();
+
+// --- Branches: a new chat with everything up to a message ---
+const branchModal = document.getElementById('branchModal');
+let branchIndex = null;
+
+function openBranchModal(index) {
+    branchIndex = index;
+    document.getElementById('branchError').textContent = '';
+    fetch(window.location.href, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ action: 'branch_info', index }),
+    })
+        .then(r => r.json())
+        .then(d => {
+            if (!d.success) { showChatError(d.error || 'Could not branch here.'); return; }
+            document.getElementById('branchCount').textContent = d.count;
+            branchModal.querySelectorAll('.branch-n').forEach(el => el.textContent = d.count);
+            document.getElementById('branchModel').textContent = d.summary_model || 'your summary model';
+            const text = document.getElementById('branchSummaryText');
+            text.value = d.summary || '';
+            text.placeholder = d.summary ? '' : 'No summary covers these messages yet. You can write one here.';
+            const pick = branchModal.querySelector(`input[name=branchSummary][value=${d.summary ? 'transfer' : 'clear'}]`);
+            pick.checked = true;
+            document.getElementById('branchTrackersNote').textContent = d.has_trackers ? ''
+                : 'No tracker values were saved at this message yet, so the branch starts with empty trackers either way.';
+            branchModal.classList.add('show');
+        })
+        .catch(() => showChatError('Could not reach the app server.'));
+}
+
+function closeBranchModal() { branchModal.classList.remove('show'); branchIndex = null; }
+
+function confirmBranch() {
+    if (branchIndex === null) return;
+    const mode = branchModal.querySelector('input[name=branchSummary]:checked').value;
+    const btn = document.getElementById('branchConfirm');
+    btn.disabled = true;
+    btn.textContent = mode === 'rerun' ? 'Summarizing…' : 'Creating…';
+    fetch(window.location.href, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({
+            action: 'branch', index: branchIndex, summary_mode: mode,
+            summary_text: document.getElementById('branchSummaryText').value,
+            trackers_mode: branchModal.querySelector('input[name=branchTrackers]:checked').value,
+        }),
+    })
+        .then(r => r.json())
+        .then(d => {
+            if (!d.success) { document.getElementById('branchError').textContent = d.error || 'Could not create the branch.'; return; }
+            const url = new URL(window.location.href);
+            url.searchParams.set('chat', d.go_to);
+            window.location.href = url.toString();
+        })
+        .catch(() => { document.getElementById('branchError').textContent = 'Could not reach the app server.'; })
+        .finally(() => { btn.disabled = false; btn.textContent = 'Create branch'; });
+}
+
+// Typing in the summary box means "transfer this"
+document.getElementById('branchSummaryText').addEventListener('input', () => {
+    branchModal.querySelector('input[name=branchSummary][value=transfer]').checked = true;
+});
+branchModal.addEventListener('click', (e) => { if (e.target === branchModal) closeBranchModal(); });
