@@ -39,15 +39,15 @@
                     </div>
                 </a>
 
-                <a class="nav-item" href="{% url 'chat_settings' %}">
+                <a class="nav-item" href="{% url 'presets' %}">
                     <svg class="icon" viewBox="0 0 24 24">
                         <path
                             d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z">
                         </path>
                     </svg>
                     <div>
-                        <div class="nav-item-title">Chat Settings</div>
-                        <div class="nav-item-subtitle">Prompts</div>
+                        <div class="nav-item-title">Presets</div>
+                        <div class="nav-item-subtitle">Prompts & samplers</div>
                     </div>
                 </a>
 
@@ -105,10 +105,11 @@
                     {% endif %}
                     <div class="character-details">
                         <h3>{{ character.name }}</h3>
-                        <p>{{ character.description|truncatechars:75 }}</p>
+                        <p class="chat-title-line"><span id="chatTitle">{{ chat.title }}</span>{% if chat.parent %} · <a class="branch-note" href="?chat={{ chat.parent.id }}" title="Open the chat this branched from">⑂ from “{{ chat.parent.title }}” at message {{ chat.branch_point }}</a>{% endif %}</p>
                     </div>
                 </div>
                 <div class="header-actions">
+                    <button class="header-btn" id="chatsBtn" onclick="Chats.toggle()" title="Your chats with {{ character.name }}">💬 Chats</button>
                     <button class="header-btn" onclick="openMediaModal('bg')"><svg class="icon" viewBox="0 0 24 24"><path d="M21,19V5C21,3.89 20.1,3 19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19M8.5,13.5L11,16.51L14.5,12L19,18H5L8.5,13.5Z"/></svg> BG</button>
                     <button class="header-btn" onclick="openMediaModal('music')"><svg class="icon" viewBox="0 0 24 24"><path d="M21,3V15.5A3.5,3.5 0 0,1 17.5,19A3.5,3.5 0 0,1 14,15.5A3.5,3.5 0 0,1 17.5,12C18.04,12 18.55,12.12 19,12.34V6.47L9,8.6V17.5A3.5,3.5 0 0,1 5.5,21A3.5,3.5 0 0,1 2,17.5A3.5,3.5 0 0,1 5.5,14C6.04,14 6.55,14.12 7,14.34V6L21,3Z"/></svg> Music</button>
                     <a href="{% url 'character' character.slug %}" class="header-btn">
@@ -120,6 +121,8 @@
                     </a>
                 </div>
             </div>
+
+            <div class="tracker-hud" id="trackerHud" hidden></div>
 
             <div class="messages-container" id="messagesContainer">
                 {% for sender, time, text, emotion, char_count in messages %}
@@ -145,6 +148,11 @@
                                     <path
                                         d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
                                 </svg>
+                            </button>
+
+                            <button class="message-btn branch" type="button" data-action="branch"
+                                data-index="{{ forloop.counter0 }}" title="Branch: a new chat from this message">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M6 3a3 3 0 0 0-1 5.83v6.34A3 3 0 1 0 7 15.17V13.5c0-.83.67-1.5 1.5-1.5h5A3.5 3.5 0 0 0 17 8.5v-.67a3 3 0 1 0-2 0v.67c0 .83-.67 1.5-1.5 1.5h-5c-.53 0-1.03.1-1.5.28V8.83A3 3 0 0 0 6 3z"/></svg>
                             </button>
 
                             <button class="message-btn delete" type="button" data-action="delete"
@@ -238,6 +246,15 @@
                     </div>
 
                     <div class="tool-section">
+                        <span class="tool-label">📊 Story trackers</span>
+                        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
+                            <button class="tool-action-btn" onclick="window.Trackers && Trackers.update()">↻ Update</button>
+                            <button class="tool-action-btn" onclick="window.Trackers && Trackers.open()">▤ Panel</button>
+                            <a class="tool-action-btn" href="{% url 'tracker_setup' character.slug %}" style="text-align:center; text-decoration:none;">⚙ Setup</a>
+                        </div>
+                    </div>
+
+                    <div class="tool-section">
                         <span class="tool-label">📖 Lore used in last reply</span>
                         <div class="summary-box lore-box" id="loreDisplay">{% if character.worldbook %}Send a message to see which entries fire.{% else %}No worldbook attached to this character.{% endif %}</div>
                     </div>
@@ -245,9 +262,10 @@
                     <div class="tool-section">
                         <span class="tool-label">📚 Summary</span>
                         <div class="summary-box" id="summaryDisplay">{{ summary|default:"No summary yet." }}</div>
+                        <div class="summary-coverage" id="summaryCoverage" data-upto="{{ summary_upto|default:0 }}"></div>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                            <button class="tool-action-btn" onclick="generateSummary('append')">➕ Append Recent</button>
-                            <button class="tool-action-btn" onclick="generateSummary('regen')">🔄 Regenerate All</button>
+                            <button class="tool-action-btn" onclick="generateSummary('append')">➕ Summarize new</button>
+                            <button class="tool-action-btn" onclick="Summary.toggle(true); toggleTools()">📚 Open summary</button>
                         </div>
                     </div>
                     <div class="tool-section">
@@ -341,6 +359,35 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="branchModal">
+    <div class="modal branch-modal">
+        <div class="modal-header">
+            <div class="modal-title">⑂ Branch from message <span id="branchCount"></span></div>
+        </div>
+        <div class="modal-content">
+            <p class="branch-help">A new chat starts with messages 1–<span class="branch-n"></span>. This chat stays as it is.</p>
+            <div class="branch-group">
+                <div class="branch-label">📚 Summary</div>
+                <label class="branch-option"><input type="radio" name="branchSummary" value="transfer"> <span><strong>Transfer</strong> the summary of these messages (you can edit it below)</span></label>
+                <textarea id="branchSummaryText" class="branch-textarea" rows="5"></textarea>
+                <label class="branch-option"><input type="radio" name="branchSummary" value="rerun"> <span><strong>Re-run</strong>: summarize all <span class="branch-n"></span> messages again with <span id="branchModel"></span>. <em>Costs tokens</em>, more for long chats.</span></label>
+                <label class="branch-option"><input type="radio" name="branchSummary" value="clear"> <span><strong>Leave clear</strong>: start without a summary</span></label>
+            </div>
+            <div class="branch-group">
+                <div class="branch-label">📊 Trackers</div>
+                <label class="branch-option"><input type="radio" name="branchTrackers" value="copy" checked> <span><strong>Copy</strong> them as they were at this message</span></label>
+                <label class="branch-option"><input type="radio" name="branchTrackers" value="clear"> <span><strong>Start empty</strong></span></label>
+                <p class="branch-help" id="branchTrackersNote"></p>
+            </div>
+            <p class="branch-error" id="branchError"></p>
+        </div>
+        <div class="modal-actions">
+            <button class="modal-btn secondary" onclick="closeBranchModal()">Cancel</button>
+            <button class="modal-btn primary" id="branchConfirm" onclick="confirmBranch()">Create branch</button>
+        </div>
+    </div>
+    </div>
+
     <div class="modal-overlay" id="regenModal">
     <div class="modal">
         <div class="modal-header">
@@ -370,8 +417,28 @@
         window.INIT_PHOTO_SECOND = "{{ photo_second|default:'' }}";
         window.INIT_CHAR_COUNT = {{ char_count|default:1 }};
         window.USER_AVATAR = "{{ user_avatar|default:'' }}";
+        window.STREAM_REPLIES = {{ stream_replies|yesno:"true,false" }};
     </script>
+    <aside class="tracker-panel" id="trackerPanel" hidden></aside>
+    <aside class="tracker-panel left chats-panel" id="chatsPanel" hidden>
+        <div class="tp-head"><strong>💬 Chats</strong><span><button class="icon-btn" onclick="Chats.create()">+ New chat</button><button class="icon-btn" onclick="Chats.toggle()">✕</button></span></div>
+        <div class="tp-body" id="chatsList"></div>
+        <div class="tp-foot">Each chat keeps its own messages, summary and trackers. The character, lorebooks and preset are shared.</div>
+    </aside>
+    <aside class="tracker-panel left summary-panel" id="summaryPanel" hidden>
+        <div class="tp-head"><strong>📚 Summary</strong><span><button class="icon-btn" onclick="Summary.toggle()">✕</button></span></div>
+        <div class="sum-status" id="summaryStatus"></div>
+        <div class="tp-body" id="summaryBody"></div>
+        <div class="tp-foot sum-foot"><span id="summaryTotal"></span><button type="button" class="icon-btn" id="summaryRedo" title="Summarize the whole chat again as one piece">Redo all</button></div>
+    </aside>
+    {{ summary_data|json_script:"summary-data" }}
+    {{ chat_list|json_script:"chats-data" }}
+    {{ swipes|json_script:"swipes-data" }}
+    {{ trackers_data|json_script:"trackers-data" }}
+    <script src="{% static 'mainapp/js/trackers.js' %}?v={% now 'U' %}"></script>
     <script src="{% static 'mainapp/js/chat_page.js' %}?v={% now 'U' %}"></script>
+    <script src="{% static 'mainapp/js/chats.js' %}?v={% now 'U' %}"></script>
+    <script src="{% static 'mainapp/js/summary.js' %}?v={% now 'U' %}"></script>
 
 </body>
 

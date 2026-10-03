@@ -24,6 +24,15 @@ TASKS = {
         "schedulable": True,
         "default_mode": TaskSetting.MODE_MANUAL,
     },
+    "trackers": {
+        "label": "Story trackers",
+        "help": "Updates the trackers you turned on for a character (world, relationships, stats...). "
+                "One call covers all of them, so a cheap fast model works well.",
+        "timeout": 90,
+        "schedulable": True,
+        "default_mode": TaskSetting.MODE_AUTO,
+        "default_interval": 2,
+    },
     "emotion": {
         "label": "Emotion & speaker detection",
         "help": "Picks character sprites after every reply: one extra call per message, "
@@ -57,8 +66,10 @@ def get_task_setting(user, task):
     """The saved setting for a task, or an unsaved default one."""
     setting = TaskSetting.objects.filter(user=user, task=task).select_related("profile").first()
     if setting is None:
+        info = TASKS.get(task, {})
         setting = TaskSetting(user=user, task=task,
-                              mode=TASKS.get(task, {}).get("default_mode", TaskSetting.MODE_MANUAL))
+                              mode=info.get("default_mode", TaskSetting.MODE_MANUAL),
+                              interval=info.get("default_interval", 10))
     return setting
 
 
@@ -178,3 +189,55 @@ def test_connection(provider, base_url, api_key, model):
         return True, "Connected."
     except requests.RequestException as e:
         return False, f"Could not reach the server ({e.__class__.__name__})."
+
+
+def stream(user, task, messages, timeout=None, **params):
+    """
+    Like complete(), but yields the reply in pieces as the provider sends them
+    (OpenAI-style server-sent events). Raises AIError on failure, including
+    errors the provider reports in the middle of a stream.
+    """
+    import json
+
+    profile, model = resolve(user, task)
+    payload = {"model": model, "messages": messages, "stream": True}
+    payload.update({k: v for k, v in params.items() if v is not None})
+    read_timeout = timeout or TASKS.get(task, {}).get("timeout", 60)  # max wait between two pieces
+    label = TASKS.get(task, {}).get("label", task)
+
+    try:
+        resp = requests.post(f"{profile.api_url}/chat/completions", headers=_headers(profile),
+                             json=payload, timeout=(15, read_timeout), stream=True)
+    except requests.Timeout:
+        raise AIError(f"{label}: {profile.name} did not answer within {read_timeout} seconds.")
+    except requests.RequestException as e:
+        raise AIError(f"{label}: could not reach {profile.name} ({e.__class__.__name__}).")
+
+    with resp:
+        if resp.status_code >= 400:
+            raise AIError(f"{label}: {profile.name} returned an error ({resp.status_code}): {_error_text(resp)}")
+        resp.encoding = "utf-8"
+        try:
+            # chunk_size=1: hand over every line as soon as it arrives. The default waits for 512 bytes,
+            # and chunk_size=None waits for the whole reply on servers that don't use chunked encoding.
+            for line in resp.iter_lines(chunk_size=1, decode_unicode=True):
+                # Blank lines separate events; lines starting with ":" are keep-alive comments
+                if not line or not line.startswith("data:"):
+                    continue
+                data = line[5:].strip()
+                if data == "[DONE]":
+                    break
+                try:
+                    event = json.loads(data)
+                except ValueError:
+                    continue
+                if event.get("error"):
+                    err = event["error"]
+                    raise AIError(f"{label}: {profile.name} stopped with an error: "
+                                  f"{err.get('message') if isinstance(err, dict) else err}")
+                choices = event.get("choices") or []
+                text = (choices[0].get("delta") or {}).get("content") if choices else None
+                if text:
+                    yield text
+        except requests.RequestException as e:
+            raise AIError(f"{label}: the connection to {profile.name} broke off ({e.__class__.__name__}).")

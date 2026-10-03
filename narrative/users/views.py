@@ -98,7 +98,7 @@ class ConnectionsError(Exception):
 
 @transaction.atomic
 def _save_connections(user, data):
-    from mainapp.ai_client import TASKS
+    from mainapp.ai_client import TASKS, get_task_setting
 
     valid_providers = {v for v, _ in ConnectionProfile.PROVIDERS}
     existing = {p.id: p for p in ConnectionProfile.objects.filter(user=user)}
@@ -146,7 +146,7 @@ def _save_connections(user, data):
         task = item.get("task")
         if task not in TASKS:
             continue
-        ts, _ = TaskSetting.objects.get_or_create(user=user, task=task)
+        ts = get_task_setting(user, task)
         ts.profile = ref_to_profile.get(item.get("profile_id"))
         ts.model = (item.get("model") or "").strip()
         ts.enabled = bool(item.get("enabled", True)) if TASKS[task].get("toggleable") else True

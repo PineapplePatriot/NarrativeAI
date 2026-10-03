@@ -55,6 +55,8 @@ class Character(models.Model):
     eleven_voice_second_id = models.CharField(max_length=128, blank=True, verbose_name="2nd Character Voice ID")
 
     is_mult = models.BooleanField(default=False, verbose_name="Multi-Character Mode")
+    # Which story trackers are on for this character, custom fields and layout (see mainapp/trackers.py)
+    tracker_config = models.JSONField(default=dict, blank=True)
 
     photo_second_neutral = models.ImageField(upload_to="photos/%Y/%m/%d/", default=None, blank=True, null=True)
     photo_second_happy = models.ImageField(upload_to="photos/%Y/%m/%d/", default=None, blank=True, null=True)
@@ -121,6 +123,8 @@ from django.contrib.auth import get_user_model
 
 class ChatSettings(models.Model):
     json_file = models.FileField(upload_to='settings_json/', blank=True, null=True)
+    # Sampler on/off switches and values for the main chat (see mainapp/samplers.py)
+    samplers = models.JSONField(default=dict, blank=True)
     author = models.OneToOneField(
         get_user_model(),
         on_delete=models.SET_NULL,
@@ -156,3 +160,37 @@ class CharacterTemplate(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class Preset(models.Model):
+    """A prompt preset (blocks, samplers, utility prompts). One per user is active. See mainapp/presets.py."""
+    user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name="presets")
+    name = models.CharField(max_length=200)
+    data = models.JSONField(default=dict, blank=True)
+    is_active = models.BooleanField(default=False)
+    time_create = models.DateTimeField(auto_now_add=True)
+    time_update = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["name"]
+        constraints = [models.UniqueConstraint(fields=["user", "name"], name="unique_preset_name_per_user")]
+
+    def __str__(self):
+        return self.name
+
+
+class Chat(models.Model):
+    """One conversation with a character. A character can have many; branches point to their parent."""
+    character = models.ForeignKey('Character', on_delete=models.CASCADE, related_name="chats")
+    title = models.CharField(max_length=200, default="Chat")
+    log_file = models.FileField(upload_to="chat_logs/", blank=True, null=True)
+    parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name="branches")
+    branch_point = models.PositiveIntegerField(null=True, blank=True, help_text="Messages copied from the parent")
+    time_create = models.DateTimeField(auto_now_add=True)
+    time_update = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-time_update"]
+
+    def __str__(self):
+        return f"{self.character.name}: {self.title}"
