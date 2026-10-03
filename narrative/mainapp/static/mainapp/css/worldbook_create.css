@@ -187,3 +187,5 @@ textarea {
 .switch input:checked+.slider:before {
     transform: translateX(18px)
 }
+/* Cancel and Create share one size (buttons don't inherit the page font by default) */
+.btn { font: inherit; font-size: 0.95rem; font-weight: 600; line-height: 1.2; }

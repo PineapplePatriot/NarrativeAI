@@ -184,7 +184,7 @@ function addMessage(sender, text, specificAvatarUrl = null) {
         if (specificAvatarUrl) {
             avatarHtml = `<img src="${specificAvatarUrl}" class="message-avatar" style="object-fit:cover;">`;
         } else {
-            avatarHtml = '<div class="message-avatar">E</div>';
+            avatarHtml = `<div class="message-avatar">${window.CHAR_INITIAL || '•'}</div>`;
         }
     }
     // -------------------------

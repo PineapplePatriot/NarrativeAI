@@ -8,10 +8,11 @@
   <title>Samplers - Narrative AI</title>
   <link rel="stylesheet" href="{% static 'mainapp/css/tracker_setup.css' %}">
   <link rel="stylesheet" href="{% static 'mainapp/css/samplers.css' %}">
+    <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
 </head>
 <body>
+{% include "partials/topbar.html" with active="samplers" %}
 <div class="page">
-  <a class="back" href="javascript:history.back()">← Back</a>
   <h1>Samplers</h1>
   <p class="subtitle">
     Fine-tuning for how the main chat model writes, saved in your active preset

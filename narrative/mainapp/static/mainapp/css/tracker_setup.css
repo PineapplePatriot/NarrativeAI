@@ -92,3 +92,7 @@ button.small { padding: 6px 10px; font-size: .85rem }
     border-top: 1px solid var(--border);
     backdrop-filter: blur(6px)
 }
+
+/* The shared top bar spans the page; the page content keeps the spacing */
+body { padding: 0 0 96px; }
+.page { padding: 24px 16px 0; }

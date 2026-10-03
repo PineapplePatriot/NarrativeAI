@@ -8,17 +8,13 @@
     <title>Narrative AI - Character Selection</title>
     <link rel="stylesheet" href="{% static 'mainapp/css/character_list.css' %}">
 
+    <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
 </head>
 <body>
+{% include "partials/topbar.html" with active="characters" %}
     <div class="container">
         <div class="header">
             <div class="header-left">
-               <!-- <a href="index.html" class="back-btn"> -->
-                <a href="{% url 'home' %}" class="back-btn">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"/>
-                    </svg>
-                </a>
                 <div class="header-title">
                     <h1>Characters</h1>
                     <p>Choose a character to start your interactive story</p>
@@ -28,7 +24,7 @@
                 <svg viewBox="0 0 24 24">
                     <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/>
                 </svg>
-                Create New Character
+                New character
             </a>
         </div>
 
@@ -69,13 +65,13 @@
                     {{ character.description }}
                 </p>
                 <div class="character-meta">
-                    <span>{{ character.last_active|default:"No active yet" }}</span>
-                    <span>{{ character.messages_count|default:"No messages yet" }} messages</span>
+                    <span>{% if character.last_played %}Played {{ character.last_played|timesince }} ago{% else %}Not played yet{% endif %}</span>
+                    <span>{{ character.chat_count }} chat{{ character.chat_count|pluralize }}</span>
                 </div>
 
                 <div class="character-actions">
                     <a href="{% url 'chat' character.slug %}" class="btn btn-primary">
-                        Start Chat
+                        {% if character.last_played %}Continue{% else %}Start chat{% endif %}
                     </a>
                     <a href="{% url 'character' character.slug %}" class="btn btn-secondary">
                         Edit

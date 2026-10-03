@@ -44,8 +44,8 @@ class AddCharacterForm(forms.ModelForm):
             'scenario': forms.Textarea(attrs={'cols': 50, 'rows': 5}),
             'initial_message': forms.Textarea(attrs={'cols': 50, 'rows': 5}),
             'creator_notes': forms.Textarea(attrs={'cols': 50, 'rows': 5}),
-            'eleven_voice_char_id': forms.TextInput(attrs={'placeholder': "Введіть ID"}),
-            'eleven_voice_narr_id': forms.TextInput(attrs={'placeholder': "Введіть ID"}),
+            'eleven_voice_char_id': forms.TextInput(attrs={'placeholder': "Paste an ElevenLabs voice ID"}),
+            'eleven_voice_narr_id': forms.TextInput(attrs={'placeholder': "Paste an ElevenLabs voice ID"}),
             'eleven_voice_second_id': forms.TextInput(attrs={'placeholder': "Character 2 Voice ID"}),
         }
         labels = {'is_mult': 'Contains 2 characters',}
@@ -73,4 +73,4 @@ class AddCharacterForm(forms.ModelForm):
 
 
 class UploadFileForm(forms.Form):
-    file = forms.ImageField(label="Файл")
+    file = forms.ImageField(label="File")

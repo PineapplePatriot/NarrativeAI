@@ -7,8 +7,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Trackers - {{ character.name }}</title>
   <link rel="stylesheet" href="{% static 'mainapp/css/tracker_setup.css' %}">
+    <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
 </head>
 <body>
+{% include "partials/topbar.html" with active="characters" %}
 <div class="page">
   <a class="back" href="{% url 'chat' character.slug %}">← Back to chat with {{ character.name }}</a>
   <h1>Story trackers for {{ character.name }}</h1>
