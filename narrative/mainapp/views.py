@@ -24,7 +24,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
-from . import ai_client, chats, presets, samplers, trackers
+from . import ai_client, chats, model_profiles, presets, samplers, trackers
 from .utils import build_ai_request, narrate_text_backend, get_elevenlabs_key
 from .lorebook import (
     normalize_book, load_worldbook, save_worldbook, activate, format_for_prompt, to_sillytavern,
@@ -1004,8 +1004,9 @@ def sampler_settings(request):
             "specs": samplers.SAMPLERS,
             "values": samplers.normalize(preset_obj.data.get("samplers")),
             "model": model,
-            "locked": sorted(samplers.locked_for_model(model)),
-            "all_locked": sorted(samplers.SAMPLING_LOCKED),
+            "profile": model_profiles.public(model_profiles.for_model(model)),
+            "status": model_profiles.sampler_status(model, samplers.normalize(preset_obj.data.get("samplers"))),
+            "known_models": model_profiles.known_names(),
         },
     })
 

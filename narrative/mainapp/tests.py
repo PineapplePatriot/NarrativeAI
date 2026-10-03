@@ -1434,3 +1434,69 @@ class SummaryPanelTests(SummaryPartsAndBranchTests):
         self.assertTrue(self.post({"action": "summarize"}).json()["success"])
         page = self.client.get(self.url)
         self.assertTrue(page.context["summary_data"]["paused"])
+
+
+class ModelProfileTests(SimpleTestCase):
+    """Per-model sampler rules (mainapp/data/models/*.json)."""
+
+    def values(self, **on):
+        from mainapp.samplers import normalize
+        return normalize({k: {"on": True, "value": v} for k, v in on.items()})
+
+    def test_every_profile_loads_and_names_only_real_samplers(self):
+        from mainapp.model_profiles import all_profiles
+        from mainapp.samplers import SAMPLERS_BY_KEY
+        profiles = all_profiles()
+        self.assertGreaterEqual(len(profiles), 2)
+        for p in profiles:
+            self.assertTrue(p["name"] and p["verified"] and p["sources"], p["id"])
+            self.assertLessEqual(set(p["samplers"]), set(SAMPLERS_BY_KEY), p["id"])
+            for rule in p["samplers"].values():
+                self.assertIn(rule["status"], ("supported", "unverified", "fixed", "unused"))
+
+    def test_profiles_match_openrouter_and_direct_ids(self):
+        from mainapp.model_profiles import for_model
+        self.assertEqual(for_model("anthropic/claude-opus-5-5")["id"], "claude-opus-5-5")
+        self.assertEqual(for_model("anthropic/claude-opus-5.5")["id"], "claude-opus-5-5")
+        self.assertEqual(for_model("xiaomi/mimo-v2.6-pro")["id"], "mimo-v2-6-pro")
+        self.assertIsNone(for_model("anthropic/claude-opus-4.6"))
+        self.assertIsNone(for_model(""))
+
+    def test_opus_sends_only_what_it_uses(self):
+        from mainapp.samplers import to_api_params
+        params, skipped = to_api_params(self.values(
+            temperature=0.7, max_tokens=900, frequency_penalty=0.3, seed=7, reasoning_effort="high"),
+            "anthropic/claude-opus-5-5")
+        self.assertEqual(params, {"max_tokens": 900, "reasoning": {"effort": "high"}})
+        self.assertEqual(sorted(skipped), ["frequency_penalty", "seed", "temperature"])
+        # an effort level the model doesn't have is not sent
+        params, skipped = to_api_params(self.values(reasoning_effort="minimal"), "anthropic/claude-opus-5-5")
+        self.assertEqual((params, skipped), ({}, ["reasoning_effort"]))
+
+    def test_mimo_temperature_depends_on_thinking(self):
+        from mainapp.samplers import to_api_params
+        # thinking on by default: temperature and top-p are fixed by the model
+        params, skipped = to_api_params(self.values(temperature=0.8, top_p=0.9), "xiaomi/mimo-v2.6-pro")
+        self.assertEqual((params, sorted(skipped)), ({}, ["temperature", "top_p"]))
+        # thinking off: both are sent, temperature capped at the model's 1.5
+        params, skipped = to_api_params(self.values(temperature=1.9, top_p=0.9, reasoning_effort="off"),
+                                        "xiaomi/mimo-v2.6-pro")
+        self.assertEqual(params, {"temperature": 1.5, "top_p": 0.9, "reasoning": {"enabled": False}})
+        self.assertEqual(skipped, [])
+
+    def test_unknown_models_keep_the_old_behaviour(self):
+        from mainapp.samplers import to_api_params
+        params, skipped = to_api_params(self.values(temperature=0.7, min_p=0.1), "mistralai/mistral-large")
+        self.assertEqual((params, skipped), ({"temperature": 0.7, "min_p": 0.1}, []))
+        params, skipped = to_api_params(self.values(temperature=0.7), "anthropic/claude-fable-5.1")
+        self.assertEqual((params, skipped), ({}, ["temperature"]))
+
+
+class SamplerPageProfileTests(ChatPromptTests):
+    def test_page_carries_the_profile(self):
+        from users.models import ConnectionProfile
+        ConnectionProfile.objects.filter(user=self.user).update(model="xiaomi/mimo-v2.6-pro")
+        data = self.client.get(reverse("samplers")).context["sampler_data"]
+        self.assertEqual(data["profile"]["name"], "MiMo v2.6 Pro")
+        self.assertEqual(data["status"]["temperature"]["status"], "fixed")  # thinking on by default
+        self.assertIn("Claude Opus 5.5", data["known_models"])

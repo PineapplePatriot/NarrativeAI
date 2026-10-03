@@ -1,0 +1,47 @@
+{
+  "id": "mimo-v2-6-pro",
+  "name": "MiMo v2.6 Pro",
+  "match": ["mimo-v2\\.6-pro"],
+  "ids": {"openrouter": "xiaomi/mimo-v2.6-pro", "xiaomi": "mimo-v2.6-pro"},
+  "verified": "2026-10-03",
+  "sources": [
+    "https://mimo.mi.com/docs/en-US/api/guidance/model-hyperparameters",
+    "https://openrouter.ai/xiaomi/mimo-v2.6-pro",
+    "https://rentry.org/Evening-Truth-Xiaomi-MiMo-V26"
+  ],
+  "limits": {},
+  "reasoning": {
+    "always_on": false,
+    "default": "medium",
+    "choices": {"off": "Thinking off", "medium": "Thinking on"},
+    "note": "With thinking on, MiMo uses its own temperature and top-p. Turning thinking off is what makes them adjustable (still to be confirmed through OpenRouter)."
+  },
+  "samplers": {
+    "max_tokens": {"status": "supported", "why": "Evening-Truth suggests leaving 5K+ room while the prompt asks for replies under 500 tokens."},
+    "reasoning_effort": {"status": "supported"},
+    "temperature": {"status": "supported", "max": 1.5, "when_reasoning": "fixed",
+                    "why": "Fixed at 1 while thinking; 0 to 1.5 with thinking off."},
+    "top_p": {"status": "supported", "when_reasoning": "fixed", "why": "Fixed at 0.95 while thinking."},
+    "stop": {"status": "unverified"},
+    "top_k": {"status": "unverified", "why": "Evening-Truth recommends leaving it off."},
+    "min_p": {"status": "unverified", "why": "Evening-Truth recommends leaving it off."},
+    "top_a": {"status": "unverified"},
+    "frequency_penalty": {"status": "unverified", "why": "Evening-Truth recommends no extra penalties."},
+    "presence_penalty": {"status": "unverified", "why": "Evening-Truth recommends no extra penalties."},
+    "repetition_penalty": {"status": "unverified", "why": "Evening-Truth recommends no extra penalties."},
+    "seed": {"status": "unverified"},
+    "verbosity": {"status": "unused", "why": "An OpenAI-only setting."}
+  },
+  "style": {
+    "notes": [
+      {"text": "Slow-burn relationships with believable pushback: characters can care, resist and stay flawed; relationships can regress.", "source": "community", "ref": "research/05-model-styles.md R14-R15", "status": "reported"},
+      {"text": "Proactive storytelling: characters start events instead of waiting.", "source": "community (preset author)", "ref": "research/05-model-styles.md R16", "status": "reported"},
+      {"text": "Counterexample: spatial mistakes, fourth-wall leaks and worse performance reported; check the route before blaming taste.", "source": "community", "ref": "research/05-model-styles.md R17", "status": "reported"}
+    ],
+    "probes": [
+      "Should affection make them easier to deal with, or should some of their difficult habits remain?"
+    ],
+    "watch_for": ["Fourth-wall leaks", "Spatial mistakes in physical scenes"]
+  },
+  "starters": {}
+}

@@ -2,13 +2,13 @@
 Sampler settings for the main chat (temperature, top-p, response length...).
 
 Each sampler has an on/off switch. Off means "not sent": the model uses its own
-default. Some models reject certain samplers outright (the newest Claude models
-return an error for temperature/top_p/top_k), so those are skipped for them.
+default. What each model actually does with them comes from its profile
+(mainapp/model_profiles.py): settings a model fixes or doesn't have are never sent.
 
 Stored per user in ChatSettings.samplers. When presets arrive they will carry
 the same structure.
 """
-import re
+from mainapp import model_profiles
 
 SAMPLERS = [
     # key, label, kind, default, min, max, step, help
@@ -40,9 +40,9 @@ SAMPLERS = [
     {"key": "stop", "label": "Stop sequences", "kind": "list", "default": [],
      "help": "Comma-separated. The reply stops when one of these appears (e.g. \\nUser:)."},
     {"key": "reasoning_effort", "label": "Reasoning effort", "kind": "choice", "default": "medium",
-     "choices": ["minimal", "low", "medium", "high"],
-     "help": "How hard thinking models think before replying. On the newest Claude models this "
-             "replaces temperature as the main control."},
+     "choices": ["off", "minimal", "low", "medium", "high"],
+     "help": "How hard thinking models think before replying (off = don't think, where the model allows it). "
+             "On the newest Claude models this replaces temperature as the main control."},
     {"key": "verbosity", "label": "Verbosity", "kind": "choice", "default": "medium",
      "choices": ["low", "medium", "high"], "help": "Asks supporting models for shorter or longer replies."},
 ]
@@ -51,10 +51,6 @@ SAMPLERS_BY_KEY = {s["key"]: s for s in SAMPLERS}
 # Samplers that are settings for the app, not API parameters
 APP_ONLY = {"context_size"}
 
-# Models that reject these samplers with an error (as of 2026): the newest
-# Claude models (Opus 4.7+, Sonnet 5+, Fable, Mythos) only accept their defaults.
-SAMPLING_LOCKED = {"temperature", "top_p", "top_k"}
-SAMPLING_LOCKED_MODELS = re.compile(r"claude-(?:opus-(?:4[.-][78]|5)|sonnet-5|fable|mythos)", re.I)
 
 
 def _coerce(spec, value):
@@ -90,25 +86,31 @@ def normalize(raw):
     return out
 
 
-def locked_for_model(model):
-    return set(SAMPLING_LOCKED) if model and SAMPLING_LOCKED_MODELS.search(model) else set()
-
-
 def to_api_params(samplers, model):
-    """API parameters to send for this model, and the samplers skipped because the model rejects them."""
+    """API parameters to send for this model, and the switched-on samplers it doesn't use."""
     params, skipped = {}, []
-    locked = locked_for_model(model)
+    status = model_profiles.sampler_status(model, samplers)
+    profile = model_profiles.for_model(model)
     for key, item in samplers.items():
         if not item["on"] or key in APP_ONLY:
             continue
-        if key in locked:
+        if status.get(key, {}).get("status") in ("fixed", "unused"):
             skipped.append(key)
             continue
+        rule = (profile or {}).get("samplers", {}).get(key, {})
         if key == "reasoning_effort":
-            params["reasoning"] = {"effort": item["value"]}
+            choices = (profile or {}).get("reasoning", {}).get("choices")
+            if choices and item["value"] not in choices:
+                skipped.append(key)  # e.g. "minimal" on a model without that level
+            elif item["value"] == "off":
+                params["reasoning"] = {"enabled": False}
+            else:
+                params["reasoning"] = {"effort": item["value"]}
         elif key == "stop":
             if item["value"]:
                 params["stop"] = item["value"]
+        elif "max" in rule and isinstance(item["value"], (int, float)):
+            params[key] = min(item["value"], rule["max"])
         else:
             params[key] = item["value"]
     return params, skipped

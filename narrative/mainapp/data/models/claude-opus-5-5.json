@@ -1,0 +1,117 @@
+{
+  "id": "claude-opus-5-5",
+  "name": "Claude Opus 5.5",
+  "match": [
+    "claude-opus-5[.-]5"
+  ],
+  "ids": {
+    "anthropic": "claude-opus-5-5",
+    "openrouter": "anthropic/claude-opus-5-5"
+  },
+  "verified": "2026-10-03",
+  "sources": [
+    "https://platform.claude.com/docs/en/models/opus-5-5/overview",
+    "https://platform.claude.com/docs/en/api/php/messages/create",
+    "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5-5"
+  ],
+  "limits": {
+    "context": 1000000,
+    "output": 128000
+  },
+  "reasoning": {
+    "always_on": true,
+    "default": "medium",
+    "choices": {
+      "low": "Low (faster)",
+      "medium": "Medium (the model's default)",
+      "high": "High"
+    },
+    "note": "Opus 5.5 always thinks before replying; effort is the main control. Thinking uses the output budget even though you don't see it."
+  },
+  "samplers": {
+    "max_tokens": {
+      "status": "supported"
+    },
+    "stop": {
+      "status": "supported"
+    },
+    "reasoning_effort": {
+      "status": "supported"
+    },
+    "temperature": {
+      "status": "fixed",
+      "why": "Opus 5.5 only accepts its own default temperature; any other value is an error."
+    },
+    "top_p": {
+      "status": "fixed",
+      "why": "Only the default top-p is accepted on Opus 5.5."
+    },
+    "top_k": {
+      "status": "fixed",
+      "why": "Any top-k is an error on Opus 5.5."
+    },
+    "min_p": {
+      "status": "unused",
+      "why": "Not part of Claude's API."
+    },
+    "top_a": {
+      "status": "unused",
+      "why": "Not part of Claude's API."
+    },
+    "frequency_penalty": {
+      "status": "unused",
+      "why": "Not part of Claude's API."
+    },
+    "presence_penalty": {
+      "status": "unused",
+      "why": "Not part of Claude's API."
+    },
+    "repetition_penalty": {
+      "status": "unused",
+      "why": "Not part of Claude's API."
+    },
+    "seed": {
+      "status": "unused",
+      "why": "Not part of Claude's API."
+    },
+    "verbosity": {
+      "status": "unused",
+      "why": "An OpenAI-only setting."
+    }
+  },
+  "style": {
+    "notes": [
+      {
+        "text": "General character RP, established fictional universes, world and story progression; praised for pacing, spatial coherence and knowing popular fiction.",
+        "source": "community",
+        "ref": "research/05-model-styles.md R1-R2",
+        "status": "reported"
+      },
+      {
+        "text": "Some find its dialogue corporate or therapeutic in interpersonal scenes (a knight/princess example).",
+        "source": "community",
+        "ref": "research/05-model-styles.md R3",
+        "status": "reported"
+      },
+      {
+        "text": "Strong at banter and emotional development.",
+        "source": "first-hand (Anya)",
+        "status": "hypothesis"
+      },
+      {
+        "text": "Short presets work well; some negative rules help.",
+        "source": "first-hand (Anya)",
+        "status": "hypothesis"
+      }
+    ],
+    "probes": [
+      "Do you enjoy the characters sparring verbally, or would you rather the tension show through quieter actions?",
+      "Should we understand what they feel directly, or mostly work it out from what they say and do?"
+    ],
+    "watch_for": [
+      "Therapy-speak or corporate dialogue in emotional scenes",
+      "Every character becoming witty"
+    ]
+  },
+  "starters": {}
+}

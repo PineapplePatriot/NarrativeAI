@@ -145,12 +145,16 @@ narrative/                  Django project (run manage.py from here)
 │   ├── lorebook.py         worldbook matching engine, SillyTavern import/export
 │   ├── trackers.py         story tracker definitions, AI update prompt, merging with locks
 │   ├── presets.py          presets: block format, macros, request assembly, SillyTavern import/export
-│   ├── samplers.py         sampler settings, model compatibility, context trimming
+│   ├── samplers.py         sampler settings and context trimming
+│   ├── model_profiles.py   what each model does with each setting (reads data/models/)
+│   ├── chats.py            several chats per character: files, branches, swipes, summary pieces
 │   ├── data/               built-in prompt library the default preset is made from
+│   │   └── models/         one profile per model: accepted settings, sources, style notes
 │   ├── tests.py            automated tests
 │   ├── templates/          pages (HTML)
 │   └── static/             page scripts (JS) and styles (CSS)
 └── media/                  your uploads and chat logs (created on first run, not in git)
+docs/bulba/                 the setup assistant (Bulba): research package and build plan
 Prompting EI Testing/       prompt-style experiments (EQ-Bench based) and their report
 requirements.txt            packages the app needs
 requirements-semantic.txt   optional packages for semantic worldbook search

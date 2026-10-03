@@ -582,7 +582,7 @@ def assemble(preset, slots, history, names, model="", rng=None):
 
     params, skipped = sampler_mod.to_api_params(preset["samplers"], model)
     if skipped:
-        notes.append(f"Not sent, because {model} rejects them: {', '.join(skipped)}.")
+        notes.append(f"Not sent, because {model} doesn't use them: {', '.join(skipped)}.")
     if ctx.unknown:
         notes.append("Unknown macros left as they are: " + ", ".join("{{" + u + "}}" for u in sorted(ctx.unknown)))
 
