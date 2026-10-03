@@ -381,6 +381,7 @@
         window.INIT_PHOTO_SECOND = "{{ photo_second|default:'' }}";
         window.INIT_CHAR_COUNT = {{ char_count|default:1 }};
         window.USER_AVATAR = "{{ user_avatar|default:'' }}";
+        window.STREAM_REPLIES = {{ stream_replies|yesno:"true,false" }};
     </script>
     <aside class="tracker-panel" id="trackerPanel" hidden></aside>
     {{ trackers_data|json_script:"trackers-data" }}

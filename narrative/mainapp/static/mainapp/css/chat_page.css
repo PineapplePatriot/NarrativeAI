@@ -1395,3 +1395,13 @@ body {
     .tracker-hud { padding: 6px 12px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
     .hud-pill { flex: 0 0 auto; }
 }
+
+/* Streaming: a blinking cursor while the reply is being written */
+.message.streaming .message-text::after {
+    content: "▍";
+    display: inline-block;
+    margin-left: 2px;
+    color: var(--accent-1);
+    animation: stream-blink 1s steps(2, start) infinite;
+}
+@keyframes stream-blink { to { visibility: hidden; } }

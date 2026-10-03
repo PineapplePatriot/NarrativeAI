@@ -280,3 +280,11 @@ button.legend:hover { color: var(--text-primary) }
 .switch input:focus-visible + span { outline: 2px solid var(--accent-1); outline-offset: 2px }
 .preset-item .name { overflow-wrap: anywhere }
 .preset-head h2 { overflow-wrap: anywhere }
+
+.totals { display: flex; flex-direction: column; gap: 6px; font-size: .88rem; margin-bottom: 10px; color: var(--text-muted) }
+.totals b { color: var(--text-primary); font-size: 1.05rem }
+.totals a { color: #b794f6 }
+.ctx-bar { height: 6px; border-radius: 999px; background: rgba(255, 255, 255, .08); overflow: hidden; max-width: 420px }
+.ctx-bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--success), var(--warning)) }
+.gtokens { font-size: .74rem; color: var(--text-muted); font-weight: normal; white-space: nowrap; margin-left: auto }
+.gcard .group-head .meter { margin-left: 0 }

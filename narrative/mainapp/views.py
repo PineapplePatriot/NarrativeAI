@@ -8,7 +8,7 @@ from datetime import datetime
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files.base import ContentFile
-from django.http import HttpResponse, JsonResponse, HttpResponseNotFound
+from django.http import HttpResponse, JsonResponse, HttpResponseNotFound, StreamingHttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.utils.text import slugify
@@ -417,7 +417,10 @@ def chat(request, slug):
                     built = presets.assemble(preset, prompt_slots(request.user, character, prompt),
                                              api_messages, prompt_names(request.user, character), chat_model)
                     context_dropped = built["dropped"]
-                    reply = ai_client.complete(request.user, "chat", built["messages"], **built["params"])
+                    # Stream when the page asks for it and the preset allows it
+                    streaming = bool(data.get("stream")) and preset["options"].get("streaming", True)
+                    if not streaming:
+                        reply = ai_client.complete(request.user, "chat", built["messages"], **built["params"])
 
                 except ai_client.AIError as e:
                     # Keep the user's message so they can press Regenerate
@@ -428,114 +431,153 @@ def chat(request, slug):
                     save_messages(messages)
                     return JsonResponse({"error": f"Something went wrong while building the prompt: {e}"}, status=500)
 
-                char_count = 1
-                emotion_char_1 = "neutral"
-                emotion_char_2 = "neutral"
-
-                # --- Classify emotion (optional, can be turned off on the Connections page) ---
-                try:
-                    if not ai_client.is_enabled(request.user, "emotion"):
-                        raise ai_client.AIError("emotion detection is turned off")
-                    valid_emotions = ["neutral", "happy", "sad", "angry", "surprised", "scared", "confused", "calm", "scheming"]
-
-                    # Prompt asks LLM who is speaking (1, 2, or both) and their emotions
-                    classification_system_prompt = (
-                        f"You are an analysis tool. The main character is named '{character.name}'.\n"
-                        "Analyze the last message and determine who is speaking.\n"
-                        "Rules:\n"
-                        f"1. If ONLY '{character.name}' is speaking, set 'speaking' to '1'.\n"
-                        f"2. If ONLY the other character is speaking, set 'speaking' to '2'.\n"
-                        "3. If BOTH characters are speaking, set 'speaking' to 'both'.\n"
-                        "4. Determine the emotion for the speaking character(s) from this list: "
-                        f"{json.dumps(valid_emotions)}.\n"
-                        "Return ONLY a JSON object with this format:\n"
-                        '{ "speaking": "1" or "2" or "both", "emotion_1": "...", "emotion_2": "..." }'
-                    )
-
-                    class_text = ai_client.complete(request.user, "emotion", [
-                        {"role": "system", "content": classification_system_prompt},
-                        {"role": "user", "content": reply}],
-                        max_tokens=100, temperature=0.0, response_format={"type": "json_object"})
-                    class_data = json.loads(class_text)
-
-                    speaker = str(class_data.get("speaking", "1")).lower()
-                    emotion_char_1 = class_data.get("emotion_1", "neutral")
-                    emotion_char_2 = class_data.get("emotion_2", "neutral")
-
-                    print(f"[CLASSIFICATION] Speaker: {speaker} | Emo1: {emotion_char_1} | Emo2: {emotion_char_2}")
-
-                    # Logic: Determine layout (char_count)
-                    # 1 = Main Only, 2 = Both, 3 = Second Only
-                    if character.is_mult:
-                        if speaker == "both": char_count = 2
-                        elif speaker == "2": char_count = 3
-                        else: char_count = 1
-                    else:
-                        char_count = 1
-
-                except Exception as e:
-                    print(f"Classification failed: {e}")
+                def finish_reply(reply):
+                    """Emotion, saving, voice and the summary/tracker flags, once the reply is complete."""
+                    char_count = 1
                     emotion_char_1 = "neutral"
+                    emotion_char_2 = "neutral"
 
-                # Store emotions as "happy|sad" string
-                final_emotion_str = f"{emotion_char_1}|{emotion_char_2}"
-                messages.append(("assistant", datetime.now().strftime("%H:%M"), reply, final_emotion_str, char_count))
-
-                # --- Get Photo URLs ---
-                def get_photo(prefix, emo):
-                    attr = getattr(character, f"{prefix}_{emo}", None)
-                    if not attr: attr = getattr(character, f"{prefix}_neutral", None)
-                    return attr.url if attr else None
-
-                photo_url = get_photo("photo", emotion_char_1)
-                photo_second = get_photo("photo_second", emotion_char_2) if (character.is_mult or char_count >= 2) else None
-
-                save_messages(messages)
-
-                # --- Voice (ElevenLabs), only if the user has a key ---
-                audio_path = ""
-                ELEVENLABS_API_KEY = get_elevenlabs_key(request.user)
-                if ELEVENLABS_API_KEY:
+                    # --- Classify emotion (optional, can be turned off on the Connections page) ---
                     try:
-                        audio_path = narrate_text_backend(
-                            reply,
-                            request.user,
-                            character.name,
-                            ELEVENLABS_API_KEY,
-                            narrator_voice_id=character.eleven_voice_narr_id or None,
-                            character_voice_id=character.eleven_voice_char_id or None,
-                            second_character_voice_id=character.eleven_voice_second_id or None,
-                            output_dir="media/audio_files",
-                            is_mult=character.is_mult or (char_count > 1),
+                        if not ai_client.is_enabled(request.user, "emotion"):
+                            raise ai_client.AIError("emotion detection is turned off")
+                        valid_emotions = ["neutral", "happy", "sad", "angry", "surprised", "scared", "confused", "calm", "scheming"]
+
+                        # Prompt asks LLM who is speaking (1, 2, or both) and their emotions
+                        classification_system_prompt = (
+                            f"You are an analysis tool. The main character is named '{character.name}'.\n"
+                            "Analyze the last message and determine who is speaking.\n"
+                            "Rules:\n"
+                            f"1. If ONLY '{character.name}' is speaking, set 'speaking' to '1'.\n"
+                            f"2. If ONLY the other character is speaking, set 'speaking' to '2'.\n"
+                            "3. If BOTH characters are speaking, set 'speaking' to 'both'.\n"
+                            "4. Determine the emotion for the speaking character(s) from this list: "
+                            f"{json.dumps(valid_emotions)}.\n"
+                            "Return ONLY a JSON object with this format:\n"
+                            '{ "speaking": "1" or "2" or "both", "emotion_1": "...", "emotion_2": "..." }'
                         )
+
+                        class_text = ai_client.complete(request.user, "emotion", [
+                            {"role": "system", "content": classification_system_prompt},
+                            {"role": "user", "content": reply}],
+                            max_tokens=100, temperature=0.0, response_format={"type": "json_object"})
+                        class_data = json.loads(class_text)
+
+                        speaker = str(class_data.get("speaking", "1")).lower()
+                        emotion_char_1 = class_data.get("emotion_1", "neutral")
+                        emotion_char_2 = class_data.get("emotion_2", "neutral")
+
+                        print(f"[CLASSIFICATION] Speaker: {speaker} | Emo1: {emotion_char_1} | Emo2: {emotion_char_2}")
+
+                        # Logic: Determine layout (char_count)
+                        # 1 = Main Only, 2 = Both, 3 = Second Only
+                        if character.is_mult:
+                            if speaker == "both": char_count = 2
+                            elif speaker == "2": char_count = 3
+                            else: char_count = 1
+                        else:
+                            char_count = 1
+
                     except Exception as e:
-                        print(f"Voice generation failed: {e}")
+                        print(f"Classification failed: {e}")
+                        emotion_char_1 = "neutral"
 
-                # Automatic summary: tell the page to run one in the background
-                summary_task = ai_client.get_task_setting(request.user, "summary")
-                summarized = chat_state["summary_upto"] or 0
-                summary_due = (summary_task.mode == summary_task.MODE_AUTO
-                               and len(messages) - summarized >= summary_task.interval)
+                    # Store emotions as "happy|sad" string
+                    final_emotion_str = f"{emotion_char_1}|{emotion_char_2}"
+                    messages.append(("assistant", datetime.now().strftime("%H:%M"), reply, final_emotion_str, char_count))
 
-                # Trackers: same idea, if any tracker is on for this character
-                tracker_task = ai_client.get_task_setting(request.user, "trackers")
-                tracked = (chat_state["trackers"] or {}).get("upto") or 0
-                trackers_due = (bool(trackers.enabled_trackers(trackers.normalize_config(character.tracker_config)))
-                                and tracker_task.mode == tracker_task.MODE_AUTO
-                                and len(messages) - tracked >= tracker_task.interval)
+                    # --- Get Photo URLs ---
+                    def get_photo(prefix, emo):
+                        attr = getattr(character, f"{prefix}_{emo}", None)
+                        if not attr: attr = getattr(character, f"{prefix}_neutral", None)
+                        return attr.url if attr else None
 
-                return JsonResponse({
-                    "reply": reply,
-                    "emotion": final_emotion_str,
-                    "photo_url": photo_url,
-                    "photo_second": photo_second,
-                    "char_count": char_count,
-                    "audio_url": audio_path,
-                    "lore": lore_report,
-                    "summary_due": summary_due,
-                    "trackers_due": trackers_due,
-                    "context_dropped": context_dropped,
-                })
+                    photo_url = get_photo("photo", emotion_char_1)
+                    photo_second = get_photo("photo_second", emotion_char_2) if (character.is_mult or char_count >= 2) else None
+
+                    save_messages(messages)
+
+                    # --- Voice (ElevenLabs), only if the user has a key ---
+                    audio_path = ""
+                    ELEVENLABS_API_KEY = get_elevenlabs_key(request.user)
+                    if ELEVENLABS_API_KEY:
+                        try:
+                            audio_path = narrate_text_backend(
+                                reply,
+                                request.user,
+                                character.name,
+                                ELEVENLABS_API_KEY,
+                                narrator_voice_id=character.eleven_voice_narr_id or None,
+                                character_voice_id=character.eleven_voice_char_id or None,
+                                second_character_voice_id=character.eleven_voice_second_id or None,
+                                output_dir="media/audio_files",
+                                is_mult=character.is_mult or (char_count > 1),
+                            )
+                        except Exception as e:
+                            print(f"Voice generation failed: {e}")
+
+                    # Automatic summary: tell the page to run one in the background
+                    summary_task = ai_client.get_task_setting(request.user, "summary")
+                    summarized = chat_state["summary_upto"] or 0
+                    summary_due = (summary_task.mode == summary_task.MODE_AUTO
+                                   and len(messages) - summarized >= summary_task.interval)
+
+                    # Trackers: same idea, if any tracker is on for this character
+                    tracker_task = ai_client.get_task_setting(request.user, "trackers")
+                    tracked = (chat_state["trackers"] or {}).get("upto") or 0
+                    trackers_due = (bool(trackers.enabled_trackers(trackers.normalize_config(character.tracker_config)))
+                                    and tracker_task.mode == tracker_task.MODE_AUTO
+                                    and len(messages) - tracked >= tracker_task.interval)
+
+                    return {
+                        "reply": reply,
+                        "emotion": final_emotion_str,
+                        "photo_url": photo_url,
+                        "photo_second": photo_second,
+                        "char_count": char_count,
+                        "audio_url": audio_path,
+                        "lore": lore_report,
+                        "summary_due": summary_due,
+                        "trackers_due": trackers_due,
+                        "context_dropped": context_dropped,
+                    }
+
+                if not streaming:
+                    return JsonResponse(finish_reply(reply))
+
+                def stream_reply():
+                    """NDJSON lines: {"type": "delta", "text"} ..., then {"type": "done", ...} or {"type": "error"}."""
+                    parts, finished = [], False
+
+                    def keep_partial():
+                        # Keep whatever arrived (Stop button, closed tab or a broken stream)
+                        text = "".join(parts).strip()
+                        if text:
+                            messages.append(("assistant", datetime.now().strftime("%H:%M"), text, "neutral|neutral", 1))
+                        save_messages(messages)
+
+                    try:
+                        try:
+                            for chunk in ai_client.stream(request.user, "chat", built["messages"], **built["params"]):
+                                parts.append(chunk)
+                                yield json.dumps({"type": "delta", "text": chunk}, ensure_ascii=False) + "\n"
+                        except ai_client.AIError as e:
+                            keep_partial()
+                            finished = True
+                            yield json.dumps({"type": "error", "error": str(e), "kept": bool("".join(parts).strip())}) + "\n"
+                            return
+                        payload = finish_reply("".join(parts))
+                        finished = True
+                        yield json.dumps({"type": "done", **payload}, ensure_ascii=False) + "\n"
+                    except GeneratorExit:
+                        if not finished:
+                            keep_partial()
+                        raise
+
+                response = StreamingHttpResponse(stream_reply(), content_type="application/x-ndjson")
+                response["Cache-Control"] = "no-cache"
+                response["X-Accel-Buffering"] = "no"  # don't let proxies hold the stream back
+                return response
 
     # --- GET request ---
     if messages and messages[-1][0] == "assistant":
@@ -602,6 +644,7 @@ def chat(request, slug):
         "current_music": json.dumps(chat_state["current_music"]),
         "user_avatar": user_avatar,
         "trackers_data": _tracker_page_data(request.user, character, chat_state["trackers"]),
+        "stream_replies": presets.normalize(presets.get_active(request.user).data)["options"]["streaming"],
     }
 
     return render(request, "mainapp/chat_page.html", context)

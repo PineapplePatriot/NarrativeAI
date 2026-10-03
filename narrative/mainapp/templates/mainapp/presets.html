@@ -52,6 +52,7 @@
         <label class="inline">Send as
           <select id="postProcessing"></select>
         </label>
+        <label class="check"><input type="checkbox" id="streaming"> Stream replies (show them word by word as they're written)</label>
         <p class="help" id="extrasNote"></p>
       </section>
 
@@ -66,7 +67,9 @@
           <h2>Request map</h2>
           <span class="help" id="blockCount"></span>
         </div>
-        <p class="help">What gets sent, in order, sized by length. Click a group to jump to it.</p>
+        <p class="help">What gets sent, in order, sized by length. Click a group to jump to it.
+          Token counts are estimates of the written text; slots like the chat and lore are added when sending (see Preview for the exact total).</p>
+        <div class="totals" id="totals"></div>
         <div class="map" id="map"></div>
         <div class="map-legend" id="mapLegend"></div>
       </section>
@@ -113,6 +116,7 @@
   const URLS = {
     page: "{% url 'presets' %}",
     export: "{% url 'preset_export' 0 %}",
+    samplers: "{% url 'samplers' %}",
   };
 </script>
 <script src="{% static 'mainapp/js/presets.js' %}"></script>

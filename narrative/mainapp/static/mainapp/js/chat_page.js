@@ -235,6 +235,93 @@ function getCookie(name) {
     return cookieValue;
 }
 
+// --- Replies: one request helper for normal and streamed replies ---
+// Resolves with the server's reply payload ({reply, photo_url, ...}), or {error}, or {stopped}.
+// While streaming, the reply bubble is created at the first words and filled in live.
+async function requestReply(body) {
+    const controller = new AbortController();
+    currentRequest = controller;
+    const stream = !!window.STREAM_REPLIES;
+    let bubble = null, text = '', frame = null;
+
+    const paint = () => {
+        frame = null;
+        bubble.innerHTML = renderChatMessage(text);
+        bubble.setAttribute('data-raw', encodeURIComponent(text));
+        scrollToBottom();
+    };
+
+    try {
+        const resp = await fetch(window.location.href, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ ...body, stream }),
+            signal: controller.signal,
+        });
+        if (!(resp.headers.get('content-type') || '').includes('ndjson')) return await resp.json();
+
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            let nl;
+            while ((nl = buffer.indexOf('\n')) >= 0) {
+                const line = buffer.slice(0, nl).trim();
+                buffer = buffer.slice(nl + 1);
+                if (!line) continue;
+                const event = JSON.parse(line);
+                if (event.type === 'delta') {
+                    if (!bubble) {
+                        typingMessage.style.display = 'none';
+                        addMessage('assistant', '', window.INIT_PHOTO_URL || null);
+                        const all = messagesContainer.querySelectorAll('.message.assistant:not(#typingMessage) .message-text');
+                        bubble = all[all.length - 1];
+                        bubble.closest('.message').classList.add('streaming');
+                    }
+                    text += event.text;
+                    if (!frame) frame = requestAnimationFrame(paint);
+                } else if (event.type === 'done') {
+                    return { ...event, bubble };
+                } else if (event.type === 'error') {
+                    if (bubble && !event.kept) bubble.closest('.message').remove();
+                    else if (bubble) { paint(); bubble.closest('.message').classList.remove('streaming'); }
+                    return { error: event.error };
+                }
+            }
+        }
+        return { error: 'The reply stream ended unexpectedly.' };
+    } catch (err) {
+        if (err.name === 'AbortError') {
+            if (bubble) { paint(); bubble.closest('.message').classList.remove('streaming'); }
+            return { stopped: true };
+        }
+        throw err;
+    } finally {
+        currentRequest = null;
+    }
+}
+
+// Put a finished reply on screen: fill the streamed bubble, or add a new message
+function placeReply(data, avatarUrl) {
+    if (!data.bubble) {
+        addMessage('assistant', data.reply, avatarUrl);
+        return;
+    }
+    data.bubble.innerHTML = renderChatMessage(data.reply);
+    data.bubble.setAttribute('data-raw', encodeURIComponent(data.reply));
+    const message = data.bubble.closest('.message');
+    message.classList.remove('streaming');
+    message.querySelector('.edit-textarea').value = data.reply;
+    if (avatarUrl) {
+        const avatar = message.querySelector('.message-avatar');
+        if (avatar && avatar.tagName === 'IMG') avatar.src = avatarUrl;
+        else if (avatar) avatar.outerHTML = `<img src="${avatarUrl}" class="message-avatar" style="object-fit:cover;">`;
+    }
+}
+
 // Send message to server
 function sendMessage() {
     const message = messageInput.value.trim();
@@ -250,15 +337,7 @@ function sendMessage() {
     typingMessage.style.display = 'flex';
     scrollToBottom();
 
-    fetch(window.location.href, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
-        },
-        body: JSON.stringify({ message: message })
-    })
-        .then(response => response.json())
+    requestReply({ message: message })
         .then(data => {
             if (data.error) { showChatError(data.error); return; }
             let avatarToUse = data.photo_url;
@@ -267,7 +346,8 @@ function sendMessage() {
             if (Number(data.char_count) === 3 && data.photo_second) {
                 avatarToUse = data.photo_second;
             }
-            addMessage('assistant', data.reply, avatarToUse);
+            if (data.stopped) return;
+            placeReply(data, avatarToUse);
             updateCharacterImages(data.photo_url, data.photo_second, data.char_count);
             renderLore(data.lore);
             if (data.summary_due) generateSummary('append', true);
@@ -314,7 +394,7 @@ function sendMessage() {
         })
         .catch(error => {
             console.error('Error:', error);
-            addMessage('assistant', 'Sorry, there was an error getting a response...');
+            showChatError('Could not reach the app server. Check that it is still running.');
         })
         .finally(() => {
             isGenerating = false;
@@ -483,6 +563,7 @@ function confirmDelete() {
 // Stop generation
 function stopGeneration() {
     if (currentRequest) {
+        currentRequest.abort();  // the server keeps whatever text already arrived
         currentRequest = null;
     }
     isGenerating = false;
@@ -849,14 +930,17 @@ function confirmRegenerate() {
     const g = document.getElementById('regenGuidance').value;
     closeRegenModal();
     isGenerating = true; typingMessage.style.display = 'flex'; scrollToBottom();
-    fetch(window.location.href, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') }, body: JSON.stringify({ action: 'regenerate', guidance: g }) })
-        .then(r => r.json()).then(d => {
+    stopContainer.style.display = 'block';
+    requestReply({ action: 'regenerate', guidance: g })
+        .then(d => {
             if (d.error) { showChatError(d.error); return; }
-            addMessage('assistant', d.reply); updateCharacterImages(d.photo_url, d.photo_second, d.char_count); renderLore(d.lore);
+            if (d.stopped) return;
+            placeReply(d, d.photo_url); updateCharacterImages(d.photo_url, d.photo_second, d.char_count); renderLore(d.lore);
             if (d.summary_due) generateSummary('append', true);
             if (window.Trackers) Trackers.afterReply(d);
         })
-        .finally(() => { isGenerating = false; typingMessage.style.display = 'none'; updateMessageIndices(); });
+        .catch(err => { console.error(err); showChatError('Could not reach the app server.'); })
+        .finally(() => { isGenerating = false; stopContainer.style.display = 'none'; typingMessage.style.display = 'none'; updateMessageIndices(); });
 }
 
 // Add listeners for new Modals

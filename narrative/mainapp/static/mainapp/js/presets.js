@@ -62,6 +62,7 @@ function renderHead() {
     };
     $('exportLink').href = URLS.export.replace('/0/', `/${preset.id}/`);
     $('exportStLink').href = URLS.export.replace('/0/', `/${preset.id}/`) + '?format=sillytavern';
+    $('streaming').checked = preset.options.streaming !== false;
     $('postProcessing').innerHTML = Object.entries(DATA.post_processing)
         .map(([k, label]) => `<option value="${k}" ${k === preset.options.post_processing ? 'selected' : ''}>${esc(label)}</option>`).join('');
 
@@ -93,6 +94,7 @@ document.querySelector('.toolbar').addEventListener('click', async e => {
 });
 
 $('postProcessing').onchange = e => { preset.options.post_processing = e.target.value; scheduleSave(); };
+$('streaming').onchange = e => { preset.options.streaming = e.target.checked; scheduleSave(); };
 
 // ------------------------------------------------------------------ Blocks
 function groupOf(headerId) {
@@ -193,6 +195,32 @@ function matches(b, q, onlyOn) {
     return (b.name + ' ' + (b.content || '') + ' ' + (b.marker ? DATA.markers[b.marker] : '')).toLowerCase().includes(q);
 }
 
+// Token totals: written text only. Slots (chat, lore, trackers...) are filled when sending; see Preview.
+const blockTokens = b => (b.kind === 'prompt' ? approxTokens(b.content) : 0);
+const groupTokens = g => g.blocks.filter(b => b.enabled).reduce((n, b) => n + blockTokens(b), 0);
+const totalOn = () => preset.blocks.filter(b => b.enabled).reduce((n, b) => n + blockTokens(b), 0);
+const totalAll = () => preset.blocks.reduce((n, b) => n + blockTokens(b), 0);
+const fmt = n => n.toLocaleString();
+const share = n => `${Math.round(n / Math.max(totalOn(), 1) * 100)}%`;
+
+function renderTotals() {
+    const on = totalOn();
+    const inChat = preset.blocks.filter(b => b.enabled && b.position === 'in_chat').reduce((n, b) => n + blockTokens(b), 0);
+    const ctx = (preset.samplers || {}).context_size || {};
+    const parts = [`<b>~${fmt(on)}</b> tokens switched on`];
+    if (inChat) parts.push(`${fmt(inChat)} of them inside the chat`);
+    parts.push(`~${fmt(totalAll())} if everything were on`);
+    let ctxLine = '';
+    if (ctx.on) {
+        const pct = Math.round(on / ctx.value * 100);
+        ctxLine = `<div class="ctx-bar" title="Preset text vs. your context size"><span style="width:${Math.min(pct, 100)}%"></span></div>
+          <span class="${pct > 50 ? 'warn' : ''}">The preset alone uses ~${pct}% of your ${fmt(ctx.value)}-token context size; the rest is for the chat, lore and trackers.</span>`;
+    } else {
+        ctxLine = `<span>Context size is off (the whole chat is sent). Set one on the <a href="${URLS.samplers}">Samplers page</a> to see the preset's share.</span>`;
+    }
+    $('totals').innerHTML = `<div>${parts.join(' · ')}</div>${ctxLine}`;
+}
+
 function renderBlocks() {
     const all = preset.blocks.filter(b => b.kind !== 'header');
     $('blockCount').textContent = `${all.filter(b => b.enabled).length} of ${all.length} blocks on`;
@@ -211,12 +239,14 @@ function renderBlocks() {
                  <span class="handle" title="Drag to move the whole group">⠿</span>
                  <button type="button" class="fold" data-fold="${esc(g.key)}">${folded ? '▸' : '▾'}</button>
                  <button type="button" class="block-name" data-open="${esc(g.header.id)}" title="Click to rename">${esc(g.header.name)}</button>
+                 <span class="gtokens" title="Switched-on text in this group (${share(groupTokens(g))} of the preset)">~${fmt(groupTokens(g))} tok</span>
                  <span class="meter" title="${on.length} of ${g.blocks.length} on"><span style="width:${pct}%"></span></span>
                  <span class="count">${on.length}/${g.blocks.length}</span>
                </div>
                ${open.has(g.header.id) ? editor(g.header) : ''}`
             : `<div class="group-head plain"><button type="button" class="fold" data-fold="__top">${folded ? '▸' : '▾'}</button>
-                 <span class="muted-title">Not in a group</span><span class="count">${on.length}/${g.blocks.length}</span></div>`;
+                 <span class="muted-title">Not in a group</span><span class="gtokens">~${fmt(groupTokens(g))} tok</span>
+                 <span class="count">${on.length}/${g.blocks.length}</span></div>`;
         const body = folded
             ? `<div class="folded-chips" data-fold="${esc(g.key)}">${on.slice(0, 8).map(b => `<span class="mini">${esc(b.name)}</span>`).join('')}
                  ${on.length > 8 ? `<span class="mini more">+${on.length - 8} more</span>` : ''}
@@ -231,6 +261,7 @@ function renderBlocks() {
 
 // The request map: enabled blocks in order, sized by length; the chat shows as its own segment
 function renderMap() {
+    renderTotals();
     const segments = [];
     for (const g of groupList()) {
         let tokens = 0;
@@ -254,7 +285,7 @@ function renderMap() {
     $('mapLegend').innerHTML = groupList().filter(g => g.blocks.some(b => b.enabled)).map(g =>
         `<button type="button" class="legend" data-jump="${esc(g.key)}"><i style="background:${g.color}"></i>${esc(g.header ? g.header.name : 'Not in a group')}</button>`).join('')
         + (inChat ? `<span class="legend static">⤵ ${inChat} block${inChat > 1 ? 's' : ''} inside the chat</span>` : '')
-        + `<span class="legend static">≈ ${segments.reduce((n, s) => n + s.tokens, 0)} tokens before the chat & lore</span>`;
+;
 }
 
 function renderSlotPicker() {
@@ -343,6 +374,7 @@ $('blocks').addEventListener('input', e => {
         ed.querySelector('[data-tokens]').textContent = `~${approxTokens(b.content)} tokens`;
         const row = $('blocks').querySelector(`[data-id="${CSS.escape(b.id)}"] [data-row-tokens]`);
         if (row) row.textContent = `~${approxTokens(b.content)}`;
+        renderTotals();
     }
     if (f === 'depth') {
         const row = $('blocks').querySelector(`[data-id="${CSS.escape(b.id)}"]`);

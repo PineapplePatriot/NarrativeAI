@@ -283,7 +283,7 @@ class ChatPromptTests(TestCase):
         self.all_calls = []  # every payload, including emotion/summary calls
         self.reply_status = 200
 
-    def fake_post(self, url, headers=None, json=None, timeout=None):
+    def fake_post(self, url, headers=None, json=None, timeout=None, **kwargs):
         from unittest import mock
         self.all_calls.append(json)
         first = json["messages"][0]["content"]
@@ -976,3 +976,110 @@ class PresetEditorTests(ChatPromptTests):
     def test_save_full_rejects_garbage(self):
         tavern_id = self.page_post({"action": "import", "data": ST_PRESET}).json()["selected"]
         self.assertEqual(self.page_post({"action": "save_full", "id": tavern_id, "blocks": "nope"}).status_code, 400)
+
+
+def sse(*events):
+    """Server-sent event lines as a provider would stream them."""
+    lines = [": OPENROUTER PROCESSING", ""]
+    for e in events:
+        lines += ["data: " + (e if isinstance(e, str) else json.dumps(e)), ""]
+    return lines
+
+
+def delta(text):
+    return {"choices": [{"delta": {"content": text}}]}
+
+
+class StreamClientTests(TestCase):
+    def setUp(self):
+        from users.models import ConnectionProfile
+        self.user = get_user_model().objects.create_user(username="streamer", password="pw12345!")
+        ConnectionProfile.objects.create(user=self.user, name="Main", api_key="k", model="m")
+
+    def run_stream(self, lines, status=200):
+        from unittest import mock
+        from mainapp import ai_client
+        resp = mock.MagicMock(status_code=status)
+        resp.iter_lines.return_value = lines
+        resp.json.return_value = {"error": {"message": "bad key"}}
+        resp.__enter__.return_value = resp
+        with mock.patch("mainapp.ai_client.requests.post", return_value=resp) as post:
+            out = list(ai_client.stream(self.user, "chat", [], max_tokens=10))
+        self.assertTrue(post.call_args.kwargs["stream"])
+        self.assertTrue(post.call_args.kwargs["json"]["stream"])
+        return out
+
+    def test_pieces_in_order_and_done(self):
+        out = self.run_stream(sse(delta("Hel"), {"choices": [{"delta": {}}]}, delta("lo"), "[DONE]", delta("ignored")))
+        self.assertEqual(out, ["Hel", "lo"])
+
+    def test_errors(self):
+        from mainapp.ai_client import AIError
+        with self.assertRaisesMessage(AIError, "overloaded"):
+            self.run_stream(sse(delta("Hi"), {"error": {"message": "overloaded"}}))
+        with self.assertRaisesMessage(AIError, "bad key"):
+            self.run_stream([], status=401)
+
+
+class StreamChatTests(ChatPromptTests):
+    """The chat view streaming a reply (reuses the fake AI from ChatPromptTests)."""
+
+    def setUp(self):
+        super().setUp()
+        self.stream_lines = sse(delta("Once "), delta("upon "), delta("a time."), "[DONE]")
+
+    def fake_post(self, url, headers=None, json=None, timeout=None, **kwargs):
+        from unittest import mock
+        if not kwargs.get("stream"):
+            return super().fake_post(url, headers, json, timeout)
+        self.sent.append(json)
+        resp = mock.MagicMock(status_code=200)
+        resp.iter_lines.return_value = self.stream_lines
+        resp.__enter__.return_value = resp
+        return resp
+
+    def stream_post(self, data):
+        from unittest import mock
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=self.fake_post):
+            resp = self.client.post(self.url, json.dumps({**data, "stream": True}), content_type="application/json")
+            events = [json.loads(line) for line in b"".join(resp.streaming_content).decode().splitlines() if line]
+        return resp, events
+
+    def test_streamed_reply_is_sent_and_saved(self):
+        resp, events = self.stream_post({"action": "chat", "message": "Tell me a story"})
+        self.assertEqual(resp["Content-Type"], "application/x-ndjson")
+        self.assertEqual([e["text"] for e in events if e["type"] == "delta"], ["Once ", "upon ", "a time."])
+        done = events[-1]
+        self.assertEqual((done["type"], done["reply"]), ("done", "Once upon a time."))
+        self.assertIn("summary_due", done)
+        self.assertEqual(self.saved_messages()[-1][2], "Once upon a time.")
+
+    def test_stop_keeps_partial_text(self):
+        from unittest import mock
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=self.fake_post):
+            resp = self.client.post(self.url, json.dumps({"action": "chat", "message": "Go", "stream": True}),
+                                    content_type="application/json")
+            stream = iter(resp.streaming_content)
+            next(stream)          # the first words arrive...
+            resp.close()          # ...then the page stops reading
+        saved = self.saved_messages()
+        self.assertEqual([m[0] for m in saved], ["assistant", "user", "assistant"])
+        self.assertEqual(saved[-1][2], "Once")
+
+    def test_error_mid_stream_keeps_partial_and_reports(self):
+        self.stream_lines = sse(delta("Half a "), {"error": {"message": "provider crashed"}})
+        _, events = self.stream_post({"action": "chat", "message": "Go"})
+        self.assertEqual(events[-1]["type"], "error")
+        self.assertTrue(events[-1]["kept"])
+        self.assertEqual(self.saved_messages()[-1][2], "Half a")
+
+    def test_preset_can_turn_streaming_off(self):
+        from mainapp.presets import get_active
+        obj = get_active(self.user)
+        obj.data = {**obj.data, "options": {**obj.data.get("options", {}), "streaming": False}}
+        obj.save()
+        from unittest import mock
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=self.fake_post):
+            resp = self.client.post(self.url, json.dumps({"action": "chat", "message": "Hi", "stream": True}),
+                                    content_type="application/json")
+        self.assertEqual(resp.json()["reply"], "A reply.")

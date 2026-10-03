@@ -153,7 +153,8 @@ def normalize(raw):
         "blocks": blocks,
         "samplers": sampler_mod.normalize(raw.get("samplers")),
         "utility": utility,
-        "options": {"post_processing": pp if pp in POST_PROCESSING else "none"},
+        "options": {"post_processing": pp if pp in POST_PROCESSING else "none",
+                    "streaming": bool(options_raw.get("streaming", True))},
         "extras": raw.get("extras") if isinstance(raw.get("extras"), dict) else {},
     }
 
@@ -186,7 +187,7 @@ ST_SAMPLERS = [
 ST_HANDLED_KEYS = {"prompts", "prompt_order"} | {k for k, _, _ in ST_SAMPLERS} | {
     "openai_max_tokens", "openai_max_context", "seed", "reasoning_effort", "verbosity",
     "impersonation_prompt", "new_chat_prompt", "continue_nudge_prompt", "assistant_prefill",
-    "assistant_impersonation", "squash_system_messages", "custom_prompt_post_processing"}
+    "assistant_impersonation", "squash_system_messages", "custom_prompt_post_processing", "stream_openai"}
 
 
 def from_sillytavern(data):
@@ -252,7 +253,7 @@ def from_sillytavern(data):
             "assistant_prefill": data.get("assistant_prefill", ""),
             "assistant_impersonation": data.get("assistant_impersonation", ""),
         },
-        "options": {"post_processing": pp},
+        "options": {"post_processing": pp, "streaming": bool(data.get("stream_openai", True))},
         "extras": extras,
     })
 
@@ -279,7 +280,8 @@ def to_sillytavern(preset):
     out.update({"continue_nudge_prompt": u["continue_nudge"], "impersonation_prompt": u["impersonation"],
                 "new_chat_prompt": u["new_chat"], "assistant_prefill": u["assistant_prefill"],
                 "assistant_impersonation": u["assistant_impersonation"],
-                "squash_system_messages": preset["options"]["post_processing"] == "merge"})
+                "squash_system_messages": preset["options"]["post_processing"] == "merge",
+                "stream_openai": preset["options"]["streaming"]})
 
     prompts, order = [], []
     for b in preset["blocks"]:
