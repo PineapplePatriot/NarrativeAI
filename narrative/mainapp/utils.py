@@ -1,117 +1,7 @@
 from mainapp.models import Character, Worldbook, ChatSettings
 import json
-import io
-import numpy as np
-from sentence_transformers import util
 from users.models import ApiConfig
-
-
-def get_worldbook_matches(chat_history, current_message, worldbook_slug, top_k=3, similarity_threshold=0.2):
-    """
-    Improved RAG:
-    1. Uses context from history (not just the last message).
-    2. Searches against Key + Value content (not just keys).
-    3. Filters based on a higher threshold to reduce hallucinations.
-    """
-    print(f"INFO----------- Finding matches for WB: {worldbook_slug}")
-
-    try:
-        wb = Worldbook.objects.get(slug=worldbook_slug)
-    except Worldbook.DoesNotExist:
-        return []
-
-    if not wb.json_file:
-        return []
-
-    # 1. Load Data
-    with wb.json_file.open('rb') as f:
-        text = io.TextIOWrapper(f, encoding='utf-8').read()
-        data = json.loads(text)
-
-    entries = []
-
-    # Normalize data structure (handle both simple dicts and SillyTavern/V2 formats)
-    raw_entries = data.get("entries", [])
-    if not raw_entries:
-        # Try top level items if 'entries' key doesn't exist
-        for k, v in data.items():
-            if isinstance(v, str):
-                raw_entries.append({"key": k, "value": v})
-
-    for entry in raw_entries:
-        # Support various JSON formats (keys, key, keyword, etc)
-        keys = entry.get("key") or entry.get("keys") or entry.get("keyword") or []
-        content = entry.get("value") or entry.get("content") or ""
-
-        # Determine if this is a "constant" (always active) entry
-        # Many worldbook formats use 'constant': true or 'secondary_keys': []
-        is_constant = entry.get("constant", False)
-
-        if isinstance(keys, list):
-            keys = ", ".join(keys) # Flatten list of keys to string
-
-        if keys and content:
-            entries.append({
-                "keys": str(keys),
-                "content": str(content),
-                "text_to_embed": f"{keys}: {content}", # Search against full context
-                "constant": is_constant
-            })
-
-    if not entries:
-        return []
-
-    # 2. Construct Search Query (Contextual)
-    # Combine the last few messages to capture "what are we talking about?"
-    # Format: "User: Hello. Character: Hi. User: What is that?"
-    query_context = ""
-    if chat_history:
-        # Take last 2 interactions + current message
-        recent_history = chat_history[-2:] 
-        for msg in recent_history:
-            # msg format is likely [role, time, content, mood] based on your previous code
-            role = msg[0]
-            content = msg[2]
-            query_context += f"{role}: {content}\n"
-
-    query_context += f"user: {current_message}"
-
-    print(f"DEBUG: RAG Query Context: {query_context}")
-
-    # 3. Embedding and Search
-    # Embed the corpus (all entries)
-    corpus_texts = [e["text_to_embed"] for e in entries]
-    corpus_embeddings = model.encode(corpus_texts, convert_to_tensor=True)
-
-    # Embed the query
-    query_embedding = model.encode(query_context, convert_to_tensor=True)
-
-    # Calculate Cosine Similarity
-    cos_scores = util.cos_sim(query_embedding, corpus_embeddings)[0]
-
-    results = []
-
-    # First, add ALL constant entries (Always Context)
-    for entry in entries:
-        if entry["constant"]:
-             results.append({"key": entry["keys"], "value": entry["content"], "source": "constant"})
-
-    # Then add semantic matches
-    valid_scores = [(idx, float(score)) for idx, score in enumerate(cos_scores) if score > similarity_threshold]
-    valid_scores.sort(key=lambda x: x[1], reverse=True)
-
-    existing_contents = {r["value"] for r in results}
-
-    for idx, score in valid_scores[:top_k]:
-        entry = entries[idx]
-        if entry["content"] not in existing_contents:
-            results.append({
-                "key": entry["keys"],
-                "value": entry["content"],
-                "score": score
-            })
-
-    return results
+from mainapp.lorebook import load_worldbook, activate, format_for_prompt
 
 
 def build_ai_request(user, character: Character, chat_settings: ChatSettings, worldbook_slug=None, message: str = None, guidance=None, impersonate=None, persistent_guides=None, summary=None):
@@ -182,35 +72,24 @@ def build_ai_request(user, character: Character, chat_settings: ChatSettings, wo
         "date_birth": user.date_birth.isoformat() if getattr(user, "date_birth", None) else None,
     }
 
-    # 5. Worldbook matches
-    worldbook_matches = []
-    world_info_text = ""
-
-    if last_user_message_text and worldbook_slug:
+    # 5. Lorebook (worldbook) activation
+    lore_report = None
+    if worldbook_slug:
         try:
-            matches = get_worldbook_matches(
-                chat_history,                # pass history
-                last_user_message_text,      # pass current message text
-                worldbook_slug,
-                top_k=3
-            )
-
-            # If your get_worldbook_matches returns dicts like {"key":..., "value":...}
-            if matches:
-                world_info_text = "### World Information (Context):\n"
-                for m in matches:
-                    world_info_text += f"- [{m.get('key','?')}]: {m.get('value','')}\n"
-
-                # keep both forms if you want
-                worldbook_matches = matches
-
+            wb = Worldbook.objects.get(slug=worldbook_slug)
+            # chat_history never contains the message being answered, so add it
+            scan_messages = list(chat_history)
+            if last_user_message_text:
+                scan_messages.append(last_user_message_text)
+            lore = activate(load_worldbook(wb), scan_messages)
+            world_info_text = format_for_prompt(lore["entries"])
+            if world_info_text:
+                system_prompts["WorldInfo"] = world_info_text
+            lore_report = {"book": wb.title, "report": lore["report"],
+                           "notes": lore["notes"], "tokens_used": lore["tokens_used"]}
         except Exception as e:
-            print(f"Worldbook match error: {e}")
-            worldbook_matches = []
-            world_info_text = ""
-
-    if world_info_text:
-        system_prompts["WorldInfo"] = world_info_text
+            print(f"Lorebook activation error: {e}")
+            lore_report = {"book": worldbook_slug, "report": [], "notes": [f"Lorebook error: {e}"]}
 
     if summary:
         system_prompts["StorySummary"] = f"PREVIOUS STORY SUMMARY: {summary}\n(Older messages are omitted. Rely on this context.)"
@@ -234,7 +113,8 @@ def build_ai_request(user, character: Character, chat_settings: ChatSettings, wo
         "ChatHistory": chat_history,
         "LastUserMessage": last_user_message,
         "UserPersona": user_persona,
-        "AdditionalContext": worldbook_matches,
+        # Not sent to the model; shown in the chat tools menu
+        "LoreReport": lore_report,
     }
 
 
@@ -254,16 +134,6 @@ def build_ai_request(user, character: Character, chat_settings: ChatSettings, wo
 
     # print(ai_request)
     return ai_request
-
-
-
-import json
-import numpy as np
-from sentence_transformers import SentenceTransformer, util
-from .models import Worldbook
-
-# Завантажуємо модель для семантичного пошуку
-model = SentenceTransformer('all-MiniLM-L6-v2')
 
 
 

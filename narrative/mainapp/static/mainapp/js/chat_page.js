@@ -268,6 +268,7 @@ function sendMessage() {
             }
             addMessage('assistant', data.reply, avatarToUse);
             updateCharacterImages(data.photo_url, data.photo_second, data.char_count);
+            renderLore(data.lore);
 
             if (data.photo_url) {
                 const characterSprite = document.querySelector('.character-sprite');
@@ -570,6 +571,18 @@ function populateFields() {
 populateFields();
 
 // Toggle Tools
+// Shows which worldbook entries were added to the last prompt, and why
+function renderLore(lore) {
+    const box = document.getElementById('loreDisplay');
+    if (!box || !lore) return;
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
+    const label = { included: '✅', over_budget: '⚠️ over budget', disabled: '⛔ disabled' };
+    const rows = (lore.report || []).map(r =>
+        `<div class="lore-row"><b>${label[r.status] || ''} ${esc(r.label)}</b><br><small>${esc(r.reason)}</small></div>`).join('');
+    const notes = (lore.notes || []).map(n => `<div class="lore-row"><small>⚠️ ${esc(n)}</small></div>`).join('');
+    box.innerHTML = notes + (rows || `No entries from “${esc(lore.book)}” fired for this reply.`);
+}
+
 function toggleTools() { document.getElementById('toolsMenu').classList.toggle('show'); document.getElementById('toolsBtn').classList.toggle('active'); }
 function setGuidance(text) { document.getElementById('guidanceInput').value = text; }
 
@@ -822,7 +835,7 @@ function confirmRegenerate() {
     closeRegenModal();
     isGenerating = true; typingMessage.style.display = 'flex'; scrollToBottom();
     fetch(window.location.href, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') }, body: JSON.stringify({ action: 'regenerate', guidance: g }) })
-        .then(r => r.json()).then(d => { addMessage('assistant', d.reply); updateCharacterImages(d.photo_url, d.photo_second, d.char_count); })
+        .then(r => r.json()).then(d => { addMessage('assistant', d.reply); updateCharacterImages(d.photo_url, d.photo_second, d.char_count); renderLore(d.lore); })
         .finally(() => { isGenerating = false; typingMessage.style.display = 'none'; updateMessageIndices(); });
 }
 

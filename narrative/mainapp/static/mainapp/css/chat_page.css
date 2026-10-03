@@ -1258,3 +1258,6 @@ body {
         height: 450px;
     }
 }
+.lore-box { max-height: 180px; overflow-y: auto; }
+.lore-row { padding: 4px 0; border-bottom: 1px solid rgba(255, 255, 255, .06); }
+.lore-row:last-child { border-bottom: none; }

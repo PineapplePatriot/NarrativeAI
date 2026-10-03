@@ -5,7 +5,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Create Worldbook !@#$</title>
+  <title>Create Worldbook</title>
   <meta name="csrf-token" content="{{ csrf_token }}">
   <link rel="stylesheet" href="{% static 'mainapp/css/worldbook_create.css' %}">
 
@@ -18,7 +18,7 @@
         Back to Worldbooks
       </a>
       <h1>Create Worldbook</h1>
-      <div class="subtitle">Give it a name, a short description, and optionally pre-seed a few entries.</div>
+      <div class="subtitle">Give it a name and a short description, or import an existing lorebook. You can add entries on the next page.</div>
     </div>
 
     <div class="card">
@@ -33,14 +33,13 @@
         </div>
       </div>
 
-      <div style="display:flex;justify-content:space-between;align-items:center;margin:14px 0 8px">
-        <div class="subtitle">Seed Entries (optional)</div>
-        <button class="btn" id="addSeedBtn">
-          Add Entry
-        </button>
+      <div style="margin-top:14px">
+        <label>Import from file (optional)</label>
+        <input type="file" id="importFile" accept=".json,application/json"/>
+        <div class="subtitle" id="importInfo" style="font-size:.85rem;margin-top:6px">
+          Accepts a SillyTavern lorebook, a character card JSON with an embedded lorebook, or a file exported from here.
+        </div>
       </div>
-
-      <div id="seedList"></div>
 
       <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px">
         <a class="btn" href="{% url 'worldbook_list' %}">Cancel</a>
@@ -50,55 +49,6 @@
       </div>
     </div>
   </div>
-
-  <template id="seedTpl">
-    <div class="entry">
-      <div class="row">
-        <div>
-          <label>Key</label>
-          <input placeholder="npc.dottore"/>
-        </div>
-        <div>
-          <label>Tags</label>
-          <input placeholder="character, science"/>
-        </div>
-        <div>
-          <label>Scope</label>
-          <select>
-            <option>global</option>
-            <option>character</option>
-            <option>location</option>
-            <option>scene</option>
-          </select>
-        </div>
-      </div>
-      <div class="row" style="margin-top:8px">
-        <div>
-          <label>Priority (0-100)</label>
-          <input type="number" min="0" max="100" value="50"/>
-        </div>
-        <div>
-          <label>Weight (0-1)</label>
-          <input type="number" min="0" max="1" step="0.05" value="1"/>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;margin-top:22px">
-          <label style="margin-right:6px">Enabled</label>
-          <label class="switch">
-            <input type="checkbox" checked/>
-            <span class="slider"></span>
-          </label>
-        </div>
-      </div>
-      <div style="margin-top:8px">
-        <label>Value / Content</label>
-        <textarea class="valueField" placeholder="Plain text or JSON..."></textarea>
-      </div>
-      <div style="display:flex;justify-content:flex-end;margin-top:8px">
-        <button class="btn" onclick="this.closest('.entry').remove()">Remove</button>
-      </div>
-    </div>
-  </template>
-
 
   <script src="{% static 'mainapp/js/worldbook_create.js' %}"></script>
 </body>

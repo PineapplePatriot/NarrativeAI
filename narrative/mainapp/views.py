@@ -9,7 +9,7 @@ from datetime import datetime
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files.base import ContentFile
-from django.http import JsonResponse, HttpResponseNotFound
+from django.http import HttpResponse, JsonResponse, HttpResponseNotFound
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.utils.text import slugify
@@ -26,6 +26,10 @@ from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
 from .utils import build_ai_request, narrate_text_backend, get_openrouter_key, get_elevenlabs_key
+from .lorebook import (
+    normalize_book, load_worldbook, save_worldbook, activate, format_for_prompt, to_sillytavern,
+    DEFAULT_SETTINGS as LORE_DEFAULT_SETTINGS, DEFAULT_ENTRY as LORE_DEFAULT_ENTRY,
+)
 
 
 @login_required
@@ -350,6 +354,8 @@ def chat(request, slug):
                 # Added ', 1' at the end for char_count
                 messages.append(("user", datetime.now().strftime("%H:%M"), user_message, "neutral", 1))
 
+                lore_report = None
+
                 # --- Prepare history for API ---
                 api_messages = []
 
@@ -392,6 +398,7 @@ def chat(request, slug):
                         guidance=guidance,                             # <--- INJECTION 1
                         persistent_guides=chat_state["context_guides"],# <--- INJECTION 2
                         summary=chat_state["summary"])
+                    lore_report = prompt.get("LoreReport")
 
 
                     # --- Формуємо структуровані system messages ---
@@ -431,12 +438,6 @@ def chat(request, slug):
                         system_messages.append({
                             "role": "system",
                             "content": f"[LAST USER MESSAGE]\n{json.dumps(prompt['LastUserMessage'], indent=2, ensure_ascii=False)}"
-                        })
-
-                    if "WorldbookMatches" in prompt and prompt["WorldbookMatches"]:
-                        system_messages.append({
-                            "role": "system",
-                            "content": f"[WORLDBOOK MATCHES]\n{json.dumps(prompt['WorldbookMatches'], indent=2, ensure_ascii=False)}"
                         })
 
                     user_persona_txt = ""
@@ -633,6 +634,7 @@ def chat(request, slug):
                     "photo_second": photo_second,
                     "char_count": char_count,
                     "audio_url": audio_path,
+                    "lore": lore_report,
                 })
 
     # --- GET request ---
@@ -1017,41 +1019,33 @@ def chat_settings(request):
 
 @login_required
 def worldbook_create(request):
-    if request.method == "POST":
-        try:
-            # Парсимо JSON із тіла запиту
-            data = json.loads(request.body.decode("utf-8"))
-            print(data)
-            # Отримуємо title та slug
-            title = data.get("title", "Untitled")
-            slug = data.get("id")  # у data ключ "id" відповідає slug
-
-            if not slug:
-                return JsonResponse({"status": "error", "message": "Missing 'id' for slug"}, status=400)
-
-            # Створюємо об’єкт Worldbook
-            wb = Worldbook(title=title, slug=slug, description=data.get("description", ""))
-
-            # Формуємо ім'я файлу
-            if request.user.is_authenticated:
-                username = request.user.username
-                file_name = f"{username}_{slug}.json"
-                wb.author = request.user
-            else:
-                file_name = f"{slug}.json"
-
-            # Створюємо JSON-файл та зберігаємо у поле json_file
-            json_content = json.dumps(data, ensure_ascii=False, indent=2)
-            wb.json_file.save(file_name, ContentFile(json_content))
-
-            wb.save()
-
-            return JsonResponse({"status": "ok", "worldbook_id": wb.id, "title": wb.title})
-        except Exception as e:
-            return JsonResponse({"status": "error", "message": str(e)}, status=400)
-    else:
-        # GET-запит -> показуємо форму
+    if request.method != "POST":
         return render(request, "mainapp/worldbook_create.html")
+
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return JsonResponse({"status": "error", "message": "Invalid JSON"}, status=400)
+
+    # Optional import: our own export, a SillyTavern lorebook or a character card
+    imported = data.get("import")
+    try:
+        book = normalize_book(imported) if imported else normalize_book({})
+    except (ValueError, TypeError) as e:
+        return JsonResponse({"status": "error", "message": f"Could not read the imported file: {e}"}, status=400)
+
+    title = (data.get("title") or book["title"] or "Untitled").strip()
+    book["title"] = title
+    book["description"] = (data.get("description") or book["description"] or "").strip()
+
+    base_slug = slugify(title) or "worldbook"
+    slug, n = base_slug, 2
+    while Worldbook.objects.filter(slug=slug).exists():
+        slug, n = f"{base_slug}-{n}", n + 1
+
+    wb = Worldbook(title=title, slug=slug, description=book["description"], author=request.user)
+    save_worldbook(wb, book)
+    return JsonResponse({"status": "ok", "url": wb.get_absolute_url(), "count": len(book["entries"])})
 
 
 @login_required
@@ -1110,59 +1104,78 @@ def chat_settings2(request):
 def worldbook_detail(request, slug):
     wb = get_object_or_404(Worldbook, slug=slug, author=request.user)
 
-    if request.method == 'POST':
+    if request.method == "POST":
         try:
-            data = json.loads(request.body)
-            entries = data.get('entries', [])
-        except json.JSONDecodeError:
+            data = json.loads(request.body.decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
             return JsonResponse({"error": "Invalid JSON"}, status=400)
+        book = save_worldbook(wb, data)
+        return JsonResponse({"status": "ok", "count": len(book["entries"]), "book": book})
 
-        try:
-            # серіалізуємо entries у JSON
-            json_content = json.dumps({"entries": entries}, indent=2, ensure_ascii=False)
-
-            # якщо файл вже існує — перезаписуємо його
-            if wb.json_file:
-                wb.json_file.open('w')
-                wb.json_file.write(json_content)
-                wb.json_file.close()
-            else:
-                wb.json_file.save(f"{wb.slug}.json", ContentFile(json_content))
-
-            wb.save()
-        except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)
-
-        return JsonResponse({"status": "ok", "count": len(entries)})
-
-    # --- GET-запит ---
-    entries_data = []
-    if wb.json_file:
-        try:
-            wb.json_file.open('r')
-            file_content = wb.json_file.read()
-            wb.json_file.close()
-            json_data = json.loads(file_content)
-            entries_data = json_data.get('entries', []) if isinstance(json_data, dict) else []
-        except Exception:
-            entries_data = []
-
-    worldbook_json = {
-        "id": wb.slug,
-        "title": wb.title,
-        "entries": entries_data
-    }
-
-    return render(request, 'mainapp/worldbook_detail.html', {
-        'worldbook_json': worldbook_json
+    return render(request, "mainapp/worldbook_detail.html", {
+        "worldbook": wb,
+        "worldbook_json": load_worldbook(wb),
+        "defaults": {"settings": LORE_DEFAULT_SETTINGS, "entry": LORE_DEFAULT_ENTRY},
     })
 
+
+@login_required
+def worldbook_test(request, slug):
+    """Dry run: which entries would fire for the given messages, and why."""
+    get_object_or_404(Worldbook, slug=slug, author=request.user)
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only"}, status=405)
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+    # Uses the book as currently shown in the editor, so unsaved edits can be tested
+    book = normalize_book(data.get("book") or {})
+    messages = [m for m in data.get("messages", []) if isinstance(m, str) and m.strip()]
+    result = activate(book, messages)
+    return JsonResponse({
+        "report": result["report"],
+        "notes": result["notes"],
+        "tokens_used": result["tokens_used"],
+        "prompt": format_for_prompt(result["entries"]),
+    })
+
+
+@login_required
+def worldbook_export(request, slug):
+    wb = get_object_or_404(Worldbook, slug=slug, author=request.user)
+    book = load_worldbook(wb)
+    if request.GET.get("format") == "sillytavern":
+        payload, suffix = to_sillytavern(book), "_sillytavern"
+    else:
+        payload, suffix = book, ""
+    response = HttpResponse(json.dumps(payload, ensure_ascii=False, indent=2),
+                            content_type="application/json")
+    response["Content-Disposition"] = f'attachment; filename="{wb.slug}{suffix}.json"'
+    return response
+
+
+@login_required
+def worldbook_delete(request, slug):
+    wb = get_object_or_404(Worldbook, slug=slug, author=request.user)
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only"}, status=405)
+    users = list(wb.characters.values_list("name", flat=True))
+    if users:
+        return JsonResponse({"error": "This worldbook is still attached to: " + ", ".join(users)
+                             + ". Detach it from those characters first."}, status=400)
+    if wb.json_file:
+        wb.json_file.storage.delete(wb.json_file.name)
+    wb.delete()
+    return JsonResponse({"status": "ok"})
 
 
 @login_required
 def worldbook_list(request):
-    # Вибираємо лише worldbook-и поточного користувача
-    worldbooks = Worldbook.objects.filter(author=request.user)  # автоматично відсортовані завдяки Meta.ordering
+    worldbooks = list(Worldbook.objects.filter(author=request.user))
+    for wb in worldbooks:
+        wb.entry_count = len(load_worldbook(wb)["entries"])
     return render(request, "mainapp/worldbook_list.html", {"worldbooks": worldbooks})
 
 
