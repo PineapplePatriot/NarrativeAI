@@ -16,7 +16,8 @@ NarrativeAI is a web app for creative writing and roleplay with AI characters, s
   Values show as pills above the chat and in a side panel. You can edit them, and lock them so the AI can't change them.
 - **Worldbooks (lorebooks)**: SillyTavern-style entries that are added to the prompt when their keywords come up. Entries can have secondary keywords, always-on entries and priorities, and there's a "test a message" panel that shows what fires and why. You can import and export SillyTavern lorebooks and lorebooks embedded in character cards.
 - **Connections**: several AI connections (keys and models). Each feature can use its own connection or model, for example an expensive model for the story and a cheap one for summaries and trackers.
-- **Samplers**: response length, context size, temperature, top-p/k, min-p, penalties, reasoning effort and more. Each one can be switched on or off. The app skips the ones a model would reject.
+- **Presets**: the recipe for every request, built from prompt blocks you can switch on and off, edit, reorder and group. Blocks can sit at a fixed spot or inside the chat at a chosen depth. Macros like `{{char}}`, `{{random}}` and `{{setvar}}`/`{{getvar}}` are supported. SillyTavern presets import and export as they are, and a preview shows exactly what will be sent. One preset is active for all chats.
+- **Samplers** (part of the active preset): response length, context size, temperature, top-p/k, min-p, penalties, reasoning effort and more. Each one can be switched on or off. The app skips the ones a model would reject.
 
 ## Running it on your computer
 
@@ -118,7 +119,8 @@ python manage.py migrate
 4. *Optional:*
    - **Worldbooks:** create or import a lorebook, then attach it to a character on the character's edit page.
    - **Trackers:** in the chat, open the tools menu (pencil button) and choose **⚙ Setup** under Story trackers.
-   - **Samplers:** go to Chat Settings and choose **Open Samplers**. Everything starts switched off, which means the model uses its own defaults.
+   - **Presets:** open **Presets** in the top menu to choose which prompt blocks are sent, edit them, or import a SillyTavern preset. Your first preset, "NarrativeAI Default", is created automatically.
+   - **Samplers:** open **Samplers** in the top menu. Everything starts switched off, which means the model uses its own defaults.
 
 ## Running the tests
 
@@ -142,7 +144,9 @@ narrative/                  Django project (run manage.py from here)
 │   ├── ai_client.py        the only code that calls AI providers; per-feature model routing
 │   ├── lorebook.py         worldbook matching engine, SillyTavern import/export
 │   ├── trackers.py         story tracker definitions, AI update prompt, merging with locks
+│   ├── presets.py          presets: block format, macros, request assembly, SillyTavern import/export
 │   ├── samplers.py         sampler settings, model compatibility, context trimming
+│   ├── data/               built-in prompt library the default preset is made from
 │   ├── tests.py            automated tests
 │   ├── templates/          pages (HTML)
 │   └── static/             page scripts (JS) and styles (CSS)

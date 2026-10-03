@@ -1,4 +1,4 @@
-from mainapp.models import Character, Worldbook, ChatSettings
+from mainapp.models import Character, Worldbook
 import json
 from users.models import ApiConfig
 from mainapp import ai_client
@@ -8,44 +8,18 @@ from mainapp.trackers import (normalize_config as normalize_tracker_config,
                               format_for_prompt as format_trackers)
 
 
-def build_ai_request(user, character: Character, chat_settings: ChatSettings, worldbook_slug=None, message: str = None, guidance=None, impersonate=None, persistent_guides=None, summary=None):
+def build_ai_request(user, character: Character, worldbook_slug=None, message: str = None, guidance=None,
+                     persistent_guides=None, summary=None):
     """
-    Формує JSON-запит для моделі ШІ (структурований і читабельний).
-    Використовує message як останнє повідомлення користувача.
-    Якщо message=None, підвантажує останнє повідомлення з файлу чату.
+    Collects the per-message context that fills a preset's slots: lore matches,
+    story trackers, summary, the manual World State notes and the director's note.
+    `message` is the user's new message; without it (regenerate) the last user
+    message from the chat file is used.
+    Returns {"SystemPrompts": {slot texts}, "LoreReport": {...} or None}.
     """
+    system_prompts = {}
 
-    # 1. Завантажуємо ChatSettings JSON
-    settings_data = {}
-    if chat_settings and chat_settings.json_file and hasattr(chat_settings.json_file, "path"):
-        try:
-            with open(chat_settings.json_file.path, "r", encoding="utf-8") as f:
-                settings_data = json.load(f)
-        except Exception:
-            settings_data = {}
-
-    # Витягуємо ядро (core) і системні промпти
-    # Old sampler/behavior settings are not prompt text (samplers now live in ChatSettings.samplers)
-    core_keys = {"max_tokens", "seed", "sampling", "behaviors"}
-    core_data = {k: settings_data[k] for k in core_keys if k in settings_data}
-    system_prompts = {k: v for k, v in settings_data.items() if k not in core_keys}
-
-    # 2. Character description
-    character_data = {
-        "name": character.name,
-        "description": character.description,
-        "scenario": character.scenario,
-        "initial_message": character.initial_message,
-        "creator_notes": character.creator_notes,
-    }
-
-
-    # 3. Chat history та останнє повідомлення користувача
-    chat_history = []
-    last_user_message = None
-    last_user_message_text = message
-
-    # Load full chat log once (used in both paths)
+    # Recent chat from the file (the new message is not saved yet)
     all_messages = []
     if character.chat_log_file and hasattr(character.chat_log_file, "path"):
         try:
@@ -58,30 +32,18 @@ def build_ai_request(user, character: Character, chat_settings: ChatSettings, wo
     if isinstance(all_messages, dict):
         all_messages = all_messages.get("messages", [])
 
-    if message is not None and message != "":
-        # Real-time chat: use recent file history + current message as "now"
-        chat_history = all_messages[-10:]  # keep last N turns
-        last_user_message = ["user", "now", message, "neutral"]
+    last_user_message_text = message
+    if message:
+        chat_history = all_messages[-10:]
     else:
-        # Continue/regenerate: last user message comes from file
         user_messages = [msg for msg in all_messages if msg[0] == "user"]
+        chat_history = []
         if user_messages:
-            last_user_message = user_messages[-1]
-            last_user_message_text = last_user_message[2]
-
-            last_idx = all_messages.index(last_user_message)
+            last_user_message_text = user_messages[-1][2]
+            last_idx = all_messages.index(user_messages[-1])
             chat_history = all_messages[max(0, last_idx - 10):last_idx]
 
-
-    # 4. User persona
-    user_persona = {
-        "persona_name": getattr(user, "persona_name", None),
-        "persona_description": getattr(user, "persona_description", None),
-        "name": getattr(user, "name", user.username),
-        "date_birth": user.date_birth.isoformat() if getattr(user, "date_birth", None) else None,
-    }
-
-    # 5. Lorebook (worldbook) activation
+    # Lorebook (worldbook) activation
     lore_report = None
     if worldbook_slug:
         try:
@@ -117,38 +79,11 @@ def build_ai_request(user, character: Character, chat_settings: ChatSettings, wo
         if context_block:
             system_prompts["WorldContext"] = "\n".join(context_block)
 
-    # 3. Director's Note (Guidance) Injection
     if guidance:
         system_prompts["DirectorNote"] = f"URGENT INSTRUCTION FOR NEXT RESPONSE: {guidance}"
-    # Формуємо фінальний JSON
-    ai_request = {
-        "Core": core_data,
-        "SystemPrompts": system_prompts,
-        "CharacterDescription": character_data,
-        "ChatHistory": chat_history,
-        "LastUserMessage": last_user_message,
-        "UserPersona": user_persona,
-        # Not sent to the model; shown in the chat tools menu
-        "LoreReport": lore_report,
-    }
 
-
-    engagement_settings = {}
-    try:
-        base_dir = os.path.join(settings.MEDIA_ROOT, "chat_settings2")
-        file_path = os.path.join(base_dir, f"chat_settings2_{user.id}_active.json")
-        if os.path.exists(file_path):
-            with open(file_path, "r", encoding="utf-8") as f:
-                engagement_settings = json.load(f)
-    except Exception as e:
-        print(f"Failed to load chat_settings2 for user {user.id}: {e}")
-        engagement_settings = {}
-
-    ai_request["PromptingGroundSettings"] = engagement_settings
-    # -------------------------------------------------------------------------------
-
-    # print(ai_request)
-    return ai_request
+    # LoreReport is not sent to the model; it's shown in the chat tools menu
+    return {"SystemPrompts": system_prompts, "LoreReport": lore_report}
 
 
 
