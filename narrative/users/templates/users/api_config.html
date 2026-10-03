@@ -1,90 +1,70 @@
 {% load static %}
 
 <!DOCTYPE html>
-<html lang="uk">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
-    <title>API Configuration</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connections - Narrative AI</title>
     <link rel="stylesheet" href="{% static 'users/css/api_config.css' %}">
 </head>
 
 <body>
-    <div class="form-container">
-        <h1>API Configuration </h1>
-        <p class="subtitle">Set up your AI model connections to start chatting</p>
+    <div class="page">
+        <a class="back" href="{{ next_url|default:'/' }}">← Back</a>
+        <h1>Connections</h1>
+        <p class="subtitle">Where your AI requests go, and which model each feature uses.</p>
 
-        <form method="post" id="api-form">
-            {% csrf_token %}
+        <div class="banner" id="startBanner" hidden>
+            <b>Start here:</b> paste your OpenRouter API key and pick a model, then press Save.
+            Everything else on this page is optional.
+            Get a key at <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">openrouter.ai/keys</a>.
+        </div>
 
-            <!-- OpenRouter Section -->
-            <div class="api-section">
-                <h3>OpenRouter (Required)</h3>
-
-                <div class="field-group">
-                    <label for="openrouter-key">
-                        OpenRouter API Key <span class="required">*</span>
-                        <span id="openrouter-status" class="status-indicator" style="display: none;"></span>
-                    </label>
-                    <input type="password" id="openrouter-key" name="chat_key" value="{{ form.instance.chat_key }}"
-                        placeholder="sk-or-v1-..." required>
-                    <div class="help-text">
-                        Get your API key from <a href="https://openrouter.ai/keys" target="_blank"
-                            style="color: var(--accent-1);">OpenRouter Keys</a>
-                    </div>
-                    <button type="button" id="test-openrouter" class="test-button" style="display: none;">
-                        Test Connection
-                    </button>
-                </div>
-
-                <div class="field-group">
-                    <label for="model-dropdown">
-                        Default Model <span class="required">*</span>
-                    </label>
-                    <!-- hidden input для збереження на сервер -->
-                    <input type="hidden" name="or_model" id="or_model_hidden" value="{{ form.instance.or_model }}">
-                    <select id="model-dropdown" required disabled>
-                        <option value="">Enter API key first to load models...</option>
-                    </select>
-                    <div class="help-text">
-                        This will be your default model. You can change it later in settings.
-                    </div>
-                </div>
+        <section class="card">
+            <div class="section-head">
+                <h2>AI connections</h2>
+                <button type="button" class="secondary" id="addProfileBtn">+ Add connection</button>
             </div>
+            <p class="help">A connection is a provider, an API key and a default model.
+                Add a second one if you want, say, a cheap model for summaries.</p>
+            <div id="profiles"></div>
+        </section>
 
-            <!-- ElevenLabs Section -->
-            <div class="api-section">
-                <h3>ElevenLabs <span class="optional">(Optional)</span></h3>
+        <section class="card">
+            <h2>What each feature uses</h2>
+            <p class="help">By default everything uses the main chat connection.
+                Give background jobs a cheaper model to save money.</p>
+            <div id="tasks"></div>
+        </section>
 
-                <div class="field-group">
-                    <label for="elevenlabs-key">
-                        ElevenLabs API Key
-                        <span id="elevenlabs-status" class="status-indicator" style="display: none;"></span>
-                    </label>
-                    <input type="password" id="elevenlabs-key" name="eleven_key" value="{{ form.instance.eleven_key }}"
-                        placeholder="sk_...">
-                    <div class="help-text">
-                        Optional: For voiced character messages. Get your key from <a
-                            href="https://elevenlabs.io/app/settings/api-keys" target="_blank"
-                            style="color: var(--accent-1);">ElevenLabs Settings</a>
-                    </div>
-                    <button type="button" id="test-elevenlabs" class="test-button" style="display: none;">
-                        Test Connection
-                    </button>
-                </div>
-            </div>
+        <section class="card">
+            <h2>Voice <span class="optional">(optional)</span></h2>
+            <label>ElevenLabs API key
+                <input type="password" id="elevenKey" autocomplete="off">
+            </label>
+            <p class="help">For voiced character messages. Get a key in
+                <a href="https://elevenlabs.io/app/settings/api-keys" target="_blank" rel="noopener">ElevenLabs settings</a>.</p>
+            <label class="check" id="clearElevenRow" hidden><input type="checkbox" id="clearEleven"> Remove the saved key</label>
+        </section>
 
-            <div class="button-group">
-                <button type="button" class="secondary-button" onclick="history.back()">
-                    ← Back
-                </button>
-                <button type="submit" id="save-config">
-                    Save
-                </button>
-            </div>
-        </form>
+        <div class="save-bar">
+            <span id="saveStatus" class="status"></span>
+            <button type="button" id="saveBtn">Save</button>
+        </div>
     </div>
 
+    <datalist id="openrouterModels"></datalist>
+
+    {{ state|json_script:"connections-state" }}
+    <script>
+        const URLS = {
+            save: "{% url 'users:api_config' %}",
+            test: "{% url 'users:connections_test' %}",
+            next: "{{ next_url|escapejs }}",
+        };
+    </script>
     <script src="{% static 'users/js/api_config.js' %}"></script>
 </body>
 

@@ -1,79 +1,49 @@
-const STORE_KEY = 'worldbooks';
-function loadStore() { try { return JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); } catch { return [] } }
-function saveStore(arr) { localStorage.setItem(STORE_KEY, JSON.stringify(arr)); }
-function slug(s) { return String(s || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''); }
-
-const seedList = document.getElementById('seedList');
-const addSeedBtn = document.getElementById('addSeedBtn');
-const seedTpl = document.getElementById('seedTpl');
+const titleEl = document.getElementById('title');
+const descEl = document.getElementById('desc');
+const importFile = document.getElementById('importFile');
+const importInfo = document.getElementById('importInfo');
 const createBtn = document.getElementById('createBtn');
 
-addSeedBtn.onclick = () => { seedList.appendChild(seedTpl.content.cloneNode(true)); };
+let imported = null;
 
-// === Збір даних Seed Entries ===
-function gatherEntries() {
-    const entries = [];
-    seedList.querySelectorAll('.entry').forEach((el, i) => {
-        const key = el.querySelector('input[placeholder="npc.dottore"]');
-        const tags = el.querySelector('input[placeholder="character, science"]');
-        const scope = el.querySelector('select');
-        const prio = el.querySelector('input[type="number"][min="0"][max="100"]');
-        const weight = el.querySelector('input[type="number"][min="0"][max="1"]');
-        const enabled = el.querySelector('input[type="checkbox"]');
-        const val = el.querySelector('textarea.valueField');
-
-        entries.push({
-            id: i + 1,
-            key: key.value.trim(),
-            tags: tags.value.split(',').map(s => s.trim()).filter(Boolean),
-            scope: scope.value,
-            priority: Number(prio.value) || 0,
-            weight: Number(weight.value) || 0,
-            enabled: Boolean(enabled.checked),
-            value: val.value
-        });
-    });
-    return entries;
-}
-
-// === CSRF ===
 function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
+    const match = document.cookie.split(';').map(c => c.trim()).find(c => c.startsWith(name + '='));
+    return match ? decodeURIComponent(match.slice(name.length + 1)) : null;
 }
-const csrftoken = getCookie('csrftoken');
 
-// === Створення worldbook ===
-createBtn.onclick = () => {
-    const title = document.getElementById('title').value.trim();
-    const desc = document.getElementById('desc').value.trim();
+importFile.addEventListener('change', async () => {
+    imported = null;
+    const file = importFile.files[0];
+    if (!file) return;
+    try {
+        imported = JSON.parse(await file.text());
+        // Prefill the title from the file if the user has not typed one
+        const name = imported.title || imported.name || imported.data?.character_book?.name || imported.data?.name
+            || file.name.replace(/\.json$/i, '');
+        if (!titleEl.value.trim()) titleEl.value = name;
+        const entries = imported.entries || imported.data?.character_book?.entries || imported.character_book?.entries || [];
+        const count = Array.isArray(entries) ? entries.length : Object.keys(entries).length;
+        importInfo.textContent = `Found ${count} entr${count === 1 ? 'y' : 'ies'} in “${file.name}”.`;
+    } catch (err) {
+        importInfo.textContent = `Could not read “${file.name}” as JSON: ${err.message}`;
+    }
+});
+
+createBtn.onclick = async () => {
+    const title = titleEl.value.trim();
     if (!title) { alert('Title is required'); return; }
-    const id = slug(title);
-    const payload = { id, title, description: desc, entries: gatherEntries(), updatedAt: Date.now() };
-
-    fetch("/main/worldbook_create/", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": csrftoken
-        },
-        body: JSON.stringify(payload)
-    })
-        .then(r => r.json())
-        .then(data => {
-            console.log("Response from server:", data);
-            alert("Worldbook successfully created!");
-            window.location.href = '/main/worldbook_list/';
-        })
-        .catch(err => { console.error("Помилка при відправці:", err); });
+    createBtn.disabled = true;
+    try {
+        const resp = await fetch('/main/worldbook_create/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ title, description: descEl.value.trim(), import: imported }),
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.message || `HTTP ${resp.status}`);
+        window.location.href = data.url;
+    } catch (err) {
+        alert('Could not create the worldbook: ' + err.message);
+        createBtn.disabled = false;
+    }
 };

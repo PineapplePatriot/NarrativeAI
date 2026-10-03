@@ -42,15 +42,16 @@
             <a class="action-btn edit" title="Edit" href="{% url 'worldbook_detail' wb.slug %}">
               <svg viewBox="0 0 24 24"><path d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"/></svg>
             </a>
-            <a class="action-btn delete" title="Delete" href="{% url 'worldbook_detail' wb.slug %}">
+            <button type="button" class="action-btn delete" title="Delete"
+                    data-url="{% url 'worldbook_delete' wb.slug %}" data-title="{{ wb.title }}">
               <svg viewBox="0 0 24 24"><path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/></svg>
-            </a>
+            </button>
           </div>
         </div>
         <h3 class="worldbook-title">{{ wb.title }}</h3>
         <p class="worldbook-description">{{ wb.description|default:"No description" }}</p>
         <div class="worldbook-meta">
-          <div class="entry-count">Entries: {{ wb.entry_set.count }}</div>
+          <div class="entry-count">Entries: {{ wb.entry_count }}</div>
           <div class="worldbook-date">Updated: {{ wb.time_update|date:"Y-m-d H:i" }}</div>
         </div>
       </div>
@@ -70,5 +71,18 @@
       </div>
     {% endif %}
   </div>
+  <script>
+    function getCookie(name) {
+      const m = document.cookie.split(';').map(c => c.trim()).find(c => c.startsWith(name + '='));
+      return m ? decodeURIComponent(m.slice(name.length + 1)) : null;
+    }
+    document.querySelectorAll('.action-btn.delete').forEach(btn => btn.addEventListener('click', async () => {
+      if (!confirm(`Delete “${btn.dataset.title}”? This cannot be undone.`)) return;
+      const resp = await fetch(btn.dataset.url, { method: 'POST', headers: { 'X-CSRFToken': getCookie('csrftoken') } });
+      const data = await resp.json().catch(() => ({}));
+      if (resp.ok) btn.closest('.worldbook-card').remove();
+      else alert(data.error || 'Could not delete.');
+    }));
+  </script>
 </body>
 </html>

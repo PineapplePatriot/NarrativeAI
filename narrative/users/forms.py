@@ -64,17 +64,6 @@ class ProfileUserForm(forms.ModelForm):
             'persona_description': forms.TextInput(attrs={'class': 'form-input'}),
         }
 
-class ApiConfigForm(forms.ModelForm):
-    class Meta:
-        model = ApiConfig
-        fields = ["chat_key", "eleven_key", "or_model"]
-
-        widgets = {
-            "chat_key": forms.PasswordInput(attrs={"class": "form-input", "placeholder": "sk-or-v1-..."}),
-            "eleven_key": forms.PasswordInput(attrs={"class": "form-input", "placeholder": "sk_..."}),
-            "or_model": forms.TextInput(attrs={"class": "form-input", "placeholder": "Default model"}),
-        }
-
 class UserPasswordChangeForm(PasswordChangeForm):
     old_password = forms.CharField(label="Old password", widget=forms.PasswordInput(attrs={'class': 'form-input'}))
     new_password1 = forms.CharField(label="New password", widget=forms.PasswordInput(attrs={'class': 'form-input'}))

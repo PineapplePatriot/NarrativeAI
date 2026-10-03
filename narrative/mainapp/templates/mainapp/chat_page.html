@@ -238,6 +238,11 @@
                     </div>
 
                     <div class="tool-section">
+                        <span class="tool-label">📖 Lore used in last reply</span>
+                        <div class="summary-box lore-box" id="loreDisplay">{% if character.worldbook %}Send a message to see which entries fire.{% else %}No worldbook attached to this character.{% endif %}</div>
+                    </div>
+
+                    <div class="tool-section">
                         <span class="tool-label">📚 Summary</span>
                         <div class="summary-box" id="summaryDisplay">{{ summary|default:"No summary yet." }}</div>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">

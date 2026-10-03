@@ -5,7 +5,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Worldbook Detail</title>
+  <title>{{ worldbook.title }} - Worldbook</title>
   <link rel="stylesheet" href="{% static 'mainapp/css/worldbook_detail.css' %}">
 </head>
 <body>
@@ -17,58 +17,135 @@
         Back to Worldbooks
       </a>
       <div class="title">
-        <h1 id="wbTitle">Worldbook</h1>
-        <div class="subtitle" id="wbDesc">Worldbuilding notes, entities, locations, rules & more.</div>
+        <input id="wbTitle" class="title-input" placeholder="Worldbook title"/>
+        <input id="wbDesc" class="desc-input" placeholder="Short description (optional)"/>
       </div>
       <div class="toolbar">
+        <span class="pill unsaved" id="unsavedPill" hidden>Unsaved changes</span>
         <button class="btn primary" id="newEntryBtn">
           <svg viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/></svg>
           Add Entry
         </button>
         <button class="btn primary" id="saveWorldbookBtn">Save Worldbook</button>
-        <input id="search" class="search" placeholder="Search entries..."/>
+        <a class="btn" href="{% url 'worldbook_export' worldbook.slug %}" title="Download in this app's format">Export</a>
+        <a class="btn" href="{% url 'worldbook_export' worldbook.slug %}?format=sillytavern" title="Download for use in SillyTavern">Export for ST</a>
       </div>
     </div>
   </div>
 
-  <div class="content">
+  <div class="layout">
     <div class="card">
-      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div class="pill" id="stats">0 entries • scope: all</div>
+      <div class="row" style="justify-content:space-between;margin-bottom:12px">
+        <div class="pill" id="stats">0 entries</div>
         <div class="row" style="gap:8px">
-          <select id="scopeFilter">
-            <option value="">All scopes</option>
-            <option>global</option>
-            <option>character</option>
-            <option>location</option>
-            <option>scene</option>
-          </select>
-          <select id="enabledFilter">
+          <input id="search" class="search" placeholder="Search entries..."/>
+          <select id="enabledFilter" class="small-select">
             <option value="">All</option>
             <option value="true">Enabled</option>
             <option value="false">Disabled</option>
+            <option value="constant">Always on</option>
           </select>
         </div>
       </div>
       <div id="entries"></div>
       <div class="empty" id="emptyMsg">No entries yet. Click “Add Entry”.</div>
     </div>
+
+    <div class="sidebar">
+      <div class="card">
+        <h3 class="card-title">🧪 Test a message</h3>
+        <p class="muted hint">Paste a few recent chat messages, one per line, newest last.
+          Shows which entries would be added and why. Uses your unsaved edits too.</p>
+        <textarea id="testInput" placeholder="We finally reached the capital.&#10;Is Dottore still in his lab?"></textarea>
+        <button class="btn primary full" id="testBtn">Run test</button>
+        <div id="testResults"></div>
+      </div>
+
+      <div class="card">
+        <h3 class="card-title">⚙️ Book settings</h3>
+        <div class="settings-grid">
+          <label>Scan depth
+            <input type="number" min="0" id="sScanDepth"/>
+            <span class="hint">How many recent messages are searched for keywords.</span>
+          </label>
+          <label>Lore budget (tokens)
+            <input type="number" min="0" id="sBudget"/>
+            <span class="hint">Max lore added per reply. 0 = no limit.</span>
+          </label>
+          <label class="check"><input type="checkbox" id="sCase"/> Case-sensitive keywords</label>
+          <label class="check"><input type="checkbox" id="sWhole"/> Match whole words only</label>
+          <label class="check"><input type="checkbox" id="sRecursive"/> Entries can trigger other entries</label>
+        </div>
+        <details class="advanced">
+          <summary>Semantic search (optional)</summary>
+          <p class="muted hint">Also picks entries by meaning when no keyword matched. Needs the extra
+            packages from <code>requirements-semantic.txt</code> (large download).</p>
+          <label class="check"><input type="checkbox" id="sSemantic"/> Enable semantic fallback</label>
+          <div class="settings-grid two">
+            <label>Min. similarity (0–1)<input type="number" min="0" max="1" step="0.05" id="sThreshold"/></label>
+            <label>Max entries<input type="number" min="0" id="sTopK"/></label>
+          </div>
+        </details>
+      </div>
+    </div>
   </div>
 </div>
 
-<!-- Modal -->
+<!-- Entry editor -->
 <div class="modal" id="modal">
-  <div class="card">
-    <h3 id="modalTitle" style="margin-bottom:10px">New Entry</h3>
+  <div class="card modal-card">
+    <h3 id="modalTitle" style="margin-bottom:12px">New Entry</h3>
     <div class="grid">
-      <div><label>Key</label><input id="fKey" placeholder="e.g., magic.system.rules"/></div>
-      <div><label>Tags (comma-separated)</label><input id="fTags" placeholder="magic, combat, lore"/></div>
-      <div><label>Scope</label><select id="fScope"><option>global</option><option>character</option><option>location</option><option>scene</option></select></div>
-      <div><label>Priority (0-100)</label><input id="fPriority" type="number" min="0" max="100" value="50"/></div>
-      <div><label>Weight (0-1)</label><input id="fWeight" type="number" min="0" max="1" step="0.05" value="1"/></div>
-      <div><label>Enabled</label><br/><label class="switch"><input id="fEnabled" type="checkbox" checked/><span class="slider"></span></label></div>
-      <div style="grid-column:1/-1"><label>Value / Content</label><textarea id="fValue" placeholder="Detailed lore, JSON, or plain text"></textarea></div>
+      <label style="grid-column:1/-1">Title
+        <input id="fComment" placeholder="e.g., Dottore"/>
+      </label>
+      <label style="grid-column:1/-1">Keywords (comma-separated)
+        <input id="fKeys" placeholder="Dottore, the Doctor, Zandik"/>
+        <span class="hint">The entry fires when any of these appear in recent messages. Use /regex/i for patterns.</span>
+      </label>
+      <label>Secondary keywords (optional)
+        <input id="fSecondary" placeholder="lab, experiment"/>
+      </label>
+      <label>Secondary logic
+        <select id="fLogic">
+          <option value="AND_ANY">AND any — needs at least one</option>
+          <option value="AND_ALL">AND all — needs all of them</option>
+          <option value="NOT_ANY">NOT any — blocked by any of them</option>
+          <option value="NOT_ALL">NOT all — blocked only if all present</option>
+        </select>
+      </label>
+      <label style="grid-column:1/-1">Content
+        <textarea id="fContent" rows="7" placeholder="What the AI should know when this entry fires."></textarea>
+        <span class="hint" id="fTokens"></span>
+      </label>
+      <label>Order
+        <input id="fOrder" type="number"/>
+        <span class="hint">Higher = more important; kept first when over budget.</span>
+      </label>
+      <div class="toggles">
+        <label class="check"><input type="checkbox" id="fEnabled"/> Enabled</label>
+        <label class="check"><input type="checkbox" id="fConstant"/> Always on (ignore keywords)</label>
+        <label class="check"><input type="checkbox" id="fSemantic"/> Allow semantic match</label>
+      </div>
     </div>
+    <details class="advanced">
+      <summary>Advanced</summary>
+      <div class="grid">
+        <label>Case-sensitive
+          <select id="fCase"><option value="">Book default</option><option value="true">Yes</option><option value="false">No</option></select>
+        </label>
+        <label>Whole words
+          <select id="fWhole"><option value="">Book default</option><option value="true">Yes</option><option value="false">No</option></select>
+        </label>
+        <label>Scan depth
+          <input id="fDepth" type="number" min="0" placeholder="Book default"/>
+        </label>
+        <div class="toggles">
+          <label class="check"><input type="checkbox" id="fExcludeRec"/> Can't be triggered by other entries</label>
+          <label class="check"><input type="checkbox" id="fPreventRec"/> Doesn't trigger other entries</label>
+        </div>
+      </div>
+    </details>
     <div class="footer">
       <button class="btn" id="cancelBtn">Cancel</button>
       <button class="btn primary" id="saveBtn">Save Entry</button>
@@ -76,9 +153,14 @@
   </div>
 </div>
 
-
 {{ worldbook_json|json_script:"worldbook-json" }}
+{{ defaults|json_script:"lore-defaults" }}
+<script>
+  const URLS = {
+    save: "{% url 'worldbook_detail' worldbook.slug %}",
+    test: "{% url 'worldbook_test' worldbook.slug %}",
+  };
+</script>
 <script src="{% static 'mainapp/js/worldbook_detail.js' %}"></script>
 </body>
 </html>
-
