@@ -256,3 +256,66 @@ class WorldbookViewTests(TestCase):
         Worldbook.objects.create(title="Secret", slug="secret", author=other)
         self.assertEqual(self.client.get(reverse("worldbook_detail", args=["secret"])).status_code, 404)
         self.assertEqual(self.client.post(reverse("worldbook_delete", args=["secret"])).status_code, 404)
+
+
+class ChatPromptTests(TestCase):
+    """The chat view, with OpenRouter replaced by a fake."""
+
+    def setUp(self):
+        import shutil
+        import tempfile
+        media = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, media, ignore_errors=True)
+        override = override_settings(MEDIA_ROOT=media)
+        override.enable()
+        self.addCleanup(override.disable)
+
+        from mainapp.models import Character
+        from users.models import ApiConfig
+
+        self.user = get_user_model().objects.create_user(username="chatter", password="pw12345!")
+        ApiConfig.objects.create(user=self.user, chat_key="test-key", or_model="test/model")
+        self.character = Character.objects.create(name="Rose", slug="rose-chat-test", author=self.user,
+                                                  initial_message="Hello, traveller.")
+        self.client.force_login(self.user)
+        self.url = reverse("chat", args=[self.character.slug])
+        self.sent = []  # payloads of the main chat calls
+
+    def fake_post(self, url, headers=None, json=None, timeout=None):
+        from unittest import mock
+        if json and "response_format" not in json:  # skip the emotion classifier call
+            self.sent.append(json)
+        resp = mock.Mock()
+        resp.json.return_value = {"choices": [{"message": {"content": "A reply."}}]}
+        resp.raise_for_status.return_value = None
+        return resp
+
+    def post(self, data):
+        from unittest import mock
+        with mock.patch("mainapp.views.requests.post", side_effect=self.fake_post):
+            return self.client.post(self.url, json.dumps(data), content_type="application/json")
+
+    def saved_messages(self):
+        self.character.refresh_from_db()
+        with open(self.character.chat_log_file.path, encoding="utf-8") as f:
+            return json.load(f)["messages"]
+
+    def test_history_is_sent_once(self):
+        self.post({"action": "chat", "message": "Where is the tower?"})
+        self.post({"action": "chat", "message": "Let's go there."})
+        messages = self.sent[-1]["messages"]
+        joined = "\n".join(m["content"] for m in messages)
+        self.assertNotIn("[CHAT HISTORY]", joined)
+        self.assertNotIn("[LAST USER MESSAGE]", joined)
+        self.assertEqual(joined.count("Where is the tower?"), 1)
+        self.assertEqual(messages[-1], {"role": "user", "content": "Let's go there."})
+
+    def test_regenerate_does_not_add_empty_user_message(self):
+        self.post({"action": "chat", "message": "Hi!"})
+        before = self.saved_messages()
+        self.post({"action": "regenerate"})
+        after = self.saved_messages()
+        self.assertEqual(len(after), len(before))
+        self.assertEqual([m[0] for m in after], ["assistant", "user", "assistant"])
+        self.assertFalse(any(m[0] == "user" and not m[2] for m in after))
+        self.assertEqual(self.sent[-1]["messages"][-1], {"role": "user", "content": "Hi!"})

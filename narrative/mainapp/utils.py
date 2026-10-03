@@ -48,6 +48,9 @@ def build_ai_request(user, character: Character, chat_settings: ChatSettings, wo
                 all_messages = json.load(f)
         except Exception:
             all_messages = []
+        # Chat logs are saved as {"messages": [...], "summary": ..., ...}; very old ones as a bare list
+        if isinstance(all_messages, dict):
+            all_messages = all_messages.get("messages", [])
 
     if message is not None and message != "":
         # Real-time chat: use recent file history + current message as "now"

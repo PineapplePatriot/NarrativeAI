@@ -351,8 +351,9 @@ def chat(request, slug):
                 guidance = "CONTINUE the last response exactly where it ended. Do not repeat text. Flow naturally and logically finish it."
 
             if (action == "chat" and user_message) or action == "regenerate":
-                # Added ', 1' at the end for char_count
-                messages.append(("user", datetime.now().strftime("%H:%M"), user_message, "neutral", 1))
+                # Regenerate re-answers the existing last user message, so only chat adds one
+                if action == "chat":
+                    messages.append(("user", datetime.now().strftime("%H:%M"), user_message, "neutral", 1))
 
                 lore_report = None
 
@@ -428,17 +429,8 @@ def chat(request, slug):
                             "content": f"[USER PERSONA]\n{json.dumps(prompt['UserPersona'], indent=2, ensure_ascii=False)}"
                         })
 
-                    if "ChatHistory" in prompt and prompt["ChatHistory"]:
-                        system_messages.append({
-                            "role": "system",
-                            "content": f"[CHAT HISTORY]\n{json.dumps(prompt['ChatHistory'], indent=2, ensure_ascii=False)}"
-                        })
-
-                    if "LastUserMessage" in prompt and prompt["LastUserMessage"]:
-                        system_messages.append({
-                            "role": "system",
-                            "content": f"[LAST USER MESSAGE]\n{json.dumps(prompt['LastUserMessage'], indent=2, ensure_ascii=False)}"
-                        })
+                    # Chat history and the last user message are sent once, as real
+                    # user/assistant turns (api_messages), not repeated here as JSON.
 
                     user_persona_txt = ""
                     if "UserPersona" in prompt and prompt["UserPersona"]:
