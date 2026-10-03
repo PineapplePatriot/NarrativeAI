@@ -70,6 +70,28 @@ UTILITY_DEFAULTS = {
     "assistant_impersonation": "",
 }
 
+UTILITY_LABELS = {
+    "continue_nudge": ("Continue nudge", "Sent when you press Continue."),
+    "impersonation": ("Impersonation", "Used when the AI writes your next message for you."),
+    "new_chat": ("New chat", "Placed before the chat in strict mode, when the chat would otherwise start with the character."),
+    "assistant_prefill": ("Assistant prefill", "Starts the AI's reply for it. Skipped on models that reject prefill (newest Claude)."),
+    "assistant_impersonation": ("Impersonation prefill", "Starts the impersonated message."),
+}
+
+MACRO_HELP = [
+    ("{{char}} / {{user}}", "Character name / your persona name"),
+    ("{{description}} {{scenario}} {{personality}} {{persona}}", "Character and persona fields"),
+    ("{{summary}}", "The story summary"),
+    ("{{lastChatMessage}} {{lastUserMessage}} {{lastCharMessage}}", "Recent messages"),
+    ("{{random: a, b, c}}  or  {{random::a::b}}", "A random pick, new every request"),
+    ("{{roll: 2d6+1}}", "Dice roll"),
+    ("{{setvar::name::text}} / {{getvar::name}}", "Store text in a variable / insert it anywhere"),
+    ("{{#if .name}} … {{else}} … {{/if}}", "Only if the variable is set (use ! to negate)"),
+    ("{{// note}}", "A comment, never sent"),
+    ("{{trim}}", "Removes the blank lines around it"),
+    ("{{time}} {{date}} {{weekday}}", "Current time and date"),
+]
+
 # Models that reject a final assistant message ("prefill") with an error
 PREFILL_REJECTING_MODELS = re.compile(
     r"claude-(?:opus-(?:4[.-][678]|5)|sonnet-(?:4[.-]6|5)|fable|mythos)", re.I)

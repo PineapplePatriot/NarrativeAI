@@ -29,6 +29,11 @@
         <button type="button" class="secondary full" id="newDefaultBtn">+ New default preset</button>
         <p class="help" id="importStatus"></p>
       </section>
+      <section class="card macro-help">
+        <h2>Macros</h2>
+        <p class="help">Write these inside any block; they're filled in on every request.</p>
+        <div id="macroHelp"></div>
+      </section>
     </aside>
 
     <main>
@@ -55,9 +60,21 @@
           <h2>Prompt blocks</h2>
           <span class="help" id="blockCount"></span>
         </div>
-        <p class="help">Switch blocks on or off; changes save automatically. Click a block's name to read it.
-          Editing text and reordering come in the next update.</p>
+        <p class="help">Changes save automatically. Click a block to edit it; drag ⠿ (or use ↑ ↓) to reorder.
+          Dragging a group header moves the whole group.</p>
         <div id="blocks"></div>
+        <div class="add-row">
+          <button type="button" class="secondary small" id="addPrompt">+ Prompt</button>
+          <button type="button" class="secondary small" id="addHeader">+ Group header</button>
+          <select id="addSlot" class="small-select"></select>
+          <span class="status" id="saveStatus"></span>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Utility prompts</h2>
+        <p class="help">Small prompts used for specific actions rather than every message.</p>
+        <div id="utility"></div>
       </section>
 
       <section class="card">

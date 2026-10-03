@@ -739,6 +739,17 @@ def preset_list(request):
                 preset["options"]["post_processing"] = data["post_processing"]
             obj.data = preset
             obj.save(update_fields=["data", "time_update"])
+        elif action == "save_full":  # the editor: blocks, utility prompts, options
+            current = presets.normalize(obj.data)
+            if not isinstance(data.get("blocks"), list) or len(data["blocks"]) > 2000:
+                return JsonResponse({"error": "Invalid block list."}, status=400)
+            edited = presets.normalize({**current, "blocks": data["blocks"],
+                                        "utility": data.get("utility", current["utility"]),
+                                        "options": data.get("options", current["options"])})
+            # Samplers are edited on their own page; SillyTavern extras are never edited here
+            edited["samplers"], edited["extras"] = current["samplers"], current["extras"]
+            obj.data = edited
+            obj.save(update_fields=["data", "time_update"])
         elif action == "preview":
             character = Character.objects.filter(author=request.user, slug=data.get("character")).first()
             if character is None:
@@ -757,6 +768,8 @@ def preset_list(request):
         "presets": [_preset_summary(p) for p in Preset.objects.filter(user=request.user)],
         "preset": {"id": selected.id, "name": selected.name, **presets.normalize(selected.data)},
         "markers": presets.MARKERS,
+        "utility_labels": presets.UTILITY_LABELS,
+        "macro_help": presets.MACRO_HELP,
         "post_processing": presets.POST_PROCESSING,
         "characters": [{"slug": c.slug, "name": c.name} for c in Character.objects.filter(author=request.user)],
     }})

@@ -1,6 +1,10 @@
 .page.wide { max-width: 1200px }
 .layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 16px; align-items: start }
-@media (max-width: 860px) { .layout { grid-template-columns: 1fr } }
+@media (max-width: 860px) {
+    .layout { grid-template-columns: minmax(0, 1fr) }
+    .editor { margin-left: 0 }
+    .card { padding: 14px }
+}
 
 .preset-item {
     display: block;
@@ -44,23 +48,19 @@ aside .btn-like, .full { width: 100%; margin-top: 8px }
 .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap }
 .row select { width: auto; min-width: 200px }
 
-.group { margin-bottom: 6px }
 .group-head {
-    width: 100%;
     display: flex;
-    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
     background: var(--ui-secondary);
-    border: none;
-    color: var(--text-primary);
     border-radius: 8px;
-    padding: 8px 10px;
-    font-weight: 600;
-    font-size: .92rem;
-    text-align: left
+    padding: 4px 8px;
+    margin: 8px 0 2px;
+    font-weight: 600
 }
+.group-head .block-name { font-weight: 600 }
 .group-head .count { color: var(--text-muted); font-weight: normal; font-size: .8rem }
-.group-body { padding: 4px 0 4px 8px }
-
+.fold { background: none; border: none; color: var(--text-muted); padding: 0 4px; font-size: .9rem }
 .block { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 6px }
 .block:hover { background: rgba(255, 255, 255, .03) }
 .block:not(.on) .block-name { color: var(--text-muted) }
@@ -110,3 +110,54 @@ pre.block-content, .msg pre {
     color: var(--text-muted);
     white-space: nowrap
 }
+
+.block { border-top: 2px solid transparent; border-bottom: 2px solid transparent }
+.block input[type=checkbox] { width: auto; accent-color: var(--accent-1); margin: 0 }
+.block.editing, .group-head.editing { background: rgba(126, 58, 242, .12) }
+.handle { cursor: grab; color: var(--text-muted); user-select: none; padding: 0 2px }
+.dragging { opacity: .4 }
+.drop-before { border-top: 2px solid var(--accent-1) !important }
+.drop-after { border-bottom: 2px solid var(--accent-1) !important }
+.moves { display: flex; gap: 2px; opacity: 0; transition: opacity .1s }
+.block:hover .moves, .block.editing .moves { opacity: 1 }
+@media (hover: none) { .moves { opacity: 1 } }
+button.icon { background: none; border: 1px solid var(--border); color: var(--text-muted); padding: 0 6px; border-radius: 6px; font-size: .8rem }
+button.icon:hover { color: var(--text-primary); border-color: var(--accent-1) }
+
+.editor {
+    margin: 2px 0 10px 28px;
+    padding: 12px;
+    border: 1px solid rgba(126, 58, 242, .45);
+    border-radius: 10px;
+    background: rgba(15, 23, 42, .55)
+}
+.editor label { display: flex; flex-direction: column; gap: 4px; font-size: .82rem; color: var(--text-muted); margin-bottom: 8px }
+.editor label[hidden] { display: none }
+.editor-grid { display: grid; grid-template-columns: 2fr 1fr 2fr 1fr 1fr; gap: 10px }
+@media (max-width: 900px) { .editor-grid { grid-template-columns: 1fr 1fr } }
+.editor textarea, .utility textarea {
+    width: 100%;
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: .85rem;
+    line-height: 1.45;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--ui-secondary);
+    color: var(--text-primary);
+    resize: vertical
+}
+.editor textarea:focus, .utility textarea:focus { outline: none; border-color: var(--accent-1) }
+.hint { font-size: .75rem; color: var(--text-muted); font-weight: normal }
+.editor-actions { display: flex; gap: 8px; justify-content: flex-end }
+.add-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 12px }
+.small-select { width: auto; padding: 6px 10px; font-size: .85rem }
+.add-row .status { margin-left: auto }
+
+.utility { display: flex; flex-direction: column; gap: 4px; font-size: .88rem; margin-bottom: 10px }
+.macro { display: flex; flex-direction: column; padding: 6px 0; border-top: 1px solid var(--border); font-size: .8rem }
+.macro:first-child { border-top: none }
+.macro code { color: #b794f6; word-break: break-word }
+.macro span { color: var(--text-muted) }
+label.inline { flex-wrap: wrap }
+#postProcessing { max-width: 100%; min-width: 0 }

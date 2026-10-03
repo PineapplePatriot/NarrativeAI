@@ -944,3 +944,35 @@ class PrefillGuardTests(SimpleTestCase):
         r = assemble(preset, {}, HISTORY[:3], NAMES, "anthropic/claude-opus-5.5", random.Random(1))
         self.assertEqual(r["messages"][-1], {"role": "assistant", "content": "What now?"})
         self.assertFalse(any("prefill" in n for n in r["notes"]))
+
+
+class PresetEditorTests(ChatPromptTests):
+    def page_post(self, data):
+        return self.client.post(reverse("presets"), json.dumps(data), content_type="application/json")
+
+    def test_save_full_edits_order_and_keeps_samplers_and_extras(self):
+        from mainapp.models import Preset
+        tavern_id = self.page_post({"action": "import", "data": ST_PRESET, "name": "Tavern"}).json()["selected"]
+        preset = self.page_post({"action": "save", "id": tavern_id, "enabled": {}}).json()["preset"]
+        blocks = preset["blocks"]
+        blocks[0]["content"] = "EDITED {{char}}"
+        blocks.reverse()
+        blocks.append({"id": "new1", "kind": "prompt", "name": "Added", "content": "NEW", "role": "user",
+                       "position": "in_chat", "depth": 1})
+        resp = self.page_post({"action": "save_full", "id": tavern_id, "blocks": blocks,
+                               "utility": {**preset["utility"], "assistant_prefill": "*Rose*"},
+                               "options": {"post_processing": "strict"},
+                               "samplers": {"temperature": {"on": False}}, "extras": {}})
+        self.assertEqual(resp.status_code, 200, resp.content)
+        saved = Preset.objects.get(id=tavern_id).data
+        self.assertEqual(saved["blocks"][-1]["name"], "Added")
+        self.assertEqual(saved["blocks"][-2]["content"], "EDITED {{char}}")
+        self.assertEqual(saved["blocks"][-1]["position"], "in_chat")
+        self.assertEqual(saved["utility"]["assistant_prefill"], "*Rose*")
+        self.assertEqual(saved["options"]["post_processing"], "strict")
+        self.assertTrue(saved["samplers"]["temperature"]["on"])          # not editable here
+        self.assertEqual(saved["extras"]["function_calling"], True)    # kept
+
+    def test_save_full_rejects_garbage(self):
+        tavern_id = self.page_post({"action": "import", "data": ST_PRESET}).json()["selected"]
+        self.assertEqual(self.page_post({"action": "save_full", "id": tavern_id, "blocks": "nope"}).status_code, 400)
