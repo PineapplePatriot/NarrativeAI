@@ -264,8 +264,8 @@
                         <div class="summary-box" id="summaryDisplay">{{ summary|default:"No summary yet." }}</div>
                         <div class="summary-coverage" id="summaryCoverage" data-upto="{{ summary_upto|default:0 }}"></div>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                            <button class="tool-action-btn" onclick="generateSummary('append')">➕ Append Recent</button>
-                            <button class="tool-action-btn" onclick="generateSummary('regen')">🔄 Regenerate All</button>
+                            <button class="tool-action-btn" onclick="generateSummary('append')">➕ Summarize new</button>
+                            <button class="tool-action-btn" onclick="Summary.toggle(true); toggleTools()">📚 Open summary</button>
                         </div>
                     </div>
                     <div class="tool-section">
@@ -425,12 +425,20 @@
         <div class="tp-body" id="chatsList"></div>
         <div class="tp-foot">Each chat keeps its own messages, summary and trackers. The character, lorebooks and preset are shared.</div>
     </aside>
+    <aside class="tracker-panel left summary-panel" id="summaryPanel" hidden>
+        <div class="tp-head"><strong>📚 Summary</strong><span><button class="icon-btn" onclick="Summary.toggle()">✕</button></span></div>
+        <div class="sum-status" id="summaryStatus"></div>
+        <div class="tp-body" id="summaryBody"></div>
+        <div class="tp-foot sum-foot"><span id="summaryTotal"></span><button type="button" class="icon-btn" id="summaryRedo" title="Summarize the whole chat again as one piece">Redo all</button></div>
+    </aside>
+    {{ summary_data|json_script:"summary-data" }}
     {{ chat_list|json_script:"chats-data" }}
     {{ swipes|json_script:"swipes-data" }}
     {{ trackers_data|json_script:"trackers-data" }}
     <script src="{% static 'mainapp/js/trackers.js' %}?v={% now 'U' %}"></script>
     <script src="{% static 'mainapp/js/chat_page.js' %}?v={% now 'U' %}"></script>
     <script src="{% static 'mainapp/js/chats.js' %}?v={% now 'U' %}"></script>
+    <script src="{% static 'mainapp/js/summary.js' %}?v={% now 'U' %}"></script>
 
 </body>
 

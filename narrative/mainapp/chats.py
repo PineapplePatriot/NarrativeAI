@@ -188,3 +188,13 @@ def trackers_at(history, current_state, count):
     # No snapshots (older chats): keep the current state unless it was built from later messages
     upto = (current_state or {}).get("upto") or 0
     return (current_state if upto <= count else {"values": {}, "locks": [], "upto": 0}), []
+
+
+def first_uncovered(parts, count):
+    """Where the next summary starts: after the last piece (gaps left by deleted pieces come first)."""
+    covered = 0
+    for p in sorted(parts, key=lambda p: p["from"]):
+        if p["from"] > covered:
+            return covered
+        covered = max(covered, p["to"])
+    return min(covered, count)

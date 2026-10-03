@@ -96,10 +96,27 @@ def chat(request, slug):
         "summary_parts": [],    # [{"text", "from", "to"}], see chats.summary_parts
         "trackers": {},         # tracker values, locks and "upto" (see mainapp/trackers.py)
         "tracker_history": [],  # snapshots of the trackers by message count (for deletes and branches)
+        "summary_paused": False,  # automatic summaries are paused for this chat
         "context_guides": {},
         "current_bg": "",
         "current_music": {}
     }
+
+    def summary_payload():
+        """What the summary panel shows."""
+        task = ai_client.get_task_setting(request.user, "summary")
+        _, model = ai_client.resolve(request.user, "summary")
+        return {
+            "summary": chat_state["summary"],
+            "summary_upto": chat_state["summary_upto"],
+            "parts": chat_state["summary_parts"],
+            "total": len(messages),
+            "first_uncovered": chats.first_uncovered(chat_state["summary_parts"], len(messages)),
+            "paused": chat_state["summary_paused"],
+            "auto": task.mode == task.MODE_AUTO,
+            "interval": task.interval,
+            "model": model,
+        }
 
     def set_summary(parts):
         chat_state["summary_parts"] = parts
@@ -116,6 +133,7 @@ def chat(request, slug):
                         set_summary(chats.summary_parts(data, len(data.get("messages") or [])))
                         chat_state["trackers"] = data.get("trackers") or {}
                         chat_state["tracker_history"] = data.get("tracker_history") or []
+                        chat_state["summary_paused"] = bool(data.get("summary_paused"))
                         chat_state["context_guides"] = data.get("context_guides", {})
                         chat_state["current_bg"] = data.get("current_bg", "")
                         chat_state["current_music"] = data.get("current_music", {})
@@ -148,6 +166,7 @@ def chat(request, slug):
             "summary": chat_state["summary"],
             "summary_upto": chat_state["summary_upto"],
             "summary_parts": chat_state["summary_parts"],
+            "summary_paused": chat_state["summary_paused"],
             "trackers": chat_state["trackers"],
             "tracker_history": chat_state["tracker_history"],
             "context_guides": chat_state["context_guides"],
@@ -227,6 +246,7 @@ def chat(request, slug):
                     config = trackers.normalize_config(character.tracker_config)
                     return JsonResponse({"success": True, "swipes": chats.version_info(messages),
                                          "summary": chat_state["summary"], "summary_upto": chat_state["summary_upto"],
+                                         "summary_data": summary_payload(),
                                          "trackers": trackers.normalize_state(chat_state["trackers"], config)})
                 else:
                     return JsonResponse({"success": False, "error": "Invalid message index"})
@@ -308,22 +328,58 @@ def chat(request, slug):
             save_messages(messages)
             return JsonResponse({"success": True, "state": state, "changed": changed if action == "update_trackers" else []})
 
-        elif action == "summarize":
-            mode = data.get("mode", "append")  # "append" new events, or "regen" from scratch
-            if len(messages) < 2:
-                return JsonResponse({"success": False, "error": "Not enough history."})
-            parts = [] if mode == "regen" else chat_state["summary_parts"]
-            start = min(chats.summary_upto(parts), len(messages))
-            if start >= len(messages):
-                return JsonResponse({"success": False, "error": "Nothing new to summarize yet."})
+        # --- Summary: pieces that each cover a range of messages ---
+        elif action in ("summarize", "summary_edit", "summary_delete", "summary_rerun", "summary_pause"):
+            parts = list(chat_state["summary_parts"])
+            total = len(messages)
+
+            def piece_index():
+                i = data.get("piece")
+                if not isinstance(i, int) or not 0 <= i < len(parts):
+                    raise ValueError("No such summary piece.")
+                return i
+
             try:
-                new_text = _summarize(request.user, messages[start:], chats.summary_text(parts))
-            except ai_client.AIError as e:
+                if action == "summary_pause":
+                    chat_state["summary_paused"] = bool(data.get("paused"))
+                elif action == "summary_edit":
+                    i = piece_index()
+                    text = (data.get("text") or "").strip()
+                    if not text:
+                        raise ValueError("A summary piece can't be empty. Delete it instead.")
+                    parts[i] = {**parts[i], "text": text}
+                elif action == "summary_delete":
+                    parts.pop(piece_index())
+                else:
+                    if action == "summary_rerun":
+                        i = piece_index()
+                        start, stop = parts[i]["from"], parts[i]["to"]
+                        parts.pop(i)
+                    elif data.get("mode") == "regen":  # everything again, as one piece
+                        start, stop, parts = 0, total, []
+                    else:
+                        # From the first message no piece covers, up to `to` (default: all)
+                        start = data.get("from", chats.first_uncovered(parts, total))
+                        gap_end = min([p["from"] for p in parts if isinstance(start, int) and p["from"] >= start] + [total])
+                        stop = data.get("to", gap_end)
+                    if not (isinstance(start, int) and isinstance(stop, int) and 0 <= start < stop <= total):
+                        raise ValueError("Nothing new to summarize yet." if start == total else "That range doesn't work.")
+                    if any(p["from"] < stop and start < p["to"] for p in parts):
+                        raise ValueError("Part of that range is already summarized.")
+                    if stop - start < 2 and data.get("mode") == "regen":
+                        raise ValueError("Not enough history.")
+                    earlier = chats.summary_text([p for p in parts if p["to"] <= start])
+                    try:
+                        new_text = _summarize(request.user, messages[start:stop], earlier)
+                    except ai_client.AIError as e:
+                        raise ValueError(str(e))
+                    parts = sorted(parts + [{"text": new_text, "from": start, "to": stop}], key=lambda p: p["from"])
+            except ValueError as e:
                 return JsonResponse({"success": False, "error": str(e)})
-            set_summary(parts + [{"text": new_text, "from": start, "to": len(messages)}])
+
+            set_summary(parts)
             save_messages(messages)
-            return JsonResponse({"success": True, "summary": chat_state["summary"],
-                                 "summary_upto": chat_state["summary_upto"]})
+            return JsonResponse({"success": True, **summary_payload()})
 
         # --- Branches: a new chat with the messages up to here ---
         elif action in ("branch_info", "branch"):
@@ -615,7 +671,7 @@ def chat(request, slug):
                     # Automatic summary: tell the page to run one in the background
                     summary_task = ai_client.get_task_setting(request.user, "summary")
                     summarized = chat_state["summary_upto"] or 0
-                    summary_due = (summary_task.mode == summary_task.MODE_AUTO
+                    summary_due = (summary_task.mode == summary_task.MODE_AUTO and not chat_state["summary_paused"]
                                    and len(messages) - summarized >= summary_task.interval)
 
                     # Trackers: same idea, if any tracker is on for this character
@@ -741,6 +797,7 @@ def chat(request, slug):
         "photo_neutral": photo_url,
         "summary": chat_state["summary"],
         "summary_upto": chat_state["summary_upto"],
+        "summary_data": summary_payload(),
         "context_guides": json.dumps(chat_state["context_guides"]),
         "current_bg": chat_state["current_bg"],
         "current_music": json.dumps(chat_state["current_music"]),

@@ -435,6 +435,7 @@ function updateMessageIndices() {
         if (cancelBtn) cancelBtn.setAttribute('onclick', `cancelEdit(${index})`);
         message.querySelectorAll('[data-index]').forEach(el => el.dataset.index = index);
     });
+    if (window.Summary) Summary.messagesChanged(messages.length);
 }
 
 // Edit message functionality
@@ -561,7 +562,7 @@ function confirmDelete() {
                 updateMessageIndices();
                 setSwipes(data.swipes);
                 // Summary pieces covering deleted messages are gone; trackers rewound to before them
-                setSummary(data.summary, data.summary_upto);
+                if (window.Summary) Summary.set(data.summary_data);
                 if (window.Trackers && Trackers.setState) Trackers.setState(data.trackers);
             } else {
                 alert('Error deleting message: ' + (data.error || 'Unknown error'));
@@ -711,32 +712,9 @@ function saveContext() {
 // Update this function signature to accept 'mode'
 // auto = started after a reply because the summary is set to run every N messages
 function generateSummary(mode, auto = false) {
-    const summaryBox = document.getElementById('summaryDisplay');
-    const originalText = summaryBox.innerText;
-    summaryBox.innerText = mode === 'regen' ? "Regenerating full summary..." : (auto ? "Updating summary automatically..." : "Appending recent events...");
-
-    // Lock buttons roughly
-    const btns = document.querySelectorAll('.tool-section .tool-action-btn');
-    btns.forEach(b => b.disabled = true);
-
-    fetch(window.location.href, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-        // Pass the mode in the body
-        body: JSON.stringify({ action: 'summarize', mode: mode })
-    })
-        .then(r => r.json()).then(d => {
-            if (d.success) {
-                setSummary(d.summary, d.summary_upto);
-            } else {
-                summaryBox.innerText = originalText; // Revert on error
-                if (auto) console.warn('Automatic summary failed:', d.error);
-                else alert(d.error);
-            }
-        })
-        .finally(() => {
-            btns.forEach(b => b.disabled = false);
-        });
+    if (!window.Summary) return;
+    if (auto && Summary.paused) return;
+    Summary.run(mode === 'regen' ? { mode: 'regen' } : {}, { quiet: auto });
 }
 
 function expandInput() {
@@ -1024,20 +1002,6 @@ function fixHistoryAvatars() {
 }
 setSwipes(JSON.parse(document.getElementById('swipes-data')?.textContent || 'null'));
 scrollToBottom();
-
-// --- Summary box: the text and which messages it covers ---
-function setSummary(text, upto) {
-    document.getElementById('summaryDisplay').innerText = text || 'No summary yet.';
-    const cov = document.getElementById('summaryCoverage');
-    if (!cov) return;
-    cov.dataset.upto = upto || 0;
-    cov.textContent = text && upto ? `Covers messages 1–${upto}` : '';
-}
-(() => {
-    const cov = document.getElementById('summaryCoverage');
-    const upto = Number(cov && cov.dataset.upto);
-    if (upto) cov.textContent = `Covers messages 1–${upto}`;
-})();
 
 // --- Branches: a new chat with everything up to a message ---
 const branchModal = document.getElementById('branchModal');

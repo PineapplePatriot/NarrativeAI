@@ -1462,3 +1462,46 @@ a.branch-note:hover { color: var(--text-primary); text-decoration: underline; }
     width: calc(100% - 24px);
 }
 .branch-error { color: #fb7185; font-size: 0.85rem; min-height: 1em; margin: 6px 0 0; }
+
+/* ---------- Summary panel ---------- */
+.sum-status { display: flex; gap: 8px; align-items: flex-start; justify-content: space-between; padding: 8px 12px; font-size: 0.8rem; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); }
+.sum-status .icon-btn { flex: 0 0 auto; }
+.sum-model { display: block; color: var(--text-muted); margin-top: 2px; }
+.sum-actions { display: flex; gap: 4px; }
+.sum-text {
+    width: 100%;
+    box-sizing: border-box;
+    background: var(--ui-tertiary);
+    border: 1px solid transparent;
+    color: var(--text-primary);
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    resize: vertical;
+}
+.sum-text:hover { border-color: var(--border-color); }
+.sum-text:focus { outline: none; border-color: var(--accent-1); }
+.sum-meta { font-size: 0.72rem; color: var(--text-muted); margin-top: 4px; }
+.sum-gap { border-style: dashed; }
+.sum-run { display: flex; gap: 8px; align-items: center; justify-content: space-between; font-size: 0.82rem; color: var(--text-secondary); flex-wrap: wrap; }
+.sum-run input { width: 64px; background: var(--ui-tertiary); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; padding: 2px 6px; margin-left: 4px; }
+.sum-busy { color: var(--accent-1); font-size: 0.85rem; text-align: center; }
+.sum-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+
+/* Where the summary ends, in the chat */
+.summary-marker {
+    display: block;
+    width: 100%;
+    margin: 4px 0;
+    padding: 2px 0;
+    background: none;
+    border: none;
+    border-top: 1px dashed var(--border-color);
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    text-align: center;
+    cursor: pointer;
+}
+.summary-marker:hover { color: var(--text-primary); border-top-color: var(--accent-1); }

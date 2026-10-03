@@ -1386,3 +1386,51 @@ class SummaryPartsAndBranchTests(TrackerChatTests):
         page = self.client.get(f"{self.url}?chat={branch.id}")
         self.assertContains(page, "at message 4")
         self.assertEqual(page.context["chat"].id, branch.id)
+
+
+class SummaryPanelTests(SummaryPartsAndBranchTests):
+    def pieces(self):
+        return [(p["from"], p["to"], p["text"]) for p in self.chat_file()["summary_parts"]]
+
+    def test_range_edit_rerun_delete_and_gap(self):
+        self.post({"action": "chat", "message": "One"})
+        self.post({"action": "chat", "message": "Two"})   # 5 messages
+        d = self.post({"action": "summarize", "to": 3}).json()
+        self.assertEqual((d["first_uncovered"], d["total"]), (3, 5))
+        self.post({"action": "summarize"})                 # the rest: 3-5
+        self.assertEqual(self.pieces(), [(0, 3, "Summary 1."), (3, 5, "Summary 2.")])
+
+        d = self.post({"action": "summary_edit", "piece": 0, "text": " Rose agreed. "}).json()
+        self.assertEqual(d["summary"], "Rose agreed.\n\nSummary 2.")
+        self.assertFalse(self.post({"action": "summary_edit", "piece": 0, "text": "  "}).json()["success"])
+
+        self.post({"action": "summary_rerun", "piece": 1})
+        self.assertEqual(self.pieces()[1], (3, 5, "Summary 3."))
+        call = [c for c in self.all_calls if c["messages"][0]["content"].startswith("Existing summary")][-1]
+        self.assertIn("Rose agreed.", call["messages"][0]["content"])  # earlier pieces as context
+
+        # Deleting the first piece leaves a gap; the next run fills exactly the gap
+        d = self.post({"action": "summary_delete", "piece": 0}).json()
+        self.assertEqual((d["first_uncovered"], d["summary_upto"]), (0, 5))
+        self.post({"action": "summarize"})
+        self.assertEqual(self.pieces(), [(0, 3, "Summary 4."), (3, 5, "Summary 3.")])
+
+    def test_bad_ranges(self):
+        self.post({"action": "chat", "message": "One"})
+        self.post({"action": "summarize"})
+        self.assertEqual(self.post({"action": "summarize"}).json()["error"], "Nothing new to summarize yet.")
+        self.assertFalse(self.post({"action": "summarize", "from": 1, "to": 3}).json()["success"])  # overlaps
+        self.assertFalse(self.post({"action": "summarize", "from": 2, "to": 99}).json()["success"])
+        self.assertFalse(self.post({"action": "summary_delete", "piece": 7}).json()["success"])
+
+    def test_pause_stops_automatic_summaries(self):
+        from users.models import TaskSetting
+        TaskSetting.objects.create(user=self.user, task="summary", mode=TaskSetting.MODE_AUTO, interval=2)
+        self.assertTrue(self.post({"action": "chat", "message": "One"}).json()["summary_due"])
+        d = self.post({"action": "summary_pause", "paused": True}).json()
+        self.assertTrue(d["paused"] and d["auto"])
+        self.assertFalse(self.post({"action": "chat", "message": "Two"}).json()["summary_due"])
+        # Manual runs still work while paused
+        self.assertTrue(self.post({"action": "summarize"}).json()["success"])
+        page = self.client.get(self.url)
+        self.assertTrue(page.context["summary_data"]["paused"])
