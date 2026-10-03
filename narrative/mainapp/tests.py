@@ -1177,3 +1177,98 @@ class MultipleChatsTests(ChatPromptTests):
         chat = self.character.chats.get()
         self.assertEqual(chat.title, "Chat 1")
         self.assertEqual(self.saved_messages(chat)[0][2], "From the old days")
+
+
+class SwipeTests(ChatPromptTests):
+    """Regenerate keeps the old reply as a swipe; ‹ › switch between them."""
+
+    def setUp(self):
+        super().setUp()
+        self.replies = iter(f"Version {n}." for n in range(1, 20))
+
+    def fake_post(self, url, headers=None, json=None, timeout=None, **kwargs):
+        resp = super().fake_post(url, headers, json, timeout, **kwargs)
+        if self.sent and self.sent[-1] is json and self.reply_status < 400:
+            resp.json.return_value = {"choices": [{"message": {"content": next(self.replies)}}]}
+        return resp
+
+    def test_regenerate_adds_a_version_and_swipe_switches(self):
+        self.post({"action": "chat", "message": "Hi"})
+        data = self.post({"action": "regenerate"}).json()
+        self.assertEqual(data["reply"], "Version 2.")
+        self.assertEqual(data["swipes"], {"count": 2, "current": 1})
+        saved = self.saved_messages()
+        self.assertEqual(len(saved), 3)  # still one reply, not two
+        self.assertEqual(saved[-1][2], "Version 2.")
+
+        data = self.post({"action": "swipe", "to": 0}).json()
+        self.assertEqual((data["reply"], data["swipes"]), ("Version 1.", {"count": 2, "current": 0}))
+        self.assertEqual(self.saved_messages()[-1][2], "Version 1.")
+
+        # The version on screen is what the AI sees next
+        self.post({"action": "chat", "message": "And then?"})
+        history = [m["content"] for m in self.sent[-1]["messages"]]
+        self.assertIn("Version 1.", "\n".join(history))
+        self.assertNotIn("Version 2.", "\n".join(history))
+
+    def test_third_version_and_bad_index(self):
+        self.post({"action": "chat", "message": "Hi"})
+        self.post({"action": "regenerate"})
+        data = self.post({"action": "regenerate"}).json()
+        self.assertEqual(data["swipes"], {"count": 3, "current": 2})
+        self.assertFalse(self.post({"action": "swipe", "to": 5}).json()["success"])
+
+    def test_failed_regenerate_keeps_the_old_reply(self):
+        self.post({"action": "chat", "message": "Hi"})
+        self.reply_status = 401
+        resp = self.post({"action": "regenerate"})
+        self.assertEqual(resp.status_code, 502)
+        saved = self.saved_messages()
+        self.assertEqual((saved[-1][0], saved[-1][2]), ("assistant", "Version 1."))
+
+    def test_edit_changes_the_shown_version_only(self):
+        self.post({"action": "chat", "message": "Hi"})
+        self.post({"action": "regenerate"})
+        self.post({"action": "edit", "index": 2, "text": "Edited two."})
+        self.assertEqual(self.post({"action": "swipe", "to": 0}).json()["reply"], "Version 1.")
+        self.assertEqual(self.post({"action": "swipe", "to": 1}).json()["reply"], "Edited two.")
+
+    def test_page_and_delete_report_the_counter(self):
+        self.post({"action": "chat", "message": "Hi"})
+        self.post({"action": "regenerate"})
+        page = self.client.get(self.url)
+        self.assertEqual(page.context["swipes"], {"count": 2, "current": 1})
+        self.assertContains(page, "Version 2.")
+        self.post({"action": "chat", "message": "More"})
+        data = self.post({"action": "delete", "index": 3}).json()  # back to the swiped reply
+        self.assertEqual(data["swipes"], {"count": 2, "current": 1})
+
+    def test_swipe_only_on_the_ai_last_reply(self):
+        self.post({"action": "chat", "message": "Hi"})
+        self.post({"action": "delete", "index": 2})  # last message is now the user's
+        self.assertFalse(self.post({"action": "swipe", "to": 0}).json()["success"])
+
+
+class SwipeStreamTests(StreamChatTests):
+    def test_stopped_regenerate_keeps_both(self):
+        from unittest import mock
+        self.stream_post({"action": "chat", "message": "Go"})
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=self.fake_post):
+            resp = self.client.post(self.url, json.dumps({"action": "regenerate", "stream": True}),
+                                    content_type="application/json")
+            stream = iter(resp.streaming_content)
+            next(stream)
+            resp.close()
+        saved = self.saved_messages()
+        self.assertEqual(saved[-1][2], "Once")
+        self.assertEqual([v["text"] for v in saved[-1][5]["swipes"]], ["Once upon a time.", "Once"])
+
+    def test_regenerate_stopped_before_any_text_keeps_the_old_reply(self):
+        from unittest import mock
+        self.stream_post({"action": "chat", "message": "Go"})
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=self.fake_post):
+            resp = self.client.post(self.url, json.dumps({"action": "regenerate", "stream": True}),
+                                    content_type="application/json")
+            iter(resp.streaming_content)
+            resp.close()
+        self.assertEqual(self.saved_messages()[-1][2], "Once upon a time.")

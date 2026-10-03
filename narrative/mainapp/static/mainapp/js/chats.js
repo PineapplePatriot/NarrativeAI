@@ -38,7 +38,7 @@ window.Chats = (() => {
                 </header>
                 ${c.parent ? `<div class="chat-meta">⑂ from “${esc(c.parent)}” at message ${esc(c.branch_point)}</div>` : ''}
                 <div class="chat-preview">${esc(c.preview) || '<em>No messages yet</em>'}</div>
-                <div class="chat-meta">${c.count} message${c.count === 1 ? '' : 's'} · ${esc(c.updated)}${c.current ? ' · <strong>open</strong>' : ''}</div>
+                <div class="chat-meta">${c.count} message${c.count === 1 ? '' : 's'} · started ${esc(c.created)} · last ${esc(c.updated)}${c.current ? ' · <strong>open</strong>' : ''}</div>
             </div>`).join('');
     }
 

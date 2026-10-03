@@ -1418,3 +1418,20 @@ body {
 .icon-btn.small { padding: 0 6px; font-size: 0.8rem; }
 .chat-preview { font-size: 0.82rem; color: var(--text-secondary); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .chat-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+
+/* ---------- Swipes: alternative versions of the last reply ---------- */
+.swipe-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; }
+.swipe-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    border-radius: 8px;
+    width: 32px;
+    height: 26px;
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+}
+.swipe-btn:hover:not(:disabled) { border-color: var(--accent-1); color: var(--text-primary); }
+.swipe-btn:disabled { opacity: 0.3; cursor: default; }
+.swipe-count { font-size: 0.75rem; color: var(--text-muted); }

@@ -72,6 +72,7 @@ def summary_list(character, current_id=None):
         out.append({
             "id": chat.id, "title": chat.title, "count": len(messages), "preview": preview,
             "updated": chat.time_update.strftime("%Y-%m-%d %H:%M"), "current": chat.id == current_id,
+            "created": chat.time_create.strftime("%Y-%m-%d"),
             "parent": chat.parent.title if chat.parent else None, "branch_point": chat.branch_point,
         })
     return out
@@ -86,3 +87,53 @@ def delete(chat):
             character.save(update_fields=["chat_log_file"])
         os.remove(chat.log_file.path)
     chat.delete()
+
+
+# --- Swipes: alternative versions of an AI reply ---
+# A message is [role, time, text, emotion, char_count] plus an optional 6th part
+# {"swipes": [{"text", "time", "emotion", "char_count"}, ...], "swipe": <shown>}.
+# The first five parts always mirror the version on screen, so everything else
+# (the prompt, lorebook, summary, trackers) can ignore swipes entirely.
+
+def _extras(message):
+    return message[5] if len(message) > 5 and isinstance(message[5], dict) else {}
+
+
+def _version(message):
+    return {"text": message[2], "time": message[1], "emotion": message[3], "char_count": message[4]}
+
+
+def add_version(previous, message):
+    """`message` replaces `previous` as a new swipe; the earlier versions are kept."""
+    versions = list(_extras(previous).get("swipes") or [_version(previous)])
+    versions.append(_version(message))
+    return tuple(message[:5]) + ({"swipes": versions, "swipe": len(versions) - 1},)
+
+
+def choose_version(message, index):
+    versions = _extras(message).get("swipes") or []
+    if not 0 <= index < len(versions):
+        raise IndexError("No such version.")
+    v = versions[index]
+    return (message[0], v["time"], v["text"], v["emotion"], v["char_count"],
+            {"swipes": versions, "swipe": index})
+
+
+def set_text(message, text):
+    """Edit the shown text (and the shown swipe, so flipping away and back keeps the edit)."""
+    extras = _extras(message)
+    edited = (message[0], message[1], text, message[3], message[4])
+    if extras.get("swipes"):
+        versions = [dict(v) for v in extras["swipes"]]
+        versions[extras.get("swipe", 0)]["text"] = text
+        edited += ({"swipes": versions, "swipe": extras.get("swipe", 0)},)
+    return edited
+
+
+def version_info(messages):
+    """Swipe counter for the last message, if it's the AI's: {"count", "current"}."""
+    if not messages or messages[-1][0] != "assistant":
+        return None
+    extras = _extras(messages[-1])
+    versions = extras.get("swipes") or []
+    return {"count": max(len(versions), 1), "current": extras.get("swipe", 0) if versions else 0}

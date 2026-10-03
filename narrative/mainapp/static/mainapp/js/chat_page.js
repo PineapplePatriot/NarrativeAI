@@ -286,9 +286,9 @@ async function requestReply(body) {
                 } else if (event.type === 'done') {
                     return { ...event, bubble };
                 } else if (event.type === 'error') {
-                    if (bubble && !event.kept) bubble.closest('.message').remove();
+                    if (bubble && !event.kept) { bubble.closest('.message').remove(); bubble = null; }
                     else if (bubble) { paint(); bubble.closest('.message').classList.remove('streaming'); }
-                    return { error: event.error };
+                    return { error: event.error, bubble };  // a kept bubble was saved by the server
                 }
             }
         }
@@ -296,7 +296,7 @@ async function requestReply(body) {
     } catch (err) {
         if (err.name === 'AbortError') {
             if (bubble) { paint(); bubble.closest('.message').classList.remove('streaming'); }
-            return { stopped: true };
+            return { stopped: true, bubble };
         }
         throw err;
     } finally {
@@ -326,8 +326,12 @@ function placeReply(data, avatarUrl) {
 function sendMessage() {
     const message = messageInput.value.trim();
     if (!message || isGenerating) return;
+    const guideInput = document.getElementById('guidanceInput');
+    const guidance = guideInput ? guideInput.value.trim() : '';
+    if (guideInput) guideInput.value = '';
 
-    addMessage('user', message);
+    clearSwipeNav();
+    addMessage('user', message, window.USER_AVATAR);
     messageInput.value = '';
     messageInput.style.height = 'auto';
 
@@ -337,17 +341,19 @@ function sendMessage() {
     typingMessage.style.display = 'flex';
     scrollToBottom();
 
-    requestReply({ message: message })
+    requestReply({ message: message, guidance: guidance })
         .then(data => {
-            if (data.error) { showChatError(data.error); return; }
+            if (data.error || data.stopped) {
+                if (data.bubble) setSwipes({ count: 1, current: 0 });  // the partial reply was kept
+                if (data.error) showChatError(data.error);
+                return;
+            }
             let avatarToUse = data.photo_url;
-
-
             if (Number(data.char_count) === 3 && data.photo_second) {
                 avatarToUse = data.photo_second;
             }
-            if (data.stopped) return;
             placeReply(data, avatarToUse);
+            setSwipes(data.swipes);
             updateCharacterImages(data.photo_url, data.photo_second, data.char_count);
             renderLore(data.lore);
             if (data.summary_due) generateSummary('append', true);
@@ -362,8 +368,9 @@ function sendMessage() {
                 avatars.forEach(img => img.src = data.photo_url);
             }
 
-            // Додаємо кнопку аудіо, якщо вона прийшла з сервера
+            // Voice: play it and add play/pause buttons to the reply
             if (data.audio_url) {
+                playCharacterAudio(data.audio_url);
                 const messages = document.querySelectorAll('.message.assistant');
                 if (messages.length) {
                     const lastMessage = messages[messages.length - 1];
@@ -547,6 +554,7 @@ function confirmDelete() {
                     messages[i].remove();
                 }
                 updateMessageIndices();
+                setSwipes(data.swipes);
             } else {
                 alert('Error deleting message: ' + (data.error || 'Unknown error'));
             }
@@ -851,97 +859,114 @@ function togglePlay() { if (bgMusic.paused) { bgMusic.play(); document.getElemen
 function stopMusic() { bgMusic.pause(); musicWidget.classList.add('hidden'); }
 function setVolume(v) { bgMusic.volume = v; }
 
-// --- IMPORTANT: OVERRIDE sendMessage ---
-// To support guidance, we override the existing function variable
-const oldSendMessage = sendMessage;
-sendMessage = function () {
-    const txt = messageInput.value.trim();
-    const guide = document.getElementById('guidanceInput').value.trim();
-    if (!txt && !guide) return;
-    if (isGenerating) return;
-
-    if (txt) { addMessage('user', txt, window.USER_AVATAR); messageInput.value = ''; messageInput.style.height = 'auto'; }
-    document.getElementById('guidanceInput').value = '';
-
-    isGenerating = true; sendBtn.disabled = true; stopContainer.style.display = 'block'; typingMessage.style.display = 'flex'; scrollToBottom();
-
-    fetch(window.location.href, {
-        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-        body: JSON.stringify({ action: 'chat', message: txt, guidance: guide })
-    }).then(r => r.json()).then(d => {
-        let avatarToUse = d.photo_url; // Default to Char 1
-
-        // If char_count is 3 (Second Char Only) AND we have a second photo, use it.
-        if (Number(d.char_count) === 3 && d.photo_second) {
-            avatarToUse = d.photo_second;
-        }
-
-        // Fallback to initial photo if specific emotion photo is missing
-        if (!avatarToUse) {
-            avatarToUse = window.INIT_PHOTO_URL;
-        }
-
-        // Pass the calculated avatar to addMessage
-        addMessage('assistant', d.reply, avatarToUse);
-
-        updateCharacterImages(d.photo_url, d.photo_second, d.char_count);
-        if (d.audio_url) {
-            // A. Auto-play
-            playCharacterAudio(d.audio_url);
-
-            // B. Add the button to the DOM
-            const messages = document.querySelectorAll('.message.assistant');
-            if (messages.length) {
-                const lastMessage = messages[messages.length - 1];
-                const actionsDiv = lastMessage.querySelector('.message-actions');
-                // Create Play Button
-                const audioBtn = document.createElement('button');
-                audioBtn.className = 'message-btn play-sound';
-                audioBtn.onclick = () => playCharacterAudio(d.audio_url);
-                audioBtn.innerHTML = `
-                    <svg class="icon" viewBox="0 0 24 24">
-                        <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.06c1.48-.74 2.5-2.26 2.5-4.03z"/>
-                        <path d="M0 0h24v24H0z" fill="none"/>
-                    </svg>`;
-
-                // Create Pause Button
-                const pauseBtn = document.createElement('button');
-                pauseBtn.className = 'message-btn pause-sound';
-                pauseBtn.onclick = pauseCharacterAudio;
-                pauseBtn.innerHTML = `
-                    <svg class="icon" viewBox="0 0 24 24">
-                        <path d="M6 6h12v12H6z"/>
-                        <path d="M0 0h24v24H0z" fill="none"/>
-                    </svg>`;
-                actionsDiv.appendChild(audioBtn);
-                actionsDiv.appendChild(pauseBtn);
-            }
-        }
-    }).finally(() => { isGenerating = false; sendBtn.disabled = false; stopContainer.style.display = 'none'; typingMessage.style.display = 'none'; scrollToBottom(); updateMessageIndices(); });
-};
-
 // Regeneration Logic
 const regenModal = document.getElementById('regenModal');
 function openRegenModal() { regenModal.classList.add('show'); }
 function closeRegenModal() { regenModal.classList.remove('show'); }
 function confirmRegenerate() {
-    const msgs = document.querySelectorAll('.message:not(#typingMessage)');
-    if (msgs.length && msgs[msgs.length - 1].classList.contains('assistant')) msgs[msgs.length - 1].remove();
     const g = document.getElementById('regenGuidance').value;
     closeRegenModal();
-    isGenerating = true; typingMessage.style.display = 'flex'; scrollToBottom();
+    regenerateReply(g);
+}
+
+// A new version of the AI's last reply. The old one stays as a swipe (and comes back if this fails).
+function regenerateReply(guidance = '') {
+    if (isGenerating) return;
+    const msgs = document.querySelectorAll('.message:not(#typingMessage)');
+    const last = msgs[msgs.length - 1];
+    const old = last && last.classList.contains('assistant') ? last : null;
+    const before = window.LAST_SWIPES;
+    if (old) old.style.display = 'none';
+    clearSwipeNav();
+    isGenerating = true; sendBtn.disabled = true; typingMessage.style.display = 'flex'; scrollToBottom();
     stopContainer.style.display = 'block';
-    requestReply({ action: 'regenerate', guidance: g })
+    const restore = () => { if (old) { old.style.display = ''; setSwipes(before); } };
+    requestReply({ action: 'regenerate', guidance: guidance })
         .then(d => {
-            if (d.error) { showChatError(d.error); return; }
-            if (d.stopped) return;
-            placeReply(d, d.photo_url); updateCharacterImages(d.photo_url, d.photo_second, d.char_count); renderLore(d.lore);
+            if (d.error || d.stopped) {
+                // The server keeps any text that arrived as a new version; with none, the old reply stays
+                if (!d.bubble) restore();
+                else { if (old) old.remove(); setSwipes(before ? { count: before.count + 1, current: before.count } : { count: 1, current: 0 }); }
+                if (d.error) showChatError(d.error);
+                return;
+            }
+            if (old) old.remove();
+            placeReply(d, d.photo_url); setSwipes(d.swipes);
+            updateCharacterImages(d.photo_url, d.photo_second, d.char_count); renderLore(d.lore);
             if (d.summary_due) generateSummary('append', true);
             if (window.Trackers) Trackers.afterReply(d);
         })
-        .catch(err => { console.error(err); showChatError('Could not reach the app server.'); })
-        .finally(() => { isGenerating = false; stopContainer.style.display = 'none'; typingMessage.style.display = 'none'; updateMessageIndices(); });
+        .catch(err => { console.error(err); restore(); showChatError('Could not reach the app server.'); })
+        .finally(() => { isGenerating = false; sendBtn.disabled = false; stopContainer.style.display = 'none'; typingMessage.style.display = 'none'; updateMessageIndices(); });
 }
+
+// --- Swipes: ‹ 2/3 › under the AI's last reply ---
+function clearSwipeNav() {
+    document.querySelectorAll('.swipe-nav').forEach(n => n.remove());
+}
+
+function setSwipes(info) {
+    window.LAST_SWIPES = info || null;
+    clearSwipeNav();
+    const msgs = document.querySelectorAll('.message:not(#typingMessage)');
+    const last = msgs[msgs.length - 1];
+    if (!info || !last || !last.classList.contains('assistant')) return;
+    const nav = document.createElement('div');
+    nav.className = 'swipe-nav';
+    nav.innerHTML = `
+        <button type="button" class="swipe-btn" data-swipe="-1" title="Previous version" ${info.current === 0 ? 'disabled' : ''}>‹</button>
+        <span class="swipe-count">${info.count > 1 ? `${info.current + 1}/${info.count}` : ''}</span>
+        <button type="button" class="swipe-btn" data-swipe="1" title="${info.current === info.count - 1 ? 'Write another version' : 'Next version'}">›</button>`;
+    last.querySelector('.message-content').appendChild(nav);
+}
+
+function swipe(step) {
+    const info = window.LAST_SWIPES;
+    if (!info || isGenerating) return;
+    const to = info.current + step;
+    if (to < 0) return;
+    if (to >= info.count) { regenerateReply(); return; }  // past the newest: write a new one
+    fetch(window.location.href, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ action: 'swipe', to }),
+    })
+        .then(r => r.json())
+        .then(d => {
+            if (!d.success) { showChatError(d.error || 'Could not switch versions.'); return; }
+            const msgs = document.querySelectorAll('.message:not(#typingMessage)');
+            const last = msgs[msgs.length - 1];
+            const textDiv = last.querySelector('.message-text');
+            textDiv.innerHTML = renderChatMessage(d.reply);
+            textDiv.setAttribute('data-raw', encodeURIComponent(d.reply));
+            last.querySelector('.edit-textarea').value = d.reply;
+            last.dataset.emotion = d.emotion;
+            last.dataset.charCount = d.char_count;
+            const avatar = last.querySelector('img.message-avatar');
+            const avatarUrl = Number(d.char_count) === 3 && d.photo_second ? d.photo_second : d.photo_url;
+            if (avatar && avatarUrl) avatar.src = avatarUrl;
+            updateCharacterImages(d.photo_url, d.photo_second, d.char_count);
+            setSwipes(d.swipes);
+        })
+        .catch(() => showChatError('Could not reach the app server.'));
+}
+
+document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.swipe-btn');
+    if (btn && !btn.disabled) swipe(Number(btn.dataset.swipe));
+});
+
+// ← / → swipe too, while the message box is empty (as in SillyTavern)
+document.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    const el = document.activeElement;
+    const typing = el && (el.isContentEditable || ['INPUT', 'SELECT'].includes(el.tagName)
+        || (el.tagName === 'TEXTAREA' && (el !== messageInput || messageInput.value)));
+    if (typing || document.querySelector('.modal-overlay.show')) return;
+    e.preventDefault();
+    swipe(e.key === 'ArrowRight' ? 1 : -1);
+});
 
 // Add listeners for new Modals
 if (regenModal) regenModal.addEventListener('click', (e) => { if (e.target === regenModal) closeRegenModal(); });
@@ -989,3 +1014,5 @@ function fixHistoryAvatars() {
         }
     });
 }
+setSwipes(JSON.parse(document.getElementById('swipes-data')?.textContent || 'null'));
+scrollToBottom();

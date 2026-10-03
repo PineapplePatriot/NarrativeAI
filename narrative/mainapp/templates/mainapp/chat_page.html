@@ -391,6 +391,7 @@
         <div class="tp-foot">Each chat keeps its own messages, summary and trackers. The character, lorebooks and preset are shared.</div>
     </aside>
     {{ chat_list|json_script:"chats-data" }}
+    {{ swipes|json_script:"swipes-data" }}
     {{ trackers_data|json_script:"trackers-data" }}
     <script src="{% static 'mainapp/js/trackers.js' %}?v={% now 'U' %}"></script>
     <script src="{% static 'mainapp/js/chat_page.js' %}?v={% now 'U' %}"></script>

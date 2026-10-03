@@ -52,6 +52,12 @@ def characters_list(request):
 
 import re
 
+def _photo(character, prefix, emotion):
+    """The sprite for an emotion, falling back to neutral."""
+    image = getattr(character, f"{prefix}_{emotion}", None) or getattr(character, f"{prefix}_neutral", None)
+    return image.url if image else None
+
+
 @login_required
 def chat(request, slug):
     # Only your own characters (and their chats) are reachable
@@ -104,8 +110,9 @@ def chat(request, slug):
                             fixed_messages.append((msg[0], msg[1], msg[2], "neutral", 1))
                         elif len(msg) == 4: # (role, time, text, emotion)
                             fixed_messages.append((msg[0], msg[1], msg[2], msg[3], 1))
-                        elif len(msg) >= 5: # New format
-                            fixed_messages.append(tuple(msg[:5]))
+                        elif len(msg) >= 5: # New format, plus swipes (see chats.add_version)
+                            fixed_messages.append(tuple(msg[:6]) if len(msg) > 5 and isinstance(msg[5], dict)
+                                                  else tuple(msg[:5]))
 
                     return fixed_messages
                 except json.JSONDecodeError:
@@ -140,6 +147,7 @@ def chat(request, slug):
     if request.method == "POST":
         data = json.loads(request.body)
         action = data.get("action", "chat")
+        regen_from = None  # the reply being regenerated; the new one becomes its next swipe
         # --- Chats: list, new, rename, delete ---
         if action in ("list_chats", "new_chat", "rename_chat", "delete_chat"):
             go_to = None
@@ -171,8 +179,7 @@ def chat(request, slug):
 
                 if 0 <= index < len(messages):
                     # Update the message text, keep other fields
-                    role, time, old_text, emotion, char_count = messages[index] # <--- FIXED
-                    messages[index] = (role, time, new_text, emotion, char_count)
+                    messages[index] = chats.set_text(messages[index], new_text)
                     save_messages(messages)
                     return JsonResponse({"success": True})
                 else:
@@ -190,7 +197,7 @@ def chat(request, slug):
                     # Delete message and all subsequent messages
                     messages = messages[:index]
                     save_messages(messages)
-                    return JsonResponse({"success": True})
+                    return JsonResponse({"success": True, "swipes": chats.version_info(messages)})
                 else:
                     return JsonResponse({"success": False, "error": "Invalid message index"})
 
@@ -309,10 +316,27 @@ def chat(request, slug):
 
         # --- 5. NEW: Regenerate/Continue Logic ---
         elif action == "regenerate":
+            # The old reply is only replaced once the new one arrives (and is kept as a swipe)
             if messages and messages[-1][0] == "assistant":
-                messages.pop()
-                save_messages(messages)
-            pass # Fall through to generation
+                regen_from = messages.pop()
+
+        elif action == "swipe":
+            if not messages or messages[-1][0] != "assistant":
+                return JsonResponse({"success": False, "error": "Only the AI's last reply can be swiped."})
+            try:
+                messages[-1] = chats.choose_version(messages[-1], int(data.get("to")))
+            except (TypeError, ValueError, IndexError):
+                return JsonResponse({"success": False, "error": "No such version."})
+            save_messages(messages)
+            _, _, text, emotion, char_count = messages[-1][:5]
+            emo1, _, emo2 = (emotion or "neutral").partition("|")
+            return JsonResponse({
+                "success": True, "reply": text, "emotion": emotion, "char_count": char_count,
+                "photo_url": _photo(character, "photo", emo1),
+                "photo_second": _photo(character, "photo_second", emo2 or "neutral")
+                if (character.is_mult or char_count >= 2) else None,
+                "swipes": chats.version_info(messages),
+            })
 
         # --- 5. CONTINUE (Fixed) ---
         elif action == "continue":
@@ -336,8 +360,8 @@ def chat(request, slug):
             api_messages = [{"role": "system", "content": system_instruction}]
 
             # Add recent history (last 5 messages) for context, so it remembers the topic
-            for role, time, text, emo, char_count in history_context[-5:]: # <--- FIXED
-                api_messages.append({"role": "assistant" if role == "assistant" else "user", "content": text})
+            for m in history_context[-5:]:
+                api_messages.append({"role": "assistant" if m[0] == "assistant" else "user", "content": m[2]})
 
             try:
                 # 4. Call API
@@ -349,9 +373,7 @@ def chat(request, slug):
 
                 # 5. Combine and Save
                 full_text = last_text + " " + new_chunk
-                # Preserve char_count (index 4)
-                last_msg = messages[-1]
-                messages[-1] = ("assistant", last_msg[1], full_text, last_msg[3], last_msg[4])
+                messages[-1] = chats.set_text(messages[-1], full_text)
                 save_messages(messages)
 
                 return JsonResponse({"success": True, "reply": full_text})
@@ -398,11 +420,9 @@ def chat(request, slug):
                     api_messages.append({"role": "system", "content": character.system_prompt})
 
                 # Add conversation history
-                for role, time, text, emotion, char_count in messages: # <--- FIXED
-                    if role == "user":
-                        api_messages.append({"role": "user", "content": text})
-                    elif role == "assistant":
-                        api_messages.append({"role": "assistant", "content": text})
+                for m in messages:
+                    if m[0] in ("user", "assistant"):
+                        api_messages.append({"role": m[0], "content": m[2]})
 
                 try:
                     worldbook = None
@@ -439,11 +459,15 @@ def chat(request, slug):
                         reply = ai_client.complete(request.user, "chat", built["messages"], **built["params"])
 
                 except ai_client.AIError as e:
-                    # Keep the user's message so they can press Regenerate
+                    # Keep the user's message so they can press Regenerate (and the old reply, if regenerating)
+                    if regen_from:
+                        messages.append(regen_from)
                     save_messages(messages)
                     return JsonResponse({"error": str(e)}, status=502)
                 except Exception as e:
                     print(f"Error generating reply: {traceback.format_exc()}")
+                    if regen_from:
+                        messages.append(regen_from)
                     save_messages(messages)
                     return JsonResponse({"error": f"Something went wrong while building the prompt: {e}"}, status=500)
 
@@ -500,16 +524,12 @@ def chat(request, slug):
 
                     # Store emotions as "happy|sad" string
                     final_emotion_str = f"{emotion_char_1}|{emotion_char_2}"
-                    messages.append(("assistant", datetime.now().strftime("%H:%M"), reply, final_emotion_str, char_count))
+                    new_message = ("assistant", datetime.now().strftime("%H:%M"), reply, final_emotion_str, char_count)
+                    messages.append(chats.add_version(regen_from, new_message) if regen_from else new_message)
 
-                    # --- Get Photo URLs ---
-                    def get_photo(prefix, emo):
-                        attr = getattr(character, f"{prefix}_{emo}", None)
-                        if not attr: attr = getattr(character, f"{prefix}_neutral", None)
-                        return attr.url if attr else None
-
-                    photo_url = get_photo("photo", emotion_char_1)
-                    photo_second = get_photo("photo_second", emotion_char_2) if (character.is_mult or char_count >= 2) else None
+                    photo_url = _photo(character, "photo", emotion_char_1)
+                    photo_second = (_photo(character, "photo_second", emotion_char_2)
+                                    if (character.is_mult or char_count >= 2) else None)
 
                     save_messages(messages)
 
@@ -556,6 +576,7 @@ def chat(request, slug):
                         "summary_due": summary_due,
                         "trackers_due": trackers_due,
                         "context_dropped": context_dropped,
+                        "swipes": chats.version_info(messages),
                     }
 
                 if not streaming:
@@ -569,7 +590,10 @@ def chat(request, slug):
                         # Keep whatever arrived (Stop button, closed tab or a broken stream)
                         text = "".join(parts).strip()
                         if text:
-                            messages.append(("assistant", datetime.now().strftime("%H:%M"), text, "neutral|neutral", 1))
+                            partial = ("assistant", datetime.now().strftime("%H:%M"), text, "neutral|neutral", 1)
+                            messages.append(chats.add_version(regen_from, partial) if regen_from else partial)
+                        elif regen_from:
+                            messages.append(regen_from)  # nothing new arrived: keep the old reply
                         save_messages(messages)
 
                     try:
@@ -648,7 +672,8 @@ def chat(request, slug):
         user_avatar = request.user.photo.url
 
     context = {
-        "messages": messages,
+        "messages": [m[:5] for m in messages],  # the template shows the version on screen
+        "swipes": chats.version_info(messages),
         "character": character,
         "photo_url": photo_url,
         "photo_second": photo_second,
