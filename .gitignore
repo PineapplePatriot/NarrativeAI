@@ -107,3 +107,5 @@ local_settings.py
 .history/
 
 myenv/
+# App data that ships with the code (the rule above ignores user/settings JSON)
+!narrative/mainapp/data/*.json
