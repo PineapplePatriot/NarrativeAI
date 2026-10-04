@@ -92,7 +92,11 @@
       "Losing coherence"
     ]
   },
-  "starters": {},
+  "starters": {
+    "back_and_forth": "gemini-back-and-forth",
+    "rich_scene": "gemini-rich-scene",
+    "director": "gemini-director"
+  },
   "card": {
     "order": 6,
     "recommended": false,

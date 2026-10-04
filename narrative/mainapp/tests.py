@@ -1512,7 +1512,7 @@ class StarterTests(ChatPromptTests):
     def test_every_starter_is_a_sound_preset_for_its_model(self):
         from mainapp import model_profiles, presets, samplers, starters
         all_s = starters.all_starters()
-        self.assertEqual(len(all_s), 6)
+        self.assertEqual(len(all_s), 30)  # three experiences for each of the ten models
         for s in all_s:
             profile = next(p for p in model_profiles.all_profiles() if p["id"] == s["model"])
             self.assertEqual(profile["starters"][s["experience"]], s["id"])

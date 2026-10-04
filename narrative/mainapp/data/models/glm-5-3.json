@@ -93,7 +93,11 @@
       "Reactions that ignore shared history"
     ]
   },
-  "starters": {},
+  "starters": {
+    "back_and_forth": "glm-back-and-forth",
+    "rich_scene": "glm-rich-scene",
+    "director": "glm-director"
+  },
   "card": {
     "order": 8,
     "recommended": false,

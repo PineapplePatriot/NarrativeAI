@@ -82,7 +82,11 @@
     "probes": [],
     "watch_for": []
   },
-  "starters": {},
+  "starters": {
+    "back_and_forth": "dsv4flash-back-and-forth",
+    "rich_scene": "dsv4flash-rich-scene",
+    "director": "dsv4flash-director"
+  },
   "card": {
     "order": 10,
     "recommended": false,

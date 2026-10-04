@@ -114,7 +114,11 @@
       "Dense paragraphs"
     ]
   },
-  "starters": {},
+  "starters": {
+    "back_and_forth": "fable-back-and-forth",
+    "rich_scene": "fable-rich-scene",
+    "director": "fable-director"
+  },
   "card": {
     "order": 4,
     "recommended": false,

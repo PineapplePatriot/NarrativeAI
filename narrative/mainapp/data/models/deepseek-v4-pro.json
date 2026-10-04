@@ -91,7 +91,11 @@
       "Antagonists going soft when events turn harsh"
     ]
   },
-  "starters": {},
+  "starters": {
+    "back_and_forth": "dsv4pro-back-and-forth",
+    "rich_scene": "dsv4pro-rich-scene",
+    "director": "dsv4pro-director"
+  },
   "card": {
     "order": 9,
     "recommended": false,

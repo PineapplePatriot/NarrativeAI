@@ -97,7 +97,11 @@
       "Grandiose dialogue in modern settings"
     ]
   },
-  "starters": {},
+  "starters": {
+    "back_and_forth": "kimi-back-and-forth",
+    "rich_scene": "kimi-rich-scene",
+    "director": "kimi-director"
+  },
   "card": {
     "order": 5,
     "recommended": false,

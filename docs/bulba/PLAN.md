@@ -74,7 +74,7 @@ connection's model ID. The Samplers page then shows only settings the model actu
 short reason for the hidden ones ("Opus 5.5 always uses its own temperature"), and requests never
 send settings the model ignores. Unknown models keep today's behaviour, marked "not verified".
 
-### 3. Starters: 3 experiences × 2 models
+### 3. Starters: 3 experiences × 10 models (built 4 October 2026)
 
 From the research's starter design, with the model-specific flavour you asked for:
 

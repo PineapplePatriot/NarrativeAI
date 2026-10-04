@@ -104,7 +104,11 @@
       "Unwanted comedy"
     ]
   },
-  "starters": {},
+  "starters": {
+    "back_and_forth": "opus46-back-and-forth",
+    "rich_scene": "opus46-rich-scene",
+    "director": "opus46-director"
+  },
   "card": {
     "order": 3,
     "recommended": false,

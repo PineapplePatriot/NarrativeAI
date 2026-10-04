@@ -99,7 +99,11 @@
       "Length swinging between bloated and thin"
     ]
   },
-  "starters": {},
+  "starters": {
+    "back_and_forth": "opus47-back-and-forth",
+    "rich_scene": "opus47-rich-scene",
+    "director": "opus47-director"
+  },
   "card": {
     "order": 7,
     "recommended": false,
