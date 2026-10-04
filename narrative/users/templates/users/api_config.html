@@ -16,7 +16,8 @@
     <div class="page">
         {% if next_url %}<a class="back" href="{{ next_url }}">← Back to where you were</a>{% endif %}
         <h1>Connections</h1>
-        <p class="subtitle">Where your AI requests go, and which model each feature uses.</p>
+        <p class="subtitle">Where your AI requests go, and which model each feature uses.
+            Prefer plain switches? The <a href="{% url 'users:extras' %}">Extras page</a> covers voices, summaries, trackers and sprites.</p>
 
         <div class="banner" id="startBanner" hidden>
             <b>Start here:</b> paste your OpenRouter API key and pick a model, then press Save.

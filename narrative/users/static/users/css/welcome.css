@@ -58,3 +58,15 @@ button.link { background: none; padding: 0; color: var(--accent-soft); text-deco
     .done { flex-direction: column; }
     .actions button { width: 100%; }
 }
+
+/* Extras page */
+.extras .option { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; margin-bottom: 14px; }
+.extras .option h2 { font-size: 1.1rem; margin: 0 0 6px; }
+.extras input[type=password] { margin-top: 4px; }
+.choice, .check { display: flex; align-items: center; gap: 8px; margin: 8px 0; font-size: .95rem; flex-wrap: wrap; cursor: pointer; }
+.choice input[type=radio], .check input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; }
+.num { width: 72px; padding: 5px 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--card-2); color: var(--text); font-size: .95rem; }
+.extras select { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--card-2); color: var(--text); font-size: .9rem; }
+.saved { color: #6ee7b7; }
+.next { margin-top: 28px; }
+.next h2 { font-size: 1.1rem; margin: 0 0 4px; }

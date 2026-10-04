@@ -1608,3 +1608,49 @@ class WelcomeTests(TestCase):
     def test_needs_a_known_model_and_a_key(self):
         self.assertEqual(self.post({"api_key": "k", "model": "gpt-9"}).status_code, 400)
         self.assertEqual(self.post({"api_key": "", "model": "kimi-k3"}).status_code, 400)
+
+
+class ExtrasTests(TestCase):
+    """The plain-words feature switches."""
+
+    def setUp(self):
+        from users.models import ConnectionProfile
+        self.user = get_user_model().objects.create_user(username="extra", password="pw12345!")
+        self.main = ConnectionProfile.objects.create(user=self.user, name="Main", api_key="sk-or-x",
+                                                     model="anthropic/claude-opus-5.5")
+        self.client.force_login(self.user)
+        self.url = reverse("users:extras")
+
+    def post(self, data):
+        return self.client.post(self.url, json.dumps(data), content_type="application/json")
+
+    def test_page_shows_current_settings(self):
+        state = self.client.get(self.url).context["extras_data"]
+        self.assertEqual(state["chat_model"], "Claude Opus 5.5")
+        self.assertEqual(state["background"], "chat")
+        self.assertEqual(state["trackers"]["mode"], "auto")  # the default
+        self.assertTrue(all(m["price"] == "$" for m in state["cheap_models"]))
+
+    def test_switches_save(self):
+        from mainapp.ai_client import get_task_setting
+        from users.models import ApiConfig
+        state = self.post({"summary": {"mode": "auto", "interval": 12}, "trackers": {"mode": "manual", "interval": 3},
+                           "sprites": False, "eleven_key": "el-key"}).json()["state"]
+        self.assertEqual((state["summary"], state["trackers"]["mode"], state["sprites"], state["has_eleven_key"]),
+                         ({"mode": "auto", "interval": 12}, "manual", False, True))
+        self.assertFalse(get_task_setting(self.user, "emotion").enabled)
+        self.post({"remove_eleven_key": True})
+        self.assertEqual(ApiConfig.objects.get(user=self.user).eleven_key, "")
+
+    def test_cheaper_background_model(self):
+        from mainapp import ai_client
+        state = self.post({"background": "mimo-v2-6-pro"}).json()["state"]
+        self.assertEqual(state["background"], "mimo-v2-6-pro")
+        for task in ("summary", "trackers", "emotion", "voice_split"):
+            profile, model = ai_client.resolve(self.user, task)
+            self.assertEqual((profile.name, profile.api_key, model), ("Background (cheaper)", "sk-or-x", "xiaomi/mimo-v2.6-pro"))
+        self.assertEqual(ai_client.resolve(self.user, "chat")[1], "anthropic/claude-opus-5.5")  # chat untouched
+        state = self.post({"background": "chat"}).json()["state"]
+        self.assertEqual(state["background"], "chat")
+        self.assertEqual(ai_client.resolve(self.user, "summary")[1], "anthropic/claude-opus-5.5")
+        self.assertEqual(self.post({"background": "claude-opus-5-5"}).status_code, 400)  # not a cheap model
