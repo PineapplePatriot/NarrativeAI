@@ -75,6 +75,8 @@ def _connections_state(user):
 
     tasks = []
     for task, info in TASKS.items():
+        if info.get("hidden"):
+            continue
         ts = get_task_setting(user, task)
         tasks.append({
             "task": task, "label": info["label"], "help": info["help"],
@@ -144,7 +146,7 @@ def _save_connections(user, data):
 
     for item in data.get("tasks", []):
         task = item.get("task")
-        if task not in TASKS:
+        if task not in TASKS or TASKS[task].get("hidden"):
             continue
         ts = get_task_setting(user, task)
         ts.profile = ref_to_profile.get(item.get("profile_id"))
@@ -310,6 +312,61 @@ def _extras_state(user):
     }
 
 
+def apply_extras(user, data):
+    """Saves the Extras switches (also used by Bulba's proposals). Returns an error message or None."""
+    from mainapp.ai_client import get_task_setting, main_profile
+    # Check everything first, so a mistake changes nothing
+    background = data.get("background")
+    main = main_profile(user)
+    choice = None
+    if background and background != "chat":
+        choice = next((m for m in _cheap_models() if m["id"] == background), None)
+        if choice is None:
+            return "Pick one of the listed models."
+        if not (main and main.provider == ConnectionProfile.PROVIDER_OPENROUTER and main.api_key):
+            return "A cheaper model needs your OpenRouter key; set it on the welcome page first."
+
+    with transaction.atomic():
+        for task in ("summary", "trackers"):
+            item = data.get(task) if isinstance(data.get(task), dict) else {}
+            setting = get_task_setting(user, task)
+            if item.get("mode") in (TaskSetting.MODE_AUTO, TaskSetting.MODE_MANUAL):
+                setting.mode = item["mode"]
+            try:
+                setting.interval = max(1, min(200, int(item.get("interval", setting.interval))))
+            except (TypeError, ValueError):
+                pass
+            setting.save()
+        if "sprites" in data:
+            emotion = get_task_setting(user, "emotion")
+            emotion.enabled = bool(data["sprites"])
+            emotion.save()
+
+        eleven = ApiConfig.objects.get_or_create(user=user)[0]
+        if data.get("remove_eleven_key"):
+            eleven.eleven_key = ""
+        elif (data.get("eleven_key") or "").strip():
+            eleven.eleven_key = data["eleven_key"].strip()
+        eleven.save()
+
+        if background == "chat":
+            for task in BACKGROUND_TASKS:
+                setting = get_task_setting(user, task)
+                setting.profile, setting.model = None, ""
+                setting.save()
+        elif choice:
+            bg, _ = ConnectionProfile.objects.get_or_create(
+                user=user, name="Background (cheaper)",
+                defaults={"provider": ConnectionProfile.PROVIDER_OPENROUTER})
+            bg.provider, bg.api_key, bg.model = ConnectionProfile.PROVIDER_OPENROUTER, main.api_key, choice["openrouter"]
+            bg.save()
+            for task in BACKGROUND_TASKS:
+                setting = get_task_setting(user, task)
+                setting.profile, setting.model = bg, ""
+                setting.save()
+    return None
+
+
 @login_required
 def extras(request):
     from mainapp.ai_client import get_task_setting, main_profile
@@ -319,52 +376,9 @@ def extras(request):
             data = json.loads(request.body.decode("utf-8"))
         except (ValueError, UnicodeDecodeError):
             return JsonResponse({"error": "Invalid request."}, status=400)
-        with transaction.atomic():
-            for task in ("summary", "trackers"):
-                item = data.get(task) if isinstance(data.get(task), dict) else {}
-                setting = get_task_setting(request.user, task)
-                if item.get("mode") in (TaskSetting.MODE_AUTO, TaskSetting.MODE_MANUAL):
-                    setting.mode = item["mode"]
-                try:
-                    setting.interval = max(1, min(200, int(item.get("interval", setting.interval))))
-                except (TypeError, ValueError):
-                    pass
-                setting.save()
-            if "sprites" in data:
-                emotion = get_task_setting(request.user, "emotion")
-                emotion.enabled = bool(data["sprites"])
-                emotion.save()
-
-            eleven = ApiConfig.objects.get_or_create(user=request.user)[0]
-            if data.get("remove_eleven_key"):
-                eleven.eleven_key = ""
-            elif (data.get("eleven_key") or "").strip():
-                eleven.eleven_key = data["eleven_key"].strip()
-            eleven.save()
-
-            background = data.get("background")
-            main = main_profile(request.user)
-            if background == "chat":
-                for task in BACKGROUND_TASKS:
-                    setting = get_task_setting(request.user, task)
-                    setting.profile, setting.model = None, ""
-                    setting.save()
-            elif background:
-                choice = next((m for m in _cheap_models() if m["id"] == background), None)
-                if choice is None:
-                    return JsonResponse({"error": "Pick one of the listed models."}, status=400)
-                if not (main and main.provider == ConnectionProfile.PROVIDER_OPENROUTER and main.api_key):
-                    return JsonResponse({"error": "A cheaper model needs your OpenRouter key; set it on the welcome page first."},
-                                        status=400)
-                bg, _ = ConnectionProfile.objects.get_or_create(
-                    user=request.user, name="Background (cheaper)",
-                    defaults={"provider": ConnectionProfile.PROVIDER_OPENROUTER})
-                bg.provider, bg.api_key, bg.model = ConnectionProfile.PROVIDER_OPENROUTER, main.api_key, choice["openrouter"]
-                bg.save()
-                for task in BACKGROUND_TASKS:
-                    setting = get_task_setting(request.user, task)
-                    setting.profile, setting.model = bg, ""
-                    setting.save()
+        error = apply_extras(request.user, data)
+        if error:
+            return JsonResponse({"error": error}, status=400)
         return JsonResponse({"status": "ok", "state": _extras_state(request.user)})
 
     return render(request, "users/extras.html", {"extras_data": _extras_state(request.user)})

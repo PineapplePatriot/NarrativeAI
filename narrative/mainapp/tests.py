@@ -1654,3 +1654,175 @@ class ExtrasTests(TestCase):
         self.assertEqual(state["background"], "chat")
         self.assertEqual(ai_client.resolve(self.user, "summary")[1], "anthropic/claude-opus-5.5")
         self.assertEqual(self.post({"background": "claude-opus-5-5"}).status_code, 400)  # not a cheap model
+
+
+class BulbaTests(TestCase):
+    """The setup assistant, with a scripted fake model (no network)."""
+
+    def setUp(self):
+        from users.models import ConnectionProfile
+        self.user = get_user_model().objects.create_user(username="potato", password="pw12345!")
+        self.main = ConnectionProfile.objects.create(user=self.user, name="Main", api_key="sk-or-secret",
+                                                     model="anthropic/claude-opus-5.5")
+        self.client.force_login(self.user)
+        self.script = []      # replies Bulba's model gives, in order
+        self.bulba_calls, self.sample_calls = [], []
+
+    # -- fake AI ----------------------------------------------------------------
+    @staticmethod
+    def call(tool, **args):
+        return {"id": f"call_{tool}_{len(json.dumps(args))}", "type": "function",
+                "function": {"name": tool, "arguments": json.dumps(args)}}
+
+    def fake_post(self, url, headers=None, json=None, timeout=None, **kwargs):
+        from unittest import mock
+        resp = mock.Mock(status_code=200)
+        if "tools" in json:
+            self.bulba_calls.append(json)
+            content, calls = self.script.pop(0) if self.script else ("Okay.", [])
+            message = {"role": "assistant", "content": content, **({"tool_calls": calls} if calls else {})}
+        else:
+            self.sample_calls.append(json)
+            message = {"role": "assistant", "content": f"Sample number {len(self.sample_calls)}."}
+        resp.json.return_value = {"choices": [{"message": message}], "usage": {"cost": 0.01}}
+        return resp
+
+    def api(self, **body):
+        from unittest import mock
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=self.fake_post):
+            return self.client.post(reverse("bulba_api"), json.dumps(body), content_type="application/json")
+
+    # -- tests ------------------------------------------------------------------
+    def test_page_starts_a_session_with_a_free_opening(self):
+        page = self.client.get(reverse("bulba"))
+        data = page.context["bulba_data"]
+        self.assertEqual(data["state"]["model"], "Claude Opus 5.5")
+        self.assertEqual(data["state"]["stage"], "extras")
+        self.assertIn("potato", data["events"][0]["text"])
+        self.assertTrue(data["events"][0]["choices"])
+        self.assertEqual(self.bulba_calls, [])  # starting costs nothing
+
+    def test_unknown_model_gets_a_friendly_page(self):
+        self.main.model = "some/other-model"
+        self.main.save()
+        self.assertIsNone(self.client.get(reverse("bulba")).context["bulba_data"])
+
+    def test_bulba_runs_on_its_own_model_and_never_sees_keys(self):
+        self.script = [("", [self.call("get_current_setup")]), ("You're on Opus. Voices?", [])]
+        data = self.api(action="say", text="Hi").json()
+        self.assertEqual(self.bulba_calls[0]["model"], "xiaomi/mimo-v2.6-pro")
+        self.assertIn("tools", self.bulba_calls[0])
+        self.assertNotIn("sk-or-secret", json.dumps(self.bulba_calls))
+        self.assertEqual(self.bulba_calls[1]["messages"][-1]["role"], "tool")
+        self.assertEqual([e["type"] for e in data["events"]], ["user", "bulba"])
+        self.assertAlmostEqual(data["state"]["spent"], 0.02)
+
+    def test_choices_and_preferences(self):
+        self.script = [("Quiet or dramatic?", [
+            self.call("offer_choices", choices=[{"label": "Quiet"}, {"label": "Dramatic"}]),
+            self.call("record_preference", wording="short replies please", interpretation="Prefers short replies",
+                      scope="general", status="confirmed")]), ("", [])]
+        data = self.api(action="say", text="short replies please").json()
+        bulba = [e for e in data["events"] if e["type"] == "bulba"][0]
+        self.assertEqual([c["label"] for c in bulba["choices"]], ["Quiet", "Dramatic"])
+        self.assertEqual(data["state"]["preferences"][0]["interpretation"], "Prefers short replies")
+        pid = data["state"]["preferences"][0]["id"]
+        data = self.api(action="forget", id=pid).json()
+        self.assertEqual(data["state"]["preferences"], [])
+
+    def test_samples_come_from_the_users_chat_model(self):
+        self.script = [("Which reads better?", [self.call(
+            "write_samples", starter="opus-rich-scene", scenario="A rainy museum after closing.",
+            user_turn="Can you fix it?",
+            variants=[{"label": "terse", "instructions": "Very terse."}, {"label": "lush", "instructions": "Lush detail."}])]),
+            ("", [])]
+        data = self.api(action="say", text="show me").json()
+        samples = next(e for e in data["events"] if e["type"] == "samples")
+        self.assertEqual([s["label"] for s in samples["samples"]], ["A", "B"])
+        self.assertEqual(len(self.sample_calls), 2)
+        for call in self.sample_calls:
+            self.assertEqual(call["model"], "anthropic/claude-opus-5.5")  # the user's chat model
+            system = "\n".join(m["content"] for m in call["messages"])
+            self.assertIn("under 250 words", system)
+            self.assertIn("Mara Voss", system)  # the neutral test character
+        self.assertTrue(all(c["messages"][-1]["content"].startswith("Can you fix it?") for c in self.sample_calls))
+        # Bulba is told which letter was which variant; the page only shows letters
+        tool_result = json.loads(self.bulba_calls[1]["messages"][-1]["content"])
+        self.assertEqual({v["variant"] for v in tool_result["shown_to_user_as"].values()}, {"terse", "lush"})
+        self.assertAlmostEqual(data["state"]["spent"], 0.04)
+
+    def test_preset_proposal_apply_and_undo(self):
+        from mainapp import presets as presets_mod
+        before = presets_mod.get_active(self.user)
+        self.script = [("Here's your preset.", [self.call(
+            "propose_preset", starter="opus-back-and-forth", name="Banter setup",
+            taste="Keep the teasing light.", reply_length="short", why="you like quick exchanges")])]
+        data = self.api(action="say", text="build it").json()
+        proposal = data["state"]["proposals"][0]
+        self.assertEqual((proposal["kind"], proposal["status"]), ("preset", "pending"))
+        self.assertEqual(presets_mod.get_active(self.user).id, before.id)  # nothing changes before Apply
+
+        self.script = [("Applied. Now, who are you in the story?", [])]
+        data = self.api(action="apply", id=proposal["id"]).json()
+        self.assertEqual(data["state"]["proposals"][0]["status"], "applied")
+        self.assertEqual(data["events"][0]["type"], "note")
+        self.assertIn("[Applied: Preset: Banter setup]", json.dumps(self.bulba_calls[-1]["messages"]))
+        active = presets_mod.get_active(self.user)
+        self.assertEqual(active.name, "Banter setup")
+        taste = next(b for b in active.data["blocks"] if b["name"] == "Your taste")
+        self.assertIn("Keep the teasing light.", taste["content"])
+        self.assertIn("one to three paragraphs", taste["content"])
+
+        self.script = [("Undone.", [])]
+        self.api(action="undo", id=proposal["id"])
+        self.assertEqual(presets_mod.get_active(self.user).id, before.id)
+        from mainapp.models import Preset
+        self.assertFalse(Preset.objects.filter(user=self.user, name="Banter setup").exists())
+
+    def test_character_persona_and_extras_proposals(self):
+        from mainapp.models import Character
+        from mainapp.ai_client import get_task_setting
+        self.script = [("", [
+            self.call("propose_extras", summary="auto", summary_every=12, sprites=False, background="mimo-v2-6-pro", why="cheaper"),
+            self.call("propose_persona", name="Anya", description="A tired courier."),
+            self.call("propose_character", name="Dottore", description="A scholar first.", scenario="A lab.",
+                      greeting="Hello there.")]), ("Three things to look at.", [])]
+        data = self.api(action="say", text="go").json()
+        extras, persona, character = data["state"]["proposals"]
+        for p in (extras, persona, character):
+            self.script = [("Done.", [])]
+            self.api(action="apply", id=p["id"])
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.persona_name, "Anya")
+        made = Character.objects.get(author=self.user, name="Dottore")
+        self.assertEqual(made.initial_message, "Hello there.")
+        self.assertEqual(get_task_setting(self.user, "summary").interval, 12)
+        self.assertFalse(get_task_setting(self.user, "emotion").enabled)
+        state = self.api(action="say", text="ok").json()["state"]
+        self.assertEqual(next(p for p in state["proposals"] if p["kind"] == "character")["result"]["slug"], made.slug)
+        # undo the character and the extras
+        self.api(action="undo", id=character["id"])
+        self.api(action="undo", id=extras["id"])
+        self.assertFalse(Character.objects.filter(id=made.id).exists())
+        self.assertTrue(get_task_setting(self.user, "emotion").enabled)
+        self.assertEqual(get_task_setting(self.user, "summary").profile_id, None)
+        # a handled proposal can't be applied again
+        self.assertEqual(self.api(action="apply", id=character["id"]).status_code, 400)
+
+    def test_budget_stops_bulba(self):
+        self.client.get(reverse("bulba"))
+        from mainapp.models import BulbaSession
+        BulbaSession.objects.filter(user=self.user).update(spent=5.0)
+        data = self.api(action="say", text="hello?").json()
+        self.assertEqual(self.bulba_calls, [])
+        self.assertIn("limit", data["events"][-1]["text"])
+        data = self.api(action="budget", value=8).json()
+        self.assertEqual(data["state"]["budget"], 8.0)
+
+    def test_changing_model_starts_a_new_session(self):
+        first = self.client.get(reverse("bulba")).context["bulba_data"]["state"]["id"]
+        self.main.model = "xiaomi/mimo-v2.6-pro"
+        self.main.save()
+        state = self.client.get(reverse("bulba")).context["bulba_data"]["state"]
+        self.assertNotEqual(state["id"], first)
+        self.assertEqual(state["model"], "MiMo v2.6 Pro")

@@ -1294,3 +1294,98 @@ def get_media_resources(request):
         "backgrounds": get_files(bg_dir, "backgrounds"), 
         "music": get_files(music_dir, "music")
     })
+
+
+# ---------------------------------------------------------------------------
+# Bulba, the setup assistant
+# ---------------------------------------------------------------------------
+
+def _bulba_state(session):
+    from .bulba import agent
+    profile = agent.target_profile(session)
+    return {
+        "id": session.id, "stage": session.stage, "stages": agent.STAGES,
+        "spent": round(session.spent, 4), "budget": session.budget,
+        "model": profile["name"] if profile else session.target_model,
+        "preferences": [p for p in session.preferences if p.get("status") not in ("rejected", "superseded")],
+        "proposals": [{k: p.get(k) for k in ("id", "kind", "title", "summary", "status", "result")} for p in session.proposals],
+    }
+
+
+def _bulba_session(user, restart=False):
+    """The user's current Bulba conversation for their chat model, started if needed. None if Bulba can't help."""
+    from .bulba import agent
+    from .models import BulbaSession
+    try:
+        _, chat_model = ai_client.resolve(user, "chat")
+    except ai_client.NoConnection:
+        return None
+    profile = model_profiles.for_model(chat_model)
+    if profile is None:
+        return None
+    session = BulbaSession.objects.filter(user=user, active=True).first()
+    if session and (restart or session.target_model != profile["id"]):
+        session.active = False
+        session.save(update_fields=["active"])
+        session = None
+    if session is None:
+        session = BulbaSession(user=user, target_model=profile["id"])
+        agent.opening(session)
+        session.save()
+    return session
+
+
+@login_required
+def bulba_page(request):
+    if not ai_client.has_connection(request.user):
+        return redirect("users:welcome")
+    session = _bulba_session(request.user)
+    return render(request, "mainapp/bulba.html", {
+        "bulba_data": {"state": _bulba_state(session), "events": session.events} if session else None,
+        "known_models": model_profiles.known_names(),
+    })
+
+
+@login_required
+def bulba_api(request):
+    from .bulba import actions, agent
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only"}, status=405)
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return JsonResponse({"error": "Invalid request."}, status=400)
+    action = data.get("action")
+    session = _bulba_session(request.user, restart=(action == "restart"))
+    if session is None:
+        return JsonResponse({"error": "Bulba only knows the models on the welcome page. Pick one of those first."}, status=400)
+
+    events = []
+    if action == "restart":
+        events = session.events
+    elif action == "say":
+        events = agent.run_turn(session, data.get("text"))
+    elif action in ("apply", "dismiss", "undo"):
+        try:
+            note = getattr(actions, action)(session, data.get("id"))
+        except actions.ProposalError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        proposal = next(p for p in session.proposals if p["id"] == data.get("id"))
+        verb = {"apply": "Applied", "dismiss": "Dismissed", "undo": "Undid"}[action]
+        events = [{"type": "note", "text": note}]
+        session.events.append(events[0])
+        events += agent.run_turn(session, None, action_note=f"{verb}: {proposal['title']}")
+    elif action == "forget":  # the user removes a preference Bulba recorded
+        pref = next((p for p in session.preferences if p["id"] == data.get("id")), None)
+        if pref:
+            pref["status"] = "rejected"
+            session.messages.append({"role": "user", "content": f"[I removed this preference: {pref['interpretation']}]"})
+    elif action == "budget":
+        try:
+            session.budget = max(0.5, min(50.0, float(data.get("value"))))
+        except (TypeError, ValueError):
+            return JsonResponse({"error": "Enter an amount in dollars."}, status=400)
+    else:
+        return JsonResponse({"error": "Unknown action."}, status=400)
+    session.save()
+    return JsonResponse({"events": events, "state": _bulba_state(session)})

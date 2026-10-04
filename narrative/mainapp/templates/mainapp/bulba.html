@@ -1,0 +1,56 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulba - Narrative AI</title>
+    <link rel="stylesheet" href="{% static 'mainapp/css/bulba.css' %}">
+    <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
+</head>
+<body>
+{% include "partials/topbar.html" with active="bulba" %}
+{% if bulba_data %}
+<div class="bulba-layout">
+    <main class="bulba-chat">
+        <div class="log" id="log"></div>
+        <div class="thinking" id="thinking" hidden><span class="potato">🥔</span> <span id="thinkingText">Thinking…</span></div>
+        <form class="composer" id="composer">
+            <textarea id="input" rows="1" placeholder="Talk to Bulba…"></textarea>
+            <button type="submit" id="sendBtn">Send</button>
+        </form>
+    </main>
+    <aside class="bulba-panel">
+        <section>
+            <h3>Setting up <span id="modelName"></span></h3>
+            <ol class="stages" id="stages"></ol>
+        </section>
+        <section>
+            <h3>Spending</h3>
+            <p class="spend"><b id="spent"></b> of <span id="budget"></span> <button type="button" class="link" id="budgetBtn">change</button></p>
+            <div class="meter"><div class="meter-fill" id="meterFill"></div></div>
+            <p class="help">Bulba and the samples run on your OpenRouter key.</p>
+        </section>
+        <section>
+            <h3>What Bulba noted</h3>
+            <ul class="prefs" id="prefs"></ul>
+        </section>
+        <section>
+            <button type="button" class="ghost" id="restartBtn">Start over</button>
+        </section>
+    </aside>
+</div>
+{{ bulba_data|json_script:"bulba-data" }}
+<script>const BULBA_API = "{% url 'bulba_api' %}";</script>
+<script src="{% static 'mainapp/js/bulba.js' %}?v={% now 'U' %}"></script>
+{% else %}
+<main class="bulba-empty">
+    <div class="potato big">🥔</div>
+    <h1>Bulba doesn't know your model</h1>
+    <p>Bulba only knows the models on the welcome page ({{ known_models|join:", " }}).
+       Pick one of those on the <a href="{% url 'users:welcome' %}">welcome page</a>, or set things up yourself on the
+       <a href="{% url 'users:extras' %}">Extras</a> and <a href="{% url 'presets' %}">Presets</a> pages.</p>
+</main>
+{% endif %}
+</body>
+</html>

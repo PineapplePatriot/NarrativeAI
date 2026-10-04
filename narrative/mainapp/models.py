@@ -194,3 +194,22 @@ class Chat(models.Model):
 
     def __str__(self):
         return f"{self.character.name}: {self.title}"
+
+
+class BulbaSession(models.Model):
+    """One conversation with Bulba, the setup assistant (see mainapp/bulba/)."""
+    user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name="bulba_sessions")
+    target_model = models.CharField(max_length=64, help_text="Model profile id the user will chat with")
+    stage = models.CharField(max_length=32, default="extras")
+    messages = models.JSONField(default=list, blank=True, help_text="Conversation as sent to Bulba's model")
+    events = models.JSONField(default=list, blank=True, help_text="What the page shows")
+    preferences = models.JSONField(default=list, blank=True)
+    proposals = models.JSONField(default=list, blank=True)
+    spent = models.FloatField(default=0.0, help_text="USD, as reported by OpenRouter")
+    budget = models.FloatField(default=5.0, help_text="USD per session")
+    active = models.BooleanField(default=True)
+    time_create = models.DateTimeField(auto_now_add=True)
+    time_update = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-time_update"]

@@ -45,6 +45,12 @@ TASKS = {
         "help": "The magic-expand and spellcheck buttons next to the chat input.",
         "timeout": 60,
     },
+    "bulba": {
+        "label": "Bulba",
+        "help": "The setup assistant. Runs on a model we pick, through your OpenRouter key.",
+        "timeout": 120,
+        "hidden": True,  # not on the Connections page: the model is ours to choose
+    },
     "voice_split": {
         "label": "Voice splitting",
         "help": "Splits replies into narrator and character lines before ElevenLabs voices them. "
@@ -87,8 +93,18 @@ def is_enabled(user, task):
     return get_task_setting(user, task).enabled
 
 
+# Bulba's own model (the samples it shows always come from the user's chat model)
+BULBA_MODEL = "xiaomi/mimo-v2.6-pro"
+
+
 def resolve(user, task):
     """Returns (profile, model) for a task."""
+    if task == "bulba":
+        profile = main_profile(user)
+        if profile is None:
+            raise NoConnection("No AI connection is set up yet.")
+        # Through OpenRouter Bulba uses our model; on a custom server (local testing) the server's own
+        return profile, (BULBA_MODEL if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER else profile.model)
     setting = get_task_setting(user, task)
     chat_setting = setting if task == "chat" else get_task_setting(user, "chat")
     profile = setting.profile or main_profile(user)
@@ -126,12 +142,8 @@ def _error_text(resp):
         return resp.text[:300] or resp.reason
 
 
-def complete(user, task, messages, timeout=None, **params):
-    """
-    Sends a chat completion request for `task` and returns the reply text.
-    Extra keyword arguments (temperature, max_tokens, response_format, ...) are
-    passed to the API; None values are dropped. Raises AIError on any failure.
-    """
+def _request(user, task, messages, timeout=None, **params):
+    """Sends one chat completion request and returns (profile, the parsed JSON reply)."""
     profile, model = resolve(user, task)
     payload = {"model": model, "messages": messages}
     payload.update({k: v for k, v in params.items() if v is not None})
@@ -155,10 +167,39 @@ def complete(user, task, messages, timeout=None, **params):
         raise AIError(f"{label}: {profile.name} sent a reply that is not JSON.")
     if isinstance(data, dict) and data.get("error"):  # OpenRouter can report errors with HTTP 200
         raise AIError(f"{label}: {profile.name} returned an error: {_error_text(resp)}")
+    return profile, data
+
+
+def complete(user, task, messages, timeout=None, **params):
+    """
+    Sends a chat completion request for `task` and returns the reply text.
+    Extra keyword arguments (temperature, max_tokens, response_format, ...) are
+    passed to the API; None values are dropped. Raises AIError on any failure.
+    """
+    profile, data = _request(user, task, messages, timeout, **params)
     try:
         return data["choices"][0]["message"]["content"] or ""
     except (KeyError, IndexError, TypeError):
+        label = TASKS.get(task, {}).get("label", task)
         raise AIError(f"{label}: {profile.name} sent a reply without any text.")
+
+
+def complete_message(user, task, messages, timeout=None, **params):
+    """
+    Like complete(), but returns (the whole reply message, cost in USD or None), so callers can
+    read tool calls. Pass tools=[...] for function calling. OpenRouter reports the cost when asked.
+    """
+    profile, model = resolve(user, task)
+    if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER:
+        params.setdefault("usage", {"include": True})
+    profile, data = _request(user, task, messages, timeout, **params)
+    try:
+        message = data["choices"][0]["message"]
+    except (KeyError, IndexError, TypeError):
+        label = TASKS.get(task, {}).get("label", task)
+        raise AIError(f"{label}: {profile.name} sent an empty reply.")
+    cost = (data.get("usage") or {}).get("cost")
+    return message, (float(cost) if isinstance(cost, (int, float)) else None)
 
 
 def test_connection(provider, base_url, api_key, model):

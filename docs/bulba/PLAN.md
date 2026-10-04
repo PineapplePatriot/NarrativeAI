@@ -128,6 +128,15 @@ Apply makes the setup active (preset + samplers + connection choice). Export: ou
 (`research/native-setup.schema.json`) and the existing SillyTavern export, with a list of anything
 that didn't transfer. Never any keys.
 
+## Built so far (4 October 2026)
+
+- Model profiles for the 10 models, 30 starters, the welcome page and the Extras page.
+- **Bulba's runtime** (`narrative/mainapp/bulba/`): the conversation loop with function calling,
+  its instructions in `narrative/mainapp/data/bulba/instructions.md` (v0.1, to be replaced by the
+  proper guides), tools (read the setup, write A/B samples with the user's chat model, record
+  preferences, propose extras / preset / persona / character), Apply / Undo, spending tracked from
+  OpenRouter's reported cost with a $5 default limit, and the Bulba page (`/main/bulba/`).
+
 ## Order of work (each step testable on its own)
 
 1. Model profiles for Opus 5.5 and MiMo, plus the capability lookup and the Samplers page cleanup.

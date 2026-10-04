@@ -50,7 +50,7 @@
                 Or you can do it yourself, I'm not your boss.</p>
             <p class="help">You picked <b id="pickedModel"></b>.</p>
             <div class="done-actions">
-                <button type="button" disabled title="Arriving in the next update">Set me up, Bulba (soon)</button>
+                <a class="btn" href="{% url 'bulba' %}">Set me up, Bulba</a>
                 <a class="btn secondary" href="{% url 'users:extras' %}">I'll do it myself</a>
                 <a class="btn secondary" href="{% url 'characters_list' %}">Just start chatting</a>
             </div>
