@@ -15,6 +15,19 @@ without them needing to know what a preset, sampler or prompt role is.
 - **What Bulba works on:** presets (its main job), connection settings, character cards, lorebooks
   and the user's persona.
 
+## First-run flow (agreed 4 October 2026)
+
+1. **Welcome page** (built): the OpenRouter key and one question, "Which model would you like to chat
+   with?", with the 10 models from the research and a line on where each shines. The full Connections
+   page stays available for advanced setups.
+2. **Bulba pops up** (a slightly sarcastic talking potato; runs on MiMo v2.6 Pro for now, chosen by
+   us) and loads the knowledge for the chosen model only. The MVP knowledge base covers these 10 models.
+3. **"No thanks"**: pick a ready-made preset and set the feature checkboxes yourself.
+   **"Yes"**: Bulba asks about the extras (voices, summary, trackers, sprites), then runs the
+   writing-preferences loop (samples always from the chosen model), creates the preset, and finally
+   settles the rest of the profile: persona touch-ups, connection profiles (e.g. a cheaper model for
+   summaries) and a character to chat with. Then you just go and chat.
+
 ## The first models
 
 Claude Opus 5.5 and MiMo v2.6 Pro. Everything is built per model so the rest (Kimi K3, Fable 5.1,

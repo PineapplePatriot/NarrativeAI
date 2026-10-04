@@ -218,3 +218,64 @@ class MyLogoutView(View):
     def get(self, request):
         logout(request)
         return redirect(reverse_lazy('users:login'))
+
+
+# --- First run: an OpenRouter key and the model you want to chat with ---------------------
+
+def _welcome_models():
+    from mainapp import model_profiles
+    cards = []
+    for p in model_profiles.all_profiles():
+        card = p.get("card") or {}
+        cards.append({"id": p["id"], "name": p["name"], "openrouter": p["ids"].get("openrouter", ""),
+                      "recommended": bool(card.get("recommended")), "price": card.get("price", ""),
+                      "best_for": card.get("best_for", ""), "watch_out": card.get("watch_out", ""),
+                      "order": card.get("order", 99)})
+    return sorted(cards, key=lambda c: c["order"])
+
+
+@login_required
+def welcome(request):
+    """Two questions instead of the full Connections page: your key, and your chat model."""
+    from mainapp import ai_client
+    from mainapp.ai_client import get_task_setting, main_profile, test_connection
+
+    models = _welcome_models()
+    current = main_profile(request.user)
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body.decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            return JsonResponse({"error": "Invalid request."}, status=400)
+        choice = next((m for m in models if m["id"] == data.get("model")), None)
+        if choice is None or not choice["openrouter"]:
+            return JsonResponse({"error": "Pick one of the models."}, status=400)
+        api_key = (data.get("api_key") or "").strip()
+        if not api_key and current and current.provider == ConnectionProfile.PROVIDER_OPENROUTER:
+            api_key = current.api_key  # keep the saved key
+        if not api_key:
+            return JsonResponse({"error": "Paste your OpenRouter key first."}, status=400)
+        if not data.get("skip_check"):
+            ok, message = test_connection(ConnectionProfile.PROVIDER_OPENROUTER, "", api_key, choice["openrouter"])
+            if not ok:
+                return JsonResponse({"error": message, "can_skip": True}, status=400)
+
+        profile = current if current and current.provider == ConnectionProfile.PROVIDER_OPENROUTER else None
+        if profile is None:
+            name = "Main"
+            while ConnectionProfile.objects.filter(user=request.user, name=name).exists():
+                name = f"{name} (OpenRouter)"
+            profile = ConnectionProfile(user=request.user, name=name, provider=ConnectionProfile.PROVIDER_OPENROUTER)
+        profile.api_key, profile.model = api_key, choice["openrouter"]
+        profile.save()
+        chat = get_task_setting(request.user, "chat")
+        chat.profile, chat.model = profile, ""
+        chat.save()
+        return JsonResponse({"status": "ok", "model": choice["name"]})
+
+    return render(request, "users/welcome.html", {"welcome_data": {
+        "models": models,
+        "has_key": bool(current and current.provider == ConnectionProfile.PROVIDER_OPENROUTER and current.api_key),
+        "current_model": current.model if current else "",
+        "connected": ai_client.has_connection(request.user),
+    }})

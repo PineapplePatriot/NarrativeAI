@@ -374,7 +374,7 @@ class ChatPromptTests(TestCase):
         from users.models import ConnectionProfile
         ConnectionProfile.objects.filter(user=self.user).delete()
         resp = self.client.get(self.url)
-        self.assertRedirects(resp, reverse("users:api_config") + f"?next={self.url}", fetch_redirect_response=False)
+        self.assertRedirects(resp, reverse("users:welcome"), fetch_redirect_response=False)
 
 
 class TaskRoutingTests(TestCase):
@@ -662,8 +662,12 @@ class SamplerTests(SimpleTestCase):
             params, skipped = to_api_params(values, model)
             self.assertNotIn("temperature", params, model)
             self.assertEqual(sorted(skipped), ["temperature", "top_p"])
-        for model in ("anthropic/claude-sonnet-4.6", "anthropic/claude-haiku-4.5", "anthropic/claude-opus-4.6"):
+        for model in ("anthropic/claude-sonnet-4.6", "anthropic/claude-haiku-4.5"):
             self.assertIn("temperature", to_api_params(values, model)[0], model)
+        # Opus 4.6 takes temperature only with thinking off (here thinking is on: effort "high")
+        self.assertNotIn("temperature", to_api_params(values, "anthropic/claude-opus-4.6")[0])
+        values["reasoning_effort"] = {"on": True, "value": "off"}
+        self.assertEqual(to_api_params(values, "anthropic/claude-opus-4.6")[0]["temperature"], 0.7)
 
     def test_trim_history_keeps_newest_and_starts_with_user(self):
         from mainapp.samplers import normalize, trim_history
@@ -1459,7 +1463,7 @@ class ModelProfileTests(SimpleTestCase):
         self.assertEqual(for_model("anthropic/claude-opus-5-5")["id"], "claude-opus-5-5")
         self.assertEqual(for_model("anthropic/claude-opus-5.5")["id"], "claude-opus-5-5")
         self.assertEqual(for_model("xiaomi/mimo-v2.6-pro")["id"], "mimo-v2-6-pro")
-        self.assertIsNone(for_model("anthropic/claude-opus-4.6"))
+        self.assertIsNone(for_model("anthropic/claude-sonnet-4.6"))
         self.assertIsNone(for_model(""))
 
     def test_opus_sends_only_what_it_uses(self):
@@ -1555,3 +1559,52 @@ class StarterTests(ChatPromptTests):
         self.assertTrue(groups[0]["yours"])
         self.assertEqual(groups[0]["model_name"], "Claude Opus 5.5")
         self.assertEqual([s["title"] for s in groups[0]["starters"]], ["Back-and-forth", "Rich scene", "Director seat"])
+
+
+class WelcomeTests(TestCase):
+    """First run: an OpenRouter key and a chat model, nothing else."""
+
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(username="newbie", password="pw12345!")
+        self.client.force_login(self.user)
+        self.url = reverse("users:welcome")
+
+    def post(self, data, ok=True):
+        from unittest import mock
+        with mock.patch("mainapp.ai_client.test_connection", return_value=(ok, "Key works." if ok else "OpenRouter rejected this key.")):
+            return self.client.post(self.url, json.dumps(data), content_type="application/json")
+
+    def test_home_sends_new_users_here(self):
+        self.assertRedirects(self.client.get(reverse("home")), self.url, fetch_redirect_response=False)
+
+    def test_lists_ten_models_recommended_first(self):
+        models = self.client.get(self.url).context["welcome_data"]["models"]
+        self.assertEqual(len(models), 10)
+        self.assertEqual([m["name"] for m in models[:2]], ["Claude Opus 5.5", "MiMo v2.6 Pro"])
+        self.assertTrue(all(m["best_for"] and m["openrouter"] and m["price"] for m in models))
+
+    def test_saving_sets_up_the_main_connection(self):
+        from mainapp import ai_client
+        resp = self.post({"api_key": "sk-or-test", "model": "mimo-v2-6-pro"})
+        self.assertEqual(resp.json(), {"status": "ok", "model": "MiMo v2.6 Pro"})
+        self.assertTrue(ai_client.has_connection(self.user))
+        profile, model = ai_client.resolve(self.user, "chat")
+        self.assertEqual((profile.api_key, model), ("sk-or-test", "xiaomi/mimo-v2.6-pro"))
+        # changing the model later keeps the saved key
+        self.post({"api_key": "", "model": "claude-opus-5-5"})
+        profile, model = ai_client.resolve(self.user, "chat")
+        self.assertEqual((profile.api_key, model), ("sk-or-test", "anthropic/claude-opus-5.5"))
+        self.assertEqual(self.user.connection_profiles.count(), 1)
+        self.assertEqual(self.client.get(reverse("home")).status_code, 200)
+
+    def test_bad_key_can_be_saved_anyway(self):
+        resp = self.post({"api_key": "nope", "model": "kimi-k3"}, ok=False)
+        self.assertEqual(resp.status_code, 400)
+        self.assertTrue(resp.json()["can_skip"])
+        self.assertFalse(self.user.connection_profiles.exists())
+        resp = self.post({"api_key": "nope", "model": "kimi-k3", "skip_check": True}, ok=False)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_needs_a_known_model_and_a_key(self):
+        self.assertEqual(self.post({"api_key": "k", "model": "gpt-9"}).status_code, 400)
+        self.assertEqual(self.post({"api_key": "", "model": "kimi-k3"}).status_code, 400)

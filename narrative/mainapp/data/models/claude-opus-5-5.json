@@ -6,7 +6,7 @@
   ],
   "ids": {
     "anthropic": "claude-opus-5-5",
-    "openrouter": "anthropic/claude-opus-5-5"
+    "openrouter": "anthropic/claude-opus-5.5"
   },
   "verified": "2026-10-03",
   "sources": [
@@ -117,5 +117,13 @@
     "back_and_forth": "opus-back-and-forth",
     "rich_scene": "opus-rich-scene",
     "director": "opus-director"
+  },
+  "openrouter_id_verified": false,
+  "card": {
+    "order": 1,
+    "recommended": true,
+    "price": "$$$",
+    "best_for": "Characters and worlds that feel alive: pacing, banter, emotional development, knows popular fiction well.",
+    "watch_out": "Pricey. Some find its dialogue a bit polished or therapeutic in emotional scenes."
   }
 }

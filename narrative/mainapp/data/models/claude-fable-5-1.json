@@ -1,0 +1,125 @@
+{
+  "id": "claude-fable-5-1",
+  "name": "Claude Fable 5.1",
+  "match": [
+    "claude-fable-5[.-]1"
+  ],
+  "ids": {
+    "anthropic": "claude-fable-5-1",
+    "openrouter": "anthropic/claude-fable-5.1"
+  },
+  "openrouter_id_verified": false,
+  "verified": "2026-10-03",
+  "sources": [
+    "https://platform.claude.com/docs/en/models/fable-5-1/overview",
+    "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1"
+  ],
+  "limits": {
+    "context": 1000000,
+    "output": 128000
+  },
+  "reasoning": {
+    "always_on": true,
+    "default": "high",
+    "choices": {
+      "low": "Low (faster, cheaper)",
+      "medium": "Medium",
+      "high": "High (the model's default)"
+    },
+    "note": "Fable always thinks; effort is the main control and the main cost lever."
+  },
+  "samplers": {
+    "max_tokens": {
+      "status": "supported"
+    },
+    "stop": {
+      "status": "supported"
+    },
+    "reasoning_effort": {
+      "status": "supported"
+    },
+    "temperature": {
+      "status": "fixed",
+      "why": "Only the default temperature is accepted."
+    },
+    "top_p": {
+      "status": "fixed",
+      "why": "Only the default top-p is accepted."
+    },
+    "top_k": {
+      "status": "fixed",
+      "why": "Any top-k is an error."
+    },
+    "min_p": {
+      "status": "unused",
+      "why": "Not part of Claude's API."
+    },
+    "top_a": {
+      "status": "unused",
+      "why": "Not part of Claude's API."
+    },
+    "frequency_penalty": {
+      "status": "unused",
+      "why": "Not part of Claude's API."
+    },
+    "presence_penalty": {
+      "status": "unused",
+      "why": "Not part of Claude's API."
+    },
+    "repetition_penalty": {
+      "status": "unused",
+      "why": "Not part of Claude's API."
+    },
+    "seed": {
+      "status": "unused",
+      "why": "Not part of Claude's API."
+    },
+    "verbosity": {
+      "status": "unused",
+      "why": "An OpenAI-only setting."
+    }
+  },
+  "style": {
+    "notes": [
+      {
+        "text": "Rich, dramatic, psychologically charged character RP.",
+        "source": "community",
+        "ref": "research/05-model-styles.md R7-R9",
+        "status": "reported"
+      },
+      {
+        "text": "Some dislike its angst and characters rushing their agendas.",
+        "source": "community",
+        "ref": "research/05-model-styles.md R8",
+        "status": "reported"
+      },
+      {
+        "text": "Calmer around dark fiction than Opus 5.5 in Anya's setup.",
+        "source": "first-hand (Anya)",
+        "ref": "",
+        "status": "hypothesis"
+      },
+      {
+        "text": "Official guidance: may write long, dense sentences with few paragraph breaks.",
+        "source": "community",
+        "ref": "",
+        "status": "reported"
+      }
+    ],
+    "probes": [
+      "Do you want the tension to build slowly, or the characters to act on it quickly?"
+    ],
+    "watch_for": [
+      "Escalating faster than the user wants",
+      "Dense paragraphs"
+    ]
+  },
+  "starters": {},
+  "card": {
+    "order": 4,
+    "recommended": false,
+    "price": "$$$$",
+    "best_for": "Dramatic, angsty character stories with heightened, high-quality prose.",
+    "watch_out": "The most expensive here. Can rush characters toward drama."
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "id": "deepseek-v4-flash",
+  "name": "DeepSeek V4 Flash",
+  "match": [
+    "deepseek-v4-flash",
+    "deepseek-v4\\.1-flash"
+  ],
+  "ids": {
+    "openrouter": "deepseek/deepseek-v4-flash"
+  },
+  "openrouter_id_verified": true,
+  "verified": "2026-10-03",
+  "sources": [
+    "https://api-docs.deepseek.com/quick_start/pricing/",
+    "https://api-docs.deepseek.com/api/create-chat-completion/",
+    "https://openrouter.ai/deepseek/deepseek-v4-flash"
+  ],
+  "limits": {},
+  "reasoning": {
+    "always_on": false,
+    "default": "medium",
+    "choices": {
+      "off": "Thinking off",
+      "medium": "Thinking on"
+    },
+    "note": "The direct DeepSeek API now serves V4.1 Flash under this name; OpenRouter still lists the original."
+  },
+  "samplers": {
+    "max_tokens": {
+      "status": "supported"
+    },
+    "reasoning_effort": {
+      "status": "supported"
+    },
+    "temperature": {
+      "status": "supported",
+      "when_reasoning": "fixed",
+      "why": "Has no effect while thinking (direct API)."
+    },
+    "top_p": {
+      "status": "unverified",
+      "why": "Direct API: only works while thinking, between 0.95 and 1."
+    },
+    "stop": {
+      "status": "unverified"
+    },
+    "top_k": {
+      "status": "unverified"
+    },
+    "min_p": {
+      "status": "unverified"
+    },
+    "top_a": {
+      "status": "unverified"
+    },
+    "frequency_penalty": {
+      "status": "unverified"
+    },
+    "presence_penalty": {
+      "status": "unverified"
+    },
+    "repetition_penalty": {
+      "status": "unverified"
+    },
+    "seed": {
+      "status": "unverified"
+    },
+    "verbosity": {
+      "status": "unused",
+      "why": "An OpenAI-only setting."
+    }
+  },
+  "style": {
+    "notes": [
+      {
+        "text": "Used for general and long-form RP and simulator-style experiments; too few reports for a distinct niche.",
+        "source": "community",
+        "ref": "research/05-model-styles.md R24-R25",
+        "status": "reported"
+      }
+    ],
+    "probes": [],
+    "watch_for": []
+  },
+  "starters": {},
+  "card": {
+    "order": 10,
+    "recommended": false,
+    "price": "$",
+    "best_for": "The cheapest way to try general roleplay.",
+    "watch_out": "Little evidence either way; the version depends on the provider."
+  }
+}

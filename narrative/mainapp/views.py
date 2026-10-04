@@ -34,6 +34,9 @@ from .lorebook import (
 
 @login_required
 def index_page(request):
+    # First run: the welcome page asks for a key and a model before anything else
+    if not ai_client.has_connection(request.user):
+        return redirect("users:welcome")
     # Your characters, the ones you played most recently first
     from django.db.models import F, Max
     characters = (Character.objects.filter(author=request.user)
@@ -86,7 +89,7 @@ def chat(request, slug):
         if request.method == "POST":
             return JsonResponse({"error": "No AI connection is set up yet. Add one on the Connections page."},
                                 status=400)
-        return redirect(f"{reverse('users:api_config')}?next={request.path}")
+        return redirect("users:welcome")
 
     # --- Which chat (a character can have many) ---
     chat_obj = chats.current(character, request.GET.get("chat"))

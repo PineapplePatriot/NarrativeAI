@@ -110,5 +110,13 @@
     "back_and_forth": "mimo-back-and-forth",
     "rich_scene": "mimo-rich-scene",
     "director": "mimo-director"
+  },
+  "openrouter_id_verified": true,
+  "card": {
+    "order": 2,
+    "recommended": true,
+    "price": "$",
+    "best_for": "Slow burn with friction: flawed characters who push back, relationships that can go backwards, characters who start things.",
+    "watch_out": "Occasional slips in physical details or stepping out of the story."
   }
 }

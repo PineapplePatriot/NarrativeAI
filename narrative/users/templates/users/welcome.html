@@ -1,0 +1,66 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome - Narrative AI</title>
+    <link rel="stylesheet" href="{% static 'users/css/welcome.css' %}">
+    <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
+</head>
+<body>
+{% include "partials/topbar.html" %}
+<main class="welcome">
+    <h1>Let's get you chatting</h1>
+    <p class="lead">Two questions, then you're in. Everything else can wait (or a potato can handle it).</p>
+
+    <section class="step" id="stepKey">
+        <div class="step-num">1</div>
+        <div class="step-body">
+            <h2>Your OpenRouter key</h2>
+            <p class="help">Narrative AI talks to the models through <a href="https://openrouter.ai" target="_blank" rel="noopener">OpenRouter</a>:
+                one account, every model, and you pay only for what you use.
+                Create a key on <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">openrouter.ai/keys</a>,
+                add a few dollars of credit, and paste the key here. It stays on this server and is never shown again.</p>
+            <input type="password" id="apiKey" autocomplete="off" placeholder="sk-or-v1-...">
+            <p class="help" id="keyNote" hidden>A key is already saved. Leave this empty to keep it.</p>
+        </div>
+    </section>
+
+    <section class="step" id="stepModel">
+        <div class="step-num">2</div>
+        <div class="step-body">
+            <h2>Which model would you like to chat with?</h2>
+            <p class="help">These are the ones roleplayers are using right now. Everyone's taste differs; you can switch any time.
+                Prices are a rough guide, from $ (cheap) to $$$$ (careful).</p>
+            <div class="models" id="models"></div>
+        </div>
+    </section>
+
+    <div class="actions">
+        <p class="error" id="error" hidden></p>
+        <button type="button" id="saveBtn">Save and continue</button>
+    </div>
+
+    <section class="done" id="done" hidden>
+        <div class="bulba">🥔</div>
+        <div>
+            <h2>Hi. I'm Bulba.</h2>
+            <p>Yes, a potato. I set up the rest for you: how replies are written, the extras, a character to talk to.
+                Or you can do it yourself, I'm not your boss.</p>
+            <p class="help">You picked <b id="pickedModel"></b>.</p>
+            <div class="done-actions">
+                <button type="button" disabled title="Arriving in the next update">Set me up, Bulba (soon)</button>
+                <a class="btn secondary" href="{% url 'presets' %}">I'll pick a ready-made setup</a>
+                <a class="btn secondary" href="{% url 'characters_list' %}">Just start chatting</a>
+            </div>
+            <p class="help small">Advanced settings (other providers, a cheaper model for summaries, voices) live on the
+                <a href="{% url 'users:api_config' %}">Connections page</a>.</p>
+        </div>
+    </section>
+</main>
+{{ welcome_data|json_script:"welcome-data" }}
+<script>const WELCOME_URL = "{% url 'users:welcome' %}";</script>
+<script src="{% static 'users/js/welcome.js' %}"></script>
+</body>
+</html>

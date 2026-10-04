@@ -1,0 +1,104 @@
+{
+  "id": "glm-5-3",
+  "name": "GLM 5.3",
+  "match": [
+    "glm-5\\.3"
+  ],
+  "ids": {
+    "z-ai": "glm-5.3",
+    "openrouter": "z-ai/glm-5.3"
+  },
+  "openrouter_id_verified": false,
+  "verified": "2026-10-03",
+  "sources": [
+    "https://docs.z.ai/guides/llm/glm-5.3",
+    "https://docs.z.ai/api-reference/llm/chat-completion"
+  ],
+  "limits": {},
+  "reasoning": {
+    "always_on": true,
+    "default": "high",
+    "choices": {
+      "low": "Low",
+      "high": "High"
+    },
+    "note": "GLM 5.3 always thinks; temperature and top-p still work."
+  },
+  "samplers": {
+    "max_tokens": {
+      "status": "supported"
+    },
+    "reasoning_effort": {
+      "status": "supported"
+    },
+    "temperature": {
+      "status": "supported",
+      "max": 1,
+      "why": "0 to 1 (default 1)."
+    },
+    "top_p": {
+      "status": "supported",
+      "why": "0.01 to 1 (default 0.95)."
+    },
+    "stop": {
+      "status": "unverified"
+    },
+    "top_k": {
+      "status": "unverified"
+    },
+    "min_p": {
+      "status": "unverified"
+    },
+    "top_a": {
+      "status": "unverified"
+    },
+    "frequency_penalty": {
+      "status": "unverified",
+      "why": "Evening-Truth recommends no penalties."
+    },
+    "presence_penalty": {
+      "status": "unverified",
+      "why": "Evening-Truth recommends no penalties."
+    },
+    "repetition_penalty": {
+      "status": "unverified"
+    },
+    "seed": {
+      "status": "unverified"
+    },
+    "verbosity": {
+      "status": "unused",
+      "why": "An OpenAI-only setting."
+    }
+  },
+  "style": {
+    "notes": [
+      {
+        "text": "Coherent conversational character RP and heavier RPG-style setups.",
+        "source": "community",
+        "ref": "research/05-model-styles.md R19, R22",
+        "status": "reported"
+      },
+      {
+        "text": "More proactive than 5.2 but less attentive to backstory and emotional build-up.",
+        "source": "community",
+        "ref": "research/05-model-styles.md R22",
+        "status": "reported"
+      }
+    ],
+    "probes": [
+      "Does this reaction make sense only for what just happened, or does it also feel right for their history together?"
+    ],
+    "watch_for": [
+      "Reactions that ignore shared history"
+    ]
+  },
+  "starters": {},
+  "card": {
+    "order": 8,
+    "recommended": false,
+    "price": "$",
+    "best_for": "Coherent conversations and structured, RPG-style roleplay.",
+    "watch_out": "Can forget a character's history when reacting."
+  }
+}
