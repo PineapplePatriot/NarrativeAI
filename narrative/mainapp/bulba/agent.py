@@ -7,6 +7,11 @@ from pathlib import Path
 from mainapp import ai_client, model_profiles, presets, starters
 
 INSTRUCTIONS = Path(__file__).resolve().parent.parent / "data" / "bulba" / "instructions.md"
+GUIDES_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba" / "guides"
+# Which guides Bulba reads at each stage (keeps the prompt, and the bill, small)
+STAGE_GUIDES = {"extras": [], "taste": ["asking", "presets"], "preset": ["presets"],
+                "persona": ["characters"], "character": ["characters"], "done": []}
+REWRITABLE = ("Roleplay", "Style")
 TEST_CHARACTER = Path(__file__).resolve().parent.parent / "data" / "bulba" / "test-character.json"
 
 STAGES = ["extras", "taste", "preset", "persona", "character", "done"]
@@ -65,8 +70,11 @@ def system_prompt(session):
     prefs = [f"- [{p['status']}, {p['scope']}] {p['interpretation']} (they said: \"{p['wording']}\")"
              for p in session.preferences if p.get("status") != "rejected"]
     pending = [f"- {p['kind']}: {p['title']} ({p['status']})" for p in session.proposals]
+    guides = [(GUIDES_DIR / f"{g}.md").read_text(encoding="utf-8") for g in STAGE_GUIDES.get(session.stage, [])
+              if (GUIDES_DIR / f"{g}.md").exists()]
     return "\n\n".join(filter(None, [
         text,
+        *guides,
         model_knowledge(profile) if profile else "",
         "## Session\n" + progress,
         "Preferences so far:\n" + "\n".join(prefs) if prefs else "",
@@ -87,6 +95,8 @@ def _fn(name, description, properties, required=()):
 STR = {"type": "string"}
 TOOLS = [
     _fn("get_current_setup", "What is already set up: chat model, extras, presets, persona, characters.", {}),
+    _fn("get_starter", "The full text of one of this model's starters (its Roleplay and Style sections).",
+        {"starter": STR}, ["starter"]),
     _fn("set_stage", "Move to another stage of the setup.", {"stage": {"type": "string", "enum": STAGES}}, ["stage"]),
     _fn("offer_choices", "Show quick-reply buttons under your message. A choice with a url opens that page instead.",
         {"choices": {"type": "array", "maxItems": 5, "items": {"type": "object", "properties": {
@@ -95,6 +105,7 @@ TOOLS = [
     _fn("write_samples", "Write one or two short sample replies with the user's chat model, shown as A and B. "
         "Same scene for both; each variant adds its own instructions.",
         {"starter": {"type": "string", "description": "Starter id to build on (from the model knowledge)"},
+         "from_proposal": {"type": "string", "description": "Instead of a starter: build on one of your preset proposals (id), to test exactly what they'd get"},
          "scenario": {"type": "string", "description": "The situation, two or three sentences"},
          "user_turn": {"type": "string", "description": "What the user's character just said or did"},
          "character": {"type": "object", "description": "Optional; a neutral test character is used otherwise",
@@ -120,7 +131,10 @@ TOOLS = [
          "why": STR}, ["why"]),
     _fn("propose_preset", "Propose the finished preset: a starter plus a short 'your taste' section.",
         {"starter": STR, "name": STR, "taste": {"type": "string", "description": "Plain instructions to the model"},
-         "reply_length": {"type": "string", "enum": ["short", "medium", "long"]}, "why": STR},
+         "reply_length": {"type": "string", "enum": ["short", "medium", "long"]},
+         "rewrite": {"type": "object", "description": "Only if the starter contradicts them: full replacement text for its Roleplay and/or Style section",
+                     "properties": {"Roleplay": STR, "Style": STR}},
+         "why": STR},
         ["starter", "taste", "why"]),
     _fn("propose_persona", "Propose who the user is in the story.",
         {"name": STR, "description": STR, "why": STR}, ["name", "description"]),
@@ -194,10 +208,22 @@ def _add_block(preset, name, text):
     return preset
 
 
-def generate_sample(session, starter, scenario, user_turn, character, instructions):
-    """One reply from the user's chat model, using a starter (+ instructions). Returns (text, cost)."""
-    user = session.user
+def build_preset(payload):
+    """A normalized preset from a preset proposal's payload: starter, rewritten sections, taste."""
+    starter = starters.get(payload["starter"])
     preset = presets.normalize(starter["preset"])
+    for block in preset["blocks"]:
+        if block["kind"] == "prompt" and block["name"] in (payload.get("rewrite") or {}):
+            block["content"] = payload["rewrite"][block["name"]]
+    if payload.get("taste"):
+        _add_block(preset, "Your taste", payload["taste"])
+    return preset
+
+
+def generate_sample(session, preset, scenario, user_turn, character, instructions):
+    """One reply from the user's chat model, using a preset (+ instructions). Returns (text, cost)."""
+    user = session.user
+    preset = presets.normalize(preset)
     extra = (instructions or "").strip()
     _add_block(preset, "Sample instructions",
                (extra + "\n\n" if extra else "") + f"Keep this reply under {SAMPLE_WORDS} words.")
@@ -210,10 +236,26 @@ def generate_sample(session, starter, scenario, user_turn, character, instructio
     return (message.get("content") or "").strip(), cost
 
 
-def tool_write_samples(session, args):
+def tool_get_starter(session, args):
     starter = _starter_for(session, args.get("starter"))
     if starter is None:
         return {"error": "No starter for this model."}, []
+    sections = {b["name"]: b["content"] for b in starter["preset"]["blocks"]
+                if b.get("kind") == "prompt" and b.get("name") in REWRITABLE}
+    return {"id": starter["id"], "title": starter["title"], "sections": sections}, []
+
+
+def tool_write_samples(session, args):
+    proposal = next((p for p in session.proposals if p["id"] == args.get("from_proposal") and p["kind"] == "preset"), None)
+    if args.get("from_proposal") and proposal is None:
+        return {"error": "No preset proposal with that id."}, []
+    if proposal:
+        preset = build_preset(proposal["payload"])
+    else:
+        starter = _starter_for(session, args.get("starter"))
+        if starter is None:
+            return {"error": "No starter for this model."}, []
+        preset = starter["preset"]
     character = args.get("character") if isinstance(args.get("character"), dict) and args["character"].get("name") else _test_character()
     character = {"name": str(character["name"])[:80], "description": str(character.get("description", ""))[:3000]}
     variants = [v for v in (args.get("variants") or []) if isinstance(v, dict)][:2]
@@ -223,7 +265,7 @@ def tool_write_samples(session, args):
     samples, private = [], {}
     for letter, v in zip("AB", variants):
         _check_budget(session)
-        text, cost = generate_sample(session, starter, str(args.get("scenario", "")), str(args.get("user_turn", "")),
+        text, cost = generate_sample(session, preset, str(args.get("scenario", "")), str(args.get("user_turn", "")),
                                      character, str(v.get("instructions", "")))
         session.spent += cost or 0
         samples.append({"label": letter, "text": text})
@@ -284,12 +326,25 @@ def tool_propose_preset(session, args):
     taste = str(args.get("taste", "")).strip()
     if args.get("reply_length") in LENGTHS:
         taste = (taste + "\n" + LENGTHS[args["reply_length"]]).strip()
+    rewrite = {}
+    originals = {b["name"]: b["content"] for b in starter["preset"]["blocks"] if b.get("kind") == "prompt"}
+    for section, text in (args.get("rewrite") or {}).items():
+        text = str(text or "").strip()
+        if section not in REWRITABLE or not text or text == originals.get(section):
+            continue
+        # A rewrite must keep the placeholders the starter relies on
+        missing = [m for m in ("{{char}}", "{{user}}") if m in originals.get(section, "") and m not in text]
+        if missing:
+            return {"error": f"Your {section} rewrite dropped {', '.join(missing)}; keep them."}, []
+        rewrite[section] = text[:6000]
     profile = target_profile(session) or {}
     name = str(args.get("name") or f"My setup · {profile.get('name', '')}").strip()[:120]
-    p = _proposal(session, "preset", f"Preset: {name}",
-                  [f"Built on the {starter['title']} starter for {profile.get('name', '')}",
-                   "Your taste:", *[f"  {line}" for line in taste.splitlines() if line.strip()]],
-                  {"starter": starter["id"], "name": name, "taste": taste})
+    summary = [f"Built on the {starter['title']} starter for {profile.get('name', '')}"]
+    if rewrite:
+        summary.append("Adjusted from the starter: " + " and ".join(rewrite) + " section")
+    summary += ["Your taste:", *[f"  {line}" for line in taste.splitlines() if line.strip()]]
+    p = _proposal(session, "preset", f"Preset: {name}", summary,
+                  {"starter": starter["id"], "name": name, "taste": taste, "rewrite": rewrite})
     return {"proposal": p["id"], "status": "waiting for Apply"}, [{"type": "proposal", "id": p["id"]}]
 
 
@@ -317,7 +372,7 @@ def tool_propose_character(session, args):
 
 
 HANDLERS = {
-    "get_current_setup": tool_get_current_setup, "set_stage": tool_set_stage, "offer_choices": tool_offer_choices,
+    "get_current_setup": tool_get_current_setup, "get_starter": tool_get_starter, "set_stage": tool_set_stage, "offer_choices": tool_offer_choices,
     "write_samples": tool_write_samples, "record_preference": tool_record_preference,
     "propose_extras": tool_propose_extras, "propose_preset": tool_propose_preset,
     "propose_persona": tool_propose_persona, "propose_character": tool_propose_character,

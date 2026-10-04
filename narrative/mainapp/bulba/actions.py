@@ -42,13 +42,12 @@ def apply(session, pid):
                      "sprites": before["sprites"], "background": before["background"]}
         note = "Extras saved."
     elif p["kind"] == "preset":
+        from mainapp.bulba.agent import build_preset
         previous = presets.get_active(user)
         obj = starters.apply(user, data["starter"])
-        preset = presets.normalize(obj.data)
-        if data.get("taste"):
-            from mainapp.bulba.agent import _add_block
-            _add_block(preset, "Your taste", data["taste"])
-        obj.data = {**preset, "extras": {**preset["extras"], "bulba": {"session": session.id}}}
+        preset = build_preset(data)
+        extras = presets.normalize(obj.data)["extras"]  # keeps the starter's credit
+        obj.data = {**preset, "extras": {**extras, "bulba": {"session": session.id}}}
         obj.name = presets.unique_name(user, data.get("name") or obj.name, exclude_id=obj.id)
         obj.save()
         p["undo"] = {"created": obj.id, "previous": previous.id}

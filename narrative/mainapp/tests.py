@@ -1826,3 +1826,66 @@ class BulbaTests(TestCase):
         state = self.client.get(reverse("bulba")).context["bulba_data"]["state"]
         self.assertNotEqual(state["id"], first)
         self.assertEqual(state["model"], "MiMo v2.6 Pro")
+
+
+class BulbaGuideTests(BulbaTests):
+    """Stage guides, starter rewrites, testing a proposal, transcripts."""
+
+    def system_of(self, n=-1):
+        return self.bulba_calls[n]["messages"][0]["content"]
+
+    def test_guides_follow_the_stage(self):
+        self.script = [("", [self.call("set_stage", stage="taste")]), ("What do you want to play?", [])]
+        self.api(action="say", text="no voices")
+        self.assertNotIn("Guide: finding out what they like", self.system_of(0))  # extras stage
+        self.assertIn("Guide: finding out what they like", self.system_of(1))     # taste stage
+        self.assertIn("Guide: writing their preset", self.system_of(1))
+        self.assertNotIn("Guide: writing characters", self.system_of(1))
+        self.assertIn("Model knowledge: Claude Opus 5.5", self.system_of(1))
+        self.assertNotIn("{target_model}", self.system_of(1))
+
+    def test_get_starter_and_rewrite(self):
+        from mainapp import starters
+        original = next(b["content"] for b in starters.get("opus-back-and-forth")["preset"]["blocks"] if b["name"] == "Roleplay")
+        calmer = original.replace("Let the exchange spar", "Keep the exchange gentle")
+        self.script = [("", [self.call("get_starter", starter="opus-back-and-forth")]),
+                       ("", [self.call("propose_preset", starter="opus-back-and-forth", taste="Gentle.",
+                                       rewrite={"Roleplay": "No placeholders here."})]),
+                       ("", [self.call("propose_preset", starter="opus-back-and-forth", taste="Gentle.",
+                                       rewrite={"Roleplay": calmer})]), ("Look it over.", [])]
+        data = self.api(action="say", text="no banter please").json()
+        got = json.loads(self.bulba_calls[1]["messages"][-1]["content"])
+        self.assertIn("Let the exchange spar", got["sections"]["Roleplay"])
+        rejected = json.loads(self.bulba_calls[2]["messages"][-1]["content"])
+        self.assertIn("dropped", rejected["error"])
+        proposal = data["state"]["proposals"][0]
+        self.assertIn("Adjusted from the starter: Roleplay section", proposal["summary"])
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=proposal["id"])
+        from mainapp import presets as presets_mod
+        active = presets_mod.get_active(self.user)
+        roleplay = next(b["content"] for b in active.data["blocks"] if b["name"] == "Roleplay")
+        self.assertIn("Keep the exchange gentle", roleplay)
+        self.assertEqual(active.data["extras"]["starter"]["id"], "opus-back-and-forth")  # credit kept
+
+    def test_sample_from_a_proposal_uses_exactly_that_preset(self):
+        self.script = [("", [self.call("propose_preset", starter="opus-rich-scene", taste="Feelings stay unspoken.")])]
+        pid = self.api(action="say", text="build it").json()["state"]["proposals"][0]["id"]
+        self.script = [("", [self.call("write_samples", from_proposal=pid, scenario="A lab.", user_turn="Hi.",
+                                       variants=[{"label": "final", "instructions": ""}])]), ("How's that?", [])]
+        data = self.api(action="say", text="show me").json()
+        system = "\n".join(m["content"] for m in self.sample_calls[0]["messages"] if m["role"] == "system")
+        self.assertIn("Feelings stay unspoken.", system)
+        self.assertEqual(len(next(e for e in data["events"] if e["type"] == "samples")["samples"]), 1)
+
+    def test_transcript_download_has_no_keys(self):
+        self.script = [("Hello.", [])]
+        self.api(action="say", text="hi")
+        resp = self.client.get(reverse("bulba_transcript"))
+        self.assertEqual(resp["Content-Type"], "application/json")
+        body = resp.content.decode()
+        self.assertNotIn("sk-or-secret", body)
+        data = json.loads(body)
+        self.assertEqual(data["target_model"], "claude-opus-5-5")
+        self.assertIn("Bulba", data["system_prompt"])
+        self.assertEqual(data["events"][-1]["text"], "Hello.")

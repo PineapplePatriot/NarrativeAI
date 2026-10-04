@@ -83,3 +83,5 @@ button.link { background: none; padding: 0; color: var(--accent-soft); text-deco
     .composer { position: sticky; bottom: 0; background: var(--bg); z-index: 5; }
     .thinking { position: sticky; bottom: 70px; background: var(--bg); }
 }
+.ghost-link { display: inline-block; color: var(--accent-soft); font-size: .9rem; }
+#restartBtn { margin-top: 12px; }

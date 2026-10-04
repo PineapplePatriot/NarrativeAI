@@ -1389,3 +1389,23 @@ def bulba_api(request):
         return JsonResponse({"error": "Unknown action."}, status=400)
     session.save()
     return JsonResponse({"events": events, "state": _bulba_state(session)})
+
+
+@login_required
+def bulba_transcript(request):
+    """The current Bulba conversation as a JSON file, to share when something behaves oddly. No keys."""
+    from .bulba import agent
+    from .models import BulbaSession
+    session = BulbaSession.objects.filter(user=request.user, active=True).first()
+    if session is None:
+        return HttpResponseNotFound("No Bulba conversation yet.")
+    data = {
+        "format": "narrativeai-bulba-transcript", "exported": datetime.now().isoformat(timespec="seconds"),
+        "target_model": session.target_model, "stage": session.stage,
+        "spent_usd": round(session.spent, 4), "budget_usd": session.budget,
+        "events": session.events, "preferences": session.preferences, "proposals": session.proposals,
+        "messages": session.messages, "system_prompt": agent.system_prompt(session),
+    }
+    response = HttpResponse(json.dumps(data, ensure_ascii=False, indent=2), content_type="application/json")
+    response["Content-Disposition"] = f'attachment; filename="bulba-{session.id}-{datetime.now():%Y%m%d-%H%M}.json"'
+    return response
