@@ -41,6 +41,16 @@ class Character(models.Model):
 
 
     creator_notes = models.TextField(blank=True) #нове
+    # Character Card V2/V3 fields (see mainapp/cards.py), so imported cards keep everything
+    personality = models.TextField(blank=True, verbose_name="Personality summary")
+    example_dialogue = models.TextField(blank=True, verbose_name="Example dialogue")
+    alternate_greetings = models.JSONField(default=list, blank=True)
+    system_prompt = models.TextField(blank=True, verbose_name="Card's system prompt")
+    post_history_instructions = models.TextField(blank=True, verbose_name="Card's post-history instructions")
+    card_creator = models.CharField(max_length=255, blank=True, verbose_name="Card author")
+    card_version = models.CharField(max_length=64, blank=True, verbose_name="Card version")
+    # Whatever else the card carried (extensions, tags, source...), kept for export
+    card_data = models.JSONField(default=dict, blank=True)
     time_create = models.DateTimeField(auto_now_add=True)
     time_update = models.DateTimeField(auto_now=True)
 

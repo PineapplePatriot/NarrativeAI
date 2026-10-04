@@ -139,7 +139,8 @@ TOOLS = [
     _fn("propose_persona", "Propose who the user is in the story.",
         {"name": STR, "description": STR, "why": STR}, ["name", "description"]),
     _fn("propose_character", "Propose a character to chat with.",
-        {"name": STR, "description": STR, "scenario": STR, "greeting": STR, "why": STR},
+        {"name": STR, "description": STR, "scenario": STR, "greeting": STR,
+         "personality": STR, "example_dialogue": STR, "why": STR},
         ["name", "description", "greeting"]),
 ]
 
@@ -361,12 +362,17 @@ def tool_propose_character(session, args):
     name = str(args.get("name", "")).strip()[:100]
     if not name or not str(args.get("description", "")).strip():
         return {"error": "Need a name and a description."}, []
-    payload = {k: str(args.get(k, "")).strip()[:6000] for k in ("description", "scenario", "greeting")}
+    payload = {k: str(args.get(k, "")).strip()[:6000]
+               for k in ("description", "scenario", "greeting", "personality", "example_dialogue")}
     payload["name"] = name
     summary = [payload["description"]]
+    if payload["personality"]:
+        summary += ["In short:", payload["personality"]]
     if payload["scenario"]:
         summary += ["Scenario:", payload["scenario"]]
     summary += ["First message:", payload["greeting"]]
+    if payload["example_dialogue"]:
+        summary += ["Example dialogue:", payload["example_dialogue"]]
     p = _proposal(session, "character", f"Character: {name}", summary, payload)
     return {"proposal": p["id"], "status": "waiting for Apply"}, [{"type": "proposal", "id": p["id"]}]
 

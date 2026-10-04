@@ -136,6 +136,15 @@ that didn't transfer. Never any keys.
   proper guides), tools (read the setup, write A/B samples with the user's chat model, record
   preferences, propose extras / preset / persona / character), Apply / Undo, spending tracked from
   OpenRouter's reported cost with a $5 default limit, and the Bulba page (`/main/bulba/`).
+- **Character cards** (`narrative/mainapp/cards.py`): import SillyTavern cards (V1/V2/V3, .png or
+  .json) from the Characters page; the embedded lorebook becomes a worldbook, alternate greetings
+  become swipes on the first message, the picture becomes the neutral sprite. Export as .png/.json
+  (V3, with a V2 chunk for older tools). New card fields on the character form ("Card details").
+  Fixed: creator's notes are no longer sent to the model as the personality; personality and example
+  dialogue are sent; a card's own system prompt / post-history instructions replace the preset's
+  Main / Post-History blocks as in SillyTavern.
+- **Character guide v0.2**: Anya's card-writing guide (`research/06-character-card-guide.md`),
+  adapted for Bulba in `narrative/mainapp/data/bulba/guides/characters.md`.
 
 ## Order of work (each step testable on its own)
 

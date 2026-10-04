@@ -24,7 +24,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
-from . import ai_client, chats, model_profiles, presets, samplers, starters, trackers
+from . import ai_client, cards, chats, model_profiles, presets, samplers, starters, trackers
 from .utils import build_ai_request, narrate_text_backend, get_elevenlabs_key
 from .lorebook import (
     normalize_book, load_worldbook, save_worldbook, activate, format_for_prompt, to_sillytavern,
@@ -829,7 +829,11 @@ def prompt_slots(user, character, prompt):
     extra = prompt.get("SystemPrompts", {})
     return {
         "char_description": character.description or "",
-        "char_personality": character.creator_notes or "",
+        # Creator's notes are for people reading the card, never sent to the model
+        "char_personality": character.personality or "",
+        "examples": cards.format_examples(character.example_dialogue),
+        "card_system_prompt": character.system_prompt or "",
+        "card_post_history": character.post_history_instructions or "",
         "scenario": character.scenario or "",
         "persona": getattr(user, "persona_description", None) or "",
         "lore": extra.get("WorldInfo", ""),
@@ -1231,6 +1235,52 @@ class UpdateCharacter(CharacterBaseView, UpdateView):
     def form_valid(self, form):
         character = form.save()
         return redirect(reverse('chat', kwargs={'slug': character.slug}))
+
+
+MAX_CARD_BYTES = 20 * 1024 * 1024
+
+
+@login_required
+def character_import(request):
+    """A SillyTavern card (.png or .json, V1/V2/V3) becomes a new character."""
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only"}, status=405)
+    upload = request.FILES.get("card")
+    if not upload:
+        return JsonResponse({"error": "Pick a .png or .json card first."}, status=400)
+    if upload.size > MAX_CARD_BYTES:
+        return JsonResponse({"error": "That file is over 20 MB, too big for a character card."}, status=400)
+    try:
+        character = cards.import_file(request.user, upload.read(), upload.name)
+    except cards.CardError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+    notes = []
+    if character.alternate_greetings:
+        n = len(character.alternate_greetings)
+        notes.append(f"{n} alternate greeting{'s' if n != 1 else ''}: swipe the first message to pick one.")
+    if character.worldbook:
+        notes.append(f"Its lore is now the worldbook “{character.worldbook.title}”.")
+    if character.system_prompt or character.post_history_instructions:
+        notes.append("The card has its own instructions; they take the place of your preset's main prompt "
+                     "(see Advanced on the character's page).")
+    return JsonResponse({"status": "ok", "name": character.name, "notes": notes,
+                         "url": reverse("chat", kwargs={"slug": character.slug}),
+                         "edit_url": reverse("character", kwargs={"slug": character.slug})})
+
+
+@login_required
+def character_export(request, slug):
+    character = get_object_or_404(Character, slug=slug, author=request.user)
+    filename = slugify(character.name) or "character"
+    if request.GET.get("format") == "json":
+        response = HttpResponse(json.dumps(cards.to_card(character), ensure_ascii=False, indent=2),
+                                content_type="application/json")
+        response["Content-Disposition"] = f'attachment; filename="{filename}.json"'
+    else:
+        response = HttpResponse(cards.to_png(character), content_type="image/png")
+        response["Content-Disposition"] = f'attachment; filename="{filename}.png"'
+    return response
 
 
 def page_not_found(request, exception):

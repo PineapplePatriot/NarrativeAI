@@ -452,6 +452,8 @@ def macro_values(names, slots, history):
         "char": names["char"], "user": names["user"], "group": names["char"],
         "persona": slots.get("persona", ""), "description": slots.get("char_description", ""),
         "scenario": slots.get("scenario", ""), "personality": slots.get("char_personality", ""),
+        # Legacy name: older presets used {{creator_notes}} for the personality. Real creator's notes
+        # are for people reading the card and are never sent.
         "creator_notes": slots.get("char_personality", ""), "summary": slots.get("summary", ""),
         "mesexamples": slots.get("examples", ""), "mesexamplesraw": slots.get("examples", ""),
         "lastchatmessage": history[-1]["content"] if history else "",
@@ -497,6 +499,38 @@ def _post_process(messages, mode, names, new_chat):
     return messages
 
 
+# Blocks a character card's own prompts replace, as in SillyTavern ("Prefer character card prompt")
+CARD_OVERRIDES = (("card_system_prompt", "main", "Character card's system prompt"),
+                  ("card_post_history", "jailbreak", "Character card's post-history instructions"))
+
+
+def _card_overrides(enabled, slots):
+    """
+    A card's system prompt replaces the preset's Main prompt, its post-history instructions replace
+    the Post-History block; {{original}} keeps the preset's text. Without such a block, the card's
+    system prompt goes first and its post-history instructions go after the last message.
+    """
+    out, notes = list(enabled), []
+    for slot, block_id, label in CARD_OVERRIDES:
+        text = (slots.get(slot) or "").strip()
+        if not text:
+            continue
+        idx = next((i for i, b in enumerate(out) if b["kind"] == "prompt" and b["id"] == block_id), None)
+        if idx is not None:
+            original = out[idx]
+            out[idx] = {**original, "name": label, "content": text.replace("{{original}}", original["content"])}
+            notes.append(f"{label} replaced \"{original['name']}\".")
+        elif slot == "card_system_prompt":
+            out.insert(0, {"id": slot, "name": label, "kind": "prompt", "role": "system", "content":
+                           text.replace("{{original}}", ""), "enabled": True, "position": "relative",
+                           "depth": 0, "order": 0})
+        else:
+            out.append({"id": slot, "name": label, "kind": "prompt", "role": "system", "content":
+                        text.replace("{{original}}", ""), "enabled": True, "position": "in_chat",
+                        "depth": 0, "order": 1000})
+    return out, notes
+
+
 def assemble(preset, slots, history, names, model="", rng=None):
     """
     preset:  normalized preset
@@ -509,6 +543,8 @@ def assemble(preset, slots, history, names, model="", rng=None):
     slots = dict(slots)
     enabled = [b for b in preset["blocks"] if b["enabled"] and b["kind"] != "header"]
     on_markers = {b["marker"] for b in enabled if b["kind"] == "marker"}
+    enabled, card_notes = _card_overrides(enabled, slots)
+    notes += card_notes
     if slots.get("lore"):
         target = "lore_before" if "lore_before" in on_markers or "lore_after" not in on_markers else "lore_after"
         slots[target] = slots.pop("lore")
@@ -691,7 +727,7 @@ def build_default(user):
 
     blocks += [
         _header("📖 Story context"),
-        _marker("persona"), _marker("char_description"), _marker("char_personality"), _marker("scenario"),
+        _marker("persona"), _marker("char_description"), _marker("char_personality"), _marker("scenario"), _marker("examples"),
         _marker("lore_before"), _marker("summary"), _marker("world_context"), _marker("trackers"),
         _marker("lore_after"),
         _marker("chat_history"),

@@ -20,14 +20,33 @@
         <div class="form-error">{{ form.non_field_errors }}</div>
 
         {% for f in form %}
-            {% if f.field.widget.input_type != "file" and f.field.widget.input_type != "checkbox" and not f.name|startswith:"eleven_voice_" %}
+            {% if f.field.widget.input_type != "file" and f.field.widget.input_type != "checkbox" and not f.name|startswith:"eleven_voice_" and f.name not in form.card_fields %}
                 <div class="form-group">
                     <label for="{{ f.id_for_label }}">{{ f.label }}</label>
                     {{ f }}
+                    {% if f.help_text %}<p class="section-help">{{ f.help_text }}</p>{% endif %}
                     <div class="form-error">{{ f.errors }}</div>
                 </div>
             {% endif %}
         {% endfor %}
+
+        {# The rest of a SillyTavern card: imported cards fill these in #}
+        <details class="form-section" id="cardSection" {% if form.example_dialogue.value or form.system_prompt.value or form.post_history_instructions.value %}open{% endif %}>
+            <summary><span>📇 Card details</span> <small>personality, example dialogue, alternate greetings, card instructions</small></summary>
+            {% for f in form %}
+                {% if f.name in form.card_fields %}
+                    <div class="form-group">
+                        <label for="{{ f.id_for_label }}">{{ f.label }}</label>
+                        {{ f }}
+                        {% if f.help_text %}<p class="section-help">{{ f.help_text }}</p>{% endif %}
+                        <div class="form-error">{{ f.errors }}</div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+            {% if object %}
+                <p class="section-help">Share or back up: <a href="{% url 'character_export' object.slug %}">download as .png card</a> · <a href="{% url 'character_export' object.slug %}?format=json">.json</a></p>
+            {% endif %}
+        </details>
 
         {# Sprites: folded away until you want them #}
         <details class="form-section" id="spritesSection">

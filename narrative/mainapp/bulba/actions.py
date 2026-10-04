@@ -61,7 +61,8 @@ def apply(session, pid):
         character = Character.objects.create(
             name=data["name"], slug=_unique_slug(user, data["name"]), author=user,
             description=data.get("description", ""), scenario=data.get("scenario", ""),
-            initial_message=data.get("greeting", ""))
+            initial_message=data.get("greeting", ""), personality=data.get("personality", ""),
+            example_dialogue=data.get("example_dialogue", ""))
         p["undo"] = {"created": character.id}
         p["result"] = {"slug": character.slug}
         note = f"{character.name} is ready to chat."

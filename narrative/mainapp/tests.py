@@ -1889,3 +1889,194 @@ class BulbaGuideTests(BulbaTests):
         self.assertEqual(data["target_model"], "claude-opus-5-5")
         self.assertIn("Bulba", data["system_prompt"])
         self.assertEqual(data["events"][-1]["text"], "Hello.")
+
+
+def _png(color=(200, 120, 90)):
+    import io
+    from PIL import Image
+    out = io.BytesIO()
+    Image.new("RGB", (8, 8), color).save(out, "PNG")
+    return out.getvalue()
+
+
+def _card_png(card, keys=("chara",)):
+    import base64
+    from mainapp import cards
+    text = base64.b64encode(json.dumps(card).encode("utf-8")).decode("ascii")
+    return cards.embed_png(_png(), {k: text for k in keys})
+
+
+V2_CARD = {
+    "spec": "chara_card_v2", "spec_version": "2.0",
+    "data": {
+        "name": "Viktor", "description": "{{char}} is a stationmaster.", "personality": "Dry, careful.",
+        "scenario": "The last train has gone.", "first_mes": "Excellent planning.",
+        "mes_example": "<START>\n{{user}}: Worried?\n{{char}}: Checking the exits.\n<START>\n{{user}}: Hi.\n{{char}}: Hm.",
+        "creator_notes": "Made for my friends. Don't send this to the model.",
+        "system_prompt": "", "post_history_instructions": "",
+        "alternate_greetings": ["You again.", "  "], "tags": ["Original", "Slow burn"],
+        "creator": "Mari", "character_version": "1.2",
+        "extensions": {"talkativeness": "0.5", "depth_prompt": {"prompt": "x", "depth": 4}},
+        "character_book": {"name": "Station lore", "entries": [
+            {"keys": ["platform"], "content": "Platform 9 is closed.", "enabled": True, "insertion_order": 10}]},
+    },
+}
+
+
+class CardReadTests(SimpleTestCase):
+    def test_v2_json(self):
+        from mainapp import cards
+        card, image = cards.read(json.dumps(V2_CARD).encode())
+        self.assertIsNone(image)
+        self.assertEqual(card["name"], "Viktor")
+        self.assertEqual(card["first_mes"], "Excellent planning.")
+        self.assertEqual(card["alternate_greetings"], ["You again."])
+        self.assertEqual(card["tags"], ["Original", "Slow burn"])
+        self.assertEqual(card["extra"]["extensions"]["talkativeness"], "0.5")
+        self.assertEqual(card["character_book"]["name"], "Station lore")
+
+    def test_v1_flat_json(self):
+        from mainapp import cards
+        card, _ = cards.read(json.dumps({"name": "Old", "description": "d", "first_mes": "hi",
+                                         "personality": "p", "creatorcomment": "notes"}).encode())
+        self.assertEqual((card["name"], card["personality"], card["creator_notes"]), ("Old", "p", "notes"))
+
+    def test_png_prefers_ccv3(self):
+        import base64
+        from mainapp import cards
+        v3 = {"spec": "chara_card_v3", "data": {**V2_CARD["data"], "name": "Viktor V3"}}
+        png = cards.embed_png(_png(), {
+            "chara": base64.b64encode(json.dumps(V2_CARD).encode()).decode(),
+            "ccv3": base64.b64encode(json.dumps(v3).encode()).decode()})
+        card, image = cards.read(png)
+        self.assertEqual(card["name"], "Viktor V3")
+        self.assertEqual(image, png)
+
+    def test_pictures_without_a_card_explain_why(self):
+        from mainapp import cards
+        with self.assertRaisesMessage(cards.CardError, "no character card inside"):
+            cards.read(_png())
+        with self.assertRaisesMessage(cards.CardError, "WEBP/JPEG"):
+            cards.read(b"RIFF\x00\x00\x00\x00WEBPVP8 ")
+        with self.assertRaises(cards.CardError):
+            cards.read(b'{"hello": "world"}')
+
+    def test_examples_format(self):
+        from mainapp import cards
+        text = cards.format_examples(V2_CARD["data"]["mes_example"])
+        self.assertEqual(text.count("[Example chat]"), 2)
+        self.assertNotIn("<START>", text)
+        self.assertEqual(cards.format_examples("  "), "")
+
+    def test_card_prompts_replace_main_and_post_history(self):
+        import random
+        from mainapp.presets import assemble, from_any
+        slots = {"card_system_prompt": "Card rules. {{original}}", "card_post_history": "Card ending."}
+        r = assemble(from_any(ST_PRESET)[0], slots, HISTORY, NAMES, "some/model", random.Random(1))
+        contents = [m["content"] for m in r["messages"]]
+        self.assertEqual(contents[0], "Card rules. You are Rose. Be grim.")
+        self.assertIn("Card ending.", contents)
+        self.assertNotIn("Reply as Rose only.", contents)
+        self.assertEqual(len([n for n in r["notes"] if "replaced" in n]), 2)
+
+    def test_card_prompts_without_matching_blocks(self):
+        import random
+        from mainapp.presets import assemble, from_any
+        preset = from_any(ST_PRESET)[0]
+        preset["blocks"] = [b for b in preset["blocks"] if b["id"] not in ("main", "jailbreak")]
+        r = assemble(preset, {"card_system_prompt": "Card rules. {{original}}", "card_post_history": "Card ending."},
+                     HISTORY, NAMES, "some/model", random.Random(1))
+        self.assertEqual(r["messages"][0]["content"], "Card rules.")
+        self.assertEqual(r["messages"][-1]["content"], "Card ending.")
+
+
+class CardImportTests(ChatPromptTests):
+    def upload(self, raw, name="card.png"):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        return self.client.post(reverse("character_import"), {"card": SimpleUploadedFile(name, raw)})
+
+    def test_png_import_creates_everything(self):
+        from mainapp import chats
+        from mainapp.models import Character
+        response = self.upload(_card_png(V2_CARD))
+        self.assertEqual(response.status_code, 200, response.content)
+        viktor = Character.objects.get(name="Viktor", author=self.user)
+        self.assertEqual(response.json()["url"], reverse("chat", args=[viktor.slug]))
+        self.assertTrue(viktor.photo_neutral.name.endswith(".png"))
+        self.assertEqual(viktor.personality, "Dry, careful.")
+        self.assertEqual(viktor.card_creator, "Mari")
+        self.assertEqual(sorted(t.tag for t in viktor.tags.all()), ["Original", "Slow burn"])
+        self.assertEqual(viktor.worldbook.title, "Station lore")
+        self.assertEqual(viktor.worldbook.author, self.user)
+        self.assertEqual(len(response.json()["notes"]), 2)
+
+        greeting = chats.greeting(viktor)[0]
+        self.assertEqual(greeting[2], "Excellent planning.")
+        self.assertEqual([v["text"] for v in greeting[5]["swipes"]], ["Excellent planning.", "You again."])
+
+    def test_names_filled_in_greetings_and_pages(self):
+        from mainapp import chats
+        from mainapp.models import Character
+        card = json.loads(json.dumps(V2_CARD))
+        card["data"]["first_mes"] = "{{char}} nods at {{User}}. <USER> nods back."
+        self.upload(_card_png(card))
+        viktor = Character.objects.get(name="Viktor")
+        self.assertEqual(chats.greeting(viktor)[0][2], "Viktor nods at chatter. chatter nods back.")
+        page = self.client.get(reverse("characters_list"))
+        self.assertContains(page, "Viktor is a stationmaster.")
+
+    def test_bad_files_get_a_plain_error(self):
+        response = self.upload(_png())
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("no character card", response.json()["error"])
+        self.assertEqual(self.client.post(reverse("character_import")).status_code, 400)
+
+    def test_personality_and_examples_are_sent_but_not_creator_notes(self):
+        from mainapp.models import Character
+        self.upload(_card_png(V2_CARD))
+        viktor = Character.objects.get(name="Viktor")
+        self.url = reverse("chat", args=[viktor.slug])
+        self.post({"action": "chat", "message": "Hello?"})
+        joined = "\n".join(m["content"] for m in self.sent[-1]["messages"])
+        self.assertIn("Dry, careful.", joined)
+        self.assertNotIn("Don't send this to the model", joined)
+        self.assertIn("Checking the exits.", joined)
+
+    def test_export_round_trip(self):
+        from mainapp import cards
+        from mainapp.models import Character
+        self.upload(_card_png(V2_CARD))
+        viktor = Character.objects.get(name="Viktor")
+        png = self.client.get(reverse("character_export", args=[viktor.slug])).content
+        texts = cards.png_text(png)
+        self.assertEqual(set(texts), {"chara", "ccv3"})
+        card, _ = cards.read(png)
+        for key in ("name", "description", "personality", "scenario", "first_mes", "mes_example",
+                    "creator_notes", "creator", "character_version", "alternate_greetings"):
+            self.assertEqual(card[key], cards.normalize(V2_CARD)[key], key)
+        self.assertEqual(card["character_book"]["entries"][0]["content"], "Platform 9 is closed.")
+        self.assertEqual(card["extra"]["extensions"]["talkativeness"], "0.5")
+
+        as_json = self.client.get(reverse("character_export", args=[viktor.slug]) + "?format=json").json()
+        self.assertEqual(as_json["spec"], "chara_card_v3")
+
+        # A second import of the same card doesn't clash on slugs
+        self.assertEqual(self.upload(png).status_code, 200)
+        self.assertEqual(Character.objects.filter(name="Viktor").count(), 2)
+
+    def test_export_without_picture_and_other_users(self):
+        from mainapp import cards
+        self.assertTrue(cards.png_text(self.client.get(reverse("character_export", args=[self.character.slug])).content))
+        other = get_user_model().objects.create_user(username="other", password="pw12345!")
+        self.client.force_login(other)
+        self.assertEqual(self.client.get(reverse("character_export", args=[self.character.slug])).status_code, 404)
+
+    def test_form_alternate_greetings(self):
+        from mainapp.forms import AddCharacterForm
+        form = AddCharacterForm(data={"name": "A", "alternate_greetings": "One\n<NEXT>\nTwo\r\n<NEXT>\n"},
+                                user=self.user)
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["alternate_greetings"], ["One", "Two"])
+        page = self.client.get(reverse("character", args=[self.character.slug]))
+        self.assertContains(page, "Card details")
+        self.assertContains(page, "download as .png card")
