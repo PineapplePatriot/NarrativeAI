@@ -17,6 +17,8 @@ NarrativeAI is a web app for creative writing and roleplay with AI characters, s
 - **Worldbooks (lorebooks)**: SillyTavern-style entries that are added to the prompt when their keywords come up. Entries can have secondary keywords, always-on entries and priorities, and there's a "test a message" panel that shows what fires and why. You can import and export SillyTavern lorebooks and lorebooks embedded in character cards.
 - **Connections**: several AI connections (keys and models). Each feature can use its own connection or model, for example an expensive model for the story and a cheap one for summaries and trackers.
 - **Presets**: the recipe for every request, built from prompt blocks you can switch on and off, edit, reorder and group. Blocks can sit at a fixed spot or inside the chat at a chosen depth. Macros like `{{char}}`, `{{random}}` and `{{setvar}}`/`{{getvar}}` are supported. SillyTavern presets import and export as they are, and a preview shows exactly what will be sent. One preset is active for all chats.
+- **Text rules (regex scripts)**: find-and-replace rules that come with SillyTavern presets and cards. They can change only what you see (turning tracker blocks into panels), only what's sent back to the AI (dropping old blocks or leaked thinking), or the saved message. Manage them in the preset's **Text rules** tab.
+- **Character cards**: import SillyTavern cards (.png or .json), with their lore, alternate greetings and picture, and export your characters the same way.
 - **Samplers** (part of the active preset): response length, context size, temperature, top-p/k, min-p, penalties, reasoning effort and more. Each one can be switched on or off. The app skips the ones a model would reject.
 
 ## Running it on your computer
@@ -131,6 +133,14 @@ python manage.py test
 
 The tests use a fake AI, so they need no API key and cost nothing.
 
+### Trying the whole app without OpenRouter
+
+Two settings, only for testing, let the app talk to a stand-in server that pretends to be OpenRouter
+(for example one that answers by hand or with canned replies). Leave both unset normally.
+
+- `NARRATIVE_OPENROUTER_URL`: where "OpenRouter" requests go instead, e.g. `http://127.0.0.1:8899/api/v1`.
+- `NARRATIVE_AI_TIMEOUT`: how many seconds to wait for every AI answer (useful when someone answers by hand).
+
 ## Project layout
 
 ```
@@ -145,12 +155,18 @@ narrative/                  Django project (run manage.py from here)
 │   ├── lorebook.py         worldbook matching engine, SillyTavern import/export
 │   ├── trackers.py         story tracker definitions, AI update prompt, merging with locks
 │   ├── presets.py          presets: block format, macros, request assembly, SillyTavern import/export
-│   ├── samplers.py         sampler settings, model compatibility, context trimming
+│   ├── samplers.py         sampler settings and context trimming
+│   ├── model_profiles.py   what each model does with each setting (reads data/models/)
+│   ├── starters.py         ready-made presets per model (reads data/starters/)
+│   ├── chats.py            several chats per character: files, branches, swipes, summary pieces
 │   ├── data/               built-in prompt library the default preset is made from
+│   │   ├── models/         one profile per model: accepted settings, sources, style notes
+│   │   └── starters/       ready-made presets per model (Back-and-forth, Rich scene, Director seat)
 │   ├── tests.py            automated tests
 │   ├── templates/          pages (HTML)
 │   └── static/             page scripts (JS) and styles (CSS)
 └── media/                  your uploads and chat logs (created on first run, not in git)
+docs/bulba/                 the setup assistant (Bulba): research package and build plan
 Prompting EI Testing/       prompt-style experiments (EQ-Bench based) and their report
 requirements.txt            packages the app needs
 requirements-semantic.txt   optional packages for semantic worldbook search

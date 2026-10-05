@@ -24,7 +24,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
-from . import ai_client, chats, presets, samplers, trackers
+from . import ai_client, cards, chats, regex_rules, model_profiles, presets, samplers, starters, trackers
 from .utils import build_ai_request, narrate_text_backend, get_elevenlabs_key
 from .lorebook import (
     normalize_book, load_worldbook, save_worldbook, activate, format_for_prompt, to_sillytavern,
@@ -34,6 +34,9 @@ from .lorebook import (
 
 @login_required
 def index_page(request):
+    # First run: the welcome page asks for a key and a model before anything else
+    if not ai_client.has_connection(request.user):
+        return redirect("users:welcome")
     # Your characters, the ones you played most recently first
     from django.db.models import F, Max
     characters = (Character.objects.filter(author=request.user)
@@ -86,7 +89,7 @@ def chat(request, slug):
         if request.method == "POST":
             return JsonResponse({"error": "No AI connection is set up yet. Add one on the Connections page."},
                                 status=400)
-        return redirect(f"{reverse('users:api_config')}?next={request.path}")
+        return redirect("users:welcome")
 
     # --- Which chat (a character can have many) ---
     chat_obj = chats.current(character, request.GET.get("chat"))
@@ -163,6 +166,13 @@ def chat(request, slug):
         else:
             return []
 
+    # --- Text rules (regex scripts) from the active preset and the character card ---
+    def text_rules(mode, text, role, edits_only=False):
+        rules = regex_rules.for_chat(presets.normalize(presets.get_active(request.user).data), character)
+        if edits_only:
+            rules = [r for r in rules if r["run_on_edit"]]
+        return regex_rules.run(rules, mode, text, role, prompt_names(request.user, character))
+
     # --- Save messages to file ---
     def save_messages(messages):
         full_data = {
@@ -225,9 +235,10 @@ def chat(request, slug):
 
                 if 0 <= index < len(messages):
                     # Update the message text, keep other fields
+                    new_text = text_rules("saved", new_text, messages[index][0], edits_only=True)
                     messages[index] = chats.set_text(messages[index], new_text)
                     save_messages(messages)
-                    return JsonResponse({"success": True})
+                    return JsonResponse({"success": True, "text": new_text})
                 else:
                     return JsonResponse({"success": False, "error": "Invalid message index"})
 
@@ -492,7 +503,7 @@ def chat(request, slug):
                 new_chunk = ai_client.complete(request.user, "chat", api_messages, **sampler_params)
 
                 # 5. Combine and Save
-                full_text = last_text + " " + new_chunk
+                full_text = text_rules("saved", last_text + " " + new_chunk, "assistant")
                 messages[-1] = chats.set_text(messages[-1], full_text)
                 save_messages(messages)
 
@@ -527,6 +538,7 @@ def chat(request, slug):
             if (action == "chat" and user_message) or action == "regenerate":
                 # Regenerate re-answers the existing last user message, so only chat adds one
                 if action == "chat":
+                    user_message = text_rules("saved", user_message, "user")
                     messages.append(("user", datetime.now().strftime("%H:%M"), user_message, "neutral", 1))
 
                 lore_report = None
@@ -535,10 +547,7 @@ def chat(request, slug):
                 # --- Prepare history for API ---
                 api_messages = []
 
-                # Add system message if character has one
-                if hasattr(character, 'system_prompt') and character.system_prompt:
-                    api_messages.append({"role": "system", "content": character.system_prompt})
-
+                # (A card's own system prompt goes through the preset, see prompt_slots and presets.assemble)
                 # Add conversation history
                 for m in messages:
                     if m[0] in ("user", "assistant"):
@@ -570,8 +579,10 @@ def chat(request, slug):
                     # --- Build the request from the active preset ---
                     preset = presets.normalize(presets.get_active(request.user).data)
                     _, chat_model = ai_client.resolve(request.user, "chat")
+                    names = prompt_names(request.user, character)
+                    history = regex_rules.run_on_history(regex_rules.for_chat(preset, character), api_messages, names)
                     built = presets.assemble(preset, prompt_slots(request.user, character, prompt),
-                                             api_messages, prompt_names(request.user, character), chat_model)
+                                             history, names, chat_model)
                     context_dropped = built["dropped"]
                     # Stream when the page asks for it and the preset allows it
                     streaming = bool(data.get("stream")) and preset["options"].get("streaming", True)
@@ -593,6 +604,7 @@ def chat(request, slug):
 
                 def finish_reply(reply):
                     """Emotion, saving, voice and the summary/tracker flags, once the reply is complete."""
+                    reply = text_rules("saved", reply, "assistant")
                     char_count = 1
                     emotion_char_1 = "neutral"
                     emotion_char_2 = "neutral"
@@ -708,7 +720,7 @@ def chat(request, slug):
 
                     def keep_partial():
                         # Keep whatever arrived (Stop button, closed tab or a broken stream)
-                        text = "".join(parts).strip()
+                        text = text_rules("saved", "".join(parts), "assistant").strip()
                         if text:
                             partial = ("assistant", datetime.now().strftime("%H:%M"), text, "neutral|neutral", 1)
                             messages.append(chats.add_version(regen_from, partial) if regen_from else partial)
@@ -794,6 +806,10 @@ def chat(request, slug):
     context = {
         "messages": [m[:5] for m in messages],  # the template shows the version on screen
         "swipes": chats.version_info(messages),
+        "display_rules": {
+            "rules": [r for r in regex_rules.for_chat(presets.normalize(presets.get_active(request.user).data), character)
+                      if r["enabled"] and r["mode"] == "display"],
+            "names": prompt_names(request.user, character)},
         "character": character,
         "photo_url": photo_url,
         "photo_second": photo_second,
@@ -826,7 +842,11 @@ def prompt_slots(user, character, prompt):
     extra = prompt.get("SystemPrompts", {})
     return {
         "char_description": character.description or "",
-        "char_personality": character.creator_notes or "",
+        # Creator's notes are for people reading the card, never sent to the model
+        "char_personality": character.personality or "",
+        "examples": cards.format_examples(character.example_dialogue),
+        "card_system_prompt": character.system_prompt or "",
+        "card_post_history": character.post_history_instructions or "",
         "scenario": character.scenario or "",
         "persona": getattr(user, "persona_description", None) or "",
         "lore": extra.get("WorldInfo", ""),
@@ -874,8 +894,9 @@ def _preset_preview(user, preset, character):
         _, model = ai_client.resolve(user, "chat")
     except ai_client.NoConnection:
         model = ""
-    built = presets.assemble(preset, prompt_slots(user, character, prompt), history,
-                             prompt_names(user, character), model)
+    names = prompt_names(user, character)
+    history = regex_rules.run_on_history(regex_rules.for_chat(preset, character), history, names)
+    built = presets.assemble(preset, prompt_slots(user, character, prompt), history, names, model)
     return {"messages": built["preview"], "params": built["params"], "notes": built["notes"],
             "variables": built["variables"], "model": model}
 
@@ -903,6 +924,11 @@ def preset_list(request):
         elif action == "new_default":
             obj = Preset.objects.create(user=request.user, data=presets.build_default(request.user),
                                         name=presets.unique_name(request.user, presets.DEFAULT_NAME))
+        elif action == "use_starter":
+            try:
+                obj = starters.apply(request.user, data.get("starter"))
+            except ValueError as e:
+                return JsonResponse({"error": str(e)}, status=400)
         elif obj is None:
             return JsonResponse({"error": "Preset not found."}, status=404)
         elif action == "activate":
@@ -937,11 +963,25 @@ def preset_list(request):
                 return JsonResponse({"error": "Invalid block list."}, status=400)
             edited = presets.normalize({**current, "blocks": data["blocks"],
                                         "utility": data.get("utility", current["utility"]),
-                                        "options": data.get("options", current["options"])})
+                                        "options": data.get("options", current["options"]),
+                                        "regex": data.get("regex", current["regex"])})
             # Samplers are edited on their own page; SillyTavern extras are never edited here
             edited["samplers"], edited["extras"] = current["samplers"], current["extras"]
             obj.data = edited
             obj.save(update_fields=["data", "time_update"])
+        elif action == "test_rule":  # one text rule over sample text, without saving anything
+            rule = regex_rules.normalize_rule(data.get("rule"))
+            if rule is None:
+                return JsonResponse({"error": "That isn't a text rule."}, status=400)
+            problem = regex_rules.check(rule)
+            names = {"char": "Character", "user": cards.user_name(request.user)}
+            result = "" if problem else regex_rules.run_rule(rule, str(data.get("text") or ""), names)
+            return JsonResponse({"result": result, "problem": problem})
+        elif action == "import_rules":
+            rules = regex_rules.from_import(data.get("data"))
+            if not rules:
+                return JsonResponse({"error": "No regex scripts found in that file."}, status=400)
+            return JsonResponse({"rules": rules})
         elif action == "preview":
             character = Character.objects.filter(author=request.user, slug=data.get("character")).first()
             if character is None:
@@ -964,7 +1004,16 @@ def preset_list(request):
         "macro_help": presets.MACRO_HELP,
         "post_processing": presets.POST_PROCESSING,
         "characters": [{"slug": c.slug, "name": c.name} for c in Character.objects.filter(author=request.user)],
+        "starters": starters.for_page(_chat_model(request.user)),
+        "starter_of": (presets.normalize(selected.data)["extras"].get("starter") or {}).get("id"),
     }})
+
+
+def _chat_model(user):
+    try:
+        return ai_client.resolve(user, "chat")[1]
+    except ai_client.NoConnection:
+        return ""
 
 
 @login_required
@@ -1004,8 +1053,9 @@ def sampler_settings(request):
             "specs": samplers.SAMPLERS,
             "values": samplers.normalize(preset_obj.data.get("samplers")),
             "model": model,
-            "locked": sorted(samplers.locked_for_model(model)),
-            "all_locked": sorted(samplers.SAMPLING_LOCKED),
+            "profile": model_profiles.public(model_profiles.for_model(model)),
+            "status": model_profiles.sampler_status(model, samplers.normalize(preset_obj.data.get("samplers"))),
+            "known_models": model_profiles.known_names(),
         },
     })
 
@@ -1215,6 +1265,56 @@ class UpdateCharacter(CharacterBaseView, UpdateView):
         return redirect(reverse('chat', kwargs={'slug': character.slug}))
 
 
+MAX_CARD_BYTES = 20 * 1024 * 1024
+
+
+@login_required
+def character_import(request):
+    """A SillyTavern card (.png or .json, V1/V2/V3) becomes a new character."""
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only"}, status=405)
+    upload = request.FILES.get("card")
+    if not upload:
+        return JsonResponse({"error": "Pick a .png or .json card first."}, status=400)
+    if upload.size > MAX_CARD_BYTES:
+        return JsonResponse({"error": "That file is over 20 MB, too big for a character card."}, status=400)
+    try:
+        character = cards.import_file(request.user, upload.read(), upload.name)
+    except cards.CardError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+    notes = []
+    if character.alternate_greetings:
+        n = len(character.alternate_greetings)
+        notes.append(f"{n} alternate greeting{'s' if n != 1 else ''}: swipe the first message to pick one.")
+    if character.worldbook:
+        notes.append(f"Its lore is now the worldbook “{character.worldbook.title}”.")
+    card_rules = regex_rules.for_chat({}, character)
+    if card_rules:
+        notes.append(f"It comes with {len(card_rules)} text rule{'s' if len(card_rules) != 1 else ''} "
+                     "(regex scripts); they run in its chats.")
+    if character.system_prompt or character.post_history_instructions:
+        notes.append("The card has its own instructions; they take the place of your preset's main prompt "
+                     "(see Advanced on the character's page).")
+    return JsonResponse({"status": "ok", "name": character.name, "notes": notes,
+                         "url": reverse("chat", kwargs={"slug": character.slug}),
+                         "edit_url": reverse("character", kwargs={"slug": character.slug})})
+
+
+@login_required
+def character_export(request, slug):
+    character = get_object_or_404(Character, slug=slug, author=request.user)
+    filename = slugify(character.name) or "character"
+    if request.GET.get("format") == "json":
+        response = HttpResponse(json.dumps(cards.to_card(character), ensure_ascii=False, indent=2),
+                                content_type="application/json")
+        response["Content-Disposition"] = f'attachment; filename="{filename}.json"'
+    else:
+        response = HttpResponse(cards.to_png(character), content_type="image/png")
+        response["Content-Disposition"] = f'attachment; filename="{filename}.png"'
+    return response
+
+
 def page_not_found(request, exception):
     print("Hi, hi")
     return HttpResponseNotFound("<h1>Page not found.</h1>")
@@ -1276,3 +1376,126 @@ def get_media_resources(request):
         "backgrounds": get_files(bg_dir, "backgrounds"), 
         "music": get_files(music_dir, "music")
     })
+
+
+# ---------------------------------------------------------------------------
+# Bulba, the setup assistant
+# ---------------------------------------------------------------------------
+
+def _bulba_state(session):
+    from .bulba import agent
+    profile = agent.target_profile(session)
+    return {
+        "id": session.id, "stage": session.stage, "stages": agent.STAGES,
+        "spent": round(session.spent, 4), "budget": session.budget,
+        "model": profile["name"] if profile else session.target_model,
+        "preferences": [p for p in session.preferences if p.get("status") not in ("rejected", "superseded")],
+        "proposals": [{**{k: p.get(k) for k in ("id", "kind", "title", "status", "result")},
+                       "summary": _shown_summary(session, p)} for p in session.proposals],
+    }
+
+
+def _shown_summary(session, proposal):
+    """Proposal text as the user reads it: {{user}} is their name, {{char}} the character's (or "the character")."""
+    char = (proposal.get("payload") or {}).get("name") if proposal["kind"] == "character" else "the character"
+    user = cards.user_name(session.user)
+    return [cards.fill_names(line, char or "the character", user) for line in proposal.get("summary") or []]
+
+
+def _bulba_session(user, restart=False):
+    """The user's current Bulba conversation for their chat model, started if needed. None if Bulba can't help."""
+    from .bulba import agent
+    from .models import BulbaSession
+    try:
+        _, chat_model = ai_client.resolve(user, "chat")
+    except ai_client.NoConnection:
+        return None
+    profile = model_profiles.for_model(chat_model)
+    if profile is None:
+        return None
+    session = BulbaSession.objects.filter(user=user, active=True).first()
+    if session and (restart or session.target_model != profile["id"]):
+        session.active = False
+        session.save(update_fields=["active"])
+        session = None
+    if session is None:
+        session = BulbaSession(user=user, target_model=profile["id"])
+        agent.opening(session)
+        session.save()
+    return session
+
+
+@login_required
+def bulba_page(request):
+    if not ai_client.has_connection(request.user):
+        return redirect("users:welcome")
+    session = _bulba_session(request.user)
+    return render(request, "mainapp/bulba.html", {
+        "bulba_data": {"state": _bulba_state(session), "events": session.events} if session else None,
+        "known_models": model_profiles.known_names(),
+    })
+
+
+@login_required
+def bulba_api(request):
+    from .bulba import actions, agent
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only"}, status=405)
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return JsonResponse({"error": "Invalid request."}, status=400)
+    action = data.get("action")
+    session = _bulba_session(request.user, restart=(action == "restart"))
+    if session is None:
+        return JsonResponse({"error": "Bulba only knows the models on the welcome page. Pick one of those first."}, status=400)
+
+    events = []
+    if action == "restart":
+        events = session.events
+    elif action == "say":
+        events = agent.run_turn(session, data.get("text"))
+    elif action in ("apply", "dismiss", "undo"):
+        try:
+            note = getattr(actions, action)(session, data.get("id"))
+        except actions.ProposalError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        proposal = next(p for p in session.proposals if p["id"] == data.get("id"))
+        verb = {"apply": "Applied", "dismiss": "Dismissed", "undo": "Undid"}[action]
+        events = [{"type": "note", "text": note}]
+        session.events.append(events[0])
+        events += agent.run_turn(session, None, action_note=f"{verb}: {proposal['title']}")
+    elif action == "forget":  # the user removes a preference Bulba recorded
+        pref = next((p for p in session.preferences if p["id"] == data.get("id")), None)
+        if pref:
+            pref["status"] = "rejected"
+            session.messages.append({"role": "user", "content": f"[I removed this preference: {pref['interpretation']}]"})
+    elif action == "budget":
+        try:
+            session.budget = max(0.5, min(50.0, float(data.get("value"))))
+        except (TypeError, ValueError):
+            return JsonResponse({"error": "Enter an amount in dollars."}, status=400)
+    else:
+        return JsonResponse({"error": "Unknown action."}, status=400)
+    session.save()
+    return JsonResponse({"events": events, "state": _bulba_state(session)})
+
+
+@login_required
+def bulba_transcript(request):
+    """The current Bulba conversation as a JSON file, to share when something behaves oddly. No keys."""
+    from .bulba import agent
+    from .models import BulbaSession
+    session = BulbaSession.objects.filter(user=request.user, active=True).first()
+    if session is None:
+        return HttpResponseNotFound("No Bulba conversation yet.")
+    data = {
+        "format": "narrativeai-bulba-transcript", "exported": datetime.now().isoformat(timespec="seconds"),
+        "target_model": session.target_model, "stage": session.stage,
+        "spent_usd": round(session.spent, 4), "budget_usd": session.budget,
+        "events": session.events, "preferences": session.preferences, "proposals": session.proposals,
+        "messages": session.messages, "system_prompt": agent.system_prompt(session),
+    }
+    response = HttpResponse(json.dumps(data, ensure_ascii=False, indent=2), content_type="application/json")
+    response["Content-Disposition"] = f'attachment; filename="bulba-{session.id}-{datetime.now():%Y%m%d-%H%M}.json"'
+    return response

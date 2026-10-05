@@ -374,7 +374,7 @@ class ChatPromptTests(TestCase):
         from users.models import ConnectionProfile
         ConnectionProfile.objects.filter(user=self.user).delete()
         resp = self.client.get(self.url)
-        self.assertRedirects(resp, reverse("users:api_config") + f"?next={self.url}", fetch_redirect_response=False)
+        self.assertRedirects(resp, reverse("users:welcome"), fetch_redirect_response=False)
 
 
 class TaskRoutingTests(TestCase):
@@ -662,8 +662,12 @@ class SamplerTests(SimpleTestCase):
             params, skipped = to_api_params(values, model)
             self.assertNotIn("temperature", params, model)
             self.assertEqual(sorted(skipped), ["temperature", "top_p"])
-        for model in ("anthropic/claude-sonnet-4.6", "anthropic/claude-haiku-4.5", "anthropic/claude-opus-4.6"):
+        for model in ("anthropic/claude-sonnet-4.6", "anthropic/claude-haiku-4.5"):
             self.assertIn("temperature", to_api_params(values, model)[0], model)
+        # Opus 4.6 takes temperature only with thinking off (here thinking is on: effort "high")
+        self.assertNotIn("temperature", to_api_params(values, "anthropic/claude-opus-4.6")[0])
+        values["reasoning_effort"] = {"on": True, "value": "off"}
+        self.assertEqual(to_api_params(values, "anthropic/claude-opus-4.6")[0]["temperature"], 0.7)
 
     def test_trim_history_keeps_newest_and_starts_with_user(self):
         from mainapp.samplers import normalize, trim_history
@@ -754,7 +758,10 @@ class PresetImportTests(SimpleTestCase):
         again, _ = from_any(to_sillytavern(preset))
         self.assertEqual(again["blocks"], preset["blocks"])
         self.assertEqual(again["samplers"], preset["samplers"])
-        self.assertEqual(to_sillytavern(again)["extensions"], ST_PRESET["extensions"])
+        # Regex scripts come back complete (all SillyTavern fields filled in) and stay stable
+        scripts = to_sillytavern(again)["extensions"]["regex_scripts"]
+        self.assertEqual([r["scriptName"] for r in scripts], ["Pretty"])
+        self.assertEqual(to_sillytavern(from_any(to_sillytavern(again))[0])["extensions"]["regex_scripts"], scripts)
 
     def test_native_round_trip_and_bad_file(self):
         from mainapp.presets import from_any, to_native
@@ -766,6 +773,13 @@ class PresetImportTests(SimpleTestCase):
 
 
 class MacroTests(SimpleTestCase):
+    def test_roll_with_two_colons(self):
+        import random
+        from mainapp.presets import MacroContext, expand
+        ctx = MacroContext({}, random.Random(3))
+        for text in ("{{roll::1d20}}", "{{roll:1d20}}", "{{roll 1d20}}"):
+            self.assertTrue(1 <= int(expand(text, ctx)) <= 20, text)
+
     def run_macros(self, text, values=None):
         import random
         from mainapp.presets import MacroContext, expand
@@ -1434,3 +1448,893 @@ class SummaryPanelTests(SummaryPartsAndBranchTests):
         self.assertTrue(self.post({"action": "summarize"}).json()["success"])
         page = self.client.get(self.url)
         self.assertTrue(page.context["summary_data"]["paused"])
+
+
+class ModelProfileTests(SimpleTestCase):
+    """Per-model sampler rules (mainapp/data/models/*.json)."""
+
+    def values(self, **on):
+        from mainapp.samplers import normalize
+        return normalize({k: {"on": True, "value": v} for k, v in on.items()})
+
+    def test_every_profile_loads_and_names_only_real_samplers(self):
+        from mainapp.model_profiles import all_profiles
+        from mainapp.samplers import SAMPLERS_BY_KEY
+        profiles = all_profiles()
+        self.assertGreaterEqual(len(profiles), 2)
+        for p in profiles:
+            self.assertTrue(p["name"] and p["verified"] and p["sources"], p["id"])
+            self.assertLessEqual(set(p["samplers"]), set(SAMPLERS_BY_KEY), p["id"])
+            for rule in p["samplers"].values():
+                self.assertIn(rule["status"], ("supported", "unverified", "fixed", "unused"))
+
+    def test_profiles_match_openrouter_and_direct_ids(self):
+        from mainapp.model_profiles import for_model
+        self.assertEqual(for_model("anthropic/claude-opus-5-5")["id"], "claude-opus-5-5")
+        self.assertEqual(for_model("anthropic/claude-opus-5.5")["id"], "claude-opus-5-5")
+        self.assertEqual(for_model("xiaomi/mimo-v2.6-pro")["id"], "mimo-v2-6-pro")
+        self.assertIsNone(for_model("anthropic/claude-sonnet-4.6"))
+        self.assertIsNone(for_model(""))
+
+    def test_opus_sends_only_what_it_uses(self):
+        from mainapp.samplers import to_api_params
+        params, skipped = to_api_params(self.values(
+            temperature=0.7, max_tokens=900, frequency_penalty=0.3, seed=7, reasoning_effort="high"),
+            "anthropic/claude-opus-5-5")
+        self.assertEqual(params, {"max_tokens": 900, "reasoning": {"effort": "high"}})
+        self.assertEqual(sorted(skipped), ["frequency_penalty", "seed", "temperature"])
+        # an effort level the model doesn't have is not sent
+        params, skipped = to_api_params(self.values(reasoning_effort="minimal"), "anthropic/claude-opus-5-5")
+        self.assertEqual((params, skipped), ({}, ["reasoning_effort"]))
+
+    def test_mimo_temperature_depends_on_thinking(self):
+        from mainapp.samplers import to_api_params
+        # thinking on by default: temperature and top-p are fixed by the model
+        params, skipped = to_api_params(self.values(temperature=0.8, top_p=0.9), "xiaomi/mimo-v2.6-pro")
+        self.assertEqual((params, sorted(skipped)), ({}, ["temperature", "top_p"]))
+        # thinking off: both are sent, temperature capped at the model's 1.5
+        params, skipped = to_api_params(self.values(temperature=1.9, top_p=0.9, reasoning_effort="off"),
+                                        "xiaomi/mimo-v2.6-pro")
+        self.assertEqual(params, {"temperature": 1.5, "top_p": 0.9, "reasoning": {"enabled": False}})
+        self.assertEqual(skipped, [])
+
+    def test_unknown_models_keep_the_old_behaviour(self):
+        from mainapp.samplers import to_api_params
+        params, skipped = to_api_params(self.values(temperature=0.7, min_p=0.1), "mistralai/mistral-large")
+        self.assertEqual((params, skipped), ({"temperature": 0.7, "min_p": 0.1}, []))
+        params, skipped = to_api_params(self.values(temperature=0.7), "anthropic/claude-fable-5.1")
+        self.assertEqual((params, skipped), ({}, ["temperature"]))
+
+
+class SamplerPageProfileTests(ChatPromptTests):
+    def test_page_carries_the_profile(self):
+        from users.models import ConnectionProfile
+        ConnectionProfile.objects.filter(user=self.user).update(model="xiaomi/mimo-v2.6-pro")
+        data = self.client.get(reverse("samplers")).context["sampler_data"]
+        self.assertEqual(data["profile"]["name"], "MiMo v2.6 Pro")
+        self.assertEqual(data["status"]["temperature"]["status"], "fixed")  # thinking on by default
+        self.assertIn("Claude Opus 5.5", data["known_models"])
+
+
+class StarterTests(ChatPromptTests):
+    """Ready-made presets per model (mainapp/data/starters/*.json)."""
+
+    def test_every_starter_is_a_sound_preset_for_its_model(self):
+        from mainapp import model_profiles, presets, samplers, starters
+        all_s = starters.all_starters()
+        self.assertEqual(len(all_s), 32)  # three experiences for each of the ten models, plus two community presets
+        for s in all_s:
+            profile = next(p for p in model_profiles.all_profiles() if p["id"] == s["model"])
+            self.assertEqual(profile["starters"][s["experience"]], s["id"])
+            preset = presets.normalize(s["preset"])
+            markers = [b["marker"] for b in preset["blocks"] if b["kind"] == "marker"]
+            self.assertIn("chat_history", markers, s["id"])
+            # it sends nothing the model fixes or doesn't have
+            model = profile["ids"]["openrouter"]
+            params, skipped = samplers.to_api_params(preset["samplers"], model)
+            self.assertEqual(skipped, [], s["id"])
+            # every macro is known and the request assembles
+            built = presets.assemble(preset, {"chat_history": True}, [{"role": "user", "content": "Hi"}],
+                                     {"char": "Rose", "user": "Anya"}, model)
+            self.assertFalse([n for n in built["notes"] if "nknown macro" in n], s["id"])
+            text = "\n".join(m["content"] for m in built["messages"])
+            self.assertNotIn("{{", text, s["id"])
+            if s["experience"] == "full_preset":
+                # A community preset, whole: its own 18+ toggles start off, its text rules all compile
+                self.assertFalse([b["name"] for b in preset["blocks"] if "🔞" in b["name"] and b["enabled"]], s["id"])
+                from mainapp import regex_rules
+                self.assertFalse([r["name"] for r in preset["regex"] if r["enabled"] and regex_rules.check(r)], s["id"])
+                continue
+            self.assertIn("Rose", text)
+            # explicit content is opt-in
+            mature = [b for b in preset["blocks"] if b["name"].startswith("Mature")]
+            self.assertTrue(mature and not mature[0]["enabled"], s["id"])
+
+    def test_using_a_starter_makes_an_active_copy_with_credit(self):
+        from mainapp.models import Preset
+        resp = self.client.post(reverse("presets"), json.dumps({"action": "use_starter", "starter": "mimo-rich-scene"}),
+                                content_type="application/json")
+        self.assertEqual(resp.status_code, 200)
+        obj = Preset.objects.get(id=resp.json()["selected"])
+        self.assertTrue(obj.is_active)
+        self.assertEqual(obj.name, "Rich scene · MiMo v2.6 Pro")
+        self.assertEqual(obj.data["extras"]["starter"]["id"], "mimo-rich-scene")
+        self.assertIn("rentry.org", obj.data["extras"]["starter"]["based_on"][0]["url"])
+        # used twice: a second copy, not an overwrite
+        resp = self.client.post(reverse("presets"), json.dumps({"action": "use_starter", "starter": "mimo-rich-scene"}),
+                                content_type="application/json")
+        self.assertEqual(Preset.objects.get(id=resp.json()["selected"]).name, "Rich scene · MiMo v2.6 Pro (2)")
+        bad = self.client.post(reverse("presets"), json.dumps({"action": "use_starter", "starter": "nope"}),
+                               content_type="application/json")
+        self.assertEqual(bad.status_code, 400)
+
+    def test_page_lists_the_users_model_first(self):
+        from users.models import ConnectionProfile
+        ConnectionProfile.objects.filter(user=self.user).update(model="anthropic/claude-opus-5-5")
+        groups = self.client.get(reverse("presets")).context["preset_page"]["starters"]
+        self.assertTrue(groups[0]["yours"])
+        self.assertEqual(groups[0]["model_name"], "Claude Opus 5.5")
+        self.assertEqual([s["title"] for s in groups[0]["starters"]], ["Back-and-forth", "Rich scene", "Director seat"])
+
+
+class WelcomeTests(TestCase):
+    """First run: an OpenRouter key and a chat model, nothing else."""
+
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(username="newbie", password="pw12345!")
+        self.client.force_login(self.user)
+        self.url = reverse("users:welcome")
+
+    def post(self, data, ok=True):
+        from unittest import mock
+        with mock.patch("mainapp.ai_client.test_connection", return_value=(ok, "Key works." if ok else "OpenRouter rejected this key.")):
+            return self.client.post(self.url, json.dumps(data), content_type="application/json")
+
+    def test_home_sends_new_users_here(self):
+        self.assertRedirects(self.client.get(reverse("home")), self.url, fetch_redirect_response=False)
+
+    def test_lists_ten_models_recommended_first(self):
+        models = self.client.get(self.url).context["welcome_data"]["models"]
+        self.assertEqual(len(models), 10)
+        self.assertEqual([m["name"] for m in models[:2]], ["Claude Opus 5.5", "MiMo v2.6 Pro"])
+        self.assertTrue(all(m["best_for"] and m["openrouter"] and m["price"] for m in models))
+
+    def test_saving_sets_up_the_main_connection(self):
+        from mainapp import ai_client
+        resp = self.post({"api_key": "sk-or-test", "model": "mimo-v2-6-pro"})
+        self.assertEqual(resp.json(), {"status": "ok", "model": "MiMo v2.6 Pro"})
+        self.assertTrue(ai_client.has_connection(self.user))
+        profile, model = ai_client.resolve(self.user, "chat")
+        self.assertEqual((profile.api_key, model), ("sk-or-test", "xiaomi/mimo-v2.6-pro"))
+        # changing the model later keeps the saved key
+        self.post({"api_key": "", "model": "claude-opus-5-5"})
+        profile, model = ai_client.resolve(self.user, "chat")
+        self.assertEqual((profile.api_key, model), ("sk-or-test", "anthropic/claude-opus-5.5"))
+        self.assertEqual(self.user.connection_profiles.count(), 1)
+        self.assertEqual(self.client.get(reverse("home")).status_code, 200)
+
+    def test_bad_key_can_be_saved_anyway(self):
+        resp = self.post({"api_key": "nope", "model": "kimi-k3"}, ok=False)
+        self.assertEqual(resp.status_code, 400)
+        self.assertTrue(resp.json()["can_skip"])
+        self.assertFalse(self.user.connection_profiles.exists())
+        resp = self.post({"api_key": "nope", "model": "kimi-k3", "skip_check": True}, ok=False)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_needs_a_known_model_and_a_key(self):
+        self.assertEqual(self.post({"api_key": "k", "model": "gpt-9"}).status_code, 400)
+        self.assertEqual(self.post({"api_key": "", "model": "kimi-k3"}).status_code, 400)
+
+
+class ExtrasTests(TestCase):
+    """The plain-words feature switches."""
+
+    def setUp(self):
+        from users.models import ConnectionProfile
+        self.user = get_user_model().objects.create_user(username="extra", password="pw12345!")
+        self.main = ConnectionProfile.objects.create(user=self.user, name="Main", api_key="sk-or-x",
+                                                     model="anthropic/claude-opus-5.5")
+        self.client.force_login(self.user)
+        self.url = reverse("users:extras")
+
+    def post(self, data):
+        return self.client.post(self.url, json.dumps(data), content_type="application/json")
+
+    def test_page_shows_current_settings(self):
+        state = self.client.get(self.url).context["extras_data"]
+        self.assertEqual(state["chat_model"], "Claude Opus 5.5")
+        self.assertEqual(state["background"], "chat")
+        self.assertEqual(state["trackers"]["mode"], "auto")  # the default
+        self.assertTrue(all(m["price"] == "$" for m in state["cheap_models"]))
+
+    def test_switches_save(self):
+        from mainapp.ai_client import get_task_setting
+        from users.models import ApiConfig
+        state = self.post({"summary": {"mode": "auto", "interval": 12}, "trackers": {"mode": "manual", "interval": 3},
+                           "sprites": False, "eleven_key": "el-key"}).json()["state"]
+        self.assertEqual((state["summary"], state["trackers"]["mode"], state["sprites"], state["has_eleven_key"]),
+                         ({"mode": "auto", "interval": 12}, "manual", False, True))
+        self.assertFalse(get_task_setting(self.user, "emotion").enabled)
+        self.post({"remove_eleven_key": True})
+        self.assertEqual(ApiConfig.objects.get(user=self.user).eleven_key, "")
+
+    def test_cheaper_background_model(self):
+        from mainapp import ai_client
+        state = self.post({"background": "mimo-v2-6-pro"}).json()["state"]
+        self.assertEqual(state["background"], "mimo-v2-6-pro")
+        for task in ("summary", "trackers", "emotion", "voice_split"):
+            profile, model = ai_client.resolve(self.user, task)
+            self.assertEqual((profile.name, profile.api_key, model), ("Background (cheaper)", "sk-or-x", "xiaomi/mimo-v2.6-pro"))
+        self.assertEqual(ai_client.resolve(self.user, "chat")[1], "anthropic/claude-opus-5.5")  # chat untouched
+        state = self.post({"background": "chat"}).json()["state"]
+        self.assertEqual(state["background"], "chat")
+        self.assertEqual(ai_client.resolve(self.user, "summary")[1], "anthropic/claude-opus-5.5")
+        self.assertEqual(self.post({"background": "claude-opus-5-5"}).status_code, 400)  # not a cheap model
+
+
+class BulbaTests(TestCase):
+    """The setup assistant, with a scripted fake model (no network)."""
+
+    def setUp(self):
+        from users.models import ConnectionProfile
+        self.user = get_user_model().objects.create_user(username="potato", password="pw12345!")
+        self.main = ConnectionProfile.objects.create(user=self.user, name="Main", api_key="sk-or-secret",
+                                                     model="anthropic/claude-opus-5.5")
+        self.client.force_login(self.user)
+        self.script = []      # replies Bulba's model gives, in order
+        self.bulba_calls, self.sample_calls = [], []
+
+    # -- fake AI ----------------------------------------------------------------
+    @staticmethod
+    def call(tool, **args):
+        return {"id": f"call_{tool}_{len(json.dumps(args))}", "type": "function",
+                "function": {"name": tool, "arguments": json.dumps(args)}}
+
+    def fake_post(self, url, headers=None, json=None, timeout=None, **kwargs):
+        from unittest import mock
+        resp = mock.Mock(status_code=200)
+        if "tools" in json:
+            self.bulba_calls.append(json)
+            content, calls = self.script.pop(0) if self.script else ("Okay.", [])
+            message = {"role": "assistant", "content": content, **({"tool_calls": calls} if calls else {})}
+        else:
+            self.sample_calls.append(json)
+            message = {"role": "assistant", "content": f"Sample number {len(self.sample_calls)}."}
+        resp.json.return_value = {"choices": [{"message": message}], "usage": {"cost": 0.01}}
+        return resp
+
+    def api(self, **body):
+        from unittest import mock
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=self.fake_post):
+            return self.client.post(reverse("bulba_api"), json.dumps(body), content_type="application/json")
+
+    # -- tests ------------------------------------------------------------------
+    def test_page_starts_a_session_with_a_free_opening(self):
+        page = self.client.get(reverse("bulba"))
+        data = page.context["bulba_data"]
+        self.assertEqual(data["state"]["model"], "Claude Opus 5.5")
+        self.assertEqual(data["state"]["stage"], "extras")
+        self.assertIn("potato", data["events"][0]["text"])
+        self.assertTrue(data["events"][0]["choices"])
+        self.assertEqual(self.bulba_calls, [])  # starting costs nothing
+
+    def test_unknown_model_gets_a_friendly_page(self):
+        self.main.model = "some/other-model"
+        self.main.save()
+        self.assertIsNone(self.client.get(reverse("bulba")).context["bulba_data"])
+
+    def test_bulba_runs_on_its_own_model_and_never_sees_keys(self):
+        self.script = [("", [self.call("get_current_setup")]), ("You're on Opus. Voices?", [])]
+        data = self.api(action="say", text="Hi").json()
+        self.assertEqual(self.bulba_calls[0]["model"], "xiaomi/mimo-v2.6-pro")
+        self.assertIn("tools", self.bulba_calls[0])
+        self.assertNotIn("sk-or-secret", json.dumps(self.bulba_calls))
+        self.assertEqual(self.bulba_calls[1]["messages"][-1]["role"], "tool")
+        self.assertEqual([e["type"] for e in data["events"]], ["user", "bulba"])
+        self.assertAlmostEqual(data["state"]["spent"], 0.02)
+
+    def test_choices_and_preferences(self):
+        self.script = [("Quiet or dramatic?", [
+            self.call("offer_choices", choices=[{"label": "Quiet"}, {"label": "Dramatic"}]),
+            self.call("record_preference", wording="short replies please", interpretation="Prefers short replies",
+                      scope="general", status="confirmed")]), ("", [])]
+        data = self.api(action="say", text="short replies please").json()
+        bulba = [e for e in data["events"] if e["type"] == "bulba"][0]
+        self.assertEqual([c["label"] for c in bulba["choices"]], ["Quiet", "Dramatic"])
+        self.assertEqual(data["state"]["preferences"][0]["interpretation"], "Prefers short replies")
+        pid = data["state"]["preferences"][0]["id"]
+        data = self.api(action="forget", id=pid).json()
+        self.assertEqual(data["state"]["preferences"], [])
+
+    def test_samples_come_from_the_users_chat_model(self):
+        self.script = [("Which reads better?", [self.call(
+            "write_samples", starter="opus-rich-scene", scenario="A rainy museum after closing.",
+            user_turn="Can you fix it?",
+            variants=[{"label": "terse", "instructions": "Very terse."}, {"label": "lush", "instructions": "Lush detail."}])]),
+            ("", [])]
+        data = self.api(action="say", text="show me").json()
+        samples = next(e for e in data["events"] if e["type"] == "samples")
+        self.assertEqual([s["label"] for s in samples["samples"]], ["A", "B"])
+        self.assertEqual(len(self.sample_calls), 2)
+        for call in self.sample_calls:
+            self.assertEqual(call["model"], "anthropic/claude-opus-5.5")  # the user's chat model
+            system = "\n".join(m["content"] for m in call["messages"])
+            self.assertIn("under 250 words", system)
+            self.assertIn("Mara Voss", system)  # the neutral test character
+        self.assertTrue(all(c["messages"][-1]["content"].startswith("Can you fix it?") for c in self.sample_calls))
+        # The turn ends with the samples (the user picks next); Bulba sees which letter was which
+        # variant in its history, while the page only shows letters
+        self.assertEqual(len(self.bulba_calls), 1)
+        from mainapp.models import BulbaSession
+        history = BulbaSession.objects.get(user=self.user, active=True).messages
+        tool_result = json.loads(history[-1]["content"])
+        self.assertEqual({v["variant"] for v in tool_result["shown_to_user_as"].values()}, {"terse", "lush"})
+        self.assertAlmostEqual(data["state"]["spent"], 0.03)
+
+    def test_preset_proposal_apply_and_undo(self):
+        from mainapp import presets as presets_mod
+        before = presets_mod.get_active(self.user)
+        self.script = [("Here's your preset.", [self.call(
+            "propose_preset", starter="opus-back-and-forth", name="Banter setup",
+            taste="Keep the teasing light.", reply_length="short", why="you like quick exchanges")])]
+        data = self.api(action="say", text="build it").json()
+        proposal = data["state"]["proposals"][0]
+        self.assertEqual((proposal["kind"], proposal["status"]), ("preset", "pending"))
+        self.assertEqual(presets_mod.get_active(self.user).id, before.id)  # nothing changes before Apply
+
+        self.script = [("Applied. Now, who are you in the story?", [])]
+        data = self.api(action="apply", id=proposal["id"]).json()
+        self.assertEqual(data["state"]["proposals"][0]["status"], "applied")
+        self.assertEqual(data["events"][0]["type"], "note")
+        self.assertIn("[Applied: Preset: Banter setup]", json.dumps(self.bulba_calls[-1]["messages"]))
+        active = presets_mod.get_active(self.user)
+        self.assertEqual(active.name, "Banter setup")
+        taste = next(b for b in active.data["blocks"] if b["name"] == "Your taste")
+        self.assertIn("Keep the teasing light.", taste["content"])
+        # Their length replaces the starter's own length rule: one rule, not two
+        style = next(b for b in active.data["blocks"] if b["name"] == "Style")["content"]
+        self.assertIn("Keep replies short: one to three paragraphs.", style)
+        self.assertNotIn("Usually one to three short paragraphs", style)
+        self.assertNotIn("paragraphs", taste["content"])
+
+        self.script = [("Undone.", [])]
+        self.api(action="undo", id=proposal["id"])
+        self.assertEqual(presets_mod.get_active(self.user).id, before.id)
+        from mainapp.models import Preset
+        self.assertFalse(Preset.objects.filter(user=self.user, name="Banter setup").exists())
+
+    def test_character_persona_and_extras_proposals(self):
+        from mainapp.models import Character
+        from mainapp.ai_client import get_task_setting
+        self.script = [("", [
+            self.call("propose_extras", summary="auto", summary_every=12, sprites=False, background="mimo-v2-6-pro", why="cheaper"),
+            self.call("propose_persona", name="Anya", description="A tired courier."),
+            self.call("propose_character", name="Dottore", description="A scholar first.", scenario="A lab.",
+                      greeting="Hello there.")]), ("Three things to look at.", [])]
+        data = self.api(action="say", text="go").json()
+        extras, persona, character = data["state"]["proposals"]
+        for p in (extras, persona, character):
+            self.script = [("Done.", [])]
+            self.api(action="apply", id=p["id"])
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.persona_name, "Anya")
+        made = Character.objects.get(author=self.user, name="Dottore")
+        self.assertEqual(made.initial_message, "Hello there.")
+        self.assertEqual(get_task_setting(self.user, "summary").interval, 12)
+        self.assertFalse(get_task_setting(self.user, "emotion").enabled)
+        state = self.api(action="say", text="ok").json()["state"]
+        self.assertEqual(next(p for p in state["proposals"] if p["kind"] == "character")["result"]["slug"], made.slug)
+        # undo the character and the extras
+        self.api(action="undo", id=character["id"])
+        self.api(action="undo", id=extras["id"])
+        self.assertFalse(Character.objects.filter(id=made.id).exists())
+        self.assertTrue(get_task_setting(self.user, "emotion").enabled)
+        self.assertEqual(get_task_setting(self.user, "summary").profile_id, None)
+        # a handled proposal can't be applied again
+        self.assertEqual(self.api(action="apply", id=character["id"]).status_code, 400)
+
+    def test_budget_stops_bulba(self):
+        self.client.get(reverse("bulba"))
+        from mainapp.models import BulbaSession
+        BulbaSession.objects.filter(user=self.user).update(spent=5.0)
+        data = self.api(action="say", text="hello?").json()
+        self.assertEqual(self.bulba_calls, [])
+        self.assertIn("limit", data["events"][-1]["text"])
+        data = self.api(action="budget", value=8).json()
+        self.assertEqual(data["state"]["budget"], 8.0)
+
+    def test_changing_model_starts_a_new_session(self):
+        first = self.client.get(reverse("bulba")).context["bulba_data"]["state"]["id"]
+        self.main.model = "xiaomi/mimo-v2.6-pro"
+        self.main.save()
+        state = self.client.get(reverse("bulba")).context["bulba_data"]["state"]
+        self.assertNotEqual(state["id"], first)
+        self.assertEqual(state["model"], "MiMo v2.6 Pro")
+
+
+class BulbaGuideTests(BulbaTests):
+    """Stage guides, starter rewrites, testing a proposal, transcripts."""
+
+    def system_of(self, n=-1):
+        return self.bulba_calls[n]["messages"][0]["content"]
+
+    def test_guides_follow_the_stage(self):
+        self.script = [("", [self.call("set_stage", stage="taste")]), ("What do you want to play?", [])]
+        self.api(action="say", text="no voices")
+        self.assertNotIn("Guide: finding out what they like", self.system_of(0))  # extras stage
+        self.assertIn("Guide: finding out what they like", self.system_of(1))     # taste stage
+        self.assertIn("Guide: writing their preset", self.system_of(1))
+        self.assertNotIn("Guide: writing characters", self.system_of(1))
+        self.assertIn("Model knowledge: Claude Opus 5.5", self.system_of(1))
+        self.assertNotIn("{target_model}", self.system_of(1))
+
+    def test_get_starter_and_rewrite(self):
+        from mainapp import starters
+        original = next(b["content"] for b in starters.get("opus-back-and-forth")["preset"]["blocks"] if b["name"] == "Roleplay")
+        calmer = original.replace("Let the exchange spar", "Keep the exchange gentle")
+        self.script = [("", [self.call("get_starter", starter="opus-back-and-forth")]),
+                       ("", [self.call("propose_preset", starter="opus-back-and-forth", taste="Gentle.",
+                                       rewrite={"Roleplay": "No placeholders here."})]),
+                       ("", [self.call("propose_preset", starter="opus-back-and-forth", taste="Gentle.",
+                                       rewrite={"Roleplay": calmer})]), ("Look it over.", [])]
+        data = self.api(action="say", text="no banter please").json()
+        got = json.loads(self.bulba_calls[1]["messages"][-1]["content"])
+        self.assertIn("Let the exchange spar", got["sections"]["Roleplay"])
+        rejected = json.loads(self.bulba_calls[2]["messages"][-1]["content"])
+        self.assertIn("dropped", rejected["error"])
+        proposal = data["state"]["proposals"][0]
+        self.assertIn("Adjusted from the starter: Roleplay section", proposal["summary"])
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=proposal["id"])
+        from mainapp import presets as presets_mod
+        active = presets_mod.get_active(self.user)
+        roleplay = next(b["content"] for b in active.data["blocks"] if b["name"] == "Roleplay")
+        self.assertIn("Keep the exchange gentle", roleplay)
+        self.assertEqual(active.data["extras"]["starter"]["id"], "opus-back-and-forth")  # credit kept
+
+    def test_sample_from_a_proposal_uses_exactly_that_preset(self):
+        self.script = [("", [self.call("propose_preset", starter="opus-rich-scene", taste="Feelings stay unspoken.")])]
+        pid = self.api(action="say", text="build it").json()["state"]["proposals"][0]["id"]
+        self.script = [("", [self.call("write_samples", from_proposal=pid, scenario="A lab.", user_turn="Hi.",
+                                       variants=[{"label": "final", "instructions": ""}])]), ("How's that?", [])]
+        data = self.api(action="say", text="show me").json()
+        system = "\n".join(m["content"] for m in self.sample_calls[0]["messages"] if m["role"] == "system")
+        self.assertIn("Feelings stay unspoken.", system)
+        self.assertEqual(len(next(e for e in data["events"] if e["type"] == "samples")["samples"]), 1)
+
+    def test_transcript_download_has_no_keys(self):
+        self.script = [("Hello.", [])]
+        self.api(action="say", text="hi")
+        resp = self.client.get(reverse("bulba_transcript"))
+        self.assertEqual(resp["Content-Type"], "application/json")
+        body = resp.content.decode()
+        self.assertNotIn("sk-or-secret", body)
+        data = json.loads(body)
+        self.assertEqual(data["target_model"], "claude-opus-5-5")
+        self.assertIn("Bulba", data["system_prompt"])
+        self.assertEqual(data["events"][-1]["text"], "Hello.")
+
+
+def _png(color=(200, 120, 90)):
+    import io
+    from PIL import Image
+    out = io.BytesIO()
+    Image.new("RGB", (8, 8), color).save(out, "PNG")
+    return out.getvalue()
+
+
+def _card_png(card, keys=("chara",)):
+    import base64
+    from mainapp import cards
+    text = base64.b64encode(json.dumps(card).encode("utf-8")).decode("ascii")
+    return cards.embed_png(_png(), {k: text for k in keys})
+
+
+V2_CARD = {
+    "spec": "chara_card_v2", "spec_version": "2.0",
+    "data": {
+        "name": "Viktor", "description": "{{char}} is a stationmaster.", "personality": "Dry, careful.",
+        "scenario": "The last train has gone.", "first_mes": "Excellent planning.",
+        "mes_example": "<START>\n{{user}}: Worried?\n{{char}}: Checking the exits.\n<START>\n{{user}}: Hi.\n{{char}}: Hm.",
+        "creator_notes": "Made for my friends. Don't send this to the model.",
+        "system_prompt": "", "post_history_instructions": "",
+        "alternate_greetings": ["You again.", "  "], "tags": ["Original", "Slow burn"],
+        "creator": "Mari", "character_version": "1.2",
+        "extensions": {"talkativeness": "0.5", "depth_prompt": {"prompt": "x", "depth": 4}},
+        "character_book": {"name": "Station lore", "entries": [
+            {"keys": ["platform"], "content": "Platform 9 is closed.", "enabled": True, "insertion_order": 10}]},
+    },
+}
+
+
+class CardReadTests(SimpleTestCase):
+    def test_v2_json(self):
+        from mainapp import cards
+        card, image = cards.read(json.dumps(V2_CARD).encode())
+        self.assertIsNone(image)
+        self.assertEqual(card["name"], "Viktor")
+        self.assertEqual(card["first_mes"], "Excellent planning.")
+        self.assertEqual(card["alternate_greetings"], ["You again."])
+        self.assertEqual(card["tags"], ["Original", "Slow burn"])
+        self.assertEqual(card["extra"]["extensions"]["talkativeness"], "0.5")
+        self.assertEqual(card["character_book"]["name"], "Station lore")
+
+    def test_v1_flat_json(self):
+        from mainapp import cards
+        card, _ = cards.read(json.dumps({"name": "Old", "description": "d", "first_mes": "hi",
+                                         "personality": "p", "creatorcomment": "notes"}).encode())
+        self.assertEqual((card["name"], card["personality"], card["creator_notes"]), ("Old", "p", "notes"))
+
+    def test_png_prefers_ccv3(self):
+        import base64
+        from mainapp import cards
+        v3 = {"spec": "chara_card_v3", "data": {**V2_CARD["data"], "name": "Viktor V3"}}
+        png = cards.embed_png(_png(), {
+            "chara": base64.b64encode(json.dumps(V2_CARD).encode()).decode(),
+            "ccv3": base64.b64encode(json.dumps(v3).encode()).decode()})
+        card, image = cards.read(png)
+        self.assertEqual(card["name"], "Viktor V3")
+        self.assertEqual(image, png)
+
+    def test_pictures_without_a_card_explain_why(self):
+        from mainapp import cards
+        with self.assertRaisesMessage(cards.CardError, "no character card inside"):
+            cards.read(_png())
+        with self.assertRaisesMessage(cards.CardError, "WEBP/JPEG"):
+            cards.read(b"RIFF\x00\x00\x00\x00WEBPVP8 ")
+        with self.assertRaises(cards.CardError):
+            cards.read(b'{"hello": "world"}')
+
+    def test_examples_format(self):
+        from mainapp import cards
+        text = cards.format_examples(V2_CARD["data"]["mes_example"])
+        self.assertEqual(text.count("[Example chat]"), 2)
+        self.assertNotIn("<START>", text)
+        self.assertEqual(cards.format_examples("  "), "")
+
+    def test_card_prompts_replace_main_and_post_history(self):
+        import random
+        from mainapp.presets import assemble, from_any
+        slots = {"card_system_prompt": "Card rules. {{original}}", "card_post_history": "Card ending."}
+        r = assemble(from_any(ST_PRESET)[0], slots, HISTORY, NAMES, "some/model", random.Random(1))
+        contents = [m["content"] for m in r["messages"]]
+        self.assertEqual(contents[0], "Card rules. You are Rose. Be grim.")
+        self.assertIn("Card ending.", contents)
+        self.assertNotIn("Reply as Rose only.", contents)
+        self.assertEqual(len([n for n in r["notes"] if "replaced" in n]), 2)
+
+    def test_card_prompts_without_matching_blocks(self):
+        import random
+        from mainapp.presets import assemble, from_any
+        preset = from_any(ST_PRESET)[0]
+        preset["blocks"] = [b for b in preset["blocks"] if b["id"] not in ("main", "jailbreak")]
+        r = assemble(preset, {"card_system_prompt": "Card rules. {{original}}", "card_post_history": "Card ending."},
+                     HISTORY, NAMES, "some/model", random.Random(1))
+        self.assertEqual(r["messages"][0]["content"], "Card rules.")
+        self.assertEqual(r["messages"][-1]["content"], "Card ending.")
+
+
+class CardImportTests(ChatPromptTests):
+    def upload(self, raw, name="card.png"):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        return self.client.post(reverse("character_import"), {"card": SimpleUploadedFile(name, raw)})
+
+    def test_png_import_creates_everything(self):
+        from mainapp import chats
+        from mainapp.models import Character
+        response = self.upload(_card_png(V2_CARD))
+        self.assertEqual(response.status_code, 200, response.content)
+        viktor = Character.objects.get(name="Viktor", author=self.user)
+        self.assertEqual(response.json()["url"], reverse("chat", args=[viktor.slug]))
+        self.assertTrue(viktor.photo_neutral.name.endswith(".png"))
+        self.assertEqual(viktor.personality, "Dry, careful.")
+        self.assertEqual(viktor.card_creator, "Mari")
+        self.assertEqual(sorted(t.tag for t in viktor.tags.all()), ["Original", "Slow burn"])
+        self.assertEqual(viktor.worldbook.title, "Station lore")
+        self.assertEqual(viktor.worldbook.author, self.user)
+        self.assertEqual(len(response.json()["notes"]), 2)
+
+        greeting = chats.greeting(viktor)[0]
+        self.assertEqual(greeting[2], "Excellent planning.")
+        self.assertEqual([v["text"] for v in greeting[5]["swipes"]], ["Excellent planning.", "You again."])
+
+    def test_names_filled_in_greetings_and_pages(self):
+        from mainapp import chats
+        from mainapp.models import Character
+        card = json.loads(json.dumps(V2_CARD))
+        card["data"]["first_mes"] = "{{char}} nods at {{User}}. <USER> nods back."
+        self.upload(_card_png(card))
+        viktor = Character.objects.get(name="Viktor")
+        self.assertEqual(chats.greeting(viktor)[0][2], "Viktor nods at chatter. chatter nods back.")
+        page = self.client.get(reverse("characters_list"))
+        self.assertContains(page, "Viktor is a stationmaster.")
+
+    def test_bad_files_get_a_plain_error(self):
+        response = self.upload(_png())
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("no character card", response.json()["error"])
+        self.assertEqual(self.client.post(reverse("character_import")).status_code, 400)
+
+    def test_personality_and_examples_are_sent_but_not_creator_notes(self):
+        from mainapp.models import Character
+        self.upload(_card_png(V2_CARD))
+        viktor = Character.objects.get(name="Viktor")
+        self.url = reverse("chat", args=[viktor.slug])
+        self.post({"action": "chat", "message": "Hello?"})
+        joined = "\n".join(m["content"] for m in self.sent[-1]["messages"])
+        self.assertIn("Dry, careful.", joined)
+        self.assertNotIn("Don't send this to the model", joined)
+        self.assertIn("Checking the exits.", joined)
+
+    def test_export_round_trip(self):
+        from mainapp import cards
+        from mainapp.models import Character
+        self.upload(_card_png(V2_CARD))
+        viktor = Character.objects.get(name="Viktor")
+        png = self.client.get(reverse("character_export", args=[viktor.slug])).content
+        texts = cards.png_text(png)
+        self.assertEqual(set(texts), {"chara", "ccv3"})
+        card, _ = cards.read(png)
+        for key in ("name", "description", "personality", "scenario", "first_mes", "mes_example",
+                    "creator_notes", "creator", "character_version", "alternate_greetings"):
+            self.assertEqual(card[key], cards.normalize(V2_CARD)[key], key)
+        self.assertEqual(card["character_book"]["entries"][0]["content"], "Platform 9 is closed.")
+        self.assertEqual(card["extra"]["extensions"]["talkativeness"], "0.5")
+
+        as_json = self.client.get(reverse("character_export", args=[viktor.slug]) + "?format=json").json()
+        self.assertEqual(as_json["spec"], "chara_card_v3")
+
+        # A second import of the same card doesn't clash on slugs
+        self.assertEqual(self.upload(png).status_code, 200)
+        self.assertEqual(Character.objects.filter(name="Viktor").count(), 2)
+
+    def test_export_without_picture_and_other_users(self):
+        from mainapp import cards
+        self.assertTrue(cards.png_text(self.client.get(reverse("character_export", args=[self.character.slug])).content))
+        other = get_user_model().objects.create_user(username="other", password="pw12345!")
+        self.client.force_login(other)
+        self.assertEqual(self.client.get(reverse("character_export", args=[self.character.slug])).status_code, 404)
+
+    def test_form_alternate_greetings(self):
+        from mainapp.forms import AddCharacterForm
+        form = AddCharacterForm(data={"name": "A", "alternate_greetings": "One\n<NEXT>\nTwo\r\n<NEXT>\n"},
+                                user=self.user)
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["alternate_greetings"], ["One", "Two"])
+        page = self.client.get(reverse("character", args=[self.character.slug]))
+        self.assertContains(page, "Card details")
+        self.assertContains(page, "download as .png card")
+
+
+class SignUpFlowTests(TestCase):
+    def test_sign_up_logs_in_and_goes_to_welcome(self):
+        response = self.client.post(reverse("users:register"), {
+            "username": "wren", "email": "wren@example.com",
+            "password1": "Lantern-Quay-81", "password2": "Lantern-Quay-81"})
+        self.assertRedirects(response, reverse("users:welcome"))
+        self.assertEqual(self.client.get(reverse("users:welcome")).status_code, 200)  # signed in already
+
+
+class BulbaOnboardingRunTests(BulbaTests):
+    """Fixes from the first full onboarding run (5 October 2026)."""
+
+    def session(self):
+        from mainapp.models import BulbaSession
+        return BulbaSession.objects.get(user=self.user, active=True)
+
+    def test_choices_end_the_turn_without_another_call(self):
+        self.script = [("Summaries: automatic, or only when you ask?",
+                        [self.call("offer_choices", choices=[{"label": "Automatically"}, {"label": "When I ask"}])])]
+        data = self.api(action="say", text="no voices").json()
+        self.assertEqual(len(self.bulba_calls), 1)
+        bubble = next(e for e in data["events"] if e["type"] == "bulba")
+        self.assertEqual([c["label"] for c in bubble["choices"]], ["Automatically", "When I ask"])
+
+    def test_extras_guide_in_the_extras_stage(self):
+        self.script = [("Okay.", [])]
+        self.api(action="say", text="no voices")
+        self.assertIn("Guide: the extras", self.bulba_calls[0]["messages"][0]["content"])
+
+    def test_empty_reply_is_not_stored(self):
+        self.script = [("", [])]
+        self.api(action="say", text="hello")
+        self.assertFalse(any(m["role"] == "assistant" and not m.get("content") and not m.get("tool_calls")
+                             for m in self.session().messages))
+
+    def test_newer_proposal_replaces_the_pending_one(self):
+        from mainapp.bulba import actions
+        self.script = [("v1", [self.call("propose_persona", name="Wren", description="A farm kid.")])]
+        self.api(action="say", text="call me Wren")
+        self.script = [("v2", [self.call("propose_persona", name="Wren", description="A farm kid. She/her.")])]
+        data = self.api(action="say", text="she/her").json()
+        self.assertEqual([p["status"] for p in data["state"]["proposals"]], ["replaced", "pending"])
+        old = data["state"]["proposals"][0]["id"]
+        self.assertEqual(self.api(action="apply", id=old).status_code, 400)
+        with self.assertRaises(actions.ProposalError):
+            actions.apply(self.session(), old)
+
+    def test_ids_let_bulba_confirm_a_guess(self):
+        self.script = [("Noted.", [self.call("record_preference", wording="too nice", interpretation="Wants friction.",
+                                             scope="general", status="tentative")])]
+        self.api(action="say", text="everyone was too nice")
+        first = self.session().preferences[0]["id"]
+        self.script = [("Settled.", [self.call("record_preference", wording="B", interpretation="Wants friction.",
+                                               scope="general", status="confirmed", replaces=first)])]
+        data = self.api(action="say", text="B, he argues back").json()
+        system = self.bulba_calls[-2]["messages"][0]["content"]
+        self.assertIn(f"- {first} [tentative, general] Wants friction.", system)
+        self.assertEqual([(p["status"]) for p in data["state"]["preferences"]], ["confirmed"])
+
+    def test_length_rule_keeps_the_starters_ending(self):
+        from mainapp.bulba.agent import build_preset
+        preset = build_preset({"starter": "opus-rich-scene", "taste": "Push back.", "reply_length": "medium"})
+        style = next(b for b in preset["blocks"] if b["name"] == "Style")["content"]
+        self.assertIn("- Keep replies to about three to five paragraphs. End where {{user}} has something to answer.", style)
+        self.assertNotIn("three to six", style)
+        # A starter without a length line gets it in the taste section instead
+        preset = build_preset({"starter": "mimo-rich-scene", "taste": "Push back.", "reply_length": "short"})
+        taste = next(b for b in preset["blocks"] if b["name"] == "Your taste")["content"]
+        self.assertIn("one to three paragraphs", taste)
+
+    def test_names_filled_on_cards_the_user_reads(self):
+        self.script = [("Look.", [self.call(
+            "write_samples", starter="opus-rich-scene", scenario="{{user}}'s spell fizzles.", user_turn="Hm.",
+            character={"name": "Corvin", "description": "A wizard."},
+            variants=[{"label": "a", "instructions": ""}])])]
+        data = self.api(action="say", text="show me").json()
+        samples = next(e for e in data["events"] if e["type"] == "samples")
+        self.assertEqual(samples["scenario"], "potato's spell fizzles.")
+        self.script = [("Here.", [self.call("propose_character", name="Corvin", description="{{char}} teaches {{user}}.",
+                                            greeting="Hi.")])]
+        data = self.api(action="say", text="make him").json()
+        self.assertIn("Corvin teaches potato.", data["state"]["proposals"][-1]["summary"])
+        self.assertEqual(self.session().proposals[-1]["payload"]["description"], "{{char}} teaches {{user}}.")
+
+
+class TaglineFilterTests(SimpleTestCase):
+    def test_labels_are_dropped(self):
+        from mainapp.templatetags.custom_filters import tagline
+        self.assertEqual(tagline("Identity:\nCorvin is a wizard.\n\nAppearance:\nTall."), "Corvin is a wizard. Tall.")
+        self.assertEqual(tagline("Identity: A wizard."), "A wizard.")
+        self.assertEqual(tagline("Plain text: with a colon inside."), "Plain text: with a colon inside.")
+
+
+ST_RULE = {"id": "r1", "scriptName": "Hide thinking", "findRegex": "/<think>[\\s\\S]*?<\\/think>\\s*/gi",
+           "replaceString": "", "trimStrings": [], "placement": [2], "disabled": False,
+           "markdownOnly": False, "promptOnly": True, "runOnEdit": False, "substituteRegex": 0,
+           "minDepth": None, "maxDepth": None}
+
+
+class RegexRuleTests(SimpleTestCase):
+    names = {"char": "Rose", "user": "Ann"}
+
+    def rule(self, **kw):
+        from mainapp import regex_rules
+        return regex_rules.normalize_rule({**ST_RULE, **kw})
+
+    def run_one(self, rule, text, mode=None, role="assistant", depth=None):
+        from mainapp import regex_rules
+        return regex_rules.run([rule], mode or rule["mode"], text, role, self.names, depth)
+
+    def test_sillytavern_format_round_trip(self):
+        from mainapp import regex_rules
+        r = self.rule()
+        self.assertEqual((r["name"], r["mode"], r["placement"]), ("Hide thinking", "prompt", [2]))
+        self.assertEqual(regex_rules.to_sillytavern(r), ST_RULE)
+        self.assertEqual(self.rule(markdownOnly=True, promptOnly=False)["mode"], "display")
+        self.assertEqual(self.rule(promptOnly=False)["mode"], "saved")
+
+    def test_replacement_like_sillytavern(self):
+        r = self.rule(findRegex="/(?<who>\\w+) waves/", replaceString="[$<who>|$1|{{match}}|{{user}}]", promptOnly=False)
+        # No g flag: only the first match
+        self.assertEqual(self.run_one(r, "Bob waves. Cy waves."), "[Bob|Bob|Bob waves|Ann]. Cy waves.")
+        r = self.rule(findRegex="/(\\w+) waves/g", replaceString="$1!$2", promptOnly=False, trimStrings=["o"])
+        self.assertEqual(self.run_one(r, "Bob waves. Cy waves."), "Bb!. Cy!.")
+
+    def test_javascript_syntax_translated(self):
+        r = self.rule(findRegex="/(?<a>q)[^]x\\k<a>\\e/", replaceString="-", promptOnly=False)
+        from mainapp import regex_rules
+        self.assertIsNone(regex_rules.check(r))
+        r = self.rule(findRegex="/\\d+/g", replaceString="#", promptOnly=False)
+        self.assertEqual(self.run_one(r, "a1 b٣ c22"), "a# b٣ c#")  # JavaScript's \d is ASCII only
+
+    def test_macros_in_find(self):
+        r = self.rule(findRegex="/{{char}}:/g", replaceString="", substituteRegex=1, promptOnly=False)
+        self.assertEqual(self.run_one(r, "Rose: hi"), " hi")
+
+    def test_where_and_when(self):
+        r = self.rule()
+        self.assertEqual(self.run_one(r, "<think>x</think>Hi"), "Hi")
+        self.assertEqual(self.run_one(r, "<think>x</think>Hi", role="user"), "<think>x</think>Hi")
+        self.assertEqual(self.run_one(r, "<think>x</think>Hi", mode="saved"), "<think>x</think>Hi")
+        deep = self.rule(minDepth=2)
+        self.assertEqual(self.run_one(deep, "<think>x</think>Hi", depth=1), "<think>x</think>Hi")
+        self.assertEqual(self.run_one(deep, "<think>x</think>Hi", depth=2), "Hi")
+        off = self.rule(disabled=True)
+        self.assertEqual(self.run_one(off, "<think>x</think>Hi"), "<think>x</think>Hi")
+
+    def test_history_depth(self):
+        from mainapp import regex_rules
+        rule = self.rule(findRegex="/\\[STATE\\][\\s\\S]*?\\[\\/STATE\\]/g", minDepth=1)
+        history = [{"role": "assistant", "content": "A [STATE]old[/STATE]"},
+                   {"role": "user", "content": "B"},
+                   {"role": "assistant", "content": "C [STATE]new[/STATE]"}]
+        out = regex_rules.run_on_history([rule], history, self.names)
+        self.assertEqual([m["content"] for m in out], ["A ", "B", "C [STATE]new[/STATE]"])
+
+    def test_preset_import_export_keeps_rules(self):
+        from mainapp.presets import from_any, normalize, to_sillytavern
+        st = json.loads(json.dumps(ST_PRESET))
+        st["extensions"] = {"regex_scripts": [ST_RULE], "other": 1}
+        preset = from_any(st)[0]
+        self.assertEqual([r["name"] for r in preset["regex"]], ["Hide thinking"])
+        self.assertEqual(preset["extras"]["extensions"], {"other": 1})
+        out = to_sillytavern(preset)
+        self.assertEqual(out["extensions"]["regex_scripts"], [ST_RULE])
+        self.assertEqual(out["extensions"]["other"], 1)
+        # Presets imported before rules existed: lifted out of extras
+        old = normalize({"blocks": [], "extras": {"extensions": {"regex_scripts": [ST_RULE]}}})
+        self.assertEqual(len(old["regex"]), 1)
+        self.assertNotIn("regex_scripts", old["extras"]["extensions"])
+
+
+class RegexChatTests(ChatPromptTests):
+    def setUp(self):
+        super().setUp()
+        from mainapp import presets as presets_mod
+        obj = presets_mod.get_active(self.user)
+        data = presets_mod.normalize(obj.data)
+        data["regex"] = [
+            {**ST_RULE},  # prompt: drop <think> from what's sent back
+            {**ST_RULE, "id": "r2", "scriptName": "Shout", "findRegex": "/quiet/g", "replaceString": "LOUD",
+             "promptOnly": False},  # saved, AI replies
+            {**ST_RULE, "id": "r3", "scriptName": "Card", "findRegex": "/\\[HP:(\\d+)\\]/g",
+             "replaceString": "<div class=\"hp\">$1</div>", "promptOnly": False, "markdownOnly": True},
+            {**ST_RULE, "id": "r4", "scriptName": "Typos", "findRegex": "/teh/g", "replaceString": "the",
+             "promptOnly": False, "placement": [1]},
+        ]
+        obj.data = presets_mod.normalize(data)
+        obj.save()
+        self.reply_text = "<think>plan</think>A quiet reply. [HP:5]"
+
+    def fake_post(self, url, headers=None, json=None, timeout=None, **kwargs):
+        resp = super().fake_post(url, headers=headers, json=json, timeout=timeout, **kwargs)
+        if self.reply_status < 400 and not (json and "response_format" in json):
+            resp.json.return_value = {"choices": [{"message": {"content": self.reply_text}}]}
+        return resp
+
+    def test_rules_in_a_chat(self):
+        self.post({"action": "chat", "message": "teh tower?"})
+        saved = self.saved_messages()
+        self.assertEqual(saved[-2][2], "the tower?")                              # saved rule, your messages
+        self.assertEqual(saved[-1][2], "<think>plan</think>A LOUD reply. [HP:5]")  # saved rule, AI replies
+        self.post({"action": "chat", "message": "go on"})
+        sent = "\n".join(m["content"] for m in self.sent[-1]["messages"])
+        self.assertNotIn("<think>", sent)                                         # prompt rule
+        self.assertIn("A LOUD reply. [HP:5]", sent)                                # display rule isn't sent
+        page = self.client.get(self.url)
+        rules = page.context["display_rules"]["rules"]
+        self.assertEqual([r["name"] for r in rules], ["Card"])
+
+    def test_card_rules_join_the_preset_rules(self):
+        from mainapp import presets as presets_mod, regex_rules
+        self.character.card_data = {"extensions": {"regex_scripts": [{**ST_RULE, "id": "c1", "scriptName": "Card rule"}]}}
+        self.character.save()
+        rules = regex_rules.for_chat(presets_mod.normalize(presets_mod.get_active(self.user).data), self.character)
+        self.assertEqual(rules[-1]["name"], "Card rule")
+
+    def test_presets_page_actions(self):
+        from mainapp import presets as presets_mod
+        obj = presets_mod.get_active(self.user)
+        url = reverse("presets")
+        post = lambda body: self.client.post(url, json.dumps(body), content_type="application/json")
+        data = post({"action": "test_rule", "id": obj.id, "rule": ST_RULE, "text": "<think>a</think>Hi"}).json()
+        self.assertEqual((data["result"], data["problem"]), ("Hi", None))
+        bad = post({"action": "test_rule", "id": obj.id, "rule": {**ST_RULE, "findRegex": "/(unclosed/"}, "text": "x"}).json()
+        self.assertIn("Can't run", bad["problem"])
+        imported = post({"action": "import_rules", "id": obj.id, "data": ST_RULE}).json()
+        self.assertEqual(len(imported["rules"]), 1)
+        current = presets_mod.normalize(obj.data)
+        post({"action": "save_full", "id": obj.id, "blocks": current["blocks"], "regex": [ST_RULE]})
+        obj.refresh_from_db()
+        self.assertEqual([r["name"] for r in presets_mod.normalize(obj.data)["regex"]], ["Hide thinking"])

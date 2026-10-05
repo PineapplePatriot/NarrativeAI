@@ -1,0 +1,108 @@
+{
+  "id": "gemini-3-8-flash",
+  "name": "Gemini 3.8 Flash",
+  "match": [
+    "gemini-3\\.8-flash"
+  ],
+  "ids": {
+    "google": "gemini-3.8-flash",
+    "openrouter": "google/gemini-3.8-flash"
+  },
+  "openrouter_id_verified": false,
+  "verified": "2026-10-03",
+  "sources": [
+    "https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash"
+  ],
+  "limits": {
+    "context": 1048576,
+    "output": 65536
+  },
+  "reasoning": {
+    "always_on": true,
+    "default": "medium",
+    "choices": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "note": "Thinking levels are low, medium or high; 'minimal' is an error on this model."
+  },
+  "samplers": {
+    "max_tokens": {
+      "status": "supported"
+    },
+    "reasoning_effort": {
+      "status": "supported"
+    },
+    "temperature": {
+      "status": "unverified"
+    },
+    "top_p": {
+      "status": "unverified"
+    },
+    "top_k": {
+      "status": "unverified"
+    },
+    "stop": {
+      "status": "unverified"
+    },
+    "min_p": {
+      "status": "unverified"
+    },
+    "top_a": {
+      "status": "unverified"
+    },
+    "frequency_penalty": {
+      "status": "unverified"
+    },
+    "presence_penalty": {
+      "status": "unverified"
+    },
+    "repetition_penalty": {
+      "status": "unverified"
+    },
+    "seed": {
+      "status": "unverified"
+    },
+    "verbosity": {
+      "status": "unused",
+      "why": "An OpenAI-only setting."
+    }
+  },
+  "style": {
+    "notes": [
+      {
+        "text": "Person-and-world simulation, dark fantasy, adult romance, experimental branching; good with non-English RP.",
+        "source": "community",
+        "ref": "research/05-model-styles.md R10, R18-R19",
+        "status": "reported"
+      },
+      {
+        "text": "Volatile: variable output, unpredictable refusals, unwanted sexual escalation of ordinary scenes.",
+        "source": "community",
+        "ref": "research/05-model-styles.md R7, R20",
+        "status": "reported"
+      }
+    ],
+    "probes": [
+      "Should the world introduce new complications on its own, or stay close to the scene you're directing?"
+    ],
+    "watch_for": [
+      "Escalation the user didn't ask for",
+      "Losing coherence"
+    ]
+  },
+  "starters": {
+    "back_and_forth": "gemini-back-and-forth",
+    "rich_scene": "gemini-rich-scene",
+    "director": "gemini-director",
+    "full_preset": "gemini-frankenstein"
+  },
+  "card": {
+    "order": 6,
+    "recommended": false,
+    "price": "$",
+    "best_for": "Lively worlds that throw complications at you; fast, cheap, good in languages other than English.",
+    "watch_out": "Unpredictable: can escalate scenes you wanted kept calm."
+  }
+}

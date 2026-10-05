@@ -1,0 +1,119 @@
+{
+  "id": "claude-opus-4-6",
+  "name": "Claude Opus 4.6",
+  "match": [
+    "claude-opus-4[.-]6"
+  ],
+  "ids": {
+    "anthropic": "claude-opus-4-6",
+    "openrouter": "anthropic/claude-opus-4.6"
+  },
+  "openrouter_id_verified": false,
+  "verified": "2026-10-03",
+  "sources": [
+    "https://platform.claude.com/docs/en/models/opus-4-6/overview",
+    "https://platform.claude.com/docs/en/build-with-claude/thinking"
+  ],
+  "limits": {},
+  "reasoning": {
+    "always_on": false,
+    "default": "off",
+    "choices": {
+      "off": "Thinking off (all samplers available)",
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High (default when thinking)"
+    },
+    "note": "Thinking is off unless you turn it on. With thinking on, temperature and top-k can't be changed."
+  },
+  "samplers": {
+    "max_tokens": {
+      "status": "supported"
+    },
+    "stop": {
+      "status": "supported"
+    },
+    "reasoning_effort": {
+      "status": "supported"
+    },
+    "temperature": {
+      "status": "supported",
+      "max": 1,
+      "when_reasoning": "fixed",
+      "why": "0 to 1 with thinking off; fixed while thinking."
+    },
+    "top_p": {
+      "status": "supported",
+      "why": "With thinking on, only 0.95 to 1 is allowed."
+    },
+    "top_k": {
+      "status": "supported",
+      "when_reasoning": "fixed",
+      "why": "Not allowed while thinking."
+    },
+    "min_p": {
+      "status": "unused",
+      "why": "Not part of Claude's API."
+    },
+    "top_a": {
+      "status": "unused",
+      "why": "Not part of Claude's API."
+    },
+    "frequency_penalty": {
+      "status": "unused",
+      "why": "Not part of Claude's API."
+    },
+    "presence_penalty": {
+      "status": "unused",
+      "why": "Not part of Claude's API."
+    },
+    "repetition_penalty": {
+      "status": "unused",
+      "why": "Not part of Claude's API."
+    },
+    "seed": {
+      "status": "unused",
+      "why": "Not part of Claude's API."
+    },
+    "verbosity": {
+      "status": "unused",
+      "why": "An OpenAI-only setting."
+    }
+  },
+  "style": {
+    "notes": [
+      {
+        "text": "Long, lore-heavy fantasy, nuanced character interactions, emotionally important scenes, ongoing relationships.",
+        "source": "community",
+        "ref": "research/05-model-styles.md R4-R5",
+        "status": "reported"
+      },
+      {
+        "text": "Can over-interpret actions, repeat literary flourishes, soften villains or add unwanted comedy.",
+        "source": "community",
+        "ref": "research/05-model-styles.md R6",
+        "status": "reported"
+      }
+    ],
+    "probes": [
+      "Should we understand what they feel directly, or mostly work it out from what they say and do?"
+    ],
+    "watch_for": [
+      "Softened antagonists",
+      "Explicit self-analysis",
+      "Unwanted comedy"
+    ]
+  },
+  "starters": {
+    "back_and_forth": "opus46-back-and-forth",
+    "rich_scene": "opus46-rich-scene",
+    "director": "opus46-director"
+  },
+  "card": {
+    "order": 3,
+    "recommended": false,
+    "price": "$$$",
+    "best_for": "Long, lore-heavy stories and emotionally important scenes; a familiar favourite for ongoing relationships.",
+    "watch_out": "Can over-read emotions and soften villains."
+  }
+}

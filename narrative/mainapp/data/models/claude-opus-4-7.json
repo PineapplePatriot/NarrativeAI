@@ -1,0 +1,114 @@
+{
+  "id": "claude-opus-4-7",
+  "name": "Claude Opus 4.7",
+  "match": [
+    "claude-opus-4[.-]7"
+  ],
+  "ids": {
+    "anthropic": "claude-opus-4-7",
+    "openrouter": "anthropic/claude-opus-4.7"
+  },
+  "openrouter_id_verified": false,
+  "verified": "2026-10-03",
+  "sources": [
+    "https://www.anthropic.com/news/claude-opus-4-7",
+    "https://platform.claude.com/docs/en/build-with-claude/thinking"
+  ],
+  "limits": {},
+  "reasoning": {
+    "always_on": false,
+    "default": "off",
+    "choices": {
+      "off": "Thinking off",
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "note": "Thinking is optional, but temperature and top-p/k stay fixed either way."
+  },
+  "samplers": {
+    "max_tokens": {
+      "status": "supported"
+    },
+    "stop": {
+      "status": "supported"
+    },
+    "reasoning_effort": {
+      "status": "supported"
+    },
+    "temperature": {
+      "status": "fixed",
+      "why": "Fixed on Opus 4.7 even with thinking off."
+    },
+    "top_p": {
+      "status": "fixed",
+      "why": "Fixed on Opus 4.7 even with thinking off."
+    },
+    "top_k": {
+      "status": "fixed",
+      "why": "Any top-k is an error."
+    },
+    "min_p": {
+      "status": "unused",
+      "why": "Not part of Claude's API."
+    },
+    "top_a": {
+      "status": "unused",
+      "why": "Not part of Claude's API."
+    },
+    "frequency_penalty": {
+      "status": "unused",
+      "why": "Not part of Claude's API."
+    },
+    "presence_penalty": {
+      "status": "unused",
+      "why": "Not part of Claude's API."
+    },
+    "repetition_penalty": {
+      "status": "unused",
+      "why": "Not part of Claude's API."
+    },
+    "seed": {
+      "status": "unused",
+      "why": "Not part of Claude's API."
+    },
+    "verbosity": {
+      "status": "unused",
+      "why": "An OpenAI-only setting."
+    }
+  },
+  "style": {
+    "notes": [
+      {
+        "text": "Natural dialogue, character embodiment and subtle romance for some users.",
+        "source": "community",
+        "ref": "research/05-model-styles.md R5",
+        "status": "reported"
+      },
+      {
+        "text": "Reports conflict sharply: bloated prose for some, thin task-like writing for others.",
+        "source": "community",
+        "ref": "research/05-model-styles.md R5, R21",
+        "status": "reported"
+      }
+    ],
+    "probes": [
+      "Do you like longer, denser replies, or short ones that leave room for you?"
+    ],
+    "watch_for": [
+      "Length swinging between bloated and thin"
+    ]
+  },
+  "starters": {
+    "back_and_forth": "opus47-back-and-forth",
+    "rich_scene": "opus47-rich-scene",
+    "director": "opus47-director"
+  },
+  "card": {
+    "order": 7,
+    "recommended": false,
+    "price": "$$$",
+    "best_for": "Natural dialogue and subtle romance, for people who like its particular voice.",
+    "watch_out": "Very mixed reports; reply length needs tuning."
+  }
+}

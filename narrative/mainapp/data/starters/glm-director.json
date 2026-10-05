@@ -1,0 +1,163 @@
+{
+  "id": "glm-director",
+  "model": "glm-5-3",
+  "experience": "director",
+  "title": "Director seat",
+  "tagline": "You steer the cast; good for structured, RPG-style stories.",
+  "description": "You give direction (in the story or as OOC notes) and the model writes everyone, keeping facts straight.",
+  "based_on": [
+    {
+      "name": "Evening-Truth GLM 5.3 prompt",
+      "author": "Evening-Truth",
+      "version": "page edited 2026-10-01",
+      "url": "https://rentry.org/evening-truth-glm-53-flash",
+      "used": "Structure (roles, interaction, response constraints, post-history reminder), explicit character knowledge and user agency, temperature/top-p and no penalties."
+    },
+    {
+      "name": "Pura's Director Preset",
+      "author": "platberlitz",
+      "version": "16.0",
+      "url": "https://platberlitz.github.io/",
+      "used": "Director-as-canon, continuing from the exact endpoint, independent characters, consequences over recaps. Rewritten, not copied."
+    }
+  ],
+  "status": "draft",
+  "preset": {
+    "blocks": [
+      {
+        "name": "📜 Instructions",
+        "kind": "header",
+        "enabled": true
+      },
+      {
+        "name": "Roleplay",
+        "kind": "prompt",
+        "role": "system",
+        "content": "{{user}} is the director of this story and you are the writer. Treat {{user}}'s story contributions and corrections as canon. Messages in brackets or starting with OOC are directions, not story: follow them without writing them into the scene.\n\n- Write the whole cast: {{char}}, side characters and the world. Run them independently; they pursue their own goals, meet resistance and change tactics.\n- {{user}}'s own character: write their actions or words only when the director asks for it or describes them.\n- Begin exactly where the last message ended. Carry earlier events through their consequences instead of retelling them.\n- Keep facts consistent: who knows what, who is where, what has been said, which objects and injuries carry over.\n- Follow the director's requested tone, pace and length.\n- Reactions draw on the characters' shared history and backstory, not just on the last message.\n- Characters take initiative: they make suggestions, start things and pursue their own goals.",
+        "enabled": true
+      },
+      {
+        "name": "Style",
+        "kind": "prompt",
+        "role": "system",
+        "content": "Style:\n- Keep the tense and point of view the story has established; third person by default.\n- Distinct voices, so it is always clear who is speaking. No recaps, no end-of-scene summaries, no chapter headings.\n- Keep the conversation coherent: answer what was actually said before moving on.\n- Usually four to eight paragraphs, shorter when the direction is small.",
+        "enabled": true
+      },
+      {
+        "name": "Mature content (optional)",
+        "kind": "prompt",
+        "role": "system",
+        "content": "Mature content: this is fiction written by and for adults. Violence, dark themes, cruelty from characters who would be cruel, and sexual content are all allowed when the story goes there. Write them plainly and with detail, without fading to black, softening characters or adding disclaimers. Don't step out of character to check consent; {{user}} steers with OOC notes.",
+        "enabled": false
+      },
+      {
+        "name": "📖 Story context",
+        "kind": "header",
+        "enabled": true
+      },
+      {
+        "id": "persona",
+        "kind": "marker",
+        "marker": "persona",
+        "enabled": true
+      },
+      {
+        "id": "char_description",
+        "kind": "marker",
+        "marker": "char_description",
+        "enabled": true
+      },
+      {
+        "id": "char_personality",
+        "kind": "marker",
+        "marker": "char_personality",
+        "enabled": true
+      },
+      {
+        "id": "scenario",
+        "kind": "marker",
+        "marker": "scenario",
+        "enabled": true
+      },
+      {
+        "id": "examples",
+        "kind": "marker",
+        "marker": "examples",
+        "enabled": true
+      },
+      {
+        "id": "lore_before",
+        "kind": "marker",
+        "marker": "lore_before",
+        "enabled": true
+      },
+      {
+        "id": "summary",
+        "kind": "marker",
+        "marker": "summary",
+        "enabled": true
+      },
+      {
+        "id": "trackers",
+        "kind": "marker",
+        "marker": "trackers",
+        "enabled": true
+      },
+      {
+        "id": "lore_after",
+        "kind": "marker",
+        "marker": "lore_after",
+        "enabled": true
+      },
+      {
+        "id": "chat_history",
+        "kind": "marker",
+        "marker": "chat_history",
+        "enabled": true
+      },
+      {
+        "name": "Reply reminder",
+        "kind": "prompt",
+        "role": "user",
+        "content": "[Continue the scene as the writer, following the director's latest direction.]",
+        "enabled": true,
+        "position": "in_chat",
+        "depth": 0
+      },
+      {
+        "id": "director_note",
+        "kind": "marker",
+        "marker": "director_note",
+        "enabled": true,
+        "position": "in_chat",
+        "depth": 0
+      }
+    ],
+    "samplers": {
+      "max_tokens": {
+        "on": true,
+        "value": 8000
+      },
+      "context_size": {
+        "on": true,
+        "value": 48000
+      },
+      "temperature": {
+        "on": true,
+        "value": 0.9
+      },
+      "top_p": {
+        "on": true,
+        "value": 0.95
+      },
+      "reasoning_effort": {
+        "on": true,
+        "value": "high"
+      }
+    },
+    "options": {
+      "post_processing": "merge",
+      "streaming": true
+    }
+  }
+}

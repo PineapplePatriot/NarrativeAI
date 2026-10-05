@@ -12,7 +12,32 @@ emotions = [
         "scared", "confused", "calm", "scheming"
     ]
 
+GREETING_SEPARATOR = "<NEXT>"
+
+
+class GreetingsField(forms.CharField):
+    """Alternate greetings, one textarea; each greeting separated by a line with just <NEXT>."""
+    widget = forms.Textarea
+
+    def prepare_value(self, value):
+        if isinstance(value, list):
+            return f"\n{GREETING_SEPARATOR}\n".join(value)
+        return value
+
+    def to_python(self, value):
+        text = super().to_python(value) or ""
+        parts = [p.strip() for p in text.replace("\r\n", "\n").split(GREETING_SEPARATOR)]
+        return [p for p in parts if p]
+
+
 class AddCharacterForm(forms.ModelForm):
+    # Shown under "Card details" instead of the main list
+    card_fields = ('personality', 'example_dialogue', 'alternate_greetings', 'system_prompt',
+                   'post_history_instructions', 'card_creator', 'card_version')
+
+    alternate_greetings = GreetingsField(
+        required=False, label="Alternate greetings",
+        help_text=f"Other first messages to swipe between. Put a line with just {GREETING_SEPARATOR} between them.")
 
     worldbook = forms.ModelChoiceField(
         queryset=Worldbook.objects.none(),
@@ -26,6 +51,8 @@ class AddCharacterForm(forms.ModelForm):
         fields = [
             'is_mult', 'name', 'description', 'scenario',
             'initial_message', 'creator_notes', 'worldbook',
+            'personality', 'example_dialogue', 'alternate_greetings', 'system_prompt',
+            'post_history_instructions', 'card_creator', 'card_version',
 
             'photo_neutral', 'photo_happy', 'photo_sad',
             'photo_angry', 'photo_surprised', 'photo_scared',
@@ -43,12 +70,27 @@ class AddCharacterForm(forms.ModelForm):
             'description': forms.Textarea(attrs={'cols': 50, 'rows': 5}),
             'scenario': forms.Textarea(attrs={'cols': 50, 'rows': 5}),
             'initial_message': forms.Textarea(attrs={'cols': 50, 'rows': 5}),
-            'creator_notes': forms.Textarea(attrs={'cols': 50, 'rows': 5}),
+            'creator_notes': forms.Textarea(attrs={'cols': 50, 'rows': 3}),
+            'personality': forms.Textarea(attrs={'rows': 3}),
+            'example_dialogue': forms.Textarea(attrs={'rows': 6, 'placeholder':
+                '<START>\n{{user}}: "You could have asked for help."\n{{char}}: "I could have." '
+                'He pushes the repaired lamp toward you. "It works now."'}),
+            'system_prompt': forms.Textarea(attrs={'rows': 4}),
+            'post_history_instructions': forms.Textarea(attrs={'rows': 3}),
             'eleven_voice_char_id': forms.TextInput(attrs={'placeholder': "Paste an ElevenLabs voice ID"}),
             'eleven_voice_narr_id': forms.TextInput(attrs={'placeholder': "Paste an ElevenLabs voice ID"}),
-            'eleven_voice_second_id': forms.TextInput(attrs={'placeholder': "Character 2 Voice ID"}),
+            'eleven_voice_second_id': forms.TextInput(attrs={'placeholder': "Paste an ElevenLabs voice ID"}),
         }
-        labels = {'is_mult': 'Contains 2 characters',}
+        labels = {'is_mult': 'Contains 2 characters', 'initial_message': 'First message',
+                  'creator_notes': "Creator's notes"}
+        help_texts = {
+            'creator_notes': "For people reading the card. Never sent to the AI.",
+            'personality': "Optional short reminder of who they are. Sent with the description.",
+            'example_dialogue': "A few short exchanges in their voice, each starting with <START>.",
+            'system_prompt': "Replaces your preset's main prompt for this character. "
+                             "Write {{original}} to keep the preset's text. Leave empty normally.",
+            'post_history_instructions': "Sent after the latest message. Leave empty normally.",
+        }
 
     def __init__(self, *args, **kwargs):
         # Отримуємо користувача, переданого з view
@@ -64,11 +106,9 @@ class AddCharacterForm(forms.ModelForm):
                 'eleven_voice_narr_id',
                 'eleven_voice_second_id'
             ]
+            # Voices are optional per character, even with a key (an empty ID means no voice)
             for fname in voice_fields:
-                if fname != "eleven_voice_second_id":
-                    self.fields[fname].required = self.has_eleven_key
-                else:
-                    self.fields[fname].required = False
+                self.fields[fname].required = False
 
 
 

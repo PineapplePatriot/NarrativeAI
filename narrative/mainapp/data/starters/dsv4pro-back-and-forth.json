@@ -1,0 +1,148 @@
+{
+  "id": "dsv4pro-back-and-forth",
+  "model": "deepseek-v4-pro",
+  "experience": "back_and_forth",
+  "title": "Back-and-forth",
+  "tagline": "Budget-friendly exchanges with characters who hold their ground.",
+  "description": "Short replies: a reaction, a line, maybe one action, then it's your turn.",
+  "based_on": [
+    {
+      "name": "Evening-Truth DeepSeek V4 prompt",
+      "author": "Evening-Truth",
+      "version": "page with dated update log",
+      "url": "https://rentry.org/Evening-Truth-deepseek-v4",
+      "used": "Strict message processing with squashed system messages, concise rules, character flexibility notes."
+    }
+  ],
+  "status": "draft",
+  "preset": {
+    "blocks": [
+      {
+        "name": "📜 Instructions",
+        "kind": "header",
+        "enabled": true
+      },
+      {
+        "name": "Roleplay",
+        "kind": "prompt",
+        "role": "system",
+        "content": "You are writing {{char}} in an ongoing roleplay with {{user}}. {{user}} is played by a real person; you play {{char}} and everyone else in the world.\n\n- Stay inside {{char}}'s voice: their history, the way they talk, what they want. Characters only know what they saw, heard or were told.\n- {{user}}'s words, actions, thoughts and feelings belong to the player. Don't write them, decide them or summarise them back.\n- Each reply is one beat: {{char}} reacts, says something, maybe does one thing, and then the turn is {{user}}'s. Leave a clear opening, but don't end every reply on a question.\n- Characters stay consistent when events turn harsh: an antagonist doesn't go soft unless the story earns it.\n- Answer out-of-character requests (in brackets, or starting with OOC) out of character, briefly.",
+        "enabled": true
+      },
+      {
+        "name": "Style",
+        "kind": "prompt",
+        "role": "system",
+        "content": "Style:\n- Plain, specific language; no stock phrases or piled-up metaphors.\n- Don't recap the previous reply or restate what {{user}} just did.\n- Usually one to three short paragraphs.",
+        "enabled": true
+      },
+      {
+        "name": "Mature content (optional)",
+        "kind": "prompt",
+        "role": "system",
+        "content": "Mature content: this is fiction written by and for adults. Violence, dark themes, cruelty from characters who would be cruel, and sexual content are all allowed when the story goes there. Write them plainly and with detail, without fading to black, softening characters or adding disclaimers. Don't step out of character to check consent; {{user}} steers with OOC notes.",
+        "enabled": false
+      },
+      {
+        "name": "📖 Story context",
+        "kind": "header",
+        "enabled": true
+      },
+      {
+        "id": "persona",
+        "kind": "marker",
+        "marker": "persona",
+        "enabled": true
+      },
+      {
+        "id": "char_description",
+        "kind": "marker",
+        "marker": "char_description",
+        "enabled": true
+      },
+      {
+        "id": "char_personality",
+        "kind": "marker",
+        "marker": "char_personality",
+        "enabled": true
+      },
+      {
+        "id": "scenario",
+        "kind": "marker",
+        "marker": "scenario",
+        "enabled": true
+      },
+      {
+        "id": "examples",
+        "kind": "marker",
+        "marker": "examples",
+        "enabled": true
+      },
+      {
+        "id": "lore_before",
+        "kind": "marker",
+        "marker": "lore_before",
+        "enabled": true
+      },
+      {
+        "id": "summary",
+        "kind": "marker",
+        "marker": "summary",
+        "enabled": true
+      },
+      {
+        "id": "trackers",
+        "kind": "marker",
+        "marker": "trackers",
+        "enabled": true
+      },
+      {
+        "id": "lore_after",
+        "kind": "marker",
+        "marker": "lore_after",
+        "enabled": true
+      },
+      {
+        "id": "chat_history",
+        "kind": "marker",
+        "marker": "chat_history",
+        "enabled": true
+      },
+      {
+        "name": "Reply reminder",
+        "kind": "prompt",
+        "role": "user",
+        "content": "[Reply as {{char}} (and anyone else present except {{user}}). One beat, then hand the turn back.]",
+        "enabled": true,
+        "position": "in_chat",
+        "depth": 0
+      },
+      {
+        "id": "director_note",
+        "kind": "marker",
+        "marker": "director_note",
+        "enabled": true,
+        "position": "in_chat",
+        "depth": 0
+      }
+    ],
+    "samplers": {
+      "max_tokens": {
+        "on": true,
+        "value": 5000
+      },
+      "context_size": {
+        "on": true,
+        "value": 64000
+      },
+      "reasoning_effort": {
+        "on": true,
+        "value": "medium"
+      }
+    },
+    "options": {
+      "post_processing": "strict",
+      "streaming": true
+    }
+  }
+}

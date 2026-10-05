@@ -353,3 +353,43 @@ body {
         flex-direction: column;
     }
 }.search-icon { z-index: 1; pointer-events: none; }
+
+.header-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.import-character-btn {
+    background: var(--ui-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 14px 22px;
+    color: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-block;
+    transition: border-color 0.2s ease;
+}
+
+.import-character-btn:hover {
+    border-color: var(--accent-1);
+}
+
+.import-message {
+    margin: -10px 0 24px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    background: var(--ui-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.import-message.error {
+    border-color: #e0605e;
+    color: #f2a3a1;
+}
+
+.import-message[hidden] {
+    display: none;
+}

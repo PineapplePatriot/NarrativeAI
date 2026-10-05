@@ -15,4 +15,6 @@ urlpatterns = [
     path('profile/', views.ProfileUser.as_view(), name='profile'),
     path("api-config/", views.connections, name="api_config"),
     path("api-config/test/", views.connections_test, name="connections_test"),
+    path("welcome/", views.welcome, name="welcome"),
+    path("extras/", views.extras, name="extras"),
 ]

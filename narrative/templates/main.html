@@ -1,4 +1,5 @@
 {% load static %}
+{% load custom_filters %}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -19,7 +20,7 @@
         </section>
 
         {% if not has_connection %}
-        <a class="home-banner" href="{% url 'users:api_config' %}">
+        <a class="home-banner" href="{% url 'users:welcome' %}">
             <strong>First step: connect an AI.</strong>
             <span>Add an API key (OpenRouter, OpenAI, Anthropic or any OpenAI-compatible service) on the Connections page. →</span>
         </a>
@@ -40,7 +41,7 @@
                     {% endif %}
                     <span class="home-char-text">
                         <strong>{{ character.name }}</strong>
-                        <span class="home-char-desc">{{ character.description|default:"No description yet."|truncatechars:90 }}</span>
+                        <span class="home-char-desc">{{ character.description|names:character|tagline|default:"No description yet."|truncatechars:90 }}</span>
                         <span class="home-char-meta">{% if character.last_played %}Played {{ character.last_played|timesince }} ago{% else %}Not played yet{% endif %}</span>
                     </span>
                     <span class="home-char-go">{% if character.last_played %}Continue{% else %}Start{% endif %} →</span>
@@ -77,6 +78,11 @@
                     <span class="home-action-icon">🎚️</span>
                     <strong>Samplers</strong>
                     <span>Temperature, reply length, context size and reasoning effort for the chat model.</span>
+                </a>
+                <a class="home-action" href="{% url 'users:extras' %}">
+                    <span class="home-action-icon">✨</span>
+                    <strong>Extras</strong>
+                    <span>Voices, automatic summaries, story trackers, sprites, and a cheaper model for the background jobs.</span>
                 </a>
                 <a class="home-action" href="{% url 'users:api_config' %}">
                     <span class="home-action-icon">🔌</span>

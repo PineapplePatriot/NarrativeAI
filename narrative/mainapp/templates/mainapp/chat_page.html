@@ -1,4 +1,5 @@
 {% load static %}
+{% load custom_filters %}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -229,7 +230,7 @@
             <div class="character-info-panel">
                 <div class="character-name">{{character.name}}</div>
                 <div class="character-description">
-                    {{character.description|truncatechars:95}}
+                    {{character.description|names:character|tagline|truncatechars:95}}
                 </div>
             </div>
 
@@ -343,8 +344,9 @@
 </div>
 
 
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
+    {# Shipped with the app (pinned versions, no CDN): see mainapp/static/mainapp/vendor/ #}
+    <script src="{% static 'mainapp/vendor/marked-18.0.14.umd.js' %}"></script>
+    <script src="{% static 'mainapp/vendor/purify-3.4.16.min.js' %}"></script>
     <script>
         window.SAVED_MUSIC = JSON.parse('{{ current_music|escapejs }}');
         window.SAVED_BG = "{{ current_bg|escapejs }}";
@@ -370,8 +372,10 @@
     {{ summary_data|json_script:"summary-data" }}
     {{ chat_list|json_script:"chats-data" }}
     {{ swipes|json_script:"swipes-data" }}
+    {{ display_rules|json_script:"display-rules" }}
     {{ trackers_data|json_script:"trackers-data" }}
     <script src="{% static 'mainapp/js/trackers.js' %}?v={% now 'U' %}"></script>
+    <script src="{% static 'mainapp/js/regex_rules.js' %}?v={% now 'U' %}"></script>
     <script src="{% static 'mainapp/js/chat_page.js' %}?v={% now 'U' %}"></script>
     <script src="{% static 'mainapp/js/chats.js' %}?v={% now 'U' %}"></script>
     <script src="{% static 'mainapp/js/summary.js' %}?v={% now 'U' %}"></script>

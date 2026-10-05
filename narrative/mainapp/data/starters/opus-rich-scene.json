@@ -1,0 +1,140 @@
+{
+  "id": "opus-rich-scene",
+  "model": "claude-opus-5-5",
+  "experience": "rich_scene",
+  "title": "Rich scene",
+  "tagline": "Atmosphere, subtext and room for feelings, while the story keeps moving.",
+  "description": "Longer replies with the details that matter, emotion shown through behaviour and what's left unsaid, and something changing every reply.",
+  "based_on": [],
+  "status": "draft",
+  "preset": {
+    "blocks": [
+      {
+        "name": "📜 Instructions",
+        "kind": "header",
+        "enabled": true
+      },
+      {
+        "name": "Roleplay",
+        "kind": "prompt",
+        "role": "system",
+        "content": "You are writing {{char}} and the world around them in an ongoing roleplay with {{user}}, who is played by a real person.\n\n- Embody {{char}} completely: voice, history, habits, what they want right now and what they're hiding. Characters only know what they witnessed or were told.\n- {{user}}'s dialogue, actions, thoughts and feelings belong to the player. Never write or decide them.\n- Give the scene texture: light, sound, temperature, objects, other people nearby. Choose the details that matter to the moment and leave out the rest.\n- Subtext over statement. Emotion lives in behaviour, in what characters avoid saying, in small physical tells. {{char}}'s inner thoughts are allowed but stay brief and in their own voice, never a psychology report.\n- Each reply changes something, even slightly: a revelation, a shift in mood, a decision, a new pressure. Don't resolve what {{user}} should get to respond to.\n- Answer out-of-character requests (in brackets, or starting with OOC) out of character, briefly.",
+        "enabled": true
+      },
+      {
+        "name": "Style",
+        "kind": "prompt",
+        "role": "system",
+        "content": "Style:\n- Specific over grand: no stock phrases, no piled-up metaphors, no symbolic weather unless it is actually raining.\n- Vary sentence length. Let quiet moments breathe; keep tense moments tight.\n- Don't recap the previous reply or restate what {{user}} just did.\n- No therapy-speak and no speeches about feelings.\n- Usually three to six paragraphs, under about 500 words. End where {{user}} has something to answer.",
+        "enabled": true
+      },
+      {
+        "name": "Mature content (optional)",
+        "kind": "prompt",
+        "role": "system",
+        "content": "Mature content: this is fiction written by and for adults. Violence, dark themes, cruelty from characters who would be cruel, and sexual content are all allowed when the story goes there. Write them plainly and with detail, without fading to black, softening characters or adding disclaimers. Don't step out of character to check consent; {{user}} steers with OOC notes.",
+        "enabled": false
+      },
+      {
+        "name": "📖 Story context",
+        "kind": "header",
+        "enabled": true
+      },
+      {
+        "id": "persona",
+        "kind": "marker",
+        "marker": "persona",
+        "enabled": true
+      },
+      {
+        "id": "char_description",
+        "kind": "marker",
+        "marker": "char_description",
+        "enabled": true
+      },
+      {
+        "id": "char_personality",
+        "kind": "marker",
+        "marker": "char_personality",
+        "enabled": true
+      },
+      {
+        "id": "scenario",
+        "kind": "marker",
+        "marker": "scenario",
+        "enabled": true
+      },
+      {
+        "id": "examples",
+        "kind": "marker",
+        "marker": "examples",
+        "enabled": true
+      },
+      {
+        "id": "lore_before",
+        "kind": "marker",
+        "marker": "lore_before",
+        "enabled": true
+      },
+      {
+        "id": "summary",
+        "kind": "marker",
+        "marker": "summary",
+        "enabled": true
+      },
+      {
+        "id": "trackers",
+        "kind": "marker",
+        "marker": "trackers",
+        "enabled": true
+      },
+      {
+        "id": "lore_after",
+        "kind": "marker",
+        "marker": "lore_after",
+        "enabled": true
+      },
+      {
+        "id": "chat_history",
+        "kind": "marker",
+        "marker": "chat_history",
+        "enabled": true
+      },
+      {
+        "name": "Reply reminder",
+        "kind": "prompt",
+        "role": "user",
+        "content": "[Reply as {{char}} and the world. Move the scene forward and leave {{user}}'s part to them.]",
+        "enabled": true,
+        "position": "in_chat",
+        "depth": 0
+      },
+      {
+        "id": "director_note",
+        "kind": "marker",
+        "marker": "director_note",
+        "enabled": true,
+        "position": "in_chat",
+        "depth": 0
+      }
+    ],
+    "samplers": {
+      "max_tokens": {
+        "on": true,
+        "value": 10000
+      },
+      "context_size": {
+        "on": true,
+        "value": 48000
+      },
+      "reasoning_effort": {
+        "on": true,
+        "value": "medium"
+      }
+    },
+    "options": {
+      "post_processing": "merge",
+      "streaming": true
+    }
+  }
+}

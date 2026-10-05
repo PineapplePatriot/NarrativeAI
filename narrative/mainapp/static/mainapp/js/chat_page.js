@@ -96,13 +96,29 @@ function hydrateExistingMessages() {
         const rawAttr = el.getAttribute('data-raw');
         if (!rawAttr) return;
         const raw = decodeURIComponent(rawAttr);
-        el.innerHTML = renderChatMessage(raw);
+        el.innerHTML = renderChatMessage(raw, el);
     });
 }
 
+// Display rules can depend on how far back a message is; re-render once a new message arrives
+function refreshForDepth() {
+    if (TextRules.usesDepth()) hydrateExistingMessages();
+}
 
+// Where a message sits: its role and depth (0 = the newest), for display text rules
+function messagePlace(where) {
+    if (!where) return { role: 'assistant', depth: 0 };
+    if (!(where instanceof Element)) return where;
+    const msg = where.closest('.message');
+    if (!msg) return { role: 'assistant', depth: 0 };
+    const all = [...document.querySelectorAll('.message:not(#typingMessage)')];
+    const i = all.indexOf(msg);
+    return { role: msg.classList.contains('user') ? 'user' : 'assistant', depth: i < 0 ? 0 : all.length - 1 - i };
+}
+
+// Quoted speech gets a highlight; HTML tags (from text rules) and code are left alone
 function wrapQuoted(text) {
-    const parts = text.split(/(`+[^`]*`+)/g);
+    const parts = text.split(/(<[^>]*>|`+[^`]*`+)/g);
     return parts.map((part, i) => {
         if (i % 2 === 1) return part;
 
@@ -111,6 +127,15 @@ function wrapQuoted(text) {
         );
     }).join('');
 }
+
+// Inline styles from text rules may colour and lay out a message, never cover the page or load things
+DOMPurify.addHook('uponSanitizeAttribute', (_node, data) => {
+    if (data.attrName !== 'style') return;
+    data.attrValue = data.attrValue
+        .split(';')
+        .filter(d => !/^\s*(position|z-index|behavior|-moz-binding)\s*:/i.test(d) && !/url\s*\(|expression\s*\(|@import/i.test(d))
+        .join(';');
+});
 
 
 marked.setOptions({
@@ -122,16 +147,22 @@ marked.setOptions({
 });
 
 
-function renderChatMessage(rawText) {
-    const pre2 = wrapQuoted(rawText);
+// where: an element inside the message (or {role, depth}); used by display text rules
+function renderChatMessage(rawText, where) {
+    const place = messagePlace(where);
+    const shown = TextRules.any() ? TextRules.apply(rawText, place.role, place.depth) : rawText;
+    const pre2 = wrapQuoted(shown);
     const html = marked.parse(pre2);
 
     const clean = DOMPurify.sanitize(html, {
         ALLOWED_TAGS: [
             'em', 'strong', 'code', 'pre', 'span', 'a', 'p', 'br', 'ul', 'ol', 'li', 'blockquote',
-            'table', 'thead', 'tbody', 'tr', 'th', 'td'
+            'table', 'thead', 'tbody', 'tr', 'th', 'td',
+            // what presets' display rules build: panels, fold-outs, small type
+            'div', 'details', 'summary', 'b', 'i', 'u', 's', 'small', 'sub', 'sup', 'hr', 'mark',
+            'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'font', 'center'
         ],
-        ALLOWED_ATTR: ['href', 'title', 'target', 'rel', 'class']
+        ALLOWED_ATTR: ['href', 'title', 'target', 'rel', 'class', 'style', 'open', 'color', 'align']
     });
 
 
@@ -169,7 +200,7 @@ function addMessage(sender, text, specificAvatarUrl = null) {
     messageDiv.setAttribute('data-index', messageIndex);
 
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const rendered = renderChatMessage(text);
+    const rendered = renderChatMessage(text, { role: sender === 'user' ? 'user' : 'assistant', depth: 0 });
 
     // --- NEW: Avatar Logic ---
     let avatarHtml = '';
@@ -215,6 +246,7 @@ function addMessage(sender, text, specificAvatarUrl = null) {
     editTextarea.value = text;
 
     messagesContainer.insertBefore(messageDiv, typingMessage);
+    refreshForDepth();
     scrollToBottom();
 }
 
@@ -250,7 +282,7 @@ async function requestReply(body) {
 
     const paint = () => {
         frame = null;
-        bubble.innerHTML = renderChatMessage(text);
+        bubble.innerHTML = renderChatMessage(text, bubble);
         bubble.setAttribute('data-raw', encodeURIComponent(text));
         scrollToBottom();
     };
@@ -314,7 +346,8 @@ function placeReply(data, avatarUrl) {
         addMessage('assistant', data.reply, avatarUrl);
         return;
     }
-    data.bubble.innerHTML = renderChatMessage(data.reply);
+    refreshForDepth();
+    data.bubble.innerHTML = renderChatMessage(data.reply, data.bubble);
     data.bubble.setAttribute('data-raw', encodeURIComponent(data.reply));
     const message = data.bubble.closest('.message');
     message.classList.remove('streaming');
@@ -465,7 +498,7 @@ function saveMessage(index) {
 
     const messageText = message.querySelector('.message-text');
     const editTextarea = message.querySelector('.edit-textarea');
-    const newText = editTextarea.value.trim();
+    let newText = editTextarea.value.trim();
 
     if (!newText) {
         alert('Message cannot be empty');
@@ -488,7 +521,8 @@ function saveMessage(index) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                const rendered = renderChatMessage(newText);
+                if (typeof data.text === 'string') newText = data.text;  // a text rule may have changed it
+                const rendered = renderChatMessage(newText, messageText);
                 messageText.innerHTML = rendered;
                 messageText.setAttribute('data-raw', encodeURIComponent(newText));
 
@@ -755,7 +789,7 @@ function continueGeneration() {
                 const hiddenTextarea = lastMsgElement.querySelector('.edit-textarea');
 
                 // 2. Render the new full text with Markdown/DOMPurify
-                const renderedHtml = renderChatMessage(data.reply);
+                const renderedHtml = renderChatMessage(data.reply, messageTextDiv);
 
                 // 3. Update the DOM
                 messageTextDiv.innerHTML = renderedHtml;
@@ -923,7 +957,7 @@ function swipe(step) {
             const msgs = document.querySelectorAll('.message:not(#typingMessage)');
             const last = msgs[msgs.length - 1];
             const textDiv = last.querySelector('.message-text');
-            textDiv.innerHTML = renderChatMessage(d.reply);
+            textDiv.innerHTML = renderChatMessage(d.reply, textDiv);
             textDiv.setAttribute('data-raw', encodeURIComponent(d.reply));
             last.querySelector('.edit-textarea').value = d.reply;
             last.dataset.emotion = d.emotion;

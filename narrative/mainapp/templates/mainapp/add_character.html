@@ -20,62 +20,92 @@
         <div class="form-error">{{ form.non_field_errors }}</div>
 
         {% for f in form %}
-            {% if f.field.widget.input_type != "file" and not f.name|startswith:"eleven_voice_" %}
-
-                {% if f.field.widget.input_type == "checkbox" %}
-                    <div class="form-group custom-checkbox-wrapper">
-                        {{ f }} <label for="{{ f.id_for_label }}">{{ f.label }}</label> </div>
+            {% if f.field.widget.input_type != "file" and f.field.widget.input_type != "checkbox" and not f.name|startswith:"eleven_voice_" and f.name not in form.card_fields %}
+                <div class="form-group">
+                    <label for="{{ f.id_for_label }}">{{ f.label }}</label>
+                    {{ f }}
+                    {% if f.help_text %}<p class="section-help">{{ f.help_text }}</p>{% endif %}
                     <div class="form-error">{{ f.errors }}</div>
-                {% else %}
-                    <div class="form-group">
-                        <label for="{{ f.id_for_label }}">{{ f.label }}</label>
-                        {{ f }}
-                        <div class="form-error">{{ f.errors }}</div>
-                    </div>
-                {% endif %}
-
+                </div>
             {% endif %}
         {% endfor %}
 
-        {% if has_eleven_key %}
-            <h4>Eleven Labs Voice</h4>
-            <div class="voice-section">
-                <div class="voice-block">
-                    <label>Voice Character 1</label>
-                    {{ form.eleven_voice_char_id.label_tag }} {{ form.eleven_voice_char_id }}
-                </div>
-                <div class="voice-block" id="second-char-voice-container" style="display: none;">
-                    <label>Voice Character 2</label>
-                    {{ form.eleven_voice_second_id }}
-                </div>
-                <div class="voice-block">
-                    <label>Voice Narrator</label>
-                    {{ form.eleven_voice_narr_id.label_tag }} {{ form.eleven_voice_narr_id }}
-                </div>
-            </div>
-        {% else %}
-            <p><em>🔒 To select a voice, add your Eleven Labs API key in settings.</em></p>
-        {% endif %}
-
-        <div class="file-grid">
+        {# The rest of a SillyTavern card: imported cards fill these in #}
+        <details class="form-section" id="cardSection" {% if form.example_dialogue.value or form.system_prompt.value or form.post_history_instructions.value %}open{% endif %}>
+            <summary><span>📇 Card details</span> <small>personality, example dialogue, alternate greetings, card instructions</small></summary>
             {% for f in form %}
-                {% if f.field.widget.input_type == "file" %}
-                    <div class="file-group" data-field-name="{{ f.name }}">
-                        <label>{{ f.label }}</label>
-                        <label class="custom-file-btn" onclick="this.nextElementSibling.click()">Choose photo</label>
-                        <input type="file" name="{{ f.name }}" id="{{ f.id_for_label }}" class="file-input">
-                        <div class="file-preview">
-                            {% if f.value %}
-                                <img src="{{ f.value.url }}" alt="current image">
-                            {% else %}
-                                📷
-                            {% endif %}
-                        </div>
+                {% if f.name in form.card_fields %}
+                    <div class="form-group">
+                        <label for="{{ f.id_for_label }}">{{ f.label }}</label>
+                        {{ f }}
+                        {% if f.help_text %}<p class="section-help">{{ f.help_text }}</p>{% endif %}
                         <div class="form-error">{{ f.errors }}</div>
                     </div>
                 {% endif %}
             {% endfor %}
-        </div>
+            {% if object %}
+                <p class="section-help">Share or back up: <a href="{% url 'character_export' object.slug %}">download as .png card</a> · <a href="{% url 'character_export' object.slug %}?format=json">.json</a></p>
+            {% endif %}
+        </details>
+
+        {# Sprites: folded away until you want them #}
+        <details class="form-section" id="spritesSection">
+            <summary><span>🖼️ Sprites</span> <small id="spriteCount"></small></summary>
+            <p class="section-help">A picture for each emotion. The chat shows the one that matches the reply; neutral is used when one is missing.</p>
+            <div class="file-grid">
+                {% for f in form %}
+                    {% if f.field.widget.input_type == "file" %}
+                        <div class="file-group" data-field-name="{{ f.name }}">
+                            <label>{{ f.label }}</label>
+                            <label class="custom-file-btn" onclick="this.nextElementSibling.click()">Choose photo</label>
+                            <input type="file" name="{{ f.name }}" id="{{ f.id_for_label }}" class="file-input">
+                            <div class="file-preview">
+                                {% if f.value %}
+                                    <img src="{{ f.value.url }}" alt="current image">
+                                {% else %}
+                                    📷
+                                {% endif %}
+                            </div>
+                            <div class="form-error">{{ f.errors }}</div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </details>
+
+        {# Rarely needed: two-character cards and voices #}
+        <details class="form-section" id="advancedSection" {% if form.is_mult.value %}open{% endif %}>
+            <summary><span>⚙️ Advanced</span> <small>two characters in one card, voices</small></summary>
+            {% for f in form %}
+                {% if f.field.widget.input_type == "checkbox" %}
+                    <div class="form-group custom-checkbox-wrapper">
+                        {{ f }} <label for="{{ f.id_for_label }}">{{ f.label }}</label>
+                    </div>
+                    <p class="section-help">For cards with two characters: adds a second set of sprites and a second voice.</p>
+                    <div class="form-error">{{ f.errors }}</div>
+                {% endif %}
+            {% endfor %}
+
+            <h4>ElevenLabs voices</h4>
+            {% if has_eleven_key %}
+                <div class="voice-section">
+                    <div class="voice-block">
+                        <label for="{{ form.eleven_voice_char_id.id_for_label }}">Character voice</label>
+                        {{ form.eleven_voice_char_id }}
+                    </div>
+                    <div class="voice-block" id="second-char-voice-container" style="display: none;">
+                        <label for="{{ form.eleven_voice_second_id.id_for_label }}">Second character's voice</label>
+                        {{ form.eleven_voice_second_id }}
+                    </div>
+                    <div class="voice-block">
+                        <label for="{{ form.eleven_voice_narr_id.id_for_label }}">Narrator voice</label>
+                        {{ form.eleven_voice_narr_id }}
+                    </div>
+                </div>
+            {% else %}
+                <p class="section-help">🔒 Add an ElevenLabs key on the <a href="{% url 'users:api_config' %}">Connections page</a> to pick voices.</p>
+            {% endif %}
+        </details>
 
         {% if object %}
             <button type="submit" class="btn-primary">💾 Save</button>

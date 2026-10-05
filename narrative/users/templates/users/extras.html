@@ -1,0 +1,76 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extras - Narrative AI</title>
+    <link rel="stylesheet" href="{% static 'users/css/welcome.css' %}">
+    <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
+</head>
+<body>
+{% include "partials/topbar.html" %}
+<main class="welcome extras">
+    <h1>Extras</h1>
+    <p class="lead">The optional bits around the chat. Change them any time; nothing here is required.</p>
+
+    <section class="option">
+        <h2>🔊 Voices</h2>
+        <p class="help">Characters can read their replies aloud through <a href="https://elevenlabs.io" target="_blank" rel="noopener">ElevenLabs</a>
+            (a separate account and key). You then pick a voice for each character in its Advanced settings.</p>
+        <input type="password" id="elevenKey" autocomplete="off" placeholder="ElevenLabs API key (leave empty for no voices)">
+        <label class="check" id="removeEleven" hidden><input type="checkbox" id="removeElevenBox"> Remove the saved key (turn voices off)</label>
+    </section>
+
+    <section class="option">
+        <h2>📚 Story summary</h2>
+        <p class="help">Long chats get summarized so the AI remembers older events without rereading everything.</p>
+        <label class="choice"><input type="radio" name="summary" value="auto"> Automatically, every
+            <input type="number" class="num" id="summaryEvery" min="1" max="200"> messages</label>
+        <label class="choice"><input type="radio" name="summary" value="manual"> Only when I press Summarize in the chat</label>
+    </section>
+
+    <section class="option">
+        <h2>📊 Story trackers</h2>
+        <p class="help">Keeps track of where you are, who's around, relationships, inventory and so on. Which trackers each character uses
+            is picked on that character's Trackers page (from the chat's menu); none are on until you choose.</p>
+        <label class="choice"><input type="radio" name="trackers" value="auto"> Automatically, every
+            <input type="number" class="num" id="trackersEvery" min="1" max="200"> messages</label>
+        <label class="choice"><input type="radio" name="trackers" value="manual"> Only when I press Update</label>
+    </section>
+
+    <section class="option">
+        <h2>🎭 Character sprites</h2>
+        <p class="help">If a character has pictures for different emotions, the chat shows the one that matches each reply.
+            That takes one small extra call per reply. Pictures can be made with
+            <a href="https://gemini.google.com" target="_blank" rel="noopener">Nano Banana</a> in Gemini.</p>
+        <label class="check"><input type="checkbox" id="sprites"> Pick sprites to match each reply</label>
+    </section>
+
+    <section class="option" id="backgroundSection">
+        <h2>💸 Background jobs</h2>
+        <p class="help">Summaries, trackers and sprites run alongside your chat with <b id="chatModel"></b>. A cheaper model does them just as well
+            and can save a lot on expensive chat models. It uses the same OpenRouter key.</p>
+        <select id="background"></select>
+    </section>
+
+    <div class="actions">
+        <p class="error" id="error" hidden></p>
+        <span class="saved" id="saved" hidden>Saved.</span>
+        <button type="button" id="saveBtn">Save</button>
+    </div>
+
+    <section class="next">
+        <h2>Next</h2>
+        <div class="done-actions">
+            <a class="btn" href="{% url 'presets' %}">Pick a ready-made setup</a>
+            <a class="btn secondary" href="{% url 'characters_list' %}">Start chatting</a>
+        </div>
+        <p class="help small">Everything here and more (other providers, a model per feature) is on the <a href="{% url 'users:api_config' %}">Connections page</a>.</p>
+    </section>
+</main>
+{{ extras_data|json_script:"extras-data" }}
+<script>const EXTRAS_URL = "{% url 'users:extras' %}";</script>
+<script src="{% static 'users/js/extras.js' %}"></script>
+</body>
+</html>

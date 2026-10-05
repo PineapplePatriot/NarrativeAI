@@ -11,6 +11,7 @@
     <a href="{% url 'presets' %}" class="{% if active == 'presets' %}active{% endif %}">Presets</a>
     <a href="{% url 'samplers' %}" class="{% if active == 'samplers' %}active{% endif %}">Samplers</a>
     <a href="{% url 'users:api_config' %}" class="{% if active == 'connections' %}active{% endif %}">Connections</a>
+    <a href="{% url 'bulba' %}" class="{% if active == 'bulba' %}active{% endif %}" title="Bulba, the setup potato">🥔 Bulba</a>
   </nav>
   <div class="na-user">
     <a href="{% url 'users:profile' %}" class="na-profile{% if active == 'profile' %} active{% endif %}" title="Your profile and persona">

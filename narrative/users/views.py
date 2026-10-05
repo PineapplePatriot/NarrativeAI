@@ -38,11 +38,14 @@ class RegisterUser(CreateView):
     form_class = RegisterUserForm
     template_name = 'users/register.html'
     extra_context = {"title": "Create an account"}
-    success_url = reverse_lazy('users:api_config')  # після успішної реєстрації
+    success_url = reverse_lazy('users:welcome')  # після успішної реєстрації
 
     def form_valid(self, form):
-        user = form.save()
-        return super().form_valid(form)
+        # Signed in straight away, then the welcome page (key + model), no second password prompt
+        from django.contrib.auth import login
+        response = super().form_valid(form)
+        login(self.request, self.object, backend="django.contrib.auth.backends.ModelBackend")
+        return response
 
 
 class ProfileUser(LoginRequiredMixin, UpdateView):
@@ -75,6 +78,8 @@ def _connections_state(user):
 
     tasks = []
     for task, info in TASKS.items():
+        if info.get("hidden"):
+            continue
         ts = get_task_setting(user, task)
         tasks.append({
             "task": task, "label": info["label"], "help": info["help"],
@@ -144,7 +149,7 @@ def _save_connections(user, data):
 
     for item in data.get("tasks", []):
         task = item.get("task")
-        if task not in TASKS:
+        if task not in TASKS or TASKS[task].get("hidden"):
             continue
         ts = get_task_setting(user, task)
         ts.profile = ref_to_profile.get(item.get("profile_id"))
@@ -218,3 +223,165 @@ class MyLogoutView(View):
     def get(self, request):
         logout(request)
         return redirect(reverse_lazy('users:login'))
+
+
+# --- First run: an OpenRouter key and the model you want to chat with ---------------------
+
+def _welcome_models():
+    from mainapp import model_profiles
+    cards = []
+    for p in model_profiles.all_profiles():
+        card = p.get("card") or {}
+        cards.append({"id": p["id"], "name": p["name"], "openrouter": p["ids"].get("openrouter", ""),
+                      "recommended": bool(card.get("recommended")), "price": card.get("price", ""),
+                      "best_for": card.get("best_for", ""), "watch_out": card.get("watch_out", ""),
+                      "order": card.get("order", 99)})
+    return sorted(cards, key=lambda c: c["order"])
+
+
+@login_required
+def welcome(request):
+    """Two questions instead of the full Connections page: your key, and your chat model."""
+    from mainapp import ai_client
+    from mainapp.ai_client import get_task_setting, main_profile, test_connection
+
+    models = _welcome_models()
+    current = main_profile(request.user)
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body.decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            return JsonResponse({"error": "Invalid request."}, status=400)
+        choice = next((m for m in models if m["id"] == data.get("model")), None)
+        if choice is None or not choice["openrouter"]:
+            return JsonResponse({"error": "Pick one of the models."}, status=400)
+        api_key = (data.get("api_key") or "").strip()
+        if not api_key and current and current.provider == ConnectionProfile.PROVIDER_OPENROUTER:
+            api_key = current.api_key  # keep the saved key
+        if not api_key:
+            return JsonResponse({"error": "Paste your OpenRouter key first."}, status=400)
+        if not data.get("skip_check"):
+            ok, message = test_connection(ConnectionProfile.PROVIDER_OPENROUTER, "", api_key, choice["openrouter"])
+            if not ok:
+                return JsonResponse({"error": message, "can_skip": True}, status=400)
+
+        profile = current if current and current.provider == ConnectionProfile.PROVIDER_OPENROUTER else None
+        if profile is None:
+            name = "Main"
+            while ConnectionProfile.objects.filter(user=request.user, name=name).exists():
+                name = f"{name} (OpenRouter)"
+            profile = ConnectionProfile(user=request.user, name=name, provider=ConnectionProfile.PROVIDER_OPENROUTER)
+        profile.api_key, profile.model = api_key, choice["openrouter"]
+        profile.save()
+        chat = get_task_setting(request.user, "chat")
+        chat.profile, chat.model = profile, ""
+        chat.save()
+        return JsonResponse({"status": "ok", "model": choice["name"]})
+
+    return render(request, "users/welcome.html", {"welcome_data": {
+        "models": models,
+        "has_key": bool(current and current.provider == ConnectionProfile.PROVIDER_OPENROUTER and current.api_key),
+        "current_model": current.model if current else "",
+        "connected": ai_client.has_connection(request.user),
+    }})
+
+
+# --- Extras: the feature switches in plain words (for people who skip Bulba) --------------
+
+BACKGROUND_TASKS = ("summary", "trackers", "emotion", "voice_split")
+
+
+def _cheap_models():
+    return [m for m in _welcome_models() if m["price"] == "$"]
+
+
+def _extras_state(user):
+    from mainapp.ai_client import get_task_setting, main_profile
+    main = main_profile(user)
+    settings_ = {t: get_task_setting(user, t) for t in ("summary", "trackers", "emotion")}
+    bg_profiles = {get_task_setting(user, t).profile_id for t in BACKGROUND_TASKS}
+    bg = ConnectionProfile.objects.filter(id=next(iter(bg_profiles))).first() if len(bg_profiles) == 1 else None
+    cheap = next((m for m in _cheap_models() if bg and main and bg.id != main.id and bg.model == m["openrouter"]), None)
+    eleven = ApiConfig.objects.filter(user=user).first()
+    return {
+        "chat_model": next((m["name"] for m in _welcome_models() if main and m["openrouter"] == main.model), main.model if main else ""),
+        "has_eleven_key": bool(eleven and eleven.eleven_key),
+        "summary": {"mode": settings_["summary"].mode, "interval": settings_["summary"].interval},
+        "trackers": {"mode": settings_["trackers"].mode, "interval": settings_["trackers"].interval},
+        "sprites": settings_["emotion"].enabled,
+        "background": cheap["id"] if cheap else "chat",
+        "cheap_models": [m for m in _cheap_models() if not (main and m["openrouter"] == main.model)],
+        "openrouter": bool(main and main.provider == ConnectionProfile.PROVIDER_OPENROUTER),
+    }
+
+
+def apply_extras(user, data):
+    """Saves the Extras switches (also used by Bulba's proposals). Returns an error message or None."""
+    from mainapp.ai_client import get_task_setting, main_profile
+    # Check everything first, so a mistake changes nothing
+    background = data.get("background")
+    main = main_profile(user)
+    choice = None
+    if background and background != "chat":
+        choice = next((m for m in _cheap_models() if m["id"] == background), None)
+        if choice is None:
+            return "Pick one of the listed models."
+        if not (main and main.provider == ConnectionProfile.PROVIDER_OPENROUTER and main.api_key):
+            return "A cheaper model needs your OpenRouter key; set it on the welcome page first."
+
+    with transaction.atomic():
+        for task in ("summary", "trackers"):
+            item = data.get(task) if isinstance(data.get(task), dict) else {}
+            setting = get_task_setting(user, task)
+            if item.get("mode") in (TaskSetting.MODE_AUTO, TaskSetting.MODE_MANUAL):
+                setting.mode = item["mode"]
+            try:
+                setting.interval = max(1, min(200, int(item.get("interval", setting.interval))))
+            except (TypeError, ValueError):
+                pass
+            setting.save()
+        if "sprites" in data:
+            emotion = get_task_setting(user, "emotion")
+            emotion.enabled = bool(data["sprites"])
+            emotion.save()
+
+        eleven = ApiConfig.objects.get_or_create(user=user)[0]
+        if data.get("remove_eleven_key"):
+            eleven.eleven_key = ""
+        elif (data.get("eleven_key") or "").strip():
+            eleven.eleven_key = data["eleven_key"].strip()
+        eleven.save()
+
+        if background == "chat":
+            for task in BACKGROUND_TASKS:
+                setting = get_task_setting(user, task)
+                setting.profile, setting.model = None, ""
+                setting.save()
+        elif choice:
+            bg, _ = ConnectionProfile.objects.get_or_create(
+                user=user, name="Background (cheaper)",
+                defaults={"provider": ConnectionProfile.PROVIDER_OPENROUTER})
+            bg.provider, bg.api_key, bg.model = ConnectionProfile.PROVIDER_OPENROUTER, main.api_key, choice["openrouter"]
+            bg.save()
+            for task in BACKGROUND_TASKS:
+                setting = get_task_setting(user, task)
+                setting.profile, setting.model = bg, ""
+                setting.save()
+    return None
+
+
+@login_required
+def extras(request):
+    from mainapp.ai_client import get_task_setting, main_profile
+
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body.decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            return JsonResponse({"error": "Invalid request."}, status=400)
+        error = apply_extras(request.user, data)
+        if error:
+            return JsonResponse({"error": error}, status=400)
+        return JsonResponse({"status": "ok", "state": _extras_state(request.user)})
+
+    return render(request, "users/extras.html", {"extras_data": _extras_state(request.user)})

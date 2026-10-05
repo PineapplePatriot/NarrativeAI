@@ -25,3 +25,12 @@
     color: var(--text-muted)
 }
 .tag.warn { color: var(--warning); border: 1px solid rgba(245, 158, 11, .5) }
+
+/* Model profile states */
+.muted { color: var(--text-muted); }
+.banner a { color: #c4b5fd; }
+.sampler .why { color: var(--text-muted); font-style: italic; }
+.sampler.st-fixed .control, .sampler.st-unused .control { opacity: .45; }
+.sampler.st-fixed .title span:first-of-type { text-decoration: line-through; text-decoration-color: rgba(148, 163, 184, .6); }
+details.unused { border-top: 1px solid var(--border); padding-top: 12px; margin-top: 4px; }
+details.unused > summary { cursor: pointer; color: var(--text-muted); font-size: .9rem; padding: 4px 0 8px; }

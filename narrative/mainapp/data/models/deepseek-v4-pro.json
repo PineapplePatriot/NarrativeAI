@@ -1,0 +1,106 @@
+{
+  "id": "deepseek-v4-pro",
+  "name": "DeepSeek V4 Pro",
+  "match": [
+    "deepseek-v4-pro"
+  ],
+  "ids": {
+    "deepseek": "deepseek-v4-pro",
+    "openrouter": "deepseek/deepseek-v4-pro"
+  },
+  "openrouter_id_verified": false,
+  "verified": "2026-10-03",
+  "sources": [
+    "https://api-docs.deepseek.com/quick_start/pricing/",
+    "https://api-docs.deepseek.com/api/create-chat-completion/"
+  ],
+  "limits": {
+    "context": 1000000
+  },
+  "reasoning": {
+    "always_on": false,
+    "default": "medium",
+    "choices": {
+      "off": "Thinking off",
+      "medium": "Thinking on"
+    },
+    "note": "Thinking can be on or off; providers on OpenRouter may differ."
+  },
+  "samplers": {
+    "max_tokens": {
+      "status": "supported"
+    },
+    "reasoning_effort": {
+      "status": "supported"
+    },
+    "temperature": {
+      "status": "supported",
+      "when_reasoning": "fixed",
+      "why": "Has no effect while thinking (direct API)."
+    },
+    "top_p": {
+      "status": "unverified",
+      "why": "Direct API: only works while thinking, between 0.95 and 1."
+    },
+    "stop": {
+      "status": "unverified"
+    },
+    "top_k": {
+      "status": "unverified"
+    },
+    "min_p": {
+      "status": "unverified"
+    },
+    "top_a": {
+      "status": "unverified"
+    },
+    "frequency_penalty": {
+      "status": "unverified"
+    },
+    "presence_penalty": {
+      "status": "unverified"
+    },
+    "repetition_penalty": {
+      "status": "unverified"
+    },
+    "seed": {
+      "status": "unverified"
+    },
+    "verbosity": {
+      "status": "unused",
+      "why": "An OpenAI-only setting."
+    }
+  },
+  "style": {
+    "notes": [
+      {
+        "text": "General character RP and long-context stories; positive reports praise dialogue and character adherence.",
+        "source": "community",
+        "ref": "research/05-model-styles.md R23",
+        "status": "reported"
+      },
+      {
+        "text": "Contradictory reports: softens characters in dark scenes; prompt-following complaints.",
+        "source": "community",
+        "ref": "research/05-model-styles.md R24-R25",
+        "status": "reported"
+      }
+    ],
+    "probes": [],
+    "watch_for": [
+      "Antagonists going soft when events turn harsh"
+    ]
+  },
+  "starters": {
+    "back_and_forth": "dsv4pro-back-and-forth",
+    "rich_scene": "dsv4pro-rich-scene",
+    "director": "dsv4pro-director"
+  },
+  "card": {
+    "order": 9,
+    "recommended": false,
+    "price": "$",
+    "best_for": "General roleplay and long stories on a budget.",
+    "watch_out": "Mixed reports; can soften characters in dark scenes."
+  }
+}

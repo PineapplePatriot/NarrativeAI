@@ -1,0 +1,112 @@
+{
+  "id": "kimi-k3",
+  "name": "Kimi K3",
+  "match": [
+    "kimi-k3"
+  ],
+  "ids": {
+    "kimi": "kimi-k3",
+    "openrouter": "moonshotai/kimi-k3"
+  },
+  "openrouter_id_verified": false,
+  "verified": "2026-10-03",
+  "sources": [
+    "https://platform.kimi.ai/docs/guide/kimi-k3-quickstart"
+  ],
+  "limits": {},
+  "reasoning": {
+    "always_on": true,
+    "default": "high",
+    "choices": {
+      "low": "Low",
+      "high": "High"
+    },
+    "note": "Kimi K3 always thinks and fixes its own samplers."
+  },
+  "samplers": {
+    "max_tokens": {
+      "status": "supported"
+    },
+    "reasoning_effort": {
+      "status": "supported"
+    },
+    "temperature": {
+      "status": "fixed",
+      "why": "Fixed at 1."
+    },
+    "top_p": {
+      "status": "fixed",
+      "why": "Fixed at 0.95."
+    },
+    "frequency_penalty": {
+      "status": "fixed",
+      "why": "Fixed at 0."
+    },
+    "presence_penalty": {
+      "status": "fixed",
+      "why": "Fixed at 0."
+    },
+    "stop": {
+      "status": "unverified"
+    },
+    "top_k": {
+      "status": "unverified"
+    },
+    "min_p": {
+      "status": "unverified"
+    },
+    "top_a": {
+      "status": "unverified"
+    },
+    "repetition_penalty": {
+      "status": "unverified"
+    },
+    "seed": {
+      "status": "unverified"
+    },
+    "verbosity": {
+      "status": "unused",
+      "why": "An OpenAI-only setting."
+    }
+  },
+  "style": {
+    "notes": [
+      {
+        "text": "Dark fantasy and dungeon crawls, fantasy/medieval character RP, theatrical exchanges, elaborate tracker-heavy setups.",
+        "source": "community",
+        "ref": "research/05-model-styles.md R10-R12",
+        "status": "reported"
+      },
+      {
+        "text": "Contested: some call K3 more restrained and less spontaneous than earlier Kimis; refusals reported on some routes.",
+        "source": "community",
+        "ref": "research/05-model-styles.md R13",
+        "status": "reported"
+      },
+      {
+        "text": "Goes wild, in good and bad ways.",
+        "source": "first-hand (Anya)",
+        "ref": "",
+        "status": "hypothesis"
+      }
+    ],
+    "probes": [
+      "When you say unhinged, do you mean surprising events, characters who act on ugly motives, or dramatic dialogue?"
+    ],
+    "watch_for": [
+      "Grandiose dialogue in modern settings"
+    ]
+  },
+  "starters": {
+    "back_and_forth": "kimi-back-and-forth",
+    "rich_scene": "kimi-rich-scene",
+    "director": "kimi-director"
+  },
+  "card": {
+    "order": 5,
+    "recommended": false,
+    "price": "$$",
+    "best_for": "Dark fantasy, theatrical characters and elaborate setups with lots of tracking.",
+    "watch_out": "Everyday modern characters can sound grandiose."
+  }
+}

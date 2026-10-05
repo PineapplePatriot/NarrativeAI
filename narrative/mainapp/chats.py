@@ -34,9 +34,20 @@ def write(chat, data):
 
 
 def greeting(character):
-    if not character.initial_message:
+    """The opening message; a card's alternate greetings become its other swipes."""
+    from mainapp.cards import fill_names, user_name
+    texts = [t for t in [character.initial_message, *(getattr(character, "alternate_greetings", None) or [])]
+             if isinstance(t, str) and t.strip()]
+    # Cards write {{user}}/{{char}} in greetings; the chat stores the names, as SillyTavern shows them
+    texts = [fill_names(t, character.name, user_name(character.author)) for t in texts]
+    if not texts:
         return []
-    return [["assistant", datetime.now().strftime("%H:%M"), character.initial_message, "neutral", 1]]
+    now = datetime.now().strftime("%H:%M")
+    message = ["assistant", now, texts[0], "neutral", 1]
+    if len(texts) > 1:
+        versions = [{"time": now, "text": t, "emotion": "neutral", "char_count": 1} for t in texts]
+        message.append({"swipes": versions, "swipe": 0})
+    return [message]
 
 
 def create(character, title=None, data=None, parent=None, branch_point=None):

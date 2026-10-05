@@ -1,0 +1,155 @@
+{
+  "id": "mimo-director",
+  "model": "mimo-v2-6-pro",
+  "experience": "director",
+  "title": "Director seat",
+  "tagline": "You steer the cast; it writes the scene and isn't shy about plot.",
+  "description": "You give direction and the model writes everyone, steering the story actively and keeping the facts straight.",
+  "based_on": [
+    {
+      "name": "MiMo-V2.6 Experimental (SillyTavern preset)",
+      "author": "Evening-Truth (rentry page)",
+      "version": "file shared on 3 October 2026",
+      "url": "https://rentry.org/Evening-Truth-Xiaomi-MiMo-V26",
+      "used": "Role, interaction, style and response rules (grounded language, no em-dashes, limited knowledge, characters with their own goals, under-500-token replies), adapted. Its in-reply tracker is left out because the app has its own trackers; its explicit-content rules moved to the optional Mature content block."
+    },
+    {
+      "name": "Pura's Director Preset",
+      "author": "platberlitz",
+      "version": "16.0",
+      "url": "https://platberlitz.github.io/",
+      "used": "Ideas from the Director Main Prompt (director as canon, continuing from the exact endpoint, independent characters, consequences over recaps) and the user-control and length modules. Rewritten, not copied."
+    }
+  ],
+  "status": "draft",
+  "preset": {
+    "blocks": [
+      {
+        "name": "📜 Instructions",
+        "kind": "header",
+        "enabled": true
+      },
+      {
+        "name": "Roleplay",
+        "kind": "prompt",
+        "role": "system",
+        "content": "{{user}} is the director of this story and you are the writer. Treat {{user}}'s story contributions and corrections as canon. Messages in brackets or starting with OOC are directions, not story: follow them without writing them into the scene.\n\n- Write the whole cast: {{char}}, side characters and the world. Their goals are independent and can conflict with each other and with {{user}}'s character.\n- {{user}}'s own character: write their actions or words only when the director asks for it or describes them.\n- You are encouraged to steer the story: introduce complications, let characters act on their plans, follow consequences through.\n- Begin exactly where the last message ended. Carry earlier events through their consequences instead of retelling them.\n- Characters are not omniscient: they only know what they witnessed or were told.",
+        "enabled": true
+      },
+      {
+        "name": "Style",
+        "kind": "prompt",
+        "role": "system",
+        "content": "Style:\n- Avoid melodrama, cliché phrases and overused metaphors. Use specific, natural, grounded language.\n- Strong verbs and a clear sequence of actions; vary sentence length and structure.\n- No em-dashes.\n- Stay inside the story: no notes to the reader, no commentary about the roleplay.\n- Keep positions, distances and who-is-holding-what consistent.\n- A full scene beat per reply, under 700 tokens unless the director asks for more.",
+        "enabled": true
+      },
+      {
+        "name": "Mature content (optional)",
+        "kind": "prompt",
+        "role": "system",
+        "content": "Mature content: this is fiction written by and for adults. Violence, dark themes, cruelty from characters who would be cruel, and sexual content are all allowed when the story goes there. Write them plainly and with detail, without fading to black, softening characters or adding disclaimers. Don't step out of character to check consent; {{user}} steers with OOC notes.",
+        "enabled": false
+      },
+      {
+        "name": "📖 Story context",
+        "kind": "header",
+        "enabled": true
+      },
+      {
+        "id": "persona",
+        "kind": "marker",
+        "marker": "persona",
+        "enabled": true
+      },
+      {
+        "id": "char_description",
+        "kind": "marker",
+        "marker": "char_description",
+        "enabled": true
+      },
+      {
+        "id": "char_personality",
+        "kind": "marker",
+        "marker": "char_personality",
+        "enabled": true
+      },
+      {
+        "id": "scenario",
+        "kind": "marker",
+        "marker": "scenario",
+        "enabled": true
+      },
+      {
+        "id": "examples",
+        "kind": "marker",
+        "marker": "examples",
+        "enabled": true
+      },
+      {
+        "id": "lore_before",
+        "kind": "marker",
+        "marker": "lore_before",
+        "enabled": true
+      },
+      {
+        "id": "summary",
+        "kind": "marker",
+        "marker": "summary",
+        "enabled": true
+      },
+      {
+        "id": "trackers",
+        "kind": "marker",
+        "marker": "trackers",
+        "enabled": true
+      },
+      {
+        "id": "lore_after",
+        "kind": "marker",
+        "marker": "lore_after",
+        "enabled": true
+      },
+      {
+        "id": "chat_history",
+        "kind": "marker",
+        "marker": "chat_history",
+        "enabled": true
+      },
+      {
+        "name": "Reply reminder",
+        "kind": "prompt",
+        "role": "user",
+        "content": "[Continue the scene as the writer, following the director's latest direction.]",
+        "enabled": true,
+        "position": "in_chat",
+        "depth": 0
+      },
+      {
+        "id": "director_note",
+        "kind": "marker",
+        "marker": "director_note",
+        "enabled": true,
+        "position": "in_chat",
+        "depth": 0
+      }
+    ],
+    "samplers": {
+      "max_tokens": {
+        "on": true,
+        "value": 7000
+      },
+      "context_size": {
+        "on": true,
+        "value": 64000
+      },
+      "reasoning_effort": {
+        "on": true,
+        "value": "medium"
+      }
+    },
+    "options": {
+      "post_processing": "merge",
+      "streaming": true
+    }
+  }
+}

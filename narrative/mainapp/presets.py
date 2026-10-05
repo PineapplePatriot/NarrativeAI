@@ -29,6 +29,7 @@ import re
 import uuid
 from datetime import datetime
 
+from mainapp import regex_rules
 from mainapp import samplers as sampler_mod
 
 FORMAT = "narrativeai-preset"
@@ -155,8 +156,20 @@ def normalize(raw):
         "utility": utility,
         "options": {"post_processing": pp if pp in POST_PROCESSING else "none",
                     "streaming": bool(options_raw.get("streaming", True))},
-        "extras": raw.get("extras") if isinstance(raw.get("extras"), dict) else {},
+        **_rules_and_extras(raw),
     }
+
+
+def _rules_and_extras(raw):
+    """Text rules, plus extras. Presets imported before rules existed keep them in extras.extensions:
+    those are lifted out (once) so they show up and run."""
+    extras = raw.get("extras") if isinstance(raw.get("extras"), dict) else {}
+    rules = raw.get("regex")
+    ext = extras.get("extensions") if isinstance(extras.get("extensions"), dict) else None
+    if rules is None and ext and isinstance(ext.get("regex_scripts"), list):
+        rules = ext["regex_scripts"]
+        extras = {**extras, "extensions": {k: v for k, v in ext.items() if k != "regex_scripts"}}
+    return {"regex": regex_rules.normalize_rules(rules), "extras": extras}
 
 
 # ---------------------------------------------------------------------------
@@ -239,6 +252,11 @@ def from_sillytavern(data):
         pp = "merge" if data.get("squash_system_messages") else "none"
 
     extras = {k: v for k, v in data.items() if k not in ST_HANDLED_KEYS}
+    # Regex scripts become the preset's text rules; the rest of "extensions" is kept as it was
+    extensions = dict(extras.get("extensions") or {}) if isinstance(extras.get("extensions"), dict) else {}
+    rules = regex_rules.normalize_rules(extensions.pop("regex_scripts", None))
+    if "extensions" in extras:
+        extras["extensions"] = extensions
     unused = [p for i, p in prompts.items() if i not in used]
     if unused:
         extras["unused_prompts"] = unused  # not in the order: kept only so export loses nothing
@@ -254,6 +272,7 @@ def from_sillytavern(data):
             "assistant_impersonation": data.get("assistant_impersonation", ""),
         },
         "options": {"post_processing": pp, "streaming": bool(data.get("stream_openai", True))},
+        "regex": rules,
         "extras": extras,
     })
 
@@ -302,6 +321,10 @@ def to_sillytavern(preset):
     prompts.extend(preset["extras"].get("unused_prompts", []))
     out["prompts"] = prompts
     out["prompt_order"] = [{"character_id": 100001, "order": order}]
+    if preset.get("regex"):
+        extensions = dict(out.get("extensions") or {})
+        extensions["regex_scripts"] = [regex_rules.to_sillytavern(r) for r in preset["regex"]]
+        out["extensions"] = extensions
     return out
 
 
@@ -390,7 +413,7 @@ def _macro(body, ctx, collect):
     m = re.match(r"(random|pick)(?=\s*:|\s|$)\s*(.*)$", b, re.I | re.S)
     if m:
         return ctx.rng.choice(_choices(m.group(2)))
-    m = re.match(r"roll\s*:?\s*(.*)$", b, re.I)
+    m = re.match(r"roll\s*(?::{1,2})?\s*(.*)$", b, re.I)  # {{roll 1d20}}, {{roll:1d20}}, {{roll::1d20}}
     if m:
         result = _roll(m.group(1), ctx.rng)
         if result is not None:
@@ -452,6 +475,8 @@ def macro_values(names, slots, history):
         "char": names["char"], "user": names["user"], "group": names["char"],
         "persona": slots.get("persona", ""), "description": slots.get("char_description", ""),
         "scenario": slots.get("scenario", ""), "personality": slots.get("char_personality", ""),
+        # Legacy name: older presets used {{creator_notes}} for the personality. Real creator's notes
+        # are for people reading the card and are never sent.
         "creator_notes": slots.get("char_personality", ""), "summary": slots.get("summary", ""),
         "mesexamples": slots.get("examples", ""), "mesexamplesraw": slots.get("examples", ""),
         "lastchatmessage": history[-1]["content"] if history else "",
@@ -497,6 +522,38 @@ def _post_process(messages, mode, names, new_chat):
     return messages
 
 
+# Blocks a character card's own prompts replace, as in SillyTavern ("Prefer character card prompt")
+CARD_OVERRIDES = (("card_system_prompt", "main", "Character card's system prompt"),
+                  ("card_post_history", "jailbreak", "Character card's post-history instructions"))
+
+
+def _card_overrides(enabled, slots):
+    """
+    A card's system prompt replaces the preset's Main prompt, its post-history instructions replace
+    the Post-History block; {{original}} keeps the preset's text. Without such a block, the card's
+    system prompt goes first and its post-history instructions go after the last message.
+    """
+    out, notes = list(enabled), []
+    for slot, block_id, label in CARD_OVERRIDES:
+        text = (slots.get(slot) or "").strip()
+        if not text:
+            continue
+        idx = next((i for i, b in enumerate(out) if b["kind"] == "prompt" and b["id"] == block_id), None)
+        if idx is not None:
+            original = out[idx]
+            out[idx] = {**original, "name": label, "content": text.replace("{{original}}", original["content"])}
+            notes.append(f"{label} replaced \"{original['name']}\".")
+        elif slot == "card_system_prompt":
+            out.insert(0, {"id": slot, "name": label, "kind": "prompt", "role": "system", "content":
+                           text.replace("{{original}}", ""), "enabled": True, "position": "relative",
+                           "depth": 0, "order": 0})
+        else:
+            out.append({"id": slot, "name": label, "kind": "prompt", "role": "system", "content":
+                        text.replace("{{original}}", ""), "enabled": True, "position": "in_chat",
+                        "depth": 0, "order": 1000})
+    return out, notes
+
+
 def assemble(preset, slots, history, names, model="", rng=None):
     """
     preset:  normalized preset
@@ -509,6 +566,8 @@ def assemble(preset, slots, history, names, model="", rng=None):
     slots = dict(slots)
     enabled = [b for b in preset["blocks"] if b["enabled"] and b["kind"] != "header"]
     on_markers = {b["marker"] for b in enabled if b["kind"] == "marker"}
+    enabled, card_notes = _card_overrides(enabled, slots)
+    notes += card_notes
     if slots.get("lore"):
         target = "lore_before" if "lore_before" in on_markers or "lore_after" not in on_markers else "lore_after"
         slots[target] = slots.pop("lore")
@@ -582,7 +641,7 @@ def assemble(preset, slots, history, names, model="", rng=None):
 
     params, skipped = sampler_mod.to_api_params(preset["samplers"], model)
     if skipped:
-        notes.append(f"Not sent, because {model} rejects them: {', '.join(skipped)}.")
+        notes.append(f"Not sent, because {model} doesn't use them: {', '.join(skipped)}.")
     if ctx.unknown:
         notes.append("Unknown macros left as they are: " + ", ".join("{{" + u + "}}" for u in sorted(ctx.unknown)))
 
@@ -691,7 +750,7 @@ def build_default(user):
 
     blocks += [
         _header("📖 Story context"),
-        _marker("persona"), _marker("char_description"), _marker("char_personality"), _marker("scenario"),
+        _marker("persona"), _marker("char_description"), _marker("char_personality"), _marker("scenario"), _marker("examples"),
         _marker("lore_before"), _marker("summary"), _marker("world_context"), _marker("trackers"),
         _marker("lore_after"),
         _marker("chat_history"),
