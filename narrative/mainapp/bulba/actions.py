@@ -66,6 +66,12 @@ def apply(session, pid):
         p["undo"] = {"created": character.id}
         p["result"] = {"slug": character.slug}
         note = f"{character.name} is ready to chat."
+    elif p["kind"] in ("preset_edit", "card_edit"):  # from Bulba inside a chat
+        from mainapp.bulba import doctor
+        try:
+            note = doctor.apply(session, p)
+        except ValueError as e:
+            raise ProposalError(str(e))
     else:
         raise ProposalError("Unknown proposal.")
     p["status"] = "applied"
@@ -98,6 +104,9 @@ def undo(session, pid):
             for chat in character.chats.all():
                 chats.delete(chat)
             character.delete()
+    elif p["kind"] in ("preset_edit", "card_edit"):
+        from mainapp.bulba import doctor
+        doctor.undo(session, p)
     p["status"] = "undone"
     return "Undone."
 

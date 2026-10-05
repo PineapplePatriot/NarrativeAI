@@ -46,6 +46,7 @@
                 </div>
                 <div class="header-actions">
                     <button class="header-btn" id="chatsBtn" onclick="Chats.toggle()" title="Your chats with {{ character.name }}">💬 Chats</button>
+                    <button class="header-btn" id="bulbaBtn" title="Something off? Ask Bulba"><span class="emoji-icon">🥔</span> Bulba</button>
                     <button class="header-btn" onclick="openMediaModal('bg')" title="Background"><svg class="icon" viewBox="0 0 24 24"><path d="M21,19V5C21,3.89 20.1,3 19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19M8.5,13.5L11,16.51L14.5,12L19,18H5L8.5,13.5Z"/></svg> BG</button>
                     <button class="header-btn" onclick="openMediaModal('music')" title="Music"><svg class="icon" viewBox="0 0 24 24"><path d="M21,3V15.5A3.5,3.5 0 0,1 17.5,19A3.5,3.5 0 0,1 14,15.5A3.5,3.5 0 0,1 17.5,12C18.04,12 18.55,12.12 19,12.34V6.47L9,8.6V17.5A3.5,3.5 0 0,1 5.5,21A3.5,3.5 0 0,1 2,17.5A3.5,3.5 0 0,1 5.5,14C6.04,14 6.55,14.12 7,14.34V6L21,3Z"/></svg> Music</button>
                     <a href="{% url 'character' character.slug %}" class="header-btn" title="Edit {{ character.name }}">
@@ -408,6 +409,10 @@
     {{ chat_list|json_script:"chats-data" }}
     {{ swipes|json_script:"swipes-data" }}
     {{ display_rules|json_script:"display-rules" }}
+    <aside class="bulba-drawer" id="bulbaDrawer" hidden data-src="{{ bulba_url }}" aria-label="Bulba">
+        <button type="button" class="bulba-close" id="bulbaClose" title="Close">✕</button>
+        <iframe id="bulbaFrame" title="Bulba"></iframe>
+    </aside>
     {{ trackers_data|json_script:"trackers-data" }}
     <script src="{% static 'mainapp/js/trackers.js' %}?v={% now 'U' %}"></script>
     <script src="{% static 'mainapp/js/regex_rules.js' %}?v={% now 'U' %}"></script>

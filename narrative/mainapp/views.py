@@ -8,11 +8,12 @@ from datetime import datetime
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files.base import ContentFile
-from django.http import HttpResponse, JsonResponse, HttpResponseNotFound, StreamingHttpResponse
+from django.http import Http404, HttpResponse, JsonResponse, HttpResponseNotFound, StreamingHttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.utils.text import slugify
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.generic import (
     TemplateView, ListView, DetailView,
     FormView, CreateView, UpdateView
@@ -828,6 +829,7 @@ def chat(request, slug):
         "swipes": chats.version_info(messages),
         "spending": ai_client.spending(request.user),
         "appearance": _appearance(request.user),
+        "bulba_url": reverse("bulba_chat", kwargs={"chat_id": chat_obj.id}),
         "display_rules": {
             "rules": [r for r in regex_rules.for_chat(presets.normalize(presets.get_active(request.user).data), character)
                       if r["enabled"] and r["mode"] == "display"],
@@ -893,6 +895,30 @@ def prompt_slots(user, character, prompt, chat_persona=None):
         "world_context": extra.get("WorldContext", ""),
         "director_note": extra.get("DirectorNote", ""),
     }
+
+
+def build_chat_request(user, chat_obj, preset=None, character=None, drop_last_reply=True):
+    """
+    The request a chat would send for its next AI reply (or, with drop_last_reply, to re-answer the last user
+    message), optionally with another preset or an edited character. Used by Bulba to rewrite a reply with a
+    proposed change. Returns presets.assemble()'s result.
+    """
+    character = character or chat_obj.character
+    data = chats.read(chat_obj)
+    messages = [m for m in data.get("messages") or [] if isinstance(m, (list, tuple)) and len(m) > 2]
+    if drop_last_reply and messages and messages[-1][0] == "assistant":
+        messages = messages[:-1]
+    summary = chats.summary_text(chats.summary_parts(data, len(messages)))
+    worldbook_slug = character.worldbook.slug if character.worldbook and character.worldbook.author == user else None
+    prompt = build_ai_request(user, character, chat=chat_obj, worldbook_slug=worldbook_slug, message=None,
+                              guidance="", persistent_guides=data.get("context_guides") or {}, summary=summary)
+    preset = presets.normalize(preset or presets.get_active(user).data)
+    persona = data.get("persona") if isinstance(data.get("persona"), dict) else {}
+    names = prompt_names(user, character, persona)
+    history = [{"role": m[0], "content": m[2]} for m in messages if m[0] in ("user", "assistant")]
+    history = regex_rules.run_on_history(regex_rules.for_chat(preset, character), history, names)
+    _, model = ai_client.resolve(user, "chat")
+    return presets.assemble(preset, prompt_slots(user, character, prompt, persona), history, names, model)
 
 
 def _tracker_page_data(user, character, raw_state):
@@ -1480,7 +1506,9 @@ def _bulba_state(session):
     return {
         "id": session.id, "stage": session.stage, "stages": agent.STAGES,
         "spent": round(session.spent, 4), "budget": session.budget, "month": ai_client.spending(session.user),
-        "chat": _bulba_chat_link(session),
+        "chat": _bulba_chat_link(session) if session.mode == "setup" else None,
+        "mode": session.mode,
+        "chat_with": session.chat.character.name if session.mode == "chat" and session.chat_id else "",
         "model": profile["name"] if profile else session.target_model,
         "preferences": [p for p in session.preferences if p.get("status") not in ("rejected", "superseded")],
         "proposals": [{**{k: p.get(k) for k in ("id", "kind", "title", "status", "result")},
@@ -1517,7 +1545,7 @@ def _bulba_session(user, restart=False):
     profile = model_profiles.for_model(chat_model)
     if profile is None:
         return None
-    session = BulbaSession.objects.filter(user=user, active=True).first()
+    session = BulbaSession.objects.filter(user=user, active=True, mode="setup").first()
     if session and (restart or session.target_model != profile["id"]):
         session.active = False
         session.save(update_fields=["active"])
@@ -1527,6 +1555,39 @@ def _bulba_session(user, restart=False):
         agent.opening(session)
         session.save()
     return session
+
+
+def _bulba_chat_session(user, chat_obj, restart=False):
+    """Bulba's conversation about one chat (opened from the chat page). None if Bulba can't help."""
+    from .bulba import doctor
+    from .models import BulbaSession
+    try:
+        _, chat_model = ai_client.resolve(user, "chat")
+    except ai_client.NoConnection:
+        return None
+    profile = model_profiles.for_model(chat_model)
+    session = BulbaSession.objects.filter(user=user, active=True, mode="chat", chat=chat_obj).first()
+    if session and restart:
+        session.active = False
+        session.save(update_fields=["active"])
+        session = None
+    if session is None:
+        session = BulbaSession(user=user, target_model=profile["id"] if profile else "", mode="chat", chat=chat_obj)
+        doctor.opening(session)
+        session.save()
+    return session
+
+
+def _bulba_for_request(request, restart=False):
+    """The setup conversation, or the one about a chat when the page passes ?chat=<id>."""
+    from .models import Chat
+    chat_id = request.GET.get("chat")
+    if chat_id:
+        chat_obj = Chat.objects.filter(id=chat_id, character__author=request.user).first()
+        if chat_obj is None:
+            raise Http404("No such chat.")
+        return _bulba_chat_session(request.user, chat_obj, restart)
+    return _bulba_session(request.user, restart)
 
 
 @login_required
@@ -1541,11 +1602,26 @@ def bulba_page(request):
 
 
 @login_required
+@xframe_options_sameorigin
+def bulba_chat_page(request, chat_id):
+    """Bulba about one chat, shown in a side panel on the chat page."""
+    from .models import Chat
+    chat_obj = get_object_or_404(Chat, id=chat_id, character__author=request.user)
+    session = _bulba_chat_session(request.user, chat_obj)
+    return render(request, "mainapp/bulba.html", {
+        "bulba_data": {"state": _bulba_state(session), "events": session.events} if session else None,
+        "known_models": model_profiles.known_names(),
+        "embed": True, "chat_obj": chat_obj,
+    })
+
+
+@login_required
 def bulba_api(request):
     from .bulba import actions, agent
     from .models import BulbaSession
     if request.method == "GET":  # what Bulba is doing right now (the page asks while a turn runs)
-        session = BulbaSession.objects.filter(user=request.user, active=True).first()
+        filters = {"mode": "chat", "chat_id": request.GET["chat"]} if request.GET.get("chat") else {"mode": "setup"}
+        session = BulbaSession.objects.filter(user=request.user, active=True, **filters).first()
         return JsonResponse({"activity": session.activity if session else ""})
     if request.method != "POST":
         return JsonResponse({"error": "POST only"}, status=405)
@@ -1554,7 +1630,7 @@ def bulba_api(request):
     except (ValueError, UnicodeDecodeError):
         return JsonResponse({"error": "Invalid request."}, status=400)
     action = data.get("action")
-    session = _bulba_session(request.user, restart=(action == "restart"))
+    session = _bulba_for_request(request, restart=(action == "restart"))
     if session is None:
         return JsonResponse({"error": "Bulba only knows the models on the welcome page. Pick one of those first."}, status=400)
 
@@ -1602,15 +1678,21 @@ def bulba_transcript(request):
     """The current Bulba conversation as a JSON file, to share when something behaves oddly. No keys."""
     from .bulba import agent
     from .models import BulbaSession
-    session = BulbaSession.objects.filter(user=request.user, active=True).first()
+    filters = {"mode": "chat", "chat_id": request.GET["chat"]} if request.GET.get("chat") else {"mode": "setup"}
+    session = BulbaSession.objects.filter(user=request.user, active=True, **filters).first()
     if session is None:
         return HttpResponseNotFound("No Bulba conversation yet.")
+    if session.mode == "chat":
+        from .bulba import doctor
+        system = doctor.system_prompt(session)
+    else:
+        system = agent.system_prompt(session)
     data = {
         "format": "narrativeai-bulba-transcript", "exported": datetime.now().isoformat(timespec="seconds"),
-        "target_model": session.target_model, "stage": session.stage,
+        "mode": session.mode, "target_model": session.target_model, "stage": session.stage,
         "spent_usd": round(session.spent, 4), "budget_usd": session.budget,
         "events": session.events, "preferences": session.preferences, "proposals": session.proposals,
-        "messages": session.messages, "system_prompt": agent.system_prompt(session),
+        "messages": session.messages, "system_prompt": system,
     }
     response = HttpResponse(json.dumps(data, ensure_ascii=False, indent=2), content_type="application/json")
     response["Content-Disposition"] = f'attachment; filename="bulba-{session.id}-{datetime.now():%Y%m%d-%H%M}.json"'

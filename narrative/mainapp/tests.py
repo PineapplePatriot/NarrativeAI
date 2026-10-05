@@ -2573,3 +2573,125 @@ class ImageModelTests(SimpleTestCase):
         with override_settings(SPRITE_IMAGE_MODEL="google/not-there"):
             self.assertEqual(ai_client.default_image_model(models), "google/gemini-2.5-flash-image")
         ai_client._IMAGE_MODELS.update(at=0, list=[])
+
+
+class BulbaInChatTests(ChatPromptTests):
+    """Bulba opened from a chat: sees the chat, edits the preset or card, rewrites the last reply."""
+
+    def setUp(self):
+        super().setUp()
+        self.script, self.bulba_calls, self.retry_calls = [], [], []
+
+    def make_chat(self):
+        from mainapp import chats
+        self.user.persona_name = "Wren"
+        self.user.save()
+        from users.models import ConnectionProfile
+        ConnectionProfile.objects.filter(user=self.user).update(model="anthropic/claude-opus-5.5")
+        self.post({"action": "chat", "message": "Where is the tower?"})
+        chat = self.character.chats.first()
+        data = chats.read(chat)
+        data["messages"][-1] = list(chats.with_reasoning(tuple(data["messages"][-1]), "I should write six long paragraphs."))
+        chats.write(chat, data)
+        self.chat_obj = chat
+
+    def call(self, tool, **args):
+        return {"id": f"c_{tool}_{len(self.bulba_calls)}", "type": "function",
+                "function": {"name": tool, "arguments": json.dumps(args)}}
+
+    def bulba_post(self, url, headers=None, json=None, timeout=None, **kw):
+        from unittest import mock
+        resp = mock.Mock(status_code=200)
+        if "tools" in json:
+            self.bulba_calls.append(json)
+            content, calls = self.script.pop(0) if self.script else ("Okay.", [])
+            msg = {"role": "assistant", "content": content, **({"tool_calls": calls} if calls else {})}
+        else:
+            self.retry_calls.append(json)
+            msg = {"role": "assistant", "content": "A shorter reply."}
+        resp.json.return_value = {"choices": [{"message": msg}], "usage": {"cost": 0.01}}
+        return resp
+
+    def api(self, **body):
+        from unittest import mock
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=self.bulba_post):
+            return self.client.post(reverse("bulba_api") + f"?chat={self.chat_obj.id}", json.dumps(body),
+                                    content_type="application/json")
+
+    def test_page_and_context(self):
+        self.make_chat()
+        page = self.client.get(reverse("bulba_chat", args=[self.chat_obj.id]))
+        self.assertEqual(page.status_code, 200)
+        self.assertEqual(page.context["bulba_data"]["state"]["mode"], "chat")
+        self.assertContains(page, "your chat with Rose")
+        self.script = [("Let me look.", [])]
+        self.api(action="say", text="Replies are too long")
+        system = self.bulba_calls[0]["messages"][0]["content"]
+        self.assertIn("Bulba in a chat", system)
+        self.assertIn("I should write six long paragraphs.", system)   # the last reply's thoughts
+        self.assertIn("Where is the tower?", system)                     # the recent chat
+        self.assertIn("Active preset:", system)
+        names = [t["function"]["name"] for t in self.bulba_calls[0]["tools"]]
+        self.assertIn("propose_preset_edit", names)
+        self.assertNotIn("propose_character", names)                    # setup-only tools stay out
+        # The setup conversation is separate
+        from mainapp.models import BulbaSession
+        self.assertFalse(BulbaSession.objects.filter(user=self.user, mode="setup").exists())
+
+    def test_preset_edit_retry_apply_undo(self):
+        self.make_chat()
+        from mainapp import presets as presets_mod
+        active = presets_mod.get_active(self.user)
+        block = next(b for b in presets_mod.normalize(active.data)["blocks"] if b["kind"] == "prompt")
+        self.script = [("", [self.call("read_block", block=block["name"])]),
+                       ("Here's the fix.", [self.call("propose_preset_edit", why="too long", edits=[
+                           {"action": "add", "block": "Keep it short", "content": "Keep replies to two paragraphs."}])])]
+        data = self.api(action="say", text="too long").json()
+        self.assertIn(block["content"][:40], self.bulba_calls[1]["messages"][-1]["content"])
+        proposal = data["state"]["proposals"][0]
+        self.assertEqual(proposal["kind"], "preset_edit")
+        self.assertNotIn("Keep replies to two paragraphs.", json.dumps(presets_mod.get_active(self.user).data))
+        # Rewrite the last reply with the change (not applied yet)
+        self.script = [("See?", [self.call("retry_reply", from_proposal=proposal["id"])])]
+        data = self.api(action="say", text="show me").json()
+        sent = json.dumps(self.retry_calls[-1]["messages"])
+        self.assertIn("Keep replies to two paragraphs.", sent)
+        self.assertIn("Where is the tower?", sent)
+        self.assertNotIn("I should write six", sent)
+        sample = next(e for e in data["events"] if e["type"] == "samples")
+        self.assertEqual(sample["samples"][0]["text"], "A shorter reply.")
+        # Apply, then undo
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=proposal["id"])
+        self.assertIn("Keep replies to two paragraphs.", json.dumps(presets_mod.get_active(self.user).data))
+        self.script = [("Undone.", [])]
+        self.api(action="undo", id=proposal["id"])
+        self.assertNotIn("Keep replies to two paragraphs.", json.dumps(presets_mod.get_active(self.user).data))
+
+    def test_bad_edits_are_refused(self):
+        self.make_chat()
+        self.script = [("", [self.call("propose_preset_edit", why="x", edits=[{"action": "replace", "block": "Nope", "content": "x"}])]),
+                       ("Hm.", [])]
+        self.api(action="say", text="fix it")
+        result = json.loads(self.bulba_calls[0 + 1]["messages"][-1]["content"])
+        self.assertIn("No block called", result["error"])
+
+    def test_card_edit(self):
+        self.make_chat()
+        self.script = [("Fix.", [self.call("propose_card_edit", personality="Curt.", why="voice")])]
+        data = self.api(action="say", text="she sounds off").json()
+        pid = data["state"]["proposals"][0]["id"]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=pid)
+        self.character.refresh_from_db()
+        self.assertEqual(self.character.personality, "Curt.")
+        self.script = [("Undone.", [])]
+        self.api(action="undo", id=pid)
+        self.character.refresh_from_db()
+        self.assertEqual(self.character.personality, "")
+
+    def test_other_users_chat_is_refused(self):
+        self.make_chat()
+        other = get_user_model().objects.create_user(username="other", password="pw12345!")
+        self.client.force_login(other)
+        self.assertEqual(self.client.get(reverse("bulba_chat", args=[self.chat_obj.id])).status_code, 404)

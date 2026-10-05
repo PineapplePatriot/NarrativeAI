@@ -1198,3 +1198,36 @@ branchModal.addEventListener('click', (e) => { if (e.target === branchModal) clo
         save('', '');
     };
 })();
+
+// --- Bulba in the chat: a side panel (full screen on phones) with Bulba looking at this chat ---
+(function () {
+    const drawer = document.getElementById('bulbaDrawer');
+    const btn = document.getElementById('bulbaBtn');
+    if (!drawer || !btn) return;
+    const frame = document.getElementById('bulbaFrame');
+    const toggle = (open) => {
+        drawer.hidden = !open;
+        if (open && !frame.src) frame.src = drawer.dataset.src;  // loaded the first time it opens
+        btn.classList.toggle('active', open);
+    };
+    btn.onclick = () => toggle(drawer.hidden);
+    document.getElementById('bulbaClose').onclick = () => toggle(false);
+    window.addEventListener('message', (e) => {
+        if (e.origin !== window.location.origin || !e.data || !e.data.bulba) return;
+        showChatNotice(e.data.bulba === 'undo' ? 'Bulba undid its change.' : 'Bulba changed your setup: the next reply uses it.');
+    });
+})();
+
+function showChatNotice(text) {
+    let note = document.getElementById('chatNotice');
+    if (!note) {
+        note = document.createElement('div');
+        note.id = 'chatNotice';
+        note.className = 'chat-notice';
+        document.body.appendChild(note);
+    }
+    note.textContent = text;
+    note.classList.add('show');
+    clearTimeout(note._t);
+    note._t = setTimeout(() => note.classList.remove('show'), 4000);
+}

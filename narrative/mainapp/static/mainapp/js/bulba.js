@@ -190,6 +190,9 @@ async function run(body, label) {
     render();
     try {
         const data = await api(body);
+        if (window.parent !== window && ['apply', 'undo'].includes(body.action)) {
+            window.parent.postMessage({ bulba: body.action }, window.location.origin);
+        }
         if (body.action === 'say') events.pop();  // the server sends it back with the rest
         events = body.action === 'restart' ? data.events : events.concat(data.events);
         state = data.state;
@@ -296,9 +299,9 @@ $('budgetForm').onsubmit = async e => {
     } catch (err) { $('budgetNote').textContent = err.message; }
 };
 
-$('restartBtn').onclick = () => {
+document.querySelectorAll('#restartBtn, [data-restart]').forEach(b => b.onclick = () => {
     if (confirm('Start the conversation over? Anything you already applied stays.')) run({ action: 'restart' });
-};
+});
 
 render();
 

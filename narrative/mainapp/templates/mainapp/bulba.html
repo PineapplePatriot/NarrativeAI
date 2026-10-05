@@ -8,15 +8,25 @@
     <link rel="stylesheet" href="{% static 'mainapp/css/bulba.css' %}">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
 </head>
-<body>
-{% include "partials/topbar.html" with active="bulba" %}
+<body class="{% if embed %}embed{% endif %}">
+{% if not embed %}{% include "partials/topbar.html" with active="bulba" %}{% endif %}
 {% if bulba_data %}
+{% if embed %}
+<header class="embed-head">
+    <span class="potato">🥔</span>
+    <b>Bulba</b><span class="embed-sub">· your chat with {{ chat_obj.character.name }}</span>
+    <span class="embed-actions">
+        <a class="ghost-link" href="{% url 'bulba_transcript' %}?chat={{ chat_obj.id }}">Transcript</a>
+        <button type="button" class="link" data-restart>Start over</button>
+    </span>
+</header>
+{% endif %}
 <div class="bulba-layout">
     <main class="bulba-chat">
         <div class="log" id="log"></div>
         <div class="thinking" id="thinking" hidden><span class="potato">🥔</span> <span id="thinkingText">Thinking…</span></div>
         <form class="composer" id="composer">
-            <textarea id="input" rows="1" placeholder="Talk to Bulba…"></textarea>
+            <textarea id="input" rows="1" placeholder="{% if embed %}What's off in this chat?{% else %}Talk to Bulba…{% endif %}"></textarea>
             <button type="submit" id="sendBtn">Send</button>
         </form>
     </main>
@@ -50,7 +60,7 @@
     </aside>
 </div>
 {{ bulba_data|json_script:"bulba-data" }}
-<script>const BULBA_API = "{% url 'bulba_api' %}";</script>
+<script>const BULBA_API = "{% url 'bulba_api' %}{% if embed %}?chat={{ chat_obj.id }}{% endif %}";</script>
 <script src="{% static 'mainapp/js/bulba.js' %}?v={% now 'U' %}"></script>
 {% else %}
 <main class="bulba-empty">

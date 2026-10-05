@@ -19,8 +19,10 @@ can supply or judge.
 
 ## Bulba
 
-- **Bulba inside the chat page**: a side panel for "my replies are too long" moments, using the same
-  conversation. The "later complaints" part of the preset guide exists but hasn't been exercised.
+- **Bulba inside the chat page** (built): the 🥔 Bulba button in a chat opens a side panel (full screen on
+  phones). Bulba sees the last messages, the model's thoughts, the card and the preset, proposes one fix
+  at a time, can rewrite your last reply with it as a preview, and every change has Apply and Undo.
+  Each chat has its own Bulba conversation. Not yet tried against a real model. *Needs Anya.*
 - **Offer card import** at the character stage, for people who already have a card they like.
 - **Handover**: after setup, a short summary of what was set up and where to change it.
 - **A small pilot** with you judging replies (the research package's protocol, scaled down).
@@ -35,8 +37,9 @@ can supply or judge.
   Flash).
 - **Function calling** in chats: presets can ask for it (Pura's does); tools the AI could use, like
   image generation or updating trackers.
-- **Thinking display**: models that think (MiMo, Claude) can send their reasoning separately; showing it
-  folded under the reply, as SillyTavern does, is what Realistic Frankenstein expects.
+- **Thinking display** (built): reasoning the model sends separately is shown live while it thinks, then
+  kept in a folded "Thoughts" box above the reply (each swipe keeps its own). Presets that make the model
+  write its thinking inside the reply (in tags) aren't folded yet; that needs a reasoning text rule.
 
 ## Text rules (regex)
 

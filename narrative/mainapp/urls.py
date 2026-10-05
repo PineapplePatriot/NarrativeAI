@@ -15,6 +15,7 @@ path('characters_list/', views.CharactersList.as_view(), name="characters_list")
 path('samplers/', views.sampler_settings, name="samplers"),
 path('presets/', views.preset_list, name="presets"),
 path('bulba/', views.bulba_page, name="bulba"),
+path('bulba/chat/<int:chat_id>/', views.bulba_chat_page, name="bulba_chat"),
 path('bulba/api/', views.bulba_api, name="bulba_api"),
 path('bulba/transcript/', views.bulba_transcript, name="bulba_transcript"),
 path('presets/<int:preset_id>/export', views.preset_export, name="preset_export"),

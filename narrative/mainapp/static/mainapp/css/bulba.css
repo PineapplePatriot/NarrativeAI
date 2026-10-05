@@ -141,3 +141,15 @@ button:disabled { opacity: .45; cursor: default; }
 .basics-form .form-section:first-child { border-top: none; padding-top: 0; }
 .basics-form .adult-chips { display: contents; }
 .basics-form .adult-chips[hidden] { display: none; }
+
+/* Inside a chat (side panel on the chat page) */
+body.embed { height: 100vh; display: flex; flex-direction: column; }
+body.embed .bulba-layout { grid-template-columns: 1fr; flex: 1; min-height: 0; height: auto; }
+body.embed .bulba-panel { display: none; }
+body.embed .log { padding: 12px 2px; }
+body.embed .msg .bubble, body.embed .proposal, body.embed .samples { font-size: .92rem; }
+body.embed .basics-form, body.embed .lookup, body.embed .done-block { margin-left: 0; padding-left: 0; }
+.embed-head { display: flex; align-items: center; gap: 6px; padding: 10px 14px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.embed-head .embed-sub { opacity: .7; font-size: .9rem; }
+.embed-head .embed-actions { margin-left: auto; display: flex; gap: 12px; align-items: center; font-size: .85rem; }
+.embed-head { padding-right: 52px; }

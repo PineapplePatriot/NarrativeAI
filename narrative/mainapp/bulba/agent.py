@@ -603,7 +603,8 @@ def opening(session):
 
 
 # Tools after which Bulba waits for the user (see instructions.md, "Tools, briefly")
-TURN_ENDING = {"offer_choices", "write_samples", "show_basics_form", "propose_extras", "propose_preset", "propose_persona", "propose_character"}
+TURN_ENDING = {"offer_choices", "write_samples", "show_basics_form", "retry_reply",
+               "propose_preset_edit", "propose_card_edit", "propose_extras", "propose_preset", "propose_persona", "propose_character"}
 
 
 def run_turn(session, user_text, action_note=None, model_note=None):
@@ -625,8 +626,13 @@ def run_turn(session, user_text, action_note=None, model_note=None):
         for _ in range(MAX_TOOL_ROUNDS):
             _check_budget(session)
             set_activity(session, "Bulba is thinking…")
-            request = [{"role": "system", "content": system_prompt(session)}] + _trimmed(session.messages)
-            message, cost = ai_client.complete_message(session.user, "bulba", request, tools=TOOLS,
+            in_chat = session.mode == "chat"
+            if in_chat:
+                from mainapp.bulba import doctor
+            request = ([{"role": "system", "content": doctor.system_prompt(session) if in_chat else system_prompt(session)}]
+                       + _trimmed(session.messages))
+            message, cost = ai_client.complete_message(session.user, "bulba", request,
+                                                       tools=doctor.tools() if in_chat else TOOLS,
                                                        tool_choice="auto", max_tokens=4000)
             session.spent += cost or 0
             calls = message.get("tool_calls") or []
@@ -649,11 +655,12 @@ def run_turn(session, user_text, action_note=None, model_note=None):
                     args = json.loads(fn.get("arguments") or "{}")
                 except ValueError:
                     args = None
-                if name not in HANDLERS or not isinstance(args, dict):
+                handlers = {**HANDLERS, **doctor.HANDLERS} if in_chat else HANDLERS
+                if name not in handlers or not isinstance(args, dict):
                     result, events = {"error": f"Unknown tool or bad arguments: {name}"}, []
                 else:
                     try:
-                        result, events = HANDLERS[name](session, args)
+                        result, events = handlers[name](session, args)
                     except BudgetReached:
                         raise
                     except ai_client.AIError as e:

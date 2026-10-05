@@ -1539,6 +1539,7 @@ a.branch-note:hover { color: var(--text-primary); text-decoration: underline; }
     /* icons only on narrow phones; the titles say what they are */
     .header-btn { font-size: 0; gap: 0; }
     .header-btn .icon { margin: 0; }
+    .header-btn .emoji-icon { font-size: 1rem; line-height: 1; }
     #chatsBtn { font-size: 0.85rem; }
 }
 a.header-btn { text-decoration: none; }
@@ -1559,3 +1560,17 @@ details.thoughts summary::before { content: "▸ "; }
 details.thoughts[open] summary::before { content: "▾ "; }
 details.thoughts .thoughts-text { white-space: pre-wrap; font-size: .85rem; opacity: .75; max-height: 320px; overflow: auto; margin-top: 6px; }
 .thinking-note { opacity: .6; font-style: italic; }
+
+/* Bulba inside the chat */
+.bulba-drawer { position: fixed; top: 52px; right: 0; bottom: 0; width: min(440px, 100vw); z-index: 60;
+    background: #12141f; border-left: 1px solid rgba(148, 163, 184, .2); box-shadow: -12px 0 30px rgba(0, 0, 0, .35); }
+.bulba-drawer[hidden] { display: none; }
+.bulba-drawer iframe { width: 100%; height: 100%; border: 0; display: block; }
+.bulba-close { position: absolute; top: 8px; right: 10px; z-index: 2; background: rgba(15, 17, 28, .8); color: #e2e8f0;
+    border: 1px solid rgba(148, 163, 184, .3); border-radius: 8px; width: 30px; height: 30px; cursor: pointer; }
+#bulbaBtn.active { outline: 2px solid #a78bfa; }
+.chat-notice { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%) translateY(20px); opacity: 0;
+    background: #1f2937; color: #e2e8f0; border: 1px solid rgba(167, 139, 250, .5); border-radius: 10px; padding: 10px 14px;
+    z-index: 70; transition: .25s; pointer-events: none; max-width: calc(100vw - 32px); }
+.chat-notice.show { opacity: 1; transform: translateX(-50%); }
+@media (max-width: 640px) { .bulba-drawer { top: 0; width: 100vw; } }
