@@ -1522,7 +1522,7 @@ class StarterTests(ChatPromptTests):
     def test_every_starter_is_a_sound_preset_for_its_model(self):
         from mainapp import model_profiles, presets, samplers, starters
         all_s = starters.all_starters()
-        self.assertEqual(len(all_s), 32)  # three experiences for each of the ten models, plus two community presets
+        self.assertEqual(len(all_s), 33)  # three experiences for each of the ten models, plus three community presets
         for s in all_s:
             profile = next(p for p in model_profiles.all_profiles() if p["id"] == s["model"])
             self.assertEqual(profile["starters"][s["experience"]], s["id"])
@@ -1539,7 +1539,7 @@ class StarterTests(ChatPromptTests):
             self.assertFalse([n for n in built["notes"] if "nknown macro" in n], s["id"])
             text = "\n".join(m["content"] for m in built["messages"])
             self.assertNotIn("{{", text, s["id"])
-            if s["experience"] == "full_preset":
+            if s["experience"].startswith("full_preset"):
                 # A community preset, whole: its own 18+ toggles start off, its text rules all compile
                 self.assertFalse([b["name"] for b in preset["blocks"] if "🔞" in b["name"] and b["enabled"]], s["id"])
                 from mainapp import regex_rules
@@ -2458,3 +2458,73 @@ class BulbaRunTwoTests(BulbaTests):
                                              user_turn="Hi.", variants=[{"label": "a", "instructions": ""}])])]
         self.api(action="say", text="again")
         self.assertNotIn("don't give them a gender", "\n".join(m["content"] for m in self.sample_calls[-1]["messages"]))
+
+
+class MonthLimitTests(ChatPromptTests):
+    def test_limit_stops_chat_and_bulba(self):
+        from users.models import UsageRecord
+        from mainapp import ai_client
+        UsageRecord.objects.create(user=self.user, task="chat", cost=25.0)
+        resp = self.post({"action": "chat", "message": "Hello"})
+        self.assertEqual(resp.status_code, 502)
+        self.assertIn("used up", resp.json()["error"])
+        self.assertEqual(self.sent, [])  # nothing reached the AI
+        with self.assertRaises(ai_client.LimitReached):
+            ai_client.complete_message(self.user, "bulba", [{"role": "user", "content": "hi"}])
+        with override_settings(SUBSCRIPTION_LIMIT_ENFORCED=False):
+            self.assertEqual(self.post({"action": "chat", "message": "Hello"}).status_code, 200)
+
+
+class BasicsFormTests(BulbaTests):
+    def test_form_answers_become_preferences(self):
+        self.script = [("A few quick settings first.", [self.call("show_basics_form")])]
+        data = self.api(action="say", text="no voices").json()
+        self.assertEqual(len(self.bulba_calls), 1)  # the form ends the turn
+        self.assertTrue(any(e["type"] == "form" for e in data["events"]))
+        self.script = [("Got it. What do you want to play?", [])]
+        data = self.api(action="basics", answers={"pov": "second", "tense": "present", "length": "long",
+                                                  "colors": "on", "format": "any", "language": "English",
+                                                  "keep_out": "spiders", "bogus": "x", "panels": "nope"}).json()
+        told = self.bulba_calls[-1]["messages"][-1]["content"]
+        self.assertIn("Narrate in second person", told)
+        self.assertIn("reply_length long", told)
+        self.assertIn('<font color=', told)
+        self.assertNotIn("bogus", told)
+        prefs = data["state"]["preferences"]
+        self.assertIn("Write in present tense.", [p["interpretation"] for p in prefs])
+        self.assertIn("boundary", [p["scope"] for p in prefs])
+        self.assertTrue(all(p["status"] == "confirmed" for p in prefs))
+        self.assertEqual(data["events"][0]["text"], "Sent the basics")
+
+
+class SpriteMakerTests(ChatPromptTests):
+    def test_mood_picture_from_the_neutral_one(self):
+        import base64
+        from unittest import mock
+        from django.core.files.base import ContentFile
+        self.character.photo_neutral.save("rose.png", ContentFile(b"\x89PNG fake"), save=True)
+        url = reverse("character_sprite", args=[self.character.slug])
+        seen = []
+        def fake(u, headers=None, json=None, timeout=None, **kw):
+            seen.append(json)
+            r = mock.Mock(status_code=200)
+            r.json.return_value = {"choices": [{"message": {"content": "", "images": [
+                {"type": "image_url", "image_url": {"url": "data:image/png;base64," + base64.b64encode(b"\x89PNG happy").decode()}}]}}],
+                "usage": {"cost": 0.04}}
+            return r
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=fake):
+            data = self.client.post(url, json.dumps({"emotion": "happy"}), content_type="application/json").json()
+        self.assertEqual(data["field"], "photo_happy")
+        self.character.refresh_from_db()
+        with self.character.photo_happy.open("rb") as f:
+            self.assertEqual(f.read(), b"\x89PNG happy")
+        self.assertEqual(seen[0]["modalities"], ["image", "text"])
+        self.assertEqual(seen[0]["messages"][0]["content"][1]["type"], "image_url")
+        self.assertAlmostEqual(data["spending"]["spent"], 0.04)
+        bad = self.client.post(url, json.dumps({"emotion": "neutral"}), content_type="application/json")
+        self.assertEqual(bad.status_code, 400)
+
+    def test_needs_a_neutral_picture(self):
+        url = reverse("character_sprite", args=[self.character.slug])
+        resp = self.client.post(url, json.dumps({"emotion": "sad"}), content_type="application/json")
+        self.assertIn("neutral picture first", resp.json()["error"])

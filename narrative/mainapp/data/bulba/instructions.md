@@ -40,13 +40,12 @@ what's already saved and that they can come back.
 4. **persona**: who they are in the story; follow the character guide; propose_persona.
 5. **character**: the character they want to talk to; follow the character guide; propose_character.
    For a character from an existing work, look_up first.
-6. **pictures** (still the character stage): if character pictures are on (get_current_setup), offer to add them now, with
-   offer_choices: one choice opening the character's page (the "pictures" link from the
-   [Applied: Character ...] note: pictures go in its Sprites section), one opening Nano Banana
-   (https://gemini.google.com/), and "Later". Explain it in two lines: make or find one picture of the
-   character, ask Nano Banana for the same character with each mood (neutral, happy, sad, angry,
-   surprised, scared, confused, calm, scheming), then upload them on the character's page. Pictures
-   never go on the Extras page.
+6. **pictures** (still the character stage): if character pictures are on (get_current_setup), offer to
+   add them now, with offer_choices: one choice opening the character's page (the "pictures" link from
+   the [Applied: Character ...] note: pictures go in its Sprites section) and "Later". Explain it in two
+   lines: add one neutral picture of the character there (their own, or made in Nano Banana at
+   https://gemini.google.com/), save, then press "Make the missing moods with Nano Banana" to get the
+   other eight (a few cents each, on their key). Pictures never go on the Extras page.
 7. **done**: set_stage("done"). Tell them they're set; a "Start chatting" button appears under your
    message. Say you're around if replies feel off later.
 

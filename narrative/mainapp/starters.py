@@ -19,6 +19,7 @@ EXPERIENCES = {
     "rich_scene": {"label": "Rich scene", "order": 1},
     "director": {"label": "Director seat", "order": 2},
     "full_preset": {"label": "Community preset", "order": 3},  # a well-known preset, whole (e.g. Realistic Frankenstein)
+    "full_preset_fast": {"label": "Community preset, faster setup", "order": 4},
 }
 
 

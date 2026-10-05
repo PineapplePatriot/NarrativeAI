@@ -1298,6 +1298,48 @@ class UpdateCharacter(CharacterBaseView, UpdateView):
         return redirect(reverse('chat', kwargs={'slug': character.slug}))
 
 
+SPRITE_EMOTIONS = ["happy", "sad", "angry", "surprised", "scared", "confused", "calm", "scheming"]
+
+
+@login_required
+def character_sprite(request, slug):
+    """Makes one mood picture from the character's neutral picture with Nano Banana (OpenRouter)."""
+    from django.core.files.base import ContentFile
+    character = get_object_or_404(Character, slug=slug, author=request.user)
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only"}, status=405)
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return JsonResponse({"error": "Invalid request."}, status=400)
+    emotion = data.get("emotion")
+    prefix = "photo_second" if data.get("second") else "photo"
+    if emotion not in SPRITE_EMOTIONS:
+        return JsonResponse({"error": "Unknown mood."}, status=400)
+    neutral = getattr(character, f"{prefix}_neutral")
+    if not neutral:
+        return JsonResponse({"error": "Add a neutral picture first; the others are made from it."}, status=400)
+    with neutral.open("rb") as f:
+        reference = f.read()
+    kind = "image/png" if reference.startswith(b"\x89PNG") else "image/webp" if reference[:4] == b"RIFF" else "image/jpeg"
+    who = character.name if prefix == "photo" else f"the second character of {character.name}"
+    prompt = (f"This is {who}. Make a new picture of exactly the same character: same face, hair, body, outfit, "
+              f"art style, framing, lighting and background. Only the expression and body language change: show "
+              f"them {emotion}. No text, no borders, no extra people.")
+    try:
+        image, cost = ai_client.generate_image(request.user, prompt, reference, kind)
+    except ai_client.AIError as e:
+        return JsonResponse({"error": str(e)}, status=502)
+    field = getattr(character, f"{prefix}_{emotion}")
+    if field:
+        field.storage.delete(field.name)
+    ext = "jpg" if image[:3] == b"\xff\xd8\xff" else "webp" if image[:4] == b"RIFF" else "png"
+    field.save(f"{slugify(character.name) or 'character'}-{emotion}.{ext}", ContentFile(image), save=False)
+    character.save()
+    return JsonResponse({"status": "ok", "field": f"{prefix}_{emotion}", "url": field.url, "cost": cost,
+                         "spending": ai_client.spending(request.user)})
+
+
 MAX_CARD_BYTES = 20 * 1024 * 1024
 
 
@@ -1504,6 +1546,9 @@ def bulba_api(request):
         events = session.events
     elif action == "say":
         events = agent.run_turn(session, data.get("text"))
+    elif action == "basics":  # the basics form: recorded as preferences, then Bulba carries on
+        text = agent.apply_basics(session, data.get("answers"))
+        events = agent.run_turn(session, None, action_note="Sent the basics", model_note=text)
     elif action in ("apply", "dismiss", "undo"):
         try:
             note = getattr(actions, action)(session, data.get("id"))

@@ -49,6 +49,30 @@ function proposalCard(ev) {
       </div>`;
 }
 
+// The basics form: plain settings in one go (see BASICS in mainapp/bulba/agent.py)
+const BASICS_FORM = [
+    { key: 'language', label: 'Story language', text: 'English' },
+    { key: 'pov', label: 'Point of view', options: [['second', 'You (“you step inside”)'], ['third', 'Third person (“she steps inside”)'], ['first', 'The character’s “I”']] },
+    { key: 'tense', label: 'Tense', options: [['present', 'Present (“she turns”)'], ['past', 'Past (“she turned”)']] },
+    { key: 'length', label: 'Reply length', options: [['short', 'A few lines'], ['medium', 'A few paragraphs'], ['long', 'A proper chunk']] },
+    { key: 'format', label: 'Speech and actions', options: [['quotes', '“Speech”, actions as plain text'], ['asterisks', '“Speech”, *actions*'], ['any', 'Doesn’t matter']] },
+    { key: 'colors', label: 'Coloured speech', hint: 'each character speaks in their own colour', options: [['on', 'Yes'], ['off', 'No']] },
+    { key: 'panels', label: 'In-story panels', hint: 'phone messages, notes and signs drawn as little panels', options: [['on', 'Yes'], ['off', 'No']] },
+    { key: 'keep_out', label: 'Anything to keep out?', text: '', placeholder: 'Optional, e.g. gore, spiders' },
+];
+
+function basicsForm(live) {
+    const rows = BASICS_FORM.map(f => `<div class="form-row">
+        <div class="form-label">${esc(f.label)}${f.hint ? `<small>${esc(f.hint)}</small>` : ''}</div>
+        <div class="form-field">${f.options
+            ? f.options.map(([v, l]) => `<label class="pill"><input type="radio" name="b_${f.key}" value="${v}" ${live ? '' : 'disabled'}><span>${esc(l)}</span></label>`).join('')
+            : `<input type="text" name="b_${f.key}" value="${esc(f.text)}" placeholder="${esc(f.placeholder || '')}" ${live ? '' : 'disabled'}>`}
+        </div></div>`).join('');
+    return `<form class="basics-form" data-basics>${rows}
+        ${live ? '<div class="form-actions"><button type="submit">Send</button><span class="help">Skip anything you don’t mind about.</span></div>' : ''}
+      </form>`;
+}
+
 // When setup is done: the way into the chat, and where pictures go
 function doneBlock() {
     if (state.stage !== 'done' || !state.chat) return '';
@@ -79,6 +103,7 @@ function render() {
         if (ev.type === 'error') return `<div class="error">${esc(ev.text)}</div>`;
         if (ev.type === 'stage') return `<div class="stage-mark">${esc(STAGE_LABELS[ev.stage] || ev.stage)}</div>`;
         if (ev.type === 'proposal') return proposalCard(ev);
+        if (ev.type === 'form') return basicsForm(i === types.lastIndexOf('form') && i > answeredUpTo && !busy);
         if (ev.type === 'lookup') return `<div class="lookup">🔎 Looked up “${esc(ev.query)}”${(ev.sources || []).length
             ? ': ' + ev.sources.map(src => `<a href="${esc(src.url)}" target="_blank" rel="noopener">${esc(src.title || src.url)}</a>`).join(', ') : ''}</div>`;
         if (ev.type === 'samples') {
@@ -197,6 +222,18 @@ $('log').addEventListener('click', e => {
     if (act && !act.disabled) run({ action: act.dataset.act, id: act.dataset.id }, act.dataset.act === 'apply' ? 'Applying…' : 'One moment…');
 });
 
+$('log').addEventListener('submit', e => {
+    const form = e.target.closest('[data-basics]');
+    if (!form) return;
+    e.preventDefault();
+    const answers = {};
+    BASICS_FORM.forEach(f => {
+        const el = f.options ? form.querySelector(`input[name="b_${f.key}"]:checked`) : form.querySelector(`input[name="b_${f.key}"]`);
+        if (el && el.value.trim()) answers[f.key] = el.value.trim();
+    });
+    run({ action: 'basics', answers }, 'Bulba is reading your answers…');
+});
+
 $('prefs').addEventListener('click', async e => {
     const btn = e.target.closest('[data-forget]');
     if (!btn) return;
@@ -209,9 +246,9 @@ function budgetNote() {
     const m = state.month, value = parseFloat($('budgetInput').value);
     if (!m) return;
     const room = m.left + state.spent;  // what Bulba could still use this month, counting this session
-    let text = `Your subscription covers $${m.limit.toFixed(2)} a month for chatting and Bulba together. ` +
+    let text = `Your subscription covers $${m.limit.toFixed(2)} a month for chatting and Bulba together; both stop when it's used up. ` +
                `This month you've used $${m.spent.toFixed(2)}, so $${m.left.toFixed(2)} is left.`;
-    if (!isNaN(value) && value > room) text += ` A $${value.toFixed(2)} limit is more than that, so chatting could run out before Bulba does.`;
+    if (!isNaN(value) && value > room) text += ` A $${value.toFixed(2)} limit is more than that: everything (chat and Bulba) stops when the month's money runs out.`;
     else if (!isNaN(value) && value > room / 2) text += ` That leaves about $${Math.max(0, room - value).toFixed(2)} for chatting.`;
     $('budgetNote').textContent = text;
     $('budgetNote').classList.toggle('warn', !isNaN(value) && value > room);

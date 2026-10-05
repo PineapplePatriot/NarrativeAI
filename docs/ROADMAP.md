@@ -11,11 +11,11 @@ can supply or judge.
    transcript again. *Needs Anya.*
 2. **Your rewording pass on Bulba.** Instructions, the four guides and the canned opening, in your voice
    (`narrative/mainapp/data/bulba/`). *Needs Anya.*
-3. **Sprites with Nano Banana through the API.** OpenRouter offers Google's image models; a "Make the
-   other moods" button on the character page could turn one picture into all nine. Needs the current
-   model id and a price check, and your go-ahead (it costs per picture). *Needs Anya.*
-4. **The subscription.** Spending is now recorded and shown against $25 a month; nothing stops at the
-   limit yet. Decide what should happen there (warn, stop chats, stop Bulba). *Needs Anya.*
+3. **Check the Nano Banana model id.** The "Make the missing moods" button uses
+   `google/gemini-2.5-flash-image` (setting `SPRITE_IMAGE_MODEL`); if OpenRouter has a newer Nano Banana,
+   change it there. Couldn't test against OpenRouter from the build machine. *Needs Anya.*
+4. **The subscription** stops chatting, Bulba and background jobs at $25 a month for now. Later: our own
+   endpoint and keys, with a wallet. *Later.*
 
 ## Bulba
 
@@ -30,8 +30,7 @@ can supply or judge.
 - **Rebase the starters on the real Evening-Truth presets**: rentry.org is blocked from the build
   machine, so this needs the files or the domain allowed. *Needs Anya.*
 - **Realistic Frankenstein for MiMo**: the starter is the authors' MiMo V2.6 Pro file switched to BOLT.
-  The file you sent is their *pico* setup (thinking off, temperature 0.7 / top-p 0.8); it could become
-  a second MiMo option. And the link the credit should point to (it opens a Reddit search). *Needs Anya.*
+  Their pico setup (thinking off, temperature 0.7 / top-p 0.8) is a second MiMo option.
 - **Verify OpenRouter model IDs** for the eight models where we guessed them (all but MiMo and DeepSeek V4
   Flash).
 - **Function calling** in chats: presets can ask for it (Pura's does); tools the AI could use, like

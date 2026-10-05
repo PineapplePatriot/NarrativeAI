@@ -73,6 +73,21 @@ class NoConnection(AIError):
     pass
 
 
+class LimitReached(AIError):
+    """This month's subscription money is used up (settings.SUBSCRIPTION_MONTHLY_LIMIT)."""
+
+
+def check_limit(user):
+    """Stops chatting and Bulba once the month's subscription is used up. Resets on the 1st."""
+    from django.conf import settings
+    if not getattr(settings, "SUBSCRIPTION_LIMIT_ENFORCED", True) or user is None or not getattr(user, "pk", None):
+        return
+    s = spending(user)
+    if s["spent"] >= s["limit"]:
+        raise LimitReached(f"This month's ${s['limit']:.2f} is used up (${s['spent']:.2f} so far), so chatting "
+                           "and Bulba are paused until the 1st.")
+
+
 def get_task_setting(user, task):
     """The saved setting for a task, or an unsaved default one."""
     setting = TaskSetting.objects.filter(user=user, task=task).select_related("profile").first()
@@ -177,6 +192,7 @@ def spending(user):
 
 def _request(user, task, messages, timeout=None, **params):
     """Sends one chat completion request and returns (profile, the parsed JSON reply)."""
+    check_limit(user)
     profile, model = resolve(user, task)
     if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER:
         params.setdefault("usage", {"include": True})  # OpenRouter then reports the cost
@@ -277,6 +293,7 @@ def stream(user, task, messages, timeout=None, **params):
     """
     import json
 
+    check_limit(user)
     profile, model = resolve(user, task)
     if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER:
         params.setdefault("usage", {"include": True})  # the cost arrives with the last piece
@@ -326,3 +343,45 @@ def stream(user, task, messages, timeout=None, **params):
                     yield THINKING  # the model is still thinking; nothing to show yet
         except requests.RequestException as e:
             raise AIError(f"{label}: the connection to {profile.name} broke off ({e.__class__.__name__}).")
+
+
+def generate_image(user, prompt, reference=None, reference_type="image/png", timeout=180):
+    """
+    One picture from an image model on OpenRouter (Nano Banana: settings.SPRITE_IMAGE_MODEL), optionally
+    starting from a reference picture. Returns (PNG/JPEG bytes, cost or None). Uses the main connection's key.
+    """
+    import base64
+    from django.conf import settings
+    check_limit(user)
+    profile = main_profile(user)
+    if profile is None or profile.provider != ConnectionProfile.PROVIDER_OPENROUTER or not profile.api_key:
+        raise AIError("Making pictures needs an OpenRouter key (set it on the welcome page).")
+    model = getattr(settings, "SPRITE_IMAGE_MODEL", "google/gemini-2.5-flash-image")
+    content = [{"type": "text", "text": prompt}]
+    if reference:
+        url = f"data:{reference_type};base64,{base64.b64encode(reference).decode('ascii')}"
+        content.append({"type": "image_url", "image_url": {"url": url}})
+    payload = {"model": model, "messages": [{"role": "user", "content": content}],
+               "modalities": ["image", "text"], "usage": {"include": True}}
+    try:
+        resp = requests.post(f"{profile.api_url}/chat/completions", headers=_headers(profile), json=payload,
+                             timeout=TEST_TIMEOUT or timeout)
+    except requests.Timeout:
+        raise AIError(f"The picture took longer than {timeout} seconds. Try again.")
+    except requests.RequestException as e:
+        raise AIError(f"Could not reach OpenRouter ({e.__class__.__name__}).")
+    if resp.status_code >= 400:
+        raise AIError(f"OpenRouter returned an error ({resp.status_code}): {_error_text(resp)}")
+    try:
+        data = resp.json()
+        message = data["choices"][0]["message"]
+    except (ValueError, KeyError, IndexError, TypeError):
+        raise AIError("The image model sent a reply I couldn't read.")
+    cost = (data.get("usage") or {}).get("cost")
+    record_cost(user, "sprites", model, cost)
+    for image in message.get("images") or []:
+        url = ((image or {}).get("image_url") or {}).get("url", "")
+        if url.startswith("data:") and ";base64," in url:
+            return base64.b64decode(url.split(";base64,", 1)[1]), (float(cost) if isinstance(cost, (int, float)) else None)
+    raise AIError("The image model answered without a picture" +
+                  (f": {message.get('content')[:200]}" if message.get("content") else "."))

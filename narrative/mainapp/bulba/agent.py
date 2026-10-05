@@ -98,6 +98,10 @@ TOOLS = [
     _fn("get_current_setup", "What is already set up: chat model, extras, presets, persona, characters.", {}),
     _fn("get_starter", "The full text of one of this model's starters (its Roleplay and Style sections).",
         {"starter": STR}, ["starter"]),
+    _fn("show_basics_form", "Show the basics form: the plain settings (language, point of view, tense, reply "
+        "length, how speech and actions look, coloured speech, in-story panels, things to keep out) answered in "
+        "one go. Use it once, at the start of the taste stage. Their answers come back as a message and are "
+        "already recorded as preferences.", {}),
     _fn("look_up", "Search the web for facts about a known character, setting or work (canon details, timeline, "
         "personality, how they speak). Costs a little; use it before writing a character from an existing work.",
         {"query": {"type": "string", "description": "What to find, e.g. 'Il Dottore Genshin Impact personality, "
@@ -339,6 +343,67 @@ def tool_look_up(session, args):
         {"type": "lookup", "query": query, "sources": sources}]
 
 
+# The basics form: plain settings, no interpretation needed. key -> (question, {answer: preference text})
+BASICS = {
+    "language": ("Story language", None),  # free text, default English
+    "pov": ("Point of view", {
+        "second": "Narrate in second person for {{user}} (\"you step inside\").",
+        "third": "Narrate in third person (\"she steps inside\").",
+        "first": "Narrate in first person from {{char}}'s point of view (\"I step inside\")."}),
+    "tense": ("Tense", {"present": "Write in present tense.", "past": "Write in past tense."}),
+    "length": ("Reply length", {"short": "short", "medium": "medium", "long": "long"}),
+    "format": ("Speech and actions", {
+        "quotes": "Put speech in double quotes; write actions as plain prose.",
+        "asterisks": "Put speech in double quotes and actions in *asterisks*.",
+        "any": ""}),
+    "colors": ("Coloured speech", {
+        "on": "Give each character's spoken lines their own colour: wrap each quoted line in "
+              "<font color=\"#RRGGBB\">\"...\"</font>, keep one colour per character for the whole story, "
+              "and pick colours that read well on a dark background.",
+        "off": ""}),
+    "panels": ("In-story panels", {
+        "on": "When a text message, note, letter, sign or screen appears in the story, show it as a small "
+              "self-contained HTML panel with inline styles (for example a phone chat as message bubbles), "
+              "then carry on with the prose.",
+        "off": ""}),
+    "keep_out": ("Keep out", None),  # free text
+}
+LENGTH_WORDS = {"short": "a few lines", "medium": "a few paragraphs", "long": "a proper chunk"}
+
+
+def tool_show_basics_form(session, args):
+    return {"shown": True, "note": "They'll answer with the form; wait."}, [{"type": "form", "form": "basics"}]
+
+
+def apply_basics(session, answers):
+    """Records the form's answers as confirmed preferences; returns the message Bulba reads."""
+    answers = answers if isinstance(answers, dict) else {}
+    lines = []
+    for key, (label, options) in BASICS.items():
+        raw = str(answers.get(key) or "").strip()[:300]
+        if not raw:
+            continue
+        if options is None:
+            if key == "language" and raw.lower() in ("english", "en"):
+                lines.append(f"{label}: English")
+                continue
+            text = (f"Write the whole story in {raw}." if key == "language" else f"Keep out: {raw}.")
+            scope = "boundary" if key == "keep_out" else "general"
+        else:
+            if raw not in options:
+                continue
+            text, scope = options[raw], "general"
+            if key == "length":
+                text = f"Reply length: {LENGTH_WORDS[raw]} (reply_length {raw})."
+            if not text:
+                lines.append(f"{label}: no preference")
+                continue
+        lines.append(f"{label}: {text}")
+        tool_record_preference(session, {"wording": f"Basics form: {label.lower()}", "interpretation": text,
+                                         "scope": scope, "strength": "firm", "status": "confirmed"})
+    return "Basics form answers (already recorded as preferences):\n" + ("\n".join(lines) if lines else "(left empty)")
+
+
 def tool_record_preference(session, args):
     pref = {"id": uuid.uuid4().hex[:8], "wording": str(args.get("wording", ""))[:300],
             "interpretation": str(args.get("interpretation", ""))[:300],
@@ -442,7 +507,8 @@ def tool_propose_character(session, args):
 
 
 HANDLERS = {
-    "get_current_setup": tool_get_current_setup, "get_starter": tool_get_starter, "look_up": tool_look_up, "set_stage": tool_set_stage, "offer_choices": tool_offer_choices,
+    "get_current_setup": tool_get_current_setup, "get_starter": tool_get_starter, "look_up": tool_look_up,
+    "show_basics_form": tool_show_basics_form, "set_stage": tool_set_stage, "offer_choices": tool_offer_choices,
     "write_samples": tool_write_samples, "record_preference": tool_record_preference,
     "propose_extras": tool_propose_extras, "propose_preset": tool_propose_preset,
     "propose_persona": tool_propose_persona, "propose_character": tool_propose_character,
@@ -488,7 +554,7 @@ def opening(session):
 
 
 # Tools after which Bulba waits for the user (see instructions.md, "Tools, briefly")
-TURN_ENDING = {"offer_choices", "write_samples", "propose_extras", "propose_preset", "propose_persona", "propose_character"}
+TURN_ENDING = {"offer_choices", "write_samples", "show_basics_form", "propose_extras", "propose_preset", "propose_persona", "propose_character"}
 
 
 def run_turn(session, user_text, action_note=None, model_note=None):

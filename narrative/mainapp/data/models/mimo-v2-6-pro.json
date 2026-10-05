@@ -110,7 +110,8 @@
     "back_and_forth": "mimo-back-and-forth",
     "rich_scene": "mimo-rich-scene",
     "director": "mimo-director",
-    "full_preset": "mimo-frankenstein"
+    "full_preset": "mimo-frankenstein",
+    "full_preset_fast": "mimo-frankenstein-pico"
   },
   "openrouter_id_verified": true,
   "card": {

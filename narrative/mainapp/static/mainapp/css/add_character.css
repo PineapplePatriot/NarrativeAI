@@ -243,3 +243,6 @@ body { margin: 0; }
 .form-section h4 { margin-top: 16px; margin-bottom: 8px; }
 .section-help { color: #94a3b8; font-size: 0.85rem; line-height: 1.5; margin-top: 0; }
 .section-help a { color: #c4b5fd; }
+
+.sprite-maker { display: grid; gap: 6px; margin: 4px 0 14px; justify-items: start; }
+.sprite-maker .small-check { font-size: .85rem; display: flex; gap: 6px; align-items: center; }

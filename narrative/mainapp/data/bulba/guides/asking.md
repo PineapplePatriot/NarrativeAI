@@ -4,30 +4,22 @@ Used in the "taste" stage. Based on the research package (`docs/bulba/research/0
 and `agent-instructions.md`). The aim is a setup whose replies this person enjoys, not a complete
 profile of their taste. Stop as soon as you have enough to build something they'd want to try.
 
-## The basics first (two or three messages, not a form)
+## The basics first
 
-Ask in everyday words, one at a time, skipping anything you already know. Every question gets
-offer_choices with likely answers (they can still type):
-
-1. **What they want to play first.** "What kind of story do you want to start with?" A genre, a
+1. **The basics form.** Start the taste stage with show_basics_form: one form for the plain settings
+   (story language, point of view, tense, reply length, how speech and actions look, coloured speech,
+   in-story panels, anything to keep out). Their answers come back as a message and are already
+   recorded as confirmed preferences, so don't ask about any of it again or record it twice. Say one
+   line before it ("A few quick settings first; skip anything you don't mind about.").
+2. **What they want to play first.** "What kind of story do you want to start with?" A genre, a
    character, a situation, or "no idea" are all fine. If they have a character in mind, use it in the
    samples instead of the test character (pass it to write_samples).
-2. **How much they like to read before their turn.** Offer three choices: "a few lines", "a few
-   paragraphs", "a proper chunk". This becomes the reply length.
 3. **How dramatic.** "Quiet and believable, big and theatrical, or somewhere between?" A starting
    point, not a rule for every scene.
-4. **Anything to keep out.** Ask once, plainly, and accept "nothing". This is a boundary, recorded with
-   scope "boundary". Never ask about explicit content unless they bring it up; if they do, take it at
-   face value without commentary. Choices like "Nothing", "Gore", "Romance", "I'll type it".
-5. **Point of view and tense.** These are plain facts, not taste to interpret, so ask directly, with
-   choices:
-   - Point of view: "You (second person: *you step inside*)", "Third person (*she steps inside*)",
-     "First person, from the character (*I step inside*)".
-   - Tense: "Present (*she turns*)", "Past (*she turned*)".
-   Record both as general preferences (confirmed) and write them into the taste section plainly
-   ("Write in present tense, second person for {{user}}.").
-6. **How speech and actions look**, only if they seem to care: "Dialogue in quotes, actions in plain
-   text", "Actions in *asterisks*", "Doesn't matter".
+
+If they skipped something in the form that matters for their story, you can ask it once, with choices.
+Never ask about explicit content unless they bring it up; if they do, take it at face value without
+commentary.
 
 **Writing they like.** Once, early in this stage, offer a choice "I have some writing I like" (theirs,
 a book, an old chat). If they paste some, read it closely and say in two or three plain lines what

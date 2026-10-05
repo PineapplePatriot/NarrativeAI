@@ -60,8 +60,17 @@ mimo["extras"]["starter_note"] = ("MiMo V2.6 Pro BOLT: the authors' MiMo V2.6 Pr
                                   "native thinking, thinking leash, Fate Ledger and leak cleanups switched on, as their "
                                   "README describes. Mature toggles off.")
 
-def write(sid, model, preset, tagline, description, used):
-    data = {"id": sid, "model": model, "experience": "full_preset", "title": "Realistic Frankenstein",
+# --- MiMo V2.6 Pro pico: the authors' MiMo file as shipped (thinking off, its own nine-line plan) ------------
+pico = presets.from_sillytavern(json.load(open(MIMO_FILE)))
+toggle(pico, MATURE, False)
+pico["samplers"]["temperature"] = {"on": True, "value": 0.7}   # with thinking off, MiMo uses these
+pico["samplers"]["top_p"] = {"on": True, "value": 0.8}
+pico["samplers"]["reasoning_effort"] = {"on": True, "value": "off"}
+pico["extras"]["starter_note"] = "MiMo V2.6 Pro pico, as shipped (native thinking off). Mature toggles off."
+
+
+def write(sid, model, preset, tagline, description, used, experience="full_preset", title="Realistic Frankenstein"):
+    data = {"id": sid, "model": model, "experience": experience, "title": title,
             "tagline": tagline, "description": description,
             "based_on": [{**CREDIT, "used": used}], "status": "community", "preset": preset}
     with open(OUT + sid + ".json", "w", encoding="utf-8") as f:
@@ -84,3 +93,10 @@ write("mimo-frankenstein", "mimo-v2-6-pro", mimo,
       "its text rules.",
       "The whole preset: the authors' MiMo V2.6 Pro configuration, switched to BOLT as their README describes "
       "(BOLT chain of thought, native thinking, thinking leash, Fate Ledger, leak cleanups). Mature toggles off.")
+write("mimo-frankenstein-pico", "mimo-v2-6-pro", pico,
+      "The big one, faster: MiMo thinks in nine short lines.",
+      "The same large community preset in its pico setup: MiMo's own thinking is off and it plans in a few "
+      "short lines instead, so replies come in seconds rather than minutes. Heavy on tokens.",
+      "The whole preset, as shipped in the authors' MiMo V2.6 Pro configuration (pico chain of thought, native "
+      "thinking off, temperature 0.7, top-p 0.8). Mature toggles off.",
+      experience="full_preset_fast", title="Realistic Frankenstein (pico)")

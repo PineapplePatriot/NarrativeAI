@@ -144,5 +144,11 @@ AUTH_USER_MODEL = 'users.User'
 DEFAULT_USER_IMAGE = MEDIA_URL + "users/ava.png"
 
 # What one subscription covers per calendar month, in US dollars (chat, Bulba and background jobs together).
-# Used for the spending meter and warnings; nothing is blocked at the limit yet.
+# At the limit, chatting, Bulba and background jobs stop until the 1st (until our own endpoint and wallet
+# exist, this guards the user's OpenRouter key). Set SUBSCRIPTION_LIMIT_ENFORCED = False to only show the meter.
 SUBSCRIPTION_MONTHLY_LIMIT = 25.0
+SUBSCRIPTION_LIMIT_ENFORCED = True
+
+# The image model that makes character pictures (Nano Banana, through OpenRouter). Check the id on
+# openrouter.ai/models if pictures fail; newer versions may have their own id.
+SPRITE_IMAGE_MODEL = "google/gemini-2.5-flash-image"
