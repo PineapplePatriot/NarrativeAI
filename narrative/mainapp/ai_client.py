@@ -147,9 +147,39 @@ def _error_text(resp):
         return resp.text[:300] or resp.reason
 
 
+def record_cost(user, task, model, cost):
+    """Remembers what a request cost (for the spending meter). Never fails the request itself."""
+    if not isinstance(cost, (int, float)) or cost <= 0 or user is None or not getattr(user, "pk", None):
+        return
+    try:
+        from users.models import UsageRecord
+        UsageRecord.objects.create(user=user, task=task, model=model or "", cost=float(cost))
+    except Exception as e:  # e.g. the table isn't migrated yet
+        print(f"Could not record usage: {e}")
+
+
+def spent_this_month(user):
+    from django.db.models import Sum
+    from django.utils import timezone
+    from users.models import UsageRecord
+    start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    total = UsageRecord.objects.filter(user=user, time_create__gte=start).aggregate(s=Sum("cost"))["s"]
+    return round(total or 0.0, 4)
+
+
+def spending(user):
+    """{"spent", "limit", "left"} for this calendar month, in dollars."""
+    from django.conf import settings
+    limit = float(getattr(settings, "SUBSCRIPTION_MONTHLY_LIMIT", 25.0))
+    spent = spent_this_month(user)
+    return {"spent": spent, "limit": limit, "left": round(max(0.0, limit - spent), 4)}
+
+
 def _request(user, task, messages, timeout=None, **params):
     """Sends one chat completion request and returns (profile, the parsed JSON reply)."""
     profile, model = resolve(user, task)
+    if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER:
+        params.setdefault("usage", {"include": True})  # OpenRouter then reports the cost
     payload = {"model": model, "messages": messages}
     payload.update({k: v for k, v in params.items() if v is not None})
     timeout = TEST_TIMEOUT or timeout or TASKS.get(task, {}).get("timeout", 60)
@@ -172,6 +202,8 @@ def _request(user, task, messages, timeout=None, **params):
         raise AIError(f"{label}: {profile.name} sent a reply that is not JSON.")
     if isinstance(data, dict) and data.get("error"):  # OpenRouter can report errors with HTTP 200
         raise AIError(f"{label}: {profile.name} returned an error: {_error_text(resp)}")
+    if isinstance(data, dict):
+        record_cost(user, task, model, (data.get("usage") or {}).get("cost"))
     return profile, data
 
 
@@ -194,9 +226,6 @@ def complete_message(user, task, messages, timeout=None, **params):
     Like complete(), but returns (the whole reply message, cost in USD or None), so callers can
     read tool calls. Pass tools=[...] for function calling. OpenRouter reports the cost when asked.
     """
-    profile, model = resolve(user, task)
-    if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER:
-        params.setdefault("usage", {"include": True})
     profile, data = _request(user, task, messages, timeout, **params)
     try:
         message = data["choices"][0]["message"]
@@ -237,6 +266,9 @@ def test_connection(provider, base_url, api_key, model):
         return False, f"Could not reach the server ({e.__class__.__name__})."
 
 
+THINKING = object()  # yielded by stream() while the model is thinking (its reasoning isn't shown)
+
+
 def stream(user, task, messages, timeout=None, **params):
     """
     Like complete(), but yields the reply in pieces as the provider sends them
@@ -246,6 +278,8 @@ def stream(user, task, messages, timeout=None, **params):
     import json
 
     profile, model = resolve(user, task)
+    if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER:
+        params.setdefault("usage", {"include": True})  # the cost arrives with the last piece
     payload = {"model": model, "messages": messages, "stream": True}
     payload.update({k: v for k, v in params.items() if v is not None})
     read_timeout = TEST_TIMEOUT or timeout or TASKS.get(task, {}).get("timeout", 60)  # max wait between two pieces
@@ -281,9 +315,14 @@ def stream(user, task, messages, timeout=None, **params):
                     err = event["error"]
                     raise AIError(f"{label}: {profile.name} stopped with an error: "
                                   f"{err.get('message') if isinstance(err, dict) else err}")
+                if isinstance(event.get("usage"), dict):
+                    record_cost(user, task, model, event["usage"].get("cost"))
                 choices = event.get("choices") or []
-                text = (choices[0].get("delta") or {}).get("content") if choices else None
+                delta = (choices[0].get("delta") or {}) if choices else {}
+                text = delta.get("content")
                 if text:
                     yield text
+                elif delta.get("reasoning") or delta.get("reasoning_content") or delta.get("reasoning_details"):
+                    yield THINKING  # the model is still thinking; nothing to show yet
         except requests.RequestException as e:
             raise AIError(f"{label}: the connection to {profile.name} broke off ({e.__class__.__name__}).")

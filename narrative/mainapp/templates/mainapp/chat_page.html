@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
 </head>
 
-<body>
+<body data-dialogue="{% if appearance.dialogue_color == 'preset' %}preset{% else %}color{% endif %}" style="--dialogue-color: {% if appearance.dialogue_color == 'preset' %}inherit{% else %}{{ appearance.dialogue_color }}{% endif %}">
 {% include "partials/topbar.html" with active="characters" %}
 
     <div class="chat-container">
@@ -205,6 +205,39 @@
                         </div>
                     </div>
                     <div class="tool-section">
+                        <span class="tool-label">🙂 You in this chat</span>
+                        <div class="persona-line" id="personaLine">
+                            {% if chat_persona.name %}<b>{{ chat_persona.name }}</b> (this chat only)
+                            {% elif usual_persona.name %}<b>{{ usual_persona.name }}</b> (your usual persona)
+                            {% else %}Your usual persona{% endif %}
+                            <button type="button" class="link-btn" id="personaEdit">Change for this chat</button>
+                        </div>
+                        <form class="persona-form" id="personaForm" hidden>
+                            <input type="text" class="tool-input" id="personaName" maxlength="100" placeholder="Name in this chat" value="{{ chat_persona.name|default:'' }}">
+                            <textarea class="tool-input" id="personaDesc" rows="3" placeholder="Who you are here (looks, role, what others know)">{{ chat_persona.description|default:'' }}</textarea>
+                            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                                <button type="submit" class="tool-action-btn">Save for this chat</button>
+                                <button type="button" class="tool-action-btn" id="personaReset">Use my usual persona</button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="tool-section">
+                        <span class="tool-label">🎨 Dialogue colour</span>
+                        <div class="dialogue-colors" id="dialogueColors">
+                            {% for c in "#e594f2,#7dd3fc,#86efac,#fcd34d,#fca5a5,#c4b5fd,#f1f5f9"|split:"," %}
+                                <button type="button" class="swatch {% if appearance.dialogue_color == c %}on{% endif %}" data-color="{{ c }}" style="background: {{ c }}" title="{{ c }}"></button>
+                            {% endfor %}
+                            <label class="swatch custom" title="Any colour"><input type="color" id="dialogueCustom" value="{% if appearance.dialogue_color != 'preset' %}{{ appearance.dialogue_color }}{% else %}#e594f2{% endif %}"></label>
+                            <button type="button" class="preset-btn {% if appearance.dialogue_color == 'preset' %}on{% endif %}" data-color="preset" title="No colour of its own: the preset's or the AI's colours show instead">Preset's colours</button>
+                        </div>
+                    </div>
+                    <div class="tool-section">
+                        <span class="tool-label">💳 This month</span>
+                        <div class="spending-line" id="spendingLine" data-spent="{{ spending.spent }}" data-limit="{{ spending.limit }}">
+                            ${{ spending.spent|floatformat:2 }} of ${{ spending.limit|floatformat:2 }} used (chat, Bulba and background jobs)</div>
+                        <div class="spending-meter"><div id="spendingFill" style="width: {% widthratio spending.spent spending.limit 100 %}%"></div></div>
+                    </div>
+                    <div class="tool-section">
                         <span class="tool-label">🔧 Actions</span>
                         <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
                             <button class="tool-action-btn" onclick="openRegenModal()">↻ Regen</button>
@@ -356,6 +389,7 @@
         window.CHAR_INITIAL = "{{ character.name|first|upper|escapejs }}";
         window.USER_AVATAR = "{{ user_avatar|default:'' }}";
         window.STREAM_REPLIES = {{ stream_replies|yesno:"true,false" }};
+        window.CHARACTER_NAME = "{{ character.name|escapejs }}";
     </script>
     <aside class="tracker-panel" id="trackerPanel" hidden></aside>
     <aside class="tracker-panel left chats-panel" id="chatsPanel" hidden>

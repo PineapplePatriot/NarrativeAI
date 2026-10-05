@@ -106,7 +106,8 @@ def chat(request, slug):
         "summary_paused": False,  # automatic summaries are paused for this chat
         "context_guides": {},
         "current_bg": "",
-        "current_music": {}
+        "current_music": {},
+        "persona": {},          # {"name", "description"}: who the user is in this chat only (else their usual persona)
     }
 
     def summary_payload():
@@ -144,6 +145,7 @@ def chat(request, slug):
                         chat_state["context_guides"] = data.get("context_guides", {})
                         chat_state["current_bg"] = data.get("current_bg", "")
                         chat_state["current_music"] = data.get("current_music", {})
+                        chat_state["persona"] = data.get("persona") if isinstance(data.get("persona"), dict) else {}
                         messages_list = data.get("messages", [])
                     else:
                         messages_list = data
@@ -171,7 +173,7 @@ def chat(request, slug):
         rules = regex_rules.for_chat(presets.normalize(presets.get_active(request.user).data), character)
         if edits_only:
             rules = [r for r in rules if r["run_on_edit"]]
-        return regex_rules.run(rules, mode, text, role, prompt_names(request.user, character))
+        return regex_rules.run(rules, mode, text, role, prompt_names(request.user, character, chat_state["persona"]))
 
     # --- Save messages to file ---
     def save_messages(messages):
@@ -185,7 +187,8 @@ def chat(request, slug):
             "tracker_history": chat_state["tracker_history"],
             "context_guides": chat_state["context_guides"],
             "current_bg": chat_state["current_bg"],
-            "current_music": chat_state["current_music"]
+            "current_music": chat_state["current_music"],
+            "persona": chat_state["persona"],
         }
         with open(chat_file_path, "w", encoding="utf-8") as f:
             json.dump(full_data, f, ensure_ascii=False, indent=2)
@@ -469,49 +472,54 @@ def chat(request, slug):
                 "swipes": chats.version_info(messages),
             })
 
-        # --- 5. CONTINUE (Fixed) ---
+        # --- 5. CONTINUE: the AI carries on its last reply, with the same preset, lore and summary ---
         elif action == "continue":
             if not messages or messages[-1][0] != "assistant":
                 return JsonResponse({"success": False, "error": "Can only continue the AI's last message."})
-
-            # 1. Get the partial text and remove it from the history list used for the prompt
             last_text = messages[-1][2]
-            # We slice everything EXCEPT the last message to give the AI context
-            history_context = messages[:-1]
-
-            # 2. Build the System Prompt manually for this specific task
-            # We instruct the AI that it is continuing a specific text.
-            system_instruction = (
-                f"Your last response was cut-off. You are continuing the following text exactly where it stopped. "
-                f"Do not repeat the beginning. Output only the continuation and give it an ending logical for the message.\n\n"
-                f"TEXT SO FAR:\n{last_text}"
-            )
-
-            # 3. Construct API Messages
-            api_messages = [{"role": "system", "content": system_instruction}]
-
-            # Add recent history (last 5 messages) for context, so it remembers the topic
-            for m in history_context[-5:]:
-                api_messages.append({"role": "assistant" if m[0] == "assistant" else "user", "content": m[2]})
-
             try:
-                # 4. Call API
-                sampler_values = samplers.for_user(request.user)
+                worldbook_slug = (character.worldbook.slug if character.worldbook
+                                  and character.worldbook.author == request.user else None)
+                prompt = build_ai_request(request.user, character, chat=chat_obj, worldbook_slug=worldbook_slug,
+                                          message=None, guidance="",
+                                          persistent_guides=chat_state["context_guides"],
+                                          summary=chat_state["summary"])
+                preset = presets.normalize(presets.get_active(request.user).data)
                 _, chat_model = ai_client.resolve(request.user, "chat")
-                sampler_params, _ = samplers.to_api_params(sampler_values, chat_model)
-                sampler_params.setdefault("max_tokens", 500)  # a continuation is short unless set
-                new_chunk = ai_client.complete(request.user, "chat", api_messages, **sampler_params)
-
-                # 5. Combine and Save
-                full_text = text_rules("saved", last_text + " " + new_chunk, "assistant")
-                messages[-1] = chats.set_text(messages[-1], full_text)
-                save_messages(messages)
-
-                return JsonResponse({"success": True, "reply": full_text})
-
-            except Exception as e:
-                print(f"Continue Error: {e}")
+                names = prompt_names(request.user, character, chat_state["persona"])
+                history = [{"role": m[0], "content": m[2]} for m in messages if m[0] in ("user", "assistant")]
+                history = regex_rules.run_on_history(regex_rules.for_chat(preset, character), history, names)
+                # The unfinished reply is the last message; the preset's continue nudge comes after it
+                nudge = preset["utility"]["continue_nudge"].strip() or presets.UTILITY_DEFAULTS["continue_nudge"]
+                history.append({"role": "system", "content": nudge})
+                built = presets.assemble(preset, prompt_slots(request.user, character, prompt, chat_state["persona"]),
+                                         history, names, chat_model)
+                new_chunk = ai_client.complete(request.user, "chat", built["messages"], **built["params"])
+            except ai_client.AIError as e:
                 return JsonResponse({"success": False, "error": str(e)})
+
+            new_chunk = (new_chunk or "").rstrip()
+            if new_chunk and not new_chunk[0].isspace() and new_chunk[0] not in ".,;:!?)…'\"" and not last_text.endswith((" ", "\n")):
+                new_chunk = " " + new_chunk
+            full_text = text_rules("saved", last_text + new_chunk, "assistant")
+            messages[-1] = chats.set_text(messages[-1], full_text)
+            save_messages(messages)
+            return JsonResponse({"success": True, "reply": full_text})
+        elif action == "chat_persona":  # who the user is in this chat only; empty name = their usual persona
+            name = str(data.get("name") or "").strip()[:100]
+            chat_state["persona"] = ({"name": name, "description": str(data.get("description") or "").strip()[:4000]}
+                                     if name else {})
+            save_messages(messages)
+            return JsonResponse({"success": True, "persona": chat_state["persona"],
+                                 "name": prompt_names(request.user, character, chat_state["persona"])["user"]})
+        elif action == "appearance":  # dialogue colour: a hex colour, or "preset" to leave it to the preset
+            color = str(data.get("dialogue_color") or "")
+            if color != "preset" and not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
+                return JsonResponse({"success": False, "error": "Pick a colour."}, status=400)
+            settings_obj, _ = ChatSettings.objects.get_or_create(author=request.user)
+            settings_obj.appearance = {**(settings_obj.appearance or {}), "dialogue_color": color}
+            settings_obj.save(update_fields=["appearance"])
+            return JsonResponse({"success": True, **_appearance(request.user)})
         elif action == "save_media":
             m_type = data.get("type")
             url = data.get("url")
@@ -579,9 +587,9 @@ def chat(request, slug):
                     # --- Build the request from the active preset ---
                     preset = presets.normalize(presets.get_active(request.user).data)
                     _, chat_model = ai_client.resolve(request.user, "chat")
-                    names = prompt_names(request.user, character)
+                    names = prompt_names(request.user, character, chat_state["persona"])
                     history = regex_rules.run_on_history(regex_rules.for_chat(preset, character), api_messages, names)
-                    built = presets.assemble(preset, prompt_slots(request.user, character, prompt),
+                    built = presets.assemble(preset, prompt_slots(request.user, character, prompt, chat_state["persona"]),
                                              history, names, chat_model)
                     context_dropped = built["dropped"]
                     # Stream when the page asks for it and the preset allows it
@@ -709,6 +717,7 @@ def chat(request, slug):
                         "trackers_due": trackers_due,
                         "context_dropped": context_dropped,
                         "swipes": chats.version_info(messages),
+                        "spending": ai_client.spending(request.user),
                     }
 
                 if not streaming:
@@ -730,7 +739,13 @@ def chat(request, slug):
 
                     try:
                         try:
+                            told_thinking = False
                             for chunk in ai_client.stream(request.user, "chat", built["messages"], **built["params"]):
+                                if chunk is ai_client.THINKING:
+                                    if not told_thinking and not parts:
+                                        told_thinking = True
+                                        yield json.dumps({"type": "thinking"}) + "\n"
+                                    continue
                                 parts.append(chunk)
                                 yield json.dumps({"type": "delta", "text": chunk}, ensure_ascii=False) + "\n"
                         except ai_client.AIError as e:
@@ -806,10 +821,15 @@ def chat(request, slug):
     context = {
         "messages": [m[:5] for m in messages],  # the template shows the version on screen
         "swipes": chats.version_info(messages),
+        "spending": ai_client.spending(request.user),
+        "appearance": _appearance(request.user),
         "display_rules": {
             "rules": [r for r in regex_rules.for_chat(presets.normalize(presets.get_active(request.user).data), character)
                       if r["enabled"] and r["mode"] == "display"],
-            "names": prompt_names(request.user, character)},
+            "names": prompt_names(request.user, character, chat_state["persona"])},
+        "chat_persona": chat_state["persona"],
+        "usual_persona": {"name": getattr(request.user, "persona_name", "") or "",
+                          "description": getattr(request.user, "persona_description", "") or ""},
         "character": character,
         "photo_url": photo_url,
         "photo_second": photo_second,
@@ -831,13 +851,25 @@ def chat(request, slug):
     return render(request, "mainapp/chat_page.html", context)
 
 
-def prompt_names(user, character):
-    """{{char}} and {{user}}: the persona name wins over the account name."""
+DIALOGUE_DEFAULT = "#e594f2"
+
+
+def _appearance(user):
+    settings_obj = ChatSettings.objects.filter(author=user).first()
+    look = dict(settings_obj.appearance or {}) if settings_obj else {}
+    color = look.get("dialogue_color") or DIALOGUE_DEFAULT
+    if color != "preset" and not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
+        color = DIALOGUE_DEFAULT
+    return {"dialogue_color": color}
+
+
+def prompt_names(user, character, chat_persona=None):
+    """{{char}} and {{user}}: this chat's persona name, else the usual persona name, else the account name."""
     return {"char": character.name or "Character",
-            "user": getattr(user, "persona_name", None) or user.name or user.username}
+            "user": (chat_persona or {}).get("name") or getattr(user, "persona_name", None) or user.name or user.username}
 
 
-def prompt_slots(user, character, prompt):
+def prompt_slots(user, character, prompt, chat_persona=None):
     """Text for the preset's slots (markers), from the character, persona and build_ai_request."""
     extra = prompt.get("SystemPrompts", {})
     return {
@@ -848,7 +880,8 @@ def prompt_slots(user, character, prompt):
         "card_system_prompt": character.system_prompt or "",
         "card_post_history": character.post_history_instructions or "",
         "scenario": character.scenario or "",
-        "persona": getattr(user, "persona_description", None) or "",
+        "persona": ((chat_persona or {}).get("description") if (chat_persona or {}).get("name")
+                    else getattr(user, "persona_description", None)) or "",
         "lore": extra.get("WorldInfo", ""),
         "summary": extra.get("StorySummary", ""),
         "trackers": extra.get("StoryState", ""),
@@ -1387,12 +1420,24 @@ def _bulba_state(session):
     profile = agent.target_profile(session)
     return {
         "id": session.id, "stage": session.stage, "stages": agent.STAGES,
-        "spent": round(session.spent, 4), "budget": session.budget,
+        "spent": round(session.spent, 4), "budget": session.budget, "month": ai_client.spending(session.user),
+        "chat": _bulba_chat_link(session),
         "model": profile["name"] if profile else session.target_model,
         "preferences": [p for p in session.preferences if p.get("status") not in ("rejected", "superseded")],
         "proposals": [{**{k: p.get(k) for k in ("id", "kind", "title", "status", "result")},
                        "summary": _shown_summary(session, p)} for p in session.proposals],
     }
+
+
+def _bulba_chat_link(session):
+    """The character Bulba made (the newest applied one), to start chatting from the page."""
+    for p in reversed(session.proposals):
+        if p["kind"] == "character" and p["status"] == "applied" and (p.get("result") or {}).get("slug"):
+            character = Character.objects.filter(author=session.user, slug=p["result"]["slug"]).first()
+            if character:
+                return {"name": character.name, "url": reverse("chat", kwargs={"slug": character.slug}),
+                        "edit_url": reverse("character", kwargs={"slug": character.slug}) + "#spritesSection"}
+    return None
 
 
 def _shown_summary(session, proposal):
@@ -1439,6 +1484,10 @@ def bulba_page(request):
 @login_required
 def bulba_api(request):
     from .bulba import actions, agent
+    from .models import BulbaSession
+    if request.method == "GET":  # what Bulba is doing right now (the page asks while a turn runs)
+        session = BulbaSession.objects.filter(user=request.user, active=True).first()
+        return JsonResponse({"activity": session.activity if session else ""})
     if request.method != "POST":
         return JsonResponse({"error": "POST only"}, status=405)
     try:
@@ -1464,7 +1513,11 @@ def bulba_api(request):
         verb = {"apply": "Applied", "dismiss": "Dismissed", "undo": "Undid"}[action]
         events = [{"type": "note", "text": note}]
         session.events.append(events[0])
-        events += agent.run_turn(session, None, action_note=f"{verb}: {proposal['title']}")
+        note_for_bulba = f"{verb}: {proposal['title']}"
+        link = _bulba_chat_link(session) if action == "apply" and proposal["kind"] == "character" else None
+        if link:  # so Bulba can point to the right places (pictures go on the character's page)
+            note_for_bulba += f" — chat: {link['url']}, pictures (Sprites section): {link['edit_url']}"
+        events += agent.run_turn(session, None, action_note=f"{verb}: {proposal['title']}", model_note=note_for_bulba)
     elif action == "forget":  # the user removes a preference Bulba recorded
         pref = next((p for p in session.preferences if p["id"] == data.get("id")), None)
         if pref:
@@ -1477,6 +1530,7 @@ def bulba_api(request):
             return JsonResponse({"error": "Enter an amount in dollars."}, status=400)
     else:
         return JsonResponse({"error": "Unknown action."}, status=400)
+    session.activity = ""
     session.save()
     return JsonResponse({"events": events, "state": _bulba_state(session)})
 

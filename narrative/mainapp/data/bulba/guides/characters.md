@@ -10,8 +10,11 @@ specific problem.
 
 ## The persona (who they are)
 
-- Ask what they want to be called and, in a sentence or two, who they are in the story. Many people
-  want a light persona so they can improvise; that's fine.
+- Ask what they want to be called and, in a sentence or two, who they are in the story, with
+  offer_choices: "Keep me light: just a name", "Someone who fits the story", "You make me up", "I'll
+  describe myself". Many people want a light persona so they can improvise; that's fine.
+- Ask how characters should refer to them (he, she, they, or a name only) if they haven't said. If they
+  didn't give a name, offer two or three that fit instead of picking one silently.
 - Write it in third person, short (40 to 120 words): name, a line on how they look, one or two traits
   that matter in scenes, and anything other characters would plainly know about them. Nothing about
   how they *feel* about the character or what they'll decide: that's theirs to play.
@@ -24,8 +27,10 @@ pick". One question at a time, and only what you need: who they are, what they w
 like when things get hard, how the two of them know each other (or don't), and where the story starts.
 
 **Canon characters:** ask which version (timeline, route, ending) and whether they want anything
-changed. Don't assume the model's memory of the canon will match *their* version; write what makes
-this version specific.
+changed, then **look_up** the character (one or two searches: who they are and how they speak,
+plus the version's timeline). Write from what you found, not from memory; if sources disagree or are
+thin, say so and ask. Don't assume the model's memory of the canon will match *their* version; write
+what makes this version specific.
 
 ### What matters most
 

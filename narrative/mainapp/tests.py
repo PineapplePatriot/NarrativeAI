@@ -2338,3 +2338,123 @@ class RegexChatTests(ChatPromptTests):
         post({"action": "save_full", "id": obj.id, "blocks": current["blocks"], "regex": [ST_RULE]})
         obj.refresh_from_db()
         self.assertEqual([r["name"] for r in presets_mod.normalize(obj.data)["regex"]], ["Hide thinking"])
+
+
+class SpendingAndThinkingTests(StreamChatTests):
+    """Costs recorded per request; "thinking" while a model reasons; per-chat persona; colours; Continue."""
+
+    def test_stream_records_cost_and_says_thinking(self):
+        from mainapp import ai_client
+        self.stream_lines = sse({"choices": [{"delta": {"reasoning": "hmm"}}]},
+                                {"choices": [{"delta": {"reasoning": "more"}}]},
+                                delta("Hi."), {"choices": [], "usage": {"cost": 0.012}}, "[DONE]")
+        resp, events = self.stream_post({"action": "chat", "message": "Hello"})
+        self.assertEqual([e["type"] for e in events], ["thinking", "delta", "done"])
+        self.assertEqual(self.sent[-1]["usage"], {"include": True})
+        self.assertAlmostEqual(ai_client.spent_this_month(self.user), 0.012)
+        self.assertAlmostEqual(events[-1]["spending"]["spent"], 0.012)
+        self.assertEqual(events[-1]["spending"]["limit"], 25.0)
+
+    def test_non_streamed_costs_are_recorded(self):
+        from unittest import mock
+        from mainapp import ai_client
+        resp = mock.Mock(status_code=200)
+        resp.json.return_value = {"choices": [{"message": {"content": "x"}}], "usage": {"cost": 0.5}}
+        with mock.patch("mainapp.ai_client.requests.post", return_value=resp):
+            ai_client.complete(self.user, "chat", [{"role": "user", "content": "hi"}])
+        self.assertEqual(ai_client.spending(self.user), {"spent": 0.5, "limit": 25.0, "left": 24.5})
+
+    def test_continue_goes_through_the_preset(self):
+        from unittest import mock
+        self.post({"action": "chat", "message": "Where is the tower?"})
+        replies = iter(["and then it ended."])
+        def fake(url, headers=None, json=None, timeout=None, **kw):
+            self.sent.append(json)
+            r = mock.Mock(status_code=200)
+            r.json.return_value = {"choices": [{"message": {"content": next(replies)}}]}
+            return r
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=fake):
+            data = self.client.post(self.url, json.dumps({"action": "continue"}), content_type="application/json").json()
+        self.assertEqual(data["reply"], "A reply. and then it ended.")
+        sent = self.sent[-1]["messages"]
+        self.assertIn("[Continue your last message", sent[-1]["content"])  # the preset's continue nudge, last
+        self.assertIn("A reply.", "\n".join(m["content"] for m in sent))
+        self.assertIn("Where is the tower?", "\n".join(m["content"] for m in sent))
+        self.assertEqual(self.saved_messages()[-1][2], "A reply. and then it ended.")
+
+    def test_persona_for_one_chat(self):
+        self.user.persona_name, self.user.persona_description = "Anya", "A courier."
+        self.user.save()
+        data = self.client.post(self.url, json.dumps({"action": "chat_persona", "name": "Vex",
+                                                      "description": "A genderless alien lizard."}),
+                                content_type="application/json").json()
+        self.assertEqual(data["name"], "Vex")
+        self.post({"action": "chat", "message": "Hello"})
+        sent = "\n".join(m["content"] for m in self.sent[-1]["messages"])
+        self.assertIn("A genderless alien lizard.", sent)
+        self.assertNotIn("A courier.", sent)
+        # Back to the usual persona
+        self.client.post(self.url, json.dumps({"action": "chat_persona", "name": ""}), content_type="application/json")
+        self.post({"action": "chat", "message": "Hi again"})
+        self.assertIn("A courier.", "\n".join(m["content"] for m in self.sent[-1]["messages"]))
+
+    def test_dialogue_colour(self):
+        post = lambda c: self.client.post(self.url, json.dumps({"action": "appearance", "dialogue_color": c}),
+                                          content_type="application/json")
+        self.assertEqual(post("#7dd3fc").json()["dialogue_color"], "#7dd3fc")
+        self.assertContains(self.client.get(self.url), "--dialogue-color: #7dd3fc")
+        self.assertEqual(post("preset").json()["dialogue_color"], "preset")
+        self.assertContains(self.client.get(self.url), 'data-dialogue="preset"')
+        self.assertEqual(post("red; position:fixed").status_code, 400)
+
+
+class BulbaRunTwoTests(BulbaTests):
+    """Fixes from Anya's first real run (5 October 2026)."""
+
+    def test_activity_and_chat_link(self):
+        self.assertEqual(self.client.get(reverse("bulba_api")).json(), {"activity": ""})
+        self.script = [("Here.", [self.call("propose_character", name="Corvin", description="A wizard.", greeting="Hi.")])]
+        data = self.api(action="say", text="make him").json()
+        self.assertIsNone(data["state"]["chat"])
+        self.script = [("Pictures?", [])]
+        data = self.api(action="apply", id=data["state"]["proposals"][0]["id"]).json()
+        self.assertEqual(data["state"]["chat"]["name"], "Corvin")
+        self.assertTrue(data["state"]["chat"]["edit_url"].endswith("#spritesSection"))
+        told = self.bulba_calls[-1]["messages"][-1]["content"]
+        self.assertIn("#spritesSection", told)                       # Bulba learns where pictures go
+        self.assertEqual(data["events"][1]["text"], "Applied: Character: Corvin")  # the page shows no links
+
+    def test_look_up(self):
+        self.script = [("", [self.call("look_up", query="Il Dottore personality")]), ("Found him.", [])]
+        orig = self.fake_post
+        seen = []
+        def fake(url, headers=None, json=None, timeout=None, **kw):
+            if json.get("plugins"):
+                seen.append(json)
+                from unittest import mock
+                r = mock.Mock(status_code=200)
+                r.json.return_value = {"choices": [{"message": {"content": "A Fatui Harbinger.", "annotations": [
+                    {"type": "url_citation", "url_citation": {"url": "https://wiki.example/dottore", "title": "Wiki"}}]}}],
+                    "usage": {"cost": 0.02}}
+                return r
+            return orig(url, headers, json, timeout, **kw)
+        self.fake_post = fake
+        data = self.api(action="say", text="Il Dottore").json()
+        self.assertEqual(seen[0]["plugins"], [{"id": "web", "max_results": 5}])
+        result = json.loads(self.bulba_calls[1]["messages"][-1]["content"])
+        self.assertEqual(result["findings"], "A Fatui Harbinger.")
+        lookup = next(e for e in data["events"] if e["type"] == "lookup")
+        self.assertEqual(lookup["sources"][0]["url"], "https://wiki.example/dottore")
+
+    def test_samples_dont_gender_an_unknown_user(self):
+        self.script = [("Look.", [self.call("write_samples", starter="opus-rich-scene", scenario="{{user}} arrives.",
+                                            user_turn="Hi.", variants=[{"label": "a", "instructions": ""}])])]
+        self.api(action="say", text="show me")
+        system = "\n".join(m["content"] for m in self.sample_calls[0]["messages"])
+        self.assertIn("don't give them a gender", system)
+        self.user.persona_description = "Wren, she/her."
+        self.user.save()
+        self.script = [("Again.", [self.call("write_samples", starter="opus-rich-scene", scenario="{{user}} arrives.",
+                                             user_turn="Hi.", variants=[{"label": "a", "instructions": ""}])])]
+        self.api(action="say", text="again")
+        self.assertNotIn("don't give them a gender", "\n".join(m["content"] for m in self.sample_calls[-1]["messages"]))

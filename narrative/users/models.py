@@ -91,3 +91,15 @@ class TaskSetting(models.Model):
 
     def __str__(self):
         return f"{self.user} / {self.task}"
+
+
+class UsageRecord(models.Model):
+    """The cost of one AI request, as the provider reported it (OpenRouter does), for the spending meter."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="usage_records")
+    task = models.CharField(max_length=32)
+    model = models.CharField(max_length=256, blank=True)
+    cost = models.FloatField(default=0)
+    time_create = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["user", "time_create"])]

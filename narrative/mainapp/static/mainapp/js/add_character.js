@@ -62,3 +62,9 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     countSprites();
 });
+
+// Arriving from "Add pictures" (…#spritesSection): open that section and bring it into view
+if (location.hash === '#spritesSection') {
+    const sprites = document.getElementById('spritesSection');
+    if (sprites) { sprites.open = true; sprites.scrollIntoView({ block: 'start' }); }
+}

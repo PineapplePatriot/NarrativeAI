@@ -345,9 +345,23 @@ body {
 }
 
 .message-text .quoted {
-    color: #e594f2;
+    color: var(--dialogue-color, #e594f2);
     font-weight: 600;
 }
+
+/* Colours a preset's text rules (or the AI) put on speech win over the dialogue colour */
+.message-text [style*="color"] .quoted,
+.message-text font[color] .quoted,
+body[data-dialogue="preset"] .message-text .quoted {
+    color: inherit;
+}
+
+.dialogue-colors { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.dialogue-colors .swatch { width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; padding: 0; cursor: pointer; }
+.dialogue-colors .swatch.on { border-color: #fff; }
+.dialogue-colors .swatch.custom { position: relative; overflow: hidden; background: conic-gradient(#f87171, #fbbf24, #86efac, #7dd3fc, #c4b5fd, #f87171); }
+.dialogue-colors .swatch.custom input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.dialogue-colors .preset-btn.on { outline: 2px solid #fff; }
 
 .message-text code {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -1528,3 +1542,12 @@ a.branch-note:hover { color: var(--text-primary); text-decoration: underline; }
     #chatsBtn { font-size: 0.85rem; }
 }
 a.header-btn { text-decoration: none; }
+
+/* Spending this month (tools menu) */
+.spending-line { font-size: .8rem; opacity: .85; font-variant-numeric: tabular-nums; }
+.spending-meter { height: 5px; border-radius: 999px; background: rgba(148, 163, 184, .2); margin-top: 6px; overflow: hidden; }
+.spending-meter > div { height: 100%; background: var(--accent-1, #7c3aed); border-radius: inherit; }
+
+.persona-line { font-size: .85rem; display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+.link-btn { background: none; border: none; padding: 0; color: #c4b5fd; text-decoration: underline; cursor: pointer; font: inherit; font-size: .8rem; }
+.persona-form { display: grid; gap: 6px; margin-top: 8px; }

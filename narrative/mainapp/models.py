@@ -135,6 +135,8 @@ class ChatSettings(models.Model):
     json_file = models.FileField(upload_to='settings_json/', blank=True, null=True)
     # Sampler on/off switches and values for the main chat (see mainapp/samplers.py)
     samplers = models.JSONField(default=dict, blank=True)
+    # How chats look: {"dialogue_color": "#e594f2" or "preset" (leave colouring to the preset)}
+    appearance = models.JSONField(default=dict, blank=True)
     author = models.OneToOneField(
         get_user_model(),
         on_delete=models.SET_NULL,
@@ -217,6 +219,7 @@ class BulbaSession(models.Model):
     proposals = models.JSONField(default=list, blank=True)
     spent = models.FloatField(default=0.0, help_text="USD, as reported by OpenRouter")
     budget = models.FloatField(default=5.0, help_text="USD per session")
+    activity = models.CharField(max_length=200, blank=True, help_text="What Bulba is doing right now, for the page")
     active = models.BooleanField(default=True)
     time_create = models.DateTimeField(auto_now_add=True)
     time_update = models.DateTimeField(auto_now=True)

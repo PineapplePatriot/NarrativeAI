@@ -109,3 +109,17 @@ button.link { background: none; padding: 0; color: var(--accent-soft); text-deco
 .proposal .unfold {
     margin: 4px 0 8px;
 }
+
+.budget-form { display: grid; gap: 6px; margin: 8px 0; }
+.budget-form label { font-size: .85rem; }
+.budget-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.budget-row input { width: 90px; }
+.budget-form .warn { color: #fbbf24; }
+
+.sample-ask { font-size: .85rem; opacity: .8; margin-right: 4px; }
+.lookup { font-size: .8rem; opacity: .75; padding: 0 4px 0 52px; }
+.lookup a { color: var(--accent-soft); }
+.done-block { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 6px 0 6px 52px; }
+#panelChat:not(:empty) { margin-top: 12px; }
+.composer textarea:disabled { opacity: .55; }
+button:disabled { opacity: .45; cursor: default; }

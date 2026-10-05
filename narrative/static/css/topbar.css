@@ -58,3 +58,11 @@
 .na-topbar a { margin: 0; display: inline-flex; align-items: center; font-weight: inherit; }
 .na-brand { font-weight: 700; }
 .na-topbar .na-brand { font-weight: 700; }
+
+/* Every signed-in page is dark: dark, thin scrollbars instead of the browser's light grey ones */
+:root { color-scheme: dark; }
+* { scrollbar-width: thin; scrollbar-color: rgba(148, 163, 184, 0.35) transparent; }
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.3); border-radius: 999px; }
+*::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.5); }

@@ -98,10 +98,16 @@ TOOLS = [
     _fn("get_current_setup", "What is already set up: chat model, extras, presets, persona, characters.", {}),
     _fn("get_starter", "The full text of one of this model's starters (its Roleplay and Style sections).",
         {"starter": STR}, ["starter"]),
+    _fn("look_up", "Search the web for facts about a known character, setting or work (canon details, timeline, "
+        "personality, how they speak). Costs a little; use it before writing a character from an existing work.",
+        {"query": {"type": "string", "description": "What to find, e.g. 'Il Dottore Genshin Impact personality, "
+                   "appearance and history (Sumeru era)'"}}, ["query"]),
     _fn("set_stage", "Move to another stage of the setup.", {"stage": {"type": "string", "enum": STAGES}}, ["stage"]),
     _fn("offer_choices", "Show quick-reply buttons under your message. A choice with a url opens that page instead.",
         {"choices": {"type": "array", "maxItems": 5, "items": {"type": "object", "properties": {
-            "label": STR, "url": {"type": "string", "description": "Optional: /users/extras/ for the Extras page"}},
+            "label": STR, "url": {"type": "string", "description": "Optional: opens a page instead of answering. "
+                "Only /users/extras/ (voices, extras), a link you were given in an [Applied: ...] note, "
+                "or https://gemini.google.com/ (Nano Banana, for character pictures)"}},
             "required": ["label"]}}}, ["choices"]),
     _fn("write_samples", "Write one or two short sample replies with the user's chat model, shown as A and B. "
         "Same scene for both; each variant adds its own instructions.",
@@ -249,8 +255,10 @@ def generate_sample(session, preset, scenario, user_turn, character, instruction
     user = session.user
     preset = presets.normalize(preset)
     extra = (instructions or "").strip()
+    unknown = "" if (getattr(user, "persona_description", "") or "").strip() else (
+        "\n\nNothing is known about {{user}} yet: don't give them a gender (no he or she), a look or a past.")
     _add_block(preset, "Sample instructions",
-               (extra + "\n\n" if extra else "") + f"Keep this reply under {SAMPLE_WORDS} words.")
+               (extra + "\n\n" if extra else "") + f"Keep this reply under {SAMPLE_WORDS} words." + unknown)
     _, chat_model = ai_client.resolve(user, "chat")
     slots = {"char_description": character["description"], "scenario": scenario,
              "persona": getattr(user, "persona_description", "") or ""}
@@ -287,7 +295,10 @@ def tool_write_samples(session, args):
         return {"error": "Give at least one variant."}, []
     random.shuffle(variants)  # the user sees A and B in random order
     samples, private = [], {}
+    model_name = (target_profile(session) or {}).get("name", "your model")
     for letter, v in zip("AB", variants):
+        set_activity(session, f"Writing sample {letter} with {model_name}…" if len(variants) > 1
+                     else f"Writing a test reply with {model_name}…")
         _check_budget(session)
         text, cost = generate_sample(session, preset, str(args.get("scenario", "")), str(args.get("user_turn", "")),
                                      character, str(v.get("instructions", "")))
@@ -300,6 +311,32 @@ def tool_write_samples(session, args):
             [{"type": "samples", "model": profile.get("name", ""), "character": character["name"],
               "scenario": shown(args.get("scenario")), "user_turn": shown(args.get("user_turn")),
               "samples": samples}])
+
+
+LOOKUP_PROMPT = ("You research fiction for someone writing a roleplay character card. Using the web results, "
+                 "answer factually and concisely: who they are, appearance, personality and how it shows, how they "
+                 "speak, key relationships and history, and which version or timeline the facts belong to. Say "
+                 "plainly when sources disagree or something isn't known. No speculation, no fan theories as fact.")
+
+
+def tool_look_up(session, args):
+    from users.models import ConnectionProfile
+    query = str(args.get("query") or "").strip()[:300]
+    if not query:
+        return {"error": "Say what to look up."}, []
+    profile, _ = ai_client.resolve(session.user, "bulba")
+    if profile.provider != ConnectionProfile.PROVIDER_OPENROUTER:
+        return {"error": "Web search only works through OpenRouter. Rely on what you know, and say so."}, []
+    _check_budget(session)
+    set_activity(session, f"Looking up {query[:60]} on the web…")
+    message, cost = ai_client.complete_message(
+        session.user, "bulba", [{"role": "system", "content": LOOKUP_PROMPT}, {"role": "user", "content": query}],
+        plugins=[{"id": "web", "max_results": 5}], max_tokens=1500)
+    session.spent += cost or 0
+    notes = [a.get("url_citation", {}) for a in message.get("annotations") or [] if isinstance(a, dict)]
+    sources = [{"title": n.get("title", ""), "url": n.get("url", "")} for n in notes if n.get("url")][:5]
+    return {"findings": (message.get("content") or "").strip()[:6000], "sources": sources}, [
+        {"type": "lookup", "query": query, "sources": sources}]
 
 
 def tool_record_preference(session, args):
@@ -405,7 +442,7 @@ def tool_propose_character(session, args):
 
 
 HANDLERS = {
-    "get_current_setup": tool_get_current_setup, "get_starter": tool_get_starter, "set_stage": tool_set_stage, "offer_choices": tool_offer_choices,
+    "get_current_setup": tool_get_current_setup, "get_starter": tool_get_starter, "look_up": tool_look_up, "set_stage": tool_set_stage, "offer_choices": tool_offer_choices,
     "write_samples": tool_write_samples, "record_preference": tool_record_preference,
     "propose_extras": tool_propose_extras, "propose_preset": tool_propose_preset,
     "propose_persona": tool_propose_persona, "propose_character": tool_propose_character,
@@ -415,6 +452,13 @@ HANDLERS = {
 # ---------------------------------------------------------------------------
 # The loop
 # ---------------------------------------------------------------------------
+
+def set_activity(session, text):
+    """What the page shows while a turn runs ("Writing sample A with MiMo..."). Saved at once, on its own."""
+    from mainapp.models import BulbaSession
+    if session.pk:
+        BulbaSession.objects.filter(pk=session.pk).update(activity=str(text or "")[:200])
+
 
 def _check_budget(session):
     if session.spent >= session.budget:
@@ -447,15 +491,15 @@ def opening(session):
 TURN_ENDING = {"offer_choices", "write_samples", "propose_extras", "propose_preset", "propose_persona", "propose_character"}
 
 
-def run_turn(session, user_text, action_note=None):
+def run_turn(session, user_text, action_note=None, model_note=None):
     """
     Adds the user's message (or a note about something they did, like pressing Apply), lets Bulba
     think and use tools, and returns the new page events.
     """
-    user_text = str(user_text or "").strip()[:4000]
+    user_text = str(user_text or "").strip()[:12000]  # room for a pasted piece of writing they like
     new_events = []
     if action_note:
-        session.messages.append({"role": "user", "content": f"[{action_note}]"})
+        session.messages.append({"role": "user", "content": f"[{model_note or action_note}]"})
         new_events.append({"type": "action", "text": action_note})
     elif user_text:
         session.messages.append({"role": "user", "content": user_text})
@@ -465,6 +509,7 @@ def run_turn(session, user_text, action_note=None):
     try:
         for _ in range(MAX_TOOL_ROUNDS):
             _check_budget(session)
+            set_activity(session, "Bulba is thinking…")
             request = [{"role": "system", "content": system_prompt(session)}] + _trimmed(session.messages)
             message, cost = ai_client.complete_message(session.user, "bulba", request, tools=TOOLS,
                                                        tool_choice="auto", max_tokens=4000)

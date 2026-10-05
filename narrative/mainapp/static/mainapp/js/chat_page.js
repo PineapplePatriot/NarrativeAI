@@ -287,6 +287,8 @@ async function requestReply(body) {
         scrollToBottom();
     };
 
+    const typingLabel = typingMessage.querySelector('.typing-indicator span');
+    if (typingLabel) typingLabel.textContent = `${window.CHARACTER_NAME || 'The AI'} is typing`;
     try {
         const resp = await fetch(window.location.href, {
             method: 'POST',
@@ -309,7 +311,11 @@ async function requestReply(body) {
                 buffer = buffer.slice(nl + 1);
                 if (!line) continue;
                 const event = JSON.parse(line);
-                if (event.type === 'delta') {
+                if (event.type === 'thinking') {
+                    // Thinking models (MiMo, Claude...) reason before writing; say so instead of looking stuck
+                    const label = typingMessage.querySelector('.typing-indicator span');
+                    if (label) label.textContent = `${window.CHARACTER_NAME || 'The AI'} is thinking`;
+                } else if (event.type === 'delta') {
                     if (!bubble) {
                         typingMessage.style.display = 'none';
                         addMessage('assistant', '', window.INIT_PHOTO_URL || null);
@@ -340,8 +346,17 @@ async function requestReply(body) {
     }
 }
 
+// The month's spending in the tools menu, refreshed after every reply
+function updateSpending(s) {
+    if (!s) return;
+    const line = document.getElementById('spendingLine'), fill = document.getElementById('spendingFill');
+    if (line) line.textContent = `$${s.spent.toFixed(2)} of $${s.limit.toFixed(2)} used (chat, Bulba and background jobs)`;
+    if (fill) fill.style.width = `${Math.min(100, s.spent / s.limit * 100)}%`;
+}
+
 // Put a finished reply on screen: fill the streamed bubble, or add a new message
 function placeReply(data, avatarUrl) {
+    updateSpending(data.spending);
     if (!data.bubble) {
         addMessage('assistant', data.reply, avatarUrl);
         return;
@@ -1100,3 +1115,59 @@ document.getElementById('branchSummaryText').addEventListener('input', () => {
     branchModal.querySelector('input[name=branchSummary][value=transfer]').checked = true;
 });
 branchModal.addEventListener('click', (e) => { if (e.target === branchModal) closeBranchModal(); });
+
+// --- Dialogue colour (tools menu): saved on the account ---
+(function () {
+    const box = document.getElementById('dialogueColors');
+    if (!box) return;
+    const apply = color => {
+        document.body.dataset.dialogue = color === 'preset' ? 'preset' : 'color';
+        if (color !== 'preset') document.body.style.setProperty('--dialogue-color', color);
+        box.querySelectorAll('[data-color]').forEach(b => b.classList.toggle('on', b.dataset.color === color));
+    };
+    const save = async color => {
+        apply(color);
+        try {
+            await fetch(window.location.href, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify({ action: 'appearance', dialogue_color: color }),
+            });
+        } catch (e) { showChatError('Could not save the colour.'); }
+    };
+    box.addEventListener('click', e => { const b = e.target.closest('[data-color]'); if (b) save(b.dataset.color); });
+    const custom = document.getElementById('dialogueCustom');
+    custom.addEventListener('input', () => apply(custom.value));
+    custom.addEventListener('change', () => save(custom.value));
+})();
+
+// --- Who the user is in this chat (tools menu); empty = their usual persona ---
+(function () {
+    const form = document.getElementById('personaForm');
+    if (!form) return;
+    const line = document.getElementById('personaLine');
+    document.getElementById('personaEdit').onclick = () => { form.hidden = !form.hidden; };
+    const save = async (name, description) => {
+        try {
+            const resp = await fetch(window.location.href, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify({ action: 'chat_persona', name, description }),
+            });
+            const data = await resp.json();
+            if (!data.success) throw new Error(data.error || 'Not saved.');
+            const b = document.createElement('b'); b.textContent = data.name;
+            line.firstChild && line.replaceChildren(b, document.createTextNode(data.persona.name ? ' (this chat only) ' : ' (your usual persona) '),
+                                                  document.getElementById('personaEdit'));
+            form.hidden = true;
+        } catch (e) { showChatError(e.message || 'Could not save who you are in this chat.'); }
+    };
+    form.addEventListener('submit', e => {
+        e.preventDefault();
+        save(document.getElementById('personaName').value.trim(), document.getElementById('personaDesc').value.trim());
+    });
+    document.getElementById('personaReset').onclick = () => {
+        document.getElementById('personaName').value = ''; document.getElementById('personaDesc').value = '';
+        save('', '');
+    };
+})();

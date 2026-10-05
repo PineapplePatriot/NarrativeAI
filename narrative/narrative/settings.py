@@ -142,3 +142,7 @@ AUTHENTICATION_BACKENDS = [
 AUTH_USER_MODEL = 'users.User'
 
 DEFAULT_USER_IMAGE = MEDIA_URL + "users/ava.png"
+
+# What one subscription covers per calendar month, in US dollars (chat, Bulba and background jobs together).
+# Used for the spending meter and warnings; nothing is blocked at the limit yet.
+SUBSCRIPTION_MONTHLY_LIMIT = 25.0

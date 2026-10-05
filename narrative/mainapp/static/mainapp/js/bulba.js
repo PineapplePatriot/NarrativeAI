@@ -33,10 +33,11 @@ function proposalCard(ev) {
     if (!p) return '';
     const status = { pending: '', applied: '<span class="status ok">Applied</span>', dismissed: '<span class="status">Dismissed</span>',
                      undone: '<span class="status">Undone</span>', replaced: '<span class="status">Replaced by a newer one</span>' }[p.status] || '';
+    const off = busy ? 'disabled' : '';
     const actions = p.status === 'pending'
-        ? `<button type="button" data-act="apply" data-id="${p.id}">Apply</button>
-           <button type="button" class="ghost" data-act="dismiss" data-id="${p.id}">Not this</button>`
-        : p.status === 'applied' ? `<button type="button" class="ghost" data-act="undo" data-id="${p.id}">Undo</button>` : '';
+        ? `<button type="button" data-act="apply" data-id="${p.id}" ${off}>Apply</button>
+           <button type="button" class="ghost" data-act="dismiss" data-id="${p.id}" ${off}>Not this</button>`
+        : p.status === 'applied' ? `<button type="button" class="ghost" data-act="undo" data-id="${p.id}" ${off}>Undo</button>` : '';
     const chatLink = p.status === 'applied' && p.result && p.result.slug
         ? `<a class="btn" href="/main/chat/${encodeURIComponent(p.result.slug)}">Chat now →</a>` : '';
     return `<div class="proposal ${p.status}">
@@ -48,14 +49,27 @@ function proposalCard(ev) {
       </div>`;
 }
 
+// When setup is done: the way into the chat, and where pictures go
+function doneBlock() {
+    if (state.stage !== 'done' || !state.chat) return '';
+    return `<div class="done-block">
+        <a class="btn" href="${esc(state.chat.url)}">Start chatting with ${esc(state.chat.name)} →</a>
+        <a class="ghost-link" href="${esc(state.chat.edit_url)}">Add pictures for ${esc(state.chat.name)}</a>
+      </div>`;
+}
+
 function render() {
-    const lastBulba = events.map(e => e.type).lastIndexOf('bulba');
-    const lastSamples = events.map(e => e.type).lastIndexOf('samples');
+    const types = events.map(e => e.type);
+    const lastBulba = types.lastIndexOf('bulba');
+    const lastSamples = types.lastIndexOf('samples');
+    // Buttons only work on what came after the user's last move (an answer, or pressing Apply)
+    const answeredUpTo = Math.max(types.lastIndexOf('user'), types.lastIndexOf('action'));
+    const liveChoices = i => i === lastBulba && i > answeredUpTo && !busy;
     $('log').innerHTML = events.map((ev, i) => {
         if (ev.type === 'bulba') {
             const choices = (ev.choices || []).map(c => c.url
                 ? `<a class="choice" href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.label)} ↗</a>`
-                : `<button type="button" class="choice" data-say="${esc(c.label)}" ${i === lastBulba && !busy ? '' : 'disabled'}>${esc(c.label)}</button>`).join('');
+                : `<button type="button" class="choice" data-say="${esc(c.label)}" ${liveChoices(i) ? '' : 'disabled'}>${esc(c.label)}</button>`).join('');
             return `<div class="msg bulba"><span class="potato">🥔</span><div class="bubble">${fmt(ev.text)}
                     ${choices ? `<div class="choices">${choices}</div>` : ''}</div></div>`;
         }
@@ -65,8 +79,11 @@ function render() {
         if (ev.type === 'error') return `<div class="error">${esc(ev.text)}</div>`;
         if (ev.type === 'stage') return `<div class="stage-mark">${esc(STAGE_LABELS[ev.stage] || ev.stage)}</div>`;
         if (ev.type === 'proposal') return proposalCard(ev);
+        if (ev.type === 'lookup') return `<div class="lookup">🔎 Looked up “${esc(ev.query)}”${(ev.sources || []).length
+            ? ': ' + ev.sources.map(src => `<a href="${esc(src.url)}" target="_blank" rel="noopener">${esc(src.title || src.url)}</a>`).join(', ') : ''}</div>`;
         if (ev.type === 'samples') {
-            const live = i === lastSamples && !busy;
+            const live = i === lastSamples && i > answeredUpTo && !busy;
+            const single = ev.samples.length === 1;
             return `<div class="samples">
                 <div class="samples-head">Written by <b>${esc(ev.model)}</b>${ev.character ? ` as ${esc(ev.character)}` : ''}</div>
                 ${ev.scenario ? `<div class="samples-scene">${esc(ev.scenario)}<br><i>You: ${esc(ev.user_turn)}</i></div>` : ''}
@@ -78,10 +95,15 @@ function render() {
                     <button type="button" class="ghost" data-say="Neither of these.">Neither</button>
                     <button type="button" class="ghost" data-say="A bit of both. ">A bit of both…</button>
                     <button type="button" class="ghost" data-say="No preference, skip this one.">Skip</button></div>` : ''}
+                ${live && single ? `<div class="sample-actions">
+                    <span class="sample-ask">How does it read?</span>
+                    <button type="button" data-say="I like it.">👍 Like it</button>
+                    <button type="button" class="ghost" data-say="I like it, but ">👍 Like it, but…</button>
+                    <button type="button" class="ghost" data-say="Not quite: ">👎 Not quite…</button></div>` : ''}
               </div>`;
         }
         return '';
-    }).join('');
+    }).join('') + doneBlock();
     $('log').scrollTop = $('log').scrollHeight;
     renderPanel();
 }
@@ -94,6 +116,10 @@ function renderPanel() {
     $('spent').textContent = `$${state.spent.toFixed(2)}`;
     $('budget').textContent = `$${state.budget.toFixed(2)}`;
     $('meterFill').style.width = `${Math.min(100, state.spent / state.budget * 100)}%`;
+    $('panelChat').innerHTML = state.chat
+        ? `<a class="btn" href="${esc(state.chat.url)}">Chat with ${esc(state.chat.name)} →</a>` : '';
+    if (state.month) $('monthLine').textContent =
+        `All AI use this month (chat and Bulba): $${state.month.spent.toFixed(2)} of $${state.month.limit.toFixed(2)}.`;
     $('prefs').innerHTML = state.preferences.length ? state.preferences.map(p => `
         <li><span>${esc(p.interpretation)}${p.status === 'tentative' ? ' <i>(guess)</i>' : ''}</span>
             <button type="button" class="x" data-forget="${p.id}" title="Forget this">✕</button></li>`).join('')
@@ -101,12 +127,27 @@ function renderPanel() {
 }
 
 // --------------------------------------------------------------- actions
+let activityTimer = null;
+function pollActivity() {
+    activityTimer = setTimeout(async () => {
+        if (!busy) return;
+        try {
+            const resp = await fetch(BULBA_API, { headers: { 'Accept': 'application/json' } });
+            const data = await resp.json();
+            if (busy && data.activity) $('thinkingText').textContent = data.activity;
+        } catch (e) { /* the status line is a nicety */ }
+        if (busy) pollActivity();
+    }, 1200);
+}
+
 async function run(body, label) {
     if (busy) return;
     busy = true;
     $('thinking').hidden = false;
     $('thinkingText').textContent = label || 'Thinking…';
     $('sendBtn').disabled = true;
+    $('input').disabled = true;
+    pollActivity();
     if (body.action === 'say') events.push({ type: 'user', text: body.text });
     render();
     try {
@@ -119,8 +160,11 @@ async function run(body, label) {
         events.push({ type: 'error', text: err.message });
     } finally {
         busy = false;
+        clearTimeout(activityTimer);
         $('thinking').hidden = true;
         $('sendBtn').disabled = false;
+        $('input').disabled = false;
+        $('input').focus();
         render();
     }
 }
@@ -132,6 +176,7 @@ function say(text) {
 
 $('composer').addEventListener('submit', e => {
     e.preventDefault();
+    if (busy) return;  // keep what they typed until Bulba is done
     const text = $('input').value;
     $('input').value = '';
     say(text);
@@ -142,14 +187,14 @@ $('input').addEventListener('keydown', e => {
 
 $('log').addEventListener('click', e => {
     const sayBtn = e.target.closest('[data-say]');
-    if (sayBtn && !sayBtn.disabled) {
+    if (sayBtn && !sayBtn.disabled && !busy) {
         const text = sayBtn.dataset.say;
         if (text.endsWith(' ')) { $('input').value = text; $('input').focus(); return; }  // "A bit of both…": let them finish
         say(text);
         return;
     }
     const act = e.target.closest('[data-act]');
-    if (act) run({ action: act.dataset.act, id: act.dataset.id }, act.dataset.act === 'apply' ? 'Applying…' : 'One moment…');
+    if (act && !act.disabled) run({ action: act.dataset.act, id: act.dataset.id }, act.dataset.act === 'apply' ? 'Applying…' : 'One moment…');
 });
 
 $('prefs').addEventListener('click', async e => {
@@ -159,11 +204,32 @@ $('prefs').addEventListener('click', async e => {
     catch (err) { alert(err.message); }
 });
 
-$('budgetBtn').onclick = async () => {
-    const value = prompt('Spending limit for this session, in dollars:', state.budget);
-    if (!value) return;
-    try { state = (await api({ action: 'budget', value })).state; renderPanel(); }
-    catch (err) { alert(err.message); }
+// Bulba's own limit, shown against what the subscription covers this month (chat and Bulba together)
+function budgetNote() {
+    const m = state.month, value = parseFloat($('budgetInput').value);
+    if (!m) return;
+    const room = m.left + state.spent;  // what Bulba could still use this month, counting this session
+    let text = `Your subscription covers $${m.limit.toFixed(2)} a month for chatting and Bulba together. ` +
+               `This month you've used $${m.spent.toFixed(2)}, so $${m.left.toFixed(2)} is left.`;
+    if (!isNaN(value) && value > room) text += ` A $${value.toFixed(2)} limit is more than that, so chatting could run out before Bulba does.`;
+    else if (!isNaN(value) && value > room / 2) text += ` That leaves about $${Math.max(0, room - value).toFixed(2)} for chatting.`;
+    $('budgetNote').textContent = text;
+    $('budgetNote').classList.toggle('warn', !isNaN(value) && value > room);
+}
+$('budgetBtn').onclick = () => {
+    $('budgetForm').hidden = false;
+    $('budgetInput').value = state.budget;
+    budgetNote();
+    $('budgetInput').focus();
+};
+$('budgetInput').addEventListener('input', budgetNote);
+$('budgetCancel').onclick = () => { $('budgetForm').hidden = true; };
+$('budgetForm').onsubmit = async e => {
+    e.preventDefault();
+    try {
+        state = (await api({ action: 'budget', value: $('budgetInput').value })).state;
+        $('budgetForm').hidden = true; renderPanel();
+    } catch (err) { $('budgetNote').textContent = err.message; }
 };
 
 $('restartBtn').onclick = () => {
