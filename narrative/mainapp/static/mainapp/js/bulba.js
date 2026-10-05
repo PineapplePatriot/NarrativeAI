@@ -41,8 +41,9 @@ function proposalCard(ev) {
         ? `<a class="btn" href="/main/chat/${encodeURIComponent(p.result.slug)}">Chat now →</a>` : '';
     return `<div class="proposal ${p.status}">
         <div class="proposal-head"><b>${esc(p.title)}</b> ${status}</div>
-        <div class="proposal-body">${(p.summary || []).map(l => /^[^\s].{0,40}:$/.test(l)
+        <div class="proposal-body${(p.summary || []).join('\n').length > 900 ? ' folded' : ''}">${(p.summary || []).map(l => /^[^\s].{0,40}:$/.test(l)
             ? `<div class="proposal-label">${esc(l.slice(0, -1))}</div>` : `<div>${esc(l)}</div>`).join('')}</div>
+        ${(p.summary || []).join('\n').length > 900 ? '<button type="button" class="link unfold">Show all</button>' : ''}
         <div class="proposal-actions">${actions}${chatLink}</div>
       </div>`;
 }
@@ -170,3 +171,12 @@ $('restartBtn').onclick = () => {
 };
 
 render();
+
+// Long proposals (a whole character card) start folded
+document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.unfold');
+    if (!btn) return;
+    const body = btn.previousElementSibling;
+    body.classList.toggle('folded');
+    btn.textContent = body.classList.contains('folded') ? 'Show all' : 'Show less';
+});

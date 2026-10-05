@@ -98,3 +98,14 @@ button.link { background: none; padding: 0; color: var(--accent-soft); text-deco
 .proposal.replaced {
     opacity: 0.55;
 }
+
+.proposal-body.folded {
+    max-height: 260px;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent);
+    mask-image: linear-gradient(to bottom, #000 70%, transparent);
+}
+
+.proposal .unfold {
+    margin: 4px 0 8px;
+}
