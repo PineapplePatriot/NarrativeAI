@@ -2,12 +2,14 @@
 #   gemini-frankenstein: the file as shipped (Mature toggles off, as in every starter)
 #   mimo-frankenstein:   MiMo V2.6 Pro BOLT, rebuilt from the per-block notes (the authors ship it as a
 #                        separate file we don't have yet)
-import copy, json, sys
-sys.path.insert(0, "/home/user/NarrativeAI/narrative")
+import copy, json, os, sys
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
+sys.path.insert(0, os.path.join(ROOT, "narrative"))
 from mainapp import presets
 
-SRC = "/root/.claude/uploads/198e94fc-ce9e-501e-9b7e-9955a83beb54/760050a2-Realistic_Frankenstein_2.2.1.2___Limitless_Realism___Realistic_Gemini_BOLT_Configuration.json"
-OUT = "/home/user/NarrativeAI/narrative/mainapp/data/starters/"
+SRC = os.path.join(HERE, "Realistic_Frankenstein_2.2.1.2.json")  # the shipped Gemini BOLT file (not in the repo)
+OUT = os.path.join(ROOT, "narrative", "mainapp", "data", "starters") + os.sep
 st = json.load(open(SRC))
 base = presets.from_sillytavern(st)
 
