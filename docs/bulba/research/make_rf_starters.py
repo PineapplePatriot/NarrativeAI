@@ -34,7 +34,7 @@ def rules(preset, names, on):
 
 CREDIT = {"name": "Realistic Frankenstein 2.2.1.2 — Limitless Realism (SillyTavern preset)",
           "author": "dptgreg and TheAestheticFur", "version": "2.2.1.2",
-          "url": "https://www.reddit.com/r/SillyTavernAI/search/?q=Realistic+Frankenstein"}
+          "url": "https://www.reddit.com/r/SillyTavernAI/s/TaStxDj7Ec"}
 
 # --- Gemini: as shipped ---------------------------------------------------------------------------
 gemini = copy.deepcopy(base)

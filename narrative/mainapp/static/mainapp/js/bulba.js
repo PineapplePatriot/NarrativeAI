@@ -51,6 +51,7 @@ function proposalCard(ev) {
 
 // The basics form: plain settings in one go (see BASICS in mainapp/bulba/agent.py)
 const BASICS_FORM = [
+    { section: 'How it’s written' },
     { key: 'language', label: 'Story language', text: 'English' },
     { key: 'pov', label: 'Point of view', options: [['second', 'You (“you step inside”)'], ['third', 'Third person (“she steps inside”)'], ['first', 'The character’s “I”']] },
     { key: 'tense', label: 'Tense', options: [['present', 'Present (“she turns”)'], ['past', 'Past (“she turned”)']] },
@@ -58,11 +59,23 @@ const BASICS_FORM = [
     { key: 'format', label: 'Speech and actions', options: [['quotes', '“Speech”, actions as plain text'], ['asterisks', '“Speech”, *actions*'], ['any', 'Doesn’t matter']] },
     { key: 'colors', label: 'Coloured speech', hint: 'each character speaks in their own colour', options: [['on', 'Yes'], ['off', 'No']] },
     { key: 'panels', label: 'In-story panels', hint: 'phone messages, notes and signs drawn as little panels', options: [['on', 'Yes'], ['off', 'No']] },
+    { section: 'What kind of story' },
+    { key: 'genres', label: 'Genres', hint: 'pick any', multi: [['fluff', 'Fluff'], ['slice_of_life', 'Slice of life'], ['comedy', 'Comedy'], ['romance', 'Romance'], ['heartwarming', 'Heartwarming'], ['melancholy', 'Melancholy'], ['healing', 'Hurt/comfort'], ['angst', 'Angst'], ['tragedy', 'Tragedy']],
+      adult: [['smut', 'Smut'], ['dead_dove', 'Dead dove']] },
+    { key: 'pacing', label: 'Pacing', options: [['quick', 'Quick: skip the dull bits'], ['slow', 'Slow burn'], ['any', 'No preference']] },
+    { key: 'voice', label: 'Narration voice', hint: 'optional', options: [['hemingway', 'Hemingway: lean'], ['mccarthy', 'McCarthy: solemn'], ['camus', 'Camus: wry'], ['kafka', 'Kafka: absurd'], ['ligotti', 'Ligotti: dread'], ['maupassant', 'Maupassant: cruel realism'], ['dickens', 'Dickens: theatrical'], ['ellis', 'Ellis: gossipy'], ['anime', 'Anime'], ['realism', 'Grounded realism'], ['fanfic', 'Fanfic'], ['webnovel', 'Web novel']] },
+    { key: 'author', label: 'Write like', text: '', placeholder: 'Optional: an author whose style you love' },
     { key: 'keep_out', label: 'Anything to keep out?', text: '', placeholder: 'Optional, e.g. gore, spiders' },
 ];
 
 function basicsForm(live) {
-    const rows = BASICS_FORM.map(f => `<div class="form-row">
+    const dis = live ? '' : 'disabled';
+    const chips = (f, list) => list.map(([v, l]) => `<label class="pill"><input type="checkbox" name="b_${f.key}" value="${v}" ${dis}><span>${esc(l)}</span></label>`).join('');
+    const rows = BASICS_FORM.map(f => f.section ? `<div class="form-section">${esc(f.section)}</div>` : f.multi ? `<div class="form-row">
+        <div class="form-label">${esc(f.label)}${f.hint ? `<small>${esc(f.hint)}</small>` : ''}</div>
+        <div class="form-field">${chips(f, f.multi)}
+            ${f.adult ? `<span class="adult-chips" hidden>${chips(f, f.adult)}</span>
+            <button type="button" class="link adult-toggle" ${dis}>Show 18+ genres</button>` : ''}</div></div>` : `<div class="form-row">
         <div class="form-label">${esc(f.label)}${f.hint ? `<small>${esc(f.hint)}</small>` : ''}</div>
         <div class="form-field">${f.options
             ? f.options.map(([v, l]) => `<label class="pill"><input type="radio" name="b_${f.key}" value="${v}" ${live ? '' : 'disabled'}><span>${esc(l)}</span></label>`).join('')
@@ -222,12 +235,26 @@ $('log').addEventListener('click', e => {
     if (act && !act.disabled) run({ action: act.dataset.act, id: act.dataset.id }, act.dataset.act === 'apply' ? 'Applying…' : 'One moment…');
 });
 
+$('log').addEventListener('click', e => {
+    const t = e.target.closest('.adult-toggle');
+    if (!t) return;
+    const chips = t.previousElementSibling;
+    chips.hidden = !chips.hidden;
+    t.textContent = chips.hidden ? 'Show 18+ genres' : 'Hide 18+ genres';
+});
+
 $('log').addEventListener('submit', e => {
     const form = e.target.closest('[data-basics]');
     if (!form) return;
     e.preventDefault();
     const answers = {};
     BASICS_FORM.forEach(f => {
+        if (f.section) return;
+        if (f.multi) {
+            const picked = [...form.querySelectorAll(`input[name="b_${f.key}"]:checked`)].map(el => el.value);
+            if (picked.length) answers[f.key] = picked;
+            return;
+        }
         const el = f.options ? form.querySelector(`input[name="b_${f.key}"]:checked`) : form.querySelector(`input[name="b_${f.key}"]`);
         if (el && el.value.trim()) answers[f.key] = el.value.trim();
     });

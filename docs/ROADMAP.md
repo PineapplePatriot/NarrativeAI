@@ -11,9 +11,9 @@ can supply or judge.
    transcript again. *Needs Anya.*
 2. **Your rewording pass on Bulba.** Instructions, the four guides and the canned opening, in your voice
    (`narrative/mainapp/data/bulba/`). *Needs Anya.*
-3. **Check the Nano Banana model id.** The "Make the missing moods" button uses
-   `google/gemini-2.5-flash-image` (setting `SPRITE_IMAGE_MODEL`); if OpenRouter has a newer Nano Banana,
-   change it there. Couldn't test against OpenRouter from the build machine. *Needs Anya.*
+3. **First real picture run.** The picture maker lists OpenRouter's image models and defaults to Nano Banana
+   2 (`google/gemini-3.1-flash-image`, setting `SPRITE_IMAGE_MODEL`). Untested against OpenRouter itself.
+   *Needs Anya.*
 4. **The subscription** stops chatting, Bulba and background jobs at $25 a month for now. Later: our own
    endpoint and keys, with a wallet. *Later.*
 

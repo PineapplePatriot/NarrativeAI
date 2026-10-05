@@ -149,6 +149,6 @@ DEFAULT_USER_IMAGE = MEDIA_URL + "users/ava.png"
 SUBSCRIPTION_MONTHLY_LIMIT = 25.0
 SUBSCRIPTION_LIMIT_ENFORCED = True
 
-# The image model that makes character pictures (Nano Banana, through OpenRouter). Check the id on
-# openrouter.ai/models if pictures fail; newer versions may have their own id.
-SPRITE_IMAGE_MODEL = "google/gemini-2.5-flash-image"
+# The default image model for character pictures (Nano Banana 2, through OpenRouter). The character page
+# lists every image model OpenRouter offers; if this id isn't among them, the newest Nano Banana is used.
+SPRITE_IMAGE_MODEL = "google/gemini-3.1-flash-image"

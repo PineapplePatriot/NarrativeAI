@@ -1302,6 +1302,13 @@ SPRITE_EMOTIONS = ["happy", "sad", "angry", "surprised", "scared", "confused", "
 
 
 @login_required
+def image_model_list(request):
+    """Image models for the picture maker, with the one used by default."""
+    models = ai_client.image_models()
+    return JsonResponse({"models": models, "default": ai_client.default_image_model(models)})
+
+
+@login_required
 def character_sprite(request, slug):
     """Makes one mood picture from the character's neutral picture with Nano Banana (OpenRouter)."""
     from django.core.files.base import ContentFile
@@ -1326,8 +1333,13 @@ def character_sprite(request, slug):
     prompt = (f"This is {who}. Make a new picture of exactly the same character: same face, hair, body, outfit, "
               f"art style, framing, lighting and background. Only the expression and body language change: show "
               f"them {emotion}. No text, no borders, no extra people.")
+    model = data.get("model") or None
+    if model:
+        known = [m["id"] for m in ai_client.image_models()]
+        if known and model not in known:
+            return JsonResponse({"error": "OpenRouter doesn't list that image model."}, status=400)
     try:
-        image, cost = ai_client.generate_image(request.user, prompt, reference, kind)
+        image, cost = ai_client.generate_image(request.user, prompt, reference, kind, model=model)
     except ai_client.AIError as e:
         return JsonResponse({"error": str(e)}, status=502)
     field = getattr(character, f"{prefix}_{emotion}")

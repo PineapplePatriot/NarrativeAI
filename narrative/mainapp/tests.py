@@ -2528,3 +2528,39 @@ class SpriteMakerTests(ChatPromptTests):
         url = reverse("character_sprite", args=[self.character.slug])
         resp = self.client.post(url, json.dumps({"emotion": "sad"}), content_type="application/json")
         self.assertIn("neutral picture first", resp.json()["error"])
+
+
+class BasicsStoryKindTests(BulbaTests):
+    def test_genres_pacing_voice_author(self):
+        self.script = [("Noted.", [])]
+        data = self.api(action="basics", answers={"genres": ["comedy", "romance", "nonsense"], "pacing": "slow",
+                                                  "voice": "hemingway", "author": "Terry Pratchett", "pov": "any"}).json()
+        told = self.bulba_calls[-1]["messages"][-1]["content"]
+        self.assertIn("humour, banter", told)
+        self.assertIn("real emotional connection", told)
+        self.assertNotIn("nonsense", told)
+        self.assertIn("Slow burn", told)
+        self.assertIn("Ernest Hemingway", told)
+        self.assertIn("Write in the style of Terry Pratchett", told)
+        self.assertEqual(len(data["state"]["preferences"]), 4)
+
+
+class ImageModelTests(SimpleTestCase):
+    def test_list_and_default(self):
+        from unittest import mock
+        from mainapp import ai_client
+        ai_client._IMAGE_MODELS.update(at=0, list=[])
+        resp = mock.Mock(ok=True)
+        resp.json.return_value = {"data": [
+            {"id": "google/gemini-2.5-flash-image", "name": "Google: Nano Banana (Gemini 2.5 Flash Image)",
+             "architecture": {"output_modalities": ["image", "text"]}},
+            {"id": "google/gemini-3.1-flash-image", "name": "Google: Nano Banana 2 (Gemini 3.1 Flash Image)",
+             "architecture": {"output_modalities": ["image", "text"]}},
+            {"id": "x/text-only", "name": "Text", "architecture": {"output_modalities": ["text"]}}]}
+        with mock.patch("mainapp.ai_client.requests.get", return_value=resp):
+            models = ai_client.image_models()
+        self.assertEqual([m["id"] for m in models], ["google/gemini-2.5-flash-image", "google/gemini-3.1-flash-image"])
+        self.assertEqual(ai_client.default_image_model(models), "google/gemini-3.1-flash-image")
+        with override_settings(SPRITE_IMAGE_MODEL="google/not-there"):
+            self.assertEqual(ai_client.default_image_model(models), "google/gemini-2.5-flash-image")
+        ai_client._IMAGE_MODELS.update(at=0, list=[])

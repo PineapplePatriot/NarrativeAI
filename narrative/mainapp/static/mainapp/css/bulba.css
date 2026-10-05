@@ -137,3 +137,7 @@ button:disabled { opacity: .45; cursor: default; }
 .basics-form .form-actions { display: flex; gap: 12px; align-items: center; }
 @media (max-width: 640px) { .basics-form { margin-left: 0; } .basics-form .form-row { grid-template-columns: 1fr; } }
 .basics-form .pill { position: relative; }
+.basics-form .form-section { font-size: .75rem; letter-spacing: .06em; text-transform: uppercase; opacity: .7; padding-top: 4px; border-top: 1px solid var(--border); }
+.basics-form .form-section:first-child { border-top: none; padding-top: 0; }
+.basics-form .adult-chips { display: contents; }
+.basics-form .adult-chips[hidden] { display: none; }

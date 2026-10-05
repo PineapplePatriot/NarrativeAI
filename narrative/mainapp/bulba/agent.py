@@ -99,7 +99,8 @@ TOOLS = [
     _fn("get_starter", "The full text of one of this model's starters (its Roleplay and Style sections).",
         {"starter": STR}, ["starter"]),
     _fn("show_basics_form", "Show the basics form: the plain settings (language, point of view, tense, reply "
-        "length, how speech and actions look, coloured speech, in-story panels, things to keep out) answered in "
+        "length, how speech and actions look, coloured speech, in-story panels, genres, pacing, narration voice, "
+        "an author to write like, things to keep out) answered in "
         "one go. Use it once, at the start of the taste stage. Their answers come back as a message and are "
         "already recorded as preferences.", {}),
     _fn("look_up", "Search the web for facts about a known character, setting or work (canon details, timeline, "
@@ -366,6 +367,40 @@ BASICS = {
               "self-contained HTML panel with inline styles (for example a phone chat as message bubbles), "
               "then carry on with the prose.",
         "off": ""}),
+    "genres": ("Genres", {  # several may be picked (wording after Celia's genre toggles)
+        "fluff": "light-hearted warmth, affectionate exchanges and cozy moments",
+        "slice_of_life": "the quiet charm of everyday life, routine and small connections",
+        "comedy": "humour, banter and absurd or exaggerated situations",
+        "romance": "real emotional connection, chances to bond and slowly growing intimacy",
+        "heartwarming": "kindness, hope and joy in simple gestures, even through hard times",
+        "melancholy": "bittersweet moments where wonder and gentle sorrow sit together",
+        "healing": "hurt and comfort: emotional wounds, tender support and trust slowly rebuilt",
+        "angst": "emotional tension, hard decisions, heartbreak and painful realisations",
+        "tragedy": "devastating turns and heart-rending scenes, delivered rawly",
+        "smut": "explicit sexual content when the story leads there",
+        "dead_dove": "dark, cruel and taboo material, morally complex and unsettling, without softening",
+    }),
+    "pacing": ("Pacing", {
+        "quick": "Keep the story moving: skip or summarise the dull stretches with time skips and head for the "
+                 "important scenes and events.",
+        "slow": "Slow burn: let things develop in small, earned steps, with quiet everyday moments between the "
+                "ones that move the story.",
+        "any": ""}),
+    "voice": ("Narration voice", {  # after Pura's narration voices and Celia's narrative styles
+        "hemingway": "Narrate in the manner of Ernest Hemingway: short, plain, loaded sentences; feelings left under the surface.",
+        "mccarthy": "Narrate in the manner of Cormac McCarthy: heavy, rhythmic, solemn prose; a harsh, beautiful world.",
+        "camus": "Narrate in the manner of Albert Camus: an intimate, mischievous voice with dry amusement and controlled irony.",
+        "kafka": "Narrate in the manner of Franz Kafka: dry, bureaucratic irony; the absurd treated as routine.",
+        "ligotti": "Narrate in the manner of Thomas Ligotti: chilling metaphysical dread, delivered with quiet relish.",
+        "maupassant": "Narrate in the manner of Guy de Maupassant: cruel, clear-eyed realism about pride and fragile dignity.",
+        "dickens": "Narrate in the manner of Charles Dickens: a bustling, theatrical world of eccentrics and gentle satire.",
+        "ellis": "Narrate in the manner of Bret Easton Ellis: gossipy, cold, hyper-detailed attention to status and things.",
+        "anime": "Tell it like an anime: larger-than-life characters, rivalries, familiar character archetypes and big moments.",
+        "realism": "Tell it with grounded realism: unexaggerated people and feelings; good and bad happen within reason.",
+        "fanfic": "Tell it like a well-loved fanfic: true to the characters' voices, building smartly on canon.",
+        "webnovel": "Format it like a web novel: a chapter heading at the top of every reply, web-novel conventions.",
+        "any": ""}),
+    "author": ("Write like", None),  # free text: an author they love
     "keep_out": ("Keep out", None),  # free text
 }
 LENGTH_WORDS = {"short": "a few lines", "medium": "a few paragraphs", "long": "a proper chunk"}
@@ -380,8 +415,22 @@ def apply_basics(session, answers):
     answers = answers if isinstance(answers, dict) else {}
     lines = []
     for key, (label, options) in BASICS.items():
+        if key == "genres":
+            picked = [g for g in (answers.get(key) or []) if isinstance(g, str) and g in options][:6]
+            if picked:
+                text = "Lean the story toward " + "; ".join(options[g] for g in picked) + "."
+                lines.append(f"{label}: {text}")
+                tool_record_preference(session, {"wording": "Basics form: genres", "interpretation": text,
+                                                 "scope": "general", "strength": "firm", "status": "confirmed"})
+            continue
         raw = str(answers.get(key) or "").strip()[:300]
         if not raw:
+            continue
+        if key == "author":
+            text = f"Write in the style of {raw}: their diction, rhythm and conventions, not their plots."
+            lines.append(f"{label}: {text}")
+            tool_record_preference(session, {"wording": f"Basics form: write like {raw}", "interpretation": text,
+                                             "scope": "general", "strength": "flexible", "status": "confirmed"})
             continue
         if options is None:
             if key == "language" and raw.lower() in ("english", "en"):

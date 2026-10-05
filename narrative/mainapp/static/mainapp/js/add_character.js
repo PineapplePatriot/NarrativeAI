@@ -74,6 +74,17 @@ if (location.hash === '#spritesSection') {
     const box = document.getElementById('spriteMaker');
     if (!box) return;
     const MOODS = ['happy', 'sad', 'angry', 'surprised', 'scared', 'confused', 'calm', 'scheming'];
+    // The image models OpenRouter offers right now (fetched once); the default is picked on the server
+    fetch(box.dataset.models).then(r => r.json()).then(data => {
+        const select = document.getElementById('spriteModel');
+        const label = m => m.name;
+        (data.models || []).forEach(m => {
+            const o = document.createElement('option');
+            o.value = m.id; o.textContent = label(m);
+            if (m.id === data.default) { o.selected = true; select.options[0].textContent = `Default (${m.name})`; }
+            select.appendChild(o);
+        });
+    }).catch(() => { /* the default still works */ });
     const status = document.getElementById('spriteStatus');
     const cookie = name => (document.cookie.split(';').map(c => c.trim()).find(c => c.startsWith(name + '=')) || '').split('=')[1];
     const hasPicture = field => !!document.querySelector(`[data-field-name="${field}"] .file-preview img`);
@@ -92,7 +103,7 @@ if (location.hash === '#spritesSection') {
                 const resp = await fetch(box.dataset.url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': decodeURIComponent(cookie('csrftoken') || '') },
-                    body: JSON.stringify({ emotion: mood, second }),
+                    body: JSON.stringify({ emotion: mood, second, model: document.getElementById('spriteModel').value || null }),
                 });
                 const data = await resp.json();
                 if (!resp.ok) throw new Error(data.error || 'Something went wrong.');

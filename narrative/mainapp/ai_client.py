@@ -345,7 +345,41 @@ def stream(user, task, messages, timeout=None, **params):
             raise AIError(f"{label}: the connection to {profile.name} broke off ({e.__class__.__name__}).")
 
 
-def generate_image(user, prompt, reference=None, reference_type="image/png", timeout=180):
+_IMAGE_MODELS = {"at": 0, "list": []}
+
+
+def image_models():
+    """Models on OpenRouter that output pictures ({"id", "name"}), the list cached for an hour."""
+    import time
+    if _IMAGE_MODELS["list"] and time.time() - _IMAGE_MODELS["at"] < 3600:
+        return _IMAGE_MODELS["list"]
+    try:
+        resp = requests.get(f"{ConnectionProfile.OPENROUTER_URL}/models", timeout=15)
+        data = resp.json().get("data", []) if resp.ok else []
+    except (requests.RequestException, ValueError):
+        data = []
+    found = []
+    for m in data:
+        if "image" in ((m.get("architecture") or {}).get("output_modalities") or []):
+            found.append({"id": m.get("id", ""), "name": m.get("name") or m.get("id", "")})
+    if found:
+        _IMAGE_MODELS.update(at=time.time(), list=sorted(found, key=lambda m: m["name"]))
+    return found or _IMAGE_MODELS["list"]
+
+
+def default_image_model(models=None):
+    """settings.SPRITE_IMAGE_MODEL if OpenRouter lists it, else the newest-looking Nano Banana."""
+    from django.conf import settings
+    wanted = getattr(settings, "SPRITE_IMAGE_MODEL", "google/gemini-3.1-flash-image")
+    models = image_models() if models is None else models
+    ids = [m["id"] for m in models]
+    if not ids or wanted in ids:
+        return wanted
+    banana = [m for m in models if "nano banana" in m["name"].lower() and "preview" not in m["name"].lower()]
+    return (banana or models)[0]["id"]
+
+
+def generate_image(user, prompt, reference=None, reference_type="image/png", timeout=180, model=None):
     """
     One picture from an image model on OpenRouter (Nano Banana: settings.SPRITE_IMAGE_MODEL), optionally
     starting from a reference picture. Returns (PNG/JPEG bytes, cost or None). Uses the main connection's key.
@@ -356,7 +390,7 @@ def generate_image(user, prompt, reference=None, reference_type="image/png", tim
     profile = main_profile(user)
     if profile is None or profile.provider != ConnectionProfile.PROVIDER_OPENROUTER or not profile.api_key:
         raise AIError("Making pictures needs an OpenRouter key (set it on the welcome page).")
-    model = getattr(settings, "SPRITE_IMAGE_MODEL", "google/gemini-2.5-flash-image")
+    model = model or default_image_model()
     content = [{"type": "text", "text": prompt}]
     if reference:
         url = f"data:{reference_type};base64,{base64.b64encode(reference).decode('ascii')}"
