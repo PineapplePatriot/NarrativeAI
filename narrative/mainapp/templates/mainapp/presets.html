@@ -65,6 +65,7 @@
       <nav class="tabs" id="tabs">
         <button type="button" data-tab="blocks">🧱 Blocks</button>
         <button type="button" data-tab="utility">🛠 Utility prompts</button>
+        <button type="button" data-tab="rules">🔤 Text rules <span class="tab-count" id="ruleTabCount"></span></button>
         <button type="button" data-tab="preview">🔍 Preview</button>
       </nav>
 
@@ -102,6 +103,31 @@
         <h2>Utility prompts</h2>
         <p class="help">Small prompts used for specific actions rather than every message.</p>
         <div id="utility"></div>
+      </section>
+
+      <section class="card" data-panel="rules">
+        <div class="section-head">
+          <h2>Text rules</h2>
+          <span class="help" id="ruleCount"></span>
+        </div>
+        <p class="help">Find-and-replace rules that tidy or decorate messages (SillyTavern calls them regex scripts).
+          Presets use them to turn tracker blocks into panels, hide thinking the AI leaked into its reply, or keep
+          old blocks out of what's sent back. Each rule works on your messages, the AI's replies, or both, in one of three ways:</p>
+        <ul class="mode-legend">
+          <li><span class="chip mode-display">On screen</span> changes only what you see</li>
+          <li><span class="chip mode-prompt">Sent to the AI</span> changes only what the AI reads back</li>
+          <li><span class="chip mode-saved">Saved</span> changes the message itself</li>
+        </ul>
+        <div class="filter-bar">
+          <input type="search" id="ruleSearch" placeholder="Search rules…">
+          <label class="check small"><input type="checkbox" id="rulesOnlyOn"> Only switched on</label>
+        </div>
+        <div id="rules"></div>
+        <div class="add-row">
+          <button type="button" class="secondary small" id="addRule">+ Rule</button>
+          <label class="btn-like secondary small">⬆ Import regex scripts<input type="file" id="importRules" accept=".json,application/json" hidden></label>
+          <span class="status" id="ruleStatus"></span>
+        </div>
       </section>
 
       <section class="card" data-panel="preview">

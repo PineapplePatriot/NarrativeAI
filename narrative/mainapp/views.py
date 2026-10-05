@@ -24,7 +24,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
-from . import ai_client, cards, chats, model_profiles, presets, samplers, starters, trackers
+from . import ai_client, cards, chats, regex_rules, model_profiles, presets, samplers, starters, trackers
 from .utils import build_ai_request, narrate_text_backend, get_elevenlabs_key
 from .lorebook import (
     normalize_book, load_worldbook, save_worldbook, activate, format_for_prompt, to_sillytavern,
@@ -166,6 +166,13 @@ def chat(request, slug):
         else:
             return []
 
+    # --- Text rules (regex scripts) from the active preset and the character card ---
+    def text_rules(mode, text, role, edits_only=False):
+        rules = regex_rules.for_chat(presets.normalize(presets.get_active(request.user).data), character)
+        if edits_only:
+            rules = [r for r in rules if r["run_on_edit"]]
+        return regex_rules.run(rules, mode, text, role, prompt_names(request.user, character))
+
     # --- Save messages to file ---
     def save_messages(messages):
         full_data = {
@@ -228,9 +235,10 @@ def chat(request, slug):
 
                 if 0 <= index < len(messages):
                     # Update the message text, keep other fields
+                    new_text = text_rules("saved", new_text, messages[index][0], edits_only=True)
                     messages[index] = chats.set_text(messages[index], new_text)
                     save_messages(messages)
-                    return JsonResponse({"success": True})
+                    return JsonResponse({"success": True, "text": new_text})
                 else:
                     return JsonResponse({"success": False, "error": "Invalid message index"})
 
@@ -495,7 +503,7 @@ def chat(request, slug):
                 new_chunk = ai_client.complete(request.user, "chat", api_messages, **sampler_params)
 
                 # 5. Combine and Save
-                full_text = last_text + " " + new_chunk
+                full_text = text_rules("saved", last_text + " " + new_chunk, "assistant")
                 messages[-1] = chats.set_text(messages[-1], full_text)
                 save_messages(messages)
 
@@ -530,6 +538,7 @@ def chat(request, slug):
             if (action == "chat" and user_message) or action == "regenerate":
                 # Regenerate re-answers the existing last user message, so only chat adds one
                 if action == "chat":
+                    user_message = text_rules("saved", user_message, "user")
                     messages.append(("user", datetime.now().strftime("%H:%M"), user_message, "neutral", 1))
 
                 lore_report = None
@@ -538,10 +547,7 @@ def chat(request, slug):
                 # --- Prepare history for API ---
                 api_messages = []
 
-                # Add system message if character has one
-                if hasattr(character, 'system_prompt') and character.system_prompt:
-                    api_messages.append({"role": "system", "content": character.system_prompt})
-
+                # (A card's own system prompt goes through the preset, see prompt_slots and presets.assemble)
                 # Add conversation history
                 for m in messages:
                     if m[0] in ("user", "assistant"):
@@ -573,8 +579,10 @@ def chat(request, slug):
                     # --- Build the request from the active preset ---
                     preset = presets.normalize(presets.get_active(request.user).data)
                     _, chat_model = ai_client.resolve(request.user, "chat")
+                    names = prompt_names(request.user, character)
+                    history = regex_rules.run_on_history(regex_rules.for_chat(preset, character), api_messages, names)
                     built = presets.assemble(preset, prompt_slots(request.user, character, prompt),
-                                             api_messages, prompt_names(request.user, character), chat_model)
+                                             history, names, chat_model)
                     context_dropped = built["dropped"]
                     # Stream when the page asks for it and the preset allows it
                     streaming = bool(data.get("stream")) and preset["options"].get("streaming", True)
@@ -596,6 +604,7 @@ def chat(request, slug):
 
                 def finish_reply(reply):
                     """Emotion, saving, voice and the summary/tracker flags, once the reply is complete."""
+                    reply = text_rules("saved", reply, "assistant")
                     char_count = 1
                     emotion_char_1 = "neutral"
                     emotion_char_2 = "neutral"
@@ -711,7 +720,7 @@ def chat(request, slug):
 
                     def keep_partial():
                         # Keep whatever arrived (Stop button, closed tab or a broken stream)
-                        text = "".join(parts).strip()
+                        text = text_rules("saved", "".join(parts), "assistant").strip()
                         if text:
                             partial = ("assistant", datetime.now().strftime("%H:%M"), text, "neutral|neutral", 1)
                             messages.append(chats.add_version(regen_from, partial) if regen_from else partial)
@@ -797,6 +806,10 @@ def chat(request, slug):
     context = {
         "messages": [m[:5] for m in messages],  # the template shows the version on screen
         "swipes": chats.version_info(messages),
+        "display_rules": {
+            "rules": [r for r in regex_rules.for_chat(presets.normalize(presets.get_active(request.user).data), character)
+                      if r["enabled"] and r["mode"] == "display"],
+            "names": prompt_names(request.user, character)},
         "character": character,
         "photo_url": photo_url,
         "photo_second": photo_second,
@@ -881,8 +894,9 @@ def _preset_preview(user, preset, character):
         _, model = ai_client.resolve(user, "chat")
     except ai_client.NoConnection:
         model = ""
-    built = presets.assemble(preset, prompt_slots(user, character, prompt), history,
-                             prompt_names(user, character), model)
+    names = prompt_names(user, character)
+    history = regex_rules.run_on_history(regex_rules.for_chat(preset, character), history, names)
+    built = presets.assemble(preset, prompt_slots(user, character, prompt), history, names, model)
     return {"messages": built["preview"], "params": built["params"], "notes": built["notes"],
             "variables": built["variables"], "model": model}
 
@@ -949,11 +963,25 @@ def preset_list(request):
                 return JsonResponse({"error": "Invalid block list."}, status=400)
             edited = presets.normalize({**current, "blocks": data["blocks"],
                                         "utility": data.get("utility", current["utility"]),
-                                        "options": data.get("options", current["options"])})
+                                        "options": data.get("options", current["options"]),
+                                        "regex": data.get("regex", current["regex"])})
             # Samplers are edited on their own page; SillyTavern extras are never edited here
             edited["samplers"], edited["extras"] = current["samplers"], current["extras"]
             obj.data = edited
             obj.save(update_fields=["data", "time_update"])
+        elif action == "test_rule":  # one text rule over sample text, without saving anything
+            rule = regex_rules.normalize_rule(data.get("rule"))
+            if rule is None:
+                return JsonResponse({"error": "That isn't a text rule."}, status=400)
+            problem = regex_rules.check(rule)
+            names = {"char": "Character", "user": cards.user_name(request.user)}
+            result = "" if problem else regex_rules.run_rule(rule, str(data.get("text") or ""), names)
+            return JsonResponse({"result": result, "problem": problem})
+        elif action == "import_rules":
+            rules = regex_rules.from_import(data.get("data"))
+            if not rules:
+                return JsonResponse({"error": "No regex scripts found in that file."}, status=400)
+            return JsonResponse({"rules": rules})
         elif action == "preview":
             character = Character.objects.filter(author=request.user, slug=data.get("character")).first()
             if character is None:
@@ -1261,6 +1289,10 @@ def character_import(request):
         notes.append(f"{n} alternate greeting{'s' if n != 1 else ''}: swipe the first message to pick one.")
     if character.worldbook:
         notes.append(f"Its lore is now the worldbook “{character.worldbook.title}”.")
+    card_rules = regex_rules.for_chat({}, character)
+    if card_rules:
+        notes.append(f"It comes with {len(card_rules)} text rule{'s' if len(card_rules) != 1 else ''} "
+                     "(regex scripts); they run in its chats.")
     if character.system_prompt or character.post_history_instructions:
         notes.append("The card has its own instructions; they take the place of your preset's main prompt "
                      "(see Advanced on the character's page).")

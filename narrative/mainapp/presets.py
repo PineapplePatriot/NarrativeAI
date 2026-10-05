@@ -29,6 +29,7 @@ import re
 import uuid
 from datetime import datetime
 
+from mainapp import regex_rules
 from mainapp import samplers as sampler_mod
 
 FORMAT = "narrativeai-preset"
@@ -155,8 +156,20 @@ def normalize(raw):
         "utility": utility,
         "options": {"post_processing": pp if pp in POST_PROCESSING else "none",
                     "streaming": bool(options_raw.get("streaming", True))},
-        "extras": raw.get("extras") if isinstance(raw.get("extras"), dict) else {},
+        **_rules_and_extras(raw),
     }
+
+
+def _rules_and_extras(raw):
+    """Text rules, plus extras. Presets imported before rules existed keep them in extras.extensions:
+    those are lifted out (once) so they show up and run."""
+    extras = raw.get("extras") if isinstance(raw.get("extras"), dict) else {}
+    rules = raw.get("regex")
+    ext = extras.get("extensions") if isinstance(extras.get("extensions"), dict) else None
+    if rules is None and ext and isinstance(ext.get("regex_scripts"), list):
+        rules = ext["regex_scripts"]
+        extras = {**extras, "extensions": {k: v for k, v in ext.items() if k != "regex_scripts"}}
+    return {"regex": regex_rules.normalize_rules(rules), "extras": extras}
 
 
 # ---------------------------------------------------------------------------
@@ -239,6 +252,11 @@ def from_sillytavern(data):
         pp = "merge" if data.get("squash_system_messages") else "none"
 
     extras = {k: v for k, v in data.items() if k not in ST_HANDLED_KEYS}
+    # Regex scripts become the preset's text rules; the rest of "extensions" is kept as it was
+    extensions = dict(extras.get("extensions") or {}) if isinstance(extras.get("extensions"), dict) else {}
+    rules = regex_rules.normalize_rules(extensions.pop("regex_scripts", None))
+    if "extensions" in extras:
+        extras["extensions"] = extensions
     unused = [p for i, p in prompts.items() if i not in used]
     if unused:
         extras["unused_prompts"] = unused  # not in the order: kept only so export loses nothing
@@ -254,6 +272,7 @@ def from_sillytavern(data):
             "assistant_impersonation": data.get("assistant_impersonation", ""),
         },
         "options": {"post_processing": pp, "streaming": bool(data.get("stream_openai", True))},
+        "regex": rules,
         "extras": extras,
     })
 
@@ -302,6 +321,10 @@ def to_sillytavern(preset):
     prompts.extend(preset["extras"].get("unused_prompts", []))
     out["prompts"] = prompts
     out["prompt_order"] = [{"character_id": 100001, "order": order}]
+    if preset.get("regex"):
+        extensions = dict(out.get("extensions") or {})
+        extensions["regex_scripts"] = [regex_rules.to_sillytavern(r) for r in preset["regex"]]
+        out["extensions"] = extensions
     return out
 
 

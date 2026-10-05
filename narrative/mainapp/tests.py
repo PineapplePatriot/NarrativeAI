@@ -758,7 +758,10 @@ class PresetImportTests(SimpleTestCase):
         again, _ = from_any(to_sillytavern(preset))
         self.assertEqual(again["blocks"], preset["blocks"])
         self.assertEqual(again["samplers"], preset["samplers"])
-        self.assertEqual(to_sillytavern(again)["extensions"], ST_PRESET["extensions"])
+        # Regex scripts come back complete (all SillyTavern fields filled in) and stay stable
+        scripts = to_sillytavern(again)["extensions"]["regex_scripts"]
+        self.assertEqual([r["scriptName"] for r in scripts], ["Pretty"])
+        self.assertEqual(to_sillytavern(from_any(to_sillytavern(again))[0])["extensions"]["regex_scripts"], scripts)
 
     def test_native_round_trip_and_bad_file(self):
         from mainapp.presets import from_any, to_native
@@ -2181,3 +2184,144 @@ class TaglineFilterTests(SimpleTestCase):
         self.assertEqual(tagline("Identity:\nCorvin is a wizard.\n\nAppearance:\nTall."), "Corvin is a wizard. Tall.")
         self.assertEqual(tagline("Identity: A wizard."), "A wizard.")
         self.assertEqual(tagline("Plain text: with a colon inside."), "Plain text: with a colon inside.")
+
+
+ST_RULE = {"id": "r1", "scriptName": "Hide thinking", "findRegex": "/<think>[\\s\\S]*?<\\/think>\\s*/gi",
+           "replaceString": "", "trimStrings": [], "placement": [2], "disabled": False,
+           "markdownOnly": False, "promptOnly": True, "runOnEdit": False, "substituteRegex": 0,
+           "minDepth": None, "maxDepth": None}
+
+
+class RegexRuleTests(SimpleTestCase):
+    names = {"char": "Rose", "user": "Ann"}
+
+    def rule(self, **kw):
+        from mainapp import regex_rules
+        return regex_rules.normalize_rule({**ST_RULE, **kw})
+
+    def run_one(self, rule, text, mode=None, role="assistant", depth=None):
+        from mainapp import regex_rules
+        return regex_rules.run([rule], mode or rule["mode"], text, role, self.names, depth)
+
+    def test_sillytavern_format_round_trip(self):
+        from mainapp import regex_rules
+        r = self.rule()
+        self.assertEqual((r["name"], r["mode"], r["placement"]), ("Hide thinking", "prompt", [2]))
+        self.assertEqual(regex_rules.to_sillytavern(r), ST_RULE)
+        self.assertEqual(self.rule(markdownOnly=True, promptOnly=False)["mode"], "display")
+        self.assertEqual(self.rule(promptOnly=False)["mode"], "saved")
+
+    def test_replacement_like_sillytavern(self):
+        r = self.rule(findRegex="/(?<who>\\w+) waves/", replaceString="[$<who>|$1|{{match}}|{{user}}]", promptOnly=False)
+        # No g flag: only the first match
+        self.assertEqual(self.run_one(r, "Bob waves. Cy waves."), "[Bob|Bob|Bob waves|Ann]. Cy waves.")
+        r = self.rule(findRegex="/(\\w+) waves/g", replaceString="$1!$2", promptOnly=False, trimStrings=["o"])
+        self.assertEqual(self.run_one(r, "Bob waves. Cy waves."), "Bb!. Cy!.")
+
+    def test_javascript_syntax_translated(self):
+        r = self.rule(findRegex="/(?<a>q)[^]x\\k<a>\\e/", replaceString="-", promptOnly=False)
+        from mainapp import regex_rules
+        self.assertIsNone(regex_rules.check(r))
+        r = self.rule(findRegex="/\\d+/g", replaceString="#", promptOnly=False)
+        self.assertEqual(self.run_one(r, "a1 b٣ c22"), "a# b٣ c#")  # JavaScript's \d is ASCII only
+
+    def test_macros_in_find(self):
+        r = self.rule(findRegex="/{{char}}:/g", replaceString="", substituteRegex=1, promptOnly=False)
+        self.assertEqual(self.run_one(r, "Rose: hi"), " hi")
+
+    def test_where_and_when(self):
+        r = self.rule()
+        self.assertEqual(self.run_one(r, "<think>x</think>Hi"), "Hi")
+        self.assertEqual(self.run_one(r, "<think>x</think>Hi", role="user"), "<think>x</think>Hi")
+        self.assertEqual(self.run_one(r, "<think>x</think>Hi", mode="saved"), "<think>x</think>Hi")
+        deep = self.rule(minDepth=2)
+        self.assertEqual(self.run_one(deep, "<think>x</think>Hi", depth=1), "<think>x</think>Hi")
+        self.assertEqual(self.run_one(deep, "<think>x</think>Hi", depth=2), "Hi")
+        off = self.rule(disabled=True)
+        self.assertEqual(self.run_one(off, "<think>x</think>Hi"), "<think>x</think>Hi")
+
+    def test_history_depth(self):
+        from mainapp import regex_rules
+        rule = self.rule(findRegex="/\\[STATE\\][\\s\\S]*?\\[\\/STATE\\]/g", minDepth=1)
+        history = [{"role": "assistant", "content": "A [STATE]old[/STATE]"},
+                   {"role": "user", "content": "B"},
+                   {"role": "assistant", "content": "C [STATE]new[/STATE]"}]
+        out = regex_rules.run_on_history([rule], history, self.names)
+        self.assertEqual([m["content"] for m in out], ["A ", "B", "C [STATE]new[/STATE]"])
+
+    def test_preset_import_export_keeps_rules(self):
+        from mainapp.presets import from_any, normalize, to_sillytavern
+        st = json.loads(json.dumps(ST_PRESET))
+        st["extensions"] = {"regex_scripts": [ST_RULE], "other": 1}
+        preset = from_any(st)[0]
+        self.assertEqual([r["name"] for r in preset["regex"]], ["Hide thinking"])
+        self.assertEqual(preset["extras"]["extensions"], {"other": 1})
+        out = to_sillytavern(preset)
+        self.assertEqual(out["extensions"]["regex_scripts"], [ST_RULE])
+        self.assertEqual(out["extensions"]["other"], 1)
+        # Presets imported before rules existed: lifted out of extras
+        old = normalize({"blocks": [], "extras": {"extensions": {"regex_scripts": [ST_RULE]}}})
+        self.assertEqual(len(old["regex"]), 1)
+        self.assertNotIn("regex_scripts", old["extras"]["extensions"])
+
+
+class RegexChatTests(ChatPromptTests):
+    def setUp(self):
+        super().setUp()
+        from mainapp import presets as presets_mod
+        obj = presets_mod.get_active(self.user)
+        data = presets_mod.normalize(obj.data)
+        data["regex"] = [
+            {**ST_RULE},  # prompt: drop <think> from what's sent back
+            {**ST_RULE, "id": "r2", "scriptName": "Shout", "findRegex": "/quiet/g", "replaceString": "LOUD",
+             "promptOnly": False},  # saved, AI replies
+            {**ST_RULE, "id": "r3", "scriptName": "Card", "findRegex": "/\\[HP:(\\d+)\\]/g",
+             "replaceString": "<div class=\"hp\">$1</div>", "promptOnly": False, "markdownOnly": True},
+            {**ST_RULE, "id": "r4", "scriptName": "Typos", "findRegex": "/teh/g", "replaceString": "the",
+             "promptOnly": False, "placement": [1]},
+        ]
+        obj.data = presets_mod.normalize(data)
+        obj.save()
+        self.reply_text = "<think>plan</think>A quiet reply. [HP:5]"
+
+    def fake_post(self, url, headers=None, json=None, timeout=None, **kwargs):
+        resp = super().fake_post(url, headers=headers, json=json, timeout=timeout, **kwargs)
+        if self.reply_status < 400 and not (json and "response_format" in json):
+            resp.json.return_value = {"choices": [{"message": {"content": self.reply_text}}]}
+        return resp
+
+    def test_rules_in_a_chat(self):
+        self.post({"action": "chat", "message": "teh tower?"})
+        saved = self.saved_messages()
+        self.assertEqual(saved[-2][2], "the tower?")                              # saved rule, your messages
+        self.assertEqual(saved[-1][2], "<think>plan</think>A LOUD reply. [HP:5]")  # saved rule, AI replies
+        self.post({"action": "chat", "message": "go on"})
+        sent = "\n".join(m["content"] for m in self.sent[-1]["messages"])
+        self.assertNotIn("<think>", sent)                                         # prompt rule
+        self.assertIn("A LOUD reply. [HP:5]", sent)                                # display rule isn't sent
+        page = self.client.get(self.url)
+        rules = page.context["display_rules"]["rules"]
+        self.assertEqual([r["name"] for r in rules], ["Card"])
+
+    def test_card_rules_join_the_preset_rules(self):
+        from mainapp import presets as presets_mod, regex_rules
+        self.character.card_data = {"extensions": {"regex_scripts": [{**ST_RULE, "id": "c1", "scriptName": "Card rule"}]}}
+        self.character.save()
+        rules = regex_rules.for_chat(presets_mod.normalize(presets_mod.get_active(self.user).data), self.character)
+        self.assertEqual(rules[-1]["name"], "Card rule")
+
+    def test_presets_page_actions(self):
+        from mainapp import presets as presets_mod
+        obj = presets_mod.get_active(self.user)
+        url = reverse("presets")
+        post = lambda body: self.client.post(url, json.dumps(body), content_type="application/json")
+        data = post({"action": "test_rule", "id": obj.id, "rule": ST_RULE, "text": "<think>a</think>Hi"}).json()
+        self.assertEqual((data["result"], data["problem"]), ("Hi", None))
+        bad = post({"action": "test_rule", "id": obj.id, "rule": {**ST_RULE, "findRegex": "/(unclosed/"}, "text": "x"}).json()
+        self.assertIn("Can't run", bad["problem"])
+        imported = post({"action": "import_rules", "id": obj.id, "data": ST_RULE}).json()
+        self.assertEqual(len(imported["rules"]), 1)
+        current = presets_mod.normalize(obj.data)
+        post({"action": "save_full", "id": obj.id, "blocks": current["blocks"], "regex": [ST_RULE]})
+        obj.refresh_from_db()
+        self.assertEqual([r["name"] for r in presets_mod.normalize(obj.data)["regex"]], ["Hide thinking"])

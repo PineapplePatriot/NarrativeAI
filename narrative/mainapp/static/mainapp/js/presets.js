@@ -67,8 +67,6 @@ function renderHead() {
         .map(([k, label]) => `<option value="${k}" ${k === preset.options.post_processing ? 'selected' : ''}>${esc(label)}</option>`).join('');
 
     const extras = [];
-    const regex = (preset.extras.extensions || {}).regex_scripts || [];
-    if (regex.length) extras.push(`${regex.length} regex scripts`);
     if (preset.extras.function_calling) extras.push('function calling');
     if ((preset.extras.unused_prompts || []).length) extras.push(`${preset.extras.unused_prompts.length} unused prompts`);
     const starter = preset.extras.starter;
@@ -485,7 +483,7 @@ async function save() {
     setStatus('Saving…');
     try {
         const data = await act({ action: 'save_full', id: preset.id, blocks: preset.blocks,
-                                 utility: preset.utility, options: preset.options });
+                                 utility: preset.utility, options: preset.options, regex: preset.regex });
         presets = data.presets;
         renderList();
         setStatus('Saved', 'ok');
@@ -580,6 +578,135 @@ $('previewBtn').onclick = async () => {
     }
 };
 
+// ------------------------------------------------------------- Text rules
+const MODE_LABELS = { display: 'On screen', prompt: 'Sent to the AI', saved: 'Saved' };
+const openRules = new Set();
+
+function ruleWhere(r) {
+    const you = r.placement.includes(1), ai = r.placement.includes(2);
+    const who = you && ai ? 'all messages' : you ? 'your messages' : ai ? 'AI replies' : 'other text';
+    const depth = r.min_depth != null || r.max_depth != null
+        ? ` · ${r.min_depth != null ? `skips the newest ${r.min_depth}` : ''}${r.min_depth != null && r.max_depth != null ? ', ' : ''}${r.max_depth != null ? `only the newest ${r.max_depth + 1}` : ''}`
+        : '';
+    return who + depth;
+}
+
+function ruleEditor(r) {
+    return `<div class="rule-editor">
+        <label>Name <input type="text" data-rf="name" value="${esc(r.name)}"></label>
+        <label>Find (a regex; <code>/pattern/flags</code> as in SillyTavern)
+          <textarea data-rf="find" rows="3" class="mono">${esc(r.find)}</textarea></label>
+        <label>Replace with (<code>$1</code>, <code>$&lt;name&gt;</code> and <code>{{match}}</code> insert what was found; empty removes it)
+          <textarea data-rf="replace" rows="3" class="mono">${esc(r.replace)}</textarea></label>
+        <div class="rule-grid">
+          <label>Works
+            <select data-rf="mode">${Object.entries(MODE_LABELS).map(([k, l]) =>
+                `<option value="${k}" ${k === r.mode ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+          <fieldset><legend>On</legend>
+            <label class="check small"><input type="checkbox" data-rp="2" ${r.placement.includes(2) ? 'checked' : ''}> AI replies</label>
+            <label class="check small"><input type="checkbox" data-rp="1" ${r.placement.includes(1) ? 'checked' : ''}> Your messages</label>
+          </fieldset>
+          <label>Skip the newest <input type="number" min="0" data-rf="min_depth" value="${r.min_depth ?? ''}" placeholder="0"> messages</label>
+          <label>Up to message <input type="number" min="0" data-rf="max_depth" value="${r.max_depth ?? ''}" placeholder="any"> back</label>
+        </div>
+        <label>Remove from what was found before inserting it (one per line)
+          <textarea data-rf="trim" rows="2" class="mono">${esc((r.trim || []).join('\n'))}</textarea></label>
+        <label class="check small"><input type="checkbox" data-rf="run_on_edit" ${r.run_on_edit ? 'checked' : ''}> Also run when I edit a message (Saved rules only)</label>
+        <div class="rule-test">
+          <label>Try it on <textarea class="test-input" rows="3" placeholder="Paste a message here"></textarea></label>
+          <button type="button" class="secondary small" data-ract="test">Run</button>
+          <pre class="test-output" hidden></pre>
+        </div>
+        <div class="rule-actions"><button type="button" class="danger small" data-ract="delete">Delete rule</button></div>
+      </div>`;
+}
+
+function renderRules() {
+    const q = ($('ruleSearch').value || '').toLowerCase();
+    const onlyOn = $('rulesOnlyOn').checked;
+    const list = preset.regex.filter(r => (!onlyOn || r.enabled) &&
+        (!q || r.name.toLowerCase().includes(q) || r.find.toLowerCase().includes(q)));
+    const on = preset.regex.filter(r => r.enabled).length;
+    $('ruleCount').textContent = preset.regex.length ? `${on} of ${preset.regex.length} on` : '';
+    $('ruleTabCount').textContent = preset.regex.length ? on : '';
+    $('rules').innerHTML = list.length ? list.map(r => `
+      <div class="rule ${r.enabled ? '' : 'off'}" data-rule="${esc(r.id)}">
+        <div class="rule-row">
+          <label class="switch" title="On or off"><input type="checkbox" data-ract="toggle" ${r.enabled ? 'checked' : ''}><span></span></label>
+          <button type="button" class="rule-name" data-ract="open">${esc(r.name)}</button>
+          <span class="chip mode-${r.mode}">${MODE_LABELS[r.mode]}</span>
+          <span class="rule-where">${esc(ruleWhere(r))}</span>
+        </div>
+        ${openRules.has(r.id) ? ruleEditor(r) : ''}
+      </div>`).join('')
+      : `<p class="help">${preset.regex.length ? 'No rules match.' : 'This preset has no text rules. Most presets don\'t need any.'}</p>`;
+}
+
+const ruleById = id => preset.regex.find(r => r.id === id);
+
+$('rules').addEventListener('click', async e => {
+    const el = e.target.closest('[data-ract]');
+    const box = e.target.closest('[data-rule]');
+    if (!el || !box) return;
+    const r = ruleById(box.dataset.rule);
+    const a = el.dataset.ract;
+    if (a === 'open') { openRules.has(r.id) ? openRules.delete(r.id) : openRules.add(r.id); renderRules(); }
+    if (a === 'delete' && confirm(`Delete the rule “${r.name}”?`)) {
+        preset.regex = preset.regex.filter(x => x !== r); renderRules(); scheduleSave();
+    }
+    if (a === 'test') {
+        const out = box.querySelector('.test-output');
+        out.hidden = false;
+        try {
+            const data = await act({ action: 'test_rule', id: preset.id, rule: r, text: box.querySelector('.test-input').value });
+            out.textContent = data.problem || data.result || '(nothing left)';
+        } catch (err) { out.textContent = err.message; }
+    }
+});
+
+$('rules').addEventListener('change', e => {
+    const box = e.target.closest('[data-rule]');
+    if (!box) return;
+    const r = ruleById(box.dataset.rule);
+    const t = e.target;
+    if (t.dataset.ract === 'toggle') { r.enabled = t.checked; renderRules(); scheduleSave(); return; }
+    if (t.dataset.rp) {
+        const p = Number(t.dataset.rp);
+        r.placement = t.checked ? [...new Set([...r.placement, p])] : r.placement.filter(x => x !== p);
+    } else if (t.dataset.rf) {
+        const f = t.dataset.rf;
+        if (f === 'run_on_edit') r[f] = t.checked;
+        else if (f === 'min_depth' || f === 'max_depth') r[f] = t.value === '' ? null : Math.max(0, parseInt(t.value, 10) || 0);
+        else if (f === 'trim') r.trim = t.value.split('\n').filter(Boolean);
+        else r[f] = t.value;
+    } else return;
+    box.querySelector('.rule-name').textContent = r.name;
+    box.querySelector('.rule-where').textContent = ruleWhere(r);
+    const chip = box.querySelector('.chip');
+    chip.className = `chip mode-${r.mode}`; chip.textContent = MODE_LABELS[r.mode];
+    scheduleSave();
+});
+
+$('ruleSearch').addEventListener('input', renderRules);
+$('rulesOnlyOn').addEventListener('change', renderRules);
+$('addRule').onclick = () => {
+    const r = { id: uid(), name: 'New rule', find: '', replace: '', trim: [], placement: [2], enabled: true,
+                mode: 'display', macros_in_find: 0, min_depth: null, max_depth: null, run_on_edit: false };
+    preset.regex.push(r); openRules.add(r.id); renderRules();
+};
+$('importRules').onchange = async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+        const data = await act({ action: 'import_rules', id: preset.id, data: JSON.parse(await file.text()) });
+        const known = new Set(preset.regex.map(r => r.id));
+        data.rules.forEach(r => { if (known.has(r.id)) r.id = uid(); preset.regex.push(r); });
+        $('ruleStatus').textContent = `Added ${data.rules.length} rule${data.rules.length === 1 ? '' : 's'}.`;
+        renderRules(); scheduleSave();
+    } catch (err) { $('ruleStatus').textContent = err.message; }
+    e.target.value = '';
+};
+
 // ------------------------------------------------------------------- Tabs
 function showTab(tab) {
     document.querySelectorAll('[data-panel]').forEach(el => { el.hidden = el.dataset.panel !== tab; });
@@ -590,4 +717,4 @@ $('tabs').addEventListener('click', e => { const t = e.target.closest('[data-tab
 let startTab = 'blocks';
 try { startTab = localStorage.getItem('presetTab') || 'blocks'; } catch (e) { /* optional */ }
 
-renderList(); renderHead(); renderBlocks(); renderUtility(); showTab(startTab);
+renderList(); renderHead(); renderBlocks(); renderUtility(); renderRules(); showTab(startTab);
