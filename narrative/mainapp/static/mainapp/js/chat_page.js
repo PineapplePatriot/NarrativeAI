@@ -278,7 +278,7 @@ async function requestReply(body) {
     const controller = new AbortController();
     currentRequest = controller;
     const stream = !!window.STREAM_REPLIES;
-    let bubble = null, text = '', frame = null;
+    let bubble = null, text = '', thoughts = '', frame = null;
 
     const paint = () => {
         frame = null;
@@ -311,18 +311,24 @@ async function requestReply(body) {
                 buffer = buffer.slice(nl + 1);
                 if (!line) continue;
                 const event = JSON.parse(line);
+                const ensureBubble = () => {
+                    if (bubble) return;
+                    typingMessage.style.display = 'none';
+                    addMessage('assistant', '', window.INIT_PHOTO_URL || null);
+                    const all = messagesContainer.querySelectorAll('.message.assistant:not(#typingMessage) .message-text');
+                    bubble = all[all.length - 1];
+                    bubble.closest('.message').classList.add('streaming');
+                };
                 if (event.type === 'thinking') {
-                    // Thinking models (MiMo, Claude...) reason before writing; say so instead of looking stuck
-                    const label = typingMessage.querySelector('.typing-indicator span');
-                    if (label) label.textContent = `${window.CHARACTER_NAME || 'The AI'} is thinking`;
+                    // Thinking models (MiMo, Claude...) reason before writing: show it live, folded once the reply starts
+                    ensureBubble();
+                    thoughts += event.text || '';
+                    setThoughts(bubble.closest('.message'), thoughts, !text);
+                    if (!text) bubble.innerHTML = `<span class="thinking-note">${escHtml(window.CHARACTER_NAME || 'The AI')} is thinking…</span>`;
+                    scrollToBottom();
                 } else if (event.type === 'delta') {
-                    if (!bubble) {
-                        typingMessage.style.display = 'none';
-                        addMessage('assistant', '', window.INIT_PHOTO_URL || null);
-                        const all = messagesContainer.querySelectorAll('.message.assistant:not(#typingMessage) .message-text');
-                        bubble = all[all.length - 1];
-                        bubble.closest('.message').classList.add('streaming');
-                    }
+                    ensureBubble();
+                    if (!text && thoughts) setThoughts(bubble.closest('.message'), thoughts, false);
                     text += event.text;
                     if (!frame) frame = requestAnimationFrame(paint);
                 } else if (event.type === 'done') {
@@ -354,11 +360,31 @@ function updateSpending(s) {
     if (fill) fill.style.width = `${Math.min(100, s.spent / s.limit * 100)}%`;
 }
 
+const escHtml = s => String(s ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
+
+// What a thinking model thought before replying: a folded "Thoughts" box above the reply text
+function setThoughts(messageEl, text, open = false) {
+    if (!messageEl) return;
+    let box = messageEl.querySelector('details.thoughts');
+    if (!text) { if (box) box.remove(); return; }
+    if (!box) {
+        box = document.createElement('details');
+        box.className = 'thoughts';
+        box.innerHTML = '<summary>Thoughts</summary><div class="thoughts-text"></div>';
+        const textEl = messageEl.querySelector('.message-text');
+        textEl.parentNode.insertBefore(box, textEl);
+    }
+    box.querySelector('.thoughts-text').textContent = text;
+    box.open = open;
+}
+
 // Put a finished reply on screen: fill the streamed bubble, or add a new message
 function placeReply(data, avatarUrl) {
     updateSpending(data.spending);
     if (!data.bubble) {
         addMessage('assistant', data.reply, avatarUrl);
+        const all = messagesContainer.querySelectorAll('.message.assistant:not(#typingMessage)');
+        setThoughts(all[all.length - 1], data.reasoning || '');
         return;
     }
     refreshForDepth();
@@ -973,6 +999,7 @@ function swipe(step) {
             const last = msgs[msgs.length - 1];
             const textDiv = last.querySelector('.message-text');
             textDiv.innerHTML = renderChatMessage(d.reply, textDiv);
+            setThoughts(last, d.reasoning || '');
             textDiv.setAttribute('data-raw', encodeURIComponent(d.reply));
             last.querySelector('.edit-textarea').value = d.reply;
             last.dataset.emotion = d.emotion;

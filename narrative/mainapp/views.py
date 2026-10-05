@@ -466,6 +466,7 @@ def chat(request, slug):
             emo1, _, emo2 = (emotion or "neutral").partition("|")
             return JsonResponse({
                 "success": True, "reply": text, "emotion": emotion, "char_count": char_count,
+                "reasoning": chats.reasoning_of(messages[-1]),
                 "photo_url": _photo(character, "photo", emo1),
                 "photo_second": _photo(character, "photo_second", emo2 or "neutral")
                 if (character.is_mult or char_count >= 2) else None,
@@ -595,7 +596,9 @@ def chat(request, slug):
                     # Stream when the page asks for it and the preset allows it
                     streaming = bool(data.get("stream")) and preset["options"].get("streaming", True)
                     if not streaming:
-                        reply = ai_client.complete(request.user, "chat", built["messages"], **built["params"])
+                        message, _ = ai_client.complete_message(request.user, "chat", built["messages"], **built["params"])
+                        reply = message.get("content") or ""
+                        reasoning = (message.get("reasoning") or message.get("reasoning_content") or "").strip()
 
                 except ai_client.AIError as e:
                     # Keep the user's message so they can press Regenerate (and the old reply, if regenerating)
@@ -610,7 +613,7 @@ def chat(request, slug):
                     save_messages(messages)
                     return JsonResponse({"error": f"Something went wrong while building the prompt: {e}"}, status=500)
 
-                def finish_reply(reply):
+                def finish_reply(reply, reasoning=""):
                     """Emotion, saving, voice and the summary/tracker flags, once the reply is complete."""
                     reply = text_rules("saved", reply, "assistant")
                     char_count = 1
@@ -664,7 +667,8 @@ def chat(request, slug):
 
                     # Store emotions as "happy|sad" string
                     final_emotion_str = f"{emotion_char_1}|{emotion_char_2}"
-                    new_message = ("assistant", datetime.now().strftime("%H:%M"), reply, final_emotion_str, char_count)
+                    new_message = chats.with_reasoning(
+                        ("assistant", datetime.now().strftime("%H:%M"), reply, final_emotion_str, char_count), reasoning)
                     messages.append(chats.add_version(regen_from, new_message) if regen_from else new_message)
 
                     photo_url = _photo(character, "photo", emotion_char_1)
@@ -707,6 +711,7 @@ def chat(request, slug):
 
                     return {
                         "reply": reply,
+                        "reasoning": reasoning,
                         "emotion": final_emotion_str,
                         "photo_url": photo_url,
                         "photo_second": photo_second,
@@ -721,17 +726,18 @@ def chat(request, slug):
                     }
 
                 if not streaming:
-                    return JsonResponse(finish_reply(reply))
+                    return JsonResponse(finish_reply(reply, reasoning))
 
                 def stream_reply():
                     """NDJSON lines: {"type": "delta", "text"} ..., then {"type": "done", ...} or {"type": "error"}."""
-                    parts, finished = [], False
+                    parts, thoughts, finished = [], [], False
 
                     def keep_partial():
                         # Keep whatever arrived (Stop button, closed tab or a broken stream)
                         text = text_rules("saved", "".join(parts), "assistant").strip()
                         if text:
-                            partial = ("assistant", datetime.now().strftime("%H:%M"), text, "neutral|neutral", 1)
+                            partial = chats.with_reasoning(("assistant", datetime.now().strftime("%H:%M"), text,
+                                                            "neutral|neutral", 1), "".join(thoughts).strip())
                             messages.append(chats.add_version(regen_from, partial) if regen_from else partial)
                         elif regen_from:
                             messages.append(regen_from)  # nothing new arrived: keep the old reply
@@ -739,12 +745,10 @@ def chat(request, slug):
 
                     try:
                         try:
-                            told_thinking = False
                             for chunk in ai_client.stream(request.user, "chat", built["messages"], **built["params"]):
-                                if chunk is ai_client.THINKING:
-                                    if not told_thinking and not parts:
-                                        told_thinking = True
-                                        yield json.dumps({"type": "thinking"}) + "\n"
+                                if isinstance(chunk, ai_client.Reasoning):
+                                    thoughts.append(chunk)
+                                    yield json.dumps({"type": "thinking", "text": chunk}, ensure_ascii=False) + "\n"
                                     continue
                                 parts.append(chunk)
                                 yield json.dumps({"type": "delta", "text": chunk}, ensure_ascii=False) + "\n"
@@ -753,7 +757,7 @@ def chat(request, slug):
                             finished = True
                             yield json.dumps({"type": "error", "error": str(e), "kept": bool("".join(parts).strip())}) + "\n"
                             return
-                        payload = finish_reply("".join(parts))
+                        payload = finish_reply("".join(parts), "".join(thoughts).strip())
                         finished = True
                         yield json.dumps({"type": "done", **payload}, ensure_ascii=False) + "\n"
                     except GeneratorExit:
@@ -819,7 +823,8 @@ def chat(request, slug):
         user_avatar = request.user.photo.url
 
     context = {
-        "messages": [m[:5] for m in messages],  # the template shows the version on screen
+        # The template shows the version on screen, and its thoughts (if the model sent any)
+        "messages": [tuple(m[:5]) + (chats.reasoning_of(m),) for m in messages],
         "swipes": chats.version_info(messages),
         "spending": ai_client.spending(request.user),
         "appearance": _appearance(request.user),

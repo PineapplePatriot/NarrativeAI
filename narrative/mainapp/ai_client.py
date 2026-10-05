@@ -282,7 +282,8 @@ def test_connection(provider, base_url, api_key, model):
         return False, f"Could not reach the server ({e.__class__.__name__})."
 
 
-THINKING = object()  # yielded by stream() while the model is thinking (its reasoning isn't shown)
+class Reasoning(str):
+    """A piece of what a thinking model thinks before it replies (stream() yields these between text pieces)."""
 
 
 def stream(user, task, messages, timeout=None, **params):
@@ -339,8 +340,12 @@ def stream(user, task, messages, timeout=None, **params):
                 text = delta.get("content")
                 if text:
                     yield text
-                elif delta.get("reasoning") or delta.get("reasoning_content") or delta.get("reasoning_details"):
-                    yield THINKING  # the model is still thinking; nothing to show yet
+                else:
+                    thought = delta.get("reasoning") or delta.get("reasoning_content")
+                    if not thought and isinstance(delta.get("reasoning_details"), list):
+                        thought = "".join(d.get("text", "") for d in delta["reasoning_details"] if isinstance(d, dict))
+                    if thought:
+                        yield Reasoning(thought)
         except requests.RequestException as e:
             raise AIError(f"{label}: the connection to {profile.name} broke off ({e.__class__.__name__}).")
 

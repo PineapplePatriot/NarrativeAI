@@ -2349,7 +2349,16 @@ class SpendingAndThinkingTests(StreamChatTests):
                                 {"choices": [{"delta": {"reasoning": "more"}}]},
                                 delta("Hi."), {"choices": [], "usage": {"cost": 0.012}}, "[DONE]")
         resp, events = self.stream_post({"action": "chat", "message": "Hello"})
-        self.assertEqual([e["type"] for e in events], ["thinking", "delta", "done"])
+        self.assertEqual([e["type"] for e in events], ["thinking", "thinking", "delta", "done"])
+        self.assertEqual(events[-1]["reasoning"], "hmmmore")
+        from mainapp import chats
+        self.assertEqual(chats.reasoning_of(self.saved_messages()[-1]), "hmmmore")
+        # Thoughts are shown, never sent back to the model
+        self.stream_lines = sse(delta("Fine."), "[DONE]")
+        self.stream_post({"action": "chat", "message": "Next"})
+        self.assertNotIn("hmmmore", json.dumps(self.sent[-1]["messages"]))
+        page = self.client.get(self.url)
+        self.assertContains(page, '<details class="thoughts">')
         self.assertEqual(self.sent[-1]["usage"], {"include": True})
         self.assertAlmostEqual(ai_client.spent_this_month(self.user), 0.012)
         self.assertAlmostEqual(events[-1]["spending"]["spent"], 0.012)

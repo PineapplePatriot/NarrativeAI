@@ -105,20 +105,42 @@ def delete(chat):
 # {"swipes": [{"text", "time", "emotion", "char_count"}, ...], "swipe": <shown>}.
 # The first five parts always mirror the version on screen, so everything else
 # (the prompt, lorebook, summary, trackers) can ignore swipes entirely.
+# The 6th part may also hold "reasoning": what a thinking model thought before that reply (each swipe
+# keeps its own). It's shown folded under "Thoughts" and never sent back to the model.
 
 def _extras(message):
     return message[5] if len(message) > 5 and isinstance(message[5], dict) else {}
 
 
 def _version(message):
-    return {"text": message[2], "time": message[1], "emotion": message[3], "char_count": message[4]}
+    v = {"text": message[2], "time": message[1], "emotion": message[3], "char_count": message[4]}
+    if _extras(message).get("reasoning"):
+        v["reasoning"] = _extras(message)["reasoning"]
+    return v
+
+
+def reasoning_of(message):
+    return _extras(message).get("reasoning") or ""
+
+
+def with_reasoning(message, reasoning):
+    """The message with what the model thought before it (kept out of every prompt)."""
+    extras = dict(_extras(message))
+    if reasoning:
+        extras["reasoning"] = reasoning
+    else:
+        extras.pop("reasoning", None)
+    return tuple(message[:5]) + ((extras,) if extras else ())
 
 
 def add_version(previous, message):
     """`message` replaces `previous` as a new swipe; the earlier versions are kept."""
     versions = list(_extras(previous).get("swipes") or [_version(previous)])
     versions.append(_version(message))
-    return tuple(message[:5]) + ({"swipes": versions, "swipe": len(versions) - 1},)
+    extras = {"swipes": versions, "swipe": len(versions) - 1}
+    if reasoning_of(message):
+        extras["reasoning"] = reasoning_of(message)
+    return tuple(message[:5]) + (extras,)
 
 
 def choose_version(message, index):
@@ -126,19 +148,21 @@ def choose_version(message, index):
     if not 0 <= index < len(versions):
         raise IndexError("No such version.")
     v = versions[index]
-    return (message[0], v["time"], v["text"], v["emotion"], v["char_count"],
-            {"swipes": versions, "swipe": index})
+    extras = {"swipes": versions, "swipe": index}
+    if v.get("reasoning"):
+        extras["reasoning"] = v["reasoning"]
+    return (message[0], v["time"], v["text"], v["emotion"], v["char_count"], extras)
 
 
 def set_text(message, text):
     """Edit the shown text (and the shown swipe, so flipping away and back keeps the edit)."""
-    extras = _extras(message)
+    extras = dict(_extras(message))
     edited = (message[0], message[1], text, message[3], message[4])
     if extras.get("swipes"):
         versions = [dict(v) for v in extras["swipes"]]
         versions[extras.get("swipe", 0)]["text"] = text
-        edited += ({"swipes": versions, "swipe": extras.get("swipe", 0)},)
-    return edited
+        extras["swipes"] = versions
+    return edited + ((extras,) if extras else ())
 
 
 def version_info(messages):
