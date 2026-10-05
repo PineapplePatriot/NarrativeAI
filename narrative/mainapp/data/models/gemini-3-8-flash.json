@@ -95,7 +95,8 @@
   "starters": {
     "back_and_forth": "gemini-back-and-forth",
     "rich_scene": "gemini-rich-scene",
-    "director": "gemini-director"
+    "director": "gemini-director",
+    "full_preset": "gemini-frankenstein"
   },
   "card": {
     "order": 6,

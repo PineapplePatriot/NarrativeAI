@@ -413,7 +413,7 @@ def _macro(body, ctx, collect):
     m = re.match(r"(random|pick)(?=\s*:|\s|$)\s*(.*)$", b, re.I | re.S)
     if m:
         return ctx.rng.choice(_choices(m.group(2)))
-    m = re.match(r"roll\s*:?\s*(.*)$", b, re.I)
+    m = re.match(r"roll\s*(?::{1,2})?\s*(.*)$", b, re.I)  # {{roll 1d20}}, {{roll:1d20}}, {{roll::1d20}}
     if m:
         result = _roll(m.group(1), ctx.rng)
         if result is not None:

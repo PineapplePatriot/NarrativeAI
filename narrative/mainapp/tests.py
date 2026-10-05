@@ -773,6 +773,13 @@ class PresetImportTests(SimpleTestCase):
 
 
 class MacroTests(SimpleTestCase):
+    def test_roll_with_two_colons(self):
+        import random
+        from mainapp.presets import MacroContext, expand
+        ctx = MacroContext({}, random.Random(3))
+        for text in ("{{roll::1d20}}", "{{roll:1d20}}", "{{roll 1d20}}"):
+            self.assertTrue(1 <= int(expand(text, ctx)) <= 20, text)
+
     def run_macros(self, text, values=None):
         import random
         from mainapp.presets import MacroContext, expand
@@ -1515,7 +1522,7 @@ class StarterTests(ChatPromptTests):
     def test_every_starter_is_a_sound_preset_for_its_model(self):
         from mainapp import model_profiles, presets, samplers, starters
         all_s = starters.all_starters()
-        self.assertEqual(len(all_s), 30)  # three experiences for each of the ten models
+        self.assertEqual(len(all_s), 32)  # three experiences for each of the ten models, plus two community presets
         for s in all_s:
             profile = next(p for p in model_profiles.all_profiles() if p["id"] == s["model"])
             self.assertEqual(profile["starters"][s["experience"]], s["id"])
@@ -1531,8 +1538,14 @@ class StarterTests(ChatPromptTests):
                                      {"char": "Rose", "user": "Anya"}, model)
             self.assertFalse([n for n in built["notes"] if "nknown macro" in n], s["id"])
             text = "\n".join(m["content"] for m in built["messages"])
-            self.assertIn("Rose", text)
             self.assertNotIn("{{", text, s["id"])
+            if s["experience"] == "full_preset":
+                # A community preset, whole: its own 18+ toggles start off, its text rules all compile
+                self.assertFalse([b["name"] for b in preset["blocks"] if "🔞" in b["name"] and b["enabled"]], s["id"])
+                from mainapp import regex_rules
+                self.assertFalse([r["name"] for r in preset["regex"] if r["enabled"] and regex_rules.check(r)], s["id"])
+                continue
+            self.assertIn("Rose", text)
             # explicit content is opt-in
             mature = [b for b in preset["blocks"] if b["name"].startswith("Mature")]
             self.assertTrue(mature and not mature[0]["enabled"], s["id"])

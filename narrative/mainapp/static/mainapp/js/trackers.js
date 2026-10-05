@@ -318,9 +318,9 @@
         get enabled() { return enabled.length > 0; },
     };
 
-    // Start open on wide screens unless the user closed it before
+    // Start closed: trackers support the story, they aren't the main view. Opens if the user left it open.
     const saved = storage('trackerPanelOpen');
-    const open = config.layout.panel && enabled.length && (saved === null ? window.innerWidth > 1100 : saved === '1');
+    const open = config.layout.panel && enabled.length && saved === '1';
     if (panel) panel.hidden = !open;
     renderHud();
     if (open) renderPanel();

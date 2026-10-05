@@ -109,7 +109,8 @@
   "starters": {
     "back_and_forth": "mimo-back-and-forth",
     "rich_scene": "mimo-rich-scene",
-    "director": "mimo-director"
+    "director": "mimo-director",
+    "full_preset": "mimo-frankenstein"
   },
   "openrouter_id_verified": true,
   "card": {

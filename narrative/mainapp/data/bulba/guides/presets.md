@@ -19,6 +19,13 @@ this** in their taste section; repeating instructions makes models overdo them.
 - **Director seat**: they want to steer several characters or the plot itself, and read fuller scenes.
 Pick by how they want to *play*, not by genre. Any starter works for any genre.
 
+Some models also have a **community preset** (MiMo and Gemini: Realistic Frankenstein). It's a big,
+popular preset that holds chaotic models to strict realism, with lots of panels (NPC agendas,
+relationships, a GM notebook). Offer it only to people who want that much machinery or ask for it by
+name, and say plainly that it makes every reply cost more (it sends about 33,000 tokens of rules). Its
+sections aren't the starters' Roleplay and Style, so don't use `rewrite` with it; put their taste in
+`taste` as usual.
+
 ## The "your taste" section
 
 This is where their preferences go (propose_preset's `taste`). Rules:

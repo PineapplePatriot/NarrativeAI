@@ -18,6 +18,7 @@ EXPERIENCES = {
     "back_and_forth": {"label": "Back-and-forth", "order": 0},
     "rich_scene": {"label": "Rich scene", "order": 1},
     "director": {"label": "Director seat", "order": 2},
+    "full_preset": {"label": "Community preset", "order": 3},  # a well-known preset, whole (e.g. Realistic Frankenstein)
 }
 
 
