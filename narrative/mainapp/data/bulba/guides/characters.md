@@ -68,7 +68,7 @@ cards better). Drop headings that don't apply. Usually 250 to 600 words.
 
 ```text
 Identity:
-{{char}} is [name, age if relevant, role, setting/version].
+{{char}} is [age if relevant, role, setting/version].
 
 Appearance:
 [Two or three distinctive details that matter in scenes.]
@@ -96,7 +96,8 @@ Knowledge and abilities:
 [Relevant skills, limits, secrets, and who knows what.]
 ```
 
-Write `{{user}}` for the user's character and `{{char}}` (or the name) for the character. Don't decide
+Write `{{user}}` for the user's character and `{{char}}` (or the name) for the character. `{{char}}`
+already is their name, so write "{{char}} is a retired court mage", never "{{char}} is Corvin". Don't decide
 the user's feelings, history or role unless they told you. Mature details (sexuality, violence) only
 when the user brought them up or the canon character clearly needs them; plainly, without moralising.
 

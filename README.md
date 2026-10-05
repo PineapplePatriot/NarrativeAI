@@ -131,6 +131,14 @@ python manage.py test
 
 The tests use a fake AI, so they need no API key and cost nothing.
 
+### Trying the whole app without OpenRouter
+
+Two settings, only for testing, let the app talk to a stand-in server that pretends to be OpenRouter
+(for example one that answers by hand or with canned replies). Leave both unset normally.
+
+- `NARRATIVE_OPENROUTER_URL`: where "OpenRouter" requests go instead, e.g. `http://127.0.0.1:8899/api/v1`.
+- `NARRATIVE_AI_TIMEOUT`: how many seconds to wait for every AI answer (useful when someone answers by hand).
+
 ## Project layout
 
 ```

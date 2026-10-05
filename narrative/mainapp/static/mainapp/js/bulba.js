@@ -32,7 +32,7 @@ function proposalCard(ev) {
     const p = state.proposals.find(x => x.id === ev.id);
     if (!p) return '';
     const status = { pending: '', applied: '<span class="status ok">Applied</span>', dismissed: '<span class="status">Dismissed</span>',
-                     undone: '<span class="status">Undone</span>' }[p.status] || '';
+                     undone: '<span class="status">Undone</span>', replaced: '<span class="status">Replaced by a newer one</span>' }[p.status] || '';
     const actions = p.status === 'pending'
         ? `<button type="button" data-act="apply" data-id="${p.id}">Apply</button>
            <button type="button" class="ghost" data-act="dismiss" data-id="${p.id}">Not this</button>`
@@ -41,7 +41,8 @@ function proposalCard(ev) {
         ? `<a class="btn" href="/main/chat/${encodeURIComponent(p.result.slug)}">Chat now →</a>` : '';
     return `<div class="proposal ${p.status}">
         <div class="proposal-head"><b>${esc(p.title)}</b> ${status}</div>
-        <div class="proposal-body">${(p.summary || []).map(l => `<div>${esc(l)}</div>`).join('')}</div>
+        <div class="proposal-body">${(p.summary || []).map(l => /^[^\s].{0,40}:$/.test(l)
+            ? `<div class="proposal-label">${esc(l.slice(0, -1))}</div>` : `<div>${esc(l)}</div>`).join('')}</div>
         <div class="proposal-actions">${actions}${chatLink}</div>
       </div>`;
 }

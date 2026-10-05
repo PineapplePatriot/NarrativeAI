@@ -143,6 +143,13 @@ that didn't transfer. Never any keys.
   Fixed: creator's notes are no longer sent to the model as the personality; personality and example
   dialogue are sent; a card's own system prompt / post-history instructions replace the preset's
   Main / Post-History blocks as in SillyTavern.
+- **First full onboarding run (5 October 2026)**: a new account went from sign-up to chatting with a
+  Bulba-made character, with a stand-in answering as the models (OpenRouter isn't reachable from the
+  build machine). Fixed from it: sign-up now lands on the welcome page; an extras guide; Bulba's turn
+  ends after buttons, samples or a proposal (one paid call per question instead of two); notes and
+  proposals carry ids so guesses can be confirmed; a newer proposal retires the older pending one; the
+  user's reply length replaces the starter's length rule instead of adding a second one; names filled
+  in on the cards the user reads; "Identity:" no longer shows as a character's tagline.
 - **Character guide v0.2**: Anya's card-writing guide (`research/06-character-card-guide.md`),
   adapted for Bulba in `narrative/mainapp/data/bulba/guides/characters.md`.
 

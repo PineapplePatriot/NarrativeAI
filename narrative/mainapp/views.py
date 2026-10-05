@@ -1358,8 +1358,16 @@ def _bulba_state(session):
         "spent": round(session.spent, 4), "budget": session.budget,
         "model": profile["name"] if profile else session.target_model,
         "preferences": [p for p in session.preferences if p.get("status") not in ("rejected", "superseded")],
-        "proposals": [{k: p.get(k) for k in ("id", "kind", "title", "summary", "status", "result")} for p in session.proposals],
+        "proposals": [{**{k: p.get(k) for k in ("id", "kind", "title", "status", "result")},
+                       "summary": _shown_summary(session, p)} for p in session.proposals],
     }
+
+
+def _shown_summary(session, proposal):
+    """Proposal text as the user reads it: {{user}} is their name, {{char}} the character's (or "the character")."""
+    char = (proposal.get("payload") or {}).get("name") if proposal["kind"] == "character" else "the character"
+    user = cards.user_name(session.user)
+    return [cards.fill_names(line, char or "the character", user) for line in proposal.get("summary") or []]
 
 
 def _bulba_session(user, restart=False):

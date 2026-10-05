@@ -85,3 +85,16 @@ button.link { background: none; padding: 0; color: var(--accent-soft); text-deco
 }
 .ghost-link { display: inline-block; color: var(--accent-soft); font-size: .9rem; }
 #restartBtn { margin-top: 12px; }
+
+.proposal-body .proposal-label {
+    margin-top: 10px;
+    font-weight: 700;
+    font-size: 0.8rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0.75;
+}
+
+.proposal.replaced {
+    opacity: 0.55;
+}

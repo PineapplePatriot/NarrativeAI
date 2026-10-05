@@ -38,11 +38,14 @@ class RegisterUser(CreateView):
     form_class = RegisterUserForm
     template_name = 'users/register.html'
     extra_context = {"title": "Create an account"}
-    success_url = reverse_lazy('users:api_config')  # після успішної реєстрації
+    success_url = reverse_lazy('users:welcome')  # після успішної реєстрації
 
     def form_valid(self, form):
-        user = form.save()
-        return super().form_valid(form)
+        # Signed in straight away, then the welcome page (key + model), no second password prompt
+        from django.contrib.auth import login
+        response = super().form_valid(form)
+        login(self.request, self.object, backend="django.contrib.auth.backends.ModelBackend")
+        return response
 
 
 class ProfileUser(LoginRequiredMixin, UpdateView):

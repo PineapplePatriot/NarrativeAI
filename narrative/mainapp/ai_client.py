@@ -5,9 +5,14 @@ Every feature calls `complete(user, task, messages, ...)` with a task name from
 TASKS. Which connection profile and model a task uses is set per user on the
 Connections page; tasks without their own setting use the main chat connection.
 """
+import os
+
 import requests
 
 from users.models import ConnectionProfile, TaskSetting
+
+# Local testing only: a longer wait for every AI call (seconds), e.g. for a hand-driven stand-in model
+TEST_TIMEOUT = int(os.environ.get("NARRATIVE_AI_TIMEOUT") or 0)
 
 # Ordered: this is also the order on the Connections page
 TASKS = {
@@ -147,7 +152,7 @@ def _request(user, task, messages, timeout=None, **params):
     profile, model = resolve(user, task)
     payload = {"model": model, "messages": messages}
     payload.update({k: v for k, v in params.items() if v is not None})
-    timeout = timeout or TASKS.get(task, {}).get("timeout", 60)
+    timeout = TEST_TIMEOUT or timeout or TASKS.get(task, {}).get("timeout", 60)
     label = TASKS.get(task, {}).get("label", task)
 
     try:
@@ -243,7 +248,7 @@ def stream(user, task, messages, timeout=None, **params):
     profile, model = resolve(user, task)
     payload = {"model": model, "messages": messages, "stream": True}
     payload.update({k: v for k, v in params.items() if v is not None})
-    read_timeout = timeout or TASKS.get(task, {}).get("timeout", 60)  # max wait between two pieces
+    read_timeout = TEST_TIMEOUT or timeout or TASKS.get(task, {}).get("timeout", 60)  # max wait between two pieces
     label = TASKS.get(task, {}).get("label", task)
 
     try:

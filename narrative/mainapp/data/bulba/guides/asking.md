@@ -78,8 +78,8 @@ Use record_preference whenever an answer would change the preset:
   Don't turn a remark about one character into a rule for all of them. If unsure, ask: "for him, or
   for everyone?"
 - `strength`: firm (they insisted) or flexible.
-- `status`: tentative until they confirm it or it shows up twice; then confirmed. If they correct
-  you, record the new one with `replaces`.
+- `status`: tentative until they confirm it or it shows up twice; then confirmed. To confirm or
+  correct one, record it again with `replaces` set to its id (the ids are in "Preferences so far").
 
 They can see and delete what you noted. Keep interpretations short and honest; no flattery.
 

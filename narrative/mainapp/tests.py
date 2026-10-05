@@ -1746,10 +1746,14 @@ class BulbaTests(TestCase):
             self.assertIn("under 250 words", system)
             self.assertIn("Mara Voss", system)  # the neutral test character
         self.assertTrue(all(c["messages"][-1]["content"].startswith("Can you fix it?") for c in self.sample_calls))
-        # Bulba is told which letter was which variant; the page only shows letters
-        tool_result = json.loads(self.bulba_calls[1]["messages"][-1]["content"])
+        # The turn ends with the samples (the user picks next); Bulba sees which letter was which
+        # variant in its history, while the page only shows letters
+        self.assertEqual(len(self.bulba_calls), 1)
+        from mainapp.models import BulbaSession
+        history = BulbaSession.objects.get(user=self.user, active=True).messages
+        tool_result = json.loads(history[-1]["content"])
         self.assertEqual({v["variant"] for v in tool_result["shown_to_user_as"].values()}, {"terse", "lush"})
-        self.assertAlmostEqual(data["state"]["spent"], 0.04)
+        self.assertAlmostEqual(data["state"]["spent"], 0.03)
 
     def test_preset_proposal_apply_and_undo(self):
         from mainapp import presets as presets_mod
@@ -1771,7 +1775,11 @@ class BulbaTests(TestCase):
         self.assertEqual(active.name, "Banter setup")
         taste = next(b for b in active.data["blocks"] if b["name"] == "Your taste")
         self.assertIn("Keep the teasing light.", taste["content"])
-        self.assertIn("one to three paragraphs", taste["content"])
+        # Their length replaces the starter's own length rule: one rule, not two
+        style = next(b for b in active.data["blocks"] if b["name"] == "Style")["content"]
+        self.assertIn("Keep replies short: one to three paragraphs.", style)
+        self.assertNotIn("Usually one to three short paragraphs", style)
+        self.assertNotIn("paragraphs", taste["content"])
 
         self.script = [("Undone.", [])]
         self.api(action="undo", id=proposal["id"])
@@ -2080,3 +2088,96 @@ class CardImportTests(ChatPromptTests):
         page = self.client.get(reverse("character", args=[self.character.slug]))
         self.assertContains(page, "Card details")
         self.assertContains(page, "download as .png card")
+
+
+class SignUpFlowTests(TestCase):
+    def test_sign_up_logs_in_and_goes_to_welcome(self):
+        response = self.client.post(reverse("users:register"), {
+            "username": "wren", "email": "wren@example.com",
+            "password1": "Lantern-Quay-81", "password2": "Lantern-Quay-81"})
+        self.assertRedirects(response, reverse("users:welcome"))
+        self.assertEqual(self.client.get(reverse("users:welcome")).status_code, 200)  # signed in already
+
+
+class BulbaOnboardingRunTests(BulbaTests):
+    """Fixes from the first full onboarding run (5 October 2026)."""
+
+    def session(self):
+        from mainapp.models import BulbaSession
+        return BulbaSession.objects.get(user=self.user, active=True)
+
+    def test_choices_end_the_turn_without_another_call(self):
+        self.script = [("Summaries: automatic, or only when you ask?",
+                        [self.call("offer_choices", choices=[{"label": "Automatically"}, {"label": "When I ask"}])])]
+        data = self.api(action="say", text="no voices").json()
+        self.assertEqual(len(self.bulba_calls), 1)
+        bubble = next(e for e in data["events"] if e["type"] == "bulba")
+        self.assertEqual([c["label"] for c in bubble["choices"]], ["Automatically", "When I ask"])
+
+    def test_extras_guide_in_the_extras_stage(self):
+        self.script = [("Okay.", [])]
+        self.api(action="say", text="no voices")
+        self.assertIn("Guide: the extras", self.bulba_calls[0]["messages"][0]["content"])
+
+    def test_empty_reply_is_not_stored(self):
+        self.script = [("", [])]
+        self.api(action="say", text="hello")
+        self.assertFalse(any(m["role"] == "assistant" and not m.get("content") and not m.get("tool_calls")
+                             for m in self.session().messages))
+
+    def test_newer_proposal_replaces_the_pending_one(self):
+        from mainapp.bulba import actions
+        self.script = [("v1", [self.call("propose_persona", name="Wren", description="A farm kid.")])]
+        self.api(action="say", text="call me Wren")
+        self.script = [("v2", [self.call("propose_persona", name="Wren", description="A farm kid. She/her.")])]
+        data = self.api(action="say", text="she/her").json()
+        self.assertEqual([p["status"] for p in data["state"]["proposals"]], ["replaced", "pending"])
+        old = data["state"]["proposals"][0]["id"]
+        self.assertEqual(self.api(action="apply", id=old).status_code, 400)
+        with self.assertRaises(actions.ProposalError):
+            actions.apply(self.session(), old)
+
+    def test_ids_let_bulba_confirm_a_guess(self):
+        self.script = [("Noted.", [self.call("record_preference", wording="too nice", interpretation="Wants friction.",
+                                             scope="general", status="tentative")])]
+        self.api(action="say", text="everyone was too nice")
+        first = self.session().preferences[0]["id"]
+        self.script = [("Settled.", [self.call("record_preference", wording="B", interpretation="Wants friction.",
+                                               scope="general", status="confirmed", replaces=first)])]
+        data = self.api(action="say", text="B, he argues back").json()
+        system = self.bulba_calls[-2]["messages"][0]["content"]
+        self.assertIn(f"- {first} [tentative, general] Wants friction.", system)
+        self.assertEqual([(p["status"]) for p in data["state"]["preferences"]], ["confirmed"])
+
+    def test_length_rule_keeps_the_starters_ending(self):
+        from mainapp.bulba.agent import build_preset
+        preset = build_preset({"starter": "opus-rich-scene", "taste": "Push back.", "reply_length": "medium"})
+        style = next(b for b in preset["blocks"] if b["name"] == "Style")["content"]
+        self.assertIn("- Keep replies to about three to five paragraphs. End where {{user}} has something to answer.", style)
+        self.assertNotIn("three to six", style)
+        # A starter without a length line gets it in the taste section instead
+        preset = build_preset({"starter": "mimo-rich-scene", "taste": "Push back.", "reply_length": "short"})
+        taste = next(b for b in preset["blocks"] if b["name"] == "Your taste")["content"]
+        self.assertIn("one to three paragraphs", taste)
+
+    def test_names_filled_on_cards_the_user_reads(self):
+        self.script = [("Look.", [self.call(
+            "write_samples", starter="opus-rich-scene", scenario="{{user}}'s spell fizzles.", user_turn="Hm.",
+            character={"name": "Corvin", "description": "A wizard."},
+            variants=[{"label": "a", "instructions": ""}])])]
+        data = self.api(action="say", text="show me").json()
+        samples = next(e for e in data["events"] if e["type"] == "samples")
+        self.assertEqual(samples["scenario"], "potato's spell fizzles.")
+        self.script = [("Here.", [self.call("propose_character", name="Corvin", description="{{char}} teaches {{user}}.",
+                                            greeting="Hi.")])]
+        data = self.api(action="say", text="make him").json()
+        self.assertIn("Corvin teaches potato.", data["state"]["proposals"][-1]["summary"])
+        self.assertEqual(self.session().proposals[-1]["payload"]["description"], "{{char}} teaches {{user}}.")
+
+
+class TaglineFilterTests(SimpleTestCase):
+    def test_labels_are_dropped(self):
+        from mainapp.templatetags.custom_filters import tagline
+        self.assertEqual(tagline("Identity:\nCorvin is a wizard.\n\nAppearance:\nTall."), "Corvin is a wizard. Tall.")
+        self.assertEqual(tagline("Identity: A wizard."), "A wizard.")
+        self.assertEqual(tagline("Plain text: with a colon inside."), "Plain text: with a colon inside.")

@@ -1,15 +1,16 @@
 """Bulba's conversation loop and tools. See mainapp/data/bulba/instructions.md for its instructions."""
 import json
 import random
+import re
 import uuid
 from pathlib import Path
 
-from mainapp import ai_client, model_profiles, presets, starters
+from mainapp import ai_client, cards, model_profiles, presets, starters
 
 INSTRUCTIONS = Path(__file__).resolve().parent.parent / "data" / "bulba" / "instructions.md"
 GUIDES_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba" / "guides"
 # Which guides Bulba reads at each stage (keeps the prompt, and the bill, small)
-STAGE_GUIDES = {"extras": [], "taste": ["asking", "presets"], "preset": ["presets"],
+STAGE_GUIDES = {"extras": ["extras"], "taste": ["asking", "presets"], "preset": ["presets"],
                 "persona": ["characters"], "character": ["characters"], "done": []}
 REWRITABLE = ("Roleplay", "Style")
 TEST_CHARACTER = Path(__file__).resolve().parent.parent / "data" / "bulba" / "test-character.json"
@@ -67,9 +68,9 @@ def system_prompt(session):
     profile = target_profile(session)
     text = INSTRUCTIONS.read_text(encoding="utf-8").replace("{target_model}", profile["name"] if profile else "?")
     progress = f"Current stage: {session.stage}. Budget: ${session.spent:.2f} of ${session.budget:.2f} spent."
-    prefs = [f"- [{p['status']}, {p['scope']}] {p['interpretation']} (they said: \"{p['wording']}\")"
-             for p in session.preferences if p.get("status") != "rejected"]
-    pending = [f"- {p['kind']}: {p['title']} ({p['status']})" for p in session.proposals]
+    prefs = [f"- {p['id']} [{p['status']}, {p['scope']}] {p['interpretation']} (they said: \"{p['wording']}\")"
+             for p in session.preferences if p.get("status") not in ("rejected", "superseded")]
+    pending = [f"- {p['id']} {p['kind']}: {p['title']} ({p['status']})" for p in session.proposals]
     guides = [(GUIDES_DIR / f"{g}.md").read_text(encoding="utf-8") for g in STAGE_GUIDES.get(session.stage, [])
               if (GUIDES_DIR / f"{g}.md").exists()]
     return "\n\n".join(filter(None, [
@@ -146,6 +147,9 @@ TOOLS = [
 
 
 def _proposal(session, kind, title, summary, payload):
+    for older in session.proposals:
+        if older["kind"] == kind and older["status"] == "pending":
+            older["status"] = "replaced"
     p = {"id": uuid.uuid4().hex[:12], "kind": kind, "title": title, "summary": summary,
          "payload": payload, "status": "pending"}
     session.proposals.append(p)
@@ -216,9 +220,28 @@ def build_preset(payload):
     for block in preset["blocks"]:
         if block["kind"] == "prompt" and block["name"] in (payload.get("rewrite") or {}):
             block["content"] = payload["rewrite"][block["name"]]
+    length = LENGTHS.get(payload.get("reply_length"))
+    if length and not _replace_length_line(preset, length):
+        payload = {**payload, "taste": (payload.get("taste", "") + "\n" + length).strip()}
     if payload.get("taste"):
         _add_block(preset, "Your taste", payload["taste"])
     return preset
+
+
+LENGTH_LINE = re.compile(r"^- (?:Usually|Length:|Short replies:)[^\n]*?(?:paragraph|words)[^\n]*$", re.M | re.I)
+
+
+def _replace_length_line(preset, length):
+    """Swap the starter's own length rule for theirs, so the model never gets two. False if none found."""
+    for block in preset["blocks"]:
+        if block["kind"] == "prompt" and block["name"] == "Style":
+            m = LENGTH_LINE.search(block["content"])
+            if m:
+                tail = re.search(r"\. (End where .*)$", m.group(0))  # keep "End where {{user}} ..." clauses
+                line = "- " + length + (" " + tail.group(1) if tail else "")
+                block["content"] = block["content"][:m.start()] + line + block["content"][m.end():]
+                return True
+    return False
 
 
 def generate_sample(session, preset, scenario, user_turn, character, instructions):
@@ -231,7 +254,7 @@ def generate_sample(session, preset, scenario, user_turn, character, instruction
     _, chat_model = ai_client.resolve(user, "chat")
     slots = {"char_description": character["description"], "scenario": scenario,
              "persona": getattr(user, "persona_description", "") or ""}
-    names = {"char": character["name"], "user": getattr(user, "persona_name", "") or user.username}
+    names = {"char": character["name"], "user": cards.user_name(user)}
     built = presets.assemble(preset, slots, [{"role": "user", "content": user_turn}], names, chat_model)
     message, cost = ai_client.complete_message(user, "chat", built["messages"], **built["params"])
     return (message.get("content") or "").strip(), cost
@@ -272,9 +295,11 @@ def tool_write_samples(session, args):
         samples.append({"label": letter, "text": text})
         private[letter] = {"variant": v.get("label"), "text": text}
     profile = target_profile(session) or {}
+    shown = lambda text: cards.fill_names(str(text or ""), character["name"], cards.user_name(session.user))
     return ({"shown_to_user_as": private, "note": "They see only the letters, not your variant names."},
             [{"type": "samples", "model": profile.get("name", ""), "character": character["name"],
-              "scenario": args.get("scenario", ""), "user_turn": args.get("user_turn", ""), "samples": samples}])
+              "scenario": shown(args.get("scenario")), "user_turn": shown(args.get("user_turn")),
+              "samples": samples}])
 
 
 def tool_record_preference(session, args):
@@ -303,7 +328,7 @@ def tool_propose_extras(session, args):
         summary.append(f"Story trackers: {'every ' + str(every) + ' messages' if args['trackers'] == 'auto' else 'only when you ask'}")
     if isinstance(args.get("sprites"), bool):
         payload["sprites"] = args["sprites"]
-        summary.append("Sprites matched to each reply: " + ("on" if args["sprites"] else "off"))
+        summary.append("Character pictures that match the mood: " + ("on" if args["sprites"] else "off"))
     bg = args.get("background")
     cheap = {m["id"]: m["name"] for m in _cheap_models()}
     if bg == "chat" or bg in cheap:
@@ -325,8 +350,7 @@ def tool_propose_preset(session, args):
     if starter is None:
         return {"error": "No starter for this model."}, []
     taste = str(args.get("taste", "")).strip()
-    if args.get("reply_length") in LENGTHS:
-        taste = (taste + "\n" + LENGTHS[args["reply_length"]]).strip()
+    reply_length = args.get("reply_length") if args.get("reply_length") in LENGTHS else ""
     rewrite = {}
     originals = {b["name"]: b["content"] for b in starter["preset"]["blocks"] if b.get("kind") == "prompt"}
     for section, text in (args.get("rewrite") or {}).items():
@@ -344,8 +368,11 @@ def tool_propose_preset(session, args):
     if rewrite:
         summary.append("Adjusted from the starter: " + " and ".join(rewrite) + " section")
     summary += ["Your taste:", *[f"  {line}" for line in taste.splitlines() if line.strip()]]
+    if reply_length:
+        summary += ["Reply length:", f"  {LENGTHS[reply_length]}"]
     p = _proposal(session, "preset", f"Preset: {name}", summary,
-                  {"starter": starter["id"], "name": name, "taste": taste, "rewrite": rewrite})
+                  {"starter": starter["id"], "name": name, "taste": taste, "rewrite": rewrite,
+                   "reply_length": reply_length})
     return {"proposal": p["id"], "status": "waiting for Apply"}, [{"type": "proposal", "id": p["id"]}]
 
 
@@ -365,7 +392,7 @@ def tool_propose_character(session, args):
     payload = {k: str(args.get(k, "")).strip()[:6000]
                for k in ("description", "scenario", "greeting", "personality", "example_dialogue")}
     payload["name"] = name
-    summary = [payload["description"]]
+    summary = ["Description:", payload["description"]]
     if payload["personality"]:
         summary += ["In short:", payload["personality"]]
     if payload["scenario"]:
@@ -416,6 +443,10 @@ def opening(session):
     session.events = [{"type": "bulba", "text": text, "choices": choices}]
 
 
+# Tools after which Bulba waits for the user (see instructions.md, "Tools, briefly")
+TURN_ENDING = {"offer_choices", "write_samples", "propose_extras", "propose_preset", "propose_persona", "propose_character"}
+
+
 def run_turn(session, user_text, action_note=None):
     """
     Adds the user's message (or a note about something they did, like pressing Apply), lets Bulba
@@ -440,6 +471,8 @@ def run_turn(session, user_text, action_note=None):
             session.spent += cost or 0
             calls = message.get("tool_calls") or []
             content = (message.get("content") or "").strip()
+            if not content and not calls:
+                break  # nothing more to say; an empty assistant turn would only confuse some providers
             entry = {"role": "assistant", "content": content}
             if calls:
                 entry["tool_calls"] = calls
@@ -448,6 +481,7 @@ def run_turn(session, user_text, action_note=None):
                 new_events.append({"type": "bulba", "text": content})
             if not calls:
                 break
+            waiting_for_user = False
             for call in calls:
                 fn = (call.get("function") or {})
                 name = fn.get("name")
@@ -471,6 +505,12 @@ def run_turn(session, user_text, action_note=None):
                         new_events.append(ev)
                 session.messages.append({"role": "tool", "tool_call_id": call.get("id", ""),
                                          "content": json.dumps(result, ensure_ascii=False)})
+                if name in TURN_ENDING and "error" not in result:
+                    waiting_for_user = True
+            # Buttons, samples or a proposal mean "your move": no extra (paid) round just to hear nothing
+            # new. A tool that failed doesn't count, so Bulba still sees the error and can fix it.
+            if waiting_for_user:
+                break
     except BudgetReached as e:
         new_events.append({"type": "error", "text": f"{e} Raise it in the panel if you want to continue."})
     except ai_client.AIError as e:

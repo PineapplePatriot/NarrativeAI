@@ -1,3 +1,4 @@
+import os
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
@@ -39,7 +40,8 @@ class ConnectionProfile(models.Model):
         (PROVIDER_OPENROUTER, "OpenRouter"),
         (PROVIDER_CUSTOM, "OpenAI-compatible (custom URL)"),
     ]
-    OPENROUTER_URL = "https://openrouter.ai/api/v1"
+    # NARRATIVE_OPENROUTER_URL points the app at a stand-in server for local testing; leave it unset normally
+    OPENROUTER_URL = os.environ.get("NARRATIVE_OPENROUTER_URL") or "https://openrouter.ai/api/v1"
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="connection_profiles")
     name = models.CharField(max_length=100)
