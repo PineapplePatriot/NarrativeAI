@@ -17,6 +17,8 @@ NarrativeAI is a web app for creative writing and roleplay with AI characters, s
 - **Worldbooks (lorebooks)**: SillyTavern-style entries that are added to the prompt when their keywords come up. Entries can have secondary keywords, always-on entries and priorities, and there's a "test a message" panel that shows what fires and why. You can import and export SillyTavern lorebooks and lorebooks embedded in character cards.
 - **Connections**: several AI connections (keys and models). Each feature can use its own connection or model, for example an expensive model for the story and a cheap one for summaries and trackers.
 - **Presets**: the recipe for every request, built from prompt blocks you can switch on and off, edit, reorder and group. Blocks can sit at a fixed spot or inside the chat at a chosen depth. Macros like `{{char}}`, `{{random}}` and `{{setvar}}`/`{{getvar}}` are supported. SillyTavern presets import and export as they are, and a preview shows exactly what will be sent. One preset is active for all chats.
+- **Text rules (regex scripts)**: find-and-replace rules that come with SillyTavern presets and cards. They can change only what you see (turning tracker blocks into panels), only what's sent back to the AI (dropping old blocks or leaked thinking), or the saved message. Manage them in the preset's **Text rules** tab.
+- **Character cards**: import SillyTavern cards (.png or .json), with their lore, alternate greetings and picture, and export your characters the same way.
 - **Samplers** (part of the active preset): response length, context size, temperature, top-p/k, min-p, penalties, reasoning effort and more. Each one can be switched on or off. The app skips the ones a model would reject.
 
 ## Running it on your computer

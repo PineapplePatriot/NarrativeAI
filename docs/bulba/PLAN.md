@@ -150,6 +150,8 @@ that didn't transfer. Never any keys.
   proposals carry ids so guesses can be confirmed; a newer proposal retires the older pending one; the
   user's reply length replaces the starter's length rule instead of adding a second one; names filled
   in on the cards the user reads; "Identity:" no longer shows as a character's tagline.
+- **Text rules (regex scripts)** and **Realistic Frankenstein** starters for MiMo and Gemini (5 October
+  2026). What's still open across the project is in `docs/ROADMAP.md`.
 - **Character guide v0.2**: Anya's card-writing guide (`research/06-character-card-guide.md`),
   adapted for Bulba in `narrative/mainapp/data/bulba/guides/characters.md`.
 
