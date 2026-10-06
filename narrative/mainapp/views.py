@@ -1812,9 +1812,16 @@ def bulba_page(request):
     if not ai_client.has_connection(request.user):
         return redirect("users:welcome")
     session = _bulba_session(request.user)
+    from .models import BulbaSession
+    # Bulba's conversations inside chats live on those chats' pages; list them so they're easy to find
+    in_chats = [{"title": f"{b.chat.character.name} · {b.chat.title}", "events": len(b.events),
+                 "url": reverse("chat", kwargs={"slug": b.chat.character.slug}) + f"?chat={b.chat.id}&bulba=1"}
+                for b in BulbaSession.objects.filter(user=request.user, active=True, mode="chat")
+                .select_related("chat__character").order_by("-time_update")[:8] if b.chat_id and len(b.events) > 1]
     return render(request, "mainapp/bulba.html", {
         "bulba_data": {"state": _bulba_state(session), "events": session.events} if session else None,
         "known_models": model_profiles.known_names(),
+        "in_chats": in_chats,
     })
 
 

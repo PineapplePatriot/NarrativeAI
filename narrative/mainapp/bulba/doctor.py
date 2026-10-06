@@ -15,7 +15,7 @@ from mainapp import ai_client, chats, extras, game, presets, thinking
 from mainapp.bulba import control, library, lore
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba"
-CARD_FIELDS = ("description", "personality", "scenario", "example_dialogue")
+CARD_FIELDS = ("description", "personality", "scenario", "example_dialogue", "initial_message")
 RECENT = 6           # messages of the chat Bulba sees
 MESSAGE_CHARS = 1500
 THOUGHTS_CHARS = 2500
@@ -271,13 +271,15 @@ def _fn(name, description, properties, required=()):
 
 
 CARD_EDIT_TOOL = _fn("propose_card_edit", "Propose changes to this character's card (only the fields you change).",
-            {"description": STR, "personality": STR, "scenario": STR, "example_dialogue": STR, "why": STR}, ["why"])
+            {"description": STR, "personality": STR, "scenario": STR, "example_dialogue": STR,
+             "initial_message": {"type": "string", "description": "The first message (only new chats start with it)"},
+             "why": STR}, ["why"])
 
 
 def tools():
     from mainapp.bulba import agent
     keep = {"offer_choices", "record_preference", "get_starter", "find_practice", "read_practice", "look_up",
-            "propose_lorebook", "propose_extras"}
+            "propose_lorebook", "propose_extras", "read_lorebook", "propose_lore_edit"}
     base = [t for t in agent.TOOLS if t["function"]["name"] in keep]
     return base + [
         _fn("read_block", "The full text of one block of the active preset (names are in the outline).",

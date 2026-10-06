@@ -1308,6 +1308,13 @@ branchModal.addEventListener('click', (e) => { if (e.target === branchModal) clo
         btn.classList.toggle('active', open);
     };
     btn.onclick = () => toggle(drawer.hidden);
+    // On a chat page the top bar's Bulba means "Bulba about this chat", not the setup conversation
+    document.querySelector('.na-links a[href$="/bulba/"]')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        toggle(true);
+    });
+    // Coming back from the setup page's list (?bulba=1): open the panel straight away
+    if (new URLSearchParams(window.location.search).get('bulba') === '1') toggle(true);
     // Open Bulba with something already typed for it (it isn't sent until they press Send)
     window.askBulba = (draft) => {
         if (!frame.src) {

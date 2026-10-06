@@ -75,6 +75,8 @@ question, or a line about the proposal) in the same reply as the call, not after
 - propose_extras / propose_preset / propose_persona / propose_character.
 - offer_card_upload / propose_card_edit / propose_lorebook: their own card, fixes to it, and lore (lore
   guide).
+- work_on_character / read_lorebook / propose_lore_edit: changing a character or lorebook that already
+  exists, any time, also after setup is done (lore guide, "Changing a card or lorebook").
 
 ## Money
 

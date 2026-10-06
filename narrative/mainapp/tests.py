@@ -3421,3 +3421,55 @@ class DemoPackAndThemeTests(ChatPromptTests):
         self.post({"action": "save_theme", "type": "music", "url": "/static/defaults/music/b.mp3", "name": "B"})
         self.character.refresh_from_db()
         self.assertEqual(self.character.theme["music"]["name"], "B")
+
+
+class BulbaEditingTests(BulbaCardAndLoreTests):
+    def test_work_on_existing_character_and_edit_its_lore(self):
+        from mainapp import lorebook
+        from mainapp.models import Character
+        self.upload(V2_CARD)  # Viktor, with a one-entry lorebook
+        self.api(action="restart")
+        self.script = [("", [self.call("work_on_character", name="nobody")]),
+                       ("", [self.call("work_on_character", name="viktor")]),
+                       ("", [self.call("read_lorebook")]),
+                       ("Fixing it.", [self.call("propose_lore_edit", why="canon", edits=[
+                           {"entry": 0, "action": "replace", "content": "Platform 9 reopened in spring.",
+                            "keys": ["platform", "platform 9"]}])])]
+        data = self.api(action="say", text="Viktor's lore is outdated").json()
+        results = [json.loads(m["content"]) for m in self.bulba_calls[-1]["messages"] if m["role"] == "tool"]
+        self.assertIn("Viktor", results[0]["characters"])
+        self.assertIn("Station lore", results[1]["card"])
+        self.assertEqual(results[2]["entries"][0]["content"], "Platform 9 is closed.")
+        pid = data["state"]["proposals"][-1]["id"]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=pid)
+        viktor = Character.objects.get(name="Viktor")
+        entry = lorebook.load_worldbook(viktor.worldbook)["entries"][0]
+        self.assertEqual((entry["content"], entry["keys"]), ("Platform 9 reopened in spring.", ["platform", "platform 9"]))
+        self.script = [("Undone.", [])]
+        self.api(action="undo", id=pid)
+        self.assertEqual(lorebook.load_worldbook(viktor.worldbook)["entries"][0]["content"], "Platform 9 is closed.")
+        # A card edit now reaches the first message too
+        self.script = [("", [self.call("propose_card_edit", initial_message="Back so soon?", why="tone")])]
+        pid = self.api(action="say", text="change his greeting").json()["state"]["proposals"][-1]["id"]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=pid)
+        viktor.refresh_from_db()
+        self.assertEqual(viktor.initial_message, "Back so soon?")
+
+    def test_bad_lore_edits_are_refused(self):
+        from mainapp.bulba import lore
+        book = {"entries": [{"uid": 0, "comment": "", "keys": ["a"], "content": "x", "constant": False, "enabled": True}]}
+        with self.assertRaises(ValueError):
+            lore.edit_book(book, [{"entry": 5, "action": "delete"}])
+        with self.assertRaises(ValueError):
+            lore.edit_book(book, [{"entry": 0, "action": "replace", "keys": []}])
+
+
+class BulbaPageListTests(BulbaInChatTests):
+    def test_setup_page_lists_in_chat_conversations(self):
+        self.make_chat()
+        self.script = [("Let me look.", [])]
+        self.api(action="say", text="too long")
+        page = self.client.get(reverse("bulba"))
+        self.assertTrue(any("bulba=1" in c["url"] for c in page.context["in_chats"]))

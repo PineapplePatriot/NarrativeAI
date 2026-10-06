@@ -52,6 +52,15 @@
             <h3>What Bulba noted</h3>
             <ul class="prefs" id="prefs"></ul>
         </section>
+        {% if in_chats %}
+        <section>
+            <h3>Bulba in your chats</h3>
+            <ul class="in-chats">
+                {% for c in in_chats %}<li><a href="{{ c.url }}">{{ c.title }} →</a></li>{% endfor %}
+            </ul>
+            <p class="help">Conversations you started with the 🥔 button inside a chat. They stay with that chat.</p>
+        </section>
+        {% endif %}
         <section>
             <a class="ghost-link" href="{% url 'bulba_transcript' %}">Download transcript</a>
             <p class="help">Everything said, noted and proposed in this conversation (no keys), for sharing when Bulba does something odd.</p>
