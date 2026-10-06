@@ -1128,6 +1128,16 @@ function saveMediaState(type, url, name) {
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
         body: JSON.stringify({ action: 'save_media', type: type, url: url, name: name })
     });
+    // "Also use it for every chat with them": the character's theme
+    const asTheme = document.getElementById('mediaAsTheme');
+    if (asTheme && asTheme.checked) {
+        fetch(window.location.href, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ action: 'save_theme', type: type, url: url, name: name })
+        }).then(() => showChatNotice('Saved as their theme.'));
+        asTheme.checked = false;
+    }
 }
 
 function initCharactersFromLastAssistantMessage() {

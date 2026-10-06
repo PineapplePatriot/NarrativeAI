@@ -67,6 +67,9 @@ class Character(models.Model):
     is_mult = models.BooleanField(default=False, verbose_name="Multi-Character Mode")
     # Which story trackers are on for this character, custom fields and layout (see mainapp/trackers.py)
     tracker_config = models.JSONField(default=dict, blank=True)
+    # The character's look: {"bg": url, "music": {"url", "name"}, "dialogue_color": "#rrggbb" or "preset"}.
+    # A chat opens with these unless it picked its own background or music.
+    theme = models.JSONField(default=dict, blank=True)
 
     photo_second_neutral = models.ImageField(upload_to="photos/%Y/%m/%d/", default=None, blank=True, null=True)
     photo_second_happy = models.ImageField(upload_to="photos/%Y/%m/%d/", default=None, blank=True, null=True)

@@ -235,7 +235,7 @@
                             <button type="button" class="preset-btn {% if appearance.layout != 'book' %}on{% endif %}" data-layout="chat">💬 Chat</button>
                             <button type="button" class="preset-btn {% if appearance.layout == 'book' %}on{% endif %}" data-layout="book" title="Replies read as chapters; your messages fold into small markers you can open">📖 Book</button>
                         </div>
-                        <span class="tool-sublabel">🎨 Dialogue colour</span>
+                        <span class="tool-sublabel">🎨 {{ character.name }}'s dialogue colour</span>
                         <div class="dialogue-colors" id="dialogueColors">
                             {% for c in "#e594f2,#7dd3fc,#86efac,#fcd34d,#fca5a5,#c4b5fd,#f1f5f9"|split:"," %}
                                 <button type="button" class="swatch {% if appearance.dialogue_color == c %}on{% endif %}" data-color="{{ c }}" style="background: {{ c }}" title="{{ c }}"></button>
@@ -326,6 +326,7 @@
                     + Upload File
                     <input type="file" id="fileUpload" style="display:none" onchange="uploadMedia()">
                 </div>
+                <label class="theme-check"><input type="checkbox" id="mediaAsTheme"> Also use it for every chat with {{ character.name }} (their theme)</label>
                 <button class="modal-btn secondary" style="width:100%; margin-top:10px;" onclick="resetMedia()">Reset / None</button>
             </div>
         </div>

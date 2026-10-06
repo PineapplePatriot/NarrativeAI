@@ -3375,3 +3375,49 @@ class MediaUploadTests(ChatPromptTests):
         self.assertFalse(bad["success"])
         listed = self.client.get(url).json()
         self.assertIn("Custom: my-room.png", [b["name"] for b in listed["backgrounds"]])
+
+
+class DemoPackAndThemeTests(ChatPromptTests):
+    def test_pack_is_loaded_once_with_lore_theme_and_sprites(self):
+        import os, tempfile
+        from pathlib import Path
+        from unittest import mock
+        from mainapp.management.commands import seed_demo
+        from mainapp.models import Character
+        tmp = Path(tempfile.mkdtemp())
+        pack = tmp / "viktor"
+        (pack / "sprites").mkdir(parents=True)
+        (pack / "card.json").write_text(json.dumps(V2_CARD))
+        (pack / "lorebook.json").write_text(json.dumps({"title": "Station", "entries": [
+            {"keys": ["ferry"], "content": "The ferry leaves at midnight."}]}))
+        (pack / "theme.json").write_text(json.dumps({"bg": "/static/defaults/backgrounds/station.jpg",
+                                                     "dialogue_color": "#7dd3fc"}))
+        (pack / "sprites" / "happy.png").write_bytes(b"\\x89PNG fake")
+        with mock.patch.object(seed_demo, "PACKS", tmp), mock.patch.dict(os.environ, {"DEMO_PASSWORD": "pw-123456!"}):
+            from django.core.management import call_command
+            call_command("seed_demo", stdout=open(os.devnull, "w"))
+            call_command("seed_demo", stdout=open(os.devnull, "w"))
+        viktor = Character.objects.get(author__username="demo", name="Viktor")
+        self.assertEqual(Character.objects.filter(author__username="demo", name="Viktor").count(), 1)
+        from mainapp import lorebook
+        titles = [e["content"] for e in lorebook.load_worldbook(viktor.worldbook)["entries"]]
+        self.assertIn("The ferry leaves at midnight.", titles)
+        self.assertTrue(viktor.photo_happy.name.endswith(".png"))
+        self.assertEqual(viktor.theme["dialogue_color"], "#7dd3fc")
+        self.assertFalse(Character.objects.filter(author__username="demo", name="Rose").exists())
+
+    def test_theme_applies_to_chats(self):
+        self.character.theme = {"bg": "/static/defaults/backgrounds/x.jpg", "dialogue_color": "#86efac",
+                                "music": {"url": "/static/defaults/music/a.mp3", "name": "A"}}
+        self.character.save()
+        page = self.client.get(self.url)
+        self.assertEqual(page.context["current_bg"], "/static/defaults/backgrounds/x.jpg")
+        self.assertEqual(page.context["appearance"]["dialogue_color"], "#86efac")
+        self.post({"action": "save_media", "type": "bg", "url": "/media/backgrounds/custom/mine.png", "name": "m"})
+        self.assertEqual(self.client.get(self.url).context["current_bg"], "/media/backgrounds/custom/mine.png")
+        self.post({"action": "appearance", "dialogue_color": "#fcd34d"})
+        self.character.refresh_from_db()
+        self.assertEqual(self.character.theme["dialogue_color"], "#fcd34d")
+        self.post({"action": "save_theme", "type": "music", "url": "/static/defaults/music/b.mp3", "name": "B"})
+        self.character.refresh_from_db()
+        self.assertEqual(self.character.theme["music"]["name"], "B")

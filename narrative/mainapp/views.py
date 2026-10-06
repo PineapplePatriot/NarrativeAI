@@ -580,10 +580,22 @@ def chat(request, slug):
             color = str(data.get("dialogue_color") or "")
             if color != "preset" and not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
                 return JsonResponse({"success": False, "error": "Pick a colour."}, status=400)
-            settings_obj, _ = ChatSettings.objects.get_or_create(author=request.user)
-            settings_obj.appearance = {**(settings_obj.appearance or {}), "dialogue_color": color}
-            settings_obj.save(update_fields=["appearance"])
-            return JsonResponse({"success": True, **_appearance(request.user)})
+            # Each character has its own colour (part of its theme)
+            character.theme = {**(character.theme or {}), "dialogue_color": color}
+            character.save(update_fields=["theme"])
+            return JsonResponse({"success": True, **_appearance(request.user, character)})
+        elif action == "save_theme":  # this chat's background or music becomes the character's default
+            theme = dict(character.theme or {})
+            if data.get("type") == "bg":
+                theme["bg"] = str(data.get("url") or "")[:500]
+            elif data.get("type") == "music":
+                url = str(data.get("url") or "")[:500]
+                theme["music"] = {"url": url, "name": str(data.get("name") or "")[:200]} if url else {}
+            else:
+                return JsonResponse({"success": False, "error": "Unknown kind."}, status=400)
+            character.theme = theme
+            character.save(update_fields=["theme"])
+            return JsonResponse({"success": True, "theme": theme})
         elif action == "save_media":
             m_type = data.get("type")
             url = data.get("url")
@@ -929,7 +941,7 @@ def chat(request, slug):
                      for m in messages],
         "swipes": chats.version_info(messages),
         "spending": ai_client.spending(request.user),
-        "appearance": _appearance(request.user),
+        "appearance": _appearance(request.user, character),
         "bulba_url": reverse("bulba_chat", kwargs={"chat_id": chat_obj.id}),
         "display_rules": {
             "rules": [r for r in regex_rules.for_chat(presets.normalize(presets.get_active(request.user).data), character, request.user)
@@ -948,8 +960,9 @@ def chat(request, slug):
         "summary_data": summary_payload(),
         "context_guides": json.dumps(chat_state["context_guides"]),
         "pinned_note_json": json.dumps(pinned_note(chat_state["context_guides"])),
-        "current_bg": chat_state["current_bg"],
-        "current_music": json.dumps(chat_state["current_music"]),
+        # The chat's own background and music, else the character's theme
+        "current_bg": chat_state["current_bg"] or (character.theme or {}).get("bg", ""),
+        "current_music": json.dumps(chat_state["current_music"] or (character.theme or {}).get("music") or {}),
         "user_avatar": user_avatar,
         "trackers_data": _tracker_page_data(request.user, character, chat_state["trackers"]),
         "stream_replies": presets.normalize(presets.get_active(request.user).data)["options"]["streaming"],
@@ -963,10 +976,12 @@ def chat(request, slug):
 DIALOGUE_DEFAULT = "#e594f2"
 
 
-def _appearance(user):
+def _appearance(user, character=None):
+    """How chats look. A character's own dialogue colour (its theme) wins over the user's usual one."""
     settings_obj = ChatSettings.objects.filter(author=user).first()
     look = dict(settings_obj.appearance or {}) if settings_obj else {}
-    color = look.get("dialogue_color") or DIALOGUE_DEFAULT
+    color = ((character.theme or {}).get("dialogue_color") if character is not None else None) \
+        or look.get("dialogue_color") or DIALOGUE_DEFAULT
     if color != "preset" and not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
         color = DIALOGUE_DEFAULT
     # "book": replies read as chapters and the user's messages fold away (director mode); "chat": bubbles
@@ -1681,10 +1696,20 @@ def get_media_resources(request):
         except Exception as e:
             return JsonResponse({"success": False, "error": str(e)})
 
+    # Built-in ones ship with the app (static/defaults/), so every install has them
+    def built_in(kind):
+        folder = settings.BASE_DIR / "static" / "defaults" / kind
+        if not folder.is_dir():
+            return []
+        exts = (".png", ".jpg", ".jpeg", ".webp", ".gif") if kind == "backgrounds" else (".mp3", ".ogg", ".wav", ".m4a")
+        return [{"name": os.path.splitext(f.name)[0].replace("-", " ").replace("_", " ").capitalize(),
+                 "url": f"{settings.STATIC_URL}defaults/{kind}/{f.name}"}
+                for f in sorted(folder.iterdir()) if f.suffix.lower() in exts]
+
     # Return lists for GET requests
     return JsonResponse({
-        "backgrounds": get_files(bg_dir, "backgrounds"), 
-        "music": get_files(music_dir, "music")
+        "backgrounds": built_in("backgrounds") + get_files(bg_dir, "backgrounds"),
+        "music": built_in("music") + get_files(music_dir, "music")
     })
 
 

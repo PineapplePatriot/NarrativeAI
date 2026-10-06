@@ -1670,3 +1670,4 @@ details.thoughts .thoughts-text { white-space: pre-wrap; font-size: .85rem; opac
 /* The pen menu fits the window (it was cut off under the top bar on shorter screens) and scrolls inside */
 .tools-menu { max-height: min(560px, calc(100vh - 230px)); max-height: min(560px, calc(100dvh - 230px)); }
 @media (max-height: 520px) { .tools-menu { max-height: calc(100dvh - 150px); } }
+.theme-check { display: flex; gap: 8px; align-items: center; margin-top: 12px; font-size: .88rem; opacity: .85; cursor: pointer; }
