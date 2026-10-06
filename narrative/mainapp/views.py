@@ -327,9 +327,16 @@ def chat(request, slug):
 
         # --- 4. NEW: Save Guides & Summary ---
         elif action == "save_guides":
-            chat_state["context_guides"] = data.get("guides", {})
+            chat_state["context_guides"] = {"note": str(data.get("note") or "").strip()[:4000]}
             save_messages(messages) # Updates file
             return JsonResponse({"success": True})
+        elif action == "word_note":  # Bulba turns a rough wish into a clear director's note
+            try:
+                note = word_note(request.user, character, messages, str(data.get("text") or ""),
+                                 rewrite=bool(data.get("rewrite")), persona=chat_state["persona"])
+            except ai_client.AIError as e:
+                return JsonResponse({"success": False, "error": str(e)})
+            return JsonResponse({"success": True, "note": note, "spending": ai_client.spending(request.user)})
 
         # ... inside chat view POST handler ...
         elif action in ("update_trackers", "save_trackers", "clear_trackers"):
@@ -907,6 +914,7 @@ def chat(request, slug):
         "summary_upto": chat_state["summary_upto"],
         "summary_data": summary_payload(),
         "context_guides": json.dumps(chat_state["context_guides"]),
+        "pinned_note_json": json.dumps(pinned_note(chat_state["context_guides"])),
         "current_bg": chat_state["current_bg"],
         "current_music": json.dumps(chat_state["current_music"]),
         "user_avatar": user_avatar,
@@ -929,6 +937,41 @@ def _appearance(user):
     if color != "preset" and not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
         color = DIALOGUE_DEFAULT
     return {"dialogue_color": color}
+
+
+def pinned_note(guides):
+    """The chat's pinned note. Older chats kept four "World state" fields; they read as one note."""
+    guides = guides if isinstance(guides, dict) else {}
+    if guides.get("note"):
+        return guides["note"]
+    labels = (("situation", "Situation"), ("clothes", "Outfits"), ("state", "Physical state"), ("thinking", "Thoughts"))
+    return "\n".join(f"{label}: {guides[key]}" for key, label in labels if guides.get(key))
+
+
+WORD_NOTE_PROMPT = (
+    "You help someone steer their roleplay with an AI. They give you a rough wish for {what}; you write it as "
+    "a director's note the roleplay model will follow. One to three short sentences, addressed to the model, "
+    "saying concretely what should happen or how it should read. Keep their meaning; don't add events, twists "
+    "or details they didn't ask for. Name characters as they appear in the chat. Never write {user}'s words, "
+    "actions or thoughts unless they asked for exactly that. Plain words: no 'ensure', 'immersive', 'vivid', "
+    "'delve', capitals or exclamation marks. Reply with the note only.")
+
+
+def word_note(user, character, messages, wish, rewrite=False, persona=None):
+    """Bulba's quick help with a director's note (one small call on the Bulba model)."""
+    wish = wish.strip()[:1000]
+    if not wish:
+        raise ai_client.AIError("Write what you'd like first, in your own words.")
+    names = prompt_names(user, character, persona)
+    recent = [m for m in messages if m[0] in ("user", "assistant")][-6:]
+    transcript = "\n\n".join(f"{names['user'] if m[0] == 'user' else character.name}: {m[2][:1500]}" for m in recent)
+    what = "a new version of the last reply" if rewrite else "the next reply"
+    system = WORD_NOTE_PROMPT.format(what=what, user=names["user"])
+    text = ai_client.complete(user, "bulba", [
+        {"role": "system", "content": system},
+        {"role": "user", "content": f"The chat so far (latest last):\n\n{transcript}\n\nTheir wish: {wish}"}],
+        max_tokens=200, temperature=0.4)
+    return (text or "").strip().strip('"')
 
 
 def prompt_names(user, character, chat_persona=None):
@@ -1210,6 +1253,8 @@ def tracker_setup(request, slug):
             "field_types": trackers.FIELD_TYPES,
             "game_modes": game.MODE_LABELS,
             "game_default": game.MODE_LABELS[game.user_default(request.user)],
+            "game_default_mode": game.user_default(request.user),
+            "character_name": character.name,
         },
     })
 

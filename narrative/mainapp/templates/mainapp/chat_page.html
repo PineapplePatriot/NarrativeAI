@@ -163,52 +163,58 @@
                     </button>
                 </div>
                 <div class="tools-menu" id="toolsMenu">
-                    <div class="tool-header"><span>Narrative Controls</span><span style="font-size:0.8rem; cursor:pointer;" onclick="toggleTools()">✕</span></div>
+                    <div class="tool-header"><span>Steer the story</span><span style="font-size:0.8rem; cursor:pointer;" onclick="toggleTools()">✕</span></div>
                     <div class="tool-section">
-                        <span class="tool-label">🎬 Director's Note</span>
-                        <input type="text" class="tool-input" id="guidanceInput" placeholder="e.g. Describe the room...">
-                        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">
-                            <button class="preset-btn" onclick="setGuidance('Describe surroundings')">🌲 Area</button>
-                            <button class="preset-btn" onclick="setGuidance('Inner thoughts')">🧠 Thoughts</button>
-                            <button class="preset-btn" onclick="setGuidance('Advance time')">⏩ Skip Time</button>
+                        <span class="tool-label">🎬 Director's note <small>for the next reply only</small></span>
+                        <textarea class="tool-input" id="guidanceInput" rows="2" placeholder="e.g. She dodges the question; the storm reaches the harbour"></textarea>
+                        <div class="chip-row">
+                            <button class="preset-btn" onclick="setGuidance('Describe the surroundings.')">🌲 Area</button>
+                            <button class="preset-btn" onclick="setGuidance('Show what {{ character.name|escapejs }} is thinking.')">🧠 Thoughts</button>
+                            <button class="preset-btn" onclick="setGuidance('Skip ahead to the next meaningful moment.')">⏩ Skip time</button>
+                            <button class="preset-btn" onclick="setGuidance('Mostly dialogue this time.')">💬 Talk</button>
+                            <button class="preset-btn" onclick="setGuidance('Keep it short.')">✂️ Shorter</button>
                         </div>
+                        <div class="tool-grid two">
+                            <button class="tool-action-btn" id="wordNoteBtn" title="Bulba turns your rough idea into a clear note (costs a little)">🥔 Word it for me</button>
+                            <button class="tool-action-btn" id="rewriteWithNote" title="A new version of the last reply, following the note">↻ Rewrite last reply</button>
+                        </div>
+                        <p class="tool-help">Sent once, with your next message. Keeps going wrong every time?
+                            <button type="button" class="link-btn" id="askBulbaFromNote">Ask Bulba to fix it for good</button></p>
                     </div>
 
                     <div class="tool-section">
-                        <span class="tool-label">🌍 World State</span>
-                        <div class="category-grid">
-                            <input type="text" class="tool-input" id="ctx_situation" placeholder="Situation..." onchange="saveContext()">
-                            <input type="text" class="tool-input" id="ctx_clothes" placeholder="Clothes..." onchange="saveContext()">
-                            <input type="text" class="tool-input" id="ctx_state" placeholder="State..." onchange="saveContext()">
-                            <input type="text" class="tool-input" id="ctx_thinking" placeholder="Thinking..." onchange="saveContext()">
-                        </div>
+                        <span class="tool-label">📌 Pinned note <small>every reply in this chat</small></span>
+                        <textarea class="tool-input" id="pinnedNote" rows="2" placeholder="e.g. It's winter; Rose doesn't know you're a royal"></textarea>
+                        <p class="tool-help">For things the AI should keep in mind. Where you are, outfits, moods and injuries are kept by the
+                            <a href="{% url 'tracker_setup' character.slug %}">story trackers</a>.</p>
                     </div>
 
                     <div class="tool-section">
-                        <span class="tool-label">📊 Story trackers</span>
-                        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
-                            <button class="tool-action-btn" onclick="window.Trackers && Trackers.update()">↻ Update</button>
-                            <button class="tool-action-btn" onclick="window.Trackers && Trackers.open()">▤ Panel</button>
-                            <a class="tool-action-btn" href="{% url 'tracker_setup' character.slug %}" style="text-align:center; text-decoration:none;">⚙ Setup</a>
+                        <span class="tool-label">🧠 Story memory</span>
+                        <div class="tool-grid three">
+                            <button class="tool-action-btn" onclick="Summary.toggle(true); toggleTools()">📚 Summary</button>
+                            <button class="tool-action-btn" onclick="window.Trackers && Trackers.open(); toggleTools()">📊 Trackers</button>
+                            <a class="tool-action-btn" href="{% url 'tracker_setup' character.slug %}">⚙ Set up</a>
                         </div>
+                        <details class="tool-details">
+                            <summary>📖 Lore used in the last reply</summary>
+                            <div class="summary-box lore-box" id="loreDisplay">{% if character.worldbook %}Send a message to see which entries fire.{% else %}No lorebook attached to this character.{% endif %}</div>
+                        </details>
+                        <div class="summary-box" id="summaryDisplay" hidden>{{ summary|default:"No summary yet." }}</div>
+                        <div class="summary-coverage" id="summaryCoverage" data-upto="{{ summary_upto|default:0 }}" hidden></div>
                     </div>
 
                     <div class="tool-section">
-                        <span class="tool-label">📖 Lore used in last reply</span>
-                        <div class="summary-box lore-box" id="loreDisplay">{% if character.worldbook %}Send a message to see which entries fire.{% else %}No worldbook attached to this character.{% endif %}</div>
-                    </div>
-
-                    <div class="tool-section">
-                        <span class="tool-label">📚 Summary</span>
-                        <div class="summary-box" id="summaryDisplay">{{ summary|default:"No summary yet." }}</div>
-                        <div class="summary-coverage" id="summaryCoverage" data-upto="{{ summary_upto|default:0 }}"></div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                            <button class="tool-action-btn" onclick="generateSummary('append')">➕ Summarize new</button>
-                            <button class="tool-action-btn" onclick="Summary.toggle(true); toggleTools()">📚 Open summary</button>
+                        <span class="tool-label">🔧 Actions</span>
+                        <div class="tool-grid two">
+                            <button class="tool-action-btn" onclick="continueGeneration()">⏯ Continue</button>
+                            <button class="tool-action-btn" onclick="spellcheckInput()">✅ Spellcheck</button>
                         </div>
                     </div>
-                    <div class="tool-section">
-                        <span class="tool-label">🙂 You in this chat</span>
+
+                    <details class="tool-section tool-details">
+                        <summary class="tool-label">⚙ This chat</summary>
+                        <span class="tool-sublabel">🙂 You in this chat</span>
                         <div class="persona-line" id="personaLine">
                             {% if chat_persona.name %}<b>{{ chat_persona.name }}</b> (this chat only)
                             {% elif usual_persona.name %}<b>{{ usual_persona.name }}</b> (your usual persona)
@@ -223,9 +229,7 @@
                                 <button type="button" class="tool-action-btn" id="personaReset">Use my usual persona</button>
                             </div>
                         </form>
-                    </div>
-                    <div class="tool-section">
-                        <span class="tool-label">🎨 Dialogue colour</span>
+                        <span class="tool-sublabel">🎨 Dialogue colour</span>
                         <div class="dialogue-colors" id="dialogueColors">
                             {% for c in "#e594f2,#7dd3fc,#86efac,#fcd34d,#fca5a5,#c4b5fd,#f1f5f9"|split:"," %}
                                 <button type="button" class="swatch {% if appearance.dialogue_color == c %}on{% endif %}" data-color="{{ c }}" style="background: {{ c }}" title="{{ c }}"></button>
@@ -233,21 +237,11 @@
                             <label class="swatch custom" title="Any colour"><input type="color" id="dialogueCustom" value="{% if appearance.dialogue_color != 'preset' %}{{ appearance.dialogue_color }}{% else %}#e594f2{% endif %}"></label>
                             <button type="button" class="preset-btn {% if appearance.dialogue_color == 'preset' %}on{% endif %}" data-color="preset" title="No colour of its own: the preset's or the AI's colours show instead">Preset's colours</button>
                         </div>
-                    </div>
-                    <div class="tool-section">
-                        <span class="tool-label">💳 This month</span>
+                        <span class="tool-sublabel">💳 This month</span>
                         <div class="spending-line" id="spendingLine" data-spent="{{ spending.spent }}" data-limit="{{ spending.limit }}">
                             ${{ spending.spent|floatformat:2 }} of ${{ spending.limit|floatformat:2 }} used (chat, Bulba and background jobs)</div>
                         <div class="spending-meter"><div id="spendingFill" style="width: {% widthratio spending.spent spending.limit 100 %}%"></div></div>
-                    </div>
-                    <div class="tool-section">
-                        <span class="tool-label">🔧 Actions</span>
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-                            <button class="tool-action-btn" onclick="openRegenModal()">↻ Regen</button>
-                            <button class="tool-action-btn" onclick="continueGeneration()">⏯ Continue</button>
-                        </div>
-                        <button class="tool-action-btn" onclick="spellcheckInput()" style="margin-top:5px;">✅ Spellcheck</button>
-                    </div>
+                    </details>
                 </div>
                 <div class="input-wrapper">
                     <button class="tools-btn" id="toolsBtn" onclick="toggleTools()"><svg class="icon" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>
@@ -393,6 +387,7 @@
         window.USER_AVATAR = "{{ user_avatar|default:'' }}";
         window.STREAM_REPLIES = {{ stream_replies|yesno:"true,false" }};
         window.CHARACTER_NAME = "{{ character.name|escapejs }}";
+        window.PINNED_NOTE = {{ pinned_note_json|safe }};
     </script>
     <aside class="tracker-panel" id="trackerPanel" hidden></aside>
     <aside class="tracker-panel left chats-panel" id="chatsPanel" hidden>

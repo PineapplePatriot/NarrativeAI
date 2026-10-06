@@ -9,12 +9,22 @@ function esc(s) {
 function markDirty() { dirty = true; $('saveStatus').textContent = 'Unsaved changes'; $('saveStatus').className = 'status warn'; }
 window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
 
+// With "Dice and inventory" on, the app itself keeps Inventory and Conditions (see mainapp/game.py)
+const gameOwns = id => ['inventory', 'conditions'].includes(id) &&
+    ((config.game || 'default') === 'default' ? DATA.game_default_mode : config.game) === 'full';
+
 // --- Tracker cards, grouped by panel ---
 function renderPanels() {
     $('panels').innerHTML = DATA.panels.map(panel => {
         const cards = DATA.trackers.filter(t => t.panel === panel.id).map(t => {
             const c = config.trackers[t.id];
             const fields = t.id === 'custom' ? config.custom_fields : t.fields;
+            if (gameOwns(t.id)) return `
+            <div class="tracker on" data-id="${t.id}">
+              <label class="check title"><input type="checkbox" checked disabled><span>${t.icon} ${esc(t.label)}</span></label>
+              <p class="help">Kept by the app while Dice and inventory is on for ${esc(DATA.character_name)}: the AI changes it
+                through the app, and nothing is guessed.</p>
+            </div>`;
             return `
             <div class="tracker ${c.on ? 'on' : ''}" data-id="${t.id}">
               <label class="check title"><input type="checkbox" data-f="on" ${c.on ? 'checked' : ''}>
@@ -85,7 +95,7 @@ function renderLayout() {
     $('gameMode').innerHTML = `<option value="default">Your usual setting (${DATA.game_default})</option>` +
         Object.entries(modes).map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
     $('gameMode').value = config.game || 'default';
-    $('gameMode').onchange = e => { config.game = e.target.value; markDirty(); };
+    $('gameMode').onchange = e => { config.game = e.target.value; markDirty(); renderPanels(); };
 }
 $('layoutHud').onchange = e => { config.layout.hud = e.target.checked; markDirty(); };
 $('layoutPanel').onchange = e => { config.layout.panel = e.target.checked; markDirty(); };

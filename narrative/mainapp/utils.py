@@ -72,16 +72,13 @@ def build_ai_request(user, character: Character, chat=None, worldbook_slug=None,
     if summary:
         system_prompts["StorySummary"] = f"PREVIOUS STORY SUMMARY: {summary}\n(Older messages are omitted. Rely on this context.)"
     if persistent_guides and isinstance(persistent_guides, dict):
-        context_block = []
-        if persistent_guides.get("situation"): context_block.append(f"CURRENT SITUATION: {persistent_guides['situation']}")
-        if persistent_guides.get("clothes"): context_block.append(f"OUTFIT: {persistent_guides['clothes']}")
-        if persistent_guides.get("state"): context_block.append(f"PHYSICAL STATE: {persistent_guides['state']}")
-        if persistent_guides.get("thinking"): context_block.append(f"INNER THOUGHTS: {persistent_guides['thinking']}")
-        if context_block:
-            system_prompts["WorldContext"] = "\n".join(context_block)
+        from mainapp.views import pinned_note
+        note = pinned_note(persistent_guides)
+        if note:
+            system_prompts["WorldContext"] = f"Pinned note from the user, for every reply:\n{note}"
 
     if guidance:
-        system_prompts["DirectorNote"] = f"URGENT INSTRUCTION FOR NEXT RESPONSE: {guidance}"
+        system_prompts["DirectorNote"] = f"Director's note for this reply: {guidance}"
 
     # LoreReport is not sent to the model; it's shown in the chat tools menu
     return {"SystemPrompts": system_prompts, "LoreReport": lore_report}

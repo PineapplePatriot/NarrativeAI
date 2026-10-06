@@ -757,19 +757,53 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // --- NEW FEATURES LOGIC ---
 
-// Context Loading
-let contextGuides = {};
-try { const raw = '{{ context_guides|escapejs }}'; if (raw && raw !== "{}") contextGuides = JSON.parse(raw); } catch (e) { }
+// The pinned note: kept in mind for every reply in this chat (saved as you leave the box)
+(function () {
+    const box = document.getElementById('pinnedNote');
+    if (!box) return;
+    box.value = window.PINNED_NOTE || '';
+    box.addEventListener('change', () => {
+        fetch(window.location.href, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ action: 'save_guides', note: box.value }),
+        }).then(r => r.json()).then(d => { if (d.success) showChatNotice('Pinned note saved.'); });
+    });
+})();
 
-function populateFields() {
-    if (document.getElementById('ctx_situation')) {
-        document.getElementById('ctx_situation').value = contextGuides.situation || "";
-        document.getElementById('ctx_clothes').value = contextGuides.clothes || "";
-        document.getElementById('ctx_state').value = contextGuides.state || "";
-        document.getElementById('ctx_thinking').value = contextGuides.thinking || "";
-    }
-}
-populateFields();
+// The director's note: Bulba can word it, and it can rewrite the last reply
+(function () {
+    const input = document.getElementById('guidanceInput');
+    const wordBtn = document.getElementById('wordNoteBtn');
+    if (!input || !wordBtn) return;
+    wordBtn.onclick = async () => {
+        const wish = input.value.trim();
+        if (!wish) { input.focus(); input.placeholder = 'Write roughly what you want first, then press this.'; return; }
+        wordBtn.disabled = true;
+        const label = wordBtn.textContent;
+        wordBtn.textContent = '🥔 Wording…';
+        try {
+            const resp = await fetch(window.location.href, {
+                method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify({ action: 'word_note', text: wish }),
+            });
+            const d = await resp.json();
+            if (!d.success) throw new Error(d.error || 'Bulba could not word it.');
+            input.value = d.note;
+            updateSpending(d.spending);
+        } catch (err) { showChatNotice(err.message); }
+        finally { wordBtn.disabled = false; wordBtn.textContent = label; }
+    };
+    document.getElementById('rewriteWithNote').onclick = () => {
+        const note = input.value.trim();
+        input.value = '';
+        toggleTools();
+        regenerateReply(note);
+    };
+    document.getElementById('askBulbaFromNote').onclick = () => {
+        toggleTools();
+        if (window.askBulba) window.askBulba(input.value.trim());
+    };
+})();
 
 // Toggle Tools
 // Shows a failed generation in the chat; the user's message is kept, so Regenerate retries it
@@ -797,16 +831,6 @@ function renderLore(lore) {
 function toggleTools() { document.getElementById('toolsMenu').classList.toggle('show'); document.getElementById('toolsBtn').classList.toggle('active'); }
 function setGuidance(text) { document.getElementById('guidanceInput').value = text; }
 
-// Save State
-function saveContext() {
-    contextGuides = {
-        situation: document.getElementById('ctx_situation').value,
-        clothes: document.getElementById('ctx_clothes').value,
-        state: document.getElementById('ctx_state').value,
-        thinking: document.getElementById('ctx_thinking').value
-    };
-    fetch(window.location.href, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') }, body: JSON.stringify({ action: 'save_guides', guides: contextGuides }) });
-}
 
 // Actions
 // Update this function signature to accept 'mode'
@@ -1238,6 +1262,16 @@ branchModal.addEventListener('click', (e) => { if (e.target === branchModal) clo
         btn.classList.toggle('active', open);
     };
     btn.onclick = () => toggle(drawer.hidden);
+    // Open Bulba with something already typed for it (it isn't sent until they press Send)
+    window.askBulba = (draft) => {
+        if (!frame.src) {
+            frame.src = drawer.dataset.src + (draft ? `?draft=${encodeURIComponent(draft)}` : '');
+            toggle(true);
+        } else {
+            toggle(true);
+            if (draft) frame.contentWindow.postMessage({ bulbaDraft: draft }, window.location.origin);
+        }
+    };
     document.getElementById('bulbaClose').onclick = () => toggle(false);
     window.addEventListener('message', (e) => {
         if (e.origin !== window.location.origin || !e.data || !e.data.bulba) return;

@@ -45,19 +45,17 @@ can supply or judge.
   Their pico setup (thinking off, temperature 0.7 / top-p 0.8) is a second MiMo option.
 - **Verify OpenRouter model IDs** for the eight models where we guessed them (all but MiMo and DeepSeek V4
   Flash).
-- **Function calling** in chats: presets can ask for it (Pura's does); tools the AI could use, like
-  image generation or updating trackers.
-- **Thinking display** (built): reasoning the model sends separately is shown live while it thinks, then
-  kept in a folded "Thoughts" box above the reply (each swipe keeps its own). Presets that make the model
-  write its thinking inside the reply (in tags) aren't folded yet; that needs a reasoning text rule.
+- **Function calling** (built, first part): dice, inventory and conditions kept by the app (Extras page,
+  per character on its Trackers page; off by default). Next candidates: a picture mid-scene, story extras
+  drawn from fixed templates (letters, phone screens, milestones; `docs/research/`).
+- **Thinking display** (built): reasoning the model sends separately, or writes at the start of its reply
+  in <thinking>/<think> tags (Frankenstein's pico), is shown live and kept in a folded "Thoughts" box.
 
 ## Text rules (regex)
 
-Built: preset and card rules, all three modes, the Text rules tab, SillyTavern import and export.
+Built: preset and card rules, all three modes, the Text rules tab, SillyTavern import and export, your
+own rules for every preset, switching a card's rules off, lore-entry and thinking placements.
 Still missing:
-- Rules for lore entries and reasoning (SillyTavern placements 5 and 6) are kept but don't run.
-- A way to see and switch a card's own rules (they run, but only the import message mentions them).
-- Rules of your own that apply with every preset (SillyTavern's "global" scripts).
 - Pictures in display rules: images are blocked for safety (no outside loading), so presets that draw
   pictures with regex (image prompts) show nothing there.
 
@@ -69,6 +67,10 @@ Still missing:
 - **Export with sprites**: a card exports with its neutral picture only.
 
 ## Chat
+
+- **Pen menu** (rebuilt): director's note for the next reply (Bulba can word it; "rewrite last reply" uses
+  it), a pinned note for the whole chat (replaces the four World State boxes, which overlapped the
+  trackers and never showed their saved values), story memory, actions, and the chat's settings folded.
 
 - **Streaming after a guided regenerate**: couldn't reproduce with the current code; the chat now
   says "thinking" while a thinking model reasons, which may be what looked like a stall. Tell me if

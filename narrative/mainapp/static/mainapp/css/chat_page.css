@@ -1578,3 +1578,21 @@ details.thoughts .thoughts-text { white-space: pre-wrap; font-size: .85rem; opac
 /* Dice rolls and inventory changes under a reply (mainapp/game.py) */
 .game-lines { margin-top: 8px; padding: 6px 10px; border-left: 2px solid var(--accent-1, #8b5cf6);
               font-size: 0.85rem; opacity: 0.85; display: flex; flex-direction: column; gap: 2px; }
+
+/* The pen menu ("Steer the story") */
+.tools-menu .tool-label small { font-weight: 400; opacity: .7; margin-left: 4px; text-transform: none; letter-spacing: 0; }
+.tools-menu .chip-row { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+.tools-menu .tool-grid { display: grid; gap: 8px; margin-top: 6px; }
+.tools-menu .tool-grid.two { grid-template-columns: 1fr 1fr; }
+.tools-menu .tool-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+.tools-menu .tool-grid a.tool-action-btn { text-align: center; text-decoration: none; }
+.tools-menu .tool-help { font-size: .78rem; opacity: .75; margin: 8px 0 0; line-height: 1.4; }
+.tools-menu .tool-help a { color: inherit; }
+.tools-menu textarea.tool-input { resize: vertical; min-height: 44px; font-family: inherit; }
+.tools-menu .tool-details > summary { cursor: pointer; list-style: none; }
+.tools-menu .tool-details > summary::-webkit-details-marker { display: none; }
+.tools-menu details.tool-details:not(.tool-section) { margin-top: 10px; font-size: .85rem; }
+.tools-menu details.tool-details:not(.tool-section) > summary { opacity: .85; }
+.tools-menu details.tool-section > summary::before { content: '▸ '; }
+.tools-menu details.tool-section[open] > summary::before { content: '▾ '; }
+.tools-menu .tool-sublabel { display: block; font-size: .8rem; opacity: .8; margin: 12px 0 6px; }

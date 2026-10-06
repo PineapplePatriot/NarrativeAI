@@ -3051,3 +3051,45 @@ class TextRuleLeftoverTests(StreamChatTests):
         sent = json.dumps(self.sent[-1]["messages"])
         self.assertIn("The ferry leaves at midnight.", sent)
         self.assertNotIn("NOON", sent)
+
+
+class PenMenuTests(ChatPromptTests):
+    """The pen menu: director's note (worded by Bulba if they like) and the pinned note."""
+
+    def test_pinned_note_and_old_world_state(self):
+        self.post({"action": "chat", "message": "Hi"})
+        chat = self.character.chats.first()
+        from mainapp import chats
+        data = chats.read(chat)
+        data["context_guides"] = {"situation": "At the docks", "clothes": "Raincoat"}  # an older chat
+        chats.write(chat, data)
+        page = self.client.get(self.url)
+        self.assertEqual(json.loads(page.context["pinned_note_json"]), "Situation: At the docks\nOutfits: Raincoat")
+        self.post({"action": "chat", "message": "Go on"})
+        self.assertIn("Situation: At the docks", json.dumps(self.sent[-1]["messages"]))
+        self.post({"action": "save_guides", "note": "It's winter."})
+        self.post({"action": "chat", "message": "And?", "guidance": "She dodges the question."})
+        sent = json.dumps(self.sent[-1]["messages"])
+        self.assertIn("Pinned note from the user, for every reply:\\nIt's winter.", sent)
+        self.assertNotIn("At the docks", sent)
+        self.assertIn("Director's note for this reply: She dodges the question.", sent)
+
+    def test_bulba_words_the_note(self):
+        from unittest import mock
+        calls = []
+
+        def post(url, headers=None, json=None, timeout=None, **kwargs):
+            calls.append(json)
+            resp = mock.Mock(status_code=200)
+            resp.json.return_value = {"choices": [{"message": {"content": '"Rose changes the subject."'}}],
+                                      "usage": {"cost": 0.001}}
+            return resp
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=post):
+            data = self.client.post(self.url, json.dumps({"action": "word_note", "text": "she shouldnt answer"}),
+                                    content_type="application/json").json()
+        self.assertEqual(data["note"], "Rose changes the subject.")
+        self.assertIn("Their wish: she shouldnt answer", calls[0]["messages"][1]["content"])
+        self.assertIn("Hello, traveller.", calls[0]["messages"][1]["content"])
+        empty = self.client.post(self.url, json.dumps({"action": "word_note", "text": " "}),
+                                 content_type="application/json").json()
+        self.assertFalse(empty["success"])

@@ -52,7 +52,7 @@ MARKERS = {
     "examples": "Example chats",
     "summary": "Story summary",
     "trackers": "Story trackers",
-    "world_context": "World state (manual notes)",
+    "world_context": "Pinned note",
     "director_note": "Director's note",
 }
 ST_MARKERS = {
