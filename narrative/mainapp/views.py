@@ -25,7 +25,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
-from . import game, ai_client, cards, chats, regex_rules, model_profiles, presets, samplers, starters, trackers
+from . import game, thinking, ai_client, cards, chats, regex_rules, model_profiles, presets, samplers, starters, trackers
 from .utils import build_ai_request, narrate_text_backend, get_elevenlabs_key
 from .lorebook import (
     normalize_book, load_worldbook, save_worldbook, activate, format_for_prompt, to_sillytavern,
@@ -174,7 +174,7 @@ def chat(request, slug):
 
     # --- Text rules (regex scripts) from the active preset and the character card ---
     def text_rules(mode, text, role, edits_only=False):
-        rules = regex_rules.for_chat(presets.normalize(presets.get_active(request.user).data), character)
+        rules = regex_rules.for_chat(presets.normalize(presets.get_active(request.user).data), character, request.user)
         if edits_only:
             rules = [r for r in rules if r["run_on_edit"]]
         return regex_rules.run(rules, mode, text, role, prompt_names(request.user, character, chat_state["persona"]))
@@ -517,7 +517,7 @@ def chat(request, slug):
                 _, chat_model = ai_client.resolve(request.user, "chat")
                 names = prompt_names(request.user, character, chat_state["persona"])
                 history = [{"role": m[0], "content": m[2]} for m in messages if m[0] in ("user", "assistant")]
-                history = regex_rules.run_on_history(regex_rules.for_chat(preset, character), history, names)
+                history = regex_rules.run_on_history(regex_rules.for_chat(preset, character, request.user), history, names)
                 # The unfinished reply is the last message; the preset's continue nudge comes after it
                 nudge = preset["utility"]["continue_nudge"].strip() or presets.UTILITY_DEFAULTS["continue_nudge"]
                 history.append({"role": "system", "content": nudge})
@@ -617,7 +617,7 @@ def chat(request, slug):
                     preset = presets.normalize(presets.get_active(request.user).data)
                     _, chat_model = ai_client.resolve(request.user, "chat")
                     names = prompt_names(request.user, character, chat_state["persona"])
-                    history = regex_rules.run_on_history(regex_rules.for_chat(preset, character), api_messages, names)
+                    history = regex_rules.run_on_history(regex_rules.for_chat(preset, character, request.user), api_messages, names)
                     built = presets.assemble(preset, prompt_slots(request.user, character, prompt, chat_state["persona"]),
                                              history, names, chat_model)
                     context_dropped = built["dropped"]
@@ -637,6 +637,9 @@ def chat(request, slug):
                         message, _ = ai_client.complete_message(request.user, "chat", built["messages"], **built["params"])
                         reply = message.get("content") or ""
                         reasoning = (message.get("reasoning") or message.get("reasoning_content") or "").strip()
+                    if not streaming:  # thinking written inside the reply (<thinking>...</thinking>) goes in the box too
+                        inline, reply = thinking.split(reply)
+                        reasoning = "\n\n".join(t for t in (reasoning, inline) if t)
 
                 except ai_client.AIError as e:
                     # Keep the user's message so they can press Regenerate (and the old reply, if regenerating)
@@ -654,6 +657,7 @@ def chat(request, slug):
                 def finish_reply(reply, reasoning="", ops=()):
                     """Emotion, saving, voice and the summary/tracker flags, once the reply is complete."""
                     reply = text_rules("saved", reply, "assistant")
+                    reasoning = text_rules("saved", reasoning, "reasoning").strip() if reasoning else ""
                     char_count = 1
                     emotion_char_1 = "neutral"
                     emotion_char_2 = "neutral"
@@ -772,6 +776,7 @@ def chat(request, slug):
                 def stream_reply():
                     """NDJSON lines: {"type": "delta", "text"} ..., then {"type": "done", ...} or {"type": "error"}."""
                     parts, thoughts, finished = [], [], False
+                    inline = thinking.Splitter()  # thinking the model writes inside its reply
 
                     def keep_partial():
                         # Keep whatever arrived (Stop button, closed tab or a broken stream)
@@ -797,12 +802,16 @@ def chat(request, slug):
                                     continue
                                 if isinstance(chunk, ai_client.ToolCalls):
                                     continue
-                                if isinstance(chunk, ai_client.Reasoning):
-                                    thoughts.append(chunk)
-                                    yield json.dumps({"type": "thinking", "text": chunk}, ensure_ascii=False) + "\n"
-                                    continue
-                                parts.append(chunk)
-                                yield json.dumps({"type": "delta", "text": chunk}, ensure_ascii=False) + "\n"
+                                pieces = ([("thinking", chunk)] if isinstance(chunk, ai_client.Reasoning)
+                                          else inline.feed(chunk))
+                                for kind, piece in pieces:
+                                    (thoughts if kind == "thinking" else parts).append(piece)
+                                    yield json.dumps({"type": "thinking" if kind == "thinking" else "delta", "text": piece},
+                                                     ensure_ascii=False) + "\n"
+                            for kind, piece in inline.finish():
+                                (thoughts if kind == "thinking" else parts).append(piece)
+                                if kind == "text":
+                                    yield json.dumps({"type": "delta", "text": piece}, ensure_ascii=False) + "\n"
                         except ai_client.AIError as e:
                             keep_partial()
                             finished = True
@@ -883,7 +892,7 @@ def chat(request, slug):
         "appearance": _appearance(request.user),
         "bulba_url": reverse("bulba_chat", kwargs={"chat_id": chat_obj.id}),
         "display_rules": {
-            "rules": [r for r in regex_rules.for_chat(presets.normalize(presets.get_active(request.user).data), character)
+            "rules": [r for r in regex_rules.for_chat(presets.normalize(presets.get_active(request.user).data), character, request.user)
                       if r["enabled"] and r["mode"] == "display"],
             "names": prompt_names(request.user, character, chat_state["persona"])},
         "chat_persona": chat_state["persona"],
@@ -968,7 +977,7 @@ def build_chat_request(user, chat_obj, preset=None, character=None, drop_last_re
     persona = data.get("persona") if isinstance(data.get("persona"), dict) else {}
     names = prompt_names(user, character, persona)
     history = [{"role": m[0], "content": m[2]} for m in messages if m[0] in ("user", "assistant")]
-    history = regex_rules.run_on_history(regex_rules.for_chat(preset, character), history, names)
+    history = regex_rules.run_on_history(regex_rules.for_chat(preset, character, user), history, names)
     _, model = ai_client.resolve(user, "chat")
     return presets.assemble(preset, prompt_slots(user, character, prompt, persona), history, names, model)
 
@@ -1011,7 +1020,7 @@ def _preset_preview(user, preset, character):
     except ai_client.NoConnection:
         model = ""
     names = prompt_names(user, character)
-    history = regex_rules.run_on_history(regex_rules.for_chat(preset, character), history, names)
+    history = regex_rules.run_on_history(regex_rules.for_chat(preset, character, user), history, names)
     built = presets.assemble(preset, prompt_slots(user, character, prompt), history, names, model)
     return {"messages": built["preview"], "params": built["params"], "notes": built["notes"],
             "variables": built["variables"], "model": model}
@@ -1029,6 +1038,8 @@ def preset_list(request):
             return JsonResponse({"error": "Invalid request."}, status=400)
         action = data.get("action")
         obj = Preset.objects.filter(user=request.user, id=data.get("id")).first()
+        if action == "save_my_rules":  # the user's own text rules, run with every preset (no preset needed)
+            return JsonResponse({"rules": regex_rules.save_user_rules(request.user, data.get("rules"))})
 
         if action == "import":
             try:
@@ -1122,6 +1133,7 @@ def preset_list(request):
         "characters": [{"slug": c.slug, "name": c.name} for c in Character.objects.filter(author=request.user)],
         "starters": starters.for_page(_chat_model(request.user)),
         "starter_of": (presets.normalize(selected.data)["extras"].get("starter") or {}).get("id"),
+        "my_rules": regex_rules.user_rules(request.user),
     }})
 
 
@@ -1382,6 +1394,27 @@ class UpdateCharacter(CharacterBaseView, UpdateView):
         character = form.save()
         return redirect(reverse('chat', kwargs={'slug': character.slug}))
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["card_rules"] = regex_rules.card_rules(self.object)  # the card's own text rules, switchable
+        return context
+
+
+@login_required
+def character_rule(request, slug):
+    """Switch one of a card's own text rules on or off."""
+    character = get_object_or_404(Character, slug=slug, author=request.user)
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only"}, status=405)
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+        regex_rules.set_card_rule(character, str(data.get("id")), bool(data.get("enabled")))
+    except (ValueError, UnicodeDecodeError):
+        return JsonResponse({"error": "Invalid request."}, status=400)
+    except KeyError:
+        return JsonResponse({"error": "No such rule on this card."}, status=404)
+    return JsonResponse({"status": "ok", "rules": regex_rules.card_rules(character)})
+
 
 SPRITE_EMOTIONS = ["happy", "sad", "angry", "surprised", "scared", "confused", "calm", "scheming"]
 
@@ -1461,7 +1494,7 @@ def character_import(request):
         notes.append(f"{n} alternate greeting{'s' if n != 1 else ''}: swipe the first message to pick one.")
     if character.worldbook:
         notes.append(f"Its lore is now the worldbook “{character.worldbook.title}”.")
-    card_rules = regex_rules.for_chat({}, character)
+    card_rules = regex_rules.card_rules(character)
     if card_rules:
         notes.append(f"It comes with {len(card_rules)} text rule{'s' if len(card_rules) != 1 else ''} "
                      "(regex scripts); they run in its chats.")

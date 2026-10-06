@@ -43,6 +43,18 @@
                     </div>
                 {% endif %}
             {% endfor %}
+            {% if card_rules %}
+                <div class="form-group card-rules" data-url="{% url 'character_rule' object.slug %}">
+                    <label>Text rules that came with the card</label>
+                    <p class="section-help">Find-and-replace rules the card's author added (SillyTavern regex scripts). They run in
+                        this character's chats, after your own rules and the preset's. Switch off any you don't want.</p>
+                    {% for r in card_rules %}
+                        <label class="check"><input type="checkbox" data-card-rule="{{ r.id }}" {% if r.enabled %}checked{% endif %}>
+                            {{ r.name }} <small>({% if r.mode == "display" %}on screen{% elif r.mode == "prompt" %}sent to the AI{% else %}saved{% endif %})</small></label>
+                    {% endfor %}
+                    <span class="section-help" id="cardRuleStatus"></span>
+                </div>
+            {% endif %}
             {% if object %}
                 <p class="section-help">Share or back up: <a href="{% url 'character_export' object.slug %}">download as .png card</a> · <a href="{% url 'character_export' object.slug %}?format=json">.json</a></p>
             {% endif %}

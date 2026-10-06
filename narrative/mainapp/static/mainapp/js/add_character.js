@@ -120,3 +120,19 @@ if (location.hash === '#spritesSection') {
         btn.disabled = false;
     };
 })();
+
+// The card's own text rules: switch each on or off right away
+document.querySelectorAll('[data-card-rule]').forEach(box => box.addEventListener('change', async () => {
+    const wrap = box.closest('.card-rules');
+    const status = document.getElementById('cardRuleStatus');
+    const cookie = document.cookie.split(';').map(c => c.trim()).find(c => c.startsWith('csrftoken='));
+    try {
+        const resp = await fetch(wrap.dataset.url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': cookie ? decodeURIComponent(cookie.slice(10)) : '' },
+            body: JSON.stringify({ id: box.dataset.cardRule, enabled: box.checked }),
+        });
+        if (!resp.ok) throw new Error((await resp.json().catch(() => ({}))).error || 'Could not save.');
+        status.textContent = 'Saved.';
+    } catch (err) { box.checked = !box.checked; status.textContent = err.message; }
+}));

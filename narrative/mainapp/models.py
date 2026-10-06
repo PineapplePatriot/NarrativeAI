@@ -137,6 +137,8 @@ class ChatSettings(models.Model):
     samplers = models.JSONField(default=dict, blank=True)
     # How chats look: {"dialogue_color": "#e594f2" or "preset" (leave colouring to the preset)}
     appearance = models.JSONField(default=dict, blank=True)
+    # The user's own text rules, run with every preset (see mainapp/regex_rules.py)
+    regex = models.JSONField(default=list, blank=True)
     author = models.OneToOneField(
         get_user_model(),
         on_delete=models.SET_NULL,

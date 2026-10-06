@@ -11,7 +11,7 @@ import copy
 import uuid
 from pathlib import Path
 
-from mainapp import ai_client, chats, game, presets
+from mainapp import ai_client, chats, game, presets, thinking
 from mainapp.bulba import library, lore
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba"
@@ -254,7 +254,7 @@ def tool_retry_reply(session, args):
     except ai_client.AIError as e:
         return {"error": str(e)}, [{"type": "error", "text": str(e)}]
     session.spent += cost or 0
-    text = (message.get("content") or "").strip()
+    text = thinking.split(message.get("content") or "")[1].strip()
     label = "With the change" if proposal else "Again, as it is"
     return ({"rewritten_reply": text, "note": "They see it as a single sample with Like / Not quite buttons."},
             [{"type": "samples", "model": model_name, "character": chat.character.name, "scenario": "",

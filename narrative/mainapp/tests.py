@@ -2326,10 +2326,12 @@ class RegexChatTests(ChatPromptTests):
         self.post({"action": "chat", "message": "teh tower?"})
         saved = self.saved_messages()
         self.assertEqual(saved[-2][2], "the tower?")                              # saved rule, your messages
-        self.assertEqual(saved[-1][2], "<think>plan</think>A LOUD reply. [HP:5]")  # saved rule, AI replies
+        self.assertEqual(saved[-1][2], "A LOUD reply. [HP:5]")  # saved rule, AI replies (thinking folded away)
+        from mainapp import chats
+        self.assertEqual(chats.reasoning_of(saved[-1]), "plan")
         self.post({"action": "chat", "message": "go on"})
         sent = "\n".join(m["content"] for m in self.sent[-1]["messages"])
-        self.assertNotIn("<think>", sent)                                         # prompt rule
+        self.assertNotIn("<think>", sent)                                         # thinking is never sent back
         self.assertIn("A LOUD reply. [HP:5]", sent)                                # display rule isn't sent
         page = self.client.get(self.url)
         rules = page.context["display_rules"]["rules"]
@@ -2972,3 +2974,80 @@ class BulbaChanceTests(BulbaTests):
                        ("Hm.", [])]
         self.api(action="say", text="build")
         self.assertIn("no block called", json.dumps(self.bulba_calls[1]["messages"][-1]))
+
+
+class InlineThinkingTests(SimpleTestCase):
+    def test_split(self):
+        from mainapp import thinking
+        self.assertEqual(thinking.split("<thinking>- plan\n- go</thinking>\n\nShe smiles."), ("- plan\n- go", "She smiles."))
+        self.assertEqual(thinking.split("She says <think>no</think>."), ("", "She says <think>no</think>."))
+        self.assertEqual(thinking.split("<think>cut off"), ("cut off", ""))
+
+    def test_streamed_pieces_even_with_split_tags(self):
+        from mainapp import thinking
+        s = thinking.Splitter()
+        out = []
+        for piece in ["  <thi", "nking>plan", " a</thin", "king>\n\n", "Hello", " there."]:
+            out += s.feed(piece)
+        out += s.finish()
+        self.assertEqual("".join(t for k, t in out if k == "thinking"), "plan a")
+        self.assertEqual("".join(t for k, t in out if k == "text"), "Hello there.")
+        s = thinking.Splitter()
+        out = s.feed("<b>Bold</b> start") + s.finish()
+        self.assertEqual(out, [("text", "<b>Bold</b> start")])
+
+
+class TextRuleLeftoverTests(StreamChatTests):
+    def test_inline_thinking_goes_to_the_box(self):
+        self.stream_lines = sse(delta("<thinking>"), delta("- short reply"), delta("</thinking>\n\n"),
+                                delta("Fine."), "[DONE]")
+        resp, events = self.stream_post({"action": "chat", "message": "Hi"})
+        self.assertEqual("".join(e["text"] for e in events if e["type"] == "thinking"), "- short reply")
+        self.assertEqual(events[-1]["reply"], "Fine.")
+        from mainapp import chats
+        self.assertEqual(chats.reasoning_of(self.saved_messages()[-1]), "- short reply")
+
+    def test_my_rules_run_with_every_preset_and_on_thinking(self):
+        from mainapp import regex_rules
+        regex_rules.save_user_rules(self.user, [
+            {"name": "No dashes", "find": "/—/g", "replace": ", ", "placement": [2], "mode": "saved"},
+            {"name": "Thinking tidy", "find": "/PLAN:/g", "replace": "", "placement": [6], "mode": "saved"}])
+        self.stream_lines = sse(delta("<think>PLAN: be brief</think>Wait—stop."), "[DONE]")
+        resp, events = self.stream_post({"action": "chat", "message": "Hi"})
+        self.assertEqual(events[-1]["reply"], "Wait, stop.")
+        from mainapp import chats
+        self.assertEqual(chats.reasoning_of(self.saved_messages()[-1]), "be brief")
+        page = self.client.get(reverse("presets"))
+        self.assertEqual(page.context["preset_page"]["my_rules"][0]["name"], "No dashes")
+        resp = self.client.post(reverse("presets"), json.dumps({"action": "save_my_rules", "rules": []}),
+                                content_type="application/json")
+        self.assertEqual(resp.json()["rules"], [])
+
+    def test_card_rules_can_be_switched_off(self):
+        self.character.card_data = {"extensions": {"regex_scripts": [
+            {"id": "r1", "scriptName": "Shout", "findRegex": "/hello/g", "replaceString": "HELLO", "placement": [2]}]}}
+        self.character.save()
+        page = self.client.get(reverse("character", args=[self.character.slug]))
+        self.assertContains(page, "Text rules that came with the card")
+        resp = self.client.post(reverse("character_rule", args=[self.character.slug]),
+                                json.dumps({"id": "r1", "enabled": False}), content_type="application/json")
+        self.assertFalse(resp.json()["rules"][0]["enabled"])
+        self.character.refresh_from_db()
+        self.assertTrue(self.character.card_data["extensions"]["regex_scripts"][0]["disabled"])
+        self.stream_lines = sse(delta("hello"), "[DONE]")
+        _, events = self.stream_post({"action": "chat", "message": "Hi"})
+        self.assertEqual(events[-1]["reply"], "hello")
+
+    def test_lore_rules_change_entries_in_the_prompt(self):
+        from mainapp import lorebook, regex_rules
+        from mainapp.models import Worldbook
+        wb = Worldbook(title="Coast", slug="coast-rules", author=self.user)
+        lorebook.save_worldbook(wb, {"entries": [{"keys": ["ferry"], "content": "The ferry leaves at NOON."}]})
+        self.character.worldbook = wb
+        self.character.save()
+        regex_rules.save_user_rules(self.user, [
+            {"name": "Lore", "find": "/NOON/g", "replace": "midnight", "placement": [5], "mode": "prompt"}])
+        self.stream_post({"action": "chat", "message": "When is the ferry?"})
+        sent = json.dumps(self.sent[-1]["messages"])
+        self.assertIn("The ferry leaves at midnight.", sent)
+        self.assertNotIn("NOON", sent)

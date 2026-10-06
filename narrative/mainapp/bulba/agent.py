@@ -5,7 +5,7 @@ import re
 import uuid
 from pathlib import Path
 
-from mainapp import ai_client, cards, model_profiles, presets, starters
+from mainapp import ai_client, cards, model_profiles, presets, starters, thinking
 from mainapp.bulba import doctor, library, lore
 
 INSTRUCTIONS = Path(__file__).resolve().parent.parent / "data" / "bulba" / "instructions.md"
@@ -294,7 +294,7 @@ def generate_sample(session, preset, scenario, user_turn, character, instruction
     names = {"char": character["name"], "user": cards.user_name(user)}
     built = presets.assemble(preset, slots, [{"role": "user", "content": user_turn}], names, chat_model)
     message, cost = ai_client.complete_message(user, "chat", built["messages"], **built["params"])
-    return (message.get("content") or "").strip(), cost
+    return thinking.split(message.get("content") or "")[1].strip(), cost  # samples show the reply, not its thinking
 
 
 def tool_get_starter(session, args):

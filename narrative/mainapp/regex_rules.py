@@ -1,22 +1,25 @@
 """
 Text rules ("regex scripts"), as in SillyTavern: find-and-replace rules that clean or decorate messages.
 
-A rule runs on the user's messages, the AI's replies, or both (`placement`), and in one of three ways:
+A rule runs on the user's messages, the AI's replies, lore entries (as they go into the prompt) or the
+model's thinking (when it's saved), as set by `placement`, and in one of three ways:
     - "saved"   (neither flag in SillyTavern): changes the message itself when it's sent or received.
     - "display" (markdownOnly): changes only what's shown on screen. Runs in the browser
                  (static/mainapp/js/regex_rules.js) with the browser's own regex engine.
     - "prompt"  (promptOnly): changes only what's sent to the AI, e.g. dropping old tracker blocks.
 `min_depth` / `max_depth` limit a rule to messages that many places from the newest (0 = the newest).
 
-Rules come from the active preset (SillyTavern presets carry them in extensions.regex_scripts) and from
-the character card (card_data.extensions.regex_scripts). SillyTavern writes them as JavaScript regexes
+Rules come from the user's own list (ChatSettings.regex, run with every preset), the active preset
+(SillyTavern presets carry them in extensions.regex_scripts) and the character card
+(card_data.extensions.regex_scripts; each can be switched off on the character's page). SillyTavern writes them as JavaScript regexes
 ("/pattern/flags"); this module translates the few syntax differences so Python can run them. A rule
 that still can't run here is reported by `check()` and skipped on the server.
 """
 import re
 import uuid
 
-USER_INPUT, AI_OUTPUT = 1, 2
+USER_INPUT, AI_OUTPUT, LORE, REASONING = 1, 2, 5, 6
+ROLE_PLACEMENT = {"user": USER_INPUT, "assistant": AI_OUTPUT, "lore": LORE, "reasoning": REASONING}
 PLACEMENT_NAMES = {1: "your messages", 2: "AI replies", 3: "slash commands", 5: "lore entries", 6: "reasoning"}
 MODES = ("saved", "display", "prompt")
 MAX_INPUT = 200_000  # characters per message a rule will look at
@@ -243,7 +246,7 @@ def run_rule(rule, text, names):
 def applies(rule, mode, role, depth):
     if not rule["enabled"] or rule["mode"] != mode:
         return False
-    if (USER_INPUT if role == "user" else AI_OUTPUT) not in rule["placement"]:
+    if ROLE_PLACEMENT.get(role, AI_OUTPUT) not in rule["placement"]:
         return False
     if depth is not None:
         if rule["min_depth"] is not None and depth < rule["min_depth"]:
@@ -273,10 +276,52 @@ def run_on_history(rules, history, names):
 # Which rules apply to a chat
 # ---------------------------------------------------------------------------
 
-def for_chat(preset, character):
-    """The active preset's rules, then the character card's."""
-    rules = list((preset or {}).get("regex") or [])
+def user_rules(user):
+    """The user's own rules, which run with every preset (SillyTavern's "global" scripts)."""
+    from mainapp.models import ChatSettings
+    s = ChatSettings.objects.filter(author=user).first() if user is not None else None
+    return normalize_rules(s.regex if s else [])
+
+
+def save_user_rules(user, rules):
+    from mainapp.models import ChatSettings
+    s, _ = ChatSettings.objects.get_or_create(author=user)
+    s.regex = normalize_rules(rules)
+    s.save(update_fields=["regex"])
+    return s.regex
+
+
+def card_rules(character):
     card = getattr(character, "card_data", None) or {}
     ext = card.get("extensions") if isinstance(card.get("extensions"), dict) else {}
-    rules += normalize_rules(ext.get("regex_scripts"))
+    return normalize_rules(ext.get("regex_scripts"))
+
+
+def set_card_rule(character, rule_id, enabled):
+    """Switch one of a card's own rules on or off (kept in the card, in SillyTavern's format)."""
+    card = dict(character.card_data or {})
+    ext = dict(card.get("extensions") or {})
+    scripts = [dict(r) for r in ext.get("regex_scripts") or [] if isinstance(r, dict)]
+    rules = normalize_rules(scripts)
+    for raw, rule in zip(scripts, rules):
+        if rule["id"] == rule_id:
+            if "findRegex" in raw or "scriptName" in raw:
+                raw["disabled"] = not enabled
+            else:
+                raw["enabled"] = enabled
+            raw.setdefault("id", rule_id)
+            break
+    else:
+        raise KeyError(rule_id)
+    ext["regex_scripts"] = scripts
+    card["extensions"] = ext
+    character.card_data = card
+    character.save(update_fields=["card_data"])
+
+
+def for_chat(preset, character, user=None):
+    """The user's own rules, then the active preset's, then the character card's (SillyTavern's order)."""
+    rules = user_rules(user) if user is not None else []
+    rules += list((preset or {}).get("regex") or [])
+    rules += card_rules(character)
     return rules

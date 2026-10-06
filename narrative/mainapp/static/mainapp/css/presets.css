@@ -330,3 +330,8 @@ button.legend:hover { color: var(--text-primary) }
 .test-output { white-space: pre-wrap; background: rgba(15, 23, 42, .6); border-radius: 8px; padding: 10px; margin: 0; font-size: .8rem; max-height: 260px; overflow: auto }
 .rule-actions { display: flex; justify-content: flex-end }
 @media (max-width: 640px) { .rule-editor { padding-left: 0 } }
+
+.scope-tabs { display: flex; gap: 6px; margin: 10px 0; flex-wrap: wrap; }
+.scope-tabs button { background: transparent; border: 1px solid var(--border, rgba(148,163,184,.25)); color: inherit;
+                     padding: 6px 12px; border-radius: 999px; cursor: pointer; font-size: .85rem; }
+.scope-tabs button.active { border-color: var(--accent, #8b5cf6); background: rgba(139, 92, 246, .15); }

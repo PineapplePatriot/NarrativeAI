@@ -48,7 +48,7 @@ def card_report(character):
     if character.system_prompt or character.post_history_instructions:
         lines.append("The card has its own instructions, which replace the preset's main prompt:\n"
                      + _clip(character.system_prompt + "\n" + character.post_history_instructions, 1500))
-    rules = regex_rules.for_chat({}, character)
+    rules = regex_rules.card_rules(character)
     if rules:
         lines.append(f"Text rules (regex) on the card: {len(rules)}")
     return "\n\n".join(lines)

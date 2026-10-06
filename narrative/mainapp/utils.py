@@ -45,6 +45,14 @@ def build_ai_request(user, character: Character, chat=None, worldbook_slug=None,
             if last_user_message_text:
                 scan_messages.append(last_user_message_text)
             lore = activate(load_worldbook(wb), scan_messages)
+            # Text rules placed on lore entries (SillyTavern's "World Info" placement)
+            from mainapp import presets, regex_rules
+            rules = [r for r in regex_rules.for_chat(presets.normalize(presets.get_active(user).data), character, user)
+                     if r["mode"] in ("saved", "prompt")]
+            if any(regex_rules.LORE in r["placement"] for r in rules):
+                names = {"char": character.name, "user": getattr(user, "persona_name", "") or user.username}
+                lore["entries"] = [{**e, "content": regex_rules.run(rules, "saved", regex_rules.run(
+                    rules, "prompt", e["content"], "lore", names), "lore", names)} for e in lore["entries"]]
             world_info_text = format_for_prompt(lore["entries"])
             if world_info_text:
                 system_prompts["WorldInfo"] = world_info_text

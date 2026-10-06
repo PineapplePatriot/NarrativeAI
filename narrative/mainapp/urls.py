@@ -10,6 +10,7 @@ path('character_export/<slug:slug>', views.character_export, name="character_exp
 path('character_sprite/<slug:slug>', views.character_sprite, name="character_sprite"),
 path('image_models/', views.image_model_list, name="image_models"),
 path('character_edit/<slug:slug>', views.UpdateCharacter.as_view(), name="character"),
+path('character_rule/<slug:slug>', views.character_rule, name="character_rule"),
 path('chat/<slug:slug>', views.chat, name="chat"),
 path('characters_list/', views.CharactersList.as_view(), name="characters_list"),
 path('samplers/', views.sampler_settings, name="samplers"),
