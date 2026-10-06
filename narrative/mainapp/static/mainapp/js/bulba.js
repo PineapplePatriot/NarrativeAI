@@ -342,3 +342,22 @@ document.addEventListener('click', (e) => {
         if (e.origin === window.location.origin && e.data && e.data.bulbaDraft) fill(e.data.bulbaDraft);
     });
 })();
+
+// Pictures: the character's (neutral or a mood) or a background, applied at once (Undo on the card)
+(function () {
+    const form = $('pictureForm');
+    if (!form) return;
+    $('attachBtn').onclick = () => { form.hidden = !form.hidden; };
+    $('pictureCancel').onclick = () => { form.hidden = true; };
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const file = $('pictureFile').files[0];
+        if (!file) return;
+        const body = new FormData();
+        body.append('picture', file);
+        body.append('as', $('pictureAs').value);
+        form.hidden = true;
+        $('pictureFile').value = '';
+        run(body, 'Adding the picture…');
+    });
+})();

@@ -41,9 +41,11 @@ what's already saved and that they can come back.
 5. **character**: the character they want to talk to. First ask whether they already have a card
    (offer_card_upload; see the lore guide). Otherwise follow the character guide; propose_character.
    For a character from an existing work, look_up first. Then, if the world needs it, offer a
-   lorebook (propose_lorebook, after a look_up with focus "world" for canon).
+   lorebook (propose_lorebook, after a look_up with focus "world" for canon), and a theme
+   (propose_theme: built-in background, music, dialogue colour; all optional; character guide).
 6. **pictures** (still the character stage): if character pictures are on (get_current_setup), offer to
-   add them now, with offer_choices: one choice opening the character's page (the "pictures" link from
+   add them now. They can send one right here with the 📎 button next to the message box (a neutral
+   picture first). Or, with offer_choices: one choice opening the character's page (the "pictures" link from
    the [Applied: Character ...] note: pictures go in its Sprites section) and "Later". Explain it in two
    lines: add one neutral picture of the character there (their own, or made in Nano Banana at
    https://gemini.google.com/), save, then press "Make the missing moods with Nano Banana" to get the

@@ -254,6 +254,72 @@ def apply_lore_edit(session, p):
     return f"“{wb.title}” changed. The next reply uses it."
 
 
+# ---------------------------------------------------------------------------
+# A character's theme: background, music and dialogue colour (all optional)
+# ---------------------------------------------------------------------------
+
+def tool_propose_theme(session, args):
+    import re
+    from mainapp import media_library
+    from mainapp.bulba.agent import _proposal
+    character = target_character(session)
+    if character is None:
+        return {"error": "No character yet."}, []
+    theme, summary = {}, []
+    for kind, key, label in (("backgrounds", "background", "Background"), ("music", "music", "Music")):
+        name = str(args.get(key) or "").strip()
+        if not name:
+            continue
+        if name.lower() == "none":
+            theme[key] = None
+            summary.append(f"{label}: none")
+            continue
+        item = media_library.find(kind, name)
+        if item is None:
+            return {"error": f"No built-in {key} called “{name}”.",
+                    "choices": [i["name"] for i in media_library.built_in(kind)]}, []
+        theme[key] = item
+        summary.append(f"{label}: {item['name']}")
+    color = str(args.get("dialogue_color") or "").strip()
+    if color:
+        if not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
+            return {"error": "dialogue_color is a hex colour like #67e8f9."}, []
+        theme["dialogue_color"] = color
+        summary.append(f"Dialogue colour: {color}")
+    if not theme:
+        return {"error": "Choose at least a background, music or colour."}, []
+    summary += ["Why:", str(args.get("why") or "")[:300]]
+    p = _proposal(session, "theme", f"Theme: {character.name}", summary,
+                  {"character_id": character.id, "theme": theme})
+    return {"proposal": p["id"], "status": "waiting for Apply"}, [{"type": "proposal", "id": p["id"]}]
+
+
+def apply_theme(session, p):
+    from mainapp.models import Character
+    data = p["payload"]
+    character = Character.objects.filter(author=session.user, id=data["character_id"]).first()
+    if character is None:
+        raise ValueError("That character is gone.")
+    p["undo"] = {"character_id": character.id, "theme": dict(character.theme or {})}
+    theme = dict(character.theme or {})
+    t = data["theme"]
+    if "background" in t:
+        theme["bg"] = t["background"]["url"] if t["background"] else ""
+    if "music" in t:
+        theme["music"] = {"url": t["music"]["url"], "name": t["music"]["name"]} if t["music"] else {}
+    if t.get("dialogue_color"):
+        theme["dialogue_color"] = t["dialogue_color"]
+    character.theme = theme
+    character.save(update_fields=["theme"])
+    return f"{character.name}'s theme is set; chats with them open with it (unless a chat picked its own)."
+
+
+def undo_theme(session, p):
+    from mainapp.models import Character
+    before = p.get("undo") or {}
+    Character.objects.filter(author=session.user, id=before.get("character_id")).update(theme=before.get("theme") or {})
+
+
 def tool_offer_card_upload(session, args):
     return {"status": "upload box shown; they'll send the file or answer"}, [{"type": "card_upload"}]
 
@@ -271,7 +337,14 @@ def tool_defs(fn, STR, setup=True):
         "title": STR, "keys": {"type": "array", "items": STR},
         "content": {"type": "string", "description": "New text (replace)"},
         "always": {"type": "boolean"}}, "required": ["entry", "action"]}}
+    from mainapp import media_library
     defs = [
+        fn("propose_theme", "Optional: the character's look in chats, from the app's built-in backgrounds and music "
+           "(names below; \"none\" clears one) and a dialogue colour. Match them to the character and setting.",
+           {"background": {"type": "string", "enum": [i["name"] for i in media_library.built_in("backgrounds")] + ["none"]},
+            "music": {"type": "string", "enum": [i["name"] for i in media_library.built_in("music")] + ["none"]},
+            "dialogue_color": {"type": "string", "description": "Hex, e.g. #67e8f9; readable on a dark background"},
+            "why": STR}, ["why"]),
         fn("read_lorebook", "The character's lorebook entries (numbers, keys, text), before changing any.", {}),
         fn("propose_lore_edit", "Change existing lore entries: rewrite text or keys, switch off, or delete. "
            "Research canon with look_up first when facts are in doubt; new entries go through propose_lorebook.",
@@ -293,4 +366,4 @@ def tool_defs(fn, STR, setup=True):
 
 HANDLERS = {"propose_lorebook": tool_propose_lorebook, "offer_card_upload": tool_offer_card_upload,
             "work_on_character": tool_work_on_character, "read_lorebook": tool_read_lorebook,
-            "propose_lore_edit": tool_propose_lore_edit}
+            "propose_lore_edit": tool_propose_lore_edit, "propose_theme": tool_propose_theme}

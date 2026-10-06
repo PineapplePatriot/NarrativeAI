@@ -1,8 +1,10 @@
 # --- Standard library ---
+import io
 import json
 import logging
 import os
 import traceback
+import uuid
 from datetime import datetime
 
 # --- Django core ---
@@ -26,7 +28,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
-from . import extras, game, thinking, ai_client, cards, chats, regex_rules, model_profiles, presets, samplers, starters, trackers
+from . import extras, game, media_library, thinking, ai_client, cards, chats, regex_rules, model_profiles, presets, samplers, starters, trackers
 
 from .utils import build_ai_request, narrate_text_backend, get_elevenlabs_key
 from .lorebook import (
@@ -1696,20 +1698,11 @@ def get_media_resources(request):
         except Exception as e:
             return JsonResponse({"success": False, "error": str(e)})
 
-    # Built-in ones ship with the app (static/defaults/), so every install has them
-    def built_in(kind):
-        folder = settings.BASE_DIR / "static" / "defaults" / kind
-        if not folder.is_dir():
-            return []
-        exts = (".png", ".jpg", ".jpeg", ".webp", ".gif") if kind == "backgrounds" else (".mp3", ".ogg", ".wav", ".m4a")
-        return [{"name": os.path.splitext(f.name)[0].replace("-", " ").replace("_", " ").capitalize(),
-                 "url": f"{settings.STATIC_URL}defaults/{kind}/{f.name}"}
-                for f in sorted(folder.iterdir()) if f.suffix.lower() in exts]
-
     # Return lists for GET requests
     return JsonResponse({
-        "backgrounds": built_in("backgrounds") + get_files(bg_dir, "backgrounds"),
-        "music": built_in("music") + get_files(music_dir, "music")
+        # Built-in ones ship with the app (static/defaults/), so every install has them
+        "backgrounds": media_library.built_in("backgrounds") + get_files(bg_dir, "backgrounds"),
+        "music": media_library.built_in("music") + get_files(music_dir, "music")
     })
 
 
@@ -1851,6 +1844,8 @@ def bulba_api(request):
         return JsonResponse({"error": "POST only"}, status=405)
     if request.FILES.get("card"):  # a card they already have, from the upload box
         return _bulba_card_upload(request)
+    if request.FILES.get("picture"):  # the character's picture, a mood, or a background
+        return _bulba_picture_upload(request)
     try:
         data = json.loads(request.body.decode("utf-8"))
     except (ValueError, UnicodeDecodeError):
@@ -1894,6 +1889,52 @@ def bulba_api(request):
             return JsonResponse({"error": "Enter an amount in dollars."}, status=400)
     else:
         return JsonResponse({"error": "Unknown action."}, status=400)
+    session.activity = ""
+    session.save()
+    return JsonResponse({"events": events, "state": _bulba_state(session)})
+
+
+def _bulba_picture_upload(request):
+    from django.core.files.base import ContentFile
+    from PIL import Image, UnidentifiedImageError
+    from .bulba import agent, lore
+    session = _bulba_for_request(request, restart=False)
+    if session is None:
+        return JsonResponse({"error": "Bulba isn't available."}, status=400)
+    character = lore.target_character(session)
+    if character is None:
+        return JsonResponse({"error": "Make or pick a character first, then add their pictures."}, status=400)
+    upload, target = request.FILES["picture"], request.POST.get("as", "neutral")
+    if target not in SPRITE_EMOTIONS + ["neutral", "background"]:
+        return JsonResponse({"error": "Unknown kind of picture."}, status=400)
+    if upload.size > 15 * 1024 * 1024:
+        return JsonResponse({"error": "That picture is over 15 MB."}, status=400)
+    raw = upload.read()
+    try:
+        Image.open(io.BytesIO(raw)).verify()
+    except (UnidentifiedImageError, OSError, SyntaxError):
+        return JsonResponse({"error": "That file isn't a picture."}, status=400)
+    ext = os.path.splitext(upload.name)[1].lower() or ".png"
+    if target == "background":
+        folder = os.path.join(settings.MEDIA_ROOT, "backgrounds", "custom")
+        os.makedirs(folder, exist_ok=True)
+        name = f"{character.slug}-{uuid.uuid4().hex[:6]}{ext}"
+        with open(os.path.join(folder, name), "wb") as f:
+            f.write(raw)
+        undo = {"character_id": character.id, "theme": dict(character.theme or {})}
+        character.theme = {**(character.theme or {}), "bg": f"{settings.MEDIA_URL}backgrounds/custom/{name}"}
+        character.save(update_fields=["theme"])
+        kind, what = "theme", f"a background for {character.name}'s chats (now their theme)"
+    else:
+        field = f"photo_{target}"
+        undo = {"character_id": character.id, "field": field, "old": getattr(character, field).name or ""}
+        getattr(character, field).save(f"{character.slug}-{target}{ext}", ContentFile(raw), save=True)
+        kind, what = "picture", f"{character.name}'s {'main' if target == 'neutral' else target} picture"
+    p = agent._proposal(session, kind, f"Picture: {what}", ["Added from your upload."], {"character_id": character.id})
+    p.update(status="applied", undo=undo)
+    events = [{"type": "proposal", "id": p["id"]}]
+    session.events += events
+    events += agent.run_turn(session, None, action_note=f"Added {what}", model_note=f"They uploaded {what}; it's set.")
     session.activity = ""
     session.save()
     return JsonResponse({"events": events, "state": _bulba_state(session)})

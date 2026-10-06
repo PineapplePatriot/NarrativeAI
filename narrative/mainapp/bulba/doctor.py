@@ -213,7 +213,7 @@ def tool_propose_preset_edit(session, args):
 
 def tool_propose_card_edit(session, args):
     from mainapp.bulba.agent import _proposal
-    fields = {f: str(args.get(f)).strip()[:8000] for f in CARD_FIELDS if isinstance(args.get(f), str) and args.get(f).strip()}
+    fields = {f: str(args.get(f)).strip()[:40000] for f in CARD_FIELDS if isinstance(args.get(f), str) and args.get(f).strip()}
     if not fields:
         return {"error": "Change at least one field (description, personality, scenario, example_dialogue)."}, []
     character = lore.target_character(session)
@@ -279,7 +279,7 @@ CARD_EDIT_TOOL = _fn("propose_card_edit", "Propose changes to this character's c
 def tools():
     from mainapp.bulba import agent
     keep = {"offer_choices", "record_preference", "get_starter", "find_practice", "read_practice", "look_up",
-            "propose_lorebook", "propose_extras", "read_lorebook", "propose_lore_edit"}
+            "propose_lorebook", "propose_extras", "read_lorebook", "propose_lore_edit", "propose_theme"}
     base = [t for t in agent.TOOLS if t["function"]["name"] in keep]
     return base + [
         _fn("read_block", "The full text of one block of the active preset (names are in the outline).",

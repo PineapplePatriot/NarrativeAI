@@ -3473,3 +3473,83 @@ class BulbaPageListTests(BulbaInChatTests):
         self.api(action="say", text="too long")
         page = self.client.get(reverse("bulba"))
         self.assertTrue(any("bulba=1" in c["url"] for c in page.context["in_chats"]))
+
+
+class BulbaPicturesAndThemeTests(BulbaCardAndLoreTests):
+    def setUp(self):
+        import shutil, tempfile
+        super().setUp()
+        media = tempfile.mkdtemp()
+        override = override_settings(MEDIA_ROOT=media)
+        override.enable()
+        self.addCleanup(override.disable)
+        self.addCleanup(shutil.rmtree, media, ignore_errors=True)
+
+    def send_picture(self, data, as_="neutral", name="me.png"):
+        from unittest import mock
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=self.fake_post):
+            return self.client.post(reverse("bulba_api"), {"picture": SimpleUploadedFile(name, data), "as": as_})
+
+    @staticmethod
+    def png():
+        import io
+        from PIL import Image
+        buf = io.BytesIO()
+        Image.new("RGB", (4, 4), "red").save(buf, "PNG")
+        return buf.getvalue()
+
+    def test_pictures_sent_to_bulba(self):
+        from mainapp.models import Character
+        self.assertEqual(self.send_picture(self.png()).status_code, 400)  # no character yet
+        self.upload(V2_CARD)
+        self.assertEqual(self.send_picture(b"not a picture").status_code, 400)
+        self.assertEqual(self.send_picture(self.png(), as_="selfie").status_code, 400)
+        self.script = [("Lovely.", [])]
+        data = self.send_picture(self.png(), as_="angry").json()
+        viktor = Character.objects.get(author=self.user, name="Viktor")
+        self.assertTrue(viktor.photo_angry.name.endswith(".png"))
+        self.assertIn("angry picture", self.bulba_calls[-1]["messages"][-1]["content"])
+        pid = data["state"]["proposals"][-1]["id"]
+        self.script = [("Undone.", [])]
+        self.api(action="undo", id=pid)
+        viktor.refresh_from_db()
+        self.assertFalse(viktor.photo_angry)
+        self.script = [("Nice place.", [])]
+        self.send_picture(self.png(), as_="background")
+        viktor.refresh_from_db()
+        self.assertIn("/backgrounds/custom/", viktor.theme["bg"])
+
+    def test_theme_from_built_in_media(self):
+        from unittest import mock
+        from mainapp import media_library
+        from mainapp.models import Character
+        fake = [{"name": "Lab 13", "url": "/static/defaults/backgrounds/lab-13.webp"}]
+        tunes = [{"name": "Quiet Lab", "url": "/static/defaults/music/quiet-lab.mp3"}]
+        with mock.patch.object(media_library, "built_in", side_effect=lambda kind: fake if kind == "backgrounds" else tunes):
+            self.upload(V2_CARD)
+            self.script = [("", [self.call("propose_theme", background="Nowhere", why="x")]),
+                           ("Here's a look.", [self.call("propose_theme", background="lab 13", music="Quiet Lab",
+                                                         dialogue_color="#67e8f9", why="a scientist")])]
+            data = self.api(action="say", text="give him a theme").json()
+        pid = data["state"]["proposals"][-1]["id"]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=pid)
+        viktor = Character.objects.get(author=self.user, name="Viktor")
+        self.assertEqual(viktor.theme["bg"], "/static/defaults/backgrounds/lab-13.webp")
+        self.assertEqual(viktor.theme["music"]["name"], "Quiet Lab")
+        self.assertEqual(viktor.theme["dialogue_color"], "#67e8f9")
+        self.script = [("Undone.", [])]
+        self.api(action="undo", id=pid)
+        viktor.refresh_from_db()
+        self.assertNotIn("dialogue_color", viktor.theme)
+
+    def test_long_cards_are_kept_whole(self):
+        from mainapp.models import Character
+        long_text = "Habits:\n" + ("He checks the locks twice before sleeping. " * 600)  # ~25k characters
+        self.script = [("", [self.call("propose_character", name="Corvin", description=long_text,
+                                       greeting="The door creaks.")])]
+        pid = self.api(action="say", text="go all out").json()["state"]["proposals"][-1]["id"]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=pid)
+        self.assertEqual(Character.objects.get(author=self.user, name="Corvin").description, long_text.strip())

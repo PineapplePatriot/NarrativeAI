@@ -1,0 +1,186 @@
+{
+ "backgrounds": [
+  {
+   "file": "cyberpunk.webp",
+   "name": "Cyberpunk"
+  },
+  {
+   "file": "desert.webp",
+   "name": "Desert"
+  },
+  {
+   "file": "detective-noir.webp",
+   "name": "Detective Noir"
+  },
+  {
+   "file": "fantasy.webp",
+   "name": "Fantasy"
+  },
+  {
+   "file": "garden-morning.webp",
+   "name": "Garden morning"
+  },
+  {
+   "file": "jazzy.webp",
+   "name": "Jazzy"
+  },
+  {
+   "file": "lab-13.webp",
+   "name": "Lab 13"
+  },
+  {
+   "file": "mafia-meeting.webp",
+   "name": "Mafia Meeting"
+  },
+  {
+   "file": "moon-land.webp",
+   "name": "Moon Land"
+  },
+  {
+   "file": "postapocalyptic.webp",
+   "name": "Postapocalyptic"
+  },
+  {
+   "file": "queen-palace.webp",
+   "name": "Queen Palace"
+  },
+  {
+   "file": "rainy.webp",
+   "name": "Rainy"
+  },
+  {
+   "file": "space-station.webp",
+   "name": "Space Station"
+  },
+  {
+   "file": "spanish-masquerade.webp",
+   "name": "Spanish Masquerade"
+  },
+  {
+   "file": "steampunk.webp",
+   "name": "Steampunk"
+  },
+  {
+   "file": "the-vault.webp",
+   "name": "The Vault"
+  },
+  {
+   "file": "the-backrooms.webp",
+   "name": "The Backrooms"
+  },
+  {
+   "file": "victorian-mansion.webp",
+   "name": "Victorian Mansion"
+  },
+  {
+   "file": "winter-walk.webp",
+   "name": "Winter Walk"
+  },
+  {
+   "file": "xianxia.webp",
+   "name": "Xianxia"
+  }
+ ],
+ "music": [
+  {
+   "file": "ambient-guzheng-moonlit-whispers.mp3",
+   "name": "Ambient Guzheng: Moonlit Whispers",
+   "scene": "Ambient Guzheng"
+  },
+  {
+   "file": "chase-steampunk-the-clockwork-heart.mp3",
+   "name": "Chase Steampunk: The Clockwork Heart",
+   "scene": "Chase Steampunk"
+  },
+  {
+   "file": "cunning-banker-the-merchant-s-ledger.mp3",
+   "name": "Cunning Banker: The Merchant's Ledger",
+   "scene": "Cunning Banker"
+  },
+  {
+   "file": "cyberpunk-echoes-of-the-mall.mp3",
+   "name": "Cyberpunk: Echoes of the Mall",
+   "scene": "Cyberpunk"
+  },
+  {
+   "file": "desert-song-a-night-in-the-desert.mp3",
+   "name": "Desert Song: A Night in the Desert",
+   "scene": "Desert Song"
+  },
+  {
+   "file": "detective-noir-shadows-in-the-fog.mp3",
+   "name": "Detective Noir: Shadows in the Fog",
+   "scene": "Detective Noir"
+  },
+  {
+   "file": "fantasy-battle-shadows-of-the-fates.mp3",
+   "name": "Fantasy Battle: Shadows of the Fates",
+   "scene": "Fantasy Battle"
+  },
+  {
+   "file": "historic-drama-the-midnight-waltz.mp3",
+   "name": "Historic Drama: The Midnight Waltz",
+   "scene": "Historic Drama"
+  },
+  {
+   "file": "latin-ballad-nocte-sanguinis.mp3",
+   "name": "Latin Ballad: Nocte Sanguinis",
+   "scene": "Latin Ballad"
+  },
+  {
+   "file": "liminal-space-echoes-in-the-hallway.mp3",
+   "name": "Liminal Space: Echoes in the Hallway",
+   "scene": "Liminal Space"
+  },
+  {
+   "file": "mafia-meeting-the-table-is-set.mp3",
+   "name": "Mafia Meeting: The Table is Set",
+   "scene": "Mafia Meeting"
+  },
+  {
+   "file": "moon-fantasy-land-moonlit-shores.mp3",
+   "name": "Moon Fantasy Land: Moonlit Shores",
+   "scene": "Moon Fantasy Land"
+  },
+  {
+   "file": "morning-in-a-garden-luce-del-mattino.mp3",
+   "name": "Morning in a Garden: Luce del Mattino",
+   "scene": "Morning in a Garden"
+  },
+  {
+   "file": "open-space-starlight-isolation.mp3",
+   "name": "Open Space: Starlight Isolation",
+   "scene": "Open Space"
+  },
+  {
+   "file": "postapocalyptic-ambiance-whispered-horizons.mp3",
+   "name": "Postapocalyptic Ambiance: Whispered Horizons",
+   "scene": "Postapocalyptic Ambiance"
+  },
+  {
+   "file": "rainy-day-whispers-of-rain.mp3",
+   "name": "Rainy Day: Whispers of Rain",
+   "scene": "Rainy Day"
+  },
+  {
+   "file": "smooth-jazz-shadows-in-the-smoke.mp3",
+   "name": "Smooth Jazz: Shadows in the Smoke",
+   "scene": "Smooth Jazz"
+  },
+  {
+   "file": "sumerian-heretic-the-alchemist-s-game.mp3",
+   "name": "Sumerian Heretic: The Alchemist's Game",
+   "scene": "Sumerian Heretic"
+  },
+  {
+   "file": "victorian-intrigue-the-devil-s-waltz.mp3",
+   "name": "Victorian Intrigue: The Devil's Waltz",
+   "scene": "Victorian Intrigue"
+  },
+  {
+   "file": "winter-walk-whispers-in-the-snow.mp3",
+   "name": "Winter Walk: Whispers in the Snow",
+   "scene": "Winter Walk"
+  }
+ ]
+}

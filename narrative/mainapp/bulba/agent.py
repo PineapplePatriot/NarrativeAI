@@ -630,7 +630,7 @@ def tool_propose_preset(session, args):
 
 def tool_propose_persona(session, args):
     name = str(args.get("name", "")).strip()[:100]
-    desc = str(args.get("description", "")).strip()[:3000]
+    desc = str(args.get("description", "")).strip()[:8000]
     if not name or not desc:
         return {"error": "Need a name and a description."}, []
     p = _proposal(session, "persona", f"You: {name}", [desc], {"name": name, "description": desc})
@@ -641,7 +641,7 @@ def tool_propose_character(session, args):
     name = str(args.get("name", "")).strip()[:100]
     if not name or not str(args.get("description", "")).strip():
         return {"error": "Need a name and a description."}, []
-    payload = {k: str(args.get(k, "")).strip()[:6000]
+    payload = {k: str(args.get(k, "")).strip()[:40000]
                for k in ("description", "scenario", "greeting", "personality", "example_dialogue")}
     payload["name"] = name
     summary = ["Description:", payload["description"]]
@@ -706,7 +706,7 @@ def opening(session):
 
 # Tools after which Bulba waits for the user (see instructions.md, "Tools, briefly")
 TURN_ENDING = {"offer_choices", "write_samples", "show_basics_form", "retry_reply",
-               "propose_preset_edit", "propose_card_edit", "propose_lorebook", "propose_lore_edit", "propose_control", "offer_card_upload", "propose_extras", "propose_preset", "propose_persona", "propose_character"}
+               "propose_preset_edit", "propose_card_edit", "propose_lorebook", "propose_lore_edit", "propose_theme", "propose_control", "offer_card_upload", "propose_extras", "propose_preset", "propose_persona", "propose_character"}
 
 
 def run_turn(session, user_text, action_note=None, model_note=None):
@@ -735,7 +735,7 @@ def run_turn(session, user_text, action_note=None, model_note=None):
                        + _trimmed(session.messages))
             message, cost = ai_client.complete_message(session.user, "bulba", request,
                                                        tools=doctor.tools() if in_chat else TOOLS,
-                                                       tool_choice="auto", max_tokens=4000)
+                                                       tool_choice="auto", max_tokens=16000)
             session.spent += cost or 0
             calls = message.get("tool_calls") or []
             content = (message.get("content") or "").strip()

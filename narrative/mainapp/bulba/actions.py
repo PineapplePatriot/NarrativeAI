@@ -72,6 +72,12 @@ def apply(session, pid):
         p["undo"] = {"created": character.id}
         p["result"] = {"slug": character.slug}
         note = f"{character.name} is ready to chat."
+    elif p["kind"] == "theme":
+        from mainapp.bulba import lore
+        try:
+            note = lore.apply_theme(session, p)
+        except ValueError as e:
+            raise ProposalError(str(e))
     elif p["kind"] == "lore_edit":
         from mainapp.bulba import lore
         try:
@@ -134,6 +140,15 @@ def undo(session, pid):
         if before.get("worldbook"):  # an imported card's own lore goes with it
             from mainapp.models import Worldbook
             Worldbook.objects.filter(author=user, id=before["worldbook"], characters__isnull=True).delete()
+    elif p["kind"] == "theme":
+        from mainapp.bulba import lore
+        lore.undo_theme(session, p)
+    elif p["kind"] == "picture":
+        from mainapp.models import Character
+        character = Character.objects.filter(author=user, id=before.get("character_id")).first()
+        if character:
+            setattr(character, before["field"], before.get("old") or None)
+            character.save(update_fields=[before["field"]])
     elif p["kind"] in ("lorebook", "lore_edit"):
         from mainapp.bulba import lore
         lore.undo(session, p)
