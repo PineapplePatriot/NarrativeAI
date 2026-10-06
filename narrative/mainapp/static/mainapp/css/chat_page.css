@@ -1717,3 +1717,19 @@ details.thoughts .thoughts-text { white-space: pre-wrap; font-size: .85rem; opac
 .message-btn.play-sound.busy { animation: voice-busy 1s ease-in-out infinite; }
 .message-btn.play-sound.playing { color: var(--accent-1); border-color: var(--accent-1); }
 @keyframes voice-busy { 50% { opacity: .35; } }
+
+/* Message buttons sit beside the bubble, not over its text (assistant: to the right; yours: to the left),
+   at its bottom, where you are after reading it */
+.message:not(.layout-book *) .message-actions {
+    top: auto; bottom: 0; right: auto; left: 100%; flex-direction: column; margin-left: 6px;
+    background: rgba(15, 17, 28, .75); border: 1px solid var(--border-color);
+}
+.message.user .message-actions { left: auto; right: 100%; margin-left: 0; margin-right: 6px; }
+/* the gap between bubble and buttons stays hoverable */
+.message:not(.layout-book *) .message-actions::before { content: ""; position: absolute; top: 0; bottom: 0; width: 8px; left: -8px; }
+.message.user .message-actions::before { left: auto; right: -8px; }
+/* Phones: no room at the side, so the buttons go under the text */
+@media (max-width: 768px) {
+    .message:not(.layout-book *) .message-actions { position: static; flex-direction: row; margin: 8px 0 0;
+        background: transparent; border: none; padding: 0; justify-content: flex-end; }
+}

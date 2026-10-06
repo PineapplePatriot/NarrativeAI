@@ -3141,6 +3141,18 @@ class ImpersonateAndTriggerTests(ChatPromptTests):
         self.assertIn("Write as chatter now.", sent)
         self.assertIn("i nod", sent)
         self.assertIn("Hello, traveller.", sent)  # the chat itself
+        self.assertIn("how they say and do it", sent)  # a draft is written out, not just repeated
+        from unittest import mock
+        with mock.patch("mainapp.ai_client.complete_message", return_value=({"content": "i nod"}, 0)):
+            resp = self.client.post(self.url, json.dumps({"action": "expand", "text": "i nod"}),
+                                    content_type="application/json").json()
+        self.assertFalse(resp["success"])
+        self.assertIn("unchanged", resp["error"])
+        with mock.patch("mainapp.ai_client.complete_message",
+                        return_value=({"content": "<thinking>so I should write that they nod", "reasoning": ""}, 0)):
+            resp = self.client.post(self.url, json.dumps({"action": "expand", "text": "i nod"}),
+                                    content_type="application/json").json()
+        self.assertIn("reply length", resp["error"])
 
 
 class DirectorModeTests(BulbaTests):
@@ -3932,3 +3944,29 @@ class StageCatchUpTests(BulbaTests):
         # it never goes back on its own
         self.script = [("Persona again.", [self.call("set_stage", stage="persona")])]
         self.assertEqual(self.api(action="say", text="change me").json()["state"]["stage"], "persona")
+
+
+class BulbaRewriteIntoChatTests(BulbaInChatTests):
+    def test_use_the_rewrite_as_a_new_version(self):
+        from mainapp import chats
+        self.make_chat()
+        before = chats.read(self.chat_obj)["messages"][-1][2]
+        self.script = [("Here it is again.", [self.call("retry_reply")])]
+        data = self.api(action="say", text="try again").json()
+        ev = next(e for e in data["events"] if e["type"] == "samples")
+        self.assertTrue(ev["retry_id"])
+        data = self.api(action="use_retry", id=ev["retry_id"]).json()
+        last = chats.read(self.chat_obj)["messages"][-1]
+        self.assertEqual(last[2], "A shorter reply.")
+        self.assertEqual([v["text"] for v in last[5]["swipes"]], [before, "A shorter reply."])  # the old one is kept
+        self.assertEqual(self.api(action="use_retry", id=ev["retry_id"]).status_code, 400)  # only once
+
+    def test_not_after_the_chat_moved_on(self):
+        from mainapp import chats
+        self.make_chat()
+        self.script = [("Here.", [self.call("retry_reply")])]
+        ev = next(e for e in self.api(action="say", text="again").json()["events"] if e["type"] == "samples")
+        data = chats.read(self.chat_obj)
+        data["messages"].append(["user", "10:00", "Next!", "neutral", 1])
+        chats.write(self.chat_obj, data)
+        self.assertEqual(self.api(action="use_retry", id=ev["retry_id"]).status_code, 400)

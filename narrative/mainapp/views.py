@@ -323,8 +323,11 @@ def chat(request, slug):
             preset = presets.normalize(presets.get_active(request.user).data)
             ask = (preset["utility"]["impersonation"].strip() or presets.UTILITY_DEFAULTS["impersonation"])
             if draft:
-                ask += ("\n\n[{{user}} has drafted this; write it out as their full message, keeping what they "
-                        f"say and do, and adding nothing they didn't decide:]\n{draft}")
+                ask += ("\n\n[{{user}} sketched their next move below. Write it out as their full message, in the "
+                        "story's language and style and about as long as their earlier messages: what they say, "
+                        "and how they say and do it (tone, gesture, a small detail of the moment). Keep their intent "
+                        "and decisions; don't add new decisions for them, other characters' reactions or "
+                        f"outcomes.]\n{draft}")
             names = prompt_names(request.user, character, chat_state["persona"])
             ask = ask.replace("{{user}}", names["user"]).replace("{{char}}", names["char"])
             try:
@@ -333,9 +336,18 @@ def chat(request, slug):
                 message, _ = ai_client.complete_message(request.user, "chat", built["messages"], **built["params"])
             except ai_client.AIError as e:
                 return JsonResponse({"success": False, "error": str(e)})
-            written = thinking.split(message.get("content") or "")[1].strip()
-            return JsonResponse({"success": bool(written), "text": written or draft,
-                                 "spending": ai_client.spending(request.user)})
+            thought, written = thinking.split(message.get("content") or "")
+            written = written.strip()
+            if not written:
+                why = ("The model used up the reply length thinking. Raise the reply length limit (Samplers) or "
+                       "ask Bulba." if thought or message.get("reasoning") else "The model sent back nothing. Try again.")
+                return JsonResponse({"success": False, "error": why, "text": draft,
+                                     "spending": ai_client.spending(request.user)})
+            if draft and written.strip() == draft.strip():
+                return JsonResponse({"success": False, "error": "The model gave your draft back unchanged. Try again, "
+                                     "or add a word about what you want.", "text": draft,
+                                     "spending": ai_client.spending(request.user)})
+            return JsonResponse({"success": True, "text": written, "spending": ai_client.spending(request.user)})
 
         # --- 3. NEW: Spellcheck ---
         elif action == "spellcheck":
@@ -1982,6 +1994,30 @@ def bulba_api(request):
         if pref:
             pref["status"] = "rejected"
             session.messages.append({"role": "user", "content": f"[I removed this preference: {pref['interpretation']}]"})
+    elif action == "use_retry":  # a reply Bulba rewrote in a chat becomes a new version of the chat's last reply
+        if session.chat_id is None:
+            return JsonResponse({"error": "That only works inside a chat."}, status=400)
+        ev = next((e for e in session.events if e.get("retry_id") and e["retry_id"] == data.get("id")), None)
+        chat_data = chats.read(session.chat)
+        messages = chat_data.get("messages") or []
+        if ev is None or not ev.get("samples"):
+            return JsonResponse({"error": "That rewrite is gone."}, status=400)
+        if ev.get("used"):
+            return JsonResponse({"error": "It's in the chat already."}, status=400)
+        if len(messages) != ev.get("at") or not messages or messages[-1][0] != "assistant":
+            return JsonResponse({"error": "The chat has moved on since; ask Bulba to rewrite the new last reply."},
+                                status=400)
+        last = tuple(messages[-1])
+        new = chats.with_reasoning(("assistant", datetime.now().strftime("%H:%M"), ev["samples"][0]["text"],
+                                    last[3], last[4]), ev.get("reasoning") or "")
+        messages[-1] = chats.add_version(last, new)
+        chat_data["messages"] = messages
+        chats.write(session.chat, chat_data)
+        ev["used"] = True
+        events = [{"type": "note", "text": "It's in the chat now, as a new version of the last reply (the arrows "
+                                           "under it flip back to the old one)."}]
+        session.events.append(events[0])
+        session.messages.append({"role": "user", "content": "[I put your rewritten reply into the chat.]"})
     elif action == "edit_proposal":  # the user rewrites a proposal's text before applying it
         try:
             proposal, changed = editing.edit(session, data.get("id"), data.get("values"))

@@ -179,6 +179,8 @@ function render() {
                     <button type="button" class="ghost" data-say="Neither of these.">Neither</button>
                     <button type="button" class="ghost" data-say="A bit of both. ">A bit of both…</button>
                     <button type="button" class="ghost" data-say="No preference, skip this one.">Skip</button></div>` : ''}
+                ${ev.retry_id && !ev.used && window.parent !== window ? `<div class="sample-actions">
+                    <button type="button" data-use-retry="${esc(ev.retry_id)}">Use this in the chat</button></div>` : ''}
                 ${live && single ? `<div class="sample-actions">
                     <span class="sample-ask">How does it read?</span>
                     <button type="button" data-say="I like it.">👍 Like it</button>
@@ -456,4 +458,20 @@ $('log').addEventListener('click', async e => {
         editingId = null;
         render();
     } catch (err) { alert(err.message); save.disabled = false; }
+});
+
+// A rewritten reply goes into the chat as a new version of the last reply; the chat page reloads to show it
+$('log').addEventListener('click', async e => {
+    const btn = e.target.closest('[data-use-retry]');
+    if (!btn || busy) return;
+    btn.disabled = true;
+    try {
+        const data = await api({ action: 'use_retry', id: btn.dataset.useRetry });
+        const ev = events.find(x => x.retry_id === btn.dataset.useRetry);
+        if (ev) ev.used = true;
+        events = events.concat(data.events || []);
+        state = data.state;
+        render();
+        window.parent.postMessage({ bulba: 'reply' }, window.location.origin);
+    } catch (err) { alert(err.message); btn.disabled = false; }
 });

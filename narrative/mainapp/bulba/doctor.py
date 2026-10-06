@@ -257,9 +257,14 @@ def tool_retry_reply(session, args):
     session.spent += cost or 0
     text = thinking.split(message.get("content") or "")[1].strip()
     label = "With the change" if proposal else "Again, as it is"
-    return ({"rewritten_reply": text, "note": "They see it as a single sample with Like / Not quite buttons."},
+    # They can put it into the chat as a new version of the last reply (views: "use_retry")
+    count = len(chats.read(chat).get("messages") or [])
+    return ({"rewritten_reply": text, "note": "They see it as a single sample with Like / Not quite buttons and a "
+             "'Use this in the chat' button that adds it as a new version (swipe) of the last reply."},
             [{"type": "samples", "model": model_name, "character": chat.character.name, "scenario": "",
-              "user_turn": "", "samples": [{"label": label, "text": text}]}])
+              "user_turn": "", "samples": [{"label": label, "text": text}],
+              "retry_id": uuid.uuid4().hex[:12], "at": count, "reasoning": thinking.split(message.get("content") or "")[0]
+              or str(message.get("reasoning") or "")}])
 
 
 STR = {"type": "string"}
