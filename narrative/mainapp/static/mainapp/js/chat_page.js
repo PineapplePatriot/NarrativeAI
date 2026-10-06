@@ -1408,3 +1408,22 @@ document.getElementById('messagesContainer')?.addEventListener('click', (e) => {
     messageInput.style.height = 'auto';
     messageInput.style.height = messageInput.scrollHeight + 'px';
 });
+
+// Sprites with a transparent background (the corners are see-through) stand in the scene
+function markStanding(img) {
+    const box = img.closest('.character-image-container');
+    if (!box || !img.naturalWidth) return;
+    try {
+        const c = document.createElement('canvas');
+        c.width = c.height = 8;
+        const ctx = c.getContext('2d');
+        ctx.drawImage(img, 0, 0, 8, 8);
+        const d = ctx.getImageData(0, 0, 8, 8).data;
+        const alpha = i => d[i * 4 + 3];
+        box.classList.toggle('standing', alpha(0) < 40 && alpha(7) < 40);
+    } catch (e) { box.classList.remove('standing'); }
+}
+document.addEventListener('load', e => {
+    if (e.target.matches && e.target.matches('img.character-sprite')) markStanding(e.target);
+}, true);
+document.querySelectorAll('img.character-sprite').forEach(img => { if (img.complete) markStanding(img); });

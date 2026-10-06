@@ -320,6 +320,30 @@ def undo_theme(session, p):
     Character.objects.filter(author=session.user, id=before.get("character_id")).update(theme=before.get("theme") or {})
 
 
+def tool_offer_downloads(session, args):
+    """Download links for what they have: the active preset, and the character's card and lorebook."""
+    from django.urls import reverse
+    from mainapp import presets
+    want = set(args.get("what") or ["preset", "card", "lorebook"])
+    links = []
+    if "preset" in want:
+        preset = presets.get_active(session.user)
+        url = reverse("preset_export", args=[preset.id])
+        links += [{"label": f"Preset “{preset.name}”", "url": url},
+                  {"label": "Preset for SillyTavern", "url": url + "?format=sillytavern"}]
+    character = target_character(session)
+    if character and "card" in want:
+        url = reverse("character_export", args=[character.slug])
+        links += [{"label": f"{character.name}'s card (.png)", "url": url},
+                  {"label": f"{character.name}'s card (.json)", "url": url + "?format=json"}]
+    if character and character.worldbook_id and "lorebook" in want:
+        links.append({"label": f"Lorebook “{character.worldbook.title}” (SillyTavern)",
+                      "url": reverse("worldbook_export", args=[character.worldbook.slug]) + "?format=sillytavern"})
+    if not links:
+        return {"error": "Nothing to download yet."}, []
+    return {"shown": [l["label"] for l in links]}, [{"type": "downloads", "links": links}]
+
+
 def tool_offer_card_upload(session, args):
     return {"status": "upload box shown; they'll send the file or answer"}, [{"type": "card_upload"}]
 
@@ -346,6 +370,10 @@ def tool_defs(fn, STR, setup=True):
             "dialogue_color": {"type": "string", "description": "Hex, e.g. #67e8f9; readable on a dark background"},
             "why": STR}, ["why"]),
         fn("read_lorebook", "The character's lorebook entries (numbers, keys, text), before changing any.", {}),
+        fn("offer_downloads", "Show download buttons for their preset, the character's card and its lorebook "
+           "(each a separate file; SillyTavern-compatible).",
+           {"what": {"type": "array", "items": {"type": "string", "enum": ["preset", "card", "lorebook"]},
+                     "description": "Leave out for all three"}}, []),
         fn("propose_lore_edit", "Change existing lore entries: rewrite text or keys, switch off, or delete. "
            "Research canon with look_up first when facts are in doubt; new entries go through propose_lorebook.",
            {"edits": edits, "why": STR}, ["edits", "why"]),
@@ -366,4 +394,5 @@ def tool_defs(fn, STR, setup=True):
 
 HANDLERS = {"propose_lorebook": tool_propose_lorebook, "offer_card_upload": tool_offer_card_upload,
             "work_on_character": tool_work_on_character, "read_lorebook": tool_read_lorebook,
-            "propose_lore_edit": tool_propose_lore_edit, "propose_theme": tool_propose_theme}
+            "propose_lore_edit": tool_propose_lore_edit, "propose_theme": tool_propose_theme,
+            "offer_downloads": tool_offer_downloads}

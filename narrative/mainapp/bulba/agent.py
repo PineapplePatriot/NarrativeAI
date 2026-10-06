@@ -13,11 +13,11 @@ GUIDES_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba" / "guides
 # Which guides Bulba reads at each stage (keeps the prompt, and the bill, small)
 STAGE_GUIDES = {"extras": ["extras"], "taste": ["asking", "presets", "writing"], "preset": ["presets", "writing"],
                 "persona": ["characters", "writing"], "character": ["characters", "lore", "writing"],
-                "done": ["characters", "lore", "writing"]}
+                "story": ["extras"], "done": ["characters", "lore", "writing"]}
 REWRITABLE = ("Roleplay", "Style")
 TEST_CHARACTER = Path(__file__).resolve().parent.parent / "data" / "bulba" / "test-character.json"
 
-STAGES = ["extras", "taste", "preset", "persona", "character", "done"]
+STAGES = ["extras", "taste", "preset", "persona", "character", "story", "done"]
 MAX_TOOL_ROUNDS = 8
 HISTORY_LIMIT = 60      # messages of conversation sent to Bulba's model
 SAMPLE_WORDS = 250

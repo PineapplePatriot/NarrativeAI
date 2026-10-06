@@ -279,7 +279,8 @@ CARD_EDIT_TOOL = _fn("propose_card_edit", "Propose changes to this character's c
 def tools():
     from mainapp.bulba import agent
     keep = {"offer_choices", "record_preference", "get_starter", "find_practice", "read_practice", "look_up",
-            "propose_lorebook", "propose_extras", "read_lorebook", "propose_lore_edit", "propose_theme"}
+            "propose_lorebook", "propose_extras", "read_lorebook", "propose_lore_edit", "propose_theme",
+            "offer_downloads"}
     base = [t for t in agent.TOOLS if t["function"]["name"] in keep]
     return base + [
         _fn("read_block", "The full text of one block of the active preset (names are in the outline).",

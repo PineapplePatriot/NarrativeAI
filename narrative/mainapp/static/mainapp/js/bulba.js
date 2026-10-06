@@ -5,7 +5,7 @@ let events = INIT.events;
 let busy = false;
 
 const STAGE_LABELS = { extras: 'Extras', taste: 'How replies read', preset: 'Your preset', persona: 'You in the story',
-                       character: 'Your character', done: 'Done' };
+                       character: 'Your character', story: 'Story extras', done: 'Done' };
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 // Light formatting for Bulba's messages: paragraphs, **bold**, *italics*
 const fmt = t => esc(t).split(/\n{2,}/).map(p => `<p>${p.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
@@ -125,6 +125,8 @@ function render() {
                 <input type="file" name="card" accept=".png,.json,image/png,application/json" ${live ? '' : 'disabled'}></label>
                 <button type="submit" ${live ? '' : 'disabled'}>Import</button></form>`;
         }
+        if (ev.type === 'downloads') return `<div class="downloads">⬇ ${(ev.links || []).map(l =>
+            `<a href="${esc(l.url)}" download>${esc(l.label)}</a>`).join('')}</div>`;
         if (ev.type === 'form') return basicsForm(i === types.lastIndexOf('form') && i > answeredUpTo && !busy);
         if (ev.type === 'lookup') return `<div class="lookup">🔎 Looked up “${esc(ev.query)}”${(ev.sources || []).length
             ? ': ' + ev.sources.map(src => `<a href="${esc(src.url)}" target="_blank" rel="noopener">${esc(src.title || src.url)}</a>`).join(', ') : ''}</div>`;
@@ -169,7 +171,8 @@ function renderPanel() {
         `All AI use this month (chat and Bulba): $${state.month.spent.toFixed(2)} of $${state.month.limit.toFixed(2)}.`;
     $('prefs').innerHTML = state.preferences.length ? state.preferences.map(p => `
         <li><span>${esc(p.interpretation)}${p.status === 'tentative' ? ' <i>(guess)</i>' : ''}</span>
-            <button type="button" class="x" data-forget="${p.id}" title="Forget this">✕</button></li>`).join('')
+            <span class="pref-btns"><button type="button" class="x" data-edit-pref="${p.id}" title="Change the wording">✎</button>
+            <button type="button" class="x" data-forget="${p.id}" title="Forget this">✕</button></span></li>`).join('')
         : '<li class="empty">Nothing yet.</li>';
 }
 
@@ -285,6 +288,15 @@ $('log').addEventListener('submit', e => {
 });
 
 $('prefs').addEventListener('click', async e => {
+    const edit = e.target.closest('[data-edit-pref]');
+    if (edit) {
+        const pref = state.preferences.find(p => p.id === edit.dataset.editPref);
+        const text = pref && prompt('How should Bulba remember this?', pref.interpretation);
+        if (!text || !text.trim() || text.trim() === pref.interpretation) return;
+        try { state = (await api({ action: 'edit_preference', id: pref.id, text: text.trim() })).state; renderPanel(); }
+        catch (err) { alert(err.message); }
+        return;
+    }
     const btn = e.target.closest('[data-forget]');
     if (!btn) return;
     try { state = (await api({ action: 'forget', id: btn.dataset.forget })).state; renderPanel(); }

@@ -3584,3 +3584,29 @@ class BulbaPicturesAndThemeTests(BulbaCardAndLoreTests):
         self.script = [("Done.", [])]
         self.api(action="apply", id=pid)
         self.assertEqual(Character.objects.get(author=self.user, name="Corvin").description, long_text.strip())
+
+
+class BulbaHandoverTests(BulbaCardAndLoreTests):
+    def test_story_stage_downloads_and_preference_edit(self):
+        from mainapp.bulba import agent
+        self.assertLess(agent.STAGES.index("character"), agent.STAGES.index("story"))
+        self.upload(V2_CARD)
+        self.script = [("", [self.call("set_stage", stage="story")]),
+                       ("Here's everything.", [self.call("offer_downloads")])]
+        data = self.api(action="say", text="all done").json()
+        links = next(e for e in data["events"] if e["type"] == "downloads")["links"]
+        urls = [l["url"] for l in links]
+        self.assertTrue(any("/presets/" in u and "sillytavern" in u for u in urls))
+        self.assertTrue(any("character_export" in u and "format=json" in u for u in urls))
+        self.assertTrue(any("worldbook_export" in u for u in urls))
+        for url in urls:
+            self.assertEqual(self.client.get(url).status_code, 200, url)
+        self.assertIn("story", self.bulba_calls[-1]["messages"][0]["content"].lower())
+        # a preference Bulba noted can be reworded
+        self.script = [("", [self.call("record_preference", wording="shorter", interpretation="Short replies")]),
+                       ("Noted.", [])]
+        pid = self.api(action="say", text="keep it short").json()["state"]["preferences"][-1]["id"]
+        state = self.api(action="edit_preference", id=pid, text="Short replies, but long fights").json()["state"]
+        pref = next(p for p in state["preferences"] if p["id"] == pid)
+        self.assertEqual((pref["interpretation"], pref["status"]), ("Short replies, but long fights", "confirmed"))
+        self.assertEqual(self.api(action="edit_preference", id="nope", text="x").status_code, 400)

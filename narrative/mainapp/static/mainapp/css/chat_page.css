@@ -1671,3 +1671,16 @@ details.thoughts .thoughts-text { white-space: pre-wrap; font-size: .85rem; opac
 .tools-menu { max-height: min(560px, calc(100vh - 230px)); max-height: min(560px, calc(100dvh - 230px)); }
 @media (max-height: 520px) { .tools-menu { max-height: calc(100dvh - 150px); } }
 .theme-check { display: flex; gap: 8px; align-items: center; margin-top: 12px; font-size: .88rem; opacity: .85; cursor: pointer; }
+
+/* A sprite with a transparent background stands in the scene instead of sitting in a framed card */
+.character-panel:has(.standing) { padding-bottom: 0; }
+.character-images-wrapper:has(.standing) { padding-bottom: 0; flex: 1 1 auto; min-height: 0; height: auto; }
+.character-image-container.standing {
+    background: none; border: none; box-shadow: none; overflow: visible; border-radius: 0;
+    width: auto; max-width: 92%; height: 100%; max-height: 900px; align-items: flex-end;
+}
+.character-image-container.standing .character-sprite {
+    width: auto; max-width: 100%; height: 100%; object-fit: contain; object-position: bottom center;
+    border-radius: 0; filter: drop-shadow(0 6px 18px rgba(0, 0, 0, .55));
+}
+.character-images-wrapper:has(.standing + .standing:not([style*="none"])) .character-image-container.standing { max-width: 48%; }

@@ -1882,6 +1882,13 @@ def bulba_api(request):
         if pref:
             pref["status"] = "rejected"
             session.messages.append({"role": "user", "content": f"[I removed this preference: {pref['interpretation']}]"})
+    elif action == "edit_preference":  # the user rewords what Bulba noted; it counts as confirmed
+        pref = next((p for p in session.preferences if p["id"] == data.get("id")), None)
+        text = str(data.get("text") or "").strip()[:300]
+        if pref is None or not text:
+            return JsonResponse({"error": "Nothing to change."}, status=400)
+        old, pref["interpretation"], pref["status"] = pref["interpretation"], text, "confirmed"
+        session.messages.append({"role": "user", "content": f"[I reworded a preference you noted: “{old}” → “{text}”]"})
     elif action == "budget":
         try:
             session.budget = max(0.5, min(50.0, float(data.get("value"))))

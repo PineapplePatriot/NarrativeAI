@@ -69,6 +69,7 @@ button.link { background: none; padding: 0; color: var(--accent-soft); text-deco
 .prefs li { display: flex; gap: 6px; justify-content: space-between; background: var(--card-2); border-radius: 8px; padding: 6px 8px; line-height: 1.4; }
 .prefs li.empty { background: none; color: var(--muted); padding: 0; }
 .prefs .x { background: none; color: var(--muted); padding: 0 2px; font-weight: 400; }
+.prefs .pref-btns { display: flex; gap: 2px; align-items: flex-start; flex-shrink: 0; }
 
 .bulba-empty { max-width: 640px; margin: 60px auto; padding: 0 16px; text-align: center; line-height: 1.6; }
 .potato.big { font-size: 4rem; }
@@ -166,3 +167,8 @@ body.embed .basics-form, body.embed .lookup, body.embed .done-block { margin-lef
     border-radius: 8px; padding: 6px 8px; font: inherit; }
 .composer .attach { background: transparent; border: 1px solid var(--border); border-radius: 10px; padding: 0 10px;
     font-size: 1.1rem; cursor: pointer; }
+
+.downloads { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 6px 0 6px 44px; }
+.downloads a { padding: 6px 12px; border: 1px solid var(--border); border-radius: 999px; text-decoration: none;
+    color: inherit; font-size: .9rem; }
+.downloads a:hover { border-color: #a78bfa; }
