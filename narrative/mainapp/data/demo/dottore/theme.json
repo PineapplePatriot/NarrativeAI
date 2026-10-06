@@ -1,0 +1,8 @@
+{
+ "bg": "/static/defaults/backgrounds/lab-13.webp",
+ "music": {
+  "url": "/static/defaults/music/sumerian-heretic-the-alchemist-s-game.mp3",
+  "name": "Sumerian Heretic: The Alchemist's Game"
+ },
+ "dialogue_color": "#67e8f9"
+}

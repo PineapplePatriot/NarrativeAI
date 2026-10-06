@@ -61,6 +61,9 @@ def load_packs(user):
             book = lorebook.normalize_book(json.loads(lore.read_text(encoding="utf-8")))
             wb = character.worldbook or Worldbook(title=book["title"] or f"{character.name}'s world",
                                                   slug=f"{character.slug}-lore", author=user)
+            if character.worldbook:  # the card brought its own lore: add ours after it
+                own = lorebook.load_worldbook(wb)
+                book = {**own, "entries": own["entries"] + book["entries"]}
             lorebook.save_worldbook(wb, book)
             character.worldbook = wb
         theme = folder / "theme.json"

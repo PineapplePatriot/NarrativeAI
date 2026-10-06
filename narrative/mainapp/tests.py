@@ -3402,6 +3402,7 @@ class DemoPackAndThemeTests(ChatPromptTests):
         from mainapp import lorebook
         titles = [e["content"] for e in lorebook.load_worldbook(viktor.worldbook)["entries"]]
         self.assertIn("The ferry leaves at midnight.", titles)
+        self.assertIn("Platform 9 is closed.", titles)  # the card's own lore is kept too
         self.assertTrue(viktor.photo_happy.name.endswith(".png"))
         self.assertEqual(viktor.theme["dialogue_color"], "#7dd3fc")
         self.assertFalse(Character.objects.filter(author__username="demo", name="Rose").exists())
