@@ -56,3 +56,11 @@ don't delete it.
 Only when they have a neutral picture and want the other moods made. It spends money on their key (a
 few cents a picture), so say that first and let them press the button. Never offer it again in the same
 conversation if they said no.
+
+## Voices (read_voices, propose_voices)
+
+Only with an ElevenLabs key. Read their voice list first and choose by the labels: age, gender, accent,
+and a temperament that fits the card (a cold, precise man; a warm old woman). The narrator should be
+calm and clear, and different from the character. Give voices to the people who speak often (a rival, a
+partner, a sister); everyone else gets one picked automatically and keeps it for the chat. If they don't
+like a voice, offer two alternatives from their list rather than one.

@@ -12,8 +12,9 @@ suggestion; nothing here is decided until Anya says so. "Needs Anya" marks what 
    (`narrative/mainapp/data/bulba/`). *Needs Anya.*
 3. **First real picture run**: the mood-picture maker (character page, or Bulba's button) against
    OpenRouter. *Needs Anya.*
-4. **Voices** (delayed): the ElevenLabs path half works (slow, no replay after reload, IDs pasted by hand).
-   A free option is the browser's own voices (a 🔊 button that reads the dialogue). *Decide later.*
+4. **First real voice run**: 🔊 on a reply reads it with ElevenLabs Text to Dialogue (narrator plus every
+   speaker in their own voice, side characters keep theirs per chat). Built and tested with ElevenLabs faked;
+   needs a real key to hear it. *Needs Anya.*
 
 ## Bulba
 

@@ -62,7 +62,7 @@
             <div class="tracker-hud" id="trackerHud" hidden></div>
 
             <div class="messages-container" id="messagesContainer">
-                {% for sender, time, text, emotion, char_count, thoughts, game_lines, extras_html in messages %}
+                {% for sender, time, text, emotion, char_count, thoughts, game_lines, extras_html, audio_url in messages %}
                 <div class="message {{ sender }}" data-index="{{ forloop.counter0 }}" data-emotion="{{ emotion }}" data-char-count="{{ char_count }}">
                     {% if sender == "assistant" %}
                     {% if photo_neutral %}
@@ -100,9 +100,9 @@
                                 </svg>
                             </button>
 
-                            {% if message.role == "assistant" and forloop.last %}
+                            {% if sender == "assistant" and voice_on %}
                             <button class="message-btn play-sound" type="button" data-action="play-sound"
-                                data-audio-url="{{ message.audio_url }}">
+                                data-index="{{ forloop.counter0 }}" data-audio-url="{{ audio_url }}" title="Read aloud (ElevenLabs)">
                                 <svg class="icon" viewBox="0 0 24 24">
                                     <path
                                         d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.06c1.48-.74 2.5-2.26 2.5-4.03z" />
@@ -375,6 +375,7 @@
         window.INIT_PHOTO_SECOND = "{{ photo_second|default:'' }}";
         window.INIT_CHAR_COUNT = {{ char_count|default:1 }};
         window.CHAR_INITIAL = "{{ character.name|first|upper|escapejs }}";
+        window.VOICE_ON = {% if voice_on %}true{% else %}false{% endif %};
         window.USER_AVATAR = "{{ user_avatar|default:'' }}";
         window.STREAM_REPLIES = {{ stream_replies|yesno:"true,false" }};
         window.CHARACTER_NAME = "{{ character.name|escapejs }}";

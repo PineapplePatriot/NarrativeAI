@@ -8,7 +8,7 @@ import copy
 from mainapp import presets, samplers as sampler_mod, trackers as tracker_mod
 from mainapp.bulba.lore import target_character
 
-KINDS = ("samplers", "trackers", "greetings", "card_rules", "lore_settings")
+KINDS = ("samplers", "trackers", "greetings", "card_rules", "lore_settings", "voices")
 LORE_SETTINGS = {"scan_depth": (1, 50), "token_budget": (200, 20000), "recursive_scan": None}
 # What each tracker id means, for Bulba (the panel's own help text)
 TRACKER_IDS = [t["id"] for t in tracker_mod.TRACKERS]
@@ -156,6 +156,74 @@ def tool_propose_lore_settings(session, args):
                     {"worldbook_id": character.worldbook_id, "settings": settings}, args.get("why"))
 
 
+def _eleven(session):
+    from mainapp import voice
+    from mainapp.utils import get_elevenlabs_key
+    key = get_elevenlabs_key(session.user)
+    if not key:
+        raise voice.VoiceError("No ElevenLabs key: they add one on the Extras page (/users/extras/), never in this chat.")
+    return voice.list_voices(key)
+
+
+def tool_read_voices(session, args):
+    """Their ElevenLabs voices (names and labels; the key never leaves the server) and who has which now."""
+    from mainapp import voice
+    try:
+        voices = _eleven(session)
+    except voice.VoiceError as e:
+        return {"error": str(e)}, []
+    character = target_character(session)
+    names = {v["id"]: v["name"] for v in voices}
+    out = {"voices": [{k: v[k] for k in ("name", "gender", "age", "accent", "description", "use") if v.get(k)}
+                      for v in voices][:120]}
+    if character:
+        out["character"] = character.name
+        out["now"] = {"narrator": names.get(character.eleven_voice_narr_id, character.eleven_voice_narr_id or "picked automatically"),
+                      character.name: names.get(character.eleven_voice_char_id, character.eleven_voice_char_id or "picked automatically"),
+                      **{n: names.get(v, v) for n, v in (character.voice_cast or {}).items()}}
+    return out, []
+
+
+def tool_propose_voices(session, args):
+    from mainapp import voice
+    character = target_character(session)
+    if character is None:
+        return {"error": "No character yet."}, []
+    try:
+        voices = _eleven(session)
+    except voice.VoiceError as e:
+        return {"error": str(e)}, []
+    by_name = {v["name"].lower(): v for v in voices}
+
+    def find(name):
+        v = by_name.get(str(name or "").strip().lower())
+        if v is None:
+            raise KeyError(name)
+        return v
+
+    payload, summary = {"character_id": character.id}, []
+    try:
+        if args.get("narrator"):
+            payload["narrator"] = find(args["narrator"])["id"]
+            summary.append(f"Narrator: {find(args['narrator'])['name']}")
+        if args.get("character"):
+            payload["character"] = find(args["character"])["id"]
+            summary.append(f"{character.name}: {find(args['character'])['name']}")
+        cast = {}
+        for item in (args.get("cast") or [])[:12]:
+            if isinstance(item, dict) and str(item.get("name") or "").strip():
+                cast[str(item["name"]).strip()[:60]] = find(item.get("voice"))["id"]
+                summary.append(f"{item['name']}: {find(item.get('voice'))['name']}")
+        if cast:
+            payload["cast"] = cast
+    except KeyError as e:
+        return {"error": f"No voice called “{e.args[0]}” in their ElevenLabs list (read_voices)."}, []
+    if len(payload) == 1:
+        return {"error": "Nothing to change."}, []
+    summary.append("Anyone else gets a voice picked automatically, kept for the chat.")
+    return _propose(session, "voices", f"Voices for {character.name}", summary, payload, args.get("why"))
+
+
 def tool_offer_mood_pictures(session, args):
     """A button that makes the missing mood pictures from the neutral one (on their key; they press it)."""
     from django.urls import reverse
@@ -229,6 +297,17 @@ def apply(session, p):
             except KeyError:
                 pass
         return f"{character.name}'s text rules are switched."
+    if kind == "voices":
+        p["undo"] = {"character_id": character.id, "narrator": character.eleven_voice_narr_id,
+                     "character": character.eleven_voice_char_id, "cast": dict(character.voice_cast or {})}
+        if data.get("narrator"):
+            character.eleven_voice_narr_id = data["narrator"]
+        if data.get("character"):
+            character.eleven_voice_char_id = data["character"]
+        if data.get("cast"):
+            character.voice_cast = {**(character.voice_cast or {}), **data["cast"]}
+        character.save(update_fields=["eleven_voice_narr_id", "eleven_voice_char_id", "voice_cast"])
+        return f"{character.name}'s voices are set. Press 🔊 on a reply to hear them."
     if kind == "lore_settings":
         wb = Worldbook.objects.filter(author=session.user, id=data["worldbook_id"]).first()
         if wb is None:
@@ -270,6 +349,11 @@ def undo(session, p):
     elif kind == "card_rules":
         character.card_data = before.get("card_data") or {}
         character.save(update_fields=["card_data"])
+    elif kind == "voices":
+        character.eleven_voice_narr_id = before.get("narrator") or ""
+        character.eleven_voice_char_id = before.get("character") or ""
+        character.voice_cast = before.get("cast") or {}
+        character.save(update_fields=["eleven_voice_narr_id", "eleven_voice_char_id", "voice_cast"])
 
 
 # ---------------------------------------------------------------------------
@@ -310,6 +394,16 @@ def tool_defs(fn, STR):
            "trigger other entries).",
            {"scan_depth": {"type": "integer"}, "token_budget": {"type": "integer"},
             "recursive_scan": {"type": "boolean"}, "why": STR}, ["why"]),
+        fn("read_voices", "Their ElevenLabs voices (name, gender, age, accent, description) and who has which voice "
+           "now. Only when they have an ElevenLabs key.", {}),
+        fn("propose_voices", "Give the narrator, the character and other people in the story (Pantalone, a sister) "
+           "voices from their list, by the voice's name. Match age, gender, accent and temperament to the card; the "
+           "narrator should be calm and clear. Anyone not given one gets a voice picked automatically.",
+           {"narrator": STR, "character": STR,
+            "cast": {"type": "array", "maxItems": 12, "items": {"type": "object", "properties": {
+                "name": {"type": "string", "description": "As the story says it"}, "voice": STR},
+                "required": ["name", "voice"]}},
+            "why": STR}, ["why"]),
         fn("offer_mood_pictures", "Show a button that makes the missing mood pictures from the neutral one with an "
            "image model (a few cents each, on their key). They press it; say what it costs first.",
            {"redo": {"type": "boolean", "description": "Make all eight again, not only the missing ones"}}),
@@ -319,6 +413,7 @@ def tool_defs(fn, STR):
 HANDLERS = {"read_settings": tool_read_settings, "propose_samplers": tool_propose_samplers,
             "propose_trackers": tool_propose_trackers, "propose_greetings": tool_propose_greetings,
             "propose_card_rules": tool_propose_card_rules, "propose_lore_settings": tool_propose_lore_settings,
-            "offer_mood_pictures": tool_offer_mood_pictures}
+            "offer_mood_pictures": tool_offer_mood_pictures, "read_voices": tool_read_voices,
+            "propose_voices": tool_propose_voices}
 TURN_ENDING = {"propose_samplers", "propose_trackers", "propose_greetings", "propose_card_rules",
-               "propose_lore_settings", "offer_mood_pictures"}
+               "propose_lore_settings", "offer_mood_pictures", "propose_voices"}

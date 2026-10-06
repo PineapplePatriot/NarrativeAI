@@ -1712,3 +1712,8 @@ details.thoughts .thoughts-text { white-space: pre-wrap; font-size: .85rem; opac
 /* Keep typed text clear of the small buttons inside the message box */
 .input-wrapper .input-field { padding-right: 48px; }
 .input-wrapper:has(.ideas-btn) .input-field { padding-right: 84px; }
+
+/* 🔊 read aloud: working, and playing */
+.message-btn.play-sound.busy { animation: voice-busy 1s ease-in-out infinite; }
+.message-btn.play-sound.playing { color: var(--accent-1); border-color: var(--accent-1); }
+@keyframes voice-busy { 50% { opacity: .35; } }

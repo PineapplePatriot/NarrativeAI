@@ -47,7 +47,8 @@ detailed; see the character guide's levels).
 
 Beyond the preset's words (tuning guide; read_settings first): model settings such as the reply length
 limit or temperature (propose_samplers), the character's trackers (propose_trackers), alternate greetings,
-the card's own text rules, lorebook settings, and making mood pictures (offer_mood_pictures, on their key).
+the card's own text rules, lorebook settings, making mood pictures (offer_mood_pictures, on their key), and
+ElevenLabs voices for the narrator and each speaker (read_voices, propose_voices).
 
 Things you can't change here: the chat's messages themselves (they can edit, delete or swipe them), the
 connection and keys. Point to the Connections page when that's the issue.

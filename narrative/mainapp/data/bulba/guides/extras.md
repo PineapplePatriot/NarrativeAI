@@ -6,7 +6,7 @@ the defaults below and say so in one line. Then one propose_extras with everythi
 
 | Extra | What it means for them (say it like this) | Default |
 |---|---|---|
-| Voices | Characters read their replies aloud. Needs an ElevenLabs account and key (entered on the Extras page, never in this chat). | off |
+| Voices | A 🔊 button on each reply reads it aloud: the narration in a narrator's voice and every speaker in their own (a guard keeps his voice for the whole chat). Only when they press it. Needs an ElevenLabs account and key (entered on the Extras page, never in this chat). The $6 plan covers roughly 20 full replies a month. | off |
 | Story summary | Long chats get too long for the model to remember; a summary keeps "the story so far" in a short note. Automatic (every N messages) or only when they press a button. | automatic, every 20 messages |
 | Story trackers | A small panel next to the chat that keeps track of where and when the scene is, who's there, the weather, and so on. Updated automatically every few messages, or when they press refresh. | automatic, every 4 messages |
 | Sprites | If a character has pictures for different moods, the chat shows the one that fits each reply. Costs a tiny extra check per reply; pointless if they'll never add pictures. | on |

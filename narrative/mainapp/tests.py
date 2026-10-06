@@ -3726,3 +3726,149 @@ class TagFilterTests(ChatPromptTests):
         page = self.client.get(reverse("characters_list"))
         self.assertEqual(page.context["all_tags"], ["Genshin Impact"])
         self.assertContains(page, 'data-tags="genshin impact|"')
+
+
+ELEVEN_VOICES = {"voices": [
+    {"voice_id": "v-narr", "name": "Calm Narrator", "labels": {"gender": "male", "age": "middle_aged", "use_case": "narration"}},
+    {"voice_id": "v-man", "name": "Brian", "labels": {"gender": "male", "age": "middle_aged"}},
+    {"voice_id": "v-old", "name": "Grandpa", "labels": {"gender": "male", "age": "old"}},
+    {"voice_id": "v-woman", "name": "Alice", "labels": {"gender": "female", "age": "young"}},
+]}
+REPLY = ('Rose looks up. "You\'re late," she whispers. The guard at the door coughs. '
+         '"Papers, please." Rose sighs. *She turns back to the alembic.* "Let him in."')
+
+
+class VoiceTests(ChatPromptTests):
+    def setUp(self):
+        import shutil, tempfile
+        from users.models import ApiConfig
+        super().setUp()
+        media = tempfile.mkdtemp()
+        override = override_settings(MEDIA_ROOT=media)
+        override.enable()
+        self.addCleanup(override.disable)
+        self.addCleanup(shutil.rmtree, media, ignore_errors=True)
+        ApiConfig.objects.update_or_create(user=self.user, defaults={"eleven_key": "el-key"})
+        from mainapp import voice
+        voice._voice_cache.clear()
+        self.eleven_calls = []
+
+    def fake_eleven(self, method):
+        from unittest import mock
+        def call(url, headers=None, json=None, timeout=None, **kw):
+            self.eleven_calls.append((url, json))
+            resp = mock.Mock(status_code=200, ok=True, text="")
+            if url.endswith("/voices"):
+                resp.json.return_value = ELEVEN_VOICES
+            else:
+                resp.content = b"ID3fake-mp3"
+            return resp
+        return call
+
+    def attribution(self, *a, **kw):
+        return json.dumps({"lines": {"1": {"speaker": "Rose", "cue": "whispers"}, "3": {"speaker": "guard", "cue": ""},
+                                     "5": {"speaker": "Rose", "cue": ""}},
+                           "people": {"guard": {"gender": "male", "age": "old"}}})
+
+    def test_segments_keep_the_text(self):
+        from mainapp import voice
+        segs = voice.segments(REPLY)
+        self.assertEqual([s["kind"] for s in segs], ["narration", "speech", "narration", "speech", "narration", "speech"])
+        self.assertEqual(segs[1]["text"], "You're late,")
+        self.assertEqual(segs[4]["text"], "Rose sighs. She turns back to the alembic.")  # markdown gone
+
+    def test_voice_action_end_to_end(self):
+        from unittest import mock
+        from mainapp.models import Chat
+        self.client.get(self.url)
+        chat = Chat.objects.filter(character=self.character).first()
+        data = json.loads(open(chat.log_file.path).read())
+        data["messages"] = [["assistant", "10:00", REPLY, "neutral", 1]]
+        open(chat.log_file.path, "w").write(json.dumps(data))
+        with mock.patch("mainapp.voice.requests.get", side_effect=self.fake_eleven("get")), \
+             mock.patch("mainapp.voice.requests.post", side_effect=self.fake_eleven("post")), \
+             mock.patch("mainapp.ai_client.complete", side_effect=self.attribution):
+            say = lambda body: self.client.post(self.url, json.dumps(body), content_type="application/json").json()
+            first = say({"action": "voice", "index": 0})  # (self.post would replace the faked requests.post)
+            again = say({"action": "voice", "index": 0})
+        self.assertTrue(first["success"], first)
+        self.assertEqual(first["url"], again["url"])  # saved: no second recording
+        dialogue = [c[1] for c in self.eleven_calls if "text-to-dialogue" in c[0]]
+        self.assertEqual(len(dialogue), 1)
+        inputs = dialogue[0]["inputs"]
+        self.assertEqual(dialogue[0]["model_id"], "eleven_v3")
+        self.assertEqual(inputs[0], {"text": "Rose looks up.", "voice_id": "v-narr"})  # narrator
+        self.assertEqual(inputs[1]["text"], "[whispers] You're late,")
+        rose = inputs[1]["voice_id"]
+        guard = next(i for i in inputs if i["text"] == "Papers, please.")["voice_id"]
+        self.assertNotIn(rose, ("v-narr", guard))
+        self.assertEqual(guard, "v-old")  # an old man for the old guard
+        self.assertEqual(inputs[-1], {"text": "Let him in.", "voice_id": rose})
+        saved = json.loads(open(chat.log_file.path).read())
+        self.assertEqual(saved["voices"]["guard"], "v-old")  # he keeps his voice in this chat
+        self.assertIn('data-audio-url="' + first["url"], self.client.get(self.url).content.decode())
+        # an edited reply needs a new recording
+        from mainapp import chats
+        self.assertIsNone(chats.audio_of(("assistant", "", "changed", "neutral", 1, saved["messages"][0][5])))
+
+    def test_cast_and_fallback_when_dialogue_is_refused(self):
+        from unittest import mock
+        from mainapp import voice
+        self.character.voice_cast = {"Guard": "v-man"}
+        self.character.eleven_voice_char_id = "v-woman"
+        self.character.save()
+        def post(url, headers=None, json=None, timeout=None, **kw):
+            self.eleven_calls.append((url, json))
+            if "text-to-dialogue" in url:
+                return mock.Mock(status_code=403, ok=False, text="not on your plan")
+            return mock.Mock(status_code=200, ok=True, content=b"ID3x", text="")
+        with mock.patch("mainapp.voice.requests.get", side_effect=self.fake_eleven("get")), \
+             mock.patch("mainapp.voice.requests.post", side_effect=post), \
+             mock.patch("mainapp.ai_client.complete", side_effect=self.attribution):
+            audio, cast = voice.voice_reply(self.user, self.character, REPLY, {}, "Me", "el-key")
+        singles = [c for c in self.eleven_calls if "text-to-speech" in c[0]]
+        self.assertTrue(any(u.endswith("v-man?output_format=mp3_44100_128") for u, _ in singles))  # the cast list
+        self.assertTrue(all("[" not in body["text"] for _, body in singles))  # v3 cues dropped
+        self.assertEqual(cast["guard"], "Brian")
+        self.assertEqual(cast["Rose"], "Alice")
+
+    def test_no_key_no_voice(self):
+        from users.models import ApiConfig
+        ApiConfig.objects.filter(user=self.user).update(eleven_key="")
+        self.assertFalse(self.post({"action": "voice", "index": 0}).json()["success"])
+        self.assertNotContains(self.client.get(self.url), 'data-action="play-sound"')
+
+
+class BulbaVoicesTests(BulbaCardAndLoreTests):
+    def test_bulba_picks_voices_by_name(self):
+        from unittest import mock
+        from users.models import ApiConfig
+        from mainapp import voice
+        from mainapp.models import Character
+        voice._voice_cache.clear()
+        self.upload(V2_CARD)
+        self.script = [("", [self.call("read_voices")])] + [("Here.", [self.call(
+            "propose_voices", narrator="Calm Narrator", character="Brian", cast=[{"name": "Mira", "voice": "Alice"}],
+            why="fits")])]
+        data = self.api(action="say", text="voices").json()
+        read = json.loads(next(m["content"] for m in self.bulba_calls[-1]["messages"] if m["role"] == "tool"))
+        self.assertIn("ElevenLabs key", read["error"])  # no key yet: nothing proposed
+        ApiConfig.objects.update_or_create(user=self.user, defaults={"eleven_key": "el-key"})
+        get = mock.Mock(return_value=mock.Mock(status_code=200, ok=True, json=mock.Mock(return_value=ELEVEN_VOICES)))
+        self.script = [("", [self.call("read_voices")]), ("Here.", [self.call(
+            "propose_voices", narrator="Calm Narrator", character="Brian", cast=[{"name": "Mira", "voice": "Alice"}],
+            why="fits")])]
+        with mock.patch("mainapp.voice.requests.get", get):
+            data = self.api(action="say", text="voices").json()
+        read = json.loads(next(m["content"] for m in reversed(self.bulba_calls[-1]["messages"]) if m["role"] == "tool"))
+        self.assertNotIn("el-key", json.dumps(self.bulba_calls))  # the key never reaches Bulba
+        pid = data["state"]["proposals"][-1]["id"]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=pid)
+        viktor = Character.objects.get(author=self.user, name="Viktor")
+        self.assertEqual((viktor.eleven_voice_narr_id, viktor.eleven_voice_char_id, viktor.voice_cast),
+                         ("v-narr", "v-man", {"Mira": "v-woman"}))
+        self.script = [("Undone.", [])]
+        self.api(action="undo", id=pid)
+        viktor.refresh_from_db()
+        self.assertEqual(viktor.voice_cast, {})

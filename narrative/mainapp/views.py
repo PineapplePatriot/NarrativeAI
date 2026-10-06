@@ -30,7 +30,7 @@ from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
 from . import extras, game, media_library, thinking, ai_client, cards, chats, regex_rules, model_profiles, presets, samplers, starters, trackers
 
-from .utils import build_ai_request, narrate_text_backend, get_elevenlabs_key
+from .utils import build_ai_request, get_elevenlabs_key
 from .lorebook import (
     normalize_book, load_worldbook, save_worldbook, activate, format_for_prompt, to_sillytavern,
     DEFAULT_SETTINGS as LORE_DEFAULT_SETTINGS, DEFAULT_ENTRY as LORE_DEFAULT_ENTRY,
@@ -121,6 +121,7 @@ def chat(request, slug):
         "current_music": {},
         "persona": {},          # {"name", "description"}: who the user is in this chat only (else their usual persona)
         "game": {},             # dice and inventory: the starting inventory after manual edits (see mainapp/game.py)
+        "voices": {},           # voices picked for speakers in this chat (see mainapp/voice.py), so they stay the same
     }
     game_mode = game.mode_for(request.user, character)
     extra_kinds = extras.kinds_for(request.user)        # letters, phone screens, milestones (Extras page)
@@ -163,6 +164,7 @@ def chat(request, slug):
                         chat_state["current_music"] = data.get("current_music", {})
                         chat_state["persona"] = data.get("persona") if isinstance(data.get("persona"), dict) else {}
                         chat_state["game"] = data.get("game") if isinstance(data.get("game"), dict) else {}
+                        chat_state["voices"] = data.get("voices") if isinstance(data.get("voices"), dict) else {}
                         messages_list = data.get("messages", [])
                     else:
                         messages_list = data
@@ -230,6 +232,7 @@ def chat(request, slug):
             "current_music": chat_state["current_music"],
             "persona": chat_state["persona"],
             "game": chat_state["game"],
+            "voices": chat_state["voices"],
         }
         with open(chat_file_path, "w", encoding="utf-8") as f:
             json.dump(full_data, f, ensure_ascii=False, indent=2)
@@ -351,6 +354,38 @@ def chat(request, slug):
             chat_state["context_guides"] = {"note": str(data.get("note") or "").strip()[:4000]}
             save_messages(messages) # Updates file
             return JsonResponse({"success": True})
+        elif action == "voice":  # read one AI reply aloud (ElevenLabs), saved with that version of the reply
+            from mainapp import voice
+            key = get_elevenlabs_key(request.user)
+            if not key:
+                return JsonResponse({"success": False, "error": "Voices need an ElevenLabs key (Extras page)."})
+            try:
+                index = int(data.get("index"))
+                message = messages[index]
+            except (TypeError, ValueError, IndexError):
+                return JsonResponse({"success": False, "error": "No such message."})
+            if message[0] != "assistant":
+                return JsonResponse({"success": False, "error": "Only the AI's replies are read aloud."})
+            saved = chats.audio_of(message)
+            if saved and not data.get("redo"):
+                return JsonResponse({"success": True, "url": saved["url"], "cast": saved.get("cast", {})})
+            try:
+                audio, cast = voice.voice_reply(request.user, character, message[2], chat_state["voices"],
+                                                prompt_names(request.user, character, chat_state["persona"])["user"], key)
+            except voice.VoiceError as e:
+                return JsonResponse({"success": False, "error": str(e)})
+            folder = os.path.join(settings.MEDIA_ROOT, "audio_files")
+            os.makedirs(folder, exist_ok=True)
+            name = f"{uuid.uuid4().hex}.mp3"
+            with open(os.path.join(folder, name), "wb") as f:
+                f.write(audio)
+            old = (chats._extras(message).get("audio") or {}).get("url")
+            if old and os.path.exists(os.path.join(folder, os.path.basename(old))):  # the outdated recording goes
+                os.remove(os.path.join(folder, os.path.basename(old)))
+            url = f"{settings.MEDIA_URL}audio_files/{name}"
+            messages[index] = chats.with_audio(message, {"url": url, "text": message[2], "cast": cast})
+            save_messages(messages)
+            return JsonResponse({"success": True, "url": url, "cast": cast, "spending": ai_client.spending(request.user)})
         elif action == "ideas":  # Bulba's ideas: what to write next, or (directing) what could happen next
             from mainapp.bulba import control
             mode = "director" if control.mode_of(presets.normalize(presets.get_active(request.user).data)) == "director" else "player"
@@ -779,24 +814,6 @@ def chat(request, slug):
 
                     save_messages(messages)
 
-                    # --- Voice (ElevenLabs), only if the user has a key ---
-                    audio_path = ""
-                    ELEVENLABS_API_KEY = get_elevenlabs_key(request.user)
-                    if ELEVENLABS_API_KEY:
-                        try:
-                            audio_path = narrate_text_backend(
-                                extras.strip_markers(reply),
-                                request.user,
-                                character.name,
-                                ELEVENLABS_API_KEY,
-                                narrator_voice_id=character.eleven_voice_narr_id or None,
-                                character_voice_id=character.eleven_voice_char_id or None,
-                                second_character_voice_id=character.eleven_voice_second_id or None,
-                                is_mult=character.is_mult or (char_count > 1),
-                            )
-                        except Exception as e:
-                            log.warning("Voice generation failed: %s", e)
-
                     # Automatic summary: tell the page to run one in the background
                     summary_task = ai_client.get_task_setting(request.user, "summary")
                     summarized = chat_state["summary_upto"] or 0
@@ -821,7 +838,7 @@ def chat(request, slug):
                         "photo_url": photo_url,
                         "photo_second": photo_second,
                         "char_count": char_count,
-                        "audio_url": audio_path,
+                        "voice": bool(get_elevenlabs_key(request.user)),
                         "lore": lore_report,
                         "summary_due": summary_due,
                         "trackers_due": trackers_due,
@@ -948,8 +965,10 @@ def chat(request, slug):
         # The template shows the version on screen, and its thoughts (if the model sent any)
         "messages": [tuple(m[:5]) + (chats.reasoning_of(m),
                                      [game.describe(op) for op in chats.game_of(m) if not extras.is_extra(op)],
-                                     [extras.render(op) for op in chats.game_of(m) if extras.is_extra(op)])
+                                     [extras.render(op) for op in chats.game_of(m) if extras.is_extra(op)],
+                                     (chats.audio_of(m) or {}).get("url", ""))
                      for m in messages],
+        "voice_on": bool(get_elevenlabs_key(request.user)),
         "swipes": chats.version_info(messages),
         "spending": ai_client.spending(request.user),
         "appearance": _appearance(request.user, character),
@@ -1592,6 +1611,19 @@ def character_rule(request, slug):
 
 
 SPRITE_EMOTIONS = ["happy", "sad", "angry", "surprised", "scared", "confused", "calm", "scheming"]
+
+
+@login_required
+def eleven_voices(request):
+    """The user's ElevenLabs voices, for the voice pickers (the key stays on the server)."""
+    from mainapp import voice
+    key = get_elevenlabs_key(request.user)
+    if not key:
+        return JsonResponse({"error": "No ElevenLabs key yet (Extras page)."}, status=400)
+    try:
+        return JsonResponse({"voices": voice.list_voices(key)})
+    except voice.VoiceError as e:
+        return JsonResponse({"error": str(e)}, status=502)
 
 
 @login_required

@@ -98,7 +98,8 @@ question, or a line about the proposal) in the same reply as the call, not after
 - work_on_character / read_lorebook / propose_lore_edit: changing a character or lorebook that already
   exists, any time, also after setup is done (lore guide, "Changing a card or lorebook").
 - read_settings, then propose_samplers / propose_trackers / propose_greetings / propose_card_rules /
-  propose_lore_settings, and offer_mood_pictures: fine-tuning (tuning guide).
+  propose_lore_settings, and offer_mood_pictures: fine-tuning (tuning guide). read_voices / propose_voices:
+  ElevenLabs voices for the narrator, the character and other people in the story (with a key only).
 
 ## Money
 
