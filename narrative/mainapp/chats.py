@@ -114,7 +114,7 @@ def _extras(message):
 
 # Things each version (swipe) of a reply keeps for itself: the model's thoughts, and the dice and
 # inventory changes it made (see mainapp/game.py), so flipping swipes flips them too
-VERSION_KEYS = ("reasoning", "game")
+VERSION_KEYS = ("reasoning", "game", "audio")
 
 
 def _version(message):
@@ -150,6 +150,24 @@ def game_of(message):
 def with_game(message, ops):
     """The message with the dice rolls and inventory changes made while writing it."""
     return _with(message, "game", list(ops or []))
+
+
+def audio_of(message):
+    """The saved recording of the version on screen, if its text hasn't changed since: {"url", "text"}."""
+    audio = _extras(message).get("audio") or {}
+    return audio if audio.get("url") and audio.get("text") == message[2] else None
+
+
+def with_audio(message, audio):
+    """Keeps a recording with the version on screen (and in its swipe, so flipping back keeps it)."""
+    message = _with(message, "audio", audio)
+    extras = dict(_extras(message))
+    if extras.get("swipes"):
+        versions = [dict(v) for v in extras["swipes"]]
+        versions[extras.get("swipe", 0)]["audio"] = audio
+        extras["swipes"] = versions
+        message = tuple(message[:5]) + (extras,)
+    return message
 
 
 def add_version(previous, message):

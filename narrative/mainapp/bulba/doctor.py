@@ -12,7 +12,7 @@ import uuid
 from pathlib import Path
 
 from mainapp import ai_client, chats, extras, game, presets, thinking
-from mainapp.bulba import control, library, lore
+from mainapp.bulba import control, library, lore, tune
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba"
 CARD_FIELDS = ("description", "personality", "scenario", "example_dialogue", "initial_message")
@@ -98,7 +98,7 @@ def system_prompt(session):
     from mainapp.bulba import agent
     text = (DATA_DIR / "doctor.md").read_text(encoding="utf-8")
     profile = agent.target_profile(session)
-    guides = [(DATA_DIR / "guides" / f"{g}.md").read_text(encoding="utf-8") for g in ("presets", "characters", "lore", "writing")]
+    guides = [(DATA_DIR / "guides" / f"{g}.md").read_text(encoding="utf-8") for g in ("presets", "characters", "lore", "writing", "tuning")]
     pending = [f"- {p['id']} {p['kind']}: {p['title']} ({p['status']})" for p in session.proposals]
     return "\n\n".join(filter(None, [
         text, *guides,
@@ -213,7 +213,7 @@ def tool_propose_preset_edit(session, args):
 
 def tool_propose_card_edit(session, args):
     from mainapp.bulba.agent import _proposal
-    fields = {f: str(args.get(f)).strip()[:8000] for f in CARD_FIELDS if isinstance(args.get(f), str) and args.get(f).strip()}
+    fields = {f: str(args.get(f)).strip()[:40000] for f in CARD_FIELDS if isinstance(args.get(f), str) and args.get(f).strip()}
     if not fields:
         return {"error": "Change at least one field (description, personality, scenario, example_dialogue)."}, []
     character = lore.target_character(session)
@@ -279,7 +279,8 @@ CARD_EDIT_TOOL = _fn("propose_card_edit", "Propose changes to this character's c
 def tools():
     from mainapp.bulba import agent
     keep = {"offer_choices", "record_preference", "get_starter", "find_practice", "read_practice", "look_up",
-            "propose_lorebook", "propose_extras", "read_lorebook", "propose_lore_edit"}
+            "propose_lorebook", "propose_extras", "read_lorebook", "propose_lore_edit", "propose_theme",
+            "offer_downloads", *tune.HANDLERS}
     base = [t for t in agent.TOOLS if t["function"]["name"] in keep]
     return base + [
         _fn("read_block", "The full text of one block of the active preset (names are in the outline).",
@@ -304,6 +305,7 @@ def tools():
 
 
 HANDLERS = {"read_block": tool_read_block, "propose_preset_edit": tool_propose_preset_edit, **lore.HANDLERS,
+            **tune.HANDLERS,
             **control.HANDLERS,
             "propose_card_edit": tool_propose_card_edit, "retry_reply": tool_retry_reply}
 

@@ -16,8 +16,11 @@
 
     <section class="option">
         <h2>🔊 Voices</h2>
-        <p class="help">Characters can read their replies aloud through <a href="https://elevenlabs.io" target="_blank" rel="noopener">ElevenLabs</a>
-            (a separate account and key). You then pick a voice for each character in its Advanced settings.</p>
+        <p class="help">Replies can be read aloud through <a href="https://elevenlabs.io" target="_blank" rel="noopener">ElevenLabs</a>
+            (a separate account and key): press 🔊 on a reply and the narration is read by a narrator, every speaker in their
+            own voice. Pick voices in a character's Advanced settings (or ask Bulba); anyone without one gets a voice that
+            stays theirs for the chat. Nothing is spent until you press 🔊; a full reply uses about as many ElevenLabs
+            credits as it has characters.</p>
         <input type="password" id="elevenKey" autocomplete="off" placeholder="ElevenLabs API key (leave empty for no voices)">
         <label class="check" id="removeEleven" hidden><input type="checkbox" id="removeElevenBox"> Remove the saved key (turn voices off)</label>
     </section>
@@ -50,6 +53,14 @@
         <label class="check"><input type="checkbox" name="story_extras" value="news"> News and rumours (a paper, a noticeboard, gossip)</label>
         <label class="check"><input type="checkbox" name="story_extras" value="keepsakes"> Scrapbook keepsakes of shared moments</label>
         <label class="check"><input type="checkbox" name="story_extras" value="choices"> Suggested actions under each reply (buttons that fill your message box)</label>
+    </section>
+
+    <section class="option">
+        <h2>🥔 Bulba's ideas</h2>
+        <p class="help">A potato button next to the message box, for when you're stuck. Bulba reads the last few messages
+            and suggests three ways to go on: what you could say or do (pick one to send, or have it written out in your
+            voice), or, when you direct the story, what could happen next. One small call each time you press it.</p>
+        <label class="check"><input type="checkbox" id="ideas"> Show the ideas button in chats</label>
     </section>
 
     <section class="option">

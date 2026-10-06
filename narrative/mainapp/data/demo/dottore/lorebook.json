@@ -1,0 +1,102 @@
+{
+ "title": "Dottore: Teyvat after 6.6",
+ "description": "World facts around the card's own lore (which covers Zandik, the segments, Pantalone, Irminsul, Scaramouche and Snezhnaya). No Traveler.",
+ "entries": [
+  {
+   "comment": "Premise: no Traveler",
+   "keys": [],
+   "content": "There is no Traveler and no Paimon in this world. What canon credits to them was done by others or went differently, and nobody has heard of a blond traveller searching for a lost sibling. {{user}} is whoever they say they are, and may take that place in the story if they wish.",
+   "constant": true,
+   "enabled": true
+  },
+  {
+   "comment": "The Fatui",
+   "keys": [
+    "Fatui",
+    "Fatuus",
+    "Skirmisher",
+    "Cicin Mage",
+    "Mirror Maiden"
+   ],
+   "content": "The Fatui serve the Tsaritsa of Snezhnaya as diplomats in name and as soldiers, spies and researchers in fact. Their rank and file (Skirmishers, Cicin Mages, Mirror Maidens) wield Delusions, and their embassies and the Northland Bank give them a foothold in every nation.",
+   "constant": false,
+   "enabled": true
+  },
+  {
+   "comment": "The Eleven Harbingers",
+   "keys": [
+    "Harbinger",
+    "the Eleven",
+    "Capitano",
+    "Arlecchino",
+    "Pulcinella",
+    "Tartaglia",
+    "Childe",
+    "Signora"
+   ],
+   "content": "The Eleven Fatui Harbingers lead the Fatui, each with a commedia dell'arte title and a seat ranked by strength. Pierro, the Jester, directs them. Seats: 1 Capitano (the Captain), 2 Dottore (the Doctor), 3 Columbina (the Damselette), 4 Arlecchino (the Knave), 5 Pulcinella (Rooster), 6 Scaramouche (the Balladeer, who has left), 7 Sandrone (Marionette), 8 La Signora (the Fair Lady, dead), 9 Pantalone (the Regrator), 10 unknown, 11 Tartaglia (Childe). Seats from the third up are said to hold power comparable to gods.",
+   "constant": false,
+   "enabled": true
+  },
+  {
+   "comment": "Pierro",
+   "keys": [
+    "Pierro",
+    "the Jester"
+   ],
+   "content": "Pierro, the Jester, is the oldest of the Harbingers and their director, answering only to the Tsaritsa. He found Zandik after Sumeru cast him out, gave him resources with no limits on his research, and named him Dottore. He is one of very few people Dottore does not openly mock.",
+   "constant": false,
+   "enabled": true
+  },
+  {
+   "comment": "Sumeru and the Akademiya today",
+   "keys": [
+    "Akademiya",
+    "darshan",
+    "Haravatat",
+    "Kshahrewar",
+    "Spantamad",
+    "Amurta",
+    "Vahumana",
+    "Azar",
+    "Grand Sage"
+   ],
+   "content": "Sumeru's Akademiya is split into six schools (darshans: Amurta, Haravatat, Kshahrewar, Rtawahist, Spantamad, Vahumana). Years ago Grand Sage Azar and his sages plotted with Dottore to make Scaramouche a new god for Sumeru; the plot failed, Azar was removed, and the Akasha terminals the sages used to feed and watch the people were switched off. Dottore's name is still a curse there.",
+   "constant": false,
+   "enabled": true
+  },
+  {
+   "comment": "Lesser Lord Kusanali",
+   "keys": [
+    "Kusanali",
+    "Dendro Archon",
+    "Buer",
+    "Sanctuary of Surasthana"
+   ],
+   "content": "Lesser Lord Kusanali (Nahida) is the Dendro Archon of Sumeru. Long kept confined by her own sages, she now rules openly. She is the one who struck the bargain that erased every segment but Omega, and the one who burned Irminsul with him inside it, so she has every reason to believe he is dead.",
+   "constant": false,
+   "enabled": true
+  },
+  {
+   "comment": "Eleazar and Collei",
+   "keys": [
+    "Eleazar",
+    "Collei",
+    "Apam Woods"
+   ],
+   "content": "Eleazar is a Sumeru disease that hardens the skin into scale-like patches and kills slowly. Dottore's research used Eleazar patients, children among them. Collei, now a forest ranger in Avidya Forest, survived Fatui experiments as a child; since Irminsul was cleansed, her illness has eased. She fears and hates the Fatui.",
+   "constant": false,
+   "enabled": true
+  },
+  {
+   "comment": "Delusions",
+   "keys": [
+    "Delusion",
+    "Delusions"
+   ],
+   "content": "Delusions are the Fatui's artificial Visions: they grant elemental power to anyone but drain the user's life with each use. Harbingers and elite agents carry them; ordinary people regard them as cursed.",
+   "constant": false,
+   "enabled": true
+  }
+ ]
+}

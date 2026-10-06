@@ -3402,9 +3402,40 @@ class DemoPackAndThemeTests(ChatPromptTests):
         from mainapp import lorebook
         titles = [e["content"] for e in lorebook.load_worldbook(viktor.worldbook)["entries"]]
         self.assertIn("The ferry leaves at midnight.", titles)
+        self.assertIn("Platform 9 is closed.", titles)  # the card's own lore is kept too
         self.assertTrue(viktor.photo_happy.name.endswith(".png"))
         self.assertEqual(viktor.theme["dialogue_color"], "#7dd3fc")
         self.assertFalse(Character.objects.filter(author__username="demo", name="Rose").exists())
+
+    def test_shipped_dottore_pack(self):
+        import os
+        from unittest import mock
+        from django.core.management import call_command
+        from mainapp import lorebook, media_library
+        from mainapp.models import Character
+        import tempfile
+        from pathlib import Path
+        from mainapp.management.commands import seed_demo
+        from mainapp.templatetags.custom_filters import blurb
+        with mock.patch.dict(os.environ, {"DEMO_PASSWORD": "pw-123456!"}):
+            with mock.patch.object(seed_demo, "PACKS", Path(tempfile.mkdtemp())):
+                call_command("seed_demo", stdout=open(os.devnull, "w"))   # an older deploy: Rose
+            self.assertTrue(Character.objects.filter(author__username="demo", name="Rose").exists())
+            call_command("seed_demo", stdout=open(os.devnull, "w"))
+        self.assertFalse(Character.objects.filter(author__username="demo", name="Rose").exists())
+        dottore = Character.objects.get(author__username="demo", name="Il Dottore")
+        self.assertTrue(blurb(dottore).startswith("Second of the Fatui Harbingers"))
+        self.assertEqual(dottore.post_history_instructions, "")  # his voice is left to the preset
+        entries = lorebook.load_worldbook(dottore.worldbook)["entries"]
+        titles = [e["comment"] for e in entries]
+        self.assertIn("Pantalone's medical file", titles)   # the card's own lore
+        self.assertIn("Premise: no Traveler", titles)       # and the pack's
+        self.assertFalse({"Columbina", "Sandrone", "Nod-Krai"} & set(titles))
+        self.assertNotIn("Traveler", " ".join(e["content"] for e in entries if e["comment"] != "Premise: no Traveler"))
+        self.assertTrue(all(getattr(dottore, f"photo_{m}") for m in ("neutral", "happy", "scheming")))
+        self.assertEqual(dottore.theme["dialogue_color"], "#67e8f9")
+        self.assertIsNotNone(media_library.find("backgrounds", "Lab 13"))
+        self.assertTrue(any(i["url"] == dottore.theme["music"]["url"] for i in media_library.built_in("music")))
 
     def test_theme_applies_to_chats(self):
         self.character.theme = {"bg": "/static/defaults/backgrounds/x.jpg", "dialogue_color": "#86efac",
@@ -3473,3 +3504,371 @@ class BulbaPageListTests(BulbaInChatTests):
         self.api(action="say", text="too long")
         page = self.client.get(reverse("bulba"))
         self.assertTrue(any("bulba=1" in c["url"] for c in page.context["in_chats"]))
+
+
+class BulbaPicturesAndThemeTests(BulbaCardAndLoreTests):
+    def setUp(self):
+        import shutil, tempfile
+        super().setUp()
+        media = tempfile.mkdtemp()
+        override = override_settings(MEDIA_ROOT=media)
+        override.enable()
+        self.addCleanup(override.disable)
+        self.addCleanup(shutil.rmtree, media, ignore_errors=True)
+
+    def send_picture(self, data, as_="neutral", name="me.png"):
+        from unittest import mock
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=self.fake_post):
+            return self.client.post(reverse("bulba_api"), {"picture": SimpleUploadedFile(name, data), "as": as_})
+
+    @staticmethod
+    def png():
+        import io
+        from PIL import Image
+        buf = io.BytesIO()
+        Image.new("RGB", (4, 4), "red").save(buf, "PNG")
+        return buf.getvalue()
+
+    def test_pictures_sent_to_bulba(self):
+        from mainapp.models import Character
+        self.assertEqual(self.send_picture(self.png()).status_code, 400)  # no character yet
+        self.upload(V2_CARD)
+        self.assertEqual(self.send_picture(b"not a picture").status_code, 400)
+        self.assertEqual(self.send_picture(self.png(), as_="selfie").status_code, 400)
+        self.script = [("Lovely.", [])]
+        data = self.send_picture(self.png(), as_="angry").json()
+        viktor = Character.objects.get(author=self.user, name="Viktor")
+        self.assertTrue(viktor.photo_angry.name.endswith(".png"))
+        self.assertIn("angry picture", self.bulba_calls[-1]["messages"][-1]["content"])
+        pid = data["state"]["proposals"][-1]["id"]
+        self.script = [("Undone.", [])]
+        self.api(action="undo", id=pid)
+        viktor.refresh_from_db()
+        self.assertFalse(viktor.photo_angry)
+        self.script = [("Nice place.", [])]
+        self.send_picture(self.png(), as_="background")
+        viktor.refresh_from_db()
+        self.assertIn("/backgrounds/custom/", viktor.theme["bg"])
+
+    def test_theme_from_built_in_media(self):
+        from unittest import mock
+        from mainapp import media_library
+        from mainapp.models import Character
+        fake = [{"name": "Lab 13", "url": "/static/defaults/backgrounds/lab-13.webp"}]
+        tunes = [{"name": "Quiet Lab", "url": "/static/defaults/music/quiet-lab.mp3"}]
+        with mock.patch.object(media_library, "built_in", side_effect=lambda kind: fake if kind == "backgrounds" else tunes):
+            self.upload(V2_CARD)
+            self.script = [("", [self.call("propose_theme", background="Nowhere", why="x")]),
+                           ("Here's a look.", [self.call("propose_theme", background="lab 13", music="Quiet Lab",
+                                                         dialogue_color="#67e8f9", why="a scientist")])]
+            data = self.api(action="say", text="give him a theme").json()
+        pid = data["state"]["proposals"][-1]["id"]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=pid)
+        viktor = Character.objects.get(author=self.user, name="Viktor")
+        self.assertEqual(viktor.theme["bg"], "/static/defaults/backgrounds/lab-13.webp")
+        self.assertEqual(viktor.theme["music"]["name"], "Quiet Lab")
+        self.assertEqual(viktor.theme["dialogue_color"], "#67e8f9")
+        self.script = [("Undone.", [])]
+        self.api(action="undo", id=pid)
+        viktor.refresh_from_db()
+        self.assertNotIn("dialogue_color", viktor.theme)
+
+    def test_long_cards_are_kept_whole(self):
+        from mainapp.models import Character
+        long_text = "Habits:\n" + ("He checks the locks twice before sleeping. " * 600)  # ~25k characters
+        self.script = [("", [self.call("propose_character", name="Corvin", description=long_text,
+                                       greeting="The door creaks.")])]
+        pid = self.api(action="say", text="go all out").json()["state"]["proposals"][-1]["id"]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=pid)
+        self.assertEqual(Character.objects.get(author=self.user, name="Corvin").description, long_text.strip())
+
+
+class BulbaHandoverTests(BulbaCardAndLoreTests):
+    def test_story_stage_downloads_and_preference_edit(self):
+        from mainapp.bulba import agent
+        self.assertLess(agent.STAGES.index("character"), agent.STAGES.index("story"))
+        self.upload(V2_CARD)
+        self.script = [("", [self.call("set_stage", stage="story")]),
+                       ("Here's everything.", [self.call("offer_downloads")])]
+        data = self.api(action="say", text="all done").json()
+        links = next(e for e in data["events"] if e["type"] == "downloads")["links"]
+        urls = [l["url"] for l in links]
+        self.assertTrue(any("/presets/" in u and "sillytavern" in u for u in urls))
+        self.assertTrue(any("character_export" in u and "format=json" in u for u in urls))
+        self.assertTrue(any("worldbook_export" in u for u in urls))
+        for url in urls:
+            self.assertEqual(self.client.get(url).status_code, 200, url)
+        self.assertIn("story", self.bulba_calls[-1]["messages"][0]["content"].lower())
+        # a preference Bulba noted can be reworded
+        self.script = [("", [self.call("record_preference", wording="shorter", interpretation="Short replies")]),
+                       ("Noted.", [])]
+        pid = self.api(action="say", text="keep it short").json()["state"]["preferences"][-1]["id"]
+        state = self.api(action="edit_preference", id=pid, text="Short replies, but long fights").json()["state"]
+        pref = next(p for p in state["preferences"] if p["id"] == pid)
+        self.assertEqual((pref["interpretation"], pref["status"]), ("Short replies, but long fights", "confirmed"))
+        self.assertEqual(self.api(action="edit_preference", id="nope", text="x").status_code, 400)
+
+
+class BulbaTuningTests(BulbaCardAndLoreTests):
+    def apply_and_undo(self, pid, check_applied, check_undone):
+        self.script = [("Done.", [])]
+        self.assertEqual(self.api(action="apply", id=pid).status_code, 200)
+        check_applied()
+        self.script = [("Undone.", [])]
+        self.api(action="undo", id=pid)
+        check_undone()
+
+    def propose(self, tool, **args):
+        self.script = [("", [self.call("read_settings")]), ("Here.", [self.call(tool, why="x", **args)])]
+        data = self.api(action="say", text="tune it").json()
+        return data, data["state"]["proposals"][-1]["id"] if data["state"]["proposals"] else None
+
+    def test_samplers(self):
+        from mainapp import presets, samplers
+        data, pid = self.propose("propose_samplers", changes=[{"key": "max_tokens", "value": 3000},
+                                                             {"key": "temperature", "on": True, "value": 9}])
+        read = json.loads(next(m["content"] for m in self.bulba_calls[-1]["messages"] if m["role"] == "tool"))
+        self.assertIn("max_tokens", read["samplers"])
+        s = lambda: samplers.normalize(presets.get_active(self.user).data.get("samplers"))
+        before = s()
+        self.apply_and_undo(pid, lambda: (self.assertEqual(s()["max_tokens"], {"on": True, "value": 3000}),
+                                          self.assertEqual(s()["temperature"]["value"], 2)),  # clamped
+                            lambda: self.assertEqual(s(), before))
+
+    def test_trackers_greetings_rules_and_lore_settings(self):
+        from mainapp import lorebook, regex_rules, trackers
+        from mainapp.models import Character
+        card = json.loads(json.dumps(V2_CARD))
+        card["data"].setdefault("extensions", {})["regex_scripts"] = [
+            {"id": "r1", "scriptName": "Hide stats", "findRegex": "/STATS.*/g", "replaceString": "", "disabled": False}]
+        self.upload(card)
+        viktor = lambda: Character.objects.get(author=self.user, name="Viktor")
+        _, pid = self.propose("propose_trackers", turn_on=["secrets"], turn_off=["world"],
+                              custom_fields=[{"label": "Trust", "type": "meter", "min": 0, "max": 10}])
+        cfg = lambda: trackers.normalize_config(viktor().tracker_config)
+        self.apply_and_undo(pid, lambda: (self.assertTrue(cfg()["trackers"]["secrets"]["on"]),
+                                          self.assertFalse(cfg()["trackers"]["world"]["on"]),
+                                          self.assertTrue(cfg()["trackers"]["custom"]["on"]),
+                                          self.assertEqual(cfg()["custom_fields"][0]["label"], "Trust")),
+                            lambda: self.assertTrue(cfg()["trackers"]["world"]["on"]))
+        before = viktor().alternate_greetings
+        _, pid = self.propose("propose_greetings", greetings=["Rain again.", "The ferry's late."])
+        self.apply_and_undo(pid, lambda: self.assertEqual(viktor().alternate_greetings, ["Rain again.", "The ferry's late."]),
+                            lambda: self.assertEqual(viktor().alternate_greetings, before))
+        rules = lambda: {r["id"]: r["enabled"] for r in regex_rules.card_rules(viktor())}
+        rid = next(iter(rules()))
+        _, pid = self.propose("propose_card_rules", rules=[{"id": rid, "enabled": False}])
+        self.apply_and_undo(pid, lambda: self.assertFalse(rules()[rid]), lambda: self.assertTrue(rules()[rid]))
+        settings = lambda: lorebook.load_worldbook(viktor().worldbook)["settings"]
+        old_depth = settings()["scan_depth"]
+        _, pid = self.propose("propose_lore_settings", scan_depth=8, recursive_scan=True)
+        self.apply_and_undo(pid, lambda: (self.assertEqual(settings()["scan_depth"], 8),
+                                          self.assertTrue(settings()["recursive_scan"])),
+                            lambda: self.assertEqual(settings()["scan_depth"], old_depth))
+
+    def test_mood_pictures_button_needs_a_neutral_picture(self):
+        from django.core.files.base import ContentFile
+        from mainapp.models import Character
+        self.upload(V2_CARD)
+        self.script = [("Add a picture first.", [self.call("offer_mood_pictures")])]
+        data = self.api(action="say", text="make his moods").json()
+        self.assertFalse(any(e["type"] == "make_pictures" for e in data["events"]))
+        viktor = Character.objects.get(author=self.user, name="Viktor")
+        viktor.photo_neutral.save("v.png", ContentFile(b"\x89PNG fake"), save=True)
+        self.script = [("A few cents each; press it if you like.", [self.call("offer_mood_pictures")])]
+        data = self.api(action="say", text="make his moods").json()
+        ev = next(e for e in data["events"] if e["type"] == "make_pictures")
+        self.assertEqual(len(ev["moods"]), 8)
+        self.assertIn(viktor.slug, ev["url"])
+
+
+class BulbaIdeasTests(ChatPromptTests):
+    def test_ideas_extra(self):
+        from unittest import mock
+        from mainapp import extras
+        self.assertNotContains(self.client.get(self.url), 'id="ideasBtn"')
+        extras.set_ideas(self.user, True)
+        self.assertContains(self.client.get(self.url), 'id="ideasBtn"')
+        reply = '{"ideas": ["I ask about the ferry.", "I leave without a word.", "I hand her the key."]}'
+        with mock.patch("mainapp.ai_client.complete", return_value=reply) as complete:
+            data = self.post({"action": "ideas"}).json()
+        self.assertEqual(data["ideas"][0], "I ask about the ferry.")
+        self.assertEqual(data["mode"], "player")
+        self.assertEqual(complete.call_args.args[1], "bulba")  # on Bulba's model
+        self.assertIn("as ", complete.call_args.args[2][0]["content"])
+        with mock.patch("mainapp.ai_client.complete", return_value="no json here"):
+            self.assertFalse(self.post({"action": "ideas"}).json()["success"])
+        # directing: what could happen next
+        from mainapp import presets
+        from mainapp.bulba import control
+        active = presets.get_active(self.user)
+        active.data = control.apply_to_preset(presets.normalize(active.data), "director")
+        active.save()
+        with mock.patch("mainapp.ai_client.complete", return_value=reply) as complete:
+            self.assertEqual(self.post({"action": "ideas"}).json()["mode"], "director")
+        self.assertIn("directs", complete.call_args.args[2][0]["content"])
+
+    def test_extras_page_saves_ideas(self):
+        from mainapp import extras
+        from users.views import apply_extras
+        apply_extras(self.user, {"ideas": True})
+        self.assertTrue(extras.ideas_on(self.user))
+
+
+class TagFilterTests(ChatPromptTests):
+    def test_character_list_offers_its_tags(self):
+        from mainapp.models import TagPost
+        t = TagPost.objects.create(tag="Genshin Impact", slug="genshin-impact")
+        self.character.tags.add(t)
+        page = self.client.get(reverse("characters_list"))
+        self.assertEqual(page.context["all_tags"], ["Genshin Impact"])
+        self.assertContains(page, 'data-tags="genshin impact|"')
+
+
+ELEVEN_VOICES = {"voices": [
+    {"voice_id": "v-narr", "name": "Calm Narrator", "labels": {"gender": "male", "age": "middle_aged", "use_case": "narration"}},
+    {"voice_id": "v-man", "name": "Brian", "labels": {"gender": "male", "age": "middle_aged"}},
+    {"voice_id": "v-old", "name": "Grandpa", "labels": {"gender": "male", "age": "old"}},
+    {"voice_id": "v-woman", "name": "Alice", "labels": {"gender": "female", "age": "young"}},
+]}
+REPLY = ('Rose looks up. "You\'re late," she whispers. The guard at the door coughs. '
+         '"Papers, please." Rose sighs. *She turns back to the alembic.* "Let him in."')
+
+
+class VoiceTests(ChatPromptTests):
+    def setUp(self):
+        import shutil, tempfile
+        from users.models import ApiConfig
+        super().setUp()
+        media = tempfile.mkdtemp()
+        override = override_settings(MEDIA_ROOT=media)
+        override.enable()
+        self.addCleanup(override.disable)
+        self.addCleanup(shutil.rmtree, media, ignore_errors=True)
+        ApiConfig.objects.update_or_create(user=self.user, defaults={"eleven_key": "el-key"})
+        from mainapp import voice
+        voice._voice_cache.clear()
+        self.eleven_calls = []
+
+    def fake_eleven(self, method):
+        from unittest import mock
+        def call(url, headers=None, json=None, timeout=None, **kw):
+            self.eleven_calls.append((url, json))
+            resp = mock.Mock(status_code=200, ok=True, text="")
+            if url.endswith("/voices"):
+                resp.json.return_value = ELEVEN_VOICES
+            else:
+                resp.content = b"ID3fake-mp3"
+            return resp
+        return call
+
+    def attribution(self, *a, **kw):
+        return json.dumps({"lines": {"1": {"speaker": "Rose", "cue": "whispers"}, "3": {"speaker": "guard", "cue": ""},
+                                     "5": {"speaker": "Rose", "cue": ""}},
+                           "people": {"guard": {"gender": "male", "age": "old"}}})
+
+    def test_segments_keep_the_text(self):
+        from mainapp import voice
+        segs = voice.segments(REPLY)
+        self.assertEqual([s["kind"] for s in segs], ["narration", "speech", "narration", "speech", "narration", "speech"])
+        self.assertEqual(segs[1]["text"], "You're late,")
+        self.assertEqual(segs[4]["text"], "Rose sighs. She turns back to the alembic.")  # markdown gone
+
+    def test_voice_action_end_to_end(self):
+        from unittest import mock
+        from mainapp.models import Chat
+        self.client.get(self.url)
+        chat = Chat.objects.filter(character=self.character).first()
+        data = json.loads(open(chat.log_file.path).read())
+        data["messages"] = [["assistant", "10:00", REPLY, "neutral", 1]]
+        open(chat.log_file.path, "w").write(json.dumps(data))
+        with mock.patch("mainapp.voice.requests.get", side_effect=self.fake_eleven("get")), \
+             mock.patch("mainapp.voice.requests.post", side_effect=self.fake_eleven("post")), \
+             mock.patch("mainapp.ai_client.complete", side_effect=self.attribution):
+            say = lambda body: self.client.post(self.url, json.dumps(body), content_type="application/json").json()
+            first = say({"action": "voice", "index": 0})  # (self.post would replace the faked requests.post)
+            again = say({"action": "voice", "index": 0})
+        self.assertTrue(first["success"], first)
+        self.assertEqual(first["url"], again["url"])  # saved: no second recording
+        dialogue = [c[1] for c in self.eleven_calls if "text-to-dialogue" in c[0]]
+        self.assertEqual(len(dialogue), 1)
+        inputs = dialogue[0]["inputs"]
+        self.assertEqual(dialogue[0]["model_id"], "eleven_v3")
+        self.assertEqual(inputs[0], {"text": "Rose looks up.", "voice_id": "v-narr"})  # narrator
+        self.assertEqual(inputs[1]["text"], "[whispers] You're late,")
+        rose = inputs[1]["voice_id"]
+        guard = next(i for i in inputs if i["text"] == "Papers, please.")["voice_id"]
+        self.assertNotIn(rose, ("v-narr", guard))
+        self.assertEqual(guard, "v-old")  # an old man for the old guard
+        self.assertEqual(inputs[-1], {"text": "Let him in.", "voice_id": rose})
+        saved = json.loads(open(chat.log_file.path).read())
+        self.assertEqual(saved["voices"]["guard"], "v-old")  # he keeps his voice in this chat
+        self.assertIn('data-audio-url="' + first["url"], self.client.get(self.url).content.decode())
+        # an edited reply needs a new recording
+        from mainapp import chats
+        self.assertIsNone(chats.audio_of(("assistant", "", "changed", "neutral", 1, saved["messages"][0][5])))
+
+    def test_cast_and_fallback_when_dialogue_is_refused(self):
+        from unittest import mock
+        from mainapp import voice
+        self.character.voice_cast = {"Guard": "v-man"}
+        self.character.eleven_voice_char_id = "v-woman"
+        self.character.save()
+        def post(url, headers=None, json=None, timeout=None, **kw):
+            self.eleven_calls.append((url, json))
+            if "text-to-dialogue" in url:
+                return mock.Mock(status_code=403, ok=False, text="not on your plan")
+            return mock.Mock(status_code=200, ok=True, content=b"ID3x", text="")
+        with mock.patch("mainapp.voice.requests.get", side_effect=self.fake_eleven("get")), \
+             mock.patch("mainapp.voice.requests.post", side_effect=post), \
+             mock.patch("mainapp.ai_client.complete", side_effect=self.attribution):
+            audio, cast = voice.voice_reply(self.user, self.character, REPLY, {}, "Me", "el-key")
+        singles = [c for c in self.eleven_calls if "text-to-speech" in c[0]]
+        self.assertTrue(any(u.endswith("v-man?output_format=mp3_44100_128") for u, _ in singles))  # the cast list
+        self.assertTrue(all("[" not in body["text"] for _, body in singles))  # v3 cues dropped
+        self.assertEqual(cast["guard"], "Brian")
+        self.assertEqual(cast["Rose"], "Alice")
+
+    def test_no_key_no_voice(self):
+        from users.models import ApiConfig
+        ApiConfig.objects.filter(user=self.user).update(eleven_key="")
+        self.assertFalse(self.post({"action": "voice", "index": 0}).json()["success"])
+        self.assertNotContains(self.client.get(self.url), 'data-action="play-sound"')
+
+
+class BulbaVoicesTests(BulbaCardAndLoreTests):
+    def test_bulba_picks_voices_by_name(self):
+        from unittest import mock
+        from users.models import ApiConfig
+        from mainapp import voice
+        from mainapp.models import Character
+        voice._voice_cache.clear()
+        self.upload(V2_CARD)
+        self.script = [("", [self.call("read_voices")])] + [("Here.", [self.call(
+            "propose_voices", narrator="Calm Narrator", character="Brian", cast=[{"name": "Mira", "voice": "Alice"}],
+            why="fits")])]
+        data = self.api(action="say", text="voices").json()
+        read = json.loads(next(m["content"] for m in self.bulba_calls[-1]["messages"] if m["role"] == "tool"))
+        self.assertIn("ElevenLabs key", read["error"])  # no key yet: nothing proposed
+        ApiConfig.objects.update_or_create(user=self.user, defaults={"eleven_key": "el-key"})
+        get = mock.Mock(return_value=mock.Mock(status_code=200, ok=True, json=mock.Mock(return_value=ELEVEN_VOICES)))
+        self.script = [("", [self.call("read_voices")]), ("Here.", [self.call(
+            "propose_voices", narrator="Calm Narrator", character="Brian", cast=[{"name": "Mira", "voice": "Alice"}],
+            why="fits")])]
+        with mock.patch("mainapp.voice.requests.get", get):
+            data = self.api(action="say", text="voices").json()
+        read = json.loads(next(m["content"] for m in reversed(self.bulba_calls[-1]["messages"]) if m["role"] == "tool"))
+        self.assertNotIn("el-key", json.dumps(self.bulba_calls))  # the key never reaches Bulba
+        pid = data["state"]["proposals"][-1]["id"]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=pid)
+        viktor = Character.objects.get(author=self.user, name="Viktor")
+        self.assertEqual((viktor.eleven_voice_narr_id, viktor.eleven_voice_char_id, viktor.voice_cast),
+                         ("v-narr", "v-man", {"Mira": "v-woman"}))
+        self.script = [("Undone.", [])]
+        self.api(action="undo", id=pid)
+        viktor.refresh_from_db()
+        self.assertEqual(viktor.voice_cast, {})

@@ -2,6 +2,7 @@
 from django.utils.text import slugify
 
 from mainapp import presets, starters
+from mainapp.bulba import tune
 
 
 class ProposalError(Exception):
@@ -40,7 +41,7 @@ def apply(session, pid):
             raise ProposalError(error)
         p["undo"] = {"summary": before["summary"], "trackers": before["trackers"],
                      "sprites": before["sprites"], "background": before["background"], "game": before["game"],
-                     "story_extras": before["story_extras"]}
+                     "story_extras": before["story_extras"], "ideas": before["ideas"]}
         note = "Extras saved."
     elif p["kind"] == "preset":
         from mainapp.bulba.agent import build_preset
@@ -72,6 +73,12 @@ def apply(session, pid):
         p["undo"] = {"created": character.id}
         p["result"] = {"slug": character.slug}
         note = f"{character.name} is ready to chat."
+    elif p["kind"] == "theme":
+        from mainapp.bulba import lore
+        try:
+            note = lore.apply_theme(session, p)
+        except ValueError as e:
+            raise ProposalError(str(e))
     elif p["kind"] == "lore_edit":
         from mainapp.bulba import lore
         try:
@@ -88,6 +95,11 @@ def apply(session, pid):
         from mainapp.bulba import lore
         try:
             note = lore.apply(session, p)
+        except ValueError as e:
+            raise ProposalError(str(e))
+    elif p["kind"] in tune.KINDS:
+        try:
+            note = tune.apply(session, p)
         except ValueError as e:
             raise ProposalError(str(e))
     elif p["kind"] in ("preset_edit", "card_edit"):  # from Bulba inside a chat
@@ -134,12 +146,23 @@ def undo(session, pid):
         if before.get("worldbook"):  # an imported card's own lore goes with it
             from mainapp.models import Worldbook
             Worldbook.objects.filter(author=user, id=before["worldbook"], characters__isnull=True).delete()
+    elif p["kind"] == "theme":
+        from mainapp.bulba import lore
+        lore.undo_theme(session, p)
+    elif p["kind"] == "picture":
+        from mainapp.models import Character
+        character = Character.objects.filter(author=user, id=before.get("character_id")).first()
+        if character:
+            setattr(character, before["field"], before.get("old") or None)
+            character.save(update_fields=[before["field"]])
     elif p["kind"] in ("lorebook", "lore_edit"):
         from mainapp.bulba import lore
         lore.undo(session, p)
     elif p["kind"] == "control":
         from mainapp.bulba import control
         control.undo(session, p)
+    elif p["kind"] in tune.KINDS:
+        tune.undo(session, p)
     elif p["kind"] in ("preset_edit", "card_edit"):
         from mainapp.bulba import doctor
         doctor.undo(session, p)

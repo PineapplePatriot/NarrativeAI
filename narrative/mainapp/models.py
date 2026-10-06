@@ -63,6 +63,8 @@ class Character(models.Model):
     eleven_voice_char_id = models.CharField(max_length=128, blank=True)
     eleven_voice_narr_id = models.CharField(max_length=128, blank=True)
     eleven_voice_second_id = models.CharField(max_length=128, blank=True, verbose_name="2nd Character Voice ID")
+    # Other people in this character's story with a voice of their own: {"Pantalone": "<voice id>"}
+    voice_cast = models.JSONField(default=dict, blank=True)
 
     is_mult = models.BooleanField(default=False, verbose_name="Multi-Character Mode")
     # Which story trackers are on for this character, custom fields and layout (see mainapp/trackers.py)

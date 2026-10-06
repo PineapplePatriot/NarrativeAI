@@ -393,3 +393,8 @@ body {
 .import-message[hidden] {
     display: none;
 }
+
+.tag-filter { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.tag-filter .tag { border: 1px solid transparent; cursor: pointer; font-family: inherit; }
+.tag-filter .tag.on { border-color: var(--accent-1); background: rgba(126, 58, 242, 0.4); color: #fff; }
+.character-tags .tag[data-tag] { cursor: pointer; }

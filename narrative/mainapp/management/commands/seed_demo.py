@@ -61,6 +61,9 @@ def load_packs(user):
             book = lorebook.normalize_book(json.loads(lore.read_text(encoding="utf-8")))
             wb = character.worldbook or Worldbook(title=book["title"] or f"{character.name}'s world",
                                                   slug=f"{character.slug}-lore", author=user)
+            if character.worldbook:  # the card brought its own lore: add ours after it
+                own = lorebook.load_worldbook(wb)
+                book = {**own, "entries": own["entries"] + book["entries"]}
             lorebook.save_worldbook(wb, book)
             character.worldbook = wb
         theme = folder / "theme.json"
@@ -116,7 +119,12 @@ class Command(BaseCommand):
                 presets.get_active(user)  # the built-in default
 
         packs = load_packs(user)
-        if not packs and not Character.objects.filter(author=user).exists():
+        rose = Character.objects.filter(author=user, slug=f"{username}-rose")
+        if Character.objects.filter(author=user).exclude(slug=f"{username}-rose").exists():
+            if rose.exists():  # the old stand-in, replaced by the shipped characters
+                rose.delete()
+                self.stdout.write("Removed the old demo character Rose.")
+        else:
             character = Character.objects.create(slug=f"{username}-rose", author=user, **ROSE)
             chats.current(character)
 

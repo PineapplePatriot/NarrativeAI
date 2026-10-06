@@ -10,6 +10,7 @@ function fill() {
         $(`${task}Every`).value = state[task].interval;
     }
     $('sprites').checked = state.sprites;
+    $('ideas').checked = !!state.ideas;
     document.querySelector(`input[name=game][value=${state.game || 'off'}]`).checked = true;
     document.querySelectorAll('input[name=story_extras]').forEach(b => { b.checked = (state.story_extras || []).includes(b.value); });
     $('chatModel').textContent = state.chat_model || 'your chat model';
@@ -31,6 +32,7 @@ $('saveBtn').onclick = async () => {
         summary: { mode: document.querySelector('input[name=summary]:checked').value, interval: Number($('summaryEvery').value) },
         trackers: { mode: document.querySelector('input[name=trackers]:checked').value, interval: Number($('trackersEvery').value) },
         sprites: $('sprites').checked,
+        ideas: $('ideas').checked,
         game: document.querySelector('input[name=game]:checked').value,
         story_extras: [...document.querySelectorAll('input[name=story_extras]:checked')].map(b => b.value),
         eleven_key: $('elevenKey').value,

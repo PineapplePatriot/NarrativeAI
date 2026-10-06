@@ -62,7 +62,7 @@ class AddCharacterForm(forms.ModelForm):
             'photo_second_angry', 'photo_second_surprised', 'photo_second_scared',
             'photo_second_confused', 'photo_second_calm', 'photo_second_scheming',
 
-            'eleven_voice_char_id', 'eleven_voice_narr_id', 'eleven_voice_second_id'
+            'eleven_voice_char_id', 'eleven_voice_narr_id', 'eleven_voice_second_id', 'voice_cast'
         ]
         widgets = {
             'is_mult': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
@@ -80,6 +80,7 @@ class AddCharacterForm(forms.ModelForm):
             'eleven_voice_char_id': forms.TextInput(attrs={'placeholder': "Paste an ElevenLabs voice ID"}),
             'eleven_voice_narr_id': forms.TextInput(attrs={'placeholder': "Paste an ElevenLabs voice ID"}),
             'eleven_voice_second_id': forms.TextInput(attrs={'placeholder': "Paste an ElevenLabs voice ID"}),
+            'voice_cast': forms.HiddenInput(),
         }
         labels = {'is_mult': 'Contains 2 characters', 'initial_message': 'First message',
                   'creator_notes': "Creator's notes"}
@@ -109,6 +110,13 @@ class AddCharacterForm(forms.ModelForm):
             # Voices are optional per character, even with a key (an empty ID means no voice)
             for fname in voice_fields:
                 self.fields[fname].required = False
+            self.fields['voice_cast'].required = False
+
+    def clean_voice_cast(self):
+        cast = self.cleaned_data.get('voice_cast') or {}
+        if not isinstance(cast, dict):
+            return {}
+        return {str(k).strip()[:60]: str(v).strip()[:64] for k, v in cast.items() if str(k).strip() and str(v).strip()}
 
 
 

@@ -130,6 +130,14 @@
                         {{ form.eleven_voice_narr_id }}
                     </div>
                 </div>
+                <h4 class="cast-title">Other people in the story</h4>
+                <p class="section-help">Side characters with a voice of their own (Pantalone, a sister, the innkeeper). Anyone
+                    not listed, and any voice left empty, gets one picked from your ElevenLabs voices, kept for the rest of
+                    the chat. Press 🔊 on a reply to hear it.</p>
+                <div class="voice-cast" id="voiceCast"></div>
+                <button type="button" class="btn-secondary" id="addCastBtn">+ Add someone</button>
+                {{ form.voice_cast }}
+                <p class="section-help" id="voiceListNote"></p>
             {% else %}
                 <p class="section-help">🔒 Add an ElevenLabs key on the <a href="{% url 'users:api_config' %}">Connections page</a> to pick voices.</p>
             {% endif %}
@@ -144,6 +152,8 @@
 </div>
 
 <script src="{% static 'mainapp/js/add_character.js' %}?v={% now 'U' %}"></script>
+{% if has_eleven_key %}<script>window.ELEVEN_VOICES_URL = "{% url 'eleven_voices' %}";</script>
+<script src="{% static 'mainapp/js/voices.js' %}?v={% now 'U' %}"></script>{% endif %}
 
 </body>
 </html>

@@ -4,6 +4,7 @@ from . import views
 
 urlpatterns = [
 path('api/media-resources/', views.get_media_resources, name='media_resources'),
+path('api/eleven-voices/', views.eleven_voices, name='eleven_voices'),
 path('add_character/', views.AddCharacter.as_view(), name="add_character"),
 path('character_import/', views.character_import, name="character_import"),
 path('character_export/<slug:slug>', views.character_export, name="character_export"),

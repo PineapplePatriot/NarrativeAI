@@ -6,18 +6,18 @@ import uuid
 from pathlib import Path
 
 from mainapp import ai_client, cards, model_profiles, presets, starters, thinking
-from mainapp.bulba import doctor, library, lore
+from mainapp.bulba import doctor, library, lore, tune
 
 INSTRUCTIONS = Path(__file__).resolve().parent.parent / "data" / "bulba" / "instructions.md"
 GUIDES_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba" / "guides"
 # Which guides Bulba reads at each stage (keeps the prompt, and the bill, small)
 STAGE_GUIDES = {"extras": ["extras"], "taste": ["asking", "presets", "writing"], "preset": ["presets", "writing"],
                 "persona": ["characters", "writing"], "character": ["characters", "lore", "writing"],
-                "done": ["characters", "lore", "writing"]}
+                "story": ["extras", "tuning"], "done": ["characters", "lore", "writing", "tuning"]}
 REWRITABLE = ("Roleplay", "Style")
 TEST_CHARACTER = Path(__file__).resolve().parent.parent / "data" / "bulba" / "test-character.json"
 
-STAGES = ["extras", "taste", "preset", "persona", "character", "done"]
+STAGES = ["extras", "taste", "preset", "persona", "character", "story", "done"]
 MAX_TOOL_ROUNDS = 8
 HISTORY_LIMIT = 60      # messages of conversation sent to Bulba's model
 SAMPLE_WORDS = 250
@@ -149,6 +149,8 @@ TOOLS = [
                           "description": "Story extras drawn by the app: letters/notes/signs, phone screens, "
                                          "relationship milestones, news and rumours, scrapbook keepsakes, suggested "
                                          "actions. [] turns them all off"},
+         "ideas": {"type": "boolean", "description": "A 🥔 button by the message box: three ideas for what they "
+                                                     "could write next (or, directing, what could happen next)"},
          "game": {"type": "string", "enum": ["off", "dice", "full"],
                   "description": "Dice and inventory: off (no chance in the story), dice only, or dice + inventory "
                                  "and conditions kept by the app"},
@@ -174,6 +176,7 @@ TOOLS = [
         ["name", "description", "greeting"]),
     *library.tool_defs(_fn, STR),
     *lore.tool_defs(_fn, STR),
+    *tune.tool_defs(_fn, STR),
     doctor.CARD_EDIT_TOOL,
 ]
 
@@ -554,6 +557,9 @@ def tool_propose_extras(session, args):
         kinds = [k for k in extras.KINDS if k in args["story_extras"]]
         payload["story_extras"] = kinds
         summary.append("Story extras: " + (", ".join(extras.KINDS[k].lower() for k in kinds) or "off"))
+    if isinstance(args.get("ideas"), bool):
+        payload["ideas"] = args["ideas"]
+        summary.append("Bulba's ideas button in chats: " + ("on" if args["ideas"] else "off"))
     if args.get("game") in ("off", "dice", "full"):
         from mainapp import game
         payload["game"] = args["game"]
@@ -630,7 +636,7 @@ def tool_propose_preset(session, args):
 
 def tool_propose_persona(session, args):
     name = str(args.get("name", "")).strip()[:100]
-    desc = str(args.get("description", "")).strip()[:3000]
+    desc = str(args.get("description", "")).strip()[:8000]
     if not name or not desc:
         return {"error": "Need a name and a description."}, []
     p = _proposal(session, "persona", f"You: {name}", [desc], {"name": name, "description": desc})
@@ -641,7 +647,7 @@ def tool_propose_character(session, args):
     name = str(args.get("name", "")).strip()[:100]
     if not name or not str(args.get("description", "")).strip():
         return {"error": "Need a name and a description."}, []
-    payload = {k: str(args.get(k, "")).strip()[:6000]
+    payload = {k: str(args.get(k, "")).strip()[:40000]
                for k in ("description", "scenario", "greeting", "personality", "example_dialogue")}
     payload["name"] = name
     summary = ["Description:", payload["description"]]
@@ -662,7 +668,7 @@ HANDLERS = {
     "write_samples": tool_write_samples, "record_preference": tool_record_preference,
     "propose_extras": tool_propose_extras, "propose_preset": tool_propose_preset,
     "propose_persona": tool_propose_persona, "propose_character": tool_propose_character,
-    **library.HANDLERS, **lore.HANDLERS, "propose_card_edit": doctor.tool_propose_card_edit,
+    **library.HANDLERS, **lore.HANDLERS, **tune.HANDLERS, "propose_card_edit": doctor.tool_propose_card_edit,
 }
 
 
@@ -706,7 +712,8 @@ def opening(session):
 
 # Tools after which Bulba waits for the user (see instructions.md, "Tools, briefly")
 TURN_ENDING = {"offer_choices", "write_samples", "show_basics_form", "retry_reply",
-               "propose_preset_edit", "propose_card_edit", "propose_lorebook", "propose_lore_edit", "propose_control", "offer_card_upload", "propose_extras", "propose_preset", "propose_persona", "propose_character"}
+               "propose_preset_edit", "propose_card_edit", "propose_lorebook", "propose_lore_edit", "propose_theme", "propose_control", "offer_card_upload", "propose_extras", "propose_preset", "propose_persona", "propose_character",
+               *tune.TURN_ENDING}
 
 
 def run_turn(session, user_text, action_note=None, model_note=None):
@@ -735,7 +742,7 @@ def run_turn(session, user_text, action_note=None, model_note=None):
                        + _trimmed(session.messages))
             message, cost = ai_client.complete_message(session.user, "bulba", request,
                                                        tools=doctor.tools() if in_chat else TOOLS,
-                                                       tool_choice="auto", max_tokens=4000)
+                                                       tool_choice="auto", max_tokens=16000)
             session.spent += cost or 0
             calls = message.get("tool_calls") or []
             content = (message.get("content") or "").strip()

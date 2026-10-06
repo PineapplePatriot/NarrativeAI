@@ -1,8 +1,10 @@
 # --- Standard library ---
+import io
 import json
 import logging
 import os
 import traceback
+import uuid
 from datetime import datetime
 
 # --- Django core ---
@@ -26,9 +28,9 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
-from . import extras, game, thinking, ai_client, cards, chats, regex_rules, model_profiles, presets, samplers, starters, trackers
+from . import extras, game, media_library, thinking, ai_client, cards, chats, regex_rules, model_profiles, presets, samplers, starters, trackers
 
-from .utils import build_ai_request, narrate_text_backend, get_elevenlabs_key
+from .utils import build_ai_request, get_elevenlabs_key
 from .lorebook import (
     normalize_book, load_worldbook, save_worldbook, activate, format_for_prompt, to_sillytavern,
     DEFAULT_SETTINGS as LORE_DEFAULT_SETTINGS, DEFAULT_ENTRY as LORE_DEFAULT_ENTRY,
@@ -119,6 +121,7 @@ def chat(request, slug):
         "current_music": {},
         "persona": {},          # {"name", "description"}: who the user is in this chat only (else their usual persona)
         "game": {},             # dice and inventory: the starting inventory after manual edits (see mainapp/game.py)
+        "voices": {},           # voices picked for speakers in this chat (see mainapp/voice.py), so they stay the same
     }
     game_mode = game.mode_for(request.user, character)
     extra_kinds = extras.kinds_for(request.user)        # letters, phone screens, milestones (Extras page)
@@ -161,6 +164,7 @@ def chat(request, slug):
                         chat_state["current_music"] = data.get("current_music", {})
                         chat_state["persona"] = data.get("persona") if isinstance(data.get("persona"), dict) else {}
                         chat_state["game"] = data.get("game") if isinstance(data.get("game"), dict) else {}
+                        chat_state["voices"] = data.get("voices") if isinstance(data.get("voices"), dict) else {}
                         messages_list = data.get("messages", [])
                     else:
                         messages_list = data
@@ -228,6 +232,7 @@ def chat(request, slug):
             "current_music": chat_state["current_music"],
             "persona": chat_state["persona"],
             "game": chat_state["game"],
+            "voices": chat_state["voices"],
         }
         with open(chat_file_path, "w", encoding="utf-8") as f:
             json.dump(full_data, f, ensure_ascii=False, indent=2)
@@ -349,6 +354,47 @@ def chat(request, slug):
             chat_state["context_guides"] = {"note": str(data.get("note") or "").strip()[:4000]}
             save_messages(messages) # Updates file
             return JsonResponse({"success": True})
+        elif action == "voice":  # read one AI reply aloud (ElevenLabs), saved with that version of the reply
+            from mainapp import voice
+            key = get_elevenlabs_key(request.user)
+            if not key:
+                return JsonResponse({"success": False, "error": "Voices need an ElevenLabs key (Extras page)."})
+            try:
+                index = int(data.get("index"))
+                message = messages[index]
+            except (TypeError, ValueError, IndexError):
+                return JsonResponse({"success": False, "error": "No such message."})
+            if message[0] != "assistant":
+                return JsonResponse({"success": False, "error": "Only the AI's replies are read aloud."})
+            saved = chats.audio_of(message)
+            if saved and not data.get("redo"):
+                return JsonResponse({"success": True, "url": saved["url"], "cast": saved.get("cast", {})})
+            try:
+                audio, cast = voice.voice_reply(request.user, character, message[2], chat_state["voices"],
+                                                prompt_names(request.user, character, chat_state["persona"])["user"], key)
+            except voice.VoiceError as e:
+                return JsonResponse({"success": False, "error": str(e)})
+            folder = os.path.join(settings.MEDIA_ROOT, "audio_files")
+            os.makedirs(folder, exist_ok=True)
+            name = f"{uuid.uuid4().hex}.mp3"
+            with open(os.path.join(folder, name), "wb") as f:
+                f.write(audio)
+            old = (chats._extras(message).get("audio") or {}).get("url")
+            if old and os.path.exists(os.path.join(folder, os.path.basename(old))):  # the outdated recording goes
+                os.remove(os.path.join(folder, os.path.basename(old)))
+            url = f"{settings.MEDIA_URL}audio_files/{name}"
+            messages[index] = chats.with_audio(message, {"url": url, "text": message[2], "cast": cast})
+            save_messages(messages)
+            return JsonResponse({"success": True, "url": url, "cast": cast, "spending": ai_client.spending(request.user)})
+        elif action == "ideas":  # Bulba's ideas: what to write next, or (directing) what could happen next
+            from mainapp.bulba import control
+            mode = "director" if control.mode_of(presets.normalize(presets.get_active(request.user).data)) == "director" else "player"
+            try:
+                ideas = bulba_ideas(request.user, character, messages, mode, persona=chat_state["persona"],
+                                    summary=chat_state.get("summary") or "")
+            except ai_client.AIError as e:
+                return JsonResponse({"success": False, "error": str(e)})
+            return JsonResponse({"success": True, "ideas": ideas, "mode": mode, "spending": ai_client.spending(request.user)})
         elif action == "word_note":  # Bulba turns a rough wish into a clear director's note
             try:
                 note = word_note(request.user, character, messages, str(data.get("text") or ""),
@@ -768,24 +814,6 @@ def chat(request, slug):
 
                     save_messages(messages)
 
-                    # --- Voice (ElevenLabs), only if the user has a key ---
-                    audio_path = ""
-                    ELEVENLABS_API_KEY = get_elevenlabs_key(request.user)
-                    if ELEVENLABS_API_KEY:
-                        try:
-                            audio_path = narrate_text_backend(
-                                extras.strip_markers(reply),
-                                request.user,
-                                character.name,
-                                ELEVENLABS_API_KEY,
-                                narrator_voice_id=character.eleven_voice_narr_id or None,
-                                character_voice_id=character.eleven_voice_char_id or None,
-                                second_character_voice_id=character.eleven_voice_second_id or None,
-                                is_mult=character.is_mult or (char_count > 1),
-                            )
-                        except Exception as e:
-                            log.warning("Voice generation failed: %s", e)
-
                     # Automatic summary: tell the page to run one in the background
                     summary_task = ai_client.get_task_setting(request.user, "summary")
                     summarized = chat_state["summary_upto"] or 0
@@ -810,7 +838,7 @@ def chat(request, slug):
                         "photo_url": photo_url,
                         "photo_second": photo_second,
                         "char_count": char_count,
-                        "audio_url": audio_path,
+                        "voice": bool(get_elevenlabs_key(request.user)),
                         "lore": lore_report,
                         "summary_due": summary_due,
                         "trackers_due": trackers_due,
@@ -937,11 +965,14 @@ def chat(request, slug):
         # The template shows the version on screen, and its thoughts (if the model sent any)
         "messages": [tuple(m[:5]) + (chats.reasoning_of(m),
                                      [game.describe(op) for op in chats.game_of(m) if not extras.is_extra(op)],
-                                     [extras.render(op) for op in chats.game_of(m) if extras.is_extra(op)])
+                                     [extras.render(op) for op in chats.game_of(m) if extras.is_extra(op)],
+                                     (chats.audio_of(m) or {}).get("url", ""))
                      for m in messages],
+        "voice_on": bool(get_elevenlabs_key(request.user)),
         "swipes": chats.version_info(messages),
         "spending": ai_client.spending(request.user),
         "appearance": _appearance(request.user, character),
+        "bulba_ideas": extras.ideas_on(request.user),
         "bulba_url": reverse("bulba_chat", kwargs={"chat_id": chat_obj.id}),
         "display_rules": {
             "rules": [r for r in regex_rules.for_chat(presets.normalize(presets.get_active(request.user).data), character, request.user)
@@ -1016,6 +1047,48 @@ WORD_NOTE_PROMPT = (
     "or details they didn't ask for. Name characters as they appear in the chat. Never write {user}'s words, "
     "actions or thoughts unless they asked for exactly that. Plain words: no 'ensure', 'immersive', 'vivid', "
     "'delve', capitals or exclamation marks. Reply with the note only.")
+
+
+IDEAS_PROMPT = {
+    "player": (
+        "You help someone who is stuck in a roleplay with an AI. Read the chat and suggest three different things "
+        "{user} could do or say next, as {user}. Each is one or two short sentences they could send as their "
+        "message, written the way {user}'s recent messages are written (same person, tense and style). Make the "
+        "three genuinely different: one that goes along with the scene, one that pushes it somewhere, one "
+        "unexpected but in character for {user}. Only {user}'s own words and actions; never decide what "
+        "{char} or anyone else does or feels. Stay true to what has happened and to the world."),
+    "director": (
+        "You help someone who directs a roleplay with an AI from outside the story. Read the chat and suggest "
+        "three different things that could happen next, each one or two short sentences they could send as a "
+        "direction (\"{char} finds the letter\", \"A storm cuts the power\"). Make them genuinely different: one "
+        "that deepens the current scene, one that moves the plot, one surprising but believable in this world. "
+        "Stay true to what has happened, the characters and the world."),
+}
+IDEAS_STYLE = ("Plain words, no 'ensure', 'immersive', 'vivid', 'delve', no capitals for emphasis, no exclamation "
+               "marks. Answer with JSON only: {\"ideas\": [\"...\", \"...\", \"...\"]}")
+
+
+def bulba_ideas(user, character, messages, mode, persona=None, summary=""):
+    """Three ideas for what to write next ("player") or what could happen next ("director"), on Bulba's model."""
+    names = prompt_names(user, character, persona)
+    recent = [m for m in messages if m[0] in ("user", "assistant")][-8:]
+    transcript = "\n\n".join(f"{names['user'] if m[0] == 'user' else character.name}: {m[2][:1500]}" for m in recent)
+    system = IDEAS_PROMPT[mode].format(user=names["user"], char=names["char"]) + "\n\n" + IDEAS_STYLE
+    about = f"{character.name}: {(character.description or '')[:1500]}"
+    story = f"The story so far (summary): {summary[:2000]}\n\n" if summary else ""
+    text = ai_client.complete(user, "bulba", [
+        {"role": "system", "content": system},
+        {"role": "user", "content": f"{about}\n\n{story}The chat (latest last):\n\n{transcript}"}],
+        max_tokens=600, temperature=0.8)
+    match = re.search(r"\{.*\}", text or "", re.S)
+    try:
+        ideas = json.loads(match.group(0))["ideas"] if match else []
+    except (ValueError, KeyError, TypeError):
+        ideas = []
+    ideas = [str(i).strip()[:400] for i in ideas if str(i).strip()][:3]
+    if not ideas:
+        raise ai_client.AIError("Bulba came up empty. Try again.")
+    return ideas
 
 
 def word_note(user, character, messages, wish, rewrite=False, persona=None):
@@ -1453,6 +1526,13 @@ class CharactersList(LoginRequiredMixin, ListView):
                 .annotate(last_played=Max("chats__time_update"), chat_count=Count("chats"))
                 .order_by(F("last_played").desc(nulls_last=True), "-id"))
 
+    def get_context_data(self, **kwargs):
+        from mainapp.models import TagPost
+        context = super().get_context_data(**kwargs)
+        context["all_tags"] = sorted(set(TagPost.objects.filter(tags__author=self.request.user)
+                                         .values_list("tag", flat=True)), key=str.lower)
+        return context
+
 
 class CharacterBaseView(LoginRequiredMixin):
     template_name = "mainapp/add_character.html"
@@ -1531,6 +1611,19 @@ def character_rule(request, slug):
 
 
 SPRITE_EMOTIONS = ["happy", "sad", "angry", "surprised", "scared", "confused", "calm", "scheming"]
+
+
+@login_required
+def eleven_voices(request):
+    """The user's ElevenLabs voices, for the voice pickers (the key stays on the server)."""
+    from mainapp import voice
+    key = get_elevenlabs_key(request.user)
+    if not key:
+        return JsonResponse({"error": "No ElevenLabs key yet (Extras page)."}, status=400)
+    try:
+        return JsonResponse({"voices": voice.list_voices(key)})
+    except voice.VoiceError as e:
+        return JsonResponse({"error": str(e)}, status=502)
 
 
 @login_required
@@ -1696,20 +1789,11 @@ def get_media_resources(request):
         except Exception as e:
             return JsonResponse({"success": False, "error": str(e)})
 
-    # Built-in ones ship with the app (static/defaults/), so every install has them
-    def built_in(kind):
-        folder = settings.BASE_DIR / "static" / "defaults" / kind
-        if not folder.is_dir():
-            return []
-        exts = (".png", ".jpg", ".jpeg", ".webp", ".gif") if kind == "backgrounds" else (".mp3", ".ogg", ".wav", ".m4a")
-        return [{"name": os.path.splitext(f.name)[0].replace("-", " ").replace("_", " ").capitalize(),
-                 "url": f"{settings.STATIC_URL}defaults/{kind}/{f.name}"}
-                for f in sorted(folder.iterdir()) if f.suffix.lower() in exts]
-
     # Return lists for GET requests
     return JsonResponse({
-        "backgrounds": built_in("backgrounds") + get_files(bg_dir, "backgrounds"),
-        "music": built_in("music") + get_files(music_dir, "music")
+        # Built-in ones ship with the app (static/defaults/), so every install has them
+        "backgrounds": media_library.built_in("backgrounds") + get_files(bg_dir, "backgrounds"),
+        "music": media_library.built_in("music") + get_files(music_dir, "music")
     })
 
 
@@ -1851,6 +1935,8 @@ def bulba_api(request):
         return JsonResponse({"error": "POST only"}, status=405)
     if request.FILES.get("card"):  # a card they already have, from the upload box
         return _bulba_card_upload(request)
+    if request.FILES.get("picture"):  # the character's picture, a mood, or a background
+        return _bulba_picture_upload(request)
     try:
         data = json.loads(request.body.decode("utf-8"))
     except (ValueError, UnicodeDecodeError):
@@ -1887,6 +1973,13 @@ def bulba_api(request):
         if pref:
             pref["status"] = "rejected"
             session.messages.append({"role": "user", "content": f"[I removed this preference: {pref['interpretation']}]"})
+    elif action == "edit_preference":  # the user rewords what Bulba noted; it counts as confirmed
+        pref = next((p for p in session.preferences if p["id"] == data.get("id")), None)
+        text = str(data.get("text") or "").strip()[:300]
+        if pref is None or not text:
+            return JsonResponse({"error": "Nothing to change."}, status=400)
+        old, pref["interpretation"], pref["status"] = pref["interpretation"], text, "confirmed"
+        session.messages.append({"role": "user", "content": f"[I reworded a preference you noted: “{old}” → “{text}”]"})
     elif action == "budget":
         try:
             session.budget = max(0.5, min(50.0, float(data.get("value"))))
@@ -1894,6 +1987,52 @@ def bulba_api(request):
             return JsonResponse({"error": "Enter an amount in dollars."}, status=400)
     else:
         return JsonResponse({"error": "Unknown action."}, status=400)
+    session.activity = ""
+    session.save()
+    return JsonResponse({"events": events, "state": _bulba_state(session)})
+
+
+def _bulba_picture_upload(request):
+    from django.core.files.base import ContentFile
+    from PIL import Image, UnidentifiedImageError
+    from .bulba import agent, lore
+    session = _bulba_for_request(request, restart=False)
+    if session is None:
+        return JsonResponse({"error": "Bulba isn't available."}, status=400)
+    character = lore.target_character(session)
+    if character is None:
+        return JsonResponse({"error": "Make or pick a character first, then add their pictures."}, status=400)
+    upload, target = request.FILES["picture"], request.POST.get("as", "neutral")
+    if target not in SPRITE_EMOTIONS + ["neutral", "background"]:
+        return JsonResponse({"error": "Unknown kind of picture."}, status=400)
+    if upload.size > 15 * 1024 * 1024:
+        return JsonResponse({"error": "That picture is over 15 MB."}, status=400)
+    raw = upload.read()
+    try:
+        Image.open(io.BytesIO(raw)).verify()
+    except (UnidentifiedImageError, OSError, SyntaxError):
+        return JsonResponse({"error": "That file isn't a picture."}, status=400)
+    ext = os.path.splitext(upload.name)[1].lower() or ".png"
+    if target == "background":
+        folder = os.path.join(settings.MEDIA_ROOT, "backgrounds", "custom")
+        os.makedirs(folder, exist_ok=True)
+        name = f"{character.slug}-{uuid.uuid4().hex[:6]}{ext}"
+        with open(os.path.join(folder, name), "wb") as f:
+            f.write(raw)
+        undo = {"character_id": character.id, "theme": dict(character.theme or {})}
+        character.theme = {**(character.theme or {}), "bg": f"{settings.MEDIA_URL}backgrounds/custom/{name}"}
+        character.save(update_fields=["theme"])
+        kind, what = "theme", f"a background for {character.name}'s chats (now their theme)"
+    else:
+        field = f"photo_{target}"
+        undo = {"character_id": character.id, "field": field, "old": getattr(character, field).name or ""}
+        getattr(character, field).save(f"{character.slug}-{target}{ext}", ContentFile(raw), save=True)
+        kind, what = "picture", f"{character.name}'s {'main' if target == 'neutral' else target} picture"
+    p = agent._proposal(session, kind, f"Picture: {what}", ["Added from your upload."], {"character_id": character.id})
+    p.update(status="applied", undo=undo)
+    events = [{"type": "proposal", "id": p["id"]}]
+    session.events += events
+    events += agent.run_turn(session, None, action_note=f"Added {what}", model_note=f"They uploaded {what}; it's set.")
     session.activity = ""
     session.save()
     return JsonResponse({"events": events, "state": _bulba_state(session)})

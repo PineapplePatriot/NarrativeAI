@@ -59,8 +59,8 @@ TASKS = {
     },
     "voice_split": {
         "label": "Voice splitting",
-        "help": "Splits replies into narrator and character lines before ElevenLabs voices them. "
-                "Only runs if you have an ElevenLabs key.",
+        "help": "Works out who says each line of a reply before ElevenLabs reads it aloud. "
+                "Only runs when you press 🔊 on a reply.",
         "timeout": 60,
     },
 }

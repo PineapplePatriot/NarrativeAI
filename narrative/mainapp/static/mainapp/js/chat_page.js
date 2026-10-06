@@ -50,8 +50,8 @@ document.addEventListener("click", (event) => {
             if (index !== null) deleteMessage(index);
             break;
         case "play-sound": {
-            const url = btn.dataset.audioUrl;
-            if (url) playCharacterAudio(url);
+            const i = btn.closest('.message') ? btn.closest('.message').dataset.index : index;
+            voiceReply(btn, Number(i), event.shiftKey);
             break;
         }
         case "save-edit":
@@ -69,13 +69,45 @@ document.addEventListener("click", (event) => {
 });
 
 
-function playCharacterAudio(audioUrl) {
+function playCharacterAudio(audioUrl, btn) {
     if (currentAudio) {
         currentAudio.pause();
         currentAudio.currentTime = 0;
+        document.querySelectorAll('.play-sound.playing').forEach(b => b.classList.remove('playing'));
     }
     currentAudio = new Audio(audioUrl);
+    if (btn) {
+        btn.classList.add('playing');
+        currentAudio.addEventListener('ended', () => btn.classList.remove('playing'));
+    }
     currentAudio.play().catch(err => console.error("Audio playback failed:", err));
+}
+
+// 🔊 on a reply: the first press has ElevenLabs read it (narrator and every speaker in their own voice) and keeps
+// the recording with that version of the reply; later presses play or stop it. Shift-click makes it again.
+async function voiceReply(btn, index, redo) {
+    if (btn.classList.contains('playing') && currentAudio) {
+        currentAudio.pause(); btn.classList.remove('playing'); return;
+    }
+    if (btn.classList.contains('busy')) return;
+    btn.classList.add('busy'); btn.title = 'Reading it aloud… (can take a little while)';
+    try {
+        const resp = await fetch(window.location.href, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ action: 'voice', index, redo: !!redo }),
+        });
+        const d = await resp.json();
+        if (!d.success) throw new Error(d.error || 'Could not read it aloud.');
+        if (d.spending) updateSpending(d.spending);
+        const cast = Object.entries(d.cast || {}).map(([who, v]) => `${who}: ${v}`).join(', ');
+        btn.title = 'Play / stop' + (cast ? ` (${cast})` : '') + '. Shift-click to make it again.';
+        playCharacterAudio(d.url, btn);
+    } catch (err) {
+        btn.title = 'Read aloud (ElevenLabs)';
+        showChatNotice(err.message);
+    } finally {
+        btn.classList.remove('busy');
+    }
 }
 
 function pauseCharacterAudio() {
@@ -233,6 +265,7 @@ function addMessage(sender, text, specificAvatarUrl = null) {
                 <button class="message-btn delete" onclick="deleteMessage(${messageIndex})">
                     <svg class="icon" viewBox="0 0 24 24"><path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/></svg>
                 </button>
+                ${sender !== 'user' && window.VOICE_ON ? `<button class="message-btn play-sound" type="button" data-action="play-sound" data-index="${messageIndex}" title="Read aloud (ElevenLabs)"><svg class="icon" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.06c1.48-.74 2.5-2.26 2.5-4.03z"/></svg></button>` : ''}
             </div>
             <div class="message-text markdown-output" data-raw="${encodeURIComponent(text)}">${rendered}</div>
             <textarea class="edit-textarea" style="display: none;"></textarea>
@@ -492,35 +525,6 @@ function sendMessage() {
                 }
                 const avatars = document.querySelectorAll('.message.assistant .message-avatar img');
                 avatars.forEach(img => img.src = data.photo_url);
-            }
-
-            // Voice: play it and add play/pause buttons to the reply
-            if (data.audio_url) {
-                playCharacterAudio(data.audio_url);
-                const messages = document.querySelectorAll('.message.assistant');
-                if (messages.length) {
-                    const lastMessage = messages[messages.length - 1];
-                    const actionsDiv = lastMessage.querySelector('.message-actions');
-                    const audioBtn = document.createElement('button');
-                    audioBtn.className = 'message-btn play-sound';
-                    audioBtn.onclick = () => playCharacterAudio(data.audio_url);
-                    audioBtn.innerHTML = `
-                                <svg class="icon" viewBox="0 0 24 24">
-                                    <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.06c1.48-.74 2.5-2.26 2.5-4.03z"/>
-                                    <path d="M0 0h24v24H0z" fill="none"/>
-                                </svg>
-                            `;
-
-                    const pauseBtn = document.createElement('button');
-                    pauseBtn.className = 'message-btn pause-sound';
-                    pauseBtn.onclick = pauseCharacterAudio;
-                    pauseBtn.innerHTML = `<svg class="icon" viewBox="0 0 24 24">
-                                                    <path d="M6 6h12v12H6z"/>
-                                                    <path d="M0 0h24v24H0z" fill="none"/>
-                                                  </svg>`;
-                    actionsDiv.appendChild(audioBtn);
-                    actionsDiv.appendChild(pauseBtn);
-                }
             }
 
             console.log("Emotion:", data.emotion);
@@ -1408,3 +1412,68 @@ document.getElementById('messagesContainer')?.addEventListener('click', (e) => {
     messageInput.style.height = 'auto';
     messageInput.style.height = messageInput.scrollHeight + 'px';
 });
+
+// Sprites with a transparent background (the corners are see-through) stand in the scene
+function markStanding(img) {
+    const box = img.closest('.character-image-container');
+    if (!box || !img.naturalWidth) return;
+    try {
+        const c = document.createElement('canvas');
+        c.width = c.height = 8;
+        const ctx = c.getContext('2d');
+        ctx.drawImage(img, 0, 0, 8, 8);
+        const d = ctx.getImageData(0, 0, 8, 8).data;
+        const alpha = i => d[i * 4 + 3];
+        box.classList.toggle('standing', alpha(0) < 40 && alpha(7) < 40);
+    } catch (e) { box.classList.remove('standing'); }
+}
+document.addEventListener('load', e => {
+    if (e.target.matches && e.target.matches('img.character-sprite')) markStanding(e.target);
+}, true);
+document.querySelectorAll('img.character-sprite').forEach(img => { if (img.complete) markStanding(img); });
+
+
+// Bulba's ideas (an extra): three ways to go on. Playing: things you could say or do (send as they are, or
+// have them written out in your voice). Directing: things that could happen next.
+async function showIdeas() {
+    const box = document.getElementById('ideasBox'), btn = document.getElementById('ideasBtn');
+    if (!box || isGenerating) return;
+    if (!box.hidden && !box.dataset.busy) { box.hidden = true; return; }
+    box.hidden = false; box.dataset.busy = '1';
+    box.innerHTML = '<div class="ideas-head">🥔 Bulba is thinking…</div>';
+    if (btn) btn.disabled = true;
+    try {
+        const resp = await fetch(window.location.href, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ action: 'ideas' }),
+        });
+        const d = await resp.json();
+        if (!d.success) throw new Error(d.error || 'No ideas this time.');
+        updateSpending(d.spending);
+        const directing = d.mode === 'director';
+        const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+        box.innerHTML = `<div class="ideas-head">🥔 ${directing ? 'What could happen next' : 'You could…'}
+                <button type="button" class="ideas-x" title="Close">✕</button></div>` +
+            d.ideas.map((idea, i) => `<div class="idea"><span>${esc(idea)}</span><span class="idea-actions">
+                <button type="button" data-idea="${i}" data-how="use">Use</button>
+                ${directing ? '' : `<button type="button" data-idea="${i}" data-how="write" title="Have it written out in your voice">Write it</button>`}
+                </span></div>`).join('') +
+            `<button type="button" class="ideas-more">↻ Other ideas</button>`;
+        box.onclick = e => {
+            if (e.target.closest('.ideas-x')) { box.hidden = true; return; }
+            if (e.target.closest('.ideas-more')) { delete box.dataset.busy; box.hidden = true; showIdeas(); return; }
+            const pick = e.target.closest('[data-idea]');
+            if (!pick) return;
+            messageInput.value = d.ideas[Number(pick.dataset.idea)];
+            box.hidden = true;
+            if (pick.dataset.how === 'write') expandInput();
+            else { messageInput.style.height = 'auto'; messageInput.style.height = messageInput.scrollHeight + 'px'; messageInput.focus(); }
+        };
+    } catch (err) {
+        box.innerHTML = `<div class="ideas-head">🥔 ${err.message} <button type="button" class="ideas-x">✕</button></div>`;
+        box.onclick = e => { if (e.target.closest('.ideas-x')) box.hidden = true; };
+    } finally {
+        delete box.dataset.busy;
+        if (btn) btn.disabled = false;
+    }
+}

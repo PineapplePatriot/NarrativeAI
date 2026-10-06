@@ -1,4 +1,5 @@
 {% load static %}
+{% load custom_filters %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -25,7 +26,18 @@
     <main class="bulba-chat">
         <div class="log" id="log"></div>
         <div class="thinking" id="thinking" hidden><span class="potato">🥔</span> <span id="thinkingText">Thinking…</span></div>
+        <form class="picture-form" id="pictureForm" hidden>
+            <input type="file" id="pictureFile" accept="image/png,image/jpeg,image/webp,image/gif">
+            <select id="pictureAs">
+                <option value="neutral">The character's picture (neutral)</option>
+                {% for m in "happy,sad,angry,surprised,scared,confused,calm,scheming"|split:"," %}<option value="{{ m }}">Mood: {{ m }}</option>{% endfor %}
+                <option value="background">A background for their chats</option>
+            </select>
+            <button type="submit">Add</button>
+            <button type="button" class="ghost" id="pictureCancel">Cancel</button>
+        </form>
         <form class="composer" id="composer">
+            <button type="button" class="attach" id="attachBtn" title="Add a picture (the character's, a mood, or a background)">📎</button>
             <textarea id="input" rows="1" placeholder="{% if embed %}What's off in this chat?{% else %}Talk to Bulba…{% endif %}"></textarea>
             <button type="submit" id="sendBtn">Send</button>
         </form>

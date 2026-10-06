@@ -5,7 +5,7 @@ let events = INIT.events;
 let busy = false;
 
 const STAGE_LABELS = { extras: 'Extras', taste: 'How replies read', preset: 'Your preset', persona: 'You in the story',
-                       character: 'Your character', done: 'Done' };
+                       character: 'Your character', story: 'Story extras', done: 'Done' };
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 // Light formatting for Bulba's messages: paragraphs, **bold**, *italics*
 const fmt = t => esc(t).split(/\n{2,}/).map(p => `<p>${p.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
@@ -125,6 +125,11 @@ function render() {
                 <input type="file" name="card" accept=".png,.json,image/png,application/json" ${live ? '' : 'disabled'}></label>
                 <button type="submit" ${live ? '' : 'disabled'}>Import</button></form>`;
         }
+        if (ev.type === 'make_pictures') return `<div class="make-pictures" data-url="${esc(ev.url)}" data-moods="${esc(ev.moods.join(','))}">
+            <button type="button" data-make-pictures>🎨 Make ${ev.moods.length} mood picture${ev.moods.length === 1 ? '' : 's'} of ${esc(ev.name)}</button>
+            <small>A few cents each, on your key. About 15 seconds per picture.</small><div class="progress"></div></div>`;
+        if (ev.type === 'downloads') return `<div class="downloads">⬇ ${(ev.links || []).map(l =>
+            `<a href="${esc(l.url)}" download>${esc(l.label)}</a>`).join('')}</div>`;
         if (ev.type === 'form') return basicsForm(i === types.lastIndexOf('form') && i > answeredUpTo && !busy);
         if (ev.type === 'lookup') return `<div class="lookup">🔎 Looked up “${esc(ev.query)}”${(ev.sources || []).length
             ? ': ' + ev.sources.map(src => `<a href="${esc(src.url)}" target="_blank" rel="noopener">${esc(src.title || src.url)}</a>`).join(', ') : ''}</div>`;
@@ -169,7 +174,8 @@ function renderPanel() {
         `All AI use this month (chat and Bulba): $${state.month.spent.toFixed(2)} of $${state.month.limit.toFixed(2)}.`;
     $('prefs').innerHTML = state.preferences.length ? state.preferences.map(p => `
         <li><span>${esc(p.interpretation)}${p.status === 'tentative' ? ' <i>(guess)</i>' : ''}</span>
-            <button type="button" class="x" data-forget="${p.id}" title="Forget this">✕</button></li>`).join('')
+            <span class="pref-btns"><button type="button" class="x" data-edit-pref="${p.id}" title="Change the wording">✎</button>
+            <button type="button" class="x" data-forget="${p.id}" title="Forget this">✕</button></span></li>`).join('')
         : '<li class="empty">Nothing yet.</li>';
 }
 
@@ -285,6 +291,15 @@ $('log').addEventListener('submit', e => {
 });
 
 $('prefs').addEventListener('click', async e => {
+    const edit = e.target.closest('[data-edit-pref]');
+    if (edit) {
+        const pref = state.preferences.find(p => p.id === edit.dataset.editPref);
+        const text = pref && prompt('How should Bulba remember this?', pref.interpretation);
+        if (!text || !text.trim() || text.trim() === pref.interpretation) return;
+        try { state = (await api({ action: 'edit_preference', id: pref.id, text: text.trim() })).state; renderPanel(); }
+        catch (err) { alert(err.message); }
+        return;
+    }
     const btn = e.target.closest('[data-forget]');
     if (!btn) return;
     try { state = (await api({ action: 'forget', id: btn.dataset.forget })).state; renderPanel(); }
@@ -342,3 +357,49 @@ document.addEventListener('click', (e) => {
         if (e.origin === window.location.origin && e.data && e.data.bulbaDraft) fill(e.data.bulbaDraft);
     });
 })();
+
+// Pictures: the character's (neutral or a mood) or a background, applied at once (Undo on the card)
+(function () {
+    const form = $('pictureForm');
+    if (!form) return;
+    $('attachBtn').onclick = () => { form.hidden = !form.hidden; };
+    $('pictureCancel').onclick = () => { form.hidden = true; };
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const file = $('pictureFile').files[0];
+        if (!file) return;
+        const body = new FormData();
+        body.append('picture', file);
+        body.append('as', $('pictureAs').value);
+        form.hidden = true;
+        $('pictureFile').value = '';
+        run(body, 'Adding the picture…');
+    });
+})();
+
+// Mood pictures, one at a time, from the neutral one (the character page's picture maker, step by step)
+$('log').addEventListener('click', async e => {
+    const btn = e.target.closest('[data-make-pictures]');
+    if (!btn) return;
+    const box = btn.closest('.make-pictures'), progress = box.querySelector('.progress');
+    const moods = box.dataset.moods.split(',');
+    btn.disabled = true;
+    let made = 0;
+    for (const mood of moods) {
+        progress.textContent = `Making ${mood}… (${made + 1} of ${moods.length})`;
+        try {
+            const resp = await fetch(box.dataset.url, { method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify({ emotion: mood }) });
+            const data = await resp.json().catch(() => ({}));
+            if (!resp.ok) throw new Error(data.error || 'The picture maker failed.');
+            made += 1;
+            progress.insertAdjacentHTML('afterend', `<img class="made" src="${esc(data.url)}" alt="${esc(mood)}" title="${esc(mood)}">`);
+        } catch (err) {
+            progress.textContent = `Stopped at ${mood}: ${err.message}`;
+            btn.disabled = false;
+            return;
+        }
+    }
+    progress.textContent = `Done: ${made} picture${made === 1 ? '' : 's'}. They show in chats from the next reply.`;
+});

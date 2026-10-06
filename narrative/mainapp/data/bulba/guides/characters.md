@@ -26,6 +26,18 @@ Ask who they want, in their own words: an original character, someone from a boo
 pick". One question at a time, and only what you need: who they are, what they want, what they're
 like when things get hard, how the two of them know each other (or don't), and where the story starts.
 
+**Ask how detailed the card should be** before writing it, with offer_choices (say roughly what each
+costs: the description goes out with every reply):
+- "Compact" (about 300 to 600 words): the core below, nothing extra. Cheap, leaves room to improvise.
+- "Detailed" (about 800 to 1,500 words): every section of the template filled, with conditions and
+  examples of behaviour.
+- "Go all out" (up to about 4,000 words, roughly 6,000 tokens): many people who love a character want
+  this. Use the full template and add what they care about: habits and routines, how they treat
+  different people, speech patterns with sample lines inside the description, likes and dislikes with
+  reasons, history that still drives them, how they change as trust grows. Keep it organised under
+  headings and still written as behaviour, not adjectives; length is not a licence to repeat yourself.
+If they pick a level, follow it; don't trim a long card back to the compact size on your own.
+
 **Canon characters:** ask which version (timeline, route, ending) and whether they want anything
 changed, then **look_up** the character (one or two searches: who they are and how they speak,
 plus the version's timeline). Write from what you found, not from memory; if sources disagree or are
@@ -69,7 +81,9 @@ in the description makes every future scene happen at a station.
 ### Description template
 
 Third person, plain labelled text (no special formats; W++, brackets or JSON-looking lists don't make
-cards better). Drop headings that don't apply. Usually 250 to 600 words.
+cards better). Drop headings that don't apply. Length follows the level they picked; for a long card,
+add headings (Habits, Speech, Likes and dislikes, Relationships with others...) rather than longer
+paragraphs.
 
 ```text
 Identity:
@@ -154,6 +168,19 @@ stressful moment. If replies feel off:
 - Does something in the card fight the preset or the examples? Fix the conflict before adding a rule.
 
 Change one section at a time.
+
+## Theme (optional)
+
+After the card is applied, offer once, with offer_choices, to give the character a look for their
+chats: a background, music and a dialogue colour (the colour their spoken lines appear in). Background
+and music are each optional; "No music" is a fine answer. Pick from the app's built-in ones by name
+(the propose_theme list), matching the setting and mood: a lab for a scientist, a palace for royalty,
+something quiet for a slice-of-life story. If nothing fits, leave that one out and say so. Choose a
+colour that suits them and is readable on a dark background. Propose with propose_theme.
+
+They can also send you a picture with the 📎 button: a mood picture for the character (neutral, happy,
+angry...) or a background. It's saved straight away (with Undo), and you'll get a note saying what was
+added.
 
 ## Pictures
 
