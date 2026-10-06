@@ -1604,8 +1604,7 @@ details.thoughts .thoughts-text { white-space: pre-wrap; font-size: .85rem; opac
     max-width: 68ch; margin: 0 auto; padding: 4px 0; }
 .layout-book .message.assistant .message-content::before,
 .layout-book .message.assistant .message-content::after { display: none; }
-.layout-book .message.assistant .message-text { font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
-    font-size: 1.06rem; line-height: 1.75; }
+.layout-book .message.assistant .message-text { font-size: 1.02rem; line-height: 1.7; }
 .layout-book .message.assistant .message-time { opacity: .45; }
 /* Your messages: a small centred marker; the text opens on click */
 .layout-book .message.user { justify-content: center; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; }
@@ -1628,10 +1627,9 @@ details.thoughts .thoughts-text { white-space: pre-wrap; font-size: .85rem; opac
 .story-extra { border-radius: 10px; font-size: .92rem; max-width: 420px; }
 .story-extra.doc { background: #f4e9d8; color: #2c1e16; border: 1px solid #d8c6ad; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
 .story-extra.doc summary { cursor: pointer; padding: 8px 12px; font-size: .8rem; letter-spacing: .02em; color: #6b5440; }
-.story-extra.doc .doc-body { padding: 4px 16px 14px; font-family: Georgia, "Palatino Linotype", serif; line-height: 1.6; }
+.story-extra.doc .doc-body { padding: 4px 16px 14px; line-height: 1.6; }
 .story-extra.doc .doc-detail { padding: 0 16px 12px; font-size: .78rem; font-style: italic; color: #7a6450; }
 .story-extra.doc-newspaper { background: #ecebe6; }
-.story-extra.doc-newspaper .doc-body { font-family: "Times New Roman", serif; column-count: 1; }
 .story-extra.doc-sign, .story-extra.doc-poster { background: #2d2a26; color: #f2e6c9; border-color: #4b4338; }
 .story-extra.doc-sign summary, .story-extra.doc-poster summary { color: #bfae8b; }
 .story-extra.doc-receipt { background: #fbfbf8; font-family: ui-monospace, monospace; max-width: 300px; }
@@ -1647,3 +1645,7 @@ details.thoughts .thoughts-text { white-space: pre-wrap; font-size: .85rem; opac
 .story-extra.milestone { display: flex; gap: 10px; align-items: flex-start; padding: 8px 12px; border: 1px solid rgba(236,72,153,.35);
     background: rgba(236,72,153,.08); }
 .story-extra.milestone .ms-because { font-size: .8rem; opacity: .7; margin-top: 2px; }
+.story-extras > .story-extra.placed { display: none; }
+.story-extras:not(:has(> .story-extra:not(.placed))) { display: none; }
+.extra-slot { margin: 12px 0; }
+.extra-slot:empty { display: none; }

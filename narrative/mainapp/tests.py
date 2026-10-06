@@ -3237,3 +3237,46 @@ class BasicsPanelsTests(BulbaTests):
         self.api(action="basics", answers={"panels": "on"})
         self.assertEqual(extras.kinds_for(self.user), ["documents", "messages"])
         self.assertIn("Nothing to add to taste", self.bulba_calls[-1]["messages"][-1]["content"])
+
+
+class ExtrasPlacementTests(GameTests):
+    def test_marker_placement_and_memory(self):
+        from mainapp import chats, extras
+        extras.set_kinds(self.user, ["documents", "milestones"])
+        # The model writes a paragraph, shows a note, then carries on and places the marker itself
+        self.rounds = [sse(delta("You open the door.\n\nA draught."),
+                           *tool_call("show_document", {"kind": "note", "label": "Note", "text": "Gone fishing."}),
+                           "[DONE]"),
+                       sse(delta("[[extra 1]]\n\nYou laugh."), "[DONE]")]
+        resp, events = self.stream_post({"action": "chat", "message": "I open the door"})
+        tool_result = json.loads(self.sent[1]["messages"][-1]["content"])
+        self.assertIn("[[extra 1]]", tool_result["place"])
+        self.assertIn("put it on its own line", json.dumps(self.sent[0]["messages"]))
+        reply = events[-1]["reply"]
+        self.assertEqual(reply.count("[[extra 1]]"), 1)
+        self.assertLess(reply.index("A draught."), reply.index("[[extra 1]]"))
+        self.assertLess(reply.index("[[extra 1]]"), reply.index("You laugh."))
+        # Next turn, the model reads what the note said instead of the marker
+        self.rounds = [sse(delta("Ok."), "[DONE]")]
+        self.stream_post({"action": "chat", "message": "What did it say?"})
+        earlier = next(m["content"] for m in self.sent[-1]["messages"] if m["content"].startswith("You open the door."))
+        self.assertIn("[Note shown: Note. It reads: Gone fishing.]", earlier)
+        self.assertNotIn("[[extra 1]]", earlier)
+
+    def test_unplaced_extra_goes_after_its_paragraph_or_the_end(self):
+        from mainapp import extras
+        ops = [{"type": "document", "n": 1, "at": 5, "kind": "note", "label": "x", "text": "y", "detail": ""},
+               {"type": "milestone", "n": 2, "at": 0, "who": "R", "toward": "", "now": "fond", "because": ""}]
+        text = extras.place("Para one.\n\nPara two.", ops)
+        self.assertEqual(text, "Para one.\n\n[[extra 1]]\n\nPara two.\n\n[[extra 2]]")
+
+    def test_milestones_tracker(self):
+        from mainapp import extras
+        extras.set_kinds(self.user, ["milestones"])
+        self.rounds = [sse(*tool_call("note_milestone", {"who": "Rose", "toward": "you", "now": "fond of you",
+                                                          "because": "the soup"}), "[DONE]"),
+                       sse(delta("She smiles."), "[DONE]")]
+        _, events = self.stream_post({"action": "chat", "message": "I made soup"})
+        self.assertEqual(events[-1]["game_trackers"]["values"]["milestones"][0]["now"], "fond of you")
+        page = self.client.get(self.url)
+        self.assertIn("milestones", page.context["trackers_data"]["config"]["game_owned"])

@@ -290,8 +290,10 @@ def stream_reply(user, messages, params, state, rng=None):
     """Like ai_client.stream, but carries out tool calls and asks again, up to MAX_TOOL_ROUNDS.
     Yields text, ai_client.Reasoning and GameEvent pieces. `state` is changed as the reply goes."""
     from mainapp import ai_client
+    from mainapp import extras
     messages = list(messages)
     written = []  # the reply's text so far, over all rounds
+    shown = 0     # story extras so far (numbered for their markers)
     for round_no in range(MAX_TOOL_ROUNDS + 1):
         if round_no == MAX_TOOL_ROUNDS:  # enough tools: just write
             params = {k: v for k, v in params.items() if k != "tools"}
@@ -331,6 +333,11 @@ def stream_reply(user, messages, params, state, rng=None):
                 args = {}
             result, ops = run_tool(state, fn.get("name"), args if isinstance(args, dict) else {}, rng)
             for op in ops:
+                if extras.is_extra(op):  # the model places it in its text with a marker (see extras.place)
+                    shown += 1
+                    op.update(n=shown, at=len("".join(written)))
+                    result = {**result, "place": f"Put {extras.marker(shown)} on its own line in your reply, "
+                                                 "where it appears in the story."}
                 yield GameEvent(op)
             messages.append({"role": "tool", "tool_call_id": call.get("id", ""), "content": json.dumps(result)})
 

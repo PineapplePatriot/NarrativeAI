@@ -1,12 +1,12 @@
 {# One story extra drawn by the app (mainapp/extras.py). Plain text only: everything is escaped. #}
 {% if op.type == "document" %}
-<details class="story-extra doc doc-{{ op.kind }}" open>
+<details class="story-extra doc doc-{{ op.kind }}" data-n="{{ op.n|default:'' }}" open>
     <summary>{% if op.kind == "letter" %}✉️{% elif op.kind == "newspaper" %}📰{% elif op.kind == "sign" or op.kind == "poster" %}🪧{% elif op.kind == "receipt" %}🧾{% else %}📜{% endif %} {{ op.label }}</summary>
     <div class="doc-body">{{ op.text|linebreaksbr }}</div>
     {% if op.detail %}<div class="doc-detail">{{ op.detail }}</div>{% endif %}
 </details>
 {% elif op.type == "messages" %}
-<div class="story-extra phone">
+<div class="story-extra phone" data-n="{{ op.n|default:'' }}">
     <div class="phone-head"><span>📱 {{ op.owner }}{% if op.with_whom %} · {{ op.with_whom }}{% endif %}</span></div>
     <div class="phone-body">
         {% for m in op.messages %}
@@ -19,7 +19,7 @@
     </div>
 </div>
 {% elif op.type == "milestone" %}
-<div class="story-extra milestone">
+<div class="story-extra milestone" data-n="{{ op.n|default:'' }}">
     <span class="ms-icon">💞</span>
     <div><b>{{ op.who }}{% if op.toward %} → {{ op.toward }}{% endif %}:</b> {{ op.now }}
         {% if op.because %}<div class="ms-because">after {{ op.because }}</div>{% endif %}</div>

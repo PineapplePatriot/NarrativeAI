@@ -6,6 +6,8 @@ The model doesn't write HTML: it calls a tool with the content, and the app draw
 on the reply like dice rolls (mainapp/game.py), so each swipe has its own. Ideas and wording from
 docs/research/preset-second-pass-interactive.md (sections 4A, 4B and 4E).
 """
+import re
+
 from django.template.loader import render_to_string
 
 KINDS = {"documents": "Letters, notes and signs", "messages": "Phone and message screens",
@@ -83,8 +85,12 @@ def tools_for(kinds):
     return [TOOLS[k] for k in kinds]
 
 
+PLACING = ("Each of these tools answers with a marker like [[extra 1]]: put it on its own line in your reply where "
+           "the object appears in the story, and write the scene around it as usual.")
+
+
 def rules_for(kinds):
-    return "\n\n".join(RULES[k] for k in kinds)
+    return "\n\n".join([RULES[k] for k in kinds] + ([PLACING] if kinds else []))
 
 
 def _s(value, n):
@@ -121,6 +127,56 @@ def run_tool(name, args):
 
 
 EXTRA_TYPES = ("document", "messages", "milestone")
+MARKER = re.compile(r"\[\[extra (\d+)\]\]")
+
+
+def marker(n):
+    return f"[[extra {n}]]"
+
+
+def place(text, ops):
+    """Make sure each extra has its marker in the reply: where the model put it, else after the paragraph it
+    was shown in (if the model had already written some), else at the end. The page puts the drawing there."""
+    have = {int(n) for n in MARKER.findall(text)}
+    for op in sorted((o for o in ops if is_extra(o) and o.get("n") not in have and o.get("n")),
+                     key=lambda o: -o.get("at", 0)):
+        at = op.get("at", 0)
+        if 0 < at < len(text):
+            cut = text.find("\n\n", at)
+            cut = len(text) if cut < 0 else cut
+            text = text[:cut].rstrip() + f"\n\n{marker(op['n'])}\n\n" + text[cut:].lstrip()
+        else:
+            text = text.rstrip() + f"\n\n{marker(op['n'])}"
+    return text
+
+
+def compact(op):
+    """What the model reads back in later turns, instead of the drawing."""
+    if op.get("type") == "document":
+        return f"[{op['kind'].capitalize()} shown: {op['label']}. It reads: {op['text']}" + (
+            f" ({op['detail']})" if op.get("detail") else "") + "]"
+    if op.get("type") == "messages":
+        lines = "; ".join(f"{m['from']}{' (unsent)' if m['status'] == 'unsent draft' else ''}: {m['text']}"
+                          for m in op["messages"])
+        return f"[{op['owner']}'s phone{', with ' + op['with_whom'] if op.get('with_whom') else ''}: {lines}]"
+    if op.get("type") == "milestone":
+        return f"[Milestone: {op['who']}{' toward ' + op['toward'] if op.get('toward') else ''} now {op['now']}" + (
+            f", after {op['because']}" if op.get("because") else "") + "]"
+    return ""
+
+
+def for_prompt(text, ops):
+    """A saved reply as the model should read it later: markers become short descriptions of what was shown."""
+    by_n = {o.get("n"): o for o in ops if is_extra(o)}
+    if not by_n:
+        return text
+    text = MARKER.sub(lambda m: compact(by_n[int(m.group(1))]) if int(m.group(1)) in by_n else "", text)
+    missing = [compact(o) for n, o in by_n.items() if not n]  # older extras without a number
+    return "\n\n".join([text.rstrip()] + missing) if missing else text
+
+
+def strip_markers(text):
+    return MARKER.sub("", text)
 
 
 def is_extra(op):
@@ -129,3 +185,15 @@ def is_extra(op):
 
 def render(op):
     return render_to_string("mainapp/partials/story_extra.html", {"op": op})
+
+
+def milestones(messages):
+    """The latest milestone for each pair, from the replies on screen (for the Milestones tracker)."""
+    from mainapp import chats
+    latest = {}
+    for m in messages:
+        for op in chats.game_of(m):
+            if op.get("type") == "milestone":
+                latest[(op["who"].lower(), op.get("toward", "").lower())] = {
+                    "who": op["who"], "toward": op.get("toward", ""), "now": op["now"], "because": op.get("because", "")}
+    return list(latest.values())

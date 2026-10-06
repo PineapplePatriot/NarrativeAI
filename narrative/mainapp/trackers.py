@@ -63,6 +63,10 @@ TRACKERS = [
      "fields": [_f("name", "Name"), _f("affection", "Affection", "meter", min=-100, max=100),
                 _f("trust", "Trust", "meter", min=0, max=100), _f("tension", "Tension", "meter", min=0, max=100),
                 _f("status", "Status", hint="e.g. wary allies"), _f("last_change", "Last change")]},
+    {"id": "milestones", "panel": "characters", "kind": "list", "key": "who", "icon": "💞", "label": "Milestones",
+     "help": "Where each relationship stands, in words, and what changed it. Kept by the app when the "
+             "Relationship milestones story extra is on.",
+     "fields": [_f("who", "Who"), _f("toward", "Toward"), _f("now", "Now"), _f("because", "After")]},
     {"id": "secrets", "panel": "characters", "kind": "list", "key": "secret", "icon": "🤫", "label": "Secrets",
      "help": "Who knows what, and who it is hidden from.",
      "fields": [_f("secret", "Secret"), _f("known_by", "Known by"), _f("hidden_from", "Hidden from")]},
@@ -124,7 +128,7 @@ def normalize_custom_fields(raw):
 GAME_CHOICES = ("default", "off", "dice", "full")  # see mainapp/game.py
 
 
-def normalize_config(raw, game_mode=None):
+def normalize_config(raw, game_mode=None, milestones=False):
     """`game_mode` "full": the app keeps Inventory and Conditions (dice and inventory), so they're shown,
     left out of the tracker AI's work and out of the prompt's tracker block (the game rules carry them)."""
     raw = raw if isinstance(raw, dict) else {}
@@ -138,10 +142,10 @@ def normalize_config(raw, game_mode=None):
         }
     layout = raw.get("layout") if isinstance(raw.get("layout"), dict) else {}
     game_owned = []
-    if game_mode == "full":
-        for tid in ("inventory", "conditions"):
-            trackers[tid] = {"on": True, "prompt": False}
-            game_owned.append(tid)
+    owned = (["inventory", "conditions"] if game_mode == "full" else []) + (["milestones"] if milestones else [])
+    for tid in owned:
+        trackers[tid] = {"on": True, "prompt": False}  # the model already gets them (game rules, story extras)
+        game_owned.append(tid)
     return {
         "trackers": trackers,
         "game": raw.get("game") if raw.get("game") in GAME_CHOICES else "default",

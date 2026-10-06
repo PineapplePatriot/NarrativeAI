@@ -183,20 +183,23 @@ def chat(request, slug):
 
     # --- Save messages to file ---
     def game_trackers():
-        """The tracker panel's state when the app keeps the inventory (sent back after replies and swipes)."""
-        if game_mode != "full":
+        """The tracker panel's state when the app keeps some trackers (sent back after replies and swipes)."""
+        if game_mode != "full" and "milestones" not in extra_kinds:
             return None
-        return trackers.normalize_state(chat_state["trackers"], trackers.normalize_config(character.tracker_config, game_mode))
+        return trackers.normalize_state(chat_state["trackers"], trackers.normalize_config(character.tracker_config, game_mode, "milestones" in extra_kinds))
 
     def sync_game_trackers(messages):
-        """In "full" mode the Inventory and Conditions trackers show what the app keeps."""
-        if game_mode != "full":
+        """Trackers the app keeps itself: Inventory and Conditions ("full" dice mode), Milestones (story extra)."""
+        if game_mode != "full" and "milestones" not in extra_kinds:
             return
-        state = game.current_state(chat_state, messages)
         if not isinstance(chat_state["trackers"], dict):
             chat_state["trackers"] = {}
         values = chat_state["trackers"].setdefault("values", {})
-        values["inventory"], values["conditions"] = state["inventory"], state["conditions"]
+        if game_mode == "full":
+            state = game.current_state(chat_state, messages)
+            values["inventory"], values["conditions"] = state["inventory"], state["conditions"]
+        if "milestones" in extra_kinds:
+            values["milestones"] = extras.milestones(messages)
 
     def save_messages(messages):
         sync_game_trackers(messages)
@@ -285,7 +288,7 @@ def chat(request, slug):
                     chat_state["trackers"], chat_state["tracker_history"] = chats.trackers_at(
                         chat_state["tracker_history"], chat_state["trackers"], len(messages))
                     save_messages(messages)
-                    config = trackers.normalize_config(character.tracker_config, game_mode)
+                    config = trackers.normalize_config(character.tracker_config, game_mode, "milestones" in extra_kinds)
                     return JsonResponse({"success": True, "swipes": chats.version_info(messages),
                                          "summary": chat_state["summary"], "summary_upto": chat_state["summary_upto"],
                                          "summary_data": summary_payload(),
@@ -343,7 +346,7 @@ def chat(request, slug):
 
         # ... inside chat view POST handler ...
         elif action in ("update_trackers", "save_trackers", "clear_trackers"):
-            config = trackers.normalize_config(character.tracker_config, game_mode)
+            config = trackers.normalize_config(character.tracker_config, game_mode, "milestones" in extra_kinds)
             state = trackers.normalize_state(chat_state["trackers"], config)
 
             if action == "save_trackers":  # manual edits and locks from the panel
@@ -527,7 +530,8 @@ def chat(request, slug):
                 preset = presets.normalize(presets.get_active(request.user).data)
                 _, chat_model = ai_client.resolve(request.user, "chat")
                 names = prompt_names(request.user, character, chat_state["persona"])
-                history = [{"role": m[0], "content": m[2]} for m in messages if m[0] in ("user", "assistant")]
+                history = [{"role": m[0], "content": extras.for_prompt(m[2], chats.game_of(m))}
+                       for m in messages if m[0] in ("user", "assistant")]
                 history = regex_rules.run_on_history(regex_rules.for_chat(preset, character, request.user), history, names)
                 # The unfinished reply is the last message; the preset's continue nudge comes after it
                 nudge = preset["utility"]["continue_nudge"].strip() or presets.UTILITY_DEFAULTS["continue_nudge"]
@@ -605,7 +609,8 @@ def chat(request, slug):
                 # Add conversation history
                 for m in messages:
                     if m[0] in ("user", "assistant"):
-                        api_messages.append({"role": m[0], "content": m[2]})
+                        # story extras the model showed come back as short descriptions, so it remembers them
+                        api_messages.append({"role": m[0], "content": extras.for_prompt(m[2], chats.game_of(m))})
 
                 try:
                     worldbook = None
@@ -676,6 +681,7 @@ def chat(request, slug):
                     """Emotion, saving, voice and the summary/tracker flags, once the reply is complete."""
                     reply = text_rules("saved", reply, "assistant")
                     reasoning = text_rules("saved", reasoning, "reasoning").strip() if reasoning else ""
+                    reply = extras.place(reply, ops)  # each story extra's marker, where it goes in the text
                     char_count = 1
                     emotion_char_1 = "neutral"
                     emotion_char_2 = "neutral"
@@ -744,7 +750,7 @@ def chat(request, slug):
                     if ELEVENLABS_API_KEY:
                         try:
                             audio_path = narrate_text_backend(
-                                reply,
+                                extras.strip_markers(reply),
                                 request.user,
                                 character.name,
                                 ELEVENLABS_API_KEY,
@@ -766,7 +772,7 @@ def chat(request, slug):
                     # Trackers: same idea, if any tracker is on for this character
                     tracker_task = ai_client.get_task_setting(request.user, "trackers")
                     tracked = (chat_state["trackers"] or {}).get("upto") or 0
-                    trackers_due = (bool(trackers.ai_trackers(trackers.normalize_config(character.tracker_config, game_mode)))
+                    trackers_due = (bool(trackers.ai_trackers(trackers.normalize_config(character.tracker_config, game_mode, "milestones" in extra_kinds)))
                                     and tracker_task.mode == tracker_task.MODE_AUTO
                                     and len(messages) - tracked >= tracker_task.interval)
 
@@ -799,7 +805,7 @@ def chat(request, slug):
 
                     def keep_partial():
                         # Keep whatever arrived (Stop button, closed tab or a broken stream)
-                        text = text_rules("saved", "".join(parts), "assistant").strip()
+                        text = extras.place(text_rules("saved", "".join(parts), "assistant").strip(), game_ops)
                         if text:
                             partial = chats.with_game(chats.with_reasoning(
                                 ("assistant", datetime.now().strftime("%H:%M"), text, "neutral|neutral", 1),
@@ -1049,7 +1055,8 @@ def build_chat_request(user, chat_obj, preset=None, character=None, drop_last_re
     preset = presets.normalize(preset or presets.get_active(user).data)
     persona = data.get("persona") if isinstance(data.get("persona"), dict) else {}
     names = prompt_names(user, character, persona)
-    history = [{"role": m[0], "content": m[2]} for m in messages if m[0] in ("user", "assistant")]
+    history = [{"role": m[0], "content": extras.for_prompt(m[2], chats.game_of(m))}
+                       for m in messages if m[0] in ("user", "assistant")]
     history = regex_rules.run_on_history(regex_rules.for_chat(preset, character, user), history, names) + list(tail)
     _, model = ai_client.resolve(user, "chat")
     return presets.assemble(preset, prompt_slots(user, character, prompt, persona), history, names, model,
@@ -1058,7 +1065,8 @@ def build_chat_request(user, chat_obj, preset=None, character=None, drop_last_re
 
 def _tracker_page_data(user, character, raw_state):
     """Everything the chat page's tracker HUD and panel need."""
-    config = trackers.normalize_config(character.tracker_config, game.mode_for(user, character))
+    config = trackers.normalize_config(character.tracker_config, game.mode_for(user, character),
+                                       "milestones" in extras.kinds_for(user))
     task = ai_client.get_task_setting(user, "trackers")
     return {
         "panels": trackers.PANELS,
@@ -1285,6 +1293,7 @@ def tracker_setup(request, slug):
             "game_modes": game.MODE_LABELS,
             "game_default": game.MODE_LABELS[game.user_default(request.user)],
             "game_default_mode": game.user_default(request.user),
+            "milestones_by_app": "milestones" in extras.kinds_for(request.user),
             "character_name": character.name,
         },
     })

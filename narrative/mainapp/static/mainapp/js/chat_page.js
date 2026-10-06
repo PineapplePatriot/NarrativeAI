@@ -150,7 +150,9 @@ marked.setOptions({
 // where: an element inside the message (or {role, depth}); used by display text rules
 function renderChatMessage(rawText, where) {
     const place = messagePlace(where);
-    const shown = TextRules.any() ? TextRules.apply(rawText, place.role, place.depth) : rawText;
+    let shown = TextRules.any() ? TextRules.apply(rawText, place.role, place.depth) : rawText;
+    // Story extras' markers ([[extra 2]]) become slots; placeExtras() puts the app's drawing there
+    shown = shown.replace(/\[\[extra (\d+)\]\]/g, '\n\n<div class="extra-slot n$1"></div>\n\n');
     const pre2 = wrapQuoted(shown);
     const html = marked.parse(pre2);
 
@@ -1347,4 +1349,29 @@ function showChatNotice(text) {
         if (!msg.classList.contains('open')) { msg.classList.add('open'); return; }
         if (e.target === msg) msg.classList.remove('open');  // the "✎ you" marker itself folds it again
     });
+})();
+
+// Story extras sit where the model put their markers: a copy of each drawing goes into its slot in the text
+// (the text is re-rendered while streaming, so the drawings themselves stay in .story-extras, hidden once placed)
+function placeExtras(root) {
+    (root || document).querySelectorAll('.extra-slot').forEach(slot => {
+        if (slot.firstChild) return;
+        const n = (slot.className.match(/\bn(\d+)\b/) || [])[1];
+        const msg = slot.closest('.message');
+        const original = n && msg && msg.querySelector(`.story-extras > .story-extra[data-n="${n}"]`);
+        if (!original) return;
+        slot.appendChild(original.cloneNode(true));
+        original.classList.add('placed');
+    });
+}
+(function () {
+    const box = document.getElementById('messagesContainer');
+    if (!box) return;
+    let queued = false;
+    new MutationObserver(() => {
+        if (queued) return;
+        queued = true;
+        requestAnimationFrame(() => { queued = false; placeExtras(box); });
+    }).observe(box, { childList: true, subtree: true });
+    placeExtras(box);
 })();
