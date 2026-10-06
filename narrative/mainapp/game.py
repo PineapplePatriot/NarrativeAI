@@ -333,7 +333,7 @@ def stream_reply(user, messages, params, state, rng=None):
                 args = {}
             result, ops = run_tool(state, fn.get("name"), args if isinstance(args, dict) else {}, rng)
             for op in ops:
-                if extras.is_extra(op):  # the model places it in its text with a marker (see extras.place)
+                if extras.is_extra(op) and op["type"] not in extras.UNPLACED:  # placed with a marker (extras.place)
                     shown += 1
                     op.update(n=shown, at=len("".join(written)))
                     result = {**result, "place": f"Put {extras.marker(shown)} on its own line in your reply, "

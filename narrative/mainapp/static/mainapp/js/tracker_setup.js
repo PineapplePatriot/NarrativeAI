@@ -10,7 +10,7 @@ function markDirty() { dirty = true; $('saveStatus').textContent = 'Unsaved chan
 window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
 
 // With "Dice and inventory" on, the app itself keeps Inventory and Conditions (see mainapp/game.py)
-const gameOwns = id => (id === 'milestones' && DATA.milestones_by_app) || (['inventory', 'conditions'].includes(id) &&
+const gameOwns = id => (id === 'milestones' && DATA.milestones_by_app) || (id === 'scrapbook' && DATA.scrapbook_by_app) || (['inventory', 'conditions'].includes(id) &&
     ((config.game || 'default') === 'default' ? DATA.game_default_mode : config.game) === 'full');
 
 // --- Tracker cards, grouped by panel ---
@@ -22,7 +22,7 @@ function renderPanels() {
             if (gameOwns(t.id)) return `
             <div class="tracker on" data-id="${t.id}">
               <label class="check title"><input type="checkbox" checked disabled><span>${t.icon} ${esc(t.label)}</span></label>
-              <p class="help">${t.id === 'milestones' ? 'Kept by the app while the Relationship milestones story extra is on (Extras page).'
+              <p class="help">${t.id === 'milestones' || t.id === 'scrapbook' ? 'Kept by the app while that story extra is on (Extras page).'
                 : `Kept by the app while Dice and inventory is on for ${esc(DATA.character_name)}: the AI changes it through the app, and nothing is guessed.`}</p>
             </div>`;
             return `

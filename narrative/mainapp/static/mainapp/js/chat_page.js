@@ -1354,6 +1354,9 @@ function showChatNotice(text) {
 // Story extras sit where the model put their markers: a copy of each drawing goes into its slot in the text
 // (the text is re-rendered while streaming, so the drawings themselves stay in .story-extras, hidden once placed)
 function placeExtras(root) {
+    // Suggested actions only make sense under the newest reply
+    const replies = [...document.querySelectorAll('#messagesContainer .message.assistant:not(#typingMessage)')];
+    replies.forEach((m, i) => m.classList.toggle('latest-reply', i === replies.length - 1));
     (root || document).querySelectorAll('.extra-slot').forEach(slot => {
         if (slot.firstChild) return;
         const n = (slot.className.match(/\bn(\d+)\b/) || [])[1];
@@ -1375,3 +1378,13 @@ function placeExtras(root) {
     }).observe(box, { childList: true, subtree: true });
     placeExtras(box);
 })();
+
+// A suggested action fills the message box (nothing is sent until they press Send)
+document.getElementById('messagesContainer')?.addEventListener('click', (e) => {
+    const b = e.target.closest('.choice-btn');
+    if (!b) return;
+    messageInput.value = b.dataset.choice;
+    messageInput.focus();
+    messageInput.style.height = 'auto';
+    messageInput.style.height = messageInput.scrollHeight + 'px';
+});

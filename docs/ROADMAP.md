@@ -46,8 +46,12 @@ can supply or judge.
 - **Verify OpenRouter model IDs** for the eight models where we guessed them (all but MiMo and DeepSeek V4
   Flash).
 - **Function calling** (built): dice, inventory and conditions kept by the app; story extras drawn by the
-  app (letters/notes/signs, phone screens, relationship milestones). All opt-in on the Extras page. Next
-  candidates: a picture mid-scene; rumour board, scrapbook and favour ledger (`docs/research/`).
+  app, placed mid-text (letters/notes/signs, phone screens, relationship milestones, news and rumours,
+  scrapbook keepsakes, suggested actions). All opt-in on the Extras page. Next candidate: a picture
+  mid-scene.
+- **Trackers after Marinara Engine** (built): World has other details, characters have what they're doing,
+  quests have rewards; new Memories (only unresolved ones are sent), Favours & debts, Scrapbook.
+- **Hosting** (prepared): Railway with a volume, see `docs/DEPLOY.md`. *Needs Anya* to create the account.
 - **Generation triggers** (fixed): blocks marked for Impersonate, Continue or Swipe only now fire only then
   (Frankenstein's Impersonation Turn was going out with every reply).
 - **Thinking display** (built): reasoning the model sends separately, or writes at the start of its reply

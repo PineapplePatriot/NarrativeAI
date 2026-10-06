@@ -34,14 +34,16 @@ TRACKERS = [
      "help": "Where and when the story is: location, date, time, weather, who is present.",
      "fields": [_f("location", "Location"), _f("date", "Date"), _f("time", "Time"),
                 _f("weather", "Weather"), _f("temperature", "Temperature"),
-                _f("present", "Present", "list", "names of everyone in the scene")]},
+                _f("present", "Present", "list", "names of everyone in the scene"),
+                _f("details", "Other details", "list", "anything else about the world right now, a few words each")]},
     {"id": "events", "panel": "scene", "kind": "list", "key": "title", "icon": "🧵", "label": "Plot threads",
      "help": "Set-ups, promises and dangers that have not paid off yet.",
      "fields": [_f("title", "Thread"), _f("status", "Status", hint="brewing / imminent / resolved"),
                 _f("detail", "Detail")]},
     {"id": "quests", "panel": "scene", "kind": "list", "key": "title", "icon": "🗺️", "label": "Quests",
      "help": "Goals with a current objective.",
-     "fields": [_f("title", "Quest"), _f("objective", "Current objective"), _f("done", "Done", "bool")]},
+     "fields": [_f("title", "Quest"), _f("objective", "Current objective"), _f("reward", "Reward"),
+                _f("done", "Done", "bool")]},
     {"id": "offscreen", "panel": "scene", "kind": "list", "key": "name", "icon": "👁️", "label": "Off-screen",
      "help": "What important characters who are not in the scene are doing meanwhile.",
      "fields": [_f("name", "Who"), _f("location", "Where"), _f("doing", "Doing")]},
@@ -49,7 +51,7 @@ TRACKERS = [
     {"id": "characters", "panel": "characters", "kind": "list", "key": "name", "icon": "👥",
      "label": "Present characters",
      "help": "Everyone in the scene: mood, look, outfit and private thoughts.",
-     "fields": [_f("name", "Name"), _f("mood", "Mood"), _f("appearance", "Look"),
+     "fields": [_f("name", "Name"), _f("mood", "Mood"), _f("doing", "Doing"), _f("appearance", "Look"),
                 _f("outfit", "Outfit"), _f("thoughts", "Thinks")]},
     {"id": "clothing", "panel": "characters", "kind": "list", "key": "name", "icon": "👗",
      "label": "Detailed clothing",
@@ -67,9 +69,20 @@ TRACKERS = [
      "help": "Where each relationship stands, in words, and what changed it. Kept by the app when the "
              "Relationship milestones story extra is on.",
      "fields": [_f("who", "Who"), _f("toward", "Toward"), _f("now", "Now"), _f("because", "After")]},
+    {"id": "favours", "panel": "characters", "kind": "list", "key": "favour", "icon": "🤝", "label": "Favours & debts",
+     "help": "Promises and obligations: who owes whom what, and whether it's been called in.",
+     "fields": [_f("favour", "What"), _f("owed_by", "Owed by"), _f("owed_to", "Owed to"),
+                _f("status", "Status", hint="promised / called in / repaid / broken")]},
     {"id": "secrets", "panel": "characters", "kind": "list", "key": "secret", "icon": "🤫", "label": "Secrets",
      "help": "Who knows what, and who it is hidden from.",
      "fields": [_f("secret", "Secret"), _f("known_by", "Known by"), _f("hidden_from", "Hidden from")]},
+    {"id": "memories", "panel": "scene", "kind": "list", "key": "memory", "icon": "📌", "label": "Memories",
+     "help": "Small story details worth remembering (a promise, a clue, a name). Only the unresolved ones go "
+             "into the prompt, so the story comes back to them.",
+     "fields": [_f("memory", "Memory"), _f("resolved", "Resolved", "bool")]},
+    {"id": "scrapbook", "panel": "characters", "kind": "list", "key": "title", "icon": "📔", "label": "Scrapbook",
+     "help": "Keepsakes of shared moments. Kept by the app while the Scrapbook story extra is on.",
+     "fields": [_f("title", "Keepsake"), _f("detail", "Detail")]},
     # --- You (the persona) ---
     {"id": "stats", "panel": "you", "kind": "list", "key": "name", "icon": "📊", "label": "Stats",
      "help": "Status bars such as Health, Energy or Hunger.",
@@ -128,7 +141,7 @@ def normalize_custom_fields(raw):
 GAME_CHOICES = ("default", "off", "dice", "full")  # see mainapp/game.py
 
 
-def normalize_config(raw, game_mode=None, milestones=False):
+def normalize_config(raw, game_mode=None, milestones=False, scrapbook=False):
     """`game_mode` "full": the app keeps Inventory and Conditions (dice and inventory), so they're shown,
     left out of the tracker AI's work and out of the prompt's tracker block (the game rules carry them)."""
     raw = raw if isinstance(raw, dict) else {}
@@ -142,7 +155,8 @@ def normalize_config(raw, game_mode=None, milestones=False):
         }
     layout = raw.get("layout") if isinstance(raw.get("layout"), dict) else {}
     game_owned = []
-    owned = (["inventory", "conditions"] if game_mode == "full" else []) + (["milestones"] if milestones else [])
+    owned = ((["inventory", "conditions"] if game_mode == "full" else []) + (["milestones"] if milestones else [])
+             + (["scrapbook"] if scrapbook else []))
     for tid in owned:
         trackers[tid] = {"on": True, "prompt": False}  # the model already gets them (game rules, story extras)
         game_owned.append(tid)
@@ -387,6 +401,10 @@ def format_for_prompt(config, state):
                 blocks.append(f"{spec['label']}: " + "; ".join(parts))
         else:
             lines = []
+            if spec["id"] == "memories":  # only what's still open, so the story comes back to it
+                value = [item for item in value if not item.get("resolved")]
+                if not value:
+                    continue
             for item in value:
                 parts = [f"{f['label'].lower()} {_fmt_value(f, item[f['key']])}"
                          for f in spec["fields"][1:] if item.get(f["key"]) not in ("", [], None)]

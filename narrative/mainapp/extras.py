@@ -11,7 +11,8 @@ import re
 from django.template.loader import render_to_string
 
 KINDS = {"documents": "Letters, notes and signs", "messages": "Phone and message screens",
-         "milestones": "Relationship milestones"}
+         "milestones": "Relationship milestones", "news": "News and rumours", "keepsakes": "Scrapbook keepsakes",
+         "choices": "Suggested actions"}
 DOC_KINDS = ("letter", "note", "sign", "newspaper", "receipt", "page", "poster", "card")
 
 
@@ -63,6 +64,28 @@ TOOLS = {
          "now": {"type": "string", "description": "Where things stand now, in plain words, e.g. 'trusts you, warily'"},
          "because": {"type": "string", "description": "The event that caused it"}},
         ["who", "now", "because"]),
+    "news": _fn(
+        "show_news", "Show news the characters come across (a paper, a noticeboard, gossip, a feed), with where "
+        "each item comes from and how sure it is.",
+        {"medium": {"type": "string", "description": "Where it's seen or heard, e.g. 'station noticeboard'"},
+         "items": {"type": "array", "maxItems": 3, "items": {"type": "object", "properties": {
+             "headline": STR, "source": STR,
+             "status": {"type": "string", "enum": ["confirmed", "claim", "rumour"]}},
+             "required": ["headline", "status"]}}},
+        ["medium", "items"]),
+    "keepsakes": _fn(
+        "note_keepsake", "Add a keepsake to the scrapbook when something becomes a shared memory worth keeping "
+        "(not every reply).",
+        {"title": {"type": "string", "description": "A few words, e.g. 'First terrible pancakes'"},
+         "detail": {"type": "string", "description": "One specific detail of it, e.g. 'kept the scorched recipe card'"}},
+        ["title"]),
+    "choices": _fn(
+        "suggest_actions", "After your reply, suggest a few things the user's character could do next. They are "
+        "only suggestions: never act on them.",
+        {"actions": {"type": "array", "minItems": 2, "maxItems": 4, "items": {"type": "string"},
+                     "description": "Short, distinct, plausible actions in the user's voice, e.g. 'Ask about the "
+                                    "missing page'"}},
+        ["actions"]),
 }
 TOOL_KIND = {t["function"]["name"]: kind for kind, t in TOOLS.items()}
 
@@ -75,6 +98,16 @@ RULES = {
                 "a notification arrives that the scene would notice. Use the sender, a story time (not real time) "
                 "and short texts; mark unsent drafts. Others know a message's contents only if they see it or are "
                 "told.",
+    "news": "News (drawn by the app): when the characters come across a news source (a paper, a noticeboard, "
+            "gossip at the bar, a feed), you may call show_news with up to three relevant items. Say where each "
+            "comes from and whether it's confirmed, a claim or a rumour: a rumour can be wrong. News can matter "
+            "later without interrupting the current exchange.",
+    "keepsakes": "Scrapbook (kept by the app): when an event becomes a meaningful shared memory, call "
+                 "note_keepsake with a short title and one specific detail. Use what actually happened; don't "
+                 "invent a sentimental moment, and not every reply.",
+    "choices": "Suggested actions (shown as buttons): after writing your reply, call suggest_actions with two to "
+               "four distinct, plausible things {{user}} could do next, in their voice. They are only "
+               "suggestions: the story never treats them as done until {{user}} writes or picks one.",
     "milestones": "Relationship milestones (drawn by the app): after a meaningful change between characters, call "
                   "note_milestone with where things stand in ordinary words and the event behind it. Affection, "
                   "trust and closeness can move differently; don't reward every reply with progress.",
@@ -123,10 +156,29 @@ def run_tool(name, args):
         op = {"type": "milestone", "who": _s(args.get("who"), 60), "toward": _s(args.get("toward"), 60),
               "now": _s(args.get("now"), 120), "because": _s(args.get("because"), 300)}
         return {"noted": True}, [op]
+    if name == "show_news":
+        items = [{"headline": _s(i.get("headline"), 200), "source": _s(i.get("source"), 80),
+                  "status": i.get("status") if i.get("status") in ("confirmed", "claim", "rumour") else "rumour"}
+                 for i in (args.get("items") or [])[:3] if isinstance(i, dict) and _s(i.get("headline"), 200)]
+        if not items:
+            return {"error": "No news items."}, []
+        return {"shown": True}, [{"type": "news", "medium": _s(args.get("medium"), 80) or "News", "items": items}]
+    if name == "note_keepsake":
+        if not _s(args.get("title"), 80):
+            return {"error": "The keepsake needs a title."}, []
+        return {"kept": True}, [{"type": "keepsake", "title": _s(args.get("title"), 80),
+                                 "detail": _s(args.get("detail"), 300)}]
+    if name == "suggest_actions":
+        actions = [_s(a, 160) for a in (args.get("actions") or [])[:4] if _s(a, 160)]
+        if len(actions) < 2:
+            return {"error": "Suggest two to four actions."}, []
+        return {"shown": True, "note": "No marker needed: these appear as buttons under the reply."}, [
+            {"type": "choices", "actions": actions}]
     return {"error": f"No tool called {name}."}, []
 
 
-EXTRA_TYPES = ("document", "messages", "milestone")
+EXTRA_TYPES = ("document", "messages", "milestone", "news", "keepsake", "choices")
+UNPLACED = ("choices",)  # always under the reply, never in the text, never in the story's memory
 MARKER = re.compile(r"\[\[extra (\d+)\]\]")
 
 
@@ -138,7 +190,8 @@ def place(text, ops):
     """Make sure each extra has its marker in the reply: where the model put it, else after the paragraph it
     was shown in (if the model had already written some), else at the end. The page puts the drawing there."""
     have = {int(n) for n in MARKER.findall(text)}
-    for op in sorted((o for o in ops if is_extra(o) and o.get("n") not in have and o.get("n")),
+    for op in sorted((o for o in ops if is_extra(o) and o.get("type") not in UNPLACED
+                      and o.get("n") not in have and o.get("n")),
                      key=lambda o: -o.get("at", 0)):
         at = op.get("at", 0)
         if 0 < at < len(text):
@@ -159,6 +212,11 @@ def compact(op):
         lines = "; ".join(f"{m['from']}{' (unsent)' if m['status'] == 'unsent draft' else ''}: {m['text']}"
                           for m in op["messages"])
         return f"[{op['owner']}'s phone{', with ' + op['with_whom'] if op.get('with_whom') else ''}: {lines}]"
+    if op.get("type") == "news":
+        return f"[{op['medium']}: " + "; ".join(
+            f"{i['headline']} ({i['status']}{', ' + i['source'] if i['source'] else ''})" for i in op["items"]) + "]"
+    if op.get("type") == "keepsake":
+        return f"[Keepsake: {op['title']}{' - ' + op['detail'] if op.get('detail') else ''}]"
     if op.get("type") == "milestone":
         return f"[Milestone: {op['who']}{' toward ' + op['toward'] if op.get('toward') else ''} now {op['now']}" + (
             f", after {op['because']}" if op.get("because") else "") + "]"
@@ -167,7 +225,7 @@ def compact(op):
 
 def for_prompt(text, ops):
     """A saved reply as the model should read it later: markers become short descriptions of what was shown."""
-    by_n = {o.get("n"): o for o in ops if is_extra(o)}
+    by_n = {o.get("n"): o for o in ops if is_extra(o) and o.get("type") not in UNPLACED}
     if not by_n:
         return text
     text = MARKER.sub(lambda m: compact(by_n[int(m.group(1))]) if int(m.group(1)) in by_n else "", text)
@@ -197,3 +255,14 @@ def milestones(messages):
                 latest[(op["who"].lower(), op.get("toward", "").lower())] = {
                     "who": op["who"], "toward": op.get("toward", ""), "now": op["now"], "because": op.get("because", "")}
     return list(latest.values())
+
+
+def keepsakes(messages):
+    """Every keepsake from the replies on screen, oldest first (for the Scrapbook tracker)."""
+    from mainapp import chats
+    found = {}
+    for m in messages:
+        for op in chats.game_of(m):
+            if op.get("type") == "keepsake":
+                found[op["title"].lower()] = {"title": op["title"], "detail": op.get("detail", "")}
+    return list(found.values())

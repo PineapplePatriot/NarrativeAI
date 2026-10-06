@@ -3312,3 +3312,42 @@ class MediaPrivacyTests(ChatPromptTests):
         name = chat.log_file.name  # chat_logs/...
         for url in (f"/media/{name}", f"/media/./{name}", f"/media/x/../{name}", f"/media//{name}"):
             self.assertEqual(self.client.get(url).status_code, 404, url)
+
+
+class MoreExtrasTests(GameTests):
+    def test_choices_news_keepsakes(self):
+        from mainapp import extras
+        extras.set_kinds(self.user, ["news", "keepsakes", "choices"])
+        self.rounds = [sse(delta("The pancakes burn."),
+                           *tool_call("note_keepsake", {"title": "First terrible pancakes", "detail": "the scorched card"}),
+                           *tool_call("show_news", {"medium": "Radio", "items": [
+                               {"headline": "Last train cancelled", "source": "station", "status": "rumour"}]},
+                               index=1, call_id="c2"),
+                           *tool_call("suggest_actions", {"actions": ["Try again", "Order takeaway"]}, index=2, call_id="c3"),
+                           "[DONE]"),
+                       sse(delta("[[extra 1]]"), "[DONE]")]
+        resp, events = self.stream_post({"action": "chat", "message": "I cook"})
+        html = "".join(events[-1]["extras_html"])
+        self.assertIn('data-choice="Try again"', html)
+        self.assertIn("news-status rumour", html)
+        reply = events[-1]["reply"]
+        self.assertIn("[[extra 1]]", reply)
+        self.assertIn("[[extra 2]]", reply)       # news placed after its paragraph
+        self.assertNotIn("[[extra 3]]", reply)    # choices are never placed in the text
+        self.assertEqual(events[-1]["game_trackers"]["values"]["scrapbook"][0]["title"], "First terrible pancakes")
+        # The next request remembers the keepsake and the news, not the suggestions
+        self.rounds = [sse(delta("Ok."), "[DONE]")]
+        self.stream_post({"action": "chat", "message": "Order takeaway"})
+        earlier = next(m["content"] for m in self.sent[-1]["messages"] if m["content"].startswith("The pancakes burn."))
+        self.assertIn("[Keepsake: First terrible pancakes - the scorched card]", earlier)
+        self.assertIn("Last train cancelled (rumour, station)", earlier)
+        self.assertNotIn("Try again", earlier)
+
+    def test_memories_only_unresolved_reach_the_prompt(self):
+        from mainapp import trackers as tr
+        config = tr.normalize_config({"trackers": {"memories": {"on": True}}})
+        state = {"values": {"memories": [{"memory": "Promised to return the book", "resolved": False},
+                                         {"memory": "Found the key", "resolved": True}]}, "locks": []}
+        text = tr.format_for_prompt(config, state)
+        self.assertIn("Promised to return the book", text)
+        self.assertNotIn("Found the key", text)

@@ -24,4 +24,21 @@
     <div><b>{{ op.who }}{% if op.toward %} → {{ op.toward }}{% endif %}:</b> {{ op.now }}
         {% if op.because %}<div class="ms-because">after {{ op.because }}</div>{% endif %}</div>
 </div>
+{% elif op.type == "news" %}
+<div class="story-extra news" data-n="{{ op.n|default:'' }}">
+    <div class="news-head">📰 {{ op.medium }}</div>
+    {% for item in op.items %}
+    <div class="news-item"><span class="news-status {{ item.status }}">{{ item.status }}</span> {{ item.headline }}
+        {% if item.source %}<span class="news-source">· {{ item.source }}</span>{% endif %}</div>
+    {% endfor %}
+</div>
+{% elif op.type == "keepsake" %}
+<div class="story-extra keepsake" data-n="{{ op.n|default:'' }}">
+    <span class="ks-icon">📔</span>
+    <div><b>{{ op.title }}</b>{% if op.detail %}<div class="ks-detail">{{ op.detail }}</div>{% endif %}</div>
+</div>
+{% elif op.type == "choices" %}
+<div class="story-extra choices">
+    {% for a in op.actions %}<button type="button" class="choice-btn" data-choice="{{ a }}">{{ a }}</button>{% endfor %}
+</div>
 {% endif %}

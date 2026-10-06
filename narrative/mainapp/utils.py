@@ -66,8 +66,9 @@ def build_ai_request(user, character: Character, chat=None, worldbook_slug=None,
     # Story trackers the user chose to add to the prompt
     from mainapp import game
     from mainapp import extras
+    kinds = extras.kinds_for(user)
     tracker_config = normalize_tracker_config(character.tracker_config, game.mode_for(user, character),
-                                              "milestones" in extras.kinds_for(user))
+                                              "milestones" in kinds, "keepsakes" in kinds)
     story_state = format_trackers(tracker_config, normalize_tracker_state(chat_file_data.get("trackers"), tracker_config))
     if story_state:
         system_prompts["StoryState"] = story_state

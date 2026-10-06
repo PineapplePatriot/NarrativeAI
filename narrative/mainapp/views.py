@@ -188,13 +188,14 @@ def chat(request, slug):
     # --- Save messages to file ---
     def game_trackers():
         """The tracker panel's state when the app keeps some trackers (sent back after replies and swipes)."""
-        if game_mode != "full" and "milestones" not in extra_kinds:
+        if game_mode != "full" and not {"milestones", "keepsakes"} & set(extra_kinds):
             return None
-        return trackers.normalize_state(chat_state["trackers"], trackers.normalize_config(character.tracker_config, game_mode, "milestones" in extra_kinds))
+        return trackers.normalize_state(chat_state["trackers"], trackers.normalize_config(character.tracker_config, game_mode, "milestones" in extra_kinds,
+            "keepsakes" in extra_kinds))
 
     def sync_game_trackers(messages):
         """Trackers the app keeps itself: Inventory and Conditions ("full" dice mode), Milestones (story extra)."""
-        if game_mode != "full" and "milestones" not in extra_kinds:
+        if game_mode != "full" and not {"milestones", "keepsakes"} & set(extra_kinds):
             return
         if not isinstance(chat_state["trackers"], dict):
             chat_state["trackers"] = {}
@@ -204,6 +205,8 @@ def chat(request, slug):
             values["inventory"], values["conditions"] = state["inventory"], state["conditions"]
         if "milestones" in extra_kinds:
             values["milestones"] = extras.milestones(messages)
+        if "keepsakes" in extra_kinds:
+            values["scrapbook"] = extras.keepsakes(messages)
 
     def save_messages(messages):
         sync_game_trackers(messages)
@@ -292,7 +295,8 @@ def chat(request, slug):
                     chat_state["trackers"], chat_state["tracker_history"] = chats.trackers_at(
                         chat_state["tracker_history"], chat_state["trackers"], len(messages))
                     save_messages(messages)
-                    config = trackers.normalize_config(character.tracker_config, game_mode, "milestones" in extra_kinds)
+                    config = trackers.normalize_config(character.tracker_config, game_mode, "milestones" in extra_kinds,
+            "keepsakes" in extra_kinds)
                     return JsonResponse({"success": True, "swipes": chats.version_info(messages),
                                          "summary": chat_state["summary"], "summary_upto": chat_state["summary_upto"],
                                          "summary_data": summary_payload(),
@@ -350,7 +354,8 @@ def chat(request, slug):
 
         # ... inside chat view POST handler ...
         elif action in ("update_trackers", "save_trackers", "clear_trackers"):
-            config = trackers.normalize_config(character.tracker_config, game_mode, "milestones" in extra_kinds)
+            config = trackers.normalize_config(character.tracker_config, game_mode, "milestones" in extra_kinds,
+            "keepsakes" in extra_kinds)
             state = trackers.normalize_state(chat_state["trackers"], config)
 
             if action == "save_trackers":  # manual edits and locks from the panel
@@ -773,7 +778,8 @@ def chat(request, slug):
                     # Trackers: same idea, if any tracker is on for this character
                     tracker_task = ai_client.get_task_setting(request.user, "trackers")
                     tracked = (chat_state["trackers"] or {}).get("upto") or 0
-                    trackers_due = (bool(trackers.ai_trackers(trackers.normalize_config(character.tracker_config, game_mode, "milestones" in extra_kinds)))
+                    trackers_due = (bool(trackers.ai_trackers(trackers.normalize_config(character.tracker_config, game_mode, "milestones" in extra_kinds,
+            "keepsakes" in extra_kinds)))
                                     and tracker_task.mode == tracker_task.MODE_AUTO
                                     and len(messages) - tracked >= tracker_task.interval)
 
@@ -1066,8 +1072,9 @@ def build_chat_request(user, chat_obj, preset=None, character=None, drop_last_re
 
 def _tracker_page_data(user, character, raw_state):
     """Everything the chat page's tracker HUD and panel need."""
+    kinds = extras.kinds_for(user)
     config = trackers.normalize_config(character.tracker_config, game.mode_for(user, character),
-                                       "milestones" in extras.kinds_for(user))
+                                       "milestones" in kinds, "keepsakes" in kinds)
     task = ai_client.get_task_setting(user, "trackers")
     return {
         "panels": trackers.PANELS,
@@ -1295,6 +1302,7 @@ def tracker_setup(request, slug):
             "game_default": game.MODE_LABELS[game.user_default(request.user)],
             "game_default_mode": game.user_default(request.user),
             "milestones_by_app": "milestones" in extras.kinds_for(request.user),
+            "scrapbook_by_app": "keepsakes" in extras.kinds_for(request.user),
             "character_name": character.name,
         },
     })

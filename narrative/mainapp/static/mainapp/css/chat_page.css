@@ -1649,3 +1649,20 @@ details.thoughts .thoughts-text { white-space: pre-wrap; font-size: .85rem; opac
 .story-extras:not(:has(> .story-extra:not(.placed))) { display: none; }
 .extra-slot { margin: 12px 0; }
 .extra-slot:empty { display: none; }
+.story-extra.news { background: #1c1f26; border: 1px solid #343846; padding: 10px 12px; }
+.story-extra.news .news-head { font-size: .78rem; opacity: .7; margin-bottom: 6px; }
+.story-extra.news .news-item { margin: 4px 0; line-height: 1.45; }
+.story-extra.news .news-status { font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; padding: 1px 6px;
+    border-radius: 6px; margin-right: 4px; }
+.news-status.confirmed { background: rgba(16,185,129,.18); color: #6ee7b7; }
+.news-status.claim { background: rgba(250,204,21,.15); color: #fde68a; }
+.news-status.rumour { background: rgba(148,163,184,.15); color: #cbd5e1; }
+.story-extra.news .news-source { font-size: .78rem; opacity: .6; }
+.story-extra.keepsake { display: flex; gap: 10px; padding: 8px 12px; border: 1px dashed rgba(251,191,36,.45);
+    background: rgba(251,191,36,.06); }
+.story-extra.keepsake .ks-detail { font-size: .82rem; opacity: .75; }
+.story-extra.choices { display: none; flex-wrap: wrap; gap: 6px; max-width: none; }
+.message.latest-reply .story-extra.choices { display: flex; }
+.story-extra.choices .choice-btn { background: transparent; color: inherit; border: 1px solid rgba(167,139,250,.5);
+    border-radius: 999px; padding: 6px 12px; font-size: .85rem; cursor: pointer; text-align: left; }
+.story-extra.choices .choice-btn:hover { background: rgba(139,92,246,.15); }

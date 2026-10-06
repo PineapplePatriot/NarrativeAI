@@ -143,9 +143,11 @@ TOOLS = [
         {"summary": {"type": "string", "enum": ["auto", "manual"]}, "summary_every": {"type": "integer"},
          "trackers": {"type": "string", "enum": ["auto", "manual"]}, "trackers_every": {"type": "integer"},
          "sprites": {"type": "boolean"},
-         "story_extras": {"type": "array", "items": {"type": "string", "enum": ["documents", "messages", "milestones"]},
+         "story_extras": {"type": "array", "items": {"type": "string", "enum": ["documents", "messages", "milestones",
+                                                                                 "news", "keepsakes", "choices"]},
                           "description": "Story extras drawn by the app: letters/notes/signs, phone screens, "
-                                         "relationship milestones. [] turns them all off"},
+                                         "relationship milestones, news and rumours, scrapbook keepsakes, suggested "
+                                         "actions. [] turns them all off"},
          "game": {"type": "string", "enum": ["off", "dice", "full"],
                   "description": "Dice and inventory: off (no chance in the story), dice only, or dice + inventory "
                                  "and conditions kept by the app"},
