@@ -208,6 +208,32 @@ def tool_get_current_setup(session, args):
     }, []
 
 
+STORY_KEYS = {"game", "story_extras", "ideas"}
+
+
+def stage_after(p):
+    """The stage a proposal shows they've reached (applying a preset means the persona is next, and so on)."""
+    payload, applied = p.get("payload") or {}, p.get("status") == "applied"
+    if p["kind"] == "extras":
+        keys = set(payload) - {"background"}
+        if keys and keys <= STORY_KEYS:
+            return "story"
+        return "taste" if applied else None
+    return {"preset": "persona", "persona": "character", "character": "character",
+            "trackers": "story"}.get(p["kind"]) if applied or p["kind"] == "trackers" else None
+
+
+def advance_stage(session, p):
+    """Moves the setup's stage forward when a proposal shows they're past it (never back): Bulba doesn't
+    always remember to call set_stage, and the panel and the guides it reads follow the stage.
+    Returns the page event, or None."""
+    target = stage_after(p) if session.mode != "chat" else None
+    if target and STAGES.index(target) > STAGES.index(session.stage):
+        session.stage = target
+        return {"type": "stage", "stage": target}
+    return None
+
+
 def tool_set_stage(session, args):
     if args.get("stage") in STAGES:
         session.stage = args["stage"]
@@ -779,6 +805,11 @@ def run_turn(session, user_text, action_note=None, model_note=None):
                         pending_choices = ev["choices"]
                     else:
                         new_events.append(ev)
+                    if ev["type"] == "proposal":
+                        made = next((p for p in session.proposals if p["id"] == ev.get("id")), None)
+                        moved = advance_stage(session, made) if made else None
+                        if moved:
+                            new_events.append(moved)
                 session.messages.append({"role": "tool", "tool_call_id": call.get("id", ""),
                                          "content": json.dumps(result, ensure_ascii=False)})
                 if name in TURN_ENDING and "error" not in result:

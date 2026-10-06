@@ -3913,3 +3913,21 @@ class ProposalEditingTests(BulbaCardAndLoreTests):
         self.script = [("Extras.", [self.call("propose_extras", summary="auto", why="x")])]
         p = self.api(action="say", text="extras").json()["state"]["proposals"][-1]
         self.assertEqual(p["editable"], [])
+
+
+class StageCatchUpTests(BulbaTests):
+    def test_the_panel_follows_what_was_applied(self):
+        self.script = [("Who are you?", [self.call("propose_persona", name="Ola", description="A courier.")])]
+        data = self.api(action="say", text="hi").json()
+        self.assertEqual(data["state"]["stage"], "extras")  # Bulba never called set_stage
+        pid = data["state"]["proposals"][-1]["id"]
+        self.script = [("Next, who do you want to talk to?", [])]
+        data = self.api(action="apply", id=pid).json()
+        self.assertEqual(data["state"]["stage"], "character")
+        self.assertTrue(any(e["type"] == "stage" and e["stage"] == "character" for e in data["events"]))
+        self.assertIn("lore", self.bulba_calls[-1]["messages"][0]["content"].lower())  # the character guides
+        self.script = [("Letters?", [self.call("propose_extras", story_extras=["documents"], game="off", why="x")])]
+        self.assertEqual(self.api(action="say", text="no dice").json()["state"]["stage"], "story")
+        # it never goes back on its own
+        self.script = [("Persona again.", [self.call("set_stage", stage="persona")])]
+        self.assertEqual(self.api(action="say", text="change me").json()["state"]["stage"], "persona")

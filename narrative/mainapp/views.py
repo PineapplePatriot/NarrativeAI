@@ -1968,6 +1968,10 @@ def bulba_api(request):
         verb = {"apply": "Applied", "dismiss": "Dismissed", "undo": "Undid"}[action]
         events = [{"type": "note", "text": note}]
         session.events.append(events[0])
+        moved = agent.advance_stage(session, proposal) if action == "apply" else None
+        if moved:  # the panel moves on, and Bulba reads the next stage's guides
+            events.append(moved)
+            session.events.append(moved)
         note_for_bulba = f"{verb}: {proposal['title']}"
         link = _bulba_chat_link(session) if action == "apply" and proposal["kind"] == "character" else None
         if link:  # so Bulba can point to the right places (pictures go on the character's page)
