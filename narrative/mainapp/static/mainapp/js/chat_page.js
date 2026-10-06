@@ -1427,3 +1427,49 @@ document.addEventListener('load', e => {
     if (e.target.matches && e.target.matches('img.character-sprite')) markStanding(e.target);
 }, true);
 document.querySelectorAll('img.character-sprite').forEach(img => { if (img.complete) markStanding(img); });
+
+
+// Bulba's ideas (an extra): three ways to go on. Playing: things you could say or do (send as they are, or
+// have them written out in your voice). Directing: things that could happen next.
+async function showIdeas() {
+    const box = document.getElementById('ideasBox'), btn = document.getElementById('ideasBtn');
+    if (!box || isGenerating) return;
+    if (!box.hidden && !box.dataset.busy) { box.hidden = true; return; }
+    box.hidden = false; box.dataset.busy = '1';
+    box.innerHTML = '<div class="ideas-head">🥔 Bulba is thinking…</div>';
+    if (btn) btn.disabled = true;
+    try {
+        const resp = await fetch(window.location.href, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ action: 'ideas' }),
+        });
+        const d = await resp.json();
+        if (!d.success) throw new Error(d.error || 'No ideas this time.');
+        updateSpending(d.spending);
+        const directing = d.mode === 'director';
+        const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+        box.innerHTML = `<div class="ideas-head">🥔 ${directing ? 'What could happen next' : 'You could…'}
+                <button type="button" class="ideas-x" title="Close">✕</button></div>` +
+            d.ideas.map((idea, i) => `<div class="idea"><span>${esc(idea)}</span><span class="idea-actions">
+                <button type="button" data-idea="${i}" data-how="use">Use</button>
+                ${directing ? '' : `<button type="button" data-idea="${i}" data-how="write" title="Have it written out in your voice">Write it</button>`}
+                </span></div>`).join('') +
+            `<button type="button" class="ideas-more">↻ Other ideas</button>`;
+        box.onclick = e => {
+            if (e.target.closest('.ideas-x')) { box.hidden = true; return; }
+            if (e.target.closest('.ideas-more')) { delete box.dataset.busy; box.hidden = true; showIdeas(); return; }
+            const pick = e.target.closest('[data-idea]');
+            if (!pick) return;
+            messageInput.value = d.ideas[Number(pick.dataset.idea)];
+            box.hidden = true;
+            if (pick.dataset.how === 'write') expandInput();
+            else { messageInput.style.height = 'auto'; messageInput.style.height = messageInput.scrollHeight + 'px'; messageInput.focus(); }
+        };
+    } catch (err) {
+        box.innerHTML = `<div class="ideas-head">🥔 ${err.message} <button type="button" class="ideas-x">✕</button></div>`;
+        box.onclick = e => { if (e.target.closest('.ideas-x')) box.hidden = true; };
+    } finally {
+        delete box.dataset.busy;
+        if (btn) btn.disabled = false;
+    }
+}

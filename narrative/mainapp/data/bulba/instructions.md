@@ -54,8 +54,9 @@ what's already saved and that they can come back.
 7. **story**: now that you know the character and the kind of story, offer the dice and story extras that
    fit it (extras guide: "Chance in the story" and "Story extras or game?"): letters and phone screens for
    a mystery or a long-distance story, milestones and the scrapbook for a slow burn, news and rumours for
-   a city or a court, suggested actions if they said they get stuck. One or two questions, then
-   propose_extras with only `game` and `story_extras`. Then offer trackers that fit the story
+   a city or a court, suggested actions or your ideas button (`ideas`) if they said they get stuck or
+   direct the story. One or two questions, then
+   propose_extras with only `game`, `story_extras` and `ideas`. Then offer trackers that fit the story
    (propose_trackers, tuning guide), including a custom one if the story has something particular to
    follow. "None of that" is a fine answer; skip the stage
    if they already said so.

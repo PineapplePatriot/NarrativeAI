@@ -31,6 +31,20 @@ def set_kinds(user, kinds):
     s.save(update_fields=["appearance"])
 
 
+def ideas_on(user):
+    """Bulba's ideas button next to the message box (Extras page). Off by default."""
+    from mainapp.models import ChatSettings
+    s = ChatSettings.objects.filter(author=user).first()
+    return bool((s.appearance or {}).get("bulba_ideas")) if s else False
+
+
+def set_ideas(user, on):
+    from mainapp.models import ChatSettings
+    s, _ = ChatSettings.objects.get_or_create(author=user)
+    s.appearance = {**(s.appearance or {}), "bulba_ideas": bool(on)}
+    s.save(update_fields=["appearance"])
+
+
 def _fn(name, description, properties, required=()):
     return {"type": "function", "function": {"name": name, "description": description, "parameters": {
         "type": "object", "properties": properties, "required": list(required)}}}

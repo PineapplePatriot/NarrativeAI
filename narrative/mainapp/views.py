@@ -351,6 +351,15 @@ def chat(request, slug):
             chat_state["context_guides"] = {"note": str(data.get("note") or "").strip()[:4000]}
             save_messages(messages) # Updates file
             return JsonResponse({"success": True})
+        elif action == "ideas":  # Bulba's ideas: what to write next, or (directing) what could happen next
+            from mainapp.bulba import control
+            mode = "director" if control.mode_of(presets.normalize(presets.get_active(request.user).data)) == "director" else "player"
+            try:
+                ideas = bulba_ideas(request.user, character, messages, mode, persona=chat_state["persona"],
+                                    summary=chat_state.get("summary") or "")
+            except ai_client.AIError as e:
+                return JsonResponse({"success": False, "error": str(e)})
+            return JsonResponse({"success": True, "ideas": ideas, "mode": mode, "spending": ai_client.spending(request.user)})
         elif action == "word_note":  # Bulba turns a rough wish into a clear director's note
             try:
                 note = word_note(request.user, character, messages, str(data.get("text") or ""),
@@ -944,6 +953,7 @@ def chat(request, slug):
         "swipes": chats.version_info(messages),
         "spending": ai_client.spending(request.user),
         "appearance": _appearance(request.user, character),
+        "bulba_ideas": extras.ideas_on(request.user),
         "bulba_url": reverse("bulba_chat", kwargs={"chat_id": chat_obj.id}),
         "display_rules": {
             "rules": [r for r in regex_rules.for_chat(presets.normalize(presets.get_active(request.user).data), character, request.user)
@@ -1018,6 +1028,48 @@ WORD_NOTE_PROMPT = (
     "or details they didn't ask for. Name characters as they appear in the chat. Never write {user}'s words, "
     "actions or thoughts unless they asked for exactly that. Plain words: no 'ensure', 'immersive', 'vivid', "
     "'delve', capitals or exclamation marks. Reply with the note only.")
+
+
+IDEAS_PROMPT = {
+    "player": (
+        "You help someone who is stuck in a roleplay with an AI. Read the chat and suggest three different things "
+        "{user} could do or say next, as {user}. Each is one or two short sentences they could send as their "
+        "message, written the way {user}'s recent messages are written (same person, tense and style). Make the "
+        "three genuinely different: one that goes along with the scene, one that pushes it somewhere, one "
+        "unexpected but in character for {user}. Only {user}'s own words and actions; never decide what "
+        "{char} or anyone else does or feels. Stay true to what has happened and to the world."),
+    "director": (
+        "You help someone who directs a roleplay with an AI from outside the story. Read the chat and suggest "
+        "three different things that could happen next, each one or two short sentences they could send as a "
+        "direction (\"{char} finds the letter\", \"A storm cuts the power\"). Make them genuinely different: one "
+        "that deepens the current scene, one that moves the plot, one surprising but believable in this world. "
+        "Stay true to what has happened, the characters and the world."),
+}
+IDEAS_STYLE = ("Plain words, no 'ensure', 'immersive', 'vivid', 'delve', no capitals for emphasis, no exclamation "
+               "marks. Answer with JSON only: {\"ideas\": [\"...\", \"...\", \"...\"]}")
+
+
+def bulba_ideas(user, character, messages, mode, persona=None, summary=""):
+    """Three ideas for what to write next ("player") or what could happen next ("director"), on Bulba's model."""
+    names = prompt_names(user, character, persona)
+    recent = [m for m in messages if m[0] in ("user", "assistant")][-8:]
+    transcript = "\n\n".join(f"{names['user'] if m[0] == 'user' else character.name}: {m[2][:1500]}" for m in recent)
+    system = IDEAS_PROMPT[mode].format(user=names["user"], char=names["char"]) + "\n\n" + IDEAS_STYLE
+    about = f"{character.name}: {(character.description or '')[:1500]}"
+    story = f"The story so far (summary): {summary[:2000]}\n\n" if summary else ""
+    text = ai_client.complete(user, "bulba", [
+        {"role": "system", "content": system},
+        {"role": "user", "content": f"{about}\n\n{story}The chat (latest last):\n\n{transcript}"}],
+        max_tokens=600, temperature=0.8)
+    match = re.search(r"\{.*\}", text or "", re.S)
+    try:
+        ideas = json.loads(match.group(0))["ideas"] if match else []
+    except (ValueError, KeyError, TypeError):
+        ideas = []
+    ideas = [str(i).strip()[:400] for i in ideas if str(i).strip()][:3]
+    if not ideas:
+        raise ai_client.AIError("Bulba came up empty. Try again.")
+    return ideas
 
 
 def word_note(user, character, messages, wish, rewrite=False, persona=None):

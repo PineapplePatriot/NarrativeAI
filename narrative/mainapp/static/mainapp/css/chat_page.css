@@ -1684,3 +1684,19 @@ details.thoughts .thoughts-text { white-space: pre-wrap; font-size: .85rem; opac
     border-radius: 0; filter: drop-shadow(0 6px 18px rgba(0, 0, 0, .55));
 }
 .character-images-wrapper:has(.standing + .standing:not([style*="none"])) .character-image-container.standing { max-width: 48%; }
+
+/* Bulba's ideas, above the message box */
+.ideas-btn { font-size: 1.05rem; line-height: 1; }
+.magic-btn-container { display: flex; gap: 4px; }
+.ideas-box { margin: 0 0 8px; padding: 10px 12px; border: 1px solid rgba(167, 139, 250, .35); border-radius: 12px;
+    background: var(--bg-secondary, #1e2130); display: flex; flex-direction: column; gap: 6px; max-height: 45vh; overflow-y: auto; }
+.ideas-box[hidden] { display: none; }
+.ideas-head { display: flex; justify-content: space-between; align-items: center; font-size: .85rem; color: var(--text-secondary); }
+.ideas-x, .ideas-more { background: none; border: none; color: var(--text-secondary); cursor: pointer; }
+.ideas-more { align-self: flex-start; font-size: .85rem; padding: 2px 0; }
+.idea { display: flex; gap: 10px; align-items: flex-start; justify-content: space-between; padding: 6px 8px;
+    border-radius: 8px; background: rgba(148, 163, 184, .08); font-size: .92rem; line-height: 1.4; }
+.idea-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.idea-actions button { font-size: .8rem; padding: 3px 9px; border-radius: 999px; border: 1px solid rgba(167, 139, 250, .5);
+    background: none; color: inherit; cursor: pointer; }
+.idea-actions button:hover { background: rgba(167, 139, 250, .15); }

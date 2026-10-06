@@ -3683,3 +3683,36 @@ class BulbaTuningTests(BulbaCardAndLoreTests):
         ev = next(e for e in data["events"] if e["type"] == "make_pictures")
         self.assertEqual(len(ev["moods"]), 8)
         self.assertIn(viktor.slug, ev["url"])
+
+
+class BulbaIdeasTests(ChatPromptTests):
+    def test_ideas_extra(self):
+        from unittest import mock
+        from mainapp import extras
+        self.assertNotContains(self.client.get(self.url), 'id="ideasBtn"')
+        extras.set_ideas(self.user, True)
+        self.assertContains(self.client.get(self.url), 'id="ideasBtn"')
+        reply = '{"ideas": ["I ask about the ferry.", "I leave without a word.", "I hand her the key."]}'
+        with mock.patch("mainapp.ai_client.complete", return_value=reply) as complete:
+            data = self.post({"action": "ideas"}).json()
+        self.assertEqual(data["ideas"][0], "I ask about the ferry.")
+        self.assertEqual(data["mode"], "player")
+        self.assertEqual(complete.call_args.args[1], "bulba")  # on Bulba's model
+        self.assertIn("as ", complete.call_args.args[2][0]["content"])
+        with mock.patch("mainapp.ai_client.complete", return_value="no json here"):
+            self.assertFalse(self.post({"action": "ideas"}).json()["success"])
+        # directing: what could happen next
+        from mainapp import presets
+        from mainapp.bulba import control
+        active = presets.get_active(self.user)
+        active.data = control.apply_to_preset(presets.normalize(active.data), "director")
+        active.save()
+        with mock.patch("mainapp.ai_client.complete", return_value=reply) as complete:
+            self.assertEqual(self.post({"action": "ideas"}).json()["mode"], "director")
+        self.assertIn("directs", complete.call_args.args[2][0]["content"])
+
+    def test_extras_page_saves_ideas(self):
+        from mainapp import extras
+        from users.views import apply_extras
+        apply_extras(self.user, {"ideas": True})
+        self.assertTrue(extras.ideas_on(self.user))

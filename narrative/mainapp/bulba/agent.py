@@ -149,6 +149,8 @@ TOOLS = [
                           "description": "Story extras drawn by the app: letters/notes/signs, phone screens, "
                                          "relationship milestones, news and rumours, scrapbook keepsakes, suggested "
                                          "actions. [] turns them all off"},
+         "ideas": {"type": "boolean", "description": "A 🥔 button by the message box: three ideas for what they "
+                                                     "could write next (or, directing, what could happen next)"},
          "game": {"type": "string", "enum": ["off", "dice", "full"],
                   "description": "Dice and inventory: off (no chance in the story), dice only, or dice + inventory "
                                  "and conditions kept by the app"},
@@ -555,6 +557,9 @@ def tool_propose_extras(session, args):
         kinds = [k for k in extras.KINDS if k in args["story_extras"]]
         payload["story_extras"] = kinds
         summary.append("Story extras: " + (", ".join(extras.KINDS[k].lower() for k in kinds) or "off"))
+    if isinstance(args.get("ideas"), bool):
+        payload["ideas"] = args["ideas"]
+        summary.append("Bulba's ideas button in chats: " + ("on" if args["ideas"] else "off"))
     if args.get("game") in ("off", "dice", "full"):
         from mainapp import game
         payload["game"] = args["game"]
