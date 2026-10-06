@@ -23,6 +23,10 @@ can supply or judge.
   phones). Bulba sees the last messages, the model's thoughts, the card and the preset, proposes one fix
   at a time, can rewrite your last reply with it as a preview, and every change has Apply and Undo.
   Each chat has its own Bulba conversation. Not yet tried against a real model. *Needs Anya.*
+- **Writing rules** (built, `guides/writing.md`): borrow before writing (their preset's own toggles,
+  then a tested Realistic Frankenstein block word for word, then the starter's wording, then new text);
+  no AI-speak; story first unless it's a game, where templates and fixed formats take over. Bulba can
+  search and borrow the Frankenstein blocks in setup and in a chat. Not yet tried against a real model.
 - **Offer card import** at the character stage, for people who already have a card they like.
 - **Handover**: after setup, a short summary of what was set up and where to change it.
 - **A small pilot** with you judging replies (the research package's protocol, scaled down).

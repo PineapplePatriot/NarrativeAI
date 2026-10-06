@@ -12,6 +12,7 @@ import uuid
 from pathlib import Path
 
 from mainapp import ai_client, chats, presets
+from mainapp.bulba import library
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba"
 CARD_FIELDS = ("description", "personality", "scenario", "example_dialogue")
@@ -84,7 +85,7 @@ def system_prompt(session):
     from mainapp.bulba import agent
     text = (DATA_DIR / "doctor.md").read_text(encoding="utf-8")
     profile = agent.target_profile(session)
-    guides = [(DATA_DIR / "guides" / f"{g}.md").read_text(encoding="utf-8") for g in ("presets", "characters")]
+    guides = [(DATA_DIR / "guides" / f"{g}.md").read_text(encoding="utf-8") for g in ("presets", "characters", "writing")]
     pending = [f"- {p['id']} {p['kind']}: {p['title']} ({p['status']})" for p in session.proposals]
     return "\n\n".join(filter(None, [
         text, *guides,
@@ -122,6 +123,8 @@ def apply_edits(preset, edits):
         if action not in EDIT_ACTIONS:
             raise ValueError(f"Unknown edit action: {action}")
         if action == "add":
+            if any(b["name"] == name for b in preset["blocks"]):
+                raise ValueError(f"“{name}” is already in the preset; switch it on or edit it instead.")
             if not str(e.get("content") or "").strip():
                 raise ValueError("A new block needs content.")
             block = presets.normalize_block({"name": name or "Bulba's fix", "kind": "prompt",
@@ -175,6 +178,13 @@ def tool_propose_preset_edit(session, args):
     edits = [e for e in (args.get("edits") or []) if isinstance(e, dict)][:6]
     if not edits:
         return {"error": "No edits."}, []
+    for e in edits:  # a library block goes in word for word
+        if e.get("from_library"):
+            block = library.get(e["from_library"])
+            if block is None:
+                return {"error": f"No library block “{e['from_library']}”; use find_practice for the exact name."}, []
+            e.update(action="add", block=block["name"], content=block["content"])
+            e.pop("from_library")
     active = presets.get_active(session.user)
     try:
         apply_edits(presets.normalize(active.data), edits)
@@ -245,7 +255,7 @@ def _fn(name, description, properties, required=()):
 
 def tools():
     from mainapp.bulba import agent
-    keep = {"offer_choices", "record_preference", "get_starter"}
+    keep = {"offer_choices", "record_preference", "get_starter", "find_practice", "read_practice"}
     base = [t for t in agent.TOOLS if t["function"]["name"] in keep]
     return base + [
         _fn("read_block", "The full text of one block of the active preset (names are in the outline).",
@@ -256,7 +266,9 @@ def tools():
                 "action": {"type": "string", "enum": list(EDIT_ACTIONS),
                            "description": "replace a block's text, append to it, switch it on/off, or add a new block"},
                 "block": {"type": "string", "description": "The block's name (for add: the new block's name)"},
-                "content": {"type": "string", "description": "New text (replace/append/add)"}},
+                "content": {"type": "string", "description": "New text (replace/append/add)"},
+                "from_library": {"type": "string", "description": "Instead of content: add this library block "
+                                 "word for word (exact name from find_practice)"}},
                 "required": ["action", "block"]}},
              "why": STR}, ["edits", "why"]),
         _fn("propose_card_edit", "Propose changes to this character's card (only the fields you change).",

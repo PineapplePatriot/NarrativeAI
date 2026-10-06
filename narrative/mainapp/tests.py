@@ -1902,6 +1902,25 @@ class BulbaGuideTests(BulbaTests):
         self.assertIn("Feelings stay unspoken.", system)
         self.assertEqual(len(next(e for e in data["events"] if e["type"] == "samples")["samples"]), 1)
 
+    def test_preset_can_borrow_library_blocks(self):
+        from mainapp import presets as presets_mod
+        from mainapp.bulba import library
+        name = "🐉🗡️DnD Simulator 🎲"
+        self.script = [("", [self.call("propose_preset", starter="opus-rich-scene", taste="Dice decide.",
+                                       borrow=["Not a block"])]),
+                       ("", [self.call("propose_preset", starter="opus-rich-scene", taste="Dice decide.",
+                                       borrow=[name])])]
+        data = self.api(action="say", text="make it an RPG").json()
+        self.assertIn("Not in the library", json.dumps(self.bulba_calls[1]["messages"][-1]))
+        proposal = data["state"]["proposals"][0]
+        self.assertIn(name, "\n".join(proposal["summary"]))
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=proposal["id"])
+        blocks = presets_mod.normalize(presets_mod.get_active(self.user).data)["blocks"]
+        added = next(b for b in blocks if b["name"] == name)
+        self.assertTrue(added["enabled"])
+        self.assertEqual(added["content"], library.get(name)["content"])
+
     def test_transcript_download_has_no_keys(self):
         self.script = [("Hello.", [])]
         self.api(action="say", text="hi")
@@ -2689,6 +2708,32 @@ class BulbaInChatTests(ChatPromptTests):
         self.api(action="undo", id=pid)
         self.character.refresh_from_db()
         self.assertEqual(self.character.personality, "")
+
+    def test_library_block_goes_in_word_for_word(self):
+        self.make_chat()
+        from mainapp import presets as presets_mod
+        from mainapp.bulba import library
+        name = "🦜 Anti-parrot and anti-echo 💬"
+        self.script = [("", [self.call("find_practice", query="repeats my words")]),
+                       ("Borrowing a tested one.", [self.call("propose_preset_edit", why="echo", edits=[
+                           {"action": "add", "block": "x", "from_library": name}])])]
+        data = self.api(action="say", text="it repeats what I say").json()
+        found = json.loads(self.bulba_calls[1]["messages"][-1]["content"])["blocks"]
+        self.assertIn(name, [b["name"] for b in found])
+        self.assertIn("writing instructions", self.bulba_calls[0]["messages"][0]["content"])  # the writing guide
+        pid = data["state"]["proposals"][0]["id"]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=pid)
+        blocks = presets_mod.normalize(presets_mod.get_active(self.user).data)["blocks"]
+        added = next(b for b in blocks if b["name"] == name)
+        self.assertEqual(added["content"], library.get(name)["content"])
+
+    def test_unknown_library_block_is_refused(self):
+        self.make_chat()
+        self.script = [("", [self.call("propose_preset_edit", why="x", edits=[{"action": "add", "block": "x", "from_library": "Made up"}])]),
+                       ("Hm.", [])]
+        self.api(action="say", text="fix it")
+        self.assertIn("No library block", json.loads(self.bulba_calls[1]["messages"][-1]["content"])["error"])
 
     def test_other_users_chat_is_refused(self):
         self.make_chat()

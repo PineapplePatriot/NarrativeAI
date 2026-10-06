@@ -6,12 +6,13 @@ import uuid
 from pathlib import Path
 
 from mainapp import ai_client, cards, model_profiles, presets, starters
+from mainapp.bulba import library
 
 INSTRUCTIONS = Path(__file__).resolve().parent.parent / "data" / "bulba" / "instructions.md"
 GUIDES_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba" / "guides"
 # Which guides Bulba reads at each stage (keeps the prompt, and the bill, small)
-STAGE_GUIDES = {"extras": ["extras"], "taste": ["asking", "presets"], "preset": ["presets"],
-                "persona": ["characters"], "character": ["characters"], "done": []}
+STAGE_GUIDES = {"extras": ["extras"], "taste": ["asking", "presets", "writing"], "preset": ["presets", "writing"],
+                "persona": ["characters", "writing"], "character": ["characters", "writing"], "done": []}
 REWRITABLE = ("Roleplay", "Style")
 TEST_CHARACTER = Path(__file__).resolve().parent.parent / "data" / "bulba" / "test-character.json"
 
@@ -146,6 +147,8 @@ TOOLS = [
          "reply_length": {"type": "string", "enum": ["short", "medium", "long"]},
          "rewrite": {"type": "object", "description": "Only if the starter contradicts them: full replacement text for its Roleplay and/or Style section",
                      "properties": {"Roleplay": STR, "Style": STR}},
+         "borrow": {"type": "array", "maxItems": 6, "items": STR,
+                    "description": "Library blocks (exact names from find_practice) to add word for word"},
          "why": STR},
         ["starter", "taste", "why"]),
     _fn("propose_persona", "Propose who the user is in the story.",
@@ -154,6 +157,7 @@ TOOLS = [
         {"name": STR, "description": STR, "scenario": STR, "greeting": STR,
          "personality": STR, "example_dialogue": STR, "why": STR},
         ["name", "description", "greeting"]),
+    *library.tool_defs(_fn, STR),
 ]
 
 
@@ -234,6 +238,12 @@ def build_preset(payload):
     length = LENGTHS.get(payload.get("reply_length"))
     if length and not _replace_length_line(preset, length):
         payload = {**payload, "taste": (payload.get("taste", "") + "\n" + length).strip()}
+    for name in reversed(payload.get("borrow") or []):
+        block = library.get(name)
+        if block and not any(b["name"] == name for b in preset["blocks"]):
+            _add_block(preset, name, block["content"])
+        elif block:  # already in this preset (a community one): just switch it on
+            next(b for b in preset["blocks"] if b["name"] == name)["enabled"] = True
     if payload.get("taste"):
         _add_block(preset, "Your taste", payload["taste"])
     return preset
@@ -513,17 +523,23 @@ def tool_propose_preset(session, args):
         if missing:
             return {"error": f"Your {section} rewrite dropped {', '.join(missing)}; keep them."}, []
         rewrite[section] = text[:6000]
+    borrow = [str(n).strip() for n in (args.get("borrow") or [])][:6]
+    unknown = [n for n in borrow if library.get(n) is None]
+    if unknown:
+        return {"error": f"Not in the library: {', '.join(unknown)}. Use the exact names from find_practice."}, []
     profile = target_profile(session) or {}
     name = str(args.get("name") or f"My setup · {profile.get('name', '')}").strip()[:120]
     summary = [f"Built on the {starter['title']} starter for {profile.get('name', '')}"]
     if rewrite:
         summary.append("Adjusted from the starter: " + " and ".join(rewrite) + " section")
+    if borrow:
+        summary += ["Tested blocks added from Realistic Frankenstein:", *[f"  {n}" for n in borrow]]
     summary += ["Your taste:", *[f"  {line}" for line in taste.splitlines() if line.strip()]]
     if reply_length:
         summary += ["Reply length:", f"  {LENGTHS[reply_length]}"]
     p = _proposal(session, "preset", f"Preset: {name}", summary,
                   {"starter": starter["id"], "name": name, "taste": taste, "rewrite": rewrite,
-                   "reply_length": reply_length})
+                   "reply_length": reply_length, "borrow": borrow})
     return {"proposal": p["id"], "status": "waiting for Apply"}, [{"type": "proposal", "id": p["id"]}]
 
 
@@ -561,6 +577,7 @@ HANDLERS = {
     "write_samples": tool_write_samples, "record_preference": tool_record_preference,
     "propose_extras": tool_propose_extras, "propose_preset": tool_propose_preset,
     "propose_persona": tool_propose_persona, "propose_character": tool_propose_character,
+    **library.HANDLERS,
 }
 
 

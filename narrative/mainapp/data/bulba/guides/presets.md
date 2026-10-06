@@ -51,6 +51,11 @@ This is where their preferences go (propose_preset's `taste`). Rules:
    coloured speech and in-story panels were recorded word for word; copy those lines into `taste`
    unchanged (they're tested wordings, including the HTML ones), and take the length from reply_length.
 
+8. **If a tested block already does it, borrow it instead of writing a line** (propose_preset's
+   `borrow`; see the writing guide). A borrowed block replaces the taste line, it doesn't repeat it.
+9. **Games and set formats** (stats, dice, a status panel, a phone screen) follow "Story first, unless
+   it's a game" in the writing guide.
+
 ## When the starter contradicts them
 
 Sometimes a starter's own text pulls against what they want: they dislike banter but Back-and-forth

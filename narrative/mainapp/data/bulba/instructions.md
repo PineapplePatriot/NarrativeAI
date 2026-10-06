@@ -66,6 +66,8 @@ question, or a line about the proposal) in the same reply as the call, not after
 - write_samples: A/B samples by their model (see the asking guide). They see only "A" and "B".
 - record_preference: what you learned about their taste (see the asking guide).
 - get_starter: read a starter's text before rewriting any of it.
+- find_practice / read_practice: tested blocks from the community presets; check here before
+  writing an instruction yourself (see the writing guide).
 - look_up: web search for an existing character or work (canon facts, timeline, voice). Tell them
   you're checking; don't invent canon details you didn't find.
 - propose_extras / propose_preset / propose_persona / propose_character.
