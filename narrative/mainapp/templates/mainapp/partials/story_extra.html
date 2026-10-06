@@ -1,0 +1,44 @@
+{# One story extra drawn by the app (mainapp/extras.py). Plain text only: everything is escaped. #}
+{% if op.type == "document" %}
+<details class="story-extra doc doc-{{ op.kind }}" data-n="{{ op.n|default:'' }}" open>
+    <summary>{% if op.kind == "letter" %}✉️{% elif op.kind == "newspaper" %}📰{% elif op.kind == "sign" or op.kind == "poster" %}🪧{% elif op.kind == "receipt" %}🧾{% else %}📜{% endif %} {{ op.label }}</summary>
+    <div class="doc-body">{{ op.text|linebreaksbr }}</div>
+    {% if op.detail %}<div class="doc-detail">{{ op.detail }}</div>{% endif %}
+</details>
+{% elif op.type == "messages" %}
+<div class="story-extra phone" data-n="{{ op.n|default:'' }}">
+    <div class="phone-head"><span>📱 {{ op.owner }}{% if op.with_whom %} · {{ op.with_whom }}{% endif %}</span></div>
+    <div class="phone-body">
+        {% for m in op.messages %}
+        <div class="bubble-row {% if m.mine %}mine{% endif %} {% if m.status == 'unsent draft' %}draft{% endif %}">
+            {% if not m.mine %}<span class="from">{{ m.from }}</span>{% endif %}
+            <div class="phone-bubble">{{ m.text|linebreaksbr }}</div>
+            <span class="meta">{% if m.time %}{{ m.time }}{% endif %}{% if m.status == 'unsent draft' %} · not sent{% endif %}</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% elif op.type == "milestone" %}
+<div class="story-extra milestone" data-n="{{ op.n|default:'' }}">
+    <span class="ms-icon">💞</span>
+    <div><b>{{ op.who }}{% if op.toward %} → {{ op.toward }}{% endif %}:</b> {{ op.now }}
+        {% if op.because %}<div class="ms-because">after {{ op.because }}</div>{% endif %}</div>
+</div>
+{% elif op.type == "news" %}
+<div class="story-extra news" data-n="{{ op.n|default:'' }}">
+    <div class="news-head">📰 {{ op.medium }}</div>
+    {% for item in op.items %}
+    <div class="news-item"><span class="news-status {{ item.status }}">{{ item.status }}</span> {{ item.headline }}
+        {% if item.source %}<span class="news-source">· {{ item.source }}</span>{% endif %}</div>
+    {% endfor %}
+</div>
+{% elif op.type == "keepsake" %}
+<div class="story-extra keepsake" data-n="{{ op.n|default:'' }}">
+    <span class="ks-icon">📔</span>
+    <div><b>{{ op.title }}</b>{% if op.detail %}<div class="ks-detail">{{ op.detail }}</div>{% endif %}</div>
+</div>
+{% elif op.type == "choices" %}
+<div class="story-extra choices">
+    {% for a in op.actions %}<button type="button" class="choice-btn" data-choice="{{ a }}">{{ a }}</button>{% endfor %}
+</div>
+{% endif %}

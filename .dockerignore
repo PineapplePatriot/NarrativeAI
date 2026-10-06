@@ -1,0 +1,13 @@
+.git
+**/__pycache__
+**/*.pyc
+.venv
+venv
+myenv
+narrative/media
+narrative/db.sqlite3*
+narrative/staticfiles
+*.zip
+chats_drawer_preview.png
+Prompting EI Testing
+NarrativeAI_Research_*

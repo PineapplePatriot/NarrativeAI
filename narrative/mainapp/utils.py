@@ -1,3 +1,4 @@
+import logging
 from mainapp.models import Character, Worldbook
 import json
 from users.models import ApiConfig
@@ -45,17 +46,29 @@ def build_ai_request(user, character: Character, chat=None, worldbook_slug=None,
             if last_user_message_text:
                 scan_messages.append(last_user_message_text)
             lore = activate(load_worldbook(wb), scan_messages)
+            # Text rules placed on lore entries (SillyTavern's "World Info" placement)
+            from mainapp import presets, regex_rules
+            rules = [r for r in regex_rules.for_chat(presets.normalize(presets.get_active(user).data), character, user)
+                     if r["mode"] in ("saved", "prompt")]
+            if any(regex_rules.LORE in r["placement"] for r in rules):
+                names = {"char": character.name, "user": getattr(user, "persona_name", "") or user.username}
+                lore["entries"] = [{**e, "content": regex_rules.run(rules, "saved", regex_rules.run(
+                    rules, "prompt", e["content"], "lore", names), "lore", names)} for e in lore["entries"]]
             world_info_text = format_for_prompt(lore["entries"])
             if world_info_text:
                 system_prompts["WorldInfo"] = world_info_text
             lore_report = {"book": wb.title, "report": lore["report"],
                            "notes": lore["notes"], "tokens_used": lore["tokens_used"]}
         except Exception as e:
-            print(f"Lorebook activation error: {e}")
+            logging.getLogger(__name__).warning("Lorebook activation error: %s", e)
             lore_report = {"book": worldbook_slug, "report": [], "notes": [f"Lorebook error: {e}"]}
 
     # Story trackers the user chose to add to the prompt
-    tracker_config = normalize_tracker_config(character.tracker_config)
+    from mainapp import game
+    from mainapp import extras
+    kinds = extras.kinds_for(user)
+    tracker_config = normalize_tracker_config(character.tracker_config, game.mode_for(user, character),
+                                              "milestones" in kinds, "keepsakes" in kinds)
     story_state = format_trackers(tracker_config, normalize_tracker_state(chat_file_data.get("trackers"), tracker_config))
     if story_state:
         system_prompts["StoryState"] = story_state
@@ -63,16 +76,13 @@ def build_ai_request(user, character: Character, chat=None, worldbook_slug=None,
     if summary:
         system_prompts["StorySummary"] = f"PREVIOUS STORY SUMMARY: {summary}\n(Older messages are omitted. Rely on this context.)"
     if persistent_guides and isinstance(persistent_guides, dict):
-        context_block = []
-        if persistent_guides.get("situation"): context_block.append(f"CURRENT SITUATION: {persistent_guides['situation']}")
-        if persistent_guides.get("clothes"): context_block.append(f"OUTFIT: {persistent_guides['clothes']}")
-        if persistent_guides.get("state"): context_block.append(f"PHYSICAL STATE: {persistent_guides['state']}")
-        if persistent_guides.get("thinking"): context_block.append(f"INNER THOUGHTS: {persistent_guides['thinking']}")
-        if context_block:
-            system_prompts["WorldContext"] = "\n".join(context_block)
+        from mainapp.views import pinned_note
+        note = pinned_note(persistent_guides)
+        if note:
+            system_prompts["WorldContext"] = f"Pinned note from the user, for every reply:\n{note}"
 
     if guidance:
-        system_prompts["DirectorNote"] = f"URGENT INSTRUCTION FOR NEXT RESPONSE: {guidance}"
+        system_prompts["DirectorNote"] = f"Director's note for this reply: {guidance}"
 
     # LoreReport is not sent to the model; it's shown in the chat tools menu
     return {"SystemPrompts": system_prompts, "LoreReport": lore_report}
@@ -227,7 +237,7 @@ def narrate_text_backend(
             audio_segment = AudioSegment.from_file(audio_bytes, format="mp3")
             final_audio += audio_segment
         except Exception as e:
-            print(f"Audio chunk failed: {e}")
+            logging.getLogger(__name__).warning("Audio chunk failed: %s", e)
             continue
 
     final_audio.export(output_file, format="mp3")

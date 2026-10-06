@@ -11,7 +11,8 @@ import copy
 import uuid
 from pathlib import Path
 
-from mainapp import ai_client, chats, presets
+from mainapp import ai_client, chats, extras, game, presets, thinking
+from mainapp.bulba import control, library, lore
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba"
 CARD_FIELDS = ("description", "personality", "scenario", "example_dialogue")
@@ -38,8 +39,18 @@ def _preset_outline(preset):
             lines.append(f"  [{'on' if b['enabled'] else 'off'}] slot: {b['name']}")
         else:
             words = len(b["content"].split())
-            lines.append(f"  [{'on' if b['enabled'] else 'off'}] {b['name']} ({words} words)")
+            chance = ", adds chance" if library.CHANCE.search(b["content"]) else ""
+            lines.append(f"  [{'on' if b['enabled'] else 'off'}] {b['name']} ({words} words{chance})")
     return "\n".join(lines)
+
+
+def _lore_line(character):
+    if not character.worldbook_id:
+        return "None."
+    from mainapp import lorebook
+    entries = lorebook.load_worldbook(character.worldbook)["entries"]
+    titles = [e["comment"] or ", ".join(e["keys"][:2]) for e in entries][:30]
+    return f"“{character.worldbook.title}”, {len(entries)} entries: " + "; ".join(titles)
 
 
 def context(session):
@@ -64,9 +75,12 @@ def context(session):
 
     parts = [
         f"## This chat\nCharacter: {character.name}. The user plays {names['user']}. Chat model: {model}. "
-        f"Messages so far: {len(messages)}.",
+        f"Messages so far: {len(messages)}. Dice and inventory: "
+        f"{game.MODE_LABELS[game.mode_for(user, character)].lower()} (Extras page; per character on its Trackers page). "
+        f"Story extras: {', '.join(extras.KINDS[k].lower() for k in extras.kinds_for(user)) or 'off'}.",
         "### Character card\n" + "\n\n".join(
             f"{f}: {_clip(getattr(character, f), 2500)}" for f in CARD_FIELDS if getattr(character, f)),
+        "### Lorebook\n" + _lore_line(character),
         "### The user in this chat\n" + _clip(
             (persona.get("description") if persona.get("name") else getattr(user, "persona_description", "")) or
             "(no description)", 800),
@@ -84,7 +98,7 @@ def system_prompt(session):
     from mainapp.bulba import agent
     text = (DATA_DIR / "doctor.md").read_text(encoding="utf-8")
     profile = agent.target_profile(session)
-    guides = [(DATA_DIR / "guides" / f"{g}.md").read_text(encoding="utf-8") for g in ("presets", "characters")]
+    guides = [(DATA_DIR / "guides" / f"{g}.md").read_text(encoding="utf-8") for g in ("presets", "characters", "lore", "writing")]
     pending = [f"- {p['id']} {p['kind']}: {p['title']} ({p['status']})" for p in session.proposals]
     return "\n\n".join(filter(None, [
         text, *guides,
@@ -122,6 +136,8 @@ def apply_edits(preset, edits):
         if action not in EDIT_ACTIONS:
             raise ValueError(f"Unknown edit action: {action}")
         if action == "add":
+            if any(b["name"] == name for b in preset["blocks"]):
+                raise ValueError(f"“{name}” is already in the preset; switch it on or edit it instead.")
             if not str(e.get("content") or "").strip():
                 raise ValueError("A new block needs content.")
             block = presets.normalize_block({"name": name or "Bulba's fix", "kind": "prompt",
@@ -175,6 +191,15 @@ def tool_propose_preset_edit(session, args):
     edits = [e for e in (args.get("edits") or []) if isinstance(e, dict)][:6]
     if not edits:
         return {"error": "No edits."}, []
+    for e in edits:  # a library block goes in word for word
+        if e.get("from_library"):
+            block = library.get(e["from_library"])
+            if block is None:
+                return {"error": f"No library block “{e['from_library']}”; use find_practice for the exact name."}, []
+            if library.needs_filling(block):
+                return {"error": "That wording has [bracketed] parts: fill them in and add it as content instead."}, []
+            e.update(action="add", block=block["name"], content=block["content"])
+            e.pop("from_library")
     active = presets.get_active(session.user)
     try:
         apply_edits(presets.normalize(active.data), edits)
@@ -191,7 +216,9 @@ def tool_propose_card_edit(session, args):
     fields = {f: str(args.get(f)).strip()[:8000] for f in CARD_FIELDS if isinstance(args.get(f), str) and args.get(f).strip()}
     if not fields:
         return {"error": "Change at least one field (description, personality, scenario, example_dialogue)."}, []
-    character = session.chat.character
+    character = lore.target_character(session)
+    if character is None:
+        return {"error": "There's no character to change yet."}, []
     summary = []
     for f, text in fields.items():
         summary += [f"{f.replace('_', ' ').capitalize()}:", text]
@@ -228,7 +255,7 @@ def tool_retry_reply(session, args):
     except ai_client.AIError as e:
         return {"error": str(e)}, [{"type": "error", "text": str(e)}]
     session.spent += cost or 0
-    text = (message.get("content") or "").strip()
+    text = thinking.split(message.get("content") or "")[1].strip()
     label = "With the change" if proposal else "Again, as it is"
     return ({"rewritten_reply": text, "note": "They see it as a single sample with Like / Not quite buttons."},
             [{"type": "samples", "model": model_name, "character": chat.character.name, "scenario": "",
@@ -243,9 +270,14 @@ def _fn(name, description, properties, required=()):
             "parameters": {"type": "object", "properties": properties, "required": list(required)}}}
 
 
+CARD_EDIT_TOOL = _fn("propose_card_edit", "Propose changes to this character's card (only the fields you change).",
+            {"description": STR, "personality": STR, "scenario": STR, "example_dialogue": STR, "why": STR}, ["why"])
+
+
 def tools():
     from mainapp.bulba import agent
-    keep = {"offer_choices", "record_preference", "get_starter"}
+    keep = {"offer_choices", "record_preference", "get_starter", "find_practice", "read_practice", "look_up",
+            "propose_lorebook", "propose_extras"}
     base = [t for t in agent.TOOLS if t["function"]["name"] in keep]
     return base + [
         _fn("read_block", "The full text of one block of the active preset (names are in the outline).",
@@ -256,18 +288,21 @@ def tools():
                 "action": {"type": "string", "enum": list(EDIT_ACTIONS),
                            "description": "replace a block's text, append to it, switch it on/off, or add a new block"},
                 "block": {"type": "string", "description": "The block's name (for add: the new block's name)"},
-                "content": {"type": "string", "description": "New text (replace/append/add)"}},
+                "content": {"type": "string", "description": "New text (replace/append/add)"},
+                "from_library": {"type": "string", "description": "Instead of content: add this library block "
+                                 "word for word (exact name from find_practice)"}},
                 "required": ["action", "block"]}},
              "why": STR}, ["edits", "why"]),
-        _fn("propose_card_edit", "Propose changes to this character's card (only the fields you change).",
-            {"description": STR, "personality": STR, "scenario": STR, "example_dialogue": STR, "why": STR}, ["why"]),
+        CARD_EDIT_TOOL,
+        *control.tool_defs(_fn, STR),
         _fn("retry_reply", "Rewrite the last AI reply of this chat with their chat model: with a proposal's change "
             "applied just for this try (from_proposal), or as things are now. Costs one reply.",
             {"from_proposal": {"type": "string", "description": "A preset or card proposal id; leave out to retry as is"}}),
     ]
 
 
-HANDLERS = {"read_block": tool_read_block, "propose_preset_edit": tool_propose_preset_edit,
+HANDLERS = {"read_block": tool_read_block, "propose_preset_edit": tool_propose_preset_edit, **lore.HANDLERS,
+            **control.HANDLERS,
             "propose_card_edit": tool_propose_card_edit, "retry_reply": tool_retry_reply}
 
 

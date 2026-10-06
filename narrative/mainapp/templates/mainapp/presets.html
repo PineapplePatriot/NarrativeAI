@@ -112,12 +112,17 @@
         </div>
         <p class="help">Find-and-replace rules that tidy or decorate messages (SillyTavern calls them regex scripts).
           Presets use them to turn tracker blocks into panels, hide thinking the AI leaked into its reply, or keep
-          old blocks out of what's sent back. Each rule works on your messages, the AI's replies, or both, in one of three ways:</p>
+          old blocks out of what's sent back. Each rule works on your messages, the AI's replies, or both (and optionally on lore entries or the model's
+          thinking), in one of three ways:</p>
         <ul class="mode-legend">
           <li><span class="chip mode-display">On screen</span> changes only what you see</li>
           <li><span class="chip mode-prompt">Sent to the AI</span> changes only what the AI reads back</li>
           <li><span class="chip mode-saved">Saved</span> changes the message itself</li>
         </ul>
+        <div class="scope-tabs" id="ruleScope">
+          <button type="button" data-scope="preset" class="active">This preset's rules</button>
+          <button type="button" data-scope="mine">My rules (with every preset)</button>
+        </div>
         <div class="filter-bar">
           <input type="search" id="ruleSearch" placeholder="Search rules…">
           <label class="check small"><input type="checkbox" id="rulesOnlyOn"> Only switched on</label>

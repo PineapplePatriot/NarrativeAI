@@ -1574,3 +1574,95 @@ details.thoughts .thoughts-text { white-space: pre-wrap; font-size: .85rem; opac
     z-index: 70; transition: .25s; pointer-events: none; max-width: calc(100vw - 32px); }
 .chat-notice.show { opacity: 1; transform: translateX(-50%); }
 @media (max-width: 640px) { .bulba-drawer { top: 0; width: 100vw; } }
+
+/* Dice rolls and inventory changes under a reply (mainapp/game.py) */
+.game-lines { margin-top: 8px; padding: 6px 10px; border-left: 2px solid var(--accent-1, #8b5cf6);
+              font-size: 0.85rem; opacity: 0.85; display: flex; flex-direction: column; gap: 2px; }
+
+/* The pen menu ("Steer the story") */
+.tools-menu .tool-label small { font-weight: 400; opacity: .7; margin-left: 4px; text-transform: none; letter-spacing: 0; }
+.tools-menu .chip-row { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+.tools-menu .tool-grid { display: grid; gap: 8px; margin-top: 6px; }
+.tools-menu .tool-grid.two { grid-template-columns: 1fr 1fr; }
+.tools-menu .tool-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+.tools-menu .tool-grid a.tool-action-btn { text-align: center; text-decoration: none; }
+.tools-menu .tool-help { font-size: .78rem; opacity: .75; margin: 8px 0 0; line-height: 1.4; }
+.tools-menu .tool-help a { color: inherit; }
+.tools-menu textarea.tool-input { resize: vertical; min-height: 44px; font-family: inherit; }
+.tools-menu .tool-details > summary { cursor: pointer; list-style: none; }
+.tools-menu .tool-details > summary::-webkit-details-marker { display: none; }
+.tools-menu details.tool-details:not(.tool-section) { margin-top: 10px; font-size: .85rem; }
+.tools-menu details.tool-details:not(.tool-section) > summary { opacity: .85; }
+.tools-menu details.tool-section > summary::before { content: '▸ '; }
+.tools-menu details.tool-section[open] > summary::before { content: '▾ '; }
+.tools-menu .tool-sublabel { display: block; font-size: .8rem; opacity: .8; margin: 12px 0 6px; }
+
+/* ---- Book layout (director mode): replies read as chapters, your messages fold into markers ---- */
+.layout-book .message.assistant { max-width: none; width: 100%; padding: 0 4px; }
+.layout-book .message.assistant .message-avatar { display: none; }
+.layout-book .message.assistant .message-content { background: transparent; border: none; box-shadow: none;
+    max-width: 68ch; margin: 0 auto; padding: 4px 0; }
+.layout-book .message.assistant .message-content::before,
+.layout-book .message.assistant .message-content::after { display: none; }
+.layout-book .message.assistant .message-text { font-size: 1.02rem; line-height: 1.7; }
+.layout-book .message.assistant .message-time { opacity: .45; }
+/* Your messages: a small centred marker; the text opens on click */
+.layout-book .message.user { justify-content: center; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; }
+.layout-book .message.user .message-avatar { width: auto; height: auto; padding: 3px 12px; border-radius: 999px;
+    font-size: .75rem; font-weight: 500; background: transparent; border: 1px solid var(--border-color, rgba(148,163,184,.3));
+    opacity: .7; object-fit: unset; }
+.layout-book .message.user img.message-avatar { display: none; }
+.layout-book .message.user::before { content: "✎ you"; font-size: .75rem; letter-spacing: .04em; opacity: .55;
+    border: 1px solid rgba(148,163,184,.3); border-radius: 999px; padding: 2px 12px; }
+.layout-book .message.user .message-avatar { display: none; }
+.layout-book .message.user:not(.open) .message-content { display: none; }
+.layout-book .message.user.open::before { content: "✎ you · fold"; }
+.layout-book .message.user.open .message-content { max-width: 68ch; opacity: .85; cursor: auto; }
+.layout-book .message.user + .message.assistant .message-content { border-top: none; }
+.layout-book .message.user.open .message-actions { position: static; display: flex; justify-content: center;
+    background: transparent; backdrop-filter: none; padding: 0 0 4px; }
+
+/* ---- Story extras drawn by the app (mainapp/extras.py) ---- */
+.story-extras { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.story-extra { border-radius: 10px; font-size: .92rem; max-width: 420px; }
+.story-extra.doc { background: #f4e9d8; color: #2c1e16; border: 1px solid #d8c6ad; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+.story-extra.doc summary { cursor: pointer; padding: 8px 12px; font-size: .8rem; letter-spacing: .02em; color: #6b5440; }
+.story-extra.doc .doc-body { padding: 4px 16px 14px; line-height: 1.6; }
+.story-extra.doc .doc-detail { padding: 0 16px 12px; font-size: .78rem; font-style: italic; color: #7a6450; }
+.story-extra.doc-newspaper { background: #ecebe6; }
+.story-extra.doc-sign, .story-extra.doc-poster { background: #2d2a26; color: #f2e6c9; border-color: #4b4338; }
+.story-extra.doc-sign summary, .story-extra.doc-poster summary { color: #bfae8b; }
+.story-extra.doc-receipt { background: #fbfbf8; font-family: ui-monospace, monospace; max-width: 300px; }
+.story-extra.phone { background: #111318; border: 1px solid #2c2f38; border-radius: 22px; padding: 10px 12px 14px; max-width: 340px; }
+.story-extra.phone .phone-head { font-size: .78rem; opacity: .75; text-align: center; padding-bottom: 8px; border-bottom: 1px solid #23262e; margin-bottom: 8px; }
+.story-extra.phone .bubble-row { display: flex; flex-direction: column; align-items: flex-start; margin: 6px 0; }
+.story-extra.phone .bubble-row.mine { align-items: flex-end; }
+.story-extra.phone .from { font-size: .7rem; opacity: .6; margin: 0 6px 2px; }
+.story-extra.phone .phone-bubble { background: #2a2d36; color: #eef; padding: 7px 11px; border-radius: 16px; max-width: 85%; line-height: 1.4; }
+.story-extra.phone .mine .phone-bubble { background: #7c3aed; color: #fff; }
+.story-extra.phone .draft .phone-bubble { background: transparent; border: 1px dashed #6b6f7c; color: #b9bcc8; }
+.story-extra.phone .meta { font-size: .65rem; opacity: .5; margin: 2px 6px 0; }
+.story-extra.milestone { display: flex; gap: 10px; align-items: flex-start; padding: 8px 12px; border: 1px solid rgba(236,72,153,.35);
+    background: rgba(236,72,153,.08); }
+.story-extra.milestone .ms-because { font-size: .8rem; opacity: .7; margin-top: 2px; }
+.story-extras > .story-extra.placed { display: none; }
+.story-extras:not(:has(> .story-extra:not(.placed))) { display: none; }
+.extra-slot { margin: 12px 0; }
+.extra-slot:empty { display: none; }
+.story-extra.news { background: #1c1f26; border: 1px solid #343846; padding: 10px 12px; }
+.story-extra.news .news-head { font-size: .78rem; opacity: .7; margin-bottom: 6px; }
+.story-extra.news .news-item { margin: 4px 0; line-height: 1.45; }
+.story-extra.news .news-status { font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; padding: 1px 6px;
+    border-radius: 6px; margin-right: 4px; }
+.news-status.confirmed { background: rgba(16,185,129,.18); color: #6ee7b7; }
+.news-status.claim { background: rgba(250,204,21,.15); color: #fde68a; }
+.news-status.rumour { background: rgba(148,163,184,.15); color: #cbd5e1; }
+.story-extra.news .news-source { font-size: .78rem; opacity: .6; }
+.story-extra.keepsake { display: flex; gap: 10px; padding: 8px 12px; border: 1px dashed rgba(251,191,36,.45);
+    background: rgba(251,191,36,.06); }
+.story-extra.keepsake .ks-detail { font-size: .82rem; opacity: .75; }
+.story-extra.choices { display: none; flex-wrap: wrap; gap: 6px; max-width: none; }
+.message.latest-reply .story-extra.choices { display: flex; }
+.story-extra.choices .choice-btn { background: transparent; color: inherit; border: 1px solid rgba(167,139,250,.5);
+    border-radius: 999px; padding: 6px 12px; font-size: .85rem; cursor: pointer; text-align: left; }
+.story-extra.choices .choice-btn:hover { background: rgba(139,92,246,.15); }

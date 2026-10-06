@@ -345,3 +345,10 @@ def format_examples(text):
     blocks = [b.strip() for b in text.replace("<start>", "<START>").split("<START>")]
     blocks = [b for b in blocks if b]
     return "\n\n".join("[Example chat]\n" + b for b in blocks)
+
+
+def depth_prompt(character):
+    """The card's own note (extensions.depth_prompt: {"prompt", "depth", "role"}), or None."""
+    ext = (getattr(character, "card_data", None) or {}).get("extensions")
+    note = ext.get("depth_prompt") if isinstance(ext, dict) else None
+    return note if isinstance(note, dict) and str(note.get("prompt") or "").strip() else None

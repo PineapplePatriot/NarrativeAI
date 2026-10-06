@@ -112,11 +112,26 @@ def _extras(message):
     return message[5] if len(message) > 5 and isinstance(message[5], dict) else {}
 
 
+# Things each version (swipe) of a reply keeps for itself: the model's thoughts, and the dice and
+# inventory changes it made (see mainapp/game.py), so flipping swipes flips them too
+VERSION_KEYS = ("reasoning", "game")
+
+
 def _version(message):
     v = {"text": message[2], "time": message[1], "emotion": message[3], "char_count": message[4]}
-    if _extras(message).get("reasoning"):
-        v["reasoning"] = _extras(message)["reasoning"]
+    for key in VERSION_KEYS:
+        if _extras(message).get(key):
+            v[key] = _extras(message)[key]
     return v
+
+
+def _with(message, key, value):
+    extras = dict(_extras(message))
+    if value:
+        extras[key] = value
+    else:
+        extras.pop(key, None)
+    return tuple(message[:5]) + ((extras,) if extras else ())
 
 
 def reasoning_of(message):
@@ -125,12 +140,16 @@ def reasoning_of(message):
 
 def with_reasoning(message, reasoning):
     """The message with what the model thought before it (kept out of every prompt)."""
-    extras = dict(_extras(message))
-    if reasoning:
-        extras["reasoning"] = reasoning
-    else:
-        extras.pop("reasoning", None)
-    return tuple(message[:5]) + ((extras,) if extras else ())
+    return _with(message, "reasoning", reasoning)
+
+
+def game_of(message):
+    return _extras(message).get("game") or []
+
+
+def with_game(message, ops):
+    """The message with the dice rolls and inventory changes made while writing it."""
+    return _with(message, "game", list(ops or []))
 
 
 def add_version(previous, message):
@@ -138,8 +157,7 @@ def add_version(previous, message):
     versions = list(_extras(previous).get("swipes") or [_version(previous)])
     versions.append(_version(message))
     extras = {"swipes": versions, "swipe": len(versions) - 1}
-    if reasoning_of(message):
-        extras["reasoning"] = reasoning_of(message)
+    extras.update({k: _extras(message)[k] for k in VERSION_KEYS if _extras(message).get(k)})
     return tuple(message[:5]) + (extras,)
 
 
@@ -149,8 +167,7 @@ def choose_version(message, index):
         raise IndexError("No such version.")
     v = versions[index]
     extras = {"swipes": versions, "swipe": index}
-    if v.get("reasoning"):
-        extras["reasoning"] = v["reasoning"]
+    extras.update({k: v[k] for k in VERSION_KEYS if v.get(k)})
     return (message[0], v["time"], v["text"], v["emotion"], v["char_count"], extras)
 
 

@@ -5,13 +5,14 @@ import re
 import uuid
 from pathlib import Path
 
-from mainapp import ai_client, cards, model_profiles, presets, starters
+from mainapp import ai_client, cards, model_profiles, presets, starters, thinking
+from mainapp.bulba import doctor, library, lore
 
 INSTRUCTIONS = Path(__file__).resolve().parent.parent / "data" / "bulba" / "instructions.md"
 GUIDES_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba" / "guides"
 # Which guides Bulba reads at each stage (keeps the prompt, and the bill, small)
-STAGE_GUIDES = {"extras": ["extras"], "taste": ["asking", "presets"], "preset": ["presets"],
-                "persona": ["characters"], "character": ["characters"], "done": []}
+STAGE_GUIDES = {"extras": ["extras"], "taste": ["asking", "presets", "writing"], "preset": ["presets", "writing"],
+                "persona": ["characters", "writing"], "character": ["characters", "lore", "writing"], "done": []}
 REWRITABLE = ("Roleplay", "Style")
 TEST_CHARACTER = Path(__file__).resolve().parent.parent / "data" / "bulba" / "test-character.json"
 
@@ -106,7 +107,10 @@ TOOLS = [
     _fn("look_up", "Search the web for facts about a known character, setting or work (canon details, timeline, "
         "personality, how they speak). Costs a little; use it before writing a character from an existing work.",
         {"query": {"type": "string", "description": "What to find, e.g. 'Il Dottore Genshin Impact personality, "
-                   "appearance and history (Sumeru era)'"}}, ["query"]),
+                   "appearance and history (Sumeru era)'"},
+         "focus": {"type": "string", "enum": ["character", "world"],
+                   "description": "character (default): one person, for a card; world: places, factions, terms and "
+                                  "events from the work's wikis, for a lorebook"}}, ["query"]),
     _fn("set_stage", "Move to another stage of the setup.", {"stage": {"type": "string", "enum": STAGES}}, ["stage"]),
     _fn("offer_choices", "Show quick-reply buttons under your message. A choice with a url opens that page instead.",
         {"choices": {"type": "array", "maxItems": 5, "items": {"type": "object", "properties": {
@@ -139,6 +143,14 @@ TOOLS = [
         {"summary": {"type": "string", "enum": ["auto", "manual"]}, "summary_every": {"type": "integer"},
          "trackers": {"type": "string", "enum": ["auto", "manual"]}, "trackers_every": {"type": "integer"},
          "sprites": {"type": "boolean"},
+         "story_extras": {"type": "array", "items": {"type": "string", "enum": ["documents", "messages", "milestones",
+                                                                                 "news", "keepsakes", "choices"]},
+                          "description": "Story extras drawn by the app: letters/notes/signs, phone screens, "
+                                         "relationship milestones, news and rumours, scrapbook keepsakes, suggested "
+                                         "actions. [] turns them all off"},
+         "game": {"type": "string", "enum": ["off", "dice", "full"],
+                  "description": "Dice and inventory: off (no chance in the story), dice only, or dice + inventory "
+                                 "and conditions kept by the app"},
          "background": {"type": "string", "description": "'chat', or a cheap model id: mimo-v2-6-pro, gemini-3-8-flash, glm-5-3, deepseek-v4-pro, deepseek-v4-flash"},
          "why": STR}, ["why"]),
     _fn("propose_preset", "Propose the finished preset: a starter plus a short 'your taste' section.",
@@ -146,6 +158,11 @@ TOOLS = [
          "reply_length": {"type": "string", "enum": ["short", "medium", "long"]},
          "rewrite": {"type": "object", "description": "Only if the starter contradicts them: full replacement text for its Roleplay and/or Style section",
                      "properties": {"Roleplay": STR, "Style": STR}},
+         "switch_off": {"type": "array", "maxItems": 10, "items": STR,
+                        "description": "Blocks of the starter to switch off (exact names), e.g. a community "
+                                       "preset's random-event engines for someone who wants no chance"},
+         "borrow": {"type": "array", "maxItems": 6, "items": STR,
+                    "description": "Library blocks (exact names from find_practice) to add word for word"},
          "why": STR},
         ["starter", "taste", "why"]),
     _fn("propose_persona", "Propose who the user is in the story.",
@@ -154,6 +171,9 @@ TOOLS = [
         {"name": STR, "description": STR, "scenario": STR, "greeting": STR,
          "personality": STR, "example_dialogue": STR, "why": STR},
         ["name", "description", "greeting"]),
+    *library.tool_defs(_fn, STR),
+    *lore.tool_defs(_fn, STR),
+    doctor.CARD_EDIT_TOOL,
 ]
 
 
@@ -234,8 +254,20 @@ def build_preset(payload):
     length = LENGTHS.get(payload.get("reply_length"))
     if length and not _replace_length_line(preset, length):
         payload = {**payload, "taste": (payload.get("taste", "") + "\n" + length).strip()}
+    for block in preset["blocks"]:
+        if block["name"] in (payload.get("switch_off") or []):
+            block["enabled"] = False
+    for name in reversed(payload.get("borrow") or []):
+        block = library.get(name)
+        if block and not any(b["name"] == name for b in preset["blocks"]):
+            _add_block(preset, name, block["content"])
+        elif block:  # already in this preset (a community one): just switch it on
+            next(b for b in preset["blocks"] if b["name"] == name)["enabled"] = True
     if payload.get("taste"):
         _add_block(preset, "Your taste", payload["taste"])
+    if payload.get("control") in ("write", "director"):
+        from mainapp.bulba import control
+        preset = control.apply_to_preset(preset, payload["control"])
     return preset
 
 
@@ -270,7 +302,7 @@ def generate_sample(session, preset, scenario, user_turn, character, instruction
     names = {"char": character["name"], "user": cards.user_name(user)}
     built = presets.assemble(preset, slots, [{"role": "user", "content": user_turn}], names, chat_model)
     message, cost = ai_client.complete_message(user, "chat", built["messages"], **built["params"])
-    return (message.get("content") or "").strip(), cost
+    return thinking.split(message.get("content") or "")[1].strip(), cost  # samples show the reply, not its thinking
 
 
 def tool_get_starter(session, args):
@@ -279,7 +311,12 @@ def tool_get_starter(session, args):
         return {"error": "No starter for this model."}, []
     sections = {b["name"]: b["content"] for b in starter["preset"]["blocks"]
                 if b.get("kind") == "prompt" and b.get("name") in REWRITABLE}
-    return {"id": starter["id"], "title": starter["title"], "sections": sections}, []
+    result = {"id": starter["id"], "title": starter["title"], "sections": sections}
+    if not sections:  # a community preset: its switched-on blocks, and which of them add chance
+        result["blocks_on"] = [b["name"] + (" (adds chance)" if library.CHANCE.search(b.get("content") or "") else "")
+                               for b in starter["preset"]["blocks"]
+                               if b.get("kind") == "prompt" and b.get("enabled") and (b.get("content") or "").strip()]
+    return result, []
 
 
 def tool_write_samples(session, args):
@@ -322,6 +359,12 @@ LOOKUP_PROMPT = ("You research fiction for someone writing a roleplay character 
                  "answer factually and concisely: who they are, appearance, personality and how it shows, how they "
                  "speak, key relationships and history, and which version or timeline the facts belong to. Say "
                  "plainly when sources disagree or something isn't known. No speculation, no fan theories as fact.")
+LOOKUP_WORLD_PROMPT = ("You research a fictional world for someone writing a roleplay lorebook. Prefer the work's wikis "
+                       "(Fandom and other fan wikis, Wikipedia, official sites). Using the web results, list the places, "
+                       "factions and groups, important people other than the main character, terms, rules of magic or "
+                       "technology, and key events, each with two or three factual lines and the names or nicknames people "
+                       "use for it. Say which point in the story each fact belongs to, and mark spoilers. Say plainly when "
+                       "sources disagree or something isn't known. No speculation, no fan theories as fact.")
 
 
 def tool_look_up(session, args):
@@ -335,7 +378,8 @@ def tool_look_up(session, args):
     _check_budget(session)
     set_activity(session, f"Looking up {query[:60]} on the web…")
     message, cost = ai_client.complete_message(
-        session.user, "bulba", [{"role": "system", "content": LOOKUP_PROMPT}, {"role": "user", "content": query}],
+        session.user, "bulba", [{"role": "system", "content": LOOKUP_WORLD_PROMPT if args.get("focus") == "world"
+                                 else LOOKUP_PROMPT}, {"role": "user", "content": query}],
         plugins=[{"id": "web", "max_results": 5}], max_tokens=1500)
     session.spent += cost or 0
     notes = [a.get("url_citation", {}) for a in message.get("annotations") or [] if isinstance(a, dict)]
@@ -353,6 +397,8 @@ BASICS = {
         "first": "Narrate in first person from {{char}}'s point of view (\"I step inside\")."}),
     "tense": ("Tense", {"present": "Write in present tense.", "past": "Write in past tense."}),
     "length": ("Reply length", {"short": "short", "medium": "medium", "long": "long"}),
+    "control": ("Your character", {  # handled by propose_preset itself (bulba/control.py), not the taste text
+        "dont": "dont", "write": "write", "director": "director"}),
     "format": ("Speech and actions", {
         "quotes": "Put speech in double quotes; write actions as plain prose.",
         "asterisks": "Put speech in double quotes and actions in *asterisks*.",
@@ -438,6 +484,26 @@ def apply_basics(session, answers):
                 continue
             text = (f"Write the whole story in {raw}." if key == "language" else f"Keep out: {raw}.")
             scope = "boundary" if key == "keep_out" else "general"
+        elif key == "panels" and raw == "on":  # drawn by the app (mainapp/extras.py), not written as HTML
+            from mainapp import extras
+            extras.set_kinds(session.user, sorted(set(extras.kinds_for(session.user)) | {"documents", "messages"}))
+            text = "Letters, notes, signs and phone screens are drawn by the app (story extras, now on)."
+            lines.append(f"{label}: {text} Nothing to add to taste.")
+            tool_record_preference(session, {"wording": "Basics form: in-story panels", "interpretation": text,
+                                             "scope": "general", "strength": "firm", "status": "confirmed"})
+            continue
+        elif key == "control":
+            if raw not in options:
+                continue
+            from mainapp.bulba import control
+            text = control.MODES[raw]
+            lines.append(f"{label}: {text} (propose_preset applies this itself, with Pura's wording"
+                         + ("; it also switches the chat to the book layout" if raw == "director" else "")
+                         + "; don't add it to taste)")
+            tool_record_preference(session, {"wording": "Basics form: your character", "interpretation": text,
+                                             "scope": "general", "strength": "firm", "status": "confirmed",
+                                             "key": f"control:{raw}"})
+            continue
         else:
             if raw not in options:
                 continue
@@ -459,6 +525,8 @@ def tool_record_preference(session, args):
             "scope": args.get("scope") if args.get("scope") in ("general", "character", "scene", "boundary") else "general",
             "strength": args.get("strength") if args.get("strength") in ("firm", "flexible") else "flexible",
             "status": args.get("status") if args.get("status") in ("tentative", "confirmed", "rejected") else "tentative"}
+    if str(args.get("key") or "").startswith("control:"):  # set by the basics form only
+        pref["key"] = args["key"]
     replaced = next((p for p in session.preferences if p["id"] == args.get("replaces")), None)
     if replaced:
         replaced["status"] = "superseded"
@@ -480,6 +548,15 @@ def tool_propose_extras(session, args):
     if isinstance(args.get("sprites"), bool):
         payload["sprites"] = args["sprites"]
         summary.append("Character pictures that match the mood: " + ("on" if args["sprites"] else "off"))
+    if isinstance(args.get("story_extras"), list):
+        from mainapp import extras
+        kinds = [k for k in extras.KINDS if k in args["story_extras"]]
+        payload["story_extras"] = kinds
+        summary.append("Story extras: " + (", ".join(extras.KINDS[k].lower() for k in kinds) or "off"))
+    if args.get("game") in ("off", "dice", "full"):
+        from mainapp import game
+        payload["game"] = args["game"]
+        summary.append("Dice and inventory: " + game.MODE_LABELS[args["game"]].lower())
     bg = args.get("background")
     cheap = {m["id"]: m["name"] for m in _cheap_models()}
     if bg == "chat" or bg in cheap:
@@ -513,17 +590,40 @@ def tool_propose_preset(session, args):
         if missing:
             return {"error": f"Your {section} rewrite dropped {', '.join(missing)}; keep them."}, []
         rewrite[section] = text[:6000]
+    control_pref = next((p for p in reversed(session.preferences)
+                         if str(p.get("key", "")).startswith("control:") and p["status"] == "confirmed"), None)
+    control_mode = control_pref["key"].split(":", 1)[1] if control_pref else "dont"
+    switch_off = [str(n).strip() for n in (args.get("switch_off") or [])][:10]
+    missing = [n for n in switch_off if n not in originals]
+    if missing:
+        return {"error": f"The starter has no block called: {', '.join(missing)}."}, []
+    borrow = [str(n).strip() for n in (args.get("borrow") or [])][:6]
+    unknown = [n for n in borrow if library.get(n) is None]
+    if unknown:
+        return {"error": f"Not in the library: {', '.join(unknown)}. Use the exact names from find_practice."}, []
+    unfilled = [n for n in borrow if library.needs_filling(library.get(n))]
+    if unfilled:
+        return {"error": f"{', '.join(unfilled)} has [bracketed] parts: fill them in and put it in taste instead."}, []
     profile = target_profile(session) or {}
     name = str(args.get("name") or f"My setup · {profile.get('name', '')}").strip()[:120]
     summary = [f"Built on the {starter['title']} starter for {profile.get('name', '')}"]
     if rewrite:
         summary.append("Adjusted from the starter: " + " and ".join(rewrite) + " section")
+    if control_mode != "dont":
+        from mainapp.bulba import control
+        summary += ["Your character:", f"  {control.MODES[control_mode]}"
+                    + (" (and the book layout: replies as chapters)" if control_mode == "director" else "")]
+    if switch_off:
+        summary += ["Switched off:", *[f"  {n}" for n in switch_off]]
+    if borrow:
+        summary += ["Tested blocks added from the community presets:", *[f"  {n}" for n in borrow]]
     summary += ["Your taste:", *[f"  {line}" for line in taste.splitlines() if line.strip()]]
     if reply_length:
         summary += ["Reply length:", f"  {LENGTHS[reply_length]}"]
     p = _proposal(session, "preset", f"Preset: {name}", summary,
                   {"starter": starter["id"], "name": name, "taste": taste, "rewrite": rewrite,
-                   "reply_length": reply_length})
+                   "reply_length": reply_length, "borrow": borrow, "switch_off": switch_off,
+                   "control": control_mode})
     return {"proposal": p["id"], "status": "waiting for Apply"}, [{"type": "proposal", "id": p["id"]}]
 
 
@@ -561,6 +661,7 @@ HANDLERS = {
     "write_samples": tool_write_samples, "record_preference": tool_record_preference,
     "propose_extras": tool_propose_extras, "propose_preset": tool_propose_preset,
     "propose_persona": tool_propose_persona, "propose_character": tool_propose_character,
+    **library.HANDLERS, **lore.HANDLERS, "propose_card_edit": doctor.tool_propose_card_edit,
 }
 
 
@@ -604,7 +705,7 @@ def opening(session):
 
 # Tools after which Bulba waits for the user (see instructions.md, "Tools, briefly")
 TURN_ENDING = {"offer_choices", "write_samples", "show_basics_form", "retry_reply",
-               "propose_preset_edit", "propose_card_edit", "propose_extras", "propose_preset", "propose_persona", "propose_character"}
+               "propose_preset_edit", "propose_card_edit", "propose_lorebook", "propose_control", "offer_card_upload", "propose_extras", "propose_preset", "propose_persona", "propose_character"}
 
 
 def run_turn(session, user_text, action_note=None, model_note=None):

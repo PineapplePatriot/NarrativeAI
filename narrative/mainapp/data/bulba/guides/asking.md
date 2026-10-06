@@ -58,6 +58,18 @@ Good first comparisons (pick by what's still unclear, and by this model's probes
 | Dialogue vs description | Mostly dialogue, little description. | More description of place and body language, less dialogue. |
 | Pace | One beat, then hand the turn over. | Move the scene forward a few steps before handing over. |
 | Voice | Dry, understated, a little wry. | Warmer and more expressive. |
+| Friction | Agreement and forgiveness come easily when the reason is good. | Characters agree, trust and forgive only for their own reasons; disagreements can stay open. |
+
+**Plain questions that reveal a lot** (from the research cookbook, `docs/research/`), as offer_choices:
+"Should the scene stay with this conversation, or should the world bring in new trouble?"; "Should
+characters say how they feel, or should you work it out from what they do?"; "Would you enjoy seeing
+relationship numbers or an inventory, or just the story?"; "Should a disagreement be easy to repair,
+or can it stay unresolved?". Never ask whether they want "structured" or "formulaic" instructions:
+that's yours to work out.
+
+**Taste and wording are different tests.** Comparing "more conflict" with "less conflict" tells you
+their taste. Whether their model does better with story-style or rule-style wording for the *same*
+behaviour is a separate comparison; don't mix the two in one pair.
 
 ## Reading their answer
 

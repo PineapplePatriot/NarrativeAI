@@ -1902,6 +1902,25 @@ class BulbaGuideTests(BulbaTests):
         self.assertIn("Feelings stay unspoken.", system)
         self.assertEqual(len(next(e for e in data["events"] if e["type"] == "samples")["samples"]), 1)
 
+    def test_preset_can_borrow_library_blocks(self):
+        from mainapp import presets as presets_mod
+        from mainapp.bulba import library
+        name = "🐉🗡️DnD Simulator 🎲"
+        self.script = [("", [self.call("propose_preset", starter="opus-rich-scene", taste="Dice decide.",
+                                       borrow=["Not a block"])]),
+                       ("", [self.call("propose_preset", starter="opus-rich-scene", taste="Dice decide.",
+                                       borrow=[name])])]
+        data = self.api(action="say", text="make it an RPG").json()
+        self.assertIn("Not in the library", json.dumps(self.bulba_calls[1]["messages"][-1]))
+        proposal = data["state"]["proposals"][0]
+        self.assertIn(name, "\n".join(proposal["summary"]))
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=proposal["id"])
+        blocks = presets_mod.normalize(presets_mod.get_active(self.user).data)["blocks"]
+        added = next(b for b in blocks if b["name"] == name)
+        self.assertTrue(added["enabled"])
+        self.assertEqual(added["content"], library.get(name)["content"])
+
     def test_transcript_download_has_no_keys(self):
         self.script = [("Hello.", [])]
         self.api(action="say", text="hi")
@@ -2307,10 +2326,12 @@ class RegexChatTests(ChatPromptTests):
         self.post({"action": "chat", "message": "teh tower?"})
         saved = self.saved_messages()
         self.assertEqual(saved[-2][2], "the tower?")                              # saved rule, your messages
-        self.assertEqual(saved[-1][2], "<think>plan</think>A LOUD reply. [HP:5]")  # saved rule, AI replies
+        self.assertEqual(saved[-1][2], "A LOUD reply. [HP:5]")  # saved rule, AI replies (thinking folded away)
+        from mainapp import chats
+        self.assertEqual(chats.reasoning_of(saved[-1]), "plan")
         self.post({"action": "chat", "message": "go on"})
         sent = "\n".join(m["content"] for m in self.sent[-1]["messages"])
-        self.assertNotIn("<think>", sent)                                         # prompt rule
+        self.assertNotIn("<think>", sent)                                         # thinking is never sent back
         self.assertIn("A LOUD reply. [HP:5]", sent)                                # display rule isn't sent
         page = self.client.get(self.url)
         rules = page.context["display_rules"]["rules"]
@@ -2690,8 +2711,652 @@ class BulbaInChatTests(ChatPromptTests):
         self.character.refresh_from_db()
         self.assertEqual(self.character.personality, "")
 
+    def test_library_block_goes_in_word_for_word(self):
+        self.make_chat()
+        from mainapp import presets as presets_mod
+        from mainapp.bulba import library
+        name = "🦜 Anti-parrot and anti-echo 💬"
+        self.script = [("", [self.call("find_practice", query="repeats my words")]),
+                       ("Borrowing a tested one.", [self.call("propose_preset_edit", why="echo", edits=[
+                           {"action": "add", "block": "x", "from_library": name}])])]
+        data = self.api(action="say", text="it repeats what I say").json()
+        found = json.loads(self.bulba_calls[1]["messages"][-1]["content"])["blocks"]
+        self.assertIn(name, [b["name"] for b in found])
+        self.assertIn("writing instructions", self.bulba_calls[0]["messages"][0]["content"])  # the writing guide
+        pid = data["state"]["proposals"][0]["id"]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=pid)
+        blocks = presets_mod.normalize(presets_mod.get_active(self.user).data)["blocks"]
+        added = next(b for b in blocks if b["name"] == name)
+        self.assertEqual(added["content"], library.get(name)["content"])
+
+    def test_unknown_library_block_is_refused(self):
+        self.make_chat()
+        self.script = [("", [self.call("propose_preset_edit", why="x", edits=[{"action": "add", "block": "x", "from_library": "Made up"}])]),
+                       ("Hm.", [])]
+        self.api(action="say", text="fix it")
+        self.assertIn("No library block", json.loads(self.bulba_calls[1]["messages"][-1]["content"])["error"])
+
     def test_other_users_chat_is_refused(self):
         self.make_chat()
         other = get_user_model().objects.create_user(username="other", password="pw12345!")
         self.client.force_login(other)
         self.assertEqual(self.client.get(reverse("bulba_chat", args=[self.chat_obj.id])).status_code, 404)
+
+
+class BulbaCardAndLoreTests(BulbaTests):
+    """Bulba takes a card they already have, fixes it, and writes lore for its world."""
+
+    def upload(self, card):
+        from unittest import mock
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        f = SimpleUploadedFile("viktor.json", json.dumps(card).encode(), content_type="application/json")
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=self.fake_post):
+            return self.client.post(reverse("bulba_api"), {"card": f})
+
+    def test_card_upload_review_and_undo(self):
+        from mainapp.models import Character, Worldbook
+        self.script = [("Got a card already?", [self.call("offer_card_upload")])]
+        data = self.api(action="say", text="I have one").json()
+        self.assertTrue(any(e["type"] == "card_upload" for e in data["events"]))
+        self.script = [("Nice card. The greeting is short; want a fuller one?", [])]
+        data = self.upload(V2_CARD).json()
+        viktor = Character.objects.get(author=self.user, name="Viktor")
+        sent = self.bulba_calls[-1]["messages"][-1]["content"]
+        self.assertIn("Imported their card", sent)
+        self.assertIn("Station lore", sent)                 # its lorebook is reported
+        self.assertIn("Excellent planning.", sent)
+        self.assertEqual(data["state"]["chat"]["name"], "Viktor")  # Start chatting points at it
+        # A fix to the imported card
+        self.script = [("Here.", [self.call("propose_card_edit", personality="Dry, careful, kind to strays.", why="x")])]
+        pid = self.api(action="say", text="make him softer").json()["state"]["proposals"][-1]["id"]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=pid)
+        viktor.refresh_from_db()
+        self.assertEqual(viktor.personality, "Dry, careful, kind to strays.")
+        # Undo the import: the character and its own lore go
+        imported = next(p for p in self.client.get(reverse("bulba")).context["bulba_data"]["state"]["proposals"]
+                        if "your card" in p["title"])
+        self.script = [("Gone.", [])]
+        self.api(action="undo", id=imported["id"])
+        self.assertFalse(Character.objects.filter(name="Viktor").exists())
+        self.assertFalse(Worldbook.objects.filter(title="Station lore").exists())
+
+    def test_lorebook_added_to_existing_and_new(self):
+        from mainapp import lorebook
+        from mainapp.models import Character
+        self.upload(V2_CARD)
+        viktor = Character.objects.get(author=self.user, name="Viktor")
+        entries = [{"title": "The night ferry", "keys": ["ferry", "night boat"], "content": "Leaves at midnight."},
+                   {"title": "Era", "always": True, "content": "Northern coast, 1920s."},
+                   {"content": "No keys and not always: dropped."}]
+        self.script = [("Some lore.", [self.call("propose_lorebook", title="Coast", entries=entries, why="canon")])]
+        data = self.api(action="say", text="add the world").json()
+        proposal = data["state"]["proposals"][-1]
+        self.assertIn("Added to Viktor", proposal["summary"][0])
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=proposal["id"])
+        viktor.refresh_from_db()
+        book = lorebook.load_worldbook(viktor.worldbook)
+        self.assertEqual([e["comment"] for e in book["entries"]][-2:], ["The night ferry", "Era"])
+        self.assertTrue(book["entries"][-1]["constant"])
+        self.assertEqual(len({e["uid"] for e in book["entries"]}), 3)
+        self.script = [("Undone.", [])]
+        self.api(action="undo", id=proposal["id"])
+        self.assertEqual(len(lorebook.load_worldbook(viktor.worldbook)["entries"]), 1)
+        # A character without lore gets a new book, removed again on undo
+        viktor.worldbook = None
+        viktor.save()
+        self.script = [("Lore.", [self.call("propose_lorebook", title="Coast", entries=entries[:1], why="x")])]
+        pid = self.api(action="say", text="again").json()["state"]["proposals"][-1]["id"]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=pid)
+        viktor.refresh_from_db()
+        self.assertEqual(viktor.worldbook.title, "Coast")
+        self.script = [("Undone.", [])]
+        self.api(action="undo", id=pid)
+        viktor.refresh_from_db()
+        self.assertIsNone(viktor.worldbook)
+
+    def test_lore_needs_a_character_and_world_lookup_prompt(self):
+        self.script = [("", [self.call("propose_lorebook", entries=[{"keys": ["x"], "content": "y"}], why="x")]),
+                       ("Hm.", [])]
+        self.api(action="say", text="lore please")
+        self.assertIn("no character yet", json.dumps(self.bulba_calls[1]["messages"][-1]))
+        from mainapp.bulba import agent
+        self.assertIn("wikis", agent.LOOKUP_WORLD_PROMPT)
+
+    def test_cookbook_wording_with_blanks_is_not_borrowed_verbatim(self):
+        from mainapp.bulba import library
+        name = "Cookbook: Replies are too long, too clipped, or cut off (story wording)"
+        self.assertTrue(library.needs_filling(library.get(name)))
+        self.script = [("", [self.call("propose_preset", starter="opus-rich-scene", taste="x", borrow=[name])]),
+                       ("Hm.", [])]
+        self.api(action="say", text="build")
+        self.assertIn("bracketed", json.dumps(self.bulba_calls[1]["messages"][-1]))
+        self.assertFalse(library.needs_filling(library.get(
+            "Cookbook: Omniscience and leaking secrets (rule wording)")))
+
+
+def tool_call(name, args, index=0, call_id="c1"):
+    """A streamed tool call, split in two pieces like providers send it."""
+    raw = json.dumps(args)
+    return [{"choices": [{"delta": {"tool_calls": [{"index": index, "id": call_id, "type": "function",
+                                                     "function": {"name": name, "arguments": raw[:5]}}]}}]},
+            {"choices": [{"delta": {"tool_calls": [{"index": index, "function": {"arguments": raw[5:]}}]}}]}]
+
+
+class GameTests(StreamChatTests):
+    """Dice and inventory kept by the app (mainapp/game.py)."""
+
+    def setUp(self):
+        super().setUp()
+        self.rounds = []
+
+    def fake_post(self, url, headers=None, json=None, timeout=None, **kwargs):
+        if kwargs.get("stream") and self.rounds:
+            self.stream_lines = self.rounds.pop(0)
+        return super().fake_post(url, headers, json, timeout, **kwargs)
+
+    def set_mode(self, mode):
+        self.character.tracker_config = {"game": mode}
+        self.character.save()
+
+    def test_off_by_default_sends_no_tools(self):
+        self.stream_post({"action": "chat", "message": "Hi"})
+        self.assertNotIn("tools", self.sent[-1])
+
+    def test_roll_then_write(self):
+        from unittest import mock
+        self.set_mode("dice")
+        self.rounds = [sse(*tool_call("roll_dice", {"action": "Mira picks the lock", "difficulty": 10}), "[DONE]"),
+                       sse(delta("The lock clicks open."), "[DONE]")]
+        with mock.patch("random.SystemRandom.randint", return_value=14):
+            resp, events = self.stream_post({"action": "chat", "message": "I pick the lock"})
+        self.assertEqual([t["function"]["name"] for t in self.sent[0]["tools"]], ["roll_dice"])
+        self.assertIn("Dice (kept by the app)", json.dumps(self.sent[0]["messages"]))
+        tool_msg = self.sent[1]["messages"][-1]
+        self.assertEqual(tool_msg["role"], "tool")
+        self.assertEqual(json.loads(tool_msg["content"])["outcome"], "success")
+        self.assertEqual(self.sent[1]["messages"][-2]["tool_calls"][0]["function"]["name"], "roll_dice")
+        game_events = [e["line"] for e in events if e["type"] == "game"]
+        self.assertEqual(game_events, ["🎲 Mira picks the lock: 1d20 = 14 vs 10: success"])
+        self.assertEqual(events[-1]["reply"], "The lock clicks open.")
+        self.assertEqual(events[-1]["game"], game_events)
+        from mainapp import chats
+        self.assertEqual(chats.game_of(self.saved_messages()[-1])[0]["total"], 14)
+        page = self.client.get(self.url)
+        self.assertContains(page, "Mira picks the lock: 1d20 = 14 vs 10: success")
+
+    def test_inventory_is_kept_and_swipes_dont_double_count(self):
+        self.set_mode("full")
+        self.rounds = [sse(*tool_call("change_inventory", {"changes": [{"item": "Brass key", "change": 1}]}), "[DONE]"),
+                       sse(delta("You pocket the key."), "[DONE]")]
+        self.stream_post({"action": "chat", "message": "I take the key"})
+        self.assertIn("Brass key", json.dumps(self.client.get(self.url).context["trackers_data"]["state"]))
+        # Regenerate: the new version takes the key too; the first version's key isn't counted twice
+        self.rounds = [sse(*tool_call("change_inventory", {"changes": [{"item": "brass key", "change": 1}]}), "[DONE]"),
+                       sse(delta("Key taken."), "[DONE]")]
+        resp, events = self.stream_post({"action": "regenerate"})
+        inv = events[-1]["game_trackers"]["values"]["inventory"]
+        self.assertEqual([(i["name"].lower(), i["qty"]) for i in inv], [("brass key", 1)])  # not 2
+        # Using something they don't have is refused
+        self.rounds = [sse(*tool_call("change_inventory", {"changes": [{"item": "Rope", "change": -1}]}), "[DONE]"),
+                       sse(delta("No rope."), "[DONE]")]
+        self.stream_post({"action": "chat", "message": "I use my rope"})
+        self.assertIn("Not enough", self.sent[-1]["messages"][-1]["content"])
+        self.assertIn("inventory now: brass key.", json.dumps(self.sent[-2]["messages"]))
+
+    def test_swiping_flips_the_inventory(self):
+        self.set_mode("full")
+        self.rounds = [sse(*tool_call("change_inventory", {"changes": [{"item": "Lantern", "change": 1}]}), "[DONE]"),
+                       sse(delta("You take the lantern."), "[DONE]")]
+        self.stream_post({"action": "chat", "message": "I take the lantern"})
+        self.rounds = [sse(delta("You leave it."), "[DONE]")]
+        _, events = self.stream_post({"action": "regenerate"})
+        self.assertEqual(events[-1]["game_trackers"]["values"]["inventory"], [])
+        swiped = self.post({"action": "swipe", "to": 0}).json()
+        self.assertEqual([i["name"] for i in swiped["game_trackers"]["values"]["inventory"]], ["Lantern"])
+        self.assertEqual(swiped["game"], ["🎒 +1 Lantern"])
+
+    def test_model_without_tools_falls_back(self):
+        from unittest import mock
+        self.set_mode("dice")
+        calls = []
+
+        def post(url, headers=None, json=None, timeout=None, **kwargs):
+            calls.append(json)
+            if "tools" in json:
+                resp = mock.MagicMock(status_code=404, text="No endpoints found that support tool use")
+                resp.json.return_value = {"error": {"message": "No endpoints found that support tool use"}}
+                resp.__enter__.return_value = resp
+                return resp
+            return self.fake_post(url, headers, json, timeout, **kwargs)
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=post):
+            resp = self.client.post(self.url, json.dumps({"action": "chat", "message": "Hi", "stream": True}),
+                                    content_type="application/json")
+            events = [json.loads(l) for l in b"".join(resp.streaming_content).decode().splitlines() if l]
+        self.assertTrue(any("can't use the app's tools" in e.get("line", "") for e in events))
+        self.assertEqual(events[-1]["type"], "done")
+
+    def test_roll_and_replay_units(self):
+        from mainapp import game
+        import random
+        op = game.roll("2d6+1", modifier=1, difficulty=20, rng=random.Random(1))
+        self.assertEqual(op["total"], sum(op["rolls"]) + 2)
+        self.assertEqual(op["outcome"], "failure")
+        state = game.empty_state()
+        result, ops = game.run_tool(state, "change_conditions", {"add": [{"name": "Injured", "effect": "-1 to climbing"}]})
+        self.assertEqual(result["conditions"], ["Injured"])
+        chat_state = {"game": {}}
+        msgs = [("assistant", "", "x", "neutral", 1, {"game": ops})]
+        self.assertEqual(game.current_state(chat_state, msgs)["conditions"][0]["name"], "Injured")
+        game.set_base(chat_state, game.empty_state(), 1)  # a manual edit cleared it
+        self.assertEqual(game.current_state(chat_state, msgs)["conditions"], [])
+
+
+class BulbaChanceTests(BulbaTests):
+    def test_extras_game_and_switching_off_random_engines(self):
+        from mainapp import game, presets as presets_mod
+        self.script = [("", [self.call("propose_extras", game="off", why="no luck")])]
+        pid = self.api(action="say", text="no dice ever").json()["state"]["proposals"][0]["id"]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=pid)
+        self.assertEqual(game.user_default(self.user), "off")
+        self.script = [("", [self.call("get_starter", starter="mimo-frankenstein")]), ("Hm.", [])]
+        # Bulba's own model is Opus here, so it can't pick the MiMo starter; check the library marks instead
+        from mainapp.bulba import library
+        marked = [b for b in library.search("random events world") if b.get("adds_chance")]
+        self.assertTrue(marked)
+
+    def test_switch_off_needs_real_block_names(self):
+        self.script = [("", [self.call("propose_preset", starter="opus-rich-scene", taste="x", switch_off=["Nope"])]),
+                       ("Hm.", [])]
+        self.api(action="say", text="build")
+        self.assertIn("no block called", json.dumps(self.bulba_calls[1]["messages"][-1]))
+
+
+class InlineThinkingTests(SimpleTestCase):
+    def test_split(self):
+        from mainapp import thinking
+        self.assertEqual(thinking.split("<thinking>- plan\n- go</thinking>\n\nShe smiles."), ("- plan\n- go", "She smiles."))
+        self.assertEqual(thinking.split("She says <think>no</think>."), ("", "She says <think>no</think>."))
+        self.assertEqual(thinking.split("<think>cut off"), ("cut off", ""))
+
+    def test_streamed_pieces_even_with_split_tags(self):
+        from mainapp import thinking
+        s = thinking.Splitter()
+        out = []
+        for piece in ["  <thi", "nking>plan", " a</thin", "king>\n\n", "Hello", " there."]:
+            out += s.feed(piece)
+        out += s.finish()
+        self.assertEqual("".join(t for k, t in out if k == "thinking"), "plan a")
+        self.assertEqual("".join(t for k, t in out if k == "text"), "Hello there.")
+        s = thinking.Splitter()
+        out = s.feed("<b>Bold</b> start") + s.finish()
+        self.assertEqual(out, [("text", "<b>Bold</b> start")])
+
+
+class TextRuleLeftoverTests(StreamChatTests):
+    def test_inline_thinking_goes_to_the_box(self):
+        self.stream_lines = sse(delta("<thinking>"), delta("- short reply"), delta("</thinking>\n\n"),
+                                delta("Fine."), "[DONE]")
+        resp, events = self.stream_post({"action": "chat", "message": "Hi"})
+        self.assertEqual("".join(e["text"] for e in events if e["type"] == "thinking"), "- short reply")
+        self.assertEqual(events[-1]["reply"], "Fine.")
+        from mainapp import chats
+        self.assertEqual(chats.reasoning_of(self.saved_messages()[-1]), "- short reply")
+
+    def test_my_rules_run_with_every_preset_and_on_thinking(self):
+        from mainapp import regex_rules
+        regex_rules.save_user_rules(self.user, [
+            {"name": "No dashes", "find": "/—/g", "replace": ", ", "placement": [2], "mode": "saved"},
+            {"name": "Thinking tidy", "find": "/PLAN:/g", "replace": "", "placement": [6], "mode": "saved"}])
+        self.stream_lines = sse(delta("<think>PLAN: be brief</think>Wait—stop."), "[DONE]")
+        resp, events = self.stream_post({"action": "chat", "message": "Hi"})
+        self.assertEqual(events[-1]["reply"], "Wait, stop.")
+        from mainapp import chats
+        self.assertEqual(chats.reasoning_of(self.saved_messages()[-1]), "be brief")
+        page = self.client.get(reverse("presets"))
+        self.assertEqual(page.context["preset_page"]["my_rules"][0]["name"], "No dashes")
+        resp = self.client.post(reverse("presets"), json.dumps({"action": "save_my_rules", "rules": []}),
+                                content_type="application/json")
+        self.assertEqual(resp.json()["rules"], [])
+
+    def test_card_rules_can_be_switched_off(self):
+        self.character.card_data = {"extensions": {"regex_scripts": [
+            {"id": "r1", "scriptName": "Shout", "findRegex": "/hello/g", "replaceString": "HELLO", "placement": [2]}]}}
+        self.character.save()
+        page = self.client.get(reverse("character", args=[self.character.slug]))
+        self.assertContains(page, "Text rules that came with the card")
+        resp = self.client.post(reverse("character_rule", args=[self.character.slug]),
+                                json.dumps({"id": "r1", "enabled": False}), content_type="application/json")
+        self.assertFalse(resp.json()["rules"][0]["enabled"])
+        self.character.refresh_from_db()
+        self.assertTrue(self.character.card_data["extensions"]["regex_scripts"][0]["disabled"])
+        self.stream_lines = sse(delta("hello"), "[DONE]")
+        _, events = self.stream_post({"action": "chat", "message": "Hi"})
+        self.assertEqual(events[-1]["reply"], "hello")
+
+    def test_lore_rules_change_entries_in_the_prompt(self):
+        from mainapp import lorebook, regex_rules
+        from mainapp.models import Worldbook
+        wb = Worldbook(title="Coast", slug="coast-rules", author=self.user)
+        lorebook.save_worldbook(wb, {"entries": [{"keys": ["ferry"], "content": "The ferry leaves at NOON."}]})
+        self.character.worldbook = wb
+        self.character.save()
+        regex_rules.save_user_rules(self.user, [
+            {"name": "Lore", "find": "/NOON/g", "replace": "midnight", "placement": [5], "mode": "prompt"}])
+        self.stream_post({"action": "chat", "message": "When is the ferry?"})
+        sent = json.dumps(self.sent[-1]["messages"])
+        self.assertIn("The ferry leaves at midnight.", sent)
+        self.assertNotIn("NOON", sent)
+
+
+class PenMenuTests(ChatPromptTests):
+    """The pen menu: director's note (worded by Bulba if they like) and the pinned note."""
+
+    def test_pinned_note_and_old_world_state(self):
+        self.post({"action": "chat", "message": "Hi"})
+        chat = self.character.chats.first()
+        from mainapp import chats
+        data = chats.read(chat)
+        data["context_guides"] = {"situation": "At the docks", "clothes": "Raincoat"}  # an older chat
+        chats.write(chat, data)
+        page = self.client.get(self.url)
+        self.assertEqual(json.loads(page.context["pinned_note_json"]), "Situation: At the docks\nOutfits: Raincoat")
+        self.post({"action": "chat", "message": "Go on"})
+        self.assertIn("Situation: At the docks", json.dumps(self.sent[-1]["messages"]))
+        self.post({"action": "save_guides", "note": "It's winter."})
+        self.post({"action": "chat", "message": "And?", "guidance": "She dodges the question."})
+        sent = json.dumps(self.sent[-1]["messages"])
+        self.assertIn("Pinned note from the user, for every reply:\\nIt's winter.", sent)
+        self.assertNotIn("At the docks", sent)
+        self.assertIn("Director's note for this reply: She dodges the question.", sent)
+
+    def test_bulba_words_the_note(self):
+        from unittest import mock
+        calls = []
+
+        def post(url, headers=None, json=None, timeout=None, **kwargs):
+            calls.append(json)
+            resp = mock.Mock(status_code=200)
+            resp.json.return_value = {"choices": [{"message": {"content": '"Rose changes the subject."'}}],
+                                      "usage": {"cost": 0.001}}
+            return resp
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=post):
+            data = self.client.post(self.url, json.dumps({"action": "word_note", "text": "she shouldnt answer"}),
+                                    content_type="application/json").json()
+        self.assertEqual(data["note"], "Rose changes the subject.")
+        self.assertIn("Their wish: she shouldnt answer", calls[0]["messages"][1]["content"])
+        self.assertIn("Hello, traveller.", calls[0]["messages"][1]["content"])
+        empty = self.client.post(self.url, json.dumps({"action": "word_note", "text": " "}),
+                                 content_type="application/json").json()
+        self.assertFalse(empty["success"])
+
+
+class ImpersonateAndTriggerTests(ChatPromptTests):
+    def test_blocks_fire_only_on_their_kind_of_generation(self):
+        from mainapp import presets as presets_mod
+        p = presets_mod.normalize({"blocks": [
+            {"name": "Always", "content": "ALWAYS"},
+            {"name": "Imp", "content": "IMPERSONATE ONLY", "triggers": ["impersonate"]},
+            {"name": "Swipes", "content": "SWIPE ONLY", "triggers": ["swipe"]},
+            {"kind": "marker", "marker": "chat_history"}]})
+        sent = lambda g: json.dumps(presets_mod.assemble(p, {}, [{"role": "user", "content": "hi"}],
+                                                         {"char": "R", "user": "U"}, generation=g)["messages"])
+        self.assertNotIn("IMPERSONATE ONLY", sent("normal"))
+        self.assertIn("IMPERSONATE ONLY", sent("impersonate"))
+        self.assertIn("SWIPE ONLY", sent("regenerate"))
+        self.assertIn("ALWAYS", sent("continue"))
+        st = presets_mod.to_sillytavern(p)
+        self.assertEqual(next(x for x in st["prompts"] if x["name"] == "Imp")["injection_trigger"], ["impersonate"])
+        self.assertEqual(presets_mod.from_sillytavern(st)["blocks"][1]["triggers"], ["impersonate"])
+
+    def test_frankenstein_impersonation_turn_stays_out_of_normal_replies(self):
+        from mainapp import presets as presets_mod, starters
+        p = presets_mod.normalize(starters.get("mimo-frankenstein")["preset"])
+        block = next(b for b in p["blocks"] if "Impersonation Turn" in b["name"])
+        self.assertEqual(block["triggers"], ["impersonate"])
+
+    def test_write_my_message_goes_through_the_preset(self):
+        from mainapp import presets as presets_mod
+        obj = presets_mod.get_active(self.user)
+        data = presets_mod.normalize(obj.data)
+        data["utility"]["impersonation"] = "[Write as {{user}} now.]"
+        data["blocks"].insert(0, presets_mod.normalize_block(
+            {"name": "Imp", "content": "IMPERSONATE BLOCK", "triggers": ["impersonate"]}))
+        obj.data = data
+        obj.save()
+        self.post({"action": "chat", "message": "Hi"})
+        self.assertNotIn("IMPERSONATE BLOCK", json.dumps(self.sent[-1]["messages"]))
+        resp = self.post({"action": "expand", "text": "i nod"}).json()
+        self.assertEqual(resp["text"], "A reply.")
+        sent = json.dumps(self.sent[-1]["messages"])
+        self.assertIn("IMPERSONATE BLOCK", sent)
+        self.assertIn("Write as chatter now.", sent)
+        self.assertIn("i nod", sent)
+        self.assertIn("Hello, traveller.", sent)  # the chat itself
+
+
+class DirectorModeTests(BulbaTests):
+    def test_basics_control_shapes_the_preset_and_layout(self):
+        from mainapp import presets as presets_mod
+        from mainapp.views import _appearance
+        self.script = [("Noted.", [])]
+        data = self.api(action="basics", answers={"control": "director"}).json()
+        sent = self.bulba_calls[-1]["messages"][-1]["content"]
+        self.assertIn("You direct the story from outside it", sent)
+        self.assertIn("don't add it to taste", sent)
+        self.script = [("", [self.call("propose_preset", starter="opus-rich-scene", taste="Dry humour.")])]
+        proposal = self.api(action="say", text="build it").json()["state"]["proposals"][-1]
+        self.assertIn("book layout", "\n".join(proposal["summary"]))
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=proposal["id"])
+        blocks = presets_mod.normalize(presets_mod.get_active(self.user).data)["blocks"]
+        mine = next(b for b in blocks if b["name"] == "Your character")
+        self.assertIn("Never treat {{user}} as a character", mine["content"])
+        roleplay = next(b for b in blocks if b["name"] == "Roleplay")["content"]
+        self.assertNotIn("belong to the player", roleplay)
+        self.assertEqual(_appearance(self.user)["layout"], "book")
+        self.script = [("Undone.", [])]
+        self.api(action="undo", id=proposal["id"])
+        self.assertEqual(_appearance(self.user)["layout"], "chat")
+
+    def test_write_mode_on_frankenstein_switches_its_blocks(self):
+        from mainapp import presets as presets_mod, starters
+        from mainapp.bulba import control
+        p = control.apply_to_preset(presets_mod.normalize(starters.get("mimo-frankenstein")["preset"]), "write")
+        on = {b["name"]: b["enabled"] for b in p["blocks"]}
+        self.assertFalse(on[control.RF_ANTI_ECHO])
+        self.assertTrue(on[control.RF_EMBELLISH])
+        back = control.apply_to_preset(p, "dont")
+        self.assertTrue({b["name"]: b["enabled"] for b in back["blocks"]}[control.RF_ANTI_ECHO])
+        self.assertNotIn("Your character", [b["name"] for b in back["blocks"]])
+
+
+class BookLayoutTests(ChatPromptTests):
+    def test_layout_switch(self):
+        page = self.client.get(self.url)
+        self.assertNotContains(page, 'class="layout-book"')
+        resp = self.post({"action": "appearance", "layout": "book"}).json()
+        self.assertEqual(resp["layout"], "book")
+        self.assertContains(self.client.get(self.url), 'class="layout-book"')
+        self.assertEqual(self.post({"action": "appearance", "layout": "scroll"}).status_code, 400)
+
+
+class StoryExtrasTests(GameTests):
+    def test_off_by_default(self):
+        self.stream_post({"action": "chat", "message": "Hi"})
+        self.assertNotIn("tools", self.sent[-1])
+
+    def test_letter_and_phone_are_drawn_by_the_app(self):
+        from mainapp import extras
+        extras.set_kinds(self.user, ["documents", "messages"])
+        self.rounds = [sse(*tool_call("show_document", {"kind": "letter", "label": "Note under the door",
+                                                         "text": "Meet me <b>after</b> the last train."}),
+                           "[DONE]"),
+                       sse(delta("You read it twice."), "[DONE]")]
+        resp, events = self.stream_post({"action": "chat", "message": "I pick up the note"})
+        names = [t["function"]["name"] for t in self.sent[0]["tools"]]
+        self.assertEqual(names, ["show_document", "show_messages"])
+        self.assertIn("Readable objects (drawn by the app)", json.dumps(self.sent[0]["messages"]))
+        html = [e["html"] for e in events if e["type"] == "extra"]
+        self.assertEqual(len(html), 1)
+        self.assertIn("Note under the door", html[0])
+        self.assertIn("&lt;b&gt;after&lt;/b&gt;", html[0])  # the model's text is never HTML
+        self.assertEqual(events[-1]["extras_html"], html)
+        self.assertEqual(events[-1]["game"], [])
+        page = self.client.get(self.url)
+        self.assertContains(page, "Note under the door")
+        self.assertContains(page, 'class="story-extra doc doc-letter"')
+
+    def test_phone_screen_and_milestone(self):
+        from mainapp import extras
+        result, ops = extras.run_tool("show_messages", {"owner": "Mira", "with_whom": "Jun", "messages": [
+            {"from": "Jun", "text": "u up?", "time": "23:41"}, {"from": "Mira", "text": "no", "status": "unsent draft"}]})
+        html = extras.render(ops[0])
+        self.assertIn("not sent", html)
+        self.assertIn("bubble-row mine draft", html)
+        result, ops = extras.run_tool("note_milestone", {"who": "Rose", "toward": "you", "now": "trusts you, warily",
+                                                         "because": "you kept the secret"})
+        self.assertIn("after you kept the secret", extras.render(ops[0]))
+        self.assertIn("error", extras.run_tool("show_document", {"kind": "letter", "label": "x", "text": ""})[0])
+
+    def test_extras_page_and_basics(self):
+        from mainapp import extras
+        resp = self.client.post(reverse("users:extras"), json.dumps({"story_extras": ["milestones", "nonsense"]}),
+                                content_type="application/json")
+        self.assertEqual(extras.kinds_for(self.user), ["milestones"])
+
+
+class BasicsPanelsTests(BulbaTests):
+    def test_panels_turn_on_app_drawn_extras(self):
+        from mainapp import extras
+        self.script = [("Noted.", [])]
+        self.api(action="basics", answers={"panels": "on"})
+        self.assertEqual(extras.kinds_for(self.user), ["documents", "messages"])
+        self.assertIn("Nothing to add to taste", self.bulba_calls[-1]["messages"][-1]["content"])
+
+
+class ExtrasPlacementTests(GameTests):
+    def test_marker_placement_and_memory(self):
+        from mainapp import chats, extras
+        extras.set_kinds(self.user, ["documents", "milestones"])
+        # The model writes a paragraph, shows a note, then carries on and places the marker itself
+        self.rounds = [sse(delta("You open the door.\n\nA draught."),
+                           *tool_call("show_document", {"kind": "note", "label": "Note", "text": "Gone fishing."}),
+                           "[DONE]"),
+                       sse(delta("[[extra 1]]\n\nYou laugh."), "[DONE]")]
+        resp, events = self.stream_post({"action": "chat", "message": "I open the door"})
+        tool_result = json.loads(self.sent[1]["messages"][-1]["content"])
+        self.assertIn("[[extra 1]]", tool_result["place"])
+        self.assertIn("put it on its own line", json.dumps(self.sent[0]["messages"]))
+        reply = events[-1]["reply"]
+        self.assertEqual(reply.count("[[extra 1]]"), 1)
+        self.assertLess(reply.index("A draught."), reply.index("[[extra 1]]"))
+        self.assertLess(reply.index("[[extra 1]]"), reply.index("You laugh."))
+        # Next turn, the model reads what the note said instead of the marker
+        self.rounds = [sse(delta("Ok."), "[DONE]")]
+        self.stream_post({"action": "chat", "message": "What did it say?"})
+        earlier = next(m["content"] for m in self.sent[-1]["messages"] if m["content"].startswith("You open the door."))
+        self.assertIn("[Note shown: Note. It reads: Gone fishing.]", earlier)
+        self.assertNotIn("[[extra 1]]", earlier)
+
+    def test_unplaced_extra_goes_after_its_paragraph_or_the_end(self):
+        from mainapp import extras
+        ops = [{"type": "document", "n": 1, "at": 5, "kind": "note", "label": "x", "text": "y", "detail": ""},
+               {"type": "milestone", "n": 2, "at": 0, "who": "R", "toward": "", "now": "fond", "because": ""}]
+        text = extras.place("Para one.\n\nPara two.", ops)
+        self.assertEqual(text, "Para one.\n\n[[extra 1]]\n\nPara two.\n\n[[extra 2]]")
+
+    def test_milestones_tracker(self):
+        from mainapp import extras
+        extras.set_kinds(self.user, ["milestones"])
+        self.rounds = [sse(*tool_call("note_milestone", {"who": "Rose", "toward": "you", "now": "fond of you",
+                                                          "because": "the soup"}), "[DONE]"),
+                       sse(delta("She smiles."), "[DONE]")]
+        _, events = self.stream_post({"action": "chat", "message": "I made soup"})
+        self.assertEqual(events[-1]["game_trackers"]["values"]["milestones"][0]["now"], "fond of you")
+        page = self.client.get(self.url)
+        self.assertIn("milestones", page.context["trackers_data"]["config"]["game_owned"])
+
+
+class CardNoteTests(ChatPromptTests):
+    def test_depth_prompt_goes_near_the_end(self):
+        self.character.card_data = {"extensions": {"depth_prompt": {"prompt": "{{char}} hides her limp.", "depth": 1,
+                                                                   "role": "system"}}}
+        self.character.save()
+        self.post({"action": "chat", "message": "Hi"})
+        self.post({"action": "chat", "message": "Walk with me"})
+        msgs = self.sent[-1]["messages"]
+        i = next(i for i, m in enumerate(msgs) if m["content"] == "Rose hides her limp.")
+        self.assertEqual(msgs[i + 1]["content"], "Walk with me")  # one message from the end
+        page = self.client.get(reverse("character", args=[self.character.slug]))
+        self.assertContains(page, "Character's note (from the card)")
+
+
+class AddCharacterSlugTests(ChatPromptTests):
+    def test_same_name_twice(self):
+        from mainapp.models import Character
+        for _ in range(2):
+            self.client.post(reverse("add_character"), {"name": "Twin", "description": "A twin.", "initial_message": "Hi."})
+        slugs = sorted(Character.objects.filter(name="Twin").values_list("slug", flat=True))
+        self.assertEqual(slugs, ["chatter-twin", "chatter-twin-2"])
+
+
+class MediaPrivacyTests(ChatPromptTests):
+    def test_chat_logs_are_never_served(self):
+        self.post({"action": "chat", "message": "a secret"})
+        chat = self.character.chats.first()
+        name = chat.log_file.name  # chat_logs/...
+        for url in (f"/media/{name}", f"/media/./{name}", f"/media/x/../{name}", f"/media//{name}"):
+            self.assertEqual(self.client.get(url).status_code, 404, url)
+
+
+class MoreExtrasTests(GameTests):
+    def test_choices_news_keepsakes(self):
+        from mainapp import extras
+        extras.set_kinds(self.user, ["news", "keepsakes", "choices"])
+        self.rounds = [sse(delta("The pancakes burn."),
+                           *tool_call("note_keepsake", {"title": "First terrible pancakes", "detail": "the scorched card"}),
+                           *tool_call("show_news", {"medium": "Radio", "items": [
+                               {"headline": "Last train cancelled", "source": "station", "status": "rumour"}]},
+                               index=1, call_id="c2"),
+                           *tool_call("suggest_actions", {"actions": ["Try again", "Order takeaway"]}, index=2, call_id="c3"),
+                           "[DONE]"),
+                       sse(delta("[[extra 1]]"), "[DONE]")]
+        resp, events = self.stream_post({"action": "chat", "message": "I cook"})
+        html = "".join(events[-1]["extras_html"])
+        self.assertIn('data-choice="Try again"', html)
+        self.assertIn("news-status rumour", html)
+        reply = events[-1]["reply"]
+        self.assertIn("[[extra 1]]", reply)
+        self.assertIn("[[extra 2]]", reply)       # news placed after its paragraph
+        self.assertNotIn("[[extra 3]]", reply)    # choices are never placed in the text
+        self.assertEqual(events[-1]["game_trackers"]["values"]["scrapbook"][0]["title"], "First terrible pancakes")
+        # The next request remembers the keepsake and the news, not the suggestions
+        self.rounds = [sse(delta("Ok."), "[DONE]")]
+        self.stream_post({"action": "chat", "message": "Order takeaway"})
+        earlier = next(m["content"] for m in self.sent[-1]["messages"] if m["content"].startswith("The pancakes burn."))
+        self.assertIn("[Keepsake: First terrible pancakes - the scorched card]", earlier)
+        self.assertIn("Last train cancelled (rumour, station)", earlier)
+        self.assertNotIn("Try again", earlier)
+
+    def test_memories_only_unresolved_reach_the_prompt(self):
+        from mainapp import trackers as tr
+        config = tr.normalize_config({"trackers": {"memories": {"on": True}}})
+        state = {"values": {"memories": [{"memory": "Promised to return the book", "resolved": False},
+                                         {"memory": "Found the key", "resolved": True}]}, "locks": []}
+        text = tr.format_for_prompt(config, state)
+        self.assertIn("Promised to return the book", text)
+        self.assertNotIn("Found the key", text)
+
+
+class GuideTests(ChatPromptTests):
+    def test_guide_is_open_and_linked(self):
+        self.client.logout()
+        self.assertContains(self.client.get(reverse("guide")), "The 5-minute tour")
+        self.assertContains(self.client.get(reverse("users:login")), reverse("guide"))
+        self.client.force_login(self.user)
+        self.assertContains(self.client.get(reverse("home")), 'id="guideCard"')

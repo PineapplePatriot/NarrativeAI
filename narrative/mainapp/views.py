@@ -1,5 +1,6 @@
 # --- Standard library ---
 import json
+import logging
 import os
 import traceback
 from datetime import datetime
@@ -25,7 +26,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
-from . import ai_client, cards, chats, regex_rules, model_profiles, presets, samplers, starters, trackers
+from . import extras, game, thinking, ai_client, cards, chats, regex_rules, model_profiles, presets, samplers, starters, trackers
+
 from .utils import build_ai_request, narrate_text_backend, get_elevenlabs_key
 from .lorebook import (
     normalize_book, load_worldbook, save_worldbook, activate, format_for_prompt, to_sillytavern,
@@ -51,6 +53,11 @@ def index_page(request):
     return render(request, 'main.html', context)
 
 
+def guide_page(request):
+    """How to try the app: open to everyone, linked from the top bar and the home page."""
+    return render(request, "guide.html")
+
+
 @login_required
 def characters_list(request):
     return render(request, 'mainapp/characters.html')
@@ -59,6 +66,8 @@ def characters_list(request):
 
 
 import re
+
+log = logging.getLogger(__name__)
 
 def _summarize(user, messages, existing=""):
     """One summary piece for `messages`, continuing `existing` when there is one."""
@@ -109,7 +118,11 @@ def chat(request, slug):
         "current_bg": "",
         "current_music": {},
         "persona": {},          # {"name", "description"}: who the user is in this chat only (else their usual persona)
+        "game": {},             # dice and inventory: the starting inventory after manual edits (see mainapp/game.py)
     }
+    game_mode = game.mode_for(request.user, character)
+    extra_kinds = extras.kinds_for(request.user)        # letters, phone screens, milestones (Extras page)
+    use_tools = game_mode != "off" or bool(extra_kinds)
 
     def summary_payload():
         """What the summary panel shows."""
@@ -147,6 +160,7 @@ def chat(request, slug):
                         chat_state["current_bg"] = data.get("current_bg", "")
                         chat_state["current_music"] = data.get("current_music", {})
                         chat_state["persona"] = data.get("persona") if isinstance(data.get("persona"), dict) else {}
+                        chat_state["game"] = data.get("game") if isinstance(data.get("game"), dict) else {}
                         messages_list = data.get("messages", [])
                     else:
                         messages_list = data
@@ -171,13 +185,36 @@ def chat(request, slug):
 
     # --- Text rules (regex scripts) from the active preset and the character card ---
     def text_rules(mode, text, role, edits_only=False):
-        rules = regex_rules.for_chat(presets.normalize(presets.get_active(request.user).data), character)
+        rules = regex_rules.for_chat(presets.normalize(presets.get_active(request.user).data), character, request.user)
         if edits_only:
             rules = [r for r in rules if r["run_on_edit"]]
         return regex_rules.run(rules, mode, text, role, prompt_names(request.user, character, chat_state["persona"]))
 
     # --- Save messages to file ---
+    def game_trackers():
+        """The tracker panel's state when the app keeps some trackers (sent back after replies and swipes)."""
+        if game_mode != "full" and not {"milestones", "keepsakes"} & set(extra_kinds):
+            return None
+        return trackers.normalize_state(chat_state["trackers"], trackers.normalize_config(character.tracker_config, game_mode, "milestones" in extra_kinds,
+            "keepsakes" in extra_kinds))
+
+    def sync_game_trackers(messages):
+        """Trackers the app keeps itself: Inventory and Conditions ("full" dice mode), Milestones (story extra)."""
+        if game_mode != "full" and not {"milestones", "keepsakes"} & set(extra_kinds):
+            return
+        if not isinstance(chat_state["trackers"], dict):
+            chat_state["trackers"] = {}
+        values = chat_state["trackers"].setdefault("values", {})
+        if game_mode == "full":
+            state = game.current_state(chat_state, messages)
+            values["inventory"], values["conditions"] = state["inventory"], state["conditions"]
+        if "milestones" in extra_kinds:
+            values["milestones"] = extras.milestones(messages)
+        if "keepsakes" in extra_kinds:
+            values["scrapbook"] = extras.keepsakes(messages)
+
     def save_messages(messages):
+        sync_game_trackers(messages)
         full_data = {
             "messages": messages,
             "summary": chat_state["summary"],
@@ -190,6 +227,7 @@ def chat(request, slug):
             "current_bg": chat_state["current_bg"],
             "current_music": chat_state["current_music"],
             "persona": chat_state["persona"],
+            "game": chat_state["game"],
         }
         with open(chat_file_path, "w", encoding="utf-8") as f:
             json.dump(full_data, f, ensure_ascii=False, indent=2)
@@ -262,7 +300,8 @@ def chat(request, slug):
                     chat_state["trackers"], chat_state["tracker_history"] = chats.trackers_at(
                         chat_state["tracker_history"], chat_state["trackers"], len(messages))
                     save_messages(messages)
-                    config = trackers.normalize_config(character.tracker_config)
+                    config = trackers.normalize_config(character.tracker_config, game_mode, "milestones" in extra_kinds,
+            "keepsakes" in extra_kinds)
                     return JsonResponse({"success": True, "swipes": chats.version_info(messages),
                                          "summary": chat_state["summary"], "summary_upto": chat_state["summary_upto"],
                                          "summary_data": summary_payload(),
@@ -273,24 +312,25 @@ def chat(request, slug):
             except (ValueError, KeyError) as e:
                 return JsonResponse({"success": False, "error": "Invalid request data"})
 
-        # --- 2. NEW: Magic Pencil (Expand) ---
+        # --- Write my message (impersonate): the AI writes or expands the user's next message ---
         elif action == "expand":
-            text = data.get("text", "")
-            perspective = data.get("perspective", "The User")
-            if not text: return JsonResponse({"success": False})
-
-            # Context: Last 10 messages
-            recent = messages[-10:]
-            hist_txt = "\n".join([f"{m[0].upper()}: {m[2]}" for m in recent])
-
-            sys_msg = (f"Rewrite this draft: '{text}'. Expand it into a full roleplay response as {perspective}. "
-                       f"Match the tone of:\n{hist_txt}\nOutput ONLY the result.")
-
+            draft = text_rules("saved", str(data.get("text") or "").strip(), "user") if data.get("text") else ""
+            preset = presets.normalize(presets.get_active(request.user).data)
+            ask = (preset["utility"]["impersonation"].strip() or presets.UTILITY_DEFAULTS["impersonation"])
+            if draft:
+                ask += ("\n\n[{{user}} has drafted this; write it out as their full message, keeping what they "
+                        f"say and do, and adding nothing they didn't decide:]\n{draft}")
+            names = prompt_names(request.user, character, chat_state["persona"])
+            ask = ask.replace("{{user}}", names["user"]).replace("{{char}}", names["char"])
             try:
-                text = ai_client.complete(request.user, "writing_tools", [{"role": "system", "content": sys_msg}])
-                return JsonResponse({"success": True, "text": text})
+                built = build_chat_request(request.user, chat_obj, preset=preset, drop_last_reply=False,
+                                           generation="impersonate", tail=[{"role": "system", "content": ask}])
+                message, _ = ai_client.complete_message(request.user, "chat", built["messages"], **built["params"])
             except ai_client.AIError as e:
                 return JsonResponse({"success": False, "error": str(e)})
+            written = thinking.split(message.get("content") or "")[1].strip()
+            return JsonResponse({"success": bool(written), "text": written or draft,
+                                 "spending": ai_client.spending(request.user)})
 
         # --- 3. NEW: Spellcheck ---
         elif action == "spellcheck":
@@ -306,23 +346,35 @@ def chat(request, slug):
 
         # --- 4. NEW: Save Guides & Summary ---
         elif action == "save_guides":
-            chat_state["context_guides"] = data.get("guides", {})
+            chat_state["context_guides"] = {"note": str(data.get("note") or "").strip()[:4000]}
             save_messages(messages) # Updates file
             return JsonResponse({"success": True})
+        elif action == "word_note":  # Bulba turns a rough wish into a clear director's note
+            try:
+                note = word_note(request.user, character, messages, str(data.get("text") or ""),
+                                 rewrite=bool(data.get("rewrite")), persona=chat_state["persona"])
+            except ai_client.AIError as e:
+                return JsonResponse({"success": False, "error": str(e)})
+            return JsonResponse({"success": True, "note": note, "spending": ai_client.spending(request.user)})
 
         # ... inside chat view POST handler ...
         elif action in ("update_trackers", "save_trackers", "clear_trackers"):
-            config = trackers.normalize_config(character.tracker_config)
+            config = trackers.normalize_config(character.tracker_config, game_mode, "milestones" in extra_kinds,
+            "keepsakes" in extra_kinds)
             state = trackers.normalize_state(chat_state["trackers"], config)
 
             if action == "save_trackers":  # manual edits and locks from the panel
                 state = trackers.normalize_state(
                     {"values": data.get("values"), "locks": data.get("locks"), "upto": state["upto"]}, config)
+                if game_mode == "full":  # an edited inventory is the new starting point
+                    game.set_base(chat_state, {k: state["values"].get(k, []) for k in game.OWNED_TRACKERS}, len(messages))
             elif action == "clear_trackers":
                 state = {"values": {}, "locks": [], "upto": len(messages)}
+                if game_mode == "full":
+                    game.set_base(chat_state, game.empty_state(), len(messages))
             else:
                 only = [t for t in data.get("only") or [] if isinstance(t, str)] or None
-                if not trackers.enabled_trackers(config):
+                if not trackers.ai_trackers(config):
                     return JsonResponse({"success": False, "error": "No trackers are turned on for this character."})
                 # Messages since the last run (at least the last 4, at most 16)
                 upto = state["upto"] if isinstance(state["upto"], int) else 0
@@ -468,6 +520,9 @@ def chat(request, slug):
             return JsonResponse({
                 "success": True, "reply": text, "emotion": emotion, "char_count": char_count,
                 "reasoning": chats.reasoning_of(messages[-1]),
+                "game": [game.describe(op) for op in chats.game_of(messages[-1]) if not extras.is_extra(op)],
+                "extras_html": [extras.render(op) for op in chats.game_of(messages[-1]) if extras.is_extra(op)],
+                "game_trackers": game_trackers(),
                 "photo_url": _photo(character, "photo", emo1),
                 "photo_second": _photo(character, "photo_second", emo2 or "neutral")
                 if (character.is_mult or char_count >= 2) else None,
@@ -489,13 +544,14 @@ def chat(request, slug):
                 preset = presets.normalize(presets.get_active(request.user).data)
                 _, chat_model = ai_client.resolve(request.user, "chat")
                 names = prompt_names(request.user, character, chat_state["persona"])
-                history = [{"role": m[0], "content": m[2]} for m in messages if m[0] in ("user", "assistant")]
-                history = regex_rules.run_on_history(regex_rules.for_chat(preset, character), history, names)
+                history = [{"role": m[0], "content": extras.for_prompt(m[2], chats.game_of(m))}
+                       for m in messages if m[0] in ("user", "assistant")]
+                history = regex_rules.run_on_history(regex_rules.for_chat(preset, character, request.user), history, names)
                 # The unfinished reply is the last message; the preset's continue nudge comes after it
                 nudge = preset["utility"]["continue_nudge"].strip() or presets.UTILITY_DEFAULTS["continue_nudge"]
                 history.append({"role": "system", "content": nudge})
                 built = presets.assemble(preset, prompt_slots(request.user, character, prompt, chat_state["persona"]),
-                                         history, names, chat_model)
+                                         history, names, chat_model, generation="continue")
                 new_chunk = ai_client.complete(request.user, "chat", built["messages"], **built["params"])
             except ai_client.AIError as e:
                 return JsonResponse({"success": False, "error": str(e)})
@@ -514,6 +570,12 @@ def chat(request, slug):
             save_messages(messages)
             return JsonResponse({"success": True, "persona": chat_state["persona"],
                                  "name": prompt_names(request.user, character, chat_state["persona"])["user"]})
+        elif action == "appearance" and "layout" in data:  # chat bubbles or chapters
+            try:
+                set_layout(request.user, data.get("layout"))
+            except ValueError as e:
+                return JsonResponse({"success": False, "error": str(e)}, status=400)
+            return JsonResponse({"success": True, **_appearance(request.user)})
         elif action == "appearance":  # dialogue colour: a hex colour, or "preset" to leave it to the preset
             color = str(data.get("dialogue_color") or "")
             if color != "preset" and not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
@@ -561,7 +623,8 @@ def chat(request, slug):
                 # Add conversation history
                 for m in messages:
                     if m[0] in ("user", "assistant"):
-                        api_messages.append({"role": m[0], "content": m[2]})
+                        # story extras the model showed come back as short descriptions, so it remembers them
+                        api_messages.append({"role": m[0], "content": extras.for_prompt(m[2], chats.game_of(m))})
 
                 try:
                     worldbook = None
@@ -590,16 +653,30 @@ def chat(request, slug):
                     preset = presets.normalize(presets.get_active(request.user).data)
                     _, chat_model = ai_client.resolve(request.user, "chat")
                     names = prompt_names(request.user, character, chat_state["persona"])
-                    history = regex_rules.run_on_history(regex_rules.for_chat(preset, character), api_messages, names)
+                    history = regex_rules.run_on_history(regex_rules.for_chat(preset, character, request.user), api_messages, names)
                     built = presets.assemble(preset, prompt_slots(request.user, character, prompt, chat_state["persona"]),
-                                             history, names, chat_model)
+                                             history, names, chat_model,
+                                             generation="regenerate" if action == "regenerate" else "normal")
                     context_dropped = built["dropped"]
+                    # Dice and inventory: the model gets tools and the current state (the reply works on a copy)
+                    game_state = game.current_state(chat_state, messages)
+                    built = game.add_to_request(built, game_mode, game_state, names, extra_kinds)
+                    game_ops = []
                     # Stream when the page asks for it and the preset allows it
                     streaming = bool(data.get("stream")) and preset["options"].get("streaming", True)
-                    if not streaming:
+                    if not streaming and use_tools:
+                        pieces = list(game.stream_reply(request.user, built["messages"], built["params"], game_state))
+                        game_ops = [p for p in pieces if isinstance(p, game.GameEvent)]
+                        reply = "".join(p for p in pieces if isinstance(p, str) and not isinstance(
+                            p, (ai_client.Reasoning, game.GameEvent)))
+                        reasoning = "".join(p for p in pieces if isinstance(p, ai_client.Reasoning)).strip()
+                    elif not streaming:
                         message, _ = ai_client.complete_message(request.user, "chat", built["messages"], **built["params"])
                         reply = message.get("content") or ""
                         reasoning = (message.get("reasoning") or message.get("reasoning_content") or "").strip()
+                    if not streaming:  # thinking written inside the reply (<thinking>...</thinking>) goes in the box too
+                        inline, reply = thinking.split(reply)
+                        reasoning = "\n\n".join(t for t in (reasoning, inline) if t)
 
                 except ai_client.AIError as e:
                     # Keep the user's message so they can press Regenerate (and the old reply, if regenerating)
@@ -608,15 +685,17 @@ def chat(request, slug):
                     save_messages(messages)
                     return JsonResponse({"error": str(e)}, status=502)
                 except Exception as e:
-                    print(f"Error generating reply: {traceback.format_exc()}")
+                    log.exception("Error building the prompt")
                     if regen_from:
                         messages.append(regen_from)
                     save_messages(messages)
                     return JsonResponse({"error": f"Something went wrong while building the prompt: {e}"}, status=500)
 
-                def finish_reply(reply, reasoning=""):
+                def finish_reply(reply, reasoning="", ops=()):
                     """Emotion, saving, voice and the summary/tracker flags, once the reply is complete."""
                     reply = text_rules("saved", reply, "assistant")
+                    reasoning = text_rules("saved", reasoning, "reasoning").strip() if reasoning else ""
+                    reply = extras.place(reply, ops)  # each story extra's marker, where it goes in the text
                     char_count = 1
                     emotion_char_1 = "neutral"
                     emotion_char_2 = "neutral"
@@ -651,8 +730,6 @@ def chat(request, slug):
                         emotion_char_1 = class_data.get("emotion_1", "neutral")
                         emotion_char_2 = class_data.get("emotion_2", "neutral")
 
-                        print(f"[CLASSIFICATION] Speaker: {speaker} | Emo1: {emotion_char_1} | Emo2: {emotion_char_2}")
-
                         # Logic: Determine layout (char_count)
                         # 1 = Main Only, 2 = Both, 3 = Second Only
                         if character.is_mult:
@@ -663,13 +740,14 @@ def chat(request, slug):
                             char_count = 1
 
                     except Exception as e:
-                        print(f"Classification failed: {e}")
+                        log.info("Emotion check skipped: %s", e)  # off, or the helper model didn't answer
                         emotion_char_1 = "neutral"
 
                     # Store emotions as "happy|sad" string
                     final_emotion_str = f"{emotion_char_1}|{emotion_char_2}"
-                    new_message = chats.with_reasoning(
-                        ("assistant", datetime.now().strftime("%H:%M"), reply, final_emotion_str, char_count), reasoning)
+                    new_message = chats.with_game(chats.with_reasoning(
+                        ("assistant", datetime.now().strftime("%H:%M"), reply, final_emotion_str, char_count), reasoning),
+                        [dict(op) for op in ops if op.get("type") != "notice"])
                     messages.append(chats.add_version(regen_from, new_message) if regen_from else new_message)
 
                     photo_url = _photo(character, "photo", emotion_char_1)
@@ -684,18 +762,17 @@ def chat(request, slug):
                     if ELEVENLABS_API_KEY:
                         try:
                             audio_path = narrate_text_backend(
-                                reply,
+                                extras.strip_markers(reply),
                                 request.user,
                                 character.name,
                                 ELEVENLABS_API_KEY,
                                 narrator_voice_id=character.eleven_voice_narr_id or None,
                                 character_voice_id=character.eleven_voice_char_id or None,
                                 second_character_voice_id=character.eleven_voice_second_id or None,
-                                output_dir="media/audio_files",
                                 is_mult=character.is_mult or (char_count > 1),
                             )
                         except Exception as e:
-                            print(f"Voice generation failed: {e}")
+                            log.warning("Voice generation failed: %s", e)
 
                     # Automatic summary: tell the page to run one in the background
                     summary_task = ai_client.get_task_setting(request.user, "summary")
@@ -706,13 +783,17 @@ def chat(request, slug):
                     # Trackers: same idea, if any tracker is on for this character
                     tracker_task = ai_client.get_task_setting(request.user, "trackers")
                     tracked = (chat_state["trackers"] or {}).get("upto") or 0
-                    trackers_due = (bool(trackers.enabled_trackers(trackers.normalize_config(character.tracker_config)))
+                    trackers_due = (bool(trackers.ai_trackers(trackers.normalize_config(character.tracker_config, game_mode, "milestones" in extra_kinds,
+            "keepsakes" in extra_kinds)))
                                     and tracker_task.mode == tracker_task.MODE_AUTO
                                     and len(messages) - tracked >= tracker_task.interval)
 
                     return {
                         "reply": reply,
                         "reasoning": reasoning,
+                        "game": [game.describe(op) for op in ops if not extras.is_extra(op)],
+                        "extras_html": [extras.render(op) for op in ops if extras.is_extra(op)],
+                        "game_trackers": game_trackers(),
                         "emotion": final_emotion_str,
                         "photo_url": photo_url,
                         "photo_second": photo_second,
@@ -727,18 +808,20 @@ def chat(request, slug):
                     }
 
                 if not streaming:
-                    return JsonResponse(finish_reply(reply, reasoning))
+                    return JsonResponse(finish_reply(reply, reasoning, game_ops))
 
                 def stream_reply():
                     """NDJSON lines: {"type": "delta", "text"} ..., then {"type": "done", ...} or {"type": "error"}."""
                     parts, thoughts, finished = [], [], False
+                    inline = thinking.Splitter()  # thinking the model writes inside its reply
 
                     def keep_partial():
                         # Keep whatever arrived (Stop button, closed tab or a broken stream)
-                        text = text_rules("saved", "".join(parts), "assistant").strip()
+                        text = extras.place(text_rules("saved", "".join(parts), "assistant").strip(), game_ops)
                         if text:
-                            partial = chats.with_reasoning(("assistant", datetime.now().strftime("%H:%M"), text,
-                                                            "neutral|neutral", 1), "".join(thoughts).strip())
+                            partial = chats.with_game(chats.with_reasoning(
+                                ("assistant", datetime.now().strftime("%H:%M"), text, "neutral|neutral", 1),
+                                "".join(thoughts).strip()), [dict(op) for op in game_ops if op.get("type") != "notice"])
                             messages.append(chats.add_version(regen_from, partial) if regen_from else partial)
                         elif regen_from:
                             messages.append(regen_from)  # nothing new arrived: keep the old reply
@@ -746,19 +829,34 @@ def chat(request, slug):
 
                     try:
                         try:
-                            for chunk in ai_client.stream(request.user, "chat", built["messages"], **built["params"]):
-                                if isinstance(chunk, ai_client.Reasoning):
-                                    thoughts.append(chunk)
-                                    yield json.dumps({"type": "thinking", "text": chunk}, ensure_ascii=False) + "\n"
+                            source = (game.stream_reply(request.user, built["messages"], built["params"], game_state)
+                                      if use_tools else
+                                      ai_client.stream(request.user, "chat", built["messages"], **built["params"]))
+                            for chunk in source:
+                                if isinstance(chunk, game.GameEvent):
+                                    game_ops.append(chunk)
+                                    event = ({"type": "extra", "html": extras.render(chunk)} if extras.is_extra(chunk)
+                                             else {"type": "game", "line": game.describe(chunk)})
+                                    yield json.dumps(event, ensure_ascii=False) + "\n"
                                     continue
-                                parts.append(chunk)
-                                yield json.dumps({"type": "delta", "text": chunk}, ensure_ascii=False) + "\n"
+                                if isinstance(chunk, ai_client.ToolCalls):
+                                    continue
+                                pieces = ([("thinking", chunk)] if isinstance(chunk, ai_client.Reasoning)
+                                          else inline.feed(chunk))
+                                for kind, piece in pieces:
+                                    (thoughts if kind == "thinking" else parts).append(piece)
+                                    yield json.dumps({"type": "thinking" if kind == "thinking" else "delta", "text": piece},
+                                                     ensure_ascii=False) + "\n"
+                            for kind, piece in inline.finish():
+                                (thoughts if kind == "thinking" else parts).append(piece)
+                                if kind == "text":
+                                    yield json.dumps({"type": "delta", "text": piece}, ensure_ascii=False) + "\n"
                         except ai_client.AIError as e:
                             keep_partial()
                             finished = True
                             yield json.dumps({"type": "error", "error": str(e), "kept": bool("".join(parts).strip())}) + "\n"
                             return
-                        payload = finish_reply("".join(parts), "".join(thoughts).strip())
+                        payload = finish_reply("".join(parts), "".join(thoughts).strip(), game_ops)
                         finished = True
                         yield json.dumps({"type": "done", **payload}, ensure_ascii=False) + "\n"
                     except GeneratorExit:
@@ -817,21 +915,24 @@ def chat(request, slug):
         photo_second = get_valid_photo_url(character, "photo_second", emo2)
     else:
         photo_second = None
-    print(photo_url)
 
     user_avatar = None
     if hasattr(request.user, 'photo') and request.user.photo:
         user_avatar = request.user.photo.url
 
+    sync_game_trackers(messages)
     context = {
         # The template shows the version on screen, and its thoughts (if the model sent any)
-        "messages": [tuple(m[:5]) + (chats.reasoning_of(m),) for m in messages],
+        "messages": [tuple(m[:5]) + (chats.reasoning_of(m),
+                                     [game.describe(op) for op in chats.game_of(m) if not extras.is_extra(op)],
+                                     [extras.render(op) for op in chats.game_of(m) if extras.is_extra(op)])
+                     for m in messages],
         "swipes": chats.version_info(messages),
         "spending": ai_client.spending(request.user),
         "appearance": _appearance(request.user),
         "bulba_url": reverse("bulba_chat", kwargs={"chat_id": chat_obj.id}),
         "display_rules": {
-            "rules": [r for r in regex_rules.for_chat(presets.normalize(presets.get_active(request.user).data), character)
+            "rules": [r for r in regex_rules.for_chat(presets.normalize(presets.get_active(request.user).data), character, request.user)
                       if r["enabled"] and r["mode"] == "display"],
             "names": prompt_names(request.user, character, chat_state["persona"])},
         "chat_persona": chat_state["persona"],
@@ -846,6 +947,7 @@ def chat(request, slug):
         "summary_upto": chat_state["summary_upto"],
         "summary_data": summary_payload(),
         "context_guides": json.dumps(chat_state["context_guides"]),
+        "pinned_note_json": json.dumps(pinned_note(chat_state["context_guides"])),
         "current_bg": chat_state["current_bg"],
         "current_music": json.dumps(chat_state["current_music"]),
         "user_avatar": user_avatar,
@@ -867,7 +969,55 @@ def _appearance(user):
     color = look.get("dialogue_color") or DIALOGUE_DEFAULT
     if color != "preset" and not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
         color = DIALOGUE_DEFAULT
-    return {"dialogue_color": color}
+    # "book": replies read as chapters and the user's messages fold away (director mode); "chat": bubbles
+    layout = look.get("layout") if look.get("layout") in LAYOUTS else "chat"
+    return {"dialogue_color": color, "layout": layout}
+
+
+LAYOUTS = ("chat", "book")
+
+
+def set_layout(user, layout):
+    if layout not in LAYOUTS:
+        raise ValueError("Unknown layout.")
+    settings_obj, _ = ChatSettings.objects.get_or_create(author=user)
+    settings_obj.appearance = {**(settings_obj.appearance or {}), "layout": layout}
+    settings_obj.save(update_fields=["appearance"])
+
+
+def pinned_note(guides):
+    """The chat's pinned note. Older chats kept four "World state" fields; they read as one note."""
+    guides = guides if isinstance(guides, dict) else {}
+    if guides.get("note"):
+        return guides["note"]
+    labels = (("situation", "Situation"), ("clothes", "Outfits"), ("state", "Physical state"), ("thinking", "Thoughts"))
+    return "\n".join(f"{label}: {guides[key]}" for key, label in labels if guides.get(key))
+
+
+WORD_NOTE_PROMPT = (
+    "You help someone steer their roleplay with an AI. They give you a rough wish for {what}; you write it as "
+    "a director's note the roleplay model will follow. One to three short sentences, addressed to the model, "
+    "saying concretely what should happen or how it should read. Keep their meaning; don't add events, twists "
+    "or details they didn't ask for. Name characters as they appear in the chat. Never write {user}'s words, "
+    "actions or thoughts unless they asked for exactly that. Plain words: no 'ensure', 'immersive', 'vivid', "
+    "'delve', capitals or exclamation marks. Reply with the note only.")
+
+
+def word_note(user, character, messages, wish, rewrite=False, persona=None):
+    """Bulba's quick help with a director's note (one small call on the Bulba model)."""
+    wish = wish.strip()[:1000]
+    if not wish:
+        raise ai_client.AIError("Write what you'd like first, in your own words.")
+    names = prompt_names(user, character, persona)
+    recent = [m for m in messages if m[0] in ("user", "assistant")][-6:]
+    transcript = "\n\n".join(f"{names['user'] if m[0] == 'user' else character.name}: {m[2][:1500]}" for m in recent)
+    what = "a new version of the last reply" if rewrite else "the next reply"
+    system = WORD_NOTE_PROMPT.format(what=what, user=names["user"])
+    text = ai_client.complete(user, "bulba", [
+        {"role": "system", "content": system},
+        {"role": "user", "content": f"The chat so far (latest last):\n\n{transcript}\n\nTheir wish: {wish}"}],
+        max_tokens=200, temperature=0.4)
+    return (text or "").strip().strip('"')
 
 
 def prompt_names(user, character, chat_persona=None):
@@ -894,14 +1044,16 @@ def prompt_slots(user, character, prompt, chat_persona=None):
         "trackers": extra.get("StoryState", ""),
         "world_context": extra.get("WorldContext", ""),
         "director_note": extra.get("DirectorNote", ""),
+        "char_depth_prompt": cards.depth_prompt(character),
     }
 
 
-def build_chat_request(user, chat_obj, preset=None, character=None, drop_last_reply=True):
+def build_chat_request(user, chat_obj, preset=None, character=None, drop_last_reply=True, generation="normal",
+                       tail=()):
     """
     The request a chat would send for its next AI reply (or, with drop_last_reply, to re-answer the last user
     message), optionally with another preset or an edited character. Used by Bulba to rewrite a reply with a
-    proposed change. Returns presets.assemble()'s result.
+    proposed change. `tail`: extra turns after the chat (an impersonation request). Returns presets.assemble()'s result.
     """
     character = character or chat_obj.character
     data = chats.read(chat_obj)
@@ -915,15 +1067,19 @@ def build_chat_request(user, chat_obj, preset=None, character=None, drop_last_re
     preset = presets.normalize(preset or presets.get_active(user).data)
     persona = data.get("persona") if isinstance(data.get("persona"), dict) else {}
     names = prompt_names(user, character, persona)
-    history = [{"role": m[0], "content": m[2]} for m in messages if m[0] in ("user", "assistant")]
-    history = regex_rules.run_on_history(regex_rules.for_chat(preset, character), history, names)
+    history = [{"role": m[0], "content": extras.for_prompt(m[2], chats.game_of(m))}
+                       for m in messages if m[0] in ("user", "assistant")]
+    history = regex_rules.run_on_history(regex_rules.for_chat(preset, character, user), history, names) + list(tail)
     _, model = ai_client.resolve(user, "chat")
-    return presets.assemble(preset, prompt_slots(user, character, prompt, persona), history, names, model)
+    return presets.assemble(preset, prompt_slots(user, character, prompt, persona), history, names, model,
+                            generation=generation)
 
 
 def _tracker_page_data(user, character, raw_state):
     """Everything the chat page's tracker HUD and panel need."""
-    config = trackers.normalize_config(character.tracker_config)
+    kinds = extras.kinds_for(user)
+    config = trackers.normalize_config(character.tracker_config, game.mode_for(user, character),
+                                       "milestones" in kinds, "keepsakes" in kinds)
     task = ai_client.get_task_setting(user, "trackers")
     return {
         "panels": trackers.PANELS,
@@ -959,7 +1115,7 @@ def _preset_preview(user, preset, character):
     except ai_client.NoConnection:
         model = ""
     names = prompt_names(user, character)
-    history = regex_rules.run_on_history(regex_rules.for_chat(preset, character), history, names)
+    history = regex_rules.run_on_history(regex_rules.for_chat(preset, character, user), history, names)
     built = presets.assemble(preset, prompt_slots(user, character, prompt), history, names, model)
     return {"messages": built["preview"], "params": built["params"], "notes": built["notes"],
             "variables": built["variables"], "model": model}
@@ -977,6 +1133,8 @@ def preset_list(request):
             return JsonResponse({"error": "Invalid request."}, status=400)
         action = data.get("action")
         obj = Preset.objects.filter(user=request.user, id=data.get("id")).first()
+        if action == "save_my_rules":  # the user's own text rules, run with every preset (no preset needed)
+            return JsonResponse({"rules": regex_rules.save_user_rules(request.user, data.get("rules"))})
 
         if action == "import":
             try:
@@ -1070,6 +1228,7 @@ def preset_list(request):
         "characters": [{"slug": c.slug, "name": c.name} for c in Character.objects.filter(author=request.user)],
         "starters": starters.for_page(_chat_model(request.user)),
         "starter_of": (presets.normalize(selected.data)["extras"].get("starter") or {}).get("id"),
+        "my_rules": regex_rules.user_rules(request.user),
     }})
 
 
@@ -1144,6 +1303,12 @@ def tracker_setup(request, slug):
             "trackers": trackers.TRACKERS,
             "config": trackers.normalize_config(character.tracker_config),
             "field_types": trackers.FIELD_TYPES,
+            "game_modes": game.MODE_LABELS,
+            "game_default": game.MODE_LABELS[game.user_default(request.user)],
+            "game_default_mode": game.user_default(request.user),
+            "milestones_by_app": "milestones" in extras.kinds_for(request.user),
+            "scrapbook_by_app": "keepsakes" in extras.kinds_for(request.user),
+            "character_name": character.name,
         },
     })
 
@@ -1298,16 +1463,15 @@ class AddCharacter(CharacterBaseView, CreateView):
 
 
     def form_valid(self, form):
-        print("Форма валідна!")
-        print("Дані форми:", form.cleaned_data)
         a = form.save(commit=False)
         a.author = self.request.user
         # Формуємо slug: username + "-" + slugified name
         username = self.request.user.username
-        base_slug = slugify(a.name)
-        a.slug = f"{username}-{base_slug}"
+        base = f"{username}-{slugify(a.name) or 'character'}"
+        a.slug, n = base, 2
+        while Character.objects.filter(slug=a.slug).exists():  # same name twice gets -2, -3...
+            a.slug, n = f"{base}-{n}", n + 1
         a.save()
-        print("Збережено об'єкт:", a)
         return super().form_valid(form)
 
 
@@ -1327,6 +1491,28 @@ class UpdateCharacter(CharacterBaseView, UpdateView):
     def form_valid(self, form):
         character = form.save()
         return redirect(reverse('chat', kwargs={'slug': character.slug}))
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["card_rules"] = regex_rules.card_rules(self.object)  # the card's own text rules, switchable
+        context["card_note"] = cards.depth_prompt(self.object)  # sent near the latest message
+        return context
+
+
+@login_required
+def character_rule(request, slug):
+    """Switch one of a card's own text rules on or off."""
+    character = get_object_or_404(Character, slug=slug, author=request.user)
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only"}, status=405)
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+        regex_rules.set_card_rule(character, str(data.get("id")), bool(data.get("enabled")))
+    except (ValueError, UnicodeDecodeError):
+        return JsonResponse({"error": "Invalid request."}, status=400)
+    except KeyError:
+        return JsonResponse({"error": "No such rule on this card."}, status=404)
+    return JsonResponse({"status": "ok", "rules": regex_rules.card_rules(character)})
 
 
 SPRITE_EMOTIONS = ["happy", "sad", "angry", "surprised", "scared", "confused", "calm", "scheming"]
@@ -1407,7 +1593,7 @@ def character_import(request):
         notes.append(f"{n} alternate greeting{'s' if n != 1 else ''}: swipe the first message to pick one.")
     if character.worldbook:
         notes.append(f"Its lore is now the worldbook “{character.worldbook.title}”.")
-    card_rules = regex_rules.for_chat({}, character)
+    card_rules = regex_rules.card_rules(character)
     if card_rules:
         notes.append(f"It comes with {len(card_rules)} text rule{'s' if len(card_rules) != 1 else ''} "
                      "(regex scripts); they run in its chats.")
@@ -1434,7 +1620,6 @@ def character_export(request, slug):
 
 
 def page_not_found(request, exception):
-    print("Hi, hi")
     return HttpResponseNotFound("<h1>Page not found.</h1>")
 
 
@@ -1625,6 +1810,8 @@ def bulba_api(request):
         return JsonResponse({"activity": session.activity if session else ""})
     if request.method != "POST":
         return JsonResponse({"error": "POST only"}, status=405)
+    if request.FILES.get("card"):  # a card they already have, from the upload box
+        return _bulba_card_upload(request)
     try:
         data = json.loads(request.body.decode("utf-8"))
     except (ValueError, UnicodeDecodeError):
@@ -1668,6 +1855,29 @@ def bulba_api(request):
             return JsonResponse({"error": "Enter an amount in dollars."}, status=400)
     else:
         return JsonResponse({"error": "Unknown action."}, status=400)
+    session.activity = ""
+    session.save()
+    return JsonResponse({"events": events, "state": _bulba_state(session)})
+
+
+def _bulba_card_upload(request):
+    from .bulba import agent, lore
+    session = _bulba_for_request(request, restart=False)
+    if session is None or session.mode != "setup":
+        return JsonResponse({"error": "Cards can be imported during setup."}, status=400)
+    upload = request.FILES["card"]
+    if upload.size > MAX_CARD_BYTES:
+        return JsonResponse({"error": "That file is over 20 MB, too big for a character card."}, status=400)
+    try:
+        character, proposal = lore.import_card(session, upload)
+    except cards.CardError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+    events = [{"type": "proposal", "id": proposal["id"]}]
+    session.events += events
+    link = _bulba_chat_link(session)
+    note = (f"Imported their card: {proposal['title']} — chat: {link['url']}, pictures (Sprites section): "
+            f"{link['edit_url']}\n\n{lore.card_report(character)}")
+    events += agent.run_turn(session, None, action_note=f"Imported {character.name}", model_note=note)
     session.activity = ""
     session.save()
     return JsonResponse({"events": events, "state": _bulba_state(session)})

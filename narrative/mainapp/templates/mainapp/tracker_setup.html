@@ -21,6 +21,16 @@
     <a href="{% url 'users:api_config' %}">Connections page</a> under “Story trackers”.
   </p>
 
+  <section class="card">
+    <h2>🎲 Dice and inventory</h2>
+    <p class="help">With this on, the AI asks the app to roll dice when an outcome is uncertain, and the app keeps
+      your inventory and conditions (the AI can't make up a roll or an item you don't have). Each roll shows under
+      the reply. Off means no chance in the story at all.</p>
+    <label class="inline">For {{ character.name }}
+      <select id="gameMode"></select>
+    </label>
+  </section>
+
   <div id="panels"></div>
 
   <section class="card">

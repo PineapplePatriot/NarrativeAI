@@ -39,7 +39,8 @@ def apply(session, pid):
         if error:
             raise ProposalError(error)
         p["undo"] = {"summary": before["summary"], "trackers": before["trackers"],
-                     "sprites": before["sprites"], "background": before["background"]}
+                     "sprites": before["sprites"], "background": before["background"], "game": before["game"],
+                     "story_extras": before["story_extras"]}
         note = "Extras saved."
     elif p["kind"] == "preset":
         from mainapp.bulba.agent import build_preset
@@ -52,6 +53,11 @@ def apply(session, pid):
         obj.save()
         p["undo"] = {"created": obj.id, "previous": previous.id}
         note = f"“{obj.name}” is now your active preset."
+        if data.get("control") == "director":  # directing reads best as a book: replies as chapters
+            from mainapp.views import _appearance, set_layout
+            p["undo"]["layout"] = _appearance(user)["layout"]
+            set_layout(user, "book")
+            note += " Chats now read as a book (Book/Chat switch in the pen menu)."
     elif p["kind"] == "persona":
         p["undo"] = {"name": user.persona_name, "description": user.persona_description}
         user.persona_name, user.persona_description = data["name"], data["description"]
@@ -66,6 +72,18 @@ def apply(session, pid):
         p["undo"] = {"created": character.id}
         p["result"] = {"slug": character.slug}
         note = f"{character.name} is ready to chat."
+    elif p["kind"] == "control":
+        from mainapp.bulba import control
+        try:
+            note = control.apply(session, p)
+        except ValueError as e:
+            raise ProposalError(str(e))
+    elif p["kind"] == "lorebook":
+        from mainapp.bulba import lore
+        try:
+            note = lore.apply(session, p)
+        except ValueError as e:
+            raise ProposalError(str(e))
     elif p["kind"] in ("preset_edit", "card_edit"):  # from Bulba inside a chat
         from mainapp.bulba import doctor
         try:
@@ -95,6 +113,9 @@ def undo(session, pid):
         previous = Preset.objects.filter(user=user, id=before.get("previous")).first() or Preset.objects.filter(user=user).first()
         if previous:
             presets.activate(previous)
+        if before.get("layout"):
+            from mainapp.views import set_layout
+            set_layout(user, before["layout"])
     elif p["kind"] == "persona":
         user.persona_name, user.persona_description = before.get("name"), before.get("description")
         user.save(update_fields=["persona_name", "persona_description"])
@@ -104,6 +125,15 @@ def undo(session, pid):
             for chat in character.chats.all():
                 chats.delete(chat)
             character.delete()
+        if before.get("worldbook"):  # an imported card's own lore goes with it
+            from mainapp.models import Worldbook
+            Worldbook.objects.filter(author=user, id=before["worldbook"], characters__isnull=True).delete()
+    elif p["kind"] == "lorebook":
+        from mainapp.bulba import lore
+        lore.undo(session, p)
+    elif p["kind"] == "control":
+        from mainapp.bulba import control
+        control.undo(session, p)
     elif p["kind"] in ("preset_edit", "card_edit"):
         from mainapp.bulba import doctor
         doctor.undo(session, p)

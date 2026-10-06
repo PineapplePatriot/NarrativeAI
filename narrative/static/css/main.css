@@ -452,3 +452,8 @@ body {
     .home-characters { grid-template-columns: 1fr; }
     .home-char-go { display: none; }
 }
+
+.guide-card { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.guide-card[hidden] { display: none; }
+.guide-card a { color: var(--text-primary); text-decoration: none; flex: 1; }
+.guide-dismiss { background: transparent; border: none; color: var(--text-secondary); cursor: pointer; font-size: 1rem; }

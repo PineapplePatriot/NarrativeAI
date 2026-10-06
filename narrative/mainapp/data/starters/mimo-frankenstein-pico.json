@@ -135,7 +135,14 @@
     "enabled": true,
     "position": "relative",
     "depth": 4,
-    "order": 100
+    "order": 100,
+    "triggers": [
+     "normal",
+     "continue",
+     "swipe",
+     "regenerate",
+     "quiet"
+    ]
    },
    {
     "id": "019f62e8-892f-7003-9af1-422c676672ae",
@@ -195,7 +202,14 @@
     "enabled": false,
     "position": "relative",
     "depth": 4,
-    "order": 100
+    "order": 100,
+    "triggers": [
+     "normal",
+     "continue",
+     "swipe",
+     "regenerate",
+     "quiet"
+    ]
    },
    {
     "id": "019f62e8-892f-7008-bbb9-b6ebf9cdc0f5",
@@ -207,7 +221,14 @@
     "enabled": false,
     "position": "relative",
     "depth": 4,
-    "order": 100
+    "order": 100,
+    "triggers": [
+     "normal",
+     "continue",
+     "swipe",
+     "regenerate",
+     "quiet"
+    ]
    },
    {
     "id": "019f62e8-892f-7009-a5c5-9a06eb0b6640",
@@ -219,7 +240,14 @@
     "enabled": false,
     "position": "relative",
     "depth": 4,
-    "order": 100
+    "order": 100,
+    "triggers": [
+     "normal",
+     "continue",
+     "swipe",
+     "regenerate",
+     "quiet"
+    ]
    },
    {
     "id": "019f62e8-892f-700a-8e10-84695d624918",
@@ -231,7 +259,14 @@
     "enabled": true,
     "position": "relative",
     "depth": 4,
-    "order": 100
+    "order": 100,
+    "triggers": [
+     "normal",
+     "continue",
+     "swipe",
+     "regenerate",
+     "quiet"
+    ]
    },
    {
     "id": "019f62e8-892f-700b-8e2a-cc0ab77ec55d",
@@ -291,7 +326,14 @@
     "enabled": true,
     "position": "relative",
     "depth": 4,
-    "order": 100
+    "order": 100,
+    "triggers": [
+     "normal",
+     "continue",
+     "swipe",
+     "regenerate",
+     "quiet"
+    ]
    },
    {
     "id": "019f62e8-892f-7010-bf59-e7b17fd4476f",
@@ -303,7 +345,14 @@
     "enabled": false,
     "position": "relative",
     "depth": 4,
-    "order": 100
+    "order": 100,
+    "triggers": [
+     "normal",
+     "continue",
+     "swipe",
+     "regenerate",
+     "quiet"
+    ]
    },
    {
     "id": "019f62e8-892f-7011-980c-f01846f6c97f",
@@ -699,7 +748,14 @@
     "enabled": true,
     "position": "relative",
     "depth": 4,
-    "order": 100
+    "order": 100,
+    "triggers": [
+     "normal",
+     "continue",
+     "swipe",
+     "regenerate",
+     "quiet"
+    ]
    },
    {
     "id": "019f62e8-892f-7019-be65-715a4949cba0",
@@ -711,7 +767,14 @@
     "enabled": false,
     "position": "relative",
     "depth": 4,
-    "order": 100
+    "order": 100,
+    "triggers": [
+     "normal",
+     "continue",
+     "swipe",
+     "regenerate",
+     "quiet"
+    ]
    },
    {
     "id": "019f62e8-892f-701a-afd5-49222c79fdb6",
@@ -723,7 +786,14 @@
     "enabled": true,
     "position": "relative",
     "depth": 4,
-    "order": 100
+    "order": 100,
+    "triggers": [
+     "normal",
+     "continue",
+     "swipe",
+     "regenerate",
+     "quiet"
+    ]
    },
    {
     "id": "019f62e8-892f-701b-bab1-563021fd8b14",
@@ -783,7 +853,14 @@
     "enabled": true,
     "position": "relative",
     "depth": 4,
-    "order": 100
+    "order": 100,
+    "triggers": [
+     "normal",
+     "continue",
+     "swipe",
+     "regenerate",
+     "quiet"
+    ]
    },
    {
     "id": "3ff4ccb9-97a0-4aec-908a-8beaabba04b8",
@@ -795,7 +872,14 @@
     "enabled": false,
     "position": "relative",
     "depth": 4,
-    "order": 100
+    "order": 100,
+    "triggers": [
+     "normal",
+     "continue",
+     "swipe",
+     "regenerate",
+     "quiet"
+    ]
    },
    {
     "id": "6b1f3c2e-5d47-4e8a-9c21-7f0a4d93e5b6",
@@ -807,7 +891,14 @@
     "enabled": false,
     "position": "relative",
     "depth": 4,
-    "order": 100
+    "order": 100,
+    "triggers": [
+     "normal",
+     "continue",
+     "swipe",
+     "regenerate",
+     "quiet"
+    ]
    },
    {
     "id": "9e4a71c3-2b68-4d0f-a5e9-3c17f8b2d640",
@@ -819,7 +910,14 @@
     "enabled": false,
     "position": "relative",
     "depth": 4,
-    "order": 100
+    "order": 100,
+    "triggers": [
+     "normal",
+     "continue",
+     "swipe",
+     "regenerate",
+     "quiet"
+    ]
    },
    {
     "id": "019f62e8-892f-7021-97a6-42e1b83eaad3",
@@ -831,7 +929,14 @@
     "enabled": false,
     "position": "relative",
     "depth": 4,
-    "order": 100
+    "order": 100,
+    "triggers": [
+     "normal",
+     "continue",
+     "swipe",
+     "regenerate",
+     "quiet"
+    ]
    },
    {
     "id": "019f67b4-7381-7000-bcc4-496b2e6ed920",
@@ -843,7 +948,14 @@
     "enabled": true,
     "position": "relative",
     "depth": 4,
-    "order": 100
+    "order": 100,
+    "triggers": [
+     "normal",
+     "continue",
+     "swipe",
+     "regenerate",
+     "quiet"
+    ]
    },
    {
     "id": "019f67ad-c0b1-7000-aca4-0e2480fa02db",
@@ -855,7 +967,14 @@
     "enabled": true,
     "position": "relative",
     "depth": 4,
-    "order": 100
+    "order": 100,
+    "triggers": [
+     "normal",
+     "continue",
+     "swipe",
+     "regenerate",
+     "quiet"
+    ]
    },
    {
     "id": "019f62e8-892f-7022-9eb9-e00c2944ebc6",
@@ -867,7 +986,14 @@
     "enabled": false,
     "position": "relative",
     "depth": 4,
-    "order": 100
+    "order": 100,
+    "triggers": [
+     "normal",
+     "continue",
+     "swipe",
+     "regenerate",
+     "quiet"
+    ]
    },
    {
     "id": "019f62e8-892f-7023-825d-9351eca0347f",
@@ -879,7 +1005,14 @@
     "enabled": true,
     "position": "relative",
     "depth": 4,
-    "order": 100
+    "order": 100,
+    "triggers": [
+     "normal",
+     "continue",
+     "swipe",
+     "regenerate",
+     "quiet"
+    ]
    },
    {
     "id": "0f1ba317-0a92-44f7-952b-f2d9b1cd5e6b",
@@ -915,7 +1048,14 @@
     "enabled": true,
     "position": "relative",
     "depth": 4,
-    "order": 100
+    "order": 100,
+    "triggers": [
+     "normal",
+     "continue",
+     "swipe",
+     "regenerate",
+     "quiet"
+    ]
    },
    {
     "id": "607a7cb8-5f44-462f-9831-945f4f57ea68",
@@ -927,7 +1067,14 @@
     "enabled": false,
     "position": "relative",
     "depth": 4,
-    "order": 100
+    "order": 100,
+    "triggers": [
+     "normal",
+     "continue",
+     "swipe",
+     "regenerate",
+     "quiet"
+    ]
    },
    {
     "id": "1b7e5d3a-6c2f-4e0b-9a84-5d2f7c9e1a36",
@@ -939,7 +1086,14 @@
     "enabled": false,
     "position": "relative",
     "depth": 4,
-    "order": 100
+    "order": 100,
+    "triggers": [
+     "normal",
+     "continue",
+     "swipe",
+     "regenerate",
+     "quiet"
+    ]
    },
    {
     "id": "019f62e8-892f-7025-be65-8859e7730ee0",
@@ -951,7 +1105,14 @@
     "enabled": true,
     "position": "relative",
     "depth": 4,
-    "order": 100
+    "order": 100,
+    "triggers": [
+     "normal",
+     "continue",
+     "swipe",
+     "regenerate",
+     "quiet"
+    ]
    },
    {
     "id": "019f62e8-892f-7026-92ea-34ff510c244b",
@@ -963,7 +1124,14 @@
     "enabled": true,
     "position": "relative",
     "depth": 4,
-    "order": 100
+    "order": 100,
+    "triggers": [
+     "normal",
+     "continue",
+     "swipe",
+     "regenerate",
+     "quiet"
+    ]
    },
    {
     "id": "4b5df6ff-f3ab-4a1c-8f59-8591c11b0a0f",
@@ -987,7 +1155,14 @@
     "enabled": true,
     "position": "relative",
     "depth": 4,
-    "order": 100
+    "order": 100,
+    "triggers": [
+     "normal",
+     "continue",
+     "swipe",
+     "regenerate",
+     "quiet"
+    ]
    },
    {
     "id": "58e1a73d-02ef-43b6-b944-70d372481606",
@@ -999,7 +1174,14 @@
     "enabled": false,
     "position": "relative",
     "depth": 4,
-    "order": 100
+    "order": 100,
+    "triggers": [
+     "normal",
+     "continue",
+     "swipe",
+     "regenerate",
+     "quiet"
+    ]
    },
    {
     "id": "019f62e8-892f-7028-bad6-be1f427c3ae4",
@@ -1011,7 +1193,14 @@
     "enabled": false,
     "position": "relative",
     "depth": 4,
-    "order": 100
+    "order": 100,
+    "triggers": [
+     "normal",
+     "continue",
+     "swipe",
+     "regenerate",
+     "quiet"
+    ]
    },
    {
     "id": "worldInfoBefore",
@@ -1119,7 +1308,14 @@
     "enabled": true,
     "position": "in_chat",
     "depth": 0,
-    "order": 100
+    "order": 100,
+    "triggers": [
+     "normal",
+     "continue",
+     "swipe",
+     "regenerate",
+     "quiet"
+    ]
    },
    {
     "id": "98178f3d-753b-5a2e-8283-1d0b274835ae",
@@ -1431,7 +1627,10 @@
     "enabled": true,
     "position": "in_chat",
     "depth": 0,
-    "order": 100
+    "order": 100,
+    "triggers": [
+     "impersonate"
+    ]
    }
   ],
   "samplers": {

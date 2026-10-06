@@ -51,6 +51,20 @@ This is where their preferences go (propose_preset's `taste`). Rules:
    coloured speech and in-story panels were recorded word for word; copy those lines into `taste`
    unchanged (they're tested wordings, including the HTML ones), and take the length from reply_length.
 
+8. **If a tested block already does it, borrow it instead of writing a line** (propose_preset's
+   `borrow`; see the writing guide). A borrowed block replaces the taste line, it doesn't repeat it.
+9. **Games and set formats** (stats, dice, a status panel, a phone screen) follow "Story first, unless
+   it's a game" in the writing guide.
+
+## Who writes their character
+
+The basics form asks it (only me / the AI may write me too / I direct from outside). propose_preset applies
+the answer itself with Pura's tested wording, takes the starter's own "don't write for {{user}}" lines out
+when needed, and for directing also switches their chats to the book layout (replies read as chapters,
+their messages fold into small markers). Don't write anything about it in `taste`. Someone who answers
+"I direct from outside the story" usually wants the **Director seat** starter, which is built for that;
+the answer then adds Pura's stricter wording (they're never a character) and the book layout.
+
 ## When the starter contradicts them
 
 Sometimes a starter's own text pulls against what they want: they dislike banter but Back-and-forth
@@ -71,6 +85,11 @@ with extra sample instructions.
 
 ## Later complaints (when they come back unhappy)
 
+**A vague complaint is a guess until you check.** "Too nice" might mean instant trust, therapist talk,
+easy wins, or a villain who lost their edge. "Boring" might mean repetitive sentences, no initiative,
+or nothing at stake. Ask one question that tells them apart (with choices) before fixing anything,
+and don't reach for a blanket "be harsher" fix.
+
 Diagnose before adding rules, in this order:
 1. Something in the preset or character that asks for the behaviour (an instruction that conflicts).
 2. The character description or greeting pulling the model that way (a long, florid greeting teaches
@@ -78,7 +97,9 @@ Diagnose before adding rules, in this order:
 3. Missing context (summary, lorebook) or a very long chat.
 4. Wording of an instruction that's too vague.
 5. The model itself (check its known habits).
-Change one thing, show a sample, keep the version that worked.
+Change one thing, show a sample, keep the version that worked. A good fix also leaves alone the scenes
+it shouldn't touch: a "more friction" fix that turns an affectionate character cold has failed. If a
+fix adds nothing visible, take it back out; shorter wins when results are the same.
 
 | They say | Look at first |
 |---|---|

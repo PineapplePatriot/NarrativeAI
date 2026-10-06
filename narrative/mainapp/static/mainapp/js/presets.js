@@ -67,7 +67,7 @@ function renderHead() {
         .map(([k, label]) => `<option value="${k}" ${k === preset.options.post_processing ? 'selected' : ''}>${esc(label)}</option>`).join('');
 
     const extras = [];
-    if (preset.extras.function_calling) extras.push('function calling');
+    if (preset.extras.function_calling) extras.push('function calling (here: Dice and inventory on the Extras page)');
     if ((preset.extras.unused_prompts || []).length) extras.push(`${preset.extras.unused_prompts.length} unused prompts`);
     const starter = preset.extras.starter;
     const credit = starter && (starter.based_on || []).length
@@ -581,10 +581,28 @@ $('previewBtn').onclick = async () => {
 // ------------------------------------------------------------- Text rules
 const MODE_LABELS = { display: 'On screen', prompt: 'Sent to the AI', saved: 'Saved' };
 const openRules = new Set();
+// Two lists share this editor: the preset's rules, and the user's own (run with every preset)
+let myRules = DATA.my_rules || [];
+let ruleScope = 'preset';
+let myRulesTimer = null;
+const ruleList = () => ruleScope === 'mine' ? myRules : preset.regex;
+function setRuleList(list) { if (ruleScope === 'mine') myRules = list; else preset.regex = list; }
+function rulesChanged() {
+    if (ruleScope !== 'mine') { rulesChanged(); return; }
+    clearTimeout(myRulesTimer);
+    myRulesTimer = setTimeout(async () => {
+        try {
+            const data = await act({ action: 'save_my_rules', rules: myRules });
+            $('ruleStatus').textContent = `Saved your ${data.rules.length} rule${data.rules.length === 1 ? '' : 's'}.`;
+        } catch (err) { $('ruleStatus').textContent = err.message; }
+    }, 600);
+}
 
 function ruleWhere(r) {
     const you = r.placement.includes(1), ai = r.placement.includes(2);
-    const who = you && ai ? 'all messages' : you ? 'your messages' : ai ? 'AI replies' : 'other text';
+    const extra = [r.placement.includes(5) && 'lore entries', r.placement.includes(6) && 'thinking'].filter(Boolean);
+    const who = [you && ai ? 'all messages' : you ? 'your messages' : ai ? 'AI replies' : '', ...extra]
+        .filter(Boolean).join(', ') || 'nothing yet';
     const depth = r.min_depth != null || r.max_depth != null
         ? ` · ${r.min_depth != null ? `skips the newest ${r.min_depth}` : ''}${r.min_depth != null && r.max_depth != null ? ', ' : ''}${r.max_depth != null ? `only the newest ${r.max_depth + 1}` : ''}`
         : '';
@@ -605,6 +623,8 @@ function ruleEditor(r) {
           <fieldset><legend>On</legend>
             <label class="check small"><input type="checkbox" data-rp="2" ${r.placement.includes(2) ? 'checked' : ''}> AI replies</label>
             <label class="check small"><input type="checkbox" data-rp="1" ${r.placement.includes(1) ? 'checked' : ''}> Your messages</label>
+            <label class="check small" title="Applied as lore entries go into the prompt (Saved and Sent to the AI rules)"><input type="checkbox" data-rp="5" ${r.placement.includes(5) ? 'checked' : ''}> Lore entries</label>
+            <label class="check small" title="Applied to the model's thinking when it's saved (Saved rules)"><input type="checkbox" data-rp="6" ${r.placement.includes(6) ? 'checked' : ''}> Thinking</label>
           </fieldset>
           <label>Skip the newest <input type="number" min="0" data-rf="min_depth" value="${r.min_depth ?? ''}" placeholder="0"> messages</label>
           <label>Up to message <input type="number" min="0" data-rf="max_depth" value="${r.max_depth ?? ''}" placeholder="any"> back</label>
@@ -624,11 +644,12 @@ function ruleEditor(r) {
 function renderRules() {
     const q = ($('ruleSearch').value || '').toLowerCase();
     const onlyOn = $('rulesOnlyOn').checked;
-    const list = preset.regex.filter(r => (!onlyOn || r.enabled) &&
+    const list = ruleList().filter(r => (!onlyOn || r.enabled) &&
         (!q || r.name.toLowerCase().includes(q) || r.find.toLowerCase().includes(q)));
-    const on = preset.regex.filter(r => r.enabled).length;
-    $('ruleCount').textContent = preset.regex.length ? `${on} of ${preset.regex.length} on` : '';
-    $('ruleTabCount').textContent = preset.regex.length ? on : '';
+    const on = ruleList().filter(r => r.enabled).length;
+    $('ruleCount').textContent = ruleList().length ? `${on} of ${ruleList().length} on` : '';
+    $('ruleTabCount').textContent = preset.regex.length ? preset.regex.filter(r => r.enabled).length : '';
+    document.querySelectorAll('#ruleScope [data-scope]').forEach(b => b.classList.toggle('active', b.dataset.scope === ruleScope));
     $('rules').innerHTML = list.length ? list.map(r => `
       <div class="rule ${r.enabled ? '' : 'off'}" data-rule="${esc(r.id)}">
         <div class="rule-row">
@@ -639,10 +660,12 @@ function renderRules() {
         </div>
         ${openRules.has(r.id) ? ruleEditor(r) : ''}
       </div>`).join('')
-      : `<p class="help">${preset.regex.length ? 'No rules match.' : 'This preset has no text rules. Most presets don\'t need any.'}</p>`;
+      : `<p class="help">${ruleList().length ? 'No rules match.' : ruleScope === 'mine'
+          ? 'You have no rules of your own. They run with every preset, before the preset\'s own.'
+          : 'This preset has no text rules. Most presets don\'t need any.'}</p>`;
 }
 
-const ruleById = id => preset.regex.find(r => r.id === id);
+const ruleById = id => ruleList().find(r => r.id === id);
 
 $('rules').addEventListener('click', async e => {
     const el = e.target.closest('[data-ract]');
@@ -652,7 +675,7 @@ $('rules').addEventListener('click', async e => {
     const a = el.dataset.ract;
     if (a === 'open') { openRules.has(r.id) ? openRules.delete(r.id) : openRules.add(r.id); renderRules(); }
     if (a === 'delete' && confirm(`Delete the rule “${r.name}”?`)) {
-        preset.regex = preset.regex.filter(x => x !== r); renderRules(); scheduleSave();
+        setRuleList(ruleList().filter(x => x !== r)); renderRules(); rulesChanged();
     }
     if (a === 'test') {
         const out = box.querySelector('.test-output');
@@ -669,7 +692,7 @@ $('rules').addEventListener('change', e => {
     if (!box) return;
     const r = ruleById(box.dataset.rule);
     const t = e.target;
-    if (t.dataset.ract === 'toggle') { r.enabled = t.checked; renderRules(); scheduleSave(); return; }
+    if (t.dataset.ract === 'toggle') { r.enabled = t.checked; renderRules(); rulesChanged(); return; }
     if (t.dataset.rp) {
         const p = Number(t.dataset.rp);
         r.placement = t.checked ? [...new Set([...r.placement, p])] : r.placement.filter(x => x !== p);
@@ -684,7 +707,7 @@ $('rules').addEventListener('change', e => {
     box.querySelector('.rule-where').textContent = ruleWhere(r);
     const chip = box.querySelector('.chip');
     chip.className = `chip mode-${r.mode}`; chip.textContent = MODE_LABELS[r.mode];
-    scheduleSave();
+    rulesChanged();
 });
 
 $('ruleSearch').addEventListener('input', renderRules);
@@ -692,20 +715,28 @@ $('rulesOnlyOn').addEventListener('change', renderRules);
 $('addRule').onclick = () => {
     const r = { id: uid(), name: 'New rule', find: '', replace: '', trim: [], placement: [2], enabled: true,
                 mode: 'display', macros_in_find: 0, min_depth: null, max_depth: null, run_on_edit: false };
-    preset.regex.push(r); openRules.add(r.id); renderRules();
+    ruleList().push(r); openRules.add(r.id); renderRules();
 };
 $('importRules').onchange = async e => {
     const file = e.target.files[0];
     if (!file) return;
     try {
         const data = await act({ action: 'import_rules', id: preset.id, data: JSON.parse(await file.text()) });
-        const known = new Set(preset.regex.map(r => r.id));
-        data.rules.forEach(r => { if (known.has(r.id)) r.id = uid(); preset.regex.push(r); });
+        const known = new Set(ruleList().map(r => r.id));
+        data.rules.forEach(r => { if (known.has(r.id)) r.id = uid(); ruleList().push(r); });
         $('ruleStatus').textContent = `Added ${data.rules.length} rule${data.rules.length === 1 ? '' : 's'}.`;
-        renderRules(); scheduleSave();
+        renderRules(); rulesChanged();
     } catch (err) { $('ruleStatus').textContent = err.message; }
     e.target.value = '';
 };
+
+$('ruleScope').addEventListener('click', e => {
+    const b = e.target.closest('[data-scope]');
+    if (!b) return;
+    ruleScope = b.dataset.scope;
+    openRules.clear();
+    renderRules();
+});
 
 // ------------------------------------------------------------------- Tabs
 function showTab(tab) {

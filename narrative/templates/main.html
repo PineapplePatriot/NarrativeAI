@@ -19,6 +19,23 @@
             <p>Roleplay and interactive stories with your characters: presets, lorebooks, story trackers and a summary that keeps long chats on track.</p>
         </section>
 
+        <div class="home-banner guide-card" id="guideCard" hidden>
+            <a href="{% url 'guide' %}"><strong>New here?</strong>
+                <span>A 5-minute tour: what to try first, Bulba, the pen menu and the extras →</span></a>
+            <button type="button" class="guide-dismiss" id="guideDismiss" title="Hide this">✕</button>
+        </div>
+        <script>
+            (function () {
+                const card = document.getElementById('guideCard');
+                let hidden = false;
+                try { hidden = localStorage.getItem('guideCardHidden') === '1'; } catch (e) { /* optional */ }
+                card.hidden = hidden;
+                document.getElementById('guideDismiss').onclick = () => {
+                    card.hidden = true;
+                    try { localStorage.setItem('guideCardHidden', '1'); } catch (e) { /* optional */ }
+                };
+            })();
+        </script>
         {% if not has_connection %}
         <a class="home-banner" href="{% url 'users:welcome' %}">
             <strong>First step: connect an AI.</strong>
@@ -82,7 +99,7 @@
                 <a class="home-action" href="{% url 'users:extras' %}">
                     <span class="home-action-icon">✨</span>
                     <strong>Extras</strong>
-                    <span>Voices, automatic summaries, story trackers, sprites, and a cheaper model for the background jobs.</span>
+                    <span>Voices, summaries, story trackers, sprites, dice and inventory, story extras (letters, phone screens, rumours), and a cheaper model for the background jobs.</span>
                 </a>
                 <a class="home-action" href="{% url 'users:api_config' %}">
                     <span class="home-action-icon">🔌</span>

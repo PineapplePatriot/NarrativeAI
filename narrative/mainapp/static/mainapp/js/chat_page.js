@@ -150,7 +150,9 @@ marked.setOptions({
 // where: an element inside the message (or {role, depth}); used by display text rules
 function renderChatMessage(rawText, where) {
     const place = messagePlace(where);
-    const shown = TextRules.any() ? TextRules.apply(rawText, place.role, place.depth) : rawText;
+    let shown = TextRules.any() ? TextRules.apply(rawText, place.role, place.depth) : rawText;
+    // Story extras' markers ([[extra 2]]) become slots; placeExtras() puts the app's drawing there
+    shown = shown.replace(/\[\[extra (\d+)\]\]/g, '\n\n<div class="extra-slot n$1"></div>\n\n');
     const pre2 = wrapQuoted(shown);
     const html = marked.parse(pre2);
 
@@ -331,6 +333,17 @@ async function requestReply(body) {
                     if (!text && thoughts) setThoughts(bubble.closest('.message'), thoughts, false);
                     text += event.text;
                     if (!frame) frame = requestAnimationFrame(paint);
+                } else if (event.type === 'game') {
+                    // A roll or an inventory change, as it happens
+                    ensureBubble();
+                    const msgEl = bubble.closest('.message');
+                    const shown = [...msgEl.querySelectorAll('.game-lines > div')].map(d => d.textContent);
+                    setGame(msgEl, shown.concat(event.line));
+                    scrollToBottom();
+                } else if (event.type === 'extra') {
+                    ensureBubble();
+                    setExtras(bubble.closest('.message'), [event.html], true);
+                    scrollToBottom();
                 } else if (event.type === 'done') {
                     return { ...event, bubble };
                 } else if (event.type === 'error') {
@@ -378,6 +391,35 @@ function setThoughts(messageEl, text, open = false) {
     box.open = open;
 }
 
+// Dice rolls and inventory changes made while writing a reply (see mainapp/game.py), under its text
+function setGame(messageEl, lines) {
+    if (!messageEl) return;
+    let box = messageEl.querySelector('.game-lines');
+    if (!lines || !lines.length) { if (box) box.remove(); return; }
+    if (!box) {
+        box = document.createElement('div');
+        box.className = 'game-lines';
+        const textEl = messageEl.querySelector('.message-text');
+        textEl.parentNode.insertBefore(box, textEl.nextSibling);
+    }
+    box.innerHTML = lines.map(l => `<div>${escHtml(l)}</div>`).join('');
+}
+
+// Letters, phone screens and milestones drawn by the app (server-rendered HTML, see mainapp/extras.py)
+function setExtras(messageEl, htmlList, append = false) {
+    if (!messageEl) return;
+    let box = messageEl.querySelector('.story-extras');
+    if (!append && (!htmlList || !htmlList.length)) { if (box) box.remove(); return; }
+    if (!box) {
+        box = document.createElement('div');
+        box.className = 'story-extras';
+        const textEl = messageEl.querySelector('.message-text');
+        textEl.parentNode.insertBefore(box, textEl.nextSibling);
+    }
+    if (append) box.insertAdjacentHTML('beforeend', htmlList.join(''));
+    else box.innerHTML = htmlList.join('');
+}
+
 // Put a finished reply on screen: fill the streamed bubble, or add a new message
 function placeReply(data, avatarUrl) {
     updateSpending(data.spending);
@@ -385,6 +427,9 @@ function placeReply(data, avatarUrl) {
         addMessage('assistant', data.reply, avatarUrl);
         const all = messagesContainer.querySelectorAll('.message.assistant:not(#typingMessage)');
         setThoughts(all[all.length - 1], data.reasoning || '');
+        setGame(all[all.length - 1], data.game);
+        setExtras(all[all.length - 1], data.extras_html);
+        if (data.game_trackers && window.Trackers) Trackers.setState(data.game_trackers);
         return;
     }
     refreshForDepth();
@@ -392,6 +437,9 @@ function placeReply(data, avatarUrl) {
     data.bubble.setAttribute('data-raw', encodeURIComponent(data.reply));
     const message = data.bubble.closest('.message');
     message.classList.remove('streaming');
+    setGame(message, data.game);
+    setExtras(message, data.extras_html);
+    if (data.game_trackers && window.Trackers) Trackers.setState(data.game_trackers);
     message.querySelector('.edit-textarea').value = data.reply;
     if (avatarUrl) {
         const avatar = message.querySelector('.message-avatar');
@@ -732,19 +780,53 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // --- NEW FEATURES LOGIC ---
 
-// Context Loading
-let contextGuides = {};
-try { const raw = '{{ context_guides|escapejs }}'; if (raw && raw !== "{}") contextGuides = JSON.parse(raw); } catch (e) { }
+// The pinned note: kept in mind for every reply in this chat (saved as you leave the box)
+(function () {
+    const box = document.getElementById('pinnedNote');
+    if (!box) return;
+    box.value = window.PINNED_NOTE || '';
+    box.addEventListener('change', () => {
+        fetch(window.location.href, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ action: 'save_guides', note: box.value }),
+        }).then(r => r.json()).then(d => { if (d.success) showChatNotice('Pinned note saved.'); });
+    });
+})();
 
-function populateFields() {
-    if (document.getElementById('ctx_situation')) {
-        document.getElementById('ctx_situation').value = contextGuides.situation || "";
-        document.getElementById('ctx_clothes').value = contextGuides.clothes || "";
-        document.getElementById('ctx_state').value = contextGuides.state || "";
-        document.getElementById('ctx_thinking').value = contextGuides.thinking || "";
-    }
-}
-populateFields();
+// The director's note: Bulba can word it, and it can rewrite the last reply
+(function () {
+    const input = document.getElementById('guidanceInput');
+    const wordBtn = document.getElementById('wordNoteBtn');
+    if (!input || !wordBtn) return;
+    wordBtn.onclick = async () => {
+        const wish = input.value.trim();
+        if (!wish) { input.focus(); input.placeholder = 'Write roughly what you want first, then press this.'; return; }
+        wordBtn.disabled = true;
+        const label = wordBtn.textContent;
+        wordBtn.textContent = '🥔 Wording…';
+        try {
+            const resp = await fetch(window.location.href, {
+                method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify({ action: 'word_note', text: wish }),
+            });
+            const d = await resp.json();
+            if (!d.success) throw new Error(d.error || 'Bulba could not word it.');
+            input.value = d.note;
+            updateSpending(d.spending);
+        } catch (err) { showChatNotice(err.message); }
+        finally { wordBtn.disabled = false; wordBtn.textContent = label; }
+    };
+    document.getElementById('rewriteWithNote').onclick = () => {
+        const note = input.value.trim();
+        input.value = '';
+        toggleTools();
+        regenerateReply(note);
+    };
+    document.getElementById('askBulbaFromNote').onclick = () => {
+        toggleTools();
+        if (window.askBulba) window.askBulba(input.value.trim());
+    };
+})();
 
 // Toggle Tools
 // Shows a failed generation in the chat; the user's message is kept, so Regenerate retries it
@@ -772,16 +854,6 @@ function renderLore(lore) {
 function toggleTools() { document.getElementById('toolsMenu').classList.toggle('show'); document.getElementById('toolsBtn').classList.toggle('active'); }
 function setGuidance(text) { document.getElementById('guidanceInput').value = text; }
 
-// Save State
-function saveContext() {
-    contextGuides = {
-        situation: document.getElementById('ctx_situation').value,
-        clothes: document.getElementById('ctx_clothes').value,
-        state: document.getElementById('ctx_state').value,
-        thinking: document.getElementById('ctx_thinking').value
-    };
-    fetch(window.location.href, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') }, body: JSON.stringify({ action: 'save_guides', guides: contextGuides }) });
-}
 
 // Actions
 // Update this function signature to accept 'mode'
@@ -792,11 +864,30 @@ function generateSummary(mode, auto = false) {
     Summary.run(mode === 'regen' ? { mode: 'regen' } : {}, { quiet: auto });
 }
 
-function expandInput() {
-    const txt = messageInput.value; if (!txt) return alert("Draft something first!");
-    messageInput.value = "Expanding...";
-    fetch(window.location.href, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') }, body: JSON.stringify({ action: 'expand', text: txt }) })
-        .then(r => r.json()).then(d => { if (d.success) messageInput.value = d.text; else messageInput.value = txt; });
+// Write my message (impersonate): the AI writes your next message, or fleshes out your draft, following the
+// preset, lore and summary. Nothing is sent: it lands in the box for you to edit.
+async function expandInput() {
+    if (isGenerating) return;
+    const draft = messageInput.value;
+    const btn = document.getElementById('expandBtn');
+    if (btn) btn.disabled = true;
+    messageInput.value = draft ? 'Writing it out…' : 'Writing your message…';
+    try {
+        const resp = await fetch(window.location.href, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ action: 'expand', text: draft }),
+        });
+        const d = await resp.json();
+        messageInput.value = d.success ? d.text : draft;
+        if (!d.success) showChatNotice(d.error || 'Could not write it.');
+        updateSpending(d.spending);
+    } catch (err) { messageInput.value = draft; showChatNotice(err.message); }
+    finally {
+        if (btn) btn.disabled = false;
+        messageInput.style.height = 'auto';
+        messageInput.style.height = messageInput.scrollHeight + 'px';
+        messageInput.focus();
+    }
 }
 
 function spellcheckInput() {
@@ -920,15 +1011,6 @@ function togglePlay() { if (bgMusic.paused) { bgMusic.play(); document.getElemen
 function stopMusic() { bgMusic.pause(); musicWidget.classList.add('hidden'); }
 function setVolume(v) { bgMusic.volume = v; }
 
-// Regeneration Logic
-const regenModal = document.getElementById('regenModal');
-function openRegenModal() { regenModal.classList.add('show'); }
-function closeRegenModal() { regenModal.classList.remove('show'); }
-function confirmRegenerate() {
-    const g = document.getElementById('regenGuidance').value;
-    closeRegenModal();
-    regenerateReply(g);
-}
 
 // A new version of the AI's last reply. The old one stays as a swipe (and comes back if this fails).
 function regenerateReply(guidance = '') {
@@ -1000,6 +1082,9 @@ function swipe(step) {
             const textDiv = last.querySelector('.message-text');
             textDiv.innerHTML = renderChatMessage(d.reply, textDiv);
             setThoughts(last, d.reasoning || '');
+            setGame(last, d.game);
+            setExtras(last, d.extras_html);
+            if (d.game_trackers && window.Trackers) Trackers.setState(d.game_trackers);
             textDiv.setAttribute('data-raw', encodeURIComponent(d.reply));
             last.querySelector('.edit-textarea').value = d.reply;
             last.dataset.emotion = d.emotion;
@@ -1031,7 +1116,6 @@ document.addEventListener('keydown', (e) => {
 });
 
 // Add listeners for new Modals
-if (regenModal) regenModal.addEventListener('click', (e) => { if (e.target === regenModal) closeRegenModal(); });
 if (mediaModal) mediaModal.addEventListener('click', (e) => { if (e.target === mediaModal) closeMediaModal(); });
 
 
@@ -1211,6 +1295,16 @@ branchModal.addEventListener('click', (e) => { if (e.target === branchModal) clo
         btn.classList.toggle('active', open);
     };
     btn.onclick = () => toggle(drawer.hidden);
+    // Open Bulba with something already typed for it (it isn't sent until they press Send)
+    window.askBulba = (draft) => {
+        if (!frame.src) {
+            frame.src = drawer.dataset.src + (draft ? `?draft=${encodeURIComponent(draft)}` : '');
+            toggle(true);
+        } else {
+            toggle(true);
+            if (draft) frame.contentWindow.postMessage({ bulbaDraft: draft }, window.location.origin);
+        }
+    };
     document.getElementById('bulbaClose').onclick = () => toggle(false);
     window.addEventListener('message', (e) => {
         if (e.origin !== window.location.origin || !e.data || !e.data.bulba) return;
@@ -1231,3 +1325,66 @@ function showChatNotice(text) {
     clearTimeout(note._t);
     note._t = setTimeout(() => note.classList.remove('show'), 4000);
 }
+
+// --- Layout: chat bubbles, or a book where replies read as chapters and your messages fold away ---
+(function () {
+    const choice = document.getElementById('layoutChoice');
+    if (choice) choice.addEventListener('click', async (e) => {
+        const b = e.target.closest('[data-layout]');
+        if (!b) return;
+        const resp = await fetch(window.location.href, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ action: 'appearance', layout: b.dataset.layout }),
+        });
+        const d = await resp.json().catch(() => ({}));
+        if (!d.success) { showChatNotice(d.error || 'Could not change the layout.'); return; }
+        document.body.classList.toggle('layout-book', d.layout === 'book');
+        choice.querySelectorAll('[data-layout]').forEach(x => x.classList.toggle('on', x.dataset.layout === d.layout));
+    });
+    // In the book, your messages are small markers between chapters: click one to read or edit it
+    document.getElementById('messagesContainer')?.addEventListener('click', (e) => {
+        if (!document.body.classList.contains('layout-book')) return;
+        const msg = e.target.closest('.message.user');
+        if (!msg) return;
+        if (!msg.classList.contains('open')) { msg.classList.add('open'); return; }
+        if (e.target === msg) msg.classList.remove('open');  // the "✎ you" marker itself folds it again
+    });
+})();
+
+// Story extras sit where the model put their markers: a copy of each drawing goes into its slot in the text
+// (the text is re-rendered while streaming, so the drawings themselves stay in .story-extras, hidden once placed)
+function placeExtras(root) {
+    // Suggested actions only make sense under the newest reply
+    const replies = [...document.querySelectorAll('#messagesContainer .message.assistant:not(#typingMessage)')];
+    replies.forEach((m, i) => m.classList.toggle('latest-reply', i === replies.length - 1));
+    (root || document).querySelectorAll('.extra-slot').forEach(slot => {
+        if (slot.firstChild) return;
+        const n = (slot.className.match(/\bn(\d+)\b/) || [])[1];
+        const msg = slot.closest('.message');
+        const original = n && msg && msg.querySelector(`.story-extras > .story-extra[data-n="${n}"]`);
+        if (!original) return;
+        slot.appendChild(original.cloneNode(true));
+        original.classList.add('placed');
+    });
+}
+(function () {
+    const box = document.getElementById('messagesContainer');
+    if (!box) return;
+    let queued = false;
+    new MutationObserver(() => {
+        if (queued) return;
+        queued = true;
+        requestAnimationFrame(() => { queued = false; placeExtras(box); });
+    }).observe(box, { childList: true, subtree: true });
+    placeExtras(box);
+})();
+
+// A suggested action fills the message box (nothing is sent until they press Send)
+document.getElementById('messagesContainer')?.addEventListener('click', (e) => {
+    const b = e.target.closest('.choice-btn');
+    if (!b) return;
+    messageInput.value = b.dataset.choice;
+    messageInput.focus();
+    messageInput.style.height = 'auto';
+    messageInput.style.height = messageInput.scrollHeight + 'px';
+});
