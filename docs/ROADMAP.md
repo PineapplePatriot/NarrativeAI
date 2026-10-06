@@ -63,8 +63,8 @@ Still missing:
 
 ## Characters
 
-- **Card extras we don't use yet**: the character's note (`depth_prompt`, an instruction inserted near
-  the latest message) and group-only greetings.
+- **Card extras we don't use yet**: group-only greetings. (The character's note, `depth_prompt`, is now
+  sent near the latest message and shown on the character page.)
 - **Tags**: shown on the character tiles now; no filtering by tag yet.
 - **Export with sprites**: a card exports with its neutral picture only.
 
@@ -82,7 +82,8 @@ Still missing:
   says "thinking" while a thinking model reasons, which may be what looked like a stall. Tell me if
   it happens again.
 - **Tracker panel on phones**: starts closed now, but its layout on small screens hasn't been checked.
-- Leftover debug prints and comments from the original code (mostly in `mainapp/views.py`).
+- Leftover comments from the original code (mostly in `mainapp/views.py`); the debug prints are gone.
+- Adding two characters with the same name by hand can fail (the slug isn't made unique on that form).
 
 ## Housekeeping
 
@@ -90,4 +91,3 @@ Still missing:
   `views.py`), if you haven't yet. *Needs Anya.*
 - **A pull request** for `claude/focused-dijkstra-7tv1w1` when you want to merge this round. Remember
   `python manage.py migrate` afterwards (new migrations for card fields and Bulba). *Needs Anya.*
-- Test output is noisy ("Classification failed" lines from the fake AI); harmless, could be quieted.

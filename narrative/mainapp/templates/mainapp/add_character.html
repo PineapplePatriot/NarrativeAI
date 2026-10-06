@@ -43,6 +43,13 @@
                     </div>
                 {% endif %}
             {% endfor %}
+            {% if card_note %}
+                <div class="form-group">
+                    <label>Character's note (from the card)</label>
+                    <p class="section-help">Sent with every reply, {{ card_note.depth|default:4 }} messages from the end of the chat.</p>
+                    <pre class="card-note">{{ card_note.prompt }}</pre>
+                </div>
+            {% endif %}
             {% if card_rules %}
                 <div class="form-group card-rules" data-url="{% url 'character_rule' object.slug %}">
                     <label>Text rules that came with the card</label>

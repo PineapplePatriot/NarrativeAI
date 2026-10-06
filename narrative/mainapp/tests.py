@@ -3280,3 +3280,17 @@ class ExtrasPlacementTests(GameTests):
         self.assertEqual(events[-1]["game_trackers"]["values"]["milestones"][0]["now"], "fond of you")
         page = self.client.get(self.url)
         self.assertIn("milestones", page.context["trackers_data"]["config"]["game_owned"])
+
+
+class CardNoteTests(ChatPromptTests):
+    def test_depth_prompt_goes_near_the_end(self):
+        self.character.card_data = {"extensions": {"depth_prompt": {"prompt": "{{char}} hides her limp.", "depth": 1,
+                                                                   "role": "system"}}}
+        self.character.save()
+        self.post({"action": "chat", "message": "Hi"})
+        self.post({"action": "chat", "message": "Walk with me"})
+        msgs = self.sent[-1]["messages"]
+        i = next(i for i, m in enumerate(msgs) if m["content"] == "Rose hides her limp.")
+        self.assertEqual(msgs[i + 1]["content"], "Walk with me")  # one message from the end
+        page = self.client.get(reverse("character", args=[self.character.slug]))
+        self.assertContains(page, "Character's note (from the card)")

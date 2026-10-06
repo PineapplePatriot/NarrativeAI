@@ -618,6 +618,14 @@ def assemble(preset, slots, history, names, model="", rng=None, generation="norm
             in_chat.append((b["depth"], b["order"], entry))
         else:
             relative.append(entry)
+    # The card's own note (SillyTavern's depth_prompt), placed that many messages from the end
+    note = slots.get("char_depth_prompt")
+    if isinstance(note, dict) and str(note.get("prompt") or "").strip():
+        text = expand(str(note["prompt"]), ctx).strip()
+        if text:
+            role = note.get("role") if note.get("role") in ROLES else "system"
+            in_chat.append((_int(note.get("depth"), 4, 0, 1000), 100,
+                            {"role": role, "content": text, "sources": ["Character's note"]}))
 
     # Fit the chat into the context size, counting everything else that will be sent
     chat = [{"role": m["role"], "content": m["content"]} for m in history]

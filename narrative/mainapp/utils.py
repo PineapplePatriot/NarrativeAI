@@ -1,3 +1,4 @@
+import logging
 from mainapp.models import Character, Worldbook
 import json
 from users.models import ApiConfig
@@ -59,7 +60,7 @@ def build_ai_request(user, character: Character, chat=None, worldbook_slug=None,
             lore_report = {"book": wb.title, "report": lore["report"],
                            "notes": lore["notes"], "tokens_used": lore["tokens_used"]}
         except Exception as e:
-            print(f"Lorebook activation error: {e}")
+            logging.getLogger(__name__).warning("Lorebook activation error: %s", e)
             lore_report = {"book": worldbook_slug, "report": [], "notes": [f"Lorebook error: {e}"]}
 
     # Story trackers the user chose to add to the prompt
@@ -235,7 +236,7 @@ def narrate_text_backend(
             audio_segment = AudioSegment.from_file(audio_bytes, format="mp3")
             final_audio += audio_segment
         except Exception as e:
-            print(f"Audio chunk failed: {e}")
+            logging.getLogger(__name__).warning("Audio chunk failed: %s", e)
             continue
 
     final_audio.export(output_file, format="mp3")

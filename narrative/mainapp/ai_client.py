@@ -5,6 +5,7 @@ Every feature calls `complete(user, task, messages, ...)` with a task name from
 TASKS. Which connection profile and model a task uses is set per user on the
 Connections page; tasks without their own setting use the main chat connection.
 """
+import logging
 import os
 
 import requests
@@ -170,7 +171,7 @@ def record_cost(user, task, model, cost):
         from users.models import UsageRecord
         UsageRecord.objects.create(user=user, task=task, model=model or "", cost=float(cost))
     except Exception as e:  # e.g. the table isn't migrated yet
-        print(f"Could not record usage: {e}")
+        logging.getLogger(__name__).warning("Could not record usage: %s", e)
 
 
 def spent_this_month(user):

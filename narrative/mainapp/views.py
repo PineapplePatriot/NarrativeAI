@@ -1,5 +1,6 @@
 # --- Standard library ---
 import json
+import logging
 import os
 import traceback
 from datetime import datetime
@@ -26,6 +27,7 @@ from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
 from . import extras, game, thinking, ai_client, cards, chats, regex_rules, model_profiles, presets, samplers, starters, trackers
+
 from .utils import build_ai_request, narrate_text_backend, get_elevenlabs_key
 from .lorebook import (
     normalize_book, load_worldbook, save_worldbook, activate, format_for_prompt, to_sillytavern,
@@ -59,6 +61,8 @@ def characters_list(request):
 
 
 import re
+
+log = logging.getLogger(__name__)
 
 def _summarize(user, messages, existing=""):
     """One summary piece for `messages`, continuing `existing` when there is one."""
@@ -671,7 +675,7 @@ def chat(request, slug):
                     save_messages(messages)
                     return JsonResponse({"error": str(e)}, status=502)
                 except Exception as e:
-                    print(f"Error generating reply: {traceback.format_exc()}")
+                    log.exception("Error building the prompt")
                     if regen_from:
                         messages.append(regen_from)
                     save_messages(messages)
@@ -716,8 +720,6 @@ def chat(request, slug):
                         emotion_char_1 = class_data.get("emotion_1", "neutral")
                         emotion_char_2 = class_data.get("emotion_2", "neutral")
 
-                        print(f"[CLASSIFICATION] Speaker: {speaker} | Emo1: {emotion_char_1} | Emo2: {emotion_char_2}")
-
                         # Logic: Determine layout (char_count)
                         # 1 = Main Only, 2 = Both, 3 = Second Only
                         if character.is_mult:
@@ -728,7 +730,7 @@ def chat(request, slug):
                             char_count = 1
 
                     except Exception as e:
-                        print(f"Classification failed: {e}")
+                        log.info("Emotion check skipped: %s", e)  # off, or the helper model didn't answer
                         emotion_char_1 = "neutral"
 
                     # Store emotions as "happy|sad" string
@@ -761,7 +763,7 @@ def chat(request, slug):
                                 is_mult=character.is_mult or (char_count > 1),
                             )
                         except Exception as e:
-                            print(f"Voice generation failed: {e}")
+                            log.warning("Voice generation failed: %s", e)
 
                     # Automatic summary: tell the page to run one in the background
                     summary_task = ai_client.get_task_setting(request.user, "summary")
@@ -903,7 +905,6 @@ def chat(request, slug):
         photo_second = get_valid_photo_url(character, "photo_second", emo2)
     else:
         photo_second = None
-    print(photo_url)
 
     user_avatar = None
     if hasattr(request.user, 'photo') and request.user.photo:
@@ -1033,6 +1034,7 @@ def prompt_slots(user, character, prompt, chat_persona=None):
         "trackers": extra.get("StoryState", ""),
         "world_context": extra.get("WorldContext", ""),
         "director_note": extra.get("DirectorNote", ""),
+        "char_depth_prompt": cards.depth_prompt(character),
     }
 
 
@@ -1449,8 +1451,6 @@ class AddCharacter(CharacterBaseView, CreateView):
 
 
     def form_valid(self, form):
-        print("Форма валідна!")
-        print("Дані форми:", form.cleaned_data)
         a = form.save(commit=False)
         a.author = self.request.user
         # Формуємо slug: username + "-" + slugified name
@@ -1458,7 +1458,6 @@ class AddCharacter(CharacterBaseView, CreateView):
         base_slug = slugify(a.name)
         a.slug = f"{username}-{base_slug}"
         a.save()
-        print("Збережено об'єкт:", a)
         return super().form_valid(form)
 
 
@@ -1482,6 +1481,7 @@ class UpdateCharacter(CharacterBaseView, UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["card_rules"] = regex_rules.card_rules(self.object)  # the card's own text rules, switchable
+        context["card_note"] = cards.depth_prompt(self.object)  # sent near the latest message
         return context
 
 
@@ -1606,7 +1606,6 @@ def character_export(request, slug):
 
 
 def page_not_found(request, exception):
-    print("Hi, hi")
     return HttpResponseNotFound("<h1>Page not found.</h1>")
 
 
