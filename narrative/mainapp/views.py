@@ -1642,14 +1642,14 @@ def get_media_resources(request):
         if os.path.exists(directory):
             # 1. Scan main folder
             for f in os.listdir(directory):
-                if f.lower().endswith(('.png', '.jpg', '.jpeg', '.webp', '.mp3', '.wav', '.ogg')):
+                if f.lower().endswith(('.png', '.jpg', '.jpeg', '.webp', '.gif', '.mp3', '.wav', '.ogg', '.m4a')):
                     files.append({"name": f, "url": f"{settings.MEDIA_URL}{url_prefix}/{f}"})
 
             # 2. Scan 'custom' subfolder (user uploads)
             custom_dir = os.path.join(directory, "custom")
             if os.path.exists(custom_dir):
                 for f in os.listdir(custom_dir):
-                    if f.lower().endswith(('.png', '.jpg', '.jpeg', '.webp', '.mp3', '.wav', '.ogg')):
+                    if f.lower().endswith(('.png', '.jpg', '.jpeg', '.webp', '.gif', '.mp3', '.wav', '.ogg', '.m4a')):
                         files.append({"name": f"Custom: {f}", "url": f"{settings.MEDIA_URL}{url_prefix}/custom/{f}"})
         return sorted(files, key=lambda x: x['name'])
 
@@ -1660,16 +1660,23 @@ def get_media_resources(request):
                 f = request.FILES["file"]
                 target_dir = bg_dir if file_type == "bg" else music_dir
                 prefix = "backgrounds" if file_type == "bg" else "music"
+                allowed = (".png", ".jpg", ".jpeg", ".webp", ".gif") if file_type == "bg" else (".mp3", ".ogg", ".wav", ".m4a")
+                base, ext = os.path.splitext(os.path.basename(f.name))
+                if ext.lower() not in allowed:
+                    return JsonResponse({"success": False, "error": f"That file type can't be used here ({', '.join(allowed)})."})
+                if f.size > 25 * 1024 * 1024:
+                    return JsonResponse({"success": False, "error": "That file is over 25 MB."})
+                name = (slugify(base) or "file") + ext.lower()
 
                 # Save to 'custom' subfolder to keep main folder clean
-                custom_path = os.path.join(target_dir, "custom", f.name)
+                custom_path = os.path.join(target_dir, "custom", name)
                 with open(custom_path, 'wb+') as dest:
                     for chunk in f.chunks(): dest.write(chunk)
 
                 return JsonResponse({
                     "success": True,
-                    "url": f"{settings.MEDIA_URL}{prefix}/custom/{f.name}",
-                    "name": f"Custom: {f.name}"
+                    "url": f"{settings.MEDIA_URL}{prefix}/custom/{name}",
+                    "name": f"Custom: {name}"
                 })
         except Exception as e:
             return JsonResponse({"success": False, "error": str(e)})

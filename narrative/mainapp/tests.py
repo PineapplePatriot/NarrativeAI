@@ -3360,3 +3360,18 @@ class GuideTests(ChatPromptTests):
         self.assertContains(self.client.get(reverse("users:login")), reverse("guide"))
         self.client.force_login(self.user)
         self.assertContains(self.client.get(reverse("home")), 'id="guideCard"')
+
+
+class MediaUploadTests(ChatPromptTests):
+    def test_upload_background(self):
+        import shutil, tempfile
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        url = reverse("media_resources")
+        self.assertEqual(url, "/main/api/media-resources/")  # the page posts here
+        ok = self.client.post(url, {"type": "bg", "file": SimpleUploadedFile("My Room.PNG", b"\x89PNG fake")}).json()
+        self.assertTrue(ok["success"])
+        self.assertTrue(ok["url"].endswith("/backgrounds/custom/my-room.png"))
+        bad = self.client.post(url, {"type": "music", "file": SimpleUploadedFile("x.exe", b"MZ")}).json()
+        self.assertFalse(bad["success"])
+        listed = self.client.get(url).json()
+        self.assertIn("Custom: my-room.png", [b["name"] for b in listed["backgrounds"]])

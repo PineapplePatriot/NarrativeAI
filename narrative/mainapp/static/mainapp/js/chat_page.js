@@ -1004,8 +1004,11 @@ function resetMedia() {
 function uploadMedia() {
     const f = document.getElementById('fileUpload').files[0]; if (!f) return;
     const fd = new FormData(); fd.append('file', f); fd.append('type', currentMediaType);
-    fetch('/api/media-resources/', { method: 'POST', headers: { 'X-CSRFToken': getCookie('csrftoken') }, body: fd })
-        .then(r => r.json()).then(d => { if (d.success) selectMedia(d.url, d.name); else alert('Upload failed'); });
+    fetch('/main/api/media-resources/', { method: 'POST', headers: { 'X-CSRFToken': getCookie('csrftoken') }, body: fd })
+        .then(r => r.json())
+        .then(d => { if (d.success) selectMedia(d.url, d.name); else showChatNotice(d.error || 'Upload failed.'); })
+        .catch(() => showChatNotice('Upload failed: the file may be too big.'))
+        .finally(() => { document.getElementById('fileUpload').value = ''; });
 }
 function togglePlay() { if (bgMusic.paused) { bgMusic.play(); document.getElementById('playPauseBtn').innerText = "❚❚"; } else { bgMusic.pause(); document.getElementById('playPauseBtn').innerText = "▶"; } }
 function stopMusic() { bgMusic.pause(); musicWidget.classList.add('hidden'); }
