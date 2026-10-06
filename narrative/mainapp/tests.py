@@ -3875,3 +3875,41 @@ class BulbaVoicesTests(BulbaCardAndLoreTests):
         self.api(action="undo", id=pid)
         viktor.refresh_from_db()
         self.assertEqual(viktor.voice_cast, {})
+
+
+class ProposalEditingTests(BulbaCardAndLoreTests):
+    def test_edit_a_persona_and_a_character_before_applying(self):
+        from mainapp.models import Character
+        self.script = [("Here you are.", [self.call("propose_persona", name="Olezhyk", description="A young shinobi.")])]
+        data = self.api(action="say", text="me").json()
+        p = data["state"]["proposals"][-1]
+        self.assertEqual([f["path"] for f in p["editable"]], ["name", "description"])
+        data = self.api(action="edit_proposal", id=p["id"], values={"description": "A tired shinobi with a bad knee."}).json()
+        p = data["state"]["proposals"][-1]
+        self.assertTrue(p["edited"])
+        self.assertIn("A tired shinobi with a bad knee.", p["summary"])
+        self.assertEqual(data["events"][-1]["text"], "Edited: You: Olezhyk")
+        self.assertEqual(self.api(action="edit_proposal", id=p["id"], values={"name": " "}).status_code, 400)
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=p["id"])
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.persona_description, "A tired shinobi with a bad knee.")
+        self.assertIn("edited your proposal", json.dumps(self.bulba_calls[-1]["messages"]))  # Bulba is told
+        # applied proposals can't be edited any more
+        self.assertEqual(self.api(action="edit_proposal", id=p["id"], values={"description": "x"}).status_code, 400)
+
+    def test_edit_lore_keys_and_preset_taste(self):
+        self.upload(V2_CARD)
+        self.script = [("Lore.", [self.call("propose_lorebook", why="x", entries=[
+            {"title": "Ferry", "keys": ["ferry"], "content": "Leaves at midnight."}])])]
+        p = self.api(action="say", text="lore").json()["state"]["proposals"][-1]
+        paths = [f["path"] for f in p["editable"]]
+        self.assertEqual(paths, ["entries.0.content", "entries.0.keys"])
+        p = self.api(action="edit_proposal", id=p["id"], values={"entries.0.content": "Leaves at dawn.",
+                                                               "entries.0.keys": "ferry, boat"}).json()["state"]["proposals"][-1]
+        self.assertIn("  (when someone mentions ferry, boat) Leaves at dawn.", p["summary"])
+        self.assertEqual(self.api(action="edit_proposal", id=p["id"], values={"entries.0.keys": " , "}).status_code, 400)
+        # settings-like proposals have nothing to edit in place
+        self.script = [("Extras.", [self.call("propose_extras", summary="auto", why="x")])]
+        p = self.api(action="say", text="extras").json()["state"]["proposals"][-1]
+        self.assertEqual(p["editable"], [])

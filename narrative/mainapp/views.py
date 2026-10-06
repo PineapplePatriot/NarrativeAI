@@ -1802,7 +1802,7 @@ def get_media_resources(request):
 # ---------------------------------------------------------------------------
 
 def _bulba_state(session):
-    from .bulba import agent
+    from .bulba import agent, editing
     profile = agent.target_profile(session)
     return {
         "id": session.id, "stage": session.stage, "stages": agent.STAGES,
@@ -1812,8 +1812,8 @@ def _bulba_state(session):
         "chat_with": session.chat.character.name if session.mode == "chat" and session.chat_id else "",
         "model": profile["name"] if profile else session.target_model,
         "preferences": [p for p in session.preferences if p.get("status") not in ("rejected", "superseded")],
-        "proposals": [{**{k: p.get(k) for k in ("id", "kind", "title", "status", "result")},
-                       "summary": _shown_summary(session, p)} for p in session.proposals],
+        "proposals": [{**{k: p.get(k) for k in ("id", "kind", "title", "status", "result", "edited")},
+                       "summary": _shown_summary(session, p), "editable": editing.fields(p)} for p in session.proposals],
     }
 
 
@@ -1925,7 +1925,7 @@ def bulba_chat_page(request, chat_id):
 
 @login_required
 def bulba_api(request):
-    from .bulba import actions, agent
+    from .bulba import actions, agent, editing
     from .models import BulbaSession
     if request.method == "GET":  # what Bulba is doing right now (the page asks while a turn runs)
         filters = {"mode": "chat", "chat_id": request.GET["chat"]} if request.GET.get("chat") else {"mode": "setup"}
@@ -1978,6 +1978,16 @@ def bulba_api(request):
         if pref:
             pref["status"] = "rejected"
             session.messages.append({"role": "user", "content": f"[I removed this preference: {pref['interpretation']}]"})
+    elif action == "edit_proposal":  # the user rewrites a proposal's text before applying it
+        try:
+            proposal, changed = editing.edit(session, data.get("id"), data.get("values"))
+        except (ValueError, KeyError, IndexError, TypeError) as e:
+            return JsonResponse({"error": str(e) or "Couldn't save that."}, status=400)
+        if changed:
+            session.messages.append({"role": "user", "content": f"[I edited your proposal “{proposal['title']}” before "
+                                     f"applying it ({', '.join(changed)}). Treat my wording as what I want.]"})
+            events = [{"type": "action", "text": f"Edited: {proposal['title']}"}]
+            session.events.append(events[0])
     elif action == "edit_preference":  # the user rewords what Bulba noted; it counts as confirmed
         pref = next((p for p in session.preferences if p["id"] == data.get("id")), None)
         text = str(data.get("text") or "").strip()[:300]

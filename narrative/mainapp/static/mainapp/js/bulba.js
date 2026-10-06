@@ -39,20 +39,39 @@ async function api(body) {
 }
 
 // --------------------------------------------------------------- rendering
+let editingId = null;  // the proposal whose text is open for editing
+
+// A proposal's text, editable in place before Apply
+function proposalEditor(p) {
+    const rows = p.editable.map(f => `<label class="edit-field"><span>${esc(f.label)}</span>
+        ${f.long ? `<textarea data-path="${esc(f.path)}" rows="${Math.min(14, Math.max(3, Math.ceil((f.value || '').length / 70)))}">${esc(f.value)}</textarea>`
+                 : `<input type="text" data-path="${esc(f.path)}" value="${esc(f.value)}">`}</label>`).join('');
+    return `<div class="proposal pending editing" data-editor="${p.id}">
+        <div class="proposal-head"><b>${esc(p.title)}</b> <span class="status">editing</span></div>
+        <div class="proposal-edit">${rows}</div>
+        <div class="proposal-actions">
+            <button type="button" data-save-edit="${p.id}">Save changes</button>
+            <button type="button" class="ghost" data-cancel-edit>Cancel</button></div>
+      </div>`;
+}
+
 function proposalCard(ev) {
     const p = state.proposals.find(x => x.id === ev.id);
     if (!p) return '';
     const status = { pending: '', applied: '<span class="status ok">Applied</span>', dismissed: '<span class="status">Dismissed</span>',
                      undone: '<span class="status">Undone</span>', replaced: '<span class="status">Replaced by a newer one</span>' }[p.status] || '';
     const off = busy ? 'disabled' : '';
+    const editable = (p.editable || []).length;
+    if (p.status === 'pending' && editingId === p.id && editable) return proposalEditor(p);
     const actions = p.status === 'pending'
         ? `<button type="button" data-act="apply" data-id="${p.id}" ${off}>Apply</button>
+           ${editable ? `<button type="button" class="ghost" data-edit-proposal="${p.id}" ${off}>Edit</button>` : ''}
            <button type="button" class="ghost" data-act="dismiss" data-id="${p.id}" ${off}>Not this</button>`
         : p.status === 'applied' ? `<button type="button" class="ghost" data-act="undo" data-id="${p.id}" ${off}>Undo</button>` : '';
     const chatLink = p.status === 'applied' && p.result && p.result.slug
         ? `<a class="btn" href="/main/chat/${encodeURIComponent(p.result.slug)}">Chat now →</a>` : '';
     return `<div class="proposal ${p.status}">
-        <div class="proposal-head"><b>${esc(p.title)}</b> ${status}</div>
+        <div class="proposal-head"><b>${esc(p.title)}</b> ${p.edited ? '<span class="status">edited by you</span>' : ''} ${status}</div>
         <div class="proposal-body${(p.summary || []).join('\n').length > 900 ? ' folded' : ''}">${(p.summary || []).map(l => /^[^\s].{0,40}:$/.test(l)
             ? `<div class="proposal-label">${esc(l.slice(0, -1))}</div>` : `<div>${esc(l)}</div>`).join('')}</div>
         ${(p.summary || []).join('\n').length > 900 ? '<button type="button" class="link unfold">Show all</button>' : ''}
@@ -417,4 +436,24 @@ $('log').addEventListener('click', async e => {
         }
     }
     progress.textContent = `Done: ${made} picture${made === 1 ? '' : 's'}. They show in chats from the next reply.`;
+});
+
+// Edit / save / cancel on a proposal
+$('log').addEventListener('click', async e => {
+    const open = e.target.closest('[data-edit-proposal]');
+    if (open && !busy) { editingId = open.dataset.editProposal; render(); return; }
+    if (e.target.closest('[data-cancel-edit]')) { editingId = null; render(); return; }
+    const save = e.target.closest('[data-save-edit]');
+    if (!save || busy) return;
+    const box = save.closest('[data-editor]');
+    const values = {};
+    box.querySelectorAll('[data-path]').forEach(el => { values[el.dataset.path] = el.value; });
+    save.disabled = true;
+    try {
+        const data = await api({ action: 'edit_proposal', id: save.dataset.saveEdit, values });
+        state = data.state;
+        events.push(...(data.events || []));
+        editingId = null;
+        render();
+    } catch (err) { alert(err.message); save.disabled = false; }
 });
