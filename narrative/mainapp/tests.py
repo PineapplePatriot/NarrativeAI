@@ -2452,7 +2452,8 @@ class BulbaRunTwoTests(BulbaTests):
         self.assertTrue(data["state"]["chat"]["edit_url"].endswith("#spritesSection"))
         told = self.bulba_calls[-1]["messages"][-1]["content"]
         self.assertIn("#spritesSection", told)                       # Bulba learns where pictures go
-        self.assertEqual(data["events"][1]["text"], "Applied: Character: Corvin")  # the page shows no links
+        action = next(e for e in data["events"] if e["type"] == "action")
+        self.assertEqual(action["text"], "Applied: Character: Corvin")  # the page shows no links
 
     def test_look_up(self):
         self.script = [("", [self.call("look_up", query="Il Dottore personality")]), ("Found him.", [])]
