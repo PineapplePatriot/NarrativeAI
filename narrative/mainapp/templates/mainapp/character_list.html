@@ -46,11 +46,17 @@
                 </svg>
                 <input type="text" class="search-input" placeholder="Search characters..." id="searchInput">
             </div>
+            {% if all_tags %}
+            <div class="tag-filter" id="tagFilter">
+                <button type="button" class="tag on" data-tag="">All</button>
+                {% for t in all_tags %}<button type="button" class="tag" data-tag="{{ t|lower }}">{{ t }}</button>{% endfor %}
+            </div>
+            {% endif %}
         </div>
 
         <div class="characters-grid" id="charactersGrid">
             {% for character in characters %}
-            <div class="character-card">
+            <div class="character-card" data-tags="{% for tag in character.tags.all %}{{ tag.tag|lower }}|{% endfor %}">
                 <div class="character-header">
                     <div class="character-avatar">
                         {% if character.photo_neutral %}
@@ -64,7 +70,7 @@
                         <h3>{{ character.name }}</h3>
                         <div class="character-tags">
                             {% for tag in character.tags.all|slice:":4" %}
-                                <span class="tag">{{ tag.tag }}</span>
+                                <span class="tag" data-tag="{{ tag.tag|lower }}" title="Show only “{{ tag.tag }}”">{{ tag.tag }}</span>
                             {% endfor %}
                         </div>
                     </div>

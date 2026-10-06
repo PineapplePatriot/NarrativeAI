@@ -3716,3 +3716,13 @@ class BulbaIdeasTests(ChatPromptTests):
         from users.views import apply_extras
         apply_extras(self.user, {"ideas": True})
         self.assertTrue(extras.ideas_on(self.user))
+
+
+class TagFilterTests(ChatPromptTests):
+    def test_character_list_offers_its_tags(self):
+        from mainapp.models import TagPost
+        t = TagPost.objects.create(tag="Genshin Impact", slug="genshin-impact")
+        self.character.tags.add(t)
+        page = self.client.get(reverse("characters_list"))
+        self.assertEqual(page.context["all_tags"], ["Genshin Impact"])
+        self.assertContains(page, 'data-tags="genshin impact|"')

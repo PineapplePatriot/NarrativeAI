@@ -3,25 +3,31 @@ document.addEventListener("DOMContentLoaded", function () {
     const charactersGrid = document.getElementById("charactersGrid");
     const characterCards = charactersGrid.querySelectorAll(".character-card");
     const emptyState = charactersGrid.querySelector(".empty-state");
+    const tagFilter = document.getElementById("tagFilter");
+    let tag = "";
 
-    searchInput.addEventListener("input", function () {
-        const filter = this.value.toLowerCase();
+    // Search by name and filter by tag together
+    function apply() {
+        const filter = searchInput.value.toLowerCase();
         let anyVisible = false;
-
         characterCards.forEach(card => {
             const name = card.querySelector(".character-info h3").textContent.toLowerCase();
-            if (name.includes(filter)) {
-                card.style.display = "block";
-                anyVisible = true;
-            } else {
-                card.style.display = "none";
-            }
+            const tags = (card.dataset.tags || "").split("|");
+            const show = name.includes(filter) && (!tag || tags.includes(tag));
+            card.style.display = show ? "block" : "none";
+            anyVisible = anyVisible || show;
         });
-
-        if (emptyState) {
-            emptyState.style.display = anyVisible ? "none" : "block";
-        }
-    });
+        if (emptyState) emptyState.style.display = anyVisible ? "none" : "block";
+        if (tagFilter) tagFilter.querySelectorAll("[data-tag]").forEach(b => b.classList.toggle("on", b.dataset.tag === tag));
+    }
+    searchInput.addEventListener("input", apply);
+    document.addEventListener("click", e => {
+        const chip = e.target.closest("#tagFilter [data-tag], .character-tags [data-tag]");
+        if (!chip) return;
+        e.preventDefault(); e.stopPropagation();
+        tag = chip.dataset.tag === tag && chip.closest(".character-tags") ? "" : chip.dataset.tag;
+        apply();
+    }, true);
 });
 // Importing a character card: upload, then open the new character's chat
 document.addEventListener("DOMContentLoaded", function () {

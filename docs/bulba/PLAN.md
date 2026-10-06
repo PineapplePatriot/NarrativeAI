@@ -1,6 +1,7 @@
 # Bulba: build plan (draft for discussion)
 
-Status: agreed direction, 3 October 2026 (decisions below). Nothing here is built yet. Research lives in `research/`
+Status: agreed direction, 3 October 2026 (decisions below); most of it is built now (see "Built so far" and the
+status marks under "Order of work"; what's open is in `docs/ROADMAP.md`). Research lives in `research/`
 (start with `research/research-summary.md`). This plan turns that research into pieces of this app.
 
 ## What Bulba is
@@ -35,7 +36,7 @@ Gemini 3.8 Flash, GLM 5.3, DeepSeek, Opus 4.6/4.7) can be added by writing new m
 
 Facts from the research that already shape the starters:
 
-| | Opus 5.5 (`claude-opus-5-5`) | MiMo v2.6 Pro (`xiaomi/mimo-v2.6-pro`) |
+| | Opus 5.5 (profile `claude-opus-5-5`, OpenRouter `anthropic/claude-opus-5.5`, unverified) | MiMo v2.6 Pro (`xiaomi/mimo-v2.6-pro`) |
 |---|---|---|
 | Reasoning | Always on (adaptive); effort low → max, default medium | Thinking or non-thinking mode |
 | Temperature / top-p / top-k | Not adjustable (only defaults accepted) | Fixed at 1 / 0.95 while thinking; adjustable without thinking |
@@ -97,7 +98,7 @@ wholesale. You and I reword them after the MVP.
   No silent fallback for samples; if a call fails, the work is kept and you can retry. This differs
   from the research ("the selected model writes the setup") on purpose: it keeps Bulba consistent and
   cheaper, while the user still only ever judges real output from their own model.
-- **All traffic through OpenRouter** (`xiaomi/mimo-v2.6-pro`, `anthropic/claude-opus-5-5`). The direct
+- **All traffic through OpenRouter** (`xiaomi/mimo-v2.6-pro`, `anthropic/claude-opus-5.5`). The direct
   Xiaomi API is not recommended by the community for RP.
 - **Tools** (function calling, which OpenRouter supports for both models). Bulba never sees API keys.
   - Read: presets, the active preset, model profile, characters, persona, lorebooks, connection
@@ -116,17 +117,17 @@ wholesale. You and I reword them after the MVP.
 
 ### 5. The Bulba page and panel
 
-- `/bulba/`: setup mode with Quick start and Guided setup, the chat, A/B cards
+- `/main/bulba/`: setup mode with Quick start and Guided setup, the chat, A/B cards
   (A · B · both · neither · mix · skip · edit), your preference list, and the draft setup with
   an Apply button.
-- Later: a Bulba button in the top bar and inside the chat page, opening the same conversation as a side
-  panel with the current chat as context.
+- Built: a Bulba button in the top bar (setup) and in every chat's header (a side panel with that chat
+  as context, its own conversation per chat).
 
 ### 6. Handover and export
 
-Apply makes the setup active (preset + samplers + connection choice). Export: our native bundle
-(`research/native-setup.schema.json`) and the existing SillyTavern export, with a list of anything
-that didn't transfer. Never any keys.
+Built differently (Anya, 6 October 2026): at the end Bulba sums up what was set up and where to change
+it, and offers separate downloads of the preset (ours and SillyTavern's), the character card (.png/.json)
+and its lorebook. No combined bundle. Never any keys.
 
 ## Built so far (4 October 2026)
 
@@ -157,14 +158,13 @@ that didn't transfer. Never any keys.
 
 ## Order of work (each step testable on its own)
 
-1. Model profiles for Opus 5.5 and MiMo, plus the capability lookup and the Samplers page cleanup.
-2. The six starters and a "Starters" section on the Presets page (Quick start works here already).
-3. Agent runtime: the Bulba task, tool calling in the AI client, tools, stored state, proposals with
-   Apply/Undo.
-4. The Bulba page: setup mode, chat, A/B cards, preferences, draft setup.
-5. The guided interview flow and the preset-writing guide wired into Bulba's instructions.
-6. Handover: fresh test with the finished setup, apply, export.
-7. A small pilot with you as judge (the research's protocol, scaled down), then more models.
+1. ✅ Model profiles (10 models), the capability lookup and the Samplers page cleanup.
+2. ✅ Starters (33) and the Starters section on the Presets page.
+3. ✅ Agent runtime: the Bulba task, tool calling, tools, stored state, proposals with Apply/Undo.
+4. ✅ The Bulba page: setup, chat, A/B samples, preferences you can reword or remove.
+5. ✅ The guided interview and the guides (asking, presets, writing, characters, lore, extras, tuning).
+6. ✅ Handover: summary, downloads (see 6 above). Not yet tried against a real model.
+7. ⏳ A small pilot with you as judge (the research's protocol, scaled down), then more models.
 
 ## Decisions (3 October 2026)
 

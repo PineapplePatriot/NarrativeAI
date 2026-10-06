@@ -1507,6 +1507,13 @@ class CharactersList(LoginRequiredMixin, ListView):
                 .annotate(last_played=Max("chats__time_update"), chat_count=Count("chats"))
                 .order_by(F("last_played").desc(nulls_last=True), "-id"))
 
+    def get_context_data(self, **kwargs):
+        from mainapp.models import TagPost
+        context = super().get_context_data(**kwargs)
+        context["all_tags"] = sorted(set(TagPost.objects.filter(tags__author=self.request.user)
+                                         .values_list("tag", flat=True)), key=str.lower)
+        return context
+
 
 class CharacterBaseView(LoginRequiredMixin):
     template_name = "mainapp/add_character.html"

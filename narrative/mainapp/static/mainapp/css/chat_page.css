@@ -1700,3 +1700,15 @@ details.thoughts .thoughts-text { white-space: pre-wrap; font-size: .85rem; opac
 .idea-actions button { font-size: .8rem; padding: 3px 9px; border-radius: 999px; border: 1px solid rgba(167, 139, 250, .5);
     background: none; color: inherit; cursor: pointer; }
 .idea-actions button:hover { background: rgba(167, 139, 250, .15); }
+
+/* Phones: the music player shrinks to a small pill under the header instead of covering the message box */
+@media (max-width: 768px) {
+    .music-player-widget { top: 188px; bottom: auto; right: 8px; padding: 4px 8px; gap: 6px; z-index: 1; opacity: .9; }
+    .music-player-widget .music-info { display: none; }
+    .music-player-widget input[type=range] { width: 56px; }
+    body:has(#toolsMenu.show) .music-player-widget, body:has(.ideas-box:not([hidden])) .music-player-widget { display: none; }
+}
+
+/* Keep typed text clear of the small buttons inside the message box */
+.input-wrapper .input-field { padding-right: 48px; }
+.input-wrapper:has(.ideas-btn) .input-field { padding-right: 84px; }
