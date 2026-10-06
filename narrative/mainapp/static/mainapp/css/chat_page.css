@@ -1622,3 +1622,28 @@ details.thoughts .thoughts-text { white-space: pre-wrap; font-size: .85rem; opac
 .layout-book .message.user + .message.assistant .message-content { border-top: none; }
 .layout-book .message.user.open .message-actions { position: static; display: flex; justify-content: center;
     background: transparent; backdrop-filter: none; padding: 0 0 4px; }
+
+/* ---- Story extras drawn by the app (mainapp/extras.py) ---- */
+.story-extras { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.story-extra { border-radius: 10px; font-size: .92rem; max-width: 420px; }
+.story-extra.doc { background: #f4e9d8; color: #2c1e16; border: 1px solid #d8c6ad; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+.story-extra.doc summary { cursor: pointer; padding: 8px 12px; font-size: .8rem; letter-spacing: .02em; color: #6b5440; }
+.story-extra.doc .doc-body { padding: 4px 16px 14px; font-family: Georgia, "Palatino Linotype", serif; line-height: 1.6; }
+.story-extra.doc .doc-detail { padding: 0 16px 12px; font-size: .78rem; font-style: italic; color: #7a6450; }
+.story-extra.doc-newspaper { background: #ecebe6; }
+.story-extra.doc-newspaper .doc-body { font-family: "Times New Roman", serif; column-count: 1; }
+.story-extra.doc-sign, .story-extra.doc-poster { background: #2d2a26; color: #f2e6c9; border-color: #4b4338; }
+.story-extra.doc-sign summary, .story-extra.doc-poster summary { color: #bfae8b; }
+.story-extra.doc-receipt { background: #fbfbf8; font-family: ui-monospace, monospace; max-width: 300px; }
+.story-extra.phone { background: #111318; border: 1px solid #2c2f38; border-radius: 22px; padding: 10px 12px 14px; max-width: 340px; }
+.story-extra.phone .phone-head { font-size: .78rem; opacity: .75; text-align: center; padding-bottom: 8px; border-bottom: 1px solid #23262e; margin-bottom: 8px; }
+.story-extra.phone .bubble-row { display: flex; flex-direction: column; align-items: flex-start; margin: 6px 0; }
+.story-extra.phone .bubble-row.mine { align-items: flex-end; }
+.story-extra.phone .from { font-size: .7rem; opacity: .6; margin: 0 6px 2px; }
+.story-extra.phone .phone-bubble { background: #2a2d36; color: #eef; padding: 7px 11px; border-radius: 16px; max-width: 85%; line-height: 1.4; }
+.story-extra.phone .mine .phone-bubble { background: #7c3aed; color: #fff; }
+.story-extra.phone .draft .phone-bubble { background: transparent; border: 1px dashed #6b6f7c; color: #b9bcc8; }
+.story-extra.phone .meta { font-size: .65rem; opacity: .5; margin: 2px 6px 0; }
+.story-extra.milestone { display: flex; gap: 10px; align-items: flex-start; padding: 8px 12px; border: 1px solid rgba(236,72,153,.35);
+    background: rgba(236,72,153,.08); }
+.story-extra.milestone .ms-because { font-size: .8rem; opacity: .7; margin-top: 2px; }

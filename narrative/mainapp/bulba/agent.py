@@ -143,6 +143,9 @@ TOOLS = [
         {"summary": {"type": "string", "enum": ["auto", "manual"]}, "summary_every": {"type": "integer"},
          "trackers": {"type": "string", "enum": ["auto", "manual"]}, "trackers_every": {"type": "integer"},
          "sprites": {"type": "boolean"},
+         "story_extras": {"type": "array", "items": {"type": "string", "enum": ["documents", "messages", "milestones"]},
+                          "description": "Story extras drawn by the app: letters/notes/signs, phone screens, "
+                                         "relationship milestones. [] turns them all off"},
          "game": {"type": "string", "enum": ["off", "dice", "full"],
                   "description": "Dice and inventory: off (no chance in the story), dice only, or dice + inventory "
                                  "and conditions kept by the app"},
@@ -479,6 +482,14 @@ def apply_basics(session, answers):
                 continue
             text = (f"Write the whole story in {raw}." if key == "language" else f"Keep out: {raw}.")
             scope = "boundary" if key == "keep_out" else "general"
+        elif key == "panels" and raw == "on":  # drawn by the app (mainapp/extras.py), not written as HTML
+            from mainapp import extras
+            extras.set_kinds(session.user, sorted(set(extras.kinds_for(session.user)) | {"documents", "messages"}))
+            text = "Letters, notes, signs and phone screens are drawn by the app (story extras, now on)."
+            lines.append(f"{label}: {text} Nothing to add to taste.")
+            tool_record_preference(session, {"wording": "Basics form: in-story panels", "interpretation": text,
+                                             "scope": "general", "strength": "firm", "status": "confirmed"})
+            continue
         elif key == "control":
             if raw not in options:
                 continue
@@ -535,6 +546,11 @@ def tool_propose_extras(session, args):
     if isinstance(args.get("sprites"), bool):
         payload["sprites"] = args["sprites"]
         summary.append("Character pictures that match the mood: " + ("on" if args["sprites"] else "off"))
+    if isinstance(args.get("story_extras"), list):
+        from mainapp import extras
+        kinds = [k for k in extras.KINDS if k in args["story_extras"]]
+        payload["story_extras"] = kinds
+        summary.append("Story extras: " + (", ".join(extras.KINDS[k].lower() for k in kinds) or "off"))
     if args.get("game") in ("off", "dice", "full"):
         from mainapp import game
         payload["game"] = args["game"]

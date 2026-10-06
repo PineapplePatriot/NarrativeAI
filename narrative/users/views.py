@@ -298,6 +298,7 @@ def _cheap_models():
 def _extras_state(user):
     from mainapp.ai_client import get_task_setting, main_profile
     from mainapp.game import user_default as game_default
+    from mainapp.extras import kinds_for as story_extras
     main = main_profile(user)
     settings_ = {t: get_task_setting(user, t) for t in ("summary", "trackers", "emotion")}
     bg_profiles = {get_task_setting(user, t).profile_id for t in BACKGROUND_TASKS}
@@ -311,6 +312,7 @@ def _extras_state(user):
         "trackers": {"mode": settings_["trackers"].mode, "interval": settings_["trackers"].interval},
         "sprites": settings_["emotion"].enabled,
         "game": game_default(user),
+        "story_extras": story_extras(user),
         "background": cheap["id"] if cheap else "chat",
         "cheap_models": [m for m in _cheap_models() if not (main and m["openrouter"] == main.model)],
         "openrouter": bool(main and main.provider == ConnectionProfile.PROVIDER_OPENROUTER),
@@ -342,6 +344,9 @@ def apply_extras(user, data):
             except (TypeError, ValueError):
                 pass
             setting.save()
+        if isinstance(data.get("story_extras"), list):
+            from mainapp import extras
+            extras.set_kinds(user, data["story_extras"])
         if data.get("game") in ("off", "dice", "full"):
             from mainapp import game
             game.set_user_default(user, data["game"])

@@ -338,6 +338,10 @@ async function requestReply(body) {
                     const shown = [...msgEl.querySelectorAll('.game-lines > div')].map(d => d.textContent);
                     setGame(msgEl, shown.concat(event.line));
                     scrollToBottom();
+                } else if (event.type === 'extra') {
+                    ensureBubble();
+                    setExtras(bubble.closest('.message'), [event.html], true);
+                    scrollToBottom();
                 } else if (event.type === 'done') {
                     return { ...event, bubble };
                 } else if (event.type === 'error') {
@@ -399,6 +403,21 @@ function setGame(messageEl, lines) {
     box.innerHTML = lines.map(l => `<div>${escHtml(l)}</div>`).join('');
 }
 
+// Letters, phone screens and milestones drawn by the app (server-rendered HTML, see mainapp/extras.py)
+function setExtras(messageEl, htmlList, append = false) {
+    if (!messageEl) return;
+    let box = messageEl.querySelector('.story-extras');
+    if (!append && (!htmlList || !htmlList.length)) { if (box) box.remove(); return; }
+    if (!box) {
+        box = document.createElement('div');
+        box.className = 'story-extras';
+        const textEl = messageEl.querySelector('.message-text');
+        textEl.parentNode.insertBefore(box, textEl.nextSibling);
+    }
+    if (append) box.insertAdjacentHTML('beforeend', htmlList.join(''));
+    else box.innerHTML = htmlList.join('');
+}
+
 // Put a finished reply on screen: fill the streamed bubble, or add a new message
 function placeReply(data, avatarUrl) {
     updateSpending(data.spending);
@@ -407,6 +426,7 @@ function placeReply(data, avatarUrl) {
         const all = messagesContainer.querySelectorAll('.message.assistant:not(#typingMessage)');
         setThoughts(all[all.length - 1], data.reasoning || '');
         setGame(all[all.length - 1], data.game);
+        setExtras(all[all.length - 1], data.extras_html);
         if (data.game_trackers && window.Trackers) Trackers.setState(data.game_trackers);
         return;
     }
@@ -416,6 +436,7 @@ function placeReply(data, avatarUrl) {
     const message = data.bubble.closest('.message');
     message.classList.remove('streaming');
     setGame(message, data.game);
+    setExtras(message, data.extras_html);
     if (data.game_trackers && window.Trackers) Trackers.setState(data.game_trackers);
     message.querySelector('.edit-textarea').value = data.reply;
     if (avatarUrl) {
@@ -1060,6 +1081,7 @@ function swipe(step) {
             textDiv.innerHTML = renderChatMessage(d.reply, textDiv);
             setThoughts(last, d.reasoning || '');
             setGame(last, d.game);
+            setExtras(last, d.extras_html);
             if (d.game_trackers && window.Trackers) Trackers.setState(d.game_trackers);
             textDiv.setAttribute('data-raw', encodeURIComponent(d.reply));
             last.querySelector('.edit-textarea').value = d.reply;

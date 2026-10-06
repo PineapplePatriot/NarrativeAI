@@ -11,6 +11,7 @@ the defaults below and say so in one line. Then one propose_extras with everythi
 | Story trackers | A small panel next to the chat that keeps track of where and when the scene is, who's there, the weather, and so on. Updated automatically every few messages, or when they press refresh. | automatic, every 4 messages |
 | Sprites | If a character has pictures for different moods, the chat shows the one that fits each reply. Costs a tiny extra check per reply; pointless if they'll never add pictures. | on |
 | Dice and inventory | For game-like stories: when something's uncertain the app rolls real dice and the story follows the roll; the app also keeps their inventory and conditions, so nothing gets made up or forgotten. Off means no chance in the story. "Dice only" skips the inventory. Each character can differ (its Trackers page). | off |
+| Story extras | When the story calls for it, the app draws the thing itself: a letter someone finds, a phone screen, a small note when a relationship changes. No numbers, no game. Three separate switches: letters and signs, phone screens, relationship milestones. | off (the basics form's "in-story panels" turns on the first two) |
 | Cheaper helper | Summaries, trackers and mood checks are small background jobs. They can run on their chat model, or on a cheap model so they cost almost nothing. | see below |
 
 **Cheaper helper.** If their chat model's price (Model knowledge) is $$ or more, recommend a cheap
@@ -38,3 +39,11 @@ preference; it matters beyond this switch:
   Simulator, Pura's or Celia's skill checks): two dice systems fight. The app's dice are real; the
   presets' are rolled into the prompt and left to the model to apply.
 - **Surprises but no dice:** dice off; a preset's random-event engine is fine.
+
+## Story extras or game?
+
+Story extras are for anyone who likes a story that feels lived in; they need no taste for games. Offer
+them to people who mention texting, letters, mysteries or slow-burn romance (milestones). Someone who
+dislikes "gamey" things may still love a letter that appears when it's found; ask about each separately.
+If a chat shows "This model can't use the app's tools", the model can't do function calling: then the
+basics form's HTML panel wording is the fallback (in-chat Bulba can add it to their taste block).

@@ -183,6 +183,9 @@ def roll(dice="1d20", modifier=0, difficulty=None, rng=None):
 
 def run_tool(state, name, args, rng=None):
     """Carry out one tool call against the reply's working state. Returns (result for the model, ops)."""
+    from mainapp import extras
+    if name in extras.TOOL_KIND:
+        return extras.run_tool(name, args)
     if name == "roll_dice":
         try:
             difficulty = int(args["difficulty"]) if args.get("difficulty") is not None else None
@@ -261,14 +264,18 @@ def prompt_block(mode, state):
     return "\n\n".join(parts)
 
 
-def add_to_request(built, mode, state, names):
-    """Tools and rules into an assembled request (rules just before the last message, to keep the start cacheable)."""
-    if mode == "off":
+def add_to_request(built, mode, state, names, extra_kinds=()):
+    """Tools and rules (dice, inventory and story extras) into an assembled request; the rules go just before
+    the last message, to keep the start of the prompt cacheable."""
+    from mainapp import extras
+    tools = tools_for(mode) + extras.tools_for(extra_kinds)
+    if not tools:
         return built
-    text = prompt_block(mode, state).replace("{{user}}", names.get("user", "the user"))
+    text = "\n\n".join(t for t in (prompt_block(mode, state), extras.rules_for(extra_kinds)) if t)
+    text = text.replace("{{user}}", names.get("user", "the user")).replace("{{char}}", names.get("char", ""))
     messages = list(built["messages"])
     messages.insert(max(len(messages) - 1, 0), {"role": "system", "content": text})
-    return {**built, "messages": messages, "params": {**built["params"], "tools": tools_for(mode)}}
+    return {**built, "messages": messages, "params": {**built["params"], "tools": tools}}
 
 
 # ---------------------------------------------------------------------------
@@ -296,7 +303,7 @@ def stream_reply(user, messages, params, state, rng=None):
             if round_no or "tool" not in str(e).lower() or "tools" not in params:
                 raise
             params = {k: v for k, v in params.items() if k != "tools"}
-            yield GameEvent({"type": "notice", "text": "This model can't use the dice and inventory tools, so "
+            yield GameEvent({"type": "notice", "text": "This model can't use the app's tools (dice, inventory, story extras), so "
                                                         "this reply was written without them."})
             pieces = list_first(ai_client.stream(user, "chat", messages, **params))
         for piece in pieces:

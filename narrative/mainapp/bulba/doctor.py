@@ -11,7 +11,7 @@ import copy
 import uuid
 from pathlib import Path
 
-from mainapp import ai_client, chats, game, presets, thinking
+from mainapp import ai_client, chats, extras, game, presets, thinking
 from mainapp.bulba import control, library, lore
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba"
@@ -76,7 +76,8 @@ def context(session):
     parts = [
         f"## This chat\nCharacter: {character.name}. The user plays {names['user']}. Chat model: {model}. "
         f"Messages so far: {len(messages)}. Dice and inventory: "
-        f"{game.MODE_LABELS[game.mode_for(user, character)].lower()} (Extras page; per character on its Trackers page).",
+        f"{game.MODE_LABELS[game.mode_for(user, character)].lower()} (Extras page; per character on its Trackers page). "
+        f"Story extras: {', '.join(extras.KINDS[k].lower() for k in extras.kinds_for(user)) or 'off'}.",
         "### Character card\n" + "\n\n".join(
             f"{f}: {_clip(getattr(character, f), 2500)}" for f in CARD_FIELDS if getattr(character, f)),
         "### Lorebook\n" + _lore_line(character),
@@ -276,7 +277,7 @@ CARD_EDIT_TOOL = _fn("propose_card_edit", "Propose changes to this character's c
 def tools():
     from mainapp.bulba import agent
     keep = {"offer_choices", "record_preference", "get_starter", "find_practice", "read_practice", "look_up",
-            "propose_lorebook"}
+            "propose_lorebook", "propose_extras"}
     base = [t for t in agent.TOOLS if t["function"]["name"] in keep]
     return base + [
         _fn("read_block", "The full text of one block of the active preset (names are in the outline).",

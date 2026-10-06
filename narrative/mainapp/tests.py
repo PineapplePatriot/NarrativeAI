@@ -2936,7 +2936,7 @@ class GameTests(StreamChatTests):
             resp = self.client.post(self.url, json.dumps({"action": "chat", "message": "Hi", "stream": True}),
                                     content_type="application/json")
             events = [json.loads(l) for l in b"".join(resp.streaming_content).decode().splitlines() if l]
-        self.assertTrue(any("can't use the dice" in e.get("line", "") for e in events))
+        self.assertTrue(any("can't use the app's tools" in e.get("line", "") for e in events))
         self.assertEqual(events[-1]["type"], "done")
 
     def test_roll_and_replay_units(self):
@@ -3183,3 +3183,57 @@ class BookLayoutTests(ChatPromptTests):
         self.assertEqual(resp["layout"], "book")
         self.assertContains(self.client.get(self.url), 'class="layout-book"')
         self.assertEqual(self.post({"action": "appearance", "layout": "scroll"}).status_code, 400)
+
+
+class StoryExtrasTests(GameTests):
+    def test_off_by_default(self):
+        self.stream_post({"action": "chat", "message": "Hi"})
+        self.assertNotIn("tools", self.sent[-1])
+
+    def test_letter_and_phone_are_drawn_by_the_app(self):
+        from mainapp import extras
+        extras.set_kinds(self.user, ["documents", "messages"])
+        self.rounds = [sse(*tool_call("show_document", {"kind": "letter", "label": "Note under the door",
+                                                         "text": "Meet me <b>after</b> the last train."}),
+                           "[DONE]"),
+                       sse(delta("You read it twice."), "[DONE]")]
+        resp, events = self.stream_post({"action": "chat", "message": "I pick up the note"})
+        names = [t["function"]["name"] for t in self.sent[0]["tools"]]
+        self.assertEqual(names, ["show_document", "show_messages"])
+        self.assertIn("Readable objects (drawn by the app)", json.dumps(self.sent[0]["messages"]))
+        html = [e["html"] for e in events if e["type"] == "extra"]
+        self.assertEqual(len(html), 1)
+        self.assertIn("Note under the door", html[0])
+        self.assertIn("&lt;b&gt;after&lt;/b&gt;", html[0])  # the model's text is never HTML
+        self.assertEqual(events[-1]["extras_html"], html)
+        self.assertEqual(events[-1]["game"], [])
+        page = self.client.get(self.url)
+        self.assertContains(page, "Note under the door")
+        self.assertContains(page, 'class="story-extra doc doc-letter"')
+
+    def test_phone_screen_and_milestone(self):
+        from mainapp import extras
+        result, ops = extras.run_tool("show_messages", {"owner": "Mira", "with_whom": "Jun", "messages": [
+            {"from": "Jun", "text": "u up?", "time": "23:41"}, {"from": "Mira", "text": "no", "status": "unsent draft"}]})
+        html = extras.render(ops[0])
+        self.assertIn("not sent", html)
+        self.assertIn("bubble-row mine draft", html)
+        result, ops = extras.run_tool("note_milestone", {"who": "Rose", "toward": "you", "now": "trusts you, warily",
+                                                         "because": "you kept the secret"})
+        self.assertIn("after you kept the secret", extras.render(ops[0]))
+        self.assertIn("error", extras.run_tool("show_document", {"kind": "letter", "label": "x", "text": ""})[0])
+
+    def test_extras_page_and_basics(self):
+        from mainapp import extras
+        resp = self.client.post(reverse("users:extras"), json.dumps({"story_extras": ["milestones", "nonsense"]}),
+                                content_type="application/json")
+        self.assertEqual(extras.kinds_for(self.user), ["milestones"])
+
+
+class BasicsPanelsTests(BulbaTests):
+    def test_panels_turn_on_app_drawn_extras(self):
+        from mainapp import extras
+        self.script = [("Noted.", [])]
+        self.api(action="basics", answers={"panels": "on"})
+        self.assertEqual(extras.kinds_for(self.user), ["documents", "messages"])
+        self.assertIn("Nothing to add to taste", self.bulba_calls[-1]["messages"][-1]["content"])

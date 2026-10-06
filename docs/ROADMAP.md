@@ -45,9 +45,11 @@ can supply or judge.
   Their pico setup (thinking off, temperature 0.7 / top-p 0.8) is a second MiMo option.
 - **Verify OpenRouter model IDs** for the eight models where we guessed them (all but MiMo and DeepSeek V4
   Flash).
-- **Function calling** (built, first part): dice, inventory and conditions kept by the app (Extras page,
-  per character on its Trackers page; off by default). Next candidates: a picture mid-scene, story extras
-  drawn from fixed templates (letters, phone screens, milestones; `docs/research/`).
+- **Function calling** (built): dice, inventory and conditions kept by the app; story extras drawn by the
+  app (letters/notes/signs, phone screens, relationship milestones). All opt-in on the Extras page. Next
+  candidates: a picture mid-scene; rumour board, scrapbook and favour ledger (`docs/research/`).
+- **Generation triggers** (fixed): blocks marked for Impersonate, Continue or Swipe only now fire only then
+  (Frankenstein's Impersonation Turn was going out with every reply).
 - **Thinking display** (built): reasoning the model sends separately, or writes at the start of its reply
   in <thinking>/<think> tags (Frankenstein's pico), is shown live and kept in a folded "Thoughts" box.
 
@@ -67,6 +69,10 @@ Still missing:
 - **Export with sprites**: a card exports with its neutral picture only.
 
 ## Chat
+
+- **Director mode and the book layout** (built): the basics form asks who writes your character; directing
+  switches chats to a book where replies read as chapters and your messages fold into markers.
+- **Write my message** (rebuilt): the old magic expand, now an impersonate through the preset and lore.
 
 - **Pen menu** (rebuilt): director's note for the next reply (Bulba can word it; "rewrite last reply" uses
   it), a pinned note for the whole chat (replaces the four World State boxes, which overlapped the

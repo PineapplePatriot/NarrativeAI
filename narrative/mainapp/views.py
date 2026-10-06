@@ -25,7 +25,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
-from . import game, thinking, ai_client, cards, chats, regex_rules, model_profiles, presets, samplers, starters, trackers
+from . import extras, game, thinking, ai_client, cards, chats, regex_rules, model_profiles, presets, samplers, starters, trackers
 from .utils import build_ai_request, narrate_text_backend, get_elevenlabs_key
 from .lorebook import (
     normalize_book, load_worldbook, save_worldbook, activate, format_for_prompt, to_sillytavern,
@@ -112,6 +112,8 @@ def chat(request, slug):
         "game": {},             # dice and inventory: the starting inventory after manual edits (see mainapp/game.py)
     }
     game_mode = game.mode_for(request.user, character)
+    extra_kinds = extras.kinds_for(request.user)        # letters, phone screens, milestones (Extras page)
+    use_tools = game_mode != "off" or bool(extra_kinds)
 
     def summary_payload():
         """What the summary panel shows."""
@@ -501,7 +503,8 @@ def chat(request, slug):
             return JsonResponse({
                 "success": True, "reply": text, "emotion": emotion, "char_count": char_count,
                 "reasoning": chats.reasoning_of(messages[-1]),
-                "game": [game.describe(op) for op in chats.game_of(messages[-1])],
+                "game": [game.describe(op) for op in chats.game_of(messages[-1]) if not extras.is_extra(op)],
+                "extras_html": [extras.render(op) for op in chats.game_of(messages[-1]) if extras.is_extra(op)],
                 "game_trackers": game_trackers(),
                 "photo_url": _photo(character, "photo", emo1),
                 "photo_second": _photo(character, "photo_second", emo2 or "neutral")
@@ -638,11 +641,11 @@ def chat(request, slug):
                     context_dropped = built["dropped"]
                     # Dice and inventory: the model gets tools and the current state (the reply works on a copy)
                     game_state = game.current_state(chat_state, messages)
-                    built = game.add_to_request(built, game_mode, game_state, names)
+                    built = game.add_to_request(built, game_mode, game_state, names, extra_kinds)
                     game_ops = []
                     # Stream when the page asks for it and the preset allows it
                     streaming = bool(data.get("stream")) and preset["options"].get("streaming", True)
-                    if not streaming and game_mode != "off":
+                    if not streaming and use_tools:
                         pieces = list(game.stream_reply(request.user, built["messages"], built["params"], game_state))
                         game_ops = [p for p in pieces if isinstance(p, game.GameEvent)]
                         reply = "".join(p for p in pieces if isinstance(p, str) and not isinstance(
@@ -770,7 +773,8 @@ def chat(request, slug):
                     return {
                         "reply": reply,
                         "reasoning": reasoning,
-                        "game": [game.describe(op) for op in ops],
+                        "game": [game.describe(op) for op in ops if not extras.is_extra(op)],
+                        "extras_html": [extras.render(op) for op in ops if extras.is_extra(op)],
                         "game_trackers": game_trackers(),
                         "emotion": final_emotion_str,
                         "photo_url": photo_url,
@@ -808,12 +812,14 @@ def chat(request, slug):
                     try:
                         try:
                             source = (game.stream_reply(request.user, built["messages"], built["params"], game_state)
-                                      if game_mode != "off" else
+                                      if use_tools else
                                       ai_client.stream(request.user, "chat", built["messages"], **built["params"]))
                             for chunk in source:
                                 if isinstance(chunk, game.GameEvent):
                                     game_ops.append(chunk)
-                                    yield json.dumps({"type": "game", "line": game.describe(chunk)}, ensure_ascii=False) + "\n"
+                                    event = ({"type": "extra", "html": extras.render(chunk)} if extras.is_extra(chunk)
+                                             else {"type": "game", "line": game.describe(chunk)})
+                                    yield json.dumps(event, ensure_ascii=False) + "\n"
                                     continue
                                 if isinstance(chunk, ai_client.ToolCalls):
                                     continue
@@ -900,7 +906,9 @@ def chat(request, slug):
     sync_game_trackers(messages)
     context = {
         # The template shows the version on screen, and its thoughts (if the model sent any)
-        "messages": [tuple(m[:5]) + (chats.reasoning_of(m), [game.describe(op) for op in chats.game_of(m)])
+        "messages": [tuple(m[:5]) + (chats.reasoning_of(m),
+                                     [game.describe(op) for op in chats.game_of(m) if not extras.is_extra(op)],
+                                     [extras.render(op) for op in chats.game_of(m) if extras.is_extra(op)])
                      for m in messages],
         "swipes": chats.version_info(messages),
         "spending": ai_client.spending(request.user),
