@@ -177,3 +177,7 @@ body.embed .basics-form, body.embed .lookup, body.embed .done-block { margin-lef
 .make-pictures small { color: var(--muted); }
 .make-pictures .progress { flex-basis: 100%; font-size: .9rem; }
 .make-pictures img.made { height: 84px; border-radius: 8px; border: 1px solid var(--border); }
+
+/* A sent basics form keeps its choices visible (not greyed out) */
+.basics-form .pill input:disabled:checked + span { background: var(--accent); border-color: var(--accent); color: #fff; opacity: 1; cursor: default; }
+.basics-form .pill input:disabled:not(:checked) + span { opacity: .55; cursor: default; }

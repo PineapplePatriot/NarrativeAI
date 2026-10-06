@@ -80,18 +80,21 @@ const BASICS_FORM = [
     { key: 'keep_out', label: 'Anything to keep out?', text: '', placeholder: 'Optional, e.g. gore, spiders' },
 ];
 
-function basicsForm(live) {
+// `answers`: what they sent (kept on the event), so a sent form still shows their choices
+function basicsForm(live, answers) {
     const dis = live ? '' : 'disabled';
-    const chips = (f, list) => list.map(([v, l]) => `<label class="pill"><input type="checkbox" name="b_${f.key}" value="${v}" ${dis}><span>${esc(l)}</span></label>`).join('');
+    const a = answers || {};
+    const on = (f, v) => (Array.isArray(a[f.key]) ? a[f.key].includes(v) : a[f.key] === v) ? 'checked' : '';
+    const chips = (f, list) => list.map(([v, l]) => `<label class="pill"><input type="checkbox" name="b_${f.key}" value="${v}" ${on(f, v)} ${dis}><span>${esc(l)}</span></label>`).join('');
     const rows = BASICS_FORM.map(f => f.section ? `<div class="form-section">${esc(f.section)}</div>` : f.multi ? `<div class="form-row">
         <div class="form-label">${esc(f.label)}${f.hint ? `<small>${esc(f.hint)}</small>` : ''}</div>
         <div class="form-field">${chips(f, f.multi)}
-            ${f.adult ? `<span class="adult-chips" hidden>${chips(f, f.adult)}</span>
+            ${f.adult ? `<span class="adult-chips" ${f.adult.some(([v]) => on(f, v)) ? '' : 'hidden'}>${chips(f, f.adult)}</span>
             <button type="button" class="link adult-toggle" ${dis}>Show 18+ genres</button>` : ''}</div></div>` : `<div class="form-row">
         <div class="form-label">${esc(f.label)}${f.hint ? `<small>${esc(f.hint)}</small>` : ''}</div>
         <div class="form-field">${f.options
-            ? f.options.map(([v, l]) => `<label class="pill"><input type="radio" name="b_${f.key}" value="${v}" ${live ? '' : 'disabled'}><span>${esc(l)}</span></label>`).join('')
-            : `<input type="text" name="b_${f.key}" value="${esc(f.text)}" placeholder="${esc(f.placeholder || '')}" ${live ? '' : 'disabled'}>`}
+            ? f.options.map(([v, l]) => `<label class="pill"><input type="radio" name="b_${f.key}" value="${v}" ${on(f, v)} ${live ? '' : 'disabled'}><span>${esc(l)}</span></label>`).join('')
+            : `<input type="text" name="b_${f.key}" value="${esc(a[f.key] || f.text || '')}" placeholder="${esc(f.placeholder || '')}" ${live ? '' : 'disabled'}>`}
         </div></div>`).join('');
     return `<form class="basics-form" data-basics>${rows}
         ${live ? '<div class="form-actions"><button type="submit">Send</button><span class="help">Skip anything you don’t mind about.</span></div>' : ''}
@@ -140,7 +143,7 @@ function render() {
             <small>A few cents each, on your key. About 15 seconds per picture.</small><div class="progress"></div></div>`;
         if (ev.type === 'downloads') return `<div class="downloads">⬇ ${(ev.links || []).map(l =>
             `<a href="${esc(l.url)}" download>${esc(l.label)}</a>`).join('')}</div>`;
-        if (ev.type === 'form') return basicsForm(i === types.lastIndexOf('form') && i > answeredUpTo && !busy);
+        if (ev.type === 'form') return basicsForm(i === types.lastIndexOf('form') && i > answeredUpTo && !busy, ev.answers);
         if (ev.type === 'lookup') return `<div class="lookup">🔎 Looked up “${esc(ev.query)}”${(ev.sources || []).length
             ? ': ' + ev.sources.map(src => `<a href="${esc(src.url)}" target="_blank" rel="noopener">${esc(src.title || src.url)}</a>`).join(', ') : ''}</div>`;
         if (ev.type === 'samples') {
@@ -297,6 +300,8 @@ $('log').addEventListener('submit', e => {
         const el = f.options ? form.querySelector(`input[name="b_${f.key}"]:checked`) : form.querySelector(`input[name="b_${f.key}"]`);
         if (el && el.value.trim()) answers[f.key] = el.value.trim();
     });
+    const formEvent = [...events].reverse().find(ev => ev.type === 'form');
+    if (formEvent) formEvent.answers = answers;  // keep the choices visible while Bulba reads them
     run({ action: 'basics', answers }, 'Bulba is reading your answers…');
 });
 

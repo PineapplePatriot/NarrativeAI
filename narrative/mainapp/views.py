@@ -1952,6 +1952,11 @@ def bulba_api(request):
     elif action == "say":
         events = agent.run_turn(session, data.get("text"))
     elif action == "basics":  # the basics form: recorded as preferences, then Bulba carries on
+        answers = data.get("answers") if isinstance(data.get("answers"), dict) else {}
+        form_event = next((e for e in reversed(session.events) if e.get("type") == "form"), None)
+        if form_event is not None:  # the sent form keeps showing what they picked
+            form_event["answers"] = {str(k)[:40]: ([str(x)[:80] for x in v][:20] if isinstance(v, list) else str(v)[:300])
+                                     for k, v in answers.items()}
         text = agent.apply_basics(session, data.get("answers"))
         events = agent.run_turn(session, None, action_note="Sent the basics", model_note=text)
     elif action in ("apply", "dismiss", "undo"):

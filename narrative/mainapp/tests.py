@@ -2522,6 +2522,9 @@ class BasicsFormTests(BulbaTests):
         self.assertNotIn("bogus", told)
         prefs = data["state"]["preferences"]
         self.assertIn("Write in present tense.", [p["interpretation"] for p in prefs])
+        from mainapp.models import BulbaSession
+        form = next(e for e in BulbaSession.objects.get(user=self.user, mode="setup").events if e["type"] == "form")
+        self.assertEqual((form["answers"]["pov"], form["answers"]["length"]), ("second", "long"))  # stays highlighted
         self.assertIn("boundary", [p["scope"] for p in prefs])
         self.assertTrue(all(p["status"] == "confirmed" for p in prefs))
         self.assertEqual(data["events"][0]["text"], "Sent the basics")
