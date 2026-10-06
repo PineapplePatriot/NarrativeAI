@@ -114,6 +114,14 @@ def _int(value, default, lo=None, hi=None):
     return n
 
 
+# Kinds of generation a block can be limited to (SillyTavern's injection_trigger). No triggers = every kind.
+GENERATIONS = ("normal", "continue", "impersonate", "swipe", "regenerate", "quiet")
+
+
+def _triggers(raw):
+    return [t for t in raw if t in GENERATIONS] if isinstance(raw, list) else []
+
+
 def normalize_block(raw):
     if not isinstance(raw, dict):
         return None
@@ -132,6 +140,7 @@ def normalize_block(raw):
         "position": "in_chat" if raw.get("position") == "in_chat" else "relative",
         "depth": _int(raw.get("depth"), 0, 0, 1000),
         "order": _int(raw.get("order"), 100, -10000, 10000),
+        "triggers": _triggers(raw.get("triggers")),
     }
 
 
@@ -226,6 +235,7 @@ def from_sillytavern(data):
             "role": p.get("role") or "system", "content": content, "enabled": bool(entry.get("enabled", True)),
             "position": "in_chat" if p.get("injection_position") == 1 else "relative",
             "depth": p.get("injection_depth", 4), "order": p.get("injection_order", 100),
+            "triggers": p.get("injection_trigger") or [],
         })
 
     samplers = {}
@@ -316,6 +326,7 @@ def to_sillytavern(preset):
                 "role": b["role"], "content": b["content"],
                 "injection_position": 1 if b["position"] == "in_chat" else 0,
                 "injection_depth": b["depth"], "injection_order": b["order"], "forbid_overrides": False,
+                **({"injection_trigger": b["triggers"]} if b["triggers"] else {}),
             })
         order.append({"identifier": ident, "enabled": b["enabled"]})
     prompts.extend(preset["extras"].get("unused_prompts", []))
@@ -554,8 +565,17 @@ def _card_overrides(enabled, slots):
     return out, notes
 
 
-def assemble(preset, slots, history, names, model="", rng=None):
+def fires_on(block, generation):
+    """A block limited to some kinds of generation fires only on those (a regenerate counts as a swipe too)."""
+    if not block.get("triggers"):
+        return True
+    kinds = {generation, "swipe"} if generation == "regenerate" else {generation}
+    return bool(kinds & set(block["triggers"]))
+
+
+def assemble(preset, slots, history, names, model="", rng=None, generation="normal"):
     """
+    generation: "normal", "regenerate", "continue", "impersonate" (blocks limited to other kinds are left out)
     preset:  normalized preset
     slots:   marker id -> text ("lore" fills lore_before, or lore_after if only that one is on)
     history: chat turns [{"role": "user"/"assistant", "content": ...}], oldest first
@@ -564,7 +584,7 @@ def assemble(preset, slots, history, names, model="", rng=None):
     """
     notes = []
     slots = dict(slots)
-    enabled = [b for b in preset["blocks"] if b["enabled"] and b["kind"] != "header"]
+    enabled = [b for b in preset["blocks"] if b["enabled"] and b["kind"] != "header" and fires_on(b, generation)]
     on_markers = {b["marker"] for b in enabled if b["kind"] == "marker"}
     enabled, card_notes = _card_overrides(enabled, slots)
     notes += card_notes
@@ -625,7 +645,8 @@ def assemble(preset, slots, history, names, model="", rng=None):
     else:
         messages = relative[:history_index] + with_injections + relative[history_index:]
 
-    prefill = expand(preset["utility"]["assistant_prefill"], ctx).strip()
+    prefill = expand(preset["utility"]["assistant_impersonation" if generation == "impersonate"
+                                      else "assistant_prefill"], ctx).strip()
     if prefill:
         messages.append({"role": "assistant", "content": prefill, "sources": ["Assistant prefill"]})
 

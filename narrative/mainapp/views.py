@@ -294,24 +294,25 @@ def chat(request, slug):
             except (ValueError, KeyError) as e:
                 return JsonResponse({"success": False, "error": "Invalid request data"})
 
-        # --- 2. NEW: Magic Pencil (Expand) ---
+        # --- Write my message (impersonate): the AI writes or expands the user's next message ---
         elif action == "expand":
-            text = data.get("text", "")
-            perspective = data.get("perspective", "The User")
-            if not text: return JsonResponse({"success": False})
-
-            # Context: Last 10 messages
-            recent = messages[-10:]
-            hist_txt = "\n".join([f"{m[0].upper()}: {m[2]}" for m in recent])
-
-            sys_msg = (f"Rewrite this draft: '{text}'. Expand it into a full roleplay response as {perspective}. "
-                       f"Match the tone of:\n{hist_txt}\nOutput ONLY the result.")
-
+            draft = text_rules("saved", str(data.get("text") or "").strip(), "user") if data.get("text") else ""
+            preset = presets.normalize(presets.get_active(request.user).data)
+            ask = (preset["utility"]["impersonation"].strip() or presets.UTILITY_DEFAULTS["impersonation"])
+            if draft:
+                ask += ("\n\n[{{user}} has drafted this; write it out as their full message, keeping what they "
+                        f"say and do, and adding nothing they didn't decide:]\n{draft}")
+            names = prompt_names(request.user, character, chat_state["persona"])
+            ask = ask.replace("{{user}}", names["user"]).replace("{{char}}", names["char"])
             try:
-                text = ai_client.complete(request.user, "writing_tools", [{"role": "system", "content": sys_msg}])
-                return JsonResponse({"success": True, "text": text})
+                built = build_chat_request(request.user, chat_obj, preset=preset, drop_last_reply=False,
+                                           generation="impersonate", tail=[{"role": "system", "content": ask}])
+                message, _ = ai_client.complete_message(request.user, "chat", built["messages"], **built["params"])
             except ai_client.AIError as e:
                 return JsonResponse({"success": False, "error": str(e)})
+            written = thinking.split(message.get("content") or "")[1].strip()
+            return JsonResponse({"success": bool(written), "text": written or draft,
+                                 "spending": ai_client.spending(request.user)})
 
         # --- 3. NEW: Spellcheck ---
         elif action == "spellcheck":
@@ -529,7 +530,7 @@ def chat(request, slug):
                 nudge = preset["utility"]["continue_nudge"].strip() or presets.UTILITY_DEFAULTS["continue_nudge"]
                 history.append({"role": "system", "content": nudge})
                 built = presets.assemble(preset, prompt_slots(request.user, character, prompt, chat_state["persona"]),
-                                         history, names, chat_model)
+                                         history, names, chat_model, generation="continue")
                 new_chunk = ai_client.complete(request.user, "chat", built["messages"], **built["params"])
             except ai_client.AIError as e:
                 return JsonResponse({"success": False, "error": str(e)})
@@ -626,7 +627,8 @@ def chat(request, slug):
                     names = prompt_names(request.user, character, chat_state["persona"])
                     history = regex_rules.run_on_history(regex_rules.for_chat(preset, character, request.user), api_messages, names)
                     built = presets.assemble(preset, prompt_slots(request.user, character, prompt, chat_state["persona"]),
-                                             history, names, chat_model)
+                                             history, names, chat_model,
+                                             generation="regenerate" if action == "regenerate" else "normal")
                     context_dropped = built["dropped"]
                     # Dice and inventory: the model gets tools and the current state (the reply works on a copy)
                     game_state = game.current_state(chat_state, messages)
@@ -1001,11 +1003,12 @@ def prompt_slots(user, character, prompt, chat_persona=None):
     }
 
 
-def build_chat_request(user, chat_obj, preset=None, character=None, drop_last_reply=True):
+def build_chat_request(user, chat_obj, preset=None, character=None, drop_last_reply=True, generation="normal",
+                       tail=()):
     """
     The request a chat would send for its next AI reply (or, with drop_last_reply, to re-answer the last user
     message), optionally with another preset or an edited character. Used by Bulba to rewrite a reply with a
-    proposed change. Returns presets.assemble()'s result.
+    proposed change. `tail`: extra turns after the chat (an impersonation request). Returns presets.assemble()'s result.
     """
     character = character or chat_obj.character
     data = chats.read(chat_obj)
@@ -1020,9 +1023,10 @@ def build_chat_request(user, chat_obj, preset=None, character=None, drop_last_re
     persona = data.get("persona") if isinstance(data.get("persona"), dict) else {}
     names = prompt_names(user, character, persona)
     history = [{"role": m[0], "content": m[2]} for m in messages if m[0] in ("user", "assistant")]
-    history = regex_rules.run_on_history(regex_rules.for_chat(preset, character, user), history, names)
+    history = regex_rules.run_on_history(regex_rules.for_chat(preset, character, user), history, names) + list(tail)
     _, model = ai_client.resolve(user, "chat")
-    return presets.assemble(preset, prompt_slots(user, character, prompt, persona), history, names, model)
+    return presets.assemble(preset, prompt_slots(user, character, prompt, persona), history, names, model,
+                            generation=generation)
 
 
 def _tracker_page_data(user, character, raw_state):

@@ -3093,3 +3093,47 @@ class PenMenuTests(ChatPromptTests):
         empty = self.client.post(self.url, json.dumps({"action": "word_note", "text": " "}),
                                  content_type="application/json").json()
         self.assertFalse(empty["success"])
+
+
+class ImpersonateAndTriggerTests(ChatPromptTests):
+    def test_blocks_fire_only_on_their_kind_of_generation(self):
+        from mainapp import presets as presets_mod
+        p = presets_mod.normalize({"blocks": [
+            {"name": "Always", "content": "ALWAYS"},
+            {"name": "Imp", "content": "IMPERSONATE ONLY", "triggers": ["impersonate"]},
+            {"name": "Swipes", "content": "SWIPE ONLY", "triggers": ["swipe"]},
+            {"kind": "marker", "marker": "chat_history"}]})
+        sent = lambda g: json.dumps(presets_mod.assemble(p, {}, [{"role": "user", "content": "hi"}],
+                                                         {"char": "R", "user": "U"}, generation=g)["messages"])
+        self.assertNotIn("IMPERSONATE ONLY", sent("normal"))
+        self.assertIn("IMPERSONATE ONLY", sent("impersonate"))
+        self.assertIn("SWIPE ONLY", sent("regenerate"))
+        self.assertIn("ALWAYS", sent("continue"))
+        st = presets_mod.to_sillytavern(p)
+        self.assertEqual(next(x for x in st["prompts"] if x["name"] == "Imp")["injection_trigger"], ["impersonate"])
+        self.assertEqual(presets_mod.from_sillytavern(st)["blocks"][1]["triggers"], ["impersonate"])
+
+    def test_frankenstein_impersonation_turn_stays_out_of_normal_replies(self):
+        from mainapp import presets as presets_mod, starters
+        p = presets_mod.normalize(starters.get("mimo-frankenstein")["preset"])
+        block = next(b for b in p["blocks"] if "Impersonation Turn" in b["name"])
+        self.assertEqual(block["triggers"], ["impersonate"])
+
+    def test_write_my_message_goes_through_the_preset(self):
+        from mainapp import presets as presets_mod
+        obj = presets_mod.get_active(self.user)
+        data = presets_mod.normalize(obj.data)
+        data["utility"]["impersonation"] = "[Write as {{user}} now.]"
+        data["blocks"].insert(0, presets_mod.normalize_block(
+            {"name": "Imp", "content": "IMPERSONATE BLOCK", "triggers": ["impersonate"]}))
+        obj.data = data
+        obj.save()
+        self.post({"action": "chat", "message": "Hi"})
+        self.assertNotIn("IMPERSONATE BLOCK", json.dumps(self.sent[-1]["messages"]))
+        resp = self.post({"action": "expand", "text": "i nod"}).json()
+        self.assertEqual(resp["text"], "A reply.")
+        sent = json.dumps(self.sent[-1]["messages"])
+        self.assertIn("IMPERSONATE BLOCK", sent)
+        self.assertIn("Write as chatter now.", sent)
+        self.assertIn("i nod", sent)
+        self.assertIn("Hello, traveller.", sent)  # the chat itself

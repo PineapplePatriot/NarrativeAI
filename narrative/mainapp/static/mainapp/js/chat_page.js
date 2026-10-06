@@ -841,11 +841,30 @@ function generateSummary(mode, auto = false) {
     Summary.run(mode === 'regen' ? { mode: 'regen' } : {}, { quiet: auto });
 }
 
-function expandInput() {
-    const txt = messageInput.value; if (!txt) return alert("Draft something first!");
-    messageInput.value = "Expanding...";
-    fetch(window.location.href, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') }, body: JSON.stringify({ action: 'expand', text: txt }) })
-        .then(r => r.json()).then(d => { if (d.success) messageInput.value = d.text; else messageInput.value = txt; });
+// Write my message (impersonate): the AI writes your next message, or fleshes out your draft, following the
+// preset, lore and summary. Nothing is sent: it lands in the box for you to edit.
+async function expandInput() {
+    if (isGenerating) return;
+    const draft = messageInput.value;
+    const btn = document.getElementById('expandBtn');
+    if (btn) btn.disabled = true;
+    messageInput.value = draft ? 'Writing it out…' : 'Writing your message…';
+    try {
+        const resp = await fetch(window.location.href, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ action: 'expand', text: draft }),
+        });
+        const d = await resp.json();
+        messageInput.value = d.success ? d.text : draft;
+        if (!d.success) showChatNotice(d.error || 'Could not write it.');
+        updateSpending(d.spending);
+    } catch (err) { messageInput.value = draft; showChatNotice(err.message); }
+    finally {
+        if (btn) btn.disabled = false;
+        messageInput.style.height = 'auto';
+        messageInput.style.height = messageInput.scrollHeight + 'px';
+        messageInput.focus();
+    }
 }
 
 function spellcheckInput() {
@@ -969,15 +988,6 @@ function togglePlay() { if (bgMusic.paused) { bgMusic.play(); document.getElemen
 function stopMusic() { bgMusic.pause(); musicWidget.classList.add('hidden'); }
 function setVolume(v) { bgMusic.volume = v; }
 
-// Regeneration Logic
-const regenModal = document.getElementById('regenModal');
-function openRegenModal() { regenModal.classList.add('show'); }
-function closeRegenModal() { regenModal.classList.remove('show'); }
-function confirmRegenerate() {
-    const g = document.getElementById('regenGuidance').value;
-    closeRegenModal();
-    regenerateReply(g);
-}
 
 // A new version of the AI's last reply. The old one stays as a swipe (and comes back if this fails).
 function regenerateReply(guidance = '') {
@@ -1082,7 +1092,6 @@ document.addEventListener('keydown', (e) => {
 });
 
 // Add listeners for new Modals
-if (regenModal) regenModal.addEventListener('click', (e) => { if (e.target === regenModal) closeRegenModal(); });
 if (mediaModal) mediaModal.addEventListener('click', (e) => { if (e.target === mediaModal) closeMediaModal(); });
 
 
