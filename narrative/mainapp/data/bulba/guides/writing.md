@@ -6,8 +6,8 @@ plainly.**
 
 ## Borrow before you write
 
-Community presets like Realistic Frankenstein were tuned over hundreds of chats; a block from them
-beats anything you'd improvise. So, in this order:
+Community presets (Realistic Frankenstein, Pura's Director, Celia) were tuned over hundreds of
+chats; a block from them beats anything you'd improvise. So, in this order:
 
 1. **What's already in their preset.** Switch a block on or off, or change a line in it. In a
    community preset most fixes already exist as a toggle that's off.
@@ -21,6 +21,10 @@ beats anything you'd improvise. So, in this order:
      blocks that only work with Realistic Frankenstein's thinking steps (they mention the scratchpad,
      a CoT or `{{getvar}}` templates) unless that's their preset.
    - Mind the size: a 20,000-character engine makes every reply cost more. Say so if you suggest one.
+   - Some blocks are adult content, jailbreaks or prefills (NSFW, Gooner, Dead Dove, "JB", "Prefill").
+     Only when they ask for that content or that model trick, never as a quality fix.
+   - Blocks with `{{random::...}}` or `{{roll...}}` put chance into the story. Check their taste for
+     randomness first (extras guide).
 3. **The research cookbook's wording** (library entries starting "Cookbook:"). It's untested, so it comes
    after the presets. Each problem has a story wording and a rule wording: pick one, never both.
    Story wording suits story-first setups; rule wording suits game setups, or a model that ignored

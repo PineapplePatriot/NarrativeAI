@@ -8,11 +8,47 @@ from mainapp import starters
 
 # The presets Anya provided. Later files only add blocks the earlier ones don't have.
 SOURCES = ["mimo-frankenstein", "gemini-frankenstein", "mimo-frankenstein-pico"]
+# Community presets that aren't starters: their blocks only (converted from the SillyTavern files)
+LIBRARY_DIR = Path(__file__).resolve().parent.parent / "data" / "library"
+LIBRARY_FILES = ["pura-director-16", "celia-4-6"]
 # Original candidate wording from the research cookbook (docs/research/): untested, so it comes after the presets
 CANDIDATES = Path(__file__).resolve().parent.parent / "data" / "bulba" / "candidates.json"
 CANDIDATE_SOURCE = "Research cookbook (untested candidate)"
 PLACEHOLDER = re.compile(r"\[[a-z][^\]]*\]")
 NOTE = re.compile(r"\{\{//(.*?)\}\}", re.S)
+
+
+def _setvar_values(content):
+    """The values of top-level {{setvar::name::value}} macros (values may hold other macros)."""
+    values, i = [], 0
+    while True:
+        start = content.find("{{setvar::", i)
+        if start < 0:
+            return values
+        head = content.find("::", start + 10)
+        if head < 0:
+            return values
+        depth, j = 1, head + 2
+        while j < len(content) and depth:
+            if content.startswith("{{", j):
+                depth, j = depth + 1, j + 2
+            elif content.startswith("}}", j):
+                depth, j = depth - 1, j + 2
+            else:
+                j += 1
+        values.append(content[head + 2:j - 2])
+        i = j
+
+
+def _unwrap(content):
+    """A block that only stores its text in a variable (Pura's modes) does nothing when copied alone: use the text."""
+    values = _setvar_values(content)
+    rest = NOTE.sub("", content).replace("{{trim}}", "")
+    for v in values:
+        rest = rest.replace(v, "")
+    if values and not re.sub(r"\{\{setvar::[^:]*::\}\}", "", rest).strip():
+        return "\n\n".join(v.strip() for v in values)
+    return content
 
 
 def _summary(content):
@@ -36,6 +72,14 @@ def blocks():
             if "README" in name or "====" in name or name in found:
                 continue
             found[name] = {"name": name, "source": starter["title"], "content": content,
+                           "summary": _summary(content), "on_in_source": bool(b.get("enabled"))}
+    for fid in LIBRARY_FILES:
+        data = json.loads((LIBRARY_DIR / f"{fid}.json").read_text(encoding="utf-8"))
+        for b in data["blocks"]:
+            name, content = b["name"].strip(), b.get("content") or ""
+            if "README" in name or "Readme" in name or name in found or len(content.strip()) < 80:
+                continue
+            found[name] = {"name": name, "source": data["title"], "content": _unwrap(content),
                            "summary": _summary(content), "on_in_source": bool(b.get("enabled"))}
     for c in json.loads(CANDIDATES.read_text(encoding="utf-8")):
         for form, label in (("natural", "story wording"), ("structured", "rule wording")):
@@ -103,7 +147,7 @@ def tool_read_practice(session, args):
 
 def tool_defs(fn, STR):
     return [
-        fn("find_practice", "Search the tested blocks of the community presets (Realistic Frankenstein) for one "
+        fn("find_practice", "Search the tested blocks of the community presets (Realistic Frankenstein, Pura's Director, Celia) for one "
            "that already does what you need: anti-echo, dialogue, pacing, NPC behaviour, dice and stats, "
            "inventories, relationship meters, in-story graphics, coloured speech... Empty query lists them all. "
            "Check here before writing an instruction yourself.", {"query": STR}),
