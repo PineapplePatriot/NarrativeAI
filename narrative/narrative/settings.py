@@ -20,12 +20,28 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-@j*fchar=_5@me)6fya%a96&rigw5q0hn&td26p_+wk^m76^3s"
+# On a server, everything comes from environment variables (see docs/DEPLOY.md); locally the defaults work.
+import os
+
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY",
+                            "django-insecure-@j*fchar=_5@me)6fya%a96&rigw5q0hn&td26p_+wk^m76^3s")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("DJANGO_DEBUG", "1") == "1"
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [h.strip() for h in os.environ.get("DJANGO_ALLOWED_HOSTS", "").split(",") if h.strip()]
+if os.environ.get("RAILWAY_PUBLIC_DOMAIN"):  # Railway tells the app its own address
+    ALLOWED_HOSTS.append(os.environ["RAILWAY_PUBLIC_DOMAIN"])
+if DEBUG:
+    ALLOWED_HOSTS += ["localhost", "127.0.0.1", "[::1]"]
+CSRF_TRUSTED_ORIGINS = [f"https://{h}" for h in ALLOWED_HOSTS if h not in ("localhost", "127.0.0.1", "[::1]")]
+
+# Where the database, chats and uploads live. On a server this must be a persistent disk (a Railway volume).
+DATA_DIR = Path(os.environ.get("NARRATIVE_DATA_DIR") or Path(__file__).resolve().parent.parent)
+
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")  # the host ends HTTPS in front of the app
+    SESSION_COOKIE_SECURE = CSRF_COOKIE_SECURE = True
 
 
 # Application definition
@@ -44,6 +60,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",  # serves the CSS and JS when DEBUG is off
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -78,7 +95,9 @@ WSGI_APPLICATION = "narrative.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "NAME": DATA_DIR / "db.sqlite3",
+        # Streaming replies and background jobs write at the same time: wait for the lock, use WAL
+        "OPTIONS": {"timeout": 20, "init_command": "PRAGMA journal_mode=WAL;"},
     }
 }
 
@@ -122,7 +141,13 @@ STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
 
-MEDIA_ROOT = BASE_DIR / 'media'
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
+}
+
+MEDIA_ROOT = DATA_DIR / 'media'
 MEDIA_URL = '/media/'
 
 # Default primary key field type
@@ -152,3 +177,12 @@ SUBSCRIPTION_LIMIT_ENFORCED = True
 # The default image model for character pictures (Nano Banana 2, through OpenRouter). The character page
 # lists every image model OpenRouter offers; if this id isn't among them, the newest Nano Banana is used.
 SPRITE_IMAGE_MODEL = "google/gemini-3.1-flash-image"
+
+
+# Errors and warnings from the app go to the console (the host's log viewer)
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "root": {"handlers": ["console"], "level": "WARNING"},
+}

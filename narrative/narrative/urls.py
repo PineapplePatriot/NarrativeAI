@@ -14,16 +14,25 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+import posixpath
+
 from django.contrib import admin
 from django.http import Http404
 from django.urls import path, include, re_path
 from narrative import settings
-from django.conf.urls.static import static
+from django.views.static import serve
 from mainapp.views import index_page
 
 
-def private_media(request, *args):
-    raise Http404()
+PRIVATE_MEDIA = ("chat_logs", "worldbooks_json", "settings_json", "chat_settings2")
+
+
+def media(request, path):
+    """Uploaded files, except the private folders (chats, lorebooks, settings), which only the app reads."""
+    clean = posixpath.normpath(path).lstrip("/")
+    if clean.split("/", 1)[0] in PRIVATE_MEDIA or clean.startswith(".."):
+        raise Http404()
+    return serve(request, clean, document_root=settings.MEDIA_ROOT)
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -32,11 +41,7 @@ urlpatterns = [
     path('main/', include('mainapp.urls')),
 
 ]
-if settings.DEBUG:
-    # Private files live in media too (chat logs, lorebooks, old settings). They are only
-    # read by the app itself, so never hand them out by URL; everything else (sprites,
-    # backgrounds, music, voice clips) is served for the pages that show it.
-    urlpatterns += [
-        re_path(r"^media/(chat_logs|worldbooks_json|settings_json|chat_settings2)/", private_media),
-    ]
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Private files live in media too (chat logs, lorebooks, old settings). They are only read by the app itself,
+# so never hand them out by URL; everything else (sprites, backgrounds, music, voice clips) is served for the
+# pages that show it. On a server Django serves them itself: fine for a small site with a few users.
+urlpatterns += [re_path(r"^media/(?P<path>.*)$", media)]

@@ -759,7 +759,6 @@ def chat(request, slug):
                                 narrator_voice_id=character.eleven_voice_narr_id or None,
                                 character_voice_id=character.eleven_voice_char_id or None,
                                 second_character_voice_id=character.eleven_voice_second_id or None,
-                                output_dir="media/audio_files",
                                 is_mult=character.is_mult or (char_count > 1),
                             )
                         except Exception as e:

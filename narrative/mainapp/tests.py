@@ -3303,3 +3303,12 @@ class AddCharacterSlugTests(ChatPromptTests):
             self.client.post(reverse("add_character"), {"name": "Twin", "description": "A twin.", "initial_message": "Hi."})
         slugs = sorted(Character.objects.filter(name="Twin").values_list("slug", flat=True))
         self.assertEqual(slugs, ["chatter-twin", "chatter-twin-2"])
+
+
+class MediaPrivacyTests(ChatPromptTests):
+    def test_chat_logs_are_never_served(self):
+        self.post({"action": "chat", "message": "a secret"})
+        chat = self.character.chats.first()
+        name = chat.log_file.name  # chat_logs/...
+        for url in (f"/media/{name}", f"/media/./{name}", f"/media/x/../{name}", f"/media//{name}"):
+            self.assertEqual(self.client.get(url).status_code, 404, url)
