@@ -53,6 +53,11 @@ def index_page(request):
     return render(request, 'main.html', context)
 
 
+def guide_page(request):
+    """How to try the app: open to everyone, linked from the top bar and the home page."""
+    return render(request, "guide.html")
+
+
 @login_required
 def characters_list(request):
     return render(request, 'mainapp/characters.html')

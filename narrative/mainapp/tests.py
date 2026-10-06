@@ -3351,3 +3351,12 @@ class MoreExtrasTests(GameTests):
         text = tr.format_for_prompt(config, state)
         self.assertIn("Promised to return the book", text)
         self.assertNotIn("Found the key", text)
+
+
+class GuideTests(ChatPromptTests):
+    def test_guide_is_open_and_linked(self):
+        self.client.logout()
+        self.assertContains(self.client.get(reverse("guide")), "The 5-minute tour")
+        self.assertContains(self.client.get(reverse("users:login")), reverse("guide"))
+        self.client.force_login(self.user)
+        self.assertContains(self.client.get(reverse("home")), 'id="guideCard"')

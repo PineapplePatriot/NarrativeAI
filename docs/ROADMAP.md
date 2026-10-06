@@ -90,7 +90,5 @@ Still missing:
 
 ## Housekeeping
 
-- **Revoke the old OpenRouter key** that's still readable in the git history (an old comment in
-  `views.py`), if you haven't yet. *Needs Anya.*
 - **A pull request** for `claude/focused-dijkstra-7tv1w1` when you want to merge this round. Remember
   `python manage.py migrate` afterwards (new migrations for card fields and Bulba). *Needs Anya.*

@@ -1,0 +1,135 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guide - Narrative AI</title>
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
+    <style>
+        .guide { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; line-height: 1.6; }
+        .guide h1 { font-size: 2rem; margin-bottom: 6px; }
+        .guide .lead { color: var(--text-secondary, #a5adc0); margin-bottom: 28px; }
+        .guide h2 { font-size: 1.25rem; margin: 34px 0 10px; padding-top: 6px; border-top: 1px solid rgba(148,163,184,.18); }
+        .guide h3 { font-size: 1rem; margin: 18px 0 6px; }
+        .guide p, .guide li { color: var(--text-primary, #e6e8ef); }
+        .guide ul, .guide ol { padding-left: 22px; margin: 6px 0 10px; }
+        .guide li { margin: 4px 0; }
+        .guide a { color: #a78bfa; }
+        .guide .toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 8px; padding: 0; list-style: none; }
+        .guide .toc a { display: inline-block; padding: 5px 12px; border: 1px solid rgba(167,139,250,.45);
+            border-radius: 999px; text-decoration: none; font-size: .88rem; }
+        .guide .tip { border-left: 3px solid #a78bfa; padding: 8px 14px; margin: 12px 0;
+            background: rgba(126,58,242,.08); border-radius: 0 10px 10px 0; }
+        .guide kbd { font-family: inherit; font-size: .85em; padding: 1px 6px; border-radius: 6px;
+            border: 1px solid rgba(148,163,184,.4); background: rgba(148,163,184,.08); white-space: nowrap; }
+        .guide .credits li { color: var(--text-secondary, #a5adc0); }
+    </style>
+</head>
+<body>
+{% if request.user.is_authenticated %}{% include "partials/topbar.html" with active="guide" %}{% endif %}
+
+<main class="guide">
+    <h1>How to try Narrative AI</h1>
+    <p class="lead">A roleplay app: you chat with characters, and the app keeps the story consistent, with presets,
+        lorebooks, trackers, summaries and a setup assistant (a potato called Bulba). Five minutes is enough to see
+        the main ideas.</p>
+
+    <ul class="toc">
+        <li><a href="#tour">5-minute tour</a></li>
+        <li><a href="#bulba">Bulba</a></li>
+        <li><a href="#chat">The chat page</a></li>
+        <li><a href="#extras">Extras</a></li>
+        <li><a href="#presets">Presets and more</a></li>
+        <li><a href="#costs">Costs</a></li>
+    </ul>
+
+    <h2 id="tour">The 5-minute tour</h2>
+    <ol>
+        <li><b>Open a chat.</b> On the home page, pick a character (the demo account has Rose, an alchemist) and write
+            what you do or say. Replies appear word by word.</li>
+        <li><b>Try another version.</b> The arrows under the AI's last reply make a new version (a "swipe"); the
+            old one is kept, so you can flip between them.</li>
+        <li><b>Steer it.</b> Press the pen <kbd>✎</kbd> next to the message box. Type a rough wish in
+            <i>Director's note</i> ("she dodges the question"), press <kbd>🥔 Word it for me</kbd> to have Bulba
+            phrase it, then <kbd>↻ Rewrite last reply</kbd>.</li>
+        <li><b>Ask Bulba why.</b> If replies feel off (too long, too nice, writing your actions), press
+            <kbd>🥔 Bulba</kbd> in the chat's header and say so in plain words. Bulba looks at the chat, the preset
+            and the character, explains the cause and proposes one fix, which you can preview, apply and undo.</li>
+        <li><b>See the story state.</b> The <kbd>▤</kbd> button above the chat opens the trackers: where and when the
+            scene is, who's there, relationships, and so on.</li>
+    </ol>
+    <p class="tip">Thinking models (MiMo, Claude) show what they thought before replying in a folded
+        <i>Thoughts</i> box above the reply. Handy when a reply surprises you.</p>
+
+    <h2 id="bulba">Bulba, the setup potato</h2>
+    <p>Most roleplay apps hand you a wall of settings. Bulba asks what you like instead, shows you short samples
+        written by your own model, and builds the setup from your answers.</p>
+    <ul>
+        <li><b>Setup</b> (<kbd>🥔 Bulba</kbd> in the top bar): extras, how replies should read (with A/B samples),
+            your preset, who you are in the story, and the character. It can import a character card you already
+            have, research a character or world from fandom wikis, and write a lorebook for it.</li>
+        <li><b>In a chat</b> (<kbd>🥔 Bulba</kbd> in the chat header): fixes what bugs you in that chat. It prefers
+            tested wording from well-known community presets over writing its own.</li>
+        <li>Every change is a proposal with <kbd>Apply</kbd> and <kbd>Undo</kbd>. Nothing changes until you apply it.</li>
+        <li><b>Transcript</b> downloads the whole conversation with Bulba (never any keys), for reporting odd behaviour.</li>
+    </ul>
+
+    <h2 id="chat">The chat page</h2>
+    <h3>Messages</h3>
+    <ul>
+        <li>Hover or tap a message for <kbd>edit</kbd>, <kbd>branch</kbd> (a new chat that starts from that message)
+            and <kbd>delete</kbd>.</li>
+        <li><kbd>💬 Chats</kbd> in the header lists all chats with this character, including branches.</li>
+        <li>The small button inside the message box, <b>Write my message</b>, has the AI write your next message (or
+            flesh out your draft) in your voice. Nothing is sent until you press send.</li>
+    </ul>
+    <h3>The pen menu <kbd>✎</kbd></h3>
+    <ul>
+        <li><b>Director's note:</b> for the next reply only.</li>
+        <li><b>Pinned note:</b> something the AI should keep in mind for the whole chat.</li>
+        <li><b>Story memory:</b> the summary (for long chats), the trackers and which lore entries the last reply used.</li>
+        <li><b>Actions:</b> continue the last reply, spellcheck your message.</li>
+        <li><b>This chat:</b> who you are in this chat, the dialogue colour, the layout (chat bubbles, or a
+            <i>book</i> where replies read as chapters and your messages fold away), and this month's spending.</li>
+    </ul>
+
+    <h2 id="extras">Extras <span style="font-weight:400;font-size:.9rem">(on the home page)</span></h2>
+    <p>All optional, all off until you choose them:</p>
+    <ul>
+        <li><b>Story summary</b> and <b>story trackers</b>: automatic every few messages, or on request.</li>
+        <li><b>Character sprites</b>: pictures that match the mood of each reply (made with Nano Banana from one picture).</li>
+        <li><b>Dice and inventory</b>: for game-like stories, the app rolls real dice and keeps your items, so the AI
+            can't make them up. Off means no luck in the story at all.</li>
+        <li><b>Story extras</b>: when the scene calls for it, the app draws a letter, a phone screen, a noticeboard
+            with rumours, a relationship milestone or a scrapbook keepsake right inside the reply. Suggested actions
+            add buttons under each reply for when you're stuck.</li>
+        <li><b>Background jobs</b>: summaries and trackers can run on a cheaper model than your chat.</li>
+    </ul>
+
+    <h2 id="presets">Presets, lorebooks and the rest</h2>
+    <ul>
+        <li><b>Presets</b>: the instructions sent with every reply. Starters are tuned per model; SillyTavern presets
+            import as they are, with their text rules (regex). The <i>Preview</i> tab shows exactly what's sent.</li>
+        <li><b>Worldbooks</b> (lorebooks): facts that enter the story only when they come up.</li>
+        <li><b>Characters</b>: create your own, or import SillyTavern / Chub cards (.png or .json), with their lore,
+            notes and text rules.</li>
+        <li><b>Samplers</b> and <b>Connections</b>: model settings and API keys, for people who want them.</li>
+    </ul>
+
+    <h2 id="costs">Costs</h2>
+    <p>Every reply is paid on the connected OpenRouter key. The pen menu shows this month's total, and the app stops
+        at the monthly limit ($25). Bulba shows what it has spent in its side panel.</p>
+
+    <h2>Credits</h2>
+    <ul class="credits">
+        <li>Community presets used as tested wording: <a href="https://www.reddit.com/r/SillyTavernAI/s/TaStxDj7Ec"
+            target="_blank" rel="noopener">Realistic Frankenstein</a>, Pura's Director preset, Celia.</li>
+        <li>Tracker ideas after Marinara Engine; format after SillyTavern.</li>
+    </ul>
+    {% if request.user.is_authenticated %}<p><a href="{% url 'home' %}">← Back to your characters</a></p>
+    {% else %}<p><a href="{% url 'users:login' %}">Log in →</a></p>{% endif %}
+</main>
+</body>
+</html>

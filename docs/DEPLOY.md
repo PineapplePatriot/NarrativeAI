@@ -60,6 +60,7 @@ Open the link, log in as `demo` with your `DEMO_PASSWORD`, and check a chat repl
 - **Login:** `demo` / your `DEMO_PASSWORD`
 - A starter preset for the demo model and one character (Rose) to talk to. They can also register their
   own account and go through Bulba's setup.
+- A guide at `/main/guide/` (also linked from the login page and the top bar): what to try in five minutes.
 
 ## Updating
 
@@ -74,8 +75,3 @@ stays. Database changes (migrations) run automatically on start.
 - **Replies never arrive:** check the demo key and its credit limit on OpenRouter, and the logs.
 - **Pictures or voices missing:** they live on the volume; files from your own computer aren't uploaded.
   Add them again through the app.
-
-## Before graders get the link
-
-Revoke the old OpenRouter key that's still readable in the git history (an old comment in `views.py`), if
-you haven't yet. The repository may be public, and that key would work for anyone.
