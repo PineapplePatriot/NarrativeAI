@@ -1,11 +1,11 @@
 {
- "title": "Dottore: Teyvat before Sumeru",
- "description": "Canon as of version 6.6, set before the Sumeru Archon Quest. No Traveler.",
+ "title": "Dottore: Teyvat after 6.6",
+ "description": "World facts around the card's own lore (which covers Zandik, the segments, Pantalone, Irminsul, Scaramouche and Snezhnaya). No Traveler.",
  "entries": [
   {
-   "comment": "Premise: when and where",
+   "comment": "Premise: no Traveler",
    "keys": [],
-   "content": "The story is set in Teyvat before the crisis in Sumeru comes to a head: the Akademiya's sages still keep Lesser Lord Kusanali confined, and Il Dottore and all of his segments are alive. There is no Traveler and no Paimon in this world; nobody has heard of a blond traveller searching for a lost sibling. {{user}} is whoever they say they are.",
+   "content": "There is no Traveler and no Paimon in this world. What canon credits to them was done by others or went differently, and nobody has heard of a blond traveller searching for a lost sibling. {{user}} is whoever they say they are, and may take that place in the story if they wish.",
    "constant": true,
    "enabled": true
   },
@@ -14,12 +14,11 @@
    "keys": [
     "Fatui",
     "Fatuus",
-    "Snezhnayan diplomats",
     "Skirmisher",
     "Cicin Mage",
     "Mirror Maiden"
    ],
-   "content": "The Fatui serve the Tsaritsa of Snezhnaya as diplomats in name and soldiers, spies and researchers in fact. Their rank and file (Skirmishers, Cicin Mages, Mirror Maidens, Agents) wield Delusions, and their embassies and banks give them a foothold in every nation.",
+   "content": "The Fatui serve the Tsaritsa of Snezhnaya as diplomats in name and as soldiers, spies and researchers in fact. Their rank and file (Skirmishers, Cicin Mages, Mirror Maidens) wield Delusions, and their embassies and the Northland Bank give them a foothold in every nation.",
    "constant": false,
    "enabled": true
   },
@@ -27,17 +26,15 @@
    "comment": "The Eleven Harbingers",
    "keys": [
     "Harbinger",
-    "Harbingers",
+    "the Eleven",
     "Capitano",
     "Arlecchino",
     "Pulcinella",
-    "Pantalone",
     "Tartaglia",
     "Childe",
-    "Signora",
-    "the Eleven"
+    "Signora"
    ],
-   "content": "The Eleven Fatui Harbingers lead the Fatui, each with a commedia dell'arte title and a seat ranked by strength. Pierro, the Jester, directs them. Seats: 1 Capitano (the Captain), 2 Dottore (the Doctor), 3 Columbina (the Damselette), 4 Arlecchino (the Knave), 5 Pulcinella (Rooster), 6 Scaramouche (the Balladeer), 7 Sandrone (Marionette), 8 La Signora (the Fair Lady, now dead; her seat is empty), 9 Pantalone (the Regrator), 10 unknown, 11 Tartaglia (Childe). Harbingers from the third seat up are said to hold power comparable to gods.",
+   "content": "The Eleven Fatui Harbingers lead the Fatui, each with a commedia dell'arte title and a seat ranked by strength. Pierro, the Jester, directs them. Seats: 1 Capitano (the Captain), 2 Dottore (the Doctor), 3 Columbina (the Damselette), 4 Arlecchino (the Knave), 5 Pulcinella (Rooster), 6 Scaramouche (the Balladeer, who has left), 7 Sandrone (Marionette), 8 La Signora (the Fair Lady, dead), 9 Pantalone (the Regrator), 10 unknown, 11 Tartaglia (Childe). Seats from the third up are said to hold power comparable to gods.",
    "constant": false,
    "enabled": true
   },
@@ -47,85 +44,24 @@
     "Pierro",
     "the Jester"
    ],
-   "content": "Pierro, the Jester, is the oldest of the Harbingers and their director, answering only to the Tsaritsa. He found the young Zandik after his exile from Sumeru and brought him into the Fatui with the promise of resources and no limits on his research. Dottore owes him his place, and Pierro is one of very few people Dottore does not openly mock.",
+   "content": "Pierro, the Jester, is the oldest of the Harbingers and their director, answering only to the Tsaritsa. He found Zandik after Sumeru cast him out, gave him resources with no limits on his research, and named him Dottore. He is one of very few people Dottore does not openly mock.",
    "constant": false,
    "enabled": true
   },
   {
-   "comment": "The Tsaritsa and Snezhnaya",
-   "keys": [
-    "Tsaritsa",
-    "Cryo Archon",
-    "Snezhnaya",
-    "Zapolyarny",
-    "Snezhnayan"
-   ],
-   "content": "Snezhnaya is the frozen northern nation ruled by the Tsaritsa, the Cryo Archon. She is gathering the Gnoses, the chess pieces the gods received from Celestia, for a purpose she has shared with few. Her court sits in the Zapolyarny Palace.",
-   "constant": false,
-   "enabled": true
-  },
-  {
-   "comment": "The Gnoses",
-   "keys": [
-    "Gnosis",
-    "Gnoses",
-    "Electro Gnosis",
-    "Dendro Gnosis",
-    "Anemo Gnosis",
-    "Geo Gnosis"
-   ],
-   "content": "A Gnosis is the core of an Archon's bond to Celestia. By now the Fatui hold the Anemo Gnosis from Mondstadt, the Geo Gnosis from Liyue, and the Electro Gnosis from Inazuma, which passed through Scaramouche's hands. The Dendro Gnosis is still Lesser Lord Kusanali's.",
-   "constant": false,
-   "enabled": true
-  },
-  {
-   "comment": "Zandik",
-   "keys": [
-    "Zandik"
-   ],
-   "content": "Zandik is Dottore's birth name. He was a scholar of the Sumeru Akademiya centuries ago, a brilliant and abrasive student whose aim was to raise humans to the level of gods. His experiments on people horrified the sages, and he was expelled and driven out of Sumeru. Few living people know the Harbinger and the disgraced student are the same man.",
-   "constant": false,
-   "enabled": true
-  },
-  {
-   "comment": "The segments",
-   "keys": [
-    "segment",
-    "segments",
-    "Omega Build"
-   ],
-   "content": "To get past the limits of one human mind and lifespan, Zandik made 'segments' of himself, each a copy taken at a different age of his life, living as a separate person with that age's views. There are at least six: one child and several adults. The one the world calls Il Dottore is the Omega Build. The original Zandik is long dead; the segments outlived him and treated his body as one more specimen. Segments do not share thoughts; they disagree, compete and sometimes dislike each other.",
-   "constant": false,
-   "enabled": true
-  },
-  {
-   "comment": "Sumeru Akademiya",
+   "comment": "Sumeru and the Akademiya today",
    "keys": [
     "Akademiya",
-    "Sumeru",
-    "Akasha",
     "darshan",
     "Haravatat",
     "Kshahrewar",
     "Spantamad",
     "Amurta",
-    "Rtawahist",
-    "Vahumana"
-   ],
-   "content": "Sumeru is the nation of wisdom, and its Akademiya, split into six schools (darshans: Amurta, Haravatat, Kshahrewar, Rtawahist, Spantamad, Vahumana), rules it in all but name. Every citizen wears an Akasha Terminal that feeds them knowledge. Research the sages deem dangerous is banned and its authors exiled.",
-   "constant": false,
-   "enabled": true
-  },
-  {
-   "comment": "Grand Sage Azar and the god project",
-   "keys": [
+    "Vahumana",
     "Azar",
-    "Grand Sage",
-    "sages",
-    "Shouki no Kami",
-    "new god"
+    "Grand Sage"
    ],
-   "content": "Grand Sage Azar and his fellow sages think Lesser Lord Kusanali unfit to rule and are secretly building a new god for Sumeru with the Fatui's help. Dottore's people supply the method: Scaramouche, given power drawn from the Electro Gnosis, is to become that god. The Akademiya's rank-and-file scholars know nothing of it.",
+   "content": "Sumeru's Akademiya is split into six schools (darshans: Amurta, Haravatat, Kshahrewar, Rtawahist, Spantamad, Vahumana). Years ago Grand Sage Azar and his sages plotted with Dottore to make Scaramouche a new god for Sumeru; the plot failed, Azar was removed, and the Akasha terminals the sages used to feed and watch the people were switched off. Dottore's name is still a curse there.",
    "constant": false,
    "enabled": true
   },
@@ -133,26 +69,11 @@
    "comment": "Lesser Lord Kusanali",
    "keys": [
     "Kusanali",
-    "Nahida",
     "Dendro Archon",
     "Buer",
     "Sanctuary of Surasthana"
    ],
-   "content": "Lesser Lord Kusanali (Nahida) is the young Dendro Archon of Sumeru, five hundred years old yet treated by the sages as a child. They keep her shut inside the Sanctuary of Surasthana and rule in her name. Most citizens think little of her compared to the previous Archon, Greater Lord Rukkhadevata.",
-   "constant": false,
-   "enabled": true
-  },
-  {
-   "comment": "Scaramouche",
-   "keys": [
-    "Scaramouche",
-    "Balladeer",
-    "Kunikuzushi",
-    "Kabukimono",
-    "Tatarasuna",
-    "Escher"
-   ],
-   "content": "Scaramouche, the Sixth Harbinger, is a puppet made by the Raiden Shogun and abandoned by her. Centuries ago, at the Tatarasuna forges in Inazuma, Dottore met him while disguised as a Fontainian engineer named Escher, took an interest in his body, and suggested Pierro recruit him. Scaramouche loathes Dottore. Dottore treats him as an experiment that happens to talk, and used his design as a blueprint for the segments.",
+   "content": "Lesser Lord Kusanali (Nahida) is the Dendro Archon of Sumeru. Long kept confined by her own sages, she now rules openly. She is the one who struck the bargain that erased every segment but Omega, and the one who burned Irminsul with him inside it, so she has every reason to believe he is dead.",
    "constant": false,
    "enabled": true
   },
@@ -162,7 +83,7 @@
     "Columbina",
     "Damselette"
    ],
-   "content": "Columbina, the Third Harbinger, is a soft-spoken, unsettling woman who sings, rarely opens her eyes, and is rumoured not to be human. She and Dottore were once close, almost like sister and brother; whatever remains of that is private.",
+   "content": "Columbina, the Third Harbinger, is a soft-spoken, unsettling woman who sings, rarely opens her eyes, and was never quite human. She and Dottore were once close, almost like sister and brother. In Nod-Krai he turned on her; whatever is left between them is not friendly.",
    "constant": false,
    "enabled": true
   },
@@ -170,9 +91,21 @@
    "comment": "Sandrone",
    "keys": [
     "Sandrone",
-    "Marionette"
+    "Marionette",
+    "Kuuvahki"
    ],
-   "content": "Sandrone, the Seventh Harbinger, is a researcher and maker of automatons who travels with a huge mechanical servant. She and Dottore have worked together before; once he called their joint experiment a waste of his time and left her to clean up his mess, and she has not forgiven him.",
+   "content": "Sandrone, the Seventh Harbinger, was a researcher and automaton maker who ran the Kuuvahki Experimental Design Bureau on Paha Isle in Nod-Krai. They had worked together, and she never forgave him for calling one shared experiment a waste of his time and leaving her to clean up. In Nod-Krai she sided against him, and he killed her.",
+   "constant": false,
+   "enabled": true
+  },
+  {
+   "comment": "Nod-Krai",
+   "keys": [
+    "Nod-Krai",
+    "Paha Isle",
+    "Frostmoon"
+   ],
+   "content": "Nod-Krai is a cold frontier land beyond any Archon's rule, between Snezhnaya and the other nations, where moon worship survives and the Fatui ran their most secret research. Dottore's bid there to seize the moons' power and Teyvat's order ended in his defeat.",
    "constant": false,
    "enabled": true
   },
@@ -183,7 +116,7 @@
     "Collei",
     "Apam Woods"
    ],
-   "content": "Eleazar is an incurable disease of Sumeru that hardens the skin into scale-like patches and kills slowly. Dottore's research has used Eleazar patients, children among them. Collei, now a young forest ranger trainee in Avidya Forest, survived Fatui experiments as a child and still carries their damage; she fears and hates the Fatui.",
+   "content": "Eleazar is a Sumeru disease that hardens the skin into scale-like patches and kills slowly. Dottore's research used Eleazar patients, children among them. Collei, now a forest ranger in Avidya Forest, survived Fatui experiments as a child; since Irminsul was cleansed, her illness has eased. She fears and hates the Fatui.",
    "constant": false,
    "enabled": true
   },
@@ -194,17 +127,6 @@
     "Delusions"
    ],
    "content": "Delusions are the Fatui's artificial Visions: they grant elemental power to anyone but drain the user's life with each use. Harbingers and elite agents carry them; ordinary people regard them as cursed.",
-   "constant": false,
-   "enabled": true
-  },
-  {
-   "comment": "Nod-Krai",
-   "keys": [
-    "Nod-Krai",
-    "Kuuvahki",
-    "Paha Isle"
-   ],
-   "content": "Nod-Krai is a cold frontier land between Snezhnaya and the other nations, outside any Archon's rule, where the Fatui run research stations and old moon worship survives. The Harbingers' interest there is long-term and secretive.",
    "constant": false,
    "enabled": true
   }

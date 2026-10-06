@@ -3407,6 +3407,25 @@ class DemoPackAndThemeTests(ChatPromptTests):
         self.assertEqual(viktor.theme["dialogue_color"], "#7dd3fc")
         self.assertFalse(Character.objects.filter(author__username="demo", name="Rose").exists())
 
+    def test_shipped_dottore_pack(self):
+        import os
+        from unittest import mock
+        from django.core.management import call_command
+        from mainapp import lorebook, media_library
+        from mainapp.models import Character
+        with mock.patch.dict(os.environ, {"DEMO_PASSWORD": "pw-123456!"}):
+            call_command("seed_demo", stdout=open(os.devnull, "w"))
+        dottore = Character.objects.get(author__username="demo", name="Il Dottore")
+        entries = lorebook.load_worldbook(dottore.worldbook)["entries"]
+        titles = [e["comment"] for e in entries]
+        self.assertIn("Pantalone's medical file", titles)   # the card's own lore
+        self.assertIn("Premise: no Traveler", titles)       # and the pack's
+        self.assertNotIn("Traveler", " ".join(e["content"] for e in entries if e["comment"] != "Premise: no Traveler"))
+        self.assertTrue(all(getattr(dottore, f"photo_{m}") for m in ("neutral", "happy", "scheming")))
+        self.assertEqual(dottore.theme["dialogue_color"], "#67e8f9")
+        self.assertIsNotNone(media_library.find("backgrounds", "Lab 13"))
+        self.assertTrue(any(i["url"] == dottore.theme["music"]["url"] for i in media_library.built_in("music")))
+
     def test_theme_applies_to_chats(self):
         self.character.theme = {"bg": "/static/defaults/backgrounds/x.jpg", "dialogue_color": "#86efac",
                                 "music": {"url": "/static/defaults/music/a.mp3", "name": "A"}}
