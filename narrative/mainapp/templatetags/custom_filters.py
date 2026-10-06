@@ -24,3 +24,8 @@ def tagline(text):
     text = re.sub(r"(?m)^\s*[\w'{} ]{1,40}:\s*$", "", text or "")
     text = re.sub(r"^\s*(Identity|Description|Summary)\s*:\s*", "", text.strip(), flags=re.I)
     return " ".join(text.split())
+
+
+@register.filter
+def split(text, sep=","):
+    return str(text or "").split(sep)

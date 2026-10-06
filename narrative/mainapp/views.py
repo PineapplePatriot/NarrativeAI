@@ -8,11 +8,12 @@ from datetime import datetime
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files.base import ContentFile
-from django.http import HttpResponse, JsonResponse, HttpResponseNotFound, StreamingHttpResponse
+from django.http import Http404, HttpResponse, JsonResponse, HttpResponseNotFound, StreamingHttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.utils.text import slugify
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.generic import (
     TemplateView, ListView, DetailView,
     FormView, CreateView, UpdateView
@@ -106,7 +107,8 @@ def chat(request, slug):
         "summary_paused": False,  # automatic summaries are paused for this chat
         "context_guides": {},
         "current_bg": "",
-        "current_music": {}
+        "current_music": {},
+        "persona": {},          # {"name", "description"}: who the user is in this chat only (else their usual persona)
     }
 
     def summary_payload():
@@ -144,6 +146,7 @@ def chat(request, slug):
                         chat_state["context_guides"] = data.get("context_guides", {})
                         chat_state["current_bg"] = data.get("current_bg", "")
                         chat_state["current_music"] = data.get("current_music", {})
+                        chat_state["persona"] = data.get("persona") if isinstance(data.get("persona"), dict) else {}
                         messages_list = data.get("messages", [])
                     else:
                         messages_list = data
@@ -171,7 +174,7 @@ def chat(request, slug):
         rules = regex_rules.for_chat(presets.normalize(presets.get_active(request.user).data), character)
         if edits_only:
             rules = [r for r in rules if r["run_on_edit"]]
-        return regex_rules.run(rules, mode, text, role, prompt_names(request.user, character))
+        return regex_rules.run(rules, mode, text, role, prompt_names(request.user, character, chat_state["persona"]))
 
     # --- Save messages to file ---
     def save_messages(messages):
@@ -185,7 +188,8 @@ def chat(request, slug):
             "tracker_history": chat_state["tracker_history"],
             "context_guides": chat_state["context_guides"],
             "current_bg": chat_state["current_bg"],
-            "current_music": chat_state["current_music"]
+            "current_music": chat_state["current_music"],
+            "persona": chat_state["persona"],
         }
         with open(chat_file_path, "w", encoding="utf-8") as f:
             json.dump(full_data, f, ensure_ascii=False, indent=2)
@@ -463,55 +467,61 @@ def chat(request, slug):
             emo1, _, emo2 = (emotion or "neutral").partition("|")
             return JsonResponse({
                 "success": True, "reply": text, "emotion": emotion, "char_count": char_count,
+                "reasoning": chats.reasoning_of(messages[-1]),
                 "photo_url": _photo(character, "photo", emo1),
                 "photo_second": _photo(character, "photo_second", emo2 or "neutral")
                 if (character.is_mult or char_count >= 2) else None,
                 "swipes": chats.version_info(messages),
             })
 
-        # --- 5. CONTINUE (Fixed) ---
+        # --- 5. CONTINUE: the AI carries on its last reply, with the same preset, lore and summary ---
         elif action == "continue":
             if not messages or messages[-1][0] != "assistant":
                 return JsonResponse({"success": False, "error": "Can only continue the AI's last message."})
-
-            # 1. Get the partial text and remove it from the history list used for the prompt
             last_text = messages[-1][2]
-            # We slice everything EXCEPT the last message to give the AI context
-            history_context = messages[:-1]
-
-            # 2. Build the System Prompt manually for this specific task
-            # We instruct the AI that it is continuing a specific text.
-            system_instruction = (
-                f"Your last response was cut-off. You are continuing the following text exactly where it stopped. "
-                f"Do not repeat the beginning. Output only the continuation and give it an ending logical for the message.\n\n"
-                f"TEXT SO FAR:\n{last_text}"
-            )
-
-            # 3. Construct API Messages
-            api_messages = [{"role": "system", "content": system_instruction}]
-
-            # Add recent history (last 5 messages) for context, so it remembers the topic
-            for m in history_context[-5:]:
-                api_messages.append({"role": "assistant" if m[0] == "assistant" else "user", "content": m[2]})
-
             try:
-                # 4. Call API
-                sampler_values = samplers.for_user(request.user)
+                worldbook_slug = (character.worldbook.slug if character.worldbook
+                                  and character.worldbook.author == request.user else None)
+                prompt = build_ai_request(request.user, character, chat=chat_obj, worldbook_slug=worldbook_slug,
+                                          message=None, guidance="",
+                                          persistent_guides=chat_state["context_guides"],
+                                          summary=chat_state["summary"])
+                preset = presets.normalize(presets.get_active(request.user).data)
                 _, chat_model = ai_client.resolve(request.user, "chat")
-                sampler_params, _ = samplers.to_api_params(sampler_values, chat_model)
-                sampler_params.setdefault("max_tokens", 500)  # a continuation is short unless set
-                new_chunk = ai_client.complete(request.user, "chat", api_messages, **sampler_params)
-
-                # 5. Combine and Save
-                full_text = text_rules("saved", last_text + " " + new_chunk, "assistant")
-                messages[-1] = chats.set_text(messages[-1], full_text)
-                save_messages(messages)
-
-                return JsonResponse({"success": True, "reply": full_text})
-
-            except Exception as e:
-                print(f"Continue Error: {e}")
+                names = prompt_names(request.user, character, chat_state["persona"])
+                history = [{"role": m[0], "content": m[2]} for m in messages if m[0] in ("user", "assistant")]
+                history = regex_rules.run_on_history(regex_rules.for_chat(preset, character), history, names)
+                # The unfinished reply is the last message; the preset's continue nudge comes after it
+                nudge = preset["utility"]["continue_nudge"].strip() or presets.UTILITY_DEFAULTS["continue_nudge"]
+                history.append({"role": "system", "content": nudge})
+                built = presets.assemble(preset, prompt_slots(request.user, character, prompt, chat_state["persona"]),
+                                         history, names, chat_model)
+                new_chunk = ai_client.complete(request.user, "chat", built["messages"], **built["params"])
+            except ai_client.AIError as e:
                 return JsonResponse({"success": False, "error": str(e)})
+
+            new_chunk = (new_chunk or "").rstrip()
+            if new_chunk and not new_chunk[0].isspace() and new_chunk[0] not in ".,;:!?)…'\"" and not last_text.endswith((" ", "\n")):
+                new_chunk = " " + new_chunk
+            full_text = text_rules("saved", last_text + new_chunk, "assistant")
+            messages[-1] = chats.set_text(messages[-1], full_text)
+            save_messages(messages)
+            return JsonResponse({"success": True, "reply": full_text})
+        elif action == "chat_persona":  # who the user is in this chat only; empty name = their usual persona
+            name = str(data.get("name") or "").strip()[:100]
+            chat_state["persona"] = ({"name": name, "description": str(data.get("description") or "").strip()[:4000]}
+                                     if name else {})
+            save_messages(messages)
+            return JsonResponse({"success": True, "persona": chat_state["persona"],
+                                 "name": prompt_names(request.user, character, chat_state["persona"])["user"]})
+        elif action == "appearance":  # dialogue colour: a hex colour, or "preset" to leave it to the preset
+            color = str(data.get("dialogue_color") or "")
+            if color != "preset" and not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
+                return JsonResponse({"success": False, "error": "Pick a colour."}, status=400)
+            settings_obj, _ = ChatSettings.objects.get_or_create(author=request.user)
+            settings_obj.appearance = {**(settings_obj.appearance or {}), "dialogue_color": color}
+            settings_obj.save(update_fields=["appearance"])
+            return JsonResponse({"success": True, **_appearance(request.user)})
         elif action == "save_media":
             m_type = data.get("type")
             url = data.get("url")
@@ -579,15 +589,17 @@ def chat(request, slug):
                     # --- Build the request from the active preset ---
                     preset = presets.normalize(presets.get_active(request.user).data)
                     _, chat_model = ai_client.resolve(request.user, "chat")
-                    names = prompt_names(request.user, character)
+                    names = prompt_names(request.user, character, chat_state["persona"])
                     history = regex_rules.run_on_history(regex_rules.for_chat(preset, character), api_messages, names)
-                    built = presets.assemble(preset, prompt_slots(request.user, character, prompt),
+                    built = presets.assemble(preset, prompt_slots(request.user, character, prompt, chat_state["persona"]),
                                              history, names, chat_model)
                     context_dropped = built["dropped"]
                     # Stream when the page asks for it and the preset allows it
                     streaming = bool(data.get("stream")) and preset["options"].get("streaming", True)
                     if not streaming:
-                        reply = ai_client.complete(request.user, "chat", built["messages"], **built["params"])
+                        message, _ = ai_client.complete_message(request.user, "chat", built["messages"], **built["params"])
+                        reply = message.get("content") or ""
+                        reasoning = (message.get("reasoning") or message.get("reasoning_content") or "").strip()
 
                 except ai_client.AIError as e:
                     # Keep the user's message so they can press Regenerate (and the old reply, if regenerating)
@@ -602,7 +614,7 @@ def chat(request, slug):
                     save_messages(messages)
                     return JsonResponse({"error": f"Something went wrong while building the prompt: {e}"}, status=500)
 
-                def finish_reply(reply):
+                def finish_reply(reply, reasoning=""):
                     """Emotion, saving, voice and the summary/tracker flags, once the reply is complete."""
                     reply = text_rules("saved", reply, "assistant")
                     char_count = 1
@@ -656,7 +668,8 @@ def chat(request, slug):
 
                     # Store emotions as "happy|sad" string
                     final_emotion_str = f"{emotion_char_1}|{emotion_char_2}"
-                    new_message = ("assistant", datetime.now().strftime("%H:%M"), reply, final_emotion_str, char_count)
+                    new_message = chats.with_reasoning(
+                        ("assistant", datetime.now().strftime("%H:%M"), reply, final_emotion_str, char_count), reasoning)
                     messages.append(chats.add_version(regen_from, new_message) if regen_from else new_message)
 
                     photo_url = _photo(character, "photo", emotion_char_1)
@@ -699,6 +712,7 @@ def chat(request, slug):
 
                     return {
                         "reply": reply,
+                        "reasoning": reasoning,
                         "emotion": final_emotion_str,
                         "photo_url": photo_url,
                         "photo_second": photo_second,
@@ -709,20 +723,22 @@ def chat(request, slug):
                         "trackers_due": trackers_due,
                         "context_dropped": context_dropped,
                         "swipes": chats.version_info(messages),
+                        "spending": ai_client.spending(request.user),
                     }
 
                 if not streaming:
-                    return JsonResponse(finish_reply(reply))
+                    return JsonResponse(finish_reply(reply, reasoning))
 
                 def stream_reply():
                     """NDJSON lines: {"type": "delta", "text"} ..., then {"type": "done", ...} or {"type": "error"}."""
-                    parts, finished = [], False
+                    parts, thoughts, finished = [], [], False
 
                     def keep_partial():
                         # Keep whatever arrived (Stop button, closed tab or a broken stream)
                         text = text_rules("saved", "".join(parts), "assistant").strip()
                         if text:
-                            partial = ("assistant", datetime.now().strftime("%H:%M"), text, "neutral|neutral", 1)
+                            partial = chats.with_reasoning(("assistant", datetime.now().strftime("%H:%M"), text,
+                                                            "neutral|neutral", 1), "".join(thoughts).strip())
                             messages.append(chats.add_version(regen_from, partial) if regen_from else partial)
                         elif regen_from:
                             messages.append(regen_from)  # nothing new arrived: keep the old reply
@@ -731,6 +747,10 @@ def chat(request, slug):
                     try:
                         try:
                             for chunk in ai_client.stream(request.user, "chat", built["messages"], **built["params"]):
+                                if isinstance(chunk, ai_client.Reasoning):
+                                    thoughts.append(chunk)
+                                    yield json.dumps({"type": "thinking", "text": chunk}, ensure_ascii=False) + "\n"
+                                    continue
                                 parts.append(chunk)
                                 yield json.dumps({"type": "delta", "text": chunk}, ensure_ascii=False) + "\n"
                         except ai_client.AIError as e:
@@ -738,7 +758,7 @@ def chat(request, slug):
                             finished = True
                             yield json.dumps({"type": "error", "error": str(e), "kept": bool("".join(parts).strip())}) + "\n"
                             return
-                        payload = finish_reply("".join(parts))
+                        payload = finish_reply("".join(parts), "".join(thoughts).strip())
                         finished = True
                         yield json.dumps({"type": "done", **payload}, ensure_ascii=False) + "\n"
                     except GeneratorExit:
@@ -804,12 +824,19 @@ def chat(request, slug):
         user_avatar = request.user.photo.url
 
     context = {
-        "messages": [m[:5] for m in messages],  # the template shows the version on screen
+        # The template shows the version on screen, and its thoughts (if the model sent any)
+        "messages": [tuple(m[:5]) + (chats.reasoning_of(m),) for m in messages],
         "swipes": chats.version_info(messages),
+        "spending": ai_client.spending(request.user),
+        "appearance": _appearance(request.user),
+        "bulba_url": reverse("bulba_chat", kwargs={"chat_id": chat_obj.id}),
         "display_rules": {
             "rules": [r for r in regex_rules.for_chat(presets.normalize(presets.get_active(request.user).data), character)
                       if r["enabled"] and r["mode"] == "display"],
-            "names": prompt_names(request.user, character)},
+            "names": prompt_names(request.user, character, chat_state["persona"])},
+        "chat_persona": chat_state["persona"],
+        "usual_persona": {"name": getattr(request.user, "persona_name", "") or "",
+                          "description": getattr(request.user, "persona_description", "") or ""},
         "character": character,
         "photo_url": photo_url,
         "photo_second": photo_second,
@@ -831,13 +858,25 @@ def chat(request, slug):
     return render(request, "mainapp/chat_page.html", context)
 
 
-def prompt_names(user, character):
-    """{{char}} and {{user}}: the persona name wins over the account name."""
+DIALOGUE_DEFAULT = "#e594f2"
+
+
+def _appearance(user):
+    settings_obj = ChatSettings.objects.filter(author=user).first()
+    look = dict(settings_obj.appearance or {}) if settings_obj else {}
+    color = look.get("dialogue_color") or DIALOGUE_DEFAULT
+    if color != "preset" and not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
+        color = DIALOGUE_DEFAULT
+    return {"dialogue_color": color}
+
+
+def prompt_names(user, character, chat_persona=None):
+    """{{char}} and {{user}}: this chat's persona name, else the usual persona name, else the account name."""
     return {"char": character.name or "Character",
-            "user": getattr(user, "persona_name", None) or user.name or user.username}
+            "user": (chat_persona or {}).get("name") or getattr(user, "persona_name", None) or user.name or user.username}
 
 
-def prompt_slots(user, character, prompt):
+def prompt_slots(user, character, prompt, chat_persona=None):
     """Text for the preset's slots (markers), from the character, persona and build_ai_request."""
     extra = prompt.get("SystemPrompts", {})
     return {
@@ -848,13 +887,38 @@ def prompt_slots(user, character, prompt):
         "card_system_prompt": character.system_prompt or "",
         "card_post_history": character.post_history_instructions or "",
         "scenario": character.scenario or "",
-        "persona": getattr(user, "persona_description", None) or "",
+        "persona": ((chat_persona or {}).get("description") if (chat_persona or {}).get("name")
+                    else getattr(user, "persona_description", None)) or "",
         "lore": extra.get("WorldInfo", ""),
         "summary": extra.get("StorySummary", ""),
         "trackers": extra.get("StoryState", ""),
         "world_context": extra.get("WorldContext", ""),
         "director_note": extra.get("DirectorNote", ""),
     }
+
+
+def build_chat_request(user, chat_obj, preset=None, character=None, drop_last_reply=True):
+    """
+    The request a chat would send for its next AI reply (or, with drop_last_reply, to re-answer the last user
+    message), optionally with another preset or an edited character. Used by Bulba to rewrite a reply with a
+    proposed change. Returns presets.assemble()'s result.
+    """
+    character = character or chat_obj.character
+    data = chats.read(chat_obj)
+    messages = [m for m in data.get("messages") or [] if isinstance(m, (list, tuple)) and len(m) > 2]
+    if drop_last_reply and messages and messages[-1][0] == "assistant":
+        messages = messages[:-1]
+    summary = chats.summary_text(chats.summary_parts(data, len(messages)))
+    worldbook_slug = character.worldbook.slug if character.worldbook and character.worldbook.author == user else None
+    prompt = build_ai_request(user, character, chat=chat_obj, worldbook_slug=worldbook_slug, message=None,
+                              guidance="", persistent_guides=data.get("context_guides") or {}, summary=summary)
+    preset = presets.normalize(preset or presets.get_active(user).data)
+    persona = data.get("persona") if isinstance(data.get("persona"), dict) else {}
+    names = prompt_names(user, character, persona)
+    history = [{"role": m[0], "content": m[2]} for m in messages if m[0] in ("user", "assistant")]
+    history = regex_rules.run_on_history(regex_rules.for_chat(preset, character), history, names)
+    _, model = ai_client.resolve(user, "chat")
+    return presets.assemble(preset, prompt_slots(user, character, prompt, persona), history, names, model)
 
 
 def _tracker_page_data(user, character, raw_state):
@@ -1265,6 +1329,60 @@ class UpdateCharacter(CharacterBaseView, UpdateView):
         return redirect(reverse('chat', kwargs={'slug': character.slug}))
 
 
+SPRITE_EMOTIONS = ["happy", "sad", "angry", "surprised", "scared", "confused", "calm", "scheming"]
+
+
+@login_required
+def image_model_list(request):
+    """Image models for the picture maker, with the one used by default."""
+    models = ai_client.image_models()
+    return JsonResponse({"models": models, "default": ai_client.default_image_model(models)})
+
+
+@login_required
+def character_sprite(request, slug):
+    """Makes one mood picture from the character's neutral picture with Nano Banana (OpenRouter)."""
+    from django.core.files.base import ContentFile
+    character = get_object_or_404(Character, slug=slug, author=request.user)
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only"}, status=405)
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return JsonResponse({"error": "Invalid request."}, status=400)
+    emotion = data.get("emotion")
+    prefix = "photo_second" if data.get("second") else "photo"
+    if emotion not in SPRITE_EMOTIONS:
+        return JsonResponse({"error": "Unknown mood."}, status=400)
+    neutral = getattr(character, f"{prefix}_neutral")
+    if not neutral:
+        return JsonResponse({"error": "Add a neutral picture first; the others are made from it."}, status=400)
+    with neutral.open("rb") as f:
+        reference = f.read()
+    kind = "image/png" if reference.startswith(b"\x89PNG") else "image/webp" if reference[:4] == b"RIFF" else "image/jpeg"
+    who = character.name if prefix == "photo" else f"the second character of {character.name}"
+    prompt = (f"This is {who}. Make a new picture of exactly the same character: same face, hair, body, outfit, "
+              f"art style, framing, lighting and background. Only the expression and body language change: show "
+              f"them {emotion}. No text, no borders, no extra people.")
+    model = data.get("model") or None
+    if model:
+        known = [m["id"] for m in ai_client.image_models()]
+        if known and model not in known:
+            return JsonResponse({"error": "OpenRouter doesn't list that image model."}, status=400)
+    try:
+        image, cost = ai_client.generate_image(request.user, prompt, reference, kind, model=model)
+    except ai_client.AIError as e:
+        return JsonResponse({"error": str(e)}, status=502)
+    field = getattr(character, f"{prefix}_{emotion}")
+    if field:
+        field.storage.delete(field.name)
+    ext = "jpg" if image[:3] == b"\xff\xd8\xff" else "webp" if image[:4] == b"RIFF" else "png"
+    field.save(f"{slugify(character.name) or 'character'}-{emotion}.{ext}", ContentFile(image), save=False)
+    character.save()
+    return JsonResponse({"status": "ok", "field": f"{prefix}_{emotion}", "url": field.url, "cost": cost,
+                         "spending": ai_client.spending(request.user)})
+
+
 MAX_CARD_BYTES = 20 * 1024 * 1024
 
 
@@ -1387,12 +1505,26 @@ def _bulba_state(session):
     profile = agent.target_profile(session)
     return {
         "id": session.id, "stage": session.stage, "stages": agent.STAGES,
-        "spent": round(session.spent, 4), "budget": session.budget,
+        "spent": round(session.spent, 4), "budget": session.budget, "month": ai_client.spending(session.user),
+        "chat": _bulba_chat_link(session) if session.mode == "setup" else None,
+        "mode": session.mode,
+        "chat_with": session.chat.character.name if session.mode == "chat" and session.chat_id else "",
         "model": profile["name"] if profile else session.target_model,
         "preferences": [p for p in session.preferences if p.get("status") not in ("rejected", "superseded")],
         "proposals": [{**{k: p.get(k) for k in ("id", "kind", "title", "status", "result")},
                        "summary": _shown_summary(session, p)} for p in session.proposals],
     }
+
+
+def _bulba_chat_link(session):
+    """The character Bulba made (the newest applied one), to start chatting from the page."""
+    for p in reversed(session.proposals):
+        if p["kind"] == "character" and p["status"] == "applied" and (p.get("result") or {}).get("slug"):
+            character = Character.objects.filter(author=session.user, slug=p["result"]["slug"]).first()
+            if character:
+                return {"name": character.name, "url": reverse("chat", kwargs={"slug": character.slug}),
+                        "edit_url": reverse("character", kwargs={"slug": character.slug}) + "#spritesSection"}
+    return None
 
 
 def _shown_summary(session, proposal):
@@ -1413,7 +1545,7 @@ def _bulba_session(user, restart=False):
     profile = model_profiles.for_model(chat_model)
     if profile is None:
         return None
-    session = BulbaSession.objects.filter(user=user, active=True).first()
+    session = BulbaSession.objects.filter(user=user, active=True, mode="setup").first()
     if session and (restart or session.target_model != profile["id"]):
         session.active = False
         session.save(update_fields=["active"])
@@ -1423,6 +1555,39 @@ def _bulba_session(user, restart=False):
         agent.opening(session)
         session.save()
     return session
+
+
+def _bulba_chat_session(user, chat_obj, restart=False):
+    """Bulba's conversation about one chat (opened from the chat page). None if Bulba can't help."""
+    from .bulba import doctor
+    from .models import BulbaSession
+    try:
+        _, chat_model = ai_client.resolve(user, "chat")
+    except ai_client.NoConnection:
+        return None
+    profile = model_profiles.for_model(chat_model)
+    session = BulbaSession.objects.filter(user=user, active=True, mode="chat", chat=chat_obj).first()
+    if session and restart:
+        session.active = False
+        session.save(update_fields=["active"])
+        session = None
+    if session is None:
+        session = BulbaSession(user=user, target_model=profile["id"] if profile else "", mode="chat", chat=chat_obj)
+        doctor.opening(session)
+        session.save()
+    return session
+
+
+def _bulba_for_request(request, restart=False):
+    """The setup conversation, or the one about a chat when the page passes ?chat=<id>."""
+    from .models import Chat
+    chat_id = request.GET.get("chat")
+    if chat_id:
+        chat_obj = Chat.objects.filter(id=chat_id, character__author=request.user).first()
+        if chat_obj is None:
+            raise Http404("No such chat.")
+        return _bulba_chat_session(request.user, chat_obj, restart)
+    return _bulba_session(request.user, restart)
 
 
 @login_required
@@ -1437,8 +1602,27 @@ def bulba_page(request):
 
 
 @login_required
+@xframe_options_sameorigin
+def bulba_chat_page(request, chat_id):
+    """Bulba about one chat, shown in a side panel on the chat page."""
+    from .models import Chat
+    chat_obj = get_object_or_404(Chat, id=chat_id, character__author=request.user)
+    session = _bulba_chat_session(request.user, chat_obj)
+    return render(request, "mainapp/bulba.html", {
+        "bulba_data": {"state": _bulba_state(session), "events": session.events} if session else None,
+        "known_models": model_profiles.known_names(),
+        "embed": True, "chat_obj": chat_obj,
+    })
+
+
+@login_required
 def bulba_api(request):
     from .bulba import actions, agent
+    from .models import BulbaSession
+    if request.method == "GET":  # what Bulba is doing right now (the page asks while a turn runs)
+        filters = {"mode": "chat", "chat_id": request.GET["chat"]} if request.GET.get("chat") else {"mode": "setup"}
+        session = BulbaSession.objects.filter(user=request.user, active=True, **filters).first()
+        return JsonResponse({"activity": session.activity if session else ""})
     if request.method != "POST":
         return JsonResponse({"error": "POST only"}, status=405)
     try:
@@ -1446,7 +1630,7 @@ def bulba_api(request):
     except (ValueError, UnicodeDecodeError):
         return JsonResponse({"error": "Invalid request."}, status=400)
     action = data.get("action")
-    session = _bulba_session(request.user, restart=(action == "restart"))
+    session = _bulba_for_request(request, restart=(action == "restart"))
     if session is None:
         return JsonResponse({"error": "Bulba only knows the models on the welcome page. Pick one of those first."}, status=400)
 
@@ -1455,6 +1639,9 @@ def bulba_api(request):
         events = session.events
     elif action == "say":
         events = agent.run_turn(session, data.get("text"))
+    elif action == "basics":  # the basics form: recorded as preferences, then Bulba carries on
+        text = agent.apply_basics(session, data.get("answers"))
+        events = agent.run_turn(session, None, action_note="Sent the basics", model_note=text)
     elif action in ("apply", "dismiss", "undo"):
         try:
             note = getattr(actions, action)(session, data.get("id"))
@@ -1464,7 +1651,11 @@ def bulba_api(request):
         verb = {"apply": "Applied", "dismiss": "Dismissed", "undo": "Undid"}[action]
         events = [{"type": "note", "text": note}]
         session.events.append(events[0])
-        events += agent.run_turn(session, None, action_note=f"{verb}: {proposal['title']}")
+        note_for_bulba = f"{verb}: {proposal['title']}"
+        link = _bulba_chat_link(session) if action == "apply" and proposal["kind"] == "character" else None
+        if link:  # so Bulba can point to the right places (pictures go on the character's page)
+            note_for_bulba += f" — chat: {link['url']}, pictures (Sprites section): {link['edit_url']}"
+        events += agent.run_turn(session, None, action_note=f"{verb}: {proposal['title']}", model_note=note_for_bulba)
     elif action == "forget":  # the user removes a preference Bulba recorded
         pref = next((p for p in session.preferences if p["id"] == data.get("id")), None)
         if pref:
@@ -1477,6 +1668,7 @@ def bulba_api(request):
             return JsonResponse({"error": "Enter an amount in dollars."}, status=400)
     else:
         return JsonResponse({"error": "Unknown action."}, status=400)
+    session.activity = ""
     session.save()
     return JsonResponse({"events": events, "state": _bulba_state(session)})
 
@@ -1486,15 +1678,21 @@ def bulba_transcript(request):
     """The current Bulba conversation as a JSON file, to share when something behaves oddly. No keys."""
     from .bulba import agent
     from .models import BulbaSession
-    session = BulbaSession.objects.filter(user=request.user, active=True).first()
+    filters = {"mode": "chat", "chat_id": request.GET["chat"]} if request.GET.get("chat") else {"mode": "setup"}
+    session = BulbaSession.objects.filter(user=request.user, active=True, **filters).first()
     if session is None:
         return HttpResponseNotFound("No Bulba conversation yet.")
+    if session.mode == "chat":
+        from .bulba import doctor
+        system = doctor.system_prompt(session)
+    else:
+        system = agent.system_prompt(session)
     data = {
         "format": "narrativeai-bulba-transcript", "exported": datetime.now().isoformat(timespec="seconds"),
-        "target_model": session.target_model, "stage": session.stage,
+        "mode": session.mode, "target_model": session.target_model, "stage": session.stage,
         "spent_usd": round(session.spent, 4), "budget_usd": session.budget,
         "events": session.events, "preferences": session.preferences, "proposals": session.proposals,
-        "messages": session.messages, "system_prompt": agent.system_prompt(session),
+        "messages": session.messages, "system_prompt": system,
     }
     response = HttpResponse(json.dumps(data, ensure_ascii=False, indent=2), content_type="application/json")
     response["Content-Disposition"] = f'attachment; filename="bulba-{session.id}-{datetime.now():%Y%m%d-%H%M}.json"'

@@ -278,7 +278,7 @@ async function requestReply(body) {
     const controller = new AbortController();
     currentRequest = controller;
     const stream = !!window.STREAM_REPLIES;
-    let bubble = null, text = '', frame = null;
+    let bubble = null, text = '', thoughts = '', frame = null;
 
     const paint = () => {
         frame = null;
@@ -287,6 +287,8 @@ async function requestReply(body) {
         scrollToBottom();
     };
 
+    const typingLabel = typingMessage.querySelector('.typing-indicator span');
+    if (typingLabel) typingLabel.textContent = `${window.CHARACTER_NAME || 'The AI'} is typing`;
     try {
         const resp = await fetch(window.location.href, {
             method: 'POST',
@@ -309,14 +311,24 @@ async function requestReply(body) {
                 buffer = buffer.slice(nl + 1);
                 if (!line) continue;
                 const event = JSON.parse(line);
-                if (event.type === 'delta') {
-                    if (!bubble) {
-                        typingMessage.style.display = 'none';
-                        addMessage('assistant', '', window.INIT_PHOTO_URL || null);
-                        const all = messagesContainer.querySelectorAll('.message.assistant:not(#typingMessage) .message-text');
-                        bubble = all[all.length - 1];
-                        bubble.closest('.message').classList.add('streaming');
-                    }
+                const ensureBubble = () => {
+                    if (bubble) return;
+                    typingMessage.style.display = 'none';
+                    addMessage('assistant', '', window.INIT_PHOTO_URL || null);
+                    const all = messagesContainer.querySelectorAll('.message.assistant:not(#typingMessage) .message-text');
+                    bubble = all[all.length - 1];
+                    bubble.closest('.message').classList.add('streaming');
+                };
+                if (event.type === 'thinking') {
+                    // Thinking models (MiMo, Claude...) reason before writing: show it live, folded once the reply starts
+                    ensureBubble();
+                    thoughts += event.text || '';
+                    setThoughts(bubble.closest('.message'), thoughts, !text);
+                    if (!text) bubble.innerHTML = `<span class="thinking-note">${escHtml(window.CHARACTER_NAME || 'The AI')} is thinking…</span>`;
+                    scrollToBottom();
+                } else if (event.type === 'delta') {
+                    ensureBubble();
+                    if (!text && thoughts) setThoughts(bubble.closest('.message'), thoughts, false);
                     text += event.text;
                     if (!frame) frame = requestAnimationFrame(paint);
                 } else if (event.type === 'done') {
@@ -340,10 +352,39 @@ async function requestReply(body) {
     }
 }
 
+// The month's spending in the tools menu, refreshed after every reply
+function updateSpending(s) {
+    if (!s) return;
+    const line = document.getElementById('spendingLine'), fill = document.getElementById('spendingFill');
+    if (line) line.textContent = `$${s.spent.toFixed(2)} of $${s.limit.toFixed(2)} used (chat, Bulba and background jobs)`;
+    if (fill) fill.style.width = `${Math.min(100, s.spent / s.limit * 100)}%`;
+}
+
+const escHtml = s => String(s ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
+
+// What a thinking model thought before replying: a folded "Thoughts" box above the reply text
+function setThoughts(messageEl, text, open = false) {
+    if (!messageEl) return;
+    let box = messageEl.querySelector('details.thoughts');
+    if (!text) { if (box) box.remove(); return; }
+    if (!box) {
+        box = document.createElement('details');
+        box.className = 'thoughts';
+        box.innerHTML = '<summary>Thoughts</summary><div class="thoughts-text"></div>';
+        const textEl = messageEl.querySelector('.message-text');
+        textEl.parentNode.insertBefore(box, textEl);
+    }
+    box.querySelector('.thoughts-text').textContent = text;
+    box.open = open;
+}
+
 // Put a finished reply on screen: fill the streamed bubble, or add a new message
 function placeReply(data, avatarUrl) {
+    updateSpending(data.spending);
     if (!data.bubble) {
         addMessage('assistant', data.reply, avatarUrl);
+        const all = messagesContainer.querySelectorAll('.message.assistant:not(#typingMessage)');
+        setThoughts(all[all.length - 1], data.reasoning || '');
         return;
     }
     refreshForDepth();
@@ -958,6 +999,7 @@ function swipe(step) {
             const last = msgs[msgs.length - 1];
             const textDiv = last.querySelector('.message-text');
             textDiv.innerHTML = renderChatMessage(d.reply, textDiv);
+            setThoughts(last, d.reasoning || '');
             textDiv.setAttribute('data-raw', encodeURIComponent(d.reply));
             last.querySelector('.edit-textarea').value = d.reply;
             last.dataset.emotion = d.emotion;
@@ -1100,3 +1142,92 @@ document.getElementById('branchSummaryText').addEventListener('input', () => {
     branchModal.querySelector('input[name=branchSummary][value=transfer]').checked = true;
 });
 branchModal.addEventListener('click', (e) => { if (e.target === branchModal) closeBranchModal(); });
+
+// --- Dialogue colour (tools menu): saved on the account ---
+(function () {
+    const box = document.getElementById('dialogueColors');
+    if (!box) return;
+    const apply = color => {
+        document.body.dataset.dialogue = color === 'preset' ? 'preset' : 'color';
+        if (color !== 'preset') document.body.style.setProperty('--dialogue-color', color);
+        box.querySelectorAll('[data-color]').forEach(b => b.classList.toggle('on', b.dataset.color === color));
+    };
+    const save = async color => {
+        apply(color);
+        try {
+            await fetch(window.location.href, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify({ action: 'appearance', dialogue_color: color }),
+            });
+        } catch (e) { showChatError('Could not save the colour.'); }
+    };
+    box.addEventListener('click', e => { const b = e.target.closest('[data-color]'); if (b) save(b.dataset.color); });
+    const custom = document.getElementById('dialogueCustom');
+    custom.addEventListener('input', () => apply(custom.value));
+    custom.addEventListener('change', () => save(custom.value));
+})();
+
+// --- Who the user is in this chat (tools menu); empty = their usual persona ---
+(function () {
+    const form = document.getElementById('personaForm');
+    if (!form) return;
+    const line = document.getElementById('personaLine');
+    document.getElementById('personaEdit').onclick = () => { form.hidden = !form.hidden; };
+    const save = async (name, description) => {
+        try {
+            const resp = await fetch(window.location.href, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify({ action: 'chat_persona', name, description }),
+            });
+            const data = await resp.json();
+            if (!data.success) throw new Error(data.error || 'Not saved.');
+            const b = document.createElement('b'); b.textContent = data.name;
+            line.firstChild && line.replaceChildren(b, document.createTextNode(data.persona.name ? ' (this chat only) ' : ' (your usual persona) '),
+                                                  document.getElementById('personaEdit'));
+            form.hidden = true;
+        } catch (e) { showChatError(e.message || 'Could not save who you are in this chat.'); }
+    };
+    form.addEventListener('submit', e => {
+        e.preventDefault();
+        save(document.getElementById('personaName').value.trim(), document.getElementById('personaDesc').value.trim());
+    });
+    document.getElementById('personaReset').onclick = () => {
+        document.getElementById('personaName').value = ''; document.getElementById('personaDesc').value = '';
+        save('', '');
+    };
+})();
+
+// --- Bulba in the chat: a side panel (full screen on phones) with Bulba looking at this chat ---
+(function () {
+    const drawer = document.getElementById('bulbaDrawer');
+    const btn = document.getElementById('bulbaBtn');
+    if (!drawer || !btn) return;
+    const frame = document.getElementById('bulbaFrame');
+    const toggle = (open) => {
+        drawer.hidden = !open;
+        if (open && !frame.src) frame.src = drawer.dataset.src;  // loaded the first time it opens
+        btn.classList.toggle('active', open);
+    };
+    btn.onclick = () => toggle(drawer.hidden);
+    document.getElementById('bulbaClose').onclick = () => toggle(false);
+    window.addEventListener('message', (e) => {
+        if (e.origin !== window.location.origin || !e.data || !e.data.bulba) return;
+        showChatNotice(e.data.bulba === 'undo' ? 'Bulba undid its change.' : 'Bulba changed your setup: the next reply uses it.');
+    });
+})();
+
+function showChatNotice(text) {
+    let note = document.getElementById('chatNotice');
+    if (!note) {
+        note = document.createElement('div');
+        note.id = 'chatNotice';
+        note.className = 'chat-notice';
+        document.body.appendChild(note);
+    }
+    note.textContent = text;
+    note.classList.add('show');
+    clearTimeout(note._t);
+    note._t = setTimeout(() => note.classList.remove('show'), 4000);
+}

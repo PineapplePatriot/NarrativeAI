@@ -98,10 +98,21 @@ TOOLS = [
     _fn("get_current_setup", "What is already set up: chat model, extras, presets, persona, characters.", {}),
     _fn("get_starter", "The full text of one of this model's starters (its Roleplay and Style sections).",
         {"starter": STR}, ["starter"]),
+    _fn("show_basics_form", "Show the basics form: the plain settings (language, point of view, tense, reply "
+        "length, how speech and actions look, coloured speech, in-story panels, genres, pacing, narration voice, "
+        "an author to write like, things to keep out) answered in "
+        "one go. Use it once, at the start of the taste stage. Their answers come back as a message and are "
+        "already recorded as preferences.", {}),
+    _fn("look_up", "Search the web for facts about a known character, setting or work (canon details, timeline, "
+        "personality, how they speak). Costs a little; use it before writing a character from an existing work.",
+        {"query": {"type": "string", "description": "What to find, e.g. 'Il Dottore Genshin Impact personality, "
+                   "appearance and history (Sumeru era)'"}}, ["query"]),
     _fn("set_stage", "Move to another stage of the setup.", {"stage": {"type": "string", "enum": STAGES}}, ["stage"]),
     _fn("offer_choices", "Show quick-reply buttons under your message. A choice with a url opens that page instead.",
         {"choices": {"type": "array", "maxItems": 5, "items": {"type": "object", "properties": {
-            "label": STR, "url": {"type": "string", "description": "Optional: /users/extras/ for the Extras page"}},
+            "label": STR, "url": {"type": "string", "description": "Optional: opens a page instead of answering. "
+                "Only /users/extras/ (voices, extras), a link you were given in an [Applied: ...] note, "
+                "or https://gemini.google.com/ (Nano Banana, for character pictures)"}},
             "required": ["label"]}}}, ["choices"]),
     _fn("write_samples", "Write one or two short sample replies with the user's chat model, shown as A and B. "
         "Same scene for both; each variant adds its own instructions.",
@@ -249,8 +260,10 @@ def generate_sample(session, preset, scenario, user_turn, character, instruction
     user = session.user
     preset = presets.normalize(preset)
     extra = (instructions or "").strip()
+    unknown = "" if (getattr(user, "persona_description", "") or "").strip() else (
+        "\n\nNothing is known about {{user}} yet: don't give them a gender (no he or she), a look or a past.")
     _add_block(preset, "Sample instructions",
-               (extra + "\n\n" if extra else "") + f"Keep this reply under {SAMPLE_WORDS} words.")
+               (extra + "\n\n" if extra else "") + f"Keep this reply under {SAMPLE_WORDS} words." + unknown)
     _, chat_model = ai_client.resolve(user, "chat")
     slots = {"char_description": character["description"], "scenario": scenario,
              "persona": getattr(user, "persona_description", "") or ""}
@@ -287,7 +300,10 @@ def tool_write_samples(session, args):
         return {"error": "Give at least one variant."}, []
     random.shuffle(variants)  # the user sees A and B in random order
     samples, private = [], {}
+    model_name = (target_profile(session) or {}).get("name", "your model")
     for letter, v in zip("AB", variants):
+        set_activity(session, f"Writing sample {letter} with {model_name}…" if len(variants) > 1
+                     else f"Writing a test reply with {model_name}…")
         _check_budget(session)
         text, cost = generate_sample(session, preset, str(args.get("scenario", "")), str(args.get("user_turn", "")),
                                      character, str(v.get("instructions", "")))
@@ -300,6 +316,141 @@ def tool_write_samples(session, args):
             [{"type": "samples", "model": profile.get("name", ""), "character": character["name"],
               "scenario": shown(args.get("scenario")), "user_turn": shown(args.get("user_turn")),
               "samples": samples}])
+
+
+LOOKUP_PROMPT = ("You research fiction for someone writing a roleplay character card. Using the web results, "
+                 "answer factually and concisely: who they are, appearance, personality and how it shows, how they "
+                 "speak, key relationships and history, and which version or timeline the facts belong to. Say "
+                 "plainly when sources disagree or something isn't known. No speculation, no fan theories as fact.")
+
+
+def tool_look_up(session, args):
+    from users.models import ConnectionProfile
+    query = str(args.get("query") or "").strip()[:300]
+    if not query:
+        return {"error": "Say what to look up."}, []
+    profile, _ = ai_client.resolve(session.user, "bulba")
+    if profile.provider != ConnectionProfile.PROVIDER_OPENROUTER:
+        return {"error": "Web search only works through OpenRouter. Rely on what you know, and say so."}, []
+    _check_budget(session)
+    set_activity(session, f"Looking up {query[:60]} on the web…")
+    message, cost = ai_client.complete_message(
+        session.user, "bulba", [{"role": "system", "content": LOOKUP_PROMPT}, {"role": "user", "content": query}],
+        plugins=[{"id": "web", "max_results": 5}], max_tokens=1500)
+    session.spent += cost or 0
+    notes = [a.get("url_citation", {}) for a in message.get("annotations") or [] if isinstance(a, dict)]
+    sources = [{"title": n.get("title", ""), "url": n.get("url", "")} for n in notes if n.get("url")][:5]
+    return {"findings": (message.get("content") or "").strip()[:6000], "sources": sources}, [
+        {"type": "lookup", "query": query, "sources": sources}]
+
+
+# The basics form: plain settings, no interpretation needed. key -> (question, {answer: preference text})
+BASICS = {
+    "language": ("Story language", None),  # free text, default English
+    "pov": ("Point of view", {
+        "second": "Narrate in second person for {{user}} (\"you step inside\").",
+        "third": "Narrate in third person (\"she steps inside\").",
+        "first": "Narrate in first person from {{char}}'s point of view (\"I step inside\")."}),
+    "tense": ("Tense", {"present": "Write in present tense.", "past": "Write in past tense."}),
+    "length": ("Reply length", {"short": "short", "medium": "medium", "long": "long"}),
+    "format": ("Speech and actions", {
+        "quotes": "Put speech in double quotes; write actions as plain prose.",
+        "asterisks": "Put speech in double quotes and actions in *asterisks*.",
+        "any": ""}),
+    "colors": ("Coloured speech", {
+        "on": "Give each character's spoken lines their own colour: wrap each quoted line in "
+              "<font color=\"#RRGGBB\">\"...\"</font>, keep one colour per character for the whole story, "
+              "and pick colours that read well on a dark background.",
+        "off": ""}),
+    "panels": ("In-story panels", {
+        "on": "When a text message, note, letter, sign or screen appears in the story, show it as a small "
+              "self-contained HTML panel with inline styles (for example a phone chat as message bubbles), "
+              "then carry on with the prose.",
+        "off": ""}),
+    "genres": ("Genres", {  # several may be picked (wording after Celia's genre toggles)
+        "fluff": "light-hearted warmth, affectionate exchanges and cozy moments",
+        "slice_of_life": "the quiet charm of everyday life, routine and small connections",
+        "comedy": "humour, banter and absurd or exaggerated situations",
+        "romance": "real emotional connection, chances to bond and slowly growing intimacy",
+        "heartwarming": "kindness, hope and joy in simple gestures, even through hard times",
+        "melancholy": "bittersweet moments where wonder and gentle sorrow sit together",
+        "healing": "hurt and comfort: emotional wounds, tender support and trust slowly rebuilt",
+        "angst": "emotional tension, hard decisions, heartbreak and painful realisations",
+        "tragedy": "devastating turns and heart-rending scenes, delivered rawly",
+        "smut": "explicit sexual content when the story leads there",
+        "dead_dove": "dark, cruel and taboo material, morally complex and unsettling, without softening",
+    }),
+    "pacing": ("Pacing", {
+        "quick": "Keep the story moving: skip or summarise the dull stretches with time skips and head for the "
+                 "important scenes and events.",
+        "slow": "Slow burn: let things develop in small, earned steps, with quiet everyday moments between the "
+                "ones that move the story.",
+        "any": ""}),
+    "voice": ("Narration voice", {  # after Pura's narration voices and Celia's narrative styles
+        "hemingway": "Narrate in the manner of Ernest Hemingway: short, plain, loaded sentences; feelings left under the surface.",
+        "mccarthy": "Narrate in the manner of Cormac McCarthy: heavy, rhythmic, solemn prose; a harsh, beautiful world.",
+        "camus": "Narrate in the manner of Albert Camus: an intimate, mischievous voice with dry amusement and controlled irony.",
+        "kafka": "Narrate in the manner of Franz Kafka: dry, bureaucratic irony; the absurd treated as routine.",
+        "ligotti": "Narrate in the manner of Thomas Ligotti: chilling metaphysical dread, delivered with quiet relish.",
+        "maupassant": "Narrate in the manner of Guy de Maupassant: cruel, clear-eyed realism about pride and fragile dignity.",
+        "dickens": "Narrate in the manner of Charles Dickens: a bustling, theatrical world of eccentrics and gentle satire.",
+        "ellis": "Narrate in the manner of Bret Easton Ellis: gossipy, cold, hyper-detailed attention to status and things.",
+        "anime": "Tell it like an anime: larger-than-life characters, rivalries, familiar character archetypes and big moments.",
+        "realism": "Tell it with grounded realism: unexaggerated people and feelings; good and bad happen within reason.",
+        "fanfic": "Tell it like a well-loved fanfic: true to the characters' voices, building smartly on canon.",
+        "webnovel": "Format it like a web novel: a chapter heading at the top of every reply, web-novel conventions.",
+        "any": ""}),
+    "author": ("Write like", None),  # free text: an author they love
+    "keep_out": ("Keep out", None),  # free text
+}
+LENGTH_WORDS = {"short": "a few lines", "medium": "a few paragraphs", "long": "a proper chunk"}
+
+
+def tool_show_basics_form(session, args):
+    return {"shown": True, "note": "They'll answer with the form; wait."}, [{"type": "form", "form": "basics"}]
+
+
+def apply_basics(session, answers):
+    """Records the form's answers as confirmed preferences; returns the message Bulba reads."""
+    answers = answers if isinstance(answers, dict) else {}
+    lines = []
+    for key, (label, options) in BASICS.items():
+        if key == "genres":
+            picked = [g for g in (answers.get(key) or []) if isinstance(g, str) and g in options][:6]
+            if picked:
+                text = "Lean the story toward " + "; ".join(options[g] for g in picked) + "."
+                lines.append(f"{label}: {text}")
+                tool_record_preference(session, {"wording": "Basics form: genres", "interpretation": text,
+                                                 "scope": "general", "strength": "firm", "status": "confirmed"})
+            continue
+        raw = str(answers.get(key) or "").strip()[:300]
+        if not raw:
+            continue
+        if key == "author":
+            text = f"Write in the style of {raw}: their diction, rhythm and conventions, not their plots."
+            lines.append(f"{label}: {text}")
+            tool_record_preference(session, {"wording": f"Basics form: write like {raw}", "interpretation": text,
+                                             "scope": "general", "strength": "flexible", "status": "confirmed"})
+            continue
+        if options is None:
+            if key == "language" and raw.lower() in ("english", "en"):
+                lines.append(f"{label}: English")
+                continue
+            text = (f"Write the whole story in {raw}." if key == "language" else f"Keep out: {raw}.")
+            scope = "boundary" if key == "keep_out" else "general"
+        else:
+            if raw not in options:
+                continue
+            text, scope = options[raw], "general"
+            if key == "length":
+                text = f"Reply length: {LENGTH_WORDS[raw]} (reply_length {raw})."
+            if not text:
+                lines.append(f"{label}: no preference")
+                continue
+        lines.append(f"{label}: {text}")
+        tool_record_preference(session, {"wording": f"Basics form: {label.lower()}", "interpretation": text,
+                                         "scope": scope, "strength": "firm", "status": "confirmed"})
+    return "Basics form answers (already recorded as preferences):\n" + ("\n".join(lines) if lines else "(left empty)")
 
 
 def tool_record_preference(session, args):
@@ -405,7 +556,8 @@ def tool_propose_character(session, args):
 
 
 HANDLERS = {
-    "get_current_setup": tool_get_current_setup, "get_starter": tool_get_starter, "set_stage": tool_set_stage, "offer_choices": tool_offer_choices,
+    "get_current_setup": tool_get_current_setup, "get_starter": tool_get_starter, "look_up": tool_look_up,
+    "show_basics_form": tool_show_basics_form, "set_stage": tool_set_stage, "offer_choices": tool_offer_choices,
     "write_samples": tool_write_samples, "record_preference": tool_record_preference,
     "propose_extras": tool_propose_extras, "propose_preset": tool_propose_preset,
     "propose_persona": tool_propose_persona, "propose_character": tool_propose_character,
@@ -415,6 +567,13 @@ HANDLERS = {
 # ---------------------------------------------------------------------------
 # The loop
 # ---------------------------------------------------------------------------
+
+def set_activity(session, text):
+    """What the page shows while a turn runs ("Writing sample A with MiMo..."). Saved at once, on its own."""
+    from mainapp.models import BulbaSession
+    if session.pk:
+        BulbaSession.objects.filter(pk=session.pk).update(activity=str(text or "")[:200])
+
 
 def _check_budget(session):
     if session.spent >= session.budget:
@@ -444,18 +603,19 @@ def opening(session):
 
 
 # Tools after which Bulba waits for the user (see instructions.md, "Tools, briefly")
-TURN_ENDING = {"offer_choices", "write_samples", "propose_extras", "propose_preset", "propose_persona", "propose_character"}
+TURN_ENDING = {"offer_choices", "write_samples", "show_basics_form", "retry_reply",
+               "propose_preset_edit", "propose_card_edit", "propose_extras", "propose_preset", "propose_persona", "propose_character"}
 
 
-def run_turn(session, user_text, action_note=None):
+def run_turn(session, user_text, action_note=None, model_note=None):
     """
     Adds the user's message (or a note about something they did, like pressing Apply), lets Bulba
     think and use tools, and returns the new page events.
     """
-    user_text = str(user_text or "").strip()[:4000]
+    user_text = str(user_text or "").strip()[:12000]  # room for a pasted piece of writing they like
     new_events = []
     if action_note:
-        session.messages.append({"role": "user", "content": f"[{action_note}]"})
+        session.messages.append({"role": "user", "content": f"[{model_note or action_note}]"})
         new_events.append({"type": "action", "text": action_note})
     elif user_text:
         session.messages.append({"role": "user", "content": user_text})
@@ -465,8 +625,14 @@ def run_turn(session, user_text, action_note=None):
     try:
         for _ in range(MAX_TOOL_ROUNDS):
             _check_budget(session)
-            request = [{"role": "system", "content": system_prompt(session)}] + _trimmed(session.messages)
-            message, cost = ai_client.complete_message(session.user, "bulba", request, tools=TOOLS,
+            set_activity(session, "Bulba is thinking…")
+            in_chat = session.mode == "chat"
+            if in_chat:
+                from mainapp.bulba import doctor
+            request = ([{"role": "system", "content": doctor.system_prompt(session) if in_chat else system_prompt(session)}]
+                       + _trimmed(session.messages))
+            message, cost = ai_client.complete_message(session.user, "bulba", request,
+                                                       tools=doctor.tools() if in_chat else TOOLS,
                                                        tool_choice="auto", max_tokens=4000)
             session.spent += cost or 0
             calls = message.get("tool_calls") or []
@@ -489,11 +655,12 @@ def run_turn(session, user_text, action_note=None):
                     args = json.loads(fn.get("arguments") or "{}")
                 except ValueError:
                     args = None
-                if name not in HANDLERS or not isinstance(args, dict):
+                handlers = {**HANDLERS, **doctor.HANDLERS} if in_chat else HANDLERS
+                if name not in handlers or not isinstance(args, dict):
                     result, events = {"error": f"Unknown tool or bad arguments: {name}"}, []
                 else:
                     try:
-                        result, events = HANDLERS[name](session, args)
+                        result, events = handlers[name](session, args)
                     except BudgetReached:
                         raise
                     except ai_client.AIError as e:

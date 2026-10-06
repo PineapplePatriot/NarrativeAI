@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
 </head>
 
-<body>
+<body data-dialogue="{% if appearance.dialogue_color == 'preset' %}preset{% else %}color{% endif %}" style="--dialogue-color: {% if appearance.dialogue_color == 'preset' %}inherit{% else %}{{ appearance.dialogue_color }}{% endif %}">
 {% include "partials/topbar.html" with active="characters" %}
 
     <div class="chat-container">
@@ -46,6 +46,7 @@
                 </div>
                 <div class="header-actions">
                     <button class="header-btn" id="chatsBtn" onclick="Chats.toggle()" title="Your chats with {{ character.name }}">💬 Chats</button>
+                    <button class="header-btn" id="bulbaBtn" title="Something off? Ask Bulba"><span class="emoji-icon">🥔</span> Bulba</button>
                     <button class="header-btn" onclick="openMediaModal('bg')" title="Background"><svg class="icon" viewBox="0 0 24 24"><path d="M21,19V5C21,3.89 20.1,3 19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19M8.5,13.5L11,16.51L14.5,12L19,18H5L8.5,13.5Z"/></svg> BG</button>
                     <button class="header-btn" onclick="openMediaModal('music')" title="Music"><svg class="icon" viewBox="0 0 24 24"><path d="M21,3V15.5A3.5,3.5 0 0,1 17.5,19A3.5,3.5 0 0,1 14,15.5A3.5,3.5 0 0,1 17.5,12C18.04,12 18.55,12.12 19,12.34V6.47L9,8.6V17.5A3.5,3.5 0 0,1 5.5,21A3.5,3.5 0 0,1 2,17.5A3.5,3.5 0 0,1 5.5,14C6.04,14 6.55,14.12 7,14.34V6L21,3Z"/></svg> Music</button>
                     <a href="{% url 'character' character.slug %}" class="header-btn" title="Edit {{ character.name }}">
@@ -61,7 +62,7 @@
             <div class="tracker-hud" id="trackerHud" hidden></div>
 
             <div class="messages-container" id="messagesContainer">
-                {% for sender, time, text, emotion, char_count in messages %}
+                {% for sender, time, text, emotion, char_count, thoughts in messages %}
                 <div class="message {{ sender }}" data-index="{{ forloop.counter0 }}" data-emotion="{{ emotion }}" data-char-count="{{ char_count }}">
                     {% if sender == "assistant" %}
                     {% if photo_neutral %}
@@ -111,6 +112,7 @@
                             {% endif %}
                         </div>
 
+                        {% if thoughts %}<details class="thoughts"><summary>Thoughts</summary><div class="thoughts-text">{{ thoughts }}</div></details>{% endif %}
                         <div class="message-text markdown-output" data-raw="{{ text|urlencode }}">
                             {{ text }}
                         </div>
@@ -203,6 +205,39 @@
                             <button class="tool-action-btn" onclick="generateSummary('append')">➕ Summarize new</button>
                             <button class="tool-action-btn" onclick="Summary.toggle(true); toggleTools()">📚 Open summary</button>
                         </div>
+                    </div>
+                    <div class="tool-section">
+                        <span class="tool-label">🙂 You in this chat</span>
+                        <div class="persona-line" id="personaLine">
+                            {% if chat_persona.name %}<b>{{ chat_persona.name }}</b> (this chat only)
+                            {% elif usual_persona.name %}<b>{{ usual_persona.name }}</b> (your usual persona)
+                            {% else %}Your usual persona{% endif %}
+                            <button type="button" class="link-btn" id="personaEdit">Change for this chat</button>
+                        </div>
+                        <form class="persona-form" id="personaForm" hidden>
+                            <input type="text" class="tool-input" id="personaName" maxlength="100" placeholder="Name in this chat" value="{{ chat_persona.name|default:'' }}">
+                            <textarea class="tool-input" id="personaDesc" rows="3" placeholder="Who you are here (looks, role, what others know)">{{ chat_persona.description|default:'' }}</textarea>
+                            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                                <button type="submit" class="tool-action-btn">Save for this chat</button>
+                                <button type="button" class="tool-action-btn" id="personaReset">Use my usual persona</button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="tool-section">
+                        <span class="tool-label">🎨 Dialogue colour</span>
+                        <div class="dialogue-colors" id="dialogueColors">
+                            {% for c in "#e594f2,#7dd3fc,#86efac,#fcd34d,#fca5a5,#c4b5fd,#f1f5f9"|split:"," %}
+                                <button type="button" class="swatch {% if appearance.dialogue_color == c %}on{% endif %}" data-color="{{ c }}" style="background: {{ c }}" title="{{ c }}"></button>
+                            {% endfor %}
+                            <label class="swatch custom" title="Any colour"><input type="color" id="dialogueCustom" value="{% if appearance.dialogue_color != 'preset' %}{{ appearance.dialogue_color }}{% else %}#e594f2{% endif %}"></label>
+                            <button type="button" class="preset-btn {% if appearance.dialogue_color == 'preset' %}on{% endif %}" data-color="preset" title="No colour of its own: the preset's or the AI's colours show instead">Preset's colours</button>
+                        </div>
+                    </div>
+                    <div class="tool-section">
+                        <span class="tool-label">💳 This month</span>
+                        <div class="spending-line" id="spendingLine" data-spent="{{ spending.spent }}" data-limit="{{ spending.limit }}">
+                            ${{ spending.spent|floatformat:2 }} of ${{ spending.limit|floatformat:2 }} used (chat, Bulba and background jobs)</div>
+                        <div class="spending-meter"><div id="spendingFill" style="width: {% widthratio spending.spent spending.limit 100 %}%"></div></div>
                     </div>
                     <div class="tool-section">
                         <span class="tool-label">🔧 Actions</span>
@@ -356,6 +391,7 @@
         window.CHAR_INITIAL = "{{ character.name|first|upper|escapejs }}";
         window.USER_AVATAR = "{{ user_avatar|default:'' }}";
         window.STREAM_REPLIES = {{ stream_replies|yesno:"true,false" }};
+        window.CHARACTER_NAME = "{{ character.name|escapejs }}";
     </script>
     <aside class="tracker-panel" id="trackerPanel" hidden></aside>
     <aside class="tracker-panel left chats-panel" id="chatsPanel" hidden>
@@ -373,6 +409,10 @@
     {{ chat_list|json_script:"chats-data" }}
     {{ swipes|json_script:"swipes-data" }}
     {{ display_rules|json_script:"display-rules" }}
+    <aside class="bulba-drawer" id="bulbaDrawer" hidden data-src="{{ bulba_url }}" aria-label="Bulba">
+        <button type="button" class="bulba-close" id="bulbaClose" title="Close">✕</button>
+        <iframe id="bulbaFrame" title="Bulba"></iframe>
+    </aside>
     {{ trackers_data|json_script:"trackers-data" }}
     <script src="{% static 'mainapp/js/trackers.js' %}?v={% now 'U' %}"></script>
     <script src="{% static 'mainapp/js/regex_rules.js' %}?v={% now 'U' %}"></script>

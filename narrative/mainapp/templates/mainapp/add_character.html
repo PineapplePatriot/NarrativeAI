@@ -52,6 +52,15 @@
         <details class="form-section" id="spritesSection">
             <summary><span>🖼️ Sprites</span> <small id="spriteCount"></small></summary>
             <p class="section-help">A picture for each emotion. The chat shows the one that matches the reply; neutral is used when one is missing.</p>
+            {% if object %}
+            <div class="sprite-maker" id="spriteMaker" data-url="{% url 'character_sprite' object.slug %}" data-models="{% url 'image_models' %}">
+                <button type="button" class="btn-secondary" id="makeSprites">✨ Make the missing moods with Nano Banana</button>
+                <label class="small-check">Image model <select id="spriteModel"><option value="">Default (Nano Banana 2)</option></select></label>
+                <label class="small-check"><input type="checkbox" id="remakeSprites"> also redo moods that already have a picture</label>
+                <p class="section-help">Made from the neutral picture, one at a time, through your OpenRouter key: a few cents per picture, counted in your monthly spending. Save any new neutral picture first.</p>
+                <p class="section-help" id="spriteStatus" aria-live="polite"></p>
+            </div>
+            {% endif %}
             <div class="file-grid">
                 {% for f in form %}
                     {% if f.field.widget.input_type == "file" %}

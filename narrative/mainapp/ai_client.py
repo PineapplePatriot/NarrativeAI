@@ -73,6 +73,21 @@ class NoConnection(AIError):
     pass
 
 
+class LimitReached(AIError):
+    """This month's subscription money is used up (settings.SUBSCRIPTION_MONTHLY_LIMIT)."""
+
+
+def check_limit(user):
+    """Stops chatting and Bulba once the month's subscription is used up. Resets on the 1st."""
+    from django.conf import settings
+    if not getattr(settings, "SUBSCRIPTION_LIMIT_ENFORCED", True) or user is None or not getattr(user, "pk", None):
+        return
+    s = spending(user)
+    if s["spent"] >= s["limit"]:
+        raise LimitReached(f"This month's ${s['limit']:.2f} is used up (${s['spent']:.2f} so far), so chatting "
+                           "and Bulba are paused until the 1st.")
+
+
 def get_task_setting(user, task):
     """The saved setting for a task, or an unsaved default one."""
     setting = TaskSetting.objects.filter(user=user, task=task).select_related("profile").first()
@@ -147,9 +162,40 @@ def _error_text(resp):
         return resp.text[:300] or resp.reason
 
 
+def record_cost(user, task, model, cost):
+    """Remembers what a request cost (for the spending meter). Never fails the request itself."""
+    if not isinstance(cost, (int, float)) or cost <= 0 or user is None or not getattr(user, "pk", None):
+        return
+    try:
+        from users.models import UsageRecord
+        UsageRecord.objects.create(user=user, task=task, model=model or "", cost=float(cost))
+    except Exception as e:  # e.g. the table isn't migrated yet
+        print(f"Could not record usage: {e}")
+
+
+def spent_this_month(user):
+    from django.db.models import Sum
+    from django.utils import timezone
+    from users.models import UsageRecord
+    start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    total = UsageRecord.objects.filter(user=user, time_create__gte=start).aggregate(s=Sum("cost"))["s"]
+    return round(total or 0.0, 4)
+
+
+def spending(user):
+    """{"spent", "limit", "left"} for this calendar month, in dollars."""
+    from django.conf import settings
+    limit = float(getattr(settings, "SUBSCRIPTION_MONTHLY_LIMIT", 25.0))
+    spent = spent_this_month(user)
+    return {"spent": spent, "limit": limit, "left": round(max(0.0, limit - spent), 4)}
+
+
 def _request(user, task, messages, timeout=None, **params):
     """Sends one chat completion request and returns (profile, the parsed JSON reply)."""
+    check_limit(user)
     profile, model = resolve(user, task)
+    if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER:
+        params.setdefault("usage", {"include": True})  # OpenRouter then reports the cost
     payload = {"model": model, "messages": messages}
     payload.update({k: v for k, v in params.items() if v is not None})
     timeout = TEST_TIMEOUT or timeout or TASKS.get(task, {}).get("timeout", 60)
@@ -172,6 +218,8 @@ def _request(user, task, messages, timeout=None, **params):
         raise AIError(f"{label}: {profile.name} sent a reply that is not JSON.")
     if isinstance(data, dict) and data.get("error"):  # OpenRouter can report errors with HTTP 200
         raise AIError(f"{label}: {profile.name} returned an error: {_error_text(resp)}")
+    if isinstance(data, dict):
+        record_cost(user, task, model, (data.get("usage") or {}).get("cost"))
     return profile, data
 
 
@@ -194,9 +242,6 @@ def complete_message(user, task, messages, timeout=None, **params):
     Like complete(), but returns (the whole reply message, cost in USD or None), so callers can
     read tool calls. Pass tools=[...] for function calling. OpenRouter reports the cost when asked.
     """
-    profile, model = resolve(user, task)
-    if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER:
-        params.setdefault("usage", {"include": True})
     profile, data = _request(user, task, messages, timeout, **params)
     try:
         message = data["choices"][0]["message"]
@@ -237,6 +282,10 @@ def test_connection(provider, base_url, api_key, model):
         return False, f"Could not reach the server ({e.__class__.__name__})."
 
 
+class Reasoning(str):
+    """A piece of what a thinking model thinks before it replies (stream() yields these between text pieces)."""
+
+
 def stream(user, task, messages, timeout=None, **params):
     """
     Like complete(), but yields the reply in pieces as the provider sends them
@@ -245,7 +294,10 @@ def stream(user, task, messages, timeout=None, **params):
     """
     import json
 
+    check_limit(user)
     profile, model = resolve(user, task)
+    if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER:
+        params.setdefault("usage", {"include": True})  # the cost arrives with the last piece
     payload = {"model": model, "messages": messages, "stream": True}
     payload.update({k: v for k, v in params.items() if v is not None})
     read_timeout = TEST_TIMEOUT or timeout or TASKS.get(task, {}).get("timeout", 60)  # max wait between two pieces
@@ -281,9 +333,94 @@ def stream(user, task, messages, timeout=None, **params):
                     err = event["error"]
                     raise AIError(f"{label}: {profile.name} stopped with an error: "
                                   f"{err.get('message') if isinstance(err, dict) else err}")
+                if isinstance(event.get("usage"), dict):
+                    record_cost(user, task, model, event["usage"].get("cost"))
                 choices = event.get("choices") or []
-                text = (choices[0].get("delta") or {}).get("content") if choices else None
+                delta = (choices[0].get("delta") or {}) if choices else {}
+                text = delta.get("content")
                 if text:
                     yield text
+                else:
+                    thought = delta.get("reasoning") or delta.get("reasoning_content")
+                    if not thought and isinstance(delta.get("reasoning_details"), list):
+                        thought = "".join(d.get("text", "") for d in delta["reasoning_details"] if isinstance(d, dict))
+                    if thought:
+                        yield Reasoning(thought)
         except requests.RequestException as e:
             raise AIError(f"{label}: the connection to {profile.name} broke off ({e.__class__.__name__}).")
+
+
+_IMAGE_MODELS = {"at": 0, "list": []}
+
+
+def image_models():
+    """Models on OpenRouter that output pictures ({"id", "name"}), the list cached for an hour."""
+    import time
+    if _IMAGE_MODELS["list"] and time.time() - _IMAGE_MODELS["at"] < 3600:
+        return _IMAGE_MODELS["list"]
+    try:
+        resp = requests.get(f"{ConnectionProfile.OPENROUTER_URL}/models", timeout=15)
+        data = resp.json().get("data", []) if resp.ok else []
+    except (requests.RequestException, ValueError):
+        data = []
+    found = []
+    for m in data:
+        if "image" in ((m.get("architecture") or {}).get("output_modalities") or []):
+            found.append({"id": m.get("id", ""), "name": m.get("name") or m.get("id", "")})
+    if found:
+        _IMAGE_MODELS.update(at=time.time(), list=sorted(found, key=lambda m: m["name"]))
+    return found or _IMAGE_MODELS["list"]
+
+
+def default_image_model(models=None):
+    """settings.SPRITE_IMAGE_MODEL if OpenRouter lists it, else the newest-looking Nano Banana."""
+    from django.conf import settings
+    wanted = getattr(settings, "SPRITE_IMAGE_MODEL", "google/gemini-3.1-flash-image")
+    models = image_models() if models is None else models
+    ids = [m["id"] for m in models]
+    if not ids or wanted in ids:
+        return wanted
+    banana = [m for m in models if "nano banana" in m["name"].lower() and "preview" not in m["name"].lower()]
+    return (banana or models)[0]["id"]
+
+
+def generate_image(user, prompt, reference=None, reference_type="image/png", timeout=180, model=None):
+    """
+    One picture from an image model on OpenRouter (Nano Banana: settings.SPRITE_IMAGE_MODEL), optionally
+    starting from a reference picture. Returns (PNG/JPEG bytes, cost or None). Uses the main connection's key.
+    """
+    import base64
+    from django.conf import settings
+    check_limit(user)
+    profile = main_profile(user)
+    if profile is None or profile.provider != ConnectionProfile.PROVIDER_OPENROUTER or not profile.api_key:
+        raise AIError("Making pictures needs an OpenRouter key (set it on the welcome page).")
+    model = model or default_image_model()
+    content = [{"type": "text", "text": prompt}]
+    if reference:
+        url = f"data:{reference_type};base64,{base64.b64encode(reference).decode('ascii')}"
+        content.append({"type": "image_url", "image_url": {"url": url}})
+    payload = {"model": model, "messages": [{"role": "user", "content": content}],
+               "modalities": ["image", "text"], "usage": {"include": True}}
+    try:
+        resp = requests.post(f"{profile.api_url}/chat/completions", headers=_headers(profile), json=payload,
+                             timeout=TEST_TIMEOUT or timeout)
+    except requests.Timeout:
+        raise AIError(f"The picture took longer than {timeout} seconds. Try again.")
+    except requests.RequestException as e:
+        raise AIError(f"Could not reach OpenRouter ({e.__class__.__name__}).")
+    if resp.status_code >= 400:
+        raise AIError(f"OpenRouter returned an error ({resp.status_code}): {_error_text(resp)}")
+    try:
+        data = resp.json()
+        message = data["choices"][0]["message"]
+    except (ValueError, KeyError, IndexError, TypeError):
+        raise AIError("The image model sent a reply I couldn't read.")
+    cost = (data.get("usage") or {}).get("cost")
+    record_cost(user, "sprites", model, cost)
+    for image in message.get("images") or []:
+        url = ((image or {}).get("image_url") or {}).get("url", "")
+        if url.startswith("data:") and ";base64," in url:
+            return base64.b64decode(url.split(";base64,", 1)[1]), (float(cost) if isinstance(cost, (int, float)) else None)
+    raise AIError("The image model answered without a picture" +
+                  (f": {message.get('content')[:200]}" if message.get("content") else "."))

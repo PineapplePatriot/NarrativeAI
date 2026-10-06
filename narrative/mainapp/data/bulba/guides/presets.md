@@ -43,10 +43,13 @@ This is where their preferences go (propose_preset's `taste`). Rules:
    question unless the character would really ask one"). Don't write long lists of banned words or
    phrases: banning a word often gets you its synonym. If they hate a pattern (therapy talk, recaps,
    purple metaphors), describe the pattern, not the words.
-4. **Five to ten lines.** If it's longer, you're probably restating the starter or guessing.
+4. **Five to ten lines**, plus the basics form's lines. If it's longer, you're probably restating the starter or guessing.
 5. **Boundaries last, plainly:** "Keep out: graphic violence against animals." No moralising.
 6. **Length goes in `reply_length`** (short, medium, long), not in the text, unless they gave something
    specific ("about two paragraphs").
+7. **The basics form's answers go in as they are.** Point of view, tense, speech and actions, language,
+   coloured speech and in-story panels were recorded word for word; copy those lines into `taste`
+   unchanged (they're tested wordings, including the HTML ones), and take the length from reply_length.
 
 ## When the starter contradicts them
 

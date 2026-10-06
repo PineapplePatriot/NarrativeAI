@@ -109,3 +109,47 @@ button.link { background: none; padding: 0; color: var(--accent-soft); text-deco
 .proposal .unfold {
     margin: 4px 0 8px;
 }
+
+.budget-form { display: grid; gap: 6px; margin: 8px 0; }
+.budget-form label { font-size: .85rem; }
+.budget-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.budget-row input { width: 90px; }
+.budget-form .warn { color: #fbbf24; }
+
+.sample-ask { font-size: .85rem; opacity: .8; margin-right: 4px; }
+.lookup { font-size: .8rem; opacity: .75; padding: 0 4px 0 52px; }
+.lookup a { color: var(--accent-soft); }
+.done-block { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 6px 0 6px 52px; }
+#panelChat:not(:empty) { margin-top: 12px; }
+.composer textarea:disabled { opacity: .55; }
+button:disabled { opacity: .45; cursor: default; }
+
+.basics-form { margin-left: 52px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; display: grid; gap: 12px; }
+.basics-form .form-row { display: grid; grid-template-columns: minmax(130px, 180px) 1fr; gap: 10px; align-items: start; }
+.basics-form .form-label { font-weight: 600; font-size: .9rem; }
+.basics-form .form-label small { display: block; font-weight: 400; opacity: .7; font-size: .78rem; }
+.basics-form .form-field { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.basics-form input[type=text] { flex: 1; min-width: 0; background: var(--card-2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; font: inherit; }
+.basics-form .pill input { position: absolute; opacity: 0; pointer-events: none; }
+.basics-form .pill span { display: inline-block; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--border); font-size: .85rem; cursor: pointer; }
+.basics-form .pill input:checked + span { background: var(--accent); border-color: var(--accent); color: #fff; }
+.basics-form .pill input:focus-visible + span { outline: 2px solid var(--accent-soft); }
+.basics-form .form-actions { display: flex; gap: 12px; align-items: center; }
+@media (max-width: 640px) { .basics-form { margin-left: 0; } .basics-form .form-row { grid-template-columns: 1fr; } }
+.basics-form .pill { position: relative; }
+.basics-form .form-section { font-size: .75rem; letter-spacing: .06em; text-transform: uppercase; opacity: .7; padding-top: 4px; border-top: 1px solid var(--border); }
+.basics-form .form-section:first-child { border-top: none; padding-top: 0; }
+.basics-form .adult-chips { display: contents; }
+.basics-form .adult-chips[hidden] { display: none; }
+
+/* Inside a chat (side panel on the chat page) */
+body.embed { height: 100vh; display: flex; flex-direction: column; }
+body.embed .bulba-layout { grid-template-columns: 1fr; flex: 1; min-height: 0; height: auto; }
+body.embed .bulba-panel { display: none; }
+body.embed .log { padding: 12px 2px; }
+body.embed .msg .bubble, body.embed .proposal, body.embed .samples { font-size: .92rem; }
+body.embed .basics-form, body.embed .lookup, body.embed .done-block { margin-left: 0; padding-left: 0; }
+.embed-head { display: flex; align-items: center; gap: 6px; padding: 10px 14px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.embed-head .embed-sub { opacity: .7; font-size: .9rem; }
+.embed-head .embed-actions { margin-left: auto; display: flex; gap: 12px; align-items: center; font-size: .85rem; }
+.embed-head { padding-right: 52px; }

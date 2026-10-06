@@ -1522,7 +1522,7 @@ class StarterTests(ChatPromptTests):
     def test_every_starter_is_a_sound_preset_for_its_model(self):
         from mainapp import model_profiles, presets, samplers, starters
         all_s = starters.all_starters()
-        self.assertEqual(len(all_s), 32)  # three experiences for each of the ten models, plus two community presets
+        self.assertEqual(len(all_s), 33)  # three experiences for each of the ten models, plus three community presets
         for s in all_s:
             profile = next(p for p in model_profiles.all_profiles() if p["id"] == s["model"])
             self.assertEqual(profile["starters"][s["experience"]], s["id"])
@@ -1539,7 +1539,7 @@ class StarterTests(ChatPromptTests):
             self.assertFalse([n for n in built["notes"] if "nknown macro" in n], s["id"])
             text = "\n".join(m["content"] for m in built["messages"])
             self.assertNotIn("{{", text, s["id"])
-            if s["experience"] == "full_preset":
+            if s["experience"].startswith("full_preset"):
                 # A community preset, whole: its own 18+ toggles start off, its text rules all compile
                 self.assertFalse([b["name"] for b in preset["blocks"] if "🔞" in b["name"] and b["enabled"]], s["id"])
                 from mainapp import regex_rules
@@ -2338,3 +2338,360 @@ class RegexChatTests(ChatPromptTests):
         post({"action": "save_full", "id": obj.id, "blocks": current["blocks"], "regex": [ST_RULE]})
         obj.refresh_from_db()
         self.assertEqual([r["name"] for r in presets_mod.normalize(obj.data)["regex"]], ["Hide thinking"])
+
+
+class SpendingAndThinkingTests(StreamChatTests):
+    """Costs recorded per request; "thinking" while a model reasons; per-chat persona; colours; Continue."""
+
+    def test_stream_records_cost_and_says_thinking(self):
+        from mainapp import ai_client
+        self.stream_lines = sse({"choices": [{"delta": {"reasoning": "hmm"}}]},
+                                {"choices": [{"delta": {"reasoning": "more"}}]},
+                                delta("Hi."), {"choices": [], "usage": {"cost": 0.012}}, "[DONE]")
+        resp, events = self.stream_post({"action": "chat", "message": "Hello"})
+        self.assertEqual([e["type"] for e in events], ["thinking", "thinking", "delta", "done"])
+        self.assertEqual(events[-1]["reasoning"], "hmmmore")
+        from mainapp import chats
+        self.assertEqual(chats.reasoning_of(self.saved_messages()[-1]), "hmmmore")
+        # Thoughts are shown, never sent back to the model
+        self.stream_lines = sse(delta("Fine."), "[DONE]")
+        self.stream_post({"action": "chat", "message": "Next"})
+        self.assertNotIn("hmmmore", json.dumps(self.sent[-1]["messages"]))
+        page = self.client.get(self.url)
+        self.assertContains(page, '<details class="thoughts">')
+        self.assertEqual(self.sent[-1]["usage"], {"include": True})
+        self.assertAlmostEqual(ai_client.spent_this_month(self.user), 0.012)
+        self.assertAlmostEqual(events[-1]["spending"]["spent"], 0.012)
+        self.assertEqual(events[-1]["spending"]["limit"], 25.0)
+
+    def test_non_streamed_costs_are_recorded(self):
+        from unittest import mock
+        from mainapp import ai_client
+        resp = mock.Mock(status_code=200)
+        resp.json.return_value = {"choices": [{"message": {"content": "x"}}], "usage": {"cost": 0.5}}
+        with mock.patch("mainapp.ai_client.requests.post", return_value=resp):
+            ai_client.complete(self.user, "chat", [{"role": "user", "content": "hi"}])
+        self.assertEqual(ai_client.spending(self.user), {"spent": 0.5, "limit": 25.0, "left": 24.5})
+
+    def test_continue_goes_through_the_preset(self):
+        from unittest import mock
+        self.post({"action": "chat", "message": "Where is the tower?"})
+        replies = iter(["and then it ended."])
+        def fake(url, headers=None, json=None, timeout=None, **kw):
+            self.sent.append(json)
+            r = mock.Mock(status_code=200)
+            r.json.return_value = {"choices": [{"message": {"content": next(replies)}}]}
+            return r
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=fake):
+            data = self.client.post(self.url, json.dumps({"action": "continue"}), content_type="application/json").json()
+        self.assertEqual(data["reply"], "A reply. and then it ended.")
+        sent = self.sent[-1]["messages"]
+        self.assertIn("[Continue your last message", sent[-1]["content"])  # the preset's continue nudge, last
+        self.assertIn("A reply.", "\n".join(m["content"] for m in sent))
+        self.assertIn("Where is the tower?", "\n".join(m["content"] for m in sent))
+        self.assertEqual(self.saved_messages()[-1][2], "A reply. and then it ended.")
+
+    def test_persona_for_one_chat(self):
+        self.user.persona_name, self.user.persona_description = "Anya", "A courier."
+        self.user.save()
+        data = self.client.post(self.url, json.dumps({"action": "chat_persona", "name": "Vex",
+                                                      "description": "A genderless alien lizard."}),
+                                content_type="application/json").json()
+        self.assertEqual(data["name"], "Vex")
+        self.post({"action": "chat", "message": "Hello"})
+        sent = "\n".join(m["content"] for m in self.sent[-1]["messages"])
+        self.assertIn("A genderless alien lizard.", sent)
+        self.assertNotIn("A courier.", sent)
+        # Back to the usual persona
+        self.client.post(self.url, json.dumps({"action": "chat_persona", "name": ""}), content_type="application/json")
+        self.post({"action": "chat", "message": "Hi again"})
+        self.assertIn("A courier.", "\n".join(m["content"] for m in self.sent[-1]["messages"]))
+
+    def test_dialogue_colour(self):
+        post = lambda c: self.client.post(self.url, json.dumps({"action": "appearance", "dialogue_color": c}),
+                                          content_type="application/json")
+        self.assertEqual(post("#7dd3fc").json()["dialogue_color"], "#7dd3fc")
+        self.assertContains(self.client.get(self.url), "--dialogue-color: #7dd3fc")
+        self.assertEqual(post("preset").json()["dialogue_color"], "preset")
+        self.assertContains(self.client.get(self.url), 'data-dialogue="preset"')
+        self.assertEqual(post("red; position:fixed").status_code, 400)
+
+
+class BulbaRunTwoTests(BulbaTests):
+    """Fixes from Anya's first real run (5 October 2026)."""
+
+    def test_activity_and_chat_link(self):
+        self.assertEqual(self.client.get(reverse("bulba_api")).json(), {"activity": ""})
+        self.script = [("Here.", [self.call("propose_character", name="Corvin", description="A wizard.", greeting="Hi.")])]
+        data = self.api(action="say", text="make him").json()
+        self.assertIsNone(data["state"]["chat"])
+        self.script = [("Pictures?", [])]
+        data = self.api(action="apply", id=data["state"]["proposals"][0]["id"]).json()
+        self.assertEqual(data["state"]["chat"]["name"], "Corvin")
+        self.assertTrue(data["state"]["chat"]["edit_url"].endswith("#spritesSection"))
+        told = self.bulba_calls[-1]["messages"][-1]["content"]
+        self.assertIn("#spritesSection", told)                       # Bulba learns where pictures go
+        self.assertEqual(data["events"][1]["text"], "Applied: Character: Corvin")  # the page shows no links
+
+    def test_look_up(self):
+        self.script = [("", [self.call("look_up", query="Il Dottore personality")]), ("Found him.", [])]
+        orig = self.fake_post
+        seen = []
+        def fake(url, headers=None, json=None, timeout=None, **kw):
+            if json.get("plugins"):
+                seen.append(json)
+                from unittest import mock
+                r = mock.Mock(status_code=200)
+                r.json.return_value = {"choices": [{"message": {"content": "A Fatui Harbinger.", "annotations": [
+                    {"type": "url_citation", "url_citation": {"url": "https://wiki.example/dottore", "title": "Wiki"}}]}}],
+                    "usage": {"cost": 0.02}}
+                return r
+            return orig(url, headers, json, timeout, **kw)
+        self.fake_post = fake
+        data = self.api(action="say", text="Il Dottore").json()
+        self.assertEqual(seen[0]["plugins"], [{"id": "web", "max_results": 5}])
+        result = json.loads(self.bulba_calls[1]["messages"][-1]["content"])
+        self.assertEqual(result["findings"], "A Fatui Harbinger.")
+        lookup = next(e for e in data["events"] if e["type"] == "lookup")
+        self.assertEqual(lookup["sources"][0]["url"], "https://wiki.example/dottore")
+
+    def test_samples_dont_gender_an_unknown_user(self):
+        self.script = [("Look.", [self.call("write_samples", starter="opus-rich-scene", scenario="{{user}} arrives.",
+                                            user_turn="Hi.", variants=[{"label": "a", "instructions": ""}])])]
+        self.api(action="say", text="show me")
+        system = "\n".join(m["content"] for m in self.sample_calls[0]["messages"])
+        self.assertIn("don't give them a gender", system)
+        self.user.persona_description = "Wren, she/her."
+        self.user.save()
+        self.script = [("Again.", [self.call("write_samples", starter="opus-rich-scene", scenario="{{user}} arrives.",
+                                             user_turn="Hi.", variants=[{"label": "a", "instructions": ""}])])]
+        self.api(action="say", text="again")
+        self.assertNotIn("don't give them a gender", "\n".join(m["content"] for m in self.sample_calls[-1]["messages"]))
+
+
+class MonthLimitTests(ChatPromptTests):
+    def test_limit_stops_chat_and_bulba(self):
+        from users.models import UsageRecord
+        from mainapp import ai_client
+        UsageRecord.objects.create(user=self.user, task="chat", cost=25.0)
+        resp = self.post({"action": "chat", "message": "Hello"})
+        self.assertEqual(resp.status_code, 502)
+        self.assertIn("used up", resp.json()["error"])
+        self.assertEqual(self.sent, [])  # nothing reached the AI
+        with self.assertRaises(ai_client.LimitReached):
+            ai_client.complete_message(self.user, "bulba", [{"role": "user", "content": "hi"}])
+        with override_settings(SUBSCRIPTION_LIMIT_ENFORCED=False):
+            self.assertEqual(self.post({"action": "chat", "message": "Hello"}).status_code, 200)
+
+
+class BasicsFormTests(BulbaTests):
+    def test_form_answers_become_preferences(self):
+        self.script = [("A few quick settings first.", [self.call("show_basics_form")])]
+        data = self.api(action="say", text="no voices").json()
+        self.assertEqual(len(self.bulba_calls), 1)  # the form ends the turn
+        self.assertTrue(any(e["type"] == "form" for e in data["events"]))
+        self.script = [("Got it. What do you want to play?", [])]
+        data = self.api(action="basics", answers={"pov": "second", "tense": "present", "length": "long",
+                                                  "colors": "on", "format": "any", "language": "English",
+                                                  "keep_out": "spiders", "bogus": "x", "panels": "nope"}).json()
+        told = self.bulba_calls[-1]["messages"][-1]["content"]
+        self.assertIn("Narrate in second person", told)
+        self.assertIn("reply_length long", told)
+        self.assertIn('<font color=', told)
+        self.assertNotIn("bogus", told)
+        prefs = data["state"]["preferences"]
+        self.assertIn("Write in present tense.", [p["interpretation"] for p in prefs])
+        self.assertIn("boundary", [p["scope"] for p in prefs])
+        self.assertTrue(all(p["status"] == "confirmed" for p in prefs))
+        self.assertEqual(data["events"][0]["text"], "Sent the basics")
+
+
+class SpriteMakerTests(ChatPromptTests):
+    def test_mood_picture_from_the_neutral_one(self):
+        import base64
+        from unittest import mock
+        from django.core.files.base import ContentFile
+        self.character.photo_neutral.save("rose.png", ContentFile(b"\x89PNG fake"), save=True)
+        url = reverse("character_sprite", args=[self.character.slug])
+        seen = []
+        def fake(u, headers=None, json=None, timeout=None, **kw):
+            seen.append(json)
+            r = mock.Mock(status_code=200)
+            r.json.return_value = {"choices": [{"message": {"content": "", "images": [
+                {"type": "image_url", "image_url": {"url": "data:image/png;base64," + base64.b64encode(b"\x89PNG happy").decode()}}]}}],
+                "usage": {"cost": 0.04}}
+            return r
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=fake):
+            data = self.client.post(url, json.dumps({"emotion": "happy"}), content_type="application/json").json()
+        self.assertEqual(data["field"], "photo_happy")
+        self.character.refresh_from_db()
+        with self.character.photo_happy.open("rb") as f:
+            self.assertEqual(f.read(), b"\x89PNG happy")
+        self.assertEqual(seen[0]["modalities"], ["image", "text"])
+        self.assertEqual(seen[0]["messages"][0]["content"][1]["type"], "image_url")
+        self.assertAlmostEqual(data["spending"]["spent"], 0.04)
+        bad = self.client.post(url, json.dumps({"emotion": "neutral"}), content_type="application/json")
+        self.assertEqual(bad.status_code, 400)
+
+    def test_needs_a_neutral_picture(self):
+        url = reverse("character_sprite", args=[self.character.slug])
+        resp = self.client.post(url, json.dumps({"emotion": "sad"}), content_type="application/json")
+        self.assertIn("neutral picture first", resp.json()["error"])
+
+
+class BasicsStoryKindTests(BulbaTests):
+    def test_genres_pacing_voice_author(self):
+        self.script = [("Noted.", [])]
+        data = self.api(action="basics", answers={"genres": ["comedy", "romance", "nonsense"], "pacing": "slow",
+                                                  "voice": "hemingway", "author": "Terry Pratchett", "pov": "any"}).json()
+        told = self.bulba_calls[-1]["messages"][-1]["content"]
+        self.assertIn("humour, banter", told)
+        self.assertIn("real emotional connection", told)
+        self.assertNotIn("nonsense", told)
+        self.assertIn("Slow burn", told)
+        self.assertIn("Ernest Hemingway", told)
+        self.assertIn("Write in the style of Terry Pratchett", told)
+        self.assertEqual(len(data["state"]["preferences"]), 4)
+
+
+class ImageModelTests(SimpleTestCase):
+    def test_list_and_default(self):
+        from unittest import mock
+        from mainapp import ai_client
+        ai_client._IMAGE_MODELS.update(at=0, list=[])
+        resp = mock.Mock(ok=True)
+        resp.json.return_value = {"data": [
+            {"id": "google/gemini-2.5-flash-image", "name": "Google: Nano Banana (Gemini 2.5 Flash Image)",
+             "architecture": {"output_modalities": ["image", "text"]}},
+            {"id": "google/gemini-3.1-flash-image", "name": "Google: Nano Banana 2 (Gemini 3.1 Flash Image)",
+             "architecture": {"output_modalities": ["image", "text"]}},
+            {"id": "x/text-only", "name": "Text", "architecture": {"output_modalities": ["text"]}}]}
+        with mock.patch("mainapp.ai_client.requests.get", return_value=resp):
+            models = ai_client.image_models()
+        self.assertEqual([m["id"] for m in models], ["google/gemini-2.5-flash-image", "google/gemini-3.1-flash-image"])
+        self.assertEqual(ai_client.default_image_model(models), "google/gemini-3.1-flash-image")
+        with override_settings(SPRITE_IMAGE_MODEL="google/not-there"):
+            self.assertEqual(ai_client.default_image_model(models), "google/gemini-2.5-flash-image")
+        ai_client._IMAGE_MODELS.update(at=0, list=[])
+
+
+class BulbaInChatTests(ChatPromptTests):
+    """Bulba opened from a chat: sees the chat, edits the preset or card, rewrites the last reply."""
+
+    def setUp(self):
+        super().setUp()
+        self.script, self.bulba_calls, self.retry_calls = [], [], []
+
+    def make_chat(self):
+        from mainapp import chats
+        self.user.persona_name = "Wren"
+        self.user.save()
+        from users.models import ConnectionProfile
+        ConnectionProfile.objects.filter(user=self.user).update(model="anthropic/claude-opus-5.5")
+        self.post({"action": "chat", "message": "Where is the tower?"})
+        chat = self.character.chats.first()
+        data = chats.read(chat)
+        data["messages"][-1] = list(chats.with_reasoning(tuple(data["messages"][-1]), "I should write six long paragraphs."))
+        chats.write(chat, data)
+        self.chat_obj = chat
+
+    def call(self, tool, **args):
+        return {"id": f"c_{tool}_{len(self.bulba_calls)}", "type": "function",
+                "function": {"name": tool, "arguments": json.dumps(args)}}
+
+    def bulba_post(self, url, headers=None, json=None, timeout=None, **kw):
+        from unittest import mock
+        resp = mock.Mock(status_code=200)
+        if "tools" in json:
+            self.bulba_calls.append(json)
+            content, calls = self.script.pop(0) if self.script else ("Okay.", [])
+            msg = {"role": "assistant", "content": content, **({"tool_calls": calls} if calls else {})}
+        else:
+            self.retry_calls.append(json)
+            msg = {"role": "assistant", "content": "A shorter reply."}
+        resp.json.return_value = {"choices": [{"message": msg}], "usage": {"cost": 0.01}}
+        return resp
+
+    def api(self, **body):
+        from unittest import mock
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=self.bulba_post):
+            return self.client.post(reverse("bulba_api") + f"?chat={self.chat_obj.id}", json.dumps(body),
+                                    content_type="application/json")
+
+    def test_page_and_context(self):
+        self.make_chat()
+        page = self.client.get(reverse("bulba_chat", args=[self.chat_obj.id]))
+        self.assertEqual(page.status_code, 200)
+        self.assertEqual(page.context["bulba_data"]["state"]["mode"], "chat")
+        self.assertContains(page, "your chat with Rose")
+        self.script = [("Let me look.", [])]
+        self.api(action="say", text="Replies are too long")
+        system = self.bulba_calls[0]["messages"][0]["content"]
+        self.assertIn("Bulba in a chat", system)
+        self.assertIn("I should write six long paragraphs.", system)   # the last reply's thoughts
+        self.assertIn("Where is the tower?", system)                     # the recent chat
+        self.assertIn("Active preset:", system)
+        names = [t["function"]["name"] for t in self.bulba_calls[0]["tools"]]
+        self.assertIn("propose_preset_edit", names)
+        self.assertNotIn("propose_character", names)                    # setup-only tools stay out
+        # The setup conversation is separate
+        from mainapp.models import BulbaSession
+        self.assertFalse(BulbaSession.objects.filter(user=self.user, mode="setup").exists())
+
+    def test_preset_edit_retry_apply_undo(self):
+        self.make_chat()
+        from mainapp import presets as presets_mod
+        active = presets_mod.get_active(self.user)
+        block = next(b for b in presets_mod.normalize(active.data)["blocks"] if b["kind"] == "prompt")
+        self.script = [("", [self.call("read_block", block=block["name"])]),
+                       ("Here's the fix.", [self.call("propose_preset_edit", why="too long", edits=[
+                           {"action": "add", "block": "Keep it short", "content": "Keep replies to two paragraphs."}])])]
+        data = self.api(action="say", text="too long").json()
+        self.assertIn(block["content"][:40], self.bulba_calls[1]["messages"][-1]["content"])
+        proposal = data["state"]["proposals"][0]
+        self.assertEqual(proposal["kind"], "preset_edit")
+        self.assertNotIn("Keep replies to two paragraphs.", json.dumps(presets_mod.get_active(self.user).data))
+        # Rewrite the last reply with the change (not applied yet)
+        self.script = [("See?", [self.call("retry_reply", from_proposal=proposal["id"])])]
+        data = self.api(action="say", text="show me").json()
+        sent = json.dumps(self.retry_calls[-1]["messages"])
+        self.assertIn("Keep replies to two paragraphs.", sent)
+        self.assertIn("Where is the tower?", sent)
+        self.assertNotIn("I should write six", sent)
+        sample = next(e for e in data["events"] if e["type"] == "samples")
+        self.assertEqual(sample["samples"][0]["text"], "A shorter reply.")
+        # Apply, then undo
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=proposal["id"])
+        self.assertIn("Keep replies to two paragraphs.", json.dumps(presets_mod.get_active(self.user).data))
+        self.script = [("Undone.", [])]
+        self.api(action="undo", id=proposal["id"])
+        self.assertNotIn("Keep replies to two paragraphs.", json.dumps(presets_mod.get_active(self.user).data))
+
+    def test_bad_edits_are_refused(self):
+        self.make_chat()
+        self.script = [("", [self.call("propose_preset_edit", why="x", edits=[{"action": "replace", "block": "Nope", "content": "x"}])]),
+                       ("Hm.", [])]
+        self.api(action="say", text="fix it")
+        result = json.loads(self.bulba_calls[0 + 1]["messages"][-1]["content"])
+        self.assertIn("No block called", result["error"])
+
+    def test_card_edit(self):
+        self.make_chat()
+        self.script = [("Fix.", [self.call("propose_card_edit", personality="Curt.", why="voice")])]
+        data = self.api(action="say", text="she sounds off").json()
+        pid = data["state"]["proposals"][0]["id"]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=pid)
+        self.character.refresh_from_db()
+        self.assertEqual(self.character.personality, "Curt.")
+        self.script = [("Undone.", [])]
+        self.api(action="undo", id=pid)
+        self.character.refresh_from_db()
+        self.assertEqual(self.character.personality, "")
+
+    def test_other_users_chat_is_refused(self):
+        self.make_chat()
+        other = get_user_model().objects.create_user(username="other", password="pw12345!")
+        self.client.force_login(other)
+        self.assertEqual(self.client.get(reverse("bulba_chat", args=[self.chat_obj.id])).status_code, 404)
