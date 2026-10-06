@@ -10,6 +10,16 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '
 // Light formatting for Bulba's messages: paragraphs, **bold**, *italics*
 const fmt = t => esc(t).split(/\n{2,}/).map(p => `<p>${p.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
     .replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<i>$2</i>').replace(/\n/g, '<br>')}</p>`).join('');
+// Samples are written by the user's model with their preset, which may colour speech with <font color> or use
+// <b>, <i>, <span style="color:...">: show those few tags as in a chat (everything else stays escaped)
+const COLOR = '(#[0-9a-fA-F]{3,8}|[a-zA-Z]{3,20})';
+const fmtSample = t => fmt(t)
+    .replace(new RegExp(`&lt;font color=(?:&quot;|')?${COLOR}(?:&quot;|')?&gt;`, 'g'), '<span style="color:$1">')
+    .replace(/&lt;\/font&gt;/g, '</span>')
+    .replace(new RegExp(`&lt;span style=(?:&quot;|')color:\\s*${COLOR};?(?:&quot;|')&gt;`, 'g'), '<span style="color:$1">')
+    .replace(/&lt;\/span&gt;/g, '</span>')
+    .replace(/&lt;(\/?)(b|i|em|strong|u|s)&gt;/g, '<$1$2>')
+    .replace(/&lt;br\s*\/?&gt;/g, '<br>');
 
 function getCookie(name) {
     const m = document.cookie.split(';').map(c => c.trim()).find(c => c.startsWith(name + '='));
@@ -140,7 +150,7 @@ function render() {
                 <div class="samples-head">Written by <b>${esc(ev.model)}</b>${ev.character ? ` as ${esc(ev.character)}` : ''}</div>
                 ${ev.scenario ? `<div class="samples-scene">${esc(ev.scenario)}<br><i>You: ${esc(ev.user_turn)}</i></div>` : ''}
                 <div class="sample-grid">${ev.samples.map(s => `
-                    <div class="sample"><div class="sample-label">${esc(s.label)}</div><div class="sample-text">${fmt(s.text)}</div>
+                    <div class="sample"><div class="sample-label">${esc(s.label)}</div><div class="sample-text">${fmtSample(s.text)}</div>
                     ${live && ev.samples.length > 1 ? `<button type="button" data-say="I prefer ${esc(s.label)}.">This one</button>` : ''}</div>`).join('')}</div>
                 ${live && ev.samples.length > 1 ? `<div class="sample-actions">
                     <button type="button" class="ghost" data-say="I like both.">Both</button>
