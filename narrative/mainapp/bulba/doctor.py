@@ -12,7 +12,7 @@ import uuid
 from pathlib import Path
 
 from mainapp import ai_client, chats, game, presets, thinking
-from mainapp.bulba import library, lore
+from mainapp.bulba import control, library, lore
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba"
 CARD_FIELDS = ("description", "personality", "scenario", "example_dialogue")
@@ -293,6 +293,7 @@ def tools():
                 "required": ["action", "block"]}},
              "why": STR}, ["edits", "why"]),
         CARD_EDIT_TOOL,
+        *control.tool_defs(_fn, STR),
         _fn("retry_reply", "Rewrite the last AI reply of this chat with their chat model: with a proposal's change "
             "applied just for this try (from_proposal), or as things are now. Costs one reply.",
             {"from_proposal": {"type": "string", "description": "A preset or card proposal id; leave out to retry as is"}}),
@@ -300,6 +301,7 @@ def tools():
 
 
 HANDLERS = {"read_block": tool_read_block, "propose_preset_edit": tool_propose_preset_edit, **lore.HANDLERS,
+            **control.HANDLERS,
             "propose_card_edit": tool_propose_card_edit, "retry_reply": tool_retry_reply}
 
 

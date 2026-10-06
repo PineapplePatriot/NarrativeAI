@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
 </head>
 
-<body data-dialogue="{% if appearance.dialogue_color == 'preset' %}preset{% else %}color{% endif %}" style="--dialogue-color: {% if appearance.dialogue_color == 'preset' %}inherit{% else %}{{ appearance.dialogue_color }}{% endif %}">
+<body class="{% if appearance.layout == 'book' %}layout-book{% endif %}" data-dialogue="{% if appearance.dialogue_color == 'preset' %}preset{% else %}color{% endif %}" style="--dialogue-color: {% if appearance.dialogue_color == 'preset' %}inherit{% else %}{{ appearance.dialogue_color }}{% endif %}">
 {% include "partials/topbar.html" with active="characters" %}
 
     <div class="chat-container">
@@ -229,6 +229,11 @@
                                 <button type="button" class="tool-action-btn" id="personaReset">Use my usual persona</button>
                             </div>
                         </form>
+                        <span class="tool-sublabel">📖 Layout <small>(all chats)</small></span>
+                        <div class="chip-row" id="layoutChoice">
+                            <button type="button" class="preset-btn {% if appearance.layout != 'book' %}on{% endif %}" data-layout="chat">💬 Chat</button>
+                            <button type="button" class="preset-btn {% if appearance.layout == 'book' %}on{% endif %}" data-layout="book" title="Replies read as chapters; your messages fold into small markers you can open">📖 Book</button>
+                        </div>
                         <span class="tool-sublabel">🎨 Dialogue colour</span>
                         <div class="dialogue-colors" id="dialogueColors">
                             {% for c in "#e594f2,#7dd3fc,#86efac,#fcd34d,#fca5a5,#c4b5fd,#f1f5f9"|split:"," %}

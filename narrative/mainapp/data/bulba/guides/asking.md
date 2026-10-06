@@ -59,7 +59,6 @@ Good first comparisons (pick by what's still unclear, and by this model's probes
 | Pace | One beat, then hand the turn over. | Move the scene forward a few steps before handing over. |
 | Voice | Dry, understated, a little wry. | Warmer and more expressive. |
 | Friction | Agreement and forgiveness come easily when the reason is good. | Characters agree, trust and forgive only for their own reasons; disagreements can stay open. |
-| Who decides | Leave every choice of {{user}}'s to them. | You may move {{user}} through small, obvious actions (walking in, sitting down). |
 
 **Plain questions that reveal a lot** (from the research cookbook, `docs/research/`), as offer_choices:
 "Should the scene stay with this conversation, or should the world bring in new trouble?"; "Should

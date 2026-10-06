@@ -3137,3 +3137,49 @@ class ImpersonateAndTriggerTests(ChatPromptTests):
         self.assertIn("Write as chatter now.", sent)
         self.assertIn("i nod", sent)
         self.assertIn("Hello, traveller.", sent)  # the chat itself
+
+
+class DirectorModeTests(BulbaTests):
+    def test_basics_control_shapes_the_preset_and_layout(self):
+        from mainapp import presets as presets_mod
+        from mainapp.views import _appearance
+        self.script = [("Noted.", [])]
+        data = self.api(action="basics", answers={"control": "director"}).json()
+        sent = self.bulba_calls[-1]["messages"][-1]["content"]
+        self.assertIn("You direct the story from outside it", sent)
+        self.assertIn("don't add it to taste", sent)
+        self.script = [("", [self.call("propose_preset", starter="opus-rich-scene", taste="Dry humour.")])]
+        proposal = self.api(action="say", text="build it").json()["state"]["proposals"][-1]
+        self.assertIn("book layout", "\n".join(proposal["summary"]))
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=proposal["id"])
+        blocks = presets_mod.normalize(presets_mod.get_active(self.user).data)["blocks"]
+        mine = next(b for b in blocks if b["name"] == "Your character")
+        self.assertIn("Never treat {{user}} as a character", mine["content"])
+        roleplay = next(b for b in blocks if b["name"] == "Roleplay")["content"]
+        self.assertNotIn("belong to the player", roleplay)
+        self.assertEqual(_appearance(self.user)["layout"], "book")
+        self.script = [("Undone.", [])]
+        self.api(action="undo", id=proposal["id"])
+        self.assertEqual(_appearance(self.user)["layout"], "chat")
+
+    def test_write_mode_on_frankenstein_switches_its_blocks(self):
+        from mainapp import presets as presets_mod, starters
+        from mainapp.bulba import control
+        p = control.apply_to_preset(presets_mod.normalize(starters.get("mimo-frankenstein")["preset"]), "write")
+        on = {b["name"]: b["enabled"] for b in p["blocks"]}
+        self.assertFalse(on[control.RF_ANTI_ECHO])
+        self.assertTrue(on[control.RF_EMBELLISH])
+        back = control.apply_to_preset(p, "dont")
+        self.assertTrue({b["name"]: b["enabled"] for b in back["blocks"]}[control.RF_ANTI_ECHO])
+        self.assertNotIn("Your character", [b["name"] for b in back["blocks"]])
+
+
+class BookLayoutTests(ChatPromptTests):
+    def test_layout_switch(self):
+        page = self.client.get(self.url)
+        self.assertNotContains(page, 'class="layout-book"')
+        resp = self.post({"action": "appearance", "layout": "book"}).json()
+        self.assertEqual(resp["layout"], "book")
+        self.assertContains(self.client.get(self.url), 'class="layout-book"')
+        self.assertEqual(self.post({"action": "appearance", "layout": "scroll"}).status_code, 400)

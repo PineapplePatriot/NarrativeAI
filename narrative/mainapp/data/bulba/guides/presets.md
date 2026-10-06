@@ -56,6 +56,15 @@ This is where their preferences go (propose_preset's `taste`). Rules:
 9. **Games and set formats** (stats, dice, a status panel, a phone screen) follow "Story first, unless
    it's a game" in the writing guide.
 
+## Who writes their character
+
+The basics form asks it (only me / the AI may write me too / I direct from outside). propose_preset applies
+the answer itself with Pura's tested wording, takes the starter's own "don't write for {{user}}" lines out
+when needed, and for directing also switches their chats to the book layout (replies read as chapters,
+their messages fold into small markers). Don't write anything about it in `taste`. Someone who answers
+"I direct from outside the story" usually wants the **Director seat** starter, which is built for that;
+the answer then adds Pura's stricter wording (they're never a character) and the book layout.
+
 ## When the starter contradicts them
 
 Sometimes a starter's own text pulls against what they want: they dislike banter but Back-and-forth

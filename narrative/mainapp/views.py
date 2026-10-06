@@ -549,6 +549,12 @@ def chat(request, slug):
             save_messages(messages)
             return JsonResponse({"success": True, "persona": chat_state["persona"],
                                  "name": prompt_names(request.user, character, chat_state["persona"])["user"]})
+        elif action == "appearance" and "layout" in data:  # chat bubbles or chapters
+            try:
+                set_layout(request.user, data.get("layout"))
+            except ValueError as e:
+                return JsonResponse({"success": False, "error": str(e)}, status=400)
+            return JsonResponse({"success": True, **_appearance(request.user)})
         elif action == "appearance":  # dialogue colour: a hex colour, or "preset" to leave it to the preset
             color = str(data.get("dialogue_color") or "")
             if color != "preset" and not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
@@ -938,7 +944,20 @@ def _appearance(user):
     color = look.get("dialogue_color") or DIALOGUE_DEFAULT
     if color != "preset" and not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
         color = DIALOGUE_DEFAULT
-    return {"dialogue_color": color}
+    # "book": replies read as chapters and the user's messages fold away (director mode); "chat": bubbles
+    layout = look.get("layout") if look.get("layout") in LAYOUTS else "chat"
+    return {"dialogue_color": color, "layout": layout}
+
+
+LAYOUTS = ("chat", "book")
+
+
+def set_layout(user, layout):
+    if layout not in LAYOUTS:
+        raise ValueError("Unknown layout.")
+    settings_obj, _ = ChatSettings.objects.get_or_create(author=user)
+    settings_obj.appearance = {**(settings_obj.appearance or {}), "layout": layout}
+    settings_obj.save(update_fields=["appearance"])
 
 
 def pinned_note(guides):

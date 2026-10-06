@@ -1596,3 +1596,29 @@ details.thoughts .thoughts-text { white-space: pre-wrap; font-size: .85rem; opac
 .tools-menu details.tool-section > summary::before { content: '▸ '; }
 .tools-menu details.tool-section[open] > summary::before { content: '▾ '; }
 .tools-menu .tool-sublabel { display: block; font-size: .8rem; opacity: .8; margin: 12px 0 6px; }
+
+/* ---- Book layout (director mode): replies read as chapters, your messages fold into markers ---- */
+.layout-book .message.assistant { max-width: none; width: 100%; padding: 0 4px; }
+.layout-book .message.assistant .message-avatar { display: none; }
+.layout-book .message.assistant .message-content { background: transparent; border: none; box-shadow: none;
+    max-width: 68ch; margin: 0 auto; padding: 4px 0; }
+.layout-book .message.assistant .message-content::before,
+.layout-book .message.assistant .message-content::after { display: none; }
+.layout-book .message.assistant .message-text { font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+    font-size: 1.06rem; line-height: 1.75; }
+.layout-book .message.assistant .message-time { opacity: .45; }
+/* Your messages: a small centred marker; the text opens on click */
+.layout-book .message.user { justify-content: center; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; }
+.layout-book .message.user .message-avatar { width: auto; height: auto; padding: 3px 12px; border-radius: 999px;
+    font-size: .75rem; font-weight: 500; background: transparent; border: 1px solid var(--border-color, rgba(148,163,184,.3));
+    opacity: .7; object-fit: unset; }
+.layout-book .message.user img.message-avatar { display: none; }
+.layout-book .message.user::before { content: "✎ you"; font-size: .75rem; letter-spacing: .04em; opacity: .55;
+    border: 1px solid rgba(148,163,184,.3); border-radius: 999px; padding: 2px 12px; }
+.layout-book .message.user .message-avatar { display: none; }
+.layout-book .message.user:not(.open) .message-content { display: none; }
+.layout-book .message.user.open::before { content: "✎ you · fold"; }
+.layout-book .message.user.open .message-content { max-width: 68ch; opacity: .85; cursor: auto; }
+.layout-book .message.user + .message.assistant .message-content { border-top: none; }
+.layout-book .message.user.open .message-actions { position: static; display: flex; justify-content: center;
+    background: transparent; backdrop-filter: none; padding: 0 0 4px; }

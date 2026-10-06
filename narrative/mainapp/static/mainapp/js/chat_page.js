@@ -1301,3 +1301,28 @@ function showChatNotice(text) {
     clearTimeout(note._t);
     note._t = setTimeout(() => note.classList.remove('show'), 4000);
 }
+
+// --- Layout: chat bubbles, or a book where replies read as chapters and your messages fold away ---
+(function () {
+    const choice = document.getElementById('layoutChoice');
+    if (choice) choice.addEventListener('click', async (e) => {
+        const b = e.target.closest('[data-layout]');
+        if (!b) return;
+        const resp = await fetch(window.location.href, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ action: 'appearance', layout: b.dataset.layout }),
+        });
+        const d = await resp.json().catch(() => ({}));
+        if (!d.success) { showChatNotice(d.error || 'Could not change the layout.'); return; }
+        document.body.classList.toggle('layout-book', d.layout === 'book');
+        choice.querySelectorAll('[data-layout]').forEach(x => x.classList.toggle('on', x.dataset.layout === d.layout));
+    });
+    // In the book, your messages are small markers between chapters: click one to read or edit it
+    document.getElementById('messagesContainer')?.addEventListener('click', (e) => {
+        if (!document.body.classList.contains('layout-book')) return;
+        const msg = e.target.closest('.message.user');
+        if (!msg) return;
+        if (!msg.classList.contains('open')) { msg.classList.add('open'); return; }
+        if (e.target === msg) msg.classList.remove('open');  // the "✎ you" marker itself folds it again
+    });
+})();

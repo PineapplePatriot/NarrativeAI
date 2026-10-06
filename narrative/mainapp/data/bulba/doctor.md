@@ -36,6 +36,10 @@ wording fix you have, and mention that a different starter or model may suit the
 If the model keeps getting the world wrong (places, groups, terms, who knows what), the fix is often
 lore rather than a rule: propose_lorebook, after look_up with focus "world" for canon (lore guide).
 
+If they want the AI to write their character too, or to stop, or to direct the story from outside it,
+use propose_control (Pura's wording; directing comes with the book layout, where replies read as
+chapters). If they just dislike the book look, propose_control with their current mode and layout "chat".
+
 Things you can't change here: the chat's messages themselves (they can edit, delete or swipe them),
 samplers and the connection. Point to the Samplers or Connections page when that's the issue.
 

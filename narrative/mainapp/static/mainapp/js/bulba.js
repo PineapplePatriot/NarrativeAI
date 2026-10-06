@@ -57,6 +57,7 @@ const BASICS_FORM = [
     { key: 'pov', label: 'Point of view', options: [['second', 'You (“you step inside”)'], ['third', 'Third person (“she steps inside”)'], ['first', 'The character’s “I”']] },
     { key: 'tense', label: 'Tense', options: [['present', 'Present (“she turns”)'], ['past', 'Past (“she turned”)']] },
     { key: 'length', label: 'Reply length', options: [['short', 'A few lines'], ['medium', 'A few paragraphs'], ['long', 'A proper chunk']] },
+    { key: 'control', label: 'Your character', hint: 'who writes what you say and do', options: [['dont', 'Only me'], ['write', 'The AI may write me too'], ['director', 'I direct from outside the story']] },
     { key: 'format', label: 'Speech and actions', options: [['quotes', '“Speech”, actions as plain text'], ['asterisks', '“Speech”, *actions*'], ['any', 'Doesn’t matter']] },
     { key: 'colors', label: 'Coloured speech', hint: 'each character speaks in their own colour', options: [['on', 'Yes'], ['off', 'No']] },
     { key: 'panels', label: 'In-story panels', hint: 'phone messages, notes and signs drawn as little panels', options: [['on', 'Yes'], ['off', 'No']] },

@@ -260,6 +260,9 @@ def build_preset(payload):
             next(b for b in preset["blocks"] if b["name"] == name)["enabled"] = True
     if payload.get("taste"):
         _add_block(preset, "Your taste", payload["taste"])
+    if payload.get("control") in ("write", "director"):
+        from mainapp.bulba import control
+        preset = control.apply_to_preset(preset, payload["control"])
     return preset
 
 
@@ -389,6 +392,8 @@ BASICS = {
         "first": "Narrate in first person from {{char}}'s point of view (\"I step inside\")."}),
     "tense": ("Tense", {"present": "Write in present tense.", "past": "Write in past tense."}),
     "length": ("Reply length", {"short": "short", "medium": "medium", "long": "long"}),
+    "control": ("Your character", {  # handled by propose_preset itself (bulba/control.py), not the taste text
+        "dont": "dont", "write": "write", "director": "director"}),
     "format": ("Speech and actions", {
         "quotes": "Put speech in double quotes; write actions as plain prose.",
         "asterisks": "Put speech in double quotes and actions in *asterisks*.",
@@ -474,6 +479,18 @@ def apply_basics(session, answers):
                 continue
             text = (f"Write the whole story in {raw}." if key == "language" else f"Keep out: {raw}.")
             scope = "boundary" if key == "keep_out" else "general"
+        elif key == "control":
+            if raw not in options:
+                continue
+            from mainapp.bulba import control
+            text = control.MODES[raw]
+            lines.append(f"{label}: {text} (propose_preset applies this itself, with Pura's wording"
+                         + ("; it also switches the chat to the book layout" if raw == "director" else "")
+                         + "; don't add it to taste)")
+            tool_record_preference(session, {"wording": "Basics form: your character", "interpretation": text,
+                                             "scope": "general", "strength": "firm", "status": "confirmed",
+                                             "key": f"control:{raw}"})
+            continue
         else:
             if raw not in options:
                 continue
@@ -495,6 +512,8 @@ def tool_record_preference(session, args):
             "scope": args.get("scope") if args.get("scope") in ("general", "character", "scene", "boundary") else "general",
             "strength": args.get("strength") if args.get("strength") in ("firm", "flexible") else "flexible",
             "status": args.get("status") if args.get("status") in ("tentative", "confirmed", "rejected") else "tentative"}
+    if str(args.get("key") or "").startswith("control:"):  # set by the basics form only
+        pref["key"] = args["key"]
     replaced = next((p for p in session.preferences if p["id"] == args.get("replaces")), None)
     if replaced:
         replaced["status"] = "superseded"
@@ -553,6 +572,9 @@ def tool_propose_preset(session, args):
         if missing:
             return {"error": f"Your {section} rewrite dropped {', '.join(missing)}; keep them."}, []
         rewrite[section] = text[:6000]
+    control_pref = next((p for p in reversed(session.preferences)
+                         if str(p.get("key", "")).startswith("control:") and p["status"] == "confirmed"), None)
+    control_mode = control_pref["key"].split(":", 1)[1] if control_pref else "dont"
     switch_off = [str(n).strip() for n in (args.get("switch_off") or [])][:10]
     missing = [n for n in switch_off if n not in originals]
     if missing:
@@ -569,6 +591,10 @@ def tool_propose_preset(session, args):
     summary = [f"Built on the {starter['title']} starter for {profile.get('name', '')}"]
     if rewrite:
         summary.append("Adjusted from the starter: " + " and ".join(rewrite) + " section")
+    if control_mode != "dont":
+        from mainapp.bulba import control
+        summary += ["Your character:", f"  {control.MODES[control_mode]}"
+                    + (" (and the book layout: replies as chapters)" if control_mode == "director" else "")]
     if switch_off:
         summary += ["Switched off:", *[f"  {n}" for n in switch_off]]
     if borrow:
@@ -578,7 +604,8 @@ def tool_propose_preset(session, args):
         summary += ["Reply length:", f"  {LENGTHS[reply_length]}"]
     p = _proposal(session, "preset", f"Preset: {name}", summary,
                   {"starter": starter["id"], "name": name, "taste": taste, "rewrite": rewrite,
-                   "reply_length": reply_length, "borrow": borrow, "switch_off": switch_off})
+                   "reply_length": reply_length, "borrow": borrow, "switch_off": switch_off,
+                   "control": control_mode})
     return {"proposal": p["id"], "status": "waiting for Apply"}, [{"type": "proposal", "id": p["id"]}]
 
 
@@ -660,7 +687,7 @@ def opening(session):
 
 # Tools after which Bulba waits for the user (see instructions.md, "Tools, briefly")
 TURN_ENDING = {"offer_choices", "write_samples", "show_basics_form", "retry_reply",
-               "propose_preset_edit", "propose_card_edit", "propose_lorebook", "offer_card_upload", "propose_extras", "propose_preset", "propose_persona", "propose_character"}
+               "propose_preset_edit", "propose_card_edit", "propose_lorebook", "propose_control", "offer_card_upload", "propose_extras", "propose_preset", "propose_persona", "propose_character"}
 
 
 def run_turn(session, user_text, action_note=None, model_note=None):
