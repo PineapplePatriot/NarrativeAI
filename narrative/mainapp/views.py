@@ -1455,8 +1455,10 @@ class AddCharacter(CharacterBaseView, CreateView):
         a.author = self.request.user
         # Формуємо slug: username + "-" + slugified name
         username = self.request.user.username
-        base_slug = slugify(a.name)
-        a.slug = f"{username}-{base_slug}"
+        base = f"{username}-{slugify(a.name) or 'character'}"
+        a.slug, n = base, 2
+        while Character.objects.filter(slug=a.slug).exists():  # same name twice gets -2, -3...
+            a.slug, n = f"{base}-{n}", n + 1
         a.save()
         return super().form_valid(form)
 

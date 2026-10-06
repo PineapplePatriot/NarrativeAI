@@ -3294,3 +3294,12 @@ class CardNoteTests(ChatPromptTests):
         self.assertEqual(msgs[i + 1]["content"], "Walk with me")  # one message from the end
         page = self.client.get(reverse("character", args=[self.character.slug]))
         self.assertContains(page, "Character's note (from the card)")
+
+
+class AddCharacterSlugTests(ChatPromptTests):
+    def test_same_name_twice(self):
+        from mainapp.models import Character
+        for _ in range(2):
+            self.client.post(reverse("add_character"), {"name": "Twin", "description": "A twin.", "initial_message": "Hi."})
+        slugs = sorted(Character.objects.filter(name="Twin").values_list("slug", flat=True))
+        self.assertEqual(slugs, ["chatter-twin", "chatter-twin-2"])

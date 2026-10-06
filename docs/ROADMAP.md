@@ -83,7 +83,6 @@ Still missing:
   it happens again.
 - **Tracker panel on phones**: starts closed now, but its layout on small screens hasn't been checked.
 - Leftover comments from the original code (mostly in `mainapp/views.py`); the debug prints are gone.
-- Adding two characters with the same name by hand can fail (the slug isn't made unique on that form).
 
 ## Housekeeping
 
