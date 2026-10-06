@@ -61,7 +61,7 @@ Open the link, log in as `demo` with your `DEMO_PASSWORD`, and check a chat repl
 - A starter preset for the demo model and a demo character, Il Dottore (Genshin Impact, after version 6.6),
   with a full card, a lorebook, all nine mood pictures and a theme (background, music, dialogue colour). They
   can also register their own account and go through Bulba's setup.
-- If the demo account was made before Dottore was added, it keeps Rose and gets Dottore on the next deploy.
+- If the demo account was made before Dottore was added, the next deploy adds him and removes the old stand-in, Rose.
 - A guide at `/main/guide/` (also linked from the login page and the top bar): what to try in five minutes.
 
 ## Updating

@@ -3413,13 +3413,24 @@ class DemoPackAndThemeTests(ChatPromptTests):
         from django.core.management import call_command
         from mainapp import lorebook, media_library
         from mainapp.models import Character
+        import tempfile
+        from pathlib import Path
+        from mainapp.management.commands import seed_demo
+        from mainapp.templatetags.custom_filters import blurb
         with mock.patch.dict(os.environ, {"DEMO_PASSWORD": "pw-123456!"}):
+            with mock.patch.object(seed_demo, "PACKS", Path(tempfile.mkdtemp())):
+                call_command("seed_demo", stdout=open(os.devnull, "w"))   # an older deploy: Rose
+            self.assertTrue(Character.objects.filter(author__username="demo", name="Rose").exists())
             call_command("seed_demo", stdout=open(os.devnull, "w"))
+        self.assertFalse(Character.objects.filter(author__username="demo", name="Rose").exists())
         dottore = Character.objects.get(author__username="demo", name="Il Dottore")
+        self.assertTrue(blurb(dottore).startswith("Second of the Fatui Harbingers"))
+        self.assertEqual(dottore.post_history_instructions, "")  # his voice is left to the preset
         entries = lorebook.load_worldbook(dottore.worldbook)["entries"]
         titles = [e["comment"] for e in entries]
         self.assertIn("Pantalone's medical file", titles)   # the card's own lore
         self.assertIn("Premise: no Traveler", titles)       # and the pack's
+        self.assertFalse({"Columbina", "Sandrone", "Nod-Krai"} & set(titles))
         self.assertNotIn("Traveler", " ".join(e["content"] for e in entries if e["comment"] != "Premise: no Traveler"))
         self.assertTrue(all(getattr(dottore, f"photo_{m}") for m in ("neutral", "happy", "scheming")))
         self.assertEqual(dottore.theme["dialogue_color"], "#67e8f9")

@@ -119,7 +119,12 @@ class Command(BaseCommand):
                 presets.get_active(user)  # the built-in default
 
         packs = load_packs(user)
-        if not packs and not Character.objects.filter(author=user).exists():
+        rose = Character.objects.filter(author=user, slug=f"{username}-rose")
+        if Character.objects.filter(author=user).exclude(slug=f"{username}-rose").exists():
+            if rose.exists():  # the old stand-in, replaced by the shipped characters
+                rose.delete()
+                self.stdout.write("Removed the old demo character Rose.")
+        else:
             character = Character.objects.create(slug=f"{username}-rose", author=user, **ROSE)
             chats.current(character)
 

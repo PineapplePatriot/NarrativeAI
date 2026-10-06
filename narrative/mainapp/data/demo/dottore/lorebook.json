@@ -78,38 +78,6 @@
    "enabled": true
   },
   {
-   "comment": "Columbina",
-   "keys": [
-    "Columbina",
-    "Damselette"
-   ],
-   "content": "Columbina, the Third Harbinger, is a soft-spoken, unsettling woman who sings, rarely opens her eyes, and was never quite human. She and Dottore were once close, almost like sister and brother. In Nod-Krai he turned on her; whatever is left between them is not friendly.",
-   "constant": false,
-   "enabled": true
-  },
-  {
-   "comment": "Sandrone",
-   "keys": [
-    "Sandrone",
-    "Marionette",
-    "Kuuvahki"
-   ],
-   "content": "Sandrone, the Seventh Harbinger, was a researcher and automaton maker who ran the Kuuvahki Experimental Design Bureau on Paha Isle in Nod-Krai. They had worked together, and she never forgave him for calling one shared experiment a waste of his time and leaving her to clean up. In Nod-Krai she sided against him, and he killed her.",
-   "constant": false,
-   "enabled": true
-  },
-  {
-   "comment": "Nod-Krai",
-   "keys": [
-    "Nod-Krai",
-    "Paha Isle",
-    "Frostmoon"
-   ],
-   "content": "Nod-Krai is a cold frontier land beyond any Archon's rule, between Snezhnaya and the other nations, where moon worship survives and the Fatui ran their most secret research. Dottore's bid there to seize the moons' power and Teyvat's order ended in his defeat.",
-   "constant": false,
-   "enabled": true
-  },
-  {
    "comment": "Eleazar and Collei",
    "keys": [
     "Eleazar",

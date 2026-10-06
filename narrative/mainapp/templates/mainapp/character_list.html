@@ -71,7 +71,7 @@
                 </div>
 
                 <p class="character-description">
-                    {{ character.description|names:character|tagline }}
+                    {{ character|blurb }}
                 </p>
                 <div class="character-meta">
                     <span>{% if character.last_played %}Played {{ character.last_played|timesince }} ago{% else %}Not played yet{% endif %}</span>
