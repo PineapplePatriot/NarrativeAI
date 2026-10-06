@@ -6,14 +6,14 @@ import uuid
 from pathlib import Path
 
 from mainapp import ai_client, cards, model_profiles, presets, starters, thinking
-from mainapp.bulba import doctor, library, lore
+from mainapp.bulba import doctor, library, lore, tune
 
 INSTRUCTIONS = Path(__file__).resolve().parent.parent / "data" / "bulba" / "instructions.md"
 GUIDES_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba" / "guides"
 # Which guides Bulba reads at each stage (keeps the prompt, and the bill, small)
 STAGE_GUIDES = {"extras": ["extras"], "taste": ["asking", "presets", "writing"], "preset": ["presets", "writing"],
                 "persona": ["characters", "writing"], "character": ["characters", "lore", "writing"],
-                "story": ["extras"], "done": ["characters", "lore", "writing"]}
+                "story": ["extras", "tuning"], "done": ["characters", "lore", "writing", "tuning"]}
 REWRITABLE = ("Roleplay", "Style")
 TEST_CHARACTER = Path(__file__).resolve().parent.parent / "data" / "bulba" / "test-character.json"
 
@@ -174,6 +174,7 @@ TOOLS = [
         ["name", "description", "greeting"]),
     *library.tool_defs(_fn, STR),
     *lore.tool_defs(_fn, STR),
+    *tune.tool_defs(_fn, STR),
     doctor.CARD_EDIT_TOOL,
 ]
 
@@ -662,7 +663,7 @@ HANDLERS = {
     "write_samples": tool_write_samples, "record_preference": tool_record_preference,
     "propose_extras": tool_propose_extras, "propose_preset": tool_propose_preset,
     "propose_persona": tool_propose_persona, "propose_character": tool_propose_character,
-    **library.HANDLERS, **lore.HANDLERS, "propose_card_edit": doctor.tool_propose_card_edit,
+    **library.HANDLERS, **lore.HANDLERS, **tune.HANDLERS, "propose_card_edit": doctor.tool_propose_card_edit,
 }
 
 
@@ -706,7 +707,8 @@ def opening(session):
 
 # Tools after which Bulba waits for the user (see instructions.md, "Tools, briefly")
 TURN_ENDING = {"offer_choices", "write_samples", "show_basics_form", "retry_reply",
-               "propose_preset_edit", "propose_card_edit", "propose_lorebook", "propose_lore_edit", "propose_theme", "propose_control", "offer_card_upload", "propose_extras", "propose_preset", "propose_persona", "propose_character"}
+               "propose_preset_edit", "propose_card_edit", "propose_lorebook", "propose_lore_edit", "propose_theme", "propose_control", "offer_card_upload", "propose_extras", "propose_preset", "propose_persona", "propose_character",
+               *tune.TURN_ENDING}
 
 
 def run_turn(session, user_text, action_note=None, model_note=None):

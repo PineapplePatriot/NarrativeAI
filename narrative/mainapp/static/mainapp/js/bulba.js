@@ -125,6 +125,9 @@ function render() {
                 <input type="file" name="card" accept=".png,.json,image/png,application/json" ${live ? '' : 'disabled'}></label>
                 <button type="submit" ${live ? '' : 'disabled'}>Import</button></form>`;
         }
+        if (ev.type === 'make_pictures') return `<div class="make-pictures" data-url="${esc(ev.url)}" data-moods="${esc(ev.moods.join(','))}">
+            <button type="button" data-make-pictures>🎨 Make ${ev.moods.length} mood picture${ev.moods.length === 1 ? '' : 's'} of ${esc(ev.name)}</button>
+            <small>A few cents each, on your key. About 15 seconds per picture.</small><div class="progress"></div></div>`;
         if (ev.type === 'downloads') return `<div class="downloads">⬇ ${(ev.links || []).map(l =>
             `<a href="${esc(l.url)}" download>${esc(l.label)}</a>`).join('')}</div>`;
         if (ev.type === 'form') return basicsForm(i === types.lastIndexOf('form') && i > answeredUpTo && !busy);
@@ -373,3 +376,30 @@ document.addEventListener('click', (e) => {
         run(body, 'Adding the picture…');
     });
 })();
+
+// Mood pictures, one at a time, from the neutral one (the character page's picture maker, step by step)
+$('log').addEventListener('click', async e => {
+    const btn = e.target.closest('[data-make-pictures]');
+    if (!btn) return;
+    const box = btn.closest('.make-pictures'), progress = box.querySelector('.progress');
+    const moods = box.dataset.moods.split(',');
+    btn.disabled = true;
+    let made = 0;
+    for (const mood of moods) {
+        progress.textContent = `Making ${mood}… (${made + 1} of ${moods.length})`;
+        try {
+            const resp = await fetch(box.dataset.url, { method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify({ emotion: mood }) });
+            const data = await resp.json().catch(() => ({}));
+            if (!resp.ok) throw new Error(data.error || 'The picture maker failed.');
+            made += 1;
+            progress.insertAdjacentHTML('afterend', `<img class="made" src="${esc(data.url)}" alt="${esc(mood)}" title="${esc(mood)}">`);
+        } catch (err) {
+            progress.textContent = `Stopped at ${mood}: ${err.message}`;
+            btn.disabled = false;
+            return;
+        }
+    }
+    progress.textContent = `Done: ${made} picture${made === 1 ? '' : 's'}. They show in chats from the next reply.`;
+});

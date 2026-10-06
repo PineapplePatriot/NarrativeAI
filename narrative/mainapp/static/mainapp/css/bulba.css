@@ -172,3 +172,8 @@ body.embed .basics-form, body.embed .lookup, body.embed .done-block { margin-lef
 .downloads a { padding: 6px 12px; border: 1px solid var(--border); border-radius: 999px; text-decoration: none;
     color: inherit; font-size: .9rem; }
 .downloads a:hover { border-color: #a78bfa; }
+
+.make-pictures { margin: 6px 0 6px 44px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.make-pictures small { color: var(--muted); }
+.make-pictures .progress { flex-basis: 100%; font-size: .9rem; }
+.make-pictures img.made { height: 84px; border-radius: 8px; border: 1px solid var(--border); }

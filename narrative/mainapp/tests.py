@@ -3610,3 +3610,76 @@ class BulbaHandoverTests(BulbaCardAndLoreTests):
         pref = next(p for p in state["preferences"] if p["id"] == pid)
         self.assertEqual((pref["interpretation"], pref["status"]), ("Short replies, but long fights", "confirmed"))
         self.assertEqual(self.api(action="edit_preference", id="nope", text="x").status_code, 400)
+
+
+class BulbaTuningTests(BulbaCardAndLoreTests):
+    def apply_and_undo(self, pid, check_applied, check_undone):
+        self.script = [("Done.", [])]
+        self.assertEqual(self.api(action="apply", id=pid).status_code, 200)
+        check_applied()
+        self.script = [("Undone.", [])]
+        self.api(action="undo", id=pid)
+        check_undone()
+
+    def propose(self, tool, **args):
+        self.script = [("", [self.call("read_settings")]), ("Here.", [self.call(tool, why="x", **args)])]
+        data = self.api(action="say", text="tune it").json()
+        return data, data["state"]["proposals"][-1]["id"] if data["state"]["proposals"] else None
+
+    def test_samplers(self):
+        from mainapp import presets, samplers
+        data, pid = self.propose("propose_samplers", changes=[{"key": "max_tokens", "value": 3000},
+                                                             {"key": "temperature", "on": True, "value": 9}])
+        read = json.loads(next(m["content"] for m in self.bulba_calls[-1]["messages"] if m["role"] == "tool"))
+        self.assertIn("max_tokens", read["samplers"])
+        s = lambda: samplers.normalize(presets.get_active(self.user).data.get("samplers"))
+        before = s()
+        self.apply_and_undo(pid, lambda: (self.assertEqual(s()["max_tokens"], {"on": True, "value": 3000}),
+                                          self.assertEqual(s()["temperature"]["value"], 2)),  # clamped
+                            lambda: self.assertEqual(s(), before))
+
+    def test_trackers_greetings_rules_and_lore_settings(self):
+        from mainapp import lorebook, regex_rules, trackers
+        from mainapp.models import Character
+        card = json.loads(json.dumps(V2_CARD))
+        card["data"].setdefault("extensions", {})["regex_scripts"] = [
+            {"id": "r1", "scriptName": "Hide stats", "findRegex": "/STATS.*/g", "replaceString": "", "disabled": False}]
+        self.upload(card)
+        viktor = lambda: Character.objects.get(author=self.user, name="Viktor")
+        _, pid = self.propose("propose_trackers", turn_on=["secrets"], turn_off=["world"],
+                              custom_fields=[{"label": "Trust", "type": "meter", "min": 0, "max": 10}])
+        cfg = lambda: trackers.normalize_config(viktor().tracker_config)
+        self.apply_and_undo(pid, lambda: (self.assertTrue(cfg()["trackers"]["secrets"]["on"]),
+                                          self.assertFalse(cfg()["trackers"]["world"]["on"]),
+                                          self.assertTrue(cfg()["trackers"]["custom"]["on"]),
+                                          self.assertEqual(cfg()["custom_fields"][0]["label"], "Trust")),
+                            lambda: self.assertTrue(cfg()["trackers"]["world"]["on"]))
+        before = viktor().alternate_greetings
+        _, pid = self.propose("propose_greetings", greetings=["Rain again.", "The ferry's late."])
+        self.apply_and_undo(pid, lambda: self.assertEqual(viktor().alternate_greetings, ["Rain again.", "The ferry's late."]),
+                            lambda: self.assertEqual(viktor().alternate_greetings, before))
+        rules = lambda: {r["id"]: r["enabled"] for r in regex_rules.card_rules(viktor())}
+        rid = next(iter(rules()))
+        _, pid = self.propose("propose_card_rules", rules=[{"id": rid, "enabled": False}])
+        self.apply_and_undo(pid, lambda: self.assertFalse(rules()[rid]), lambda: self.assertTrue(rules()[rid]))
+        settings = lambda: lorebook.load_worldbook(viktor().worldbook)["settings"]
+        old_depth = settings()["scan_depth"]
+        _, pid = self.propose("propose_lore_settings", scan_depth=8, recursive_scan=True)
+        self.apply_and_undo(pid, lambda: (self.assertEqual(settings()["scan_depth"], 8),
+                                          self.assertTrue(settings()["recursive_scan"])),
+                            lambda: self.assertEqual(settings()["scan_depth"], old_depth))
+
+    def test_mood_pictures_button_needs_a_neutral_picture(self):
+        from django.core.files.base import ContentFile
+        from mainapp.models import Character
+        self.upload(V2_CARD)
+        self.script = [("Add a picture first.", [self.call("offer_mood_pictures")])]
+        data = self.api(action="say", text="make his moods").json()
+        self.assertFalse(any(e["type"] == "make_pictures" for e in data["events"]))
+        viktor = Character.objects.get(author=self.user, name="Viktor")
+        viktor.photo_neutral.save("v.png", ContentFile(b"\x89PNG fake"), save=True)
+        self.script = [("A few cents each; press it if you like.", [self.call("offer_mood_pictures")])]
+        data = self.api(action="say", text="make his moods").json()
+        ev = next(e for e in data["events"] if e["type"] == "make_pictures")
+        self.assertEqual(len(ev["moods"]), 8)
+        self.assertIn(viktor.slug, ev["url"])

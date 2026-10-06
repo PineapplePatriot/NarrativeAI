@@ -107,4 +107,6 @@ fix adds nothing visible, take it back out; shorter wins when results are the sa
 | "Sounds like a therapist" | Instructions asking for emotional depth or explicit feelings |
 | "It decides everything for me" | Did it write their actions, resolve the scene, or skip ahead? Different fixes |
 | "Nothing happens" | A starter that stays in the moment; ask for character initiative, not randomness |
-| "Too long / too short" | reply_length, and the greeting's length |
+| "Too long / too short" | reply_length, and the greeting's length; then the length limit (tuning guide) |
+| "Cut off mid-sentence" | The reply length limit (max_tokens) is too low (tuning guide) |
+| "Rambling / repetitive words" | Wording first; then temperature or penalties (tuning guide) |

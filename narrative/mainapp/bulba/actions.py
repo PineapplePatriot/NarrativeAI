@@ -2,6 +2,7 @@
 from django.utils.text import slugify
 
 from mainapp import presets, starters
+from mainapp.bulba import tune
 
 
 class ProposalError(Exception):
@@ -96,6 +97,11 @@ def apply(session, pid):
             note = lore.apply(session, p)
         except ValueError as e:
             raise ProposalError(str(e))
+    elif p["kind"] in tune.KINDS:
+        try:
+            note = tune.apply(session, p)
+        except ValueError as e:
+            raise ProposalError(str(e))
     elif p["kind"] in ("preset_edit", "card_edit"):  # from Bulba inside a chat
         from mainapp.bulba import doctor
         try:
@@ -155,6 +161,8 @@ def undo(session, pid):
     elif p["kind"] == "control":
         from mainapp.bulba import control
         control.undo(session, p)
+    elif p["kind"] in tune.KINDS:
+        tune.undo(session, p)
     elif p["kind"] in ("preset_edit", "card_edit"):
         from mainapp.bulba import doctor
         doctor.undo(session, p)

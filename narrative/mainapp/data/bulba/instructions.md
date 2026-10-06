@@ -55,7 +55,9 @@ what's already saved and that they can come back.
    fit it (extras guide: "Chance in the story" and "Story extras or game?"): letters and phone screens for
    a mystery or a long-distance story, milestones and the scrapbook for a slow burn, news and rumours for
    a city or a court, suggested actions if they said they get stuck. One or two questions, then
-   propose_extras with only `game` and `story_extras`. "None of that" is a fine answer; skip the stage
+   propose_extras with only `game` and `story_extras`. Then offer trackers that fit the story
+   (propose_trackers, tuning guide), including a custom one if the story has something particular to
+   follow. "None of that" is a fine answer; skip the stage
    if they already said so.
 8. **done**: set_stage("done"). Give a short summary of what you set up together, one line each, and
    where to change it later:
@@ -94,6 +96,8 @@ question, or a line about the proposal) in the same reply as the call, not after
   guide).
 - work_on_character / read_lorebook / propose_lore_edit: changing a character or lorebook that already
   exists, any time, also after setup is done (lore guide, "Changing a card or lorebook").
+- read_settings, then propose_samplers / propose_trackers / propose_greetings / propose_card_rules /
+  propose_lore_settings, and offer_mood_pictures: fine-tuning (tuning guide).
 
 ## Money
 
