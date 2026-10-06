@@ -121,7 +121,12 @@ def normalize_custom_fields(raw):
     return fields
 
 
-def normalize_config(raw):
+GAME_CHOICES = ("default", "off", "dice", "full")  # see mainapp/game.py
+
+
+def normalize_config(raw, game_mode=None):
+    """`game_mode` "full": the app keeps Inventory and Conditions (dice and inventory), so they're shown,
+    left out of the tracker AI's work and out of the prompt's tracker block (the game rules carry them)."""
     raw = raw if isinstance(raw, dict) else {}
     enabled_raw = raw.get("trackers") if isinstance(raw.get("trackers"), dict) else {}
     trackers = {}
@@ -132,8 +137,15 @@ def normalize_config(raw):
             "prompt": bool(item.get("prompt", True)),  # add to the main prompt
         }
     layout = raw.get("layout") if isinstance(raw.get("layout"), dict) else {}
+    game_owned = []
+    if game_mode == "full":
+        for tid in ("inventory", "conditions"):
+            trackers[tid] = {"on": True, "prompt": False}
+            game_owned.append(tid)
     return {
         "trackers": trackers,
+        "game": raw.get("game") if raw.get("game") in GAME_CHOICES else "default",
+        "game_owned": game_owned,
         "custom_fields": normalize_custom_fields(raw.get("custom_fields")),
         "layout": {
             "hud": bool(layout.get("hud", True)),        # pill strip above the chat
@@ -286,9 +298,14 @@ def _describe(spec):
     return f'- "{spec["id"]}" ({spec["label"]}: {spec["help"]}) – {shape}; fields: ' + ", ".join(parts)
 
 
+def ai_trackers(config):
+    """The enabled trackers the tracker AI keeps (not the ones the app keeps itself)."""
+    return [s for s in enabled_trackers(config) if s["id"] not in config.get("game_owned", [])]
+
+
 def update_messages(config, state, recent_messages, char_name, user_name, only=None):
     """Messages for the tracker AI call."""
-    specs = [s for s in enabled_trackers(config) if not only or s["id"] in only]
+    specs = [s for s in ai_trackers(config) if not only or s["id"] in only]
     current = {s["id"]: state["values"].get(s["id"], empty_value(s)) for s in specs}
     system = (
         f"You keep the story-state trackers for a roleplay between {user_name} (the user) and {char_name}.\n"
@@ -328,7 +345,7 @@ def parse_update(text):
 def apply_update(config, state, update, only=None):
     """Merge a parsed AI update into state (in place). Returns the ids that changed."""
     changed = []
-    for spec in enabled_trackers(config):
+    for spec in ai_trackers(config):
         tid = spec["id"]
         if tid not in update or (only and tid not in only):
             continue

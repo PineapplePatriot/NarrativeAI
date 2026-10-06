@@ -10,6 +10,7 @@ function fill() {
         $(`${task}Every`).value = state[task].interval;
     }
     $('sprites').checked = state.sprites;
+    document.querySelector(`input[name=game][value=${state.game || 'off'}]`).checked = true;
     $('chatModel').textContent = state.chat_model || 'your chat model';
     $('background').innerHTML = `<option value="chat">Use my chat model for everything</option>` +
         state.cheap_models.map(m => `<option value="${esc(m.id)}">${esc(m.name)} (${esc(m.price)}): ${esc(m.best_for)}</option>`).join('');
@@ -29,6 +30,7 @@ $('saveBtn').onclick = async () => {
         summary: { mode: document.querySelector('input[name=summary]:checked').value, interval: Number($('summaryEvery').value) },
         trackers: { mode: document.querySelector('input[name=trackers]:checked').value, interval: Number($('trackersEvery').value) },
         sprites: $('sprites').checked,
+        game: document.querySelector('input[name=game]:checked').value,
         eleven_key: $('elevenKey').value,
         remove_eleven_key: $('removeElevenBox').checked,
     };

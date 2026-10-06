@@ -25,7 +25,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
-from . import ai_client, cards, chats, regex_rules, model_profiles, presets, samplers, starters, trackers
+from . import game, ai_client, cards, chats, regex_rules, model_profiles, presets, samplers, starters, trackers
 from .utils import build_ai_request, narrate_text_backend, get_elevenlabs_key
 from .lorebook import (
     normalize_book, load_worldbook, save_worldbook, activate, format_for_prompt, to_sillytavern,
@@ -109,7 +109,9 @@ def chat(request, slug):
         "current_bg": "",
         "current_music": {},
         "persona": {},          # {"name", "description"}: who the user is in this chat only (else their usual persona)
+        "game": {},             # dice and inventory: the starting inventory after manual edits (see mainapp/game.py)
     }
+    game_mode = game.mode_for(request.user, character)
 
     def summary_payload():
         """What the summary panel shows."""
@@ -147,6 +149,7 @@ def chat(request, slug):
                         chat_state["current_bg"] = data.get("current_bg", "")
                         chat_state["current_music"] = data.get("current_music", {})
                         chat_state["persona"] = data.get("persona") if isinstance(data.get("persona"), dict) else {}
+                        chat_state["game"] = data.get("game") if isinstance(data.get("game"), dict) else {}
                         messages_list = data.get("messages", [])
                     else:
                         messages_list = data
@@ -177,7 +180,24 @@ def chat(request, slug):
         return regex_rules.run(rules, mode, text, role, prompt_names(request.user, character, chat_state["persona"]))
 
     # --- Save messages to file ---
+    def game_trackers():
+        """The tracker panel's state when the app keeps the inventory (sent back after replies and swipes)."""
+        if game_mode != "full":
+            return None
+        return trackers.normalize_state(chat_state["trackers"], trackers.normalize_config(character.tracker_config, game_mode))
+
+    def sync_game_trackers(messages):
+        """In "full" mode the Inventory and Conditions trackers show what the app keeps."""
+        if game_mode != "full":
+            return
+        state = game.current_state(chat_state, messages)
+        if not isinstance(chat_state["trackers"], dict):
+            chat_state["trackers"] = {}
+        values = chat_state["trackers"].setdefault("values", {})
+        values["inventory"], values["conditions"] = state["inventory"], state["conditions"]
+
     def save_messages(messages):
+        sync_game_trackers(messages)
         full_data = {
             "messages": messages,
             "summary": chat_state["summary"],
@@ -190,6 +210,7 @@ def chat(request, slug):
             "current_bg": chat_state["current_bg"],
             "current_music": chat_state["current_music"],
             "persona": chat_state["persona"],
+            "game": chat_state["game"],
         }
         with open(chat_file_path, "w", encoding="utf-8") as f:
             json.dump(full_data, f, ensure_ascii=False, indent=2)
@@ -262,7 +283,7 @@ def chat(request, slug):
                     chat_state["trackers"], chat_state["tracker_history"] = chats.trackers_at(
                         chat_state["tracker_history"], chat_state["trackers"], len(messages))
                     save_messages(messages)
-                    config = trackers.normalize_config(character.tracker_config)
+                    config = trackers.normalize_config(character.tracker_config, game_mode)
                     return JsonResponse({"success": True, "swipes": chats.version_info(messages),
                                          "summary": chat_state["summary"], "summary_upto": chat_state["summary_upto"],
                                          "summary_data": summary_payload(),
@@ -312,17 +333,21 @@ def chat(request, slug):
 
         # ... inside chat view POST handler ...
         elif action in ("update_trackers", "save_trackers", "clear_trackers"):
-            config = trackers.normalize_config(character.tracker_config)
+            config = trackers.normalize_config(character.tracker_config, game_mode)
             state = trackers.normalize_state(chat_state["trackers"], config)
 
             if action == "save_trackers":  # manual edits and locks from the panel
                 state = trackers.normalize_state(
                     {"values": data.get("values"), "locks": data.get("locks"), "upto": state["upto"]}, config)
+                if game_mode == "full":  # an edited inventory is the new starting point
+                    game.set_base(chat_state, {k: state["values"].get(k, []) for k in game.OWNED_TRACKERS}, len(messages))
             elif action == "clear_trackers":
                 state = {"values": {}, "locks": [], "upto": len(messages)}
+                if game_mode == "full":
+                    game.set_base(chat_state, game.empty_state(), len(messages))
             else:
                 only = [t for t in data.get("only") or [] if isinstance(t, str)] or None
-                if not trackers.enabled_trackers(config):
+                if not trackers.ai_trackers(config):
                     return JsonResponse({"success": False, "error": "No trackers are turned on for this character."})
                 # Messages since the last run (at least the last 4, at most 16)
                 upto = state["upto"] if isinstance(state["upto"], int) else 0
@@ -468,6 +493,8 @@ def chat(request, slug):
             return JsonResponse({
                 "success": True, "reply": text, "emotion": emotion, "char_count": char_count,
                 "reasoning": chats.reasoning_of(messages[-1]),
+                "game": [game.describe(op) for op in chats.game_of(messages[-1])],
+                "game_trackers": game_trackers(),
                 "photo_url": _photo(character, "photo", emo1),
                 "photo_second": _photo(character, "photo_second", emo2 or "neutral")
                 if (character.is_mult or char_count >= 2) else None,
@@ -594,9 +621,19 @@ def chat(request, slug):
                     built = presets.assemble(preset, prompt_slots(request.user, character, prompt, chat_state["persona"]),
                                              history, names, chat_model)
                     context_dropped = built["dropped"]
+                    # Dice and inventory: the model gets tools and the current state (the reply works on a copy)
+                    game_state = game.current_state(chat_state, messages)
+                    built = game.add_to_request(built, game_mode, game_state, names)
+                    game_ops = []
                     # Stream when the page asks for it and the preset allows it
                     streaming = bool(data.get("stream")) and preset["options"].get("streaming", True)
-                    if not streaming:
+                    if not streaming and game_mode != "off":
+                        pieces = list(game.stream_reply(request.user, built["messages"], built["params"], game_state))
+                        game_ops = [p for p in pieces if isinstance(p, game.GameEvent)]
+                        reply = "".join(p for p in pieces if isinstance(p, str) and not isinstance(
+                            p, (ai_client.Reasoning, game.GameEvent)))
+                        reasoning = "".join(p for p in pieces if isinstance(p, ai_client.Reasoning)).strip()
+                    elif not streaming:
                         message, _ = ai_client.complete_message(request.user, "chat", built["messages"], **built["params"])
                         reply = message.get("content") or ""
                         reasoning = (message.get("reasoning") or message.get("reasoning_content") or "").strip()
@@ -614,7 +651,7 @@ def chat(request, slug):
                     save_messages(messages)
                     return JsonResponse({"error": f"Something went wrong while building the prompt: {e}"}, status=500)
 
-                def finish_reply(reply, reasoning=""):
+                def finish_reply(reply, reasoning="", ops=()):
                     """Emotion, saving, voice and the summary/tracker flags, once the reply is complete."""
                     reply = text_rules("saved", reply, "assistant")
                     char_count = 1
@@ -668,8 +705,9 @@ def chat(request, slug):
 
                     # Store emotions as "happy|sad" string
                     final_emotion_str = f"{emotion_char_1}|{emotion_char_2}"
-                    new_message = chats.with_reasoning(
-                        ("assistant", datetime.now().strftime("%H:%M"), reply, final_emotion_str, char_count), reasoning)
+                    new_message = chats.with_game(chats.with_reasoning(
+                        ("assistant", datetime.now().strftime("%H:%M"), reply, final_emotion_str, char_count), reasoning),
+                        [dict(op) for op in ops if op.get("type") != "notice"])
                     messages.append(chats.add_version(regen_from, new_message) if regen_from else new_message)
 
                     photo_url = _photo(character, "photo", emotion_char_1)
@@ -706,13 +744,15 @@ def chat(request, slug):
                     # Trackers: same idea, if any tracker is on for this character
                     tracker_task = ai_client.get_task_setting(request.user, "trackers")
                     tracked = (chat_state["trackers"] or {}).get("upto") or 0
-                    trackers_due = (bool(trackers.enabled_trackers(trackers.normalize_config(character.tracker_config)))
+                    trackers_due = (bool(trackers.ai_trackers(trackers.normalize_config(character.tracker_config, game_mode)))
                                     and tracker_task.mode == tracker_task.MODE_AUTO
                                     and len(messages) - tracked >= tracker_task.interval)
 
                     return {
                         "reply": reply,
                         "reasoning": reasoning,
+                        "game": [game.describe(op) for op in ops],
+                        "game_trackers": game_trackers(),
                         "emotion": final_emotion_str,
                         "photo_url": photo_url,
                         "photo_second": photo_second,
@@ -727,7 +767,7 @@ def chat(request, slug):
                     }
 
                 if not streaming:
-                    return JsonResponse(finish_reply(reply, reasoning))
+                    return JsonResponse(finish_reply(reply, reasoning, game_ops))
 
                 def stream_reply():
                     """NDJSON lines: {"type": "delta", "text"} ..., then {"type": "done", ...} or {"type": "error"}."""
@@ -737,8 +777,9 @@ def chat(request, slug):
                         # Keep whatever arrived (Stop button, closed tab or a broken stream)
                         text = text_rules("saved", "".join(parts), "assistant").strip()
                         if text:
-                            partial = chats.with_reasoning(("assistant", datetime.now().strftime("%H:%M"), text,
-                                                            "neutral|neutral", 1), "".join(thoughts).strip())
+                            partial = chats.with_game(chats.with_reasoning(
+                                ("assistant", datetime.now().strftime("%H:%M"), text, "neutral|neutral", 1),
+                                "".join(thoughts).strip()), [dict(op) for op in game_ops if op.get("type") != "notice"])
                             messages.append(chats.add_version(regen_from, partial) if regen_from else partial)
                         elif regen_from:
                             messages.append(regen_from)  # nothing new arrived: keep the old reply
@@ -746,7 +787,16 @@ def chat(request, slug):
 
                     try:
                         try:
-                            for chunk in ai_client.stream(request.user, "chat", built["messages"], **built["params"]):
+                            source = (game.stream_reply(request.user, built["messages"], built["params"], game_state)
+                                      if game_mode != "off" else
+                                      ai_client.stream(request.user, "chat", built["messages"], **built["params"]))
+                            for chunk in source:
+                                if isinstance(chunk, game.GameEvent):
+                                    game_ops.append(chunk)
+                                    yield json.dumps({"type": "game", "line": game.describe(chunk)}, ensure_ascii=False) + "\n"
+                                    continue
+                                if isinstance(chunk, ai_client.ToolCalls):
+                                    continue
                                 if isinstance(chunk, ai_client.Reasoning):
                                     thoughts.append(chunk)
                                     yield json.dumps({"type": "thinking", "text": chunk}, ensure_ascii=False) + "\n"
@@ -758,7 +808,7 @@ def chat(request, slug):
                             finished = True
                             yield json.dumps({"type": "error", "error": str(e), "kept": bool("".join(parts).strip())}) + "\n"
                             return
-                        payload = finish_reply("".join(parts), "".join(thoughts).strip())
+                        payload = finish_reply("".join(parts), "".join(thoughts).strip(), game_ops)
                         finished = True
                         yield json.dumps({"type": "done", **payload}, ensure_ascii=False) + "\n"
                     except GeneratorExit:
@@ -823,9 +873,11 @@ def chat(request, slug):
     if hasattr(request.user, 'photo') and request.user.photo:
         user_avatar = request.user.photo.url
 
+    sync_game_trackers(messages)
     context = {
         # The template shows the version on screen, and its thoughts (if the model sent any)
-        "messages": [tuple(m[:5]) + (chats.reasoning_of(m),) for m in messages],
+        "messages": [tuple(m[:5]) + (chats.reasoning_of(m), [game.describe(op) for op in chats.game_of(m)])
+                     for m in messages],
         "swipes": chats.version_info(messages),
         "spending": ai_client.spending(request.user),
         "appearance": _appearance(request.user),
@@ -923,7 +975,7 @@ def build_chat_request(user, chat_obj, preset=None, character=None, drop_last_re
 
 def _tracker_page_data(user, character, raw_state):
     """Everything the chat page's tracker HUD and panel need."""
-    config = trackers.normalize_config(character.tracker_config)
+    config = trackers.normalize_config(character.tracker_config, game.mode_for(user, character))
     task = ai_client.get_task_setting(user, "trackers")
     return {
         "panels": trackers.PANELS,
@@ -1144,6 +1196,8 @@ def tracker_setup(request, slug):
             "trackers": trackers.TRACKERS,
             "config": trackers.normalize_config(character.tracker_config),
             "field_types": trackers.FIELD_TYPES,
+            "game_modes": game.MODE_LABELS,
+            "game_default": game.MODE_LABELS[game.user_default(request.user)],
         },
     })
 

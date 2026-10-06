@@ -331,6 +331,13 @@ async function requestReply(body) {
                     if (!text && thoughts) setThoughts(bubble.closest('.message'), thoughts, false);
                     text += event.text;
                     if (!frame) frame = requestAnimationFrame(paint);
+                } else if (event.type === 'game') {
+                    // A roll or an inventory change, as it happens
+                    ensureBubble();
+                    const msgEl = bubble.closest('.message');
+                    const shown = [...msgEl.querySelectorAll('.game-lines > div')].map(d => d.textContent);
+                    setGame(msgEl, shown.concat(event.line));
+                    scrollToBottom();
                 } else if (event.type === 'done') {
                     return { ...event, bubble };
                 } else if (event.type === 'error') {
@@ -378,6 +385,20 @@ function setThoughts(messageEl, text, open = false) {
     box.open = open;
 }
 
+// Dice rolls and inventory changes made while writing a reply (see mainapp/game.py), under its text
+function setGame(messageEl, lines) {
+    if (!messageEl) return;
+    let box = messageEl.querySelector('.game-lines');
+    if (!lines || !lines.length) { if (box) box.remove(); return; }
+    if (!box) {
+        box = document.createElement('div');
+        box.className = 'game-lines';
+        const textEl = messageEl.querySelector('.message-text');
+        textEl.parentNode.insertBefore(box, textEl.nextSibling);
+    }
+    box.innerHTML = lines.map(l => `<div>${escHtml(l)}</div>`).join('');
+}
+
 // Put a finished reply on screen: fill the streamed bubble, or add a new message
 function placeReply(data, avatarUrl) {
     updateSpending(data.spending);
@@ -385,6 +406,8 @@ function placeReply(data, avatarUrl) {
         addMessage('assistant', data.reply, avatarUrl);
         const all = messagesContainer.querySelectorAll('.message.assistant:not(#typingMessage)');
         setThoughts(all[all.length - 1], data.reasoning || '');
+        setGame(all[all.length - 1], data.game);
+        if (data.game_trackers && window.Trackers) Trackers.setState(data.game_trackers);
         return;
     }
     refreshForDepth();
@@ -392,6 +415,8 @@ function placeReply(data, avatarUrl) {
     data.bubble.setAttribute('data-raw', encodeURIComponent(data.reply));
     const message = data.bubble.closest('.message');
     message.classList.remove('streaming');
+    setGame(message, data.game);
+    if (data.game_trackers && window.Trackers) Trackers.setState(data.game_trackers);
     message.querySelector('.edit-textarea').value = data.reply;
     if (avatarUrl) {
         const avatar = message.querySelector('.message-avatar');
@@ -1000,6 +1025,8 @@ function swipe(step) {
             const textDiv = last.querySelector('.message-text');
             textDiv.innerHTML = renderChatMessage(d.reply, textDiv);
             setThoughts(last, d.reasoning || '');
+            setGame(last, d.game);
+            if (d.game_trackers && window.Trackers) Trackers.setState(d.game_trackers);
             textDiv.setAttribute('data-raw', encodeURIComponent(d.reply));
             last.querySelector('.edit-textarea').value = d.reply;
             last.dataset.emotion = d.emotion;

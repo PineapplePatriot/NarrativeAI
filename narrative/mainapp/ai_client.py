@@ -286,6 +286,12 @@ class Reasoning(str):
     """A piece of what a thinking model thinks before it replies (stream() yields these between text pieces)."""
 
 
+class ToolCalls(list):
+    """The tool calls a streamed reply ended with ([{"id", "type", "function": {"name", "arguments"}}]),
+    plus the reasoning details some providers need back alongside them."""
+    reasoning_details = None
+
+
 def stream(user, task, messages, timeout=None, **params):
     """
     Like complete(), but yields the reply in pieces as the provider sends them
@@ -315,6 +321,7 @@ def stream(user, task, messages, timeout=None, **params):
         if resp.status_code >= 400:
             raise AIError(f"{label}: {profile.name} returned an error ({resp.status_code}): {_error_text(resp)}")
         resp.encoding = "utf-8"
+        calls, details = {}, []
         try:
             # chunk_size=1: hand over every line as soon as it arrives. The default waits for 512 bytes,
             # and chunk_size=None waits for the whole reply on servers that don't use chunked encoding.
@@ -337,6 +344,15 @@ def stream(user, task, messages, timeout=None, **params):
                     record_cost(user, task, model, event["usage"].get("cost"))
                 choices = event.get("choices") or []
                 delta = (choices[0].get("delta") or {}) if choices else {}
+                for tc in delta.get("tool_calls") or []:  # arrive in pieces: name first, arguments in bits
+                    slot = calls.setdefault(tc.get("index", len(calls)), {"id": "", "type": "function",
+                                                                        "function": {"name": "", "arguments": ""}})
+                    slot["id"] = tc.get("id") or slot["id"]
+                    fn = tc.get("function") or {}
+                    slot["function"]["name"] += fn.get("name") or ""
+                    slot["function"]["arguments"] += fn.get("arguments") or ""
+                if isinstance(delta.get("reasoning_details"), list):
+                    details.extend(d for d in delta["reasoning_details"] if isinstance(d, dict))
                 text = delta.get("content")
                 if text:
                     yield text
@@ -348,6 +364,27 @@ def stream(user, task, messages, timeout=None, **params):
                         yield Reasoning(thought)
         except requests.RequestException as e:
             raise AIError(f"{label}: the connection to {profile.name} broke off ({e.__class__.__name__}).")
+        if calls:
+            result = ToolCalls(calls[i] for i in sorted(calls))
+            result.reasoning_details = _merge_details(details) or None
+            yield result
+
+
+def _merge_details(details):
+    """Streamed reasoning details come in pieces; join the pieces of each one (by index)."""
+    merged = {}
+    for d in details:
+        key = d.get("index", len(merged))
+        if key not in merged:
+            merged[key] = dict(d)
+            continue
+        for field in ("text", "summary", "data"):
+            if isinstance(d.get(field), str):
+                merged[key][field] = (merged[key].get(field) or "") + d[field]
+        for field, value in d.items():
+            if field not in ("text", "summary", "data") and value is not None:
+                merged[key][field] = value
+    return [merged[k] for k in sorted(merged)]
 
 
 _IMAGE_MODELS = {"at": 0, "list": []}

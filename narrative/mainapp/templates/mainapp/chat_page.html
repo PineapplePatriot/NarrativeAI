@@ -62,7 +62,7 @@
             <div class="tracker-hud" id="trackerHud" hidden></div>
 
             <div class="messages-container" id="messagesContainer">
-                {% for sender, time, text, emotion, char_count, thoughts in messages %}
+                {% for sender, time, text, emotion, char_count, thoughts, game_lines in messages %}
                 <div class="message {{ sender }}" data-index="{{ forloop.counter0 }}" data-emotion="{{ emotion }}" data-char-count="{{ char_count }}">
                     {% if sender == "assistant" %}
                     {% if photo_neutral %}
@@ -116,6 +116,7 @@
                         <div class="message-text markdown-output" data-raw="{{ text|urlencode }}">
                             {{ text }}
                         </div>
+                        {% if game_lines %}<div class="game-lines">{% for line in game_lines %}<div>{{ line }}</div>{% endfor %}</div>{% endif %}
                         <textarea class="edit-textarea" style="display:none;">{{ text }}</textarea>
                         <div class="edit-actions">
                             <button class="edit-btn save-btn" type="button" data-action="save-edit"

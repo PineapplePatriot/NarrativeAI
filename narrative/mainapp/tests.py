@@ -2834,3 +2834,141 @@ class BulbaCardAndLoreTests(BulbaTests):
         self.assertIn("bracketed", json.dumps(self.bulba_calls[1]["messages"][-1]))
         self.assertFalse(library.needs_filling(library.get(
             "Cookbook: Omniscience and leaking secrets (rule wording)")))
+
+
+def tool_call(name, args, index=0, call_id="c1"):
+    """A streamed tool call, split in two pieces like providers send it."""
+    raw = json.dumps(args)
+    return [{"choices": [{"delta": {"tool_calls": [{"index": index, "id": call_id, "type": "function",
+                                                     "function": {"name": name, "arguments": raw[:5]}}]}}]},
+            {"choices": [{"delta": {"tool_calls": [{"index": index, "function": {"arguments": raw[5:]}}]}}]}]
+
+
+class GameTests(StreamChatTests):
+    """Dice and inventory kept by the app (mainapp/game.py)."""
+
+    def setUp(self):
+        super().setUp()
+        self.rounds = []
+
+    def fake_post(self, url, headers=None, json=None, timeout=None, **kwargs):
+        if kwargs.get("stream") and self.rounds:
+            self.stream_lines = self.rounds.pop(0)
+        return super().fake_post(url, headers, json, timeout, **kwargs)
+
+    def set_mode(self, mode):
+        self.character.tracker_config = {"game": mode}
+        self.character.save()
+
+    def test_off_by_default_sends_no_tools(self):
+        self.stream_post({"action": "chat", "message": "Hi"})
+        self.assertNotIn("tools", self.sent[-1])
+
+    def test_roll_then_write(self):
+        from unittest import mock
+        self.set_mode("dice")
+        self.rounds = [sse(*tool_call("roll_dice", {"action": "Mira picks the lock", "difficulty": 10}), "[DONE]"),
+                       sse(delta("The lock clicks open."), "[DONE]")]
+        with mock.patch("random.SystemRandom.randint", return_value=14):
+            resp, events = self.stream_post({"action": "chat", "message": "I pick the lock"})
+        self.assertEqual([t["function"]["name"] for t in self.sent[0]["tools"]], ["roll_dice"])
+        self.assertIn("Dice (kept by the app)", json.dumps(self.sent[0]["messages"]))
+        tool_msg = self.sent[1]["messages"][-1]
+        self.assertEqual(tool_msg["role"], "tool")
+        self.assertEqual(json.loads(tool_msg["content"])["outcome"], "success")
+        self.assertEqual(self.sent[1]["messages"][-2]["tool_calls"][0]["function"]["name"], "roll_dice")
+        game_events = [e["line"] for e in events if e["type"] == "game"]
+        self.assertEqual(game_events, ["🎲 Mira picks the lock: 1d20 = 14 vs 10: success"])
+        self.assertEqual(events[-1]["reply"], "The lock clicks open.")
+        self.assertEqual(events[-1]["game"], game_events)
+        from mainapp import chats
+        self.assertEqual(chats.game_of(self.saved_messages()[-1])[0]["total"], 14)
+        page = self.client.get(self.url)
+        self.assertContains(page, "Mira picks the lock: 1d20 = 14 vs 10: success")
+
+    def test_inventory_is_kept_and_swipes_dont_double_count(self):
+        self.set_mode("full")
+        self.rounds = [sse(*tool_call("change_inventory", {"changes": [{"item": "Brass key", "change": 1}]}), "[DONE]"),
+                       sse(delta("You pocket the key."), "[DONE]")]
+        self.stream_post({"action": "chat", "message": "I take the key"})
+        self.assertIn("Brass key", json.dumps(self.client.get(self.url).context["trackers_data"]["state"]))
+        # Regenerate: the new version takes the key too; the first version's key isn't counted twice
+        self.rounds = [sse(*tool_call("change_inventory", {"changes": [{"item": "brass key", "change": 1}]}), "[DONE]"),
+                       sse(delta("Key taken."), "[DONE]")]
+        resp, events = self.stream_post({"action": "regenerate"})
+        inv = events[-1]["game_trackers"]["values"]["inventory"]
+        self.assertEqual([(i["name"].lower(), i["qty"]) for i in inv], [("brass key", 1)])  # not 2
+        # Using something they don't have is refused
+        self.rounds = [sse(*tool_call("change_inventory", {"changes": [{"item": "Rope", "change": -1}]}), "[DONE]"),
+                       sse(delta("No rope."), "[DONE]")]
+        self.stream_post({"action": "chat", "message": "I use my rope"})
+        self.assertIn("Not enough", self.sent[-1]["messages"][-1]["content"])
+        self.assertIn("inventory now: brass key.", json.dumps(self.sent[-2]["messages"]))
+
+    def test_swiping_flips_the_inventory(self):
+        self.set_mode("full")
+        self.rounds = [sse(*tool_call("change_inventory", {"changes": [{"item": "Lantern", "change": 1}]}), "[DONE]"),
+                       sse(delta("You take the lantern."), "[DONE]")]
+        self.stream_post({"action": "chat", "message": "I take the lantern"})
+        self.rounds = [sse(delta("You leave it."), "[DONE]")]
+        _, events = self.stream_post({"action": "regenerate"})
+        self.assertEqual(events[-1]["game_trackers"]["values"]["inventory"], [])
+        swiped = self.post({"action": "swipe", "to": 0}).json()
+        self.assertEqual([i["name"] for i in swiped["game_trackers"]["values"]["inventory"]], ["Lantern"])
+        self.assertEqual(swiped["game"], ["🎒 +1 Lantern"])
+
+    def test_model_without_tools_falls_back(self):
+        from unittest import mock
+        self.set_mode("dice")
+        calls = []
+
+        def post(url, headers=None, json=None, timeout=None, **kwargs):
+            calls.append(json)
+            if "tools" in json:
+                resp = mock.MagicMock(status_code=404, text="No endpoints found that support tool use")
+                resp.json.return_value = {"error": {"message": "No endpoints found that support tool use"}}
+                resp.__enter__.return_value = resp
+                return resp
+            return self.fake_post(url, headers, json, timeout, **kwargs)
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=post):
+            resp = self.client.post(self.url, json.dumps({"action": "chat", "message": "Hi", "stream": True}),
+                                    content_type="application/json")
+            events = [json.loads(l) for l in b"".join(resp.streaming_content).decode().splitlines() if l]
+        self.assertTrue(any("can't use the dice" in e.get("line", "") for e in events))
+        self.assertEqual(events[-1]["type"], "done")
+
+    def test_roll_and_replay_units(self):
+        from mainapp import game
+        import random
+        op = game.roll("2d6+1", modifier=1, difficulty=20, rng=random.Random(1))
+        self.assertEqual(op["total"], sum(op["rolls"]) + 2)
+        self.assertEqual(op["outcome"], "failure")
+        state = game.empty_state()
+        result, ops = game.run_tool(state, "change_conditions", {"add": [{"name": "Injured", "effect": "-1 to climbing"}]})
+        self.assertEqual(result["conditions"], ["Injured"])
+        chat_state = {"game": {}}
+        msgs = [("assistant", "", "x", "neutral", 1, {"game": ops})]
+        self.assertEqual(game.current_state(chat_state, msgs)["conditions"][0]["name"], "Injured")
+        game.set_base(chat_state, game.empty_state(), 1)  # a manual edit cleared it
+        self.assertEqual(game.current_state(chat_state, msgs)["conditions"], [])
+
+
+class BulbaChanceTests(BulbaTests):
+    def test_extras_game_and_switching_off_random_engines(self):
+        from mainapp import game, presets as presets_mod
+        self.script = [("", [self.call("propose_extras", game="off", why="no luck")])]
+        pid = self.api(action="say", text="no dice ever").json()["state"]["proposals"][0]["id"]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=pid)
+        self.assertEqual(game.user_default(self.user), "off")
+        self.script = [("", [self.call("get_starter", starter="mimo-frankenstein")]), ("Hm.", [])]
+        # Bulba's own model is Opus here, so it can't pick the MiMo starter; check the library marks instead
+        from mainapp.bulba import library
+        marked = [b for b in library.search("random events world") if b.get("adds_chance")]
+        self.assertTrue(marked)
+
+    def test_switch_off_needs_real_block_names(self):
+        self.script = [("", [self.call("propose_preset", starter="opus-rich-scene", taste="x", switch_off=["Nope"])]),
+                       ("Hm.", [])]
+        self.api(action="say", text="build")
+        self.assertIn("no block called", json.dumps(self.bulba_calls[1]["messages"][-1]))

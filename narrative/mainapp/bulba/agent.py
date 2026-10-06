@@ -143,6 +143,9 @@ TOOLS = [
         {"summary": {"type": "string", "enum": ["auto", "manual"]}, "summary_every": {"type": "integer"},
          "trackers": {"type": "string", "enum": ["auto", "manual"]}, "trackers_every": {"type": "integer"},
          "sprites": {"type": "boolean"},
+         "game": {"type": "string", "enum": ["off", "dice", "full"],
+                  "description": "Dice and inventory: off (no chance in the story), dice only, or dice + inventory "
+                                 "and conditions kept by the app"},
          "background": {"type": "string", "description": "'chat', or a cheap model id: mimo-v2-6-pro, gemini-3-8-flash, glm-5-3, deepseek-v4-pro, deepseek-v4-flash"},
          "why": STR}, ["why"]),
     _fn("propose_preset", "Propose the finished preset: a starter plus a short 'your taste' section.",
@@ -150,6 +153,9 @@ TOOLS = [
          "reply_length": {"type": "string", "enum": ["short", "medium", "long"]},
          "rewrite": {"type": "object", "description": "Only if the starter contradicts them: full replacement text for its Roleplay and/or Style section",
                      "properties": {"Roleplay": STR, "Style": STR}},
+         "switch_off": {"type": "array", "maxItems": 10, "items": STR,
+                        "description": "Blocks of the starter to switch off (exact names), e.g. a community "
+                                       "preset's random-event engines for someone who wants no chance"},
          "borrow": {"type": "array", "maxItems": 6, "items": STR,
                     "description": "Library blocks (exact names from find_practice) to add word for word"},
          "why": STR},
@@ -243,6 +249,9 @@ def build_preset(payload):
     length = LENGTHS.get(payload.get("reply_length"))
     if length and not _replace_length_line(preset, length):
         payload = {**payload, "taste": (payload.get("taste", "") + "\n" + length).strip()}
+    for block in preset["blocks"]:
+        if block["name"] in (payload.get("switch_off") or []):
+            block["enabled"] = False
     for name in reversed(payload.get("borrow") or []):
         block = library.get(name)
         if block and not any(b["name"] == name for b in preset["blocks"]):
@@ -294,7 +303,12 @@ def tool_get_starter(session, args):
         return {"error": "No starter for this model."}, []
     sections = {b["name"]: b["content"] for b in starter["preset"]["blocks"]
                 if b.get("kind") == "prompt" and b.get("name") in REWRITABLE}
-    return {"id": starter["id"], "title": starter["title"], "sections": sections}, []
+    result = {"id": starter["id"], "title": starter["title"], "sections": sections}
+    if not sections:  # a community preset: its switched-on blocks, and which of them add chance
+        result["blocks_on"] = [b["name"] + (" (adds chance)" if library.CHANCE.search(b.get("content") or "") else "")
+                               for b in starter["preset"]["blocks"]
+                               if b.get("kind") == "prompt" and b.get("enabled") and (b.get("content") or "").strip()]
+    return result, []
 
 
 def tool_write_samples(session, args):
@@ -502,6 +516,10 @@ def tool_propose_extras(session, args):
     if isinstance(args.get("sprites"), bool):
         payload["sprites"] = args["sprites"]
         summary.append("Character pictures that match the mood: " + ("on" if args["sprites"] else "off"))
+    if args.get("game") in ("off", "dice", "full"):
+        from mainapp import game
+        payload["game"] = args["game"]
+        summary.append("Dice and inventory: " + game.MODE_LABELS[args["game"]].lower())
     bg = args.get("background")
     cheap = {m["id"]: m["name"] for m in _cheap_models()}
     if bg == "chat" or bg in cheap:
@@ -535,6 +553,10 @@ def tool_propose_preset(session, args):
         if missing:
             return {"error": f"Your {section} rewrite dropped {', '.join(missing)}; keep them."}, []
         rewrite[section] = text[:6000]
+    switch_off = [str(n).strip() for n in (args.get("switch_off") or [])][:10]
+    missing = [n for n in switch_off if n not in originals]
+    if missing:
+        return {"error": f"The starter has no block called: {', '.join(missing)}."}, []
     borrow = [str(n).strip() for n in (args.get("borrow") or [])][:6]
     unknown = [n for n in borrow if library.get(n) is None]
     if unknown:
@@ -547,14 +569,16 @@ def tool_propose_preset(session, args):
     summary = [f"Built on the {starter['title']} starter for {profile.get('name', '')}"]
     if rewrite:
         summary.append("Adjusted from the starter: " + " and ".join(rewrite) + " section")
+    if switch_off:
+        summary += ["Switched off:", *[f"  {n}" for n in switch_off]]
     if borrow:
-        summary += ["Tested blocks added from Realistic Frankenstein:", *[f"  {n}" for n in borrow]]
+        summary += ["Tested blocks added from the community presets:", *[f"  {n}" for n in borrow]]
     summary += ["Your taste:", *[f"  {line}" for line in taste.splitlines() if line.strip()]]
     if reply_length:
         summary += ["Reply length:", f"  {LENGTHS[reply_length]}"]
     p = _proposal(session, "preset", f"Preset: {name}", summary,
                   {"starter": starter["id"], "name": name, "taste": taste, "rewrite": rewrite,
-                   "reply_length": reply_length, "borrow": borrow})
+                   "reply_length": reply_length, "borrow": borrow, "switch_off": switch_off})
     return {"proposal": p["id"], "status": "waiting for Apply"}, [{"type": "proposal", "id": p["id"]}]
 
 

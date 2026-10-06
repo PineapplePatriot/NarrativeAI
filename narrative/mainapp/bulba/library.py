@@ -15,6 +15,7 @@ LIBRARY_FILES = ["pura-director-16", "celia-4-6"]
 CANDIDATES = Path(__file__).resolve().parent.parent / "data" / "bulba" / "candidates.json"
 CANDIDATE_SOURCE = "Research cookbook (untested candidate)"
 PLACEHOLDER = re.compile(r"\[[a-z][^\]]*\]")
+CHANCE = re.compile(r"\{\{\s*(roll|random|pick)\b", re.I)  # macros that put chance into the story
 NOTE = re.compile(r"\{\{//(.*?)\}\}", re.S)
 
 
@@ -122,7 +123,8 @@ def search(query, limit=12):
         if score:
             scored.append((score, b))
     scored.sort(key=lambda s: -s[0])
-    return [{"name": b["name"], "from": b["source"], "summary": b["summary"], "size": len(b["content"])}
+    return [{"name": b["name"], "from": b["source"], "summary": b["summary"], "size": len(b["content"]),
+             **({"adds_chance": True} if CHANCE.search(b["content"]) else {})}
             for _, b in scored[:limit]]
 
 

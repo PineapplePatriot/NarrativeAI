@@ -39,7 +39,7 @@ def apply(session, pid):
         if error:
             raise ProposalError(error)
         p["undo"] = {"summary": before["summary"], "trackers": before["trackers"],
-                     "sprites": before["sprites"], "background": before["background"]}
+                     "sprites": before["sprites"], "background": before["background"], "game": before["game"]}
         note = "Extras saved."
     elif p["kind"] == "preset":
         from mainapp.bulba.agent import build_preset

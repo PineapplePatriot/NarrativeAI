@@ -80,6 +80,13 @@ function renderLayout() {
     $('layoutPanel').checked = config.layout.panel;
     $('layoutSide').value = config.layout.side;
 }
+{
+    const modes = DATA.game_modes || {};
+    $('gameMode').innerHTML = `<option value="default">Your usual setting (${DATA.game_default})</option>` +
+        Object.entries(modes).map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
+    $('gameMode').value = config.game || 'default';
+    $('gameMode').onchange = e => { config.game = e.target.value; markDirty(); };
+}
 $('layoutHud').onchange = e => { config.layout.hud = e.target.checked; markDirty(); };
 $('layoutPanel').onchange = e => { config.layout.panel = e.target.checked; markDirty(); };
 $('layoutSide').onchange = e => { config.layout.side = e.target.value; markDirty(); };

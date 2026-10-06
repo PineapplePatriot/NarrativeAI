@@ -55,7 +55,8 @@ def build_ai_request(user, character: Character, chat=None, worldbook_slug=None,
             lore_report = {"book": worldbook_slug, "report": [], "notes": [f"Lorebook error: {e}"]}
 
     # Story trackers the user chose to add to the prompt
-    tracker_config = normalize_tracker_config(character.tracker_config)
+    from mainapp import game
+    tracker_config = normalize_tracker_config(character.tracker_config, game.mode_for(user, character))
     story_state = format_trackers(tracker_config, normalize_tracker_state(chat_file_data.get("trackers"), tracker_config))
     if story_state:
         system_prompts["StoryState"] = story_state

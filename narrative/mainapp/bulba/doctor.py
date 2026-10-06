@@ -11,7 +11,7 @@ import copy
 import uuid
 from pathlib import Path
 
-from mainapp import ai_client, chats, presets
+from mainapp import ai_client, chats, game, presets
 from mainapp.bulba import library, lore
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba"
@@ -39,7 +39,8 @@ def _preset_outline(preset):
             lines.append(f"  [{'on' if b['enabled'] else 'off'}] slot: {b['name']}")
         else:
             words = len(b["content"].split())
-            lines.append(f"  [{'on' if b['enabled'] else 'off'}] {b['name']} ({words} words)")
+            chance = ", adds chance" if library.CHANCE.search(b["content"]) else ""
+            lines.append(f"  [{'on' if b['enabled'] else 'off'}] {b['name']} ({words} words{chance})")
     return "\n".join(lines)
 
 
@@ -74,7 +75,8 @@ def context(session):
 
     parts = [
         f"## This chat\nCharacter: {character.name}. The user plays {names['user']}. Chat model: {model}. "
-        f"Messages so far: {len(messages)}.",
+        f"Messages so far: {len(messages)}. Dice and inventory: "
+        f"{game.MODE_LABELS[game.mode_for(user, character)].lower()} (Extras page; per character on its Trackers page).",
         "### Character card\n" + "\n\n".join(
             f"{f}: {_clip(getattr(character, f), 2500)}" for f in CARD_FIELDS if getattr(character, f)),
         "### Lorebook\n" + _lore_line(character),
