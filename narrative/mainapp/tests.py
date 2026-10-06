@@ -2740,3 +2740,97 @@ class BulbaInChatTests(ChatPromptTests):
         other = get_user_model().objects.create_user(username="other", password="pw12345!")
         self.client.force_login(other)
         self.assertEqual(self.client.get(reverse("bulba_chat", args=[self.chat_obj.id])).status_code, 404)
+
+
+class BulbaCardAndLoreTests(BulbaTests):
+    """Bulba takes a card they already have, fixes it, and writes lore for its world."""
+
+    def upload(self, card):
+        from unittest import mock
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        f = SimpleUploadedFile("viktor.json", json.dumps(card).encode(), content_type="application/json")
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=self.fake_post):
+            return self.client.post(reverse("bulba_api"), {"card": f})
+
+    def test_card_upload_review_and_undo(self):
+        from mainapp.models import Character, Worldbook
+        self.script = [("Got a card already?", [self.call("offer_card_upload")])]
+        data = self.api(action="say", text="I have one").json()
+        self.assertTrue(any(e["type"] == "card_upload" for e in data["events"]))
+        self.script = [("Nice card. The greeting is short; want a fuller one?", [])]
+        data = self.upload(V2_CARD).json()
+        viktor = Character.objects.get(author=self.user, name="Viktor")
+        sent = self.bulba_calls[-1]["messages"][-1]["content"]
+        self.assertIn("Imported their card", sent)
+        self.assertIn("Station lore", sent)                 # its lorebook is reported
+        self.assertIn("Excellent planning.", sent)
+        self.assertEqual(data["state"]["chat"]["name"], "Viktor")  # Start chatting points at it
+        # A fix to the imported card
+        self.script = [("Here.", [self.call("propose_card_edit", personality="Dry, careful, kind to strays.", why="x")])]
+        pid = self.api(action="say", text="make him softer").json()["state"]["proposals"][-1]["id"]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=pid)
+        viktor.refresh_from_db()
+        self.assertEqual(viktor.personality, "Dry, careful, kind to strays.")
+        # Undo the import: the character and its own lore go
+        imported = next(p for p in self.client.get(reverse("bulba")).context["bulba_data"]["state"]["proposals"]
+                        if "your card" in p["title"])
+        self.script = [("Gone.", [])]
+        self.api(action="undo", id=imported["id"])
+        self.assertFalse(Character.objects.filter(name="Viktor").exists())
+        self.assertFalse(Worldbook.objects.filter(title="Station lore").exists())
+
+    def test_lorebook_added_to_existing_and_new(self):
+        from mainapp import lorebook
+        from mainapp.models import Character
+        self.upload(V2_CARD)
+        viktor = Character.objects.get(author=self.user, name="Viktor")
+        entries = [{"title": "The night ferry", "keys": ["ferry", "night boat"], "content": "Leaves at midnight."},
+                   {"title": "Era", "always": True, "content": "Northern coast, 1920s."},
+                   {"content": "No keys and not always: dropped."}]
+        self.script = [("Some lore.", [self.call("propose_lorebook", title="Coast", entries=entries, why="canon")])]
+        data = self.api(action="say", text="add the world").json()
+        proposal = data["state"]["proposals"][-1]
+        self.assertIn("Added to Viktor", proposal["summary"][0])
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=proposal["id"])
+        viktor.refresh_from_db()
+        book = lorebook.load_worldbook(viktor.worldbook)
+        self.assertEqual([e["comment"] for e in book["entries"]][-2:], ["The night ferry", "Era"])
+        self.assertTrue(book["entries"][-1]["constant"])
+        self.assertEqual(len({e["uid"] for e in book["entries"]}), 3)
+        self.script = [("Undone.", [])]
+        self.api(action="undo", id=proposal["id"])
+        self.assertEqual(len(lorebook.load_worldbook(viktor.worldbook)["entries"]), 1)
+        # A character without lore gets a new book, removed again on undo
+        viktor.worldbook = None
+        viktor.save()
+        self.script = [("Lore.", [self.call("propose_lorebook", title="Coast", entries=entries[:1], why="x")])]
+        pid = self.api(action="say", text="again").json()["state"]["proposals"][-1]["id"]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=pid)
+        viktor.refresh_from_db()
+        self.assertEqual(viktor.worldbook.title, "Coast")
+        self.script = [("Undone.", [])]
+        self.api(action="undo", id=pid)
+        viktor.refresh_from_db()
+        self.assertIsNone(viktor.worldbook)
+
+    def test_lore_needs_a_character_and_world_lookup_prompt(self):
+        self.script = [("", [self.call("propose_lorebook", entries=[{"keys": ["x"], "content": "y"}], why="x")]),
+                       ("Hm.", [])]
+        self.api(action="say", text="lore please")
+        self.assertIn("no character yet", json.dumps(self.bulba_calls[1]["messages"][-1]))
+        from mainapp.bulba import agent
+        self.assertIn("wikis", agent.LOOKUP_WORLD_PROMPT)
+
+    def test_cookbook_wording_with_blanks_is_not_borrowed_verbatim(self):
+        from mainapp.bulba import library
+        name = "Cookbook: Replies are too long, too clipped, or cut off (story wording)"
+        self.assertTrue(library.needs_filling(library.get(name)))
+        self.script = [("", [self.call("propose_preset", starter="opus-rich-scene", taste="x", borrow=[name])]),
+                       ("Hm.", [])]
+        self.api(action="say", text="build")
+        self.assertIn("bracketed", json.dumps(self.bulba_calls[1]["messages"][-1]))
+        self.assertFalse(library.needs_filling(library.get(
+            "Cookbook: Omniscience and leaking secrets (rule wording)")))

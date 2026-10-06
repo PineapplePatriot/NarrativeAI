@@ -153,3 +153,8 @@ body.embed .basics-form, body.embed .lookup, body.embed .done-block { margin-lef
 .embed-head .embed-sub { opacity: .7; font-size: .9rem; }
 .embed-head .embed-actions { margin-left: auto; display: flex; gap: 12px; align-items: center; font-size: .85rem; }
 .embed-head { padding-right: 52px; }
+
+.card-upload { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; margin: 6px 0 12px 44px; padding: 12px 14px;
+               border: 1px dashed var(--border, #3a3f5c); border-radius: 12px; }
+.card-upload label { display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem; }
+.card-upload small { opacity: 0.7; }

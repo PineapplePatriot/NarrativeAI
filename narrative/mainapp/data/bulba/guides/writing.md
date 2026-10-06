@@ -21,8 +21,12 @@ beats anything you'd improvise. So, in this order:
      blocks that only work with Realistic Frankenstein's thinking steps (they mention the scratchpad,
      a CoT or `{{getvar}}` templates) unless that's their preset.
    - Mind the size: a 20,000-character engine makes every reply cost more. Say so if you suggest one.
-3. **The starter's own wording**, when what they want is close to a line it already has.
-4. **Your own text**, only when nothing above covers it. Match the style of the blocks around it, and
+3. **The research cookbook's wording** (library entries starting "Cookbook:"). It's untested, so it comes
+   after the presets. Each problem has a story wording and a rule wording: pick one, never both.
+   Story wording suits story-first setups; rule wording suits game setups, or a model that ignored
+   the story version. Fill in any [bracketed] part yourself.
+4. **The starter's own wording**, when what they want is close to a line it already has.
+5. **Your own text**, only when nothing above covers it. Match the style of the blocks around it, and
    keep it as short as it can be while staying concrete.
 
 ## No AI-speak
@@ -44,6 +48,25 @@ that read like one. When you write:
   versus "Nice to meet you. My name is Jess.") teaches more than a paragraph of description.
 - Read it back as a person who writes for a living would. If a line could sit in any preset for any
   story, it's filler; cut it or make it specific.
+
+## "Don't" rules that work
+
+A "don't" is fine when it targets a habit they actually saw. Give it a scope, and either an
+alternative or permission to leave the beat out: "Don't use a tightened jaw as automatic emotional
+punctuation; leave the beat out when it adds nothing." Don't name a replacement to use every time
+(clenched hands in every reply is the same problem). Banned words come back as synonyms, so name the
+habit, not the word. No threats, no piles of "always" and "never".
+
+## What text can and can't do
+
+- **Text rules (regex) change formatting, not meaning.** Use them for a fixed marker the model is told
+  to write (hide a panel, colour a tag). Never for therapist talk, positivity or metaphors: swapping
+  words after the fact can't make the character choose differently.
+- **A formula in a prompt is a figure of speech.** "trust = respect + history" only means something if
+  the app calculates it. Don't tell them something is tracked unless it really is (the story trackers
+  on the Extras page are; numbers the model keeps in its replies are its best guess).
+- **Hidden isn't secret.** A folded panel or an HTML comment is still sent to the model and saved in
+  the chat. Don't use it to keep secrets from a character.
 
 ## Story first, unless it's a game
 
@@ -71,5 +94,19 @@ the narrative steps back:
 Check the library first here too: dice, inventories, relationship meters, internal states, a GM's
 notebook, in-story graphics, a social feed and coloured dialogue all exist already. If the panel
 shows HTML, the app displays it; plain text works everywhere.
+
+### Story extras without a game
+
+Letters, phone screens, a rumour board, relationship milestones, a scrapbook of shared moments: these
+make a story feel alive without stats (ideas in `docs/research/preset-second-pass-interactive.md`).
+
+- **Only when the scene calls for it.** A letter appears because someone finds one, not every reply.
+  Say so in the instruction: "Do not invent a document just to show one."
+- **One feature at a time**, and ask before adding a second.
+- **The panel holds the object; the narration stays outside it.**
+- **What characters know still holds**: a text message is known to whoever saw it, not everyone.
+- **Milestones over scores** for people who dislike numbers: "Trust: growing cautiously · after she
+  fixed the roof" instead of "Trust 6/10".
+- Folding panels (`<details><summary>`) work in the chat.
 
 Show a sample before they apply. Formats break in ways a description can't show.

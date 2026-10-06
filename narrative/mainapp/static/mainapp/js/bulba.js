@@ -19,8 +19,9 @@ function getCookie(name) {
 async function api(body) {
     const resp = await fetch(BULBA_API, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-        body: JSON.stringify(body),
+        headers: body instanceof FormData ? { 'X-CSRFToken': getCookie('csrftoken') }
+                                          : { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: body instanceof FormData ? body : JSON.stringify(body),
     });
     const data = await resp.json().catch(() => ({}));
     if (!resp.ok) throw new Error(data.error || 'Something went wrong.');
@@ -116,6 +117,13 @@ function render() {
         if (ev.type === 'error') return `<div class="error">${esc(ev.text)}</div>`;
         if (ev.type === 'stage') return `<div class="stage-mark">${esc(STAGE_LABELS[ev.stage] || ev.stage)}</div>`;
         if (ev.type === 'proposal') return proposalCard(ev);
+        if (ev.type === 'card_upload') {
+            const live = i === types.lastIndexOf('card_upload') && i > answeredUpTo && !busy;
+            return `<form class="card-upload" data-card-upload>
+                <label>Your card <small>(.png or .json, from SillyTavern, Chub and the like)</small>
+                <input type="file" name="card" accept=".png,.json,image/png,application/json" ${live ? '' : 'disabled'}></label>
+                <button type="submit" ${live ? '' : 'disabled'}>Import</button></form>`;
+        }
         if (ev.type === 'form') return basicsForm(i === types.lastIndexOf('form') && i > answeredUpTo && !busy);
         if (ev.type === 'lookup') return `<div class="lookup">🔎 Looked up “${esc(ev.query)}”${(ev.sources || []).length
             ? ': ' + ev.sources.map(src => `<a href="${esc(src.url)}" target="_blank" rel="noopener">${esc(src.title || src.url)}</a>`).join(', ') : ''}</div>`;
@@ -244,6 +252,17 @@ $('log').addEventListener('click', e => {
     const chips = t.previousElementSibling;
     chips.hidden = !chips.hidden;
     t.textContent = chips.hidden ? 'Show 18+ genres' : 'Hide 18+ genres';
+});
+
+$('log').addEventListener('submit', e => {
+    const form = e.target.closest('[data-card-upload]');
+    if (!form) return;
+    e.preventDefault();
+    const file = form.querySelector('input[type=file]').files[0];
+    if (!file) return;
+    const body = new FormData();
+    body.append('card', file);
+    run(body, 'Importing your card…');
 });
 
 $('log').addEventListener('submit', e => {

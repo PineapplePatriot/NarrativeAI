@@ -27,7 +27,13 @@ can supply or judge.
   then a tested Realistic Frankenstein block word for word, then the starter's wording, then new text);
   no AI-speak; story first unless it's a game, where templates and fixed formats take over. Bulba can
   search and borrow the Frankenstein blocks in setup and in a chat. Not yet tried against a real model.
-- **Offer card import** at the character stage, for people who already have a card they like.
+- **Card import and lorebooks in Bulba** (built): at the character stage Bulba asks for a card you
+  already have (upload box), reviews it and suggests fixes; it can write lore entries from wiki research
+  (web search aimed at the work's wikis), in setup or from a chat. Not yet tried against a real model.
+- **Research cookbook** (in `docs/research/`): its wording library is searchable by Bulba as untested
+  candidates, ranked below the Frankenstein blocks; its lessons are in the asking, preset and writing
+  guides. Not used yet: the "Story extras" step (letters, phone screens, rumours, milestones as their own
+  setup step) and the function-calling design (see Presets and starters).
 - **Handover**: after setup, a short summary of what was set up and where to change it.
 - **A small pilot** with you judging replies (the research package's protocol, scaled down).
 

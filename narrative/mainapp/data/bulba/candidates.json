@@ -1,0 +1,92 @@
+[
+ {
+  "problem": "Automatic agreement, instant trust, easy forgiveness",
+  "natural": "Let each character respond from their own priorities and existing relationship. Agreement, trust and forgiveness depend on what happened and what matters to them; sincere cooperation remains possible.",
+  "structured": "SOCIAL RESPONSE: use motives + relationship history + current stakes. Agreement and refusal both require a character-consistent reason. Change trust when the scene supplies evidence.",
+  "notes": "Use for users who want earned emotional development. Overcorrection creates universal suspicion and ruins affectionate characters. Test a reasonable request, an unfair accusation, and a genuine apology: the model should distinguish all three."
+ },
+ {
+  "problem": "Villains softened into helpful companions",
+  "natural": "Keep established goals and flaws consequential. A charming interaction may change a tactic without erasing a character's ambition, prejudice or conflicting loyalty.",
+  "structured": "CHARACTER CONTINUITY: preserve established goals and flaws. Revise them through demonstrated development; friendliness alone does not reset them.",
+  "notes": "Apply to characterization drift, not every dark scenario. Test whether a pleasant exchange changes the villain's strategy without making them abandon their objective."
+ },
+ {
+  "problem": "Therapy dialogue and premature emotional insight",
+  "natural": "Let care and conflict sound like this person. They may offer practical help, deflect, misread, joke or hesitate. Emotional explanations should fit their insight and the relationship.",
+  "structured": "EMOTIONAL VOICE: character-specific language; insight limited by characterization. Use explicit reassurance or self-analysis when plausible, rather than as the default response.",
+  "notes": "Do not ban empathy. Test a distressed scene with a reserved mechanic and an emotionally articulate counselor; the voices should differ."
+ },
+ {
+  "problem": "Taking control of the player's character",
+  "natural": "Portray the other characters and the world. Leave {{user}}'s new dialogue, voluntary actions, decisions and private thoughts for them to supply. Respond to actions they have already established.",
+  "structured": "AUTHORSHIP: model = NPCs/world; player = {{user}} dialogue, decisions, voluntary actions, inner experience. Resolve established external effects without inventing the player's next choice.",
+  "notes": "Physical consequences and voluntary choices are separate. A thrown ball can hit a player character under agreed rules; the model need not decide that they forgive the thrower. Test ordinary roleplay, a group exchange, and a continuation. Audit group nudges and cards for conflicting permissions."
+ },
+ {
+  "problem": "Omniscience and leaking secrets",
+  "natural": "A character reacts to what they witnessed, learned or can reasonably infer. Keep private information private until the story gives them a route to it.",
+  "structured": "KNOWLEDGE: distinguish world facts from each character's evidence. Unknown secrets remain unknown; suspicion is not confirmed knowledge.",
+  "notes": "Use when mystery or deception matters. Test an overheard conversation versus a private off-screen conversation. Omniscient narration, if requested, does not make every character omniscient."
+ },
+ {
+  "problem": "Repeating the user, or skipping their earlier actions",
+  "natural": "Continue from the current endpoint. Show the consequences of relevant actions without restating the message. If several actions matter, respond to them in their established order.",
+  "structured": "CONTINUATION: no recap. COVERAGE: address consequential unresolved actions. ORDER: preserve chronology; compress minor transitions.",
+  "notes": "A blanket ban on revisiting prior material can suppress necessary reactions. Test a message with three actions where the first changes the third. Removing repeated words with regex does not fix missing causality."
+ },
+ {
+  "problem": "Every turn introduces an interruption or plot twist",
+  "natural": "Let an active exchange develop. Introduce a new event when the situation supports it or momentum has genuinely stalled; quiet attention can carry a scene.",
+  "structured": "INITIATIVE: resolve the active beat first. Add complications when justified by existing causes or requested pacing. No mandatory event quota.",
+  "notes": "Use for users who want banter or emotional development. A highly proactive adventure profile can raise initiative separately. Test a simple conversation: an unrelated explosion should not be required to make it count as progress."
+ },
+ {
+  "problem": "Scenes stall despite the user asking for adventure",
+  "natural": "Let characters act on their goals and let unresolved pressures produce opportunities or consequences. Offer something the player can engage with while leaving their response open.",
+  "structured": "WHEN STALLED: advance an established goal, pressure or opportunity. Create an actionable opening; preserve player choice.",
+  "notes": "Stalling and quiet intimacy are different. Test a waiting scene with a known deadline, then a deliberate reflective scene; only the former necessarily needs external movement."
+ },
+ {
+  "problem": "Stock gestures and synonym substitution",
+  "natural": "Do not use a tightened jaw as automatic emotional punctuation, including renamed versions of that gesture. Omit the beat when it adds nothing; otherwise choose a response specific to this person and situation.",
+  "structured": "EXCLUDE: generic jaw-tension emotion cue, including paraphrases. REPLACEMENT: meaningful character-specific response or omission. Do not install a recurring replacement gesture.",
+  "notes": "This targets a semantic habit, not just a phrase. Test several emotional turns. If jaw tension becomes clenched hands in every reply, the fix has failed despite passing a string check."
+ },
+ {
+  "problem": "Unwanted romance archetype or possessive shorthand",
+  "natural": "Keep this relationship [mutual and non-possessive / awkward and tentative / another chosen dynamic]. Avoid ownership claims and predatory romantic framing unless the character and agreed dynamic specifically call for them.",
+  "structured": "RELATIONSHIP DYNAMIC: [chosen dynamic]. EXCLUDE: [unwanted archetype and behaviors]. Preserve attraction, warmth and disagreement within that dynamic.",
+  "notes": "Ask what the user dislikes before excluding a trope. Slow-burn, possessive fantasy and equal partnership are different tastes; one should not be treated as the universal repair."
+ },
+ {
+  "problem": "Purple prose, flat prose, or irrelevant sensory detail",
+  "natural": "Use details the viewpoint would notice and that affect this moment. Let concrete action carry most of the passage; use imagery where it sharpens the chosen mood.",
+  "structured": "DETAIL FILTER: viewpoint relevance + scene function. IMAGERY: [sparse/moderate/lush]. Remove decorative details that obscure the action.",
+  "notes": "Do not turn “grounded” into an inventory of surfaces and smells. Compare the same scene at two imagery levels; a user may prefer lush prose without accepting vague clichés."
+ },
+ {
+  "problem": "Everyone speaks in the same witty voice",
+  "natural": "Give each speaker their own vocabulary, rhythm and social habits. Humor belongs to characters and moments where it fits; serious lines may remain straightforward.",
+  "structured": "VOICE: derive vocabulary and cadence from the card and examples. HUMOR: conditional on speaker and context. No universal banter requirement.",
+  "notes": "Test three speakers responding to the same awkward news. A profession should inform vocabulary without making every sentence a workplace metaphor."
+ },
+ {
+  "problem": "Replies are too long, too clipped, or cut off",
+  "natural": "Usually write [chosen range] paragraphs. Give the current interaction enough room, then hand the scene back at a meaningful opening.",
+  "structured": "VISIBLE LENGTH: [chosen range]. PRIORITY: relevant interaction + complete ending. Compress background recap before cutting active dialogue.",
+  "notes": "Preference ranges are soft writing guidance. Provider output limits are hard request settings and may include reasoning; diagnose truncation separately. Test an action scene and a short social reply rather than demanding identical lengths."
+ },
+ {
+  "problem": "The card's traits become repetitive performances",
+  "natural": "Let traits shape choices when relevant. A reserved character can speak, a jealous character can discuss other things, and a nervous character need not visibly tremble every turn.",
+  "structured": "TRAITS: contextual tendencies, not turn quotas. Show them through relevant choices; preserve variation across situations.",
+  "notes": "Use when a character is recognizable but exhausting. Test different contexts, not five versions of the same trigger."
+ },
+ {
+  "problem": "Too much planning or visible procedural output",
+  "natural": "Return the in-world reply in the requested format. Keep scene-management instructions out of the narration.",
+  "structured": "OUTPUT: narrative/dialogue only, except explicitly enabled interface elements.",
+  "notes": "This governs visible output, not native reasoning duration. For Opus5.5 specifically, first remove inherited instructions to think carefully and calibrate supported effort. Official guidance supports that chat intervention; it does not establish an RP quality score. [C1]"
+ }
+]

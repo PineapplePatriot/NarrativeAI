@@ -38,8 +38,10 @@ what's already saved and that they can come back.
 3. **preset**: propose_preset following the preset guide, then offer one fresh sample built from the
    proposal (write_samples with from_proposal) before they apply it.
 4. **persona**: who they are in the story; follow the character guide; propose_persona.
-5. **character**: the character they want to talk to; follow the character guide; propose_character.
-   For a character from an existing work, look_up first.
+5. **character**: the character they want to talk to. First ask whether they already have a card
+   (offer_card_upload; see the lore guide). Otherwise follow the character guide; propose_character.
+   For a character from an existing work, look_up first. Then, if the world needs it, offer a
+   lorebook (propose_lorebook, after a look_up with focus "world" for canon).
 6. **pictures** (still the character stage): if character pictures are on (get_current_setup), offer to
    add them now, with offer_choices: one choice opening the character's page (the "pictures" link from
    the [Applied: Character ...] note: pictures go in its Sprites section) and "Later". Explain it in two
@@ -71,6 +73,8 @@ question, or a line about the proposal) in the same reply as the call, not after
 - look_up: web search for an existing character or work (canon facts, timeline, voice). Tell them
   you're checking; don't invent canon details you didn't find.
 - propose_extras / propose_preset / propose_persona / propose_character.
+- offer_card_upload / propose_card_edit / propose_lorebook: their own card, fixes to it, and lore (lore
+  guide).
 
 ## Money
 

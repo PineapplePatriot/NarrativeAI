@@ -76,6 +76,11 @@ with extra sample instructions.
 
 ## Later complaints (when they come back unhappy)
 
+**A vague complaint is a guess until you check.** "Too nice" might mean instant trust, therapist talk,
+easy wins, or a villain who lost their edge. "Boring" might mean repetitive sentences, no initiative,
+or nothing at stake. Ask one question that tells them apart (with choices) before fixing anything,
+and don't reach for a blanket "be harsher" fix.
+
 Diagnose before adding rules, in this order:
 1. Something in the preset or character that asks for the behaviour (an instruction that conflicts).
 2. The character description or greeting pulling the model that way (a long, florid greeting teaches
@@ -83,7 +88,9 @@ Diagnose before adding rules, in this order:
 3. Missing context (summary, lorebook) or a very long chat.
 4. Wording of an instruction that's too vague.
 5. The model itself (check its known habits).
-Change one thing, show a sample, keep the version that worked.
+Change one thing, show a sample, keep the version that worked. A good fix also leaves alone the scenes
+it shouldn't touch: a "more friction" fix that turns an affectionate character cold has failed. If a
+fix adds nothing visible, take it back out; shorter wins when results are the same.
 
 | They say | Look at first |
 |---|---|

@@ -1625,6 +1625,8 @@ def bulba_api(request):
         return JsonResponse({"activity": session.activity if session else ""})
     if request.method != "POST":
         return JsonResponse({"error": "POST only"}, status=405)
+    if request.FILES.get("card"):  # a card they already have, from the upload box
+        return _bulba_card_upload(request)
     try:
         data = json.loads(request.body.decode("utf-8"))
     except (ValueError, UnicodeDecodeError):
@@ -1668,6 +1670,29 @@ def bulba_api(request):
             return JsonResponse({"error": "Enter an amount in dollars."}, status=400)
     else:
         return JsonResponse({"error": "Unknown action."}, status=400)
+    session.activity = ""
+    session.save()
+    return JsonResponse({"events": events, "state": _bulba_state(session)})
+
+
+def _bulba_card_upload(request):
+    from .bulba import agent, lore
+    session = _bulba_for_request(request, restart=False)
+    if session is None or session.mode != "setup":
+        return JsonResponse({"error": "Cards can be imported during setup."}, status=400)
+    upload = request.FILES["card"]
+    if upload.size > MAX_CARD_BYTES:
+        return JsonResponse({"error": "That file is over 20 MB, too big for a character card."}, status=400)
+    try:
+        character, proposal = lore.import_card(session, upload)
+    except cards.CardError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+    events = [{"type": "proposal", "id": proposal["id"]}]
+    session.events += events
+    link = _bulba_chat_link(session)
+    note = (f"Imported their card: {proposal['title']} — chat: {link['url']}, pictures (Sprites section): "
+            f"{link['edit_url']}\n\n{lore.card_report(character)}")
+    events += agent.run_turn(session, None, action_note=f"Imported {character.name}", model_note=note)
     session.activity = ""
     session.save()
     return JsonResponse({"events": events, "state": _bulba_state(session)})

@@ -6,13 +6,13 @@ import uuid
 from pathlib import Path
 
 from mainapp import ai_client, cards, model_profiles, presets, starters
-from mainapp.bulba import library
+from mainapp.bulba import doctor, library, lore
 
 INSTRUCTIONS = Path(__file__).resolve().parent.parent / "data" / "bulba" / "instructions.md"
 GUIDES_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba" / "guides"
 # Which guides Bulba reads at each stage (keeps the prompt, and the bill, small)
 STAGE_GUIDES = {"extras": ["extras"], "taste": ["asking", "presets", "writing"], "preset": ["presets", "writing"],
-                "persona": ["characters", "writing"], "character": ["characters", "writing"], "done": []}
+                "persona": ["characters", "writing"], "character": ["characters", "lore", "writing"], "done": []}
 REWRITABLE = ("Roleplay", "Style")
 TEST_CHARACTER = Path(__file__).resolve().parent.parent / "data" / "bulba" / "test-character.json"
 
@@ -107,7 +107,10 @@ TOOLS = [
     _fn("look_up", "Search the web for facts about a known character, setting or work (canon details, timeline, "
         "personality, how they speak). Costs a little; use it before writing a character from an existing work.",
         {"query": {"type": "string", "description": "What to find, e.g. 'Il Dottore Genshin Impact personality, "
-                   "appearance and history (Sumeru era)'"}}, ["query"]),
+                   "appearance and history (Sumeru era)'"},
+         "focus": {"type": "string", "enum": ["character", "world"],
+                   "description": "character (default): one person, for a card; world: places, factions, terms and "
+                                  "events from the work's wikis, for a lorebook"}}, ["query"]),
     _fn("set_stage", "Move to another stage of the setup.", {"stage": {"type": "string", "enum": STAGES}}, ["stage"]),
     _fn("offer_choices", "Show quick-reply buttons under your message. A choice with a url opens that page instead.",
         {"choices": {"type": "array", "maxItems": 5, "items": {"type": "object", "properties": {
@@ -158,6 +161,8 @@ TOOLS = [
          "personality": STR, "example_dialogue": STR, "why": STR},
         ["name", "description", "greeting"]),
     *library.tool_defs(_fn, STR),
+    *lore.tool_defs(_fn, STR),
+    doctor.CARD_EDIT_TOOL,
 ]
 
 
@@ -332,6 +337,12 @@ LOOKUP_PROMPT = ("You research fiction for someone writing a roleplay character 
                  "answer factually and concisely: who they are, appearance, personality and how it shows, how they "
                  "speak, key relationships and history, and which version or timeline the facts belong to. Say "
                  "plainly when sources disagree or something isn't known. No speculation, no fan theories as fact.")
+LOOKUP_WORLD_PROMPT = ("You research a fictional world for someone writing a roleplay lorebook. Prefer the work's wikis "
+                       "(Fandom and other fan wikis, Wikipedia, official sites). Using the web results, list the places, "
+                       "factions and groups, important people other than the main character, terms, rules of magic or "
+                       "technology, and key events, each with two or three factual lines and the names or nicknames people "
+                       "use for it. Say which point in the story each fact belongs to, and mark spoilers. Say plainly when "
+                       "sources disagree or something isn't known. No speculation, no fan theories as fact.")
 
 
 def tool_look_up(session, args):
@@ -345,7 +356,8 @@ def tool_look_up(session, args):
     _check_budget(session)
     set_activity(session, f"Looking up {query[:60]} on the web…")
     message, cost = ai_client.complete_message(
-        session.user, "bulba", [{"role": "system", "content": LOOKUP_PROMPT}, {"role": "user", "content": query}],
+        session.user, "bulba", [{"role": "system", "content": LOOKUP_WORLD_PROMPT if args.get("focus") == "world"
+                                 else LOOKUP_PROMPT}, {"role": "user", "content": query}],
         plugins=[{"id": "web", "max_results": 5}], max_tokens=1500)
     session.spent += cost or 0
     notes = [a.get("url_citation", {}) for a in message.get("annotations") or [] if isinstance(a, dict)]
@@ -527,6 +539,9 @@ def tool_propose_preset(session, args):
     unknown = [n for n in borrow if library.get(n) is None]
     if unknown:
         return {"error": f"Not in the library: {', '.join(unknown)}. Use the exact names from find_practice."}, []
+    unfilled = [n for n in borrow if library.needs_filling(library.get(n))]
+    if unfilled:
+        return {"error": f"{', '.join(unfilled)} has [bracketed] parts: fill them in and put it in taste instead."}, []
     profile = target_profile(session) or {}
     name = str(args.get("name") or f"My setup · {profile.get('name', '')}").strip()[:120]
     summary = [f"Built on the {starter['title']} starter for {profile.get('name', '')}"]
@@ -577,7 +592,7 @@ HANDLERS = {
     "write_samples": tool_write_samples, "record_preference": tool_record_preference,
     "propose_extras": tool_propose_extras, "propose_preset": tool_propose_preset,
     "propose_persona": tool_propose_persona, "propose_character": tool_propose_character,
-    **library.HANDLERS,
+    **library.HANDLERS, **lore.HANDLERS, "propose_card_edit": doctor.tool_propose_card_edit,
 }
 
 
@@ -621,7 +636,7 @@ def opening(session):
 
 # Tools after which Bulba waits for the user (see instructions.md, "Tools, briefly")
 TURN_ENDING = {"offer_choices", "write_samples", "show_basics_form", "retry_reply",
-               "propose_preset_edit", "propose_card_edit", "propose_extras", "propose_preset", "propose_persona", "propose_character"}
+               "propose_preset_edit", "propose_card_edit", "propose_lorebook", "offer_card_upload", "propose_extras", "propose_preset", "propose_persona", "propose_character"}
 
 
 def run_turn(session, user_text, action_note=None, model_note=None):

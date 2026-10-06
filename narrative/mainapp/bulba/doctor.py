@@ -12,7 +12,7 @@ import uuid
 from pathlib import Path
 
 from mainapp import ai_client, chats, presets
-from mainapp.bulba import library
+from mainapp.bulba import library, lore
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba"
 CARD_FIELDS = ("description", "personality", "scenario", "example_dialogue")
@@ -43,6 +43,15 @@ def _preset_outline(preset):
     return "\n".join(lines)
 
 
+def _lore_line(character):
+    if not character.worldbook_id:
+        return "None."
+    from mainapp import lorebook
+    entries = lorebook.load_worldbook(character.worldbook)["entries"]
+    titles = [e["comment"] or ", ".join(e["keys"][:2]) for e in entries][:30]
+    return f"“{character.worldbook.title}”, {len(entries)} entries: " + "; ".join(titles)
+
+
 def context(session):
     from mainapp.views import prompt_names
     chat = session.chat
@@ -68,6 +77,7 @@ def context(session):
         f"Messages so far: {len(messages)}.",
         "### Character card\n" + "\n\n".join(
             f"{f}: {_clip(getattr(character, f), 2500)}" for f in CARD_FIELDS if getattr(character, f)),
+        "### Lorebook\n" + _lore_line(character),
         "### The user in this chat\n" + _clip(
             (persona.get("description") if persona.get("name") else getattr(user, "persona_description", "")) or
             "(no description)", 800),
@@ -85,7 +95,7 @@ def system_prompt(session):
     from mainapp.bulba import agent
     text = (DATA_DIR / "doctor.md").read_text(encoding="utf-8")
     profile = agent.target_profile(session)
-    guides = [(DATA_DIR / "guides" / f"{g}.md").read_text(encoding="utf-8") for g in ("presets", "characters", "writing")]
+    guides = [(DATA_DIR / "guides" / f"{g}.md").read_text(encoding="utf-8") for g in ("presets", "characters", "lore", "writing")]
     pending = [f"- {p['id']} {p['kind']}: {p['title']} ({p['status']})" for p in session.proposals]
     return "\n\n".join(filter(None, [
         text, *guides,
@@ -183,6 +193,8 @@ def tool_propose_preset_edit(session, args):
             block = library.get(e["from_library"])
             if block is None:
                 return {"error": f"No library block “{e['from_library']}”; use find_practice for the exact name."}, []
+            if library.needs_filling(block):
+                return {"error": "That wording has [bracketed] parts: fill them in and add it as content instead."}, []
             e.update(action="add", block=block["name"], content=block["content"])
             e.pop("from_library")
     active = presets.get_active(session.user)
@@ -201,7 +213,9 @@ def tool_propose_card_edit(session, args):
     fields = {f: str(args.get(f)).strip()[:8000] for f in CARD_FIELDS if isinstance(args.get(f), str) and args.get(f).strip()}
     if not fields:
         return {"error": "Change at least one field (description, personality, scenario, example_dialogue)."}, []
-    character = session.chat.character
+    character = lore.target_character(session)
+    if character is None:
+        return {"error": "There's no character to change yet."}, []
     summary = []
     for f, text in fields.items():
         summary += [f"{f.replace('_', ' ').capitalize()}:", text]
@@ -253,9 +267,14 @@ def _fn(name, description, properties, required=()):
             "parameters": {"type": "object", "properties": properties, "required": list(required)}}}
 
 
+CARD_EDIT_TOOL = _fn("propose_card_edit", "Propose changes to this character's card (only the fields you change).",
+            {"description": STR, "personality": STR, "scenario": STR, "example_dialogue": STR, "why": STR}, ["why"])
+
+
 def tools():
     from mainapp.bulba import agent
-    keep = {"offer_choices", "record_preference", "get_starter", "find_practice", "read_practice"}
+    keep = {"offer_choices", "record_preference", "get_starter", "find_practice", "read_practice", "look_up",
+            "propose_lorebook"}
     base = [t for t in agent.TOOLS if t["function"]["name"] in keep]
     return base + [
         _fn("read_block", "The full text of one block of the active preset (names are in the outline).",
@@ -271,15 +290,14 @@ def tools():
                                  "word for word (exact name from find_practice)"}},
                 "required": ["action", "block"]}},
              "why": STR}, ["edits", "why"]),
-        _fn("propose_card_edit", "Propose changes to this character's card (only the fields you change).",
-            {"description": STR, "personality": STR, "scenario": STR, "example_dialogue": STR, "why": STR}, ["why"]),
+        CARD_EDIT_TOOL,
         _fn("retry_reply", "Rewrite the last AI reply of this chat with their chat model: with a proposal's change "
             "applied just for this try (from_proposal), or as things are now. Costs one reply.",
             {"from_proposal": {"type": "string", "description": "A preset or card proposal id; leave out to retry as is"}}),
     ]
 
 
-HANDLERS = {"read_block": tool_read_block, "propose_preset_edit": tool_propose_preset_edit,
+HANDLERS = {"read_block": tool_read_block, "propose_preset_edit": tool_propose_preset_edit, **lore.HANDLERS,
             "propose_card_edit": tool_propose_card_edit, "retry_reply": tool_retry_reply}
 
 
