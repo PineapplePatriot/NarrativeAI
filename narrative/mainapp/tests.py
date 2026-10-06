@@ -3360,3 +3360,116 @@ class GuideTests(ChatPromptTests):
         self.assertContains(self.client.get(reverse("users:login")), reverse("guide"))
         self.client.force_login(self.user)
         self.assertContains(self.client.get(reverse("home")), 'id="guideCard"')
+
+
+class MediaUploadTests(ChatPromptTests):
+    def test_upload_background(self):
+        import shutil, tempfile
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        url = reverse("media_resources")
+        self.assertEqual(url, "/main/api/media-resources/")  # the page posts here
+        ok = self.client.post(url, {"type": "bg", "file": SimpleUploadedFile("My Room.PNG", b"\x89PNG fake")}).json()
+        self.assertTrue(ok["success"])
+        self.assertTrue(ok["url"].endswith("/backgrounds/custom/my-room.png"))
+        bad = self.client.post(url, {"type": "music", "file": SimpleUploadedFile("x.exe", b"MZ")}).json()
+        self.assertFalse(bad["success"])
+        listed = self.client.get(url).json()
+        self.assertIn("Custom: my-room.png", [b["name"] for b in listed["backgrounds"]])
+
+
+class DemoPackAndThemeTests(ChatPromptTests):
+    def test_pack_is_loaded_once_with_lore_theme_and_sprites(self):
+        import os, tempfile
+        from pathlib import Path
+        from unittest import mock
+        from mainapp.management.commands import seed_demo
+        from mainapp.models import Character
+        tmp = Path(tempfile.mkdtemp())
+        pack = tmp / "viktor"
+        (pack / "sprites").mkdir(parents=True)
+        (pack / "card.json").write_text(json.dumps(V2_CARD))
+        (pack / "lorebook.json").write_text(json.dumps({"title": "Station", "entries": [
+            {"keys": ["ferry"], "content": "The ferry leaves at midnight."}]}))
+        (pack / "theme.json").write_text(json.dumps({"bg": "/static/defaults/backgrounds/station.jpg",
+                                                     "dialogue_color": "#7dd3fc"}))
+        (pack / "sprites" / "happy.png").write_bytes(b"\\x89PNG fake")
+        with mock.patch.object(seed_demo, "PACKS", tmp), mock.patch.dict(os.environ, {"DEMO_PASSWORD": "pw-123456!"}):
+            from django.core.management import call_command
+            call_command("seed_demo", stdout=open(os.devnull, "w"))
+            call_command("seed_demo", stdout=open(os.devnull, "w"))
+        viktor = Character.objects.get(author__username="demo", name="Viktor")
+        self.assertEqual(Character.objects.filter(author__username="demo", name="Viktor").count(), 1)
+        from mainapp import lorebook
+        titles = [e["content"] for e in lorebook.load_worldbook(viktor.worldbook)["entries"]]
+        self.assertIn("The ferry leaves at midnight.", titles)
+        self.assertTrue(viktor.photo_happy.name.endswith(".png"))
+        self.assertEqual(viktor.theme["dialogue_color"], "#7dd3fc")
+        self.assertFalse(Character.objects.filter(author__username="demo", name="Rose").exists())
+
+    def test_theme_applies_to_chats(self):
+        self.character.theme = {"bg": "/static/defaults/backgrounds/x.jpg", "dialogue_color": "#86efac",
+                                "music": {"url": "/static/defaults/music/a.mp3", "name": "A"}}
+        self.character.save()
+        page = self.client.get(self.url)
+        self.assertEqual(page.context["current_bg"], "/static/defaults/backgrounds/x.jpg")
+        self.assertEqual(page.context["appearance"]["dialogue_color"], "#86efac")
+        self.post({"action": "save_media", "type": "bg", "url": "/media/backgrounds/custom/mine.png", "name": "m"})
+        self.assertEqual(self.client.get(self.url).context["current_bg"], "/media/backgrounds/custom/mine.png")
+        self.post({"action": "appearance", "dialogue_color": "#fcd34d"})
+        self.character.refresh_from_db()
+        self.assertEqual(self.character.theme["dialogue_color"], "#fcd34d")
+        self.post({"action": "save_theme", "type": "music", "url": "/static/defaults/music/b.mp3", "name": "B"})
+        self.character.refresh_from_db()
+        self.assertEqual(self.character.theme["music"]["name"], "B")
+
+
+class BulbaEditingTests(BulbaCardAndLoreTests):
+    def test_work_on_existing_character_and_edit_its_lore(self):
+        from mainapp import lorebook
+        from mainapp.models import Character
+        self.upload(V2_CARD)  # Viktor, with a one-entry lorebook
+        self.api(action="restart")
+        self.script = [("", [self.call("work_on_character", name="nobody")]),
+                       ("", [self.call("work_on_character", name="viktor")]),
+                       ("", [self.call("read_lorebook")]),
+                       ("Fixing it.", [self.call("propose_lore_edit", why="canon", edits=[
+                           {"entry": 0, "action": "replace", "content": "Platform 9 reopened in spring.",
+                            "keys": ["platform", "platform 9"]}])])]
+        data = self.api(action="say", text="Viktor's lore is outdated").json()
+        results = [json.loads(m["content"]) for m in self.bulba_calls[-1]["messages"] if m["role"] == "tool"]
+        self.assertIn("Viktor", results[0]["characters"])
+        self.assertIn("Station lore", results[1]["card"])
+        self.assertEqual(results[2]["entries"][0]["content"], "Platform 9 is closed.")
+        pid = data["state"]["proposals"][-1]["id"]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=pid)
+        viktor = Character.objects.get(name="Viktor")
+        entry = lorebook.load_worldbook(viktor.worldbook)["entries"][0]
+        self.assertEqual((entry["content"], entry["keys"]), ("Platform 9 reopened in spring.", ["platform", "platform 9"]))
+        self.script = [("Undone.", [])]
+        self.api(action="undo", id=pid)
+        self.assertEqual(lorebook.load_worldbook(viktor.worldbook)["entries"][0]["content"], "Platform 9 is closed.")
+        # A card edit now reaches the first message too
+        self.script = [("", [self.call("propose_card_edit", initial_message="Back so soon?", why="tone")])]
+        pid = self.api(action="say", text="change his greeting").json()["state"]["proposals"][-1]["id"]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=pid)
+        viktor.refresh_from_db()
+        self.assertEqual(viktor.initial_message, "Back so soon?")
+
+    def test_bad_lore_edits_are_refused(self):
+        from mainapp.bulba import lore
+        book = {"entries": [{"uid": 0, "comment": "", "keys": ["a"], "content": "x", "constant": False, "enabled": True}]}
+        with self.assertRaises(ValueError):
+            lore.edit_book(book, [{"entry": 5, "action": "delete"}])
+        with self.assertRaises(ValueError):
+            lore.edit_book(book, [{"entry": 0, "action": "replace", "keys": []}])
+
+
+class BulbaPageListTests(BulbaInChatTests):
+    def test_setup_page_lists_in_chat_conversations(self):
+        self.make_chat()
+        self.script = [("Let me look.", [])]
+        self.api(action="say", text="too long")
+        page = self.client.get(reverse("bulba"))
+        self.assertTrue(any("bulba=1" in c["url"] for c in page.context["in_chats"]))

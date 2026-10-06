@@ -12,6 +12,7 @@ one character to chat with. Everything secret comes from environment variables s
 Safe to run on every start: it only fills in what's missing, and updates the key and password.
 """
 import os
+from pathlib import Path
 
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
@@ -29,6 +30,53 @@ ROSE = {
     "initial_message": "*The bell over the door jangles. Rose doesn't look up from the alembic.* \"Shut the door. "
                        "And don't touch anything green.\"",
 }
+
+
+PACKS = Path(__file__).resolve().parents[2] / "data" / "demo"
+MOODS = ["neutral", "happy", "sad", "angry", "surprised", "scared", "confused", "calm", "scheming"]
+
+
+def load_packs(user):
+    """Characters shipped in data/demo/<name>/, added once each:
+        card.png or card.json   the character card (SillyTavern V2/V3)
+        lorebook.json           optional: a lorebook (our format or SillyTavern's), attached to the character
+        theme.json              optional: {"bg": url, "music": {"url", "name"}, "dialogue_color": "#rrggbb"}
+        sprites/<mood>.png      optional: neutral, happy, sad, angry, surprised, scared, confused, calm, scheming
+    Returns the names added."""
+    import json
+    from django.core.files.base import ContentFile
+    from mainapp import cards, lorebook
+    from mainapp.models import Character, Worldbook
+    added = []
+    for folder in sorted(p for p in PACKS.glob("*") if p.is_dir()) if PACKS.is_dir() else []:
+        card_file = next((folder / n for n in ("card.png", "card.json") if (folder / n).exists()), None)
+        if card_file is None:
+            continue
+        card, image = cards.read(card_file.read_bytes(), card_file.name)
+        if Character.objects.filter(author=user, name=card["name"]).exists():
+            continue
+        character = cards.create_character(user, card, image)
+        lore = folder / "lorebook.json"
+        if lore.exists():
+            book = lorebook.normalize_book(json.loads(lore.read_text(encoding="utf-8")))
+            wb = character.worldbook or Worldbook(title=book["title"] or f"{character.name}'s world",
+                                                  slug=f"{character.slug}-lore", author=user)
+            lorebook.save_worldbook(wb, book)
+            character.worldbook = wb
+        theme = folder / "theme.json"
+        if theme.exists():
+            character.theme = json.loads(theme.read_text(encoding="utf-8"))
+        for mood in MOODS:
+            for ext in ("png", "webp", "jpg"):
+                sprite = folder / "sprites" / f"{mood}.{ext}"
+                if sprite.exists():
+                    getattr(character, f"photo_{mood}").save(f"{character.slug}-{mood}.{ext}",
+                                                             ContentFile(sprite.read_bytes()), save=False)
+                    break
+        character.save()
+        chats.current(character)
+        added.append(character.name)
+    return added
 
 
 class Command(BaseCommand):
@@ -67,9 +115,12 @@ class Command(BaseCommand):
             else:
                 presets.get_active(user)  # the built-in default
 
-        if not Character.objects.filter(author=user).exists():
+        packs = load_packs(user)
+        if not packs and not Character.objects.filter(author=user).exists():
             character = Character.objects.create(slug=f"{username}-rose", author=user, **ROSE)
             chats.current(character)
 
+        if packs:
+            self.stdout.write("Demo characters added: " + ", ".join(packs))
         self.stdout.write(f"Demo account '{username}' ready ({'created' if created else 'updated'}); "
                           f"model {model}; key {'set' if key else 'not set: they add their own'}.")

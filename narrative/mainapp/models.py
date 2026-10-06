@@ -67,6 +67,9 @@ class Character(models.Model):
     is_mult = models.BooleanField(default=False, verbose_name="Multi-Character Mode")
     # Which story trackers are on for this character, custom fields and layout (see mainapp/trackers.py)
     tracker_config = models.JSONField(default=dict, blank=True)
+    # The character's look: {"bg": url, "music": {"url", "name"}, "dialogue_color": "#rrggbb" or "preset"}.
+    # A chat opens with these unless it picked its own background or music.
+    theme = models.JSONField(default=dict, blank=True)
 
     photo_second_neutral = models.ImageField(upload_to="photos/%Y/%m/%d/", default=None, blank=True, null=True)
     photo_second_happy = models.ImageField(upload_to="photos/%Y/%m/%d/", default=None, blank=True, null=True)
@@ -217,6 +220,8 @@ class BulbaSession(models.Model):
     # "setup": the first-run setup; "chat": helping with one chat (opened from the chat page)
     mode = models.CharField(max_length=16, default="setup")
     chat = models.ForeignKey("Chat", on_delete=models.CASCADE, null=True, blank=True, related_name="bulba_sessions")
+    # In setup: an existing character the user asked Bulba to work on (its card and lorebook)
+    focus = models.ForeignKey("Character", on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
     stage = models.CharField(max_length=32, default="extras")
     messages = models.JSONField(default=list, blank=True, help_text="Conversation as sent to Bulba's model")
     events = models.JSONField(default=list, blank=True, help_text="What the page shows")

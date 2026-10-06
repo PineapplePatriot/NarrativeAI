@@ -7,10 +7,13 @@ MAX_ENTRIES = 25
 
 
 def target_character(session):
-    """The character Bulba is working on: the chat's, or the newest one made or imported in this setup."""
+    """The character Bulba is working on: the chat's, the one they asked about, or the newest one made or
+    imported in this setup."""
     from mainapp.models import Character
     if session.chat_id:
         return session.chat.character
+    if session.focus_id and session.focus.author_id == session.user_id:
+        return session.focus
     for p in reversed(session.proposals):
         if p["kind"] == "character" and p["status"] == "applied" and (p.get("result") or {}).get("slug"):
             character = Character.objects.filter(author=session.user, slug=p["result"]["slug"]).first()
@@ -148,25 +151,146 @@ def undo(session, p):
             lorebook.save_worldbook(wb, before["book"])
 
 
+# ---------------------------------------------------------------------------
+# Changing what exists: pick a character, read and edit its lorebook
+# ---------------------------------------------------------------------------
+
+def tool_work_on_character(session, args):
+    """Setup only: point Bulba at one of the user's existing characters (its card and lorebook)."""
+    from mainapp.models import Character
+    name = str(args.get("name") or "").strip()
+    mine = Character.objects.filter(author=session.user)
+    character = mine.filter(name__iexact=name).first() if name else None
+    if character is None:
+        return {"error": f"No character called “{name}”." if name else "Which one?",
+                "characters": list(mine.values_list("name", flat=True)[:50])}, []
+    session.focus = character
+    return {"working_on": character.name, "card": card_report(character)}, []
+
+
+def _entry_view(e):
+    return {"entry": e["uid"], "title": e["comment"], "keys": e["keys"], "always": e["constant"],
+            "on": e["enabled"], "content": e["content"]}
+
+
+def tool_read_lorebook(session, args):
+    character = target_character(session)
+    if character is None:
+        return {"error": "No character yet."}, []
+    if not character.worldbook_id:
+        return {"lorebook": None, "note": f"{character.name} has no lorebook; propose_lorebook makes one."}, []
+    book = lorebook.load_worldbook(character.worldbook)
+    return {"lorebook": character.worldbook.title, "entries": [_entry_view(e) for e in book["entries"]][:80]}, []
+
+
+LORE_EDIT_ACTIONS = ("replace", "delete", "disable", "enable")
+
+
+def edit_book(book, edits):
+    """A copy of the book with the edits applied. Raises ValueError on a bad edit."""
+    book = copy.deepcopy(book)
+    by_uid = {e["uid"]: e for e in book["entries"]}
+    for ed in edits:
+        action = ed.get("action")
+        if action not in LORE_EDIT_ACTIONS:
+            raise ValueError(f"Unknown action {action}: use {', '.join(LORE_EDIT_ACTIONS)}.")
+        try:
+            entry = by_uid[int(ed.get("entry"))]
+        except (KeyError, TypeError, ValueError):
+            raise ValueError(f"No entry {ed.get('entry')}; read_lorebook lists them.")
+        if action == "delete":
+            book["entries"].remove(entry)
+        elif action in ("disable", "enable"):
+            entry["enabled"] = action == "enable"
+        else:
+            if "content" in ed and str(ed["content"]).strip():
+                entry["content"] = str(ed["content"]).strip()[:2500]
+            if isinstance(ed.get("keys"), list):
+                entry["keys"] = [str(k).strip() for k in ed["keys"] if str(k).strip()][:10]
+            if ed.get("title"):
+                entry["comment"] = str(ed["title"]).strip()[:120]
+            if "always" in ed:
+                entry["constant"] = bool(ed["always"])
+            if not entry["keys"] and not entry["constant"]:
+                raise ValueError(f"Entry {entry['uid']} would never fire: give it keys or make it always on.")
+    return book
+
+
+def tool_propose_lore_edit(session, args):
+    from mainapp.bulba.agent import _proposal
+    character = target_character(session)
+    if character is None or not character.worldbook_id:
+        return {"error": "There's no lorebook to change; propose_lorebook makes one."}, []
+    edits = [e for e in (args.get("edits") or []) if isinstance(e, dict)][:15]
+    if not edits:
+        return {"error": "No edits."}, []
+    book = lorebook.load_worldbook(character.worldbook)
+    try:
+        edit_book(book, edits)
+    except ValueError as e:
+        return {"error": str(e)}, []
+    titles = {e["uid"]: e["comment"] or ", ".join(e["keys"][:2]) for e in book["entries"]}
+    summary = []
+    for ed in edits:
+        label = titles.get(int(ed["entry"]), ed["entry"])
+        if ed["action"] == "replace":
+            summary += [f"Change “{label}”:"] + [f"  {k}: {ed[k]}" for k in ("title", "keys", "content", "always") if k in ed]
+        else:
+            summary.append(f"{ed['action'].capitalize()}: “{label}”")
+    summary += ["Why:", str(args.get("why") or "")[:400]]
+    p = _proposal(session, "lore_edit", f"Lore changes: {character.worldbook.title}", summary,
+                  {"worldbook_id": character.worldbook_id, "edits": edits})
+    return {"proposal": p["id"], "status": "waiting for Apply"}, [{"type": "proposal", "id": p["id"]}]
+
+
+def apply_lore_edit(session, p):
+    from mainapp.models import Worldbook
+    wb = Worldbook.objects.filter(author=session.user, id=p["payload"]["worldbook_id"]).first()
+    if wb is None:
+        raise ValueError("That lorebook is gone.")
+    book = lorebook.load_worldbook(wb)
+    p["undo"] = {"worldbook": wb.id, "book": copy.deepcopy(book)}
+    lorebook.save_worldbook(wb, edit_book(book, p["payload"]["edits"]))
+    return f"“{wb.title}” changed. The next reply uses it."
+
+
 def tool_offer_card_upload(session, args):
     return {"status": "upload box shown; they'll send the file or answer"}, [{"type": "card_upload"}]
 
 
-def tool_defs(fn, STR):
+def tool_defs(fn, STR, setup=True):
     entry = {"type": "object", "properties": {
         "title": STR,
         "keys": {"type": "array", "items": STR, "description": "Names, aliases and terms that bring it into the story"},
         "content": {"type": "string", "description": "The facts, written as plain description of the world"},
         "always": {"type": "boolean", "description": "Always in the story (only for the core premise, 1-3 entries)"}},
         "required": ["content"]}
-    return [
+    edits = {"type": "array", "maxItems": 15, "items": {"type": "object", "properties": {
+        "entry": {"type": "integer", "description": "The entry's number from read_lorebook"},
+        "action": {"type": "string", "enum": list(LORE_EDIT_ACTIONS)},
+        "title": STR, "keys": {"type": "array", "items": STR},
+        "content": {"type": "string", "description": "New text (replace)"},
+        "always": {"type": "boolean"}}, "required": ["entry", "action"]}}
+    defs = [
+        fn("read_lorebook", "The character's lorebook entries (numbers, keys, text), before changing any.", {}),
+        fn("propose_lore_edit", "Change existing lore entries: rewrite text or keys, switch off, or delete. "
+           "Research canon with look_up first when facts are in doubt; new entries go through propose_lorebook.",
+           {"edits": edits, "why": STR}, ["edits", "why"]),
         fn("propose_lorebook", "Propose lore entries for the character's world (added to its lorebook, or a new one). "
            "Research canon with look_up first.",
            {"title": STR, "description": STR, "entries": {"type": "array", "maxItems": MAX_ENTRIES, "items": entry},
             "why": STR}, ["entries", "why"]),
-        fn("offer_card_upload", "Show an upload box for a character card they already have (.png or .json from "
-           "SillyTavern, Chub and similar). Write your message first.", {}),
     ]
+    if setup:
+        defs += [
+            fn("offer_card_upload", "Show an upload box for a character card they already have (.png or .json from "
+               "SillyTavern, Chub and similar). Write your message first.", {}),
+            fn("work_on_character", "Work on one of their existing characters (its card and lorebook). Returns the "
+               "card; an unknown or empty name returns the list of their characters.", {"name": STR}),
+        ]
+    return defs
 
 
-HANDLERS = {"propose_lorebook": tool_propose_lorebook, "offer_card_upload": tool_offer_card_upload}
+HANDLERS = {"propose_lorebook": tool_propose_lorebook, "offer_card_upload": tool_offer_card_upload,
+            "work_on_character": tool_work_on_character, "read_lorebook": tool_read_lorebook,
+            "propose_lore_edit": tool_propose_lore_edit}

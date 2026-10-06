@@ -1004,8 +1004,11 @@ function resetMedia() {
 function uploadMedia() {
     const f = document.getElementById('fileUpload').files[0]; if (!f) return;
     const fd = new FormData(); fd.append('file', f); fd.append('type', currentMediaType);
-    fetch('/api/media-resources/', { method: 'POST', headers: { 'X-CSRFToken': getCookie('csrftoken') }, body: fd })
-        .then(r => r.json()).then(d => { if (d.success) selectMedia(d.url, d.name); else alert('Upload failed'); });
+    fetch('/main/api/media-resources/', { method: 'POST', headers: { 'X-CSRFToken': getCookie('csrftoken') }, body: fd })
+        .then(r => r.json())
+        .then(d => { if (d.success) selectMedia(d.url, d.name); else showChatNotice(d.error || 'Upload failed.'); })
+        .catch(() => showChatNotice('Upload failed: the file may be too big.'))
+        .finally(() => { document.getElementById('fileUpload').value = ''; });
 }
 function togglePlay() { if (bgMusic.paused) { bgMusic.play(); document.getElementById('playPauseBtn').innerText = "❚❚"; } else { bgMusic.pause(); document.getElementById('playPauseBtn').innerText = "▶"; } }
 function stopMusic() { bgMusic.pause(); musicWidget.classList.add('hidden'); }
@@ -1125,6 +1128,16 @@ function saveMediaState(type, url, name) {
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
         body: JSON.stringify({ action: 'save_media', type: type, url: url, name: name })
     });
+    // "Also use it for every chat with them": the character's theme
+    const asTheme = document.getElementById('mediaAsTheme');
+    if (asTheme && asTheme.checked) {
+        fetch(window.location.href, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ action: 'save_theme', type: type, url: url, name: name })
+        }).then(() => showChatNotice('Saved as their theme.'));
+        asTheme.checked = false;
+    }
 }
 
 function initCharactersFromLastAssistantMessage() {
@@ -1295,6 +1308,13 @@ branchModal.addEventListener('click', (e) => { if (e.target === branchModal) clo
         btn.classList.toggle('active', open);
     };
     btn.onclick = () => toggle(drawer.hidden);
+    // On a chat page the top bar's Bulba means "Bulba about this chat", not the setup conversation
+    document.querySelector('.na-links a[href$="/bulba/"]')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        toggle(true);
+    });
+    // Coming back from the setup page's list (?bulba=1): open the panel straight away
+    if (new URLSearchParams(window.location.search).get('bulba') === '1') toggle(true);
     // Open Bulba with something already typed for it (it isn't sent until they press Send)
     window.askBulba = (draft) => {
         if (!frame.src) {

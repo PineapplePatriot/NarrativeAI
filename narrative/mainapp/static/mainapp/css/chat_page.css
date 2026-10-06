@@ -1666,3 +1666,8 @@ details.thoughts .thoughts-text { white-space: pre-wrap; font-size: .85rem; opac
 .story-extra.choices .choice-btn { background: transparent; color: inherit; border: 1px solid rgba(167,139,250,.5);
     border-radius: 999px; padding: 6px 12px; font-size: .85rem; cursor: pointer; text-align: left; }
 .story-extra.choices .choice-btn:hover { background: rgba(139,92,246,.15); }
+
+/* The pen menu fits the window (it was cut off under the top bar on shorter screens) and scrolls inside */
+.tools-menu { max-height: min(560px, calc(100vh - 230px)); max-height: min(560px, calc(100dvh - 230px)); }
+@media (max-height: 520px) { .tools-menu { max-height: calc(100dvh - 150px); } }
+.theme-check { display: flex; gap: 8px; align-items: center; margin-top: 12px; font-size: .88rem; opacity: .85; cursor: pointer; }
