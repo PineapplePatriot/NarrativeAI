@@ -112,3 +112,4 @@ myenv/
 !narrative/mainapp/data/models/*.json
 !narrative/mainapp/data/starters/*.json
 !narrative/mainapp/data/bulba/*.json
+!narrative/mainapp/data/library/*.json
