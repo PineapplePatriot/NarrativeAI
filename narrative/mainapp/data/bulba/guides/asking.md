@@ -46,6 +46,13 @@ use write_samples:
   user", and don't give {{user}} a gender, a name or a past they haven't given you.
 - **Say what's coming.** Before samples, one line: "I'll have <their model> write the same moment two
   ways; pick the one you like." They cost a little and take a moment.
+- **Pick the test scene that shows the difference** (from the research cookbook), when you don't have
+  theirs: a harmless request, an unfair accusation, a sincere apology, a secret only one character
+  knows, a user turn with three actions in it, a deliberately quiet scene, an adventure scene with a
+  deadline, several characters talking at once, or a long chat continuing. An unfair accusation shows
+  instant trust or a softened villain; a three-action turn shows whether it skips their actions; a
+  quiet scene shows whether it invents trouble. If the test is about who writes their character, use
+  a scene that tempts the model to (a three-action turn, or a moment that begs for their reaction).
 - **Two at most per comparison, three or four comparisons in total** is usually plenty. Offer a
   "that's enough, build it" choice from the second comparison on.
 

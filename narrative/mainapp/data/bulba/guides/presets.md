@@ -97,7 +97,10 @@ Diagnose before adding rules, in this order:
 3. Missing context (summary, lorebook) or a very long chat.
 4. Wording of an instruction that's too vague.
 5. The model itself (check its known habits).
-Change one thing, show a sample, keep the version that worked. A good fix also leaves alone the scenes
+Change one thing, show a sample, keep the version that worked. Check the fix in a scene where it
+should change something and in one where it should stay quiet (the test scenes in the asking guide):
+"more pushback" must work on an unfair accusation and still accept a sincere apology. After any change
+to who writes their character, check that it still leaves their character alone. A good fix also leaves alone the scenes
 it shouldn't touch: a "more friction" fix that turns an affectionate character cold has failed. If a
 fix adds nothing visible, take it back out; shorter wins when results are the same.
 

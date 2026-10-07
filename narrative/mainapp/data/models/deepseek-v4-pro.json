@@ -89,7 +89,13 @@
     "probes": [],
     "watch_for": [
       "Antagonists going soft when events turn harsh"
-    ]
+    ],
+    "trial": {
+      "compare": "Concise behavioural baseline vs a small structured equivalent",
+      "watch": "Continuity, overly rigid compliance, pacing",
+      "limit": "Compatibility has changed between versions; results are for this snapshot",
+      "source": "research cookbook, section 6 (initial experiments, not rankings)"
+    }
   },
   "starters": {
     "back_and_forth": "dsv4pro-back-and-forth",

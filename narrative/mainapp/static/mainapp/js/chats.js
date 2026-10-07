@@ -49,8 +49,8 @@ window.Chats = (() => {
         const chat = chats.find(c => c.id === id);
         try {
             if (btn.dataset.chatAct === 'rename') {
-                const title = prompt('Chat name:', chat.title);
-                if (title && title.trim()) {
+                const title = await editInPlace(btn.closest('.chat-card').querySelector('.chat-name'), chat.title);
+                if (title) {
                     await post({ action: 'rename_chat', id, title });
                     if (chat.current) document.getElementById('chatTitle').textContent = title.trim();
                 }
@@ -82,3 +82,34 @@ window.Chats = (() => {
 
     return { toggle, create, render };
 })();
+
+// Edit a short text in place: the element turns into a text box; Enter or clicking away saves, Esc cancels.
+// Resolves to the new text, or null if nothing changed.
+function editInPlace(el, value) {
+    return new Promise(resolve => {
+        const old = el.innerHTML;
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = value;
+        input.className = 'inline-edit';
+        input.setAttribute('aria-label', 'New name');
+        el.innerHTML = '';
+        el.appendChild(input);
+        input.focus();
+        input.select();
+        let done = false;
+        const finish = keep => {
+            if (done) return;
+            done = true;
+            const text = input.value.trim();
+            el.innerHTML = old;
+            resolve(keep && text && text !== value ? text : null);
+        };
+        input.addEventListener('keydown', e => {
+            if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+            if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+        });
+        input.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); });
+        input.addEventListener('blur', () => finish(true));
+    });
+}

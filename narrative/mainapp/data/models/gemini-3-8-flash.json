@@ -90,7 +90,13 @@
     "watch_for": [
       "Escalation the user didn't ask for",
       "Losing coherence"
-    ]
+    ],
+    "trial": {
+      "compare": "Natural baseline vs explicit POV, authorship and output contract",
+      "watch": "Format drift, control boundaries, genre and voice consistency",
+      "limit": "Older Gemini prefills aren't automatically compatible",
+      "source": "research cookbook, section 6 (initial experiments, not rankings)"
+    }
   },
   "starters": {
     "back_and_forth": "gemini-back-and-forth",

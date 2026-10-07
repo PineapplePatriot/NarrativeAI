@@ -97,7 +97,13 @@
     ],
     "watch_for": [
       "Length swinging between bloated and thin"
-    ]
+    ],
+    "trial": {
+      "compare": "Repeat the Opus 4.6 comparison on this exact model",
+      "watch": "The same failure categories, only if reproduced",
+      "limit": "Separate record; no score inherited from 4.6",
+      "source": "research cookbook, section 6 (initial experiments, not rankings)"
+    }
   },
   "starters": {
     "back_and_forth": "opus47-back-and-forth",

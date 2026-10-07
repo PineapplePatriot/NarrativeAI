@@ -102,7 +102,13 @@
       "Softened antagonists",
       "Explicit self-analysis",
       "Unwanted comedy"
-    ]
+    ],
+    "trial": {
+      "compare": "Natural baseline vs a small explicit agency/knowledge block",
+      "watch": "User control, instant trust, emotional overexplanation",
+      "limit": "Don't assume a newer Opus clause transfers unchanged",
+      "source": "research cookbook, section 6 (initial experiments, not rankings)"
+    }
   },
   "starters": {
     "back_and_forth": "opus46-back-and-forth",

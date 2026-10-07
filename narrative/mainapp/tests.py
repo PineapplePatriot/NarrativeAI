@@ -3983,3 +3983,12 @@ class LayoutTruthTests(BulbaTests):
         self.api(action="apply", id=pid)
         self.assertEqual(_appearance(self.user)["layout"], "book")
         self.assertIn("chat layout = book", self.bulba_calls[-1]["messages"][0]["content"])
+
+
+class CookbookAdditionsTests(BulbaTests):
+    def test_model_trial_notes_and_test_scenes_reach_bulba(self):
+        self.script = [("Hi.", [])]
+        self.api(action="say", text="hi")
+        prompt = self.bulba_calls[-1]["messages"][0]["content"]
+        self.assertIn("First comparison to try with this model", prompt)  # cookbook section 6
+        self.assertIn("Evidence limit", prompt)

@@ -189,3 +189,6 @@ body.embed .basics-form, body.embed .lookup, body.embed .done-block { margin-lef
     border: 1px solid var(--border); background: var(--card-2); color: var(--text, inherit); font: inherit; font-size: .92rem;
     line-height: 1.45; resize: vertical; }
 .edit-field textarea:focus, .edit-field input:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+
+.inline-edit { font: inherit; color: inherit; width: 100%; min-width: 8em; padding: 2px 6px; border-radius: 6px;
+    border: 1px solid #a78bfa; background: rgba(15, 23, 42, .7); outline: none; box-sizing: border-box; }

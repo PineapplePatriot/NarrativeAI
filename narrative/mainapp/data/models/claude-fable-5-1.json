@@ -112,7 +112,13 @@
     "watch_for": [
       "Escalating faster than the user wants",
       "Dense paragraphs"
-    ]
+    ],
+    "trial": {
+      "compare": "Short baseline vs a few conditional scene rules",
+      "watch": "Voice, pacing, visible procedural habits if observed",
+      "limit": "No controlled preset comparison for this exact model yet",
+      "source": "research cookbook, section 6 (initial experiments, not rankings)"
+    }
   },
   "starters": {
     "back_and_forth": "fable-back-and-forth",

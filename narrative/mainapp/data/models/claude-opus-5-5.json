@@ -111,7 +111,13 @@
     "watch_for": [
       "Therapy-speak or corporate dialogue in emotional scenes",
       "Every character becoming witty"
-    ]
+    ],
+    "trial": {
+      "compare": "Short natural baseline vs an equally short rule baseline; remove inherited planning scaffolding",
+      "watch": "Automatic social accommodation, excessive explanation, substitute clichés",
+      "limit": "Official prompting advice supports less redundant thinking scaffolding; the RP repairs are still candidates",
+      "source": "research cookbook, section 6 (initial experiments, not rankings)"
+    }
   },
   "starters": {
     "back_and_forth": "opus-back-and-forth",

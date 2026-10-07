@@ -330,8 +330,9 @@ $('prefs').addEventListener('click', async e => {
     const edit = e.target.closest('[data-edit-pref]');
     if (edit) {
         const pref = state.preferences.find(p => p.id === edit.dataset.editPref);
-        const text = pref && prompt('How should Bulba remember this?', pref.interpretation);
-        if (!text || !text.trim() || text.trim() === pref.interpretation) return;
+        const item = edit.closest('li');
+        const text = pref && item && await editInPlace(item.querySelector('span'), pref.interpretation);
+        if (!text) return;
         try { state = (await api({ action: 'edit_preference', id: pref.id, text: text.trim() })).state; renderPanel(); }
         catch (err) { alert(err.message); }
         return;
@@ -475,3 +476,34 @@ $('log').addEventListener('click', async e => {
         window.parent.postMessage({ bulba: 'reply' }, window.location.origin);
     } catch (err) { alert(err.message); btn.disabled = false; }
 });
+
+// Edit a short text in place: the element turns into a text box; Enter or clicking away saves, Esc cancels.
+// Resolves to the new text, or null if nothing changed.
+function editInPlace(el, value) {
+    return new Promise(resolve => {
+        const old = el.innerHTML;
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = value;
+        input.className = 'inline-edit';
+        input.setAttribute('aria-label', 'New name');
+        el.innerHTML = '';
+        el.appendChild(input);
+        input.focus();
+        input.select();
+        let done = false;
+        const finish = keep => {
+            if (done) return;
+            done = true;
+            const text = input.value.trim();
+            el.innerHTML = old;
+            resolve(keep && text && text !== value ? text : null);
+        };
+        input.addEventListener('keydown', e => {
+            if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+            if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+        });
+        input.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); });
+        input.addEventListener('blur', () => finish(true));
+    });
+}

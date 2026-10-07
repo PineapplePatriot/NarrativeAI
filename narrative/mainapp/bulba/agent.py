@@ -52,6 +52,11 @@ def model_knowledge(profile):
     if style.get("probes"):
         lines.append("Onboarding probes for this model:")
         lines += [f"- {q}" for q in style["probes"]]
+    trial = style.get("trial")
+    if trial:  # what to compare first for this model (cookbook section 6): experiments, not rankings
+        lines += ["", "First comparison to try with this model (an experiment, not a ranking): " + trial["compare"] + ".",
+                  "Repairs to watch for, only if you see the failure: " + trial["watch"] + ".",
+                  "Evidence limit: " + trial["limit"] + "."]
     reasoning = profile.get("reasoning", {})
     if reasoning.get("note"):
         lines += ["", f"Thinking: {reasoning['note']}"]

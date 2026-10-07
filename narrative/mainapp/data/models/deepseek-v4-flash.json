@@ -80,7 +80,13 @@
       }
     ],
     "probes": [],
-    "watch_for": []
+    "watch_for": [],
+    "trial": {
+      "compare": "Repeat the V4 Pro experiment independently",
+      "watch": "The same categories if observed; missing constraints first",
+      "limit": "Flash isn't Pro with a lower score; results don't transfer",
+      "source": "research cookbook, section 6 (initial experiments, not rankings)"
+    }
   },
   "starters": {
     "back_and_forth": "dsv4flash-back-and-forth",
