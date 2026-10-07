@@ -3970,3 +3970,16 @@ class BulbaRewriteIntoChatTests(BulbaInChatTests):
         data["messages"].append(["user", "10:00", "Next!", "neutral", 1])
         chats.write(self.chat_obj, data)
         self.assertEqual(self.api(action="use_retry", id=ev["retry_id"]).status_code, 400)
+
+
+class LayoutTruthTests(BulbaTests):
+    def test_bulba_sees_the_layout_and_can_change_it_in_setup(self):
+        from mainapp.views import _appearance
+        self.script = [("Book it is.", [self.call("propose_control", mode="director", why="they direct")])]
+        data = self.api(action="say", text="the book look is fine").json()
+        self.assertIn("chat layout = chat", self.bulba_calls[-1]["messages"][0]["content"])  # what's true now
+        pid = data["state"]["proposals"][-1]["id"]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=pid)
+        self.assertEqual(_appearance(self.user)["layout"], "book")
+        self.assertIn("chat layout = book", self.bulba_calls[-1]["messages"][0]["content"])

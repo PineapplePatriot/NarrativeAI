@@ -6,7 +6,7 @@ import uuid
 from pathlib import Path
 
 from mainapp import ai_client, cards, model_profiles, presets, starters, thinking
-from mainapp.bulba import doctor, library, lore, tune
+from mainapp.bulba import control, doctor, library, lore, tune
 
 INSTRUCTIONS = Path(__file__).resolve().parent.parent / "data" / "bulba" / "instructions.md"
 GUIDES_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba" / "guides"
@@ -69,7 +69,10 @@ def model_knowledge(profile):
 def system_prompt(session):
     profile = target_profile(session)
     text = INSTRUCTIONS.read_text(encoding="utf-8").replace("{target_model}", profile["name"] if profile else "?")
-    progress = f"Current stage: {session.stage}. Budget: ${session.spent:.2f} of ${session.budget:.2f} spent."
+    now = control.current(session.user)
+    progress = (f"Current stage: {session.stage}. Budget: ${session.spent:.2f} of ${session.budget:.2f} spent.\n"
+                f"Right now: who writes their character = {now['your_character']} ({now['your_character_means']}); "
+                f"chat layout = {now['layout']}. Never tell them otherwise; to change either, propose_control.")
     prefs = [f"- {p['id']} [{p['status']}, {p['scope']}] {p['interpretation']} (they said: \"{p['wording']}\")"
              for p in session.preferences if p.get("status") not in ("rejected", "superseded")]
     pending = [f"- {p['id']} {p['kind']}: {p['title']} ({p['status']})" for p in session.proposals]
@@ -177,6 +180,7 @@ TOOLS = [
     *library.tool_defs(_fn, STR),
     *lore.tool_defs(_fn, STR),
     *tune.tool_defs(_fn, STR),
+    *control.tool_defs(_fn, STR),
     doctor.CARD_EDIT_TOOL,
 ]
 
@@ -201,6 +205,7 @@ def tool_get_current_setup(session, args):
         "chat_model": extras["chat_model"],
         "extras": {k: extras[k] for k in ("has_eleven_key", "summary", "trackers", "sprites", "background")},
         "active_preset": active.name,
+        **control.current(user),
         "presets": [p.name for p in Preset.objects.filter(user=user)][:20],
         "persona": {"name": getattr(user, "persona_name", "") or "", "description": getattr(user, "persona_description", "") or ""},
         "characters": [{"name": c.name, "description": (c.description or "")[:200]}
@@ -694,7 +699,8 @@ HANDLERS = {
     "write_samples": tool_write_samples, "record_preference": tool_record_preference,
     "propose_extras": tool_propose_extras, "propose_preset": tool_propose_preset,
     "propose_persona": tool_propose_persona, "propose_character": tool_propose_character,
-    **library.HANDLERS, **lore.HANDLERS, **tune.HANDLERS, "propose_card_edit": doctor.tool_propose_card_edit,
+    **library.HANDLERS, **lore.HANDLERS, **tune.HANDLERS, **control.HANDLERS,
+    "propose_card_edit": doctor.tool_propose_card_edit,
 }
 
 

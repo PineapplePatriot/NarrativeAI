@@ -104,7 +104,10 @@ def system_prompt(session):
         text, *guides,
         agent.model_knowledge(profile) if profile else "",
         context(session),
-        f"## Session\nBudget: ${session.spent:.2f} of ${session.budget:.2f} spent.",
+        f"## Session\nBudget: ${session.spent:.2f} of ${session.budget:.2f} spent.\n"
+        + (lambda now: f"Right now: who writes their character = {now['your_character']} ({now['your_character_means']}); "
+                       f"chat layout = {now['layout']}. Never tell them otherwise; to change either, propose_control.")(
+            control.current(session.user)),
         "Proposals so far:\n" + "\n".join(pending) if pending else "",
     ]))
 

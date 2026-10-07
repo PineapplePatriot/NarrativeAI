@@ -105,6 +105,13 @@ def undo(session, p):
         set_layout(session.user, before["layout"])
 
 
+def current(user):
+    """What's true now, for Bulba: who writes their character (from the active preset) and the chat layout."""
+    from mainapp.views import _appearance
+    mode = mode_of(presets.normalize(presets.get_active(user).data))
+    return {"your_character": mode, "your_character_means": MODES[mode], "layout": _appearance(user)["layout"]}
+
+
 def tool_defs(fn, STR):
     return [fn("propose_control", "Switch who writes their character: dont (the AI never writes for them), write (it "
                "writes their character too) or director (they direct the story from outside it; the book layout goes "
