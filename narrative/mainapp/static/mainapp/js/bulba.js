@@ -10,6 +10,16 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '
 // Light formatting for Bulba's messages: paragraphs, **bold**, *italics*
 const fmt = t => esc(t).split(/\n{2,}/).map(p => `<p>${p.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
     .replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<i>$2</i>').replace(/\n/g, '<br>')}</p>`).join('');
+// Samples are written by the user's model with their preset, which may colour speech with <font color> or use
+// <b>, <i>, <span style="color:...">: show those few tags as in a chat (everything else stays escaped)
+const COLOR = '(#[0-9a-fA-F]{3,8}|[a-zA-Z]{3,20})';
+const fmtSample = t => fmt(t)
+    .replace(new RegExp(`&lt;font color=(?:&quot;|')?${COLOR}(?:&quot;|')?&gt;`, 'g'), '<span style="color:$1">')
+    .replace(/&lt;\/font&gt;/g, '</span>')
+    .replace(new RegExp(`&lt;span style=(?:&quot;|')color:\\s*${COLOR};?(?:&quot;|')&gt;`, 'g'), '<span style="color:$1">')
+    .replace(/&lt;\/span&gt;/g, '</span>')
+    .replace(/&lt;(\/?)(b|i|em|strong|u|s)&gt;/g, '<$1$2>')
+    .replace(/&lt;br\s*\/?&gt;/g, '<br>');
 
 function getCookie(name) {
     const m = document.cookie.split(';').map(c => c.trim()).find(c => c.startsWith(name + '='));
@@ -29,20 +39,39 @@ async function api(body) {
 }
 
 // --------------------------------------------------------------- rendering
+let editingId = null;  // the proposal whose text is open for editing
+
+// A proposal's text, editable in place before Apply
+function proposalEditor(p) {
+    const rows = p.editable.map(f => `<label class="edit-field"><span>${esc(f.label)}</span>
+        ${f.long ? `<textarea data-path="${esc(f.path)}" rows="${Math.min(14, Math.max(3, Math.ceil((f.value || '').length / 70)))}">${esc(f.value)}</textarea>`
+                 : `<input type="text" data-path="${esc(f.path)}" value="${esc(f.value)}">`}</label>`).join('');
+    return `<div class="proposal pending editing" data-editor="${p.id}">
+        <div class="proposal-head"><b>${esc(p.title)}</b> <span class="status">editing</span></div>
+        <div class="proposal-edit">${rows}</div>
+        <div class="proposal-actions">
+            <button type="button" data-save-edit="${p.id}">Save changes</button>
+            <button type="button" class="ghost" data-cancel-edit>Cancel</button></div>
+      </div>`;
+}
+
 function proposalCard(ev) {
     const p = state.proposals.find(x => x.id === ev.id);
     if (!p) return '';
     const status = { pending: '', applied: '<span class="status ok">Applied</span>', dismissed: '<span class="status">Dismissed</span>',
                      undone: '<span class="status">Undone</span>', replaced: '<span class="status">Replaced by a newer one</span>' }[p.status] || '';
     const off = busy ? 'disabled' : '';
+    const editable = (p.editable || []).length;
+    if (p.status === 'pending' && editingId === p.id && editable) return proposalEditor(p);
     const actions = p.status === 'pending'
         ? `<button type="button" data-act="apply" data-id="${p.id}" ${off}>Apply</button>
+           ${editable ? `<button type="button" class="ghost" data-edit-proposal="${p.id}" ${off}>Edit</button>` : ''}
            <button type="button" class="ghost" data-act="dismiss" data-id="${p.id}" ${off}>Not this</button>`
         : p.status === 'applied' ? `<button type="button" class="ghost" data-act="undo" data-id="${p.id}" ${off}>Undo</button>` : '';
     const chatLink = p.status === 'applied' && p.result && p.result.slug
         ? `<a class="btn" href="/main/chat/${encodeURIComponent(p.result.slug)}">Chat now →</a>` : '';
     return `<div class="proposal ${p.status}">
-        <div class="proposal-head"><b>${esc(p.title)}</b> ${status}</div>
+        <div class="proposal-head"><b>${esc(p.title)}</b> ${p.edited ? '<span class="status">edited by you</span>' : ''} ${status}</div>
         <div class="proposal-body${(p.summary || []).join('\n').length > 900 ? ' folded' : ''}">${(p.summary || []).map(l => /^[^\s].{0,40}:$/.test(l)
             ? `<div class="proposal-label">${esc(l.slice(0, -1))}</div>` : `<div>${esc(l)}</div>`).join('')}</div>
         ${(p.summary || []).join('\n').length > 900 ? '<button type="button" class="link unfold">Show all</button>' : ''}
@@ -70,18 +99,21 @@ const BASICS_FORM = [
     { key: 'keep_out', label: 'Anything to keep out?', text: '', placeholder: 'Optional, e.g. gore, spiders' },
 ];
 
-function basicsForm(live) {
+// `answers`: what they sent (kept on the event), so a sent form still shows their choices
+function basicsForm(live, answers) {
     const dis = live ? '' : 'disabled';
-    const chips = (f, list) => list.map(([v, l]) => `<label class="pill"><input type="checkbox" name="b_${f.key}" value="${v}" ${dis}><span>${esc(l)}</span></label>`).join('');
+    const a = answers || {};
+    const on = (f, v) => (Array.isArray(a[f.key]) ? a[f.key].includes(v) : a[f.key] === v) ? 'checked' : '';
+    const chips = (f, list) => list.map(([v, l]) => `<label class="pill"><input type="checkbox" name="b_${f.key}" value="${v}" ${on(f, v)} ${dis}><span>${esc(l)}</span></label>`).join('');
     const rows = BASICS_FORM.map(f => f.section ? `<div class="form-section">${esc(f.section)}</div>` : f.multi ? `<div class="form-row">
         <div class="form-label">${esc(f.label)}${f.hint ? `<small>${esc(f.hint)}</small>` : ''}</div>
         <div class="form-field">${chips(f, f.multi)}
-            ${f.adult ? `<span class="adult-chips" hidden>${chips(f, f.adult)}</span>
+            ${f.adult ? `<span class="adult-chips" ${f.adult.some(([v]) => on(f, v)) ? '' : 'hidden'}>${chips(f, f.adult)}</span>
             <button type="button" class="link adult-toggle" ${dis}>Show 18+ genres</button>` : ''}</div></div>` : `<div class="form-row">
         <div class="form-label">${esc(f.label)}${f.hint ? `<small>${esc(f.hint)}</small>` : ''}</div>
         <div class="form-field">${f.options
-            ? f.options.map(([v, l]) => `<label class="pill"><input type="radio" name="b_${f.key}" value="${v}" ${live ? '' : 'disabled'}><span>${esc(l)}</span></label>`).join('')
-            : `<input type="text" name="b_${f.key}" value="${esc(f.text)}" placeholder="${esc(f.placeholder || '')}" ${live ? '' : 'disabled'}>`}
+            ? f.options.map(([v, l]) => `<label class="pill"><input type="radio" name="b_${f.key}" value="${v}" ${on(f, v)} ${live ? '' : 'disabled'}><span>${esc(l)}</span></label>`).join('')
+            : `<input type="text" name="b_${f.key}" value="${esc(a[f.key] || f.text || '')}" placeholder="${esc(f.placeholder || '')}" ${live ? '' : 'disabled'}>`}
         </div></div>`).join('');
     return `<form class="basics-form" data-basics>${rows}
         ${live ? '<div class="form-actions"><button type="submit">Send</button><span class="help">Skip anything you don’t mind about.</span></div>' : ''}
@@ -130,7 +162,7 @@ function render() {
             <small>A few cents each, on your key. About 15 seconds per picture.</small><div class="progress"></div></div>`;
         if (ev.type === 'downloads') return `<div class="downloads">⬇ ${(ev.links || []).map(l =>
             `<a href="${esc(l.url)}" download>${esc(l.label)}</a>`).join('')}</div>`;
-        if (ev.type === 'form') return basicsForm(i === types.lastIndexOf('form') && i > answeredUpTo && !busy);
+        if (ev.type === 'form') return basicsForm(i === types.lastIndexOf('form') && i > answeredUpTo && !busy, ev.answers);
         if (ev.type === 'lookup') return `<div class="lookup">🔎 Looked up “${esc(ev.query)}”${(ev.sources || []).length
             ? ': ' + ev.sources.map(src => `<a href="${esc(src.url)}" target="_blank" rel="noopener">${esc(src.title || src.url)}</a>`).join(', ') : ''}</div>`;
         if (ev.type === 'samples') {
@@ -140,13 +172,15 @@ function render() {
                 <div class="samples-head">Written by <b>${esc(ev.model)}</b>${ev.character ? ` as ${esc(ev.character)}` : ''}</div>
                 ${ev.scenario ? `<div class="samples-scene">${esc(ev.scenario)}<br><i>You: ${esc(ev.user_turn)}</i></div>` : ''}
                 <div class="sample-grid">${ev.samples.map(s => `
-                    <div class="sample"><div class="sample-label">${esc(s.label)}</div><div class="sample-text">${fmt(s.text)}</div>
+                    <div class="sample"><div class="sample-label">${esc(s.label)}</div><div class="sample-text">${fmtSample(s.text)}</div>
                     ${live && ev.samples.length > 1 ? `<button type="button" data-say="I prefer ${esc(s.label)}.">This one</button>` : ''}</div>`).join('')}</div>
                 ${live && ev.samples.length > 1 ? `<div class="sample-actions">
                     <button type="button" class="ghost" data-say="I like both.">Both</button>
                     <button type="button" class="ghost" data-say="Neither of these.">Neither</button>
                     <button type="button" class="ghost" data-say="A bit of both. ">A bit of both…</button>
                     <button type="button" class="ghost" data-say="No preference, skip this one.">Skip</button></div>` : ''}
+                ${ev.retry_id && !ev.used && window.parent !== window ? `<div class="sample-actions">
+                    <button type="button" data-use-retry="${esc(ev.retry_id)}">Use this in the chat</button></div>` : ''}
                 ${live && single ? `<div class="sample-actions">
                     <span class="sample-ask">How does it read?</span>
                     <button type="button" data-say="I like it.">👍 Like it</button>
@@ -287,6 +321,8 @@ $('log').addEventListener('submit', e => {
         const el = f.options ? form.querySelector(`input[name="b_${f.key}"]:checked`) : form.querySelector(`input[name="b_${f.key}"]`);
         if (el && el.value.trim()) answers[f.key] = el.value.trim();
     });
+    const formEvent = [...events].reverse().find(ev => ev.type === 'form');
+    if (formEvent) formEvent.answers = answers;  // keep the choices visible while Bulba reads them
     run({ action: 'basics', answers }, 'Bulba is reading your answers…');
 });
 
@@ -402,4 +438,40 @@ $('log').addEventListener('click', async e => {
         }
     }
     progress.textContent = `Done: ${made} picture${made === 1 ? '' : 's'}. They show in chats from the next reply.`;
+});
+
+// Edit / save / cancel on a proposal
+$('log').addEventListener('click', async e => {
+    const open = e.target.closest('[data-edit-proposal]');
+    if (open && !busy) { editingId = open.dataset.editProposal; render(); return; }
+    if (e.target.closest('[data-cancel-edit]')) { editingId = null; render(); return; }
+    const save = e.target.closest('[data-save-edit]');
+    if (!save || busy) return;
+    const box = save.closest('[data-editor]');
+    const values = {};
+    box.querySelectorAll('[data-path]').forEach(el => { values[el.dataset.path] = el.value; });
+    save.disabled = true;
+    try {
+        const data = await api({ action: 'edit_proposal', id: save.dataset.saveEdit, values });
+        state = data.state;
+        events.push(...(data.events || []));
+        editingId = null;
+        render();
+    } catch (err) { alert(err.message); save.disabled = false; }
+});
+
+// A rewritten reply goes into the chat as a new version of the last reply; the chat page reloads to show it
+$('log').addEventListener('click', async e => {
+    const btn = e.target.closest('[data-use-retry]');
+    if (!btn || busy) return;
+    btn.disabled = true;
+    try {
+        const data = await api({ action: 'use_retry', id: btn.dataset.useRetry });
+        const ev = events.find(x => x.retry_id === btn.dataset.useRetry);
+        if (ev) ev.used = true;
+        events = events.concat(data.events || []);
+        state = data.state;
+        render();
+        window.parent.postMessage({ bulba: 'reply' }, window.location.origin);
+    } catch (err) { alert(err.message); btn.disabled = false; }
 });

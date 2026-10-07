@@ -1332,6 +1332,12 @@ branchModal.addEventListener('click', (e) => { if (e.target === branchModal) clo
     document.getElementById('bulbaClose').onclick = () => toggle(false);
     window.addEventListener('message', (e) => {
         if (e.origin !== window.location.origin || !e.data || !e.data.bulba) return;
+        if (e.data.bulba === 'reply') {  // Bulba's rewrite is now the last reply: show it (Bulba stays open)
+            const url = new URL(window.location.href);
+            url.searchParams.set('bulba', '1');
+            window.location.href = url.toString();
+            return;
+        }
         showChatNotice(e.data.bulba === 'undo' ? 'Bulba undid its change.' : 'Bulba changed your setup: the next reply uses it.');
     });
 })();

@@ -177,3 +177,15 @@ body.embed .basics-form, body.embed .lookup, body.embed .done-block { margin-lef
 .make-pictures small { color: var(--muted); }
 .make-pictures .progress { flex-basis: 100%; font-size: .9rem; }
 .make-pictures img.made { height: 84px; border-radius: 8px; border: 1px solid var(--border); }
+
+/* A sent basics form keeps its choices visible (not greyed out) */
+.basics-form .pill input:disabled:checked + span { background: var(--accent); border-color: var(--accent); color: #fff; opacity: 1; cursor: default; }
+.basics-form .pill input:disabled:not(:checked) + span { opacity: .55; cursor: default; }
+
+/* Editing a proposal before Apply */
+.proposal-edit { display: flex; flex-direction: column; gap: 10px; margin: 8px 0; }
+.edit-field { display: flex; flex-direction: column; gap: 4px; font-size: .85rem; color: var(--muted); }
+.edit-field textarea, .edit-field input { width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--card-2); color: var(--text, inherit); font: inherit; font-size: .92rem;
+    line-height: 1.45; resize: vertical; }
+.edit-field textarea:focus, .edit-field input:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }

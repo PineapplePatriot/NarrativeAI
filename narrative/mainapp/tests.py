@@ -2452,7 +2452,8 @@ class BulbaRunTwoTests(BulbaTests):
         self.assertTrue(data["state"]["chat"]["edit_url"].endswith("#spritesSection"))
         told = self.bulba_calls[-1]["messages"][-1]["content"]
         self.assertIn("#spritesSection", told)                       # Bulba learns where pictures go
-        self.assertEqual(data["events"][1]["text"], "Applied: Character: Corvin")  # the page shows no links
+        action = next(e for e in data["events"] if e["type"] == "action")
+        self.assertEqual(action["text"], "Applied: Character: Corvin")  # the page shows no links
 
     def test_look_up(self):
         self.script = [("", [self.call("look_up", query="Il Dottore personality")]), ("Found him.", [])]
@@ -2522,6 +2523,9 @@ class BasicsFormTests(BulbaTests):
         self.assertNotIn("bogus", told)
         prefs = data["state"]["preferences"]
         self.assertIn("Write in present tense.", [p["interpretation"] for p in prefs])
+        from mainapp.models import BulbaSession
+        form = next(e for e in BulbaSession.objects.get(user=self.user, mode="setup").events if e["type"] == "form")
+        self.assertEqual((form["answers"]["pov"], form["answers"]["length"]), ("second", "long"))  # stays highlighted
         self.assertIn("boundary", [p["scope"] for p in prefs])
         self.assertTrue(all(p["status"] == "confirmed" for p in prefs))
         self.assertEqual(data["events"][0]["text"], "Sent the basics")
@@ -3137,6 +3141,18 @@ class ImpersonateAndTriggerTests(ChatPromptTests):
         self.assertIn("Write as chatter now.", sent)
         self.assertIn("i nod", sent)
         self.assertIn("Hello, traveller.", sent)  # the chat itself
+        self.assertIn("how they say and do it", sent)  # a draft is written out, not just repeated
+        from unittest import mock
+        with mock.patch("mainapp.ai_client.complete_message", return_value=({"content": "i nod"}, 0)):
+            resp = self.client.post(self.url, json.dumps({"action": "expand", "text": "i nod"}),
+                                    content_type="application/json").json()
+        self.assertFalse(resp["success"])
+        self.assertIn("unchanged", resp["error"])
+        with mock.patch("mainapp.ai_client.complete_message",
+                        return_value=({"content": "<thinking>so I should write that they nod", "reasoning": ""}, 0)):
+            resp = self.client.post(self.url, json.dumps({"action": "expand", "text": "i nod"}),
+                                    content_type="application/json").json()
+        self.assertIn("reply length", resp["error"])
 
 
 class DirectorModeTests(BulbaTests):
@@ -3872,3 +3888,85 @@ class BulbaVoicesTests(BulbaCardAndLoreTests):
         self.api(action="undo", id=pid)
         viktor.refresh_from_db()
         self.assertEqual(viktor.voice_cast, {})
+
+
+class ProposalEditingTests(BulbaCardAndLoreTests):
+    def test_edit_a_persona_and_a_character_before_applying(self):
+        from mainapp.models import Character
+        self.script = [("Here you are.", [self.call("propose_persona", name="Olezhyk", description="A young shinobi.")])]
+        data = self.api(action="say", text="me").json()
+        p = data["state"]["proposals"][-1]
+        self.assertEqual([f["path"] for f in p["editable"]], ["name", "description"])
+        data = self.api(action="edit_proposal", id=p["id"], values={"description": "A tired shinobi with a bad knee."}).json()
+        p = data["state"]["proposals"][-1]
+        self.assertTrue(p["edited"])
+        self.assertIn("A tired shinobi with a bad knee.", p["summary"])
+        self.assertEqual(data["events"][-1]["text"], "Edited: You: Olezhyk")
+        self.assertEqual(self.api(action="edit_proposal", id=p["id"], values={"name": " "}).status_code, 400)
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=p["id"])
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.persona_description, "A tired shinobi with a bad knee.")
+        self.assertIn("edited your proposal", json.dumps(self.bulba_calls[-1]["messages"]))  # Bulba is told
+        # applied proposals can't be edited any more
+        self.assertEqual(self.api(action="edit_proposal", id=p["id"], values={"description": "x"}).status_code, 400)
+
+    def test_edit_lore_keys_and_preset_taste(self):
+        self.upload(V2_CARD)
+        self.script = [("Lore.", [self.call("propose_lorebook", why="x", entries=[
+            {"title": "Ferry", "keys": ["ferry"], "content": "Leaves at midnight."}])])]
+        p = self.api(action="say", text="lore").json()["state"]["proposals"][-1]
+        paths = [f["path"] for f in p["editable"]]
+        self.assertEqual(paths, ["entries.0.content", "entries.0.keys"])
+        p = self.api(action="edit_proposal", id=p["id"], values={"entries.0.content": "Leaves at dawn.",
+                                                               "entries.0.keys": "ferry, boat"}).json()["state"]["proposals"][-1]
+        self.assertIn("  (when someone mentions ferry, boat) Leaves at dawn.", p["summary"])
+        self.assertEqual(self.api(action="edit_proposal", id=p["id"], values={"entries.0.keys": " , "}).status_code, 400)
+        # settings-like proposals have nothing to edit in place
+        self.script = [("Extras.", [self.call("propose_extras", summary="auto", why="x")])]
+        p = self.api(action="say", text="extras").json()["state"]["proposals"][-1]
+        self.assertEqual(p["editable"], [])
+
+
+class StageCatchUpTests(BulbaTests):
+    def test_the_panel_follows_what_was_applied(self):
+        self.script = [("Who are you?", [self.call("propose_persona", name="Ola", description="A courier.")])]
+        data = self.api(action="say", text="hi").json()
+        self.assertEqual(data["state"]["stage"], "extras")  # Bulba never called set_stage
+        pid = data["state"]["proposals"][-1]["id"]
+        self.script = [("Next, who do you want to talk to?", [])]
+        data = self.api(action="apply", id=pid).json()
+        self.assertEqual(data["state"]["stage"], "character")
+        self.assertTrue(any(e["type"] == "stage" and e["stage"] == "character" for e in data["events"]))
+        self.assertIn("lore", self.bulba_calls[-1]["messages"][0]["content"].lower())  # the character guides
+        self.script = [("Letters?", [self.call("propose_extras", story_extras=["documents"], game="off", why="x")])]
+        self.assertEqual(self.api(action="say", text="no dice").json()["state"]["stage"], "story")
+        # it never goes back on its own
+        self.script = [("Persona again.", [self.call("set_stage", stage="persona")])]
+        self.assertEqual(self.api(action="say", text="change me").json()["state"]["stage"], "persona")
+
+
+class BulbaRewriteIntoChatTests(BulbaInChatTests):
+    def test_use_the_rewrite_as_a_new_version(self):
+        from mainapp import chats
+        self.make_chat()
+        before = chats.read(self.chat_obj)["messages"][-1][2]
+        self.script = [("Here it is again.", [self.call("retry_reply")])]
+        data = self.api(action="say", text="try again").json()
+        ev = next(e for e in data["events"] if e["type"] == "samples")
+        self.assertTrue(ev["retry_id"])
+        data = self.api(action="use_retry", id=ev["retry_id"]).json()
+        last = chats.read(self.chat_obj)["messages"][-1]
+        self.assertEqual(last[2], "A shorter reply.")
+        self.assertEqual([v["text"] for v in last[5]["swipes"]], [before, "A shorter reply."])  # the old one is kept
+        self.assertEqual(self.api(action="use_retry", id=ev["retry_id"]).status_code, 400)  # only once
+
+    def test_not_after_the_chat_moved_on(self):
+        from mainapp import chats
+        self.make_chat()
+        self.script = [("Here.", [self.call("retry_reply")])]
+        ev = next(e for e in self.api(action="say", text="again").json()["events"] if e["type"] == "samples")
+        data = chats.read(self.chat_obj)
+        data["messages"].append(["user", "10:00", "Next!", "neutral", 1])
+        chats.write(self.chat_obj, data)
+        self.assertEqual(self.api(action="use_retry", id=ev["retry_id"]).status_code, 400)
