@@ -3970,3 +3970,117 @@ class BulbaRewriteIntoChatTests(BulbaInChatTests):
         data["messages"].append(["user", "10:00", "Next!", "neutral", 1])
         chats.write(self.chat_obj, data)
         self.assertEqual(self.api(action="use_retry", id=ev["retry_id"]).status_code, 400)
+
+
+class SetupRoutesTests(BulbaTests):
+    """The opening's two ways in, the Skip button and the progress panel."""
+
+    def test_opening_offers_full_and_fast_for_free(self):
+        data = self.client.get(reverse("bulba")).context["bulba_data"]
+        self.assertEqual([c["route"] for c in data["events"][0]["choices"]], ["full", "fast"])
+        self.assertIn("skip any step", data["events"][0]["text"])
+        progress = data["state"]["progress"]
+        self.assertEqual((progress["step"], progress["of"]), (1, 7))
+        self.assertGreater(progress["questions_left"], 10)
+        self.assertEqual(progress["stages"][0]["status"], "current")
+        self.assertEqual(self.bulba_calls, [])
+
+    def test_full_route_asks_about_voices_without_the_model(self):
+        self.client.get(reverse("bulba"))
+        data = self.api(action="route", route="full").json()
+        self.assertEqual(self.bulba_calls, [])
+        self.assertIn("ElevenLabs", data["events"][-1]["text"])
+        self.assertEqual(data["state"]["stage"], "extras")
+
+    def test_fast_route_applies_a_ready_setup_and_jumps_to_the_character(self):
+        from mainapp import presets as presets_mod
+        from mainapp.views import _appearance
+        self.client.get(reverse("bulba"))
+        data = self.api(action="route", route="fast").json()
+        routes = [c["route"] for c in data["events"][-1]["choices"]]
+        self.assertEqual(routes, ["fast:opus-back-and-forth", "fast:opus-rich-scene", "fast:opus-director"])
+        self.assertTrue(all(c["hint"] for c in data["events"][-1]["choices"]))
+        data = self.api(action="route", route="fast:opus-director").json()
+        self.assertEqual(self.bulba_calls, [])  # all canned
+        self.assertEqual(data["state"]["stage"], "character")
+        self.assertIn("card_upload", [e["type"] for e in data["events"]])
+        self.assertEqual(data["state"]["proposals"][-1]["status"], "applied")
+        self.assertIn("Director", presets_mod.get_active(self.user).name)
+        self.assertEqual(_appearance(self.user)["layout"], "book")  # directing comes with the book
+        stages = {s["id"]: s["status"] for s in data["state"]["progress"]["stages"]}
+        self.assertEqual(stages, {"extras": "skipped", "taste": "skipped", "preset": "done", "persona": "skipped",
+                                  "character": "current", "story": "todo", "done": "todo"})
+        # Bulba knows what happened when they answer
+        self.script = [("Who, then?", [])]
+        self.api(action="say", text="Il Dottore")
+        sent = json.dumps(self.bulba_calls[-1]["messages"])
+        self.assertIn("Fast route: Director seat", sent)
+        self.assertIn("book (replies as chapters)", sent)
+
+    def test_bad_routes_are_refused(self):
+        self.client.get(reverse("bulba"))
+        self.assertEqual(self.api(action="route", route="fast:mimo-director").status_code, 400)  # not this model's
+        self.assertEqual(self.api(action="route", route="nonsense").status_code, 400)
+
+    def test_skip_moves_on_and_tells_bulba(self):
+        self.client.get(reverse("bulba"))
+        self.script = [("How do you like replies to read?", [])]
+        data = self.api(action="skip").json()
+        self.assertEqual(data["state"]["stage"], "taste")
+        self.assertEqual([e["type"] for e in data["events"]][:3], ["action", "stage", "bulba"])
+        self.assertIn("pressed Skip", self.bulba_calls[-1]["messages"][-1]["content"])
+        self.assertEqual(data["state"]["progress"]["stages"][0]["status"], "skipped")
+        page = self.client.get(reverse("bulba")).context["bulba_data"]
+        self.assertEqual([e["type"] for e in page["events"]][-3:], ["action", "stage", "bulba"])
+
+    def test_nothing_to_skip_when_done(self):
+        from mainapp.models import BulbaSession
+        self.client.get(reverse("bulba"))
+        BulbaSession.objects.filter(user=self.user).update(stage="done")
+        self.assertEqual(self.api(action="skip").status_code, 400)
+
+    def test_steps_inside_a_stage_tick_off(self):
+        from mainapp.bulba import agent, progress
+        from mainapp.models import BulbaSession
+        self.client.get(reverse("bulba"))
+        session = BulbaSession.objects.get(user=self.user, active=True)
+        session.stage = "taste"
+        session.events.append({"type": "action", "text": "Sent the basics"})
+        taste = progress.progress(session, agent.STAGES)["stages"][1]
+        self.assertEqual([s["done"] for s in taste["steps"]], [True, False, False])
+        before = progress.progress(session, agent.STAGES)["questions_left"]
+        session.events.append({"type": "samples", "samples": []})
+        self.assertLess(progress.progress(session, agent.STAGES)["questions_left"], before)
+
+
+class DirectorLaterTests(BulbaTests):
+    def test_setup_bulba_can_switch_to_directing_after_the_preset(self):
+        from mainapp.bulba import agent
+        from mainapp.views import _appearance
+        self.client.get(reverse("bulba"))
+        self.api(action="route", route="fast")
+        self.api(action="route", route="fast:opus-rich-scene")
+        self.assertEqual(_appearance(self.user)["layout"], "chat")
+        self.assertIn("propose_control", [t["function"]["name"] for t in agent.TOOLS])
+        self.script = [("Directing, then.", [self.call("propose_control", mode="director", why="They want to steer.")])]
+        data = self.api(action="say", text="Actually I want to direct the story from outside").json()
+        self.assertIn("chats look like: chat bubbles", self.bulba_calls[-1]["messages"][0]["content"])
+        pid = data["state"]["proposals"][-1]["id"]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=pid)
+        self.assertEqual(_appearance(self.user)["layout"], "book")
+
+    def test_said_before_the_preset_it_shapes_the_preset(self):
+        self.script = [("Noted.", [self.call("record_preference", wording="I direct", interpretation="Directs",
+                                             scope="general", status="confirmed", key="control:director")])]
+        self.api(action="say", text="I want to direct")
+        self.script = [("", [self.call("propose_preset", starter="opus-rich-scene", taste="Dry.", why="x")])]
+        proposal = self.api(action="say", text="build it").json()["state"]["proposals"][-1]
+        self.assertIn("book layout", "\n".join(proposal["summary"]))
+
+
+class WelcomeFastRouteTests(TestCase):
+    def test_welcome_offers_the_ready_setup(self):
+        user = get_user_model().objects.create_user(username="w", password="pw12345!")
+        self.client.force_login(user)
+        self.assertContains(self.client.get(reverse("users:welcome")), "?fast=1")

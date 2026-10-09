@@ -140,6 +140,8 @@ function render() {
         if (ev.type === 'bulba') {
             const choices = (ev.choices || []).map(c => c.url
                 ? `<a class="choice" href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.label)} ↗</a>`
+                : c.route  // the opening's full setup / fast route: handled without Bulba's model
+                ? `<button type="button" class="choice${c.hint ? ' with-hint' : ''}" data-route="${esc(c.route)}" data-label="${esc(c.label)}" ${liveChoices(i) ? '' : 'disabled'}>${esc(c.label)}${c.hint ? `<small>${esc(c.hint)}</small>` : ''}</button>`
                 : `<button type="button" class="choice" data-say="${esc(c.label)}" ${liveChoices(i) ? '' : 'disabled'}>${esc(c.label)}</button>`).join('');
             return `<div class="msg bulba"><span class="potato">🥔</span><div class="bubble">${fmt(ev.text)}
                     ${choices ? `<div class="choices">${choices}</div>` : ''}</div></div>`;
@@ -194,11 +196,42 @@ function render() {
     renderPanel();
 }
 
+// The setup's stages: done (green), skipped, the current one with its small steps, and what's left
+function renderStages() {
+    const pr = state.progress;
+    if (!pr) {
+        const current = state.stages.indexOf(state.stage);
+        $('stages').innerHTML = state.stages.map((s, i) =>
+            `<li class="${i < current ? 'done' : i === current ? 'current' : ''}">${esc(STAGE_LABELS[s] || s)}</li>`).join('');
+        return;
+    }
+    const finished = state.stage === 'done';
+    $('progressLine').textContent = finished ? 'All done. You can still change anything.'
+        : `Step ${pr.step} of ${pr.of}` + (pr.questions_left ? ` · about ${pr.questions_left} question${pr.questions_left === 1 ? '' : 's'} left` : '');
+    $('stages').innerHTML = pr.stages.map(st => {
+        const mark = { done: '✓', skipped: '⤼', current: '●', todo: '' }[st.status];
+        const steps = st.status === 'current' && st.steps.length > 1 ? `<ul class="steps">${st.steps.map(x =>
+            `<li class="${x.done ? 'done' : ''}">${x.done ? '✓' : '◻'} ${esc(x.label)}${x.optional ? ' <i>(optional)</i>' : ''}</li>`).join('')}</ul>` : '';
+        const hint = ['current', 'todo'].includes(st.status) ? `<small>${esc(st.hint)}</small>` : '';
+        const note = st.status === 'skipped' ? ' <i>skipped</i>' : '';
+        return `<li class="${st.status}"><span class="mark">${mark}</span><div><span class="stage-name">${esc(st.label)}</span>${note}${hint}${steps}</div></li>`;
+    }).join('');
+    $('miniProgress').hidden = false;
+    $('miniProgressText').textContent = `${$('progressLine').textContent}` + (finished ? '' : ` · ${pr.stages[pr.step - 1].label}`);
+    $('miniSkip').hidden = !pr.can_skip;
+    $('miniSkip').disabled = busy;
+    $('skipBtn').hidden = !pr.can_skip;
+    $('skipBtn').disabled = busy;
+    $('skipTip').hidden = !pr.can_skip || tipSeen();
+}
+
+function tipSeen() {
+    try { return localStorage.getItem('bulbaSkipTip') === '1'; } catch (e) { return false; }
+}
+
 function renderPanel() {
     $('modelName').textContent = state.model;
-    const current = state.stages.indexOf(state.stage);
-    $('stages').innerHTML = state.stages.map((s, i) =>
-        `<li class="${i < current ? 'done' : i === current ? 'current' : ''}">${esc(STAGE_LABELS[s] || s)}</li>`).join('');
+    renderStages();
     $('spent').textContent = `$${state.spent.toFixed(2)}`;
     $('budget').textContent = `$${state.budget.toFixed(2)}`;
     $('meterFill').style.width = `${Math.min(100, state.spent / state.budget * 100)}%`;
@@ -276,6 +309,11 @@ $('input').addEventListener('keydown', e => {
 });
 
 $('log').addEventListener('click', e => {
+    const routeBtn = e.target.closest('[data-route]');
+    if (routeBtn && !routeBtn.disabled && !busy) {
+        run({ action: 'route', route: routeBtn.dataset.route }, routeBtn.dataset.route.startsWith('fast:') ? 'Setting it up…' : 'One moment…');
+        return;
+    }
     const sayBtn = e.target.closest('[data-say]');
     if (sayBtn && !sayBtn.disabled && !busy) {
         const text = sayBtn.dataset.say;
@@ -475,3 +513,24 @@ $('log').addEventListener('click', async e => {
         window.parent.postMessage({ bulba: 'reply' }, window.location.origin);
     } catch (err) { alert(err.message); btn.disabled = false; }
 });
+
+// --------------------------------------------------------------- skipping
+if ($('skipBtn')) {
+    const skip = () => {
+        if (busy) return;
+        try { localStorage.setItem('bulbaSkipTip', '1'); } catch (e) { /* the tip just shows again */ }
+        run({ action: 'skip' }, 'Skipping…');
+    };
+    $('skipBtn').addEventListener('click', skip);
+    $('miniSkip').addEventListener('click', skip);
+    $('skipTipClose').addEventListener('click', () => {
+        try { localStorage.setItem('bulbaSkipTip', '1'); } catch (e) { /* fine */ }
+        $('skipTip').hidden = true;
+    });
+}
+
+// From the welcome page's "Ready setup" button: straight into the fast route, if nothing happened yet
+if (new URLSearchParams(location.search).get('fast') === '1' && events.length === 1 && state.progress) {
+    history.replaceState(null, '', location.pathname);
+    run({ action: 'route', route: 'fast' }, 'One moment…');
+}

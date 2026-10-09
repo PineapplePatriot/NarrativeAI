@@ -1814,10 +1814,11 @@ def get_media_resources(request):
 # ---------------------------------------------------------------------------
 
 def _bulba_state(session):
-    from .bulba import agent, editing
+    from .bulba import agent, editing, progress
     profile = agent.target_profile(session)
     return {
         "id": session.id, "stage": session.stage, "stages": agent.STAGES,
+        "progress": progress.progress(session, agent.STAGES) if session.mode == "setup" else None,
         "spent": round(session.spent, 4), "budget": session.budget, "month": ai_client.spending(session.user),
         "chat": _bulba_chat_link(session) if session.mode == "setup" else None,
         "mode": session.mode,
@@ -1937,7 +1938,7 @@ def bulba_chat_page(request, chat_id):
 
 @login_required
 def bulba_api(request):
-    from .bulba import actions, agent, editing
+    from .bulba import actions, agent, editing, progress
     from .models import BulbaSession
     if request.method == "GET":  # what Bulba is doing right now (the page asks while a turn runs)
         filters = {"mode": "chat", "chat_id": request.GET["chat"]} if request.GET.get("chat") else {"mode": "setup"}
@@ -1963,6 +1964,24 @@ def bulba_api(request):
         events = session.events
     elif action == "say":
         events = agent.run_turn(session, data.get("text"))
+    elif action == "route":  # the opening's full setup or fast route (no AI needed)
+        try:
+            events = agent.take_route(session, str(data.get("route") or ""))
+        except (ValueError, actions.ProposalError) as e:
+            return JsonResponse({"error": str(e)}, status=400)
+    elif action == "skip":  # the panel's Skip button: on to the next stage
+        try:
+            skipped, moved = agent.skip_stage(session)
+        except ValueError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        label, nxt = progress.STAGES[skipped][0], progress.STAGES[session.stage][0]
+        events = agent.run_turn(
+            session, None, action_note=f"Skipped: {label}",
+            model_note=f"Skipped: {label}. They pressed Skip. Start the next stage ({session.stage}: {nxt}) with "
+                       "its first question; don't go back to the skipped one unless they ask")
+        # The new stage's mark goes right after the "Skipped" line, before Bulba's message
+        session.events.insert(len(session.events) - len(events) + 1, moved)
+        events.insert(1, moved)
     elif action == "basics":  # the basics form: recorded as preferences, then Bulba carries on
         answers = data.get("answers") if isinstance(data.get("answers"), dict) else {}
         form_event = next((e for e in reversed(session.events) if e.get("type") == "form"), None)
