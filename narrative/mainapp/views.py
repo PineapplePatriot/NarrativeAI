@@ -29,6 +29,7 @@ from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
 from . import extras, game, media_library, thinking, ai_client, cards, chats, regex_rules, model_profiles, presets, samplers, starters, trackers
+from .bulba import watch
 
 from .utils import build_ai_request, get_elevenlabs_key
 from .lorebook import (
@@ -283,6 +284,8 @@ def chat(request, slug):
                 if 0 <= index < len(messages):
                     # Update the message text, keep other fields
                     new_text = text_rules("saved", new_text, messages[index][0], edits_only=True)
+                    if messages[index][0] == "assistant" and messages[index][2] != new_text:
+                        watch.note_signal(request.user, chat_obj, "edited", messages[index][2], new_text)
                     messages[index] = chats.set_text(messages[index], new_text)
                     save_messages(messages)
                     return JsonResponse({"success": True, "text": new_text})
@@ -407,6 +410,29 @@ def chat(request, slug):
             except ai_client.AIError as e:
                 return JsonResponse({"success": False, "error": str(e)})
             return JsonResponse({"success": True, "ideas": ideas, "mode": mode, "spending": ai_client.spending(request.user)})
+        elif action == "watch":  # Bulba Watch reads the latest replies (the page asks after a reply)
+            if watch.due(request.user, chat_obj, messages):
+                from .bulba import control
+                writes = control.mode_of(presets.normalize(presets.get_active(request.user).data)) == "write"
+                try:
+                    watch.read(request.user, character, chat_obj, messages, writes_for_user=writes)
+                except ai_client.AIError as e:
+                    log.info("Bulba Watch skipped a read: %s", e)
+            return JsonResponse({"success": True, "watch": watch.page_state(request.user, chat_obj)})
+        elif action == "watch_note":  # a note: dismissed, "I don't mind this", or opened with Bulba
+            if data.get("status") not in ("dismissed", "muted", "opened"):
+                return JsonResponse({"success": False, "error": "Unknown choice."}, status=400)
+            try:
+                watch.set_notice(request.user, chat_obj, str(data.get("id") or ""), data["status"])
+            except ValueError as e:
+                return JsonResponse({"success": False, "error": str(e)}, status=400)
+            return JsonResponse({"success": True, "watch": watch.page_state(request.user, chat_obj)})
+        elif action == "watch_settings":  # the first-time note's buttons, and "off in this chat"
+            if "keep_on" in data:
+                watch.intro_seen(request.user, bool(data["keep_on"]))
+            if "chat_off" in data:
+                watch.set_chat_off(chat_obj, bool(data["chat_off"]))
+            return JsonResponse({"success": True, "watch": watch.page_state(request.user, chat_obj)})
         elif action == "word_note":  # Bulba turns a rough wish into a clear director's note
             try:
                 note = word_note(request.user, character, messages, str(data.get("text") or ""),
@@ -564,6 +590,7 @@ def chat(request, slug):
             # The old reply is only replaced once the new one arrives (and is kept as a swipe)
             if messages and messages[-1][0] == "assistant":
                 regen_from = messages.pop()
+                watch.note_signal(request.user, chat_obj, "rewritten", regen_from[2])
 
         elif action == "swipe":
             if not messages or messages[-1][0] != "assistant":
@@ -682,6 +709,7 @@ def chat(request, slug):
                 if action == "chat":
                     user_message = text_rules("saved", user_message, "user")
                     messages.append(("user", datetime.now().strftime("%H:%M"), user_message, "neutral", 1))
+                    watch.on_user_message(request.user, chat_obj, user_message)  # their reply pace
 
                 lore_report = None
                 context_dropped = 0
@@ -825,6 +853,7 @@ def chat(request, slug):
                                     if (character.is_mult or char_count >= 2) else None)
 
                     save_messages(messages)
+                    watch.on_reply_done(request.user, chat_obj, reply)
 
                     # Automatic summary: tell the page to run one in the background
                     summary_task = ai_client.get_task_setting(request.user, "summary")
@@ -854,6 +883,8 @@ def chat(request, slug):
                         "lore": lore_report,
                         "summary_due": summary_due,
                         "trackers_due": trackers_due,
+                        "watch_due": watch.due(request.user, chat_obj, messages),  # Bulba Watch reads, in the background
+                        "watch": watch.page_state(request.user, chat_obj),
                         "context_dropped": context_dropped,
                         "swipes": chats.version_info(messages),
                         "spending": ai_client.spending(request.user),
@@ -986,6 +1017,7 @@ def chat(request, slug):
         "appearance": _appearance(request.user, character),
         "bulba_ideas": extras.ideas_on(request.user),
         "bulba_url": reverse("bulba_chat", kwargs={"chat_id": chat_obj.id}),
+        "watch_data": watch.page_state(request.user, chat_obj),
         "display_rules": {
             "rules": [r for r in regex_rules.for_chat(presets.normalize(presets.get_active(request.user).data), character, request.user)
                       if r["enabled"] and r["mode"] == "display"],
@@ -1982,6 +2014,20 @@ def bulba_api(request):
         # The new stage's mark goes right after the "Skipped" line, before Bulba's message
         session.events.insert(len(session.events) - len(events) + 1, moved)
         events.insert(1, moved)
+    elif action == "note":  # a Bulba Watch note they opened in a chat: Bulba explains it and proposes a fix
+        from .bulba import watch
+        if session.mode != "chat" or not session.chat_id:
+            return JsonResponse({"error": "Notes belong to a chat."}, status=400)
+        try:
+            note = watch.set_notice(request.user, session.chat, str(data.get("id") or ""), "opened")
+        except ValueError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        session.activity = ""
+        events = agent.run_turn(session, None, action_note=f"Bulba Watch: {note['title']}",
+                                model_note=watch.for_bulba(note))
+        session.save()
+        return JsonResponse({"events": events, "state": _bulba_state(session),
+                             "watch": watch.page_state(request.user, session.chat)})
     elif action == "basics":  # the basics form: recorded as preferences, then Bulba carries on
         answers = data.get("answers") if isinstance(data.get("answers"), dict) else {}
         form_event = next((e for e in reversed(session.events) if e.get("type") == "form"), None)

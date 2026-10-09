@@ -172,6 +172,8 @@ TOOLS = [
                   "description": "Dice and inventory: off (no chance in the story), dice only, or dice + inventory "
                                  "and conditions kept by the app"},
          "background": {"type": "string", "description": "'chat', or a cheap model id: mimo-v2-6-pro, gemini-3-8-flash, glm-5-3, deepseek-v4-pro, deepseek-v4-flash"},
+         "watch": {"type": "boolean", "description": "Bulba Watch (on by default): include only to switch it off "
+                                                     "(false) or back on"},
          "why": STR}, ["why"]),
     _fn("propose_preset", "Propose the finished preset: a starter plus a short 'your taste' section.",
         {"starter": STR, "name": STR, "taste": {"type": "string", "description": "Plain instructions to the model"},
@@ -604,6 +606,9 @@ def tool_propose_extras(session, args):
     if isinstance(args.get("ideas"), bool):
         payload["ideas"] = args["ideas"]
         summary.append("Bulba's ideas button in chats: " + ("on" if args["ideas"] else "off"))
+    if isinstance(args.get("watch"), bool):
+        payload["watch"] = args["watch"]
+        summary.append("Bulba Watch: " + ("on" if args["watch"] else "off"))
     if args.get("game") in ("off", "dice", "full"):
         from mainapp import game
         payload["game"] = args["game"]

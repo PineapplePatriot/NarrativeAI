@@ -275,6 +275,7 @@ async function run(body, label) {
         if (window.parent !== window && ['apply', 'undo'].includes(body.action)) {
             window.parent.postMessage({ bulba: body.action }, window.location.origin);
         }
+        if (window.parent !== window && data.watch) window.parent.postMessage({ watch: data.watch }, window.location.origin);
         if (body.action === 'say') events.pop();  // the server sends it back with the rest
         events = body.action === 'restart' ? data.events : events.concat(data.events);
         state = data.state;
@@ -423,12 +424,18 @@ document.addEventListener('click', (e) => {
     btn.textContent = body.classList.contains('folded') ? 'Show all' : 'Show less';
 });
 
-// Opened from the chat's pen menu with something already typed: put it in the box, unsent
+// Opened from the chat's pen menu with something already typed: put it in the box, unsent.
+// Or from a Bulba Watch note: Bulba looks at it straight away.
 (function () {
     const fill = (text) => { if (text) { $('input').value = text; $('input').focus(); } };
-    fill(new URLSearchParams(window.location.search).get('draft'));
+    const note = (id) => { if (id) run({ action: 'note', id }, 'Bulba is looking at it…'); };
+    const params = new URLSearchParams(window.location.search);
+    fill(params.get('draft'));
+    note(params.get('note'));
     window.addEventListener('message', (e) => {
-        if (e.origin === window.location.origin && e.data && e.data.bulbaDraft) fill(e.data.bulbaDraft);
+        if (e.origin !== window.location.origin || !e.data) return;
+        if (e.data.bulbaDraft) fill(e.data.bulbaDraft);
+        if (e.data.bulbaNote) note(e.data.bulbaNote);
     });
 })();
 

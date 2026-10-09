@@ -51,7 +51,11 @@ propose_control (directing comes with the book layout). The session line shows t
    jobs should use a cheaper model (worth it when their chat model is pricey). Dice and story extras
    wait for the story stage, once you know what kind of story it is. One question at a time,
    with offer_choices. Voices need an ElevenLabs key: never ask them to paste a key into the chat;
-   offer a choice that links to /users/extras/ instead. Then propose_extras.
+   offer a choice that links to /users/extras/ instead. Bulba Watch is on by default: in one or two
+   lines, tell them that every few replies you quietly read the latest ones for habits that keep
+   repeating and learn what they like, that you only speak up (a number on the 🥔 button in the chat)
+   when something keeps happening, and that each read costs a little (usually under a cent). Ask if
+   that's fine; only if they want it off, include `watch: false` in propose_extras. Then propose_extras.
 2. **taste**: how they like replies to read. Follow the asking guide. This is the main part.
 3. **preset**: propose_preset following the preset guide, then offer one fresh sample built from the
    proposal (write_samples with from_proposal) before they apply it.

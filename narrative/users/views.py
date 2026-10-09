@@ -314,6 +314,7 @@ def _extras_state(user):
         "game": game_default(user),
         "story_extras": story_extras(user),
         "ideas": ideas_on(user),
+        "watch": get_task_setting(user, "watch").enabled,
         "background": cheap["id"] if cheap else "chat",
         "cheap_models": [m for m in _cheap_models() if not (main and m["openrouter"] == main.model)],
         "openrouter": bool(main and main.provider == ConnectionProfile.PROVIDER_OPENROUTER),
@@ -351,6 +352,10 @@ def apply_extras(user, data):
         if isinstance(data.get("ideas"), bool):
             from mainapp import extras
             extras.set_ideas(user, data["ideas"])
+        if isinstance(data.get("watch"), bool):
+            watch = get_task_setting(user, "watch")
+            watch.enabled = data["watch"]
+            watch.save()
         if data.get("game") in ("off", "dice", "full"):
             from mainapp import game
             game.set_user_default(user, data["game"])

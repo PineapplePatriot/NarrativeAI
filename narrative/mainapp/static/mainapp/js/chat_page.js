@@ -517,6 +517,7 @@ function sendMessage() {
             renderLore(data.lore);
             if (data.summary_due) generateSummary('append', true);
             if (window.Trackers) Trackers.afterReply(data);
+            if (window.Watch) Watch.afterReply(data);
 
             if (data.photo_url) {
                 const characterSprite = document.querySelector('.character-sprite');
@@ -1045,6 +1046,7 @@ function regenerateReply(guidance = '') {
             updateCharacterImages(d.photo_url, d.photo_second, d.char_count); renderLore(d.lore);
             if (d.summary_due) generateSummary('append', true);
             if (window.Trackers) Trackers.afterReply(d);
+            if (window.Watch) Watch.afterReply(d);
         })
         .catch(err => { console.error(err); restore(); showChatError('Could not reach the app server.'); })
         .finally(() => { isGenerating = false; sendBtn.disabled = false; stopContainer.style.display = 'none'; typingMessage.style.display = 'none'; updateMessageIndices(); });
@@ -1329,9 +1331,21 @@ branchModal.addEventListener('click', (e) => { if (e.target === branchModal) clo
             if (draft) frame.contentWindow.postMessage({ bulbaDraft: draft }, window.location.origin);
         }
     };
+    // A Bulba Watch note: open Bulba with that note loaded (Bulba explains it and proposes a fix)
+    window.openBulbaNote = (id) => {
+        if (!frame.src) {
+            frame.src = drawer.dataset.src + `?note=${encodeURIComponent(id)}`;
+            toggle(true);
+        } else {
+            toggle(true);
+            frame.contentWindow.postMessage({ bulbaNote: id }, window.location.origin);
+        }
+    };
     document.getElementById('bulbaClose').onclick = () => toggle(false);
     window.addEventListener('message', (e) => {
-        if (e.origin !== window.location.origin || !e.data || !e.data.bulba) return;
+        if (e.origin !== window.location.origin || !e.data) return;
+        if (e.data.watch && window.Watch) { Watch.refresh(e.data.watch); return; }  // Bulba opened a note
+        if (!e.data.bulba) return;
         if (e.data.bulba === 'reply') {  // Bulba's rewrite is now the last reply: show it (Bulba stays open)
             const url = new URL(window.location.href);
             url.searchParams.set('bulba', '1');

@@ -57,6 +57,12 @@ TASKS = {
         "timeout": 120,
         "hidden": True,  # not on the Connections page: the model is ours to choose
     },
+    "watch": {
+        "label": "Bulba Watch",
+        "help": "Every few replies, Bulba reads the latest ones for habits that keep repeating. Bulba's model.",
+        "timeout": 90,
+        "hidden": True,  # switched on the Extras page; the model is Bulba's
+    },
     "voice_split": {
         "label": "Voice splitting",
         "help": "Works out who says each line of a reply before ElevenLabs reads it aloud. "
@@ -120,7 +126,7 @@ BULBA_MODEL = "xiaomi/mimo-v2.6-pro"
 
 def resolve(user, task):
     """Returns (profile, model) for a task."""
-    if task == "bulba":
+    if task in ("bulba", "watch"):
         profile = main_profile(user)
         if profile is None:
             raise NoConnection("No AI connection is set up yet.")

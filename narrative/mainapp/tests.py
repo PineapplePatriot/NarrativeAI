@@ -4084,3 +4084,189 @@ class WelcomeFastRouteTests(TestCase):
         user = get_user_model().objects.create_user(username="w", password="pw12345!")
         self.client.force_login(user)
         self.assertContains(self.client.get(reverse("users:welcome")), "?fast=1")
+
+
+FEOFAN = ("He said Sofia wasn't the prettiest girl in Alykanas in 1981. He said she was the one who wouldn't give him "
+          "back his own fishing net. He made her climb up for it. He watches the road. He said a girl who won't open "
+          "her hand is worth more than gold. He said: don't let them buy that out of you.")
+
+
+class WatchLogicTests(SimpleTestCase):
+    """Bulba Watch's free parts: the same-openings check and when slips become a habit."""
+
+    def test_same_openings_catches_he_he_he(self):
+        from mainapp.bulba import watch
+        self.assertIn("He said Sofia", watch.same_openings(FEOFAN))
+        self.assertIsNone(watch.same_openings("Short. Too short."))
+        varied = ("The road bends. She trots to keep up. A gull laughs somewhere. Feofan doesn't answer. "
+                  "Then the cup box shifts under his arm. Nobody speaks for a while.")
+        self.assertIsNone(watch.same_openings(varied))
+
+    def data(self, slips, checked=(1, 3, 5, 7, 9, 11)):
+        return {"log": slips, "checked": list(checked), "notices": []}
+
+    def test_one_slip_is_nothing_a_repeat_is_a_habit(self):
+        from mainapp.bulba import watch
+        slip = lambda at: {"label": "forced_callback", "quote": f"the voice he used {at}", "at": at, "cause": "model"}
+        data = self.data([slip(3), slip(9)])
+        self.assertEqual(watch.habits(data, []), [])
+        data["log"].append(slip(11))
+        notes = watch.habits(data, [])
+        self.assertEqual(len(notes), 1)
+        self.assertEqual(notes[0]["kind"], "pattern")
+        self.assertIn("3 of the last 6", notes[0]["text"])
+        self.assertEqual(len(notes[0]["quotes"]), 3)
+        self.assertEqual(watch.habits(data, []), [])  # raised once
+        # muted habits never come back
+        self.assertEqual(watch.habits(self.data([slip(3), slip(9), slip(11)]), ["forced_callback"]), [])
+
+    def test_old_slips_fall_out_of_the_window(self):
+        from mainapp.bulba import watch
+        slips = [{"label": "overexplaining", "quote": "q", "at": at, "cause": "model"} for at in (1, 3, 5)]
+        self.assertEqual(watch.habits(self.data(slips, checked=(1, 3, 5, 7, 9, 11, 13, 15, 17)), []), [])
+
+    def test_their_own_messages_are_brought_up_gently(self):
+        from mainapp.bulba import watch
+        slips = [{"label": "echoing_user", "quote": "q", "at": at, "cause": "their_messages"} for at in (1, 3, 5)]
+        note = watch.habits(self.data(slips), [])[0]
+        self.assertEqual(note["kind"], "user")
+        self.assertIn("may partly come from your own messages", note["text"])
+        self.assertIn("gently", watch.for_bulba(note))
+
+
+class WatchChatTests(ChatPromptTests):
+    """Bulba Watch in a chat, with a fake reader."""
+
+    def setUp(self):
+        super().setUp()
+        self.reader_calls = []
+        self.reader_answer = {"slips": [], "taste": []}
+
+    def fake_post(self, url, headers=None, json=None, timeout=None, **kwargs):
+        import json as json_mod
+        from unittest import mock
+        if json["messages"][0]["content"].startswith("# Bulba Watch"):
+            self.reader_calls.append(json)
+            resp = mock.Mock(status_code=200)
+            resp.json.return_value = {"choices": [{"message": {"content": json_mod.dumps(self.reader_answer)}}],
+                                      "usage": {"cost": 0.002}}
+            return resp
+        return super().fake_post(url, headers=headers, json=json, timeout=timeout, **kwargs)
+
+    def chat_obj(self):
+        return self.character.chats.first()
+
+    def test_reads_every_five_replies_and_raises_a_habit(self):
+        page = self.client.get(self.url)
+        self.assertTrue(page.context["watch_data"]["on"])
+        self.assertTrue(page.context["watch_data"]["intro"])  # the first-time note
+        dues = [self.post({"action": "chat", "message": f"Line {i}."}).json()["watch_due"] for i in range(5)]
+        self.assertEqual(dues, [False, False, False, True, True])  # the greeting counts as a reply; not read yet
+        self.reader_answer = {"slips": [{"reply": n, "label": "unearned_depth", "quote": f"wise line {n}",
+                                         "cause": "model"} for n in (1, 3, 5)],
+                              "taste": ["Keeps the banter, cuts the speeches"]}
+        data = self.post({"action": "watch"}).json()
+        self.assertEqual(len(self.reader_calls), 1)
+        self.assertEqual(self.reader_calls[0]["model"], "xiaomi/mimo-v2.6-pro")  # Bulba's model, not the chat's
+        prompt = self.reader_calls[0]["messages"][1]["content"]
+        self.assertIn("## The character: Rose", prompt)
+        self.assertIn("### Reply 5", prompt)
+        self.assertEqual(data["watch"]["count"], 1)
+        self.assertIn("in 3 of the last", data["watch"]["notices"][0]["text"])
+        self.assertIn("wise line 1", data["watch"]["notices"][0]["quotes"])
+        from mainapp.bulba import watch
+        self.assertEqual(watch.user_data(self.user)["taste"], ["Keeps the banter, cuts the speeches"])
+        # nothing new to read: no second (paid) read
+        self.post({"action": "watch"})
+        self.assertEqual(len(self.reader_calls), 1)
+
+    def test_rewrites_and_edits_teach_it_and_reach_the_reader(self):
+        from mainapp.bulba import watch
+        self.post({"action": "chat", "message": "Hi."})
+        self.post({"action": "regenerate"})
+        self.post({"action": "edit", "index": 2, "text": "A reply, trimmed."})
+        signals = watch.chat_data(self.chat_obj())["signals"]
+        self.assertEqual([s["type"] for s in signals], ["rewritten", "edited"])
+        for i in range(4):
+            self.post({"action": "chat", "message": f"Go on {i}."})
+        self.post({"action": "watch"})
+        prompt = self.reader_calls[-1]["messages"][1]["content"]
+        self.assertIn("Edited a reply from “A reply.” to “A reply, trimmed.”", prompt)
+        self.assertEqual(watch.chat_data(self.chat_obj())["signals"], [])
+
+    def test_mute_dismiss_and_switches(self):
+        from mainapp.bulba import watch
+        self.post({"action": "chat", "message": "Hi."})
+        chat = self.chat_obj()
+        data = watch.chat_data(chat)
+        data["checked"] = [1, 3, 5]
+        data["log"] = [{"label": "detail_fixation", "quote": "q", "at": at, "cause": "model"} for at in (1, 3, 5)]
+        note = watch.habits(data, [])[0]
+        watch.save_chat_data(chat, data)
+        resp = self.post({"action": "watch_note", "id": note["id"], "status": "muted"}).json()
+        self.assertEqual(resp["watch"]["count"], 0)
+        self.assertIn("detail_fixation", watch.user_data(self.user)["muted"])
+        self.assertEqual(self.post({"action": "watch_note", "id": "nope", "status": "muted"}).status_code, 400)
+        # the first-time note: keep it on, or off; and off just for this chat
+        state = self.post({"action": "watch_settings", "keep_on": True, "chat_off": True}).json()["watch"]
+        self.assertEqual((state["on"], state["intro"], state["chat_off"]), (True, False, True))
+        msgs = self.saved_messages()
+        self.assertFalse(watch.due(self.user, chat, msgs + [["assistant", "", "x", "", 1]] * 6))
+        state = self.post({"action": "watch_settings", "keep_on": False}).json()["watch"]
+        self.assertFalse(state["on"])
+
+    def test_watch_off_means_no_reads(self):
+        from mainapp.bulba import watch
+        watch.set_on(self.user, False)
+        dues = [self.post({"action": "chat", "message": f"Line {i}."}).json()["watch_due"] for i in range(6)]
+        self.assertFalse(any(dues))
+        self.post({"action": "regenerate"})
+        self.assertEqual(watch.chat_data(self.chat_obj())["signals"], [])  # nothing collected while it's off
+        self.assertEqual(watch.user_data(self.user)["pace"]["n"], 0)
+
+    def test_reply_pace(self):
+        from mainapp.bulba import watch
+        self.post({"action": "chat", "message": "Hi."})
+        chat = self.chat_obj()
+        t = 1_000_000.0
+        for i in range(watch.PACE_MIN):  # their usual: about 30 seconds for a reply like this
+            watch.on_reply_done(self.user, chat, "word " * 40, now=t)
+            t += 30 + (i % 3) * 5
+            self.assertIsNone(watch.on_user_message(self.user, chat, "a short answer back", now=t))
+        notes = []
+        for _ in range(3):  # then four minutes, three times running
+            watch.on_reply_done(self.user, chat, "word " * 40, now=t)
+            t += 240
+            notes.append(watch.on_user_message(self.user, chat, "a short answer back", now=t))
+        self.assertEqual([n is not None for n in notes], [False, False, True])
+        self.assertEqual(notes[-1]["kind"], "pace")
+        # a break isn't slowness
+        watch.on_reply_done(self.user, chat, "word " * 40, now=t)
+        self.assertIsNone(watch.on_user_message(self.user, chat, "back", now=t + 3600))
+
+    def test_extras_page_switch(self):
+        from mainapp.bulba import watch
+        resp = self.client.post(reverse("users:extras"), json.dumps({"watch": False}), content_type="application/json")
+        self.assertFalse(resp.json()["state"]["watch"])
+        self.assertFalse(watch.is_on(self.user))
+        self.assertContains(self.client.get(reverse("users:extras")), "Bulba Watch")
+
+
+class WatchNoteInBulbaTests(BulbaInChatTests):
+    def test_opening_a_note_starts_bulba_on_it(self):
+        from mainapp.bulba import watch
+        self.make_chat()
+        data = watch.chat_data(self.chat_obj)
+        data["checked"] = [1, 3, 5]
+        data["log"] = [{"label": "forced_callback", "quote": f"the voice he used on Stelios {at}", "at": at,
+                        "cause": "model"} for at in (1, 3, 5)]
+        note = watch.habits(data, [])[0]
+        watch.save_chat_data(self.chat_obj, data)
+        self.script = [("Look: three replies borrow voices from earlier scenes.", [])]
+        resp = self.api(action="note", id=note["id"]).json()
+        sent = self.bulba_calls[-1]["messages"][-1]["content"]
+        self.assertIn("Bulba Watch noticed a habit", sent)
+        self.assertIn("the voice he used on Stelios", sent)
+        self.assertEqual(resp["watch"]["count"], 0)  # opened
+        self.assertEqual(resp["events"][0], {"type": "action", "text": f"Bulba Watch: {note['title']}"})
+        self.assertEqual(self.api(action="note", id="nope").status_code, 400)

@@ -402,9 +402,11 @@
         <iframe id="bulbaFrame" title="Bulba"></iframe>
     </aside>
     {{ trackers_data|json_script:"trackers-data" }}
+    {{ watch_data|json_script:"watch-data" }}
     <script src="{% static 'mainapp/js/trackers.js' %}?v={% now 'U' %}"></script>
     <script src="{% static 'mainapp/js/regex_rules.js' %}?v={% now 'U' %}"></script>
     <script src="{% static 'mainapp/js/chat_page.js' %}?v={% now 'U' %}"></script>
+    <script src="{% static 'mainapp/js/watch.js' %}?v={% now 'U' %}"></script>
     <script src="{% static 'mainapp/js/chats.js' %}?v={% now 'U' %}"></script>
     <script src="{% static 'mainapp/js/summary.js' %}?v={% now 'U' %}"></script>
 
