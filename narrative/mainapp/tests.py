@@ -1602,7 +1602,7 @@ class WelcomeTests(TestCase):
     def test_saving_sets_up_the_main_connection(self):
         from mainapp import ai_client
         resp = self.post({"api_key": "sk-or-test", "model": "mimo-v2-6-pro"})
-        self.assertEqual(resp.json(), {"status": "ok", "model": "MiMo v2.6 Pro"})
+        self.assertEqual({k: resp.json()[k] for k in ("status", "model")}, {"status": "ok", "model": "MiMo v2.6 Pro"})
         self.assertTrue(ai_client.has_connection(self.user))
         profile, model = ai_client.resolve(self.user, "chat")
         self.assertEqual((profile.api_key, model), ("sk-or-test", "xiaomi/mimo-v2.6-pro"))
@@ -3979,6 +3979,7 @@ class SetupRoutesTests(BulbaTests):
         data = self.client.get(reverse("bulba")).context["bulba_data"]
         self.assertEqual([c["route"] for c in data["events"][0]["choices"]], ["full", "fast"])
         self.assertIn("skip any step", data["events"][0]["text"])
+        self.assertIn("one less thing tuned to you", data["events"][0]["text"])
         progress = data["state"]["progress"]
         self.assertEqual((progress["step"], progress["of"]), (1, 7))
         self.assertGreater(progress["questions_left"], 10)
@@ -3992,7 +3993,7 @@ class SetupRoutesTests(BulbaTests):
         self.assertIn("ElevenLabs", data["events"][-1]["text"])
         self.assertEqual(data["state"]["stage"], "extras")
 
-    def test_fast_route_applies_a_ready_setup_and_jumps_to_the_character(self):
+    def test_fast_route_applies_a_ready_setup_then_persona_then_character(self):
         from mainapp import presets as presets_mod
         from mainapp.views import _appearance
         self.client.get(reverse("bulba"))
@@ -4002,14 +4003,15 @@ class SetupRoutesTests(BulbaTests):
         self.assertTrue(all(c["hint"] for c in data["events"][-1]["choices"]))
         data = self.api(action="route", route="fast:opus-director").json()
         self.assertEqual(self.bulba_calls, [])  # all canned
-        self.assertEqual(data["state"]["stage"], "character")
-        self.assertIn("card_upload", [e["type"] for e in data["events"]])
+        self.assertEqual(data["state"]["stage"], "persona")
+        self.assertIn("who are you in the story", data["events"][-1]["text"])
+        self.assertIn("Skip: use my profile", [c["label"] for c in data["events"][-1]["choices"]])
         self.assertEqual(data["state"]["proposals"][-1]["status"], "applied")
         self.assertIn("Director", presets_mod.get_active(self.user).name)
         self.assertEqual(_appearance(self.user)["layout"], "book")  # directing comes with the book
         stages = {s["id"]: s["status"] for s in data["state"]["progress"]["stages"]}
-        self.assertEqual(stages, {"extras": "skipped", "taste": "skipped", "preset": "done", "persona": "skipped",
-                                  "character": "current", "story": "todo", "done": "todo"})
+        self.assertEqual(stages, {"extras": "skipped", "taste": "skipped", "preset": "done", "persona": "current",
+                                  "character": "todo", "story": "todo", "done": "todo"})
         # Bulba knows what happened when they answer
         self.script = [("Who, then?", [])]
         self.api(action="say", text="Il Dottore")
@@ -4079,11 +4081,37 @@ class DirectorLaterTests(BulbaTests):
         self.assertIn("book layout", "\n".join(proposal["summary"]))
 
 
-class WelcomeFastRouteTests(TestCase):
-    def test_welcome_offers_the_ready_setup(self):
-        user = get_user_model().objects.create_user(username="w", password="pw12345!")
-        self.client.force_login(user)
-        self.assertContains(self.client.get(reverse("users:welcome")), "?fast=1")
+class WelcomeReadyPresetTests(TestCase):
+    """The welcome page's ready presets: applied as they are, no Bulba."""
+
+    def setUp(self):
+        from users.models import ConnectionProfile
+        self.user = get_user_model().objects.create_user(username="w", password="pw12345!")
+        ConnectionProfile.objects.create(user=self.user, name="Main", api_key="sk-or-x", model="xiaomi/mimo-v2.6-pro")
+        self.client.force_login(self.user)
+
+    def post(self, **body):
+        return self.client.post(reverse("users:welcome"), json.dumps(body), content_type="application/json")
+
+    def test_saving_the_model_lists_its_ready_presets(self):
+        data = self.post(model="mimo-v2-6-pro", skip_check=True).json()
+        self.assertEqual([r["feel"] for r in data["ready"]], ["back_and_forth", "rich_scene", "director"])
+        self.assertTrue(all(r["tagline"] for r in data["ready"]))
+
+    def test_a_ready_preset_is_applied_without_bulba(self):
+        from mainapp import presets as presets_mod
+        from mainapp.models import BulbaSession
+        from mainapp.views import _appearance
+        data = self.post(action="ready", starter="mimo-rich-scene").json()
+        self.assertEqual(data["next"], reverse("characters_list"))
+        self.assertIn("Rich scene", presets_mod.get_active(self.user).name)
+        self.assertEqual(_appearance(self.user)["layout"], "chat")
+        self.assertFalse(BulbaSession.objects.filter(user=self.user).exists())
+        self.post(action="ready", starter="mimo-director")
+        blocks = presets_mod.normalize(presets_mod.get_active(self.user).data)["blocks"]
+        self.assertIn("Your character", [b["name"] for b in blocks])
+        self.assertEqual(_appearance(self.user)["layout"], "book")
+        self.assertEqual(self.post(action="ready", starter="mimo-frankenstein").status_code, 400)  # not a quick one
 
 
 FEOFAN = ("He said Sofia wasn't the prettiest girl in Alykanas in 1981. He said she was the one who wouldn't give him "
@@ -4124,6 +4152,32 @@ class WatchLogicTests(SimpleTestCase):
         from mainapp.bulba import watch
         slips = [{"label": "overexplaining", "quote": "q", "at": at, "cause": "model"} for at in (1, 3, 5)]
         self.assertEqual(watch.habits(self.data(slips, checked=(1, 3, 5, 7, 9, 11, 13, 15, 17)), []), [])
+
+    def test_a_phrase_repeated_word_for_word_is_caught_for_free(self):
+        from mainapp.bulba import watch
+        tic = "Something dry and private moved at the corner of his mouth."
+        msgs = [("assistant", "", "Hello there.", "", 1)]
+        data = {"log": [], "checked": [], "free_checked": [], "notices": []}
+        raised = []
+        for n, text in enumerate([f"He looked up. {tic}", "A plain reply about the weather.",
+                                  f"The pen stopped. {tic}", "Another reply, nothing odd.", f"Fine. {tic}"]):
+            msgs += [("user", "", f"Line {n}.", "", 1), ("assistant", "", text, "", 1)]
+            watch.free_checks(data, msgs)
+            raised += watch.habits(data, [])
+        self.assertEqual(len(raised), 1)  # on the third time, not before
+        self.assertEqual(raised[0]["label"], "repeated_phrase")
+        self.assertIn("corner of his mouth", " ".join(raised[0]["quotes"]))
+        self.assertEqual(len(raised[0]["quotes"]), 3)
+        # ordinary filler isn't a phrase
+        self.assertEqual(watch.repeated_phrases({1: "and then he said that", 3: "and then he said that",
+                                                 5: "and then he said that"}, 5), [])
+
+    def test_free_and_paid_slips_are_judged_over_their_own_replies(self):
+        from mainapp.bulba import watch
+        # the reader has only seen two replies so far: not enough to call anything a habit yet
+        data = {"log": [{"label": "overexplaining", "quote": "q", "at": at, "cause": "model"} for at in (2, 4)],
+                "checked": [2, 4], "free_checked": [2, 4, 6, 8], "notices": []}
+        self.assertEqual(watch.habits(data, []), [])
 
     def test_their_own_messages_are_brought_up_gently(self):
         from mainapp.bulba import watch
@@ -4230,18 +4284,18 @@ class WatchChatTests(ChatPromptTests):
         chat = self.chat_obj()
         t = 1_000_000.0
         for i in range(watch.PACE_MIN):  # their usual: about 30 seconds for a reply like this
-            watch.on_reply_done(self.user, chat, "word " * 40, now=t)
+            watch.on_reply_done(self.user, chat, [("assistant", "", "word " * 40, "", 1)], now=t)
             t += 30 + (i % 3) * 5
             self.assertIsNone(watch.on_user_message(self.user, chat, "a short answer back", now=t))
         notes = []
         for _ in range(3):  # then four minutes, three times running
-            watch.on_reply_done(self.user, chat, "word " * 40, now=t)
+            watch.on_reply_done(self.user, chat, [("assistant", "", "word " * 40, "", 1)], now=t)
             t += 240
             notes.append(watch.on_user_message(self.user, chat, "a short answer back", now=t))
         self.assertEqual([n is not None for n in notes], [False, False, True])
         self.assertEqual(notes[-1]["kind"], "pace")
         # a break isn't slowness
-        watch.on_reply_done(self.user, chat, "word " * 40, now=t)
+        watch.on_reply_done(self.user, chat, [("assistant", "", "word " * 40, "", 1)], now=t)
         self.assertIsNone(watch.on_user_message(self.user, chat, "back", now=t + 3600))
 
     def test_extras_page_switch(self):

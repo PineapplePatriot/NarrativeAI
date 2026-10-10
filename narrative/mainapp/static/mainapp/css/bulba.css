@@ -70,9 +70,7 @@ button.link { background: none; padding: 0; color: var(--accent-soft); text-deco
 .stages .steps { list-style: none; margin: 4px 0 0; padding: 0; font-size: .82rem; color: var(--muted); }
 .stages .steps li.done { color: var(--ok); }
 .progress-line { margin: 0 0 8px; font-size: .85rem; color: var(--muted); }
-.skip-tip { display: flex; gap: 6px; justify-content: space-between; align-items: flex-start; background: var(--card-2);
-            border-radius: 8px; padding: 6px 8px; margin: 0 0 8px; font-size: .82rem; line-height: 1.4; }
-.skip-tip .x { background: none; color: var(--muted); padding: 0 2px; font-weight: 400; }
+.skip-tip { background: var(--card-2); border-radius: 8px; padding: 6px 8px; margin: 0 0 8px; font-size: .8rem; line-height: 1.4; }
 .skip-btn { margin-top: 10px; font-size: .85rem; }
 .mini-progress { display: none; }
 @media (max-width: 860px) {

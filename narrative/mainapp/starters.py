@@ -68,3 +68,32 @@ def apply(user, starter_id):
                                 name=presets.unique_name(user, f"{s['title']} · {card['model_name']}"))
     presets.activate(obj)
     return obj
+
+
+READY_FEELS = ("back_and_forth", "rich_scene", "director")
+
+
+def ready_for(model_id):
+    """The model's ready presets for a quick start: back-and-forth, rich scene, director seat."""
+    profile = next((p for p in model_profiles.all_profiles() if p["id"] == model_id), {})
+    out = []
+    for feel in READY_FEELS:
+        s = get((profile.get("starters") or {}).get(feel, ""))
+        if s:
+            out.append({"id": s["id"], "feel": feel, "label": EXPERIENCES[feel]["label"], "tagline": s.get("tagline", "")})
+    return out
+
+
+def apply_ready(user, starter_id):
+    """A ready preset as it is (no Bulba). The director seat comes with Pura's wording and the book layout."""
+    s = get(starter_id)
+    if s is None or s.get("experience") not in READY_FEELS:
+        raise ValueError("No such ready setup.")
+    obj = apply(user, starter_id)
+    if s["experience"] == "director":
+        from mainapp.bulba import control
+        from mainapp.views import set_layout
+        obj.data = control.apply_to_preset(presets.normalize(obj.data), "director")
+        obj.save(update_fields=["data"])
+        set_layout(user, "book")
+    return obj

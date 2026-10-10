@@ -48,13 +48,18 @@
             <h2>Hi. I'm Bulba.</h2>
             <p>Yes, a potato. I set up the rest for you: how replies are written, the extras, a character to talk to.
                 Or you can do it yourself, I'm not your boss.</p>
-            <p class="help">You picked <b id="pickedModel"></b>. In a hurry? Take the tested ready setup for it, and
-                I'll only help with your character.</p>
+            <p class="help">You picked <b id="pickedModel"></b>.</p>
             <div class="done-actions">
                 <a class="btn" href="{% url 'bulba' %}">Set me up, Bulba</a>
-                <a class="btn" href="{% url 'bulba' %}?fast=1">Ready setup, then my character</a>
                 <a class="btn secondary" href="{% url 'users:extras' %}">I'll do it myself</a>
                 <a class="btn secondary" href="{% url 'characters_list' %}">Just start chatting</a>
+            </div>
+            <div class="ready" id="ready" hidden>
+                <h3>Or just take a ready preset</h3>
+                <p class="help">Tested setups for your model. One click, nothing to answer; change it any time on the
+                    Presets page or with Bulba later. It won't know your taste yet.</p>
+                <div class="ready-list" id="readyList"></div>
+                <p class="error" id="readyError" hidden></p>
             </div>
             <p class="help small">Advanced settings (other providers, a cheaper model for summaries, voices) live on the
                 <a href="{% url 'users:api_config' %}">Connections page</a>.</p>

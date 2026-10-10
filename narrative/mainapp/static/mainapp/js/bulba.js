@@ -222,11 +222,7 @@ function renderStages() {
     $('miniSkip').disabled = busy;
     $('skipBtn').hidden = !pr.can_skip;
     $('skipBtn').disabled = busy;
-    $('skipTip').hidden = !pr.can_skip || tipSeen();
-}
-
-function tipSeen() {
-    try { return localStorage.getItem('bulbaSkipTip') === '1'; } catch (e) { return false; }
+    $('skipTip').hidden = !pr.can_skip;
 }
 
 function renderPanel() {
@@ -523,21 +519,7 @@ $('log').addEventListener('click', async e => {
 
 // --------------------------------------------------------------- skipping
 if ($('skipBtn')) {
-    const skip = () => {
-        if (busy) return;
-        try { localStorage.setItem('bulbaSkipTip', '1'); } catch (e) { /* the tip just shows again */ }
-        run({ action: 'skip' }, 'Skipping…');
-    };
+    const skip = () => { if (!busy) run({ action: 'skip' }, 'Skipping…'); };
     $('skipBtn').addEventListener('click', skip);
     $('miniSkip').addEventListener('click', skip);
-    $('skipTipClose').addEventListener('click', () => {
-        try { localStorage.setItem('bulbaSkipTip', '1'); } catch (e) { /* fine */ }
-        $('skipTip').hidden = true;
-    });
-}
-
-// From the welcome page's "Ready setup" button: straight into the fast route, if nothing happened yet
-if (new URLSearchParams(location.search).get('fast') === '1' && events.length === 1 && state.progress) {
-    history.replaceState(null, '', location.pathname);
-    run({ action: 'route', route: 'fast' }, 'One moment…');
 }

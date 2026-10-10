@@ -853,7 +853,7 @@ def chat(request, slug):
                                     if (character.is_mult or char_count >= 2) else None)
 
                     save_messages(messages)
-                    watch.on_reply_done(request.user, chat_obj, reply)
+                    watch.on_reply_done(request.user, chat_obj, messages, character.name)  # free checks, pace clock
 
                     # Automatic summary: tell the page to run one in the background
                     summary_task = ai_client.get_task_setting(request.user, "summary")

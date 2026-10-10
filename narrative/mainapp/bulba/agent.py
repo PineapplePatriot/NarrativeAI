@@ -754,8 +754,10 @@ def opening(session):
             "Two ways to do this:\n\n"
             "**Full setup** (ten minutes, maybe): I find out how you like stories told, show you samples written by "
             "your own model, and build everything around that.\n\n"
-            f"**Fast route**: you take the tested ready setup for {name}, and we go straight to your character.\n\n"
-            "Either way, you can skip any step: press **Skip** in the panel, or just tell me.")
+            f"**Fast route**: you take the tested ready setup for {name}, then we only do who you are in the "
+            "story and your character.\n\n"
+            "Either way, you can skip any step: press **Skip** in the panel, or just tell me. Just know that "
+            "every step you skip is one less thing tuned to you.")
     choices = [{"label": "Full setup", "route": "full"}, {"label": "Fast route: the ready setup", "route": "fast"}]
     session.messages = [{"role": "assistant", "content": text}]
     session.events = [{"type": "bulba", "text": text, "choices": choices}]
@@ -806,13 +808,12 @@ def take_route(session, route):
                    "switch_off": [], "control": "director" if feel == "director" else "dont"})
     note = actions.apply(session, p["id"])
     p["status"] = "applied"
-    session.stage = "character"
+    session.stage = "persona"
     return _canned(session, f"Fast route: {starters.EXPERIENCES[feel]['label']}",
-                   f"Done: {note}\n\nNow the fun part. Who do you want to talk to? If you already have a character "
-                   "card (a .png or .json from SillyTavern, Chub and the like), drop it in below. Otherwise tell me "
-                   "who: someone from a book or a game, or someone new.",
-                   extra_events=[{"type": "proposal", "id": p["id"]}, {"type": "stage", "stage": "character"}],
-                   after=[{"type": "card_upload"}])
+                   f"Done: {note}\n\nTwo quick things and you're chatting. First, who are you in the story?",
+                   [{"label": "Keep me light: just a name"}, {"label": "Someone who lives in that world"},
+                    {"label": "You make someone up"}, {"label": "Skip: use my profile"}],
+                   extra_events=[{"type": "proposal", "id": p["id"]}, {"type": "stage", "stage": "persona"}])
 
 
 def skip_stage(session):

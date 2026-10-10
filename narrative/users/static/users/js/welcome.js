@@ -44,6 +44,7 @@ async function save(skipCheck = false) {
             return;
         }
         $('pickedModel').textContent = data.model;
+        showReady(data.ready || []);
         document.querySelectorAll('.step, .actions').forEach(el => el.hidden = true);
         $('done').hidden = false;
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -56,3 +57,28 @@ async function save(skipCheck = false) {
 }
 $('saveBtn').onclick = () => save();
 renderModels();
+
+// The ready presets for the picked model: applied as they are, then on to the characters
+function showReady(list) {
+    $('ready').hidden = !list.length;
+    $('readyList').innerHTML = list.map(r => `<button type="button" class="ready-btn" data-starter="${esc(r.id)}">
+        <b>${esc(r.label)}</b><small>${esc(r.tagline)}</small></button>`).join('');
+}
+$('readyList').addEventListener('click', async e => {
+    const btn = e.target.closest('[data-starter]');
+    if (!btn) return;
+    $('readyError').hidden = true;
+    btn.disabled = true;
+    try {
+        const resp = await fetch(WELCOME_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ action: 'ready', starter: btn.dataset.starter }),
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || 'Could not set it up.');
+        window.location.href = data.next;
+    } catch (err) {
+        $('readyError').textContent = err.message; $('readyError').hidden = false; btn.disabled = false;
+    }
+});

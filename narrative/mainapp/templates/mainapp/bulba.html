@@ -26,7 +26,7 @@
     <main class="bulba-chat">
         <div class="mini-progress" id="miniProgress" hidden>
             <span id="miniProgressText"></span>
-            <button type="button" class="link" id="miniSkip">Skip this step ⤼</button>
+            <button type="button" class="link" id="miniSkip" title="Skipping leaves less of the setup tuned to you">Skip this step ⤼</button>
         </div>
         <div class="log" id="log"></div>
         <div class="thinking" id="thinking" hidden><span class="potato">🥔</span> <span id="thinkingText">Thinking…</span></div>
@@ -50,10 +50,8 @@
         <section>
             <h3>Setting up <span id="modelName"></span></h3>
             <p class="progress-line" id="progressLine"></p>
-            <div class="skip-tip" id="skipTip" hidden>
-                <span>You can skip any step: press <b>Skip this step</b>, or just tell Bulba.</span>
-                <button type="button" class="x" id="skipTipClose" title="Got it">✕</button>
-            </div>
+            <p class="skip-tip" id="skipTip" hidden>You can skip any step: press <b>Skip this step</b>, or just tell
+                Bulba. Each step you skip leaves less of the setup tuned to you, so replies may fit your taste less well.</p>
             <ol class="stages" id="stages"></ol>
             <button type="button" class="ghost skip-btn" id="skipBtn" hidden>Skip this step ⤼</button>
             <div id="panelChat"></div>

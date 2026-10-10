@@ -30,9 +30,11 @@ trackers and custom trackers, alternate greetings, a card's text rules, lorebook
 makes mood pictures on the user's key; preferences you can reword or remove; the ideas button by the
 message box (what to write next, or what happens next when directing); wording a director's note.
 After the demo: the setup panel shows the step, roughly how many questions are left, the small steps of the
-current stage and skipped stages; a fast route (the model's ready preset, then straight to the character),
-also from the welcome page; a Skip button; "who writes your character" can change later in setup. **Bulba
-Watch** (the "more agentic" feedback): every 5 replies MiMo reads the latest ones for slips it can quote
+current stage and skipped stages; a fast route in Bulba (the model's ready preset, then persona and character);
+the ready presets on their own (no Bulba) on the welcome page; a Skip button with an always-visible note that
+skipping leaves less tuned to you; "who writes your character" can change later in setup. **Bulba Watch**
+(the "more agentic" feedback): free checks after every reply (same sentence starts, a phrase repeated word
+for word across replies); every 5 replies MiMo reads the latest ones for slips it can quote
 (same openings, overworked metaphors, forced callbacks, unearned depth, over-explaining, detail fixation,
 out of character, echoing, writing for the user, pet phrases); a slip in 3 of the last 6 replies raises a
 note (badge on 🥔), with its likely source (the model, the setup, or gently, their own messages); it learns

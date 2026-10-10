@@ -252,6 +252,13 @@ def welcome(request):
             data = json.loads(request.body.decode("utf-8"))
         except (ValueError, UnicodeDecodeError):
             return JsonResponse({"error": "Invalid request."}, status=400)
+        if data.get("action") == "ready":  # the ready preset only, no Bulba
+            from mainapp import starters
+            try:
+                obj = starters.apply_ready(request.user, data.get("starter"))
+            except ValueError as e:
+                return JsonResponse({"error": str(e)}, status=400)
+            return JsonResponse({"status": "ok", "preset": obj.name, "next": reverse("characters_list")})
         choice = next((m for m in models if m["id"] == data.get("model")), None)
         if choice is None or not choice["openrouter"]:
             return JsonResponse({"error": "Pick one of the models."}, status=400)
@@ -276,7 +283,8 @@ def welcome(request):
         chat = get_task_setting(request.user, "chat")
         chat.profile, chat.model = profile, ""
         chat.save()
-        return JsonResponse({"status": "ok", "model": choice["name"]})
+        from mainapp import starters
+        return JsonResponse({"status": "ok", "model": choice["name"], "ready": starters.ready_for(choice["id"])})
 
     return render(request, "users/welcome.html", {"welcome_data": {
         "models": models,

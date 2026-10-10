@@ -1,6 +1,8 @@
 """
 Bulba Watch: Bulba quietly keeps an eye on a chat and speaks up only when something keeps happening.
 
+- After every reply, free checks in code: sentences that keep starting the same way, and a phrase repeated
+  word for word across recent replies.
 - Every few replies, a cheap model (Bulba's own) reads the latest ones and notes slips it can quote:
   the same sentence starts, metaphors stretched too far, forced callbacks, unearned depth... (the list
   is in data/bulba/watch.md). One slip is nothing; a slip in several of the last few replies is a
@@ -50,6 +52,7 @@ LABELS = {
     "echoing_user": "Your words repeated back to you",
     "writing_for_user": "Deciding things for your character",
     "pet_phrase": "The same pet phrases",
+    "repeated_phrase": "The same phrase, word for word",
 }
 CAUSES = ("model", "setup", "their_messages")
 
@@ -88,7 +91,8 @@ def save_user_data(user, data):
 def chat_data(chat_obj):
     chat_obj.refresh_from_db(fields=["watch"])  # another request may have changed it
     data = dict(chat_obj.watch or {})
-    for key, empty in (("log", []), ("checked", []), ("notices", []), ("signals", []), ("pace", {})):
+    for key, empty in (("log", []), ("checked", []), ("free_checked", []), ("notices", []), ("signals", []),
+                       ("pace", {})):
         data.setdefault(key, empty)
     data.setdefault("upto", 0)
     return data
@@ -110,12 +114,19 @@ def _words(text):
     return len(str(text or "").split())
 
 
-def on_reply_done(user, chat_obj, reply, now=None):
+def on_reply_done(user, chat_obj, messages, char_name="the character", now=None):
+    """After every reply: start the pace clock and run the free checks. Returns the notices they raised."""
     if not is_on(user):  # off means nothing is collected
-        return
+        return []
     data = chat_data(chat_obj)
+    reply = str(messages[-1][2]) if messages else ""
     data["pace"].update({"reply_at": now or time.time(), "reply_words": _words(reply)})
+    raised = []
+    if messages and messages[-1][0] == "assistant" and not data.get("off"):
+        free_checks(data, messages)
+        raised = habits(data, user_data(user)["muted"], char_name)
     save_chat_data(chat_obj, data)
+    return raised
 
 
 def on_user_message(user, chat_obj, text, now=None):
@@ -201,6 +212,57 @@ def due(user, chat_obj, messages):
     if data.get("off"):
         return False
     return len(_replies_since(messages, min(data["upto"], len(messages)))) >= EVERY
+
+
+# ---------------------------------------------------------------------------
+# Free checks (no AI), after every reply
+# ---------------------------------------------------------------------------
+
+FREE_LABELS = {"same_openings", "repeated_phrase"}
+PHRASE_WORDS = 4
+STOP = set("a an the and or but of to in on at for with as by from into he she it they we you i his her its their "
+           "our your my him them me us is was were be been are am had has have do did not no so that this then there "
+           "what which who when where how".split())
+
+
+def free_checks(data, messages):
+    """The same-openings and repeated-phrase checks on the newest reply; slips go into the log (and
+    a phrase repeated across recent replies is logged at each of them)."""
+    at = len(messages) - 1
+    replies = [i for i, m in enumerate(messages) if m[0] == "assistant"][-WINDOW:]
+    # A rewritten reply replaces the old version's free slips
+    data["log"] = [e for e in data["log"] if not (e["at"] == at and e["label"] in FREE_LABELS)]
+    data["free_checked"] = sorted(set(data.get("free_checked") or []) | {at})[-30:]
+    quote = same_openings(str(messages[at][2]))
+    if quote:
+        data["log"].append({"label": "same_openings", "quote": quote, "at": at, "cause": "model"})
+    for phrase, where in repeated_phrases({i: str(messages[i][2]) for i in replies}, at):
+        for i in where:
+            if not any(e["label"] == "repeated_phrase" and e["at"] == i and e["quote"] == phrase for e in data["log"]):
+                data["log"].append({"label": "repeated_phrase", "quote": phrase, "at": i, "cause": "model"})
+
+
+def _grams(text):
+    words = re.findall(r"[\w’']+", text.lower())
+    return {" ".join(words[k:k + PHRASE_WORDS]) for k in range(len(words) - PHRASE_WORDS + 1)
+            if sum(w not in STOP for w in words[k:k + PHRASE_WORDS]) >= 2}
+
+
+def repeated_phrases(texts, newest):
+    """Phrases of four words (two of them not filler) in the newest reply and at least THRESHOLD-1 others
+    of `texts` ({message index: text}). Returns [(phrase, [indexes])], longest-running first, at most 3."""
+    grams = {i: _grams(t) for i, t in texts.items()}
+    found = []
+    for g in grams.get(newest, ()):
+        where = sorted(i for i, gs in grams.items() if g in gs)
+        if len(where) >= THRESHOLD:
+            found.append((g, where))
+    found.sort(key=lambda f: (-len(f[1]), f[0]))
+    picked = []
+    for g, where in found:  # overlapping four-word pieces of one longer phrase count once
+        if not any(set(g.split()) & set(p.split()) and where == w for p, w in picked):
+            picked.append((g, where))
+    return picked[:3]
 
 
 SENTENCE = re.compile(r"[^.!?…]+[.!?…]+[\"”»]?")
@@ -298,10 +360,6 @@ def read(user, character, chat_obj, messages, writes_for_user=False):
         if label and quote:
             slips.append({"label": label, "quote": quote, "at": at,
                           "cause": s.get("cause") if s.get("cause") in CAUSES else "model"})
-    for at in picked:  # the free check
-        quote = same_openings(str(messages[at][2]))
-        if quote and not any(x["label"] == "same_openings" and x["at"] == at for x in slips):
-            slips.append({"label": "same_openings", "quote": quote, "at": at, "cause": "model"})
     data["log"] += slips
     data["checked"] = sorted(set(data["checked"]) | set(picked))
     data["upto"] = len(messages)
@@ -320,13 +378,14 @@ def read(user, character, chat_obj, messages, writes_for_user=False):
 
 
 def habits(data, muted, char_name="the character"):
-    """New notices for slips that showed up in enough of the latest replies read (added to `data`)."""
-    window = data["checked"][-WINDOW:]
-    if len(window) < THRESHOLD:
-        return []
+    """New notices for slips that showed up in enough of the latest replies checked (added to `data`). The free
+    checks run on every reply, the reader every few: each kind of slip is judged over the replies its check saw."""
     raised = []
     for label in dict.fromkeys(e["label"] for e in data["log"]):
         if label in muted:
+            continue
+        window = (data.get("free_checked") or [] if label in FREE_LABELS else data["checked"])[-WINDOW:]
+        if len(window) < THRESHOLD:
             continue
         hits = [e for e in data["log"] if e["label"] == label and e["at"] in window]
         replies = {e["at"] for e in hits}
