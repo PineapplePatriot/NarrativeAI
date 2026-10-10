@@ -71,6 +71,16 @@
             It also notices when you're taking much longer than usual to reply, and offers a hand. Each read is one small
             call on your key, usually under a cent. Any chat can switch it off for itself.</p>
         <label class="check"><input type="checkbox" id="watch"> Bulba Watch is on</label>
+        <h3 class="sub">What it learned about your taste</h3>
+        <p class="help">From the replies you rewrite or edit. Bulba can get it wrong: reword a line, or remove it.
+            Changes save at once.</p>
+        <ul class="memory" id="watchTaste"></ul>
+        <div id="watchMutedBox" hidden>
+            <h3 class="sub">Habits you said you don't mind</h3>
+            <p class="help">Bulba won't bring these up. Remove one to have it noticed again.</p>
+            <ul class="memory" id="watchMuted"></ul>
+        </div>
+        <p class="error" id="memoryError" hidden></p>
     </section>
 
     <section class="option">

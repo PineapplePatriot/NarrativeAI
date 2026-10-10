@@ -77,3 +77,13 @@ button.link { background: none; padding: 0; color: var(--accent-soft); text-deco
 .saved { color: #6ee7b7; }
 .next { margin-top: 28px; }
 .next h2 { font-size: 1.1rem; margin: 0 0 4px; }
+
+/* Extras page: what Bulba Watch learned */
+.option h3.sub { font-size: .95rem; margin: 16px 0 2px; }
+.memory { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: .9rem; }
+.memory li { display: flex; gap: 8px; justify-content: space-between; align-items: center; background: var(--card-2, rgba(255,255,255,.04));
+    border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; line-height: 1.4; }
+.memory li.empty { background: none; border: none; padding: 0; color: var(--muted, #94a3b8); }
+.memory li.editing input { flex: 1; min-width: 0; }
+.memory-btns { display: flex; gap: 4px; flex: none; }
+.memory .x { background: none; border: none; color: var(--muted, #94a3b8); cursor: pointer; padding: 0 4px; font-size: .95rem; }

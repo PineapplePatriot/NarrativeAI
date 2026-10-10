@@ -4324,3 +4324,38 @@ class WatchNoteInBulbaTests(BulbaInChatTests):
         self.assertEqual(resp["watch"]["count"], 0)  # opened
         self.assertEqual(resp["events"][0], {"type": "action", "text": f"Bulba Watch: {note['title']}"})
         self.assertEqual(self.api(action="note", id="nope").status_code, 400)
+
+
+class WatchMemoryTests(TestCase):
+    """What Bulba Watch learned, on the Extras page: reword, forget, un-mute."""
+
+    def setUp(self):
+        from mainapp.bulba import watch
+        self.user = get_user_model().objects.create_user(username="m", password="pw12345!")
+        self.client.force_login(self.user)
+        mine = watch.user_data(self.user)
+        mine["taste"] = ["Cuts long descriptions of rooms", "Keeps the banter"]
+        mine["muted"] = ["detail_fixation"]
+        watch.save_user_data(self.user, mine)
+
+    def post(self, **body):
+        return self.client.post(reverse("users:extras"), json.dumps({"action": "watch_memory", **body}),
+                                content_type="application/json")
+
+    def test_page_shows_it(self):
+        state = self.client.get(reverse("users:extras")).context["extras_data"]["watch_memory"]
+        self.assertEqual(state["taste"], ["Cuts long descriptions of rooms", "Keeps the banter"])
+        self.assertEqual(state["muted"], [{"label": "detail_fixation", "title": "Lingering on small details"}])
+
+    def test_reword_forget_unmute(self):
+        from mainapp.bulba import watch
+        mem = self.post(op="edit", old="Keeps the banter", new="Keeps the banter, not the speeches").json()["state"]["watch_memory"]
+        self.assertEqual(mem["taste"][1], "Keeps the banter, not the speeches")
+        self.post(op="forget", old="Cuts long descriptions of rooms")
+        self.post(op="unmute", old="detail_fixation")
+        mine = watch.user_data(self.user)
+        self.assertEqual((mine["taste"], mine["muted"]), (["Keeps the banter, not the speeches"], []))
+        # stale or empty changes are refused
+        self.assertEqual(self.post(op="forget", old="Cuts long descriptions of rooms").status_code, 400)
+        self.assertEqual(self.post(op="edit", old="Keeps the banter, not the speeches", new=" ").status_code, 400)
+        self.assertEqual(self.post(op="nonsense").status_code, 400)

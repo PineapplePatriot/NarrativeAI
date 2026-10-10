@@ -323,10 +323,16 @@ def _extras_state(user):
         "story_extras": story_extras(user),
         "ideas": ideas_on(user),
         "watch": get_task_setting(user, "watch").enabled,
+        "watch_memory": _watch_memory(user),
         "background": cheap["id"] if cheap else "chat",
         "cheap_models": [m for m in _cheap_models() if not (main and m["openrouter"] == main.model)],
         "openrouter": bool(main and main.provider == ConnectionProfile.PROVIDER_OPENROUTER),
     }
+
+
+def _watch_memory(user):
+    from mainapp.bulba import watch
+    return watch.memory(user)
 
 
 def apply_extras(user, data):
@@ -406,6 +412,13 @@ def extras(request):
             data = json.loads(request.body.decode("utf-8"))
         except (ValueError, UnicodeDecodeError):
             return JsonResponse({"error": "Invalid request."}, status=400)
+        if data.get("action") == "watch_memory":  # what Bulba Watch learned: reword, forget, or un-mute
+            from mainapp.bulba import watch
+            try:
+                watch.change_memory(request.user, data.get("op"), data.get("old"), data.get("new"))
+            except ValueError as e:
+                return JsonResponse({"error": str(e)}, status=400)
+            return JsonResponse({"status": "ok", "state": _extras_state(request.user)})
         error = apply_extras(request.user, data)
         if error:
             return JsonResponse({"error": error}, status=400)

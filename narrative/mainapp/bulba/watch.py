@@ -438,6 +438,38 @@ def set_notice(user, chat_obj, notice_id, status):
     return notice
 
 
+def memory(user):
+    """What it learned about them, for the Extras page: their taste, and the habits they said they don't mind."""
+    mine = user_data(user)
+    return {"taste": list(mine["taste"]),
+            "muted": [{"label": m, "title": LABELS.get(m, m.replace("other: ", "").capitalize()).replace(
+                "{char}", "The character")} for m in mine["muted"]]}
+
+
+def change_memory(user, op, old="", new=""):
+    """op: "edit" (reword a taste line), "forget" (remove one) or "unmute" (raise that habit again).
+    `old` is the line or habit as they saw it, so a change made elsewhere meanwhile can't hit the wrong one."""
+    mine = user_data(user)
+    new = str(new or "").strip()[:200]
+    if op in ("edit", "forget"):
+        if old not in mine["taste"]:
+            raise ValueError("That line is gone; reload the page.")
+        i = mine["taste"].index(old)
+        if op == "forget":
+            mine["taste"].pop(i)
+        elif not new:
+            raise ValueError("Write something, or remove it instead.")
+        else:
+            mine["taste"][i] = new
+    elif op == "unmute":
+        if old not in mine["muted"]:
+            raise ValueError("That one is gone; reload the page.")
+        mine["muted"].remove(old)
+    else:
+        raise ValueError("Unknown change.")
+    save_user_data(user, mine)
+
+
 def intro_seen(user, keep_on):
     mine = user_data(user)
     mine["intro_seen"] = True
