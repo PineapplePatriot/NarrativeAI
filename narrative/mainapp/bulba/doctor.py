@@ -90,8 +90,32 @@ def context(session):
         "### The last messages\n" + ("\n\n".join(recent) if recent else "(none yet)"),
         "### What the model thought before its last reply\n" + (_clip(thoughts, THOUGHTS_CHARS) if thoughts
                                                                   else "(nothing: this model didn't send its thinking)"),
+        _watch_section(user, chat),
     ]
-    return "\n\n".join(parts)
+    return "\n\n".join(filter(None, parts))
+
+
+def _watch_section(user, chat):
+    """What Bulba Watch learned about them (as they corrected it on the Extras page), and the habits it noticed
+    in this chat. Nothing when Watch is off."""
+    from mainapp.bulba import watch
+    if not watch.is_on(user):
+        return ""
+    memory = watch.memory(user)
+    notes = [n for n in watch.chat_data(chat)["notices"] if n["status"] in ("new", "opened") and n["kind"] != "pace"]
+    if not (memory["taste"] or memory["muted"] or notes):
+        return ""
+    lines = ["### What Bulba Watch knows"]
+    if memory["taste"]:
+        lines += ["Their taste (learned from replies they rewrote or edited; they checked and can correct it):",
+                  *[f"- {t}" for t in memory["taste"]]]
+    if memory["muted"]:
+        lines.append("Habits they said they don't mind (don't treat as problems): "
+                     + "; ".join(m["title"] for m in memory["muted"]))
+    if notes:
+        lines.append("Habits it noticed in this chat lately: " + "; ".join(
+            f"{n['title']} ({n.get('count')} of the last {n.get('of')} replies)" for n in notes[-3:]))
+    return "\n".join(lines)
 
 
 def system_prompt(session):

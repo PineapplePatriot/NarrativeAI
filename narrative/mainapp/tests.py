@@ -4359,3 +4359,27 @@ class WatchMemoryTests(TestCase):
         self.assertEqual(self.post(op="forget", old="Cuts long descriptions of rooms").status_code, 400)
         self.assertEqual(self.post(op="edit", old="Keeps the banter, not the speeches", new=" ").status_code, 400)
         self.assertEqual(self.post(op="nonsense").status_code, 400)
+
+
+class WatchInBulbaContextTests(BulbaInChatTests):
+    def test_in_chat_bulba_sees_what_watch_learned(self):
+        from mainapp.bulba import watch
+        self.make_chat()
+        mine = watch.user_data(self.user)
+        mine["taste"], mine["muted"] = ["Cuts long descriptions of rooms"], ["detail_fixation"]
+        watch.save_user_data(self.user, mine)
+        data = watch.chat_data(self.chat_obj)
+        data["checked"] = [1, 3, 5]
+        data["log"] = [{"label": "overexplaining", "quote": "q", "at": at, "cause": "model"} for at in (1, 3, 5)]
+        watch.habits(data, [])
+        watch.save_chat_data(self.chat_obj, data)
+        self.script = [("Okay.", [])]
+        self.api(action="say", text="It's off")
+        system = self.bulba_calls[-1]["messages"][0]["content"]
+        self.assertIn("- Cuts long descriptions of rooms", system)
+        self.assertIn("don't mind (don't treat as problems): Lingering on small details", system)
+        self.assertIn("Explaining what you already got (3 of the last 3 replies)", system)
+        # off means it isn't used
+        watch.set_on(self.user, False)
+        self.api(action="say", text="Still off")
+        self.assertNotIn("### What Bulba Watch knows", self.bulba_calls[-1]["messages"][0]["content"])

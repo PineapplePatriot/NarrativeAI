@@ -43,7 +43,7 @@ default, with a first-time note to switch it off; off on the Extras page or per 
 
 Open (Bulba Watch):
 - **Tune the numbers** after real use: every 5 replies, 3 of the last 6, the pace thresholds. *Needs Anya.*
-- Feed the learned taste into the in-chat Bulba's context, and into the preset when they agree.
+- Turn the learned taste into a preset change (Bulba proposes it, they Apply), once a few lines agree.
 
 Open:
 - **A small pilot** with you judging replies (the research package's protocol, scaled down). *Needs Anya.*

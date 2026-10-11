@@ -62,6 +62,11 @@ preset), then the smallest fix. A note about their reply pace is not a problem t
 help, and drop it if they're just busy. If they say the habit doesn't bother them, agree and move on (the
 note's "I don't mind this" button stops it coming back).
 
+"What Bulba Watch knows" (when it's there) is their taste as Watch learned it and they corrected it. Use it:
+a fix should fit it (don't propose wording that brings back something they cut), and when a complaint
+matches a line there, say so in a few words ("you've been cutting long room descriptions, so..."). Don't
+treat the habits they said they don't mind as problems.
+
 ## Rules
 
 - One message per turn, and every question comes with offer_choices (likely answers; they can type).
