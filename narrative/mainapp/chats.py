@@ -114,7 +114,7 @@ def _extras(message):
 
 # Things each version (swipe) of a reply keeps for itself: the model's thoughts, and the dice and
 # inventory changes it made (see mainapp/game.py), so flipping swipes flips them too
-VERSION_KEYS = ("reasoning", "game", "audio")
+VERSION_KEYS = ("reasoning", "game", "audio", "polish")
 
 
 def _version(message):
@@ -165,6 +165,29 @@ def with_audio(message, audio):
     if extras.get("swipes"):
         versions = [dict(v) for v in extras["swipes"]]
         versions[extras.get("swipe", 0)]["audio"] = audio
+        extras["swipes"] = versions
+        message = tuple(message[:5]) + (extras,)
+    return message
+
+
+def polish_of(message):
+    """Bulba's polish on the version on screen, if its text hasn't changed since: {"original", "fixes"}."""
+    rec = _extras(message).get("polish") or {}
+    return rec if rec.get("original") and rec.get("text") == message[2] else None
+
+
+def with_polish(message, text, rec):
+    """The message with its polished text, the original kept (also in its swipe). rec=None drops it."""
+    message = set_text(message, text)
+    rec = {**rec, "text": text} if rec else None
+    message = _with(message, "polish", rec)
+    extras = dict(_extras(message))
+    if extras.get("swipes"):
+        versions = [dict(v) for v in extras["swipes"]]
+        if rec:
+            versions[extras.get("swipe", 0)]["polish"] = rec
+        else:
+            versions[extras.get("swipe", 0)].pop("polish", None)
         extras["swipes"] = versions
         message = tuple(message[:5]) + (extras,)
     return message

@@ -517,6 +517,8 @@ function sendMessage() {
             renderLore(data.lore);
             if (data.summary_due) generateSummary('append', true);
             if (window.Trackers) Trackers.afterReply(data);
+            if (window.Watch) Watch.afterReply(data);
+            if (data.polish_due) runPolish(lastAssistant());
 
             if (data.photo_url) {
                 const characterSprite = document.querySelector('.character-sprite');
@@ -884,6 +886,7 @@ async function expandInput() {
         const d = await resp.json();
         messageInput.value = d.success ? d.text : draft;
         if (!d.success) showChatNotice(d.error || 'Could not write it.');
+        else if (d.polished) showChatNotice(`🧹 Bulba fixed ${d.polished} thing${d.polished === 1 ? '' : 's'} in it, as you asked.`);
         updateSpending(d.spending);
     } catch (err) { messageInput.value = draft; showChatNotice(err.message); }
     finally {
@@ -931,6 +934,8 @@ function continueGeneration() {
                 messageTextDiv.innerHTML = renderedHtml;
                 messageTextDiv.setAttribute('data-raw', encodeURIComponent(data.reply));
                 hiddenTextarea.value = data.reply;
+                setPolish(lastMsgElement, null);  // the continued text is new: polish it again if asked
+                if (data.polish_due) runPolish(lastMsgElement);
 
                 scrollToBottom();
             } else {
@@ -1045,6 +1050,8 @@ function regenerateReply(guidance = '') {
             updateCharacterImages(d.photo_url, d.photo_second, d.char_count); renderLore(d.lore);
             if (d.summary_due) generateSummary('append', true);
             if (window.Trackers) Trackers.afterReply(d);
+            if (window.Watch) Watch.afterReply(d);
+            if (d.polish_due) runPolish(lastAssistant());
         })
         .catch(err => { console.error(err); restore(); showChatError('Could not reach the app server.'); })
         .finally(() => { isGenerating = false; sendBtn.disabled = false; stopContainer.style.display = 'none'; typingMessage.style.display = 'none'; updateMessageIndices(); });
@@ -1101,6 +1108,7 @@ function swipe(step) {
             if (avatar && avatarUrl) avatar.src = avatarUrl;
             updateCharacterImages(d.photo_url, d.photo_second, d.char_count);
             setSwipes(d.swipes);
+            setPolish(last, d.polish);
         })
         .catch(() => showChatError('Could not reach the app server.'));
 }
@@ -1329,9 +1337,21 @@ branchModal.addEventListener('click', (e) => { if (e.target === branchModal) clo
             if (draft) frame.contentWindow.postMessage({ bulbaDraft: draft }, window.location.origin);
         }
     };
+    // A Bulba Watch note: open Bulba with that note loaded (Bulba explains it and proposes a fix)
+    window.openBulbaNote = (id) => {
+        if (!frame.src) {
+            frame.src = drawer.dataset.src + `?note=${encodeURIComponent(id)}`;
+            toggle(true);
+        } else {
+            toggle(true);
+            frame.contentWindow.postMessage({ bulbaNote: id }, window.location.origin);
+        }
+    };
     document.getElementById('bulbaClose').onclick = () => toggle(false);
     window.addEventListener('message', (e) => {
-        if (e.origin !== window.location.origin || !e.data || !e.data.bulba) return;
+        if (e.origin !== window.location.origin || !e.data) return;
+        if (e.data.watch && window.Watch) { Watch.refresh(e.data.watch); return; }  // Bulba opened a note
+        if (!e.data.bulba) return;
         if (e.data.bulba === 'reply') {  // Bulba's rewrite is now the last reply: show it (Bulba stays open)
             const url = new URL(window.location.href);
             url.searchParams.set('bulba', '1');
@@ -1483,3 +1503,90 @@ async function showIdeas() {
         if (btn) btn.disabled = false;
     }
 }
+
+// --- Bulba's polish (mainapp/bulba/polish.py): the habits they asked to have fixed, rewritten in each new reply ---
+function lastAssistant() {
+    const all = document.querySelectorAll('.message.assistant:not(#typingMessage)');
+    return all[all.length - 1];
+}
+
+function showText(messageEl, text) {
+    const textDiv = messageEl.querySelector('.message-text');
+    textDiv.innerHTML = renderChatMessage(text, textDiv);
+    textDiv.setAttribute('data-raw', encodeURIComponent(text));
+    const area = messageEl.querySelector('.edit-textarea');
+    if (area) area.value = text;
+}
+
+// The line under a reply: "Polishing…", or what was fixed with Show original / Undo fixes. info null removes it.
+function setPolish(messageEl, info, busy = false) {
+    if (!messageEl) return;
+    let line = messageEl.querySelector('.polish-line');
+    if (!info && !busy) { if (line) line.remove(); return; }
+    if (!line) {
+        line = document.createElement('div');
+        line.className = 'polish-line';
+        const after = messageEl.querySelector('.game-lines') || messageEl.querySelector('.story-extras')
+            || messageEl.querySelector('.message-text');
+        after.parentNode.insertBefore(line, after.nextSibling);
+    }
+    if (busy) { line.innerHTML = '<span class="polish-busy">🧹 Polishing…</span>'; return; }
+    line._info = info;
+    line._polished = decodeURIComponent(messageEl.querySelector('.message-text').getAttribute('data-raw') || '');
+    const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const list = (info.fixes || []).map(f => `<li><s>${esc(f.before)}</s>${f.after ? ` → ${esc(f.after)}` : ' (removed)'}</li>`).join('');
+    line.innerHTML = `<details><summary>🧹 Bulba fixed ${info.count} thing${info.count === 1 ? '' : 's'}</summary><ul>${list}</ul></details>
+        <button type="button" class="link" data-polish="toggle">Show original</button>
+        <button type="button" class="link" data-polish="undo">Undo fixes</button>`;
+}
+
+function runPolish(messageEl) {
+    if (!messageEl) return;
+    setPolish(messageEl, null, true);
+    fetch(window.location.href, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ action: 'polish' }),
+    })
+        .then(r => r.json())
+        .then(d => {
+            if (d.spending) updateSpending(d.spending);
+            if (!d.success || !d.changed) { setPolish(messageEl, null); if (d.error) showChatNotice(`Polish skipped: ${d.error}`); return; }
+            showText(messageEl, d.reply);
+            setPolish(messageEl, d.polish);
+        })
+        .catch(() => setPolish(messageEl, null));
+}
+
+document.addEventListener('click', e => {
+    const b = e.target.closest('.polish-line [data-polish]');
+    if (!b) return;
+    const line = b.closest('.polish-line');
+    const messageEl = b.closest('.message');
+    if (b.dataset.polish === 'toggle') {
+        const showingOriginal = b.textContent === 'Hide original';
+        showText(messageEl, showingOriginal ? line._polished : line._info.original);
+        b.textContent = showingOriginal ? 'Show original' : 'Hide original';
+        return;
+    }
+    fetch(window.location.href, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ action: 'polish_undo', index: Number(messageEl.dataset.index) }),
+    })
+        .then(r => r.json())
+        .then(d => {
+            if (!d.success) { showChatError(d.error || 'Could not undo.'); return; }
+            showText(messageEl, d.reply);
+            setPolish(messageEl, null);
+        });
+});
+
+// Replies polished before the page loaded
+document.querySelectorAll('.polish-line[data-polish]').forEach(line => {
+    try {
+        const info = JSON.parse(line.getAttribute('data-polish'));
+        line.removeAttribute('data-polish');
+        if (info && info.count) setPolish(line.closest('.message'), info);
+    } catch (err) { line.remove(); }
+});

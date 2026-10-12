@@ -12,7 +12,7 @@ import uuid
 from pathlib import Path
 
 from mainapp import ai_client, chats, extras, game, presets, thinking
-from mainapp.bulba import control, library, lore, tune
+from mainapp.bulba import control, library, lore, polish, tune
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba"
 CARD_FIELDS = ("description", "personality", "scenario", "example_dialogue", "initial_message")
@@ -90,8 +90,35 @@ def context(session):
         "### The last messages\n" + ("\n\n".join(recent) if recent else "(none yet)"),
         "### What the model thought before its last reply\n" + (_clip(thoughts, THOUGHTS_CHARS) if thoughts
                                                                   else "(nothing: this model didn't send its thinking)"),
+        _watch_section(user, chat),
     ]
-    return "\n\n".join(parts)
+    return "\n\n".join(filter(None, parts))
+
+
+def _watch_section(user, chat):
+    """What Bulba Watch learned about them (as they corrected it on the Extras page), and the habits it noticed
+    in this chat. Nothing when Watch is off."""
+    from mainapp.bulba import watch
+    if not watch.is_on(user):
+        return ""
+    memory = watch.memory(user)
+    notes = [n for n in watch.chat_data(chat)["notices"] if n["status"] in ("new", "opened") and n["kind"] != "pace"]
+    if not (memory["taste"] or memory["muted"] or memory["fix"] or notes):
+        return ""
+    lines = ["### What Bulba Watch knows"]
+    if memory["taste"]:
+        lines += ["Their taste (learned from replies they rewrote or edited; they checked and can correct it):",
+                  *[f"- {t}" for t in memory["taste"]]]
+    if memory["muted"]:
+        lines.append("Habits they said they don't mind (don't treat as problems): "
+                     + "; ".join(m["title"] for m in memory["muted"]))
+    if memory["fix"]:
+        lines.append("Habits Bulba's polish already rewrites in every new reply (so a preset fix is optional): "
+                     + "; ".join(m["title"] for m in memory["fix"]))
+    if notes:
+        lines.append("Habits it noticed in this chat lately: " + "; ".join(
+            f"{n['title']} ({n.get('count')} of the last {n.get('of')} replies)" for n in notes[-3:]))
+    return "\n".join(lines)
 
 
 def system_prompt(session):
@@ -302,6 +329,7 @@ def tools():
                 "required": ["action", "block"]}},
              "why": STR}, ["edits", "why"]),
         CARD_EDIT_TOOL,
+        *polish.tool_defs(_fn, STR),
         *control.tool_defs(_fn, STR),
         _fn("retry_reply", "Rewrite the last AI reply of this chat with their chat model: with a proposal's change "
             "applied just for this try (from_proposal), or as things are now. Costs one reply.",
@@ -311,7 +339,7 @@ def tools():
 
 HANDLERS = {"read_block": tool_read_block, "propose_preset_edit": tool_propose_preset_edit, **lore.HANDLERS,
             **tune.HANDLERS,
-            **control.HANDLERS,
+            **control.HANDLERS, **polish.HANDLERS,
             "propose_card_edit": tool_propose_card_edit, "retry_reply": tool_retry_reply}
 
 

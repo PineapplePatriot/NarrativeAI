@@ -1602,7 +1602,7 @@ class WelcomeTests(TestCase):
     def test_saving_sets_up_the_main_connection(self):
         from mainapp import ai_client
         resp = self.post({"api_key": "sk-or-test", "model": "mimo-v2-6-pro"})
-        self.assertEqual(resp.json(), {"status": "ok", "model": "MiMo v2.6 Pro"})
+        self.assertEqual({k: resp.json()[k] for k in ("status", "model")}, {"status": "ok", "model": "MiMo v2.6 Pro"})
         self.assertTrue(ai_client.has_connection(self.user))
         profile, model = ai_client.resolve(self.user, "chat")
         self.assertEqual((profile.api_key, model), ("sk-or-test", "xiaomi/mimo-v2.6-pro"))
@@ -3970,3 +3970,665 @@ class BulbaRewriteIntoChatTests(BulbaInChatTests):
         data["messages"].append(["user", "10:00", "Next!", "neutral", 1])
         chats.write(self.chat_obj, data)
         self.assertEqual(self.api(action="use_retry", id=ev["retry_id"]).status_code, 400)
+
+
+class SetupRoutesTests(BulbaTests):
+    """The opening's two ways in, the Skip button and the progress panel."""
+
+    def test_opening_offers_full_and_fast_for_free(self):
+        data = self.client.get(reverse("bulba")).context["bulba_data"]
+        self.assertEqual([c["route"] for c in data["events"][0]["choices"]], ["full", "fast"])
+        self.assertIn("skip any step", data["events"][0]["text"])
+        self.assertIn("one less thing tuned to you", data["events"][0]["text"])
+        progress = data["state"]["progress"]
+        self.assertEqual((progress["step"], progress["of"]), (1, 7))
+        self.assertGreater(progress["questions_left"], 10)
+        self.assertEqual(progress["stages"][0]["status"], "current")
+        self.assertEqual(self.bulba_calls, [])
+
+    def test_full_route_opens_with_the_extras_form_then_the_basics_form(self):
+        from mainapp import ai_client
+        from mainapp.bulba import watch
+        self.client.get(reverse("bulba"))
+        data = self.api(action="route", route="full").json()
+        form = data["events"][-1]
+        self.assertEqual((form["type"], form["part"]), ("extras_form", "setup"))
+        self.assertTrue(form["values"]["watch"])  # on by default
+        self.assertEqual(data["state"]["stage"], "extras")
+        data = self.api(action="extras_form", part="setup", answers={
+            "summary": {"mode": "auto", "interval": 12}, "trackers": {"mode": "manual"},
+            "sprites": False, "watch": False, "background": "chat"}).json()
+        self.assertEqual(self.bulba_calls, [])  # both forms, no AI
+        self.assertEqual(data["state"]["stage"], "taste")
+        self.assertEqual([e["type"] for e in data["events"]], ["action", "proposal", "stage", "bulba", "form"])
+        self.assertEqual(data["state"]["proposals"][-1]["status"], "applied")
+        self.assertEqual(ai_client.get_task_setting(self.user, "summary").interval, 12)
+        self.assertFalse(watch.is_on(self.user))
+        self.assertEqual(data["state"]["progress"]["stages"][0]["status"], "done")
+        # Undo puts it back
+        self.script = [("Undone.", [])]
+        self.api(action="undo", id=data["state"]["proposals"][-1]["id"])
+        self.assertTrue(watch.is_on(self.user))
+        # Bulba knows what was picked
+        self.script = [("Okay.", [])]
+        self.api(action="say", text="hi")
+        self.assertIn("Story summary: every 12 messages", json.dumps(self.bulba_calls[-1]["messages"]))
+
+    def test_story_extras_in_one_form(self):
+        from mainapp import extras
+        self.client.get(reverse("bulba"))
+        self.script = [("These fit a slow burn.", [self.call("show_extras_form", game="off",
+                                                               story_extras=["milestones", "keepsakes"],
+                                                               why="A slow burn: milestones and keepsakes.")])]
+        data = self.api(action="say", text="what extras?").json()
+        form = data["events"][-1]
+        self.assertEqual((form["part"], form["values"]["story_extras"]), ("story", ["milestones", "keepsakes"]))
+        self.script = [("Trackers next?", [])]
+        data = self.api(action="extras_form", part="story",
+                        answers={"game": "dice", "story_extras": ["milestones"], "ideas": True}).json()
+        self.assertEqual(extras.kinds_for(self.user), ["milestones"])
+        self.assertEqual([e["type"] for e in data["events"]][:3], ["action", "proposal", "stage"])
+        self.assertEqual(data["state"]["stage"], "story")
+        self.assertIn("Dice: dice only", self.bulba_calls[-1]["messages"][-1]["content"])
+        self.assertEqual(self.api(action="extras_form", part="setup", answers={"watch": True}).status_code, 400)
+
+    def test_fast_route_applies_a_ready_setup_then_persona_then_character(self):
+        from mainapp import presets as presets_mod
+        from mainapp.views import _appearance
+        self.client.get(reverse("bulba"))
+        data = self.api(action="route", route="fast").json()
+        routes = [c["route"] for c in data["events"][-1]["choices"]]
+        self.assertEqual(routes, ["fast:opus-back-and-forth", "fast:opus-rich-scene", "fast:opus-director"])
+        self.assertTrue(all(c["hint"] for c in data["events"][-1]["choices"]))
+        data = self.api(action="route", route="fast:opus-director").json()
+        self.assertEqual(self.bulba_calls, [])  # all canned
+        self.assertEqual(data["state"]["stage"], "persona")
+        self.assertIn("who are you in the story", data["events"][-1]["text"])
+        self.assertIn("Skip: use my profile", [c["label"] for c in data["events"][-1]["choices"]])
+        self.assertEqual(data["state"]["proposals"][-1]["status"], "applied")
+        self.assertIn("Director", presets_mod.get_active(self.user).name)
+        self.assertEqual(_appearance(self.user)["layout"], "book")  # directing comes with the book
+        stages = {s["id"]: s["status"] for s in data["state"]["progress"]["stages"]}
+        self.assertEqual(stages, {"extras": "skipped", "taste": "skipped", "preset": "done", "persona": "current",
+                                  "character": "todo", "story": "todo", "done": "todo"})
+        # Bulba knows what happened when they answer
+        self.script = [("Who, then?", [])]
+        self.api(action="say", text="Il Dottore")
+        sent = json.dumps(self.bulba_calls[-1]["messages"])
+        self.assertIn("Fast route: Director seat", sent)
+        self.assertIn("book (replies as chapters)", sent)
+
+    def test_bad_routes_are_refused(self):
+        self.client.get(reverse("bulba"))
+        self.assertEqual(self.api(action="route", route="fast:mimo-director").status_code, 400)  # not this model's
+        self.assertEqual(self.api(action="route", route="nonsense").status_code, 400)
+
+    def test_skip_moves_on_and_tells_bulba(self):
+        self.client.get(reverse("bulba"))
+        self.script = [("How do you like replies to read?", [])]
+        data = self.api(action="skip").json()
+        self.assertEqual(data["state"]["stage"], "taste")
+        self.assertEqual([e["type"] for e in data["events"]][:3], ["action", "stage", "bulba"])
+        self.assertIn("pressed Skip", self.bulba_calls[-1]["messages"][-1]["content"])
+        self.assertEqual(data["state"]["progress"]["stages"][0]["status"], "skipped")
+        page = self.client.get(reverse("bulba")).context["bulba_data"]
+        self.assertEqual([e["type"] for e in page["events"]][-3:], ["action", "stage", "bulba"])
+
+    def test_nothing_to_skip_when_done(self):
+        from mainapp.models import BulbaSession
+        self.client.get(reverse("bulba"))
+        BulbaSession.objects.filter(user=self.user).update(stage="done")
+        self.assertEqual(self.api(action="skip").status_code, 400)
+
+    def test_steps_inside_a_stage_tick_off(self):
+        from mainapp.bulba import agent, progress
+        from mainapp.models import BulbaSession
+        self.client.get(reverse("bulba"))
+        session = BulbaSession.objects.get(user=self.user, active=True)
+        session.stage = "taste"
+        session.events.append({"type": "action", "text": "Sent the basics"})
+        taste = progress.progress(session, agent.STAGES)["stages"][1]
+        self.assertEqual([s["done"] for s in taste["steps"]], [True, False, False])
+        before = progress.progress(session, agent.STAGES)["questions_left"]
+        session.events.append({"type": "samples", "samples": []})
+        self.assertLess(progress.progress(session, agent.STAGES)["questions_left"], before)
+
+
+class DirectorLaterTests(BulbaTests):
+    def test_setup_bulba_can_switch_to_directing_after_the_preset(self):
+        from mainapp.bulba import agent
+        from mainapp.views import _appearance
+        self.client.get(reverse("bulba"))
+        self.api(action="route", route="fast")
+        self.api(action="route", route="fast:opus-rich-scene")
+        self.assertEqual(_appearance(self.user)["layout"], "chat")
+        self.assertIn("propose_control", [t["function"]["name"] for t in agent.TOOLS])
+        self.script = [("Directing, then.", [self.call("propose_control", mode="director", why="They want to steer.")])]
+        data = self.api(action="say", text="Actually I want to direct the story from outside").json()
+        self.assertIn("chats look like: chat bubbles", self.bulba_calls[-1]["messages"][0]["content"])
+        pid = data["state"]["proposals"][-1]["id"]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=pid)
+        self.assertEqual(_appearance(self.user)["layout"], "book")
+
+    def test_said_before_the_preset_it_shapes_the_preset(self):
+        self.script = [("Noted.", [self.call("record_preference", wording="I direct", interpretation="Directs",
+                                             scope="general", status="confirmed", key="control:director")])]
+        self.api(action="say", text="I want to direct")
+        self.script = [("", [self.call("propose_preset", starter="opus-rich-scene", taste="Dry.", why="x")])]
+        proposal = self.api(action="say", text="build it").json()["state"]["proposals"][-1]
+        self.assertIn("book layout", "\n".join(proposal["summary"]))
+
+
+class WelcomeReadyPresetTests(TestCase):
+    """The welcome page's ready presets: applied as they are, no Bulba."""
+
+    def setUp(self):
+        from users.models import ConnectionProfile
+        self.user = get_user_model().objects.create_user(username="w", password="pw12345!")
+        ConnectionProfile.objects.create(user=self.user, name="Main", api_key="sk-or-x", model="xiaomi/mimo-v2.6-pro")
+        self.client.force_login(self.user)
+
+    def post(self, **body):
+        return self.client.post(reverse("users:welcome"), json.dumps(body), content_type="application/json")
+
+    def test_saving_the_model_lists_its_ready_presets(self):
+        data = self.post(model="mimo-v2-6-pro", skip_check=True).json()
+        self.assertEqual([r["feel"] for r in data["ready"]], ["back_and_forth", "rich_scene", "director"])
+        self.assertTrue(all(r["tagline"] for r in data["ready"]))
+
+    def test_a_ready_preset_is_applied_without_bulba(self):
+        from mainapp import presets as presets_mod
+        from mainapp.models import BulbaSession
+        from mainapp.views import _appearance
+        data = self.post(action="ready", starter="mimo-rich-scene").json()
+        self.assertEqual(data["next"], reverse("characters_list"))
+        self.assertIn("Rich scene", presets_mod.get_active(self.user).name)
+        self.assertEqual(_appearance(self.user)["layout"], "chat")
+        self.assertFalse(BulbaSession.objects.filter(user=self.user).exists())
+        self.post(action="ready", starter="mimo-director")
+        blocks = presets_mod.normalize(presets_mod.get_active(self.user).data)["blocks"]
+        self.assertIn("Your character", [b["name"] for b in blocks])
+        self.assertEqual(_appearance(self.user)["layout"], "book")
+        self.assertEqual(self.post(action="ready", starter="mimo-frankenstein").status_code, 400)  # not a quick one
+
+
+FEOFAN = ("He said Sofia wasn't the prettiest girl in Alykanas in 1981. He said she was the one who wouldn't give him "
+          "back his own fishing net. He made her climb up for it. He watches the road. He said a girl who won't open "
+          "her hand is worth more than gold. He said: don't let them buy that out of you.")
+
+
+class WatchLogicTests(SimpleTestCase):
+    """Bulba Watch's free parts: the same-openings check and when slips become a habit."""
+
+    def test_same_openings_catches_he_he_he(self):
+        from mainapp.bulba import watch
+        self.assertIn("He said Sofia", watch.same_openings(FEOFAN))
+        self.assertIsNone(watch.same_openings("Short. Too short."))
+        varied = ("The road bends. She trots to keep up. A gull laughs somewhere. Feofan doesn't answer. "
+                  "Then the cup box shifts under his arm. Nobody speaks for a while.")
+        self.assertIsNone(watch.same_openings(varied))
+
+    def data(self, slips, checked=(1, 3, 5, 7, 9, 11)):
+        return {"log": slips, "checked": list(checked), "notices": []}
+
+    def test_one_slip_is_nothing_a_repeat_is_a_habit(self):
+        from mainapp.bulba import watch
+        slip = lambda at: {"label": "forced_callback", "quote": f"the voice he used {at}", "at": at, "cause": "model"}
+        data = self.data([slip(3), slip(9)])
+        self.assertEqual(watch.habits(data, []), [])
+        data["log"].append(slip(11))
+        notes = watch.habits(data, [])
+        self.assertEqual(len(notes), 1)
+        self.assertEqual(notes[0]["kind"], "pattern")
+        self.assertIn("3 of the last 6", notes[0]["text"])
+        self.assertEqual(len(notes[0]["quotes"]), 3)
+        self.assertEqual(watch.habits(data, []), [])  # raised once
+        # muted habits never come back
+        self.assertEqual(watch.habits(self.data([slip(3), slip(9), slip(11)]), ["forced_callback"]), [])
+
+    def test_old_slips_fall_out_of_the_window(self):
+        from mainapp.bulba import watch
+        slips = [{"label": "overexplaining", "quote": "q", "at": at, "cause": "model"} for at in (1, 3, 5)]
+        self.assertEqual(watch.habits(self.data(slips, checked=(1, 3, 5, 7, 9, 11, 13, 15, 17)), []), [])
+
+    def test_a_phrase_repeated_word_for_word_is_caught_for_free(self):
+        from mainapp.bulba import watch
+        tic = "Something dry and private moved at the corner of his mouth."
+        msgs = [("assistant", "", "Hello there.", "", 1)]
+        data = {"log": [], "checked": [], "free_checked": [], "notices": []}
+        raised = []
+        for n, text in enumerate([f"He looked up. {tic}", "A plain reply about the weather.",
+                                  f"The pen stopped. {tic}", "Another reply, nothing odd.", f"Fine. {tic}"]):
+            msgs += [("user", "", f"Line {n}.", "", 1), ("assistant", "", text, "", 1)]
+            watch.free_checks(data, msgs)
+            raised += watch.habits(data, [])
+        self.assertEqual(len(raised), 1)  # on the third time, not before
+        self.assertEqual(raised[0]["label"], "repeated_phrase")
+        self.assertIn("corner of his mouth", " ".join(raised[0]["quotes"]))
+        self.assertEqual(len(raised[0]["quotes"]), 3)
+        # ordinary filler isn't a phrase
+        self.assertEqual(watch.repeated_phrases({1: "and then he said that", 3: "and then he said that",
+                                                 5: "and then he said that"}, 5), [])
+
+    def test_free_and_paid_slips_are_judged_over_their_own_replies(self):
+        from mainapp.bulba import watch
+        # the reader has only seen two replies so far: not enough to call anything a habit yet
+        data = {"log": [{"label": "overexplaining", "quote": "q", "at": at, "cause": "model"} for at in (2, 4)],
+                "checked": [2, 4], "free_checked": [2, 4, 6, 8], "notices": []}
+        self.assertEqual(watch.habits(data, []), [])
+
+    def test_their_own_messages_are_brought_up_gently(self):
+        from mainapp.bulba import watch
+        slips = [{"label": "echoing_user", "quote": "q", "at": at, "cause": "their_messages"} for at in (1, 3, 5)]
+        note = watch.habits(self.data(slips), [])[0]
+        self.assertEqual(note["kind"], "user")
+        self.assertIn("may partly come from your own messages", note["text"])
+        self.assertIn("gently", watch.for_bulba(note))
+
+
+class WatchChatTests(ChatPromptTests):
+    """Bulba Watch in a chat, with a fake reader."""
+
+    def setUp(self):
+        super().setUp()
+        self.reader_calls = []
+        self.reader_answer = {"slips": [], "taste": []}
+
+    def fake_post(self, url, headers=None, json=None, timeout=None, **kwargs):
+        import json as json_mod
+        from unittest import mock
+        if json["messages"][0]["content"].startswith("# Bulba Watch"):
+            self.reader_calls.append(json)
+            resp = mock.Mock(status_code=200)
+            resp.json.return_value = {"choices": [{"message": {"content": json_mod.dumps(self.reader_answer)}}],
+                                      "usage": {"cost": 0.002}}
+            return resp
+        return super().fake_post(url, headers=headers, json=json, timeout=timeout, **kwargs)
+
+    def chat_obj(self):
+        return self.character.chats.first()
+
+    def test_reads_every_five_replies_and_raises_a_habit(self):
+        page = self.client.get(self.url)
+        self.assertTrue(page.context["watch_data"]["on"])
+        self.assertTrue(page.context["watch_data"]["intro"])  # the first-time note
+        dues = [self.post({"action": "chat", "message": f"Line {i}."}).json()["watch_due"] for i in range(5)]
+        self.assertEqual(dues, [False, False, False, True, True])  # the greeting counts as a reply; not read yet
+        self.reader_answer = {"slips": [{"reply": n, "label": "unearned_depth", "quote": f"wise line {n}",
+                                         "cause": "model"} for n in (1, 3, 5)],
+                              "taste": ["Keeps the banter, cuts the speeches"]}
+        data = self.post({"action": "watch"}).json()
+        self.assertEqual(len(self.reader_calls), 1)
+        self.assertEqual(self.reader_calls[0]["model"], "xiaomi/mimo-v2.6-pro")  # Bulba's model, not the chat's
+        prompt = self.reader_calls[0]["messages"][1]["content"]
+        self.assertIn("## The character: Rose", prompt)
+        self.assertIn("### Reply 5", prompt)
+        self.assertEqual(data["watch"]["count"], 1)
+        self.assertIn("in 3 of the last", data["watch"]["notices"][0]["text"])
+        self.assertIn("wise line 1", data["watch"]["notices"][0]["quotes"])
+        from mainapp.bulba import watch
+        self.assertEqual(watch.user_data(self.user)["taste"], ["Keeps the banter, cuts the speeches"])
+        # nothing new to read: no second (paid) read
+        self.post({"action": "watch"})
+        self.assertEqual(len(self.reader_calls), 1)
+
+    def test_rewrites_and_edits_teach_it_and_reach_the_reader(self):
+        from mainapp.bulba import watch
+        self.post({"action": "chat", "message": "Hi."})
+        self.post({"action": "regenerate"})
+        self.post({"action": "edit", "index": 2, "text": "A reply, trimmed."})
+        signals = watch.chat_data(self.chat_obj())["signals"]
+        self.assertEqual([s["type"] for s in signals], ["rewritten", "edited"])
+        for i in range(4):
+            self.post({"action": "chat", "message": f"Go on {i}."})
+        self.post({"action": "watch"})
+        prompt = self.reader_calls[-1]["messages"][1]["content"]
+        self.assertIn("Edited a reply from “A reply.” to “A reply, trimmed.”", prompt)
+        self.assertEqual(watch.chat_data(self.chat_obj())["signals"], [])
+
+    def test_mute_dismiss_and_switches(self):
+        from mainapp.bulba import watch
+        self.post({"action": "chat", "message": "Hi."})
+        chat = self.chat_obj()
+        data = watch.chat_data(chat)
+        data["checked"] = [1, 3, 5]
+        data["log"] = [{"label": "detail_fixation", "quote": "q", "at": at, "cause": "model"} for at in (1, 3, 5)]
+        note = watch.habits(data, [])[0]
+        watch.save_chat_data(chat, data)
+        resp = self.post({"action": "watch_note", "id": note["id"], "status": "muted"}).json()
+        self.assertEqual(resp["watch"]["count"], 0)
+        self.assertIn("detail_fixation", watch.user_data(self.user)["muted"])
+        self.assertEqual(self.post({"action": "watch_note", "id": "nope", "status": "muted"}).status_code, 400)
+        # the first-time note: keep it on, or off; and off just for this chat
+        state = self.post({"action": "watch_settings", "keep_on": True, "chat_off": True}).json()["watch"]
+        self.assertEqual((state["on"], state["intro"], state["chat_off"]), (True, False, True))
+        msgs = self.saved_messages()
+        self.assertFalse(watch.due(self.user, chat, msgs + [["assistant", "", "x", "", 1]] * 6))
+        state = self.post({"action": "watch_settings", "keep_on": False}).json()["watch"]
+        self.assertFalse(state["on"])
+
+    def test_watch_off_means_no_reads(self):
+        from mainapp.bulba import watch
+        watch.set_on(self.user, False)
+        dues = [self.post({"action": "chat", "message": f"Line {i}."}).json()["watch_due"] for i in range(6)]
+        self.assertFalse(any(dues))
+        self.post({"action": "regenerate"})
+        self.assertEqual(watch.chat_data(self.chat_obj())["signals"], [])  # nothing collected while it's off
+        self.assertEqual(watch.user_data(self.user)["pace"]["n"], 0)
+
+    def test_reply_pace(self):
+        from mainapp.bulba import watch
+        self.post({"action": "chat", "message": "Hi."})
+        chat = self.chat_obj()
+        t = 1_000_000.0
+        for i in range(watch.PACE_MIN):  # their usual: about 30 seconds for a reply like this
+            watch.on_reply_done(self.user, chat, [("assistant", "", "word " * 40, "", 1)], now=t)
+            t += 30 + (i % 3) * 5
+            self.assertIsNone(watch.on_user_message(self.user, chat, "a short answer back", now=t))
+        notes = []
+        for _ in range(3):  # then four minutes, three times running
+            watch.on_reply_done(self.user, chat, [("assistant", "", "word " * 40, "", 1)], now=t)
+            t += 240
+            notes.append(watch.on_user_message(self.user, chat, "a short answer back", now=t))
+        self.assertEqual([n is not None for n in notes], [False, False, True])
+        self.assertEqual(notes[-1]["kind"], "pace")
+        # a break isn't slowness
+        watch.on_reply_done(self.user, chat, [("assistant", "", "word " * 40, "", 1)], now=t)
+        self.assertIsNone(watch.on_user_message(self.user, chat, "back", now=t + 3600))
+
+    def test_extras_page_switch(self):
+        from mainapp.bulba import watch
+        resp = self.client.post(reverse("users:extras"), json.dumps({"watch": False}), content_type="application/json")
+        self.assertFalse(resp.json()["state"]["watch"])
+        self.assertFalse(watch.is_on(self.user))
+        self.assertContains(self.client.get(reverse("users:extras")), "Bulba Watch")
+
+
+class WatchNoteInBulbaTests(BulbaInChatTests):
+    def test_opening_a_note_starts_bulba_on_it(self):
+        from mainapp.bulba import watch
+        self.make_chat()
+        data = watch.chat_data(self.chat_obj)
+        data["checked"] = [1, 3, 5]
+        data["log"] = [{"label": "forced_callback", "quote": f"the voice he used on Stelios {at}", "at": at,
+                        "cause": "model"} for at in (1, 3, 5)]
+        note = watch.habits(data, [])[0]
+        watch.save_chat_data(self.chat_obj, data)
+        self.script = [("Look: three replies borrow voices from earlier scenes.", [])]
+        resp = self.api(action="note", id=note["id"]).json()
+        sent = self.bulba_calls[-1]["messages"][-1]["content"]
+        self.assertIn("Bulba Watch noticed a habit", sent)
+        self.assertIn("the voice he used on Stelios", sent)
+        self.assertEqual(resp["watch"]["count"], 0)  # opened
+        self.assertEqual(resp["events"][0], {"type": "action", "text": f"Bulba Watch: {note['title']}"})
+        self.assertEqual(self.api(action="note", id="nope").status_code, 400)
+
+
+class WatchMemoryTests(TestCase):
+    """What Bulba Watch learned, on the Extras page: reword, forget, un-mute."""
+
+    def setUp(self):
+        from mainapp.bulba import watch
+        self.user = get_user_model().objects.create_user(username="m", password="pw12345!")
+        self.client.force_login(self.user)
+        mine = watch.user_data(self.user)
+        mine["taste"] = ["Cuts long descriptions of rooms", "Keeps the banter"]
+        mine["muted"] = ["detail_fixation"]
+        watch.save_user_data(self.user, mine)
+
+    def post(self, **body):
+        return self.client.post(reverse("users:extras"), json.dumps({"action": "watch_memory", **body}),
+                                content_type="application/json")
+
+    def test_page_shows_it(self):
+        state = self.client.get(reverse("users:extras")).context["extras_data"]["watch_memory"]
+        self.assertEqual(state["taste"], ["Cuts long descriptions of rooms", "Keeps the banter"])
+        self.assertEqual(state["muted"], [{"label": "detail_fixation", "title": "Lingering on small details"}])
+
+    def test_reword_forget_unmute(self):
+        from mainapp.bulba import watch
+        mem = self.post(op="edit", old="Keeps the banter", new="Keeps the banter, not the speeches").json()["state"]["watch_memory"]
+        self.assertEqual(mem["taste"][1], "Keeps the banter, not the speeches")
+        self.post(op="forget", old="Cuts long descriptions of rooms")
+        self.post(op="unmute", old="detail_fixation")
+        mine = watch.user_data(self.user)
+        self.assertEqual((mine["taste"], mine["muted"]), (["Keeps the banter, not the speeches"], []))
+        # stale or empty changes are refused
+        self.assertEqual(self.post(op="forget", old="Cuts long descriptions of rooms").status_code, 400)
+        self.assertEqual(self.post(op="edit", old="Keeps the banter, not the speeches", new=" ").status_code, 400)
+        self.assertEqual(self.post(op="nonsense").status_code, 400)
+
+
+class WatchInBulbaContextTests(BulbaInChatTests):
+    def test_in_chat_bulba_sees_what_watch_learned(self):
+        from mainapp.bulba import watch
+        self.make_chat()
+        mine = watch.user_data(self.user)
+        mine["taste"], mine["muted"] = ["Cuts long descriptions of rooms"], ["detail_fixation"]
+        watch.save_user_data(self.user, mine)
+        data = watch.chat_data(self.chat_obj)
+        data["checked"] = [1, 3, 5]
+        data["log"] = [{"label": "overexplaining", "quote": "q", "at": at, "cause": "model"} for at in (1, 3, 5)]
+        watch.habits(data, [])
+        watch.save_chat_data(self.chat_obj, data)
+        self.script = [("Okay.", [])]
+        self.api(action="say", text="It's off")
+        system = self.bulba_calls[-1]["messages"][0]["content"]
+        self.assertIn("- Cuts long descriptions of rooms", system)
+        self.assertIn("don't mind (don't treat as problems): Lingering on small details", system)
+        self.assertIn("Explaining what you already got (3 of the last 3 replies)", system)
+        # off means it isn't used
+        watch.set_on(self.user, False)
+        self.api(action="say", text="Still off")
+        self.assertNotIn("### What Bulba Watch knows", self.bulba_calls[-1]["messages"][0]["content"])
+
+
+class PolishLogicTests(SimpleTestCase):
+    """Bulba's polish: which fixes survive the free checks."""
+
+    TEXT = ('He looked up. His voice is the one he used on Stelios in the water. <font color="#9cf">"Sit."</font> '
+            'You sit down, feeling nervous. [[extra 1]] The pen scratches on.')
+
+    def test_good_fixes_apply_and_bad_ones_are_dropped(self):
+        from mainapp.bulba import polish
+        new, kept = polish.apply_fixes(self.TEXT, [
+            {"habit": "Forced callbacks", "find": "His voice is the one he used on Stelios in the water.",
+             "replace": "His voice goes flat."},
+            {"habit": "Deciding things for your character", "find": "You sit down, feeling nervous. ", "replace": ""},
+            {"habit": "x", "find": "Not in the reply at all.", "replace": "y"},
+            {"habit": "x", "find": '<font color="#9cf">"Sit."</font>', "replace": '"Sit."'},  # loses the colour tag
+            {"habit": "x", "find": "[[extra 1]] The pen", "replace": "The pen"},  # loses the story extra
+        ])
+        self.assertEqual(len(kept), 2)
+        self.assertIn("His voice goes flat.", new)
+        self.assertNotIn("feeling nervous", new)
+        self.assertIn('<font color="#9cf">', new)
+        self.assertIn("[[extra 1]]", new)
+
+    def test_too_much_rewritten_keeps_the_original(self):
+        from mainapp.bulba import polish
+        text = "A sentence that goes on. " * 40
+        new, kept = polish.apply_fixes(text, [{"habit": "x", "find": text.strip(), "replace": "Something else."}])
+        self.assertEqual((new, kept), (text, []))
+
+    def test_a_phrase_found_twice_is_ambiguous(self):
+        from mainapp.bulba import polish
+        text = "He nods. Then he nods. And the long scene goes on and on for a good while after that."
+        self.assertEqual(polish.apply_fixes(text, [{"habit": "x", "find": "nods.", "replace": "shrugs."}])[1], [])
+
+
+class PolishChatTests(WatchChatTests):
+    """Bulba's polish in a chat, with a fake rewriter."""
+
+    def setUp(self):
+        super().setUp()
+        self.polish_calls = []
+        self.polish_answer = {"fixes": []}
+
+    def fake_post(self, url, headers=None, json=None, timeout=None, **kwargs):
+        import json as json_mod
+        from unittest import mock
+        if json["messages"][0]["content"].startswith("# Bulba's polish"):
+            self.polish_calls.append(json)
+            resp = mock.Mock(status_code=200)
+            resp.json.return_value = {"choices": [{"message": {"content": json_mod.dumps(self.polish_answer)}}],
+                                      "usage": {"cost": 0.001}}
+            return resp
+        return super().fake_post(url, headers=headers, json=json, timeout=timeout, **kwargs)
+
+    def approve(self, label="overexplaining"):
+        from mainapp.bulba import watch
+        self.post({"action": "chat", "message": "Hi."})
+        chat = self.chat_obj()
+        data = watch.chat_data(chat)
+        data["checked"] = [1, 3, 5]
+        data["log"] = [{"label": label, "quote": f"which meant he was sad {at}", "at": at, "cause": "model"}
+                       for at in (1, 3, 5)]
+        note = watch.habits(data, [])[0]
+        watch.save_chat_data(chat, data)
+        resp = self.post({"action": "watch_note", "id": note["id"], "status": "fix"}).json()
+        self.assertEqual(resp["watch"]["count"], 0)
+        return note
+
+    def test_nothing_happens_until_a_habit_is_approved(self):
+        data = self.post({"action": "chat", "message": "Hi."}).json()
+        self.assertFalse(data["polish_due"])
+        self.assertEqual(self.post({"action": "polish"}).json()["changed"], False)
+        self.assertEqual(self.polish_calls, [])
+
+    def test_an_approved_habit_is_fixed_in_new_replies(self):
+        from mainapp import chats
+        from mainapp.bulba import watch
+        self.approve()
+        self.assertEqual(watch.user_data(self.user)["fix"], ["overexplaining"])
+        self.assertTrue(self.post({"action": "chat", "message": "Go on."}).json()["polish_due"])
+        self.polish_answer = {"fixes": [{"habit": "Explaining what you already got", "find": "A reply.",
+                                         "replace": "A quieter reply."}]}
+        data = self.post({"action": "polish"}).json()
+        self.assertTrue(data["changed"])
+        self.assertEqual(data["reply"], "A quieter reply.")
+        self.assertEqual(data["polish"]["original"], "A reply.")
+        sent = self.polish_calls[0]
+        self.assertEqual(sent["model"], "xiaomi/mimo-v2.6-pro")  # Bulba's model by default
+        self.assertIn("which meant he was sad", sent["messages"][1]["content"])  # real quotes from this chat
+        self.assertNotIn("Go on.", sent["messages"][1]["content"])  # the summary, not the chat
+        last = self.saved_messages()[-1]
+        self.assertEqual(last[2], "A quieter reply.")
+        self.assertEqual(chats.polish_of(tuple(last))["original"], "A reply.")
+        # only once per text
+        self.post({"action": "polish"})
+        self.assertEqual(len(self.polish_calls), 1)
+        # the page shows it after a reload
+        self.assertContains(self.client.get(self.url), 'class="polish-line"')
+        # undo
+        index = len(self.saved_messages()) - 1
+        self.assertEqual(self.post({"action": "polish_undo", "index": index}).json()["reply"], "A reply.")
+        self.assertIsNone(chats.polish_of(tuple(self.saved_messages()[-1])))
+        self.assertEqual(self.post({"action": "polish_undo", "index": index}).status_code, 400)
+
+    def test_regenerate_and_continue_are_polished_too(self):
+        self.approve()
+        self.post({"action": "chat", "message": "Go on."})
+        self.assertTrue(self.post({"action": "regenerate"}).json()["polish_due"])
+        self.assertTrue(self.post({"action": "continue"}).json()["polish_due"])
+
+    def test_their_chat_model_if_they_choose_it(self):
+        self.approve()
+        resp = self.client.post(reverse("users:extras"), json.dumps({"action": "watch_memory", "op": "fix_model",
+                                                                     "new": "chat"}), content_type="application/json")
+        self.assertEqual(resp.json()["state"]["watch_memory"]["fix_model"], "chat")
+        self.post({"action": "chat", "message": "Go on."})
+        self.post({"action": "polish"})
+        self.assertEqual(self.polish_calls[-1]["model"], "test/model")
+        # and it can be stopped
+        self.client.post(reverse("users:extras"), json.dumps({"action": "watch_memory", "op": "stop_fix",
+                                                              "old": "overexplaining"}), content_type="application/json")
+        self.assertFalse(self.post({"action": "chat", "message": "More."}).json()["polish_due"])
+
+    def test_free_habits_only_call_when_the_reply_has_them(self):
+        from mainapp.bulba import polish, watch
+        mine = watch.user_data(self.user)
+        mine["fix"] = ["same_openings"]
+        watch.save_user_data(self.user, mine)
+        self.assertFalse(self.post({"action": "chat", "message": "Hi."}).json()["polish_due"])  # "A reply." is fine
+        msgs = [("assistant", "", "x", "", 1), ("user", "", "y", "", 1), ("assistant", "", FEOFAN, "", 1)]
+        self.assertTrue(polish.due(self.user, self.chat_obj(), msgs))
+        watch.set_on(self.user, False)
+        self.assertFalse(polish.due(self.user, self.chat_obj(), msgs))  # off means off
+
+
+class PolishInBulbaTests(BulbaInChatTests):
+    """Asking the in-chat Bulba to fix a message, or to fix a habit automatically."""
+
+    def setUp(self):
+        super().setUp()
+        self.polish_answer = {"fixes": []}
+        self.polish_calls = []
+
+    def bulba_post(self, url, headers=None, json=None, timeout=None, **kw):
+        import json as json_mod
+        from unittest import mock
+        if json["messages"][0]["content"].startswith("# Bulba's polish"):
+            self.polish_calls.append(json)
+            resp = mock.Mock(status_code=200)
+            resp.json.return_value = {"choices": [{"message": {"content": json_mod.dumps(self.polish_answer)}}],
+                                      "usage": {"cost": 0.001}}
+            return resp
+        return super().bulba_post(url, headers=headers, json=json, timeout=timeout, **kw)
+
+    def test_fix_a_reply_on_request_and_apply_it(self):
+        from mainapp import chats
+        self.make_chat()
+        before = chats.read(self.chat_obj)["messages"][-1][2]
+        self.polish_answer = {"fixes": [{"habit": "fewer metaphors", "find": before, "replace": "Plainer."}]}
+        self.script = [("Here it is.", [self.call("polish_message", habits=["fewer metaphors"])])]
+        data = self.api(action="say", text="Too many metaphors in that one, fix it").json()
+        proposal = data["state"]["proposals"][-1]
+        self.assertEqual(proposal["kind"], "message_fix")
+        self.assertIn("After: Plainer.", "\n".join(proposal["summary"]))
+        self.assertIn("What they asked for: fewer metaphors", self.polish_calls[0]["messages"][1]["content"])
+        self.assertEqual(chats.read(self.chat_obj)["messages"][-1][2], before)  # nothing changes before Apply
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=proposal["id"])
+        last = tuple(chats.read(self.chat_obj)["messages"][-1])
+        self.assertEqual(last[2], "Plainer.")
+        self.assertEqual(chats.polish_of(last)["original"], before)  # Show original / Undo fixes under it
+        self.script = [("Back.", [])]
+        self.api(action="undo", id=proposal["id"])
+        self.assertEqual(chats.read(self.chat_obj)["messages"][-1][2], before)
+
+    def test_nothing_to_fix_makes_no_proposal(self):
+        self.make_chat()
+        self.script = [("", [self.call("polish_message", habits=["overexplaining"])]), ("It's clean already.", [])]
+        data = self.api(action="say", text="Fix it").json()
+        self.assertFalse([p for p in data["state"]["proposals"] if p["kind"] == "message_fix"])
+
+    def test_fix_a_habit_automatically_after_apply(self):
+        from mainapp.bulba import watch
+        self.make_chat()
+        self.script = [("Want that gone for good?", [self.call("fix_automatically", habits=["forced_callback"])])]
+        proposal = self.api(action="say", text="Always fix the callbacks").json()["state"]["proposals"][-1]
+        self.assertEqual(proposal["kind"], "auto_fix")
+        self.assertEqual(watch.user_data(self.user)["fix"], [])  # only after Apply
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=proposal["id"])
+        self.assertEqual(watch.user_data(self.user)["fix"], ["forced_callback"])
+        self.script = [("Undone.", [])]
+        self.api(action="undo", id=proposal["id"])
+        self.assertEqual(watch.user_data(self.user)["fix"], [])
+
+
+class PolishWriteMyMessageTests(PolishChatTests):
+    def test_write_my_message_is_polished_too(self):
+        from mainapp.bulba import watch
+        self.post({"action": "chat", "message": "Hi."})
+        mine = watch.user_data(self.user)
+        mine["fix"] = ["overexplaining", "writing_for_user"]
+        watch.save_user_data(self.user, mine)
+        self.polish_answer = {"fixes": [{"habit": "x", "find": "A reply.", "replace": "A short line."}]}
+        data = self.post({"action": "expand", "text": "I wave"}).json()
+        self.assertEqual((data["text"], data["polished"]), ("A short line.", 1))
+        prompt = self.polish_calls[-1]["messages"][1]["content"]
+        self.assertIn("Their message", prompt)
+        self.assertNotIn("Deciding things for your character", prompt)  # not a habit their own message can have

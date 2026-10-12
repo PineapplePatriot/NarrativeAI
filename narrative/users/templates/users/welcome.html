@@ -54,6 +54,13 @@
                 <a class="btn secondary" href="{% url 'users:extras' %}">I'll do it myself</a>
                 <a class="btn secondary" href="{% url 'characters_list' %}">Just start chatting</a>
             </div>
+            <div class="ready" id="ready" hidden>
+                <h3>Or just take a ready preset</h3>
+                <p class="help">Tested setups for your model. One click, nothing to answer; change it any time on the
+                    Presets page or with Bulba later. It won't know your taste yet.</p>
+                <div class="ready-list" id="readyList"></div>
+                <p class="error" id="readyError" hidden></p>
+            </div>
             <p class="help small">Advanced settings (other providers, a cheaper model for summaries, voices) live on the
                 <a href="{% url 'users:api_config' %}">Connections page</a>.</p>
         </div>

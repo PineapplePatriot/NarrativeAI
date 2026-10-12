@@ -41,7 +41,7 @@ def apply(session, pid):
             raise ProposalError(error)
         p["undo"] = {"summary": before["summary"], "trackers": before["trackers"],
                      "sprites": before["sprites"], "background": before["background"], "game": before["game"],
-                     "story_extras": before["story_extras"], "ideas": before["ideas"]}
+                     "story_extras": before["story_extras"], "ideas": before["ideas"], "watch": before["watch"]}
         note = "Extras saved."
     elif p["kind"] == "preset":
         from mainapp.bulba.agent import build_preset
@@ -108,6 +108,12 @@ def apply(session, pid):
             note = doctor.apply(session, p)
         except ValueError as e:
             raise ProposalError(str(e))
+    elif p["kind"] in ("message_fix", "auto_fix"):  # Bulba's polish, asked for in a chat
+        from mainapp.bulba import polish
+        try:
+            note = polish.apply(session, p)
+        except ValueError as e:
+            raise ProposalError(str(e))
     else:
         raise ProposalError("Unknown proposal.")
     p["status"] = "applied"
@@ -166,6 +172,9 @@ def undo(session, pid):
     elif p["kind"] in ("preset_edit", "card_edit"):
         from mainapp.bulba import doctor
         doctor.undo(session, p)
+    elif p["kind"] in ("message_fix", "auto_fix"):
+        from mainapp.bulba import polish
+        polish.undo(session, p)
     p["status"] = "undone"
     return "Undone."
 

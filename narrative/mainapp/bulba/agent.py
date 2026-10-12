@@ -6,7 +6,7 @@ import uuid
 from pathlib import Path
 
 from mainapp import ai_client, cards, model_profiles, presets, starters, thinking
-from mainapp.bulba import doctor, library, lore, tune
+from mainapp.bulba import control, doctor, library, lore, tune
 
 INSTRUCTIONS = Path(__file__).resolve().parent.parent / "data" / "bulba" / "instructions.md"
 GUIDES_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba" / "guides"
@@ -70,6 +70,7 @@ def system_prompt(session):
     profile = target_profile(session)
     text = INSTRUCTIONS.read_text(encoding="utf-8").replace("{target_model}", profile["name"] if profile else "?")
     progress = f"Current stage: {session.stage}. Budget: ${session.spent:.2f} of ${session.budget:.2f} spent."
+    progress += "\n" + _control_line(session)
     prefs = [f"- {p['id']} [{p['status']}, {p['scope']}] {p['interpretation']} (they said: \"{p['wording']}\")"
              for p in session.preferences if p.get("status") not in ("rejected", "superseded")]
     pending = [f"- {p['id']} {p['kind']}: {p['title']} ({p['status']})" for p in session.proposals]
@@ -83,6 +84,19 @@ def system_prompt(session):
         "Preferences so far:\n" + "\n".join(prefs) if prefs else "",
         "Proposals so far:\n" + "\n".join(pending) if pending else "",
     ]))
+
+
+def _control_line(session):
+    """Who writes their character in the active preset, and how chats look (so a later change gets noticed)."""
+    from mainapp.views import _appearance
+    try:
+        active = presets.get_active(session.user)
+        mode = control.mode_of(presets.normalize(active.data))
+    except Exception:  # no usable preset yet
+        return ""
+    layout = _appearance(session.user)["layout"]
+    return (f"Active preset: “{active.name}”; who writes their character: {control.MODES[mode].lower()}; "
+            f"chats look like: {'a book (replies as chapters)' if layout == 'book' else 'chat bubbles'}.")
 
 
 # ---------------------------------------------------------------------------
@@ -138,7 +152,10 @@ TOOLS = [
          "scope": {"type": "string", "enum": ["general", "character", "scene", "boundary"]},
          "strength": {"type": "string", "enum": ["firm", "flexible"]},
          "status": {"type": "string", "enum": ["tentative", "confirmed", "rejected"]},
-         "replaces": {"type": "string", "description": "Optional id of a preference this one updates"}},
+         "replaces": {"type": "string", "description": "Optional id of a preference this one updates"},
+         "key": {"type": "string", "enum": ["control:dont", "control:write", "control:director"],
+                 "description": "Only for who writes their character, said before the preset is applied: "
+                                "propose_preset then uses it (after that, use propose_control)"}},
         ["wording", "interpretation", "scope", "status"]),
     _fn("propose_extras", "Propose the extras settings (they press Apply).",
         {"summary": {"type": "string", "enum": ["auto", "manual"]}, "summary_every": {"type": "integer"},
@@ -155,7 +172,16 @@ TOOLS = [
                   "description": "Dice and inventory: off (no chance in the story), dice only, or dice + inventory "
                                  "and conditions kept by the app"},
          "background": {"type": "string", "description": "'chat', or a cheap model id: mimo-v2-6-pro, gemini-3-8-flash, glm-5-3, deepseek-v4-pro, deepseek-v4-flash"},
+         "watch": {"type": "boolean", "description": "Bulba Watch (on by default): include only to switch it off "
+                                                     "(false) or back on"},
          "why": STR}, ["why"]),
+    _fn("show_extras_form", "The story stage's extras in one form: dice, story extras, the ideas button. Pre-tick "
+        "what fits their story; they change what they like and send it, and it's applied. Write your message first.",
+        {"game": {"type": "string", "enum": ["off", "dice", "full"]},
+         "story_extras": {"type": "array", "items": {"type": "string", "enum": ["documents", "messages", "milestones",
+                                                                                 "news", "keepsakes", "choices"]}},
+         "ideas": {"type": "boolean"},
+         "why": {"type": "string", "description": "One line on why these fit their story (shown above the form)"}}),
     _fn("propose_preset", "Propose the finished preset: a starter plus a short 'your taste' section.",
         {"starter": STR, "name": STR, "taste": {"type": "string", "description": "Plain instructions to the model"},
          "reply_length": {"type": "string", "enum": ["short", "medium", "long"]},
@@ -177,6 +203,7 @@ TOOLS = [
     *library.tool_defs(_fn, STR),
     *lore.tool_defs(_fn, STR),
     *tune.tool_defs(_fn, STR),
+    *control.tool_defs(_fn, STR),
     doctor.CARD_EDIT_TOOL,
 ]
 
@@ -555,7 +582,7 @@ def tool_record_preference(session, args):
             "scope": args.get("scope") if args.get("scope") in ("general", "character", "scene", "boundary") else "general",
             "strength": args.get("strength") if args.get("strength") in ("firm", "flexible") else "flexible",
             "status": args.get("status") if args.get("status") in ("tentative", "confirmed", "rejected") else "tentative"}
-    if str(args.get("key") or "").startswith("control:"):  # set by the basics form only
+    if args.get("key") in ("control:dont", "control:write", "control:director"):  # the basics form, or said later
         pref["key"] = args["key"]
     replaced = next((p for p in session.preferences if p["id"] == args.get("replaces")), None)
     if replaced:
@@ -586,6 +613,9 @@ def tool_propose_extras(session, args):
     if isinstance(args.get("ideas"), bool):
         payload["ideas"] = args["ideas"]
         summary.append("Bulba's ideas button in chats: " + ("on" if args["ideas"] else "off"))
+    if isinstance(args.get("watch"), bool):
+        payload["watch"] = args["watch"]
+        summary.append("Bulba Watch: " + ("on" if args["watch"] else "off"))
     if args.get("game") in ("off", "dice", "full"):
         from mainapp import game
         payload["game"] = args["game"]
@@ -694,7 +724,8 @@ HANDLERS = {
     "write_samples": tool_write_samples, "record_preference": tool_record_preference,
     "propose_extras": tool_propose_extras, "propose_preset": tool_propose_preset,
     "propose_persona": tool_propose_persona, "propose_character": tool_propose_character,
-    **library.HANDLERS, **lore.HANDLERS, **tune.HANDLERS, "propose_card_edit": doctor.tool_propose_card_edit,
+    **library.HANDLERS, **lore.HANDLERS, **tune.HANDLERS, **control.HANDLERS,
+    "propose_card_edit": doctor.tool_propose_card_edit,
 }
 
 
@@ -724,22 +755,156 @@ def _trimmed(messages):
 
 
 def opening(session):
-    """Bulba's first message (canned, so starting costs nothing)."""
-    profile = target_profile(session) or {"name": "your model"}
-    text = (f"Hi. I'm Bulba. Yes, a potato. You picked {profile['name']}, which is a choice.\n\n"
-            "I'll set up the rest: the extras, how replies read, who you are in the story, and who you're "
-            "talking to. Ten minutes, maybe. Stop whenever.\n\n"
-            "Boring bits first: should characters be able to speak out loud? That needs an ElevenLabs account.")
-    choices = [{"label": "No voices"}, {"label": "Yes, I have an ElevenLabs key", "url": "/users/extras/"},
-               {"label": "What's ElevenLabs?"}]
+    """Bulba's first message (canned, so starting costs nothing): the full setup or the fast route."""
+    name = (target_profile(session) or {"name": "your model"})["name"]
+    text = (f"Hi. I'm Bulba. Yes, a potato. You picked {name}, which is a choice.\n\n"
+            "Two ways to do this:\n\n"
+            "**Full setup** (ten minutes, maybe): I find out how you like stories told, show you samples written by "
+            "your own model, and build everything around that.\n\n"
+            f"**Fast route**: you take the tested ready setup for {name}, then we only do who you are in the "
+            "story and your character.\n\n"
+            "Either way, you can skip any step: press **Skip** in the panel, or just tell me. Just know that "
+            "every step you skip is one less thing tuned to you.")
+    choices = [{"label": "Full setup", "route": "full"}, {"label": "Fast route: the ready setup", "route": "fast"}]
     session.messages = [{"role": "assistant", "content": text}]
     session.events = [{"type": "bulba", "text": text, "choices": choices}]
 
 
+FAST_FEELS = ("back_and_forth", "rich_scene", "director")
+
+
+def _canned(session, picked, text, choices=None, extra_events=(), after=()):
+    """A step that needs no AI: what they picked, then Bulba's prepared answer (kept in its history too)."""
+    session.messages += [{"role": "user", "content": f"[{picked}]"}, {"role": "assistant", "content": text}]
+    bulba = {"type": "bulba", "text": text, **({"choices": choices} if choices else {})}
+    events = [{"type": "action", "text": picked}, *extra_events, bulba, *after]
+    session.events.extend(events)
+    return events
+
+
+def take_route(session, route):
+    """The opening's two ways in (no AI needed): "full", "fast", then "fast:<starter id>". Returns page events."""
+    from mainapp.bulba import actions
+    profile = target_profile(session) or {}
+    feels = {k: v for k, v in (profile.get("starters") or {}).items() if k in FAST_FEELS}
+    if route == "full":
+        return _canned(session, "Full setup",
+                       "Good. Boring bits first, all in one go: tick what you want, change anything later on the "
+                       "Extras page.", after=[extras_form_event(session, "setup")])
+    if route == "fast":
+        choices = []
+        for feel in FAST_FEELS:
+            s = starters.get(feels.get(feel, ""))
+            if s:
+                choices.append({"label": starters.EXPERIENCES[feel]["label"], "hint": s.get("tagline", ""),
+                                "route": f"fast:{s['id']}"})
+        if not choices:
+            raise ValueError("There's no ready setup for this model yet. Try the full setup.")
+        return _canned(session, "Fast route",
+                       "Pick the feel. You can change it any time on the Presets page, or ask me in a chat.", choices)
+    starter_id = route.partition(":")[2]
+    feel = next((k for k, v in feels.items() if v == starter_id), None)
+    s = starters.get(starter_id) if route.startswith("fast:") and feel else None
+    if s is None:
+        raise ValueError("No such ready setup.")
+    name = f"{s['title']} · {profile.get('name', '')}"
+    p = _proposal(session, "preset", f"Preset: {name}", [f"The ready {s['title']} setup for {profile.get('name', '')}"],
+                  {"starter": s["id"], "name": name, "taste": "", "rewrite": {}, "reply_length": "", "borrow": [],
+                   "switch_off": [], "control": "director" if feel == "director" else "dont"})
+    note = actions.apply(session, p["id"])
+    p["status"] = "applied"
+    session.stage = "persona"
+    return _canned(session, f"Fast route: {starters.EXPERIENCES[feel]['label']}",
+                   f"Done: {note}\n\nTwo quick things and you're chatting. First, who are you in the story?",
+                   [{"label": "Keep me light: just a name"}, {"label": "Someone who lives in that world"},
+                    {"label": "You make someone up"}, {"label": "Skip: use my profile"}],
+                   extra_events=[{"type": "proposal", "id": p["id"]}, {"type": "stage", "stage": "persona"}])
+
+
+# ---------------------------------------------------------------------------
+# The extras in one form (setup: the app's extras; story: dice, story extras, ideas)
+# ---------------------------------------------------------------------------
+
+SETUP_FORM_KEYS = ("summary", "trackers", "sprites", "watch", "background")
+STORY_FORM_KEYS = ("game", "story_extras", "ideas")
+
+
+def extras_form_event(session, part, suggest=None, why=""):
+    """The form's page event, filled with what's set now (or, for the story part, Bulba's suggestions)."""
+    from users.views import _extras_state
+    from mainapp import extras as extras_mod
+    state = _extras_state(session.user)
+    values = {k: state.get(k) for k in (SETUP_FORM_KEYS if part == "setup" else STORY_FORM_KEYS)}
+    for k, v in (suggest or {}).items():
+        if k in values and v is not None:
+            values[k] = v
+    event = {"type": "extras_form", "part": part, "values": values, "why": str(why or "")[:300]}
+    if part == "setup":
+        event["has_voice_key"] = state["has_eleven_key"]
+        event["cheap_models"] = ([{"id": m["id"], "name": m["name"]} for m in state["cheap_models"]]
+                                 if state["openrouter"] else [])
+    else:
+        event["kinds"] = [{"id": k, "label": label} for k, label in extras_mod.KINDS.items()]
+    return event
+
+
+def form_payload(part, answers):
+    """Their answers as a propose_extras payload, and the lines the proposal card shows."""
+    answers = answers if isinstance(answers, dict) else {}
+    payload, summary = {}, []
+    if part == "setup":
+        for task, label in (("summary", "Story summary"), ("trackers", "Trackers")):
+            item = answers.get(task) if isinstance(answers.get(task), dict) else {}
+            if item.get("mode") in ("auto", "manual"):
+                try:
+                    every = max(1, min(200, int(item.get("interval") or (10 if task == "summary" else 2))))
+                except (TypeError, ValueError):
+                    every = 10 if task == "summary" else 2
+                payload[task] = {"mode": item["mode"], "interval": every}
+                summary.append(f"{label}: " + (f"every {every} messages" if item["mode"] == "auto" else "only when you ask"))
+        for key, label in (("sprites", "Character pictures that change with the mood"), ("watch", "Bulba Watch")):
+            if isinstance(answers.get(key), bool):
+                payload[key] = answers[key]
+                summary.append(f"{label}: {'on' if answers[key] else 'off'}")
+        if isinstance(answers.get("background"), str) and answers["background"]:
+            payload["background"] = answers["background"][:64]
+            summary.append("Background jobs: " + ("your chat model" if answers["background"] == "chat" else answers["background"]))
+    else:
+        from mainapp import extras as extras_mod
+        if answers.get("game") in ("off", "dice", "full"):
+            payload["game"] = answers["game"]
+            summary.append("Dice: " + {"off": "off", "dice": "dice only", "full": "dice, inventory and conditions"}[answers["game"]])
+        if isinstance(answers.get("story_extras"), list):
+            payload["story_extras"] = [k for k in answers["story_extras"] if k in extras_mod.KINDS]
+            summary.append("Story extras: " + (", ".join(extras_mod.KINDS[k].lower() for k in payload["story_extras"]) or "none"))
+        if isinstance(answers.get("ideas"), bool):
+            payload["ideas"] = answers["ideas"]
+            summary.append(f"Bulba's ideas button: {'on' if answers['ideas'] else 'off'}")
+    return payload, summary
+
+
+def tool_show_extras_form(session, args):
+    suggest = {k: args.get(k) for k in STORY_FORM_KEYS if k in args}
+    return ({"shown": True, "note": "They'll answer with the form; their answers are applied directly. Wait."},
+            [extras_form_event(session, "story", suggest, args.get("why"))])
+
+
+HANDLERS["show_extras_form"] = tool_show_extras_form
+
+
+def skip_stage(session):
+    """The Skip button: on to the next stage. Returns (the skipped stage, the page event)."""
+    i = STAGES.index(session.stage) if session.stage in STAGES else 0
+    if session.stage == "done":
+        raise ValueError("Nothing left to skip.")
+    skipped, session.stage = session.stage, STAGES[i + 1]
+    return skipped, {"type": "stage", "stage": session.stage}
+
+
 # Tools after which Bulba waits for the user (see instructions.md, "Tools, briefly")
-TURN_ENDING = {"offer_choices", "write_samples", "show_basics_form", "retry_reply",
+TURN_ENDING = {"offer_choices", "write_samples", "show_basics_form", "show_extras_form", "retry_reply",
                "propose_preset_edit", "propose_card_edit", "propose_lorebook", "propose_lore_edit", "propose_theme", "propose_control", "offer_card_upload", "propose_extras", "propose_preset", "propose_persona", "propose_character",
-               *tune.TURN_ENDING}
+               "polish_message", "fix_automatically", *tune.TURN_ENDING}
 
 
 def run_turn(session, user_text, action_note=None, model_note=None):

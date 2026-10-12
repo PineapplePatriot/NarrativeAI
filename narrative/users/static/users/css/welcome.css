@@ -52,6 +52,13 @@ button.link { background: none; padding: 0; color: var(--accent-soft); text-deco
 .done h2 { margin: 0 0 8px; }
 .done p { line-height: 1.55; }
 .done-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.ready { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+.ready h3 { margin: 0 0 4px; font-size: 1rem; }
+.ready-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.ready-btn { display: flex; flex-direction: column; align-items: flex-start; text-align: left; gap: 2px; max-width: 260px;
+    background: var(--card-2, transparent); color: inherit; border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; cursor: pointer; }
+.ready-btn small { opacity: .75; font-weight: 400; }
+.ready-btn:disabled { opacity: .5; }
 @media (max-width: 600px) {
     h1 { font-size: 1.6rem; }
     .step { gap: 10px; }
@@ -70,3 +77,14 @@ button.link { background: none; padding: 0; color: var(--accent-soft); text-deco
 .saved { color: #6ee7b7; }
 .next { margin-top: 28px; }
 .next h2 { font-size: 1.1rem; margin: 0 0 4px; }
+
+/* Extras page: what Bulba Watch learned */
+.option h3.sub { font-size: .95rem; margin: 16px 0 2px; }
+.memory { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: .9rem; }
+.memory li { display: flex; gap: 8px; justify-content: space-between; align-items: center; background: var(--card-2, rgba(255,255,255,.04));
+    border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; line-height: 1.4; }
+.memory li.empty { background: none; border: none; padding: 0; color: var(--muted, #94a3b8); }
+.memory li.editing input { flex: 1; min-width: 0; }
+.memory-btns { display: flex; gap: 4px; flex: none; }
+.memory .x { background: none; border: none; color: var(--muted, #94a3b8); cursor: pointer; padding: 0 4px; font-size: .95rem; }
+.fix-model { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px; font-size: .9rem; }

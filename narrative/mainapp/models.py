@@ -144,6 +144,8 @@ class ChatSettings(models.Model):
     appearance = models.JSONField(default=dict, blank=True)
     # The user's own text rules, run with every preset (see mainapp/regex_rules.py)
     regex = models.JSONField(default=list, blank=True)
+    # What Bulba Watch learned about them: taste, habits they don't mind, their usual reply pace (bulba/watch.py)
+    watch = models.JSONField(default=dict, blank=True)
     author = models.OneToOneField(
         get_user_model(),
         on_delete=models.SET_NULL,
@@ -205,6 +207,8 @@ class Chat(models.Model):
     log_file = models.FileField(upload_to="chat_logs/", blank=True, null=True)
     parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name="branches")
     branch_point = models.PositiveIntegerField(null=True, blank=True, help_text="Messages copied from the parent")
+    # Bulba Watch in this chat: what it read and noticed (see mainapp/bulba/watch.py)
+    watch = models.JSONField(default=dict, blank=True)
     time_create = models.DateTimeField(auto_now_add=True)
     time_update = models.DateTimeField(auto_now=True)
 

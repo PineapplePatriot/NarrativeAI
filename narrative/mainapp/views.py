@@ -29,6 +29,7 @@ from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
 from . import extras, game, media_library, thinking, ai_client, cards, chats, regex_rules, model_profiles, presets, samplers, starters, trackers
+from .bulba import polish, watch
 
 from .utils import build_ai_request, get_elevenlabs_key
 from .lorebook import (
@@ -283,6 +284,8 @@ def chat(request, slug):
                 if 0 <= index < len(messages):
                     # Update the message text, keep other fields
                     new_text = text_rules("saved", new_text, messages[index][0], edits_only=True)
+                    if messages[index][0] == "assistant" and messages[index][2] != new_text:
+                        watch.note_signal(request.user, chat_obj, "edited", messages[index][2], new_text)
                     messages[index] = chats.set_text(messages[index], new_text)
                     save_messages(messages)
                     return JsonResponse({"success": True, "text": new_text})
@@ -347,7 +350,18 @@ def chat(request, slug):
                 return JsonResponse({"success": False, "error": "The model gave your draft back unchanged. Try again, "
                                      "or add a word about what you want.", "text": draft,
                                      "spending": ai_client.spending(request.user)})
-            return JsonResponse({"success": True, "text": written, "spending": ai_client.spending(request.user)})
+            # Bulba's polish: the habits they asked to have fixed, in their written-out message too
+            fixed = []
+            habits = polish.habits_for_draft(request.user, chat_obj, written, polish.others_before(messages, len(messages), "user"))
+            if habits:
+                try:
+                    written, fixed = polish.polish_text(request.user, character, chat_obj, written,
+                                                        polish.others_before(messages, len(messages), "user"),
+                                                        chat_state["summary"], habits, whose="theirs")
+                except ai_client.AIError as e:
+                    log.info("Polish skipped for a written message: %s", e)
+            return JsonResponse({"success": True, "text": written, "polished": len(fixed),
+                                 "spending": ai_client.spending(request.user)})
 
         # --- 3. NEW: Spellcheck ---
         elif action == "spellcheck":
@@ -407,6 +421,59 @@ def chat(request, slug):
             except ai_client.AIError as e:
                 return JsonResponse({"success": False, "error": str(e)})
             return JsonResponse({"success": True, "ideas": ideas, "mode": mode, "spending": ai_client.spending(request.user)})
+        elif action == "polish":  # Bulba's polish on the newest reply (the page asks right after it arrives)
+            if not polish.due(request.user, chat_obj, messages) or chats.polish_of(messages[-1]):
+                return JsonResponse({"success": True, "changed": False})
+            original = messages[-1][2]
+            try:
+                new_text, fixes = polish.polish(request.user, character, chat_obj, messages, chat_state["summary"])
+            except ai_client.AIError as e:
+                return JsonResponse({"success": False, "error": str(e)})
+            messages = load_messages()  # read again: they may have moved on while it worked
+            if not fixes or not messages or messages[-1][0] != "assistant" or messages[-1][2] != original:
+                return JsonResponse({"success": True, "changed": False, "spending": ai_client.spending(request.user)})
+            messages[-1] = chats.with_polish(messages[-1], new_text, polish.record(original, fixes))
+            save_messages(messages)
+            watch.recheck(request.user, chat_obj, messages)
+            return JsonResponse({"success": True, "changed": True, "reply": new_text,
+                                 "polish": polish.page_payload(chats.polish_of(messages[-1])),
+                                 "spending": ai_client.spending(request.user)})
+        elif action == "polish_undo":  # back to the reply as the model wrote it
+            try:
+                index = int(data.get("index"))
+                rec = chats.polish_of(messages[index]) if 0 <= index < len(messages) else None
+            except (TypeError, ValueError):
+                rec = None
+            if not rec:
+                return JsonResponse({"success": False, "error": "Nothing to undo there."}, status=400)
+            messages[index] = chats.with_polish(messages[index], rec["original"], None)
+            save_messages(messages)
+            if index == len(messages) - 1:
+                watch.recheck(request.user, chat_obj, messages)
+            return JsonResponse({"success": True, "reply": rec["original"]})
+        elif action == "watch":  # Bulba Watch reads the latest replies (the page asks after a reply)
+            if watch.due(request.user, chat_obj, messages):
+                from .bulba import control
+                writes = control.mode_of(presets.normalize(presets.get_active(request.user).data)) == "write"
+                try:
+                    watch.read(request.user, character, chat_obj, messages, writes_for_user=writes)
+                except ai_client.AIError as e:
+                    log.info("Bulba Watch skipped a read: %s", e)
+            return JsonResponse({"success": True, "watch": watch.page_state(request.user, chat_obj)})
+        elif action == "watch_note":  # a note: dismissed, "I don't mind this", or opened with Bulba
+            if data.get("status") not in ("dismissed", "muted", "opened", "fix"):
+                return JsonResponse({"success": False, "error": "Unknown choice."}, status=400)
+            try:
+                watch.set_notice(request.user, chat_obj, str(data.get("id") or ""), data["status"])
+            except ValueError as e:
+                return JsonResponse({"success": False, "error": str(e)}, status=400)
+            return JsonResponse({"success": True, "watch": watch.page_state(request.user, chat_obj)})
+        elif action == "watch_settings":  # the first-time note's buttons, and "off in this chat"
+            if "keep_on" in data:
+                watch.intro_seen(request.user, bool(data["keep_on"]))
+            if "chat_off" in data:
+                watch.set_chat_off(chat_obj, bool(data["chat_off"]))
+            return JsonResponse({"success": True, "watch": watch.page_state(request.user, chat_obj)})
         elif action == "word_note":  # Bulba turns a rough wish into a clear director's note
             try:
                 note = word_note(request.user, character, messages, str(data.get("text") or ""),
@@ -564,6 +631,7 @@ def chat(request, slug):
             # The old reply is only replaced once the new one arrives (and is kept as a swipe)
             if messages and messages[-1][0] == "assistant":
                 regen_from = messages.pop()
+                watch.note_signal(request.user, chat_obj, "rewritten", regen_from[2])
 
         elif action == "swipe":
             if not messages or messages[-1][0] != "assistant":
@@ -585,6 +653,7 @@ def chat(request, slug):
                 "photo_second": _photo(character, "photo_second", emo2 or "neutral")
                 if (character.is_mult or char_count >= 2) else None,
                 "swipes": chats.version_info(messages),
+                "polish": polish.page_payload(chats.polish_of(messages[-1])),
             })
 
         # --- 5. CONTINUE: the AI carries on its last reply, with the same preset, lore and summary ---
@@ -620,7 +689,8 @@ def chat(request, slug):
             full_text = text_rules("saved", last_text + new_chunk, "assistant")
             messages[-1] = chats.set_text(messages[-1], full_text)
             save_messages(messages)
-            return JsonResponse({"success": True, "reply": full_text})
+            return JsonResponse({"success": True, "reply": full_text,
+                                 "polish_due": polish.due(request.user, chat_obj, messages)})
         elif action == "chat_persona":  # who the user is in this chat only; empty name = their usual persona
             name = str(data.get("name") or "").strip()[:100]
             chat_state["persona"] = ({"name": name, "description": str(data.get("description") or "").strip()[:4000]}
@@ -682,6 +752,7 @@ def chat(request, slug):
                 if action == "chat":
                     user_message = text_rules("saved", user_message, "user")
                     messages.append(("user", datetime.now().strftime("%H:%M"), user_message, "neutral", 1))
+                    watch.on_user_message(request.user, chat_obj, user_message)  # their reply pace
 
                 lore_report = None
                 context_dropped = 0
@@ -825,6 +896,7 @@ def chat(request, slug):
                                     if (character.is_mult or char_count >= 2) else None)
 
                     save_messages(messages)
+                    watch.on_reply_done(request.user, chat_obj, messages, character.name)  # free checks, pace clock
 
                     # Automatic summary: tell the page to run one in the background
                     summary_task = ai_client.get_task_setting(request.user, "summary")
@@ -854,6 +926,9 @@ def chat(request, slug):
                         "lore": lore_report,
                         "summary_due": summary_due,
                         "trackers_due": trackers_due,
+                        "watch_due": watch.due(request.user, chat_obj, messages),  # Bulba Watch reads, in the background
+                        "polish_due": polish.due(request.user, chat_obj, messages),  # the page asks for the polish next
+                        "watch": watch.page_state(request.user, chat_obj),
                         "context_dropped": context_dropped,
                         "swipes": chats.version_info(messages),
                         "spending": ai_client.spending(request.user),
@@ -978,7 +1053,8 @@ def chat(request, slug):
         "messages": [tuple(m[:5]) + (chats.reasoning_of(m),
                                      [game.describe(op) for op in chats.game_of(m) if not extras.is_extra(op)],
                                      [extras.render(op) for op in chats.game_of(m) if extras.is_extra(op)],
-                                     (chats.audio_of(m) or {}).get("url", ""))
+                                     (chats.audio_of(m) or {}).get("url", ""),
+                                     polish.dumps(chats.polish_of(m)) if chats.polish_of(m) else "")
                      for m in messages],
         "voice_on": bool(get_elevenlabs_key(request.user)),
         "swipes": chats.version_info(messages),
@@ -986,6 +1062,7 @@ def chat(request, slug):
         "appearance": _appearance(request.user, character),
         "bulba_ideas": extras.ideas_on(request.user),
         "bulba_url": reverse("bulba_chat", kwargs={"chat_id": chat_obj.id}),
+        "watch_data": watch.page_state(request.user, chat_obj),
         "display_rules": {
             "rules": [r for r in regex_rules.for_chat(presets.normalize(presets.get_active(request.user).data), character, request.user)
                       if r["enabled"] and r["mode"] == "display"],
@@ -1814,10 +1891,11 @@ def get_media_resources(request):
 # ---------------------------------------------------------------------------
 
 def _bulba_state(session):
-    from .bulba import agent, editing
+    from .bulba import agent, editing, progress
     profile = agent.target_profile(session)
     return {
         "id": session.id, "stage": session.stage, "stages": agent.STAGES,
+        "progress": progress.progress(session, agent.STAGES) if session.mode == "setup" else None,
         "spent": round(session.spent, 4), "budget": session.budget, "month": ai_client.spending(session.user),
         "chat": _bulba_chat_link(session) if session.mode == "setup" else None,
         "mode": session.mode,
@@ -1937,7 +2015,7 @@ def bulba_chat_page(request, chat_id):
 
 @login_required
 def bulba_api(request):
-    from .bulba import actions, agent, editing
+    from .bulba import actions, agent, editing, progress
     from .models import BulbaSession
     if request.method == "GET":  # what Bulba is doing right now (the page asks while a turn runs)
         filters = {"mode": "chat", "chat_id": request.GET["chat"]} if request.GET.get("chat") else {"mode": "setup"}
@@ -1963,6 +2041,71 @@ def bulba_api(request):
         events = session.events
     elif action == "say":
         events = agent.run_turn(session, data.get("text"))
+    elif action == "route":  # the opening's full setup or fast route (no AI needed)
+        try:
+            events = agent.take_route(session, str(data.get("route") or ""))
+        except (ValueError, actions.ProposalError) as e:
+            return JsonResponse({"error": str(e)}, status=400)
+    elif action == "skip":  # the panel's Skip button: on to the next stage
+        try:
+            skipped, moved = agent.skip_stage(session)
+        except ValueError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        label, nxt = progress.STAGES[skipped][0], progress.STAGES[session.stage][0]
+        events = agent.run_turn(
+            session, None, action_note=f"Skipped: {label}",
+            model_note=f"Skipped: {label}. They pressed Skip. Start the next stage ({session.stage}: {nxt}) with "
+                       "its first question; don't go back to the skipped one unless they ask")
+        # The new stage's mark goes right after the "Skipped" line, before Bulba's message
+        session.events.insert(len(session.events) - len(events) + 1, moved)
+        events.insert(1, moved)
+    elif action == "note":  # a Bulba Watch note they opened in a chat: Bulba explains it and proposes a fix
+        from .bulba import watch
+        if session.mode != "chat" or not session.chat_id:
+            return JsonResponse({"error": "Notes belong to a chat."}, status=400)
+        try:
+            note = watch.set_notice(request.user, session.chat, str(data.get("id") or ""), "opened")
+        except ValueError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        session.activity = ""
+        events = agent.run_turn(session, None, action_note=f"Bulba Watch: {note['title']}",
+                                model_note=watch.for_bulba(note))
+        session.save()
+        return JsonResponse({"events": events, "state": _bulba_state(session),
+                             "watch": watch.page_state(request.user, session.chat)})
+    elif action == "extras_form":  # the extras in one form: applied at once (Undo on the card)
+        part = "story" if data.get("part") == "story" else "setup"
+        answers = data.get("answers") if isinstance(data.get("answers"), dict) else {}
+        form_event = next((e for e in reversed(session.events) if e.get("type") == "extras_form"
+                           and e.get("part") == part), None)
+        if form_event is None:
+            return JsonResponse({"error": "There's no form to answer."}, status=400)
+        payload, summary = agent.form_payload(part, answers)
+        if not payload:
+            return JsonResponse({"error": "Nothing picked."}, status=400)
+        proposal = agent._proposal(session, "extras", "Extras" if part == "setup" else "Story extras", summary, payload)
+        try:
+            note = actions.apply(session, proposal["id"])
+        except actions.ProposalError as e:
+            session.proposals.remove(proposal)
+            return JsonResponse({"error": str(e)}, status=400)
+        form_event["answers"] = {k: payload.get(k) for k in payload}
+        moved = agent.advance_stage(session, proposal)
+        shown = [{"type": "proposal", "id": proposal["id"]}] + ([moved] if moved else [])
+        if part == "setup" and session.stage == "taste":  # the basics form comes next, no AI needed
+            events = agent._canned(session, "Sent the extras",
+                                   "Done. Now the main part: how replies should read. Answer what you care about, "
+                                   "skip the rest.", extra_events=shown, after=[{"type": "form", "form": "basics"}])
+            session.messages[-2]["content"] = "[Sent the extras form; applied: " + "; ".join(summary) + "]"
+        else:
+            events = agent.run_turn(session, None, action_note="Sent the extras",
+                                    model_note=f"They sent the {'story ' if part == 'story' else ''}extras form; "
+                                               f"applied: {'; '.join(summary)}. {note} Don't ask about these again; "
+                                               "carry on with the next step")
+            # The card (and the new stage) go right after the "Sent" line, before Bulba's message
+            at = len(session.events) - len(events) + 1
+            session.events[at:at] = shown
+            events[1:1] = shown
     elif action == "basics":  # the basics form: recorded as preferences, then Bulba carries on
         answers = data.get("answers") if isinstance(data.get("answers"), dict) else {}
         form_event = next((e for e in reversed(session.events) if e.get("type") == "form"), None)

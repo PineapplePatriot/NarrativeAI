@@ -120,6 +120,65 @@ function basicsForm(live, answers) {
       </form>`;
 }
 
+// The extras in one form: "setup" (summaries, trackers, pictures, Watch, background model) or "story" (dice,
+// story extras, the ideas button, pre-ticked by Bulba). Sent answers are applied at once.
+function extrasForm(ev, live) {
+    const dis = live ? '' : 'disabled';
+    const v = { ...ev.values, ...(ev.answers || {}) };
+    const radio = (name, options, current) => options.map(([val, label]) => `<label class="pill"><input type="radio"
+        name="x_${name}" value="${val}" ${current === val ? 'checked' : ''} ${dis}><span>${esc(label)}</span></label>`).join('');
+    const check = (name, label, on) => `<label class="pill"><input type="checkbox" name="x_${name}" ${on ? 'checked' : ''} ${dis}><span>${esc(label)}</span></label>`;
+    const every = (name, item) => `<label class="every">every <input type="number" name="x_${name}_every" min="1" max="200"
+        value="${esc((item || {}).interval || (name === 'summary' ? 10 : 2))}" ${dis}> messages</label>`;
+    const row = (label, field, hint) => `<div class="form-row"><div class="form-label">${esc(label)}${hint ? `<small>${esc(hint)}</small>` : ''}</div>
+        <div class="form-field">${field}</div></div>`;
+    let rows;
+    if (ev.part === 'setup') {
+        rows = row('Voices', ev.has_voice_key ? '<span class="help">On: your ElevenLabs key is saved.</span>'
+                : '<a class="choice" href="/users/extras/" target="_blank" rel="noopener">Add an ElevenLabs key ↗</a> <span class="help">optional; never paste keys in this chat</span>')
+            + row('Story summary', radio('summary', [['auto', 'Automatic'], ['manual', 'Only when I ask']], (v.summary || {}).mode) + every('summary', v.summary), 'keeps long chats on track')
+            + row('Story trackers', radio('trackers', [['auto', 'Automatic'], ['manual', 'Only when I ask']], (v.trackers || {}).mode) + every('trackers', v.trackers), 'where, when, who, how they feel')
+            + row('Character pictures', check('sprites', 'Change with the mood', v.sprites), 'one small call per reply')
+            + row('Bulba Watch', check('watch', 'On', v.watch), 'reads replies now and then for habits that repeat')
+            + ((ev.cheap_models || []).length ? row('Background jobs', `<select name="x_background" ${dis}>
+                <option value="chat" ${v.background === 'chat' ? 'selected' : ''}>My chat model</option>
+                ${ev.cheap_models.map(m => `<option value="${esc(m.id)}" ${v.background === m.id ? 'selected' : ''}>${esc(m.name)} (cheaper)</option>`).join('')}
+              </select>`, 'summaries and trackers') : '');
+    } else {
+        rows = (ev.why ? `<p class="help form-why">🥔 ${esc(ev.why)}</p>` : '')
+            + row('Chance', radio('game', [['off', 'No dice'], ['dice', 'Dice'], ['full', 'Dice, inventory and conditions']], v.game))
+            + row('Story extras', (ev.kinds || []).map(k => `<label class="pill"><input type="checkbox" name="x_story_extras"
+                value="${esc(k.id)}" ${(v.story_extras || []).includes(k.id) ? 'checked' : ''} ${dis}><span>${esc(k.label)}</span></label>`).join(''))
+            + row("Bulba's ideas button", check('ideas', 'Show it by the message box', v.ideas));
+    }
+    return `<form class="basics-form extras-form" data-extras="${esc(ev.part)}">${rows}
+        ${live ? '<div class="form-actions"><button type="submit">Save these</button><span class="help">All of it can be changed later on the Extras page.</span></div>' : ''}
+      </form>`;
+}
+
+$('log').addEventListener('submit', e => {
+    const form = e.target.closest('[data-extras]');
+    if (!form) return;
+    e.preventDefault();
+    const part = form.dataset.extras;
+    const get = n => form.querySelector(`[name="x_${n}"]`);
+    const picked = n => (form.querySelector(`input[name="x_${n}"]:checked`) || {}).value;
+    let answers;
+    if (part === 'setup') {
+        answers = { sprites: get('sprites').checked, watch: get('watch').checked };
+        for (const t of ['summary', 'trackers']) {
+            if (picked(t)) answers[t] = { mode: picked(t), interval: Number(get(`${t}_every`).value) || undefined };
+        }
+        if (get('background')) answers.background = get('background').value;
+    } else {
+        answers = { game: picked('game'), ideas: get('ideas').checked,
+                    story_extras: [...form.querySelectorAll('input[name="x_story_extras"]:checked')].map(b => b.value) };
+    }
+    const formEvent = [...events].reverse().find(ev => ev.type === 'extras_form' && ev.part === part);
+    if (formEvent) formEvent.answers = answers;  // the sent form keeps showing what they picked
+    run({ action: 'extras_form', part, answers }, 'Saving…');
+});
+
 // When setup is done: the way into the chat, and where pictures go
 function doneBlock() {
     if (state.stage !== 'done' || !state.chat) return '';
@@ -140,6 +199,8 @@ function render() {
         if (ev.type === 'bulba') {
             const choices = (ev.choices || []).map(c => c.url
                 ? `<a class="choice" href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.label)} ↗</a>`
+                : c.route  // the opening's full setup / fast route: handled without Bulba's model
+                ? `<button type="button" class="choice${c.hint ? ' with-hint' : ''}" data-route="${esc(c.route)}" data-label="${esc(c.label)}" ${liveChoices(i) ? '' : 'disabled'}>${esc(c.label)}${c.hint ? `<small>${esc(c.hint)}</small>` : ''}</button>`
                 : `<button type="button" class="choice" data-say="${esc(c.label)}" ${liveChoices(i) ? '' : 'disabled'}>${esc(c.label)}</button>`).join('');
             return `<div class="msg bulba"><span class="potato">🥔</span><div class="bubble">${fmt(ev.text)}
                     ${choices ? `<div class="choices">${choices}</div>` : ''}</div></div>`;
@@ -163,6 +224,7 @@ function render() {
         if (ev.type === 'downloads') return `<div class="downloads">⬇ ${(ev.links || []).map(l =>
             `<a href="${esc(l.url)}" download>${esc(l.label)}</a>`).join('')}</div>`;
         if (ev.type === 'form') return basicsForm(i === types.lastIndexOf('form') && i > answeredUpTo && !busy, ev.answers);
+        if (ev.type === 'extras_form') return extrasForm(ev, i === types.lastIndexOf('extras_form') && i > answeredUpTo && !busy && !ev.answers);
         if (ev.type === 'lookup') return `<div class="lookup">🔎 Looked up “${esc(ev.query)}”${(ev.sources || []).length
             ? ': ' + ev.sources.map(src => `<a href="${esc(src.url)}" target="_blank" rel="noopener">${esc(src.title || src.url)}</a>`).join(', ') : ''}</div>`;
         if (ev.type === 'samples') {
@@ -194,11 +256,38 @@ function render() {
     renderPanel();
 }
 
+// The setup's stages: done (green), skipped, the current one with its small steps, and what's left
+function renderStages() {
+    const pr = state.progress;
+    if (!pr) {
+        const current = state.stages.indexOf(state.stage);
+        $('stages').innerHTML = state.stages.map((s, i) =>
+            `<li class="${i < current ? 'done' : i === current ? 'current' : ''}">${esc(STAGE_LABELS[s] || s)}</li>`).join('');
+        return;
+    }
+    const finished = state.stage === 'done';
+    $('progressLine').textContent = finished ? 'All done. You can still change anything.'
+        : `Step ${pr.step} of ${pr.of}` + (pr.questions_left ? ` · about ${pr.questions_left} question${pr.questions_left === 1 ? '' : 's'} left` : '');
+    $('stages').innerHTML = pr.stages.map(st => {
+        const mark = { done: '✓', skipped: '⤼', current: '●', todo: '' }[st.status];
+        const steps = st.status === 'current' && st.steps.length > 1 ? `<ul class="steps">${st.steps.map(x =>
+            `<li class="${x.done ? 'done' : ''}">${x.done ? '✓' : '◻'} ${esc(x.label)}${x.optional ? ' <i>(optional)</i>' : ''}</li>`).join('')}</ul>` : '';
+        const hint = ['current', 'todo'].includes(st.status) ? `<small>${esc(st.hint)}</small>` : '';
+        const note = st.status === 'skipped' ? ' <i>skipped</i>' : '';
+        return `<li class="${st.status}"><span class="mark">${mark}</span><div><span class="stage-name">${esc(st.label)}</span>${note}${hint}${steps}</div></li>`;
+    }).join('');
+    $('miniProgress').hidden = false;
+    $('miniProgressText').textContent = `${$('progressLine').textContent}` + (finished ? '' : ` · ${pr.stages[pr.step - 1].label}`);
+    $('miniSkip').hidden = !pr.can_skip;
+    $('miniSkip').disabled = busy;
+    $('skipBtn').hidden = !pr.can_skip;
+    $('skipBtn').disabled = busy;
+    $('skipTip').hidden = !pr.can_skip;
+}
+
 function renderPanel() {
     $('modelName').textContent = state.model;
-    const current = state.stages.indexOf(state.stage);
-    $('stages').innerHTML = state.stages.map((s, i) =>
-        `<li class="${i < current ? 'done' : i === current ? 'current' : ''}">${esc(STAGE_LABELS[s] || s)}</li>`).join('');
+    renderStages();
     $('spent').textContent = `$${state.spent.toFixed(2)}`;
     $('budget').textContent = `$${state.budget.toFixed(2)}`;
     $('meterFill').style.width = `${Math.min(100, state.spent / state.budget * 100)}%`;
@@ -240,8 +329,12 @@ async function run(body, label) {
     try {
         const data = await api(body);
         if (window.parent !== window && ['apply', 'undo'].includes(body.action)) {
-            window.parent.postMessage({ bulba: body.action }, window.location.origin);
+            const changed = (data.state.proposals || []).find(x => x.id === body.id);
+            // A fixed message changes what the chat shows: the page reloads with Bulba still open
+            window.parent.postMessage({ bulba: changed && changed.kind === 'message_fix' ? 'reply' : body.action },
+                                      window.location.origin);
         }
+        if (window.parent !== window && data.watch) window.parent.postMessage({ watch: data.watch }, window.location.origin);
         if (body.action === 'say') events.pop();  // the server sends it back with the rest
         events = body.action === 'restart' ? data.events : events.concat(data.events);
         state = data.state;
@@ -276,6 +369,11 @@ $('input').addEventListener('keydown', e => {
 });
 
 $('log').addEventListener('click', e => {
+    const routeBtn = e.target.closest('[data-route]');
+    if (routeBtn && !routeBtn.disabled && !busy) {
+        run({ action: 'route', route: routeBtn.dataset.route }, routeBtn.dataset.route.startsWith('fast:') ? 'Setting it up…' : 'One moment…');
+        return;
+    }
     const sayBtn = e.target.closest('[data-say]');
     if (sayBtn && !sayBtn.disabled && !busy) {
         const text = sayBtn.dataset.say;
@@ -385,12 +483,18 @@ document.addEventListener('click', (e) => {
     btn.textContent = body.classList.contains('folded') ? 'Show all' : 'Show less';
 });
 
-// Opened from the chat's pen menu with something already typed: put it in the box, unsent
+// Opened from the chat's pen menu with something already typed: put it in the box, unsent.
+// Or from a Bulba Watch note: Bulba looks at it straight away.
 (function () {
     const fill = (text) => { if (text) { $('input').value = text; $('input').focus(); } };
-    fill(new URLSearchParams(window.location.search).get('draft'));
+    const note = (id) => { if (id) run({ action: 'note', id }, 'Bulba is looking at it…'); };
+    const params = new URLSearchParams(window.location.search);
+    fill(params.get('draft'));
+    note(params.get('note'));
     window.addEventListener('message', (e) => {
-        if (e.origin === window.location.origin && e.data && e.data.bulbaDraft) fill(e.data.bulbaDraft);
+        if (e.origin !== window.location.origin || !e.data) return;
+        if (e.data.bulbaDraft) fill(e.data.bulbaDraft);
+        if (e.data.bulbaNote) note(e.data.bulbaNote);
     });
 })();
 
@@ -475,3 +579,10 @@ $('log').addEventListener('click', async e => {
         window.parent.postMessage({ bulba: 'reply' }, window.location.origin);
     } catch (err) { alert(err.message); btn.disabled = false; }
 });
+
+// --------------------------------------------------------------- skipping
+if ($('skipBtn')) {
+    const skip = () => { if (!busy) run({ action: 'skip' }, 'Skipping…'); };
+    $('skipBtn').addEventListener('click', skip);
+    $('miniSkip').addEventListener('click', skip);
+}

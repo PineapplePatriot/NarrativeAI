@@ -57,6 +57,18 @@ TASKS = {
         "timeout": 120,
         "hidden": True,  # not on the Connections page: the model is ours to choose
     },
+    "watch": {
+        "label": "Bulba Watch",
+        "help": "Every few replies, Bulba reads the latest ones for habits that keep repeating. Bulba's model.",
+        "timeout": 90,
+        "hidden": True,  # switched on the Extras page; the model is Bulba's
+    },
+    "polish": {
+        "label": "Bulba's polish",
+        "help": "Rewrites the sentences with habits you asked to have fixed. Bulba's model, or your chat model.",
+        "timeout": 90,
+        "hidden": True,  # chosen on the Extras page
+    },
     "voice_split": {
         "label": "Voice splitting",
         "help": "Works out who says each line of a reply before ElevenLabs reads it aloud. "
@@ -120,7 +132,12 @@ BULBA_MODEL = "xiaomi/mimo-v2.6-pro"
 
 def resolve(user, task):
     """Returns (profile, model) for a task."""
-    if task == "bulba":
+    if task == "polish":  # Bulba's model unless they chose their chat model on the Extras page
+        from mainapp.models import ChatSettings
+        obj = ChatSettings.objects.filter(author=user).first()
+        task = "chat" if obj and (obj.watch or {}).get("fix_model") == "chat" else "bulba"
+        return resolve(user, task)
+    if task in ("bulba", "watch"):
         profile = main_profile(user)
         if profile is None:
             raise NoConnection("No AI connection is set up yet.")
