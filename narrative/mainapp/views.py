@@ -29,7 +29,7 @@ from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
 from . import extras, game, media_library, thinking, ai_client, cards, chats, regex_rules, model_profiles, presets, samplers, starters, trackers
-from .bulba import watch
+from .bulba import polish, watch
 
 from .utils import build_ai_request, get_elevenlabs_key
 from .lorebook import (
@@ -410,6 +410,36 @@ def chat(request, slug):
             except ai_client.AIError as e:
                 return JsonResponse({"success": False, "error": str(e)})
             return JsonResponse({"success": True, "ideas": ideas, "mode": mode, "spending": ai_client.spending(request.user)})
+        elif action == "polish":  # Bulba's polish on the newest reply (the page asks right after it arrives)
+            if not polish.due(request.user, chat_obj, messages) or chats.polish_of(messages[-1]):
+                return JsonResponse({"success": True, "changed": False})
+            original = messages[-1][2]
+            try:
+                new_text, fixes = polish.polish(request.user, character, chat_obj, messages, chat_state["summary"])
+            except ai_client.AIError as e:
+                return JsonResponse({"success": False, "error": str(e)})
+            messages = load_messages()  # read again: they may have moved on while it worked
+            if not fixes or not messages or messages[-1][0] != "assistant" or messages[-1][2] != original:
+                return JsonResponse({"success": True, "changed": False, "spending": ai_client.spending(request.user)})
+            messages[-1] = chats.with_polish(messages[-1], new_text, polish.record(original, fixes))
+            save_messages(messages)
+            watch.recheck(request.user, chat_obj, messages)
+            return JsonResponse({"success": True, "changed": True, "reply": new_text,
+                                 "polish": polish.page_payload(chats.polish_of(messages[-1])),
+                                 "spending": ai_client.spending(request.user)})
+        elif action == "polish_undo":  # back to the reply as the model wrote it
+            try:
+                index = int(data.get("index"))
+                rec = chats.polish_of(messages[index]) if 0 <= index < len(messages) else None
+            except (TypeError, ValueError):
+                rec = None
+            if not rec:
+                return JsonResponse({"success": False, "error": "Nothing to undo there."}, status=400)
+            messages[index] = chats.with_polish(messages[index], rec["original"], None)
+            save_messages(messages)
+            if index == len(messages) - 1:
+                watch.recheck(request.user, chat_obj, messages)
+            return JsonResponse({"success": True, "reply": rec["original"]})
         elif action == "watch":  # Bulba Watch reads the latest replies (the page asks after a reply)
             if watch.due(request.user, chat_obj, messages):
                 from .bulba import control
@@ -420,7 +450,7 @@ def chat(request, slug):
                     log.info("Bulba Watch skipped a read: %s", e)
             return JsonResponse({"success": True, "watch": watch.page_state(request.user, chat_obj)})
         elif action == "watch_note":  # a note: dismissed, "I don't mind this", or opened with Bulba
-            if data.get("status") not in ("dismissed", "muted", "opened"):
+            if data.get("status") not in ("dismissed", "muted", "opened", "fix"):
                 return JsonResponse({"success": False, "error": "Unknown choice."}, status=400)
             try:
                 watch.set_notice(request.user, chat_obj, str(data.get("id") or ""), data["status"])
@@ -612,6 +642,7 @@ def chat(request, slug):
                 "photo_second": _photo(character, "photo_second", emo2 or "neutral")
                 if (character.is_mult or char_count >= 2) else None,
                 "swipes": chats.version_info(messages),
+                "polish": polish.page_payload(chats.polish_of(messages[-1])),
             })
 
         # --- 5. CONTINUE: the AI carries on its last reply, with the same preset, lore and summary ---
@@ -647,7 +678,8 @@ def chat(request, slug):
             full_text = text_rules("saved", last_text + new_chunk, "assistant")
             messages[-1] = chats.set_text(messages[-1], full_text)
             save_messages(messages)
-            return JsonResponse({"success": True, "reply": full_text})
+            return JsonResponse({"success": True, "reply": full_text,
+                                 "polish_due": polish.due(request.user, chat_obj, messages)})
         elif action == "chat_persona":  # who the user is in this chat only; empty name = their usual persona
             name = str(data.get("name") or "").strip()[:100]
             chat_state["persona"] = ({"name": name, "description": str(data.get("description") or "").strip()[:4000]}
@@ -884,6 +916,7 @@ def chat(request, slug):
                         "summary_due": summary_due,
                         "trackers_due": trackers_due,
                         "watch_due": watch.due(request.user, chat_obj, messages),  # Bulba Watch reads, in the background
+                        "polish_due": polish.due(request.user, chat_obj, messages),  # the page asks for the polish next
                         "watch": watch.page_state(request.user, chat_obj),
                         "context_dropped": context_dropped,
                         "swipes": chats.version_info(messages),
@@ -1009,7 +1042,8 @@ def chat(request, slug):
         "messages": [tuple(m[:5]) + (chats.reasoning_of(m),
                                      [game.describe(op) for op in chats.game_of(m) if not extras.is_extra(op)],
                                      [extras.render(op) for op in chats.game_of(m) if extras.is_extra(op)],
-                                     (chats.audio_of(m) or {}).get("url", ""))
+                                     (chats.audio_of(m) or {}).get("url", ""),
+                                     polish.dumps(chats.polish_of(m)) if chats.polish_of(m) else "")
                      for m in messages],
         "voice_on": bool(get_elevenlabs_key(request.user)),
         "swipes": chats.version_info(messages),

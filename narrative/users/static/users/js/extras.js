@@ -74,6 +74,10 @@ function fillMemory() {
              <button type="button" class="x" data-edit="${i}" title="Reword">✎</button>
              <button type="button" class="x" data-forget="${i}" title="Remove">✕</button></span></li>`).join('')
         : '<li class="empty">Nothing yet. It learns as you rewrite or edit replies.</li>';
+    $('watchFix').innerHTML = (mem.fix || []).length ? mem.fix.map((m, i) => `<li><span>${esc(m.title)}</span><span class="memory-btns">
+        <button type="button" class="x" data-stopfix="${i}" title="Stop fixing this">✕</button></span></li>`).join('')
+        : '<li class="empty">Nothing yet. Press "Fix this automatically" on one of Bulba\'s notes in a chat.</li>';
+    $('fixModel').value = mem.fix_model || 'bulba';
     $('watchMutedBox').hidden = !mem.muted.length;
     $('watchMuted').innerHTML = mem.muted.map((m, i) => `<li><span>${esc(m.title)}</span><span class="memory-btns">
         <button type="button" class="x" data-unmute="${i}" title="Notice it again">✕</button></span></li>`).join('');
@@ -97,14 +101,16 @@ async function changeMemory(body) {
 
 document.addEventListener('click', e => {
     const mem = state.watch_memory || { taste: [], muted: [] };
-    const t = e.target.closest('[data-edit], [data-forget], [data-unmute], [data-save], [data-cancel]');
+    const t = e.target.closest('[data-edit], [data-forget], [data-unmute], [data-stopfix], [data-save], [data-cancel]');
     if (!t || !t.closest('.memory')) return;
     if (t.dataset.edit !== undefined) { editingLine = mem.taste[t.dataset.edit]; fillMemory(); $('memoryEdit').focus(); }
     else if (t.dataset.cancel !== undefined) { editingLine = null; fillMemory(); }
     else if (t.dataset.save !== undefined) changeMemory({ op: 'edit', old: mem.taste[t.dataset.save], new: $('memoryEdit').value });
     else if (t.dataset.forget !== undefined) changeMemory({ op: 'forget', old: mem.taste[t.dataset.forget] });
     else if (t.dataset.unmute !== undefined) changeMemory({ op: 'unmute', old: mem.muted[t.dataset.unmute].label });
+    else if (t.dataset.stopfix !== undefined) changeMemory({ op: 'stop_fix', old: mem.fix[t.dataset.stopfix].label });
 });
+$('fixModel').addEventListener('change', e => changeMemory({ op: 'fix_model', new: e.target.value }));
 document.addEventListener('keydown', e => {
     if (e.target.id === 'memoryEdit' && e.key === 'Enter') { e.preventDefault(); document.querySelector('[data-save]').click(); }
 });

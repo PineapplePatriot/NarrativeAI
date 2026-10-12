@@ -75,6 +75,17 @@
         <p class="help">From the replies you rewrite or edit. Bulba can get it wrong: reword a line, or remove it.
             Changes save at once.</p>
         <ul class="memory" id="watchTaste"></ul>
+        <h3 class="sub">Fixed automatically (Bulba's polish)</h3>
+        <p class="help">Habits you asked Bulba to fix ("Fix this automatically" on a note). Each new reply, swipe or
+            continued reply gets a quick pass that rewrites only the sentences with them; the original is one click away
+            under the reply. A small extra call each time a reply needs it.</p>
+        <ul class="memory" id="watchFix"></ul>
+        <label class="fix-model">Who rewrites:
+            <select id="fixModel">
+                <option value="bulba">Bulba's model (cheaper; fine for wording fixes)</option>
+                <option value="chat">Your chat model (same voice; costs more)</option>
+            </select>
+        </label>
         <div id="watchMutedBox" hidden>
             <h3 class="sub">Habits you said you don't mind</h3>
             <p class="help">Bulba won't bring these up. Remove one to have it noticed again.</p>

@@ -4383,3 +4383,137 @@ class WatchInBulbaContextTests(BulbaInChatTests):
         watch.set_on(self.user, False)
         self.api(action="say", text="Still off")
         self.assertNotIn("### What Bulba Watch knows", self.bulba_calls[-1]["messages"][0]["content"])
+
+
+class PolishLogicTests(SimpleTestCase):
+    """Bulba's polish: which fixes survive the free checks."""
+
+    TEXT = ('He looked up. His voice is the one he used on Stelios in the water. <font color="#9cf">"Sit."</font> '
+            'You sit down, feeling nervous. [[extra 1]] The pen scratches on.')
+
+    def test_good_fixes_apply_and_bad_ones_are_dropped(self):
+        from mainapp.bulba import polish
+        new, kept = polish.apply_fixes(self.TEXT, [
+            {"habit": "Forced callbacks", "find": "His voice is the one he used on Stelios in the water.",
+             "replace": "His voice goes flat."},
+            {"habit": "Deciding things for your character", "find": "You sit down, feeling nervous. ", "replace": ""},
+            {"habit": "x", "find": "Not in the reply at all.", "replace": "y"},
+            {"habit": "x", "find": '<font color="#9cf">"Sit."</font>', "replace": '"Sit."'},  # loses the colour tag
+            {"habit": "x", "find": "[[extra 1]] The pen", "replace": "The pen"},  # loses the story extra
+        ])
+        self.assertEqual(len(kept), 2)
+        self.assertIn("His voice goes flat.", new)
+        self.assertNotIn("feeling nervous", new)
+        self.assertIn('<font color="#9cf">', new)
+        self.assertIn("[[extra 1]]", new)
+
+    def test_too_much_rewritten_keeps_the_original(self):
+        from mainapp.bulba import polish
+        text = "A sentence that goes on. " * 40
+        new, kept = polish.apply_fixes(text, [{"habit": "x", "find": text.strip(), "replace": "Something else."}])
+        self.assertEqual((new, kept), (text, []))
+
+    def test_a_phrase_found_twice_is_ambiguous(self):
+        from mainapp.bulba import polish
+        text = "He nods. Then he nods. And the long scene goes on and on for a good while after that."
+        self.assertEqual(polish.apply_fixes(text, [{"habit": "x", "find": "nods.", "replace": "shrugs."}])[1], [])
+
+
+class PolishChatTests(WatchChatTests):
+    """Bulba's polish in a chat, with a fake rewriter."""
+
+    def setUp(self):
+        super().setUp()
+        self.polish_calls = []
+        self.polish_answer = {"fixes": []}
+
+    def fake_post(self, url, headers=None, json=None, timeout=None, **kwargs):
+        import json as json_mod
+        from unittest import mock
+        if json["messages"][0]["content"].startswith("# Bulba's polish"):
+            self.polish_calls.append(json)
+            resp = mock.Mock(status_code=200)
+            resp.json.return_value = {"choices": [{"message": {"content": json_mod.dumps(self.polish_answer)}}],
+                                      "usage": {"cost": 0.001}}
+            return resp
+        return super().fake_post(url, headers=headers, json=json, timeout=timeout, **kwargs)
+
+    def approve(self, label="overexplaining"):
+        from mainapp.bulba import watch
+        self.post({"action": "chat", "message": "Hi."})
+        chat = self.chat_obj()
+        data = watch.chat_data(chat)
+        data["checked"] = [1, 3, 5]
+        data["log"] = [{"label": label, "quote": f"which meant he was sad {at}", "at": at, "cause": "model"}
+                       for at in (1, 3, 5)]
+        note = watch.habits(data, [])[0]
+        watch.save_chat_data(chat, data)
+        resp = self.post({"action": "watch_note", "id": note["id"], "status": "fix"}).json()
+        self.assertEqual(resp["watch"]["count"], 0)
+        return note
+
+    def test_nothing_happens_until_a_habit_is_approved(self):
+        data = self.post({"action": "chat", "message": "Hi."}).json()
+        self.assertFalse(data["polish_due"])
+        self.assertEqual(self.post({"action": "polish"}).json()["changed"], False)
+        self.assertEqual(self.polish_calls, [])
+
+    def test_an_approved_habit_is_fixed_in_new_replies(self):
+        from mainapp import chats
+        from mainapp.bulba import watch
+        self.approve()
+        self.assertEqual(watch.user_data(self.user)["fix"], ["overexplaining"])
+        self.assertTrue(self.post({"action": "chat", "message": "Go on."}).json()["polish_due"])
+        self.polish_answer = {"fixes": [{"habit": "Explaining what you already got", "find": "A reply.",
+                                         "replace": "A quieter reply."}]}
+        data = self.post({"action": "polish"}).json()
+        self.assertTrue(data["changed"])
+        self.assertEqual(data["reply"], "A quieter reply.")
+        self.assertEqual(data["polish"]["original"], "A reply.")
+        sent = self.polish_calls[0]
+        self.assertEqual(sent["model"], "xiaomi/mimo-v2.6-pro")  # Bulba's model by default
+        self.assertIn("which meant he was sad", sent["messages"][1]["content"])  # real quotes from this chat
+        self.assertNotIn("Go on.", sent["messages"][1]["content"])  # the summary, not the chat
+        last = self.saved_messages()[-1]
+        self.assertEqual(last[2], "A quieter reply.")
+        self.assertEqual(chats.polish_of(tuple(last))["original"], "A reply.")
+        # only once per text
+        self.post({"action": "polish"})
+        self.assertEqual(len(self.polish_calls), 1)
+        # the page shows it after a reload
+        self.assertContains(self.client.get(self.url), 'class="polish-line"')
+        # undo
+        index = len(self.saved_messages()) - 1
+        self.assertEqual(self.post({"action": "polish_undo", "index": index}).json()["reply"], "A reply.")
+        self.assertIsNone(chats.polish_of(tuple(self.saved_messages()[-1])))
+        self.assertEqual(self.post({"action": "polish_undo", "index": index}).status_code, 400)
+
+    def test_regenerate_and_continue_are_polished_too(self):
+        self.approve()
+        self.post({"action": "chat", "message": "Go on."})
+        self.assertTrue(self.post({"action": "regenerate"}).json()["polish_due"])
+        self.assertTrue(self.post({"action": "continue"}).json()["polish_due"])
+
+    def test_their_chat_model_if_they_choose_it(self):
+        self.approve()
+        resp = self.client.post(reverse("users:extras"), json.dumps({"action": "watch_memory", "op": "fix_model",
+                                                                     "new": "chat"}), content_type="application/json")
+        self.assertEqual(resp.json()["state"]["watch_memory"]["fix_model"], "chat")
+        self.post({"action": "chat", "message": "Go on."})
+        self.post({"action": "polish"})
+        self.assertEqual(self.polish_calls[-1]["model"], "test/model")
+        # and it can be stopped
+        self.client.post(reverse("users:extras"), json.dumps({"action": "watch_memory", "op": "stop_fix",
+                                                              "old": "overexplaining"}), content_type="application/json")
+        self.assertFalse(self.post({"action": "chat", "message": "More."}).json()["polish_due"])
+
+    def test_free_habits_only_call_when_the_reply_has_them(self):
+        from mainapp.bulba import polish, watch
+        mine = watch.user_data(self.user)
+        mine["fix"] = ["same_openings"]
+        watch.save_user_data(self.user, mine)
+        self.assertFalse(self.post({"action": "chat", "message": "Hi."}).json()["polish_due"])  # "A reply." is fine
+        msgs = [("assistant", "", "x", "", 1), ("user", "", "y", "", 1), ("assistant", "", FEOFAN, "", 1)]
+        self.assertTrue(polish.due(self.user, self.chat_obj(), msgs))
+        watch.set_on(self.user, False)
+        self.assertFalse(polish.due(self.user, self.chat_obj(), msgs))  # off means off

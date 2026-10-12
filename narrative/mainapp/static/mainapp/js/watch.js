@@ -54,6 +54,7 @@ window.Watch = (function () {
             <p>${esc(n.text)}</p>
             ${quotes ? `<ul class="watch-quotes">${quotes}</ul>` : ''}
             <div class="watch-actions"><button type="button" data-w="open" data-id="${esc(n.id)}">${n.kind === 'pace' ? 'Get some help' : 'Look at it with Bulba'}</button>
+            ${n.kind === 'pace' || n.fixing ? '' : `<button type="button" class="ghost" data-w="fix" data-id="${esc(n.id)}" title="From now on, new replies get a quick polish that rewrites this habit (a small cost each time)">Fix this automatically</button>`}
             ${n.kind === 'pace' ? '' : `<button type="button" class="ghost" data-w="mute" data-id="${esc(n.id)}">I don't mind this</button>`}
             <button type="button" class="ghost" data-w="dismiss" data-id="${esc(n.id)}">Not now</button></div>`;
     }
@@ -68,6 +69,10 @@ window.Watch = (function () {
         if (what === 'later') { hiddenUntilNew = (state.notices[0] || {}).id; return render(); }
         if (what === 'mute') { await post({ action: 'watch_note', id: b.dataset.id, status: 'muted' }); return showChatNotice("Got it: I won't bring that one up again."); }
         if (what === 'dismiss') return post({ action: 'watch_note', id: b.dataset.id, status: 'dismissed' });
+        if (what === 'fix') {
+            await post({ action: 'watch_note', id: b.dataset.id, status: 'fix' });
+            return showChatNotice('From now on new replies get a quick polish for this. See or stop it on the Extras page.');
+        }
         if (what === 'open') {
             card.hidden = true;
             if (window.openBulbaNote) window.openBulbaNote(b.dataset.id);  // Bulba marks it opened

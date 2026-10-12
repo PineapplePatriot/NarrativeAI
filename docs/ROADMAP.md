@@ -41,7 +41,14 @@ note (badge on 🥔), with its likely source (the model, the setup, or gently, t
 their taste from rewrites and edits, and notices a much slower or faster reply pace than usual. On by
 default, with a first-time note to switch it off; off on the Extras page or per chat.
 
+**Bulba's polish** (the desloppifier): "Fix this automatically" on a habit note approves that habit; every new
+reply, swipe, regenerated or continued reply then gets a pass (MiMo by default, the chat model if chosen on
+the Extras page) that sees the reply, the habits with quotes from the chat and the summary, and answers with
+small find-and-replace fixes. Code drops fixes that would lose story-extra markers or colour tags, or change too
+much. "Polishing…", then "Bulba fixed N things" with Show original / Undo fixes under the reply.
+
 Open (Bulba Watch):
+- **First real polish run**: is MiMo's rewrite faithful to the voice, and what does a pass cost? *Needs Anya.*
 - **Tune the numbers** after real use: every 5 replies, 3 of the last 6, the pace thresholds. *Needs Anya.*
 - Turn the learned taste into a preset change (Bulba proposes it, they Apply), once a few lines agree.
 

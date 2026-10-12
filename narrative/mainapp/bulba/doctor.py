@@ -103,7 +103,7 @@ def _watch_section(user, chat):
         return ""
     memory = watch.memory(user)
     notes = [n for n in watch.chat_data(chat)["notices"] if n["status"] in ("new", "opened") and n["kind"] != "pace"]
-    if not (memory["taste"] or memory["muted"] or notes):
+    if not (memory["taste"] or memory["muted"] or memory["fix"] or notes):
         return ""
     lines = ["### What Bulba Watch knows"]
     if memory["taste"]:
@@ -112,6 +112,9 @@ def _watch_section(user, chat):
     if memory["muted"]:
         lines.append("Habits they said they don't mind (don't treat as problems): "
                      + "; ".join(m["title"] for m in memory["muted"]))
+    if memory["fix"]:
+        lines.append("Habits Bulba's polish already rewrites in every new reply (so a preset fix is optional): "
+                     + "; ".join(m["title"] for m in memory["fix"]))
     if notes:
         lines.append("Habits it noticed in this chat lately: " + "; ".join(
             f"{n['title']} ({n.get('count')} of the last {n.get('of')} replies)" for n in notes[-3:]))

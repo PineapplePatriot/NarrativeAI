@@ -1754,3 +1754,13 @@ details.thoughts .thoughts-text { white-space: pre-wrap; font-size: .85rem; opac
 .watch-actions button.ghost { background: transparent; color: #e2e8f0; border-color: rgba(226, 232, 240, .3); font-weight: 500; }
 @media (max-width: 640px) { .watch-card { right: 16px; left: 16px; width: auto; bottom: 88px; } }
 @media (max-width: 480px) { .watch-badge { font-size: 11px; } }
+
+/* Bulba's polish under a reply */
+.polish-line { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; margin-top: 6px; font-size: .8rem; opacity: .8; }
+.polish-line details { flex-basis: 100%; }
+.polish-line summary { cursor: pointer; }
+.polish-line ul { margin: 4px 0 2px; padding-left: 18px; }
+.polish-line li { margin: 2px 0; }
+.polish-line s { opacity: .7; }
+.polish-line .link { background: none; border: none; padding: 0; color: inherit; text-decoration: underline; cursor: pointer; font-size: inherit; }
+.polish-busy { font-style: italic; }

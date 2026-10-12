@@ -78,6 +78,7 @@ def user_data(user):
     data.setdefault("muted", [])
     data.setdefault("taste", [])
     data.setdefault("pace", {"n": 0, "mean": 0.0, "m2": 0.0})
+    data.setdefault("fix", [])  # habits they approved for polishing (bulba/polish.py)
     return data
 
 
@@ -186,6 +187,15 @@ def _pace_notice(kind):
 # ---------------------------------------------------------------------------
 # What they did with replies (for learning their taste)
 # ---------------------------------------------------------------------------
+
+def recheck(user, chat_obj, messages):
+    """Runs the free checks again on the newest reply after it changed (polished, or its fixes undone)."""
+    if not is_on(user) or not messages or messages[-1][0] != "assistant":
+        return
+    data = chat_data(chat_obj)
+    free_checks(data, messages)
+    save_chat_data(chat_obj, data)
+
 
 def note_signal(user, chat_obj, kind, before="", after=""):
     """kind: "rewritten" (they asked for another version of a reply) or "edited" (they changed it)."""
@@ -417,18 +427,28 @@ def page_state(user, chat_obj):
     data = chat_data(chat_obj)
     on = is_on(user)
     new = [n for n in data["notices"] if n["status"] == "new"] if on and not data.get("off") else []
-    return {"on": on, "chat_off": bool(data.get("off")), "intro": on and not user_data(user).get("intro_seen"),
-            "every": EVERY, "notices": [{k: n.get(k) for k in ("id", "kind", "title", "text", "quotes")}
+    mine = user_data(user)
+    return {"on": on, "chat_off": bool(data.get("off")), "intro": on and not mine.get("intro_seen"),
+            "every": EVERY, "notices": [{**{k: n.get(k) for k in ("id", "kind", "title", "text", "quotes")},
+                                         "fixing": n.get("label") in mine["fix"]}
                                         for n in reversed(new)][:3], "count": len(new)}
 
 
 def set_notice(user, chat_obj, notice_id, status):
-    """status: "opened", "dismissed" or "muted" (they don't mind that habit: it's never raised again)."""
+    """status: "opened", "dismissed", "muted" (they don't mind that habit: it's never raised again) or "fix"
+    (they confirm it's unwanted: replies get polished for it from now on, see bulba/polish.py)."""
     data = chat_data(chat_obj)
     notice = next((n for n in data["notices"] if n["id"] == notice_id), None)
     if notice is None:
         raise ValueError("No such note.")
     notice["status"] = status
+    if status == "fix":
+        if notice["kind"] not in ("pattern", "user"):
+            raise ValueError("That note isn't about a habit.")
+        mine = user_data(user)
+        if notice["label"] not in mine["fix"]:
+            mine["fix"].append(notice["label"])
+            save_user_data(user, mine)
     if status == "muted" and notice["kind"] in ("pattern", "user"):
         mine = user_data(user)
         if notice["label"] not in mine["muted"]:
@@ -438,16 +458,23 @@ def set_notice(user, chat_obj, notice_id, status):
     return notice
 
 
+def title_of(label, char_name="The character"):
+    return LABELS.get(label, label.replace("other: ", "").capitalize()).replace("{char}", char_name)
+
+
 def memory(user):
-    """What it learned about them, for the Extras page: their taste, and the habits they said they don't mind."""
+    """What it learned about them, for the Extras page: their taste, the habits they said they don't mind,
+    and the habits they asked to have fixed (with the model that fixes them)."""
     mine = user_data(user)
     return {"taste": list(mine["taste"]),
-            "muted": [{"label": m, "title": LABELS.get(m, m.replace("other: ", "").capitalize()).replace(
-                "{char}", "The character")} for m in mine["muted"]]}
+            "muted": [{"label": m, "title": title_of(m)} for m in mine["muted"]],
+            "fix": [{"label": m, "title": title_of(m)} for m in mine["fix"]],
+            "fix_model": "chat" if mine.get("fix_model") == "chat" else "bulba"}
 
 
 def change_memory(user, op, old="", new=""):
-    """op: "edit" (reword a taste line), "forget" (remove one) or "unmute" (raise that habit again).
+    """op: "edit" (reword a taste line), "forget" (remove one), "unmute" (raise that habit again), "stop_fix"
+    (stop polishing for a habit) or "fix_model" ("bulba" or "chat", in `new`).
     `old` is the line or habit as they saw it, so a change made elsewhere meanwhile can't hit the wrong one."""
     mine = user_data(user)
     new = str(new or "").strip()[:200]
@@ -465,6 +492,14 @@ def change_memory(user, op, old="", new=""):
         if old not in mine["muted"]:
             raise ValueError("That one is gone; reload the page.")
         mine["muted"].remove(old)
+    elif op == "stop_fix":
+        if old not in mine["fix"]:
+            raise ValueError("That one is gone; reload the page.")
+        mine["fix"].remove(old)
+    elif op == "fix_model":
+        if new not in ("bulba", "chat"):
+            raise ValueError("Pick Bulba's model or your chat model.")
+        mine["fix_model"] = new
     else:
         raise ValueError("Unknown change.")
     save_user_data(user, mine)
