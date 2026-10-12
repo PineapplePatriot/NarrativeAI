@@ -58,6 +58,11 @@ Replies show the note that steered them (🎬). Bulba offers director mode once 
 play (director's notes in 3 of the last 5 turns, or the Watch reader judging their messages as directions) or
 switch to the book layout; one click, with Undo.
 
+Bulba in a chat now sees what the AI saw for the last reply (summary, pinned note, trackers, lore that fired;
+also a pen-menu panel) and can fix a summary piece or the pinned note; it reads and changes text rules in the
+preset and in their own list (the card's stay on/off). Learned taste goes into the preset through a Watch note
+("Your taste, in your preset?").
+
 Open (Bulba Watch):
 - **First real polish run**: is MiMo's rewrite faithful to the voice, and what does a pass cost? *Needs Anya.*
 - **Tune the numbers** after real use: every 5 replies, 3 of the last 6, the pace thresholds. *Needs Anya.*

@@ -4760,3 +4760,81 @@ class TasteIntoPresetTests(BulbaInChatTests):
         self.assertIsNone(watch.offer_taste(watch.chat_data(self.chat_obj), mine))  # only two new
         mine["taste"].append("D")
         self.assertEqual(watch.offer_taste(watch.chat_data(self.chat_obj), mine)["quotes"], ["B", "C", "D"])
+
+
+class BulbaMemoryAndRulesTests(BulbaInChatTests):
+    """Bulba in a chat sees the chat's memory and can fix it; it reads and changes text rules."""
+
+    def seed_memory(self):
+        from mainapp import chats
+        data = chats.read(self.chat_obj)
+        data["summary_parts"] = [{"text": "Wren met Rose at the tower gate.", "from": 0, "to": 2}]
+        data["summary"] = "Wren met Rose at the tower gate."
+        data["context_guides"] = {"note": "It's summer."}
+        chats.write(self.chat_obj, data)
+
+    def test_bulba_sees_what_the_ai_saw_and_fixes_the_summary(self):
+        from mainapp import chats
+        self.make_chat()
+        self.seed_memory()
+        self.script = [("Found it.", [self.call("propose_memory_edit", summary_piece=0,
+                                                text="Wren met Rose at the north gate, at night.", why="Wrong gate")])]
+        data = self.api(action="say", text="It keeps saying tower gate").json()
+        system = self.bulba_calls[-1]["messages"][0]["content"]
+        self.assertIn("Story summary (1 piece", system)
+        self.assertIn("Pinned note: It's summer.", system)
+        proposal = data["state"]["proposals"][-1]
+        self.assertEqual(proposal["kind"], "memory_edit")
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=proposal["id"])
+        saved = chats.read(self.chat_obj)
+        self.assertEqual(saved["summary_parts"][0]["text"], "Wren met Rose at the north gate, at night.")
+        self.assertEqual(saved["summary"], "Wren met Rose at the north gate, at night.")
+        self.script = [("Undone.", [])]
+        self.api(action="undo", id=proposal["id"])
+        self.assertEqual(chats.read(self.chat_obj)["summary_parts"][0]["text"], "Wren met Rose at the tower gate.")
+
+    def test_pinned_note_fix_and_the_pen_menu_panel(self):
+        from mainapp import chats
+        self.make_chat()
+        self.seed_memory()
+        self.script = [("Stale note.", [self.call("propose_memory_edit", pinned_note="It's winter now.", why="Time passed")])]
+        pid = self.api(action="say", text="why is it summer").json()["state"]["proposals"][-1]["id"]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=pid)
+        self.assertEqual(chats.read(self.chat_obj)["context_guides"], {"note": "It's winter now."})
+        saw = self.post({"action": "ai_saw"}).json()
+        self.assertEqual(saw["pinned_note"], "It's winter now.")
+        self.assertEqual(saw["summary"][0]["text"], "Wren met Rose at the tower gate.")
+
+    def test_text_rules_in_the_preset_and_their_own_list(self):
+        from mainapp import presets as presets_mod, regex_rules
+        self.make_chat()
+        self.script = [("", [self.call("read_text_rules")]),
+                       ("This one removes the asterisks.", [self.call(
+                           "propose_text_rules", scope="mine", why="They hate asterisks",
+                           changes=[{"action": "add", "name": "No asterisks", "find": r"/\*/g", "replace": "",
+                                     "placement": [2], "mode": "display"}])])]
+        data = self.api(action="say", text="get rid of the asterisks").json()
+        self.assertIn('"mine": []', self.bulba_calls[1]["messages"][-1]["content"])
+        proposal = data["state"]["proposals"][-1]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=proposal["id"])
+        rule = regex_rules.user_rules(self.user)[0]
+        self.assertEqual((rule["name"], rule["mode"]), ("No asterisks", "display"))
+        # switch it off in a second proposal, then undo that
+        self.script = [("Off.", [self.call("propose_text_rules", scope="mine", why="x",
+                                           changes=[{"action": "switch", "id": rule["id"], "enabled": False}])])]
+        pid = self.api(action="say", text="turn it off").json()["state"]["proposals"][-1]["id"]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=pid)
+        self.assertFalse(regex_rules.user_rules(self.user)[0]["enabled"])
+        self.script = [("Back.", [])]
+        self.api(action="undo", id=pid)
+        self.assertTrue(regex_rules.user_rules(self.user)[0]["enabled"])
+        # a broken pattern is refused before it becomes a proposal
+        self.script = [("", [self.call("propose_text_rules", scope="preset", why="x",
+                                       changes=[{"action": "add", "name": "Bad", "find": "/(/g"}])]), ("Hm.", [])]
+        self.api(action="say", text="add a rule")
+        self.assertIn("Can't run on the server", self.bulba_calls[-1]["messages"][-1]["content"])
+        self.assertEqual(presets_mod.normalize(presets_mod.get_active(self.user).data)["regex"], [])

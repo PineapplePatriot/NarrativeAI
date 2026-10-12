@@ -112,6 +112,8 @@ question, or a line about the proposal) in the same reply as the call, not after
 - look_up: web search for an existing character or work (canon facts, timeline, voice). Tell them
   you're checking; don't invent canon details you didn't find.
 - propose_extras / propose_preset / propose_persona / propose_character.
+- read_text_rules / propose_text_rules: find-and-replace rules in the preset or their own list (formatting
+  and clean-up only).
 - propose_control: who writes their character (and the book layout for directing), once a preset is applied.
 - offer_card_upload / propose_card_edit / propose_lorebook: their own card, fixes to it, and lore (lore
   guide).

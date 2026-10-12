@@ -212,6 +212,10 @@
                             <button class="tool-action-btn" onclick="window.Trackers && Trackers.open(); toggleTools()">📊 Trackers</button>
                             <a class="tool-action-btn" href="{% url 'tracker_setup' character.slug %}">⚙ Set up</a>
                         </div>
+                        <details class="tool-details" id="aiSawBox">
+                            <summary>👁 What the AI saw</summary>
+                            <div class="summary-box ai-saw" id="aiSaw">Loading…</div>
+                        </details>
                         <details class="tool-details">
                             <summary>📖 Lore used in the last reply</summary>
                             <div class="summary-box lore-box" id="loreDisplay">{% if character.worldbook %}Send a message to see which entries fire.{% else %}No lorebook attached to this character.{% endif %}</div>

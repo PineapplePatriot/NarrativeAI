@@ -108,6 +108,18 @@ def apply(session, pid):
             note = doctor.apply(session, p)
         except ValueError as e:
             raise ProposalError(str(e))
+    elif p["kind"] == "text_rules":  # the preset's or their own text rules
+        from mainapp.bulba import rules
+        try:
+            note = rules.apply(session, p)
+        except ValueError as e:
+            raise ProposalError(str(e))
+    elif p["kind"] == "memory_edit":  # the chat's summary or pinned note, from Bulba in a chat
+        from mainapp.bulba import memory
+        try:
+            note = memory.apply(session, p)
+        except ValueError as e:
+            raise ProposalError(str(e))
     elif p["kind"] in ("message_fix", "auto_fix"):  # Bulba's polish, asked for in a chat
         from mainapp.bulba import polish
         try:
@@ -175,6 +187,18 @@ def undo(session, pid):
     elif p["kind"] in ("message_fix", "auto_fix"):
         from mainapp.bulba import polish
         polish.undo(session, p)
+    elif p["kind"] == "text_rules":
+        from mainapp.bulba import rules
+        try:
+            rules.undo(session, p)
+        except ValueError as e:
+            raise ProposalError(str(e))
+    elif p["kind"] == "memory_edit":
+        from mainapp.bulba import memory
+        try:
+            memory.undo(session, p)
+        except ValueError as e:
+            raise ProposalError(str(e))
     p["status"] = "undone"
     return "Undone."
 

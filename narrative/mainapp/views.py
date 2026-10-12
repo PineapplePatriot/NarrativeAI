@@ -481,6 +481,9 @@ def chat(request, slug):
             if "chat_off" in data:
                 watch.set_chat_off(chat_obj, bool(data["chat_off"]))
             return JsonResponse({"success": True, "watch": watch.page_state(request.user, chat_obj)})
+        elif action == "ai_saw":  # the pen menu's "What the AI saw": summary, pinned note, trackers, lore
+            from .bulba import memory
+            return JsonResponse({"success": True, **memory.what_the_ai_saw(chat_obj)})
         elif action == "note_ideas":  # "Be creative": Bulba writes two director's notes, a logical one and a bold one
             try:
                 ideas = note_ideas(request.user, character, messages, chat_state["summary"], chat_state["persona"])

@@ -1644,3 +1644,25 @@ document.querySelectorAll('.polish-line[data-polish]').forEach(line => {
         if (info && info.count) setPolish(line.closest('.message'), info);
     } catch (err) { line.remove(); }
 });
+
+// The pen menu's "What the AI saw": what the last reply got besides the preset and the messages
+document.getElementById('aiSawBox')?.addEventListener('toggle', async (e) => {
+    if (!e.target.open) return;
+    const box = document.getElementById('aiSaw');
+    const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    box.textContent = 'Loading…';
+    try {
+        const resp = await fetch(window.location.href, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ action: 'ai_saw' }),
+        });
+        const d = await resp.json();
+        if (!d.success) throw new Error(d.error || 'Could not load it.');
+        const block = (title, body) => `<div class="ai-saw-part"><b>${title}</b><div>${body}</div></div>`;
+        box.innerHTML = block('📚 Story summary', d.summary.length ? d.summary.map(p => `<p>${esc(p.text)}</p>`).join('') : '<i>none yet</i>')
+            + block('📌 Pinned note', d.pinned_note ? esc(d.pinned_note) : '<i>none</i>')
+            + block('📊 Trackers', d.trackers ? `<pre>${esc(d.trackers)}</pre>` : '<i>none</i>')
+            + block('📖 Lore that fired', d.lore.fired.length ? esc(d.lore.fired.join(', ')) : `<i>${d.lore.book ? 'nothing this time' : 'no lorebook'}</i>`)
+            + '<p class="tool-help">Something wrong here? Bulba can fix the summary or the pinned note: ask it in the 🥔 panel.</p>';
+    } catch (err) { box.textContent = err.message; }
+});

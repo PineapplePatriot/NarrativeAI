@@ -6,7 +6,7 @@ import uuid
 from pathlib import Path
 
 from mainapp import ai_client, cards, model_profiles, presets, starters, thinking
-from mainapp.bulba import control, doctor, library, lore, tune
+from mainapp.bulba import control, doctor, library, lore, rules, tune
 
 INSTRUCTIONS = Path(__file__).resolve().parent.parent / "data" / "bulba" / "instructions.md"
 GUIDES_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba" / "guides"
@@ -204,6 +204,7 @@ TOOLS = [
     *lore.tool_defs(_fn, STR),
     *tune.tool_defs(_fn, STR),
     *control.tool_defs(_fn, STR),
+    *rules.tool_defs(_fn, STR),
     doctor.CARD_EDIT_TOOL,
 ]
 
@@ -724,7 +725,7 @@ HANDLERS = {
     "write_samples": tool_write_samples, "record_preference": tool_record_preference,
     "propose_extras": tool_propose_extras, "propose_preset": tool_propose_preset,
     "propose_persona": tool_propose_persona, "propose_character": tool_propose_character,
-    **library.HANDLERS, **lore.HANDLERS, **tune.HANDLERS, **control.HANDLERS,
+    **library.HANDLERS, **lore.HANDLERS, **tune.HANDLERS, **control.HANDLERS, **rules.HANDLERS,
     "propose_card_edit": doctor.tool_propose_card_edit,
 }
 
@@ -904,7 +905,8 @@ def skip_stage(session):
 # Tools after which Bulba waits for the user (see instructions.md, "Tools, briefly")
 TURN_ENDING = {"offer_choices", "write_samples", "show_basics_form", "show_extras_form", "retry_reply",
                "propose_preset_edit", "propose_card_edit", "propose_lorebook", "propose_lore_edit", "propose_theme", "propose_control", "offer_card_upload", "propose_extras", "propose_preset", "propose_persona", "propose_character",
-               "polish_message", "fix_automatically", *tune.TURN_ENDING}
+               "polish_message", "fix_automatically", "propose_memory_edit", "propose_text_rules",
+               *tune.TURN_ENDING}
 
 
 def run_turn(session, user_text, action_note=None, model_note=None):
