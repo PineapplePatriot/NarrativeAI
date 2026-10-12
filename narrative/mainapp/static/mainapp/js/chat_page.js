@@ -886,6 +886,7 @@ async function expandInput() {
         const d = await resp.json();
         messageInput.value = d.success ? d.text : draft;
         if (!d.success) showChatNotice(d.error || 'Could not write it.');
+        else if (d.polished) showChatNotice(`🧹 Bulba fixed ${d.polished} thing${d.polished === 1 ? '' : 's'} in it, as you asked.`);
         updateSpending(d.spending);
     } catch (err) { messageInput.value = draft; showChatNotice(err.message); }
     finally {

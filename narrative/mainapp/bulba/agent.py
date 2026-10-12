@@ -175,6 +175,13 @@ TOOLS = [
          "watch": {"type": "boolean", "description": "Bulba Watch (on by default): include only to switch it off "
                                                      "(false) or back on"},
          "why": STR}, ["why"]),
+    _fn("show_extras_form", "The story stage's extras in one form: dice, story extras, the ideas button. Pre-tick "
+        "what fits their story; they change what they like and send it, and it's applied. Write your message first.",
+        {"game": {"type": "string", "enum": ["off", "dice", "full"]},
+         "story_extras": {"type": "array", "items": {"type": "string", "enum": ["documents", "messages", "milestones",
+                                                                                 "news", "keepsakes", "choices"]}},
+         "ideas": {"type": "boolean"},
+         "why": {"type": "string", "description": "One line on why these fit their story (shown above the form)"}}),
     _fn("propose_preset", "Propose the finished preset: a starter plus a short 'your taste' section.",
         {"starter": STR, "name": STR, "taste": {"type": "string", "description": "Plain instructions to the model"},
          "reply_length": {"type": "string", "enum": ["short", "medium", "long"]},
@@ -782,10 +789,8 @@ def take_route(session, route):
     feels = {k: v for k, v in (profile.get("starters") or {}).items() if k in FAST_FEELS}
     if route == "full":
         return _canned(session, "Full setup",
-                       "Good. Boring bits first: should characters be able to speak out loud? That needs an "
-                       "ElevenLabs account.",
-                       [{"label": "No voices"}, {"label": "Yes, I have an ElevenLabs key", "url": "/users/extras/"},
-                        {"label": "What's ElevenLabs?"}])
+                       "Good. Boring bits first, all in one go: tick what you want, change anything later on the "
+                       "Extras page.", after=[extras_form_event(session, "setup")])
     if route == "fast":
         choices = []
         for feel in FAST_FEELS:
@@ -816,6 +821,77 @@ def take_route(session, route):
                    extra_events=[{"type": "proposal", "id": p["id"]}, {"type": "stage", "stage": "persona"}])
 
 
+# ---------------------------------------------------------------------------
+# The extras in one form (setup: the app's extras; story: dice, story extras, ideas)
+# ---------------------------------------------------------------------------
+
+SETUP_FORM_KEYS = ("summary", "trackers", "sprites", "watch", "background")
+STORY_FORM_KEYS = ("game", "story_extras", "ideas")
+
+
+def extras_form_event(session, part, suggest=None, why=""):
+    """The form's page event, filled with what's set now (or, for the story part, Bulba's suggestions)."""
+    from users.views import _extras_state
+    from mainapp import extras as extras_mod
+    state = _extras_state(session.user)
+    values = {k: state.get(k) for k in (SETUP_FORM_KEYS if part == "setup" else STORY_FORM_KEYS)}
+    for k, v in (suggest or {}).items():
+        if k in values and v is not None:
+            values[k] = v
+    event = {"type": "extras_form", "part": part, "values": values, "why": str(why or "")[:300]}
+    if part == "setup":
+        event["has_voice_key"] = state["has_eleven_key"]
+        event["cheap_models"] = ([{"id": m["id"], "name": m["name"]} for m in state["cheap_models"]]
+                                 if state["openrouter"] else [])
+    else:
+        event["kinds"] = [{"id": k, "label": label} for k, label in extras_mod.KINDS.items()]
+    return event
+
+
+def form_payload(part, answers):
+    """Their answers as a propose_extras payload, and the lines the proposal card shows."""
+    answers = answers if isinstance(answers, dict) else {}
+    payload, summary = {}, []
+    if part == "setup":
+        for task, label in (("summary", "Story summary"), ("trackers", "Trackers")):
+            item = answers.get(task) if isinstance(answers.get(task), dict) else {}
+            if item.get("mode") in ("auto", "manual"):
+                try:
+                    every = max(1, min(200, int(item.get("interval") or (10 if task == "summary" else 2))))
+                except (TypeError, ValueError):
+                    every = 10 if task == "summary" else 2
+                payload[task] = {"mode": item["mode"], "interval": every}
+                summary.append(f"{label}: " + (f"every {every} messages" if item["mode"] == "auto" else "only when you ask"))
+        for key, label in (("sprites", "Character pictures that change with the mood"), ("watch", "Bulba Watch")):
+            if isinstance(answers.get(key), bool):
+                payload[key] = answers[key]
+                summary.append(f"{label}: {'on' if answers[key] else 'off'}")
+        if isinstance(answers.get("background"), str) and answers["background"]:
+            payload["background"] = answers["background"][:64]
+            summary.append("Background jobs: " + ("your chat model" if answers["background"] == "chat" else answers["background"]))
+    else:
+        from mainapp import extras as extras_mod
+        if answers.get("game") in ("off", "dice", "full"):
+            payload["game"] = answers["game"]
+            summary.append("Dice: " + {"off": "off", "dice": "dice only", "full": "dice, inventory and conditions"}[answers["game"]])
+        if isinstance(answers.get("story_extras"), list):
+            payload["story_extras"] = [k for k in answers["story_extras"] if k in extras_mod.KINDS]
+            summary.append("Story extras: " + (", ".join(extras_mod.KINDS[k].lower() for k in payload["story_extras"]) or "none"))
+        if isinstance(answers.get("ideas"), bool):
+            payload["ideas"] = answers["ideas"]
+            summary.append(f"Bulba's ideas button: {'on' if answers['ideas'] else 'off'}")
+    return payload, summary
+
+
+def tool_show_extras_form(session, args):
+    suggest = {k: args.get(k) for k in STORY_FORM_KEYS if k in args}
+    return ({"shown": True, "note": "They'll answer with the form; their answers are applied directly. Wait."},
+            [extras_form_event(session, "story", suggest, args.get("why"))])
+
+
+HANDLERS["show_extras_form"] = tool_show_extras_form
+
+
 def skip_stage(session):
     """The Skip button: on to the next stage. Returns (the skipped stage, the page event)."""
     i = STAGES.index(session.stage) if session.stage in STAGES else 0
@@ -826,9 +902,9 @@ def skip_stage(session):
 
 
 # Tools after which Bulba waits for the user (see instructions.md, "Tools, briefly")
-TURN_ENDING = {"offer_choices", "write_samples", "show_basics_form", "retry_reply",
+TURN_ENDING = {"offer_choices", "write_samples", "show_basics_form", "show_extras_form", "retry_reply",
                "propose_preset_edit", "propose_card_edit", "propose_lorebook", "propose_lore_edit", "propose_theme", "propose_control", "offer_card_upload", "propose_extras", "propose_preset", "propose_persona", "propose_character",
-               *tune.TURN_ENDING}
+               "polish_message", "fix_automatically", *tune.TURN_ENDING}
 
 
 def run_turn(session, user_text, action_note=None, model_note=None):

@@ -12,7 +12,7 @@ import uuid
 from pathlib import Path
 
 from mainapp import ai_client, chats, extras, game, presets, thinking
-from mainapp.bulba import control, library, lore, tune
+from mainapp.bulba import control, library, lore, polish, tune
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba"
 CARD_FIELDS = ("description", "personality", "scenario", "example_dialogue", "initial_message")
@@ -329,6 +329,7 @@ def tools():
                 "required": ["action", "block"]}},
              "why": STR}, ["edits", "why"]),
         CARD_EDIT_TOOL,
+        *polish.tool_defs(_fn, STR),
         *control.tool_defs(_fn, STR),
         _fn("retry_reply", "Rewrite the last AI reply of this chat with their chat model: with a proposal's change "
             "applied just for this try (from_proposal), or as things are now. Costs one reply.",
@@ -338,7 +339,7 @@ def tools():
 
 HANDLERS = {"read_block": tool_read_block, "propose_preset_edit": tool_propose_preset_edit, **lore.HANDLERS,
             **tune.HANDLERS,
-            **control.HANDLERS,
+            **control.HANDLERS, **polish.HANDLERS,
             "propose_card_edit": tool_propose_card_edit, "retry_reply": tool_retry_reply}
 
 

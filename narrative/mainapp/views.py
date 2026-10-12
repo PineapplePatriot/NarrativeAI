@@ -350,7 +350,18 @@ def chat(request, slug):
                 return JsonResponse({"success": False, "error": "The model gave your draft back unchanged. Try again, "
                                      "or add a word about what you want.", "text": draft,
                                      "spending": ai_client.spending(request.user)})
-            return JsonResponse({"success": True, "text": written, "spending": ai_client.spending(request.user)})
+            # Bulba's polish: the habits they asked to have fixed, in their written-out message too
+            fixed = []
+            habits = polish.habits_for_draft(request.user, chat_obj, written, polish.others_before(messages, len(messages), "user"))
+            if habits:
+                try:
+                    written, fixed = polish.polish_text(request.user, character, chat_obj, written,
+                                                        polish.others_before(messages, len(messages), "user"),
+                                                        chat_state["summary"], habits, whose="theirs")
+                except ai_client.AIError as e:
+                    log.info("Polish skipped for a written message: %s", e)
+            return JsonResponse({"success": True, "text": written, "polished": len(fixed),
+                                 "spending": ai_client.spending(request.user)})
 
         # --- 3. NEW: Spellcheck ---
         elif action == "spellcheck":
@@ -2062,6 +2073,39 @@ def bulba_api(request):
         session.save()
         return JsonResponse({"events": events, "state": _bulba_state(session),
                              "watch": watch.page_state(request.user, session.chat)})
+    elif action == "extras_form":  # the extras in one form: applied at once (Undo on the card)
+        part = "story" if data.get("part") == "story" else "setup"
+        answers = data.get("answers") if isinstance(data.get("answers"), dict) else {}
+        form_event = next((e for e in reversed(session.events) if e.get("type") == "extras_form"
+                           and e.get("part") == part), None)
+        if form_event is None:
+            return JsonResponse({"error": "There's no form to answer."}, status=400)
+        payload, summary = agent.form_payload(part, answers)
+        if not payload:
+            return JsonResponse({"error": "Nothing picked."}, status=400)
+        proposal = agent._proposal(session, "extras", "Extras" if part == "setup" else "Story extras", summary, payload)
+        try:
+            note = actions.apply(session, proposal["id"])
+        except actions.ProposalError as e:
+            session.proposals.remove(proposal)
+            return JsonResponse({"error": str(e)}, status=400)
+        form_event["answers"] = {k: payload.get(k) for k in payload}
+        moved = agent.advance_stage(session, proposal)
+        shown = [{"type": "proposal", "id": proposal["id"]}] + ([moved] if moved else [])
+        if part == "setup" and session.stage == "taste":  # the basics form comes next, no AI needed
+            events = agent._canned(session, "Sent the extras",
+                                   "Done. Now the main part: how replies should read. Answer what you care about, "
+                                   "skip the rest.", extra_events=shown, after=[{"type": "form", "form": "basics"}])
+            session.messages[-2]["content"] = "[Sent the extras form; applied: " + "; ".join(summary) + "]"
+        else:
+            events = agent.run_turn(session, None, action_note="Sent the extras",
+                                    model_note=f"They sent the {'story ' if part == 'story' else ''}extras form; "
+                                               f"applied: {'; '.join(summary)}. {note} Don't ask about these again; "
+                                               "carry on with the next step")
+            # The card (and the new stage) go right after the "Sent" line, before Bulba's message
+            at = len(session.events) - len(events) + 1
+            session.events[at:at] = shown
+            events[1:1] = shown
     elif action == "basics":  # the basics form: recorded as preferences, then Bulba carries on
         answers = data.get("answers") if isinstance(data.get("answers"), dict) else {}
         form_event = next((e for e in reversed(session.events) if e.get("type") == "form"), None)

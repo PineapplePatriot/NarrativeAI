@@ -209,3 +209,9 @@ body.embed .basics-form, body.embed .lookup, body.embed .done-block { margin-lef
     line-height: 1.45; resize: vertical; }
 .edit-field textarea:focus, .edit-field input:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
 body.embed .mini-progress { top: 0; }
+.extras-form .every { font-size: .85rem; color: var(--muted); display: inline-flex; gap: 4px; align-items: center; margin-left: 4px; }
+.extras-form .every input { width: 4.5em; }
+.extras-form select { max-width: 100%; }
+.extras-form .form-why { margin: 0 0 4px; }
+.extras-form input[type=number], .extras-form select { background: var(--card-2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 6px; padding: 3px 6px; font: inherit; }

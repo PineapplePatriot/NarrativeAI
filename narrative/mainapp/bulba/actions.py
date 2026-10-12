@@ -108,6 +108,12 @@ def apply(session, pid):
             note = doctor.apply(session, p)
         except ValueError as e:
             raise ProposalError(str(e))
+    elif p["kind"] in ("message_fix", "auto_fix"):  # Bulba's polish, asked for in a chat
+        from mainapp.bulba import polish
+        try:
+            note = polish.apply(session, p)
+        except ValueError as e:
+            raise ProposalError(str(e))
     else:
         raise ProposalError("Unknown proposal.")
     p["status"] = "applied"
@@ -166,6 +172,9 @@ def undo(session, pid):
     elif p["kind"] in ("preset_edit", "card_edit"):
         from mainapp.bulba import doctor
         doctor.undo(session, p)
+    elif p["kind"] in ("message_fix", "auto_fix"):
+        from mainapp.bulba import polish
+        polish.undo(session, p)
     p["status"] = "undone"
     return "Undone."
 

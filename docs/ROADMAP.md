@@ -47,6 +47,11 @@ the Extras page) that sees the reply, the habits with quotes from the chat and t
 small find-and-replace fixes. Code drops fixes that would lose story-extra markers or colour tags, or change too
 much. "Polishing…", then "Bulba fixed N things" with Show original / Undo fixes under the reply.
 
+In a chat, Bulba can fix one message on request (polish_message: before/after, Apply replaces it in the chat,
+original kept) and start fixing a habit automatically (fix_automatically, Apply to approve). "Write my
+message" is polished too. Setup: the extras in one form (no AI), then the basics form (no AI); the story
+extras in a second form with Bulba's picks pre-ticked.
+
 Open (Bulba Watch):
 - **First real polish run**: is MiMo's rewrite faithful to the voice, and what does a pass cost? *Needs Anya.*
 - **Tune the numbers** after real use: every 5 replies, 3 of the last 6, the pace thresholds. *Needs Anya.*

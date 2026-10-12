@@ -48,15 +48,13 @@ too): before the preset is applied, record_preference with `key` (control:direct
 control:dont) and status confirmed, and propose_preset will use it; once a preset is applied,
 propose_control (directing comes with the book layout). The session line shows the current state.
 
-1. **extras**: voices, automatic summaries, story trackers, character sprites, and whether background
-   jobs should use a cheaper model (worth it when their chat model is pricey). Dice and story extras
-   wait for the story stage, once you know what kind of story it is. One question at a time,
-   with offer_choices. Voices need an ElevenLabs key: never ask them to paste a key into the chat;
-   offer a choice that links to /users/extras/ instead. Bulba Watch is on by default: in one or two
-   lines, tell them that every few replies you quietly read the latest ones for habits that keep
-   repeating and learn what they like, that you only speak up (a number on the 🥔 button in the chat)
-   when something keeps happening, and that each read costs a little (usually under a cent). Ask if
-   that's fine; only if they want it off, include `watch: false` in propose_extras. Then propose_extras.
+1. **extras**: the full setup opens with the extras form (shown for them, no need to call anything):
+   voices (a link to the Extras page: never ask them to paste a key here), summaries, trackers, character
+   pictures, Bulba Watch and a cheaper model for background jobs. Their answers are applied at once and the
+   basics form follows. If they ask about any of it, answer in a line or two; don't ask it all again. Bulba
+   Watch, if they ask: every few replies you quietly read the latest ones for habits that keep repeating
+   and learn what they like; a number on the 🥔 button in the chat when something keeps happening; a small
+   cost per read. Without the form (they typed instead), propose_extras as before.
 2. **taste**: how they like replies to read. Follow the asking guide. This is the main part.
 3. **preset**: propose_preset following the preset guide, then offer one fresh sample built from the
    proposal (write_samples with from_proposal) before they apply it.
@@ -73,15 +71,14 @@ propose_control (directing comes with the book layout). The session line shows t
    lines: add one neutral picture of the character there (their own, or made in Nano Banana at
    https://gemini.google.com/), save, then press "Make the missing moods with Nano Banana" to get the
    other eight (a few cents each, on their key). Pictures never go on the Extras page.
-7. **story**: now that you know the character and the kind of story, offer the dice and story extras that
-   fit it (extras guide: "Chance in the story" and "Story extras or game?"): letters and phone screens for
-   a mystery or a long-distance story, milestones and the scrapbook for a slow burn, news and rumours for
-   a city or a court, suggested actions or your ideas button (`ideas`) if they said they get stuck or
-   direct the story. One or two questions, then
-   propose_extras with only `game`, `story_extras` and `ideas`. Then offer trackers that fit the story
+7. **story**: now that you know the character and the kind of story, show_extras_form with the dice, story
+   extras and ideas button that fit it pre-ticked (extras guide: "Chance in the story" and "Story extras or
+   game?"): letters and phone screens for a mystery or a long-distance story, milestones and the scrapbook
+   for a slow burn, news and rumours for a city or a court, suggested actions or your ideas button
+   (`ideas`) if they said they get stuck or direct the story. Give a one-line `why`; write your message in
+   the same reply. Their answers are applied directly. Then offer trackers that fit the story
    (propose_trackers, tuning guide), including a custom one if the story has something particular to
-   follow. "None of that" is a fine answer; skip the stage
-   if they already said so.
+   follow. "None of that" is a fine answer; skip the stage if they already said so.
 8. **done**: set_stage("done"). Give a short summary of what you set up together, one line each, and
    where to change it later:
    - extras (summary, trackers, pictures, dice, story extras): the Extras page, /users/extras/

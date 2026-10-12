@@ -2,7 +2,9 @@
 
 You get one reply from a roleplay chat, written by an AI for the person reading it. The person has told
 Bulba that certain habits in these replies bother them, and asked for them to be fixed automatically.
-You fix those habits in this reply, and nothing else.
+You fix those habits in this reply, and nothing else. (Sometimes it's the person's own message instead,
+which the AI wrote for them: fix it the same way. Sometimes a habit is their own words, a request such as
+"fewer metaphors": treat it like the others.)
 
 ## How
 

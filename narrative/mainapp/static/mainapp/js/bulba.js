@@ -120,6 +120,65 @@ function basicsForm(live, answers) {
       </form>`;
 }
 
+// The extras in one form: "setup" (summaries, trackers, pictures, Watch, background model) or "story" (dice,
+// story extras, the ideas button, pre-ticked by Bulba). Sent answers are applied at once.
+function extrasForm(ev, live) {
+    const dis = live ? '' : 'disabled';
+    const v = { ...ev.values, ...(ev.answers || {}) };
+    const radio = (name, options, current) => options.map(([val, label]) => `<label class="pill"><input type="radio"
+        name="x_${name}" value="${val}" ${current === val ? 'checked' : ''} ${dis}><span>${esc(label)}</span></label>`).join('');
+    const check = (name, label, on) => `<label class="pill"><input type="checkbox" name="x_${name}" ${on ? 'checked' : ''} ${dis}><span>${esc(label)}</span></label>`;
+    const every = (name, item) => `<label class="every">every <input type="number" name="x_${name}_every" min="1" max="200"
+        value="${esc((item || {}).interval || (name === 'summary' ? 10 : 2))}" ${dis}> messages</label>`;
+    const row = (label, field, hint) => `<div class="form-row"><div class="form-label">${esc(label)}${hint ? `<small>${esc(hint)}</small>` : ''}</div>
+        <div class="form-field">${field}</div></div>`;
+    let rows;
+    if (ev.part === 'setup') {
+        rows = row('Voices', ev.has_voice_key ? '<span class="help">On: your ElevenLabs key is saved.</span>'
+                : '<a class="choice" href="/users/extras/" target="_blank" rel="noopener">Add an ElevenLabs key ↗</a> <span class="help">optional; never paste keys in this chat</span>')
+            + row('Story summary', radio('summary', [['auto', 'Automatic'], ['manual', 'Only when I ask']], (v.summary || {}).mode) + every('summary', v.summary), 'keeps long chats on track')
+            + row('Story trackers', radio('trackers', [['auto', 'Automatic'], ['manual', 'Only when I ask']], (v.trackers || {}).mode) + every('trackers', v.trackers), 'where, when, who, how they feel')
+            + row('Character pictures', check('sprites', 'Change with the mood', v.sprites), 'one small call per reply')
+            + row('Bulba Watch', check('watch', 'On', v.watch), 'reads replies now and then for habits that repeat')
+            + ((ev.cheap_models || []).length ? row('Background jobs', `<select name="x_background" ${dis}>
+                <option value="chat" ${v.background === 'chat' ? 'selected' : ''}>My chat model</option>
+                ${ev.cheap_models.map(m => `<option value="${esc(m.id)}" ${v.background === m.id ? 'selected' : ''}>${esc(m.name)} (cheaper)</option>`).join('')}
+              </select>`, 'summaries and trackers') : '');
+    } else {
+        rows = (ev.why ? `<p class="help form-why">🥔 ${esc(ev.why)}</p>` : '')
+            + row('Chance', radio('game', [['off', 'No dice'], ['dice', 'Dice'], ['full', 'Dice, inventory and conditions']], v.game))
+            + row('Story extras', (ev.kinds || []).map(k => `<label class="pill"><input type="checkbox" name="x_story_extras"
+                value="${esc(k.id)}" ${(v.story_extras || []).includes(k.id) ? 'checked' : ''} ${dis}><span>${esc(k.label)}</span></label>`).join(''))
+            + row("Bulba's ideas button", check('ideas', 'Show it by the message box', v.ideas));
+    }
+    return `<form class="basics-form extras-form" data-extras="${esc(ev.part)}">${rows}
+        ${live ? '<div class="form-actions"><button type="submit">Save these</button><span class="help">All of it can be changed later on the Extras page.</span></div>' : ''}
+      </form>`;
+}
+
+$('log').addEventListener('submit', e => {
+    const form = e.target.closest('[data-extras]');
+    if (!form) return;
+    e.preventDefault();
+    const part = form.dataset.extras;
+    const get = n => form.querySelector(`[name="x_${n}"]`);
+    const picked = n => (form.querySelector(`input[name="x_${n}"]:checked`) || {}).value;
+    let answers;
+    if (part === 'setup') {
+        answers = { sprites: get('sprites').checked, watch: get('watch').checked };
+        for (const t of ['summary', 'trackers']) {
+            if (picked(t)) answers[t] = { mode: picked(t), interval: Number(get(`${t}_every`).value) || undefined };
+        }
+        if (get('background')) answers.background = get('background').value;
+    } else {
+        answers = { game: picked('game'), ideas: get('ideas').checked,
+                    story_extras: [...form.querySelectorAll('input[name="x_story_extras"]:checked')].map(b => b.value) };
+    }
+    const formEvent = [...events].reverse().find(ev => ev.type === 'extras_form' && ev.part === part);
+    if (formEvent) formEvent.answers = answers;  // the sent form keeps showing what they picked
+    run({ action: 'extras_form', part, answers }, 'Saving…');
+});
+
 // When setup is done: the way into the chat, and where pictures go
 function doneBlock() {
     if (state.stage !== 'done' || !state.chat) return '';
@@ -165,6 +224,7 @@ function render() {
         if (ev.type === 'downloads') return `<div class="downloads">⬇ ${(ev.links || []).map(l =>
             `<a href="${esc(l.url)}" download>${esc(l.label)}</a>`).join('')}</div>`;
         if (ev.type === 'form') return basicsForm(i === types.lastIndexOf('form') && i > answeredUpTo && !busy, ev.answers);
+        if (ev.type === 'extras_form') return extrasForm(ev, i === types.lastIndexOf('extras_form') && i > answeredUpTo && !busy && !ev.answers);
         if (ev.type === 'lookup') return `<div class="lookup">🔎 Looked up “${esc(ev.query)}”${(ev.sources || []).length
             ? ': ' + ev.sources.map(src => `<a href="${esc(src.url)}" target="_blank" rel="noopener">${esc(src.title || src.url)}</a>`).join(', ') : ''}</div>`;
         if (ev.type === 'samples') {
@@ -269,7 +329,10 @@ async function run(body, label) {
     try {
         const data = await api(body);
         if (window.parent !== window && ['apply', 'undo'].includes(body.action)) {
-            window.parent.postMessage({ bulba: body.action }, window.location.origin);
+            const changed = (data.state.proposals || []).find(x => x.id === body.id);
+            // A fixed message changes what the chat shows: the page reloads with Bulba still open
+            window.parent.postMessage({ bulba: changed && changed.kind === 'message_fix' ? 'reply' : body.action },
+                                      window.location.origin);
         }
         if (window.parent !== window && data.watch) window.parent.postMessage({ watch: data.watch }, window.location.origin);
         if (body.action === 'say') events.pop();  // the server sends it back with the rest
