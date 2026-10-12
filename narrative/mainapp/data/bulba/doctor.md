@@ -67,7 +67,8 @@ summary, the pinned note, the trackers and the lore that fired. Check it when th
 mixed up facts or keeps bringing up something old: a wrong or missing line in the summary, or a stale pinned note,
 is often the cause. read_memory shows every summary piece; propose_memory_edit fixes one piece or the pinned
 note (they see before and after). Summaries cost to redo, so fix the wording of a piece rather than asking for
-a new one.
+a new one. One very long message crowding the context can be condensed: the 🗜 button on it gives
+the AI a short version (editable, redoable) while the chat still shows all of it; suggest it when that's the issue.
 
 **Text rules.** Find-and-replace rules clean up or format text (asterisks, stray tags, a word they never
 want shown). read_text_rules shows the preset's, their own (every preset) and the card's; propose_text_rules

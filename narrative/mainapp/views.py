@@ -81,7 +81,7 @@ def _summarize(user, messages, existing=""):
         sys_prompt = ("Summarize this entire roleplay story concisely. Capture key events and current status. "
                       "Be clear and precise, focus on describing events and reactions in detail. "
                       "The summary should include Tone, Setting, Events, Current emotional state.")
-    prompt_text = "\n".join(f"{m[0]}: {m[2]}" for m in messages)
+    prompt_text = "\n".join(f"{m[0]}: {chats.prompt_text(m)}" for m in messages)
     return ai_client.complete(user, "summary", [{"role": "system", "content": sys_prompt},
                                                 {"role": "user", "content": prompt_text}])
 
@@ -481,6 +481,24 @@ def chat(request, slug):
             if "chat_off" in data:
                 watch.set_chat_off(chat_obj, bool(data["chat_off"]))
             return JsonResponse({"success": True, "watch": watch.page_state(request.user, chat_obj)})
+        elif action in ("condense", "condense_undo"):  # one message, shortened for the AI (the screen keeps it whole)
+            try:
+                index = int(data.get("index"))
+                if not 0 <= index < len(messages):
+                    raise ValueError
+            except (TypeError, ValueError):
+                return JsonResponse({"success": False, "error": "No such message."}, status=400)
+            text = ""
+            if action == "condense":
+                text = str(data.get("text") or "").strip()[:4000]  # their own edit, or a new one written now
+                if not text:
+                    try:
+                        text = condense(request.user, character, messages[index], chat_state["persona"])
+                    except ai_client.AIError as e:
+                        return JsonResponse({"success": False, "error": str(e)})
+            messages[index] = chats.with_condensed(messages[index], text)
+            save_messages(messages)
+            return JsonResponse({"success": True, "condensed": text, "spending": ai_client.spending(request.user)})
         elif action == "ai_saw":  # the pen menu's "What the AI saw": summary, pinned note, trackers, lore
             from .bulba import memory
             return JsonResponse({"success": True, **memory.what_the_ai_saw(chat_obj)})
@@ -688,7 +706,7 @@ def chat(request, slug):
                 preset = presets.normalize(presets.get_active(request.user).data)
                 _, chat_model = ai_client.resolve(request.user, "chat")
                 names = prompt_names(request.user, character, chat_state["persona"])
-                history = [{"role": m[0], "content": extras.for_prompt(m[2], chats.game_of(m))}
+                history = [{"role": m[0], "content": extras.for_prompt(chats.prompt_text(m), chats.game_of(m))}
                        for m in messages if m[0] in ("user", "assistant")]
                 history = regex_rules.run_on_history(regex_rules.for_chat(preset, character, request.user), history, names)
                 # The unfinished reply is the last message; the preset's continue nudge comes after it
@@ -789,7 +807,7 @@ def chat(request, slug):
                 for m in messages:
                     if m[0] in ("user", "assistant"):
                         # story extras the model showed come back as short descriptions, so it remembers them
-                        api_messages.append({"role": m[0], "content": extras.for_prompt(m[2], chats.game_of(m))})
+                        api_messages.append({"role": m[0], "content": extras.for_prompt(chats.prompt_text(m), chats.game_of(m))})
 
                 try:
                     worldbook = None
@@ -1082,7 +1100,7 @@ def chat(request, slug):
                                      [extras.render(op) for op in chats.game_of(m) if extras.is_extra(op)],
                                      (chats.audio_of(m) or {}).get("url", ""),
                                      polish.dumps(chats.polish_of(m)) if chats.polish_of(m) else "",
-                                     chats.directed_of(m))
+                                     chats.directed_of(m), chats.condensed_of(m))
                      for m in messages],
         "voice_on": bool(get_elevenlabs_key(request.user)),
         "swipes": chats.version_info(messages),
@@ -1164,6 +1182,26 @@ WORD_NOTE_PROMPT = (
     "or details they didn't ask for. Name characters as they appear in the chat. Never write {user}'s words, "
     "actions or thoughts unless they asked for exactly that. Plain words: no 'ensure', 'immersive', 'vivid', "
     "'delve', capitals or exclamation marks. Reply with the note only.")
+
+
+CONDENSE_PROMPT = (
+    "Condense one message from a roleplay so the AI can keep it in mind in fewer words. Keep what matters later: "
+    "what happened, decisions, promises, names, places, objects, how people feel about each other, and any line "
+    "of dialogue worth remembering word for word. Drop description and repetition. Same person and tense as the "
+    "message, plain sentences, at most a quarter of its length. Reply with the condensed message only.")
+
+
+def condense(user, character, message, persona=None):
+    """A short version of one message for the AI (one call on the summary model)."""
+    names = prompt_names(user, character, persona)
+    who = names["user"] if message[0] == "user" else character.name
+    text = ai_client.complete(user, "summary", [
+        {"role": "system", "content": CONDENSE_PROMPT},
+        {"role": "user", "content": f"{who}'s message:\n\n{message[2]}"}], max_tokens=600, temperature=0.2)
+    text = (text or "").strip()
+    if not text:
+        raise ai_client.AIError("The model sent back nothing. Try again.")
+    return text
 
 
 NOTE_IDEAS_PROMPT = (
@@ -1302,7 +1340,7 @@ def build_chat_request(user, chat_obj, preset=None, character=None, drop_last_re
     preset = presets.normalize(preset or presets.get_active(user).data)
     persona = data.get("persona") if isinstance(data.get("persona"), dict) else {}
     names = prompt_names(user, character, persona)
-    history = [{"role": m[0], "content": extras.for_prompt(m[2], chats.game_of(m))}
+    history = [{"role": m[0], "content": extras.for_prompt(chats.prompt_text(m), chats.game_of(m))}
                        for m in messages if m[0] in ("user", "assistant")]
     history = regex_rules.run_on_history(regex_rules.for_chat(preset, character, user), history, names) + list(tail)
     _, model = ai_client.resolve(user, "chat")

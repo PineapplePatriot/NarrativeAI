@@ -1775,3 +1775,11 @@ details.thoughts .thoughts-text { white-space: pre-wrap; font-size: .85rem; opac
 body:has(#toolsMenu.show) .watch-card { display: none; }  /* the pen menu wins while it's open */
 .ai-saw-part { margin-bottom: 8px; } .ai-saw-part b { display: block; font-size: .8rem; margin-bottom: 2px; }
 .ai-saw-part pre { white-space: pre-wrap; font: inherit; margin: 0; } .ai-saw-part p { margin: 0 0 4px; }
+
+/* A message condensed for the AI */
+.condensed-line { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; margin-top: 6px; font-size: .8rem; opacity: .8; }
+.condensed-line .link { background: none; border: none; padding: 0; color: inherit; text-decoration: underline; cursor: pointer; font-size: inherit; }
+.condensed-line .condensed-text { flex-basis: 100%; font-style: italic; white-space: pre-wrap; }
+.condensed-line .condensed-text textarea { width: 100%; font: inherit; font-style: normal; background: rgba(0,0,0,.2); color: inherit;
+    border: 1px solid rgba(255,255,255,.2); border-radius: 6px; padding: 6px; box-sizing: border-box; }
+.message-btn.condense { font-size: .85rem; line-height: 1; }

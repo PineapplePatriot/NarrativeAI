@@ -4838,3 +4838,33 @@ class BulbaMemoryAndRulesTests(BulbaInChatTests):
         self.api(action="say", text="add a rule")
         self.assertIn("Can't run on the server", self.bulba_calls[-1]["messages"][-1]["content"])
         self.assertEqual(presets_mod.normalize(presets_mod.get_active(self.user).data)["regex"], [])
+
+
+class CondensedMessageTests(ChatPromptTests):
+    """One message condensed for the AI: the prompt gets the short version, the chat keeps the whole text."""
+
+    def test_condense_edit_redo_undo(self):
+        from mainapp import chats
+        self.post({"action": "chat", "message": "A very long message about the tower, the gate, the rain."})
+        data = self.post({"action": "condense", "index": 1}).json()  # written by the model
+        self.assertEqual(data["condensed"], "A reply.")
+        self.post({"action": "condense", "index": 1, "text": "Asked about the tower."})  # their own edit
+        msgs = self.saved_messages()
+        self.assertEqual(msgs[1][2], "A very long message about the tower, the gate, the rain.")  # the chat keeps it all
+        self.assertEqual(chats.condensed_of(tuple(msgs[1])), "Asked about the tower.")
+        self.post({"action": "chat", "message": "Next."})
+        sent = json.dumps(self.sent[-1]["messages"])
+        self.assertIn("Asked about the tower.", sent)
+        self.assertNotIn("the gate, the rain", sent)
+        self.assertContains(self.client.get(self.url), 'data-condensed="Asked about the tower."')
+        self.post({"action": "condense_undo", "index": 1})
+        self.post({"action": "chat", "message": "Again."})
+        self.assertIn("the gate, the rain", json.dumps(self.sent[-1]["messages"]))
+
+    def test_editing_the_message_drops_its_condensed_version(self):
+        from mainapp import chats
+        self.post({"action": "chat", "message": "Long one."})
+        self.post({"action": "condense", "index": 1, "text": "Short."})
+        self.post({"action": "edit", "index": 1, "text": "Rewritten by hand."})
+        self.assertEqual(chats.condensed_of(tuple(self.saved_messages()[1])), "")
+        self.assertEqual(self.post({"action": "condense", "index": 99}).status_code, 400)

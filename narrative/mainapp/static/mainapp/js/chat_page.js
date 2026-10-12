@@ -63,6 +63,11 @@ document.addEventListener("click", (event) => {
         case "branch":
             if (index !== null) openBranchModal(index);
             break;
+        case "condense": {
+            const el = btn.closest('.message');
+            condenseMessage(el, Number(el ? el.dataset.index : index));
+            break;
+        }
         default:
             break;
     }
@@ -261,6 +266,7 @@ function addMessage(sender, text, specificAvatarUrl = null) {
                 <button class="message-btn edit" onclick="editMessage(${messageIndex})">
                     <svg class="icon" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
                 </button>
+                <button class="message-btn condense" type="button" data-action="condense" data-index="${messageIndex}" title="Condense for the AI: it gets a short version, you still see all of it">🗜</button>
                 <button class="message-btn branch" type="button" data-action="branch" data-index="${messageIndex}" title="Branch: a new chat from this message"><svg class="icon" viewBox="0 0 24 24"><path d="M6 3a3 3 0 0 0-1 5.83v6.34A3 3 0 1 0 7 15.17V13.5c0-.83.67-1.5 1.5-1.5h5A3.5 3.5 0 0 0 17 8.5v-.67a3 3 0 1 0-2 0v.67c0 .83-.67 1.5-1.5 1.5h-5c-.53 0-1.03.1-1.5.28V8.83A3 3 0 0 0 6 3z"/></svg></button>
                 <button class="message-btn delete" onclick="deleteMessage(${messageIndex})">
                     <svg class="icon" viewBox="0 0 24 24"><path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/></svg>
@@ -1666,3 +1672,70 @@ document.getElementById('aiSawBox')?.addEventListener('toggle', async (e) => {
             + '<p class="tool-help">Something wrong here? Bulba can fix the summary or the pinned note: ask it in the 🥔 panel.</p>';
     } catch (err) { box.textContent = err.message; }
 });
+
+// --- Condensed messages: the AI gets a short version, the chat still shows all of it (editable, redoable) ---
+function setCondensed(messageEl, text) {
+    if (!messageEl) return;
+    let line = messageEl.querySelector('.condensed-line');
+    if (!text) { if (line) line.remove(); return; }
+    if (!line) {
+        line = document.createElement('div');
+        line.className = 'condensed-line';
+        const after = messageEl.querySelector('.polish-line') || messageEl.querySelector('.game-lines')
+            || messageEl.querySelector('.story-extras') || messageEl.querySelector('.message-text');
+        after.parentNode.insertBefore(line, after.nextSibling);
+    }
+    line.removeAttribute('data-condensed');
+    line._text = text;
+    line.innerHTML = `<span>🗜 Condensed for the AI</span>
+        <button type="button" class="link" data-cond="show">Show</button>
+        <button type="button" class="link" data-cond="edit">Edit</button>
+        <button type="button" class="link" data-cond="redo">Redo</button>
+        <button type="button" class="link" data-cond="undo">Undo</button>
+        <div class="condensed-text" hidden></div>`;
+    line.querySelector('.condensed-text').textContent = text;
+}
+
+async function condenseRequest(messageEl, body) {
+    const resp = await fetch(window.location.href, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ ...body, index: Number(messageEl.dataset.index) }),
+    });
+    const d = await resp.json();
+    if (d.spending) updateSpending(d.spending);
+    if (!d.success) throw new Error(d.error || 'Could not condense it.');
+    setCondensed(messageEl, d.condensed);
+    return d;
+}
+
+function condenseMessage(messageEl) {
+    if (!messageEl) return;
+    showChatNotice('🗜 Condensing…');
+    condenseRequest(messageEl, { action: 'condense' })
+        .then(() => showChatNotice('Condensed: the AI gets the short version from now on.'))
+        .catch(err => showChatNotice(err.message));
+}
+
+document.addEventListener('click', e => {
+    const b = e.target.closest('.condensed-line [data-cond]');
+    if (!b) return;
+    const line = b.closest('.condensed-line');
+    const messageEl = b.closest('.message');
+    const box = line.querySelector('.condensed-text');
+    const what = b.dataset.cond;
+    if (what === 'show') { box.hidden = !box.hidden; b.textContent = box.hidden ? 'Show' : 'Hide'; return; }
+    if (what === 'edit') {
+        box.hidden = false;
+        box.innerHTML = '<textarea rows="4"></textarea><button type="button" class="link" data-cond="save">Save</button>';
+        box.querySelector('textarea').value = line._text;
+        box.querySelector('textarea').focus();
+        return;
+    }
+    const run = what === 'save' ? condenseRequest(messageEl, { action: 'condense', text: box.querySelector('textarea').value })
+        : what === 'redo' ? (showChatNotice('🗜 Condensing again…'), condenseRequest(messageEl, { action: 'condense' }))
+        : condenseRequest(messageEl, { action: 'condense_undo' });
+    run.catch(err => showChatNotice(err.message));
+});
+
+// Messages condensed before the page loaded
+document.querySelectorAll('.condensed-line[data-condensed]').forEach(line => setCondensed(line.closest('.message'), line.getAttribute('data-condensed')));
