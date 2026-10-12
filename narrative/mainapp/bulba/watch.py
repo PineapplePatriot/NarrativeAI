@@ -192,23 +192,7 @@ def _pace_notice(kind):
 # Steering: when they direct more than they play, offer director mode (no AI)
 # ---------------------------------------------------------------------------
 
-DIRECTIVE_START = {"have", "make", "let", "describe", "write", "show", "continue", "skip", "give", "add", "introduce",
-                   "focus", "keep", "narrate", "cut", "fast-forward", "timeskip", "bring", "switch", "move", "end",
-                   "start", "begin", "resume", "include", "avoid"}
-DIRECTIVE_WORDS = re.compile(r"\b(the (story|scene|narrat\w*|model|ai)|next (reply|scene|response|chapter)|time skip)\b", re.I)
 STEER_RUN, STEER_HITS = 5, 3
-
-
-def looks_like_directive(text):
-    """A message written as a direction to the AI rather than as their character ("Have Vex keep talking",
-    "(OOC: ...)", "Skip to the next morning")."""
-    t = str(text or "").strip()
-    if not t or t[0] in "\"“«*":
-        return False
-    if re.match(r"(\(\(|\(|\[|ooc\b|//)", t, re.I):
-        return True
-    first = re.findall(r"[A-Za-z'-]+", t)[:1]
-    return bool(first and first[0].lower() in DIRECTIVE_START) or bool(DIRECTIVE_WORDS.search(t))
 
 
 def _directing(user):
@@ -221,9 +205,12 @@ def _directing(user):
 
 
 DIRECTOR_TEXT = {
-    "steering": "You've been steering the story more than playing in it (director's notes, or messages written as "
-                "directions). Director mode makes that the default: the AI treats your messages as directions, never "
-                "as your character, and replies read as chapters.",
+    "steering": "You've been steering the story with director's notes more than playing in it. Director mode makes "
+                "that the default: the AI treats your messages as directions, never as your character, and replies "
+                "read as chapters.",
+    "messages": "Your messages lately read more like directions to the AI than your character's own lines. Director "
+                "mode makes that official: the AI treats them as directions, never as your character, and replies "
+                "read as chapters.",
     "book": "The book layout is only the look. Want the AI to treat you as the director too? Your messages become "
             "directions, never your character's actions.",
 }
@@ -240,7 +227,8 @@ def _offer_director(user, chat_obj, data, why):
 
 
 def note_steering(user, chat_obj, kind):
-    """kind: "note" (a director's note was sent), "directive" (a message written as a direction) or "play"."""
+    """kind: "note" (a director's note was sent) or "play". Whether their messages themselves read as directions
+    is judged by the reader (read), which is more reliable than any word list."""
     if not is_on(user):
         return None
     data = chat_data(chat_obj)
@@ -393,7 +381,7 @@ def same_openings(text):
     return None
 
 
-def _prompt(user, character, messages, picked, data, mine, writes_for_user):
+def _prompt(user, character, messages, picked, data, mine, writes_for_user, ask_directing=False):
     from mainapp import model_profiles
     _, chat_model = ai_client.resolve(user, "chat")
     profile = model_profiles.for_model(chat_model) or {}
@@ -404,6 +392,8 @@ def _prompt(user, character, messages, picked, data, mine, writes_for_user):
     if habits:
         parts += ["## This model's known habits", "; ".join(habits)]
     parts.append("## The AI may write their character: " + ("yes" if writes_for_user else "no"))
+    if ask_directing:
+        parts.append("## Also answer they_direct (see \"Are they directing?\")")
     if mine["muted"]:
         parts += ["## They said they don't mind these (don't note them)", ", ".join(mine["muted"])]
     if data["signals"]:
@@ -457,8 +447,9 @@ def read(user, character, chat_obj, messages, writes_for_user=False):
     if not picked:
         return []
     mine = user_data(user)
+    ask_directing = not data.get("director_offered") and not _directing(user)
     answer = _parse(ai_client.complete(user, "watch", _prompt(user, character, messages, picked, data, mine,
-                                                              writes_for_user),
+                                                              writes_for_user, ask_directing),
                                        max_tokens=1500, temperature=0, response_format={"type": "json_object"}))
     slips = []
     for s in answer.get("slips") or []:
@@ -485,6 +476,10 @@ def read(user, character, chat_obj, messages, writes_for_user=False):
     mine["taste"] = mine["taste"][-TASTE_MAX:]
     save_user_data(user, mine)
     raised = habits(data, mine["muted"], character.name)
+    if ask_directing and answer.get("they_direct") is True:  # their messages read as directions: offer director mode
+        notice = _offer_director(user, chat_obj, data, "messages")
+        if notice:
+            raised.append(notice)
     save_chat_data(chat_obj, data)
     return raised
 

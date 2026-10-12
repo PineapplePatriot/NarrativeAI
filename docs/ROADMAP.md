@@ -55,8 +55,8 @@ extras in a second form with Bulba's picks pre-ticked.
 Director's notes: the pen menu has the note on top (Send on its own or with a message, Word it for me, Be
 creative: a logical and a creative note) and "Redo the last reply" below (shortcuts, its own wording, Rewrite).
 Replies show the note that steered them (🎬). Bulba offers director mode once per chat when they steer more than
-play (3 of the last 5 turns: notes or messages written as directions) or switch to the book layout; one click,
-with Undo.
+play (director's notes in 3 of the last 5 turns, or the Watch reader judging their messages as directions) or
+switch to the book layout; one click, with Undo.
 
 Open (Bulba Watch):
 - **First real polish run**: is MiMo's rewrite faithful to the voice, and what does a pass cost? *Needs Anya.*

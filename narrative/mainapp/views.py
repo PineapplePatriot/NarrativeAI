@@ -773,8 +773,7 @@ def chat(request, slug):
                     messages.append(("user", datetime.now().strftime("%H:%M"), user_message, "neutral", 1))
                     watch.on_user_message(request.user, chat_obj, user_message)  # their reply pace
                 if action == "chat":  # steering more than playing? Bulba offers director mode
-                    watch.note_steering(request.user, chat_obj, "note" if guidance.strip() else
-                                        "directive" if watch.looks_like_directive(user_message) else "play")
+                    watch.note_steering(request.user, chat_obj, "note" if guidance.strip() else "play")
 
                 lore_report = None
                 context_dropped = 0

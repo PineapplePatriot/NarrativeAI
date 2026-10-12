@@ -4669,23 +4669,29 @@ class DirectorNoteTests(WatchChatTests):
         self.assertEqual((data["logical"], data["creative"]),
                          ("Rose answers the knock.", "The lights go out across the street."))
 
-    def test_directives_are_told_apart_from_playing(self):
-        from mainapp.bulba import watch
-        for text in ("Have Vex continue speaking in their alien language", "(OOC: slow down a bit)",
-                     "Skip to the next morning.", "Make the next scene quieter"):
-            self.assertTrue(watch.looks_like_directive(text), text)
-        for text in ('"Have you eaten?" I ask.', "*I sit down next to her.*", "I have no idea what you mean.",
-                     "Thanks, that helps."):
-            self.assertFalse(watch.looks_like_directive(text), text)
+    def test_the_reader_judges_whether_their_messages_are_directions(self):
+        self.client.get(self.url)
+        for i in range(4):
+            self.post({"action": "chat", "message": f"Have Rose do thing {i}."})
+        self.reader_answer = {"slips": [], "taste": [], "they_direct": True}
+        data = self.post({"action": "watch"}).json()
+        self.assertIn("they_direct", self.reader_calls[-1]["messages"][1]["content"])
+        self.assertEqual(data["watch"]["notices"][0]["title"], "Director mode?")
+        self.assertIn("read more like directions", data["watch"]["notices"][0]["text"])
+        # once offered, it isn't asked again
+        for i in range(5):
+            self.post({"action": "chat", "message": f"More {i}."})
+        self.post({"action": "watch"})
+        self.assertNotIn("they_direct", self.reader_calls[-1]["messages"][1]["content"])
 
     def test_steering_offers_director_mode_once_and_switches_with_undo(self):
         from mainapp import presets as presets_mod
         from mainapp.bulba import control
         from mainapp.views import _appearance
         self.client.get(self.url)
-        for text in ("Hi.", "Have Rose show me the tower", "Skip to the evening."):
-            state = self.post({"action": "chat", "message": text}).json()["watch"]
-        self.assertEqual(state["count"], 0)  # two of three: not yet
+        for guidance in ("The storm comes.", "She hides the key."):
+            state = self.post({"action": "chat", "message": "Hi.", "guidance": guidance}).json()["watch"]
+        self.assertEqual(state["count"], 0)  # two notes: not yet
         state = self.post({"action": "chat", "message": "", "guidance": "She lies about the key."}).json()["watch"]
         note = state["notices"][0]
         self.assertEqual(note["title"], "Director mode?")

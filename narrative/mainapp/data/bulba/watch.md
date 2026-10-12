@@ -49,10 +49,18 @@ replies they edited (before and after). From those, and from how they write, not
 concrete things about their taste that you're fairly sure of ("cuts long descriptions of rooms",
 "keeps the banter, removes the speeches"). Nothing you'd have to guess.
 
+## Are they directing?
+
+Only when the prompt asks for `they_direct`. Look at their messages (the "Them" parts): are most of them
+directions to the AI about what should happen or how to write it ("have Vex keep talking", "skip to the
+morning", "(OOC: slower)", "make the next scene quieter"), rather than their own character's words and
+actions? Answer true only when it's clearly most of them; a single out-of-character aside is not directing.
+
 ## Answer
 
 Only a JSON object, no other text:
 
 {"slips": [{"reply": <number of the reply, from 1>, "label": "<label>", "quote": "<exact words>",
             "cause": "model" | "setup" | "their_messages"}],
- "taste": ["<short, concrete thing they like or dislike>"]}
+ "taste": ["<short, concrete thing they like or dislike>"],
+ "they_direct": true | false (only when asked)}
