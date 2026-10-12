@@ -17,15 +17,6 @@
 
     <div class="chat-container">
         <audio id="bgMusicPlayer" loop></audio>
-        <div id="musicWidget" class="music-player-widget hidden">
-            <div class="music-icon">🎵</div>
-            <div class="music-info" id="nowPlayingText">Nothing playing</div>
-            <div class="music-controls">
-                <button onclick="togglePlay()" id="playPauseBtn">❚❚</button>
-                <button onclick="stopMusic()">◼</button>
-                <input type="range" min="0" max="1" step="0.1" value="0.3" oninput="setVolume(this.value)" style="width:50px;">
-            </div>
-        </div>
         <div class="chat-panel">
             <div class="resize-handle"></div>
 
@@ -48,6 +39,7 @@
                     <button class="header-btn" id="chatsBtn" onclick="Chats.toggle()" title="Your chats with {{ character.name }}">💬 Chats</button>
                     <button class="header-btn" id="bulbaBtn" title="Something off? Ask Bulba"><span class="emoji-icon">🥔</span> Bulba</button>
                     <button class="header-btn" onclick="openMediaModal('bg')" title="Background"><svg class="icon" viewBox="0 0 24 24"><path d="M21,19V5C21,3.89 20.1,3 19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19M8.5,13.5L11,16.51L14.5,12L19,18H5L8.5,13.5Z"/></svg> BG</button>
+                    <button class="header-btn music-toggle" id="playPauseBtn" type="button" hidden onclick="togglePlay()" title="Play the music">▶</button>
                     <button class="header-btn" onclick="openMediaModal('music')" title="Music"><svg class="icon" viewBox="0 0 24 24"><path d="M21,3V15.5A3.5,3.5 0 0,1 17.5,19A3.5,3.5 0 0,1 14,15.5A3.5,3.5 0 0,1 17.5,12C18.04,12 18.55,12.12 19,12.34V6.47L9,8.6V17.5A3.5,3.5 0 0,1 5.5,21A3.5,3.5 0 0,1 2,17.5A3.5,3.5 0 0,1 5.5,14C6.04,14 6.55,14.12 7,14.34V6L21,3Z"/></svg> Music</button>
                     <a href="{% url 'character' character.slug %}" class="header-btn" title="Edit {{ character.name }}">
                         <svg class="icon" viewBox="0 0 24 24">
@@ -346,6 +338,10 @@
                 <span style="cursor:pointer; margin-left:auto;" onclick="closeMediaModal()">✕</span>
             </div>
             <div class="modal-content">
+                <div class="music-now" id="musicNow" hidden>
+                    <span>🎵 <b id="nowPlayingText">Nothing playing</b></span>
+                    <label>Volume <input type="range" id="musicVolume" min="0" max="1" step="0.05" value="0.3" oninput="setVolume(this.value)"></label>
+                </div>
                 <div id="mediaGrid" class="media-grid"></div>
                 <div class="upload-area" onclick="document.getElementById('fileUpload').click()">
                     + Upload File

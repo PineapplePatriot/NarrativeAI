@@ -1703,10 +1703,6 @@ details.thoughts .thoughts-text { white-space: pre-wrap; font-size: .85rem; opac
 
 /* Phones: the music player shrinks to a small pill under the header instead of covering the message box */
 @media (max-width: 768px) {
-    .music-player-widget { top: 188px; bottom: auto; right: 8px; padding: 4px 8px; gap: 6px; z-index: 1; opacity: .9; }
-    .music-player-widget .music-info { display: none; }
-    .music-player-widget input[type=range] { width: 56px; }
-    body:has(#toolsMenu.show) .music-player-widget, body:has(.ideas-box:not([hidden])) .music-player-widget { display: none; }
 }
 
 /* Keep typed text clear of the small buttons inside the message box */
@@ -1783,3 +1779,13 @@ body:has(#toolsMenu.show) .watch-card { display: none; }  /* the pen menu wins w
 .condensed-line .condensed-text textarea { width: 100%; font: inherit; font-style: normal; background: rgba(0,0,0,.2); color: inherit;
     border: 1px solid rgba(255,255,255,.2); border-radius: 6px; padding: 6px; box-sizing: border-box; }
 .message-btn.condense { font-size: .85rem; line-height: 1; }
+
+/* The music: play/pause in the header; the picker shows what's playing and the volume */
+.header-btn.music-toggle { min-width: 36px; justify-content: center; font-size: .9rem; }
+.header-btn.music-toggle.playing { color: #c4b5fd; border-color: rgba(167, 139, 250, .6); }
+.header-btn.music-toggle[hidden] { display: none; }
+@media (max-width: 480px) { .header-btn.music-toggle { font-size: .9rem; } }
+.music-now { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between;
+    margin-bottom: 12px; font-size: .9rem; }
+.music-now[hidden] { display: none; }
+.music-now label { display: flex; gap: 6px; align-items: center; }

@@ -778,11 +778,7 @@ document.addEventListener('DOMContentLoaded', () => {
     scrollToBottom();
     fixHistoryAvatars();
     updateMessageIndices();
-    if (window.SAVED_MUSIC && window.SAVED_MUSIC.url) {
-        bgMusic.src = window.SAVED_MUSIC.url;
-        document.getElementById('nowPlayingText').innerText = window.SAVED_MUSIC.name;
-        musicWidget.classList.remove('hidden');
-    }
+    if (window.SAVED_MUSIC && window.SAVED_MUSIC.url) loadMusic(window.SAVED_MUSIC.url, window.SAVED_MUSIC.name, true);
 
     if (window.SAVED_BG) {
         const bgEl = document.querySelector('.character-background');
@@ -1008,7 +1004,34 @@ function continueGeneration() {
 // Media
 const mediaModal = document.getElementById('mediaModal');
 const bgMusic = document.getElementById('bgMusicPlayer');
-const musicWidget = document.getElementById('musicWidget');
+// The music: a ▶/❚❚ button in the header (shown when a track is set) follows what the audio actually does;
+// the picker holds the track name, the volume and "None"
+let musicHeld = false;  // they paused or stopped it themselves: don't start it again on their next click
+function loadMusic(url, name, onLoad = false) {
+    bgMusic.src = url;
+    bgMusic.volume = Number(document.getElementById('musicVolume')?.value || 0.3);
+    document.getElementById('nowPlayingText').innerText = name || 'Music';
+    document.getElementById('musicNow').hidden = false;
+    const btn = document.getElementById('playPauseBtn');
+    btn.hidden = false;
+    musicHeld = false;
+    bgMusic.play().catch(() => {
+        // Browsers only allow sound after a click or key press: start on the first one
+        if (!onLoad) return;
+        const start = () => { if (!musicHeld && bgMusic.paused && bgMusic.src) bgMusic.play().catch(() => {}); };
+        document.addEventListener('pointerdown', start, { once: true, capture: true });
+        document.addEventListener('keydown', start, { once: true, capture: true });
+    });
+}
+function syncMusicButton() {
+    const btn = document.getElementById('playPauseBtn');
+    if (!btn) return;
+    btn.textContent = bgMusic.paused ? '▶' : '❚❚';
+    btn.title = `${bgMusic.paused ? 'Play' : 'Pause'}: ${document.getElementById('nowPlayingText').innerText}`;
+    btn.classList.toggle('playing', !bgMusic.paused);
+}
+bgMusic.addEventListener('play', syncMusicButton);
+bgMusic.addEventListener('pause', syncMusicButton);
 let currentMediaType = 'bg';
 
 function openMediaModal(type) {
@@ -1042,10 +1065,7 @@ function selectMedia(url, name) {
         }
         saveMediaState('bg', url, name);
     } else {
-        bgMusic.src = url;
-        bgMusic.play();
-        musicWidget.classList.remove('hidden');
-        document.getElementById('nowPlayingText').innerText = name;
+        loadMusic(url, name);
 
         saveMediaState('music', url, name);
     }
@@ -1062,8 +1082,7 @@ function resetMedia() {
         }
         saveMediaState('bg', '', '');
     } else {
-        bgMusic.pause();
-        musicWidget.classList.add('hidden');
+        stopMusic();
         saveMediaState('music', '', '');
     }
     closeMediaModal();
@@ -1077,8 +1096,17 @@ function uploadMedia() {
         .catch(() => showChatNotice('Upload failed: the file may be too big.'))
         .finally(() => { document.getElementById('fileUpload').value = ''; });
 }
-function togglePlay() { if (bgMusic.paused) { bgMusic.play(); document.getElementById('playPauseBtn').innerText = "❚❚"; } else { bgMusic.pause(); document.getElementById('playPauseBtn').innerText = "▶"; } }
-function stopMusic() { bgMusic.pause(); musicWidget.classList.add('hidden'); }
+function togglePlay() {
+    if (bgMusic.paused) { musicHeld = false; bgMusic.play().catch(() => {}); }
+    else { musicHeld = true; bgMusic.pause(); }
+}
+function stopMusic() {
+    musicHeld = true;
+    bgMusic.pause();
+    bgMusic.removeAttribute('src');
+    document.getElementById('playPauseBtn').hidden = true;
+    document.getElementById('musicNow').hidden = true;
+}
 function setVolume(v) { bgMusic.volume = v; }
 
 

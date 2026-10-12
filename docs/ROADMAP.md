@@ -64,8 +64,9 @@ preset and in their own list (the card's stay on/off). Learned taste goes into t
 ("Your taste, in your preset?").
 
 Story Keeper and continuity ride on the same Watch read (no extra call): the reader sees the summary, pinned
-note, card scenario and lore titles; a clear contradiction raises a note at once ("Look at it with Bulba":
-fix the reply, or the memory/lore); new lasting facts pile up and, two or more, raise "Worth keeping?" (Bulba
+note, card scenario and lore titles; getting the past wrong (retelling events inaccurately, often in dialogue
+to make a point, leaving out what mattered, inventing details) raises a note at once and counts as a habit
+("Getting past events wrong", also fixable by the polish); new lasting facts pile up and, two or more, raise "Worth keeping?" (Bulba
 proposes the card or lore addition). Single messages can be condensed for the AI (🗜).
 
 Open (Bulba Watch):

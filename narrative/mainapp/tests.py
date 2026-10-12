@@ -4879,14 +4879,18 @@ class StoryKeeperAndContinuityTests(WatchChatTests):
         self.reader_answer = {"slips": [], "taste": [], **answer}
         return self.post({"action": "watch"}).json()["watch"]
 
-    def test_a_contradiction_is_raised_at_once(self):
+    def test_getting_the_past_wrong_is_a_note_and_a_habit(self):
+        from mainapp.bulba import watch
         self.client.get(self.url)
-        state = self.read_with({"contradictions": [{"reply": 2, "quote": "Mara smiled",
-                                                   "contradicts": "Mara died in chapter one (summary)"}]})
+        state = self.read_with({"past": [{"reply": 2, "quote": "You walked out on me twice",
+                                          "actually": "she left once, after the fire (summary)"}]})
         note = state["notices"][0]
-        self.assertEqual(note["title"], "The story contradicted itself")
-        self.assertIn("Mara died in chapter one", note["text"])
+        self.assertEqual(note["title"], "A reply got the past wrong")
+        self.assertIn("she left once, after the fire", note["text"])
         self.assertEqual(len(self.reader_calls), 1)  # the same read, no extra call
+        log = watch.chat_data(self.chat_obj())["log"]
+        self.assertEqual([e["label"] for e in log], ["misremembered_past"])  # counts toward a habit too
+        self.assertIn("misremembered_past", watch.LABELS)
 
     def test_facts_pile_up_then_a_keeper_note(self):
         from mainapp.bulba import watch

@@ -37,6 +37,8 @@ MEANING = {
     "writing_for_user": "deciding what the person's character says, does or feels",
     "pet_phrase": "a stock phrase this model keeps using",
     "repeated_phrase": "the same phrase, word for word, as in recent replies",
+    "misremembered_past": "retelling earlier events inaccurately, leaving out what mattered, or inventing details "
+                          "of the past (correct it to what the summary says happened)",
 }
 
 

@@ -53,6 +53,7 @@ LABELS = {
     "writing_for_user": "Deciding things for your character",
     "pet_phrase": "The same pet phrases",
     "repeated_phrase": "The same phrase, word for word",
+    "misremembered_past": "Getting past events wrong",
 }
 CAUSES = ("model", "setup", "their_messages")
 
@@ -504,8 +505,8 @@ def read(user, character, chat_obj, messages, writes_for_user=False):
             known.add(t.lower())
     mine["taste"] = mine["taste"][-TASTE_MAX:]
     save_user_data(user, mine)
-    raised = habits(data, mine["muted"], character.name)
-    raised += story_notes(data, answer, picked, character.name)
+    raised = story_notes(data, answer, picked, character.name)  # logs "getting the past wrong" slips first
+    raised += habits(data, mine["muted"], character.name)
     taste_note = offer_taste(data, mine)
     if taste_note:
         raised.append(taste_note)
@@ -526,20 +527,22 @@ def story_notes(data, answer, picked, char_name):
     have piled up). Both come from the same read: no extra call."""
     raised = []
     found = []
-    for c in (answer.get("contradictions") or [])[:2]:
+    for c in (answer.get("past") or [])[:2]:
         if not isinstance(c, dict):
             continue
-        quote, what = str(c.get("quote") or "").strip()[:300], str(c.get("contradicts") or "").strip()[:300]
+        quote, actually = str(c.get("quote") or "").strip()[:300], str(c.get("actually") or "").strip()[:300]
         try:
             at = picked[int(c.get("reply")) - 1]
         except (TypeError, ValueError, IndexError):
             continue
-        if quote and what:
-            found.append({"quote": quote, "contradicts": what, "at": at})
-    if found:
+        if quote and actually:
+            found.append({"quote": quote, "actually": actually, "at": at})
+    # Each one is a slip too: when it keeps happening, it's a habit (a note, and something the polish can fix)
+    data["log"] += [{"label": "misremembered_past", "quote": f["quote"], "at": f["at"], "cause": "model"} for f in found]
+    if found:  # and a mistake worth a word straight away
         notice = {"id": uuid.uuid4().hex[:10], "kind": "continuity", "label": "continuity",
-                  "title": "The story contradicted itself",
-                  "text": " ".join(f"“{f['quote']}”: but {f['contradicts']}." for f in found),
+                  "title": "A reply got the past wrong",
+                  "text": " ".join(f"“{f['quote']}”: actually, {f['actually']}." for f in found),
                   "quotes": [], "found": found, "status": "new", "time": time.time(), "at": found[-1]["at"]}
         data["notices"].append(notice)
         raised.append(notice)
@@ -737,8 +740,9 @@ def for_bulba(notice):
                 "propose_card_edit for the character's own facts (add to the right field, keep the rest word for word), "
                 "propose_lore_edit (or propose_lorebook if there's none) for world facts. One short message first.]")
     if notice["kind"] == "continuity":
-        found = "\n".join(f"- “{f['quote']}”, but {f['contradicts']}" for f in notice.get("found") or [])
-        return (f"[Bulba Watch noticed a contradiction in a recent reply:\n{found}\nThey opened the note. Check it "
+        found = "\n".join(f"- “{f['quote']}”; actually: {f['actually']}" for f in notice.get("found") or [])
+        return (f"[Bulba Watch noticed a recent reply getting the past wrong (retelling it inaccurately, leaving out "
+                f"what mattered, or inventing details):\n{found}\nThey opened the note. Check it "
                 "(read_memory, the card, read_lorebook): if the reply is wrong, offer polish_message to correct those "
                 "words; if the summary, pinned note or lore is wrong instead, propose the fix there. If it's not "
                 "really a contradiction (a lie, a change of mind), say so in a line.]")

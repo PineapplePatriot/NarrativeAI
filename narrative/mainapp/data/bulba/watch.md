@@ -49,14 +49,21 @@ replies they edited (before and after). From those, and from how they write, not
 concrete things about their taste that you're fairly sure of ("cuts long descriptions of rooms",
 "keeps the banter, removes the speeches"). Nothing you'd have to guess.
 
-## Contradictions
+## Getting the past wrong
 
 Also check the numbered replies against what's established: the card, the story so far (summary), the
-pinned note, the lore entries listed, and the earlier messages you see. A contradiction is a fact that can't
-both be true (the wrong name, a dead character speaking, an injury forgotten, a place described differently,
-someone knowing what they couldn't). Not a contradiction: a character lying, changing their mind, or the
-person changing the story on purpose. Note at most two, only clear ones, each with the quote and what it
-contradicts. None is the usual answer.
+pinned note, the lore entries listed, and the earlier messages you see. Usually it isn't stark. Look for:
+
+- **retelling an earlier event inaccurately**, often in dialogue to prove a point or win an argument ("you
+  walked out on me twice" when it happened once, or not like that);
+- **leaving out the part of a past event that mattered**, so the retelling means something else;
+- **inventing details of the past** that never happened (a promise nobody made, a scar nobody mentioned);
+- words or deeds put in the wrong person's mouth; someone knowing what they couldn't; a plain contradiction
+  (a wrong name, a dead character speaking, an injury forgotten).
+
+Not a slip: a character lying or misremembering on purpose in a way the story shows, changing their mind, or
+the person changing the story. Report each as "past" with the quote and what actually happened (and where
+that's from). At most two; none is the usual answer.
 
 ## Worth keeping
 
@@ -80,6 +87,6 @@ Only a JSON object, no other text:
 {"slips": [{"reply": <number of the reply, from 1>, "label": "<label>", "quote": "<exact words>",
             "cause": "model" | "setup" | "their_messages"}],
  "taste": ["<short, concrete thing they like or dislike>"],
- "contradictions": [{"reply": <number>, "quote": "<exact words>", "contradicts": "<what it contradicts, and where that's from>"}],
+ "past": [{"reply": <number>, "quote": "<exact words>", "actually": "<what actually happened, and where that's from>"}],
  "keep": [{"fact": "<one plain sentence>", "where": "card" | "lore"}],
  "they_direct": true | false (only when asked)}
