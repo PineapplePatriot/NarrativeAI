@@ -79,6 +79,7 @@ def user_data(user):
     data.setdefault("taste", [])
     data.setdefault("pace", {"n": 0, "mean": 0.0, "m2": 0.0})
     data.setdefault("fix", [])  # habits they approved for polishing (bulba/polish.py)
+    data.setdefault("taste_in_preset", [])  # taste lines already put into their preset (with Bulba)
     return data
 
 
@@ -476,12 +477,48 @@ def read(user, character, chat_obj, messages, writes_for_user=False):
     mine["taste"] = mine["taste"][-TASTE_MAX:]
     save_user_data(user, mine)
     raised = habits(data, mine["muted"], character.name)
+    taste_note = offer_taste(data, mine)
+    if taste_note:
+        raised.append(taste_note)
+        save_user_data(user, mine)
     if ask_directing and answer.get("they_direct") is True:  # their messages read as directions: offer director mode
         notice = _offer_director(user, chat_obj, data, "messages")
         if notice:
             raised.append(notice)
     save_chat_data(chat_obj, data)
     return raised
+
+
+TASTE_OFFER = 3  # learned taste lines not in the preset yet before Bulba offers to put them there
+
+
+def taste_pending(mine):
+    return [t for t in mine["taste"] if t not in mine["taste_in_preset"]]
+
+
+def offer_taste(data, mine):
+    """A note offering to put what it learned about their taste into their preset (once per new batch)."""
+    pending = taste_pending(mine)
+    if len(pending) < TASTE_OFFER or sorted(pending) == sorted(mine.get("taste_offered") or []):
+        return None
+    if any(n["kind"] == "taste" and n["status"] in ("new", "opened") for n in data["notices"]):
+        return None
+    mine["taste_offered"] = pending
+    notice = {"id": uuid.uuid4().hex[:10], "kind": "taste", "label": "taste", "title": "Your taste, in your preset?",
+              "text": "I've learned a few things about what you like. Want them in your preset, so every reply "
+                      "follows them? Bulba words them as instructions; you see the change before it's applied.",
+              "quotes": pending[-5:], "status": "new", "time": time.time()}
+    data["notices"].append(notice)
+    return notice
+
+
+def mark_taste_in_preset(user, lines, undo=False):
+    mine = user_data(user)
+    if undo:
+        mine["taste_in_preset"] = [t for t in mine["taste_in_preset"] if t not in lines]
+    else:
+        mine["taste_in_preset"] += [t for t in lines if t in mine["taste"] and t not in mine["taste_in_preset"]]
+    save_user_data(user, mine)
 
 
 def habits(data, muted, char_name="the character"):
@@ -563,7 +600,7 @@ def memory(user):
     """What it learned about them, for the Extras page: their taste, the habits they said they don't mind,
     and the habits they asked to have fixed (with the model that fixes them)."""
     mine = user_data(user)
-    return {"taste": list(mine["taste"]),
+    return {"taste": list(mine["taste"]), "taste_in_preset": [t for t in mine["taste"] if t in mine["taste_in_preset"]],
             "muted": [{"label": m, "title": title_of(m)} for m in mine["muted"]],
             "fix": [{"label": m, "title": title_of(m)} for m in mine["fix"]],
             "fix_model": "chat" if mine.get("fix_model") == "chat" else "bulba"}
@@ -617,6 +654,14 @@ def set_chat_off(chat_obj, off):
 
 def for_bulba(notice):
     """What Bulba (in the chat) is told when they open a note."""
+    if notice["kind"] == "taste":
+        lines = "\n".join(f"- {q}" for q in notice.get("quotes") or [])
+        return (f"[Bulba Watch learned these about their taste (they checked them on the Extras page):\n{lines}\n"
+                "They want them in their preset. Read the preset outline (and its 'Your taste' block if there is "
+                "one, with read_block). Then propose_preset_edit: turn each line into a plain instruction to the "
+                "model (append to 'Your taste', or add that block), borrowing tested library wording first "
+                "(find_practice), skipping what the preset already says and anything that contradicts it (say "
+                "which). Pass from_taste with the exact lines you covered. One short message, then the proposal.]")
     if notice["kind"] == "pace":
         return (f"[Bulba Watch noticed: {notice['title']}. {notice['text']} They opened the note. Ask lightly how "
                 "it's going (no lecture, they may just be busy) and offer concrete help with offer_choices: ideas "

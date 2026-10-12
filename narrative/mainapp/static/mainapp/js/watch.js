@@ -67,13 +67,13 @@ window.Watch = (function () {
             return;
         }
         const quotes = (n.quotes || []).map(q => `<li>“${esc(q)}”</li>`).join('');
-        card.innerHTML = `<div class="watch-head"><span class="potato">🥔</span><b>Bulba noticed something</b>
+        card.innerHTML = `<div class="watch-head"><span class="potato">🥔</span><b>${n.kind === 'taste' ? esc(n.title) : 'Bulba noticed something'}</b>
                 <button type="button" class="watch-x" data-w="later" title="Later">✕</button></div>
             <p>${esc(n.text)}</p>
             ${quotes ? `<ul class="watch-quotes">${quotes}</ul>` : ''}
-            <div class="watch-actions"><button type="button" data-w="open" data-id="${esc(n.id)}">${n.kind === 'pace' ? 'Get some help' : 'Look at it with Bulba'}</button>
-            ${n.kind === 'pace' || n.fixing ? '' : `<button type="button" class="ghost" data-w="fix" data-id="${esc(n.id)}" title="From now on, new replies get a quick polish that rewrites this habit (a small cost each time)">Fix this automatically</button>`}
-            ${n.kind === 'pace' ? '' : `<button type="button" class="ghost" data-w="mute" data-id="${esc(n.id)}">I don't mind this</button>`}
+            <div class="watch-actions"><button type="button" data-w="open" data-id="${esc(n.id)}">${{ pace: 'Get some help', taste: 'Put them in my preset' }[n.kind] || 'Look at it with Bulba'}</button>
+            ${['pace', 'taste'].includes(n.kind) || n.fixing ? '' : `<button type="button" class="ghost" data-w="fix" data-id="${esc(n.id)}" title="From now on, new replies get a quick polish that rewrites this habit (a small cost each time)">Fix this automatically</button>`}
+            ${['pace', 'taste'].includes(n.kind) ? '' : `<button type="button" class="ghost" data-w="mute" data-id="${esc(n.id)}">I don't mind this</button>`}
             <button type="button" class="ghost" data-w="dismiss" data-id="${esc(n.id)}">Not now</button></div>`;
     }
 

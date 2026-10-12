@@ -4720,3 +4720,43 @@ class DirectorNoteTests(WatchChatTests):
         active.save()
         self.client.get(self.url)
         self.assertEqual(self.post({"action": "appearance", "layout": "book"}).json()["watch"]["count"], 0)
+
+
+class TasteIntoPresetTests(BulbaInChatTests):
+    """What Bulba Watch learned about their taste, put into the preset with Bulba."""
+
+    def test_offer_after_three_lines_then_apply_marks_them(self):
+        from mainapp.bulba import watch
+        self.make_chat()
+        data = watch.chat_data(self.chat_obj)
+        mine = watch.user_data(self.user)
+        mine["taste"] = ["Cuts long descriptions of rooms", "Keeps the banter", "Dislikes speeches"]
+        note = watch.offer_taste(data, mine)
+        watch.save_user_data(self.user, mine)
+        watch.save_chat_data(self.chat_obj, data)
+        self.assertEqual(note["kind"], "taste")
+        self.assertIsNone(watch.offer_taste(watch.chat_data(self.chat_obj), watch.user_data(self.user)))  # once
+        self.script = [("Here's the change.", [self.call(
+            "propose_preset_edit", edits=[{"action": "add", "block": "Your taste",
+                                           "content": "Keep room descriptions to a line. Keep the banter."}],
+            from_taste=["Cuts long descriptions of rooms", "Keeps the banter", "Not a learned line"], why="Their taste")])]
+        data = self.api(action="note", id=note["id"]).json()
+        self.assertIn("Bulba Watch learned these about their taste", self.bulba_calls[-1]["messages"][-1]["content"])
+        proposal = data["state"]["proposals"][-1]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=proposal["id"])
+        self.assertEqual(watch.user_data(self.user)["taste_in_preset"], ["Cuts long descriptions of rooms", "Keeps the banter"])
+        self.assertEqual(watch.memory(self.user)["taste_in_preset"], ["Cuts long descriptions of rooms", "Keeps the banter"])
+        self.script = [("Undone.", [])]
+        self.api(action="undo", id=proposal["id"])
+        self.assertEqual(watch.user_data(self.user)["taste_in_preset"], [])
+
+    def test_lines_already_in_the_preset_are_not_offered(self):
+        from mainapp.bulba import watch
+        self.make_chat()
+        mine = watch.user_data(self.user)
+        mine["taste"] = ["A", "B", "C"]
+        mine["taste_in_preset"] = ["A"]
+        self.assertIsNone(watch.offer_taste(watch.chat_data(self.chat_obj), mine))  # only two new
+        mine["taste"].append("D")
+        self.assertEqual(watch.offer_taste(watch.chat_data(self.chat_obj), mine)["quotes"], ["B", "C", "D"])

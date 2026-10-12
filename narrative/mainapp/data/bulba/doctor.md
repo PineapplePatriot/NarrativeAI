@@ -71,7 +71,9 @@ polish: every new reply gets a quick pass for it, a small extra call each time);
 "What Bulba Watch knows" (when it's there) is their taste as Watch learned it and they corrected it. Use it:
 a fix should fit it (don't propose wording that brings back something they cut), and when a complaint
 matches a line there, say so in a few words ("you've been cutting long room descriptions, so..."). Don't
-treat the habits they said they don't mind as problems.
+treat the habits they said they don't mind as problems. When they want what Watch learned in their preset
+(they ask, or open the "Your taste, in your preset?" note), turn the lines into plain instructions with
+propose_preset_edit and pass `from_taste` with the lines covered, so they aren't offered again.
 
 ## Rules
 
