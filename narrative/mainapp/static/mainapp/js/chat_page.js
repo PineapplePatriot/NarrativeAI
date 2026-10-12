@@ -530,6 +530,7 @@ function sendMessage(noteOnly = false) {
             if (window.Trackers) Trackers.afterReply(data);
             if (window.Watch) Watch.afterReply(data);
             if (data.polish_due) runPolish(lastAssistant());
+            if (data.music_due) followSceneMusic();
 
             if (data.photo_url) {
                 const characterSprite = document.querySelector('.character-sprite');
@@ -1037,6 +1038,8 @@ let currentMediaType = 'bg';
 function openMediaModal(type) {
     currentMediaType = type;
     document.getElementById('mediaModalTitle').innerText = type === 'bg' ? "Select Background" : "Select Music";
+    document.getElementById('musicFollowRow').hidden = type !== 'music';
+    document.getElementById('musicFollow').checked = !!window.MUSIC_FOLLOW;
     mediaModal.classList.add('show');
     fetch('/main/api/media-resources/').then(r => r.json()).then(d => {
         const grid = document.getElementById('mediaGrid'); grid.innerHTML = '';
@@ -1138,6 +1141,7 @@ function regenerateReply(guidance = '') {
             if (window.Trackers) Trackers.afterReply(d);
             if (window.Watch) Watch.afterReply(d);
             if (d.polish_due) runPolish(lastAssistant());
+            if (d.music_due) followSceneMusic();
         })
         .catch(err => { console.error(err); restore(); showChatError('Could not reach the app server.'); })
         .finally(() => { isGenerating = false; sendBtn.disabled = false; stopContainer.style.display = 'none'; typingMessage.style.display = 'none'; updateMessageIndices(); });
@@ -1767,3 +1771,64 @@ document.addEventListener('click', e => {
 
 // Messages condensed before the page loaded
 document.querySelectorAll('.condensed-line[data-condensed]').forEach(line => setCondensed(line.closest('.message'), line.getAttribute('data-condensed')));
+
+// Music that follows the scene (built-in tracks): after some replies, a tiny call picks the track that fits
+document.getElementById('musicFollow')?.addEventListener('change', async (e) => {
+    const resp = await fetch(window.location.href, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ action: 'music_follow', on: e.target.checked }),
+    });
+    const d = await resp.json().catch(() => ({}));
+    window.MUSIC_FOLLOW = !!d.on;
+    showChatNotice(d.on ? 'The music follows the scene from your next replies.' : 'The music stays as you set it.');
+});
+
+async function followSceneMusic() {
+    try {
+        const resp = await fetch(window.location.href, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ action: 'scene_music' }),
+        });
+        const d = await resp.json();
+        if (!d.success || !d.music) return;
+        // A soft crossfade: down, switch, back up (unless they paused it themselves)
+        const target = Number(document.getElementById('musicVolume')?.value || 0.3);
+        const wasPlaying = !bgMusic.paused;
+        for (let v = bgMusic.volume; wasPlaying && v > 0.02; v -= 0.05) { bgMusic.volume = Math.max(0, v); await new Promise(r => setTimeout(r, 40)); }
+        if (musicHeld) { bgMusic.src = d.music.url; document.getElementById('nowPlayingText').innerText = d.music.name; bgMusic.volume = target; return; }
+        loadMusic(d.music.url, d.music.name);
+        bgMusic.volume = 0;
+        for (let v = 0; v < target; v += 0.05) { bgMusic.volume = Math.min(target, v); await new Promise(r => setTimeout(r, 60)); }
+        bgMusic.volume = target;
+        showChatNotice(`🎵 ${d.music.name}`);
+    } catch (err) { /* the music is a nicety */ }
+}
+
+// Voice input: the browser's own speech-to-text fills the message box (free; hidden where the browser can't)
+(function () {
+    const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const btn = document.getElementById('micBtn');
+    if (!Recognition || !btn) return;
+    btn.hidden = false;
+    let rec = null;
+    btn.addEventListener('click', () => {
+        if (rec) { rec.stop(); return; }
+        rec = new Recognition();
+        rec.lang = document.documentElement.lang && document.documentElement.lang !== 'en' ? document.documentElement.lang : (navigator.language || 'en-US');
+        rec.interimResults = true;
+        rec.continuous = true;
+        const before = messageInput.value ? messageInput.value.replace(/\s*$/, ' ') : '';
+        rec.onresult = (e) => {
+            let text = '';
+            for (let i = 0; i < e.results.length; i++) text += e.results[i][0].transcript;
+            messageInput.value = before + text;
+            messageInput.style.height = 'auto';
+            messageInput.style.height = messageInput.scrollHeight + 'px';
+        };
+        rec.onerror = (e) => { if (e.error !== 'aborted') showChatNotice(e.error === 'not-allowed' ? 'The microphone is blocked for this site.' : 'Could not hear that. Try again.'); };
+        rec.onend = () => { rec = null; btn.classList.remove('listening'); btn.title = 'Speak your message'; messageInput.focus(); };
+        rec.start();
+        btn.classList.add('listening');
+        btn.title = 'Listening… press again to stop';
+    });
+})();

@@ -1789,3 +1789,37 @@ body:has(#toolsMenu.show) .watch-card { display: none; }  /* the pen menu wins w
     margin-bottom: 12px; font-size: .9rem; }
 .music-now[hidden] { display: none; }
 .music-now label { display: flex; gap: 6px; align-items: center; }
+
+/* Weather and time of day over the scene (atmosphere.js) */
+.atmosphere { position: absolute; inset: 0; z-index: 5; pointer-events: none; overflow: hidden; transition: background 2s ease; }
+.atmosphere.time-night { background: radial-gradient(ellipse at 50% 20%, rgba(30, 41, 90, .25), rgba(5, 8, 25, .55)); }
+.atmosphere.time-dusk { background: linear-gradient(180deg, rgba(251, 146, 60, .18), rgba(126, 34, 206, .22)); }
+.atmosphere.time-dawn { background: linear-gradient(180deg, rgba(253, 186, 116, .14), rgba(244, 114, 182, .08)); }
+.atmosphere .sky { position: absolute; inset: -50% 0 0 0; }
+.atmosphere.sky-rain .sky, .atmosphere.sky-storm .sky {
+    background-image: repeating-linear-gradient(105deg, transparent 0 18px, rgba(180, 200, 255, .22) 18px 19px, transparent 19px 46px);
+    background-size: 120px 120px; animation: atmo-rain .45s linear infinite; }
+.atmosphere.sky-storm .sky { background-size: 90px 90px; animation-duration: .3s; }
+.atmosphere.sky-snow .sky {
+    background-image: radial-gradient(circle, rgba(255, 255, 255, .85) 1.4px, transparent 2px),
+                      radial-gradient(circle, rgba(255, 255, 255, .6) 1px, transparent 1.6px),
+                      radial-gradient(circle, rgba(255, 255, 255, .45) .8px, transparent 1.3px);
+    background-size: 73px 89px, 127px 109px, 53px 61px; background-position: 0 0, 35px 50px, 17px 29px;
+    animation: atmo-snow 9s linear infinite; }
+.atmosphere.sky-fog .sky { inset: 0; background: linear-gradient(90deg, rgba(220, 225, 235, .0), rgba(220, 225, 235, .28), rgba(220, 225, 235, .05));
+    background-size: 200% 100%; filter: blur(8px); animation: atmo-fog 22s ease-in-out infinite alternate; }
+.atmosphere .flash { position: absolute; inset: 0; background: rgba(230, 235, 255, .55); opacity: 0; animation: atmo-flash 9s infinite; }
+@keyframes atmo-rain { to { background-position: -30px 120px; } }
+@keyframes atmo-snow { to { background-position: 30px 712px, 85px 813px, 40px 517px; } }
+@keyframes atmo-fog { to { background-position: 100% 0; } }
+@keyframes atmo-flash { 0%, 91%, 93%, 96%, 100% { opacity: 0; } 92%, 95% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .atmosphere .sky, .atmosphere .flash { animation: none; } .atmosphere .flash { display: none; } }
+
+/* Voice input */
+.mic-btn { font-size: .95rem; }
+.mic-btn.listening { color: #f87171; animation: mic-pulse 1.2s ease-in-out infinite; }
+@keyframes mic-pulse { 50% { transform: scale(1.15); } }
+.input-wrapper:has(#micBtn:not([hidden])) .input-field { padding-right: 84px; }
+.input-wrapper:has(#micBtn:not([hidden])):has(#ideasBtn) .input-field { padding-right: 116px; }
+.theme-check.music-follow { display: block; margin: 0 0 12px; }
+.theme-check.music-follow small { display: block; margin-left: 24px; opacity: .75; }

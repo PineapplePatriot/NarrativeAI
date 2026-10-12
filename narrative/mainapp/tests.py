@@ -4921,3 +4921,43 @@ class StoryKeeperAndContinuityTests(WatchChatTests):
         prompt = self.reader_calls[-1]["messages"][1]["content"]
         self.assertIn("Rose lost her brother in the war.", prompt)
         self.assertIn("## Pinned note\n\nIt's winter.", prompt)
+
+
+class SceneMusicTests(ChatPromptTests):
+    """The music follows the scene: off by default; a tiny pick every few replies; only built-in tracks."""
+
+    def setUp(self):
+        super().setUp()
+        self.pick = "2"
+
+    def fake_post(self, url, headers=None, json=None, timeout=None, **kwargs):
+        from unittest import mock
+        if json["messages"][0]["content"].startswith("You pick background music"):
+            self.all_calls.append(json)
+            resp = mock.Mock(status_code=200)
+            resp.json.return_value = {"choices": [{"message": {"content": self.pick}}]}
+            return resp
+        return super().fake_post(url, headers=headers, json=json, timeout=timeout, **kwargs)
+
+    def music_calls(self):
+        return [c for c in self.all_calls if c["messages"][0]["content"].startswith("You pick background music")]
+
+    def test_off_by_default_then_picks_every_few_replies(self):
+        from mainapp import media_library
+        tracks = media_library.built_in("music")
+        self.assertFalse(self.post({"action": "chat", "message": "Hi."}).json()["music_due"])
+        self.assertTrue(self.post({"action": "music_follow", "on": True}).json()["on"])
+        self.assertTrue(self.post({"action": "chat", "message": "Into the desert."}).json()["music_due"])  # first one at once
+        data = self.post({"action": "scene_music"}).json()
+        self.assertEqual(data["music"]["name"], tracks[1]["name"])
+        self.assertIn(tracks[0]["name"], self.music_calls()[-1]["messages"][1]["content"])
+        dues = [self.post({"action": "chat", "message": f"On {i}."}).json()["music_due"] for i in range(3)]
+        self.assertEqual(dues, [False, False, True])
+        self.assertIsNone(self.post({"action": "scene_music"}).json()["music"])  # same track: no switch
+        self.assertContains(self.client.get(self.url), "window.MUSIC_FOLLOW = true")
+
+    def test_zero_keeps_the_track(self):
+        self.post({"action": "music_follow", "on": True})
+        self.post({"action": "chat", "message": "Hi."})
+        self.pick = "0"
+        self.assertIsNone(self.post({"action": "scene_music"}).json()["music"])

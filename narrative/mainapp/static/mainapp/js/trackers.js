@@ -200,7 +200,15 @@
         storage('trackerPanelOpen', open ? '1' : '0');
     }
 
-    function render() { renderHud(); if (panel && !panel.hidden) renderPanel(); }
+    function render() {
+        renderHud();
+        if (panel && !panel.hidden) renderPanel();
+        atmosphere();
+    }
+    // Weather and time of day over the scene, from the World tracker (when it's on)
+    function atmosphere() {
+        if (window.Atmosphere) Atmosphere.update(config.trackers.world && config.trackers.world.on ? value('world') : {});
+    }
 
     // ------------------------------------------------------------- Editing
     function setByPath(path, raw) {
@@ -324,4 +332,5 @@
     if (panel) panel.hidden = !open;
     renderHud();
     if (open) renderPanel();
+    atmosphere();
 })();

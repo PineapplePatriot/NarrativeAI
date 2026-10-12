@@ -120,6 +120,7 @@ def chat(request, slug):
         "context_guides": {},
         "current_bg": "",
         "current_music": {},
+        "music_follow": {},     # {"on": bool, "since": replies since the last pick}: music follows the scene
         "persona": {},          # {"name", "description"}: who the user is in this chat only (else their usual persona)
         "game": {},             # dice and inventory: the starting inventory after manual edits (see mainapp/game.py)
         "voices": {},           # voices picked for speakers in this chat (see mainapp/voice.py), so they stay the same
@@ -163,6 +164,7 @@ def chat(request, slug):
                         chat_state["context_guides"] = data.get("context_guides", {})
                         chat_state["current_bg"] = data.get("current_bg", "")
                         chat_state["current_music"] = data.get("current_music", {})
+                        chat_state["music_follow"] = data.get("music_follow") if isinstance(data.get("music_follow"), dict) else {}
                         chat_state["persona"] = data.get("persona") if isinstance(data.get("persona"), dict) else {}
                         chat_state["game"] = data.get("game") if isinstance(data.get("game"), dict) else {}
                         chat_state["voices"] = data.get("voices") if isinstance(data.get("voices"), dict) else {}
@@ -231,6 +233,7 @@ def chat(request, slug):
             "context_guides": chat_state["context_guides"],
             "current_bg": chat_state["current_bg"],
             "current_music": chat_state["current_music"],
+            "music_follow": chat_state["music_follow"],
             "persona": chat_state["persona"],
             "game": chat_state["game"],
             "voices": chat_state["voices"],
@@ -762,6 +765,24 @@ def chat(request, slug):
             character.theme = theme
             character.save(update_fields=["theme"])
             return JsonResponse({"success": True, "theme": theme})
+        elif action == "music_follow":  # let the music follow the scene (built-in tracks), or not
+            chat_state["music_follow"] = {"on": bool(data.get("on")), "since": MUSIC_EVERY}
+            save_messages(messages)
+            return JsonResponse({"success": True, "on": chat_state["music_follow"]["on"]})
+        elif action == "scene_music":  # pick the built-in track that fits the latest reply (one tiny call)
+            follow = chat_state["music_follow"]
+            if not follow.get("on") or follow.get("since", 0) < MUSIC_EVERY or not messages:
+                return JsonResponse({"success": True, "music": None})
+            try:
+                pick = scene_music(request.user, messages, chat_state["current_music"].get("name", ""))
+            except ai_client.AIError as e:
+                return JsonResponse({"success": False, "error": str(e)})
+            follow["since"] = 0
+            changed = bool(pick and pick["name"] != chat_state["current_music"].get("name"))
+            if changed:
+                chat_state["current_music"] = pick
+            save_messages(messages)
+            return JsonResponse({"success": True, "music": pick if changed else None})
         elif action == "save_media":
             m_type = data.get("type")
             url = data.get("url")
@@ -874,6 +895,14 @@ def chat(request, slug):
                     save_messages(messages)
                     return JsonResponse({"error": f"Something went wrong while building the prompt: {e}"}, status=500)
 
+                def music_due():
+                    follow = chat_state["music_follow"]
+                    if not follow.get("on"):
+                        return False
+                    follow["since"] = follow.get("since", MUSIC_EVERY) + 1
+                    save_messages(messages)
+                    return follow["since"] >= MUSIC_EVERY
+
                 def finish_reply(reply, reasoning="", ops=()):
                     """Emotion, saving, voice and the summary/tracker flags, once the reply is complete."""
                     reply = text_rules("saved", reply, "assistant")
@@ -970,6 +999,7 @@ def chat(request, slug):
                         "lore": lore_report,
                         "summary_due": summary_due,
                         "trackers_due": trackers_due,
+                        "music_due": music_due(),  # the music follows the scene: the page asks for a pick
                         "watch_due": watch.due(request.user, chat_obj, messages),  # Bulba Watch reads, in the background
                         "polish_due": polish.due(request.user, chat_obj, messages),  # the page asks for the polish next
                         "watch": watch.page_state(request.user, chat_obj),
@@ -1129,6 +1159,7 @@ def chat(request, slug):
         # The chat's own background and music, else the character's theme
         "current_bg": chat_state["current_bg"] or (character.theme or {}).get("bg", ""),
         "current_music": json.dumps(chat_state["current_music"] or (character.theme or {}).get("music") or {}),
+        "music_follow": bool(chat_state["music_follow"].get("on")),
         "user_avatar": user_avatar,
         "trackers_data": _tracker_page_data(request.user, character, chat_state["trackers"]),
         "stream_replies": presets.normalize(presets.get_active(request.user).data)["options"]["streaming"],
@@ -1202,6 +1233,28 @@ def condense(user, character, message, persona=None):
     if not text:
         raise ai_client.AIError("The model sent back nothing. Try again.")
     return text
+
+
+MUSIC_EVERY = 3  # replies between two music picks when the music follows the scene
+
+
+def scene_music(user, messages, current=""):
+    """The built-in track that fits the latest reply, or None to keep the current one (a tiny call)."""
+    tracks = media_library.built_in("music")
+    if not tracks:
+        return None
+    options = "\n".join(f"{i + 1}. {t['name']}" for i, t in enumerate(tracks))
+    recent = "\n\n".join(str(m[2])[:1200] for m in messages[-2:])
+    answer = ai_client.complete(user, "emotion", [
+        {"role": "system", "content": "You pick background music for a roleplay scene. Read the latest messages and "
+                                      "answer with the number of the track that fits the mood and setting best. "
+                                      f"The current track is “{current or 'none'}”: answer 0 to keep it unless the "
+                                      "scene's mood or setting clearly changed. Answer with the number only."},
+        {"role": "user", "content": f"Tracks:\n{options}\n\nLatest messages:\n{recent}"}],
+        max_tokens=8, temperature=0)
+    m = re.search(r"\d+", answer or "")
+    n = int(m.group(0)) if m else 0
+    return tracks[n - 1] if 1 <= n <= len(tracks) else None
 
 
 NOTE_IDEAS_PROMPT = (

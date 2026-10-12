@@ -250,6 +250,9 @@
                             <button type="button" class="preset-btn {% if appearance.layout != 'book' %}on{% endif %}" data-layout="chat">💬 Chat</button>
                             <button type="button" class="preset-btn {% if appearance.layout == 'book' %}on{% endif %}" data-layout="book" title="Replies read as chapters; your messages fold into small markers you can open">📖 Book</button>
                         </div>
+                        <span class="tool-sublabel">🌦 Scene <small>(this browser)</small></span>
+                        <label class="theme-check"><input type="checkbox" id="atmosphereToggle" checked> Weather and time of day over the
+                            background <small>(from the World tracker: <span id="atmosphereNow">nothing to show yet</span>)</small></label>
                         <span class="tool-sublabel">🎨 {{ character.name }}'s dialogue colour</span>
                         <div class="dialogue-colors" id="dialogueColors">
                             {% for c in "#e594f2,#7dd3fc,#86efac,#fcd34d,#fca5a5,#c4b5fd,#f1f5f9"|split:"," %}
@@ -270,6 +273,7 @@
                     <textarea class="input-field" id="messageInput"placeholder="Continue the story with {{character.name}}..." rows="1"></textarea>
                     <div class="magic-btn-container" style="position:absolute; right:60px; bottom:12px;">
                         {% if bulba_ideas %}<button class="mini-tool-btn ideas-btn" id="ideasBtn" onclick="showIdeas()" title="Stuck? Bulba suggests three ways to go on">🥔</button>{% endif %}
+                        <button class="mini-tool-btn mic-btn" id="micBtn" type="button" hidden title="Speak your message (your browser turns it into text; nothing is sent until you press send)">🎤</button>
                         <button class="mini-tool-btn" id="expandBtn" onclick="expandInput()" title="Write my message: the AI writes it (or fleshes out your draft) in your voice, following the preset and lore"><svg viewBox="0 0 24 24" style="width:20px; height:20px; fill:currentColor;"><path d="M19,19V5H5V19H19M19,3A2,2 0 0,1 21,5V19C21,20.11 20.1,21 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3H19M16.7,9.35L15.7,10.35L13.65,8.3L14.65,7.3C14.86,7.08 15.21,7.08 15.42,7.3L16.7,8.58C16.92,8.79 16.92,9.14 16.7,9.35M7,14.94L13.06,8.88L15.12,10.94L9.06,17H7V14.94Z" /></svg></button>
                     </div>
                     <button class="send-btn" id="sendBtn"><svg class="icon" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg></button>
@@ -342,6 +346,8 @@
                     <span>🎵 <b id="nowPlayingText">Nothing playing</b></span>
                     <label>Volume <input type="range" id="musicVolume" min="0" max="1" step="0.05" value="0.3" oninput="setVolume(this.value)"></label>
                 </div>
+                <label class="theme-check music-follow" id="musicFollowRow" hidden><input type="checkbox" id="musicFollow"> Let the music
+                    follow the scene <small>(switches between the built-in tracks as the mood changes; one tiny call every few replies)</small></label>
                 <div id="mediaGrid" class="media-grid"></div>
                 <div class="upload-area" onclick="document.getElementById('fileUpload').click()">
                     + Upload File
@@ -389,6 +395,7 @@
     <script src="{% static 'mainapp/vendor/purify-3.4.16.min.js' %}"></script>
     <script>
         window.SAVED_MUSIC = JSON.parse('{{ current_music|escapejs }}');
+        window.MUSIC_FOLLOW = {{ music_follow|yesno:"true,false" }};
         window.SAVED_BG = "{{ current_bg|escapejs }}";
         window.INIT_PHOTO_URL = "{{ photo_url|default:'' }}";
         window.INIT_PHOTO_SECOND = "{{ photo_second|default:'' }}";
@@ -422,6 +429,7 @@
     </aside>
     {{ trackers_data|json_script:"trackers-data" }}
     {{ watch_data|json_script:"watch-data" }}
+    <script src="{% static 'mainapp/js/atmosphere.js' %}?v={% now 'U' %}"></script>
     <script src="{% static 'mainapp/js/trackers.js' %}?v={% now 'U' %}"></script>
     <script src="{% static 'mainapp/js/regex_rules.js' %}?v={% now 'U' %}"></script>
     <script src="{% static 'mainapp/js/chat_page.js' %}?v={% now 'U' %}"></script>

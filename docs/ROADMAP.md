@@ -69,6 +69,11 @@ to make a point, leaving out what mattered, inventing details) raises a note at 
 ("Getting past events wrong", also fixable by the polish); new lasting facts pile up and, two or more, raise "Worth keeping?" (Bulba
 proposes the card or lore addition). Single messages can be condensed for the AI (🗜).
 
+Atmosphere (free unless noted): weather and time of day over the scene from the World tracker; the music's
+play/pause in the header (and the double-press bug fixed); "Let the music follow the scene" (opt-in, a tiny pick on
+the background model every 3 replies, built-in tracks, crossfade); voice input with the browser's speech-to-text.
+Text reveal is covered by streaming.
+
 Open (Bulba Watch):
 - **First real polish run**: is MiMo's rewrite faithful to the voice, and what does a pass cost? *Needs Anya.*
 - **Tune the numbers** after real use: every 5 replies, 3 of the last 6, the pace thresholds. *Needs Anya.*
