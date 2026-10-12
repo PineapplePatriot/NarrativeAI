@@ -1764,3 +1764,12 @@ details.thoughts .thoughts-text { white-space: pre-wrap; font-size: .85rem; opac
 .polish-line s { opacity: .7; }
 .polish-line .link { background: none; border: none; padding: 0; color: inherit; text-decoration: underline; cursor: pointer; font-size: inherit; }
 .polish-busy { font-style: italic; }
+
+/* The director's note: Bulba's two ideas, and the note that steered a reply */
+.note-ideas { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.note-ideas[hidden] { display: none; }
+.note-idea { text-align: left; display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 8px; cursor: pointer;
+    background: rgba(139, 92, 246, .1); border: 1px solid rgba(139, 92, 246, .35); color: inherit; font: inherit; font-size: .85rem; }
+.note-idea b { font-size: .8rem; }
+.directed-line { font-size: .78rem; opacity: .7; font-style: italic; margin-bottom: 4px; }
+body:has(#toolsMenu.show) .watch-card { display: none; }  /* the pen menu wins while it's open */

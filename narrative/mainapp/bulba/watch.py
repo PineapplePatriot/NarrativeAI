@@ -188,6 +188,108 @@ def _pace_notice(kind):
 # What they did with replies (for learning their taste)
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Steering: when they direct more than they play, offer director mode (no AI)
+# ---------------------------------------------------------------------------
+
+DIRECTIVE_START = {"have", "make", "let", "describe", "write", "show", "continue", "skip", "give", "add", "introduce",
+                   "focus", "keep", "narrate", "cut", "fast-forward", "timeskip", "bring", "switch", "move", "end",
+                   "start", "begin", "resume", "include", "avoid"}
+DIRECTIVE_WORDS = re.compile(r"\b(the (story|scene|narrat\w*|model|ai)|next (reply|scene|response|chapter)|time skip)\b", re.I)
+STEER_RUN, STEER_HITS = 5, 3
+
+
+def looks_like_directive(text):
+    """A message written as a direction to the AI rather than as their character ("Have Vex keep talking",
+    "(OOC: ...)", "Skip to the next morning")."""
+    t = str(text or "").strip()
+    if not t or t[0] in "\"“«*":
+        return False
+    if re.match(r"(\(\(|\(|\[|ooc\b|//)", t, re.I):
+        return True
+    first = re.findall(r"[A-Za-z'-]+", t)[:1]
+    return bool(first and first[0].lower() in DIRECTIVE_START) or bool(DIRECTIVE_WORDS.search(t))
+
+
+def _directing(user):
+    from mainapp import presets
+    from mainapp.bulba import control
+    try:
+        return control.mode_of(presets.normalize(presets.get_active(user).data)) == "director"
+    except Exception:
+        return True  # can't tell: don't nag
+
+
+DIRECTOR_TEXT = {
+    "steering": "You've been steering the story more than playing in it (director's notes, or messages written as "
+                "directions). Director mode makes that the default: the AI treats your messages as directions, never "
+                "as your character, and replies read as chapters.",
+    "book": "The book layout is only the look. Want the AI to treat you as the director too? Your messages become "
+            "directions, never your character's actions.",
+}
+
+
+def _offer_director(user, chat_obj, data, why):
+    if data.get("off") or data.get("director_offered") or _directing(user):
+        return None
+    notice = {"id": uuid.uuid4().hex[:10], "kind": "director", "label": "director", "title": "Director mode?",
+              "text": DIRECTOR_TEXT[why], "quotes": [], "status": "new", "time": time.time()}
+    data["director_offered"] = True  # once per chat
+    data["notices"].append(notice)
+    return notice
+
+
+def note_steering(user, chat_obj, kind):
+    """kind: "note" (a director's note was sent), "directive" (a message written as a direction) or "play"."""
+    if not is_on(user):
+        return None
+    data = chat_data(chat_obj)
+    data["steer"] = ((data.get("steer") or []) + [kind])[-STEER_RUN:]
+    notice = None
+    if sum(k != "play" for k in data["steer"]) >= STEER_HITS:
+        notice = _offer_director(user, chat_obj, data, "steering")
+    save_chat_data(chat_obj, data)
+    return notice
+
+
+def offer_director_for_book(user, chat_obj):
+    if not is_on(user):
+        return None
+    data = chat_data(chat_obj)
+    notice = _offer_director(user, chat_obj, data, "book")
+    save_chat_data(chat_obj, data)
+    return notice
+
+
+def switch_to_director(user, chat_obj, notice_id, undo=False):
+    """The note's one-click switch (Pura's wording and the book layout), or putting it back."""
+    import copy
+    from mainapp import presets
+    from mainapp.bulba import control
+    from mainapp.models import Preset
+    from mainapp.views import _appearance, set_layout
+    data = chat_data(chat_obj)
+    notice = next((n for n in data["notices"] if n["id"] == notice_id and n["kind"] == "director"), None)
+    if notice is None:
+        raise ValueError("No such note.")
+    if undo:
+        before = notice.get("undo") or {}
+        Preset.objects.filter(user=user, id=before.get("preset_id")).update(data=before.get("data"))
+        if before.get("layout"):
+            set_layout(user, before["layout"])
+        notice["status"] = "dismissed"
+    else:
+        active = presets.get_active(user)
+        notice["undo"] = {"preset_id": active.id, "data": copy.deepcopy(active.data),
+                          "layout": _appearance(user)["layout"]}
+        active.data = control.apply_to_preset(presets.normalize(active.data), "director")
+        active.save(update_fields=["data", "time_update"])
+        set_layout(user, "book")
+        notice["status"] = "director"
+    save_chat_data(chat_obj, data)
+    return notice
+
+
 def recheck(user, chat_obj, messages):
     """Runs the free checks again on the newest reply after it changed (polished, or its fixes undone)."""
     if not is_on(user) or not messages or messages[-1][0] != "assistant":

@@ -62,7 +62,7 @@
             <div class="tracker-hud" id="trackerHud" hidden></div>
 
             <div class="messages-container" id="messagesContainer">
-                {% for sender, time, text, emotion, char_count, thoughts, game_lines, extras_html, audio_url, polish_json in messages %}
+                {% for sender, time, text, emotion, char_count, thoughts, game_lines, extras_html, audio_url, polish_json, directed in messages %}
                 <div class="message {{ sender }}" data-index="{{ forloop.counter0 }}" data-emotion="{{ emotion }}" data-char-count="{{ char_count }}">
                     {% if sender == "assistant" %}
                     {% if photo_neutral %}
@@ -113,6 +113,7 @@
                         </div>
 
                         {% if thoughts %}<details class="thoughts"><summary>Thoughts</summary><div class="thoughts-text">{{ thoughts }}</div></details>{% endif %}
+                        {% if directed %}<div class="directed-line">🎬 {{ directed }}</div>{% endif %}
                         <div class="message-text markdown-output" data-raw="{{ text|urlencode }}">
                             {{ text }}
                         </div>
@@ -167,20 +168,33 @@
                 <div class="tools-menu" id="toolsMenu">
                     <div class="tool-header"><span>Steer the story</span><span style="font-size:0.8rem; cursor:pointer;" onclick="toggleTools()">✕</span></div>
                     <div class="tool-section">
-                        <span class="tool-label">🎬 Director's note <small>for the next reply only</small></span>
-                        <textarea class="tool-input" id="guidanceInput" rows="2" placeholder="e.g. She dodges the question; the storm reaches the harbour"></textarea>
+                        <span class="tool-label">🎬 Director's note <small>steers the next reply</small></span>
+                        <textarea class="tool-input" id="guidanceInput" rows="3" placeholder="e.g. She dodges the question; the storm reaches the harbour"></textarea>
+                        <div class="tool-grid three">
+                            <button class="tool-action-btn" id="sendNoteBtn" title="Send it now: on its own, or with the message you wrote">▶ Send</button>
+                            <button class="tool-action-btn" id="wordNoteBtn" title="Bulba turns your rough idea into a clear note (costs a little)">🥔 Word it for me</button>
+                            <button class="tool-action-btn" id="noteIdeasBtn" title="Bulba writes two notes from scratch: what would happen, and a twist (costs a little)">✨ Be creative</button>
+                        </div>
+                        <div class="note-ideas" id="noteIdeas" hidden></div>
+                        <p class="tool-help">Send it on its own and the story goes on without a message from you, or write your
+                            message and it goes along with it.</p>
+                    </div>
+
+                    <div class="tool-section">
+                        <span class="tool-label">↻ Redo the last reply</span>
+                        <textarea class="tool-input" id="redoInput" rows="2" placeholder="What should change? e.g. Less description, more of her voice"></textarea>
                         <div class="chip-row">
-                            <button class="preset-btn" onclick="setGuidance('Describe the surroundings.')">🌲 Area</button>
-                            <button class="preset-btn" onclick="setGuidance('Show what {{ character.name|escapejs }} is thinking.')">🧠 Thoughts</button>
-                            <button class="preset-btn" onclick="setGuidance('Skip ahead to the next meaningful moment.')">⏩ Skip time</button>
-                            <button class="preset-btn" onclick="setGuidance('Mostly dialogue this time.')">💬 Talk</button>
-                            <button class="preset-btn" onclick="setGuidance('Keep it short.')">✂️ Shorter</button>
+                            <button class="preset-btn" onclick="setRedo('Describe the surroundings.')">🌲 Area</button>
+                            <button class="preset-btn" onclick="setRedo('Show what {{ character.name|escapejs }} is thinking.')">🧠 Thoughts</button>
+                            <button class="preset-btn" onclick="setRedo('Skip ahead to the next meaningful moment.')">⏩ Skip time</button>
+                            <button class="preset-btn" onclick="setRedo('Mostly dialogue this time.')">💬 Talk</button>
+                            <button class="preset-btn" onclick="setRedo('Keep it short.')">✂️ Shorter</button>
                         </div>
                         <div class="tool-grid two">
-                            <button class="tool-action-btn" id="wordNoteBtn" title="Bulba turns your rough idea into a clear note (costs a little)">🥔 Word it for me</button>
-                            <button class="tool-action-btn" id="rewriteWithNote" title="A new version of the last reply, following the note">↻ Rewrite last reply</button>
+                            <button class="tool-action-btn" id="wordRedoBtn" title="Bulba turns your rough idea into a clear note (costs a little)">🥔 Word it for me</button>
+                            <button class="tool-action-btn" id="rewriteWithNote" title="A new version of the last reply, following this">↻ Rewrite last reply</button>
                         </div>
-                        <p class="tool-help">Sent once, with your next message. Keeps going wrong every time?
+                        <p class="tool-help">Keeps going wrong every time?
                             <button type="button" class="link-btn" id="askBulbaFromNote">Ask Bulba to fix it for good</button></p>
                     </div>
 

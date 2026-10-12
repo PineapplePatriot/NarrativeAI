@@ -482,17 +482,21 @@ function placeReply(data, avatarUrl) {
 }
 
 // Send message to server
-function sendMessage() {
-    const message = messageInput.value.trim();
-    if (!message || isGenerating) return;
+// `noteOnly`: send the director's note on its own (the story goes on with no message from them)
+function sendMessage(noteOnly = false) {
+    noteOnly = noteOnly === true;  // never an event object from a click handler
+    const message = noteOnly ? '' : messageInput.value.trim();
     const guideInput = document.getElementById('guidanceInput');
     const guidance = guideInput ? guideInput.value.trim() : '';
+    if ((!message && !(noteOnly && guidance)) || isGenerating) return;
     if (guideInput) guideInput.value = '';
 
     clearSwipeNav();
-    addMessage('user', message, window.USER_AVATAR);
-    messageInput.value = '';
-    messageInput.style.height = 'auto';
+    if (message) {
+        addMessage('user', message, window.USER_AVATAR);
+        messageInput.value = '';
+        messageInput.style.height = 'auto';
+    }
 
     isGenerating = true;
     sendBtn.disabled = true;
@@ -512,6 +516,7 @@ function sendMessage() {
                 avatarToUse = data.photo_second;
             }
             placeReply(data, avatarToUse);
+            setDirected(lastAssistant(), data.directed);
             setSwipes(data.swipes);
             updateCharacterImages(data.photo_url, data.photo_second, data.char_count);
             renderLore(data.lore);
@@ -719,7 +724,7 @@ function stopGeneration() {
 }
 
 // Event listeners
-sendBtn.addEventListener('click', sendMessage);
+sendBtn.addEventListener('click', () => sendMessage());
 stopBtn.addEventListener('click', stopGeneration);
 
 messageInput.addEventListener('keydown', function (e) {
@@ -799,40 +804,86 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 })();
 
-// The director's note: Bulba can word it, and it can rewrite the last reply
+// The pen menu's two parts: the director's note for the next reply (send it, have Bulba word it, or have Bulba
+// come up with one), and redoing the last reply (shortcuts, wording, rewrite)
 (function () {
     const input = document.getElementById('guidanceInput');
-    const wordBtn = document.getElementById('wordNoteBtn');
-    if (!input || !wordBtn) return;
-    wordBtn.onclick = async () => {
-        const wish = input.value.trim();
-        if (!wish) { input.focus(); input.placeholder = 'Write roughly what you want first, then press this.'; return; }
-        wordBtn.disabled = true;
-        const label = wordBtn.textContent;
-        wordBtn.textContent = '🥔 Wording…';
-        try {
-            const resp = await fetch(window.location.href, {
-                method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-                body: JSON.stringify({ action: 'word_note', text: wish }),
-            });
-            const d = await resp.json();
-            if (!d.success) throw new Error(d.error || 'Bulba could not word it.');
-            input.value = d.note;
-            updateSpending(d.spending);
-        } catch (err) { showChatNotice(err.message); }
-        finally { wordBtn.disabled = false; wordBtn.textContent = label; }
+    const redo = document.getElementById('redoInput');
+    if (!input || !redo) return;
+    const post = async (body) => {
+        const resp = await fetch(window.location.href, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify(body),
+        });
+        const d = await resp.json();
+        updateSpending(d.spending);
+        if (!d.success) throw new Error(d.error || 'Bulba could not do it.');
+        return d;
     };
+    const busy = async (btn, label, work) => {
+        const was = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = label;
+        try { await work(); } catch (err) { showChatNotice(err.message); }
+        finally { btn.disabled = false; btn.textContent = was; }
+    };
+    const wordIt = (btn, box, rewrite) => btn.onclick = () => {
+        const wish = box.value.trim();
+        if (!wish) { box.focus(); box.placeholder = 'Write roughly what you want first, then press this.'; return; }
+        busy(btn, '🥔 Wording…', async () => { box.value = (await post({ action: 'word_note', text: wish, rewrite })).note; });
+    };
+    wordIt(document.getElementById('wordNoteBtn'), input, false);
+    wordIt(document.getElementById('wordRedoBtn'), redo, true);
+
+    document.getElementById('sendNoteBtn').onclick = () => {
+        if (!input.value.trim() && !messageInput.value.trim()) { input.focus(); return; }
+        toggleTools();
+        sendMessage(!messageInput.value.trim());  // with their message if they wrote one, else on its own
+    };
+
+    const ideasBox = document.getElementById('noteIdeas');
+    const ideasBtn = document.getElementById('noteIdeasBtn');
+    ideasBtn.onclick = () => busy(ideasBtn, '✨ Thinking…', async () => {
+        const d = await post({ action: 'note_ideas' });
+        ideasBox.innerHTML = [['logical', '🧭 What would happen'], ['creative', '✨ A twist']]
+            .filter(([k]) => d[k]).map(([k, label]) => `<button type="button" class="note-idea" data-note="${encodeURIComponent(d[k])}">
+                <b>${label}</b><span></span></button>`).join('');
+        ideasBox.querySelectorAll('.note-idea').forEach(b => { b.querySelector('span').textContent = decodeURIComponent(b.dataset.note); });
+        ideasBox.hidden = false;
+    });
+    ideasBox.addEventListener('click', e => {
+        const b = e.target.closest('.note-idea');
+        if (!b) return;
+        input.value = decodeURIComponent(b.dataset.note);  // theirs to change before sending
+        ideasBox.hidden = true;
+        input.focus();
+    });
+
     document.getElementById('rewriteWithNote').onclick = () => {
-        const note = input.value.trim();
-        input.value = '';
+        const note = redo.value.trim();
+        redo.value = '';
         toggleTools();
         regenerateReply(note);
     };
     document.getElementById('askBulbaFromNote').onclick = () => {
         toggleTools();
-        if (window.askBulba) window.askBulba(input.value.trim());
+        if (window.askBulba) window.askBulba((redo.value.trim() || input.value.trim()));
     };
 })();
+
+// What steered a reply (a director's note), shown small above it
+function setDirected(messageEl, note) {
+    if (!messageEl) return;
+    let line = messageEl.querySelector('.directed-line');
+    if (!note) { if (line) line.remove(); return; }
+    if (!line) {
+        line = document.createElement('div');
+        line.className = 'directed-line';
+        const textEl = messageEl.querySelector('.message-text');
+        textEl.parentNode.insertBefore(line, textEl);
+    }
+    line.textContent = `🎬 ${note}`;
+}
 
 // Toggle Tools
 // Shows a failed generation in the chat; the user's message is kept, so Regenerate retries it
@@ -859,6 +910,7 @@ function renderLore(lore) {
 
 function toggleTools() { document.getElementById('toolsMenu').classList.toggle('show'); document.getElementById('toolsBtn').classList.toggle('active'); }
 function setGuidance(text) { document.getElementById('guidanceInput').value = text; }
+function setRedo(text) { document.getElementById('redoInput').value = text; }
 
 
 // Actions
@@ -1046,7 +1098,7 @@ function regenerateReply(guidance = '') {
                 return;
             }
             if (old) old.remove();
-            placeReply(d, d.photo_url); setSwipes(d.swipes);
+            placeReply(d, d.photo_url); setDirected(lastAssistant(), d.directed); setSwipes(d.swipes);
             updateCharacterImages(d.photo_url, d.photo_second, d.char_count); renderLore(d.lore);
             if (d.summary_due) generateSummary('append', true);
             if (window.Trackers) Trackers.afterReply(d);
@@ -1109,6 +1161,7 @@ function swipe(step) {
             updateCharacterImages(d.photo_url, d.photo_second, d.char_count);
             setSwipes(d.swipes);
             setPolish(last, d.polish);
+            setDirected(last, d.directed);
         })
         .catch(() => showChatError('Could not reach the app server.'));
 }
@@ -1390,6 +1443,7 @@ function showChatNotice(text) {
         if (!d.success) { showChatNotice(d.error || 'Could not change the layout.'); return; }
         document.body.classList.toggle('layout-book', d.layout === 'book');
         choice.querySelectorAll('[data-layout]').forEach(x => x.classList.toggle('on', x.dataset.layout === d.layout));
+        if (d.watch && window.Watch) Watch.refresh(d.watch);  // the book without director mode: Bulba may offer it
     });
     // In the book, your messages are small markers between chapters: click one to read or edit it
     document.getElementById('messagesContainer')?.addEventListener('click', (e) => {

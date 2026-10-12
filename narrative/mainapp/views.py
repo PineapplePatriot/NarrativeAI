@@ -460,6 +460,13 @@ def chat(request, slug):
                 except ai_client.AIError as e:
                     log.info("Bulba Watch skipped a read: %s", e)
             return JsonResponse({"success": True, "watch": watch.page_state(request.user, chat_obj)})
+        elif action == "director_mode":  # a "Director mode?" note: switch at once, or undo it
+            try:
+                watch.switch_to_director(request.user, chat_obj, str(data.get("id") or ""), undo=bool(data.get("undo")))
+            except ValueError as e:
+                return JsonResponse({"success": False, "error": str(e)}, status=400)
+            return JsonResponse({"success": True, **_appearance(request.user),
+                                 "watch": watch.page_state(request.user, chat_obj)})
         elif action == "watch_note":  # a note: dismissed, "I don't mind this", or opened with Bulba
             if data.get("status") not in ("dismissed", "muted", "opened", "fix"):
                 return JsonResponse({"success": False, "error": "Unknown choice."}, status=400)
@@ -474,6 +481,12 @@ def chat(request, slug):
             if "chat_off" in data:
                 watch.set_chat_off(chat_obj, bool(data["chat_off"]))
             return JsonResponse({"success": True, "watch": watch.page_state(request.user, chat_obj)})
+        elif action == "note_ideas":  # "Be creative": Bulba writes two director's notes, a logical one and a bold one
+            try:
+                ideas = note_ideas(request.user, character, messages, chat_state["summary"], chat_state["persona"])
+            except ai_client.AIError as e:
+                return JsonResponse({"success": False, "error": str(e)})
+            return JsonResponse({"success": True, **ideas, "spending": ai_client.spending(request.user)})
         elif action == "word_note":  # Bulba turns a rough wish into a clear director's note
             try:
                 note = word_note(request.user, character, messages, str(data.get("text") or ""),
@@ -654,6 +667,7 @@ def chat(request, slug):
                 if (character.is_mult or char_count >= 2) else None,
                 "swipes": chats.version_info(messages),
                 "polish": polish.page_payload(chats.polish_of(messages[-1])),
+                "directed": chats.directed_of(messages[-1]),
             })
 
         # --- 5. CONTINUE: the AI carries on its last reply, with the same preset, lore and summary ---
@@ -703,7 +717,10 @@ def chat(request, slug):
                 set_layout(request.user, data.get("layout"))
             except ValueError as e:
                 return JsonResponse({"success": False, "error": str(e)}, status=400)
-            return JsonResponse({"success": True, **_appearance(request.user)})
+            if data.get("layout") == "book":  # the look without director mode: Bulba offers the rest
+                watch.offer_director_for_book(request.user, chat_obj)
+            return JsonResponse({"success": True, **_appearance(request.user),
+                                 "watch": watch.page_state(request.user, chat_obj)})
         elif action == "appearance":  # dialogue colour: a hex colour, or "preset" to leave it to the preset
             color = str(data.get("dialogue_color") or "")
             if color != "preset" and not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
@@ -747,12 +764,17 @@ def chat(request, slug):
             if action == "continue":
                 guidance = "CONTINUE the last response exactly where it ended. Do not repeat text. Flow naturally and logically finish it."
 
-            if (action == "chat" and user_message) or action == "regenerate":
+            # A director's note can be sent on its own: the story goes on with no message from them
+            note_only = action == "chat" and not user_message and bool(guidance.strip())
+            if (action == "chat" and (user_message or note_only)) or action == "regenerate":
                 # Regenerate re-answers the existing last user message, so only chat adds one
-                if action == "chat":
+                if action == "chat" and user_message:
                     user_message = text_rules("saved", user_message, "user")
                     messages.append(("user", datetime.now().strftime("%H:%M"), user_message, "neutral", 1))
                     watch.on_user_message(request.user, chat_obj, user_message)  # their reply pace
+                if action == "chat":  # steering more than playing? Bulba offers director mode
+                    watch.note_steering(request.user, chat_obj, "note" if guidance.strip() else
+                                        "directive" if watch.looks_like_directive(user_message) else "play")
 
                 lore_report = None
                 context_dropped = 0
@@ -783,7 +805,7 @@ def chat(request, slug):
                         character,
                         chat=chat_obj,
                         worldbook_slug=worldbook_slug,
-                        message=user_message if action == "chat" else None,
+                        message=(user_message or None) if action == "chat" else None,
                         guidance=guidance,                             # <--- INJECTION 1
                         persistent_guides=chat_state["context_guides"],# <--- INJECTION 2
                         summary=chat_state["summary"])
@@ -889,6 +911,8 @@ def chat(request, slug):
                     new_message = chats.with_game(chats.with_reasoning(
                         ("assistant", datetime.now().strftime("%H:%M"), reply, final_emotion_str, char_count), reasoning),
                         [dict(op) for op in ops if op.get("type") != "notice"])
+                    if guidance.strip() and action in ("chat", "regenerate"):  # shown above the reply: what steered it
+                        new_message = chats.with_directed(new_message, guidance.strip()[:1000])
                     messages.append(chats.add_version(regen_from, new_message) if regen_from else new_message)
 
                     photo_url = _photo(character, "photo", emotion_char_1)
@@ -932,6 +956,7 @@ def chat(request, slug):
                         "context_dropped": context_dropped,
                         "swipes": chats.version_info(messages),
                         "spending": ai_client.spending(request.user),
+                        "directed": chats.directed_of(messages[-1]),
                     }
 
                 if not streaming:
@@ -1054,7 +1079,8 @@ def chat(request, slug):
                                      [game.describe(op) for op in chats.game_of(m) if not extras.is_extra(op)],
                                      [extras.render(op) for op in chats.game_of(m) if extras.is_extra(op)],
                                      (chats.audio_of(m) or {}).get("url", ""),
-                                     polish.dumps(chats.polish_of(m)) if chats.polish_of(m) else "")
+                                     polish.dumps(chats.polish_of(m)) if chats.polish_of(m) else "",
+                                     chats.directed_of(m))
                      for m in messages],
         "voice_on": bool(get_elevenlabs_key(request.user)),
         "swipes": chats.version_info(messages),
@@ -1136,6 +1162,36 @@ WORD_NOTE_PROMPT = (
     "or details they didn't ask for. Name characters as they appear in the chat. Never write {user}'s words, "
     "actions or thoughts unless they asked for exactly that. Plain words: no 'ensure', 'immersive', 'vivid', "
     "'delve', capitals or exclamation marks. Reply with the note only.")
+
+
+NOTE_IDEAS_PROMPT = (
+    "You help someone direct their roleplay with an AI. Read the chat and write two director's notes for the next "
+    "reply, each one or two short sentences addressed to the roleplay model, saying concretely what should happen "
+    "or how it should read. \"logical\": what would most naturally happen next, given the scene and the people in "
+    "it. \"creative\": an unexpected turn that still fits the characters and the world (a complication, an "
+    "arrival, a reveal, a change of place or time), not a random one. Name characters as they appear in the chat. "
+    "Never write {user}'s words, actions or thoughts. Plain words: no 'ensure', 'immersive', 'vivid', 'delve', "
+    "capitals or exclamation marks. Answer only with JSON: {{\"logical\": \"...\", \"creative\": \"...\"}}")
+
+
+def note_ideas(user, character, messages, summary="", persona=None):
+    """Two director's notes written from scratch (one small call on the Bulba model)."""
+    names = prompt_names(user, character, persona)
+    recent = [m for m in messages if m[0] in ("user", "assistant")][-6:]
+    if not recent:
+        raise ai_client.AIError("Start the story first: there's nothing to direct yet.")
+    transcript = "\n\n".join(f"{names['user'] if m[0] == 'user' else character.name}: {m[2][:1500]}" for m in recent)
+    text = ai_client.complete(user, "bulba", [
+        {"role": "system", "content": NOTE_IDEAS_PROMPT.format(user=names["user"])},
+        {"role": "user", "content": (f"The story so far: {summary[:2000]}\n\n" if summary else "")
+                                    + f"The latest messages (latest last):\n\n{transcript}"}],
+        max_tokens=400, temperature=0.8, response_format={"type": "json_object"})
+    from .bulba import watch as watch_mod
+    data = watch_mod._parse(text)
+    ideas = {k: str(data.get(k) or "").strip().strip('"')[:600] for k in ("logical", "creative")}
+    if not any(ideas.values()):
+        raise ai_client.AIError("Bulba couldn't come up with anything this time. Try again.")
+    return ideas
 
 
 IDEAS_PROMPT = {

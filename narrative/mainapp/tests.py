@@ -4632,3 +4632,85 @@ class PolishWriteMyMessageTests(PolishChatTests):
         prompt = self.polish_calls[-1]["messages"][1]["content"]
         self.assertIn("Their message", prompt)
         self.assertNotIn("Deciding things for your character", prompt)  # not a habit their own message can have
+
+
+class DirectorNoteTests(WatchChatTests):
+    """The director's note sent on its own, Bulba's two ideas, and the "Director mode?" note."""
+
+    def fake_post(self, url, headers=None, json=None, timeout=None, **kwargs):
+        import json as json_mod
+        from unittest import mock
+        if "two director's notes" in json["messages"][0]["content"]:
+            resp = mock.Mock(status_code=200)
+            resp.json.return_value = {"choices": [{"message": {"content": json_mod.dumps(
+                {"logical": "Rose answers the knock.", "creative": "The lights go out across the street."})}}]}
+            return resp
+        return super().fake_post(url, headers=headers, json=json, timeout=timeout, **kwargs)
+
+    def test_a_note_alone_moves_the_story_on(self):
+        from mainapp import chats
+        self.post({"action": "chat", "message": "Hi."})
+        before = len(self.saved_messages())
+        data = self.post({"action": "chat", "message": "", "guidance": "The storm reaches the harbour."}).json()
+        self.assertEqual(data["directed"], "The storm reaches the harbour.")
+        msgs = self.saved_messages()
+        self.assertEqual(len(msgs), before + 1)
+        self.assertEqual(msgs[-1][0], "assistant")  # no message from them
+        self.assertEqual(chats.directed_of(tuple(msgs[-1])), "The storm reaches the harbour.")
+        self.assertIn("Director's note for this reply: The storm reaches the harbour.", json.dumps(self.sent[-1]["messages"]))
+        self.assertContains(self.client.get(self.url), "🎬 The storm reaches the harbour.")
+        # nothing at all is still nothing
+        self.post({"action": "chat", "message": "", "guidance": " "})
+        self.assertEqual(len(self.saved_messages()), before + 1)
+
+    def test_be_creative_gives_two_notes(self):
+        self.post({"action": "chat", "message": "Hi."})
+        data = self.post({"action": "note_ideas"}).json()
+        self.assertEqual((data["logical"], data["creative"]),
+                         ("Rose answers the knock.", "The lights go out across the street."))
+
+    def test_directives_are_told_apart_from_playing(self):
+        from mainapp.bulba import watch
+        for text in ("Have Vex continue speaking in their alien language", "(OOC: slow down a bit)",
+                     "Skip to the next morning.", "Make the next scene quieter"):
+            self.assertTrue(watch.looks_like_directive(text), text)
+        for text in ('"Have you eaten?" I ask.', "*I sit down next to her.*", "I have no idea what you mean.",
+                     "Thanks, that helps."):
+            self.assertFalse(watch.looks_like_directive(text), text)
+
+    def test_steering_offers_director_mode_once_and_switches_with_undo(self):
+        from mainapp import presets as presets_mod
+        from mainapp.bulba import control
+        from mainapp.views import _appearance
+        self.client.get(self.url)
+        for text in ("Hi.", "Have Rose show me the tower", "Skip to the evening."):
+            state = self.post({"action": "chat", "message": text}).json()["watch"]
+        self.assertEqual(state["count"], 0)  # two of three: not yet
+        state = self.post({"action": "chat", "message": "", "guidance": "She lies about the key."}).json()["watch"]
+        note = state["notices"][0]
+        self.assertEqual(note["title"], "Director mode?")
+        data = self.post({"action": "director_mode", "id": note["id"]}).json()
+        mode = control.mode_of(presets_mod.normalize(presets_mod.get_active(self.user).data))
+        self.assertEqual((mode, data["layout"]), ("director", "book"))
+        self.post({"action": "director_mode", "id": note["id"], "undo": True})
+        mode = control.mode_of(presets_mod.normalize(presets_mod.get_active(self.user).data))
+        self.assertEqual((mode, _appearance(self.user)["layout"]), ("dont", "chat"))
+        # once per chat
+        for _ in range(3):
+            state = self.post({"action": "chat", "message": "", "guidance": "More rain."}).json()["watch"]
+        self.assertEqual(state["count"], 0)
+
+    def test_the_book_layout_offers_director_mode(self):
+        self.client.get(self.url)
+        data = self.post({"action": "appearance", "layout": "book"}).json()
+        self.assertEqual(data["watch"]["notices"][0]["title"], "Director mode?")
+        self.assertIn("only the look", data["watch"]["notices"][0]["text"])
+
+    def test_no_offer_when_already_directing(self):
+        from mainapp import presets as presets_mod
+        from mainapp.bulba import control
+        active = presets_mod.get_active(self.user)
+        active.data = control.apply_to_preset(presets_mod.normalize(active.data), "director")
+        active.save()
+        self.client.get(self.url)
+        self.assertEqual(self.post({"action": "appearance", "layout": "book"}).json()["watch"]["count"], 0)

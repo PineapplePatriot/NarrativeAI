@@ -114,7 +114,7 @@ def _extras(message):
 
 # Things each version (swipe) of a reply keeps for itself: the model's thoughts, and the dice and
 # inventory changes it made (see mainapp/game.py), so flipping swipes flips them too
-VERSION_KEYS = ("reasoning", "game", "audio", "polish")
+VERSION_KEYS = ("reasoning", "game", "audio", "polish", "directed")
 
 
 def _version(message):
@@ -168,6 +168,15 @@ def with_audio(message, audio):
         extras["swipes"] = versions
         message = tuple(message[:5]) + (extras,)
     return message
+
+
+def directed_of(message):
+    """The director's note that steered this version of the reply, if any."""
+    return _extras(message).get("directed") or ""
+
+
+def with_directed(message, note):
+    return _with(message, "directed", note)
 
 
 def polish_of(message):
