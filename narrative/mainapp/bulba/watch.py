@@ -382,7 +382,33 @@ def same_openings(text):
     return None
 
 
-def _prompt(user, character, messages, picked, data, mine, writes_for_user, ask_directing=False):
+def _established(chat_obj, character):
+    """What's already established, for the contradiction check and to skip known facts: summary, pinned note,
+    the lorebook's entry titles, the card's scenario."""
+    from mainapp.bulba import memory
+    try:
+        saw = memory.what_the_ai_saw(chat_obj)
+    except Exception:
+        return []
+    out = []
+    summary = "\n".join(p["text"] for p in saw["summary"])
+    if summary:
+        out += ["## The story so far (summary)", summary[-2500:]]
+    if saw["pinned_note"]:
+        out += ["## Pinned note", saw["pinned_note"][:800]]
+    if character.scenario:
+        out += ["## The card's scenario", str(character.scenario)[:800]]
+    if character.worldbook_id:
+        from mainapp import lorebook
+        try:
+            entries = lorebook.load_worldbook(character.worldbook)["entries"]
+            out += ["## Lore entries (titles)", "; ".join(e["comment"] or ", ".join(e["keys"][:2]) for e in entries)[:1500]]
+        except Exception:
+            pass
+    return out
+
+
+def _prompt(user, character, messages, picked, data, mine, writes_for_user, ask_directing=False, chat_obj=None):
     from mainapp import model_profiles
     _, chat_model = ai_client.resolve(user, "chat")
     profile = model_profiles.for_model(chat_model) or {}
@@ -404,6 +430,8 @@ def _prompt(user, character, messages, picked, data, mine, writes_for_user, ask_
                          f"- Edited a reply from “{s['before']}” to “{s['after']}”")
     if mine["taste"]:
         parts += ["## Already known about their taste", *[f"- {t}" for t in mine["taste"]]]
+    if chat_obj is not None:
+        parts += _established(chat_obj, character)
     parts.append("## The chat (their messages for context; note slips only in the numbered replies)")
     first = picked[0]
     start = max(0, first - 1)
@@ -450,7 +478,7 @@ def read(user, character, chat_obj, messages, writes_for_user=False):
     mine = user_data(user)
     ask_directing = not data.get("director_offered") and not _directing(user)
     answer = _parse(ai_client.complete(user, "watch", _prompt(user, character, messages, picked, data, mine,
-                                                              writes_for_user, ask_directing),
+                                                              writes_for_user, ask_directing, chat_obj),
                                        max_tokens=1500, temperature=0, response_format={"type": "json_object"}))
     slips = []
     for s in answer.get("slips") or []:
@@ -477,6 +505,7 @@ def read(user, character, chat_obj, messages, writes_for_user=False):
     mine["taste"] = mine["taste"][-TASTE_MAX:]
     save_user_data(user, mine)
     raised = habits(data, mine["muted"], character.name)
+    raised += story_notes(data, answer, picked, character.name)
     taste_note = offer_taste(data, mine)
     if taste_note:
         raised.append(taste_note)
@@ -486,6 +515,52 @@ def read(user, character, chat_obj, messages, writes_for_user=False):
         if notice:
             raised.append(notice)
     save_chat_data(chat_obj, data)
+    return raised
+
+
+KEEP_OFFER = 2  # new lasting facts before Bulba offers to keep them in the card or lorebook
+
+
+def story_notes(data, answer, picked, char_name):
+    """Contradictions (each one is worth a note) and the Story Keeper (new facts worth keeping, once a couple
+    have piled up). Both come from the same read: no extra call."""
+    raised = []
+    found = []
+    for c in (answer.get("contradictions") or [])[:2]:
+        if not isinstance(c, dict):
+            continue
+        quote, what = str(c.get("quote") or "").strip()[:300], str(c.get("contradicts") or "").strip()[:300]
+        try:
+            at = picked[int(c.get("reply")) - 1]
+        except (TypeError, ValueError, IndexError):
+            continue
+        if quote and what:
+            found.append({"quote": quote, "contradicts": what, "at": at})
+    if found:
+        notice = {"id": uuid.uuid4().hex[:10], "kind": "continuity", "label": "continuity",
+                  "title": "The story contradicted itself",
+                  "text": " ".join(f"“{f['quote']}”: but {f['contradicts']}." for f in found),
+                  "quotes": [], "found": found, "status": "new", "time": time.time(), "at": found[-1]["at"]}
+        data["notices"].append(notice)
+        raised.append(notice)
+    keep = data.setdefault("keep", [])
+    known = {k["fact"].lower() for k in keep}
+    for k in (answer.get("keep") or [])[:3]:
+        if isinstance(k, dict) and str(k.get("fact") or "").strip() and str(k["fact"]).strip().lower() not in known:
+            keep.append({"fact": str(k["fact"]).strip()[:300], "where": "lore" if k.get("where") == "lore" else "card",
+                         "offered": False})
+            known.add(str(k["fact"]).strip().lower())
+    data["keep"] = keep[-30:]
+    pending = [k for k in data["keep"] if not k["offered"]]
+    if len(pending) >= KEEP_OFFER and not any(n["kind"] == "keeper" and n["status"] == "new" for n in data["notices"]):
+        for k in pending:
+            k["offered"] = True
+        notice = {"id": uuid.uuid4().hex[:10], "kind": "keeper", "label": "keeper", "title": "Worth keeping?",
+                  "text": f"The story established a few things that will matter later. Keep them in {char_name}'s "
+                          "card or the lorebook, so the AI doesn't forget them?",
+                  "quotes": [k["fact"] for k in pending][-5:], "facts": pending[-5:], "status": "new", "time": time.time()}
+        data["notices"].append(notice)
+        raised.append(notice)
     return raised
 
 
@@ -654,6 +729,19 @@ def set_chat_off(chat_obj, off):
 
 def for_bulba(notice):
     """What Bulba (in the chat) is told when they open a note."""
+    if notice["kind"] == "keeper":
+        facts = "\n".join(f"- {f['fact']} (belongs in the {'lorebook' if f['where'] == 'lore' else 'card'})"
+                          for f in notice.get("facts") or [])
+        return (f"[Bulba Watch noted new lasting facts from the story:\n{facts}\nThey want them kept. Check the card "
+                "(and read_lorebook for world facts); skip anything already there. Then propose the smallest addition: "
+                "propose_card_edit for the character's own facts (add to the right field, keep the rest word for word), "
+                "propose_lore_edit (or propose_lorebook if there's none) for world facts. One short message first.]")
+    if notice["kind"] == "continuity":
+        found = "\n".join(f"- “{f['quote']}”, but {f['contradicts']}" for f in notice.get("found") or [])
+        return (f"[Bulba Watch noticed a contradiction in a recent reply:\n{found}\nThey opened the note. Check it "
+                "(read_memory, the card, read_lorebook): if the reply is wrong, offer polish_message to correct those "
+                "words; if the summary, pinned note or lore is wrong instead, propose the fix there. If it's not "
+                "really a contradiction (a lie, a change of mind), say so in a line.]")
     if notice["kind"] == "taste":
         lines = "\n".join(f"- {q}" for q in notice.get("quotes") or [])
         return (f"[Bulba Watch learned these about their taste (they checked them on the Extras page):\n{lines}\n"

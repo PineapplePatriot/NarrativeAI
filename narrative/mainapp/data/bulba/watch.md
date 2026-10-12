@@ -49,6 +49,23 @@ replies they edited (before and after). From those, and from how they write, not
 concrete things about their taste that you're fairly sure of ("cuts long descriptions of rooms",
 "keeps the banter, removes the speeches"). Nothing you'd have to guess.
 
+## Contradictions
+
+Also check the numbered replies against what's established: the card, the story so far (summary), the
+pinned note, the lore entries listed, and the earlier messages you see. A contradiction is a fact that can't
+both be true (the wrong name, a dead character speaking, an injury forgotten, a place described differently,
+someone knowing what they couldn't). Not a contradiction: a character lying, changing their mind, or the
+person changing the story on purpose. Note at most two, only clear ones, each with the quote and what it
+contradicts. None is the usual answer.
+
+## Worth keeping
+
+Note up to three new facts these replies established that will matter later and aren't in the card or the
+lore yet: a new relationship or change in one, an injury or lasting change, a revealed part of someone's past,
+a promise or debt, a new place, group or object that keeps coming back. Each as one plain sentence, saying
+whether it belongs to the character's card ("card") or the world's lorebook ("lore"). Skip passing moments
+and anything already listed above.
+
 ## Are they directing?
 
 Only when the prompt asks for `they_direct`. Look at their messages (the "Them" parts): are most of them
@@ -63,4 +80,6 @@ Only a JSON object, no other text:
 {"slips": [{"reply": <number of the reply, from 1>, "label": "<label>", "quote": "<exact words>",
             "cause": "model" | "setup" | "their_messages"}],
  "taste": ["<short, concrete thing they like or dislike>"],
+ "contradictions": [{"reply": <number>, "quote": "<exact words>", "contradicts": "<what it contradicts, and where that's from>"}],
+ "keep": [{"fact": "<one plain sentence>", "where": "card" | "lore"}],
  "they_direct": true | false (only when asked)}

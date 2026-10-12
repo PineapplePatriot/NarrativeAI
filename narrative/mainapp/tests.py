@@ -4868,3 +4868,52 @@ class CondensedMessageTests(ChatPromptTests):
         self.post({"action": "edit", "index": 1, "text": "Rewritten by hand."})
         self.assertEqual(chats.condensed_of(tuple(self.saved_messages()[1])), "")
         self.assertEqual(self.post({"action": "condense", "index": 99}).status_code, 400)
+
+
+class StoryKeeperAndContinuityTests(WatchChatTests):
+    """The Watch read also catches contradictions and facts worth keeping (no extra call)."""
+
+    def read_with(self, answer):
+        for i in range(5):
+            self.post({"action": "chat", "message": f"Line {i}."})
+        self.reader_answer = {"slips": [], "taste": [], **answer}
+        return self.post({"action": "watch"}).json()["watch"]
+
+    def test_a_contradiction_is_raised_at_once(self):
+        self.client.get(self.url)
+        state = self.read_with({"contradictions": [{"reply": 2, "quote": "Mara smiled",
+                                                   "contradicts": "Mara died in chapter one (summary)"}]})
+        note = state["notices"][0]
+        self.assertEqual(note["title"], "The story contradicted itself")
+        self.assertIn("Mara died in chapter one", note["text"])
+        self.assertEqual(len(self.reader_calls), 1)  # the same read, no extra call
+
+    def test_facts_pile_up_then_a_keeper_note(self):
+        from mainapp.bulba import watch
+        self.client.get(self.url)
+        state = self.read_with({"keep": [{"fact": "Rose has a scar on her left hand.", "where": "card"}]})
+        self.assertEqual(state["count"], 0)  # one fact: not yet
+        state = self.read_with({"keep": [{"fact": "The north gate is sealed at night.", "where": "lore"},
+                                         {"fact": "Rose has a scar on her left hand.", "where": "card"}]})  # one repeat
+        note = state["notices"][0]
+        self.assertEqual(note["title"], "Worth keeping?")
+        self.assertEqual(len(note["quotes"]), 2)
+        self.assertIn("for_bulba", dir(watch))
+        data = watch.chat_data(self.chat_obj())
+        keeper = next(n for n in data["notices"] if n["kind"] == "keeper")
+        told = watch.for_bulba(keeper)
+        self.assertIn("The north gate is sealed at night. (belongs in the lorebook)", told)
+        self.assertIn("propose_card_edit", told)
+
+    def test_the_reader_sees_what_is_established(self):
+        from mainapp import chats
+        self.client.get(self.url)
+        chat = self.chat_obj()
+        data = chats.read(chat)
+        data["summary_parts"] = [{"text": "Rose lost her brother in the war.", "from": 0, "to": 1}]
+        data["context_guides"] = {"note": "It's winter."}
+        chats.write(chat, data)
+        self.read_with({})
+        prompt = self.reader_calls[-1]["messages"][1]["content"]
+        self.assertIn("Rose lost her brother in the war.", prompt)
+        self.assertIn("## Pinned note\n\nIt's winter.", prompt)
