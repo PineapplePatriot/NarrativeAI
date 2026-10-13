@@ -1275,7 +1275,7 @@ def condense(user, character, message, persona=None):
     who = names["user"] if message[0] == "user" else character.name
     text = ai_client.complete(user, "summary", [
         {"role": "system", "content": CONDENSE_PROMPT},
-        {"role": "user", "content": f"{who}'s message:\n\n{message[2]}"}], max_tokens=600, temperature=0.2)
+        {"role": "user", "content": f"{who}'s message:\n\n{message[2]}"}], max_tokens=1500, temperature=0.2)
     text = (text or "").strip()
     if not text:
         raise ai_client.AIError("The model sent back nothing. Try again.")
@@ -1298,7 +1298,7 @@ def scene_music(user, messages, current=""):
                                       f"The current track is “{current or 'none'}”: answer 0 to keep it unless the "
                                       "scene's mood or setting clearly changed. Answer with the number only."},
         {"role": "user", "content": f"Tracks:\n{options}\n\nLatest messages:\n{recent}"}],
-        max_tokens=8, temperature=0)
+        max_tokens=100, temperature=0)  # room for a model that thinks first
     m = re.search(r"\d+", answer or "")
     n = int(m.group(0)) if m else 0
     return tracks[n - 1] if 1 <= n <= len(tracks) else None
@@ -1314,6 +1314,30 @@ NOTE_IDEAS_PROMPT = (
     "capitals or exclamation marks. Answer only with JSON: {{\"logical\": \"...\", \"creative\": \"...\"}}")
 
 
+def bulba_quick(user, messages, max_tokens=1500, **params):
+    """A small call on Bulba's model. That model thinks before it answers, and the thinking counts toward
+    max_tokens: a tight limit can leave the answer empty. So the limit has room, and an empty answer gets one
+    retry with more room and without response_format (some providers return nothing in JSON mode)."""
+    text = ai_client.complete(user, "bulba", messages, max_tokens=max_tokens, **params)
+    if (text or "").strip():
+        return text
+    log.warning("Bulba's model sent an empty answer (max_tokens=%s); retrying once", max_tokens)
+    params.pop("response_format", None)
+    return ai_client.complete(user, "bulba", messages, max_tokens=max_tokens * 2, **params) or ""
+
+
+def _note_fields(text):
+    """The two notes from the answer: JSON, or a cut-off JSON, or plain "logical: ... creative: ..." lines."""
+    from .bulba import watch as watch_mod
+    data = watch_mod._parse(text)
+    ideas = {k: str(data.get(k) or "").strip().strip('"')[:600] for k in ("logical", "creative")}
+    for key in ("logical", "creative"):
+        if not ideas[key]:
+            m = re.search(rf'"?{key}"?\s*[:=]\s*"?(.+?)(?:"\s*[,}}]|\n|$)', text or "", re.I | re.S)
+            ideas[key] = m.group(1).strip().strip('"')[:600] if m else ""
+    return ideas
+
+
 def note_ideas(user, character, messages, summary="", persona=None):
     """Two director's notes written from scratch (one small call on the Bulba model)."""
     names = prompt_names(user, character, persona)
@@ -1321,15 +1345,14 @@ def note_ideas(user, character, messages, summary="", persona=None):
     if not recent:
         raise ai_client.AIError("Start the story first: there's nothing to direct yet.")
     transcript = "\n\n".join(f"{names['user'] if m[0] == 'user' else character.name}: {m[2][:1500]}" for m in recent)
-    text = ai_client.complete(user, "bulba", [
+    text = bulba_quick(user, [
         {"role": "system", "content": NOTE_IDEAS_PROMPT.format(user=names["user"])},
         {"role": "user", "content": (f"The story so far: {summary[:2000]}\n\n" if summary else "")
                                     + f"The latest messages (latest last):\n\n{transcript}"}],
-        max_tokens=400, temperature=0.8, response_format={"type": "json_object"})
-    from .bulba import watch as watch_mod
-    data = watch_mod._parse(text)
-    ideas = {k: str(data.get(k) or "").strip().strip('"')[:600] for k in ("logical", "creative")}
+        temperature=0.8, response_format={"type": "json_object"})
+    ideas = _note_fields(text)
     if not any(ideas.values()):
+        log.warning("Be creative: no notes in the answer: %r", (text or "")[:300])
         raise ai_client.AIError("Bulba couldn't come up with anything this time. Try again.")
     return ideas
 
@@ -1361,10 +1384,10 @@ def bulba_ideas(user, character, messages, mode, persona=None, summary=""):
     system = IDEAS_PROMPT[mode].format(user=names["user"], char=names["char"]) + "\n\n" + IDEAS_STYLE
     about = f"{character.name}: {(character.description or '')[:1500]}"
     story = f"The story so far (summary): {summary[:2000]}\n\n" if summary else ""
-    text = ai_client.complete(user, "bulba", [
+    text = bulba_quick(user, [
         {"role": "system", "content": system},
         {"role": "user", "content": f"{about}\n\n{story}The chat (latest last):\n\n{transcript}"}],
-        max_tokens=600, temperature=0.8)
+        max_tokens=2000, temperature=0.8)
     match = re.search(r"\{.*\}", text or "", re.S)
     try:
         ideas = json.loads(match.group(0))["ideas"] if match else []
@@ -1386,11 +1409,14 @@ def word_note(user, character, messages, wish, rewrite=False, persona=None):
     transcript = "\n\n".join(f"{names['user'] if m[0] == 'user' else character.name}: {m[2][:1500]}" for m in recent)
     what = "a new version of the last reply" if rewrite else "the next reply"
     system = WORD_NOTE_PROMPT.format(what=what, user=names["user"])
-    text = ai_client.complete(user, "bulba", [
+    text = bulba_quick(user, [
         {"role": "system", "content": system},
         {"role": "user", "content": f"The chat so far (latest last):\n\n{transcript}\n\nTheir wish: {wish}"}],
-        max_tokens=200, temperature=0.4)
-    return (text or "").strip().strip('"')
+        temperature=0.4)
+    text = (text or "").strip().strip('"')
+    if not text:
+        raise ai_client.AIError("Bulba couldn't word it this time. Try again.")
+    return text
 
 
 def prompt_names(user, character, chat_persona=None):

@@ -145,7 +145,7 @@ def apply_fixes(text, fixes):
 def polish_text(user, character, chat_obj, text, others, summary, habits, whose="reply"):
     """One polish pass over `text`. Returns (new text, fixes kept); the text is unchanged when nothing passed."""
     answer = ai_client.complete(user, "polish", _prompt(character, chat_obj, text, others, summary, habits, whose),
-                                max_tokens=2000, temperature=0, response_format={"type": "json_object"})
+                                max_tokens=4000, temperature=0, response_format={"type": "json_object"})
     return apply_fixes(text, _parse(answer))
 
 

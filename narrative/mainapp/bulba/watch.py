@@ -481,7 +481,7 @@ def read(user, character, chat_obj, messages, writes_for_user=False):
     ask_directing = not data.get("director_offered") and not _directing(user)
     answer = _parse(ai_client.complete(user, "watch", _prompt(user, character, messages, picked, data, mine,
                                                               writes_for_user, ask_directing, chat_obj),
-                                       max_tokens=1500, temperature=0, response_format={"type": "json_object"}))
+                                       max_tokens=4000, temperature=0, response_format={"type": "json_object"}))
     slips = []
     for s in answer.get("slips") or []:
         if not isinstance(s, dict):

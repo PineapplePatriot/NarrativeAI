@@ -4697,6 +4697,26 @@ class DirectorNoteTests(WatchChatTests):
         self.assertEqual((data["logical"], data["creative"]),
                          ("Rose answers the knock.", "The lights go out across the street."))
 
+    def test_be_creative_survives_an_empty_or_cut_off_answer(self):
+        # A model that thinks first can use up the limit and send nothing; the retry has more room, no JSON mode
+        from unittest import mock
+        from mainapp import views
+        answers = iter(["", '{"logical": "Rose answers the knock.", "creative": "The lights go o'])
+        calls = []
+        def fake_complete(user, task, messages, **params):
+            calls.append(params)
+            return next(answers)
+        self.post({"action": "chat", "message": "Hi."})
+        with mock.patch("mainapp.views.ai_client.complete", side_effect=fake_complete):
+            data = self.post({"action": "note_ideas"}).json()
+        self.assertEqual(data["logical"], "Rose answers the knock.")
+        self.assertTrue(data["creative"].startswith("The lights go o"))
+        self.assertEqual(calls[0]["max_tokens"], 1500)
+        self.assertNotIn("response_format", calls[1])
+        self.assertEqual(calls[1]["max_tokens"], 3000)
+        self.assertEqual(views._note_fields("logical: He waits.\ncreative: A bell rings."),
+                         {"logical": "He waits.", "creative": "A bell rings."})
+
     def test_the_reader_judges_whether_their_messages_are_directions(self):
         self.client.get(self.url)
         for i in range(4):
