@@ -145,6 +145,15 @@ Turn it off / Off in this chat); switch on the Extras page. Nothing is collected
   up, lately, the kept-scenes note). Edited by Bulba (setup story stage, in-chat, tuning guide section) or by hand
   in a "Story systems" section on the tracker setup page (save refuses events without a clock or empty tables).
 
+### 9. Onboarding covers more (user's request: "for a full overview")
+- The first extras form has **Fixing habits**: Bulba's model (cheaper) or their chat model (`fix_model`, applied
+  with the form, undone with it).
+- After the preset is applied, Bulba asks once about **text rules** (says what the preset's own rules do, offers
+  common fixes like stripping asterisks; proposals go in their own list). Optional step "Formatting clean-up".
+- The done stage ends with **what's waiting in the chat** (pen menu: director's note and Redo, Condense, What the AI
+  saw, Watch's number on the potato, the microphone, trackers and story systems), and on the fast route offers what
+  it skipped. Story systems are an optional step in the story stage's progress.
+
 ## Decisions the user made this session
 
 - Progress counts questions; skip hint always visible with the quality warning; fast route = preset → persona →

@@ -826,7 +826,7 @@ def take_route(session, route):
 # The extras in one form (setup: the app's extras; story: dice, story extras, ideas)
 # ---------------------------------------------------------------------------
 
-SETUP_FORM_KEYS = ("summary", "trackers", "sprites", "watch", "background")
+SETUP_FORM_KEYS = ("summary", "trackers", "sprites", "watch", "fix_model", "background")
 STORY_FORM_KEYS = ("game", "story_extras", "ideas")
 
 
@@ -867,6 +867,10 @@ def form_payload(part, answers):
             if isinstance(answers.get(key), bool):
                 payload[key] = answers[key]
                 summary.append(f"{label}: {'on' if answers[key] else 'off'}")
+        if answers.get("fix_model") in ("bulba", "chat"):
+            payload["fix_model"] = answers["fix_model"]
+            summary.append("Fixing habits you approve: " + ("your chat model" if answers["fix_model"] == "chat"
+                                                             else "Bulba's model (cheaper)"))
         if isinstance(answers.get("background"), str) and answers["background"]:
             payload["background"] = answers["background"][:64]
             summary.append("Background jobs: " + ("your chat model" if answers["background"] == "chat" else answers["background"]))

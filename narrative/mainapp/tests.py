@@ -4012,11 +4012,13 @@ class SetupRoutesTests(BulbaTests):
         form = data["events"][-1]
         self.assertEqual((form["type"], form["part"]), ("extras_form", "setup"))
         self.assertTrue(form["values"]["watch"])  # on by default
+        self.assertEqual(form["values"]["fix_model"], "bulba")
         self.assertEqual(data["state"]["stage"], "extras")
         data = self.api(action="extras_form", part="setup", answers={
             "summary": {"mode": "auto", "interval": 12}, "trackers": {"mode": "manual"},
-            "sprites": False, "watch": False, "background": "chat"}).json()
+            "sprites": False, "watch": False, "fix_model": "chat", "background": "chat"}).json()
         self.assertEqual(self.bulba_calls, [])  # both forms, no AI
+        self.assertEqual(watch.memory(self.user)["fix_model"], "chat")
         self.assertEqual(data["state"]["stage"], "taste")
         self.assertEqual([e["type"] for e in data["events"]], ["action", "proposal", "stage", "bulba", "form"])
         self.assertEqual(data["state"]["proposals"][-1]["status"], "applied")
@@ -4027,6 +4029,7 @@ class SetupRoutesTests(BulbaTests):
         self.script = [("Undone.", [])]
         self.api(action="undo", id=data["state"]["proposals"][-1]["id"])
         self.assertTrue(watch.is_on(self.user))
+        self.assertEqual(watch.memory(self.user)["fix_model"], "bulba")
         # Bulba knows what was picked
         self.script = [("Okay.", [])]
         self.api(action="say", text="hi")
@@ -4110,6 +4113,13 @@ class SetupRoutesTests(BulbaTests):
         before = progress.progress(session, agent.STAGES)["questions_left"]
         session.events.append({"type": "samples", "samples": []})
         self.assertLess(progress.progress(session, agent.STAGES)["questions_left"], before)
+        # Optional steps: text rules after the preset, story systems in the story stage
+        session.proposals += [{"id": "a", "kind": "text_rules", "status": "applied"},
+                              {"id": "b", "kind": "story_systems", "status": "applied"}]
+        stages = {s["id"]: s for s in progress.progress(session, agent.STAGES)["stages"]}
+        rules = next(s for s in stages["preset"]["steps"] if s["label"] == "Formatting clean-up")
+        systems = next(s for s in stages["story"]["steps"] if s["label"] == "Story systems")
+        self.assertTrue(rules["done"] and rules["optional"] and systems["done"])
 
 
 class DirectorLaterTests(BulbaTests):
