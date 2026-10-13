@@ -29,7 +29,7 @@ from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
 from . import extras, game, media_library, recall, story, thinking, ai_client, cards, chats, regex_rules, model_profiles, presets, samplers, starters, trackers
-from .bulba import polish, watch
+from .bulba import control, polish, watch
 
 from .utils import build_ai_request, get_elevenlabs_key
 from .lorebook import (
@@ -442,7 +442,6 @@ def chat(request, slug):
             save_messages(messages)
             return JsonResponse({"success": True, "url": url, "cast": cast, "spending": ai_client.spending(request.user)})
         elif action == "ideas":  # Bulba's ideas: what to write next, or (directing) what could happen next
-            from mainapp.bulba import control
             mode = "director" if control.mode_of(presets.normalize(presets.get_active(request.user).data)) == "director" else "player"
             try:
                 ideas = bulba_ideas(request.user, character, messages, mode, persona=chat_state["persona"],
@@ -451,7 +450,14 @@ def chat(request, slug):
                 return JsonResponse({"success": False, "error": str(e)})
             return JsonResponse({"success": True, "ideas": ideas, "mode": mode, "spending": ai_client.spending(request.user)})
         elif action == "polish":  # Bulba's polish on the newest reply (the page asks right after it arrives)
-            if not polish.due(request.user, chat_obj, messages) or chats.polish_of(messages[-1]):
+            now = bool(data.get("now"))  # they just pressed "Fix this automatically": this reply too, and say why not
+            if now:
+                reason = polish.why_not_now(request.user, chat_obj, messages)
+                if not reason and chats.polish_of(messages[-1]):
+                    reason = "The latest reply is already polished."
+                if reason:
+                    return JsonResponse({"success": True, "changed": False, "reason": reason})
+            elif not polish.due(request.user, chat_obj, messages) or chats.polish_of(messages[-1]):
                 return JsonResponse({"success": True, "changed": False})
             original = messages[-1][2]
             try:
@@ -460,7 +466,9 @@ def chat(request, slug):
                 return JsonResponse({"success": False, "error": str(e)})
             messages = load_messages()  # read again: they may have moved on while it worked
             if not fixes or not messages or messages[-1][0] != "assistant" or messages[-1][2] != original:
-                return JsonResponse({"success": True, "changed": False, "spending": ai_client.spending(request.user)})
+                return JsonResponse({"success": True, "changed": False, "spending": ai_client.spending(request.user),
+                                     "reason": "Bulba found nothing to change in the latest reply." if not fixes
+                                     else "The reply changed meanwhile; new replies will be polished."})
             messages[-1] = chats.with_polish(messages[-1], new_text, polish.record(original, fixes))
             save_messages(messages)
             watch.recheck(request.user, chat_obj, messages)
@@ -482,7 +490,6 @@ def chat(request, slug):
             return JsonResponse({"success": True, "reply": rec["original"]})
         elif action == "watch":  # Bulba Watch reads the latest replies (the page asks after a reply)
             if watch.due(request.user, chat_obj, messages):
-                from .bulba import control
                 writes = control.mode_of(presets.normalize(presets.get_active(request.user).data)) == "write"
                 try:
                     watch.read(request.user, character, chat_obj, messages, writes_for_user=writes)
@@ -901,6 +908,8 @@ def chat(request, slug):
                     _, chat_model = ai_client.resolve(request.user, "chat")
                     names = prompt_names(request.user, character, chat_state["persona"])
                     history = regex_rules.run_on_history(regex_rules.for_chat(preset, character, request.user), api_messages, names)
+                    if control.mode_of(preset) == "director":  # each direction says what it means (see control.py)
+                        history = control.frame_directions(history, names)
                     built, recalled = recall.assemble_with_recall(
                         presets.assemble, preset, prompt_slots(request.user, character, prompt, chat_state["persona"]),
                         history, names, chat_model, generation="regenerate" if action == "regenerate" else "normal")
@@ -1468,7 +1477,10 @@ def build_chat_request(user, chat_obj, preset=None, character=None, drop_last_re
     names = prompt_names(user, character, persona)
     history = [{"role": m[0], "content": extras.for_prompt(chats.prompt_text(m), chats.game_of(m))}
                        for m in messages if m[0] in ("user", "assistant")]
-    history = regex_rules.run_on_history(regex_rules.for_chat(preset, character, user), history, names) + list(tail)
+    history = regex_rules.run_on_history(regex_rules.for_chat(preset, character, user), history, names)
+    if control.mode_of(preset) == "director" and not tail:
+        history = control.frame_directions(history, names)
+    history += list(tail)
     _, model = ai_client.resolve(user, "chat")
     if tail:  # an extra request at the end (impersonation): no recall, its words aren't the scene's
         return presets.assemble(preset, prompt_slots(user, character, prompt, persona), history, names, model,

@@ -27,7 +27,7 @@ from mainapp import ai_client
 
 INSTRUCTIONS = Path(__file__).resolve().parent.parent / "data" / "bulba" / "watch.md"
 
-EVERY = 5          # read after this many new replies
+EVERY = 3          # read after this many new replies
 WINDOW = 6         # a habit is judged over the last this-many replies read...
 THRESHOLD = 3      # ...and needs to show up in at least this many of them
 MAX_READ = 8       # replies sent to the reader at most (after a long pause in reading)
@@ -222,6 +222,12 @@ DIRECTOR_TEXT = {
 def _offer_director(user, chat_obj, data, why):
     if data.get("off") or data.get("director_offered") or _directing(user):
         return None
+    mine = user_data(user)
+    if mine.get("director_offered"):  # asked once already, in any chat: they know where to find it
+        data["director_offered"] = True
+        return None
+    mine["director_offered"] = True
+    save_user_data(user, mine)
     notice = {"id": uuid.uuid4().hex[:10], "kind": "director", "label": "director", "title": "Director mode?",
               "text": DIRECTOR_TEXT[why], "quotes": [], "status": "new", "time": time.time()}
     data["director_offered"] = True  # once per chat
@@ -328,6 +334,26 @@ STOP = set("a an the and or but of to in on at for with as by from into he she i
            "what which who when where how".split())
 
 
+def raw_snippet(text, phrase):
+    """The piece of the reply a found phrase came from, as written (colour tags and all), so the note can show
+    it the way it looks in the chat rather than as bare words ("font color b22222 mu")."""
+    words = phrase.split()
+    m = re.search(r"[^\w’']+".join(re.escape(w) for w in words), str(text or ""), re.I)
+    if not m:
+        return ""
+    start, end = m.start(), m.end()
+    lt = text.rfind("<", 0, start)  # began inside a tag: take the whole tag
+    if lt != -1 and text.rfind(">", 0, start) < lt:
+        start = lt
+    end = re.search(r"[\w’']*", text[end:]).end() + end  # finish the last word
+    piece = text[start:end]
+    for tag in re.findall(r"<([a-z]+)\b[^>]*>", piece, re.I):  # close what it opened (and the sentence)
+        close = text.find(f"</{tag}>", end)
+        if close != -1 and close - end < 200:
+            end = close + len(tag) + 3
+    return text[start:end][:300]
+
+
 def free_checks(data, messages):
     """The same-openings and repeated-phrase checks on the newest reply; slips go into the log (and
     a phrase repeated across recent replies is logged at each of them)."""
@@ -342,7 +368,8 @@ def free_checks(data, messages):
     for phrase, where in repeated_phrases({i: str(messages[i][2]) for i in replies}, at):
         for i in where:
             if not any(e["label"] == "repeated_phrase" and e["at"] == i and e["quote"] == phrase for e in data["log"]):
-                data["log"].append({"label": "repeated_phrase", "quote": phrase, "at": i, "cause": "model"})
+                data["log"].append({"label": "repeated_phrase", "quote": phrase, "at": i, "cause": "model",
+                                    "shown": raw_snippet(messages[i][2], phrase)})
 
 
 def _grams(text):
@@ -482,6 +509,9 @@ def read(user, character, chat_obj, messages, writes_for_user=False):
     answer = _parse(ai_client.complete(user, "watch", _prompt(user, character, messages, picked, data, mine,
                                                               writes_for_user, ask_directing, chat_obj),
                                        max_tokens=4000, temperature=0, response_format={"type": "json_object"}))
+    # The read takes a while: the chat may have moved on meanwhile (a note shown, director mode offered), so
+    # the answer goes into what's saved now, not into what was loaded before the call
+    data, mine = chat_data(chat_obj), user_data(user)
     slips = []
     for s in answer.get("slips") or []:
         if not isinstance(s, dict):
@@ -624,7 +654,7 @@ def habits(data, muted, char_name="the character"):
             text += (" Small thing: this one may partly come from your own messages; models copy what they're "
                      "given. Want to look at it together?")
         notice = {"id": uuid.uuid4().hex[:10], "kind": "user" if theirs else "pattern", "label": label,
-                  "title": title, "text": text, "quotes": [e["quote"] for e in hits][-3:],
+                  "title": title, "text": text, "quotes": [e.get("shown") or e["quote"] for e in hits][-3:],
                   "causes": sorted({e["cause"] for e in hits}), "count": len(replies), "of": len(window),
                   "at": window[-1], "status": "new", "time": time.time()}
         data["notices"].append(notice)

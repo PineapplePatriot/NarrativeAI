@@ -149,6 +149,21 @@ def polish_text(user, character, chat_obj, text, others, summary, habits, whose=
     return apply_fixes(text, _parse(answer))
 
 
+def why_not_now(user, chat_obj, messages):
+    """When they ask for the newest reply to be polished right away ("Fix this automatically"): a reason in
+    plain words when there's nothing to do, else None."""
+    if not messages or messages[-1][0] != "assistant":
+        return "There's no reply to polish yet; the next one will be."
+    if watch.chat_data(chat_obj).get("off"):
+        return "Bulba Watch is off in this chat."
+    habits = approved(user)
+    if not habits:
+        return "No habits are set to be fixed."
+    if set(habits) <= watch.FREE_LABELS and not _free_hits(messages, habits):
+        return "The latest reply doesn't have it; new replies will be checked for it."
+    return None
+
+
 def polish(user, character, chat_obj, messages, summary=""):
     """Polishes the newest reply with the habits they approved."""
     habits = approved(user)

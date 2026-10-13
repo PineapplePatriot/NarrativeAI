@@ -91,6 +91,15 @@ def build_ai_request(user, character: Character, chat=None, worldbook_slug=None,
 
     if guidance:
         system_prompts["DirectorNote"] = f"Director's note for this reply: {guidance}"
+        try:  # director mode: the note says the scene is written in full, their own character included
+            from mainapp import presets
+            from mainapp.bulba import control
+            if control.mode_of(presets.normalize(presets.get_active(user).data)) == "director":
+                from mainapp.views import prompt_names
+                persona = chat_file_data.get("persona") if isinstance(chat_file_data.get("persona"), dict) else {}
+                system_prompts["DirectorNote"] += control.note_tail(prompt_names(user, character, persona)["user"])
+        except Exception as e:  # never lose the note itself
+            logging.getLogger(__name__).warning("Director mode check failed: %s", e)
 
     # LoreReport is not sent to the model; it's shown in the chat tools menu
     return {"SystemPrompts": system_prompts, "LoreReport": lore_report}

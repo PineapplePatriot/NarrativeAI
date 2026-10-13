@@ -4277,12 +4277,12 @@ class WatchChatTests(ChatPromptTests):
     def chat_obj(self):
         return self.character.chats.first()
 
-    def test_reads_every_five_replies_and_raises_a_habit(self):
+    def test_reads_every_three_replies_and_raises_a_habit(self):
         page = self.client.get(self.url)
         self.assertTrue(page.context["watch_data"]["on"])
         self.assertTrue(page.context["watch_data"]["intro"])  # the first-time note
         dues = [self.post({"action": "chat", "message": f"Line {i}."}).json()["watch_due"] for i in range(5)]
-        self.assertEqual(dues, [False, False, False, True, True])  # the greeting counts as a reply; not read yet
+        self.assertEqual(dues, [False, True, True, True, True])  # every 3: the greeting counts as a reply; not read yet
         self.reader_answer = {"slips": [{"reply": n, "label": "unearned_depth", "quote": f"wise line {n}",
                                          "cause": "model"} for n in (1, 3, 5)],
                               "taste": ["Keeps the banter, cuts the speeches"]}
@@ -4510,7 +4510,7 @@ class PolishChatTests(WatchChatTests):
         self.post({"action": "chat", "message": "Hi."})
         chat = self.chat_obj()
         data = watch.chat_data(chat)
-        data["checked"] = [1, 3, 5]
+        data["checked"] = data["free_checked"] = [1, 3, 5]
         data["log"] = [{"label": label, "quote": f"which meant he was sad {at}", "at": at, "cause": "model"}
                        for at in (1, 3, 5)]
         note = watch.habits(data, [])[0]
@@ -4518,6 +4518,25 @@ class PolishChatTests(WatchChatTests):
         resp = self.post({"action": "watch_note", "id": note["id"], "status": "fix"}).json()
         self.assertEqual(resp["watch"]["count"], 0)
         return note
+
+    def test_fix_this_automatically_polishes_the_latest_reply_now(self):
+        self.approve()
+        self.polish_answer = {"fixes": [{"find": "A reply.", "replace": "A reply, shorter."}]}
+        data = self.post({"action": "polish", "now": True}).json()
+        self.assertTrue(data["changed"])
+        self.assertEqual(data["reply"], "A reply, shorter.")
+        # asked again: it says why nothing happens instead of staying silent
+        self.assertIn("already polished", self.post({"action": "polish", "now": True}).json()["reason"])
+        self.post({"action": "chat", "message": "More."})
+        self.polish_answer = {"fixes": []}
+        self.assertIn("nothing to change", self.post({"action": "polish", "now": True}).json()["reason"])
+
+    def test_a_free_habit_not_in_the_latest_reply_is_explained(self):
+        self.approve("repeated_phrase")
+        data = self.post({"action": "polish", "now": True}).json()
+        self.assertFalse(data["changed"])
+        self.assertIn("doesn't have it", data["reason"])
+        self.assertEqual(self.polish_calls, [])  # no paid call for that
 
     def test_nothing_happens_until_a_habit_is_approved(self):
         data = self.post({"action": "chat", "message": "Hi."}).json()
@@ -4753,6 +4772,61 @@ class DirectorNoteTests(WatchChatTests):
         for _ in range(3):
             state = self.post({"action": "chat", "message": "", "guidance": "More rain."}).json()["watch"]
         self.assertEqual(state["count"], 0)
+
+    def test_director_mode_is_offered_once_even_when_a_read_overlaps(self):
+        # The paid read loads the chat's notes, waits for the model, then saves: an offer made meanwhile (a note
+        # sent while it ran) must not be offered again by the read
+        from unittest import mock
+        from mainapp import ai_client
+        from mainapp.bulba import watch
+        self.client.get(self.url)
+        for i in range(4):
+            self.post({"action": "chat", "message": f"Have Rose do thing {i}."})
+        real = ai_client.complete
+
+        def slow_read(user, task, messages, **params):
+            if task == "watch":
+                watch.offer_director_for_book(self.user, self.chat_obj())  # happens while the model thinks
+                return json.dumps({"slips": [], "taste": [], "they_direct": True})
+            return real(user, task, messages, **params)
+        with mock.patch("mainapp.bulba.watch.ai_client.complete", side_effect=slow_read):
+            data = self.post({"action": "watch"}).json()
+        offers = [n for n in data["watch"]["notices"] if n["kind"] == "director"]
+        self.assertEqual(len(offers), 1)
+        self.assertIn("book layout", offers[0]["text"])  # the first one stays
+        # and another chat with the same character doesn't ask again
+        self.post({"action": "new_chat"})
+        other = self.character.chats.order_by("-id").first()
+        self.assertIsNone(watch.offer_director_for_book(self.user, other))
+
+    def test_director_mode_frames_every_direction(self):
+        from mainapp import presets as presets_mod
+        from mainapp.bulba import control
+        active = presets_mod.get_active(self.user)
+        active.data = control.apply_to_preset(presets_mod.normalize(active.data), "director")
+        active.save()
+        self.user.persona_name = "Anya"
+        self.user.save()
+        self.post({"action": "chat", "message": "Feofan arrives with a letter."})
+        self.post({"action": "chat", "message": "Anya reads it aloud."})
+        sent = self.sent[-1]["messages"]
+        self.assertTrue(sent[-1]["content"].startswith("[Direction from the director"))
+        self.assertIn("Anya reads it aloud.", sent[-1]["content"])
+        self.assertIn("Anya is yours to write", sent[-1]["content"])
+        earlier = next(m for m in sent if "Feofan arrives" in m["content"])
+        self.assertTrue(earlier["content"].startswith("[Direction] "))
+        self.assertEqual(self.saved_messages()[-2][2], "Anya reads it aloud.")  # saved as they wrote it
+        # Regenerate frames it the same way; a note sent alone carries the same instruction
+        self.post({"action": "regenerate"})
+        self.assertTrue(self.sent[-1]["messages"][-1]["content"].startswith("[Direction from the director"))
+        self.post({"action": "chat", "message": "", "guidance": "The letter is forged."})
+        self.assertIn("Anya is yours to write", json.dumps(self.sent[-1]["messages"]))
+        # Not in director mode: nothing added
+        active.data = control.apply_to_preset(presets_mod.normalize(active.data), "dont")
+        active.save()
+        self.post({"action": "chat", "message": "Hello.", "guidance": "Rain."})
+        self.assertNotIn("[Direction", json.dumps(self.sent[-1]["messages"]))
+        self.assertNotIn("yours to write", json.dumps(self.sent[-1]["messages"]))
 
     def test_the_book_layout_offers_director_mode(self):
         self.client.get(self.url)
@@ -5245,3 +5319,18 @@ class StoryChatTests(ChatPromptTests):
         self.assertEqual(save([systems[1]]).status_code, 400)                # an event without a clock
         self.assertEqual(save([{"type": "table", "label": "Mood", "entries": [{"text": ""}]}]).status_code, 400)
         self.assertEqual(save([]).json()["config"]["systems"], [])
+
+
+class WatchMarkupTests(SimpleTestCase):
+    def test_a_found_phrase_is_shown_as_written(self):
+        from mainapp.bulba import watch
+        tagged = ['<font color=#b22222>"Mudra {0}."</font> He looks at the sea.'.format(w) for w in ("one", "two", "six", "ten")]
+        msgs = [("assistant", "", t, "", 1) for t in tagged]
+        data = {"log": [], "free_checked": []}
+        watch.free_checks(data, msgs)
+        entry = [e for e in data["log"] if e["quote"].startswith("font color b22222")][-1]  # still found
+        self.assertEqual(entry["shown"], '<font color=#b22222>"Mudra ten."</font>')
+        data["checked"] = []
+        note = watch.habits(data, [])[0]
+        self.assertIn('<font color=#b22222>', note["quotes"][0])
+        self.assertEqual(watch.raw_snippet("Nothing here.", "font color b22222 mu"), "")

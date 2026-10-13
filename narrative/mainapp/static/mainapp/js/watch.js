@@ -8,6 +8,11 @@ window.Watch = (function () {
     let hiddenUntilNew = null;  // "Later": the note stays away until a newer one arrives
     let switched = null;  // the "Director mode?" note just used, for its Undo
     const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    // A quote as it looks in the chat: colour and simple formatting rendered, nothing else let through
+    const shownQuote = q => window.DOMPurify
+        ? DOMPurify.sanitize(String(q ?? ''), { ALLOWED_TAGS: ['font', 'span', 'b', 'i', 'em', 'strong', 'u', 's'],
+                                                ALLOWED_ATTR: ['color', 'style'] })
+        : esc(q);
 
     const card = document.createElement('div');
     card.className = 'watch-card';
@@ -66,7 +71,7 @@ window.Watch = (function () {
                 <button type="button" class="ghost" data-w="dismiss" data-id="${esc(n.id)}">Not now</button></div>`;
             return;
         }
-        const quotes = (n.quotes || []).map(q => `<li>“${esc(q)}”</li>`).join('');
+        const quotes = (n.quotes || []).map(q => `<li>“${shownQuote(q)}”</li>`).join('');
         card.innerHTML = `<div class="watch-head"><span class="potato">🥔</span><b>${['taste', 'keeper', 'continuity'].includes(n.kind) ? esc(n.title) : 'Bulba noticed something'}</b>
                 <button type="button" class="watch-x" data-w="later" title="Later">✕</button></div>
             <p>${esc(n.text)}</p>
@@ -100,7 +105,9 @@ window.Watch = (function () {
         if (what === 'got-it') { switched = null; return render(); }
         if (what === 'fix') {
             await post({ action: 'watch_note', id: b.dataset.id, status: 'fix' });
-            return showChatNotice('From now on new replies get a quick polish for this. See or stop it on the Extras page.');
+            showChatNotice('Fixing it in the latest reply now, and in new replies from now on. See or stop it on the Extras page.');
+            if (window.polishLatestNow) window.polishLatestNow();
+            return;
         }
         if (what === 'open') {
             card.hidden = true;

@@ -1633,23 +1633,31 @@ function setPolish(messageEl, info, busy = false) {
         <button type="button" class="link" data-polish="undo">Undo fixes</button>`;
 }
 
-function runPolish(messageEl) {
-    if (!messageEl) return;
+// now: they just pressed "Fix this automatically", so this reply is polished too and they hear why if it isn't
+function runPolish(messageEl, now = false) {
+    if (!messageEl) { if (now) showChatNotice("There's no reply to polish yet; the next one will be."); return; }
     setPolish(messageEl, null, true);
     fetch(window.location.href, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-        body: JSON.stringify({ action: 'polish' }),
+        body: JSON.stringify({ action: 'polish', now }),
     })
         .then(r => r.json())
         .then(d => {
             if (d.spending) updateSpending(d.spending);
-            if (!d.success || !d.changed) { setPolish(messageEl, null); if (d.error) showChatNotice(`Polish skipped: ${d.error}`); return; }
+            if (!d.success || !d.changed) {
+                setPolish(messageEl, null);
+                if (d.error) showChatNotice(`Polish skipped: ${d.error}`);
+                else if (now && d.reason) showChatNotice(d.reason);
+                return;
+            }
             showText(messageEl, d.reply);
             setPolish(messageEl, d.polish);
         })
         .catch(() => setPolish(messageEl, null));
 }
+
+window.polishLatestNow = () => runPolish(lastAssistant(), true);
 
 document.addEventListener('click', e => {
     const b = e.target.closest('.polish-line [data-polish]');
