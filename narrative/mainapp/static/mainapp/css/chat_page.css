@@ -1778,6 +1778,9 @@ details.thoughts .thoughts-text { white-space: pre-wrap; font-size: .85rem; opac
 .note-idea b { font-size: .8rem; }
 .directed-line { font-size: .78rem; opacity: .7; font-style: italic; margin-bottom: 4px; }
 body:has(#toolsMenu.show) .watch-card { display: none; }  /* the pen menu wins while it's open */
+/* switched on from the pen menu: the first-time note shows in the other corner, beside the open menu */
+.watch-card.corner { left: auto; right: 16px; }
+body:has(#toolsMenu.show) .watch-card.corner:not([hidden]) { display: block; }
 .ai-saw-part { margin-bottom: 8px; } .ai-saw-part b { display: block; font-size: .8rem; margin-bottom: 2px; }
 .ai-saw-part pre { white-space: pre-wrap; font: inherit; margin: 0; } .ai-saw-part p { margin: 0 0 4px; }
 
