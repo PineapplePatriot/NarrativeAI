@@ -1670,9 +1670,16 @@ def tracker_setup(request, slug):
             return JsonResponse({"error": "Invalid request."}, status=400)
         if not isinstance(data, dict):
             return JsonResponse({"error": "Invalid request."}, status=400)
-        if "systems" not in data:  # the setup page doesn't edit story systems (Bulba does): keep them
+        if "systems" not in data:  # an older page without the story systems section: keep them
             data["systems"] = (character.tracker_config or {}).get("systems") or []
-        character.tracker_config = trackers.normalize_config(data)
+        config = trackers.normalize_config(data)
+        if story.of_type(config["systems"], "event") and not story.of_type(config["systems"], "clock"):
+            return JsonResponse({"error": "Events need a story clock: add one, or remove the events."}, status=400)
+        dropped = len([s for s in data.get("systems") or [] if s]) - len(config["systems"])
+        if dropped > 0:
+            return JsonResponse({"error": "An event needs what happens, and a random table needs at least one "
+                                          "result (and there can be 12 systems at most). Fill them in or remove them."}, status=400)
+        character.tracker_config = config
         character.save(update_fields=["tracker_config"])
         return JsonResponse({"status": "ok", "config": character.tracker_config})
 

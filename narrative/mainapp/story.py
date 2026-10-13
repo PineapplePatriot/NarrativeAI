@@ -36,6 +36,8 @@ def _int(v, default, lo=None, hi=None):
 
 
 def _minutes(hhmm, default=8 * 60):
+    if isinstance(hhmm, int) and not isinstance(hhmm, bool):  # already minutes (a saved config)
+        return hhmm % DAY
     m = re.match(r"^\s*(\d{1,2}):(\d{2})\s*$", str(hhmm or ""))
     return (int(m.group(1)) % 24) * 60 + int(m.group(2)) % 60 if m else default
 
@@ -58,7 +60,7 @@ def normalize_system(raw):
     elif s["type"] == "event":
         s.update(guidance=str(raw.get("guidance") or "").strip()[:500],
                  at_day=None if raw.get("at_day") in (None, "") else _int(raw.get("at_day"), 1, 1),
-                 at_time=_minutes(raw.get("at_time"), None) if raw.get("at_time") else None,
+                 at_time=_minutes(raw.get("at_time"), None) if raw.get("at_time") not in (None, "") else None,
                  every_days=_int(raw.get("every_days"), 0, 0, 365))
         if not s["guidance"]:
             return None

@@ -5196,3 +5196,22 @@ class StoryChatTests(ChatPromptTests):
         config = self.client.post(url, json.dumps({"trackers": {"stats": {"on": True}}}),
                                   content_type="application/json").json()["config"]
         self.assertEqual([s["type"] for s in config["systems"]], ["meter", "clock", "event"])
+
+    def test_setup_page_edits_systems(self):
+        url = reverse("tracker_setup", args=[self.character.slug])
+        save = lambda systems: self.client.post(url, json.dumps({"trackers": {}, "systems": systems}),
+                                                content_type="application/json")
+        page = self.client.get(url).content.decode()
+        self.assertIn("Story systems", page)
+        # What the page sends: times in minutes, as the saved config has them
+        resp = save([{"type": "clock", "start_day": 2, "start_time": 19 * 60 + 30},
+                     {"type": "event", "label": "Gala", "at_day": 3, "at_time": 20 * 60, "guidance": "It begins."},
+                     {"type": "meter", "label": "Warmth", "min": 0, "max": 5, "start": 1, "baseline": None}])
+        systems = resp.json()["config"]["systems"]
+        self.assertEqual((systems[0]["start_day"], systems[0]["start_time"]), (2, 19 * 60 + 30))
+        self.assertEqual(systems[1]["at_time"], 20 * 60)
+        self.assertIsNone(systems[2]["baseline"])
+        self.assertEqual(save(systems).json()["config"]["systems"], systems)  # saving again changes nothing
+        self.assertEqual(save([systems[1]]).status_code, 400)                # an event without a clock
+        self.assertEqual(save([{"type": "table", "label": "Mood", "entries": [{"text": ""}]}]).status_code, 400)
+        self.assertEqual(save([]).json()["config"]["systems"], [])

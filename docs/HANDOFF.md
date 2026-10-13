@@ -35,7 +35,7 @@ Hosted on **Railway** (see `docs/DEPLOY.md`); graders use a demo account with **
 ## Dev environment
 
 - venv: `python3 -m venv <scratchpad>/venv && pip install -r requirements.txt`. Tests from `narrative/`:
-  `python manage.py test mainapp users --parallel 4` → **1019 tests, all passing** at handoff (~3 min).
+  `python manage.py test mainapp users --parallel 4` → **1020 tests, all passing** at handoff (~3 min).
 - Dev server **must be started from `narrative/`** (templates resolve relative to it):
   `cd narrative && exec python manage.py runserver 127.0.0.1:8765 --noreload` in the background; stop with
   `pkill -f "manage.py runserver 127.0.0.1:876[5]"` in its own command.
@@ -142,7 +142,8 @@ Turn it off / Off in this chat); switch on the Extras page. Nothing is collected
 - With a clock, the World tracker's date and time follow it (unless locked).
 - Prompt: "Story systems:" lines appended to the StoryState slot (so What the AI saw shows them too).
 - UI: dashed pills in the HUD (🕰 clock, meters) and a "Story systems" card on top of the ▤ panel (values, coming
-  up, lately, the kept-scenes note). Read-only; Bulba edits (setup story stage, in-chat, tuning guide section).
+  up, lately, the kept-scenes note). Edited by Bulba (setup story stage, in-chat, tuning guide section) or by hand
+  in a "Story systems" section on the tracker setup page (save refuses events without a clock or empty tables).
 
 ## Decisions the user made this session
 
@@ -163,7 +164,7 @@ Turn it off / Off in this chat); switch on the Extras page. Nothing is collected
 
 1. **Storybook export** (the last Phase 3 item). Asked, not answered: start with the character's picture and the
    summary? Their own messages in full, or folded like the book layout?
-2. **Story systems**: built (section 8). Open: hand editing on the tracker setup page; a real run.
+2. **Story systems**: built (section 8), with hand editing. Open: a real run. Storybook export: later (the user's call).
 3. Older leftovers: verify OpenRouter IDs for 8 model profiles; rebase starters on Evening-Truth (needs the files);
    cookbook parts not in yet (three bundles, keepsake ending / epilogue, recurring rituals, prompt-caching advice,
    a per-fix record); Edit on settings-like proposals; leftover comments in `views.py`.
