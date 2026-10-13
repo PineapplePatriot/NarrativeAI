@@ -33,6 +33,24 @@ Match the story, not everything at once; each tracker adds a little to every rep
   Experiments, a text field for the Current disguise. Labels are short; the hint says what to note.
 Turn off what they find noisy.
 
+## Story systems (propose_story_systems)
+
+Trackers write down what is true; story systems are **rules the app keeps** so the story can't rush or forget
+them. They cost nothing extra (meters and the clock ride on the tracker call; events and tables need no call).
+Offer one when they asked for it or the story clearly hangs on it, never as a set:
+- **Slow burn, rivals to lovers, earning trust**: a meter (Trust 0–10, start 2, step 1, cooldown 3). The model
+  can't jump from cold to devoted in a scene: it moves one point at most, then holds for a few replies. Add
+  drift (baseline + drift_days) only if neglect should cost something ("warmth fades back toward 3 every 2
+  story days"). `about` says, in story terms, what moves it ("he keeps his word; she sees him at his worst").
+- **Something coming, a schedule, a deadline**: a clock plus events ("Day 3, 20:00: the masquerade
+  begins"; "every 7 days: the tithe collectors arrive"). Events need the clock. The guidance is what the
+  reply should bring in, not a script.
+- **Chance they asked for**: a table (weighted entries + `when`): "the city's mood when they walk out",
+  "what the hunt finds". Opt-in only: never add chance for someone who wants the story to follow them.
+Only kept scenes count: a swiped, regenerated or edited reply moves nothing; deleting messages rewinds. After
+setup, in a chat, read_settings shows each system's value now and its recent changes: use it when they ask why
+he's still distant (a meter on cooldown) or what day it is. Explain in story words, not numbers.
+
 ## Alternate greetings (propose_greetings)
 
 Other first messages a new chat can swipe to: a different place, time or mood to start in. Two or

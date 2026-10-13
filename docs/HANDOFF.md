@@ -35,7 +35,7 @@ Hosted on **Railway** (see `docs/DEPLOY.md`); graders use a demo account with **
 ## Dev environment
 
 - venv: `python3 -m venv <scratchpad>/venv && pip install -r requirements.txt`. Tests from `narrative/`:
-  `python manage.py test mainapp users --parallel 4` → **1003 tests, all passing** at handoff (~3 min).
+  `python manage.py test mainapp users --parallel 4` → **1019 tests, all passing** at handoff (~3 min).
 - Dev server **must be started from `narrative/`** (templates resolve relative to it):
   `cd narrative && exec python manage.py runserver 127.0.0.1:8765 --noreload` in the background; stop with
   `pkill -f "manage.py runserver 127.0.0.1:876[5]"` in its own command.
@@ -129,6 +129,21 @@ Turn it off / Off in this chat); switch on the Extras page. Nothing is collected
 - New cookbook section **4.16 "Recounting and keeping score instead of talking"** (docs/research and the
   `candidates.json` library Bulba borrows from); added to the Claude model profiles' habits to check for.
 
+### 8. Story systems after Lattice (`mainapp/story.py`, `bulba/tune.py` → `propose_story_systems`)
+- Kept in `Character.tracker_config["systems"]` (no migration; the tracker setup page keeps them when it saves);
+  values per chat in the chat file's `"story"`.
+- **meter** (min/max/start, step, cooldown in replies, baseline + drift_days), **clock** (start day/time),
+  **event** (at_day/at_time, once or every_days; needs the clock), **table** (weighted entries + when; the chat
+  model calls `draw_from_table`, shown as 🃏 like the dice).
+- Meters and the clock ride on the tracker call (a `"_story"` key: change −1/0/+1 with why, elapsed_minutes): no
+  extra cost; `trackers_due` fires for them even with no trackers on. What it finds is **pending** until they
+  reply; it counts only if the reply it read is still on screen unchanged (swipe, regenerate, edit → nothing).
+  Snapshots per message count; delete rewinds. Events reached go into the next reply until that reply is kept.
+- With a clock, the World tracker's date and time follow it (unless locked).
+- Prompt: "Story systems:" lines appended to the StoryState slot (so What the AI saw shows them too).
+- UI: dashed pills in the HUD (🕰 clock, meters) and a "Story systems" card on top of the ▤ panel (values, coming
+  up, lately, the kept-scenes note). Read-only; Bulba edits (setup story stage, in-chat, tuning guide section).
+
 ## Decisions the user made this session
 
 - Progress counts questions; skip hint always visible with the quality warning; fast route = preset → persona →
@@ -148,8 +163,7 @@ Turn it off / Off in this chat); switch on the Extras page. Nothing is collected
 
 1. **Storybook export** (the last Phase 3 item). Asked, not answered: start with the character's picture and the
    summary? Their own messages in full, or folded like the book layout?
-2. **Lattice-inspired story systems through Bulba** (only if time): slow relationships (caps, cooldowns, decay),
-   a story clock with scheduled events, "only kept scenes count", opt-in weighted random tables.
+2. **Story systems**: built (section 8). Open: hand editing on the tracker setup page; a real run.
 3. Older leftovers: verify OpenRouter IDs for 8 model profiles; rebase starters on Evening-Truth (needs the files);
    cookbook parts not in yet (three bundles, keepsake ending / epilogue, recurring rituals, prompt-caching advice,
    a per-fix record); Edit on settings-like proposals; leftover comments in `views.py`.

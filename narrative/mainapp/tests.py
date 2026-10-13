@@ -3685,6 +3685,24 @@ class BulbaTuningTests(BulbaCardAndLoreTests):
                                           self.assertTrue(settings()["recursive_scan"])),
                             lambda: self.assertEqual(settings()["scan_depth"], old_depth))
 
+    def test_story_systems(self):
+        from mainapp import trackers
+        from mainapp.models import Character
+        self.upload(V2_CARD)
+        viktor = lambda: Character.objects.get(author=self.user, name="Viktor")
+        systems = lambda: trackers.normalize_config(viktor().tracker_config)["systems"]
+        data, pid = self.propose("propose_story_systems", systems=[
+            {"type": "meter", "id": "trust", "label": "Trust", "max": 10, "start": 2, "cooldown": 3},
+            {"type": "clock", "label": "Clock"},
+            {"type": "event", "label": "The ball", "at_day": 3, "at_time": "20:00", "guidance": "The masquerade begins."}])
+        card = data["state"]["proposals"][-1]
+        self.assertIn("Trust (0–10): starts at 2", " ".join(card["summary"]))
+        self.apply_and_undo(pid, lambda: self.assertEqual([s["id"] for s in systems()][:2], ["trust", "clock"]),
+                            lambda: self.assertEqual(systems(), []))
+        _, again = self.propose("propose_story_systems", systems=[
+            {"type": "event", "label": "Ball", "guidance": "Dance."}])
+        self.assertEqual(again, pid)  # no new proposal: events need a clock
+
     def test_mood_pictures_button_needs_a_neutral_picture(self):
         from django.core.files.base import ContentFile
         from mainapp.models import Character
@@ -5009,3 +5027,172 @@ class FreeRecallTests(SimpleTestCase):
         self.assertIn("Earlier in the story", calls[1]["summary"])
         self.assertTrue(calls[1]["summary"].startswith("So far."))
         self.assertEqual(recalled[0]["who"], "Rose")
+
+
+class StoryLogicTests(SimpleTestCase):
+    """Story systems (mainapp/story.py): the app keeps the rules, the model only reports what a scene did."""
+
+    def systems(self, **meter):
+        from mainapp import story
+        return story.normalize_systems([
+            {"type": "meter", "id": "trust", "label": "Trust", "max": 10, "start": 2, "step": 1, "cooldown": 2, **meter},
+            {"type": "clock", "start_day": 1, "start_time": "08:00"},
+            {"type": "event", "id": "ball", "label": "The ball", "at_day": 1, "at_time": "09:00", "guidance": "Music starts."},
+            {"type": "event", "id": "tithe", "label": "Tithe", "at_day": 2, "every_days": 1, "guidance": "Collectors come."},
+            {"type": "event", "label": "Broken"},                                  # no guidance: dropped
+            {"type": "table", "id": "mood", "label": "City mood", "entries": [{"text": "calm", "weight": 3},
+                                                                               {"text": "riot", "weight": 1}]}])
+
+    def kept(self, st, systems, messages, change=1, minutes=0, reply="He nods."):
+        from mainapp import story
+        story.stage(st, {"_story": {"meters": {"trust": {"change": change, "why": "kept his word"}},
+                                    "elapsed_minutes": minutes}}, len(messages), reply)
+        return story.commit(st, systems, messages)
+
+    def test_normalize(self):
+        from mainapp import story
+        systems = self.systems()
+        self.assertEqual([s["type"] for s in systems], ["meter", "clock", "event", "event", "table"])
+        self.assertEqual(systems[1]["id"], "clock")
+        self.assertIsNone(story.normalize_system({"type": "spell"}))
+        self.assertEqual(story.normalize_system({"type": "meter", "min": 5, "max": 1, "start": 99})["max"], 6)
+
+    def test_meters_step_cooldown_and_only_kept_scenes(self):
+        from mainapp import story
+        systems = self.systems()
+        st = story.state_of({}, systems)
+        msgs = [("assistant", "", "He nods.", "", 1)]
+        self.assertEqual(st["values"]["trust"], 2)
+        self.kept(st, systems, msgs)
+        self.assertEqual(st["values"]["trust"], 3)
+        notes = self.kept(st, systems, msgs)  # cooldown: held
+        self.assertIn("held", notes[0])
+        self.assertEqual(st["values"]["trust"], 3)
+        self.kept(st, systems, msgs)
+        self.kept(st, systems, msgs)  # two replies later it can move again
+        self.assertEqual(st["values"]["trust"], 4)
+        # The reply it read was swiped away: nothing happens
+        self.kept(st, systems, [("assistant", "", "Another version.", "", 1)])
+        self.kept(st, systems, [("assistant", "", "x", "", 1)], reply="He nods.")
+        self.assertEqual(st["values"]["trust"], 4)
+        # A change of 0 or a bad answer does nothing
+        story.stage(st, {"_story": "nonsense"}, 1, "He nods.")
+        self.assertEqual(story.commit(st, systems, msgs), [])
+
+    def test_clock_events_drift_and_rewind(self):
+        from mainapp import story
+        systems = self.systems(baseline=2, drift_days=1, cooldown=0)
+        st = story.state_of({}, systems)
+        msgs = [("assistant", "", "He nods.", "", 1)]
+        story.snapshot(st, 1)
+        self.kept(st, systems, msgs, change=1, minutes=90)       # 09:30: the ball happens
+        self.assertEqual(story.clock_text(st["minutes"]), "Day 1, 09:30")
+        self.assertEqual([d["label"] for d in st["due"]], ["The ball"])
+        self.assertIn("Happening now (The ball): Music starts.", story.format_for_prompt(systems, st))
+        story.snapshot(st, 3)
+        self.kept(st, systems, msgs, change=1, minutes=0)
+        self.assertEqual(st["due"], [])                           # it went into the reply they kept
+        self.assertEqual(st["values"]["trust"], 4)
+        self.kept(st, systems, msgs, change=0, minutes=3 * story.DAY)  # three days pass: drifts back, tithe due
+        self.assertEqual(st["values"]["trust"], 2)
+        self.assertEqual([d["label"] for d in st["due"]], ["Tithe"])
+        self.assertEqual(st["fired"]["tithe"], 3)
+        self.assertEqual(story.upcoming(systems, st)[0]["label"], "Tithe")
+        back = story.state_of(story.rewind(st, 2), systems)  # messages from the 3rd on deleted
+        self.assertEqual((back["values"]["trust"], story.clock_text(back["minutes"])), (2, "Day 1, 08:00"))
+        fresh = story.state_of(story.rewind(st, 0), systems)
+        self.assertEqual(fresh["values"]["trust"], 2)
+
+    def test_tables(self):
+        import random
+        from mainapp import game, story
+        systems = self.systems()
+        tool = story.table_tool(systems)
+        self.assertEqual(tool["function"]["parameters"]["properties"]["table"]["enum"], ["mood"])
+        counts = {"calm": 0, "riot": 0}
+        rng = random.Random(4)
+        for _ in range(400):
+            counts[story.draw(systems, "mood", rng)["result"]] += 1
+        self.assertGreater(counts["calm"], counts["riot"] * 2)
+        state = game.empty_state()
+        built = game.add_to_request({"messages": [{"role": "user", "content": "hi"}], "params": {}}, "off", state,
+                                    {"user": "Anya", "char": "Rose"}, tables=story.of_type(systems, "table"))
+        self.assertEqual(built["params"]["tools"][0]["function"]["name"], "draw_from_table")
+        self.assertIn("Random tables", built["messages"][0]["content"])
+        result, ops = game.run_tool(state, "draw_from_table", {"table": "mood"}, rng)
+        self.assertIn(result["result"], counts)
+        self.assertTrue(game.describe(ops[0]).startswith("🃏 City mood: "))
+        self.assertIn("error", game.run_tool(state, "draw_from_table", {"table": "nope"})[0])
+
+
+class StoryChatTests(ChatPromptTests):
+    """Story systems in the chat: read by the tracker call, kept only once they reply, in the prompt.
+    (It also runs ChatPromptTests' own tests with story systems set up.)"""
+
+    def fake_post(self, url, headers=None, json=None, timeout=None, **kwargs):
+        from unittest import mock
+        if json["messages"][0]["content"].startswith("You keep the story-state trackers"):
+            self.all_calls.append(json)
+            resp = mock.Mock(status_code=200)
+            resp.json.return_value = {"choices": [{"message": {"content": self.tracker_reply}}]}
+            return resp
+        return super().fake_post(url, headers, json, timeout)
+
+    def setUp(self):
+        super().setUp()
+        self.character.tracker_config = {"trackers": {"world": {"on": True}}, "systems": [
+            {"type": "meter", "id": "trust", "label": "Trust", "max": 10, "start": 2, "cooldown": 0},
+            {"type": "clock", "start_time": "08:00"},
+            {"type": "event", "id": "ball", "label": "The ball", "at_time": "09:00", "guidance": "Music starts."}]}
+        self.character.save()
+        self.tracker_reply = json.dumps({"_story": {"meters": {"trust": {"change": 1, "why": "he helped"}},
+                                                    "elapsed_minutes": 90},
+                                         "world": {"location": "Square", "time": "11:40 pm"}})
+
+    def story(self):
+        from mainapp import chats
+        return chats.read(self.character.chats.first()).get("story") or {}
+
+    def test_kept_scene_moves_meters_and_clock(self):
+        reply = self.post({"action": "chat", "message": "I help him up."}).json()
+        self.assertTrue(reply["trackers_due"])
+        self.assertEqual(reply["story"]["meters"][0]["value"], 2)
+        resp = self.post({"action": "update_trackers"}).json()
+        self.assertTrue(resp["success"])
+        self.assertIn("_story", self.all_calls[-1]["messages"][0]["content"])
+        self.assertNotIn("_story", resp["state"]["values"])
+        self.assertTrue(resp["story"]["pending"])
+        self.assertEqual(resp["story"]["meters"][0]["value"], 2)  # not yet: they haven't kept the scene
+        reply = self.post({"action": "chat", "message": "We walk on."}).json()
+        self.assertEqual(reply["story"]["meters"][0]["value"], 3)
+        self.assertEqual(reply["story"]["clock"], "Day 1, 09:30")
+        self.assertTrue(any("Trust: 2 → 3" in n for n in reply["story_notes"]))
+        world = self.post({"action": "update_trackers"}).json()["state"]["values"]["world"]
+        self.assertEqual((world["location"], world["date"], world["time"]), ("Square", "Day 1", "09:30"))
+        system_text = "\n".join(m["content"] for m in self.sent[-1]["messages"] if m["role"] == "system")
+        self.assertIn("Trust: 3/10", system_text)
+        self.assertIn("Happening now (The ball): Music starts.", system_text)
+        # Deleting their message rewinds the story systems
+        resp = self.post({"action": "delete", "index": 3}).json()
+        self.assertEqual(resp["story"]["meters"][0]["value"], 2)
+        self.assertEqual(self.story()["values"]["trust"], 2)
+
+    def test_story_systems_alone_use_the_tracker_call(self):
+        self.character.tracker_config = {**self.character.tracker_config, "trackers": {"world": {"on": False}}}
+        self.character.save()
+        self.assertTrue(self.post({"action": "chat", "message": "Hi"}).json()["trackers_due"])
+        self.assertTrue(self.post({"action": "update_trackers"}).json()["success"])
+
+    def test_edited_reply_never_counts(self):
+        self.post({"action": "chat", "message": "I help him up."})
+        self.post({"action": "update_trackers"})
+        self.post({"action": "edit", "index": 2, "text": "He refuses my hand."})
+        reply = self.post({"action": "chat", "message": "Fine."}).json()
+        self.assertEqual(reply["story"]["meters"][0]["value"], 2)
+        self.assertEqual(reply["story"]["clock"], "Day 1, 08:00")
+
+    def test_setup_page_keeps_systems(self):
+        url = reverse("tracker_setup", args=[self.character.slug])
+        config = self.client.post(url, json.dumps({"trackers": {"stats": {"on": True}}}),
+                                  content_type="application/json").json()["config"]
+        self.assertEqual([s["type"] for s in config["systems"]], ["meter", "clock", "event"])

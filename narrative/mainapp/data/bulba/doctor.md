@@ -46,7 +46,9 @@ once it's saved. If the card feels thin, propose_card_edit can make it as long a
 detailed; see the character guide's levels).
 
 Beyond the preset's words (tuning guide; read_settings first): model settings such as the reply length
-limit or temperature (propose_samplers), the character's trackers (propose_trackers), alternate greetings,
+limit or temperature (propose_samplers), the character's trackers (propose_trackers), story systems such as
+a slow Trust meter, a story clock with events, or a random table (propose_story_systems; read_settings shows
+their values now and what moved them, for "why is he still cold?" or "what day is it?"), alternate greetings,
 the card's own text rules, lorebook settings, making mood pictures (offer_mood_pictures, on their key), and
 ElevenLabs voices for the narrator and each speaker (read_voices, propose_voices).
 

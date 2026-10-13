@@ -106,6 +106,11 @@ Open:
 
 ## Chat
 
+Built (13 October): **story systems** after Lattice (`mainapp/story.py`, Bulba's `propose_story_systems`):
+slow meters with step, cooldown and drift; a story clock with events; opt-in weighted random tables (a tool like
+the dice); only kept scenes count; deleting messages rewinds. Not yet: editing them by hand on the tracker setup
+page (Bulba only for now), a real run to see whether the tracker model's −1/0/+1 calls and time estimates are sensible.
+
 - **A picture mid-scene** as a story extra. Medium.
 - **Pictures in display rules**: images are blocked for safety, so presets that draw pictures with regex
   show nothing there. Needs a safety design.

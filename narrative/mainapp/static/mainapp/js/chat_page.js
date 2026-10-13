@@ -527,7 +527,7 @@ function sendMessage(noteOnly = false) {
             updateCharacterImages(data.photo_url, data.photo_second, data.char_count);
             renderLore(data.lore);
             if (data.summary_due) generateSummary('append', true);
-            if (window.Trackers) Trackers.afterReply(data);
+            if (window.Trackers) { Trackers.setStory(data.story); Trackers.afterReply(data); }
             if (window.Watch) Watch.afterReply(data);
             if (data.polish_due) runPolish(lastAssistant());
             if (data.music_due) followSceneMusic();
@@ -705,6 +705,7 @@ function confirmDelete() {
                 // Summary pieces covering deleted messages are gone; trackers rewound to before them
                 if (window.Summary) Summary.set(data.summary_data);
                 if (window.Trackers && Trackers.setState) Trackers.setState(data.trackers);
+                if (window.Trackers && Trackers.setStory) Trackers.setStory(data.story);
             } else {
                 alert('Error deleting message: ' + (data.error || 'Unknown error'));
             }
@@ -1138,7 +1139,7 @@ function regenerateReply(guidance = '') {
             placeReply(d, d.photo_url); setDirected(lastAssistant(), d.directed); setSwipes(d.swipes);
             updateCharacterImages(d.photo_url, d.photo_second, d.char_count); renderLore(d.lore);
             if (d.summary_due) generateSummary('append', true);
-            if (window.Trackers) Trackers.afterReply(d);
+            if (window.Trackers) { Trackers.setStory(d.story); Trackers.afterReply(d); }
             if (window.Watch) Watch.afterReply(d);
             if (d.polish_due) runPolish(lastAssistant());
             if (d.music_due) followSceneMusic();

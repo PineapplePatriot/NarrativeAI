@@ -28,7 +28,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
-from . import extras, game, media_library, recall, thinking, ai_client, cards, chats, regex_rules, model_profiles, presets, samplers, starters, trackers
+from . import extras, game, media_library, recall, story, thinking, ai_client, cards, chats, regex_rules, model_profiles, presets, samplers, starters, trackers
 from .bulba import polish, watch
 
 from .utils import build_ai_request, get_elevenlabs_key
@@ -125,10 +125,11 @@ def chat(request, slug):
         "persona": {},          # {"name", "description"}: who the user is in this chat only (else their usual persona)
         "game": {},             # dice and inventory: the starting inventory after manual edits (see mainapp/game.py)
         "voices": {},           # voices picked for speakers in this chat (see mainapp/voice.py), so they stay the same
+        "story": {},            # story systems' values: meters, story time, events (see mainapp/story.py)
     }
     game_mode = game.mode_for(request.user, character)
     extra_kinds = extras.kinds_for(request.user)        # letters, phone screens, milestones (Extras page)
-    use_tools = game_mode != "off" or bool(extra_kinds)
+    use_tools = game_mode != "off" or bool(extra_kinds) or bool(story.of_type(story.systems_of(character), "table"))
 
     def summary_payload():
         """What the summary panel shows."""
@@ -170,6 +171,7 @@ def chat(request, slug):
                         chat_state["persona"] = data.get("persona") if isinstance(data.get("persona"), dict) else {}
                         chat_state["game"] = data.get("game") if isinstance(data.get("game"), dict) else {}
                         chat_state["voices"] = data.get("voices") if isinstance(data.get("voices"), dict) else {}
+                        chat_state["story"] = data.get("story") if isinstance(data.get("story"), dict) else {}
                         messages_list = data.get("messages", [])
                     else:
                         messages_list = data
@@ -207,6 +209,23 @@ def chat(request, slug):
         return trackers.normalize_state(chat_state["trackers"], trackers.normalize_config(character.tracker_config, game_mode, "milestones" in extra_kinds,
             "keepsakes" in extra_kinds))
 
+    systems = story.systems_of(character)  # Lattice-style story systems Bulba set up for this character
+
+    def story_state():
+        chat_state["story"] = story.state_of(chat_state["story"], systems)
+        return chat_state["story"]
+
+    def story_payload():
+        """What the tracker panel shows of the story systems (None when there are none)."""
+        if not systems:
+            return None
+        st = story_state()
+        return {"meters": [{"label": m["label"], "value": st["values"].get(m["id"]), "min": m["min"], "max": m["max"]}
+                           for m in story.of_type(systems, "meter")],
+                "clock": story.clock_text(st["minutes"]) if story.of_type(systems, "clock") else "",
+                "next_events": story.upcoming(systems, st), "log": st["log"][-5:],
+                "pending": bool(st.get("pending"))}
+
     def sync_game_trackers(messages):
         """Trackers the app keeps itself: Inventory and Conditions ("full" dice mode), Milestones (story extra)."""
         if game_mode != "full" and not {"milestones", "keepsakes"} & set(extra_kinds):
@@ -240,6 +259,7 @@ def chat(request, slug):
             "persona": chat_state["persona"],
             "game": chat_state["game"],
             "voices": chat_state["voices"],
+            "story": chat_state["story"],
         }
         with open(chat_file_path, "w", encoding="utf-8") as f:
             json.dump(full_data, f, ensure_ascii=False, indent=2)
@@ -313,13 +333,16 @@ def chat(request, slug):
                     set_summary(chats.parts_within(chat_state["summary_parts"], len(messages)))
                     chat_state["trackers"], chat_state["tracker_history"] = chats.trackers_at(
                         chat_state["tracker_history"], chat_state["trackers"], len(messages))
+                    if systems:  # story systems go back to before the deleted messages
+                        chat_state["story"] = story.rewind(story_state(), len(messages))
                     save_messages(messages)
                     config = trackers.normalize_config(character.tracker_config, game_mode, "milestones" in extra_kinds,
             "keepsakes" in extra_kinds)
                     return JsonResponse({"success": True, "swipes": chats.version_info(messages),
                                          "summary": chat_state["summary"], "summary_upto": chat_state["summary_upto"],
                                          "summary_data": summary_payload(),
-                                         "trackers": trackers.normalize_state(chat_state["trackers"], config)})
+                                         "trackers": trackers.normalize_state(chat_state["trackers"], config),
+                                         "story": story_payload()})
                 else:
                     return JsonResponse({"success": False, "error": "Invalid message index"})
 
@@ -539,7 +562,8 @@ def chat(request, slug):
                     game.set_base(chat_state, game.empty_state(), len(messages))
             else:
                 only = [t for t in data.get("only") or [] if isinstance(t, str)] or None
-                if not trackers.ai_trackers(config):
+                with_story = not only and story.needs_ai(systems)  # meters and the story clock ride on this call
+                if not trackers.ai_trackers(config) and not with_story:
                     return JsonResponse({"success": False, "error": "No trackers are turned on for this character."})
                 # Messages since the last run (at least the last 4, at most 16)
                 upto = state["upto"] if isinstance(state["upto"], int) else 0
@@ -547,14 +571,22 @@ def chat(request, slug):
                 recent = (messages[-4:] if len(recent) < 4 else recent)[-16:]
                 user_name = request.user.name or request.user.username
                 named = [(user_name if m[0] == "user" else character.name, m[2]) for m in recent]
+                request_messages = trackers.update_messages(config, state, named, character.name, user_name, only)
+                if with_story:
+                    request_messages[0]["content"] += "\n\n" + story.prompt_section(systems, story_state())
                 try:
-                    reply_text = ai_client.complete(
-                        request.user, "trackers",
-                        trackers.update_messages(config, state, named, character.name, user_name, only),
-                        temperature=0.2, response_format={"type": "json_object"})
+                    reply_text = ai_client.complete(request.user, "trackers", request_messages,
+                                                    temperature=0.2, response_format={"type": "json_object"})
                     update = trackers.parse_update(reply_text)
                 except (ai_client.AIError, ValueError) as e:
                     return JsonResponse({"success": False, "error": str(e)})
+                if with_story:  # held until they reply to this reply (only kept scenes count)
+                    last = messages[-1] if messages else None
+                    if last and last[0] == "assistant":
+                        story.stage(story_state(), update, len(messages), last[2])
+                update.pop("_story", None)
+                if with_story and story.of_type(systems, "clock") and isinstance(update.get("world"), dict):
+                    update["world"] = {k: v for k, v in update["world"].items() if k not in ("date", "time")}
                 changed = trackers.apply_update(config, state, update, only)
                 if not only:
                     state["upto"] = len(messages)
@@ -562,7 +594,8 @@ def chat(request, slug):
             chat_state["trackers"] = state
             chat_state["tracker_history"] = chats.add_snapshot(chat_state["tracker_history"], state, len(messages))
             save_messages(messages)
-            return JsonResponse({"success": True, "state": state, "changed": changed if action == "update_trackers" else []})
+            return JsonResponse({"success": True, "state": state, "changed": changed if action == "update_trackers" else [],
+                                 "story": story_payload()})
 
         # --- Summary: pieces that each cover a range of messages ---
         elif action in ("summarize", "summary_edit", "summary_delete", "summary_rerun", "summary_pause"):
@@ -814,6 +847,11 @@ def chat(request, slug):
             note_only = action == "chat" and not user_message and bool(guidance.strip())
             if (action == "chat" and (user_message or note_only)) or action == "regenerate":
                 # Regenerate re-answers the existing last user message, so only chat adds one
+                story_notes = []
+                if action == "chat" and systems:  # they went on from the last reply: what it changed now counts
+                    story_notes = story.commit(story_state(), systems, messages)
+                    story.sync_world(chat_state["story"], systems, chat_state["trackers"])
+                    story.snapshot(chat_state["story"], len(messages) + (1 if user_message else 0))
                 if action == "chat" and user_message:
                     user_message = text_rules("saved", user_message, "user")
                     messages.append(("user", datetime.now().strftime("%H:%M"), user_message, "neutral", 1))
@@ -853,7 +891,8 @@ def chat(request, slug):
                         message=(user_message or None) if action == "chat" else None,
                         guidance=guidance,                             # <--- INJECTION 1
                         persistent_guides=chat_state["context_guides"],# <--- INJECTION 2
-                        summary=chat_state["summary"])
+                        summary=chat_state["summary"],
+                        story_values=story_state() if systems else None)
                     lore_report = prompt.get("LoreReport")
 
 
@@ -869,7 +908,8 @@ def chat(request, slug):
                     chat_state["last_recall"] = recalled  # shown in "What the AI saw"
                     # Dice and inventory: the model gets tools and the current state (the reply works on a copy)
                     game_state = game.current_state(chat_state, messages)
-                    built = game.add_to_request(built, game_mode, game_state, names, extra_kinds)
+                    built = game.add_to_request(built, game_mode, game_state, names, extra_kinds,
+                                                tables=story.of_type(systems, "table"))
                     game_ops = []
                     # Stream when the page asks for it and the preset allows it
                     streaming = bool(data.get("stream")) and preset["options"].get("streaming", True)
@@ -985,8 +1025,8 @@ def chat(request, slug):
                     # Trackers: same idea, if any tracker is on for this character
                     tracker_task = ai_client.get_task_setting(request.user, "trackers")
                     tracked = (chat_state["trackers"] or {}).get("upto") or 0
-                    trackers_due = (bool(trackers.ai_trackers(trackers.normalize_config(character.tracker_config, game_mode, "milestones" in extra_kinds,
-            "keepsakes" in extra_kinds)))
+                    trackers_due = ((bool(trackers.ai_trackers(trackers.normalize_config(character.tracker_config, game_mode, "milestones" in extra_kinds,
+            "keepsakes" in extra_kinds))) or story.needs_ai(systems))
                                     and tracker_task.mode == tracker_task.MODE_AUTO
                                     and len(messages) - tracked >= tracker_task.interval)
 
@@ -1012,6 +1052,8 @@ def chat(request, slug):
                         "swipes": chats.version_info(messages),
                         "spending": ai_client.spending(request.user),
                         "directed": chats.directed_of(messages[-1]),
+                        "story": story_payload(),
+                        "story_notes": story_notes,
                     }
 
                 if not streaming:
@@ -1166,7 +1208,7 @@ def chat(request, slug):
         "current_music": json.dumps(chat_state["current_music"] or (character.theme or {}).get("music") or {}),
         "music_follow": bool(chat_state["music_follow"].get("on")),
         "user_avatar": user_avatar,
-        "trackers_data": _tracker_page_data(request.user, character, chat_state["trackers"]),
+        "trackers_data": {**_tracker_page_data(request.user, character, chat_state["trackers"]), "story": story_payload()},
         "stream_replies": presets.normalize(presets.get_active(request.user).data)["options"]["streaming"],
         "chat": chat_obj,
         "chat_list": chats.summary_list(character, chat_obj.id),
@@ -1626,6 +1668,10 @@ def tracker_setup(request, slug):
             data = json.loads(request.body.decode("utf-8"))
         except (ValueError, UnicodeDecodeError):
             return JsonResponse({"error": "Invalid request."}, status=400)
+        if not isinstance(data, dict):
+            return JsonResponse({"error": "Invalid request."}, status=400)
+        if "systems" not in data:  # the setup page doesn't edit story systems (Bulba does): keep them
+            data["systems"] = (character.tracker_config or {}).get("systems") or []
         character.tracker_config = trackers.normalize_config(data)
         character.save(update_fields=["tracker_config"])
         return JsonResponse({"status": "ok", "config": character.tracker_config})

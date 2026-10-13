@@ -9,6 +9,7 @@
     const specs = Object.fromEntries(DATA.specs.map(s => [s.id, s]));
     const enabled = DATA.specs.filter(s => config.trackers[s.id].on && s.fields.length);
     let state = DATA.state;
+    let story = DATA.story || null;  // story systems Bulba set up: meters, story clock, events (read-only here)
     let lockMode = false;
     let updating = false;
     let saveTimer = null;
@@ -98,14 +99,42 @@
 
     function renderHud() {
         if (!hud) return;
-        if (!config.layout.hud || !enabled.length) { hud.hidden = true; return; }
+        if (!config.layout.hud || !(enabled.length || story)) { hud.hidden = true; return; }
         hud.hidden = false;
-        const pills = hudPills();
+        const pills = storyPills().concat(hudPills());
         hud.innerHTML = (pills.length ? pills.join('') : '<span class="hud-empty">Trackers will fill in after a few messages</span>')
             + `<span class="hud-actions">
                  <button class="hud-btn" data-act="update" title="Update all trackers now">${updating ? '⏳' : '↻'}</button>
                  ${config.layout.panel ? '<button class="hud-btn" data-act="toggle" title="Show or hide the tracker panel">▤</button>' : ''}
                </span>`;
+    }
+
+    // ------------------------------------------------------- Story systems
+    function storyPills() {
+        if (!story) return [];
+        const pills = story.meters.map(m => `<button class="hud-pill story-pill" data-open="story" title="A story system: moves slowly, only with scenes you keep">${esc(m.label)} ${esc(m.value)}/${esc(m.max)}</button>`);
+        if (story.clock) pills.unshift(`<button class="hud-pill story-pill" data-open="story" title="Story time">🕰 ${esc(story.clock)}</button>`);
+        return pills;
+    }
+
+    function storySection() {
+        if (!story) return '';
+        const meters = story.meters.map(m => {
+            const pct = Math.round(((Number(m.value) || 0) - m.min) / ((m.max - m.min) || 1) * 100);
+            return `<div class="tf meter"><span class="tf-label">${esc(m.label)}</span>
+                      <div class="meter-bar"><div class="meter-fill" style="width:${Math.max(0, Math.min(100, pct))}%"></div></div>
+                      <b class="story-num">${esc(m.value)}/${esc(m.max)}</b></div>`;
+        }).join('');
+        const events = (story.next_events || []).map(e => `<li>${esc(e.label)} <small>${esc(e.when)}</small></li>`).join('');
+        const log = (story.log || []).slice().reverse().map(l => `<li>${esc(l)}</li>`).join('');
+        return `<section class="t-card story-card" data-story="1">
+            <header><span>🎚 Story systems</span></header>
+            ${story.clock ? `<p class="story-clock">🕰 ${esc(story.clock)}</p>` : ''}
+            ${meters}
+            ${events ? `<p class="story-sub">Coming up</p><ul class="story-list">${events}</ul>` : ''}
+            ${log ? `<p class="story-sub">Lately</p><ul class="story-list">${log}</ul>` : ''}
+            <p class="t-empty">${story.pending ? 'The last scene is read: it counts once you reply to it. ' : ''}Only scenes you keep move these; swipes and rewrites don't. Ask 🥔 Bulba to change them.</p>
+          </section>`;
     }
 
     // -------------------------------------------------------------- Panel
@@ -180,10 +209,12 @@
               <button class="icon-btn" data-act="toggle" title="Close">✕</button>
             </span>
           </div>
+          ${storySection()}
           ${tabs.length ? `<nav class="tp-tabs">${tabs.map(t =>
               `<button class="${t.id === activeTab ? 'active' : ''}" data-tab="${t.id}">${t.icon} ${esc(t.label)}</button>`).join('')}</nav>
             <div class="tp-body">${enabled.filter(s => s.panel === activeTab).map(trackerCard).join('')}</div>
             <div class="tp-foot">${scheduleText()}</div>`
+            : story ? `<div class="tp-foot">${scheduleText()}</div>`
             : `<p class="t-empty">No trackers are on for this character yet. <a href="${DATA.setup_url}">Choose trackers →</a></p>`}`;
     }
 
@@ -294,18 +325,22 @@
             if (!t) return;
             if (t.dataset.act === 'update') update();
             else if (t.dataset.act === 'toggle') { setPanelOpen(panel.hidden); render(); }
-            else if (t.dataset.open && config.layout.panel) { activeTab = t.dataset.open; setPanelOpen(true); renderPanel(); }
+            else if (t.dataset.open && config.layout.panel) {
+                if (t.dataset.open !== 'story') activeTab = t.dataset.open;
+                setPanelOpen(true); renderPanel();
+            }
         });
     }
 
     // -------------------------------------------------------------- Update
     async function update(only) {
-        if (updating || !enabled.length) return;
+        if (updating || !(enabled.length || story)) return;
         updating = true; render();
         try {
             const resp = await post({ action: 'update_trackers', only: only || null });
             if (resp.success) {
                 state = resp.state;
+                if (resp.story !== undefined) story = resp.story;
                 recentlyChanged.clear();
                 (resp.changed || []).forEach(id => recentlyChanged.add(id));
                 setTimeout(() => { recentlyChanged.clear(); render(); }, 4000);
@@ -323,12 +358,13 @@
         open() { setPanelOpen(true); renderPanel(); },
         afterReply(resp) { if (resp && resp.trackers_due) update(); },
         setState(next) { if (next) { state = next; render(); } },  // e.g. rewound after deleting messages
-        get enabled() { return enabled.length > 0; },
+        setStory(next) { if (next !== undefined) { story = next; render(); } },
+        get enabled() { return enabled.length > 0 || !!story; },
     };
 
     // Start closed: trackers support the story, they aren't the main view. Opens if the user left it open.
     const saved = storage('trackerPanelOpen');
-    const open = config.layout.panel && enabled.length && saved === '1';
+    const open = config.layout.panel && (enabled.length || story) && saved === '1';
     if (panel) panel.hidden = !open;
     renderHud();
     if (open) renderPanel();

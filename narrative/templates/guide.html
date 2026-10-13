@@ -85,6 +85,13 @@
             tested wording from well-known community presets over writing its own.</li>
         <li>It can also fine-tune: model settings like reply length, which trackers a character has, alternate
             greetings, and making the other mood pictures from one.</li>
+        <li><b>Story systems</b> (ask Bulba): rules the app keeps so the story can't rush or forget them. A slow
+            <b>meter</b> such as Trust moves one step at most per scene and then holds for a few replies (and can fade
+            back if neglected); a <b>story clock</b> moves with what happens; <b>events</b> arrive when the clock reaches
+            them ("Day 3, 20:00: the masquerade"); an opt-in <b>random table</b> lets chance decide what you asked it to.
+            Only scenes you keep count: a swiped, rewritten or edited reply moves nothing, and deleting messages rewinds.
+            They show at the top of the <kbd>▤</kbd> panel, cost nothing extra (they ride on the tracker update) and
+            Bulba can explain them in a chat ("why is he still cold?").</li>
         <li><b>Bulba Watch</b> (on by default): after every reply, free checks catch sentences that keep starting the
             same way and phrases repeated word for word; every few replies, Bulba also reads the latest ones for habits that
             keep repeating, such as the same sentence shapes, over-explaining, big wise lines a moment hasn't earned, or a
@@ -169,7 +176,8 @@
     <ul class="credits">
         <li>Community presets used as tested wording: <a href="https://www.reddit.com/r/SillyTavernAI/s/TaStxDj7Ec"
             target="_blank" rel="noopener">Realistic Frankenstein</a>, Pura's Director preset, Celia.</li>
-        <li>Tracker ideas after Marinara Engine; format after SillyTavern.</li>
+        <li>Tracker ideas after Marinara Engine; format after SillyTavern. Story systems after
+            <a href="https://github.com/MentallyQuill/Lattice" target="_blank" rel="noopener">Lattice</a>.</li>
     </ul>
     {% if request.user.is_authenticated %}<p><a href="{% url 'home' %}">← Back to your characters</a></p>
     {% else %}<p><a href="{% url 'users:login' %}">Log in →</a></p>{% endif %}
