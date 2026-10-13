@@ -324,6 +324,7 @@ def _extras_state(user):
         "ideas": ideas_on(user),
         "watch": get_task_setting(user, "watch").enabled,
         "watch_memory": _watch_memory(user),
+        "fix_model": _watch_memory(user)["fix_model"],  # who rewrites habits they approved (bulba/polish.py)
         "background": cheap["id"] if cheap else "chat",
         "cheap_models": [m for m in _cheap_models() if not (main and m["openrouter"] == main.model)],
         "openrouter": bool(main and main.provider == ConnectionProfile.PROVIDER_OPENROUTER),
@@ -370,6 +371,9 @@ def apply_extras(user, data):
             watch = get_task_setting(user, "watch")
             watch.enabled = data["watch"]
             watch.save()
+        if data.get("fix_model") in ("bulba", "chat"):
+            from mainapp.bulba import watch as watch_mod
+            watch_mod.change_memory(user, "fix_model", new=data["fix_model"])
         if data.get("game") in ("off", "dice", "full"):
             from mainapp import game
             game.set_user_default(user, data["game"])

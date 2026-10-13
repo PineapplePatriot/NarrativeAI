@@ -103,7 +103,9 @@ def _watch_section(user, chat):
     if not watch.is_on(user):
         return ""
     memory = watch.memory(user)
-    notes = [n for n in watch.chat_data(chat)["notices"] if n["status"] in ("new", "opened") and n["kind"] != "pace"]
+    notes = [n for n in watch.chat_data(chat)["notices"] if n["status"] in ("new", "opened")
+             and n["kind"] in ("pattern", "user")]
+    landed = watch.user_data(user)["polish"]
     if not (memory["taste"] or memory["muted"] or memory["fix"] or notes):
         return ""
     lines = ["### What Bulba Watch knows"]
@@ -116,6 +118,12 @@ def _watch_section(user, chat):
     if memory["fix"]:
         lines.append("Habits Bulba's polish already rewrites in every new reply (so a preset fix is optional): "
                      + "; ".join(m["title"] for m in memory["fix"]))
+    if any(landed.get(k) for k in ("kept", "liked", "rejected")):
+        lines.append(f"How the polish lands: kept {landed.get('kept', 0)}, liked {landed.get('liked', 0)}, turned down "
+                     f"{landed.get('rejected', 0)} (undone, edited, regenerated or 👎).")
+        if landed.get("examples"):
+            lines.append("Rewrites they turned down lately (don't fix things this way): " + "; ".join(
+                f"“{e['before']}” → “{e['after'] or '(removed)'}”" for e in landed["examples"][-3:]))
     if notes:
         lines.append("Habits it noticed in this chat lately: " + "; ".join(
             f"{n['title']} ({n.get('count')} of the last {n.get('of')} replies)" for n in notes[-3:]))

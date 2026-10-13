@@ -27,7 +27,7 @@ from mainapp import ai_client
 
 INSTRUCTIONS = Path(__file__).resolve().parent.parent / "data" / "bulba" / "watch.md"
 
-EVERY = 5          # read after this many new replies
+EVERY = 3          # read after this many new replies
 WINDOW = 6         # a habit is judged over the last this-many replies read...
 THRESHOLD = 3      # ...and needs to show up in at least this many of them
 MAX_READ = 8       # replies sent to the reader at most (after a long pause in reading)
@@ -82,6 +82,9 @@ def user_data(user):
     data.setdefault("pace", {"n": 0, "mean": 0.0, "m2": 0.0})
     data.setdefault("fix", [])  # habits they approved for polishing (bulba/polish.py)
     data.setdefault("taste_in_preset", [])  # taste lines already put into their preset (with Bulba)
+    # How Bulba's polish lands: replies kept, liked or rejected, and the rewrites they rejected (the polisher
+    # is shown them as what not to do; see bulba/polish.py)
+    data.setdefault("polish", {"kept": 0, "liked": 0, "rejected": 0, "examples": []})
     return data
 
 
@@ -128,7 +131,8 @@ def on_reply_done(user, chat_obj, messages, char_name="the character", now=None)
     raised = []
     if messages and messages[-1][0] == "assistant" and not data.get("off"):
         free_checks(data, messages)
-        raised = habits(data, user_data(user)["muted"], char_name)
+        mine = user_data(user)
+        raised = habits(data, mine["muted"], char_name, mine["fix"])
     save_chat_data(chat_obj, data)
     return raised
 
@@ -222,6 +226,12 @@ DIRECTOR_TEXT = {
 def _offer_director(user, chat_obj, data, why):
     if data.get("off") or data.get("director_offered") or _directing(user):
         return None
+    mine = user_data(user)
+    if mine.get("director_offered"):  # asked once already, in any chat: they know where to find it
+        data["director_offered"] = True
+        return None
+    mine["director_offered"] = True
+    save_user_data(user, mine)
     notice = {"id": uuid.uuid4().hex[:10], "kind": "director", "label": "director", "title": "Director mode?",
               "text": DIRECTOR_TEXT[why], "quotes": [], "status": "new", "time": time.time()}
     data["director_offered"] = True  # once per chat
@@ -328,6 +338,34 @@ STOP = set("a an the and or but of to in on at for with as by from into he she i
            "what which who when where how".split())
 
 
+def raw_snippet(text, phrase):
+    """The piece of the reply a found phrase came from, as written (colour tags and all), so the note can show
+    it the way it looks in the chat rather than as bare words ("font color b22222 mu")."""
+    words = phrase.split()
+    m = re.search(r"[^\w’']+".join(re.escape(w) for w in words), str(text or ""), re.I)
+    if not m:
+        return ""
+    start, end = m.start(), m.end()
+    lt = text.rfind("<", 0, start)  # began inside a tag: take the whole tag
+    if lt != -1 and text.rfind(">", 0, start) < lt:
+        start = lt
+    end = re.search(r"[\w’']*", text[end:]).end() + end  # finish the last word
+    piece = text[start:end]
+    for tag in re.findall(r"<([a-z]+)\b[^>]*>", piece, re.I):  # close what it opened (and the sentence)
+        close = text.find(f"</{tag}>", end)
+        if close != -1 and close - end < 200:
+            end = close + len(tag) + 3
+    return text[start:end][:300]
+
+
+def model_text(message):
+    """What the model wrote: a reply Bulba polished is judged by its original, so a habit Bulba keeps fixing
+    still shows up here (and can be fixed at the source) instead of looking gone."""
+    from mainapp import chats
+    rec = chats.polish_of(message)
+    return str(rec["original"] if rec else message[2])
+
+
 def free_checks(data, messages):
     """The same-openings and repeated-phrase checks on the newest reply; slips go into the log (and
     a phrase repeated across recent replies is logged at each of them)."""
@@ -336,13 +374,14 @@ def free_checks(data, messages):
     # A rewritten reply replaces the old version's free slips
     data["log"] = [e for e in data["log"] if not (e["at"] == at and e["label"] in FREE_LABELS)]
     data["free_checked"] = sorted(set(data.get("free_checked") or []) | {at})[-30:]
-    quote = same_openings(str(messages[at][2]))
+    quote = same_openings(model_text(messages[at]))
     if quote:
         data["log"].append({"label": "same_openings", "quote": quote, "at": at, "cause": "model"})
-    for phrase, where in repeated_phrases({i: str(messages[i][2]) for i in replies}, at):
+    for phrase, where in repeated_phrases({i: model_text(messages[i]) for i in replies}, at):
         for i in where:
             if not any(e["label"] == "repeated_phrase" and e["at"] == i and e["quote"] == phrase for e in data["log"]):
-                data["log"].append({"label": "repeated_phrase", "quote": phrase, "at": i, "cause": "model"})
+                data["log"].append({"label": "repeated_phrase", "quote": phrase, "at": i, "cause": "model",
+                                    "shown": raw_snippet(model_text(messages[i]), phrase)})
 
 
 def _grams(text):
@@ -439,7 +478,7 @@ def _prompt(user, character, messages, picked, data, mine, writes_for_user, ask_
     start = max(0, first - 1)
     n = 0
     for i in range(start, picked[-1] + 1):
-        role, text = messages[i][0], str(messages[i][2])
+        role, text = messages[i][0], model_text(messages[i])
         if role == "assistant" and i in picked:
             n += 1
             parts.append(f"### Reply {n}\n{text[:3000]}")
@@ -481,7 +520,10 @@ def read(user, character, chat_obj, messages, writes_for_user=False):
     ask_directing = not data.get("director_offered") and not _directing(user)
     answer = _parse(ai_client.complete(user, "watch", _prompt(user, character, messages, picked, data, mine,
                                                               writes_for_user, ask_directing, chat_obj),
-                                       max_tokens=1500, temperature=0, response_format={"type": "json_object"}))
+                                       max_tokens=4000, temperature=0, response_format={"type": "json_object"}))
+    # The read takes a while: the chat may have moved on meanwhile (a note shown, director mode offered), so
+    # the answer goes into what's saved now, not into what was loaded before the call
+    data, mine = chat_data(chat_obj), user_data(user)
     slips = []
     for s in answer.get("slips") or []:
         if not isinstance(s, dict):
@@ -507,7 +549,7 @@ def read(user, character, chat_obj, messages, writes_for_user=False):
     mine["taste"] = mine["taste"][-TASTE_MAX:]
     save_user_data(user, mine)
     raised = story_notes(data, answer, picked, character.name)  # logs "getting the past wrong" slips first
-    raised += habits(data, mine["muted"], character.name)
+    raised += habits(data, mine["muted"], character.name, mine["fix"])
     taste_note = offer_taste(data, mine)
     if taste_note:
         raised.append(taste_note)
@@ -600,7 +642,7 @@ def mark_taste_in_preset(user, lines, undo=False):
     save_user_data(user, mine)
 
 
-def habits(data, muted, char_name="the character"):
+def habits(data, muted, char_name="the character", fixing=()):
     """New notices for slips that showed up in enough of the latest replies checked (added to `data`). The free
     checks run on every reply, the reader every few: each kind of slip is judged over the replies its check saw."""
     raised = []
@@ -619,14 +661,19 @@ def habits(data, muted, char_name="the character"):
             continue
         theirs = sum(e["cause"] == "their_messages" for e in hits) * 2 >= len(hits)
         title = LABELS.get(label, label.replace("other: ", "").capitalize()).replace("{char}", char_name)
+        persisting = label in fixing  # Bulba polishes it away, but the model keeps writing it
         text = f"{title}: in {len(replies)} of the last {len(window)} replies."
-        if theirs:
+        if persisting:
+            text = (f"{title}: the model still writes it in {len(replies)} of the last {len(window)} replies; Bulba "
+                    "has been fixing it each time. Fixing it at the source, in your preset, would stop it before "
+                    "it's written (and save the polish). Want to look at it?")
+        elif theirs:
             text += (" Small thing: this one may partly come from your own messages; models copy what they're "
                      "given. Want to look at it together?")
         notice = {"id": uuid.uuid4().hex[:10], "kind": "user" if theirs else "pattern", "label": label,
-                  "title": title, "text": text, "quotes": [e["quote"] for e in hits][-3:],
+                  "title": title, "text": text, "quotes": list(dict.fromkeys(e.get("shown") or e["quote"] for e in reversed(hits)))[:3][::-1],
                   "causes": sorted({e["cause"] for e in hits}), "count": len(replies), "of": len(window),
-                  "at": window[-1], "status": "new", "time": time.time()}
+                  "at": window[-1], "status": "new", "time": time.time(), "persisting": persisting}
         data["notices"].append(notice)
         raised.append(notice)
     return raised
@@ -642,7 +689,8 @@ def page_state(user, chat_obj):
     new = [n for n in data["notices"] if n["status"] == "new"] if on and not data.get("off") else []
     mine = user_data(user)
     return {"on": on, "chat_off": bool(data.get("off")), "intro": on and not mine.get("intro_seen"),
-            "every": EVERY, "notices": [{**{k: n.get(k) for k in ("id", "kind", "title", "text", "quotes")},
+            "fixing": [title_of(m) for m in mine["fix"]] if on and not data.get("off") else [],  # the 🧹 button
+            "every": EVERY, "notices": [{**{k: n.get(k) for k in ("id", "kind", "title", "text", "quotes", "index")},
                                          "fixing": n.get("label") in mine["fix"]}
                                         for n in reversed(new)][:3], "count": len(new)}
 
@@ -662,11 +710,63 @@ def set_notice(user, chat_obj, notice_id, status):
         if notice["label"] not in mine["fix"]:
             mine["fix"].append(notice["label"])
             save_user_data(user, mine)
+    if status == "stop_fix":  # from a "fixes didn't land" question: stop polishing those habits
+        if notice["kind"] != "polish":
+            raise ValueError("That note isn't about Bulba's fixes.")
+        mine = user_data(user)
+        stop = set(notice.get("habits") or mine["fix"])
+        mine["fix"] = [h for h in mine["fix"] if h not in stop]
+        save_user_data(user, mine)
     if status == "muted" and notice["kind"] in ("pattern", "user"):
         mine = user_data(user)
         if notice["label"] not in mine["muted"]:
             mine["muted"].append(notice["label"])
             save_user_data(user, mine)
+    save_chat_data(chat_obj, data)
+    return notice
+
+
+# ---------------------------------------------------------------------------
+# Did the polish land? (bulba/polish.py)
+# ---------------------------------------------------------------------------
+
+POLISH_WHY = {
+    "undid": "You put the original back.",
+    "edited": "You changed the polished reply yourself.",
+    "regenerated": "You asked for a new reply instead of the polished one.",
+    "disliked": "You marked the fixes as not right.",
+}
+
+
+def polish_verdict(user, verdict):
+    """A polished reply was kept (they replied to it) or liked (👍)."""
+    mine = user_data(user)
+    mine["polish"][verdict] = mine["polish"].get(verdict, 0) + 1
+    save_user_data(user, mine)
+
+
+def polish_rejected(user, chat_obj, index, why, rec, habits):
+    """They undid, edited or regenerated a polished reply, or pressed 👎: remember the rewrites they turned down
+    and ask right away what to do (rewrite it again, stop fixing those habits, or tell Bulba what's wrong)."""
+    mine = user_data(user)
+    stats = mine["polish"]
+    stats["rejected"] = stats.get("rejected", 0) + 1
+    fixes = [f for f in (rec or {}).get("fixes") or [] if isinstance(f, dict)]
+    stats["examples"] = (stats.get("examples", []) + [{"before": str(f.get("before", ""))[:200],
+                                                       "after": str(f.get("after", ""))[:200]} for f in fixes])[-8:]
+    save_user_data(user, mine)
+    if not is_on(user):
+        return None
+    data = chat_data(chat_obj)
+    for n in data["notices"]:  # one question at a time
+        if n.get("kind") == "polish" and n["status"] == "new":
+            n["status"] = "dismissed"
+    notice = {"id": uuid.uuid4().hex[:10], "kind": "polish", "label": "polish", "title": "Bulba's fixes didn't land?",
+              "text": POLISH_WHY.get(why, "") + " Rewrite it again differently, stop fixing this, or tell me what's wrong?",
+              "quotes": [f"{f.get('before', '')} → {f.get('after', '') or '(removed)'}" for f in fixes][:3],
+              "index": index, "why": why, "habits": list(habits or []), "fixes": fixes[:8],
+              "status": "new", "time": time.time()}
+    data["notices"].append(notice)
     save_chat_data(chat_obj, data)
     return notice
 
@@ -733,6 +833,14 @@ def set_chat_off(chat_obj, off):
 
 def for_bulba(notice):
     """What Bulba (in the chat) is told when they open a note."""
+    if notice["kind"] == "polish":
+        fixes = "\n".join(f"- “{f.get('before')}” → “{f.get('after') or '(removed)'}”" for f in notice.get("fixes") or [])
+        return (f"[They turned down your polish on reply {notice.get('index')}: {POLISH_WHY.get(notice.get('why'), '')}\n"
+                f"Your fixes were:\n{fixes}\nThey want to tell you what's wrong. Ask in one line what didn't work (too "
+                "much changed, the voice got lost, the habit isn't a problem for them, something else). Then act on it: "
+                "polish_message on that reply with their words as the habit; or, if they don't mind the habit after all, "
+                "say they can stop fixing it with the button on the note or on the Extras page. What they say also "
+                "teaches you their taste.]")
     if notice["kind"] == "keeper":
         facts = "\n".join(f"- {f['fact']} (belongs in the {'lorebook' if f['where'] == 'lore' else 'card'})"
                           for f in notice.get("facts") or [])
@@ -761,6 +869,14 @@ def for_bulba(notice):
                 "for what could happen next, a short recap, or writing their next message for them to change.]")
     quotes = "\n".join(f"- “{q}”" for q in notice.get("quotes") or [])
     causes = ", ".join(notice.get("causes") or [])
+    if notice.get("persisting"):
+        return (f"[Bulba Watch: {notice['title']} keeps coming back in what the model writes (in "
+                f"{notice.get('count')} of the last {notice.get('of')} replies), although you polish it away each "
+                f"time they see it. Examples, as the model wrote them:\n{quotes}\nThey opened the note. In two "
+                "sentences: polishing hides it, but the model hasn't stopped. Offer the fix at the source: a preset "
+                "change (propose_preset_edit, tested wording first with find_practice; or the model settings if "
+                "it's a repetition problem). If the polish itself let some through, also offer polish_message on "
+                "the latest replies. Keeping the polish as it is stays a fine answer.]")
     return (f"[Bulba Watch noticed a habit: {notice['title']} (in {notice.get('count')} of the last "
             f"{notice.get('of')} replies). Examples:\n{quotes}\nLikely source: {causes}. They opened the note. "
             "In two or three sentences, show them the habit with one quote and say where it comes from (the "

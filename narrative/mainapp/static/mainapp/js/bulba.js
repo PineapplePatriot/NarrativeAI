@@ -140,6 +140,8 @@ function extrasForm(ev, live) {
             + row('Story trackers', radio('trackers', [['auto', 'Automatic'], ['manual', 'Only when I ask']], (v.trackers || {}).mode) + every('trackers', v.trackers), 'where, when, who, how they feel')
             + row('Character pictures', check('sprites', 'Change with the mood', v.sprites), 'one small call per reply')
             + row('Bulba Watch', check('watch', 'On', v.watch), 'reads replies now and then for habits that repeat')
+            + row('Fixing habits', radio('fix_model', [['bulba', "Bulba's model (cheaper)"], ['chat', 'My chat model (closer to its voice)']], v.fix_model || 'bulba'),
+                  'only habits you approve get rewritten, in new replies')
             + ((ev.cheap_models || []).length ? row('Background jobs', `<select name="x_background" ${dis}>
                 <option value="chat" ${v.background === 'chat' ? 'selected' : ''}>My chat model</option>
                 ${ev.cheap_models.map(m => `<option value="${esc(m.id)}" ${v.background === m.id ? 'selected' : ''}>${esc(m.name)} (cheaper)</option>`).join('')}
@@ -165,7 +167,7 @@ $('log').addEventListener('submit', e => {
     const picked = n => (form.querySelector(`input[name="x_${n}"]:checked`) || {}).value;
     let answers;
     if (part === 'setup') {
-        answers = { sprites: get('sprites').checked, watch: get('watch').checked };
+        answers = { sprites: get('sprites').checked, watch: get('watch').checked, fix_model: picked('fix_model') };
         for (const t of ['summary', 'trackers']) {
             if (picked(t)) answers[t] = { mode: picked(t), interval: Number(get(`${t}_every`).value) || undefined };
         }

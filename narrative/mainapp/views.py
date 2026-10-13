@@ -29,7 +29,7 @@ from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
 from . import extras, game, media_library, recall, story, thinking, ai_client, cards, chats, regex_rules, model_profiles, presets, samplers, starters, trackers
-from .bulba import polish, watch
+from .bulba import control, polish, watch
 
 from .utils import build_ai_request, get_elevenlabs_key
 from .lorebook import (
@@ -312,9 +312,13 @@ def chat(request, slug):
                     new_text = text_rules("saved", new_text, messages[index][0], edits_only=True)
                     if messages[index][0] == "assistant" and messages[index][2] != new_text:
                         watch.note_signal(request.user, chat_obj, "edited", messages[index][2], new_text)
+                        rec = chats.polish_of(messages[index])
+                        if rec:  # they changed Bulba's polished version: ask what didn't work
+                            watch.polish_rejected(request.user, chat_obj, index, "edited", rec, rec.get("habits"))
                     messages[index] = chats.set_text(messages[index], new_text)
                     save_messages(messages)
-                    return JsonResponse({"success": True, "text": new_text})
+                    return JsonResponse({"success": True, "text": new_text,
+                                         "watch": watch.page_state(request.user, chat_obj)})
                 else:
                     return JsonResponse({"success": False, "error": "Invalid message index"})
 
@@ -442,7 +446,6 @@ def chat(request, slug):
             save_messages(messages)
             return JsonResponse({"success": True, "url": url, "cast": cast, "spending": ai_client.spending(request.user)})
         elif action == "ideas":  # Bulba's ideas: what to write next, or (directing) what could happen next
-            from mainapp.bulba import control
             mode = "director" if control.mode_of(presets.normalize(presets.get_active(request.user).data)) == "director" else "player"
             try:
                 ideas = bulba_ideas(request.user, character, messages, mode, persona=chat_state["persona"],
@@ -451,21 +454,43 @@ def chat(request, slug):
                 return JsonResponse({"success": False, "error": str(e)})
             return JsonResponse({"success": True, "ideas": ideas, "mode": mode, "spending": ai_client.spending(request.user)})
         elif action == "polish":  # Bulba's polish on the newest reply (the page asks right after it arrives)
-            if not polish.due(request.user, chat_obj, messages) or chats.polish_of(messages[-1]):
-                return JsonResponse({"success": True, "changed": False})
-            original = messages[-1][2]
+            # now: they pressed "Fix this automatically" or 🧹 on a message (any reply, `index`): say why not
+            now = bool(data.get("now"))
+            again = bool(data.get("again"))  # "Rewrite it again": from the original, avoiding what they turned down
             try:
-                new_text, fixes = polish.polish(request.user, character, chat_obj, messages, chat_state["summary"])
+                index = int(data["index"]) if data.get("index") is not None else len(messages) - 1
+            except (TypeError, ValueError):
+                index = len(messages) - 1
+            if again and 0 <= index < len(messages) and chats.polish_of(messages[index]):
+                messages[index] = chats.with_polish(messages[index], chats.polish_of(messages[index])["original"], None)
+                save_messages(messages)
+            if now or again:
+                reason = polish.why_not_now(request.user, chat_obj, messages, index)
+                if not reason and chats.polish_of(messages[index]):
+                    reason = "That reply is already polished (Undo fixes under it puts the original back)."
+                if reason:
+                    return JsonResponse({"success": True, "changed": False, "reason": reason})
+            elif index != len(messages) - 1 or not polish.due(request.user, chat_obj, messages) \
+                    or chats.polish_of(messages[-1]):
+                return JsonResponse({"success": True, "changed": False})
+            original = messages[index][2]
+            try:
+                new_text, fixes = polish.polish(request.user, character, chat_obj, messages, chat_state["summary"],
+                                                index)
             except ai_client.AIError as e:
                 return JsonResponse({"success": False, "error": str(e)})
             messages = load_messages()  # read again: they may have moved on while it worked
-            if not fixes or not messages or messages[-1][0] != "assistant" or messages[-1][2] != original:
-                return JsonResponse({"success": True, "changed": False, "spending": ai_client.spending(request.user)})
-            messages[-1] = chats.with_polish(messages[-1], new_text, polish.record(original, fixes))
+            if not fixes or index >= len(messages) or messages[index][0] != "assistant" \
+                    or messages[index][2] != original:
+                return JsonResponse({"success": True, "changed": False, "spending": ai_client.spending(request.user),
+                                     "reason": "Bulba found nothing to change in that reply." if not fixes
+                                     else "The reply changed meanwhile; nothing was replaced."})
+            messages[index] = chats.with_polish(messages[index], new_text,
+                                                polish.record(original, fixes, polish.habits_of(request.user, fixes)))
             save_messages(messages)
             watch.recheck(request.user, chat_obj, messages)
-            return JsonResponse({"success": True, "changed": True, "reply": new_text,
-                                 "polish": polish.page_payload(chats.polish_of(messages[-1])),
+            return JsonResponse({"success": True, "changed": True, "reply": new_text, "index": index,
+                                 "polish": polish.page_payload(chats.polish_of(messages[index])),
                                  "spending": ai_client.spending(request.user)})
         elif action == "polish_undo":  # back to the reply as the model wrote it
             try:
@@ -479,10 +504,28 @@ def chat(request, slug):
             save_messages(messages)
             if index == len(messages) - 1:
                 watch.recheck(request.user, chat_obj, messages)
-            return JsonResponse({"success": True, "reply": rec["original"]})
+            watch.polish_rejected(request.user, chat_obj, index, "undid", rec, rec.get("habits"))  # ask what to do
+            return JsonResponse({"success": True, "reply": rec["original"],
+                                 "watch": watch.page_state(request.user, chat_obj)})
+        elif action == "polish_feedback":  # 👍 / 👎 under "Bulba fixed N things"
+            try:
+                index = int(data.get("index"))
+                rec = chats.polish_of(messages[index]) if 0 <= index < len(messages) else None
+            except (TypeError, ValueError):
+                rec = None
+            if not rec or data.get("verdict") not in ("up", "down"):
+                return JsonResponse({"success": False, "error": "Nothing to rate there."}, status=400)
+            liked = data["verdict"] == "up"
+            messages[index] = chats.with_polish(messages[index], messages[index][2],
+                                                {**rec, "verdict": "liked" if liked else "disliked"})
+            save_messages(messages)
+            if liked:
+                watch.polish_verdict(request.user, "liked")
+            else:
+                watch.polish_rejected(request.user, chat_obj, index, "disliked", rec, rec.get("habits"))
+            return JsonResponse({"success": True, "watch": watch.page_state(request.user, chat_obj)})
         elif action == "watch":  # Bulba Watch reads the latest replies (the page asks after a reply)
             if watch.due(request.user, chat_obj, messages):
-                from .bulba import control
                 writes = control.mode_of(presets.normalize(presets.get_active(request.user).data)) == "write"
                 try:
                     watch.read(request.user, character, chat_obj, messages, writes_for_user=writes)
@@ -497,7 +540,7 @@ def chat(request, slug):
             return JsonResponse({"success": True, **_appearance(request.user),
                                  "watch": watch.page_state(request.user, chat_obj)})
         elif action == "watch_note":  # a note: dismissed, "I don't mind this", or opened with Bulba
-            if data.get("status") not in ("dismissed", "muted", "opened", "fix"):
+            if data.get("status") not in ("dismissed", "muted", "opened", "fix", "stop_fix"):
                 return JsonResponse({"success": False, "error": "Unknown choice."}, status=400)
             try:
                 watch.set_notice(request.user, chat_obj, str(data.get("id") or ""), data["status"])
@@ -705,6 +748,9 @@ def chat(request, slug):
             if messages and messages[-1][0] == "assistant":
                 regen_from = messages.pop()
                 watch.note_signal(request.user, chat_obj, "rewritten", regen_from[2])
+                rec = chats.polish_of(regen_from)
+                if rec:  # a polished reply thrown away: did the polish miss? (the card shows with the new reply)
+                    watch.polish_rejected(request.user, chat_obj, len(messages), "regenerated", rec, rec.get("habits"))
 
         elif action == "swipe":
             if not messages or messages[-1][0] != "assistant":
@@ -852,6 +898,11 @@ def chat(request, slug):
                     story_notes = story.commit(story_state(), systems, messages)
                     story.sync_world(chat_state["story"], systems, chat_state["trackers"])
                     story.snapshot(chat_state["story"], len(messages) + (1 if user_message else 0))
+                if action == "chat" and messages and messages[-1][0] == "assistant":
+                    rec = chats.polish_of(messages[-1])
+                    if rec and not rec.get("verdict"):  # they went on from a polished reply: a quiet yes
+                        messages[-1] = chats.with_polish(messages[-1], messages[-1][2], {**rec, "verdict": "kept"})
+                        watch.polish_verdict(request.user, "kept")
                 if action == "chat" and user_message:
                     user_message = text_rules("saved", user_message, "user")
                     messages.append(("user", datetime.now().strftime("%H:%M"), user_message, "neutral", 1))
@@ -901,6 +952,8 @@ def chat(request, slug):
                     _, chat_model = ai_client.resolve(request.user, "chat")
                     names = prompt_names(request.user, character, chat_state["persona"])
                     history = regex_rules.run_on_history(regex_rules.for_chat(preset, character, request.user), api_messages, names)
+                    if control.mode_of(preset) == "director":  # each direction says what it means (see control.py)
+                        history = control.frame_directions(history, names)
                     built, recalled = recall.assemble_with_recall(
                         presets.assemble, preset, prompt_slots(request.user, character, prompt, chat_state["persona"]),
                         history, names, chat_model, generation="regenerate" if action == "regenerate" else "normal")
@@ -1275,7 +1328,7 @@ def condense(user, character, message, persona=None):
     who = names["user"] if message[0] == "user" else character.name
     text = ai_client.complete(user, "summary", [
         {"role": "system", "content": CONDENSE_PROMPT},
-        {"role": "user", "content": f"{who}'s message:\n\n{message[2]}"}], max_tokens=600, temperature=0.2)
+        {"role": "user", "content": f"{who}'s message:\n\n{message[2]}"}], max_tokens=1500, temperature=0.2)
     text = (text or "").strip()
     if not text:
         raise ai_client.AIError("The model sent back nothing. Try again.")
@@ -1298,7 +1351,7 @@ def scene_music(user, messages, current=""):
                                       f"The current track is “{current or 'none'}”: answer 0 to keep it unless the "
                                       "scene's mood or setting clearly changed. Answer with the number only."},
         {"role": "user", "content": f"Tracks:\n{options}\n\nLatest messages:\n{recent}"}],
-        max_tokens=8, temperature=0)
+        max_tokens=100, temperature=0)  # room for a model that thinks first
     m = re.search(r"\d+", answer or "")
     n = int(m.group(0)) if m else 0
     return tracks[n - 1] if 1 <= n <= len(tracks) else None
@@ -1314,6 +1367,30 @@ NOTE_IDEAS_PROMPT = (
     "capitals or exclamation marks. Answer only with JSON: {{\"logical\": \"...\", \"creative\": \"...\"}}")
 
 
+def bulba_quick(user, messages, max_tokens=1500, **params):
+    """A small call on Bulba's model. That model thinks before it answers, and the thinking counts toward
+    max_tokens: a tight limit can leave the answer empty. So the limit has room, and an empty answer gets one
+    retry with more room and without response_format (some providers return nothing in JSON mode)."""
+    text = ai_client.complete(user, "bulba", messages, max_tokens=max_tokens, **params)
+    if (text or "").strip():
+        return text
+    log.warning("Bulba's model sent an empty answer (max_tokens=%s); retrying once", max_tokens)
+    params.pop("response_format", None)
+    return ai_client.complete(user, "bulba", messages, max_tokens=max_tokens * 2, **params) or ""
+
+
+def _note_fields(text):
+    """The two notes from the answer: JSON, or a cut-off JSON, or plain "logical: ... creative: ..." lines."""
+    from .bulba import watch as watch_mod
+    data = watch_mod._parse(text)
+    ideas = {k: str(data.get(k) or "").strip().strip('"')[:600] for k in ("logical", "creative")}
+    for key in ("logical", "creative"):
+        if not ideas[key]:
+            m = re.search(rf'"?{key}"?\s*[:=]\s*"?(.+?)(?:"\s*[,}}]|\n|$)', text or "", re.I | re.S)
+            ideas[key] = m.group(1).strip().strip('"')[:600] if m else ""
+    return ideas
+
+
 def note_ideas(user, character, messages, summary="", persona=None):
     """Two director's notes written from scratch (one small call on the Bulba model)."""
     names = prompt_names(user, character, persona)
@@ -1321,15 +1398,14 @@ def note_ideas(user, character, messages, summary="", persona=None):
     if not recent:
         raise ai_client.AIError("Start the story first: there's nothing to direct yet.")
     transcript = "\n\n".join(f"{names['user'] if m[0] == 'user' else character.name}: {m[2][:1500]}" for m in recent)
-    text = ai_client.complete(user, "bulba", [
+    text = bulba_quick(user, [
         {"role": "system", "content": NOTE_IDEAS_PROMPT.format(user=names["user"])},
         {"role": "user", "content": (f"The story so far: {summary[:2000]}\n\n" if summary else "")
                                     + f"The latest messages (latest last):\n\n{transcript}"}],
-        max_tokens=400, temperature=0.8, response_format={"type": "json_object"})
-    from .bulba import watch as watch_mod
-    data = watch_mod._parse(text)
-    ideas = {k: str(data.get(k) or "").strip().strip('"')[:600] for k in ("logical", "creative")}
+        temperature=0.8, response_format={"type": "json_object"})
+    ideas = _note_fields(text)
     if not any(ideas.values()):
+        log.warning("Be creative: no notes in the answer: %r", (text or "")[:300])
         raise ai_client.AIError("Bulba couldn't come up with anything this time. Try again.")
     return ideas
 
@@ -1361,10 +1437,10 @@ def bulba_ideas(user, character, messages, mode, persona=None, summary=""):
     system = IDEAS_PROMPT[mode].format(user=names["user"], char=names["char"]) + "\n\n" + IDEAS_STYLE
     about = f"{character.name}: {(character.description or '')[:1500]}"
     story = f"The story so far (summary): {summary[:2000]}\n\n" if summary else ""
-    text = ai_client.complete(user, "bulba", [
+    text = bulba_quick(user, [
         {"role": "system", "content": system},
         {"role": "user", "content": f"{about}\n\n{story}The chat (latest last):\n\n{transcript}"}],
-        max_tokens=600, temperature=0.8)
+        max_tokens=2000, temperature=0.8)
     match = re.search(r"\{.*\}", text or "", re.S)
     try:
         ideas = json.loads(match.group(0))["ideas"] if match else []
@@ -1386,11 +1462,14 @@ def word_note(user, character, messages, wish, rewrite=False, persona=None):
     transcript = "\n\n".join(f"{names['user'] if m[0] == 'user' else character.name}: {m[2][:1500]}" for m in recent)
     what = "a new version of the last reply" if rewrite else "the next reply"
     system = WORD_NOTE_PROMPT.format(what=what, user=names["user"])
-    text = ai_client.complete(user, "bulba", [
+    text = bulba_quick(user, [
         {"role": "system", "content": system},
         {"role": "user", "content": f"The chat so far (latest last):\n\n{transcript}\n\nTheir wish: {wish}"}],
-        max_tokens=200, temperature=0.4)
-    return (text or "").strip().strip('"')
+        temperature=0.4)
+    text = (text or "").strip().strip('"')
+    if not text:
+        raise ai_client.AIError("Bulba couldn't word it this time. Try again.")
+    return text
 
 
 def prompt_names(user, character, chat_persona=None):
@@ -1442,7 +1521,10 @@ def build_chat_request(user, chat_obj, preset=None, character=None, drop_last_re
     names = prompt_names(user, character, persona)
     history = [{"role": m[0], "content": extras.for_prompt(chats.prompt_text(m), chats.game_of(m))}
                        for m in messages if m[0] in ("user", "assistant")]
-    history = regex_rules.run_on_history(regex_rules.for_chat(preset, character, user), history, names) + list(tail)
+    history = regex_rules.run_on_history(regex_rules.for_chat(preset, character, user), history, names)
+    if control.mode_of(preset) == "director" and not tail:
+        history = control.frame_directions(history, names)
+    history += list(tail)
     _, model = ai_client.resolve(user, "chat")
     if tail:  # an extra request at the end (impersonation): no recall, its words aren't the scene's
         return presets.assemble(preset, prompt_slots(user, character, prompt, persona), history, names, model,

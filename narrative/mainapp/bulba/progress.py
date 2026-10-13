@@ -12,14 +12,16 @@ STAGES = {
               [("basics", "The short form", 1, False), ("samples", "A/B samples", 3, False),
                ("noted", "Your taste noted", 1, False)]),
     "preset": ("Your preset", "Built from tested wording; one fresh sample to check it",
-               [("preset_proposed", "Preset ready to look at", 1, False), ("preset", "Preset applied", 1, False)]),
+               [("preset_proposed", "Preset ready to look at", 1, False), ("preset", "Preset applied", 1, False),
+                ("text_rules", "Formatting clean-up", 1, True)]),
     "persona": ("You in the story", "Who you are when you talk to the character",
                 [("persona", "You in the story", 2, False)]),
     "character": ("Your character", "Import a card or describe one; lore and a look if you like",
                   [("character", "Character ready", 3, False), ("lore", "Lore", 1, True),
                    ("theme", "Look and music", 1, True)]),
     "story": ("Story extras", "Dice, letters, trackers that fit your story",
-              [("story", "Dice and story extras", 2, False), ("trackers", "Trackers", 1, True)]),
+              [("story", "Dice and story extras", 2, False), ("trackers", "Trackers", 1, True),
+               ("systems", "Story systems", 1, True)]),
     "done": ("Done", "A summary and where to change things later", [("done", "Summary", 0, False)]),
 }
 STORY_KEYS = {"game", "story_extras", "ideas"}
@@ -53,6 +55,10 @@ def _done_steps(session):
         done.add("lore")
     if "theme" in kinds:
         done.add("theme")
+    if "text_rules" in kinds:
+        done.add("text_rules")
+    if "story_systems" in kinds:
+        done.add("systems")
     if "trackers" in kinds:
         done.add("trackers")
     if session.stage == "done":

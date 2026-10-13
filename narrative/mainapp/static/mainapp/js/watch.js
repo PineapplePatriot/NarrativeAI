@@ -8,6 +8,11 @@ window.Watch = (function () {
     let hiddenUntilNew = null;  // "Later": the note stays away until a newer one arrives
     let switched = null;  // the "Director mode?" note just used, for its Undo
     const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    // A quote as it looks in the chat: colour and simple formatting rendered, nothing else let through
+    const shownQuote = q => window.DOMPurify
+        ? DOMPurify.sanitize(String(q ?? ''), { ALLOWED_TAGS: ['font', 'span', 'b', 'i', 'em', 'strong', 'u', 's'],
+                                                ALLOWED_ATTR: ['color', 'style'] })
+        : esc(q);
 
     const card = document.createElement('div');
     card.className = 'watch-card';
@@ -29,7 +34,16 @@ window.Watch = (function () {
         return data;
     }
 
+    // 🧹 on replies shows while Bulba fixes some habit: it says what's on, and polishes that reply on request
+    function polishButtons() {
+        const fixing = state.fixing || [];
+        document.body.classList.toggle('polish-on', fixing.length > 0);
+        window.POLISH_TITLE = fixing.length ? `Bulba fixes: ${fixing.join(', ')}. Press to polish this reply now.` : '';
+        document.querySelectorAll('.message-btn.polish-btn').forEach(b => { b.title = window.POLISH_TITLE; });
+    }
+
     function render() {
+        polishButtons();
         badge.hidden = !state.count;
         badge.textContent = state.count > 9 ? '9+' : String(state.count || '');
         btn.title = state.count ? 'Bulba noticed something' : 'Something off? Ask Bulba';
@@ -66,7 +80,18 @@ window.Watch = (function () {
                 <button type="button" class="ghost" data-w="dismiss" data-id="${esc(n.id)}">Not now</button></div>`;
             return;
         }
-        const quotes = (n.quotes || []).map(q => `<li>“${esc(q)}”</li>`).join('');
+        if (n.kind === 'polish') {  // a polished reply was undone, edited, regenerated or got a 👎
+            const fixes = (n.quotes || []).map(q => `<li>${shownQuote(q)}</li>`).join('');
+            card.innerHTML = `<div class="watch-head"><span class="potato">🥔</span><b>${esc(n.title)}</b>
+                    <button type="button" class="watch-x" data-w="later" title="Later">✕</button></div>
+                <p>${esc(n.text)}</p>
+                ${fixes ? `<ul class="watch-quotes">${fixes}</ul>` : ''}
+                <div class="watch-actions"><button type="button" data-w="repolish" data-id="${esc(n.id)}" data-index="${esc(n.index)}">Rewrite it again</button>
+                <button type="button" class="ghost" data-w="stop-fix" data-id="${esc(n.id)}">Stop fixing this</button>
+                <button type="button" class="ghost" data-w="open" data-id="${esc(n.id)}">Tell me what's wrong</button></div>`;
+            return;
+        }
+        const quotes = (n.quotes || []).map(q => `<li>“${shownQuote(q)}”</li>`).join('');
         card.innerHTML = `<div class="watch-head"><span class="potato">🥔</span><b>${['taste', 'keeper', 'continuity'].includes(n.kind) ? esc(n.title) : 'Bulba noticed something'}</b>
                 <button type="button" class="watch-x" data-w="later" title="Later">✕</button></div>
             <p>${esc(n.text)}</p>
@@ -98,9 +123,20 @@ window.Watch = (function () {
             return render();
         }
         if (what === 'got-it') { switched = null; return render(); }
+        if (what === 'repolish') {
+            await post({ action: 'watch_note', id: b.dataset.id, status: 'dismissed' });
+            if (window.repolishMessage) window.repolishMessage(b.dataset.index);
+            return;
+        }
+        if (what === 'stop-fix') {
+            await post({ action: 'watch_note', id: b.dataset.id, status: 'stop_fix' });
+            return showChatNotice("Okay: I'll stop fixing that. You can turn it back on from a habit note or the Extras page.");
+        }
         if (what === 'fix') {
             await post({ action: 'watch_note', id: b.dataset.id, status: 'fix' });
-            return showChatNotice('From now on new replies get a quick polish for this. See or stop it on the Extras page.');
+            showChatNotice('Fixing it in the latest reply now, and in new replies from now on. See or stop it on the Extras page.');
+            if (window.polishLatestNow) window.polishLatestNow();
+            return;
         }
         if (what === 'open') {
             card.hidden = true;

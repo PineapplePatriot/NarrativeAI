@@ -62,6 +62,42 @@ def mode_of(preset):
 
 
 # ---------------------------------------------------------------------------
+# Director mode, per message: every direction carries what it means (Pura's block alone made models leave
+# {{user}}'s own character out of the scene: "never treat {{user}} as a character")
+# ---------------------------------------------------------------------------
+
+DIRECTION_HEAD = "[Direction from the director, outside the story; not {user}'s words in it:]"
+DIRECTION_TAIL = (
+    "[Write the scene this asks for, as its narrator. Everyone in the scene acts and speaks in your reply, {user} "
+    "included whenever the scene puts them there: as a character, {user} is yours to write (dialogue, actions, "
+    "thoughts) like anyone else. Don't wait for the director to act for {user}, don't end on a question to them, "
+    "and never address the director.]")
+EARLIER = "[Direction] "
+
+
+def frame_direction(text, user):
+    return f"{DIRECTION_HEAD.format(user=user)}\n{text}\n\n{DIRECTION_TAIL.format(user=user)}"
+
+
+def frame_directions(history, names):
+    """Director mode: the newest message from them gets the full frame, earlier ones a short tag (the request
+    only; saved messages stay as they wrote them)."""
+    out = [dict(m) for m in history]
+    users = [i for i, m in enumerate(out) if m.get("role") == "user" and isinstance(m.get("content"), str)]
+    for i in users:
+        if i == len(out) - 1:
+            out[i]["content"] = frame_direction(out[i]["content"], names.get("user") or "the user")
+        elif not out[i]["content"].startswith(EARLIER):
+            out[i]["content"] = EARLIER + out[i]["content"]
+    return out
+
+
+def note_tail(user):
+    """Added to a director's note in director mode (a note sent on its own has no message to frame)."""
+    return "\n" + DIRECTION_TAIL.format(user=user)
+
+
+# ---------------------------------------------------------------------------
 # In a chat: Bulba can switch it (with the layout that goes with it)
 # ---------------------------------------------------------------------------
 

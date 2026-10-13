@@ -83,8 +83,9 @@ def _repeated(text, others):
     return watch.repeated_phrases(texts, -1)
 
 
-def _free_hits(messages, habits):
-    return free_hits_text(str(messages[-1][2]), others_before(messages, len(messages) - 1), habits)
+def _free_hits(messages, habits, index=None):
+    index = len(messages) - 1 if index is None else index
+    return free_hits_text(str(messages[index][2]), others_before(messages, index), habits)
 
 
 def _examples(chat_obj, label):
@@ -92,7 +93,7 @@ def _examples(chat_obj, label):
     return quotes[-2:]
 
 
-def _prompt(character, chat_obj, text, others, summary, habits, whose="reply"):
+def _prompt(character, chat_obj, text, others, summary, habits, whose="reply", rejected=()):
     lines = []
     for label in habits:
         if label in watch.LABELS or label.startswith("other: "):
@@ -113,6 +114,9 @@ def _prompt(character, chat_obj, text, others, summary, habits, whose="reply"):
              "## The story so far (summary)\n" + (summary.strip()[:3000] or "(no summary yet)"),
              "## Habits to fix\n" + "\n".join(lines),
              heading + "\n" + text]
+    if rejected:  # rewrites they turned down before: the same kind of change won't do
+        parts.insert(3, "## Rewrites they turned down before (don't fix things this way)\n" + "\n".join(
+            f"- “{r['before']}” → “{r['after'] or '(removed)'}”" for r in rejected[-5:]))
     return [{"role": "system", "content": INSTRUCTIONS.read_text(encoding="utf-8")},
             {"role": "user", "content": "\n\n".join(parts)}]
 
@@ -144,18 +148,36 @@ def apply_fixes(text, fixes):
 
 def polish_text(user, character, chat_obj, text, others, summary, habits, whose="reply"):
     """One polish pass over `text`. Returns (new text, fixes kept); the text is unchanged when nothing passed."""
-    answer = ai_client.complete(user, "polish", _prompt(character, chat_obj, text, others, summary, habits, whose),
-                                max_tokens=2000, temperature=0, response_format={"type": "json_object"})
+    rejected = watch.user_data(user)["polish"].get("examples") or []
+    answer = ai_client.complete(user, "polish", _prompt(character, chat_obj, text, others, summary, habits, whose, rejected),
+                                max_tokens=4000, temperature=0, response_format={"type": "json_object"})
     return apply_fixes(text, _parse(answer))
 
 
-def polish(user, character, chat_obj, messages, summary=""):
-    """Polishes the newest reply with the habits they approved."""
+def why_not_now(user, chat_obj, messages, index=None):
+    """When they ask for a reply to be polished right away ("Fix this automatically", or 🧹 on a message): a
+    reason in plain words when there's nothing to do, else None."""
+    index = len(messages) - 1 if index is None else index
+    if not messages or not 0 <= index < len(messages) or messages[index][0] != "assistant":
+        return "There's no reply to polish there."
+    if watch.chat_data(chat_obj).get("off"):
+        return "Bulba Watch is off in this chat."
+    habits = approved(user)
+    if not habits:
+        return "No habits are set to be fixed."
+    if set(habits) <= watch.FREE_LABELS and not _free_hits(messages, habits, index):
+        return "That reply doesn't have it; new replies will be checked for it."
+    return None
+
+
+def polish(user, character, chat_obj, messages, summary="", index=None):
+    """Polishes a reply (the newest by default) with the habits they approved."""
+    index = len(messages) - 1 if index is None else index
     habits = approved(user)
     if set(habits) <= watch.FREE_LABELS:
-        habits = _free_hits(messages, habits) or habits
-    return polish_text(user, character, chat_obj, str(messages[-1][2]),
-                       others_before(messages, len(messages) - 1), summary, habits)
+        habits = _free_hits(messages, habits, index) or habits
+    return polish_text(user, character, chat_obj, str(messages[index][2]),
+                       others_before(messages, index), summary, habits)
 
 
 def habits_for_draft(user, chat_obj, text, others):
@@ -168,9 +190,16 @@ def habits_for_draft(user, chat_obj, text, others):
     return habits
 
 
-def record(original, fixes):
-    """What's kept with the reply: its text before polishing and what changed."""
-    return {"original": original, "fixes": fixes}
+def record(original, fixes, habits=()):
+    """What's kept with the reply: its text before polishing, what changed and for which habits."""
+    return {"original": original, "fixes": fixes, "habits": list(habits)}
+
+
+def habits_of(user, fixes):
+    """The approved habits a set of fixes was for (by the titles the polisher names), else all approved."""
+    titles = {watch.title_of(h).lower(): h for h in approved(user)}
+    named = [titles[str(f.get("habit") or "").lower()] for f in fixes if str(f.get("habit") or "").lower() in titles]
+    return list(dict.fromkeys(named)) or approved(user)
 
 
 def model_choice(user):
@@ -181,7 +210,8 @@ def page_payload(rec):
     """For the page: how many fixes, what they were, and the original."""
     if not rec:
         return None
-    return {"count": len(rec.get("fixes") or []), "fixes": rec.get("fixes") or [], "original": rec.get("original", "")}
+    return {"count": len(rec.get("fixes") or []), "fixes": rec.get("fixes") or [], "original": rec.get("original", ""),
+            "verdict": rec.get("verdict") or ""}
 
 
 def dumps(rec):

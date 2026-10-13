@@ -145,6 +145,31 @@ Turn it off / Off in this chat); switch on the Extras page. Nothing is collected
   up, lately, the kept-scenes note). Edited by Bulba (setup story stage, in-chat, tuning guide section) or by hand
   in a "Story systems" section on the tracker setup page (save refuses events without a clock or empty tables).
 
+### 9. Onboarding covers more (user's request: "for a full overview")
+- The first extras form has **Fixing habits**: Bulba's model (cheaper) or their chat model (`fix_model`, applied
+  with the form, undone with it).
+- After the preset is applied, Bulba asks once about **text rules** (says what the preset's own rules do, offers
+  common fixes like stripping asterisks; proposals go in their own list). Optional step "Formatting clean-up".
+- The done stage ends with **what's waiting in the chat** (pen menu: director's note and Redo, Condense, What the AI
+  saw, Watch's number on the potato, the microphone, trackers and story systems), and on the fast route offers what
+  it skipped. Story systems are an optional step in the story stage's progress.
+
+### 10. After the second live test
+- Director mode frames every direction (and director's notes): write the scene in full, their own character
+  included (Pura's "never treat {{user}} as a character" made models leave it out). The offer comes once per user.
+- Watch reads every 3 replies and judges what the model wrote (a polished reply by its original): a habit Bulba
+  keeps polishing away raises a "still writes it" note that points to the preset.
+- "Fix this automatically" polishes the latest reply right away; 🧹 on any AI reply (shown only while some habit
+  is being fixed, its tooltip says which) polishes that reply. Quotes in notes show as written (colours rendered).
+- Small calls on Bulba's model have room to think (Be creative came back empty); the mic is an icon, not an emoji.
+
+### 11. Did the polish land? (the loop's check step)
+- Undo fixes, editing a polished reply, regenerating it, or 👎 under "Bulba fixed N things" counts as turned down:
+  a Watch card asks at once: Rewrite it again (from the original, avoiding what they turned down) / Stop fixing
+  this / Tell me what's wrong (in-chat Bulba asks and acts). Replying to a polished reply counts as kept; 👍 as liked.
+- Turned-down rewrites (last 8) go into the polisher's prompt as "don't fix things this way"; in-chat Bulba sees the
+  counts and examples (`ChatSettings.watch["polish"]`, no migration).
+
 ## Decisions the user made this session
 
 - Progress counts questions; skip hint always visible with the quality warning; fast route = preset → persona →
