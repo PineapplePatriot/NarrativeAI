@@ -3685,6 +3685,24 @@ class BulbaTuningTests(BulbaCardAndLoreTests):
                                           self.assertTrue(settings()["recursive_scan"])),
                             lambda: self.assertEqual(settings()["scan_depth"], old_depth))
 
+    def test_story_systems(self):
+        from mainapp import trackers
+        from mainapp.models import Character
+        self.upload(V2_CARD)
+        viktor = lambda: Character.objects.get(author=self.user, name="Viktor")
+        systems = lambda: trackers.normalize_config(viktor().tracker_config)["systems"]
+        data, pid = self.propose("propose_story_systems", systems=[
+            {"type": "meter", "id": "trust", "label": "Trust", "max": 10, "start": 2, "cooldown": 3},
+            {"type": "clock", "label": "Clock"},
+            {"type": "event", "label": "The ball", "at_day": 3, "at_time": "20:00", "guidance": "The masquerade begins."}])
+        card = data["state"]["proposals"][-1]
+        self.assertIn("Trust (0–10): starts at 2", " ".join(card["summary"]))
+        self.apply_and_undo(pid, lambda: self.assertEqual([s["id"] for s in systems()][:2], ["trust", "clock"]),
+                            lambda: self.assertEqual(systems(), []))
+        _, again = self.propose("propose_story_systems", systems=[
+            {"type": "event", "label": "Ball", "guidance": "Dance."}])
+        self.assertEqual(again, pid)  # no new proposal: events need a clock
+
     def test_mood_pictures_button_needs_a_neutral_picture(self):
         from django.core.files.base import ContentFile
         from mainapp.models import Character
@@ -4632,3 +4650,568 @@ class PolishWriteMyMessageTests(PolishChatTests):
         prompt = self.polish_calls[-1]["messages"][1]["content"]
         self.assertIn("Their message", prompt)
         self.assertNotIn("Deciding things for your character", prompt)  # not a habit their own message can have
+
+
+class DirectorNoteTests(WatchChatTests):
+    """The director's note sent on its own, Bulba's two ideas, and the "Director mode?" note."""
+
+    def fake_post(self, url, headers=None, json=None, timeout=None, **kwargs):
+        import json as json_mod
+        from unittest import mock
+        if "two director's notes" in json["messages"][0]["content"]:
+            resp = mock.Mock(status_code=200)
+            resp.json.return_value = {"choices": [{"message": {"content": json_mod.dumps(
+                {"logical": "Rose answers the knock.", "creative": "The lights go out across the street."})}}]}
+            return resp
+        return super().fake_post(url, headers=headers, json=json, timeout=timeout, **kwargs)
+
+    def test_a_note_alone_moves_the_story_on(self):
+        from mainapp import chats
+        self.post({"action": "chat", "message": "Hi."})
+        before = len(self.saved_messages())
+        data = self.post({"action": "chat", "message": "", "guidance": "The storm reaches the harbour."}).json()
+        self.assertEqual(data["directed"], "The storm reaches the harbour.")
+        msgs = self.saved_messages()
+        self.assertEqual(len(msgs), before + 1)
+        self.assertEqual(msgs[-1][0], "assistant")  # no message from them
+        self.assertEqual(chats.directed_of(tuple(msgs[-1])), "The storm reaches the harbour.")
+        self.assertIn("Director's note for this reply: The storm reaches the harbour.", json.dumps(self.sent[-1]["messages"]))
+        self.assertContains(self.client.get(self.url), "🎬 The storm reaches the harbour.")
+        # nothing at all is still nothing
+        self.post({"action": "chat", "message": "", "guidance": " "})
+        self.assertEqual(len(self.saved_messages()), before + 1)
+
+    def test_be_creative_gives_two_notes(self):
+        self.post({"action": "chat", "message": "Hi."})
+        data = self.post({"action": "note_ideas"}).json()
+        self.assertEqual((data["logical"], data["creative"]),
+                         ("Rose answers the knock.", "The lights go out across the street."))
+
+    def test_the_reader_judges_whether_their_messages_are_directions(self):
+        self.client.get(self.url)
+        for i in range(4):
+            self.post({"action": "chat", "message": f"Have Rose do thing {i}."})
+        self.reader_answer = {"slips": [], "taste": [], "they_direct": True}
+        data = self.post({"action": "watch"}).json()
+        self.assertIn("they_direct", self.reader_calls[-1]["messages"][1]["content"])
+        self.assertEqual(data["watch"]["notices"][0]["title"], "Director mode?")
+        self.assertIn("read more like directions", data["watch"]["notices"][0]["text"])
+        # once offered, it isn't asked again
+        for i in range(5):
+            self.post({"action": "chat", "message": f"More {i}."})
+        self.post({"action": "watch"})
+        self.assertNotIn("they_direct", self.reader_calls[-1]["messages"][1]["content"])
+
+    def test_steering_offers_director_mode_once_and_switches_with_undo(self):
+        from mainapp import presets as presets_mod
+        from mainapp.bulba import control
+        from mainapp.views import _appearance
+        self.client.get(self.url)
+        for guidance in ("The storm comes.", "She hides the key."):
+            state = self.post({"action": "chat", "message": "Hi.", "guidance": guidance}).json()["watch"]
+        self.assertEqual(state["count"], 0)  # two notes: not yet
+        state = self.post({"action": "chat", "message": "", "guidance": "She lies about the key."}).json()["watch"]
+        note = state["notices"][0]
+        self.assertEqual(note["title"], "Director mode?")
+        data = self.post({"action": "director_mode", "id": note["id"]}).json()
+        mode = control.mode_of(presets_mod.normalize(presets_mod.get_active(self.user).data))
+        self.assertEqual((mode, data["layout"]), ("director", "book"))
+        self.post({"action": "director_mode", "id": note["id"], "undo": True})
+        mode = control.mode_of(presets_mod.normalize(presets_mod.get_active(self.user).data))
+        self.assertEqual((mode, _appearance(self.user)["layout"]), ("dont", "chat"))
+        # once per chat
+        for _ in range(3):
+            state = self.post({"action": "chat", "message": "", "guidance": "More rain."}).json()["watch"]
+        self.assertEqual(state["count"], 0)
+
+    def test_the_book_layout_offers_director_mode(self):
+        self.client.get(self.url)
+        data = self.post({"action": "appearance", "layout": "book"}).json()
+        self.assertEqual(data["watch"]["notices"][0]["title"], "Director mode?")
+        self.assertIn("only the look", data["watch"]["notices"][0]["text"])
+
+    def test_no_offer_when_already_directing(self):
+        from mainapp import presets as presets_mod
+        from mainapp.bulba import control
+        active = presets_mod.get_active(self.user)
+        active.data = control.apply_to_preset(presets_mod.normalize(active.data), "director")
+        active.save()
+        self.client.get(self.url)
+        self.assertEqual(self.post({"action": "appearance", "layout": "book"}).json()["watch"]["count"], 0)
+
+
+class TasteIntoPresetTests(BulbaInChatTests):
+    """What Bulba Watch learned about their taste, put into the preset with Bulba."""
+
+    def test_offer_after_three_lines_then_apply_marks_them(self):
+        from mainapp.bulba import watch
+        self.make_chat()
+        data = watch.chat_data(self.chat_obj)
+        mine = watch.user_data(self.user)
+        mine["taste"] = ["Cuts long descriptions of rooms", "Keeps the banter", "Dislikes speeches"]
+        note = watch.offer_taste(data, mine)
+        watch.save_user_data(self.user, mine)
+        watch.save_chat_data(self.chat_obj, data)
+        self.assertEqual(note["kind"], "taste")
+        self.assertIsNone(watch.offer_taste(watch.chat_data(self.chat_obj), watch.user_data(self.user)))  # once
+        self.script = [("Here's the change.", [self.call(
+            "propose_preset_edit", edits=[{"action": "add", "block": "Your taste",
+                                           "content": "Keep room descriptions to a line. Keep the banter."}],
+            from_taste=["Cuts long descriptions of rooms", "Keeps the banter", "Not a learned line"], why="Their taste")])]
+        data = self.api(action="note", id=note["id"]).json()
+        self.assertIn("Bulba Watch learned these about their taste", self.bulba_calls[-1]["messages"][-1]["content"])
+        proposal = data["state"]["proposals"][-1]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=proposal["id"])
+        self.assertEqual(watch.user_data(self.user)["taste_in_preset"], ["Cuts long descriptions of rooms", "Keeps the banter"])
+        self.assertEqual(watch.memory(self.user)["taste_in_preset"], ["Cuts long descriptions of rooms", "Keeps the banter"])
+        self.script = [("Undone.", [])]
+        self.api(action="undo", id=proposal["id"])
+        self.assertEqual(watch.user_data(self.user)["taste_in_preset"], [])
+
+    def test_lines_already_in_the_preset_are_not_offered(self):
+        from mainapp.bulba import watch
+        self.make_chat()
+        mine = watch.user_data(self.user)
+        mine["taste"] = ["A", "B", "C"]
+        mine["taste_in_preset"] = ["A"]
+        self.assertIsNone(watch.offer_taste(watch.chat_data(self.chat_obj), mine))  # only two new
+        mine["taste"].append("D")
+        self.assertEqual(watch.offer_taste(watch.chat_data(self.chat_obj), mine)["quotes"], ["B", "C", "D"])
+
+
+class BulbaMemoryAndRulesTests(BulbaInChatTests):
+    """Bulba in a chat sees the chat's memory and can fix it; it reads and changes text rules."""
+
+    def seed_memory(self):
+        from mainapp import chats
+        data = chats.read(self.chat_obj)
+        data["summary_parts"] = [{"text": "Wren met Rose at the tower gate.", "from": 0, "to": 2}]
+        data["summary"] = "Wren met Rose at the tower gate."
+        data["context_guides"] = {"note": "It's summer."}
+        chats.write(self.chat_obj, data)
+
+    def test_bulba_sees_what_the_ai_saw_and_fixes_the_summary(self):
+        from mainapp import chats
+        self.make_chat()
+        self.seed_memory()
+        self.script = [("Found it.", [self.call("propose_memory_edit", summary_piece=0,
+                                                text="Wren met Rose at the north gate, at night.", why="Wrong gate")])]
+        data = self.api(action="say", text="It keeps saying tower gate").json()
+        system = self.bulba_calls[-1]["messages"][0]["content"]
+        self.assertIn("Story summary (1 piece", system)
+        self.assertIn("Pinned note: It's summer.", system)
+        proposal = data["state"]["proposals"][-1]
+        self.assertEqual(proposal["kind"], "memory_edit")
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=proposal["id"])
+        saved = chats.read(self.chat_obj)
+        self.assertEqual(saved["summary_parts"][0]["text"], "Wren met Rose at the north gate, at night.")
+        self.assertEqual(saved["summary"], "Wren met Rose at the north gate, at night.")
+        self.script = [("Undone.", [])]
+        self.api(action="undo", id=proposal["id"])
+        self.assertEqual(chats.read(self.chat_obj)["summary_parts"][0]["text"], "Wren met Rose at the tower gate.")
+
+    def test_pinned_note_fix_and_the_pen_menu_panel(self):
+        from mainapp import chats
+        self.make_chat()
+        self.seed_memory()
+        self.script = [("Stale note.", [self.call("propose_memory_edit", pinned_note="It's winter now.", why="Time passed")])]
+        pid = self.api(action="say", text="why is it summer").json()["state"]["proposals"][-1]["id"]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=pid)
+        self.assertEqual(chats.read(self.chat_obj)["context_guides"], {"note": "It's winter now."})
+        saw = self.post({"action": "ai_saw"}).json()
+        self.assertEqual(saw["pinned_note"], "It's winter now.")
+        self.assertEqual(saw["summary"][0]["text"], "Wren met Rose at the tower gate.")
+
+    def test_text_rules_in_the_preset_and_their_own_list(self):
+        from mainapp import presets as presets_mod, regex_rules
+        self.make_chat()
+        self.script = [("", [self.call("read_text_rules")]),
+                       ("This one removes the asterisks.", [self.call(
+                           "propose_text_rules", scope="mine", why="They hate asterisks",
+                           changes=[{"action": "add", "name": "No asterisks", "find": r"/\*/g", "replace": "",
+                                     "placement": [2], "mode": "display"}])])]
+        data = self.api(action="say", text="get rid of the asterisks").json()
+        self.assertIn('"mine": []', self.bulba_calls[1]["messages"][-1]["content"])
+        proposal = data["state"]["proposals"][-1]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=proposal["id"])
+        rule = regex_rules.user_rules(self.user)[0]
+        self.assertEqual((rule["name"], rule["mode"]), ("No asterisks", "display"))
+        # switch it off in a second proposal, then undo that
+        self.script = [("Off.", [self.call("propose_text_rules", scope="mine", why="x",
+                                           changes=[{"action": "switch", "id": rule["id"], "enabled": False}])])]
+        pid = self.api(action="say", text="turn it off").json()["state"]["proposals"][-1]["id"]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=pid)
+        self.assertFalse(regex_rules.user_rules(self.user)[0]["enabled"])
+        self.script = [("Back.", [])]
+        self.api(action="undo", id=pid)
+        self.assertTrue(regex_rules.user_rules(self.user)[0]["enabled"])
+        # a broken pattern is refused before it becomes a proposal
+        self.script = [("", [self.call("propose_text_rules", scope="preset", why="x",
+                                       changes=[{"action": "add", "name": "Bad", "find": "/(/g"}])]), ("Hm.", [])]
+        self.api(action="say", text="add a rule")
+        self.assertIn("Can't run on the server", self.bulba_calls[-1]["messages"][-1]["content"])
+        self.assertEqual(presets_mod.normalize(presets_mod.get_active(self.user).data)["regex"], [])
+
+
+class CondensedMessageTests(ChatPromptTests):
+    """One message condensed for the AI: the prompt gets the short version, the chat keeps the whole text."""
+
+    def test_condense_edit_redo_undo(self):
+        from mainapp import chats
+        self.post({"action": "chat", "message": "A very long message about the tower, the gate, the rain."})
+        data = self.post({"action": "condense", "index": 1}).json()  # written by the model
+        self.assertEqual(data["condensed"], "A reply.")
+        self.post({"action": "condense", "index": 1, "text": "Asked about the tower."})  # their own edit
+        msgs = self.saved_messages()
+        self.assertEqual(msgs[1][2], "A very long message about the tower, the gate, the rain.")  # the chat keeps it all
+        self.assertEqual(chats.condensed_of(tuple(msgs[1])), "Asked about the tower.")
+        self.post({"action": "chat", "message": "Next."})
+        sent = json.dumps(self.sent[-1]["messages"])
+        self.assertIn("Asked about the tower.", sent)
+        self.assertNotIn("the gate, the rain", sent)
+        self.assertContains(self.client.get(self.url), 'data-condensed="Asked about the tower."')
+        self.post({"action": "condense_undo", "index": 1})
+        self.post({"action": "chat", "message": "Again."})
+        self.assertIn("the gate, the rain", json.dumps(self.sent[-1]["messages"]))
+
+    def test_editing_the_message_drops_its_condensed_version(self):
+        from mainapp import chats
+        self.post({"action": "chat", "message": "Long one."})
+        self.post({"action": "condense", "index": 1, "text": "Short."})
+        self.post({"action": "edit", "index": 1, "text": "Rewritten by hand."})
+        self.assertEqual(chats.condensed_of(tuple(self.saved_messages()[1])), "")
+        self.assertEqual(self.post({"action": "condense", "index": 99}).status_code, 400)
+
+
+class StoryKeeperAndContinuityTests(WatchChatTests):
+    """The Watch read also catches contradictions and facts worth keeping (no extra call)."""
+
+    def read_with(self, answer):
+        for i in range(5):
+            self.post({"action": "chat", "message": f"Line {i}."})
+        self.reader_answer = {"slips": [], "taste": [], **answer}
+        return self.post({"action": "watch"}).json()["watch"]
+
+    def test_getting_the_past_wrong_is_a_note_and_a_habit(self):
+        from mainapp.bulba import watch
+        self.client.get(self.url)
+        state = self.read_with({"past": [{"reply": 2, "quote": "You walked out on me twice",
+                                          "actually": "she left once, after the fire (summary)"}]})
+        note = state["notices"][0]
+        self.assertEqual(note["title"], "A reply got the past wrong")
+        self.assertIn("she left once, after the fire", note["text"])
+        self.assertEqual(len(self.reader_calls), 1)  # the same read, no extra call
+        log = watch.chat_data(self.chat_obj())["log"]
+        self.assertEqual([e["label"] for e in log], ["misremembered_past"])  # counts toward a habit too
+        self.assertIn("misremembered_past", watch.LABELS)
+
+    def test_facts_pile_up_then_a_keeper_note(self):
+        from mainapp.bulba import watch
+        self.client.get(self.url)
+        state = self.read_with({"keep": [{"fact": "Rose has a scar on her left hand.", "where": "card"}]})
+        self.assertEqual(state["count"], 0)  # one fact: not yet
+        state = self.read_with({"keep": [{"fact": "The north gate is sealed at night.", "where": "lore"},
+                                         {"fact": "Rose has a scar on her left hand.", "where": "card"}]})  # one repeat
+        note = state["notices"][0]
+        self.assertEqual(note["title"], "Worth keeping?")
+        self.assertEqual(len(note["quotes"]), 2)
+        self.assertIn("for_bulba", dir(watch))
+        data = watch.chat_data(self.chat_obj())
+        keeper = next(n for n in data["notices"] if n["kind"] == "keeper")
+        told = watch.for_bulba(keeper)
+        self.assertIn("The north gate is sealed at night. (belongs in the lorebook)", told)
+        self.assertIn("propose_card_edit", told)
+
+    def test_the_reader_sees_what_is_established(self):
+        from mainapp import chats
+        self.client.get(self.url)
+        chat = self.chat_obj()
+        data = chats.read(chat)
+        data["summary_parts"] = [{"text": "Rose lost her brother in the war.", "from": 0, "to": 1}]
+        data["context_guides"] = {"note": "It's winter."}
+        chats.write(chat, data)
+        self.read_with({})
+        prompt = self.reader_calls[-1]["messages"][1]["content"]
+        self.assertIn("Rose lost her brother in the war.", prompt)
+        self.assertIn("## Pinned note\n\nIt's winter.", prompt)
+
+
+class SceneMusicTests(ChatPromptTests):
+    """The music follows the scene: off by default; a tiny pick every few replies; only built-in tracks."""
+
+    def setUp(self):
+        super().setUp()
+        self.pick = "2"
+
+    def fake_post(self, url, headers=None, json=None, timeout=None, **kwargs):
+        from unittest import mock
+        if json["messages"][0]["content"].startswith("You pick background music"):
+            self.all_calls.append(json)
+            resp = mock.Mock(status_code=200)
+            resp.json.return_value = {"choices": [{"message": {"content": self.pick}}]}
+            return resp
+        return super().fake_post(url, headers=headers, json=json, timeout=timeout, **kwargs)
+
+    def music_calls(self):
+        return [c for c in self.all_calls if c["messages"][0]["content"].startswith("You pick background music")]
+
+    def test_off_by_default_then_picks_every_few_replies(self):
+        from mainapp import media_library
+        tracks = media_library.built_in("music")
+        self.assertFalse(self.post({"action": "chat", "message": "Hi."}).json()["music_due"])
+        self.assertTrue(self.post({"action": "music_follow", "on": True}).json()["on"])
+        self.assertTrue(self.post({"action": "chat", "message": "Into the desert."}).json()["music_due"])  # first one at once
+        data = self.post({"action": "scene_music"}).json()
+        self.assertEqual(data["music"]["name"], tracks[1]["name"])
+        self.assertIn(tracks[0]["name"], self.music_calls()[-1]["messages"][1]["content"])
+        dues = [self.post({"action": "chat", "message": f"On {i}."}).json()["music_due"] for i in range(3)]
+        self.assertEqual(dues, [False, False, True])
+        self.assertIsNone(self.post({"action": "scene_music"}).json()["music"])  # same track: no switch
+        self.assertContains(self.client.get(self.url), "window.MUSIC_FOLLOW = true")
+
+    def test_zero_keeps_the_track(self):
+        self.post({"action": "music_follow", "on": True})
+        self.post({"action": "chat", "message": "Hi."})
+        self.pick = "0"
+        self.assertIsNone(self.post({"action": "scene_music"}).json()["music"])
+
+
+class FreeRecallTests(SimpleTestCase):
+    """Old messages that fell out of the context come back when the scene brings them up (no AI)."""
+
+    def history(self, texts):
+        return [{"role": "user" if i % 2 else "assistant", "content": t} for i, t in enumerate(texts)]
+
+    def test_rare_words_bring_back_the_newest_few(self):
+        filler = [f"Ordinary talk number {i} about the weather and dinner." for i in range(20)]
+        texts = (["Rose hid the brass compass under the floorboard."] + filler[:5]
+                 + ["The compass again: Rose swore it points to her brother."] + filler[5:10]
+                 + ["Rose dropped the compass into the canal."] + filler[10:15]
+                 + ["Rose mentioned the compass to the guard."] + filler[15:]
+                 + ["Where did you put it?", "Rose thinks of the compass and the floorboard."])
+        from mainapp import recall
+        h = self.history(texts)
+        dropped = len(h) - 6
+        picked = recall.pick(h, dropped)
+        self.assertLessEqual(len(picked), recall.LIMIT)
+        self.assertEqual(picked, sorted(picked))
+        self.assertEqual(picked, [6, 12, 18])  # five old messages match: only the newest three come back
+        self.assertTrue(all("compass" in h[i]["content"] for i in picked))
+        # one very rare word is enough on its own ("floorboard" is said only twice)
+        self.assertEqual(recall.pick(self.history(["The floorboard creaked."] + filler + ["What about the floorboard?", "Hm."]), 15), [0])
+
+    def test_a_word_said_all_the_time_counts_for_nothing(self):
+        from mainapp import recall
+        texts = [f"Snezhnaya again, line {i}, the Snezhnaya cold." for i in range(30)] + ["We are in Snezhnaya.", "Snezhnaya, yes."]
+        self.assertEqual(recall.pick(self.history(texts), 25), [])
+
+    def test_nothing_left_out_nothing_recalled(self):
+        from mainapp import recall
+        self.assertEqual(recall.pick(self.history(["a b c d"] * 10), 0), [])
+
+    def test_assemble_with_recall_adds_them_under_the_summary(self):
+        from mainapp import recall
+        calls = []
+        def fake_assemble(preset, slots, history, names, *a, **k):
+            calls.append(slots)
+            return {"dropped": len(history) - 3, "messages": []}
+        h = self.history(["The silver locket was buried by the fountain."] + [f"Plain line {i} today." for i in range(12)]
+                         + ["Remember the locket?", "The fountain, yes. The locket."])
+        built, recalled = recall.assemble_with_recall(fake_assemble, {}, {"summary": "So far."}, h, {"user": "Wren", "char": "Rose"})
+        self.assertEqual(len(calls), 2)
+        self.assertIn("Earlier in the story", calls[1]["summary"])
+        self.assertTrue(calls[1]["summary"].startswith("So far."))
+        self.assertEqual(recalled[0]["who"], "Rose")
+
+
+class StoryLogicTests(SimpleTestCase):
+    """Story systems (mainapp/story.py): the app keeps the rules, the model only reports what a scene did."""
+
+    def systems(self, **meter):
+        from mainapp import story
+        return story.normalize_systems([
+            {"type": "meter", "id": "trust", "label": "Trust", "max": 10, "start": 2, "step": 1, "cooldown": 2, **meter},
+            {"type": "clock", "start_day": 1, "start_time": "08:00"},
+            {"type": "event", "id": "ball", "label": "The ball", "at_day": 1, "at_time": "09:00", "guidance": "Music starts."},
+            {"type": "event", "id": "tithe", "label": "Tithe", "at_day": 2, "every_days": 1, "guidance": "Collectors come."},
+            {"type": "event", "label": "Broken"},                                  # no guidance: dropped
+            {"type": "table", "id": "mood", "label": "City mood", "entries": [{"text": "calm", "weight": 3},
+                                                                               {"text": "riot", "weight": 1}]}])
+
+    def kept(self, st, systems, messages, change=1, minutes=0, reply="He nods."):
+        from mainapp import story
+        story.stage(st, {"_story": {"meters": {"trust": {"change": change, "why": "kept his word"}},
+                                    "elapsed_minutes": minutes}}, len(messages), reply)
+        return story.commit(st, systems, messages)
+
+    def test_normalize(self):
+        from mainapp import story
+        systems = self.systems()
+        self.assertEqual([s["type"] for s in systems], ["meter", "clock", "event", "event", "table"])
+        self.assertEqual(systems[1]["id"], "clock")
+        self.assertIsNone(story.normalize_system({"type": "spell"}))
+        self.assertEqual(story.normalize_system({"type": "meter", "min": 5, "max": 1, "start": 99})["max"], 6)
+
+    def test_meters_step_cooldown_and_only_kept_scenes(self):
+        from mainapp import story
+        systems = self.systems()
+        st = story.state_of({}, systems)
+        msgs = [("assistant", "", "He nods.", "", 1)]
+        self.assertEqual(st["values"]["trust"], 2)
+        self.kept(st, systems, msgs)
+        self.assertEqual(st["values"]["trust"], 3)
+        notes = self.kept(st, systems, msgs)  # cooldown: held
+        self.assertIn("held", notes[0])
+        self.assertEqual(st["values"]["trust"], 3)
+        self.kept(st, systems, msgs)
+        self.kept(st, systems, msgs)  # two replies later it can move again
+        self.assertEqual(st["values"]["trust"], 4)
+        # The reply it read was swiped away: nothing happens
+        self.kept(st, systems, [("assistant", "", "Another version.", "", 1)])
+        self.kept(st, systems, [("assistant", "", "x", "", 1)], reply="He nods.")
+        self.assertEqual(st["values"]["trust"], 4)
+        # A change of 0 or a bad answer does nothing
+        story.stage(st, {"_story": "nonsense"}, 1, "He nods.")
+        self.assertEqual(story.commit(st, systems, msgs), [])
+
+    def test_clock_events_drift_and_rewind(self):
+        from mainapp import story
+        systems = self.systems(baseline=2, drift_days=1, cooldown=0)
+        st = story.state_of({}, systems)
+        msgs = [("assistant", "", "He nods.", "", 1)]
+        story.snapshot(st, 1)
+        self.kept(st, systems, msgs, change=1, minutes=90)       # 09:30: the ball happens
+        self.assertEqual(story.clock_text(st["minutes"]), "Day 1, 09:30")
+        self.assertEqual([d["label"] for d in st["due"]], ["The ball"])
+        self.assertIn("Happening now (The ball): Music starts.", story.format_for_prompt(systems, st))
+        story.snapshot(st, 3)
+        self.kept(st, systems, msgs, change=1, minutes=0)
+        self.assertEqual(st["due"], [])                           # it went into the reply they kept
+        self.assertEqual(st["values"]["trust"], 4)
+        self.kept(st, systems, msgs, change=0, minutes=3 * story.DAY)  # three days pass: drifts back, tithe due
+        self.assertEqual(st["values"]["trust"], 2)
+        self.assertEqual([d["label"] for d in st["due"]], ["Tithe"])
+        self.assertEqual(st["fired"]["tithe"], 3)
+        self.assertEqual(story.upcoming(systems, st)[0]["label"], "Tithe")
+        back = story.state_of(story.rewind(st, 2), systems)  # messages from the 3rd on deleted
+        self.assertEqual((back["values"]["trust"], story.clock_text(back["minutes"])), (2, "Day 1, 08:00"))
+        fresh = story.state_of(story.rewind(st, 0), systems)
+        self.assertEqual(fresh["values"]["trust"], 2)
+
+    def test_tables(self):
+        import random
+        from mainapp import game, story
+        systems = self.systems()
+        tool = story.table_tool(systems)
+        self.assertEqual(tool["function"]["parameters"]["properties"]["table"]["enum"], ["mood"])
+        counts = {"calm": 0, "riot": 0}
+        rng = random.Random(4)
+        for _ in range(400):
+            counts[story.draw(systems, "mood", rng)["result"]] += 1
+        self.assertGreater(counts["calm"], counts["riot"] * 2)
+        state = game.empty_state()
+        built = game.add_to_request({"messages": [{"role": "user", "content": "hi"}], "params": {}}, "off", state,
+                                    {"user": "Anya", "char": "Rose"}, tables=story.of_type(systems, "table"))
+        self.assertEqual(built["params"]["tools"][0]["function"]["name"], "draw_from_table")
+        self.assertIn("Random tables", built["messages"][0]["content"])
+        result, ops = game.run_tool(state, "draw_from_table", {"table": "mood"}, rng)
+        self.assertIn(result["result"], counts)
+        self.assertTrue(game.describe(ops[0]).startswith("🃏 City mood: "))
+        self.assertIn("error", game.run_tool(state, "draw_from_table", {"table": "nope"})[0])
+
+
+class StoryChatTests(ChatPromptTests):
+    """Story systems in the chat: read by the tracker call, kept only once they reply, in the prompt.
+    (It also runs ChatPromptTests' own tests with story systems set up.)"""
+
+    def fake_post(self, url, headers=None, json=None, timeout=None, **kwargs):
+        from unittest import mock
+        if json["messages"][0]["content"].startswith("You keep the story-state trackers"):
+            self.all_calls.append(json)
+            resp = mock.Mock(status_code=200)
+            resp.json.return_value = {"choices": [{"message": {"content": self.tracker_reply}}]}
+            return resp
+        return super().fake_post(url, headers, json, timeout)
+
+    def setUp(self):
+        super().setUp()
+        self.character.tracker_config = {"trackers": {"world": {"on": True}}, "systems": [
+            {"type": "meter", "id": "trust", "label": "Trust", "max": 10, "start": 2, "cooldown": 0},
+            {"type": "clock", "start_time": "08:00"},
+            {"type": "event", "id": "ball", "label": "The ball", "at_time": "09:00", "guidance": "Music starts."}]}
+        self.character.save()
+        self.tracker_reply = json.dumps({"_story": {"meters": {"trust": {"change": 1, "why": "he helped"}},
+                                                    "elapsed_minutes": 90},
+                                         "world": {"location": "Square", "time": "11:40 pm"}})
+
+    def story(self):
+        from mainapp import chats
+        return chats.read(self.character.chats.first()).get("story") or {}
+
+    def test_kept_scene_moves_meters_and_clock(self):
+        reply = self.post({"action": "chat", "message": "I help him up."}).json()
+        self.assertTrue(reply["trackers_due"])
+        self.assertEqual(reply["story"]["meters"][0]["value"], 2)
+        resp = self.post({"action": "update_trackers"}).json()
+        self.assertTrue(resp["success"])
+        self.assertIn("_story", self.all_calls[-1]["messages"][0]["content"])
+        self.assertNotIn("_story", resp["state"]["values"])
+        self.assertTrue(resp["story"]["pending"])
+        self.assertEqual(resp["story"]["meters"][0]["value"], 2)  # not yet: they haven't kept the scene
+        reply = self.post({"action": "chat", "message": "We walk on."}).json()
+        self.assertEqual(reply["story"]["meters"][0]["value"], 3)
+        self.assertEqual(reply["story"]["clock"], "Day 1, 09:30")
+        self.assertTrue(any("Trust: 2 → 3" in n for n in reply["story_notes"]))
+        world = self.post({"action": "update_trackers"}).json()["state"]["values"]["world"]
+        self.assertEqual((world["location"], world["date"], world["time"]), ("Square", "Day 1", "09:30"))
+        system_text = "\n".join(m["content"] for m in self.sent[-1]["messages"] if m["role"] == "system")
+        self.assertIn("Trust: 3/10", system_text)
+        self.assertIn("Happening now (The ball): Music starts.", system_text)
+        # Deleting their message rewinds the story systems
+        resp = self.post({"action": "delete", "index": 3}).json()
+        self.assertEqual(resp["story"]["meters"][0]["value"], 2)
+        self.assertEqual(self.story()["values"]["trust"], 2)
+
+    def test_story_systems_alone_use_the_tracker_call(self):
+        self.character.tracker_config = {**self.character.tracker_config, "trackers": {"world": {"on": False}}}
+        self.character.save()
+        self.assertTrue(self.post({"action": "chat", "message": "Hi"}).json()["trackers_due"])
+        self.assertTrue(self.post({"action": "update_trackers"}).json()["success"])
+
+    def test_edited_reply_never_counts(self):
+        self.post({"action": "chat", "message": "I help him up."})
+        self.post({"action": "update_trackers"})
+        self.post({"action": "edit", "index": 2, "text": "He refuses my hand."})
+        reply = self.post({"action": "chat", "message": "Fine."}).json()
+        self.assertEqual(reply["story"]["meters"][0]["value"], 2)
+        self.assertEqual(reply["story"]["clock"], "Day 1, 08:00")
+
+    def test_setup_page_keeps_systems(self):
+        url = reverse("tracker_setup", args=[self.character.slug])
+        config = self.client.post(url, json.dumps({"trackers": {"stats": {"on": True}}}),
+                                  content_type="application/json").json()["config"]
+        self.assertEqual([s["type"] for s in config["systems"]], ["meter", "clock", "event"])
+
+    def test_setup_page_edits_systems(self):
+        url = reverse("tracker_setup", args=[self.character.slug])
+        save = lambda systems: self.client.post(url, json.dumps({"trackers": {}, "systems": systems}),
+                                                content_type="application/json")
+        page = self.client.get(url).content.decode()
+        self.assertIn("Story systems", page)
+        # What the page sends: times in minutes, as the saved config has them
+        resp = save([{"type": "clock", "start_day": 2, "start_time": 19 * 60 + 30},
+                     {"type": "event", "label": "Gala", "at_day": 3, "at_time": 20 * 60, "guidance": "It begins."},
+                     {"type": "meter", "label": "Warmth", "min": 0, "max": 5, "start": 1, "baseline": None}])
+        systems = resp.json()["config"]["systems"]
+        self.assertEqual((systems[0]["start_day"], systems[0]["start_time"]), (2, 19 * 60 + 30))
+        self.assertEqual(systems[1]["at_time"], 20 * 60)
+        self.assertIsNone(systems[2]["baseline"])
+        self.assertEqual(save(systems).json()["config"]["systems"], systems)  # saving again changes nothing
+        self.assertEqual(save([systems[1]]).status_code, 400)                # an event without a clock
+        self.assertEqual(save([{"type": "table", "label": "Mood", "entries": [{"text": ""}]}]).status_code, 400)
+        self.assertEqual(save([]).json()["config"]["systems"], [])

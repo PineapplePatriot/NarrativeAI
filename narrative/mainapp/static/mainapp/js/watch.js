@@ -6,6 +6,7 @@ window.Watch = (function () {
     if (!dataEl || !btn) return null;
     let state = JSON.parse(dataEl.textContent);
     let hiddenUntilNew = null;  // "Later": the note stays away until a newer one arrives
+    let switched = null;  // the "Director mode?" note just used, for its Undo
     const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
     const card = document.createElement('div');
@@ -45,17 +46,34 @@ window.Watch = (function () {
                 <button type="button" class="ghost" data-w="chat-off">Off in this chat</button></div>`;
             return;
         }
+        if (switched) {  // just switched to director mode from a note: a moment to undo it
+            card.hidden = false;
+            card.innerHTML = `<div class="watch-head"><span class="potato">🥔</span><b>Director mode is on</b></div>
+                <p>Your messages are directions now, and replies read as chapters. The director's note in the pen menu
+                can be sent on its own.</p>
+                <div class="watch-actions"><button type="button" data-w="got-it">Got it</button>
+                <button type="button" class="ghost" data-w="director-undo">Undo</button></div>`;
+            return;
+        }
         const n = (state.notices || [])[0];
         if (!n || n.id === hiddenUntilNew) { card.hidden = true; return; }
         card.hidden = false;
+        if (n.kind === 'director') {
+            card.innerHTML = `<div class="watch-head"><span class="potato">🥔</span><b>${esc(n.title)}</b>
+                    <button type="button" class="watch-x" data-w="later" title="Later">✕</button></div>
+                <p>${esc(n.text)}</p>
+                <div class="watch-actions"><button type="button" data-w="director" data-id="${esc(n.id)}">Switch to director mode</button>
+                <button type="button" class="ghost" data-w="dismiss" data-id="${esc(n.id)}">Not now</button></div>`;
+            return;
+        }
         const quotes = (n.quotes || []).map(q => `<li>“${esc(q)}”</li>`).join('');
-        card.innerHTML = `<div class="watch-head"><span class="potato">🥔</span><b>Bulba noticed something</b>
+        card.innerHTML = `<div class="watch-head"><span class="potato">🥔</span><b>${['taste', 'keeper', 'continuity'].includes(n.kind) ? esc(n.title) : 'Bulba noticed something'}</b>
                 <button type="button" class="watch-x" data-w="later" title="Later">✕</button></div>
             <p>${esc(n.text)}</p>
             ${quotes ? `<ul class="watch-quotes">${quotes}</ul>` : ''}
-            <div class="watch-actions"><button type="button" data-w="open" data-id="${esc(n.id)}">${n.kind === 'pace' ? 'Get some help' : 'Look at it with Bulba'}</button>
-            ${n.kind === 'pace' || n.fixing ? '' : `<button type="button" class="ghost" data-w="fix" data-id="${esc(n.id)}" title="From now on, new replies get a quick polish that rewrites this habit (a small cost each time)">Fix this automatically</button>`}
-            ${n.kind === 'pace' ? '' : `<button type="button" class="ghost" data-w="mute" data-id="${esc(n.id)}">I don't mind this</button>`}
+            <div class="watch-actions"><button type="button" data-w="open" data-id="${esc(n.id)}">${{ pace: 'Get some help', taste: 'Put them in my preset', keeper: 'Keep them (with Bulba)' }[n.kind] || 'Look at it with Bulba'}</button>
+            ${['pace', 'taste', 'keeper', 'continuity'].includes(n.kind) || n.fixing ? '' : `<button type="button" class="ghost" data-w="fix" data-id="${esc(n.id)}" title="From now on, new replies get a quick polish that rewrites this habit (a small cost each time)">Fix this automatically</button>`}
+            ${['pace', 'taste', 'keeper', 'continuity'].includes(n.kind) ? '' : `<button type="button" class="ghost" data-w="mute" data-id="${esc(n.id)}">I don't mind this</button>`}
             <button type="button" class="ghost" data-w="dismiss" data-id="${esc(n.id)}">Not now</button></div>`;
     }
 
@@ -69,6 +87,17 @@ window.Watch = (function () {
         if (what === 'later') { hiddenUntilNew = (state.notices[0] || {}).id; return render(); }
         if (what === 'mute') { await post({ action: 'watch_note', id: b.dataset.id, status: 'muted' }); return showChatNotice("Got it: I won't bring that one up again."); }
         if (what === 'dismiss') return post({ action: 'watch_note', id: b.dataset.id, status: 'dismissed' });
+        if (what === 'director' || what === 'director-undo') {
+            const undo = what === 'director-undo';
+            const d = await post({ action: 'director_mode', id: undo ? switched : b.dataset.id, undo });
+            if (!d.success) return showChatNotice(d.error || 'Could not switch.');
+            document.body.classList.toggle('layout-book', d.layout === 'book');
+            document.querySelectorAll('#layoutChoice [data-layout]').forEach(x => x.classList.toggle('on', x.dataset.layout === d.layout));
+            switched = undo ? null : b.dataset.id;
+            if (undo) showChatNotice('Back as it was.');
+            return render();
+        }
+        if (what === 'got-it') { switched = null; return render(); }
         if (what === 'fix') {
             await post({ action: 'watch_note', id: b.dataset.id, status: 'fix' });
             return showChatNotice('From now on new replies get a quick polish for this. See or stop it on the Extras page.');

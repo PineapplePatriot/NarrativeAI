@@ -114,7 +114,7 @@ def _extras(message):
 
 # Things each version (swipe) of a reply keeps for itself: the model's thoughts, and the dice and
 # inventory changes it made (see mainapp/game.py), so flipping swipes flips them too
-VERSION_KEYS = ("reasoning", "game", "audio", "polish")
+VERSION_KEYS = ("reasoning", "game", "audio", "polish", "directed", "condensed")
 
 
 def _version(message):
@@ -168,6 +168,42 @@ def with_audio(message, audio):
         extras["swipes"] = versions
         message = tuple(message[:5]) + (extras,)
     return message
+
+
+def condensed_of(message):
+    """The short version the AI gets instead of this message, if it's still about the text on screen."""
+    rec = _extras(message).get("condensed") or {}
+    return rec.get("text") if rec.get("text") and rec.get("of") == message[2] else ""
+
+
+def with_condensed(message, text):
+    """Keeps a condensed version for the AI (also in the shown swipe). An empty text drops it."""
+    rec = {"text": text, "of": message[2]} if text else None
+    message = _with(message, "condensed", rec)
+    extras = dict(_extras(message))
+    if extras.get("swipes"):
+        versions = [dict(v) for v in extras["swipes"]]
+        if rec:
+            versions[extras.get("swipe", 0)]["condensed"] = rec
+        else:
+            versions[extras.get("swipe", 0)].pop("condensed", None)
+        extras["swipes"] = versions
+        message = tuple(message[:5]) + (extras,)
+    return message
+
+
+def prompt_text(message):
+    """What the AI gets for a message: its condensed version when there is one, else the text."""
+    return condensed_of(message) or message[2]
+
+
+def directed_of(message):
+    """The director's note that steered this version of the reply, if any."""
+    return _extras(message).get("directed") or ""
+
+
+def with_directed(message, note):
+    return _with(message, "directed", note)
 
 
 def polish_of(message):

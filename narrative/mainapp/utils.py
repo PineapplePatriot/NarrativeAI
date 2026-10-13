@@ -10,7 +10,7 @@ from mainapp.trackers import (normalize_config as normalize_tracker_config,
 
 
 def build_ai_request(user, character: Character, chat=None, worldbook_slug=None, message: str = None,
-                     guidance=None, persistent_guides=None, summary=None):
+                     guidance=None, persistent_guides=None, summary=None, story_values=None):
     """
     Collects the per-message context that fills a preset's slots: lore matches,
     story trackers, summary, the manual World State notes and the director's note.
@@ -70,6 +70,14 @@ def build_ai_request(user, character: Character, chat=None, worldbook_slug=None,
     tracker_config = normalize_tracker_config(character.tracker_config, game.mode_for(user, character),
                                               "milestones" in kinds, "keepsakes" in kinds)
     story_state = format_trackers(tracker_config, normalize_tracker_state(chat_file_data.get("trackers"), tracker_config))
+    # Story systems (meters, story time, events happening now; see mainapp/story.py)
+    from mainapp import story
+    systems = story.systems_of(character)
+    if systems:
+        st = story.state_of(chat_file_data.get("story") if story_values is None else story_values, systems)
+        story_text = story.format_for_prompt(systems, st)
+        if story_text:
+            story_state = (story_state + "\n\n" if story_state else "") + story_text
     if story_state:
         system_prompts["StoryState"] = story_state
 

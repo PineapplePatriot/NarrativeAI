@@ -12,7 +12,7 @@ import uuid
 from pathlib import Path
 
 from mainapp import ai_client, chats, extras, game, presets, thinking
-from mainapp.bulba import control, library, lore, polish, tune
+from mainapp.bulba import control, library, lore, memory, polish, rules, tune
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba"
 CARD_FIELDS = ("description", "personality", "scenario", "example_dialogue", "initial_message")
@@ -90,6 +90,7 @@ def context(session):
         "### The last messages\n" + ("\n\n".join(recent) if recent else "(none yet)"),
         "### What the model thought before its last reply\n" + (_clip(thoughts, THOUGHTS_CHARS) if thoughts
                                                                   else "(nothing: this model didn't send its thinking)"),
+        memory.context_section(chat),
         _watch_section(user, chat),
     ]
     return "\n\n".join(filter(None, parts))
@@ -232,9 +233,12 @@ def tool_propose_preset_edit(session, args):
         apply_edits(presets.normalize(active.data), edits)
     except ValueError as e:
         return {"error": str(e)}, []
+    from mainapp.bulba import watch
+    learned = watch.user_data(session.user)["taste"]
+    from_taste = [t for t in (args.get("from_taste") or []) if t in learned]  # lines Bulba Watch learned
     p = _proposal(session, "preset_edit", f"Preset change: {active.name}",
                   [*(_edit_line(e) for e in edits), "Why:", str(args.get("why") or "")[:400]],
-                  {"preset_id": active.id, "edits": edits})
+                  {"preset_id": active.id, "edits": edits, **({"from_taste": from_taste} if from_taste else {})})
     return {"proposal": p["id"], "status": "waiting for Apply"}, [{"type": "proposal", "id": p["id"]}]
 
 
@@ -327,9 +331,13 @@ def tools():
                 "from_library": {"type": "string", "description": "Instead of content: add this library block "
                                  "word for word (exact name from find_practice)"}},
                 "required": ["action", "block"]}},
+             "from_taste": {"type": "array", "items": STR, "description": "When this puts what Bulba Watch learned "
+                            "about their taste into the preset: the exact learned lines it covers"},
              "why": STR}, ["edits", "why"]),
         CARD_EDIT_TOOL,
         *polish.tool_defs(_fn, STR),
+        *memory.tool_defs(_fn, STR),
+        *rules.tool_defs(_fn, STR),
         *control.tool_defs(_fn, STR),
         _fn("retry_reply", "Rewrite the last AI reply of this chat with their chat model: with a proposal's change "
             "applied just for this try (from_proposal), or as things are now. Costs one reply.",
@@ -339,7 +347,7 @@ def tools():
 
 HANDLERS = {"read_block": tool_read_block, "propose_preset_edit": tool_propose_preset_edit, **lore.HANDLERS,
             **tune.HANDLERS,
-            **control.HANDLERS, **polish.HANDLERS,
+            **control.HANDLERS, **polish.HANDLERS, **memory.HANDLERS, **rules.HANDLERS,
             "propose_card_edit": tool_propose_card_edit, "retry_reply": tool_retry_reply}
 
 
@@ -358,6 +366,9 @@ def apply(session, p):
         obj.data = apply_edits(presets.normalize(obj.data), data["edits"])
         obj.save(update_fields=["data", "time_update"])
         p["undo"] = {"preset_id": obj.id, "data": before}
+        if data.get("from_taste"):  # these learned lines are in the preset now: not offered again
+            from mainapp.bulba import watch
+            watch.mark_taste_in_preset(user, data["from_taste"])
         return f"“{obj.name}” changed. The next reply uses it."
     if p["kind"] == "card_edit":
         character = Character.objects.filter(author=user, id=data["character_id"]).first()
@@ -376,6 +387,9 @@ def undo(session, p):
     before = p.get("undo") or {}
     if p["kind"] == "preset_edit":
         Preset.objects.filter(user=session.user, id=before.get("preset_id")).update(data=before.get("data"))
+        if (p.get("payload") or {}).get("from_taste"):
+            from mainapp.bulba import watch
+            watch.mark_taste_in_preset(session.user, p["payload"]["from_taste"], undo=True)
     elif p["kind"] == "card_edit":
         character = Character.objects.filter(author=session.user, id=before.get("character_id")).first()
         if character:

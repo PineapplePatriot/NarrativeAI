@@ -179,6 +179,17 @@ Structured: “OUTPUT: narrative/dialogue only, except explicitly enabled interf
 
 This governs visible output, not native reasoning duration. For Opus5.5 specifically, first remove inherited instructions to think carefully and calibrate supported effort. Official guidance supports that chat intervention; it does not establish an RP quality score. [C1]
 
+### 4.16 Recounting and keeping score instead of talking
+
+*Added 13 October 2026 from our own Claude use; little discussed in community preset threads, likely because
+these are the more expensive models.*
+
+Natural: “Let characters talk about what's in front of them. They bring up the past only when it matters to this moment, briefly and in their own words, the way people actually remember: imprecisely, selectively, without counting. They don't build a case from earlier events, tally how many times something happened, or sum up the relationship to prove a point. Not every reply needs a clever line or a sharp insight into someone's feelings; ordinary talk is fine.”
+
+Structured: “PAST IN DIALOGUE: only when relevant now; brief, in the speaker's words; no lists of earlier events, no counts or dates as arguments, no summing up the relationship. TONE: plain talk by default; wit and emotional insight only where this character would offer them.”
+
+A Claude-family pattern (Opus, Fable): characters recite earlier scenes as evidence, keep score with numbers (“the third time”, “four days since”), and reach for a witty or therapist-level line instead of talking normally. It often comes with getting the past slightly wrong. Overcorrection makes characters forget shared history; a callback that belongs to the moment is fine. Test an argument scene and a reunion: the past should come up once, briefly, if at all. In the app, Bulba Watch tracks it as “Recounting and keeping score” and the polish can rewrite it.
+
 ## 5. Original bundles to trial
 
 ### A. Character-focused baseline

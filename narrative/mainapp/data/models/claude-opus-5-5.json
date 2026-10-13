@@ -110,7 +110,8 @@
     ],
     "watch_for": [
       "Therapy-speak or corporate dialogue in emotional scenes",
-      "Every character becoming witty"
+      "Every character becoming witty",
+      "Recounting and keeping score in dialogue (reciting earlier events as evidence, counts like 'the third time'), or a witty or therapist-level line instead of plain talk"
     ]
   },
   "starters": {

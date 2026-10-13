@@ -63,6 +63,11 @@ document.addEventListener("click", (event) => {
         case "branch":
             if (index !== null) openBranchModal(index);
             break;
+        case "condense": {
+            const el = btn.closest('.message');
+            condenseMessage(el, Number(el ? el.dataset.index : index));
+            break;
+        }
         default:
             break;
     }
@@ -261,6 +266,7 @@ function addMessage(sender, text, specificAvatarUrl = null) {
                 <button class="message-btn edit" onclick="editMessage(${messageIndex})">
                     <svg class="icon" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
                 </button>
+                <button class="message-btn condense" type="button" data-action="condense" data-index="${messageIndex}" title="Condense for the AI: it gets a short version, you still see all of it">🗜</button>
                 <button class="message-btn branch" type="button" data-action="branch" data-index="${messageIndex}" title="Branch: a new chat from this message"><svg class="icon" viewBox="0 0 24 24"><path d="M6 3a3 3 0 0 0-1 5.83v6.34A3 3 0 1 0 7 15.17V13.5c0-.83.67-1.5 1.5-1.5h5A3.5 3.5 0 0 0 17 8.5v-.67a3 3 0 1 0-2 0v.67c0 .83-.67 1.5-1.5 1.5h-5c-.53 0-1.03.1-1.5.28V8.83A3 3 0 0 0 6 3z"/></svg></button>
                 <button class="message-btn delete" onclick="deleteMessage(${messageIndex})">
                     <svg class="icon" viewBox="0 0 24 24"><path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/></svg>
@@ -482,17 +488,21 @@ function placeReply(data, avatarUrl) {
 }
 
 // Send message to server
-function sendMessage() {
-    const message = messageInput.value.trim();
-    if (!message || isGenerating) return;
+// `noteOnly`: send the director's note on its own (the story goes on with no message from them)
+function sendMessage(noteOnly = false) {
+    noteOnly = noteOnly === true;  // never an event object from a click handler
+    const message = noteOnly ? '' : messageInput.value.trim();
     const guideInput = document.getElementById('guidanceInput');
     const guidance = guideInput ? guideInput.value.trim() : '';
+    if ((!message && !(noteOnly && guidance)) || isGenerating) return;
     if (guideInput) guideInput.value = '';
 
     clearSwipeNav();
-    addMessage('user', message, window.USER_AVATAR);
-    messageInput.value = '';
-    messageInput.style.height = 'auto';
+    if (message) {
+        addMessage('user', message, window.USER_AVATAR);
+        messageInput.value = '';
+        messageInput.style.height = 'auto';
+    }
 
     isGenerating = true;
     sendBtn.disabled = true;
@@ -512,13 +522,15 @@ function sendMessage() {
                 avatarToUse = data.photo_second;
             }
             placeReply(data, avatarToUse);
+            setDirected(lastAssistant(), data.directed);
             setSwipes(data.swipes);
             updateCharacterImages(data.photo_url, data.photo_second, data.char_count);
             renderLore(data.lore);
             if (data.summary_due) generateSummary('append', true);
-            if (window.Trackers) Trackers.afterReply(data);
+            if (window.Trackers) { Trackers.setStory(data.story); Trackers.afterReply(data); }
             if (window.Watch) Watch.afterReply(data);
             if (data.polish_due) runPolish(lastAssistant());
+            if (data.music_due) followSceneMusic();
 
             if (data.photo_url) {
                 const characterSprite = document.querySelector('.character-sprite');
@@ -693,6 +705,7 @@ function confirmDelete() {
                 // Summary pieces covering deleted messages are gone; trackers rewound to before them
                 if (window.Summary) Summary.set(data.summary_data);
                 if (window.Trackers && Trackers.setState) Trackers.setState(data.trackers);
+                if (window.Trackers && Trackers.setStory) Trackers.setStory(data.story);
             } else {
                 alert('Error deleting message: ' + (data.error || 'Unknown error'));
             }
@@ -719,7 +732,7 @@ function stopGeneration() {
 }
 
 // Event listeners
-sendBtn.addEventListener('click', sendMessage);
+sendBtn.addEventListener('click', () => sendMessage());
 stopBtn.addEventListener('click', stopGeneration);
 
 messageInput.addEventListener('keydown', function (e) {
@@ -767,11 +780,7 @@ document.addEventListener('DOMContentLoaded', () => {
     scrollToBottom();
     fixHistoryAvatars();
     updateMessageIndices();
-    if (window.SAVED_MUSIC && window.SAVED_MUSIC.url) {
-        bgMusic.src = window.SAVED_MUSIC.url;
-        document.getElementById('nowPlayingText').innerText = window.SAVED_MUSIC.name;
-        musicWidget.classList.remove('hidden');
-    }
+    if (window.SAVED_MUSIC && window.SAVED_MUSIC.url) loadMusic(window.SAVED_MUSIC.url, window.SAVED_MUSIC.name, true);
 
     if (window.SAVED_BG) {
         const bgEl = document.querySelector('.character-background');
@@ -799,40 +808,86 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 })();
 
-// The director's note: Bulba can word it, and it can rewrite the last reply
+// The pen menu's two parts: the director's note for the next reply (send it, have Bulba word it, or have Bulba
+// come up with one), and redoing the last reply (shortcuts, wording, rewrite)
 (function () {
     const input = document.getElementById('guidanceInput');
-    const wordBtn = document.getElementById('wordNoteBtn');
-    if (!input || !wordBtn) return;
-    wordBtn.onclick = async () => {
-        const wish = input.value.trim();
-        if (!wish) { input.focus(); input.placeholder = 'Write roughly what you want first, then press this.'; return; }
-        wordBtn.disabled = true;
-        const label = wordBtn.textContent;
-        wordBtn.textContent = '🥔 Wording…';
-        try {
-            const resp = await fetch(window.location.href, {
-                method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-                body: JSON.stringify({ action: 'word_note', text: wish }),
-            });
-            const d = await resp.json();
-            if (!d.success) throw new Error(d.error || 'Bulba could not word it.');
-            input.value = d.note;
-            updateSpending(d.spending);
-        } catch (err) { showChatNotice(err.message); }
-        finally { wordBtn.disabled = false; wordBtn.textContent = label; }
+    const redo = document.getElementById('redoInput');
+    if (!input || !redo) return;
+    const post = async (body) => {
+        const resp = await fetch(window.location.href, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify(body),
+        });
+        const d = await resp.json();
+        updateSpending(d.spending);
+        if (!d.success) throw new Error(d.error || 'Bulba could not do it.');
+        return d;
     };
+    const busy = async (btn, label, work) => {
+        const was = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = label;
+        try { await work(); } catch (err) { showChatNotice(err.message); }
+        finally { btn.disabled = false; btn.textContent = was; }
+    };
+    const wordIt = (btn, box, rewrite) => btn.onclick = () => {
+        const wish = box.value.trim();
+        if (!wish) { box.focus(); box.placeholder = 'Write roughly what you want first, then press this.'; return; }
+        busy(btn, '🥔 Wording…', async () => { box.value = (await post({ action: 'word_note', text: wish, rewrite })).note; });
+    };
+    wordIt(document.getElementById('wordNoteBtn'), input, false);
+    wordIt(document.getElementById('wordRedoBtn'), redo, true);
+
+    document.getElementById('sendNoteBtn').onclick = () => {
+        if (!input.value.trim() && !messageInput.value.trim()) { input.focus(); return; }
+        toggleTools();
+        sendMessage(!messageInput.value.trim());  // with their message if they wrote one, else on its own
+    };
+
+    const ideasBox = document.getElementById('noteIdeas');
+    const ideasBtn = document.getElementById('noteIdeasBtn');
+    ideasBtn.onclick = () => busy(ideasBtn, '✨ Thinking…', async () => {
+        const d = await post({ action: 'note_ideas' });
+        ideasBox.innerHTML = [['logical', '🧭 What would happen'], ['creative', '✨ A twist']]
+            .filter(([k]) => d[k]).map(([k, label]) => `<button type="button" class="note-idea" data-note="${encodeURIComponent(d[k])}">
+                <b>${label}</b><span></span></button>`).join('');
+        ideasBox.querySelectorAll('.note-idea').forEach(b => { b.querySelector('span').textContent = decodeURIComponent(b.dataset.note); });
+        ideasBox.hidden = false;
+    });
+    ideasBox.addEventListener('click', e => {
+        const b = e.target.closest('.note-idea');
+        if (!b) return;
+        input.value = decodeURIComponent(b.dataset.note);  // theirs to change before sending
+        ideasBox.hidden = true;
+        input.focus();
+    });
+
     document.getElementById('rewriteWithNote').onclick = () => {
-        const note = input.value.trim();
-        input.value = '';
+        const note = redo.value.trim();
+        redo.value = '';
         toggleTools();
         regenerateReply(note);
     };
     document.getElementById('askBulbaFromNote').onclick = () => {
         toggleTools();
-        if (window.askBulba) window.askBulba(input.value.trim());
+        if (window.askBulba) window.askBulba((redo.value.trim() || input.value.trim()));
     };
 })();
+
+// What steered a reply (a director's note), shown small above it
+function setDirected(messageEl, note) {
+    if (!messageEl) return;
+    let line = messageEl.querySelector('.directed-line');
+    if (!note) { if (line) line.remove(); return; }
+    if (!line) {
+        line = document.createElement('div');
+        line.className = 'directed-line';
+        const textEl = messageEl.querySelector('.message-text');
+        textEl.parentNode.insertBefore(line, textEl);
+    }
+    line.textContent = `🎬 ${note}`;
+}
 
 // Toggle Tools
 // Shows a failed generation in the chat; the user's message is kept, so Regenerate retries it
@@ -859,6 +914,7 @@ function renderLore(lore) {
 
 function toggleTools() { document.getElementById('toolsMenu').classList.toggle('show'); document.getElementById('toolsBtn').classList.toggle('active'); }
 function setGuidance(text) { document.getElementById('guidanceInput').value = text; }
+function setRedo(text) { document.getElementById('redoInput').value = text; }
 
 
 // Actions
@@ -950,12 +1006,41 @@ function continueGeneration() {
 // Media
 const mediaModal = document.getElementById('mediaModal');
 const bgMusic = document.getElementById('bgMusicPlayer');
-const musicWidget = document.getElementById('musicWidget');
+// The music: a ▶/❚❚ button in the header (shown when a track is set) follows what the audio actually does;
+// the picker holds the track name, the volume and "None"
+let musicHeld = false;  // they paused or stopped it themselves: don't start it again on their next click
+function loadMusic(url, name, onLoad = false) {
+    bgMusic.src = url;
+    bgMusic.volume = Number(document.getElementById('musicVolume')?.value || 0.3);
+    document.getElementById('nowPlayingText').innerText = name || 'Music';
+    document.getElementById('musicNow').hidden = false;
+    const btn = document.getElementById('playPauseBtn');
+    btn.hidden = false;
+    musicHeld = false;
+    bgMusic.play().catch(() => {
+        // Browsers only allow sound after a click or key press: start on the first one
+        if (!onLoad) return;
+        const start = () => { if (!musicHeld && bgMusic.paused && bgMusic.src) bgMusic.play().catch(() => {}); };
+        document.addEventListener('pointerdown', start, { once: true, capture: true });
+        document.addEventListener('keydown', start, { once: true, capture: true });
+    });
+}
+function syncMusicButton() {
+    const btn = document.getElementById('playPauseBtn');
+    if (!btn) return;
+    btn.textContent = bgMusic.paused ? '▶' : '❚❚';
+    btn.title = `${bgMusic.paused ? 'Play' : 'Pause'}: ${document.getElementById('nowPlayingText').innerText}`;
+    btn.classList.toggle('playing', !bgMusic.paused);
+}
+bgMusic.addEventListener('play', syncMusicButton);
+bgMusic.addEventListener('pause', syncMusicButton);
 let currentMediaType = 'bg';
 
 function openMediaModal(type) {
     currentMediaType = type;
     document.getElementById('mediaModalTitle').innerText = type === 'bg' ? "Select Background" : "Select Music";
+    document.getElementById('musicFollowRow').hidden = type !== 'music';
+    document.getElementById('musicFollow').checked = !!window.MUSIC_FOLLOW;
     mediaModal.classList.add('show');
     fetch('/main/api/media-resources/').then(r => r.json()).then(d => {
         const grid = document.getElementById('mediaGrid'); grid.innerHTML = '';
@@ -984,10 +1069,7 @@ function selectMedia(url, name) {
         }
         saveMediaState('bg', url, name);
     } else {
-        bgMusic.src = url;
-        bgMusic.play();
-        musicWidget.classList.remove('hidden');
-        document.getElementById('nowPlayingText').innerText = name;
+        loadMusic(url, name);
 
         saveMediaState('music', url, name);
     }
@@ -1004,8 +1086,7 @@ function resetMedia() {
         }
         saveMediaState('bg', '', '');
     } else {
-        bgMusic.pause();
-        musicWidget.classList.add('hidden');
+        stopMusic();
         saveMediaState('music', '', '');
     }
     closeMediaModal();
@@ -1019,8 +1100,17 @@ function uploadMedia() {
         .catch(() => showChatNotice('Upload failed: the file may be too big.'))
         .finally(() => { document.getElementById('fileUpload').value = ''; });
 }
-function togglePlay() { if (bgMusic.paused) { bgMusic.play(); document.getElementById('playPauseBtn').innerText = "❚❚"; } else { bgMusic.pause(); document.getElementById('playPauseBtn').innerText = "▶"; } }
-function stopMusic() { bgMusic.pause(); musicWidget.classList.add('hidden'); }
+function togglePlay() {
+    if (bgMusic.paused) { musicHeld = false; bgMusic.play().catch(() => {}); }
+    else { musicHeld = true; bgMusic.pause(); }
+}
+function stopMusic() {
+    musicHeld = true;
+    bgMusic.pause();
+    bgMusic.removeAttribute('src');
+    document.getElementById('playPauseBtn').hidden = true;
+    document.getElementById('musicNow').hidden = true;
+}
 function setVolume(v) { bgMusic.volume = v; }
 
 
@@ -1046,12 +1136,13 @@ function regenerateReply(guidance = '') {
                 return;
             }
             if (old) old.remove();
-            placeReply(d, d.photo_url); setSwipes(d.swipes);
+            placeReply(d, d.photo_url); setDirected(lastAssistant(), d.directed); setSwipes(d.swipes);
             updateCharacterImages(d.photo_url, d.photo_second, d.char_count); renderLore(d.lore);
             if (d.summary_due) generateSummary('append', true);
-            if (window.Trackers) Trackers.afterReply(d);
+            if (window.Trackers) { Trackers.setStory(d.story); Trackers.afterReply(d); }
             if (window.Watch) Watch.afterReply(d);
             if (d.polish_due) runPolish(lastAssistant());
+            if (d.music_due) followSceneMusic();
         })
         .catch(err => { console.error(err); restore(); showChatError('Could not reach the app server.'); })
         .finally(() => { isGenerating = false; sendBtn.disabled = false; stopContainer.style.display = 'none'; typingMessage.style.display = 'none'; updateMessageIndices(); });
@@ -1109,6 +1200,7 @@ function swipe(step) {
             updateCharacterImages(d.photo_url, d.photo_second, d.char_count);
             setSwipes(d.swipes);
             setPolish(last, d.polish);
+            setDirected(last, d.directed);
         })
         .catch(() => showChatError('Could not reach the app server.'));
 }
@@ -1390,6 +1482,7 @@ function showChatNotice(text) {
         if (!d.success) { showChatNotice(d.error || 'Could not change the layout.'); return; }
         document.body.classList.toggle('layout-book', d.layout === 'book');
         choice.querySelectorAll('[data-layout]').forEach(x => x.classList.toggle('on', x.dataset.layout === d.layout));
+        if (d.watch && window.Watch) Watch.refresh(d.watch);  // the book without director mode: Bulba may offer it
     });
     // In the book, your messages are small markers between chapters: click one to read or edit it
     document.getElementById('messagesContainer')?.addEventListener('click', (e) => {
@@ -1590,3 +1683,155 @@ document.querySelectorAll('.polish-line[data-polish]').forEach(line => {
         if (info && info.count) setPolish(line.closest('.message'), info);
     } catch (err) { line.remove(); }
 });
+
+// The pen menu's "What the AI saw": what the last reply got besides the preset and the messages
+document.getElementById('aiSawBox')?.addEventListener('toggle', async (e) => {
+    if (!e.target.open) return;
+    const box = document.getElementById('aiSaw');
+    const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    box.textContent = 'Loading…';
+    try {
+        const resp = await fetch(window.location.href, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ action: 'ai_saw' }),
+        });
+        const d = await resp.json();
+        if (!d.success) throw new Error(d.error || 'Could not load it.');
+        const block = (title, body) => `<div class="ai-saw-part"><b>${title}</b><div>${body}</div></div>`;
+        box.innerHTML = block('📚 Story summary', d.summary.length ? d.summary.map(p => `<p>${esc(p.text)}</p>`).join('') : '<i>none yet</i>')
+            + block('📌 Pinned note', d.pinned_note ? esc(d.pinned_note) : '<i>none</i>')
+            + block('📊 Trackers', d.trackers ? `<pre>${esc(d.trackers)}</pre>` : '<i>none</i>')
+            + block('📖 Lore that fired', d.lore.fired.length ? esc(d.lore.fired.join(', ')) : `<i>${d.lore.book ? 'nothing this time' : 'no lorebook'}</i>`)
+            + ((d.recalled || []).length ? block('🔁 Brought back from earlier', d.recalled.map(r => `<p><b>${esc(r.who)}:</b> ${esc(r.text)}</p>`).join('')
+                + '<p class="tool-help">Old messages that had fallen out of the AI\'s context, matched to the current scene (free).</p>') : '')
+            + '<p class="tool-help">Something wrong here? Bulba can fix the summary or the pinned note: ask it in the 🥔 panel.</p>';
+    } catch (err) { box.textContent = err.message; }
+});
+
+// --- Condensed messages: the AI gets a short version, the chat still shows all of it (editable, redoable) ---
+function setCondensed(messageEl, text) {
+    if (!messageEl) return;
+    let line = messageEl.querySelector('.condensed-line');
+    if (!text) { if (line) line.remove(); return; }
+    if (!line) {
+        line = document.createElement('div');
+        line.className = 'condensed-line';
+        const after = messageEl.querySelector('.polish-line') || messageEl.querySelector('.game-lines')
+            || messageEl.querySelector('.story-extras') || messageEl.querySelector('.message-text');
+        after.parentNode.insertBefore(line, after.nextSibling);
+    }
+    line.removeAttribute('data-condensed');
+    line._text = text;
+    line.innerHTML = `<span>🗜 Condensed for the AI</span>
+        <button type="button" class="link" data-cond="show">Show</button>
+        <button type="button" class="link" data-cond="edit">Edit</button>
+        <button type="button" class="link" data-cond="redo">Redo</button>
+        <button type="button" class="link" data-cond="undo">Undo</button>
+        <div class="condensed-text" hidden></div>`;
+    line.querySelector('.condensed-text').textContent = text;
+}
+
+async function condenseRequest(messageEl, body) {
+    const resp = await fetch(window.location.href, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ ...body, index: Number(messageEl.dataset.index) }),
+    });
+    const d = await resp.json();
+    if (d.spending) updateSpending(d.spending);
+    if (!d.success) throw new Error(d.error || 'Could not condense it.');
+    setCondensed(messageEl, d.condensed);
+    return d;
+}
+
+function condenseMessage(messageEl) {
+    if (!messageEl) return;
+    showChatNotice('🗜 Condensing…');
+    condenseRequest(messageEl, { action: 'condense' })
+        .then(() => showChatNotice('Condensed: the AI gets the short version from now on.'))
+        .catch(err => showChatNotice(err.message));
+}
+
+document.addEventListener('click', e => {
+    const b = e.target.closest('.condensed-line [data-cond]');
+    if (!b) return;
+    const line = b.closest('.condensed-line');
+    const messageEl = b.closest('.message');
+    const box = line.querySelector('.condensed-text');
+    const what = b.dataset.cond;
+    if (what === 'show') { box.hidden = !box.hidden; b.textContent = box.hidden ? 'Show' : 'Hide'; return; }
+    if (what === 'edit') {
+        box.hidden = false;
+        box.innerHTML = '<textarea rows="4"></textarea><button type="button" class="link" data-cond="save">Save</button>';
+        box.querySelector('textarea').value = line._text;
+        box.querySelector('textarea').focus();
+        return;
+    }
+    const run = what === 'save' ? condenseRequest(messageEl, { action: 'condense', text: box.querySelector('textarea').value })
+        : what === 'redo' ? (showChatNotice('🗜 Condensing again…'), condenseRequest(messageEl, { action: 'condense' }))
+        : condenseRequest(messageEl, { action: 'condense_undo' });
+    run.catch(err => showChatNotice(err.message));
+});
+
+// Messages condensed before the page loaded
+document.querySelectorAll('.condensed-line[data-condensed]').forEach(line => setCondensed(line.closest('.message'), line.getAttribute('data-condensed')));
+
+// Music that follows the scene (built-in tracks): after some replies, a tiny call picks the track that fits
+document.getElementById('musicFollow')?.addEventListener('change', async (e) => {
+    const resp = await fetch(window.location.href, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ action: 'music_follow', on: e.target.checked }),
+    });
+    const d = await resp.json().catch(() => ({}));
+    window.MUSIC_FOLLOW = !!d.on;
+    showChatNotice(d.on ? 'The music follows the scene from your next replies.' : 'The music stays as you set it.');
+});
+
+async function followSceneMusic() {
+    try {
+        const resp = await fetch(window.location.href, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ action: 'scene_music' }),
+        });
+        const d = await resp.json();
+        if (!d.success || !d.music) return;
+        // A soft crossfade: down, switch, back up (unless they paused it themselves)
+        const target = Number(document.getElementById('musicVolume')?.value || 0.3);
+        const wasPlaying = !bgMusic.paused;
+        for (let v = bgMusic.volume; wasPlaying && v > 0.02; v -= 0.05) { bgMusic.volume = Math.max(0, v); await new Promise(r => setTimeout(r, 40)); }
+        if (musicHeld) { bgMusic.src = d.music.url; document.getElementById('nowPlayingText').innerText = d.music.name; bgMusic.volume = target; return; }
+        loadMusic(d.music.url, d.music.name);
+        bgMusic.volume = 0;
+        for (let v = 0; v < target; v += 0.05) { bgMusic.volume = Math.min(target, v); await new Promise(r => setTimeout(r, 60)); }
+        bgMusic.volume = target;
+        showChatNotice(`🎵 ${d.music.name}`);
+    } catch (err) { /* the music is a nicety */ }
+}
+
+// Voice input: the browser's own speech-to-text fills the message box (free; hidden where the browser can't)
+(function () {
+    const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const btn = document.getElementById('micBtn');
+    if (!Recognition || !btn) return;
+    btn.hidden = false;
+    let rec = null;
+    btn.addEventListener('click', () => {
+        if (rec) { rec.stop(); return; }
+        rec = new Recognition();
+        rec.lang = document.documentElement.lang && document.documentElement.lang !== 'en' ? document.documentElement.lang : (navigator.language || 'en-US');
+        rec.interimResults = true;
+        rec.continuous = true;
+        const before = messageInput.value ? messageInput.value.replace(/\s*$/, ' ') : '';
+        rec.onresult = (e) => {
+            let text = '';
+            for (let i = 0; i < e.results.length; i++) text += e.results[i][0].transcript;
+            messageInput.value = before + text;
+            messageInput.style.height = 'auto';
+            messageInput.style.height = messageInput.scrollHeight + 'px';
+        };
+        rec.onerror = (e) => { if (e.error !== 'aborted') showChatNotice(e.error === 'not-allowed' ? 'The microphone is blocked for this site.' : 'Could not hear that. Try again.'); };
+        rec.onend = () => { rec = null; btn.classList.remove('listening'); btn.title = 'Speak your message'; messageInput.focus(); };
+        rec.start();
+        btn.classList.add('listening');
+        btn.title = 'Listening… press again to stop';
+    });
+})();

@@ -186,6 +186,12 @@ def run_tool(state, name, args, rng=None):
     from mainapp import extras
     if name in extras.TOOL_KIND:
         return extras.run_tool(name, args)
+    if name == "draw_from_table":
+        from mainapp import story
+        drawn = story.draw(state.get("_tables") or [], str(args.get("table") or ""), rng)
+        if drawn is None:
+            return {"error": "No such table."}, []
+        return drawn, [{"type": "table", **drawn}]
     if name == "roll_dice":
         try:
             difficulty = int(args["difficulty"]) if args.get("difficulty") is not None else None
@@ -264,14 +270,18 @@ def prompt_block(mode, state):
     return "\n\n".join(parts)
 
 
-def add_to_request(built, mode, state, names, extra_kinds=()):
-    """Tools and rules (dice, inventory and story extras) into an assembled request; the rules go just before
-    the last message, to keep the start of the prompt cacheable."""
-    from mainapp import extras
-    tools = tools_for(mode) + extras.tools_for(extra_kinds)
+def add_to_request(built, mode, state, names, extra_kinds=(), tables=()):
+    """Tools and rules (dice, inventory, story extras and the story's random tables) into an assembled request;
+    the rules go just before the last message, to keep the start of the prompt cacheable."""
+    from mainapp import extras, story
+    table_tool = story.table_tool(list(tables))
+    tools = tools_for(mode) + extras.tools_for(extra_kinds) + ([table_tool] if table_tool else [])
     if not tools:
         return built
-    text = "\n\n".join(t for t in (prompt_block(mode, state), extras.rules_for(extra_kinds)) if t)
+    if tables:
+        state["_tables"] = list(tables)  # run_tool draws from them
+    text = "\n\n".join(t for t in (prompt_block(mode, state), extras.rules_for(extra_kinds),
+                                    story.TABLE_RULES if tables else "") if t)
     text = text.replace("{{user}}", names.get("user", "the user")).replace("{{char}}", names.get("char", ""))
     messages = list(built["messages"])
     messages.insert(max(len(messages) - 1, 0), {"role": "system", "content": text})
@@ -365,6 +375,8 @@ def describe(op):
         return f"🎒 {op['change']:+d} {op['item']}"
     if op.get("type") == "condition":
         return f"🩹 {'+' if op['action'] == 'add' else '−'} {op['name']}"
+    if op.get("type") == "table":
+        return f"🃏 {op['table']}: {op['result']}"
     if op.get("type") == "notice":
         return f"ℹ️ {op['text']}"
     return ""

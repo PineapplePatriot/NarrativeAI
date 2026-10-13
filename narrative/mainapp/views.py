@@ -28,7 +28,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
-from . import extras, game, media_library, thinking, ai_client, cards, chats, regex_rules, model_profiles, presets, samplers, starters, trackers
+from . import extras, game, media_library, recall, story, thinking, ai_client, cards, chats, regex_rules, model_profiles, presets, samplers, starters, trackers
 from .bulba import polish, watch
 
 from .utils import build_ai_request, get_elevenlabs_key
@@ -81,7 +81,7 @@ def _summarize(user, messages, existing=""):
         sys_prompt = ("Summarize this entire roleplay story concisely. Capture key events and current status. "
                       "Be clear and precise, focus on describing events and reactions in detail. "
                       "The summary should include Tone, Setting, Events, Current emotional state.")
-    prompt_text = "\n".join(f"{m[0]}: {m[2]}" for m in messages)
+    prompt_text = "\n".join(f"{m[0]}: {chats.prompt_text(m)}" for m in messages)
     return ai_client.complete(user, "summary", [{"role": "system", "content": sys_prompt},
                                                 {"role": "user", "content": prompt_text}])
 
@@ -120,13 +120,16 @@ def chat(request, slug):
         "context_guides": {},
         "current_bg": "",
         "current_music": {},
+        "music_follow": {},     # {"on": bool, "since": replies since the last pick}: music follows the scene
+        "last_recall": [],      # old messages free recall brought back for the last reply (see mainapp/recall.py)
         "persona": {},          # {"name", "description"}: who the user is in this chat only (else their usual persona)
         "game": {},             # dice and inventory: the starting inventory after manual edits (see mainapp/game.py)
         "voices": {},           # voices picked for speakers in this chat (see mainapp/voice.py), so they stay the same
+        "story": {},            # story systems' values: meters, story time, events (see mainapp/story.py)
     }
     game_mode = game.mode_for(request.user, character)
     extra_kinds = extras.kinds_for(request.user)        # letters, phone screens, milestones (Extras page)
-    use_tools = game_mode != "off" or bool(extra_kinds)
+    use_tools = game_mode != "off" or bool(extra_kinds) or bool(story.of_type(story.systems_of(character), "table"))
 
     def summary_payload():
         """What the summary panel shows."""
@@ -163,9 +166,12 @@ def chat(request, slug):
                         chat_state["context_guides"] = data.get("context_guides", {})
                         chat_state["current_bg"] = data.get("current_bg", "")
                         chat_state["current_music"] = data.get("current_music", {})
+                        chat_state["music_follow"] = data.get("music_follow") if isinstance(data.get("music_follow"), dict) else {}
+                        chat_state["last_recall"] = data.get("last_recall") if isinstance(data.get("last_recall"), list) else []
                         chat_state["persona"] = data.get("persona") if isinstance(data.get("persona"), dict) else {}
                         chat_state["game"] = data.get("game") if isinstance(data.get("game"), dict) else {}
                         chat_state["voices"] = data.get("voices") if isinstance(data.get("voices"), dict) else {}
+                        chat_state["story"] = data.get("story") if isinstance(data.get("story"), dict) else {}
                         messages_list = data.get("messages", [])
                     else:
                         messages_list = data
@@ -203,6 +209,23 @@ def chat(request, slug):
         return trackers.normalize_state(chat_state["trackers"], trackers.normalize_config(character.tracker_config, game_mode, "milestones" in extra_kinds,
             "keepsakes" in extra_kinds))
 
+    systems = story.systems_of(character)  # Lattice-style story systems Bulba set up for this character
+
+    def story_state():
+        chat_state["story"] = story.state_of(chat_state["story"], systems)
+        return chat_state["story"]
+
+    def story_payload():
+        """What the tracker panel shows of the story systems (None when there are none)."""
+        if not systems:
+            return None
+        st = story_state()
+        return {"meters": [{"label": m["label"], "value": st["values"].get(m["id"]), "min": m["min"], "max": m["max"]}
+                           for m in story.of_type(systems, "meter")],
+                "clock": story.clock_text(st["minutes"]) if story.of_type(systems, "clock") else "",
+                "next_events": story.upcoming(systems, st), "log": st["log"][-5:],
+                "pending": bool(st.get("pending"))}
+
     def sync_game_trackers(messages):
         """Trackers the app keeps itself: Inventory and Conditions ("full" dice mode), Milestones (story extra)."""
         if game_mode != "full" and not {"milestones", "keepsakes"} & set(extra_kinds):
@@ -231,9 +254,12 @@ def chat(request, slug):
             "context_guides": chat_state["context_guides"],
             "current_bg": chat_state["current_bg"],
             "current_music": chat_state["current_music"],
+            "music_follow": chat_state["music_follow"],
+            "last_recall": chat_state["last_recall"],
             "persona": chat_state["persona"],
             "game": chat_state["game"],
             "voices": chat_state["voices"],
+            "story": chat_state["story"],
         }
         with open(chat_file_path, "w", encoding="utf-8") as f:
             json.dump(full_data, f, ensure_ascii=False, indent=2)
@@ -307,13 +333,16 @@ def chat(request, slug):
                     set_summary(chats.parts_within(chat_state["summary_parts"], len(messages)))
                     chat_state["trackers"], chat_state["tracker_history"] = chats.trackers_at(
                         chat_state["tracker_history"], chat_state["trackers"], len(messages))
+                    if systems:  # story systems go back to before the deleted messages
+                        chat_state["story"] = story.rewind(story_state(), len(messages))
                     save_messages(messages)
                     config = trackers.normalize_config(character.tracker_config, game_mode, "milestones" in extra_kinds,
             "keepsakes" in extra_kinds)
                     return JsonResponse({"success": True, "swipes": chats.version_info(messages),
                                          "summary": chat_state["summary"], "summary_upto": chat_state["summary_upto"],
                                          "summary_data": summary_payload(),
-                                         "trackers": trackers.normalize_state(chat_state["trackers"], config)})
+                                         "trackers": trackers.normalize_state(chat_state["trackers"], config),
+                                         "story": story_payload()})
                 else:
                     return JsonResponse({"success": False, "error": "Invalid message index"})
 
@@ -460,6 +489,13 @@ def chat(request, slug):
                 except ai_client.AIError as e:
                     log.info("Bulba Watch skipped a read: %s", e)
             return JsonResponse({"success": True, "watch": watch.page_state(request.user, chat_obj)})
+        elif action == "director_mode":  # a "Director mode?" note: switch at once, or undo it
+            try:
+                watch.switch_to_director(request.user, chat_obj, str(data.get("id") or ""), undo=bool(data.get("undo")))
+            except ValueError as e:
+                return JsonResponse({"success": False, "error": str(e)}, status=400)
+            return JsonResponse({"success": True, **_appearance(request.user),
+                                 "watch": watch.page_state(request.user, chat_obj)})
         elif action == "watch_note":  # a note: dismissed, "I don't mind this", or opened with Bulba
             if data.get("status") not in ("dismissed", "muted", "opened", "fix"):
                 return JsonResponse({"success": False, "error": "Unknown choice."}, status=400)
@@ -474,6 +510,33 @@ def chat(request, slug):
             if "chat_off" in data:
                 watch.set_chat_off(chat_obj, bool(data["chat_off"]))
             return JsonResponse({"success": True, "watch": watch.page_state(request.user, chat_obj)})
+        elif action in ("condense", "condense_undo"):  # one message, shortened for the AI (the screen keeps it whole)
+            try:
+                index = int(data.get("index"))
+                if not 0 <= index < len(messages):
+                    raise ValueError
+            except (TypeError, ValueError):
+                return JsonResponse({"success": False, "error": "No such message."}, status=400)
+            text = ""
+            if action == "condense":
+                text = str(data.get("text") or "").strip()[:4000]  # their own edit, or a new one written now
+                if not text:
+                    try:
+                        text = condense(request.user, character, messages[index], chat_state["persona"])
+                    except ai_client.AIError as e:
+                        return JsonResponse({"success": False, "error": str(e)})
+            messages[index] = chats.with_condensed(messages[index], text)
+            save_messages(messages)
+            return JsonResponse({"success": True, "condensed": text, "spending": ai_client.spending(request.user)})
+        elif action == "ai_saw":  # the pen menu's "What the AI saw": summary, pinned note, trackers, lore
+            from .bulba import memory
+            return JsonResponse({"success": True, **memory.what_the_ai_saw(chat_obj)})
+        elif action == "note_ideas":  # "Be creative": Bulba writes two director's notes, a logical one and a bold one
+            try:
+                ideas = note_ideas(request.user, character, messages, chat_state["summary"], chat_state["persona"])
+            except ai_client.AIError as e:
+                return JsonResponse({"success": False, "error": str(e)})
+            return JsonResponse({"success": True, **ideas, "spending": ai_client.spending(request.user)})
         elif action == "word_note":  # Bulba turns a rough wish into a clear director's note
             try:
                 note = word_note(request.user, character, messages, str(data.get("text") or ""),
@@ -499,7 +562,8 @@ def chat(request, slug):
                     game.set_base(chat_state, game.empty_state(), len(messages))
             else:
                 only = [t for t in data.get("only") or [] if isinstance(t, str)] or None
-                if not trackers.ai_trackers(config):
+                with_story = not only and story.needs_ai(systems)  # meters and the story clock ride on this call
+                if not trackers.ai_trackers(config) and not with_story:
                     return JsonResponse({"success": False, "error": "No trackers are turned on for this character."})
                 # Messages since the last run (at least the last 4, at most 16)
                 upto = state["upto"] if isinstance(state["upto"], int) else 0
@@ -507,14 +571,22 @@ def chat(request, slug):
                 recent = (messages[-4:] if len(recent) < 4 else recent)[-16:]
                 user_name = request.user.name or request.user.username
                 named = [(user_name if m[0] == "user" else character.name, m[2]) for m in recent]
+                request_messages = trackers.update_messages(config, state, named, character.name, user_name, only)
+                if with_story:
+                    request_messages[0]["content"] += "\n\n" + story.prompt_section(systems, story_state())
                 try:
-                    reply_text = ai_client.complete(
-                        request.user, "trackers",
-                        trackers.update_messages(config, state, named, character.name, user_name, only),
-                        temperature=0.2, response_format={"type": "json_object"})
+                    reply_text = ai_client.complete(request.user, "trackers", request_messages,
+                                                    temperature=0.2, response_format={"type": "json_object"})
                     update = trackers.parse_update(reply_text)
                 except (ai_client.AIError, ValueError) as e:
                     return JsonResponse({"success": False, "error": str(e)})
+                if with_story:  # held until they reply to this reply (only kept scenes count)
+                    last = messages[-1] if messages else None
+                    if last and last[0] == "assistant":
+                        story.stage(story_state(), update, len(messages), last[2])
+                update.pop("_story", None)
+                if with_story and story.of_type(systems, "clock") and isinstance(update.get("world"), dict):
+                    update["world"] = {k: v for k, v in update["world"].items() if k not in ("date", "time")}
                 changed = trackers.apply_update(config, state, update, only)
                 if not only:
                     state["upto"] = len(messages)
@@ -522,7 +594,8 @@ def chat(request, slug):
             chat_state["trackers"] = state
             chat_state["tracker_history"] = chats.add_snapshot(chat_state["tracker_history"], state, len(messages))
             save_messages(messages)
-            return JsonResponse({"success": True, "state": state, "changed": changed if action == "update_trackers" else []})
+            return JsonResponse({"success": True, "state": state, "changed": changed if action == "update_trackers" else [],
+                                 "story": story_payload()})
 
         # --- Summary: pieces that each cover a range of messages ---
         elif action in ("summarize", "summary_edit", "summary_delete", "summary_rerun", "summary_pause"):
@@ -654,6 +727,7 @@ def chat(request, slug):
                 if (character.is_mult or char_count >= 2) else None,
                 "swipes": chats.version_info(messages),
                 "polish": polish.page_payload(chats.polish_of(messages[-1])),
+                "directed": chats.directed_of(messages[-1]),
             })
 
         # --- 5. CONTINUE: the AI carries on its last reply, with the same preset, lore and summary ---
@@ -671,14 +745,15 @@ def chat(request, slug):
                 preset = presets.normalize(presets.get_active(request.user).data)
                 _, chat_model = ai_client.resolve(request.user, "chat")
                 names = prompt_names(request.user, character, chat_state["persona"])
-                history = [{"role": m[0], "content": extras.for_prompt(m[2], chats.game_of(m))}
+                history = [{"role": m[0], "content": extras.for_prompt(chats.prompt_text(m), chats.game_of(m))}
                        for m in messages if m[0] in ("user", "assistant")]
                 history = regex_rules.run_on_history(regex_rules.for_chat(preset, character, request.user), history, names)
                 # The unfinished reply is the last message; the preset's continue nudge comes after it
                 nudge = preset["utility"]["continue_nudge"].strip() or presets.UTILITY_DEFAULTS["continue_nudge"]
                 history.append({"role": "system", "content": nudge})
-                built = presets.assemble(preset, prompt_slots(request.user, character, prompt, chat_state["persona"]),
-                                         history, names, chat_model, generation="continue")
+                built, _ = recall.assemble_with_recall(
+                    presets.assemble, preset, prompt_slots(request.user, character, prompt, chat_state["persona"]),
+                    history, names, chat_model, generation="continue")
                 new_chunk = ai_client.complete(request.user, "chat", built["messages"], **built["params"])
             except ai_client.AIError as e:
                 return JsonResponse({"success": False, "error": str(e)})
@@ -703,7 +778,10 @@ def chat(request, slug):
                 set_layout(request.user, data.get("layout"))
             except ValueError as e:
                 return JsonResponse({"success": False, "error": str(e)}, status=400)
-            return JsonResponse({"success": True, **_appearance(request.user)})
+            if data.get("layout") == "book":  # the look without director mode: Bulba offers the rest
+                watch.offer_director_for_book(request.user, chat_obj)
+            return JsonResponse({"success": True, **_appearance(request.user),
+                                 "watch": watch.page_state(request.user, chat_obj)})
         elif action == "appearance":  # dialogue colour: a hex colour, or "preset" to leave it to the preset
             color = str(data.get("dialogue_color") or "")
             if color != "preset" and not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
@@ -724,6 +802,24 @@ def chat(request, slug):
             character.theme = theme
             character.save(update_fields=["theme"])
             return JsonResponse({"success": True, "theme": theme})
+        elif action == "music_follow":  # let the music follow the scene (built-in tracks), or not
+            chat_state["music_follow"] = {"on": bool(data.get("on")), "since": MUSIC_EVERY}
+            save_messages(messages)
+            return JsonResponse({"success": True, "on": chat_state["music_follow"]["on"]})
+        elif action == "scene_music":  # pick the built-in track that fits the latest reply (one tiny call)
+            follow = chat_state["music_follow"]
+            if not follow.get("on") or follow.get("since", 0) < MUSIC_EVERY or not messages:
+                return JsonResponse({"success": True, "music": None})
+            try:
+                pick = scene_music(request.user, messages, chat_state["current_music"].get("name", ""))
+            except ai_client.AIError as e:
+                return JsonResponse({"success": False, "error": str(e)})
+            follow["since"] = 0
+            changed = bool(pick and pick["name"] != chat_state["current_music"].get("name"))
+            if changed:
+                chat_state["current_music"] = pick
+            save_messages(messages)
+            return JsonResponse({"success": True, "music": pick if changed else None})
         elif action == "save_media":
             m_type = data.get("type")
             url = data.get("url")
@@ -747,12 +843,21 @@ def chat(request, slug):
             if action == "continue":
                 guidance = "CONTINUE the last response exactly where it ended. Do not repeat text. Flow naturally and logically finish it."
 
-            if (action == "chat" and user_message) or action == "regenerate":
+            # A director's note can be sent on its own: the story goes on with no message from them
+            note_only = action == "chat" and not user_message and bool(guidance.strip())
+            if (action == "chat" and (user_message or note_only)) or action == "regenerate":
                 # Regenerate re-answers the existing last user message, so only chat adds one
-                if action == "chat":
+                story_notes = []
+                if action == "chat" and systems:  # they went on from the last reply: what it changed now counts
+                    story_notes = story.commit(story_state(), systems, messages)
+                    story.sync_world(chat_state["story"], systems, chat_state["trackers"])
+                    story.snapshot(chat_state["story"], len(messages) + (1 if user_message else 0))
+                if action == "chat" and user_message:
                     user_message = text_rules("saved", user_message, "user")
                     messages.append(("user", datetime.now().strftime("%H:%M"), user_message, "neutral", 1))
                     watch.on_user_message(request.user, chat_obj, user_message)  # their reply pace
+                if action == "chat":  # steering more than playing? Bulba offers director mode
+                    watch.note_steering(request.user, chat_obj, "note" if guidance.strip() else "play")
 
                 lore_report = None
                 context_dropped = 0
@@ -765,7 +870,7 @@ def chat(request, slug):
                 for m in messages:
                     if m[0] in ("user", "assistant"):
                         # story extras the model showed come back as short descriptions, so it remembers them
-                        api_messages.append({"role": m[0], "content": extras.for_prompt(m[2], chats.game_of(m))})
+                        api_messages.append({"role": m[0], "content": extras.for_prompt(chats.prompt_text(m), chats.game_of(m))})
 
                 try:
                     worldbook = None
@@ -783,10 +888,11 @@ def chat(request, slug):
                         character,
                         chat=chat_obj,
                         worldbook_slug=worldbook_slug,
-                        message=user_message if action == "chat" else None,
+                        message=(user_message or None) if action == "chat" else None,
                         guidance=guidance,                             # <--- INJECTION 1
                         persistent_guides=chat_state["context_guides"],# <--- INJECTION 2
-                        summary=chat_state["summary"])
+                        summary=chat_state["summary"],
+                        story_values=story_state() if systems else None)
                     lore_report = prompt.get("LoreReport")
 
 
@@ -795,13 +901,15 @@ def chat(request, slug):
                     _, chat_model = ai_client.resolve(request.user, "chat")
                     names = prompt_names(request.user, character, chat_state["persona"])
                     history = regex_rules.run_on_history(regex_rules.for_chat(preset, character, request.user), api_messages, names)
-                    built = presets.assemble(preset, prompt_slots(request.user, character, prompt, chat_state["persona"]),
-                                             history, names, chat_model,
-                                             generation="regenerate" if action == "regenerate" else "normal")
+                    built, recalled = recall.assemble_with_recall(
+                        presets.assemble, preset, prompt_slots(request.user, character, prompt, chat_state["persona"]),
+                        history, names, chat_model, generation="regenerate" if action == "regenerate" else "normal")
                     context_dropped = built["dropped"]
+                    chat_state["last_recall"] = recalled  # shown in "What the AI saw"
                     # Dice and inventory: the model gets tools and the current state (the reply works on a copy)
                     game_state = game.current_state(chat_state, messages)
-                    built = game.add_to_request(built, game_mode, game_state, names, extra_kinds)
+                    built = game.add_to_request(built, game_mode, game_state, names, extra_kinds,
+                                                tables=story.of_type(systems, "table"))
                     game_ops = []
                     # Stream when the page asks for it and the preset allows it
                     streaming = bool(data.get("stream")) and preset["options"].get("streaming", True)
@@ -831,6 +939,14 @@ def chat(request, slug):
                         messages.append(regen_from)
                     save_messages(messages)
                     return JsonResponse({"error": f"Something went wrong while building the prompt: {e}"}, status=500)
+
+                def music_due():
+                    follow = chat_state["music_follow"]
+                    if not follow.get("on"):
+                        return False
+                    follow["since"] = follow.get("since", MUSIC_EVERY) + 1
+                    save_messages(messages)
+                    return follow["since"] >= MUSIC_EVERY
 
                 def finish_reply(reply, reasoning="", ops=()):
                     """Emotion, saving, voice and the summary/tracker flags, once the reply is complete."""
@@ -889,6 +1005,8 @@ def chat(request, slug):
                     new_message = chats.with_game(chats.with_reasoning(
                         ("assistant", datetime.now().strftime("%H:%M"), reply, final_emotion_str, char_count), reasoning),
                         [dict(op) for op in ops if op.get("type") != "notice"])
+                    if guidance.strip() and action in ("chat", "regenerate"):  # shown above the reply: what steered it
+                        new_message = chats.with_directed(new_message, guidance.strip()[:1000])
                     messages.append(chats.add_version(regen_from, new_message) if regen_from else new_message)
 
                     photo_url = _photo(character, "photo", emotion_char_1)
@@ -907,8 +1025,8 @@ def chat(request, slug):
                     # Trackers: same idea, if any tracker is on for this character
                     tracker_task = ai_client.get_task_setting(request.user, "trackers")
                     tracked = (chat_state["trackers"] or {}).get("upto") or 0
-                    trackers_due = (bool(trackers.ai_trackers(trackers.normalize_config(character.tracker_config, game_mode, "milestones" in extra_kinds,
-            "keepsakes" in extra_kinds)))
+                    trackers_due = ((bool(trackers.ai_trackers(trackers.normalize_config(character.tracker_config, game_mode, "milestones" in extra_kinds,
+            "keepsakes" in extra_kinds))) or story.needs_ai(systems))
                                     and tracker_task.mode == tracker_task.MODE_AUTO
                                     and len(messages) - tracked >= tracker_task.interval)
 
@@ -926,12 +1044,16 @@ def chat(request, slug):
                         "lore": lore_report,
                         "summary_due": summary_due,
                         "trackers_due": trackers_due,
+                        "music_due": music_due(),  # the music follows the scene: the page asks for a pick
                         "watch_due": watch.due(request.user, chat_obj, messages),  # Bulba Watch reads, in the background
                         "polish_due": polish.due(request.user, chat_obj, messages),  # the page asks for the polish next
                         "watch": watch.page_state(request.user, chat_obj),
                         "context_dropped": context_dropped,
                         "swipes": chats.version_info(messages),
                         "spending": ai_client.spending(request.user),
+                        "directed": chats.directed_of(messages[-1]),
+                        "story": story_payload(),
+                        "story_notes": story_notes,
                     }
 
                 if not streaming:
@@ -1054,7 +1176,8 @@ def chat(request, slug):
                                      [game.describe(op) for op in chats.game_of(m) if not extras.is_extra(op)],
                                      [extras.render(op) for op in chats.game_of(m) if extras.is_extra(op)],
                                      (chats.audio_of(m) or {}).get("url", ""),
-                                     polish.dumps(chats.polish_of(m)) if chats.polish_of(m) else "")
+                                     polish.dumps(chats.polish_of(m)) if chats.polish_of(m) else "",
+                                     chats.directed_of(m), chats.condensed_of(m))
                      for m in messages],
         "voice_on": bool(get_elevenlabs_key(request.user)),
         "swipes": chats.version_info(messages),
@@ -1083,8 +1206,9 @@ def chat(request, slug):
         # The chat's own background and music, else the character's theme
         "current_bg": chat_state["current_bg"] or (character.theme or {}).get("bg", ""),
         "current_music": json.dumps(chat_state["current_music"] or (character.theme or {}).get("music") or {}),
+        "music_follow": bool(chat_state["music_follow"].get("on")),
         "user_avatar": user_avatar,
-        "trackers_data": _tracker_page_data(request.user, character, chat_state["trackers"]),
+        "trackers_data": {**_tracker_page_data(request.user, character, chat_state["trackers"]), "story": story_payload()},
         "stream_replies": presets.normalize(presets.get_active(request.user).data)["options"]["streaming"],
         "chat": chat_obj,
         "chat_list": chats.summary_list(character, chat_obj.id),
@@ -1136,6 +1260,78 @@ WORD_NOTE_PROMPT = (
     "or details they didn't ask for. Name characters as they appear in the chat. Never write {user}'s words, "
     "actions or thoughts unless they asked for exactly that. Plain words: no 'ensure', 'immersive', 'vivid', "
     "'delve', capitals or exclamation marks. Reply with the note only.")
+
+
+CONDENSE_PROMPT = (
+    "Condense one message from a roleplay so the AI can keep it in mind in fewer words. Keep what matters later: "
+    "what happened, decisions, promises, names, places, objects, how people feel about each other, and any line "
+    "of dialogue worth remembering word for word. Drop description and repetition. Same person and tense as the "
+    "message, plain sentences, at most a quarter of its length. Reply with the condensed message only.")
+
+
+def condense(user, character, message, persona=None):
+    """A short version of one message for the AI (one call on the summary model)."""
+    names = prompt_names(user, character, persona)
+    who = names["user"] if message[0] == "user" else character.name
+    text = ai_client.complete(user, "summary", [
+        {"role": "system", "content": CONDENSE_PROMPT},
+        {"role": "user", "content": f"{who}'s message:\n\n{message[2]}"}], max_tokens=600, temperature=0.2)
+    text = (text or "").strip()
+    if not text:
+        raise ai_client.AIError("The model sent back nothing. Try again.")
+    return text
+
+
+MUSIC_EVERY = 3  # replies between two music picks when the music follows the scene
+
+
+def scene_music(user, messages, current=""):
+    """The built-in track that fits the latest reply, or None to keep the current one (a tiny call)."""
+    tracks = media_library.built_in("music")
+    if not tracks:
+        return None
+    options = "\n".join(f"{i + 1}. {t['name']}" for i, t in enumerate(tracks))
+    recent = "\n\n".join(str(m[2])[:1200] for m in messages[-2:])
+    answer = ai_client.complete(user, "emotion", [
+        {"role": "system", "content": "You pick background music for a roleplay scene. Read the latest messages and "
+                                      "answer with the number of the track that fits the mood and setting best. "
+                                      f"The current track is “{current or 'none'}”: answer 0 to keep it unless the "
+                                      "scene's mood or setting clearly changed. Answer with the number only."},
+        {"role": "user", "content": f"Tracks:\n{options}\n\nLatest messages:\n{recent}"}],
+        max_tokens=8, temperature=0)
+    m = re.search(r"\d+", answer or "")
+    n = int(m.group(0)) if m else 0
+    return tracks[n - 1] if 1 <= n <= len(tracks) else None
+
+
+NOTE_IDEAS_PROMPT = (
+    "You help someone direct their roleplay with an AI. Read the chat and write two director's notes for the next "
+    "reply, each one or two short sentences addressed to the roleplay model, saying concretely what should happen "
+    "or how it should read. \"logical\": what would most naturally happen next, given the scene and the people in "
+    "it. \"creative\": an unexpected turn that still fits the characters and the world (a complication, an "
+    "arrival, a reveal, a change of place or time), not a random one. Name characters as they appear in the chat. "
+    "Never write {user}'s words, actions or thoughts. Plain words: no 'ensure', 'immersive', 'vivid', 'delve', "
+    "capitals or exclamation marks. Answer only with JSON: {{\"logical\": \"...\", \"creative\": \"...\"}}")
+
+
+def note_ideas(user, character, messages, summary="", persona=None):
+    """Two director's notes written from scratch (one small call on the Bulba model)."""
+    names = prompt_names(user, character, persona)
+    recent = [m for m in messages if m[0] in ("user", "assistant")][-6:]
+    if not recent:
+        raise ai_client.AIError("Start the story first: there's nothing to direct yet.")
+    transcript = "\n\n".join(f"{names['user'] if m[0] == 'user' else character.name}: {m[2][:1500]}" for m in recent)
+    text = ai_client.complete(user, "bulba", [
+        {"role": "system", "content": NOTE_IDEAS_PROMPT.format(user=names["user"])},
+        {"role": "user", "content": (f"The story so far: {summary[:2000]}\n\n" if summary else "")
+                                    + f"The latest messages (latest last):\n\n{transcript}"}],
+        max_tokens=400, temperature=0.8, response_format={"type": "json_object"})
+    from .bulba import watch as watch_mod
+    data = watch_mod._parse(text)
+    ideas = {k: str(data.get(k) or "").strip().strip('"')[:600] for k in ("logical", "creative")}
+    if not any(ideas.values()):
+        raise ai_client.AIError("Bulba couldn't come up with anything this time. Try again.")
+    return ideas
 
 
 IDEAS_PROMPT = {
@@ -1244,12 +1440,15 @@ def build_chat_request(user, chat_obj, preset=None, character=None, drop_last_re
     preset = presets.normalize(preset or presets.get_active(user).data)
     persona = data.get("persona") if isinstance(data.get("persona"), dict) else {}
     names = prompt_names(user, character, persona)
-    history = [{"role": m[0], "content": extras.for_prompt(m[2], chats.game_of(m))}
+    history = [{"role": m[0], "content": extras.for_prompt(chats.prompt_text(m), chats.game_of(m))}
                        for m in messages if m[0] in ("user", "assistant")]
     history = regex_rules.run_on_history(regex_rules.for_chat(preset, character, user), history, names) + list(tail)
     _, model = ai_client.resolve(user, "chat")
-    return presets.assemble(preset, prompt_slots(user, character, prompt, persona), history, names, model,
-                            generation=generation)
+    if tail:  # an extra request at the end (impersonation): no recall, its words aren't the scene's
+        return presets.assemble(preset, prompt_slots(user, character, prompt, persona), history, names, model,
+                                generation=generation)
+    return recall.assemble_with_recall(presets.assemble, preset, prompt_slots(user, character, prompt, persona),
+                                       history, names, model, generation=generation)[0]
 
 
 def _tracker_page_data(user, character, raw_state):
@@ -1469,7 +1668,18 @@ def tracker_setup(request, slug):
             data = json.loads(request.body.decode("utf-8"))
         except (ValueError, UnicodeDecodeError):
             return JsonResponse({"error": "Invalid request."}, status=400)
-        character.tracker_config = trackers.normalize_config(data)
+        if not isinstance(data, dict):
+            return JsonResponse({"error": "Invalid request."}, status=400)
+        if "systems" not in data:  # an older page without the story systems section: keep them
+            data["systems"] = (character.tracker_config or {}).get("systems") or []
+        config = trackers.normalize_config(data)
+        if story.of_type(config["systems"], "event") and not story.of_type(config["systems"], "clock"):
+            return JsonResponse({"error": "Events need a story clock: add one, or remove the events."}, status=400)
+        dropped = len([s for s in data.get("systems") or [] if s]) - len(config["systems"])
+        if dropped > 0:
+            return JsonResponse({"error": "An event needs what happens, and a random table needs at least one "
+                                          "result (and there can be 12 systems at most). Fill them in or remove them."}, status=400)
+        character.tracker_config = config
         character.save(update_fields=["tracker_config"])
         return JsonResponse({"status": "ok", "config": character.tracker_config})
 

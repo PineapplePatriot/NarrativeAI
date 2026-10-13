@@ -30,6 +30,10 @@ note nothing for it. Never invent a slip to have something to say.
 - **echoing_user**: repeating or paraphrasing what the person just wrote back at them.
 - **writing_for_user**: deciding what the person's character does, says or feels (skip this one if the
   chat says the AI may write their character).
+- **recounting**: instead of talking normally, a character recites earlier events as evidence, keeps score
+  with numbers ("the third time this week", "four days since you"), sums up the relationship to make a point,
+  or reaches for a witty line or a therapist-level insight into someone's feelings. One brief callback that
+  belongs to the moment is fine; the slip is the recital, the tally, the performed insight.
 - **pet_phrase**: one of this model's known stock phrases or habits (listed below), or any phrase
   that keeps coming back across replies.
 
@@ -49,10 +53,44 @@ replies they edited (before and after). From those, and from how they write, not
 concrete things about their taste that you're fairly sure of ("cuts long descriptions of rooms",
 "keeps the banter, removes the speeches"). Nothing you'd have to guess.
 
+## Getting the past wrong
+
+Also check the numbered replies against what's established: the card, the story so far (summary), the
+pinned note, the lore entries listed, and the earlier messages you see. Usually it isn't stark. Look for:
+
+- **retelling an earlier event inaccurately**, often in dialogue to prove a point or win an argument ("you
+  walked out on me twice" when it happened once, or not like that);
+- **leaving out the part of a past event that mattered**, so the retelling means something else;
+- **inventing details of the past** that never happened (a promise nobody made, a scar nobody mentioned);
+- words or deeds put in the wrong person's mouth; someone knowing what they couldn't; a plain contradiction
+  (a wrong name, a dead character speaking, an injury forgotten).
+
+Not a slip: a character lying or misremembering on purpose in a way the story shows, changing their mind, or
+the person changing the story. Report each as "past" with the quote and what actually happened (and where
+that's from). At most two; none is the usual answer.
+
+## Worth keeping
+
+Note up to three new facts these replies established that will matter later and aren't in the card or the
+lore yet: a new relationship or change in one, an injury or lasting change, a revealed part of someone's past,
+a promise or debt, a new place, group or object that keeps coming back. Each as one plain sentence, saying
+whether it belongs to the character's card ("card") or the world's lorebook ("lore"). Skip passing moments
+and anything already listed above.
+
+## Are they directing?
+
+Only when the prompt asks for `they_direct`. Look at their messages (the "Them" parts): are most of them
+directions to the AI about what should happen or how to write it ("have Vex keep talking", "skip to the
+morning", "(OOC: slower)", "make the next scene quieter"), rather than their own character's words and
+actions? Answer true only when it's clearly most of them; a single out-of-character aside is not directing.
+
 ## Answer
 
 Only a JSON object, no other text:
 
 {"slips": [{"reply": <number of the reply, from 1>, "label": "<label>", "quote": "<exact words>",
             "cause": "model" | "setup" | "their_messages"}],
- "taste": ["<short, concrete thing they like or dislike>"]}
+ "taste": ["<short, concrete thing they like or dislike>"],
+ "past": [{"reply": <number>, "quote": "<exact words>", "actually": "<what actually happened, and where that's from>"}],
+ "keep": [{"fact": "<one plain sentence>", "where": "card" | "lore"}],
+ "they_direct": true | false (only when asked)}

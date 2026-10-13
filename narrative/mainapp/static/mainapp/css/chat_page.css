@@ -1315,6 +1315,15 @@ body[data-dialogue="preset"] .message-text .quoted {
 .hud-pill:hover { border-color: var(--accent-1); }
 .hud-pill.changed, .t-card.changed { border-color: var(--accent-2); background: rgba(16, 185, 129, 0.12); }
 .hud-empty { color: var(--text-muted); font-size: 0.8rem; }
+/* Story systems (meters, story clock, events) Bulba set up: read-only, above the tracker tabs */
+.hud-pill.story-pill { border-style: dashed; }
+.story-card { margin: 10px 12px 4px; }
+.story-card .tf.meter { display: grid; grid-template-columns: 1fr 2fr auto; align-items: center; gap: 8px; }
+.story-num { font-size: 0.8rem; color: var(--text-secondary, var(--text-primary)); }
+.story-clock { margin: 4px 0 8px; font-weight: 600; }
+.story-sub { margin: 8px 0 2px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); }
+.story-list { margin: 0; padding-left: 18px; font-size: 0.85rem; }
+.story-list small { color: var(--text-muted); }
 .hud-actions { margin-left: auto; display: flex; gap: 4px; }
 .hud-btn, .icon-btn {
     background: transparent;
@@ -1703,10 +1712,6 @@ details.thoughts .thoughts-text { white-space: pre-wrap; font-size: .85rem; opac
 
 /* Phones: the music player shrinks to a small pill under the header instead of covering the message box */
 @media (max-width: 768px) {
-    .music-player-widget { top: 188px; bottom: auto; right: 8px; padding: 4px 8px; gap: 6px; z-index: 1; opacity: .9; }
-    .music-player-widget .music-info { display: none; }
-    .music-player-widget input[type=range] { width: 56px; }
-    body:has(#toolsMenu.show) .music-player-widget, body:has(.ideas-box:not([hidden])) .music-player-widget { display: none; }
 }
 
 /* Keep typed text clear of the small buttons inside the message box */
@@ -1764,3 +1769,66 @@ details.thoughts .thoughts-text { white-space: pre-wrap; font-size: .85rem; opac
 .polish-line s { opacity: .7; }
 .polish-line .link { background: none; border: none; padding: 0; color: inherit; text-decoration: underline; cursor: pointer; font-size: inherit; }
 .polish-busy { font-style: italic; }
+
+/* The director's note: Bulba's two ideas, and the note that steered a reply */
+.note-ideas { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.note-ideas[hidden] { display: none; }
+.note-idea { text-align: left; display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 8px; cursor: pointer;
+    background: rgba(139, 92, 246, .1); border: 1px solid rgba(139, 92, 246, .35); color: inherit; font: inherit; font-size: .85rem; }
+.note-idea b { font-size: .8rem; }
+.directed-line { font-size: .78rem; opacity: .7; font-style: italic; margin-bottom: 4px; }
+body:has(#toolsMenu.show) .watch-card { display: none; }  /* the pen menu wins while it's open */
+.ai-saw-part { margin-bottom: 8px; } .ai-saw-part b { display: block; font-size: .8rem; margin-bottom: 2px; }
+.ai-saw-part pre { white-space: pre-wrap; font: inherit; margin: 0; } .ai-saw-part p { margin: 0 0 4px; }
+
+/* A message condensed for the AI */
+.condensed-line { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; margin-top: 6px; font-size: .8rem; opacity: .8; }
+.condensed-line .link { background: none; border: none; padding: 0; color: inherit; text-decoration: underline; cursor: pointer; font-size: inherit; }
+.condensed-line .condensed-text { flex-basis: 100%; font-style: italic; white-space: pre-wrap; }
+.condensed-line .condensed-text textarea { width: 100%; font: inherit; font-style: normal; background: rgba(0,0,0,.2); color: inherit;
+    border: 1px solid rgba(255,255,255,.2); border-radius: 6px; padding: 6px; box-sizing: border-box; }
+.message-btn.condense { font-size: .85rem; line-height: 1; }
+
+/* The music: play/pause in the header; the picker shows what's playing and the volume */
+.header-btn.music-toggle { min-width: 36px; justify-content: center; font-size: .9rem; }
+.header-btn.music-toggle.playing { color: #c4b5fd; border-color: rgba(167, 139, 250, .6); }
+.header-btn.music-toggle[hidden] { display: none; }
+@media (max-width: 480px) { .header-btn.music-toggle { font-size: .9rem; } }
+.music-now { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between;
+    margin-bottom: 12px; font-size: .9rem; }
+.music-now[hidden] { display: none; }
+.music-now label { display: flex; gap: 6px; align-items: center; }
+
+/* Weather and time of day over the scene (atmosphere.js) */
+.atmosphere { position: absolute; inset: 0; z-index: 5; pointer-events: none; overflow: hidden; transition: background 2s ease; }
+.atmosphere.time-night { background: radial-gradient(ellipse at 50% 20%, rgba(30, 41, 90, .25), rgba(5, 8, 25, .55)); }
+.atmosphere.time-dusk { background: linear-gradient(180deg, rgba(251, 146, 60, .18), rgba(126, 34, 206, .22)); }
+.atmosphere.time-dawn { background: linear-gradient(180deg, rgba(253, 186, 116, .14), rgba(244, 114, 182, .08)); }
+.atmosphere .sky { position: absolute; inset: -50% 0 0 0; }
+.atmosphere.sky-rain .sky, .atmosphere.sky-storm .sky {
+    background-image: repeating-linear-gradient(105deg, transparent 0 18px, rgba(180, 200, 255, .22) 18px 19px, transparent 19px 46px);
+    background-size: 120px 120px; animation: atmo-rain .45s linear infinite; }
+.atmosphere.sky-storm .sky { background-size: 90px 90px; animation-duration: .3s; }
+.atmosphere.sky-snow .sky {
+    background-image: radial-gradient(circle, rgba(255, 255, 255, .85) 1.4px, transparent 2px),
+                      radial-gradient(circle, rgba(255, 255, 255, .6) 1px, transparent 1.6px),
+                      radial-gradient(circle, rgba(255, 255, 255, .45) .8px, transparent 1.3px);
+    background-size: 73px 89px, 127px 109px, 53px 61px; background-position: 0 0, 35px 50px, 17px 29px;
+    animation: atmo-snow 9s linear infinite; }
+.atmosphere.sky-fog .sky { inset: 0; background: linear-gradient(90deg, rgba(220, 225, 235, .0), rgba(220, 225, 235, .28), rgba(220, 225, 235, .05));
+    background-size: 200% 100%; filter: blur(8px); animation: atmo-fog 22s ease-in-out infinite alternate; }
+.atmosphere .flash { position: absolute; inset: 0; background: rgba(230, 235, 255, .55); opacity: 0; animation: atmo-flash 9s infinite; }
+@keyframes atmo-rain { to { background-position: -30px 120px; } }
+@keyframes atmo-snow { to { background-position: 30px 712px, 85px 813px, 40px 517px; } }
+@keyframes atmo-fog { to { background-position: 100% 0; } }
+@keyframes atmo-flash { 0%, 91%, 93%, 96%, 100% { opacity: 0; } 92%, 95% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .atmosphere .sky, .atmosphere .flash { animation: none; } .atmosphere .flash { display: none; } }
+
+/* Voice input */
+.mic-btn { font-size: .95rem; }
+.mic-btn.listening { color: #f87171; animation: mic-pulse 1.2s ease-in-out infinite; }
+@keyframes mic-pulse { 50% { transform: scale(1.15); } }
+.input-wrapper:has(#micBtn:not([hidden])) .input-field { padding-right: 84px; }
+.input-wrapper:has(#micBtn:not([hidden])):has(#ideasBtn) .input-field { padding-right: 116px; }
+.theme-check.music-follow { display: block; margin: 0 0 12px; }
+.theme-check.music-follow small { display: block; margin-left: 24px; opacity: .75; }

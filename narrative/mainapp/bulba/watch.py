@@ -53,6 +53,8 @@ LABELS = {
     "writing_for_user": "Deciding things for your character",
     "pet_phrase": "The same pet phrases",
     "repeated_phrase": "The same phrase, word for word",
+    "misremembered_past": "Getting past events wrong",
+    "recounting": "Recounting and keeping score instead of talking",
 }
 CAUSES = ("model", "setup", "their_messages")
 
@@ -79,6 +81,7 @@ def user_data(user):
     data.setdefault("taste", [])
     data.setdefault("pace", {"n": 0, "mean": 0.0, "m2": 0.0})
     data.setdefault("fix", [])  # habits they approved for polishing (bulba/polish.py)
+    data.setdefault("taste_in_preset", [])  # taste lines already put into their preset (with Bulba)
     return data
 
 
@@ -188,6 +191,96 @@ def _pace_notice(kind):
 # What they did with replies (for learning their taste)
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Steering: when they direct more than they play, offer director mode (no AI)
+# ---------------------------------------------------------------------------
+
+STEER_RUN, STEER_HITS = 5, 3
+
+
+def _directing(user):
+    from mainapp import presets
+    from mainapp.bulba import control
+    try:
+        return control.mode_of(presets.normalize(presets.get_active(user).data)) == "director"
+    except Exception:
+        return True  # can't tell: don't nag
+
+
+DIRECTOR_TEXT = {
+    "steering": "You've been steering the story with director's notes more than playing in it. Director mode makes "
+                "that the default: the AI treats your messages as directions, never as your character, and replies "
+                "read as chapters.",
+    "messages": "Your messages lately read more like directions to the AI than your character's own lines. Director "
+                "mode makes that official: the AI treats them as directions, never as your character, and replies "
+                "read as chapters.",
+    "book": "The book layout is only the look. Want the AI to treat you as the director too? Your messages become "
+            "directions, never your character's actions.",
+}
+
+
+def _offer_director(user, chat_obj, data, why):
+    if data.get("off") or data.get("director_offered") or _directing(user):
+        return None
+    notice = {"id": uuid.uuid4().hex[:10], "kind": "director", "label": "director", "title": "Director mode?",
+              "text": DIRECTOR_TEXT[why], "quotes": [], "status": "new", "time": time.time()}
+    data["director_offered"] = True  # once per chat
+    data["notices"].append(notice)
+    return notice
+
+
+def note_steering(user, chat_obj, kind):
+    """kind: "note" (a director's note was sent) or "play". Whether their messages themselves read as directions
+    is judged by the reader (read), which is more reliable than any word list."""
+    if not is_on(user):
+        return None
+    data = chat_data(chat_obj)
+    data["steer"] = ((data.get("steer") or []) + [kind])[-STEER_RUN:]
+    notice = None
+    if sum(k != "play" for k in data["steer"]) >= STEER_HITS:
+        notice = _offer_director(user, chat_obj, data, "steering")
+    save_chat_data(chat_obj, data)
+    return notice
+
+
+def offer_director_for_book(user, chat_obj):
+    if not is_on(user):
+        return None
+    data = chat_data(chat_obj)
+    notice = _offer_director(user, chat_obj, data, "book")
+    save_chat_data(chat_obj, data)
+    return notice
+
+
+def switch_to_director(user, chat_obj, notice_id, undo=False):
+    """The note's one-click switch (Pura's wording and the book layout), or putting it back."""
+    import copy
+    from mainapp import presets
+    from mainapp.bulba import control
+    from mainapp.models import Preset
+    from mainapp.views import _appearance, set_layout
+    data = chat_data(chat_obj)
+    notice = next((n for n in data["notices"] if n["id"] == notice_id and n["kind"] == "director"), None)
+    if notice is None:
+        raise ValueError("No such note.")
+    if undo:
+        before = notice.get("undo") or {}
+        Preset.objects.filter(user=user, id=before.get("preset_id")).update(data=before.get("data"))
+        if before.get("layout"):
+            set_layout(user, before["layout"])
+        notice["status"] = "dismissed"
+    else:
+        active = presets.get_active(user)
+        notice["undo"] = {"preset_id": active.id, "data": copy.deepcopy(active.data),
+                          "layout": _appearance(user)["layout"]}
+        active.data = control.apply_to_preset(presets.normalize(active.data), "director")
+        active.save(update_fields=["data", "time_update"])
+        set_layout(user, "book")
+        notice["status"] = "director"
+    save_chat_data(chat_obj, data)
+    return notice
+
+
 def recheck(user, chat_obj, messages):
     """Runs the free checks again on the newest reply after it changed (polished, or its fixes undone)."""
     if not is_on(user) or not messages or messages[-1][0] != "assistant":
@@ -291,7 +384,33 @@ def same_openings(text):
     return None
 
 
-def _prompt(user, character, messages, picked, data, mine, writes_for_user):
+def _established(chat_obj, character):
+    """What's already established, for the contradiction check and to skip known facts: summary, pinned note,
+    the lorebook's entry titles, the card's scenario."""
+    from mainapp.bulba import memory
+    try:
+        saw = memory.what_the_ai_saw(chat_obj)
+    except Exception:
+        return []
+    out = []
+    summary = "\n".join(p["text"] for p in saw["summary"])
+    if summary:
+        out += ["## The story so far (summary)", summary[-2500:]]
+    if saw["pinned_note"]:
+        out += ["## Pinned note", saw["pinned_note"][:800]]
+    if character.scenario:
+        out += ["## The card's scenario", str(character.scenario)[:800]]
+    if character.worldbook_id:
+        from mainapp import lorebook
+        try:
+            entries = lorebook.load_worldbook(character.worldbook)["entries"]
+            out += ["## Lore entries (titles)", "; ".join(e["comment"] or ", ".join(e["keys"][:2]) for e in entries)[:1500]]
+        except Exception:
+            pass
+    return out
+
+
+def _prompt(user, character, messages, picked, data, mine, writes_for_user, ask_directing=False, chat_obj=None):
     from mainapp import model_profiles
     _, chat_model = ai_client.resolve(user, "chat")
     profile = model_profiles.for_model(chat_model) or {}
@@ -302,6 +421,8 @@ def _prompt(user, character, messages, picked, data, mine, writes_for_user):
     if habits:
         parts += ["## This model's known habits", "; ".join(habits)]
     parts.append("## The AI may write their character: " + ("yes" if writes_for_user else "no"))
+    if ask_directing:
+        parts.append("## Also answer they_direct (see \"Are they directing?\")")
     if mine["muted"]:
         parts += ["## They said they don't mind these (don't note them)", ", ".join(mine["muted"])]
     if data["signals"]:
@@ -311,6 +432,8 @@ def _prompt(user, character, messages, picked, data, mine, writes_for_user):
                          f"- Edited a reply from “{s['before']}” to “{s['after']}”")
     if mine["taste"]:
         parts += ["## Already known about their taste", *[f"- {t}" for t in mine["taste"]]]
+    if chat_obj is not None:
+        parts += _established(chat_obj, character)
     parts.append("## The chat (their messages for context; note slips only in the numbered replies)")
     first = picked[0]
     start = max(0, first - 1)
@@ -355,8 +478,9 @@ def read(user, character, chat_obj, messages, writes_for_user=False):
     if not picked:
         return []
     mine = user_data(user)
+    ask_directing = not data.get("director_offered") and not _directing(user)
     answer = _parse(ai_client.complete(user, "watch", _prompt(user, character, messages, picked, data, mine,
-                                                              writes_for_user),
+                                                              writes_for_user, ask_directing, chat_obj),
                                        max_tokens=1500, temperature=0, response_format={"type": "json_object"}))
     slips = []
     for s in answer.get("slips") or []:
@@ -382,9 +506,98 @@ def read(user, character, chat_obj, messages, writes_for_user=False):
             known.add(t.lower())
     mine["taste"] = mine["taste"][-TASTE_MAX:]
     save_user_data(user, mine)
-    raised = habits(data, mine["muted"], character.name)
+    raised = story_notes(data, answer, picked, character.name)  # logs "getting the past wrong" slips first
+    raised += habits(data, mine["muted"], character.name)
+    taste_note = offer_taste(data, mine)
+    if taste_note:
+        raised.append(taste_note)
+        save_user_data(user, mine)
+    if ask_directing and answer.get("they_direct") is True:  # their messages read as directions: offer director mode
+        notice = _offer_director(user, chat_obj, data, "messages")
+        if notice:
+            raised.append(notice)
     save_chat_data(chat_obj, data)
     return raised
+
+
+KEEP_OFFER = 2  # new lasting facts before Bulba offers to keep them in the card or lorebook
+
+
+def story_notes(data, answer, picked, char_name):
+    """Contradictions (each one is worth a note) and the Story Keeper (new facts worth keeping, once a couple
+    have piled up). Both come from the same read: no extra call."""
+    raised = []
+    found = []
+    for c in (answer.get("past") or [])[:2]:
+        if not isinstance(c, dict):
+            continue
+        quote, actually = str(c.get("quote") or "").strip()[:300], str(c.get("actually") or "").strip()[:300]
+        try:
+            at = picked[int(c.get("reply")) - 1]
+        except (TypeError, ValueError, IndexError):
+            continue
+        if quote and actually:
+            found.append({"quote": quote, "actually": actually, "at": at})
+    # Each one is a slip too: when it keeps happening, it's a habit (a note, and something the polish can fix)
+    data["log"] += [{"label": "misremembered_past", "quote": f["quote"], "at": f["at"], "cause": "model"} for f in found]
+    if found:  # and a mistake worth a word straight away
+        notice = {"id": uuid.uuid4().hex[:10], "kind": "continuity", "label": "continuity",
+                  "title": "A reply got the past wrong",
+                  "text": " ".join(f"“{f['quote']}”: actually, {f['actually']}." for f in found),
+                  "quotes": [], "found": found, "status": "new", "time": time.time(), "at": found[-1]["at"]}
+        data["notices"].append(notice)
+        raised.append(notice)
+    keep = data.setdefault("keep", [])
+    known = {k["fact"].lower() for k in keep}
+    for k in (answer.get("keep") or [])[:3]:
+        if isinstance(k, dict) and str(k.get("fact") or "").strip() and str(k["fact"]).strip().lower() not in known:
+            keep.append({"fact": str(k["fact"]).strip()[:300], "where": "lore" if k.get("where") == "lore" else "card",
+                         "offered": False})
+            known.add(str(k["fact"]).strip().lower())
+    data["keep"] = keep[-30:]
+    pending = [k for k in data["keep"] if not k["offered"]]
+    if len(pending) >= KEEP_OFFER and not any(n["kind"] == "keeper" and n["status"] == "new" for n in data["notices"]):
+        for k in pending:
+            k["offered"] = True
+        notice = {"id": uuid.uuid4().hex[:10], "kind": "keeper", "label": "keeper", "title": "Worth keeping?",
+                  "text": f"The story established a few things that will matter later. Keep them in {char_name}'s "
+                          "card or the lorebook, so the AI doesn't forget them?",
+                  "quotes": [k["fact"] for k in pending][-5:], "facts": pending[-5:], "status": "new", "time": time.time()}
+        data["notices"].append(notice)
+        raised.append(notice)
+    return raised
+
+
+TASTE_OFFER = 3  # learned taste lines not in the preset yet before Bulba offers to put them there
+
+
+def taste_pending(mine):
+    return [t for t in mine["taste"] if t not in mine["taste_in_preset"]]
+
+
+def offer_taste(data, mine):
+    """A note offering to put what it learned about their taste into their preset (once per new batch)."""
+    pending = taste_pending(mine)
+    if len(pending) < TASTE_OFFER or sorted(pending) == sorted(mine.get("taste_offered") or []):
+        return None
+    if any(n["kind"] == "taste" and n["status"] in ("new", "opened") for n in data["notices"]):
+        return None
+    mine["taste_offered"] = pending
+    notice = {"id": uuid.uuid4().hex[:10], "kind": "taste", "label": "taste", "title": "Your taste, in your preset?",
+              "text": "I've learned a few things about what you like. Want them in your preset, so every reply "
+                      "follows them? Bulba words them as instructions; you see the change before it's applied.",
+              "quotes": pending[-5:], "status": "new", "time": time.time()}
+    data["notices"].append(notice)
+    return notice
+
+
+def mark_taste_in_preset(user, lines, undo=False):
+    mine = user_data(user)
+    if undo:
+        mine["taste_in_preset"] = [t for t in mine["taste_in_preset"] if t not in lines]
+    else:
+        mine["taste_in_preset"] += [t for t in lines if t in mine["taste"] and t not in mine["taste_in_preset"]]
+    save_user_data(user, mine)
 
 
 def habits(data, muted, char_name="the character"):
@@ -466,7 +679,7 @@ def memory(user):
     """What it learned about them, for the Extras page: their taste, the habits they said they don't mind,
     and the habits they asked to have fixed (with the model that fixes them)."""
     mine = user_data(user)
-    return {"taste": list(mine["taste"]),
+    return {"taste": list(mine["taste"]), "taste_in_preset": [t for t in mine["taste"] if t in mine["taste_in_preset"]],
             "muted": [{"label": m, "title": title_of(m)} for m in mine["muted"]],
             "fix": [{"label": m, "title": title_of(m)} for m in mine["fix"]],
             "fix_model": "chat" if mine.get("fix_model") == "chat" else "bulba"}
@@ -520,6 +733,28 @@ def set_chat_off(chat_obj, off):
 
 def for_bulba(notice):
     """What Bulba (in the chat) is told when they open a note."""
+    if notice["kind"] == "keeper":
+        facts = "\n".join(f"- {f['fact']} (belongs in the {'lorebook' if f['where'] == 'lore' else 'card'})"
+                          for f in notice.get("facts") or [])
+        return (f"[Bulba Watch noted new lasting facts from the story:\n{facts}\nThey want them kept. Check the card "
+                "(and read_lorebook for world facts); skip anything already there. Then propose the smallest addition: "
+                "propose_card_edit for the character's own facts (add to the right field, keep the rest word for word), "
+                "propose_lore_edit (or propose_lorebook if there's none) for world facts. One short message first.]")
+    if notice["kind"] == "continuity":
+        found = "\n".join(f"- “{f['quote']}”; actually: {f['actually']}" for f in notice.get("found") or [])
+        return (f"[Bulba Watch noticed a recent reply getting the past wrong (retelling it inaccurately, leaving out "
+                f"what mattered, or inventing details):\n{found}\nThey opened the note. Check it "
+                "(read_memory, the card, read_lorebook): if the reply is wrong, offer polish_message to correct those "
+                "words; if the summary, pinned note or lore is wrong instead, propose the fix there. If it's not "
+                "really a contradiction (a lie, a change of mind), say so in a line.]")
+    if notice["kind"] == "taste":
+        lines = "\n".join(f"- {q}" for q in notice.get("quotes") or [])
+        return (f"[Bulba Watch learned these about their taste (they checked them on the Extras page):\n{lines}\n"
+                "They want them in their preset. Read the preset outline (and its 'Your taste' block if there is "
+                "one, with read_block). Then propose_preset_edit: turn each line into a plain instruction to the "
+                "model (append to 'Your taste', or add that block), borrowing tested library wording first "
+                "(find_practice), skipping what the preset already says and anything that contradicts it (say "
+                "which). Pass from_taste with the exact lines you covered. One short message, then the proposal.]")
     if notice["kind"] == "pace":
         return (f"[Bulba Watch noticed: {notice['title']}. {notice['text']} They opened the note. Ask lightly how "
                 "it's going (no lecture, they may just be busy) and offer concrete help with offer_choices: ideas "

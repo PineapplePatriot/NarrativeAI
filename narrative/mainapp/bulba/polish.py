@@ -37,6 +37,10 @@ MEANING = {
     "writing_for_user": "deciding what the person's character says, does or feels",
     "pet_phrase": "a stock phrase this model keeps using",
     "repeated_phrase": "the same phrase, word for word, as in recent replies",
+    "recounting": "reciting earlier events as evidence, keeping score with numbers, summing up the relationship, or a "
+                  "performed witty or therapist-like insight (say it the way this person would just talk, or drop it)",
+    "misremembered_past": "retelling earlier events inaccurately, leaving out what mattered, or inventing details "
+                          "of the past (correct it to what the summary says happened)",
 }
 
 

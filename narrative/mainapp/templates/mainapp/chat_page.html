@@ -17,15 +17,6 @@
 
     <div class="chat-container">
         <audio id="bgMusicPlayer" loop></audio>
-        <div id="musicWidget" class="music-player-widget hidden">
-            <div class="music-icon">🎵</div>
-            <div class="music-info" id="nowPlayingText">Nothing playing</div>
-            <div class="music-controls">
-                <button onclick="togglePlay()" id="playPauseBtn">❚❚</button>
-                <button onclick="stopMusic()">◼</button>
-                <input type="range" min="0" max="1" step="0.1" value="0.3" oninput="setVolume(this.value)" style="width:50px;">
-            </div>
-        </div>
         <div class="chat-panel">
             <div class="resize-handle"></div>
 
@@ -48,6 +39,7 @@
                     <button class="header-btn" id="chatsBtn" onclick="Chats.toggle()" title="Your chats with {{ character.name }}">💬 Chats</button>
                     <button class="header-btn" id="bulbaBtn" title="Something off? Ask Bulba"><span class="emoji-icon">🥔</span> Bulba</button>
                     <button class="header-btn" onclick="openMediaModal('bg')" title="Background"><svg class="icon" viewBox="0 0 24 24"><path d="M21,19V5C21,3.89 20.1,3 19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19M8.5,13.5L11,16.51L14.5,12L19,18H5L8.5,13.5Z"/></svg> BG</button>
+                    <button class="header-btn music-toggle" id="playPauseBtn" type="button" hidden onclick="togglePlay()" title="Play the music">▶</button>
                     <button class="header-btn" onclick="openMediaModal('music')" title="Music"><svg class="icon" viewBox="0 0 24 24"><path d="M21,3V15.5A3.5,3.5 0 0,1 17.5,19A3.5,3.5 0 0,1 14,15.5A3.5,3.5 0 0,1 17.5,12C18.04,12 18.55,12.12 19,12.34V6.47L9,8.6V17.5A3.5,3.5 0 0,1 5.5,21A3.5,3.5 0 0,1 2,17.5A3.5,3.5 0 0,1 5.5,14C6.04,14 6.55,14.12 7,14.34V6L21,3Z"/></svg> Music</button>
                     <a href="{% url 'character' character.slug %}" class="header-btn" title="Edit {{ character.name }}">
                         <svg class="icon" viewBox="0 0 24 24">
@@ -62,7 +54,7 @@
             <div class="tracker-hud" id="trackerHud" hidden></div>
 
             <div class="messages-container" id="messagesContainer">
-                {% for sender, time, text, emotion, char_count, thoughts, game_lines, extras_html, audio_url, polish_json in messages %}
+                {% for sender, time, text, emotion, char_count, thoughts, game_lines, extras_html, audio_url, polish_json, directed, condensed in messages %}
                 <div class="message {{ sender }}" data-index="{{ forloop.counter0 }}" data-emotion="{{ emotion }}" data-char-count="{{ char_count }}">
                     {% if sender == "assistant" %}
                     {% if photo_neutral %}
@@ -86,6 +78,9 @@
                                         d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
                                 </svg>
                             </button>
+
+                            <button class="message-btn condense" type="button" data-action="condense"
+                                data-index="{{ forloop.counter0 }}" title="Condense for the AI: it gets a short version, you still see all of it">🗜</button>
 
                             <button class="message-btn branch" type="button" data-action="branch"
                                 data-index="{{ forloop.counter0 }}" title="Branch: a new chat from this message">
@@ -113,12 +108,14 @@
                         </div>
 
                         {% if thoughts %}<details class="thoughts"><summary>Thoughts</summary><div class="thoughts-text">{{ thoughts }}</div></details>{% endif %}
+                        {% if directed %}<div class="directed-line">🎬 {{ directed }}</div>{% endif %}
                         <div class="message-text markdown-output" data-raw="{{ text|urlencode }}">
                             {{ text }}
                         </div>
                         {% if extras_html %}<div class="story-extras">{% for h in extras_html %}{{ h|safe }}{% endfor %}</div>{% endif %}
                         {% if game_lines %}<div class="game-lines">{% for line in game_lines %}<div>{{ line }}</div>{% endfor %}</div>{% endif %}
                         {% if polish_json %}<div class="polish-line" data-polish="{{ polish_json }}"></div>{% endif %}
+                        {% if condensed %}<div class="condensed-line" data-condensed="{{ condensed }}"></div>{% endif %}
                         <textarea class="edit-textarea" style="display:none;">{{ text }}</textarea>
                         <div class="edit-actions">
                             <button class="edit-btn save-btn" type="button" data-action="save-edit"
@@ -167,20 +164,33 @@
                 <div class="tools-menu" id="toolsMenu">
                     <div class="tool-header"><span>Steer the story</span><span style="font-size:0.8rem; cursor:pointer;" onclick="toggleTools()">✕</span></div>
                     <div class="tool-section">
-                        <span class="tool-label">🎬 Director's note <small>for the next reply only</small></span>
-                        <textarea class="tool-input" id="guidanceInput" rows="2" placeholder="e.g. She dodges the question; the storm reaches the harbour"></textarea>
+                        <span class="tool-label">🎬 Director's note <small>steers the next reply</small></span>
+                        <textarea class="tool-input" id="guidanceInput" rows="3" placeholder="e.g. She dodges the question; the storm reaches the harbour"></textarea>
+                        <div class="tool-grid three">
+                            <button class="tool-action-btn" id="sendNoteBtn" title="Send it now: on its own, or with the message you wrote">▶ Send</button>
+                            <button class="tool-action-btn" id="wordNoteBtn" title="Bulba turns your rough idea into a clear note (costs a little)">🥔 Word it for me</button>
+                            <button class="tool-action-btn" id="noteIdeasBtn" title="Bulba writes two notes from scratch: what would happen, and a twist (costs a little)">✨ Be creative</button>
+                        </div>
+                        <div class="note-ideas" id="noteIdeas" hidden></div>
+                        <p class="tool-help">Send it on its own and the story goes on without a message from you, or write your
+                            message and it goes along with it.</p>
+                    </div>
+
+                    <div class="tool-section">
+                        <span class="tool-label">↻ Redo the last reply</span>
+                        <textarea class="tool-input" id="redoInput" rows="2" placeholder="What should change? e.g. Less description, more of her voice"></textarea>
                         <div class="chip-row">
-                            <button class="preset-btn" onclick="setGuidance('Describe the surroundings.')">🌲 Area</button>
-                            <button class="preset-btn" onclick="setGuidance('Show what {{ character.name|escapejs }} is thinking.')">🧠 Thoughts</button>
-                            <button class="preset-btn" onclick="setGuidance('Skip ahead to the next meaningful moment.')">⏩ Skip time</button>
-                            <button class="preset-btn" onclick="setGuidance('Mostly dialogue this time.')">💬 Talk</button>
-                            <button class="preset-btn" onclick="setGuidance('Keep it short.')">✂️ Shorter</button>
+                            <button class="preset-btn" onclick="setRedo('Describe the surroundings.')">🌲 Area</button>
+                            <button class="preset-btn" onclick="setRedo('Show what {{ character.name|escapejs }} is thinking.')">🧠 Thoughts</button>
+                            <button class="preset-btn" onclick="setRedo('Skip ahead to the next meaningful moment.')">⏩ Skip time</button>
+                            <button class="preset-btn" onclick="setRedo('Mostly dialogue this time.')">💬 Talk</button>
+                            <button class="preset-btn" onclick="setRedo('Keep it short.')">✂️ Shorter</button>
                         </div>
                         <div class="tool-grid two">
-                            <button class="tool-action-btn" id="wordNoteBtn" title="Bulba turns your rough idea into a clear note (costs a little)">🥔 Word it for me</button>
-                            <button class="tool-action-btn" id="rewriteWithNote" title="A new version of the last reply, following the note">↻ Rewrite last reply</button>
+                            <button class="tool-action-btn" id="wordRedoBtn" title="Bulba turns your rough idea into a clear note (costs a little)">🥔 Word it for me</button>
+                            <button class="tool-action-btn" id="rewriteWithNote" title="A new version of the last reply, following this">↻ Rewrite last reply</button>
                         </div>
-                        <p class="tool-help">Sent once, with your next message. Keeps going wrong every time?
+                        <p class="tool-help">Keeps going wrong every time?
                             <button type="button" class="link-btn" id="askBulbaFromNote">Ask Bulba to fix it for good</button></p>
                     </div>
 
@@ -198,6 +208,10 @@
                             <button class="tool-action-btn" onclick="window.Trackers && Trackers.open(); toggleTools()">📊 Trackers</button>
                             <a class="tool-action-btn" href="{% url 'tracker_setup' character.slug %}">⚙ Set up</a>
                         </div>
+                        <details class="tool-details" id="aiSawBox">
+                            <summary>👁 What the AI saw</summary>
+                            <div class="summary-box ai-saw" id="aiSaw">Loading…</div>
+                        </details>
                         <details class="tool-details">
                             <summary>📖 Lore used in the last reply</summary>
                             <div class="summary-box lore-box" id="loreDisplay">{% if character.worldbook %}Send a message to see which entries fire.{% else %}No lorebook attached to this character.{% endif %}</div>
@@ -236,6 +250,9 @@
                             <button type="button" class="preset-btn {% if appearance.layout != 'book' %}on{% endif %}" data-layout="chat">💬 Chat</button>
                             <button type="button" class="preset-btn {% if appearance.layout == 'book' %}on{% endif %}" data-layout="book" title="Replies read as chapters; your messages fold into small markers you can open">📖 Book</button>
                         </div>
+                        <span class="tool-sublabel">🌦 Scene <small>(this browser)</small></span>
+                        <label class="theme-check"><input type="checkbox" id="atmosphereToggle" checked> Weather and time of day over the
+                            background <small>(from the World tracker: <span id="atmosphereNow">nothing to show yet</span>)</small></label>
                         <span class="tool-sublabel">🎨 {{ character.name }}'s dialogue colour</span>
                         <div class="dialogue-colors" id="dialogueColors">
                             {% for c in "#e594f2,#7dd3fc,#86efac,#fcd34d,#fca5a5,#c4b5fd,#f1f5f9"|split:"," %}
@@ -256,6 +273,7 @@
                     <textarea class="input-field" id="messageInput"placeholder="Continue the story with {{character.name}}..." rows="1"></textarea>
                     <div class="magic-btn-container" style="position:absolute; right:60px; bottom:12px;">
                         {% if bulba_ideas %}<button class="mini-tool-btn ideas-btn" id="ideasBtn" onclick="showIdeas()" title="Stuck? Bulba suggests three ways to go on">🥔</button>{% endif %}
+                        <button class="mini-tool-btn mic-btn" id="micBtn" type="button" hidden title="Speak your message (your browser turns it into text; nothing is sent until you press send)">🎤</button>
                         <button class="mini-tool-btn" id="expandBtn" onclick="expandInput()" title="Write my message: the AI writes it (or fleshes out your draft) in your voice, following the preset and lore"><svg viewBox="0 0 24 24" style="width:20px; height:20px; fill:currentColor;"><path d="M19,19V5H5V19H19M19,3A2,2 0 0,1 21,5V19C21,20.11 20.1,21 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3H19M16.7,9.35L15.7,10.35L13.65,8.3L14.65,7.3C14.86,7.08 15.21,7.08 15.42,7.3L16.7,8.58C16.92,8.79 16.92,9.14 16.7,9.35M7,14.94L13.06,8.88L15.12,10.94L9.06,17H7V14.94Z" /></svg></button>
                     </div>
                     <button class="send-btn" id="sendBtn"><svg class="icon" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg></button>
@@ -324,6 +342,12 @@
                 <span style="cursor:pointer; margin-left:auto;" onclick="closeMediaModal()">✕</span>
             </div>
             <div class="modal-content">
+                <div class="music-now" id="musicNow" hidden>
+                    <span>🎵 <b id="nowPlayingText">Nothing playing</b></span>
+                    <label>Volume <input type="range" id="musicVolume" min="0" max="1" step="0.05" value="0.3" oninput="setVolume(this.value)"></label>
+                </div>
+                <label class="theme-check music-follow" id="musicFollowRow" hidden><input type="checkbox" id="musicFollow"> Let the music
+                    follow the scene <small>(switches between the built-in tracks as the mood changes; one tiny call every few replies)</small></label>
                 <div id="mediaGrid" class="media-grid"></div>
                 <div class="upload-area" onclick="document.getElementById('fileUpload').click()">
                     + Upload File
@@ -371,6 +395,7 @@
     <script src="{% static 'mainapp/vendor/purify-3.4.16.min.js' %}"></script>
     <script>
         window.SAVED_MUSIC = JSON.parse('{{ current_music|escapejs }}');
+        window.MUSIC_FOLLOW = {{ music_follow|yesno:"true,false" }};
         window.SAVED_BG = "{{ current_bg|escapejs }}";
         window.INIT_PHOTO_URL = "{{ photo_url|default:'' }}";
         window.INIT_PHOTO_SECOND = "{{ photo_second|default:'' }}";
@@ -404,6 +429,7 @@
     </aside>
     {{ trackers_data|json_script:"trackers-data" }}
     {{ watch_data|json_script:"watch-data" }}
+    <script src="{% static 'mainapp/js/atmosphere.js' %}?v={% now 'U' %}"></script>
     <script src="{% static 'mainapp/js/trackers.js' %}?v={% now 'U' %}"></script>
     <script src="{% static 'mainapp/js/regex_rules.js' %}?v={% now 'U' %}"></script>
     <script src="{% static 'mainapp/js/chat_page.js' %}?v={% now 'U' %}"></script>

@@ -70,7 +70,7 @@ function fillMemory() {
         ? `<li class="editing"><input type="text" id="memoryEdit" value="${esc(t)}" maxlength="200">
              <span class="memory-btns"><button type="button" data-save="${i}">Save</button>
              <button type="button" class="ghost" data-cancel>Cancel</button></span></li>`
-        : `<li><span>${esc(t)}</span><span class="memory-btns">
+        : `<li><span>${esc(t)}${(mem.taste_in_preset || []).includes(t) ? ' <small class="in-preset">✓ in your preset</small>' : ''}</span><span class="memory-btns">
              <button type="button" class="x" data-edit="${i}" title="Reword">✎</button>
              <button type="button" class="x" data-forget="${i}" title="Remove">✕</button></span></li>`).join('')
         : '<li class="empty">Nothing yet. It learns as you rewrite or edit replies.</li>';

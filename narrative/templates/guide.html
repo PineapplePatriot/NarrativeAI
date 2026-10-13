@@ -85,11 +85,20 @@
             tested wording from well-known community presets over writing its own.</li>
         <li>It can also fine-tune: model settings like reply length, which trackers a character has, alternate
             greetings, and making the other mood pictures from one.</li>
+        <li><b>Story systems</b> (ask Bulba): rules the app keeps so the story can't rush or forget them. A slow
+            <b>meter</b> such as Trust moves one step at most per scene and then holds for a few replies (and can fade
+            back if neglected); a <b>story clock</b> moves with what happens; <b>events</b> arrive when the clock reaches
+            them ("Day 3, 20:00: the masquerade"); an opt-in <b>random table</b> lets chance decide what you asked it to.
+            Only scenes you keep count: a swiped, rewritten or edited reply moves nothing, and deleting messages rewinds.
+            They show at the top of the <kbd>▤</kbd> panel, cost nothing extra (they ride on the tracker update) and
+            Bulba can explain them in a chat ("why is he still cold?"). You can also set them up by hand on the
+            character's tracker page (⚙ in the panel).</li>
         <li><b>Bulba Watch</b> (on by default): after every reply, free checks catch sentences that keep starting the
             same way and phrases repeated word for word; every few replies, Bulba also reads the latest ones for habits that
             keep repeating, such as the same sentence shapes, over-explaining, big wise lines a moment hasn't earned, or a
             character acting out of character. It learns what you like from the replies you rewrite or edit, and notices
-            when you take much longer than usual to reply. One slip is nothing; when something keeps happening, the
+            when you take much longer than usual to reply. The same read catches a reply getting the past wrong (retelling events inaccurately, leaving out what mattered, inventing details),
+            and new facts worth keeping in the card or lorebook (Bulba proposes them; you Apply). One slip is nothing; when something keeps happening, the
             <kbd>🥔 Bulba</kbd> button gets a number and a small note offers to look at it together. <i>I don't mind
             this</i> stops that note for good; <i>Fix this automatically</i> turns on <b>Bulba's polish</b> for it: every new
             reply, swipe or continued reply gets a quick pass that rewrites just the sentences with that habit (Bulba's
@@ -103,20 +112,36 @@
     <h2 id="chat">The chat page</h2>
     <h3>Messages</h3>
     <ul>
-        <li>Hover or tap a message for <kbd>edit</kbd>, <kbd>branch</kbd> (a new chat that starts from that message)
-            and <kbd>delete</kbd>.</li>
+        <li>Hover or tap a message for <kbd>edit</kbd>, <kbd>🗜</kbd> (condense it: the AI gets a short version, you
+            still see all of it; edit, redo or undo under the message), <kbd>branch</kbd> (a new chat that starts from that
+            message) and <kbd>delete</kbd>.</li>
         <li><kbd>💬 Chats</kbd> in the header lists all chats with this character, including branches.</li>
+        <li><b>Atmosphere:</b> with the World tracker on, the scene shows the time of day (night, dusk, dawn) and the
+            weather (rain, a storm, snow, fog) from it, for free; switch it off in the pen menu → This chat. The music's
+            ▶/❚❚ sits in the header; in the music picker, <i>Let the music follow the scene</i> switches between the built-in
+            tracks as the mood changes (one tiny call every few replies). 🎤 in the message box lets you speak your message.</li>
         <li>The small button inside the message box, <b>Write my message</b>, has the AI write your next message (or
             flesh out your draft) in your voice. Nothing is sent until you press send.</li>
     </ul>
     <h3>The pen menu <kbd>✎</kbd></h3>
     <ul>
-        <li><b>Director's note:</b> for the next reply only.</li>
+        <li><b>Director's note:</b> steers the next reply. <kbd>▶ Send</kbd> sends it on its own (the story goes on
+            without a message from you) or with the message you wrote; <i>Word it for me</i> turns a rough idea into a clear
+            note; <i>Be creative</i> has Bulba write two: what would naturally happen, and a twist. The reply shows a small
+            🎬 line with the note that steered it.</li>
+        <li><b>Redo the last reply:</b> shortcuts (area, thoughts, skip time, talk, shorter) or your own words, then
+            <i>Rewrite last reply</i>.</li>
         <li><b>Pinned note:</b> something the AI should keep in mind for the whole chat.</li>
-        <li><b>Story memory:</b> the summary (for long chats), the trackers and which lore entries the last reply used.</li>
+        <li><b>Story memory:</b> the summary (for long chats), the trackers, which lore entries the last reply used,
+            and <i>What the AI saw</i>: everything the last reply got besides the preset and the messages. In long chats,
+            <b>recall</b> brings back up to three older messages that had fallen out of the AI's context when the scene
+            mentions them again (rare words only; free). Bulba in the chat
+            sees the same and can fix a summary piece or the pinned note (Apply/Undo).</li>
         <li><b>Actions:</b> continue the last reply, spellcheck your message.</li>
         <li><b>This chat:</b> who you are in this chat, the dialogue colour, the layout (chat bubbles, or a
             <i>book</i> where replies read as chapters and your messages fold away), and this month's spending.</li>
+        <li>When you steer more than you play (director's notes, or messages Bulba Watch reads as directions), or switch to the
+            book layout, Bulba offers <b>director mode</b> once per chat: one click, with Undo.</li>
     </ul>
 
     <h2 id="extras">Extras <span style="font-weight:400;font-size:.9rem">(on the home page)</span></h2>
@@ -152,7 +177,8 @@
     <ul class="credits">
         <li>Community presets used as tested wording: <a href="https://www.reddit.com/r/SillyTavernAI/s/TaStxDj7Ec"
             target="_blank" rel="noopener">Realistic Frankenstein</a>, Pura's Director preset, Celia.</li>
-        <li>Tracker ideas after Marinara Engine; format after SillyTavern.</li>
+        <li>Tracker ideas after Marinara Engine; format after SillyTavern. Story systems after
+            <a href="https://github.com/MentallyQuill/Lattice" target="_blank" rel="noopener">Lattice</a>.</li>
     </ul>
     {% if request.user.is_authenticated %}<p><a href="{% url 'home' %}">← Back to your characters</a></p>
     {% else %}<p><a href="{% url 'users:login' %}">Log in →</a></p>{% endif %}

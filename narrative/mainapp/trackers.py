@@ -16,6 +16,8 @@ Two tracker kinds:
 import json
 import re
 
+from mainapp import story
+
 PANELS = [
     {"id": "scene", "label": "Scene", "icon": "🌍"},
     {"id": "characters", "label": "Characters", "icon": "🎭"},
@@ -165,6 +167,7 @@ def normalize_config(raw, game_mode=None, milestones=False, scrapbook=False):
         "game": raw.get("game") if raw.get("game") in GAME_CHOICES else "default",
         "game_owned": game_owned,
         "custom_fields": normalize_custom_fields(raw.get("custom_fields")),
+        "systems": story.normalize_systems(raw.get("systems")),  # Lattice-style story systems (mainapp/story.py)
         "layout": {
             "hud": bool(layout.get("hud", True)),        # pill strip above the chat
             "panel": bool(layout.get("panel", True)),    # tabbed side panel

@@ -5,10 +5,10 @@ pictures spends money, so it's a button they press, never a proposal Bulba appli
 """
 import copy
 
-from mainapp import presets, samplers as sampler_mod, trackers as tracker_mod
+from mainapp import presets, samplers as sampler_mod, story, trackers as tracker_mod
 from mainapp.bulba.lore import target_character
 
-KINDS = ("samplers", "trackers", "greetings", "card_rules", "lore_settings", "voices")
+KINDS = ("samplers", "trackers", "greetings", "card_rules", "lore_settings", "voices", "story_systems")
 LORE_SETTINGS = {"scan_depth": (1, 50), "token_budget": (200, 20000), "recursive_scan": None}
 # What each tracker id means, for Bulba (the panel's own help text)
 TRACKER_IDS = [t["id"] for t in tracker_mod.TRACKERS]
@@ -46,6 +46,14 @@ def tool_read_settings(session, args):
         out["trackers"] = [{"id": t["id"], "label": t["label"], "help": t.get("help", ""),
                             "on": config["trackers"][t["id"]]["on"]} for t in tracker_mod.TRACKERS]
         out["custom_fields"] = config["custom_fields"]
+        out["story_systems"] = [{**s, "reads_as": story.describe(s)} for s in config["systems"]]
+        chat = getattr(session, "chat", None)
+        if config["systems"] and chat is not None and chat.character_id == character.id:
+            from mainapp import chats
+            st = story.state_of(chats.read(chat).get("story"), config["systems"])
+            out["story_now"] = {"meters": {m["id"]: st["values"].get(m["id"]) for m in story.of_type(config["systems"], "meter")},
+                                **({"story_time": story.clock_text(st["minutes"])} if story.of_type(config["systems"], "clock") else {}),
+                                "recent_changes": st["log"][-8:]}
         out["alternate_greetings"] = list(character.alternate_greetings or [])
         out["card_rules"] = [{"id": r["id"], "name": r.get("name") or r["id"], "enabled": r.get("enabled", True)}
                              for r in regex_rules.card_rules(character)]
@@ -104,6 +112,29 @@ def tool_propose_trackers(session, args):
     return _propose(session, "trackers", f"Trackers for {character.name}", summary,
                     {"character_id": character.id, "on": turn_on, "off": turn_off, "custom_fields": fields},
                     args.get("why"))
+
+
+def tool_propose_story_systems(session, args):
+    character = target_character(session)
+    if character is None:
+        return {"error": "No character yet."}, []
+    raw = args.get("systems")
+    if not isinstance(raw, list):
+        return {"error": "Give the full new list of systems ([] removes them all)."}, []
+    systems = story.normalize_systems(raw)
+    dropped = len([r for r in raw if r]) - len(systems)
+    old = {s["id"]: s for s in tracker_mod.normalize_config(character.tracker_config)["systems"]}
+    summary = [("Changed: " if s["id"] in old and old[s["id"]] != s else "" if s["id"] in old else "New: ")
+               + story.describe(s) for s in systems]
+    summary += [f"Removed: {s['label']}" for sid, s in old.items() if sid not in {x["id"] for x in systems}]
+    if dropped:
+        summary.append(f"({dropped} left out: an event needs guidance, a table needs entries)")
+    if not summary:
+        return {"error": "Nothing to change."}, []
+    if story.of_type(systems, "event") and not story.of_type(systems, "clock"):
+        return {"error": "Events need a story clock (add one: {\"type\": \"clock\"})."}, []
+    return _propose(session, "story_systems", f"Story systems for {character.name}", summary,
+                    {"character_id": character.id, "systems": systems}, args.get("why"))
 
 
 def tool_propose_greetings(session, args):
@@ -284,6 +315,12 @@ def apply(session, p):
         character.tracker_config = config
         character.save(update_fields=["tracker_config"])
         return f"{character.name}'s trackers are updated; they fill in over the next replies."
+    if kind == "story_systems":
+        p["undo"] = {"character_id": character.id, "config": copy.deepcopy(character.tracker_config)}
+        character.tracker_config = {**(character.tracker_config or {}), "systems": data["systems"]}
+        character.save(update_fields=["tracker_config"])
+        return (f"{character.name}'s story systems are set; they start counting from the next kept reply "
+                "(the tracker panel shows them).")
     if kind == "greetings":
         p["undo"] = {"character_id": character.id, "greetings": list(character.alternate_greetings or [])}
         character.alternate_greetings = data["greetings"]
@@ -340,7 +377,7 @@ def undo(session, p):
     character = Character.objects.filter(author=session.user, id=before.get("character_id")).first()
     if character is None:
         return
-    if kind == "trackers":
+    if kind in ("trackers", "story_systems"):
         character.tracker_config = before.get("config") or {}
         character.save(update_fields=["tracker_config"])
     elif kind == "greetings":
@@ -363,7 +400,8 @@ def undo(session, p):
 def tool_defs(fn, STR):
     return [
         fn("read_settings", "The settings you can tune, as they are now: model settings of the active preset (and "
-           "which ones this model ignores), the character's trackers, custom tracker fields, alternate greetings, "
+           "which ones this model ignores), the character's trackers, custom tracker fields, story systems (and, "
+           "in a chat, their values now), alternate greetings, "
            "the card's own text rules and lorebook settings. Read before proposing any of these.", {}),
         fn("propose_samplers", "Change model settings in the active preset: reply length (max_tokens), temperature, "
            "top_p, min_p, penalties, reasoning_effort and the rest (read_settings has the list). Only ones this model "
@@ -382,6 +420,30 @@ def tool_defs(fn, STR):
                 "min": {"type": "number"}, "max": {"type": "number"}}, "required": ["label"]},
                 "description": "The full new list (replaces the old one); [] removes them"},
             "why": STR}, ["why"]),
+        fn("propose_story_systems", "Set the character's story systems (rules the app keeps, the model only plays "
+           "along): meter = a slow relationship or tension value (trust, rivalry) that moves at most `step` per "
+           "scene, holds for `cooldown` replies after moving, and can drift back to `baseline` every `drift_days` "
+           "story days; clock = story time (moved by what happens, from start_day/start_time); event = guidance "
+           "that enters the story when the clock reaches it (at_day/at_time, once or every_days); table = a weighted "
+           "random list the model draws from when its `when` comes up (opt-in: only if they want chance). Only "
+           "kept scenes count: a swiped or regenerated reply moves nothing. Give the FULL new list (keep the ids "
+           "of ones you keep, read_settings shows them; [] removes all). One or two systems the story really "
+           "needs, not a game sheet.",
+           {"systems": {"type": "array", "maxItems": 12, "items": {"type": "object", "properties": {
+               "type": {"type": "string", "enum": list(story.TYPES)}, "id": STR, "label": STR,
+               "min": {"type": "integer"}, "max": {"type": "integer"}, "start": {"type": "integer"},
+               "baseline": {"type": "integer"}, "step": {"type": "integer"}, "cooldown": {"type": "integer"},
+               "drift_days": {"type": "integer"},
+               "about": {"type": "string", "description": "meter: what moves it, in story terms"},
+               "start_day": {"type": "integer"}, "start_time": {"type": "string", "description": "HH:MM"},
+               "guidance": {"type": "string", "description": "event: what happens / what the reply should bring in"},
+               "at_day": {"type": "integer"}, "at_time": {"type": "string", "description": "HH:MM"},
+               "every_days": {"type": "integer"},
+               "entries": {"type": "array", "items": {"type": "object", "properties": {
+                   "text": STR, "weight": {"type": "integer"}}, "required": ["text"]}},
+               "when": {"type": "string", "description": "table: the situation it is drawn for"}},
+               "required": ["type", "label"]}},
+            "why": STR}, ["systems", "why"]),
         fn("propose_greetings", "Set the character's alternate greetings (other first messages a new chat can "
            "swipe to). Give the full new list; keep the ones they like word for word.",
            {"greetings": {"type": "array", "maxItems": 12, "items": STR}, "why": STR}, ["greetings", "why"]),
@@ -414,6 +476,6 @@ HANDLERS = {"read_settings": tool_read_settings, "propose_samplers": tool_propos
             "propose_trackers": tool_propose_trackers, "propose_greetings": tool_propose_greetings,
             "propose_card_rules": tool_propose_card_rules, "propose_lore_settings": tool_propose_lore_settings,
             "offer_mood_pictures": tool_offer_mood_pictures, "read_voices": tool_read_voices,
-            "propose_voices": tool_propose_voices}
+            "propose_voices": tool_propose_voices, "propose_story_systems": tool_propose_story_systems}
 TURN_ENDING = {"propose_samplers", "propose_trackers", "propose_greetings", "propose_card_rules",
-               "propose_lore_settings", "offer_mood_pictures", "propose_voices"}
+               "propose_lore_settings", "offer_mood_pictures", "propose_voices", "propose_story_systems"}

@@ -52,6 +52,33 @@ original kept) and start fixing a habit automatically (fix_automatically, Apply 
 message" is polished too. Setup: the extras in one form (no AI), then the basics form (no AI); the story
 extras in a second form with Bulba's picks pre-ticked.
 
+Director's notes: the pen menu has the note on top (Send on its own or with a message, Word it for me, Be
+creative: a logical and a creative note) and "Redo the last reply" below (shortcuts, its own wording, Rewrite).
+Replies show the note that steered them (🎬). Bulba offers director mode once per chat when they steer more than
+play (director's notes in 3 of the last 5 turns, or the Watch reader judging their messages as directions) or
+switch to the book layout; one click, with Undo.
+
+Bulba in a chat now sees what the AI saw for the last reply (summary, pinned note, trackers, lore that fired;
+also a pen-menu panel) and can fix a summary piece or the pinned note; it reads and changes text rules in the
+preset and in their own list (the card's stay on/off). Learned taste goes into the preset through a Watch note
+("Your taste, in your preset?").
+
+Story Keeper and continuity ride on the same Watch read (no extra call): the reader sees the summary, pinned
+note, card scenario and lore titles; getting the past wrong (retelling events inaccurately, often in dialogue
+to make a point, leaving out what mattered, inventing details) raises a note at once and counts as a habit
+("Getting past events wrong", also fixable by the polish); new lasting facts pile up and, two or more, raise "Worth keeping?" (Bulba
+proposes the card or lore addition). Single messages can be condensed for the AI (🗜).
+
+Atmosphere (free unless noted): weather and time of day over the scene from the World tracker; the music's
+play/pause in the header (and the double-press bug fixed); "Let the music follow the scene" (opt-in, a tiny pick on
+the background model every 3 replies, built-in tracks, crossfade); voice input with the browser's speech-to-text.
+Text reveal is covered by streaming.
+
+Free recall (mainapp/recall.py): when messages were left out to fit the context, the ones sharing rare words with
+the newest two messages come back under the summary ("Earlier in the story"), newest 3 at most; a word in more
+than 30% of messages counts for nothing. Shown in "What the AI saw" and to Bulba. "Recounting and keeping score"
+is a Watch habit, a cookbook entry (4.16) and a known Claude habit.
+
 Open (Bulba Watch):
 - **First real polish run**: is MiMo's rewrite faithful to the voice, and what does a pass cost? *Needs Anya.*
 - **Tune the numbers** after real use: every 5 replies, 3 of the last 6, the pace thresholds. *Needs Anya.*
@@ -78,6 +105,11 @@ Open:
   short tagline); sprites with a transparent background stand in the scene.
 
 ## Chat
+
+Built (13 October): **story systems** after Lattice (`mainapp/story.py`, Bulba's `propose_story_systems`):
+slow meters with step, cooldown and drift; a story clock with events; opt-in weighted random tables (a tool like
+the dice); only kept scenes count; deleting messages rewinds. Editable by hand on the tracker setup page too. Not yet: a
+real run to see whether the tracker model's −1/0/+1 calls and time estimates are sensible.
 
 - **A picture mid-scene** as a story extra. Medium.
 - **Pictures in display rules**: images are blocked for safety, so presets that draw pictures with regex

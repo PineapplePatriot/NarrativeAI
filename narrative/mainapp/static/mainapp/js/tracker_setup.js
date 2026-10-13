@@ -84,6 +84,111 @@ $('addFieldBtn').onclick = () => {
     $('customFields').querySelector('.field-row:last-child input').focus();
 };
 
+// --- Story systems (mainapp/story.py): meters, the story clock, events, random tables ---
+const SYSTEM_INFO = {
+    meter: ['🎚', 'Slow meter', 'A value like Trust that moves at most one step per scene, then holds for a few replies.'],
+    clock: ['🕰', 'Story clock', 'Story time. It moves with what happens (a talk: minutes; a night: hours), nothing else.'],
+    event: ['📅', 'Event', 'Comes into the story when the clock reaches it: once, or every few days.'],
+    table: ['🃏', 'Random table', 'A weighted list the AI draws from when its situation comes up. Only if you want chance.'],
+};
+const toHHMM = m => (m === null || m === undefined || m === '') ? '' :
+    `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+const hasClock = () => config.systems.some(s => s.type === 'clock');
+
+function numInput(key, value, label, attrs = '') {
+    return `<label class="mini">${label}<input type="number" class="num" data-s="${key}" value="${esc(value ?? '')}" ${attrs}></label>`;
+}
+
+function systemCard(s, i) {
+    const [icon, kind, help] = SYSTEM_INFO[s.type];
+    let body = '';
+    if (s.type === 'meter') {
+        body = `<div class="mini-row">${numInput('min', s.min, 'From')}${numInput('max', s.max, 'To')}
+                  ${numInput('start', s.start, 'Starts at')}${numInput('step', s.step, 'Most per scene', 'min="1"')}
+                  ${numInput('cooldown', s.cooldown, 'Then holds for (replies)', 'min="0"')}</div>
+                <div class="mini-row">${numInput('baseline', s.baseline, 'Fades back toward', 'placeholder="no fading"')}
+                  ${numInput('drift_days', s.drift_days || '', 'one step every (story days)', 'min="0" placeholder="never"')}</div>
+                <input data-s="about" value="${esc(s.about)}" placeholder="What moves it, in story words (e.g. he keeps his word; she sees him at his worst)">`;
+    } else if (s.type === 'clock') {
+        body = `<div class="mini-row">${numInput('start_day', s.start_day, 'Starts on day', 'min="1"')}
+                  <label class="mini">at<input type="time" data-s="start_time" value="${toHHMM(s.start_time)}"></label></div>`;
+    } else if (s.type === 'event') {
+        body = `<div class="mini-row">${numInput('at_day', s.at_day, 'On day', 'min="1" placeholder="1"')}
+                  <label class="mini">at<input type="time" data-s="at_time" value="${toHHMM(s.at_time)}"></label>
+                  ${numInput('every_days', s.every_days || '', 'Repeats every (days)', 'min="0" placeholder="once"')}</div>
+                <input data-s="guidance" value="${esc(s.guidance)}" placeholder="What happens (e.g. the masquerade begins; guests arrive masked)">`;
+    } else {
+        body = `<input data-s="when" value="${esc(s.when)}" placeholder="When it's drawn (e.g. when they walk out into the city)">
+                <div class="entries">${(s.entries || []).map((e, j) => `
+                  <div class="entry" data-j="${j}"><input data-e="text" value="${esc(e.text)}" placeholder="A result">
+                    <label class="mini">weight<input type="number" class="num" min="1" data-e="weight" value="${e.weight}"></label>
+                    <button type="button" class="danger small" data-act="entry-remove" title="Remove">✕</button></div>`).join('')}</div>
+                <button type="button" class="secondary small" data-act="entry-add">+ Result</button>`;
+    }
+    const needsClock = s.type === 'event' && !hasClock();
+    return `<div class="system ${needsClock ? 'warn' : ''}" data-i="${i}">
+      <div class="system-head"><span class="kind">${icon} ${kind}</span>
+        ${s.type === 'clock' ? '' : `<input class="label" data-s="label" value="${esc(s.label)}" placeholder="Name">`}
+        <button type="button" class="danger small" data-act="remove" title="Remove">✕</button></div>
+      <p class="help">${help}${needsClock ? ' <b>Needs a story clock to happen.</b>' : ''}</p>
+      ${body}</div>`;
+}
+
+function renderSystems() {
+    config.systems = config.systems || [];
+    $('storySystems').innerHTML = config.systems.map(systemCard).join('') || '<p class="help">None yet.</p>';
+    document.querySelector('[data-add="clock"]').disabled = hasClock();
+    $('storyNote').textContent = config.systems.some(s => s.type === 'meter')
+        ? 'Changing where a meter starts affects new chats; chats already going keep their current value.' : '';
+}
+
+function readSystemInput(el, s) {
+    const key = el.dataset.s;
+    if (el.type === 'time') {
+        const [h, m] = el.value.split(':').map(Number);
+        s[key] = el.value ? h * 60 + m : null;
+    } else if (el.type === 'number') {
+        s[key] = el.value === '' ? (key === 'baseline' || key === 'at_day' ? null : 0) : Number(el.value);
+    } else s[key] = el.value;
+}
+
+$('storySystems').addEventListener('input', e => {
+    const card = e.target.closest('.system');
+    if (!card) return;
+    const s = config.systems[Number(card.dataset.i)];
+    if (e.target.dataset.s) readSystemInput(e.target, s);
+    else if (e.target.dataset.e) {
+        const entry = s.entries[Number(e.target.closest('.entry').dataset.j)];
+        entry[e.target.dataset.e] = e.target.dataset.e === 'weight' ? Math.max(1, Number(e.target.value) || 1) : e.target.value;
+    }
+    markDirty();
+});
+$('storySystems').addEventListener('click', e => {
+    const act = e.target.dataset.act;
+    const card = e.target.closest('.system');
+    if (!act || !card) return;
+    const i = Number(card.dataset.i);
+    if (act === 'remove') config.systems.splice(i, 1);
+    else if (act === 'entry-add') config.systems[i].entries.push({ text: '', weight: 1 });
+    else if (act === 'entry-remove') config.systems[i].entries.splice(Number(e.target.closest('.entry').dataset.j), 1);
+    markDirty(); renderSystems();
+});
+document.querySelector('#storySystemsCard .add-row').addEventListener('click', e => {
+    const type = e.target.dataset.add;
+    if (!type) return;
+    const fresh = {
+        meter: { type, label: 'Trust', min: 0, max: 10, start: 2, step: 1, cooldown: 2, baseline: null, drift_days: 0, about: '' },
+        clock: { type, label: 'Clock', start_day: 1, start_time: 8 * 60 },
+        event: { type, label: '', at_day: 1, at_time: 20 * 60, every_days: 0, guidance: '' },
+        table: { type, label: '', when: '', entries: [{ text: '', weight: 2 }, { text: '', weight: 1 }] },
+    }[type];
+    if (type === 'clock') config.systems.unshift(fresh); else config.systems.push(fresh);
+    markDirty(); renderSystems();
+    const cards = $('storySystems').querySelectorAll('.system');
+    const input = cards[type === 'clock' ? 0 : cards.length - 1].querySelector('input');
+    if (input) input.focus();
+});
+
 // --- Layout ---
 function renderLayout() {
     $('layoutHud').checked = config.layout.hud;
@@ -128,5 +233,5 @@ $('saveBtn').onclick = async () => {
     }
 };
 
-function renderAll() { renderPanels(); renderCustom(); renderLayout(); }
+function renderAll() { renderPanels(); renderCustom(); renderSystems(); renderLayout(); }
 renderAll();
