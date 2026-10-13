@@ -4574,6 +4574,42 @@ class PolishChatTests(WatchChatTests):
         self.assertIsNone(chats.polish_of(tuple(self.saved_messages()[-1])))
         self.assertEqual(self.post({"action": "polish_undo", "index": index}).status_code, 400)
 
+    def test_the_broom_polishes_an_older_reply_and_shows_while_fixing(self):
+        from mainapp import chats
+        self.post({"action": "chat", "message": "First."})
+        page = self.client.get(self.url)
+        self.assertContains(page, 'data-action="polish"')         # on the AI's replies (hidden until fixing)
+        self.assertEqual(page.context["watch_data"]["fixing"], [])
+        self.approve()
+        self.assertEqual(self.post({"action": "watch_settings"}).json()["watch"]["fixing"],
+                         ["Explaining what you already got"])
+        self.polish_answer = {"fixes": [{"find": "A reply.", "replace": "A quieter reply."}]}
+        data = self.post({"action": "polish", "now": True, "index": 2}).json()
+        self.assertEqual((data["changed"], data["index"], data["reply"]), (True, 2, "A quieter reply."))
+        self.assertEqual(chats.polish_of(tuple(self.saved_messages()[2]))["original"], "A reply.")
+        self.assertIn("no reply to polish", self.post({"action": "polish", "now": True, "index": 1}).json()["reason"])
+
+    def test_watch_judges_what_the_model_wrote_and_says_when_a_fixed_habit_persists(self):
+        from mainapp import chats
+        from mainapp.bulba import watch
+        tic = "Something dry and private moved at the corner of his mouth."
+        msgs = [("assistant", "", "Hello.", "", 1)]
+        for n in range(3):
+            original = f"Reply {n}. {tic}"
+            polished = chats.with_polish(("assistant", "", original, "", 1), f"Reply {n}.",
+                                         {"original": original, "fixes": [{"before": tic, "after": ""}]})
+            msgs += [("user", "", f"Line {n}.", "", 1), polished]
+        self.assertEqual(watch.model_text(msgs[-1]), f"Reply 2. {tic}")
+        data = {"log": [], "checked": [], "free_checked": [], "notices": []}
+        raised = []
+        for k in range(3, len(msgs) + 1, 2):  # after each reply
+            watch.free_checks(data, msgs[:k])
+            raised += watch.habits(data, [], "Rose", fixing=["repeated_phrase"])
+        self.assertEqual(len(raised), 1)
+        self.assertTrue(raised[0]["persisting"])
+        self.assertIn("still writes it", raised[0]["text"])
+        self.assertIn("propose_preset_edit", watch.for_bulba(raised[0]))
+
     def test_regenerate_and_continue_are_polished_too(self):
         self.approve()
         self.post({"action": "chat", "message": "Go on."})

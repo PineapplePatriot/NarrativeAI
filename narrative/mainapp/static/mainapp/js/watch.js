@@ -34,7 +34,16 @@ window.Watch = (function () {
         return data;
     }
 
+    // 🧹 on replies shows while Bulba fixes some habit: it says what's on, and polishes that reply on request
+    function polishButtons() {
+        const fixing = state.fixing || [];
+        document.body.classList.toggle('polish-on', fixing.length > 0);
+        window.POLISH_TITLE = fixing.length ? `Bulba fixes: ${fixing.join(', ')}. Press to polish this reply now.` : '';
+        document.querySelectorAll('.message-btn.polish-btn').forEach(b => { b.title = window.POLISH_TITLE; });
+    }
+
     function render() {
+        polishButtons();
         badge.hidden = !state.count;
         badge.textContent = state.count > 9 ? '9+' : String(state.count || '');
         btn.title = state.count ? 'Bulba noticed something' : 'Something off? Ask Bulba';

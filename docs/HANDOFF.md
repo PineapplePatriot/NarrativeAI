@@ -154,6 +154,15 @@ Turn it off / Off in this chat); switch on the Extras page. Nothing is collected
   saw, Watch's number on the potato, the microphone, trackers and story systems), and on the fast route offers what
   it skipped. Story systems are an optional step in the story stage's progress.
 
+### 10. After the second live test
+- Director mode frames every direction (and director's notes): write the scene in full, their own character
+  included (Pura's "never treat {{user}} as a character" made models leave it out). The offer comes once per user.
+- Watch reads every 3 replies and judges what the model wrote (a polished reply by its original): a habit Bulba
+  keeps polishing away raises a "still writes it" note that points to the preset.
+- "Fix this automatically" polishes the latest reply right away; 🧹 on any AI reply (shown only while some habit
+  is being fixed, its tooltip says which) polishes that reply. Quotes in notes show as written (colours rendered).
+- Small calls on Bulba's model have room to think (Be creative came back empty); the mic is an icon, not an emoji.
+
 ## Decisions the user made this session
 
 - Progress counts questions; skip hint always visible with the quality warning; fast route = preset → persona →

@@ -83,8 +83,9 @@ def _repeated(text, others):
     return watch.repeated_phrases(texts, -1)
 
 
-def _free_hits(messages, habits):
-    return free_hits_text(str(messages[-1][2]), others_before(messages, len(messages) - 1), habits)
+def _free_hits(messages, habits, index=None):
+    index = len(messages) - 1 if index is None else index
+    return free_hits_text(str(messages[index][2]), others_before(messages, index), habits)
 
 
 def _examples(chat_obj, label):
@@ -149,28 +150,30 @@ def polish_text(user, character, chat_obj, text, others, summary, habits, whose=
     return apply_fixes(text, _parse(answer))
 
 
-def why_not_now(user, chat_obj, messages):
-    """When they ask for the newest reply to be polished right away ("Fix this automatically"): a reason in
-    plain words when there's nothing to do, else None."""
-    if not messages or messages[-1][0] != "assistant":
-        return "There's no reply to polish yet; the next one will be."
+def why_not_now(user, chat_obj, messages, index=None):
+    """When they ask for a reply to be polished right away ("Fix this automatically", or 🧹 on a message): a
+    reason in plain words when there's nothing to do, else None."""
+    index = len(messages) - 1 if index is None else index
+    if not messages or not 0 <= index < len(messages) or messages[index][0] != "assistant":
+        return "There's no reply to polish there."
     if watch.chat_data(chat_obj).get("off"):
         return "Bulba Watch is off in this chat."
     habits = approved(user)
     if not habits:
         return "No habits are set to be fixed."
-    if set(habits) <= watch.FREE_LABELS and not _free_hits(messages, habits):
-        return "The latest reply doesn't have it; new replies will be checked for it."
+    if set(habits) <= watch.FREE_LABELS and not _free_hits(messages, habits, index):
+        return "That reply doesn't have it; new replies will be checked for it."
     return None
 
 
-def polish(user, character, chat_obj, messages, summary=""):
-    """Polishes the newest reply with the habits they approved."""
+def polish(user, character, chat_obj, messages, summary="", index=None):
+    """Polishes a reply (the newest by default) with the habits they approved."""
+    index = len(messages) - 1 if index is None else index
     habits = approved(user)
     if set(habits) <= watch.FREE_LABELS:
-        habits = _free_hits(messages, habits) or habits
-    return polish_text(user, character, chat_obj, str(messages[-1][2]),
-                       others_before(messages, len(messages) - 1), summary, habits)
+        habits = _free_hits(messages, habits, index) or habits
+    return polish_text(user, character, chat_obj, str(messages[index][2]),
+                       others_before(messages, index), summary, habits)
 
 
 def habits_for_draft(user, chat_obj, text, others):

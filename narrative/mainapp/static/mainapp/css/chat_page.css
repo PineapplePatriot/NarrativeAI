@@ -1787,7 +1787,7 @@ body:has(#toolsMenu.show) .watch-card { display: none; }  /* the pen menu wins w
 .condensed-line .condensed-text { flex-basis: 100%; font-style: italic; white-space: pre-wrap; }
 .condensed-line .condensed-text textarea { width: 100%; font: inherit; font-style: normal; background: rgba(0,0,0,.2); color: inherit;
     border: 1px solid rgba(255,255,255,.2); border-radius: 6px; padding: 6px; box-sizing: border-box; }
-.message-btn.condense { font-size: .85rem; line-height: 1; }
+.message-btn.condense, .message-btn.polish-btn { font-size: .85rem; line-height: 1; }
 
 /* The music: play/pause in the header; the picker shows what's playing and the volume */
 .header-btn.music-toggle { min-width: 36px; justify-content: center; font-size: .9rem; }
@@ -1825,10 +1825,14 @@ body:has(#toolsMenu.show) .watch-card { display: none; }  /* the pen menu wins w
 @media (prefers-reduced-motion: reduce) { .atmosphere .sky, .atmosphere .flash { animation: none; } .atmosphere .flash { display: none; } }
 
 /* Voice input */
-.mic-btn { font-size: .95rem; }
+.mic-btn { display: inline-flex; align-items: center; justify-content: center; }
 .mic-btn.listening { color: #f87171; animation: mic-pulse 1.2s ease-in-out infinite; }
 @keyframes mic-pulse { 50% { transform: scale(1.15); } }
 .input-wrapper:has(#micBtn:not([hidden])) .input-field { padding-right: 84px; }
 .input-wrapper:has(#micBtn:not([hidden])):has(#ideasBtn) .input-field { padding-right: 116px; }
 .theme-check.music-follow { display: block; margin: 0 0 12px; }
 .theme-check.music-follow small { display: block; margin-left: 24px; opacity: .75; }
+
+/* 🧹 Bulba's polish on one reply: only while it fixes some habit (it doubles as the "it's on" sign) */
+.message-btn.polish-btn { display: none; }
+body.polish-on .message-btn.polish-btn { display: flex; }

@@ -63,6 +63,11 @@ document.addEventListener("click", (event) => {
         case "branch":
             if (index !== null) openBranchModal(index);
             break;
+        case "polish": {  // 🧹: Bulba's polish on this reply, now (shown while it fixes some habit)
+            const el = btn.closest('.message');
+            runPolish(el, true, Number(el && el.dataset.index !== undefined ? el.dataset.index : index));
+            break;
+        }
         case "condense": {
             const el = btn.closest('.message');
             condenseMessage(el, Number(el ? el.dataset.index : index));
@@ -267,6 +272,7 @@ function addMessage(sender, text, specificAvatarUrl = null) {
                     <svg class="icon" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
                 </button>
                 <button class="message-btn condense" type="button" data-action="condense" data-index="${messageIndex}" title="Condense for the AI: it gets a short version, you still see all of it">🗜</button>
+                ${sender === 'user' ? '' : `<button class="message-btn polish-btn" type="button" data-action="polish" data-index="${messageIndex}" title="${escHtml(window.POLISH_TITLE || 'Polish this reply')}">🧹</button>`}
                 <button class="message-btn branch" type="button" data-action="branch" data-index="${messageIndex}" title="Branch: a new chat from this message"><svg class="icon" viewBox="0 0 24 24"><path d="M6 3a3 3 0 0 0-1 5.83v6.34A3 3 0 1 0 7 15.17V13.5c0-.83.67-1.5 1.5-1.5h5A3.5 3.5 0 0 0 17 8.5v-.67a3 3 0 1 0-2 0v.67c0 .83-.67 1.5-1.5 1.5h-5c-.53 0-1.03.1-1.5.28V8.83A3 3 0 0 0 6 3z"/></svg></button>
                 <button class="message-btn delete" onclick="deleteMessage(${messageIndex})">
                     <svg class="icon" viewBox="0 0 24 24"><path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/></svg>
@@ -1634,13 +1640,13 @@ function setPolish(messageEl, info, busy = false) {
 }
 
 // now: they just pressed "Fix this automatically", so this reply is polished too and they hear why if it isn't
-function runPolish(messageEl, now = false) {
+function runPolish(messageEl, now = false, index = null) {
     if (!messageEl) { if (now) showChatNotice("There's no reply to polish yet; the next one will be."); return; }
     setPolish(messageEl, null, true);
     fetch(window.location.href, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-        body: JSON.stringify({ action: 'polish', now }),
+        body: JSON.stringify(index === null || Number.isNaN(index) ? { action: 'polish', now } : { action: 'polish', now, index }),
     })
         .then(r => r.json())
         .then(d => {

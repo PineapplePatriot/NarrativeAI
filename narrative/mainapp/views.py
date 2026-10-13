@@ -450,30 +450,38 @@ def chat(request, slug):
                 return JsonResponse({"success": False, "error": str(e)})
             return JsonResponse({"success": True, "ideas": ideas, "mode": mode, "spending": ai_client.spending(request.user)})
         elif action == "polish":  # Bulba's polish on the newest reply (the page asks right after it arrives)
-            now = bool(data.get("now"))  # they just pressed "Fix this automatically": this reply too, and say why not
+            # now: they pressed "Fix this automatically" or 🧹 on a message (any reply, `index`): say why not
+            now = bool(data.get("now"))
+            try:
+                index = int(data["index"]) if data.get("index") is not None else len(messages) - 1
+            except (TypeError, ValueError):
+                index = len(messages) - 1
             if now:
-                reason = polish.why_not_now(request.user, chat_obj, messages)
-                if not reason and chats.polish_of(messages[-1]):
-                    reason = "The latest reply is already polished."
+                reason = polish.why_not_now(request.user, chat_obj, messages, index)
+                if not reason and chats.polish_of(messages[index]):
+                    reason = "That reply is already polished (Undo fixes under it puts the original back)."
                 if reason:
                     return JsonResponse({"success": True, "changed": False, "reason": reason})
-            elif not polish.due(request.user, chat_obj, messages) or chats.polish_of(messages[-1]):
+            elif index != len(messages) - 1 or not polish.due(request.user, chat_obj, messages) \
+                    or chats.polish_of(messages[-1]):
                 return JsonResponse({"success": True, "changed": False})
-            original = messages[-1][2]
+            original = messages[index][2]
             try:
-                new_text, fixes = polish.polish(request.user, character, chat_obj, messages, chat_state["summary"])
+                new_text, fixes = polish.polish(request.user, character, chat_obj, messages, chat_state["summary"],
+                                                index)
             except ai_client.AIError as e:
                 return JsonResponse({"success": False, "error": str(e)})
             messages = load_messages()  # read again: they may have moved on while it worked
-            if not fixes or not messages or messages[-1][0] != "assistant" or messages[-1][2] != original:
+            if not fixes or index >= len(messages) or messages[index][0] != "assistant" \
+                    or messages[index][2] != original:
                 return JsonResponse({"success": True, "changed": False, "spending": ai_client.spending(request.user),
-                                     "reason": "Bulba found nothing to change in the latest reply." if not fixes
-                                     else "The reply changed meanwhile; new replies will be polished."})
-            messages[-1] = chats.with_polish(messages[-1], new_text, polish.record(original, fixes))
+                                     "reason": "Bulba found nothing to change in that reply." if not fixes
+                                     else "The reply changed meanwhile; nothing was replaced."})
+            messages[index] = chats.with_polish(messages[index], new_text, polish.record(original, fixes))
             save_messages(messages)
             watch.recheck(request.user, chat_obj, messages)
-            return JsonResponse({"success": True, "changed": True, "reply": new_text,
-                                 "polish": polish.page_payload(chats.polish_of(messages[-1])),
+            return JsonResponse({"success": True, "changed": True, "reply": new_text, "index": index,
+                                 "polish": polish.page_payload(chats.polish_of(messages[index])),
                                  "spending": ai_client.spending(request.user)})
         elif action == "polish_undo":  # back to the reply as the model wrote it
             try:
