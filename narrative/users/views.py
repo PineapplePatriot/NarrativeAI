@@ -368,9 +368,8 @@ def apply_extras(user, data):
             from mainapp import extras
             extras.set_ideas(user, data["ideas"])
         if isinstance(data.get("watch"), bool):
-            watch = get_task_setting(user, "watch")
-            watch.enabled = data["watch"]
-            watch.save()
+            from mainapp.bulba import watch as watch_switch
+            watch_switch.set_on(user, data["watch"])  # back on: the first-time note shows again
         if data.get("fix_model") in ("bulba", "chat"):
             from mainapp.bulba import watch as watch_mod
             watch_mod.change_memory(user, "fix_model", new=data["fix_model"])

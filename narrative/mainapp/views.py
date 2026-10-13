@@ -552,6 +552,8 @@ def chat(request, slug):
                 watch.intro_seen(request.user, bool(data["keep_on"]))
             if "chat_off" in data:
                 watch.set_chat_off(chat_obj, bool(data["chat_off"]))
+            if data.get("turn_on"):  # the pen menu's switch, turned on while Watch was off everywhere
+                watch.set_on(request.user, True)
             return JsonResponse({"success": True, "watch": watch.page_state(request.user, chat_obj)})
         elif action in ("condense", "condense_undo"):  # one message, shortened for the AI (the screen keeps it whole)
             try:

@@ -44,6 +44,8 @@ window.Watch = (function () {
 
     function render() {
         polishButtons();
+        const toggle = document.getElementById('watchChatToggle');
+        if (toggle) toggle.checked = !!(state.on && !state.chat_off);
         badge.hidden = !state.count;
         badge.textContent = state.count > 9 ? '9+' : String(state.count || '');
         btn.title = state.count ? 'Bulba noticed something' : 'Something off? Ask Bulba';
@@ -142,6 +144,14 @@ window.Watch = (function () {
             card.hidden = true;
             if (window.openBulbaNote) window.openBulbaNote(b.dataset.id);  // Bulba marks it opened
         }
+    });
+
+    // Pen menu → This chat: on/off for this chat (switching it on here also turns Watch back on overall)
+    const chatToggle = document.getElementById('watchChatToggle');
+    if (chatToggle) chatToggle.addEventListener('change', async () => {
+        const on = chatToggle.checked;
+        await post(on ? { action: 'watch_settings', chat_off: false, turn_on: true } : { action: 'watch_settings', chat_off: true });
+        showChatNotice(on ? 'Bulba Watch is on in this chat.' : 'Bulba Watch is off in this chat. Other chats keep it.');
     });
 
     render();

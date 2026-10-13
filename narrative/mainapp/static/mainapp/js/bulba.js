@@ -210,6 +210,7 @@ function render() {
         if (ev.type === 'user') return `<div class="msg user"><div class="bubble">${esc(ev.text)}</div></div>`;
         if (ev.type === 'action') return `<div class="action">${esc(ev.text)}</div>`;
         if (ev.type === 'note') return `<div class="note">✓ ${esc(ev.text)}</div>`;
+        if (ev.type === 'watch') return '';  // sent to the chat page (Bulba switched Watch)
         if (ev.type === 'error') return `<div class="error">${esc(ev.text)}</div>`;
         if (ev.type === 'stage') return `<div class="stage-mark">${esc(STAGE_LABELS[ev.stage] || ev.stage)}</div>`;
         if (ev.type === 'proposal') return proposalCard(ev);
@@ -337,6 +338,9 @@ async function run(body, label) {
                                       window.location.origin);
         }
         if (window.parent !== window && data.watch) window.parent.postMessage({ watch: data.watch }, window.location.origin);
+        // Bulba switched Watch on or off: the chat page shows it at once
+        const switched = (data.events || []).filter(ev => ev.type === 'watch' && ev.watch).pop();
+        if (window.parent !== window && switched) window.parent.postMessage({ watch: switched.watch }, window.location.origin);
         if (body.action === 'say') events.pop();  // the server sends it back with the rest
         events = body.action === 'restart' ? data.events : events.concat(data.events);
         state = data.state;

@@ -4301,6 +4301,35 @@ class WatchChatTests(ChatPromptTests):
         self.post({"action": "watch"})
         self.assertEqual(len(self.reader_calls), 1)
 
+    def test_switching_it_back_on_shows_the_first_time_note_again(self):
+        from mainapp.bulba import watch
+        self.client.get(self.url)
+        self.post({"action": "watch_settings", "keep_on": False})  # the note's "Turn it off"
+        state = self.post({"action": "watch_settings"}).json()["watch"]
+        self.assertEqual((state["on"], state["intro"]), (False, False))
+        watch.set_on(self.user, True)  # Extras page, Bulba or the pen menu
+        self.assertTrue(self.post({"action": "watch_settings"}).json()["watch"]["intro"])
+        # the pen menu's switch for this chat only
+        state = self.post({"action": "watch_settings", "chat_off": True}).json()["watch"]
+        self.assertTrue(state["chat_off"])
+        watch.set_on(self.user, False)
+        state = self.post({"action": "watch_settings", "chat_off": False, "turn_on": True}).json()["watch"]
+        self.assertEqual((state["on"], state["chat_off"]), (True, False))
+
+    def test_bulba_switches_it_when_asked(self):
+        from types import SimpleNamespace
+        from mainapp.bulba import watch
+        self.client.get(self.url)
+        session = SimpleNamespace(user=self.user, chat=self.chat_obj())
+        result, events = watch.tool_set_watch(session, {"on": False, "scope": "this_chat"})
+        self.assertIn("off in this chat", result["done"])
+        self.assertTrue(events[0]["watch"]["chat_off"] and watch.is_on(self.user))
+        result, _ = watch.tool_set_watch(session, {"on": False, "scope": "everywhere"})
+        self.assertFalse(watch.is_on(self.user))
+        watch.tool_set_watch(session, {"on": True, "scope": "everywhere"})
+        state = watch.page_state(self.user, self.chat_obj())
+        self.assertEqual((state["on"], state["chat_off"]), (True, False))
+
     def test_rewrites_and_edits_teach_it_and_reach_the_reader(self):
         from mainapp.bulba import watch
         self.post({"action": "chat", "message": "Hi."})

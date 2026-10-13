@@ -252,6 +252,9 @@
                             <button type="button" class="preset-btn {% if appearance.layout != 'book' %}on{% endif %}" data-layout="chat">💬 Chat</button>
                             <button type="button" class="preset-btn {% if appearance.layout == 'book' %}on{% endif %}" data-layout="book" title="Replies read as chapters; your messages fold into small markers you can open">📖 Book</button>
                         </div>
+                        <span class="tool-sublabel">🥔 Bulba Watch</span>
+                        <label class="theme-check"><input type="checkbox" id="watchChatToggle" {% if watch_data.on and not watch_data.chat_off %}checked{% endif %}>
+                            On in this chat <small>(Bulba reads replies now and then for habits; all chats: the Extras page)</small></label>
                         <span class="tool-sublabel">🌦 Scene <small>(this browser)</small></span>
                         <label class="theme-check"><input type="checkbox" id="atmosphereToggle" checked> Weather and time of day over the
                             background <small>(from the World tracker: <span id="atmosphereNow">nothing to show yet</span>)</small></label>
