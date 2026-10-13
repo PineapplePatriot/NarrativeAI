@@ -74,6 +74,11 @@ play/pause in the header (and the double-press bug fixed); "Let the music follow
 the background model every 3 replies, built-in tracks, crossfade); voice input with the browser's speech-to-text.
 Text reveal is covered by streaming.
 
+Free recall (mainapp/recall.py): when messages were left out to fit the context, the ones sharing rare words with
+the newest two messages come back under the summary ("Earlier in the story"), newest 3 at most; a word in more
+than 30% of messages counts for nothing. Shown in "What the AI saw" and to Bulba. "Recounting and keeping score"
+is a Watch habit, a cookbook entry (4.16) and a known Claude habit.
+
 Open (Bulba Watch):
 - **First real polish run**: is MiMo's rewrite faithful to the voice, and what does a pass cost? *Needs Anya.*
 - **Tune the numbers** after real use: every 5 replies, 3 of the last 6, the pace thresholds. *Needs Anya.*

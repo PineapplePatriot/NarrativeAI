@@ -28,7 +28,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
-from . import extras, game, media_library, thinking, ai_client, cards, chats, regex_rules, model_profiles, presets, samplers, starters, trackers
+from . import extras, game, media_library, recall, thinking, ai_client, cards, chats, regex_rules, model_profiles, presets, samplers, starters, trackers
 from .bulba import polish, watch
 
 from .utils import build_ai_request, get_elevenlabs_key
@@ -121,6 +121,7 @@ def chat(request, slug):
         "current_bg": "",
         "current_music": {},
         "music_follow": {},     # {"on": bool, "since": replies since the last pick}: music follows the scene
+        "last_recall": [],      # old messages free recall brought back for the last reply (see mainapp/recall.py)
         "persona": {},          # {"name", "description"}: who the user is in this chat only (else their usual persona)
         "game": {},             # dice and inventory: the starting inventory after manual edits (see mainapp/game.py)
         "voices": {},           # voices picked for speakers in this chat (see mainapp/voice.py), so they stay the same
@@ -165,6 +166,7 @@ def chat(request, slug):
                         chat_state["current_bg"] = data.get("current_bg", "")
                         chat_state["current_music"] = data.get("current_music", {})
                         chat_state["music_follow"] = data.get("music_follow") if isinstance(data.get("music_follow"), dict) else {}
+                        chat_state["last_recall"] = data.get("last_recall") if isinstance(data.get("last_recall"), list) else []
                         chat_state["persona"] = data.get("persona") if isinstance(data.get("persona"), dict) else {}
                         chat_state["game"] = data.get("game") if isinstance(data.get("game"), dict) else {}
                         chat_state["voices"] = data.get("voices") if isinstance(data.get("voices"), dict) else {}
@@ -234,6 +236,7 @@ def chat(request, slug):
             "current_bg": chat_state["current_bg"],
             "current_music": chat_state["current_music"],
             "music_follow": chat_state["music_follow"],
+            "last_recall": chat_state["last_recall"],
             "persona": chat_state["persona"],
             "game": chat_state["game"],
             "voices": chat_state["voices"],
@@ -715,8 +718,9 @@ def chat(request, slug):
                 # The unfinished reply is the last message; the preset's continue nudge comes after it
                 nudge = preset["utility"]["continue_nudge"].strip() or presets.UTILITY_DEFAULTS["continue_nudge"]
                 history.append({"role": "system", "content": nudge})
-                built = presets.assemble(preset, prompt_slots(request.user, character, prompt, chat_state["persona"]),
-                                         history, names, chat_model, generation="continue")
+                built, _ = recall.assemble_with_recall(
+                    presets.assemble, preset, prompt_slots(request.user, character, prompt, chat_state["persona"]),
+                    history, names, chat_model, generation="continue")
                 new_chunk = ai_client.complete(request.user, "chat", built["messages"], **built["params"])
             except ai_client.AIError as e:
                 return JsonResponse({"success": False, "error": str(e)})
@@ -858,10 +862,11 @@ def chat(request, slug):
                     _, chat_model = ai_client.resolve(request.user, "chat")
                     names = prompt_names(request.user, character, chat_state["persona"])
                     history = regex_rules.run_on_history(regex_rules.for_chat(preset, character, request.user), api_messages, names)
-                    built = presets.assemble(preset, prompt_slots(request.user, character, prompt, chat_state["persona"]),
-                                             history, names, chat_model,
-                                             generation="regenerate" if action == "regenerate" else "normal")
+                    built, recalled = recall.assemble_with_recall(
+                        presets.assemble, preset, prompt_slots(request.user, character, prompt, chat_state["persona"]),
+                        history, names, chat_model, generation="regenerate" if action == "regenerate" else "normal")
                     context_dropped = built["dropped"]
+                    chat_state["last_recall"] = recalled  # shown in "What the AI saw"
                     # Dice and inventory: the model gets tools and the current state (the reply works on a copy)
                     game_state = game.current_state(chat_state, messages)
                     built = game.add_to_request(built, game_mode, game_state, names, extra_kinds)
@@ -1397,8 +1402,11 @@ def build_chat_request(user, chat_obj, preset=None, character=None, drop_last_re
                        for m in messages if m[0] in ("user", "assistant")]
     history = regex_rules.run_on_history(regex_rules.for_chat(preset, character, user), history, names) + list(tail)
     _, model = ai_client.resolve(user, "chat")
-    return presets.assemble(preset, prompt_slots(user, character, prompt, persona), history, names, model,
-                            generation=generation)
+    if tail:  # an extra request at the end (impersonation): no recall, its words aren't the scene's
+        return presets.assemble(preset, prompt_slots(user, character, prompt, persona), history, names, model,
+                                generation=generation)
+    return recall.assemble_with_recall(presets.assemble, preset, prompt_slots(user, character, prompt, persona),
+                                       history, names, model, generation=generation)[0]
 
 
 def _tracker_page_data(user, character, raw_state):

@@ -34,6 +34,7 @@ def what_the_ai_saw(chat):
         "lore": {"book": report.get("book") or "", "fired": [_entry_title(r) for r in fired][:30],
                  "notes": report.get("notes") or []},
         "persona": persona.get("name") or "",
+        "recalled": [r for r in data.get("last_recall") or [] if isinstance(r, dict)],
     }
 
 
@@ -54,7 +55,9 @@ def context_section(chat):
              "Pinned note: " + (_clip(saw["pinned_note"], 800) if saw["pinned_note"] else "none"),
              "Trackers: " + (_clip(saw["trackers"], 1200) if saw["trackers"] else "none"),
              "Lore that fired: " + (", ".join(saw["lore"]["fired"]) if saw["lore"]["fired"] else
-                                    ("nothing" if saw["lore"]["book"] else "no lorebook"))]
+                                    ("nothing" if saw["lore"]["book"] else "no lorebook")),
+             "Old messages brought back by recall (they had fallen out of the context): "
+             + ("; ".join(_clip(f"{r.get('who')}: {r.get('text')}", 200) for r in saw["recalled"]) or "none")]
     return "\n".join(lines)
 
 

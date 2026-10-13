@@ -4961,3 +4961,51 @@ class SceneMusicTests(ChatPromptTests):
         self.post({"action": "chat", "message": "Hi."})
         self.pick = "0"
         self.assertIsNone(self.post({"action": "scene_music"}).json()["music"])
+
+
+class FreeRecallTests(SimpleTestCase):
+    """Old messages that fell out of the context come back when the scene brings them up (no AI)."""
+
+    def history(self, texts):
+        return [{"role": "user" if i % 2 else "assistant", "content": t} for i, t in enumerate(texts)]
+
+    def test_rare_words_bring_back_the_newest_few(self):
+        filler = [f"Ordinary talk number {i} about the weather and dinner." for i in range(20)]
+        texts = (["Rose hid the brass compass under the floorboard."] + filler[:5]
+                 + ["The compass again: Rose swore it points to her brother."] + filler[5:10]
+                 + ["Rose dropped the compass into the canal."] + filler[10:15]
+                 + ["Rose mentioned the compass to the guard."] + filler[15:]
+                 + ["Where did you put it?", "Rose thinks of the compass and the floorboard."])
+        from mainapp import recall
+        h = self.history(texts)
+        dropped = len(h) - 6
+        picked = recall.pick(h, dropped)
+        self.assertLessEqual(len(picked), recall.LIMIT)
+        self.assertEqual(picked, sorted(picked))
+        self.assertEqual(picked, [6, 12, 18])  # five old messages match: only the newest three come back
+        self.assertTrue(all("compass" in h[i]["content"] for i in picked))
+        # one very rare word is enough on its own ("floorboard" is said only twice)
+        self.assertEqual(recall.pick(self.history(["The floorboard creaked."] + filler + ["What about the floorboard?", "Hm."]), 15), [0])
+
+    def test_a_word_said_all_the_time_counts_for_nothing(self):
+        from mainapp import recall
+        texts = [f"Snezhnaya again, line {i}, the Snezhnaya cold." for i in range(30)] + ["We are in Snezhnaya.", "Snezhnaya, yes."]
+        self.assertEqual(recall.pick(self.history(texts), 25), [])
+
+    def test_nothing_left_out_nothing_recalled(self):
+        from mainapp import recall
+        self.assertEqual(recall.pick(self.history(["a b c d"] * 10), 0), [])
+
+    def test_assemble_with_recall_adds_them_under_the_summary(self):
+        from mainapp import recall
+        calls = []
+        def fake_assemble(preset, slots, history, names, *a, **k):
+            calls.append(slots)
+            return {"dropped": len(history) - 3, "messages": []}
+        h = self.history(["The silver locket was buried by the fountain."] + [f"Plain line {i} today." for i in range(12)]
+                         + ["Remember the locket?", "The fountain, yes. The locket."])
+        built, recalled = recall.assemble_with_recall(fake_assemble, {}, {"summary": "So far."}, h, {"user": "Wren", "char": "Rose"})
+        self.assertEqual(len(calls), 2)
+        self.assertIn("Earlier in the story", calls[1]["summary"])
+        self.assertTrue(calls[1]["summary"].startswith("So far."))
+        self.assertEqual(recalled[0]["who"], "Rose")
