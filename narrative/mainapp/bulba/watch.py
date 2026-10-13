@@ -654,7 +654,7 @@ def habits(data, muted, char_name="the character"):
             text += (" Small thing: this one may partly come from your own messages; models copy what they're "
                      "given. Want to look at it together?")
         notice = {"id": uuid.uuid4().hex[:10], "kind": "user" if theirs else "pattern", "label": label,
-                  "title": title, "text": text, "quotes": [e.get("shown") or e["quote"] for e in hits][-3:],
+                  "title": title, "text": text, "quotes": list(dict.fromkeys(e.get("shown") or e["quote"] for e in reversed(hits)))[:3][::-1],
                   "causes": sorted({e["cause"] for e in hits}), "count": len(replies), "of": len(window),
                   "at": window[-1], "status": "new", "time": time.time()}
         data["notices"].append(notice)

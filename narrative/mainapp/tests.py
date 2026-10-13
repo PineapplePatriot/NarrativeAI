@@ -4234,7 +4234,7 @@ class WatchLogicTests(SimpleTestCase):
         self.assertEqual(len(raised), 1)  # on the third time, not before
         self.assertEqual(raised[0]["label"], "repeated_phrase")
         self.assertIn("corner of his mouth", " ".join(raised[0]["quotes"]))
-        self.assertEqual(len(raised[0]["quotes"]), 3)
+        self.assertEqual(len(raised[0]["quotes"]), len(set(raised[0]["quotes"])))  # each quote once
         # ordinary filler isn't a phrase
         self.assertEqual(watch.repeated_phrases({1: "and then he said that", 3: "and then he said that",
                                                  5: "and then he said that"}, 5), [])
@@ -5326,11 +5326,11 @@ class WatchMarkupTests(SimpleTestCase):
         from mainapp.bulba import watch
         tagged = ['<font color=#b22222>"Mudra {0}."</font> He looks at the sea.'.format(w) for w in ("one", "two", "six", "ten")]
         msgs = [("assistant", "", t, "", 1) for t in tagged]
-        data = {"log": [], "free_checked": []}
+        data = {"log": [], "free_checked": [], "notices": []}
         watch.free_checks(data, msgs)
         entry = [e for e in data["log"] if e["quote"].startswith("font color b22222")][-1]  # still found
         self.assertEqual(entry["shown"], '<font color=#b22222>"Mudra ten."</font>')
-        data["checked"] = []
+        data["checked"], data["free_checked"] = [], [0, 1, 2, 3]  # as if each reply had been checked in turn
         note = watch.habits(data, [])[0]
-        self.assertIn('<font color=#b22222>', note["quotes"][0])
+        self.assertTrue(any(q.startswith('<font color=#b22222>"Mudra') for q in note["quotes"]))
         self.assertEqual(watch.raw_snippet("Nothing here.", "font color b22222 mu"), "")
