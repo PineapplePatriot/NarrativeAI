@@ -642,6 +642,7 @@ function saveMessage(index) {
                 // Keep textarea synced with the raw text
                 editTextarea.value = newText;
                 cancelEdit(index);
+                if (data.watch && window.Watch) Watch.refresh(data.watch);  // edited a polished reply: Bulba asks why
             } else {
                 alert('Error saving message: ' + (data.error || 'Unknown error'));
             }
@@ -1636,17 +1637,20 @@ function setPolish(messageEl, info, busy = false) {
     const list = (info.fixes || []).map(f => `<li><s>${esc(f.before)}</s>${f.after ? ` → ${esc(f.after)}` : ' (removed)'}</li>`).join('');
     line.innerHTML = `<details><summary>🧹 Bulba fixed ${info.count} thing${info.count === 1 ? '' : 's'}</summary><ul>${list}</ul></details>
         <button type="button" class="link" data-polish="toggle">Show original</button>
-        <button type="button" class="link" data-polish="undo">Undo fixes</button>`;
+        <button type="button" class="link" data-polish="undo">Undo fixes</button>
+        ${info.verdict ? '' : `<span class="polish-rate">Better?
+            <button type="button" class="link" data-polish="up" title="Yes, the fixes work">👍</button>
+            <button type="button" class="link" data-polish="down" title="No: rewrite it again, stop fixing this, or tell Bulba what's wrong">👎</button></span>`}`;
 }
 
 // now: they just pressed "Fix this automatically", so this reply is polished too and they hear why if it isn't
-function runPolish(messageEl, now = false, index = null) {
+function runPolish(messageEl, now = false, index = null, again = false) {
     if (!messageEl) { if (now) showChatNotice("There's no reply to polish yet; the next one will be."); return; }
     setPolish(messageEl, null, true);
     fetch(window.location.href, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-        body: JSON.stringify(index === null || Number.isNaN(index) ? { action: 'polish', now } : { action: 'polish', now, index }),
+        body: JSON.stringify(index === null || Number.isNaN(index) ? { action: 'polish', now, again } : { action: 'polish', now, index, again }),
     })
         .then(r => r.json())
         .then(d => {
@@ -1664,6 +1668,11 @@ function runPolish(messageEl, now = false, index = null) {
 }
 
 window.polishLatestNow = () => runPolish(lastAssistant(), true);
+// "Rewrite it again" from the fixes-didn't-land question: from the original, avoiding what they turned down
+window.repolishMessage = (index) => {
+    const el = document.querySelector(`.message[data-index="${index}"]`) || lastAssistant();
+    runPolish(el, true, Number(index), true);
+};
 
 document.addEventListener('click', e => {
     const b = e.target.closest('.polish-line [data-polish]');
@@ -1676,16 +1685,24 @@ document.addEventListener('click', e => {
         b.textContent = showingOriginal ? 'Show original' : 'Hide original';
         return;
     }
+    const rate = b.dataset.polish === 'up' || b.dataset.polish === 'down';
     fetch(window.location.href, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-        body: JSON.stringify({ action: 'polish_undo', index: Number(messageEl.dataset.index) }),
+        body: JSON.stringify(rate ? { action: 'polish_feedback', index: Number(messageEl.dataset.index), verdict: b.dataset.polish }
+                                  : { action: 'polish_undo', index: Number(messageEl.dataset.index) }),
     })
         .then(r => r.json())
         .then(d => {
-            if (!d.success) { showChatError(d.error || 'Could not undo.'); return; }
-            showText(messageEl, d.reply);
-            setPolish(messageEl, null);
+            if (!d.success) { showChatError(d.error || (rate ? 'Could not save that.' : 'Could not undo.')); return; }
+            if (rate) {
+                const span = line.querySelector('.polish-rate');
+                if (span) span.textContent = b.dataset.polish === 'up' ? 'Thanks: noted.' : '';
+            } else {
+                showText(messageEl, d.reply);
+                setPolish(messageEl, null);
+            }
+            if (d.watch && window.Watch) Watch.refresh(d.watch);  // a 👎 or an undo asks what to do next
         });
 });
 

@@ -82,6 +82,9 @@ def user_data(user):
     data.setdefault("pace", {"n": 0, "mean": 0.0, "m2": 0.0})
     data.setdefault("fix", [])  # habits they approved for polishing (bulba/polish.py)
     data.setdefault("taste_in_preset", [])  # taste lines already put into their preset (with Bulba)
+    # How Bulba's polish lands: replies kept, liked or rejected, and the rewrites they rejected (the polisher
+    # is shown them as what not to do; see bulba/polish.py)
+    data.setdefault("polish", {"kept": 0, "liked": 0, "rejected": 0, "examples": []})
     return data
 
 
@@ -687,7 +690,7 @@ def page_state(user, chat_obj):
     mine = user_data(user)
     return {"on": on, "chat_off": bool(data.get("off")), "intro": on and not mine.get("intro_seen"),
             "fixing": [title_of(m) for m in mine["fix"]] if on and not data.get("off") else [],  # the 🧹 button
-            "every": EVERY, "notices": [{**{k: n.get(k) for k in ("id", "kind", "title", "text", "quotes")},
+            "every": EVERY, "notices": [{**{k: n.get(k) for k in ("id", "kind", "title", "text", "quotes", "index")},
                                          "fixing": n.get("label") in mine["fix"]}
                                         for n in reversed(new)][:3], "count": len(new)}
 
@@ -707,11 +710,63 @@ def set_notice(user, chat_obj, notice_id, status):
         if notice["label"] not in mine["fix"]:
             mine["fix"].append(notice["label"])
             save_user_data(user, mine)
+    if status == "stop_fix":  # from a "fixes didn't land" question: stop polishing those habits
+        if notice["kind"] != "polish":
+            raise ValueError("That note isn't about Bulba's fixes.")
+        mine = user_data(user)
+        stop = set(notice.get("habits") or mine["fix"])
+        mine["fix"] = [h for h in mine["fix"] if h not in stop]
+        save_user_data(user, mine)
     if status == "muted" and notice["kind"] in ("pattern", "user"):
         mine = user_data(user)
         if notice["label"] not in mine["muted"]:
             mine["muted"].append(notice["label"])
             save_user_data(user, mine)
+    save_chat_data(chat_obj, data)
+    return notice
+
+
+# ---------------------------------------------------------------------------
+# Did the polish land? (bulba/polish.py)
+# ---------------------------------------------------------------------------
+
+POLISH_WHY = {
+    "undid": "You put the original back.",
+    "edited": "You changed the polished reply yourself.",
+    "regenerated": "You asked for a new reply instead of the polished one.",
+    "disliked": "You marked the fixes as not right.",
+}
+
+
+def polish_verdict(user, verdict):
+    """A polished reply was kept (they replied to it) or liked (👍)."""
+    mine = user_data(user)
+    mine["polish"][verdict] = mine["polish"].get(verdict, 0) + 1
+    save_user_data(user, mine)
+
+
+def polish_rejected(user, chat_obj, index, why, rec, habits):
+    """They undid, edited or regenerated a polished reply, or pressed 👎: remember the rewrites they turned down
+    and ask right away what to do (rewrite it again, stop fixing those habits, or tell Bulba what's wrong)."""
+    mine = user_data(user)
+    stats = mine["polish"]
+    stats["rejected"] = stats.get("rejected", 0) + 1
+    fixes = [f for f in (rec or {}).get("fixes") or [] if isinstance(f, dict)]
+    stats["examples"] = (stats.get("examples", []) + [{"before": str(f.get("before", ""))[:200],
+                                                       "after": str(f.get("after", ""))[:200]} for f in fixes])[-8:]
+    save_user_data(user, mine)
+    if not is_on(user):
+        return None
+    data = chat_data(chat_obj)
+    for n in data["notices"]:  # one question at a time
+        if n.get("kind") == "polish" and n["status"] == "new":
+            n["status"] = "dismissed"
+    notice = {"id": uuid.uuid4().hex[:10], "kind": "polish", "label": "polish", "title": "Bulba's fixes didn't land?",
+              "text": POLISH_WHY.get(why, "") + " Rewrite it again differently, stop fixing this, or tell me what's wrong?",
+              "quotes": [f"{f.get('before', '')} → {f.get('after', '') or '(removed)'}" for f in fixes][:3],
+              "index": index, "why": why, "habits": list(habits or []), "fixes": fixes[:8],
+              "status": "new", "time": time.time()}
+    data["notices"].append(notice)
     save_chat_data(chat_obj, data)
     return notice
 
@@ -778,6 +833,14 @@ def set_chat_off(chat_obj, off):
 
 def for_bulba(notice):
     """What Bulba (in the chat) is told when they open a note."""
+    if notice["kind"] == "polish":
+        fixes = "\n".join(f"- “{f.get('before')}” → “{f.get('after') or '(removed)'}”" for f in notice.get("fixes") or [])
+        return (f"[They turned down your polish on reply {notice.get('index')}: {POLISH_WHY.get(notice.get('why'), '')}\n"
+                f"Your fixes were:\n{fixes}\nThey want to tell you what's wrong. Ask in one line what didn't work (too "
+                "much changed, the voice got lost, the habit isn't a problem for them, something else). Then act on it: "
+                "polish_message on that reply with their words as the habit; or, if they don't mind the habit after all, "
+                "say they can stop fixing it with the button on the note or on the Extras page. What they say also "
+                "teaches you their taste.]")
     if notice["kind"] == "keeper":
         facts = "\n".join(f"- {f['fact']} (belongs in the {'lorebook' if f['where'] == 'lore' else 'card'})"
                           for f in notice.get("facts") or [])

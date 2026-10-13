@@ -4610,6 +4610,64 @@ class PolishChatTests(WatchChatTests):
         self.assertIn("still writes it", raised[0]["text"])
         self.assertIn("propose_preset_edit", watch.for_bulba(raised[0]))
 
+    def polished_reply(self, approve=True):
+        if approve:
+            self.approve()
+        self.post({"action": "chat", "message": "Go on."})
+        self.polish_answer = {"fixes": [{"habit": "Explaining what you already got", "find": "A reply.",
+                                         "replace": "A quieter reply."}]}
+        self.assertTrue(self.post({"action": "polish"}).json()["changed"])
+        return len(self.saved_messages()) - 1
+
+    def test_turning_down_a_polish_asks_right_away_and_teaches_the_polisher(self):
+        from mainapp import chats
+        from mainapp.bulba import watch
+        index = self.polished_reply()
+        self.assertEqual(chats.polish_of(tuple(self.saved_messages()[index]))["habits"], ["overexplaining"])
+        state = self.post({"action": "polish_undo", "index": index}).json()["watch"]
+        note = state["notices"][0]
+        self.assertEqual((note["kind"], note["index"]), ("polish", index))
+        self.assertIn("put the original back", note["text"])
+        self.assertIn("A reply. → A quieter reply.", note["quotes"][0])
+        self.assertEqual(watch.user_data(self.user)["polish"]["rejected"], 1)
+        # "Rewrite it again": from the original, with what they turned down shown as what not to do
+        self.polish_answer = {"fixes": [{"find": "A reply.", "replace": "Fine."}]}
+        data = self.post({"action": "polish", "now": True, "again": True, "index": index}).json()
+        self.assertEqual(data["reply"], "Fine.")
+        self.assertIn("turned down before", self.polish_calls[-1]["messages"][1]["content"])
+        self.assertIn("A quieter reply.", self.polish_calls[-1]["messages"][1]["content"])
+        # again on an already polished reply starts over from the model's text
+        self.polish_answer = {"fixes": [{"find": "A reply.", "replace": "Still fine."}]}
+        self.assertEqual(self.post({"action": "polish", "now": True, "again": True, "index": index}).json()["reply"],
+                         "Still fine.")
+        # "Stop fixing this"
+        note = self.post({"action": "polish_feedback", "index": index, "verdict": "down"}).json()["watch"]["notices"][0]
+        self.post({"action": "watch_note", "id": note["id"], "status": "stop_fix"})
+        self.assertEqual(watch.user_data(self.user)["fix"], [])
+
+    def test_editing_or_regenerating_a_polished_reply_asks_and_replying_counts_as_kept(self):
+        from mainapp.bulba import watch
+        index = self.polished_reply()
+        edit = self.post({"action": "edit", "index": index, "text": "My own words."}).json()
+        self.assertIn("changed the polished reply", edit["watch"]["notices"][0]["text"])
+        index = self.polished_reply(approve=False)
+        regen = self.post({"action": "regenerate"}).json()
+        self.assertIn("asked for a new reply", regen["watch"]["notices"][0]["text"])
+        self.post({"action": "watch_note", "id": regen["watch"]["notices"][0]["id"], "status": "dismissed"})
+        self.polish_answer = {"fixes": [{"find": "A reply.", "replace": "A quieter reply."}]}
+        self.post({"action": "polish"})
+        self.post({"action": "chat", "message": "Nice."})
+        self.post({"action": "chat", "message": "Again."})  # counted once per reply
+        stats = watch.user_data(self.user)["polish"]
+        self.assertEqual((stats["kept"], stats["rejected"]), (1, 2))
+        # 👍 on a polished reply
+        self.polish_answer = {"fixes": [{"find": "A reply.", "replace": "A quieter reply."}]}
+        self.post({"action": "polish"})
+        last = len(self.saved_messages()) - 1
+        self.assertTrue(self.post({"action": "polish_feedback", "index": last, "verdict": "up"}).json()["success"])
+        self.assertEqual(watch.user_data(self.user)["polish"]["liked"], 1)
+        self.assertEqual(self.post({"action": "polish_feedback", "index": 0, "verdict": "up"}).status_code, 400)
+
     def test_regenerate_and_continue_are_polished_too(self):
         self.approve()
         self.post({"action": "chat", "message": "Go on."})

@@ -312,9 +312,13 @@ def chat(request, slug):
                     new_text = text_rules("saved", new_text, messages[index][0], edits_only=True)
                     if messages[index][0] == "assistant" and messages[index][2] != new_text:
                         watch.note_signal(request.user, chat_obj, "edited", messages[index][2], new_text)
+                        rec = chats.polish_of(messages[index])
+                        if rec:  # they changed Bulba's polished version: ask what didn't work
+                            watch.polish_rejected(request.user, chat_obj, index, "edited", rec, rec.get("habits"))
                     messages[index] = chats.set_text(messages[index], new_text)
                     save_messages(messages)
-                    return JsonResponse({"success": True, "text": new_text})
+                    return JsonResponse({"success": True, "text": new_text,
+                                         "watch": watch.page_state(request.user, chat_obj)})
                 else:
                     return JsonResponse({"success": False, "error": "Invalid message index"})
 
@@ -452,11 +456,15 @@ def chat(request, slug):
         elif action == "polish":  # Bulba's polish on the newest reply (the page asks right after it arrives)
             # now: they pressed "Fix this automatically" or 🧹 on a message (any reply, `index`): say why not
             now = bool(data.get("now"))
+            again = bool(data.get("again"))  # "Rewrite it again": from the original, avoiding what they turned down
             try:
                 index = int(data["index"]) if data.get("index") is not None else len(messages) - 1
             except (TypeError, ValueError):
                 index = len(messages) - 1
-            if now:
+            if again and 0 <= index < len(messages) and chats.polish_of(messages[index]):
+                messages[index] = chats.with_polish(messages[index], chats.polish_of(messages[index])["original"], None)
+                save_messages(messages)
+            if now or again:
                 reason = polish.why_not_now(request.user, chat_obj, messages, index)
                 if not reason and chats.polish_of(messages[index]):
                     reason = "That reply is already polished (Undo fixes under it puts the original back)."
@@ -477,7 +485,8 @@ def chat(request, slug):
                 return JsonResponse({"success": True, "changed": False, "spending": ai_client.spending(request.user),
                                      "reason": "Bulba found nothing to change in that reply." if not fixes
                                      else "The reply changed meanwhile; nothing was replaced."})
-            messages[index] = chats.with_polish(messages[index], new_text, polish.record(original, fixes))
+            messages[index] = chats.with_polish(messages[index], new_text,
+                                                polish.record(original, fixes, polish.habits_of(request.user, fixes)))
             save_messages(messages)
             watch.recheck(request.user, chat_obj, messages)
             return JsonResponse({"success": True, "changed": True, "reply": new_text, "index": index,
@@ -495,7 +504,26 @@ def chat(request, slug):
             save_messages(messages)
             if index == len(messages) - 1:
                 watch.recheck(request.user, chat_obj, messages)
-            return JsonResponse({"success": True, "reply": rec["original"]})
+            watch.polish_rejected(request.user, chat_obj, index, "undid", rec, rec.get("habits"))  # ask what to do
+            return JsonResponse({"success": True, "reply": rec["original"],
+                                 "watch": watch.page_state(request.user, chat_obj)})
+        elif action == "polish_feedback":  # 👍 / 👎 under "Bulba fixed N things"
+            try:
+                index = int(data.get("index"))
+                rec = chats.polish_of(messages[index]) if 0 <= index < len(messages) else None
+            except (TypeError, ValueError):
+                rec = None
+            if not rec or data.get("verdict") not in ("up", "down"):
+                return JsonResponse({"success": False, "error": "Nothing to rate there."}, status=400)
+            liked = data["verdict"] == "up"
+            messages[index] = chats.with_polish(messages[index], messages[index][2],
+                                                {**rec, "verdict": "liked" if liked else "disliked"})
+            save_messages(messages)
+            if liked:
+                watch.polish_verdict(request.user, "liked")
+            else:
+                watch.polish_rejected(request.user, chat_obj, index, "disliked", rec, rec.get("habits"))
+            return JsonResponse({"success": True, "watch": watch.page_state(request.user, chat_obj)})
         elif action == "watch":  # Bulba Watch reads the latest replies (the page asks after a reply)
             if watch.due(request.user, chat_obj, messages):
                 writes = control.mode_of(presets.normalize(presets.get_active(request.user).data)) == "write"
@@ -512,7 +540,7 @@ def chat(request, slug):
             return JsonResponse({"success": True, **_appearance(request.user),
                                  "watch": watch.page_state(request.user, chat_obj)})
         elif action == "watch_note":  # a note: dismissed, "I don't mind this", or opened with Bulba
-            if data.get("status") not in ("dismissed", "muted", "opened", "fix"):
+            if data.get("status") not in ("dismissed", "muted", "opened", "fix", "stop_fix"):
                 return JsonResponse({"success": False, "error": "Unknown choice."}, status=400)
             try:
                 watch.set_notice(request.user, chat_obj, str(data.get("id") or ""), data["status"])
@@ -720,6 +748,9 @@ def chat(request, slug):
             if messages and messages[-1][0] == "assistant":
                 regen_from = messages.pop()
                 watch.note_signal(request.user, chat_obj, "rewritten", regen_from[2])
+                rec = chats.polish_of(regen_from)
+                if rec:  # a polished reply thrown away: did the polish miss? (the card shows with the new reply)
+                    watch.polish_rejected(request.user, chat_obj, len(messages), "regenerated", rec, rec.get("habits"))
 
         elif action == "swipe":
             if not messages or messages[-1][0] != "assistant":
@@ -867,6 +898,11 @@ def chat(request, slug):
                     story_notes = story.commit(story_state(), systems, messages)
                     story.sync_world(chat_state["story"], systems, chat_state["trackers"])
                     story.snapshot(chat_state["story"], len(messages) + (1 if user_message else 0))
+                if action == "chat" and messages and messages[-1][0] == "assistant":
+                    rec = chats.polish_of(messages[-1])
+                    if rec and not rec.get("verdict"):  # they went on from a polished reply: a quiet yes
+                        messages[-1] = chats.with_polish(messages[-1], messages[-1][2], {**rec, "verdict": "kept"})
+                        watch.polish_verdict(request.user, "kept")
                 if action == "chat" and user_message:
                     user_message = text_rules("saved", user_message, "user")
                     messages.append(("user", datetime.now().strftime("%H:%M"), user_message, "neutral", 1))

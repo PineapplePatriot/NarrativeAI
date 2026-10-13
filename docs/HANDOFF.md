@@ -163,6 +163,13 @@ Turn it off / Off in this chat); switch on the Extras page. Nothing is collected
   is being fixed, its tooltip says which) polishes that reply. Quotes in notes show as written (colours rendered).
 - Small calls on Bulba's model have room to think (Be creative came back empty); the mic is an icon, not an emoji.
 
+### 11. Did the polish land? (the loop's check step)
+- Undo fixes, editing a polished reply, regenerating it, or 👎 under "Bulba fixed N things" counts as turned down:
+  a Watch card asks at once: Rewrite it again (from the original, avoiding what they turned down) / Stop fixing
+  this / Tell me what's wrong (in-chat Bulba asks and acts). Replying to a polished reply counts as kept; 👍 as liked.
+- Turned-down rewrites (last 8) go into the polisher's prompt as "don't fix things this way"; in-chat Bulba sees the
+  counts and examples (`ChatSettings.watch["polish"]`, no migration).
+
 ## Decisions the user made this session
 
 - Progress counts questions; skip hint always visible with the quality warning; fast route = preset → persona →

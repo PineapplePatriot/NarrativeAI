@@ -80,6 +80,17 @@ window.Watch = (function () {
                 <button type="button" class="ghost" data-w="dismiss" data-id="${esc(n.id)}">Not now</button></div>`;
             return;
         }
+        if (n.kind === 'polish') {  // a polished reply was undone, edited, regenerated or got a 👎
+            const fixes = (n.quotes || []).map(q => `<li>${shownQuote(q)}</li>`).join('');
+            card.innerHTML = `<div class="watch-head"><span class="potato">🥔</span><b>${esc(n.title)}</b>
+                    <button type="button" class="watch-x" data-w="later" title="Later">✕</button></div>
+                <p>${esc(n.text)}</p>
+                ${fixes ? `<ul class="watch-quotes">${fixes}</ul>` : ''}
+                <div class="watch-actions"><button type="button" data-w="repolish" data-id="${esc(n.id)}" data-index="${esc(n.index)}">Rewrite it again</button>
+                <button type="button" class="ghost" data-w="stop-fix" data-id="${esc(n.id)}">Stop fixing this</button>
+                <button type="button" class="ghost" data-w="open" data-id="${esc(n.id)}">Tell me what's wrong</button></div>`;
+            return;
+        }
         const quotes = (n.quotes || []).map(q => `<li>“${shownQuote(q)}”</li>`).join('');
         card.innerHTML = `<div class="watch-head"><span class="potato">🥔</span><b>${['taste', 'keeper', 'continuity'].includes(n.kind) ? esc(n.title) : 'Bulba noticed something'}</b>
                 <button type="button" class="watch-x" data-w="later" title="Later">✕</button></div>
@@ -112,6 +123,15 @@ window.Watch = (function () {
             return render();
         }
         if (what === 'got-it') { switched = null; return render(); }
+        if (what === 'repolish') {
+            await post({ action: 'watch_note', id: b.dataset.id, status: 'dismissed' });
+            if (window.repolishMessage) window.repolishMessage(b.dataset.index);
+            return;
+        }
+        if (what === 'stop-fix') {
+            await post({ action: 'watch_note', id: b.dataset.id, status: 'stop_fix' });
+            return showChatNotice("Okay: I'll stop fixing that. You can turn it back on from a habit note or the Extras page.");
+        }
         if (what === 'fix') {
             await post({ action: 'watch_note', id: b.dataset.id, status: 'fix' });
             showChatNotice('Fixing it in the latest reply now, and in new replies from now on. See or stop it on the Extras page.');
