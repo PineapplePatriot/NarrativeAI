@@ -13,6 +13,7 @@ from pathlib import Path
 
 from mainapp import ai_client, chats, extras, game, presets, thinking
 from mainapp.bulba import control, library, lore, memory, polish, rules, tune
+from mainapp.bulba import watch as watch_mod
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba"
 CARD_FIELDS = ("description", "personality", "scenario", "example_dialogue", "initial_message")
@@ -344,6 +345,7 @@ def tools():
              "why": STR}, ["edits", "why"]),
         CARD_EDIT_TOOL,
         *polish.tool_defs(_fn, STR),
+        *watch_mod.tool_defs(_fn, STR),
         *memory.tool_defs(_fn, STR),
         *rules.tool_defs(_fn, STR),
         *control.tool_defs(_fn, STR),
@@ -355,7 +357,7 @@ def tools():
 
 HANDLERS = {"read_block": tool_read_block, "propose_preset_edit": tool_propose_preset_edit, **lore.HANDLERS,
             **tune.HANDLERS,
-            **control.HANDLERS, **polish.HANDLERS, **memory.HANDLERS, **rules.HANDLERS,
+            **control.HANDLERS, **polish.HANDLERS, **memory.HANDLERS, **rules.HANDLERS, **watch_mod.HANDLERS,
             "propose_card_edit": tool_propose_card_edit, "retry_reply": tool_retry_reply}
 
 

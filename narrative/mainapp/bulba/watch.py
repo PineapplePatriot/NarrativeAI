@@ -68,7 +68,13 @@ def is_on(user):
 
 
 def set_on(user, on):
+    """Switch it on or off for all their chats. Switched back on, the first-time note shows again in the next
+    chat they open (what it does, and how to turn it off)."""
     setting = ai_client.get_task_setting(user, "watch")
+    if on and not setting.enabled:
+        mine = user_data(user)
+        if mine.pop("intro_seen", None):
+            save_user_data(user, mine)
     setting.enabled = bool(on)
     setting.save()
 
@@ -819,16 +825,50 @@ def change_memory(user, op, old="", new=""):
 
 
 def intro_seen(user, keep_on):
+    set_on(user, keep_on)
     mine = user_data(user)
     mine["intro_seen"] = True
     save_user_data(user, mine)
-    set_on(user, keep_on)
 
 
 def set_chat_off(chat_obj, off):
     data = chat_data(chat_obj)
     data["off"] = bool(off)
     save_chat_data(chat_obj, data)
+
+
+# ---------------------------------------------------------------------------
+# Bulba in a chat can switch it ("turn Watch off", "not in this chat")
+# ---------------------------------------------------------------------------
+
+def tool_set_watch(session, args):
+    on = bool(args.get("on"))
+    scope = "chat" if args.get("scope") == "this_chat" else "all"
+    if scope == "chat":
+        if session.chat is None:
+            return {"error": "There's no chat here; use scope everywhere."}, []
+        set_chat_off(session.chat, not on)
+        if on and not is_on(session.user):
+            set_on(session.user, True)
+        done = "on in this chat" if on else "off in this chat (still on in their other chats)"
+    else:
+        set_on(session.user, on)
+        if on and session.chat is not None:
+            set_chat_off(session.chat, False)
+        done = "on in all their chats" if on else "off in all their chats; nothing is read or collected"
+    state = page_state(session.user, session.chat) if session.chat is not None else None
+    return {"done": f"Bulba Watch is {done}.", "where_else": "Extras page, or the pen menu → This chat"}, (
+        [{"type": "watch", "watch": state}] if state else [])
+
+
+def tool_defs(fn, STR):
+    return [fn("set_watch", "Switch Bulba Watch (your quiet reading of replies for habits, and the polish) on or off "
+               "when they ask: everywhere, or only in this chat. It happens at once, no Apply.",
+               {"on": {"type": "boolean"}, "scope": {"type": "string", "enum": ["everywhere", "this_chat"]}},
+               ["on", "scope"])]
+
+
+HANDLERS = {"set_watch": tool_set_watch}
 
 
 def for_bulba(notice):
