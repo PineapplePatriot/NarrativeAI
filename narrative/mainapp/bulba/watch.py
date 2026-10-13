@@ -54,6 +54,7 @@ LABELS = {
     "pet_phrase": "The same pet phrases",
     "repeated_phrase": "The same phrase, word for word",
     "misremembered_past": "Getting past events wrong",
+    "recounting": "Recounting and keeping score instead of talking",
 }
 CAUSES = ("model", "setup", "their_messages")
 

@@ -30,6 +30,10 @@ note nothing for it. Never invent a slip to have something to say.
 - **echoing_user**: repeating or paraphrasing what the person just wrote back at them.
 - **writing_for_user**: deciding what the person's character does, says or feels (skip this one if the
   chat says the AI may write their character).
+- **recounting**: instead of talking normally, a character recites earlier events as evidence, keeps score
+  with numbers ("the third time this week", "four days since you"), sums up the relationship to make a point,
+  or reaches for a witty line or a therapist-level insight into someone's feelings. One brief callback that
+  belongs to the moment is fine; the slip is the recital, the tally, the performed insight.
 - **pet_phrase**: one of this model's known stock phrases or habits (listed below), or any phrase
   that keeps coming back across replies.
 
