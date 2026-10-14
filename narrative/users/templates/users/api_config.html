@@ -9,14 +9,15 @@
     <title>Connections - Narrative AI</title>
     <link rel="stylesheet" href="{% static 'users/css/api_config.css' %}">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=1">
 </head>
 
-<body>
+<body class="na-body">
 {% include "partials/topbar.html" with active="connections" %}
-    <div class="page">
-        {% if next_url %}<a class="back" href="{{ next_url }}">← Back to where you were</a>{% endif %}
-        <h1>Connections</h1>
-        <p class="subtitle">Where your AI requests go, and which model each feature uses.
+    <div class="page na-page na-narrow">
+        {% if next_url %}<a class="na-back" href="{{ next_url }}">← Back to where you were</a>{% endif %}
+        <h1 class="na-title">Connections</h1>
+        <p class="subtitle na-sub">Where your AI requests go, and which model each feature uses.
             Prefer plain switches? The <a href="{% url 'users:extras' %}">Extras page</a> covers voices, summaries, trackers and sprites.</p>
 
         <div class="banner" id="startBanner" hidden>

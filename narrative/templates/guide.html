@@ -26,14 +26,15 @@
             border: 1px solid rgba(148,163,184,.4); background: rgba(148,163,184,.08); white-space: nowrap; }
         .guide .credits li { color: var(--text-secondary, #a5adc0); }
     </style>
+    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=1">
 </head>
-<body>
+<body class="na-body">
 {% if request.user.is_authenticated %}{% include "partials/topbar.html" with active="guide" %}{% endif %}
 
-<main class="guide">
-    <h1>How to try Narrative AI</h1>
-    <p class="lead">A roleplay app: you chat with characters, and the app keeps the story consistent, with presets,
-        lorebooks, trackers, summaries and a setup assistant (a potato called Bulba). Five minutes is enough to see
+<main class="guide na-page na-narrow">
+    <h1 class="na-title">How to try Narrative AI</h1>
+    <p class="lead na-sub">A roleplay app: you chat with characters, and the app keeps the story consistent, with presets,
+        worldbooks, trackers, summaries and a setup assistant (a potato called Bulba). Five minutes is enough to see
         the main ideas.</p>
 
     <ul class="toc">
@@ -70,9 +71,9 @@
     <ul>
         <li><b>Setup</b> (<kbd>🥔 Bulba</kbd> in the top bar): extras, how replies should read (with A/B samples),
             your preset, who you are in the story, and the character. It can import a character card you already
-            have, research a character or world from fandom wikis, write a lorebook for it, pick a background, music and
+            have, research a character or world from fandom wikis, write a worldbook for it, pick a background, music and
             dialogue colour, and suggest story extras that fit. At the end it sums up what was set up and where to change
-            it, with downloads of your preset, card and lorebook (they work in SillyTavern too). The side panel shows
+            it, with downloads of your preset, card and worldbook (they work in SillyTavern too). The side panel shows
             which step you're on and roughly how many questions are left, and <kbd>Skip this step</kbd> skips anything
             (each skipped step is one less thing tuned to you).</li>
         <li><b>Extras in one form:</b> the full setup starts with one form for summaries, trackers, pictures, Bulba
@@ -100,7 +101,7 @@
             keep repeating, such as the same sentence shapes, over-explaining, big wise lines a moment hasn't earned, or a
             character acting out of character. It learns what you like from the replies you rewrite or edit, and notices
             when you take much longer than usual to reply. The same read catches a reply getting the past wrong (retelling events inaccurately, leaving out what mattered, inventing details),
-            and new facts worth keeping in the card or lorebook (Bulba proposes them; you Apply). One slip is nothing; when something keeps happening, the
+            and new facts worth keeping in the card or worldbook (Bulba proposes them; you Apply). One slip is nothing; when something keeps happening, the
             <kbd>🥔 Bulba</kbd> button gets a number and a small note offers to look at it together. <i>I don't mind
             this</i> stops that note for good; <i>Fix this automatically</i> turns on <b>Bulba's polish</b> for it: every new
             reply, swipe or continued reply gets a quick pass that rewrites just the sentences with that habit (Bulba's
@@ -161,11 +162,11 @@
         <li><b>Background jobs</b>: summaries and trackers can run on a cheaper model than your chat.</li>
     </ul>
 
-    <h2 id="presets">Presets, lorebooks and the rest</h2>
+    <h2 id="presets">Presets, worldbooks and the rest</h2>
     <ul>
         <li><b>Presets</b>: the instructions sent with every reply. Starters are tuned per model; SillyTavern presets
             import as they are, with their text rules (regex). The <i>Preview</i> tab shows exactly what's sent.</li>
-        <li><b>Worldbooks</b> (lorebooks): facts that enter the story only when they come up.</li>
+        <li><b>Worldbooks</b> (SillyTavern calls them lorebooks): facts that enter the story only when they come up.</li>
         <li><b>Characters</b>: create your own, or import SillyTavern / Chub cards (.png or .json), with their lore,
             notes and text rules.</li>
         <li><b>Samplers</b> and <b>Connections</b>: model settings and API keys, for people who want them.</li>

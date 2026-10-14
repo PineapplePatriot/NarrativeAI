@@ -1836,3 +1836,30 @@ body:has(#toolsMenu.show) .watch-card { display: none; }  /* the pen menu wins w
 /* 🧹 Bulba's polish on one reply: only while it fixes some habit (it doubles as the "it's on" sign) */
 .message-btn.polish-btn { display: none; }
 body.polish-on .message-btn.polish-btn { display: flex; }
+
+/* ---------- Chat header that fits the panel it's in (the panel can be dragged narrower or wider) ---------- */
+.chat-panel { container-type: inline-size; container-name: chatpanel; }
+.chat-header { gap: 12px; }
+.character-info { min-width: 0; flex: 1 1 auto; }
+.character-details { min-width: 0; }
+.character-details h3 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.character-details p { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.header-actions { flex: 0 0 auto; gap: 8px; }
+.header-btn { min-height: 36px; white-space: nowrap; flex: 0 0 auto; }
+@container chatpanel (max-width: 700px) {
+    /* icons only; each button's title says what it is */
+    .header-btn { font-size: 0; gap: 0; padding: 8px 10px; }
+    .header-btn .icon { margin: 0; width: 18px; height: 18px; }
+    .header-btn.header-btn, #chatsBtn { font-size: 0; }
+    .header-btn .emoji-icon, .header-btn.music-toggle { font-size: 1rem; line-height: 1; }
+}
+@container chatpanel (max-width: 460px) {
+    .chat-header { padding: 10px 12px; gap: 8px; }
+    .header-actions { gap: 4px; }
+    .header-btn { padding: 7px 8px; }
+    .character-avatar { width: 34px; height: 34px; flex: 0 0 34px; }
+}
+/* On phones the tracker pills scroll sideways: a fade says there's more */
+@media (max-width: 768px) {
+    .tracker-hud { -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent); mask-image: linear-gradient(90deg, #000 88%, transparent); }
+}

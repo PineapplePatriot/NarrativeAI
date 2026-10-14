@@ -8,8 +8,9 @@
     <title>Bulba - Narrative AI</title>
     <link rel="stylesheet" href="{% static 'mainapp/css/bulba.css' %}">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=1">
 </head>
-<body class="{% if embed %}embed{% endif %}">
+<body class="na-body {% if embed %}embed{% endif %}">
 {% if not embed %}{% include "partials/topbar.html" with active="bulba" %}{% endif %}
 {% if bulba_data %}
 {% if embed %}

@@ -94,7 +94,8 @@ button.link { background: none; padding: 0; color: var(--accent-soft); text-deco
 .potato.big { font-size: 4rem; }
 
 @media (max-width: 860px) {
-    .bulba-layout { grid-template-columns: 1fr; }
+    .bulba-layout { grid-template-columns: minmax(0, 1fr); }
+    .bulba-layout > * { min-width: 0; }
     .bulba-panel { border-left: none; border-top: 1px solid var(--border); max-height: 40vh; }
     body { height: auto; min-height: 100%; }
     .log { max-height: none; }

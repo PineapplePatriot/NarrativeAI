@@ -9,12 +9,13 @@
   <link rel="stylesheet" href="{% static 'mainapp/css/tracker_setup.css' %}">
   <link rel="stylesheet" href="{% static 'mainapp/css/presets.css' %}">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=1">
 </head>
-<body>
+<body class="na-body">
 {% include "partials/topbar.html" with active="presets" %}
-<div class="page wide">
-  <h1>Presets</h1>
-  <p class="subtitle">
+<div class="page wide na-page na-wide">
+  <h1 class="na-title">Presets</h1>
+  <p class="subtitle na-sub">
     A preset is the recipe for every request to the main chat model: which prompt blocks are sent, in what order,
     where the chat goes, and the <a href="{% url 'samplers' %}">samplers</a>.
     You can keep several and switch between them. One is active for all chats.

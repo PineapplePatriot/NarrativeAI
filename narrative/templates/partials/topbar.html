@@ -5,12 +5,17 @@
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.4 6.9L21 9.3l-5.3 4.3L17.6 21 12 17l-5.6 4 1.9-7.4L3 9.3l6.6-.4z"/></svg>
     <span>Narrative AI</span>
   </a>
+  <button type="button" class="na-menu-btn" aria-label="Menu" aria-expanded="false"
+          onclick="var t=this.closest('.na-topbar');var o=t.classList.toggle('open');this.setAttribute('aria-expanded',o)">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+  </button>
   <nav class="na-links" aria-label="Main">
     <a href="{% url 'characters_list' %}" class="{% if active == 'characters' %}active{% endif %}">Characters</a>
     <a href="{% url 'worldbook_list' %}" class="{% if active == 'worldbooks' %}active{% endif %}">Worldbooks</a>
     <a href="{% url 'presets' %}" class="{% if active == 'presets' %}active{% endif %}">Presets</a>
     <a href="{% url 'samplers' %}" class="{% if active == 'samplers' %}active{% endif %}">Samplers</a>
     <a href="{% url 'users:api_config' %}" class="{% if active == 'connections' %}active{% endif %}">Connections</a>
+    <a href="{% url 'users:extras' %}" class="{% if active == 'extras' %}active{% endif %}" title="Summaries, trackers, pictures, voices, Bulba Watch">Extras</a>
     <a href="{% url 'bulba' %}" class="{% if active == 'bulba' %}active{% endif %}" title="Bulba, the setup potato">🥔 Bulba</a>
     <a href="{% url 'guide' %}" class="{% if active == 'guide' %}active{% endif %}" title="How to try the app">Guide</a>
   </nav>

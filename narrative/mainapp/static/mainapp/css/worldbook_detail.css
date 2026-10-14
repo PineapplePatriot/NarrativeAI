@@ -303,8 +303,9 @@ input:checked+.slider:before {
     padding-bottom: 40px
 }
 .sidebar { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 16px }
+.layout > * { min-width: 0 }
 @media (max-width: 900px) {
-    .layout { grid-template-columns: 1fr }
+    .layout { grid-template-columns: minmax(0, 1fr) }
     .sidebar { position: static }
 }
 .card-title { font-size: 1rem; margin-bottom: 8px }

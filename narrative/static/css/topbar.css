@@ -45,14 +45,23 @@
 .na-logout:hover { background: rgba(251, 113, 133, 0.12); }
 .na-logout:hover svg { fill: #fb7185; }
 
-@media (max-width: 760px) {
-    .na-topbar { gap: 8px; padding: 0 10px; }
-    .na-brand span, .na-username { display: none; }
-    .na-links a { padding: 8px 9px; }
+/* The menu button: only when the links don't fit; they open as a dropdown under the bar */
+.na-menu-btn { display: none; background: none; border: 0; padding: 6px; border-radius: 8px; cursor: pointer; flex: 0 0 auto; }
+.na-menu-btn svg { width: 22px; height: 22px; fill: #c9cde0; }
+.na-menu-btn:hover, .na-topbar.open .na-menu-btn { background: rgba(139, 92, 246, 0.16); }
+@media (max-width: 1100px) {
+    .na-menu-btn { display: inline-flex; order: -1; }
+    .na-topbar { gap: 10px; }
+    .na-topbar .na-brand { margin-right: auto; }
+    .na-links { display: none; position: absolute; top: 52px; left: 0; right: 0; flex-direction: column; gap: 2px;
+                padding: 8px 12px 12px; background: rgba(15, 17, 28, 0.98); border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+                box-shadow: 0 16px 30px rgba(0, 0, 0, 0.45); max-height: calc(100vh - 52px); overflow-y: auto; }
+    .na-topbar.open .na-links { display: flex; }
+    .na-links a { padding: 12px 14px; font-size: 15px; }
 }
-@media (max-width: 760px) {
-    /* a soft fade hints that the links scroll sideways */
-    .na-links { -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent); mask-image: linear-gradient(90deg, #000 85%, transparent); padding-right: 24px; }
+@media (max-width: 520px) {
+    .na-topbar { padding: 0 10px; gap: 6px; }
+    .na-username { display: none; }
 }
 /* Guard against page stylesheets that style every link or header */
 .na-topbar a { margin: 0; display: inline-flex; align-items: center; font-weight: inherit; }

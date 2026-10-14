@@ -10,17 +10,18 @@
   <link rel="stylesheet" href="{% static 'mainapp/css/worldbook_create.css' %}">
 
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=1">
 </head>
-<body>
+<body class="na-body">
 {% include "partials/topbar.html" with active="worldbooks" %}
-  <div class="container">
-    <div class="header">
-      <a class="back" href="{% url 'worldbook_list' %}">
+  <div class="container na-page na-narrow">
+    <div class="na-head">
+      <a class="na-back" href="{% url 'worldbook_list' %}">
         <svg viewBox="0 0 24 24"><path d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"/></svg>
-        Back to Worldbooks
+        Worldbooks
       </a>
-      <h1>Create Worldbook</h1>
-      <div class="subtitle">Give it a name and a short description, or import an existing lorebook. You can add entries on the next page.</div>
+      <h1 class="na-title">New worldbook</h1>
+      <p class="na-sub">Give it a name and a short description, or import an existing worldbook (SillyTavern's work too). You can add entries on the next page.</p>
     </div>
 
     <div class="card">

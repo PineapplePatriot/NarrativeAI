@@ -7,12 +7,13 @@
     <title>Extras - Narrative AI</title>
     <link rel="stylesheet" href="{% static 'users/css/welcome.css' %}">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=1">
 </head>
-<body>
-{% include "partials/topbar.html" %}
-<main class="welcome extras">
-    <h1>Extras</h1>
-    <p class="lead">The optional bits around the chat. Change them any time; nothing here is required.</p>
+<body class="na-body">
+{% include "partials/topbar.html" with active="extras" %}
+<main class="welcome extras na-page na-narrow">
+    <h1 class="na-title">Extras</h1>
+    <p class="lead na-sub">The optional bits around the chat. Change them any time; nothing here is required.</p>
 
     <section class="option">
         <h2>🔊 Voices</h2>

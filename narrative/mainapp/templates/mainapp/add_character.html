@@ -9,12 +9,17 @@
     <link rel="stylesheet" href="{% static 'mainapp/css/character_form.css' %}?v={% now 'U' %}">
     <link rel="stylesheet" href="{% static 'mainapp/css/add_character.css' %}?v={% now 'U' %}">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=1">
 </head>
-<body>
+<body class="na-body">
 {% include "partials/topbar.html" with active="characters" %}
+<div class="na-page na-narrow">
+<div class="na-head">
+    {% if object %}<a href="{% url 'chat' object.slug %}" class="na-back">← Chat with {{ object.name }}</a>{% else %}<a href="{% url 'characters_list' %}" class="na-back">← Characters</a>{% endif %}
+    <h1 class="na-title">{% if object %}Edit {{ object.name }}{% else %}New character{% endif %}</h1>
+    <p class="na-sub">{% if object %}The card, pictures, voices and lore for this character. Changes apply to new replies.{% else %}Write the card yourself, or import a SillyTavern card on the Characters page. Bulba can also write one with you.{% endif %}</p>
+</div>
 <div class="form-container">
-    {% if object %}<a href="{% url 'chat' object.slug %}" class="back-btn">← Back to the chat with {{ object.name }}</a>{% else %}<a href="{% url 'characters_list' %}" class="back-btn">← Back to characters</a>{% endif %}
-    <h1>{% if object %}Edit {{ object.name }}{% else %}New character{% endif %}</h1>
     <form method="POST" enctype="multipart/form-data">
         {% csrf_token %}
         <div class="form-error">{{ form.non_field_errors }}</div>
@@ -149,6 +154,7 @@
             <button type="submit" class="btn-primary">Create character</button>
         {% endif %}
     </form>
+</div>
 </div>
 
 <script src="{% static 'mainapp/js/add_character.js' %}?v={% now 'U' %}"></script>
