@@ -5,7 +5,6 @@ window.Watch = (function () {
     const btn = document.getElementById('bulbaBtn');
     if (!dataEl || !btn) return null;
     let state = JSON.parse(dataEl.textContent);
-    let introCorner = false;  // the first-time note, opened from the pen menu's switch
     let hiddenUntilNew = null;  // "Later": the note stays away until a newer one arrives
     let switched = null;  // the "Director mode?" note just used, for its Undo
     const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -45,7 +44,6 @@ window.Watch = (function () {
 
     function render() {
         polishButtons();
-        card.classList.toggle('corner', !!(introCorner && state.intro));
         const toggle = document.getElementById('watchChatToggle');
         if (toggle) toggle.checked = !!(state.on && !state.chat_off);
         badge.hidden = !state.count;
@@ -152,10 +150,8 @@ window.Watch = (function () {
     const chatToggle = document.getElementById('watchChatToggle');
     if (chatToggle) chatToggle.addEventListener('change', async () => {
         const on = chatToggle.checked;
-        introCorner = on;  // the note shows beside the open pen menu, not under it
-        await post(on ? { action: 'watch_settings', chat_off: false, turn_on: true, show_intro: true }
-                      : { action: 'watch_settings', chat_off: true });
-        if (!on) showChatNotice('Bulba Watch is off in this chat. Other chats keep it.');
+        await post(on ? { action: 'watch_settings', chat_off: false, turn_on: true } : { action: 'watch_settings', chat_off: true });
+        showChatNotice(on ? 'Bulba Watch is on in this chat.' : 'Bulba Watch is off in this chat. Other chats keep it.');
     });
 
     render();

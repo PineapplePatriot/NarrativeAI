@@ -831,13 +831,6 @@ def intro_seen(user, keep_on):
     save_user_data(user, mine)
 
 
-def show_intro_again(user):
-    """The first-time note shows again (switched back on from the pen menu)."""
-    mine = user_data(user)
-    if mine.pop("intro_seen", None):
-        save_user_data(user, mine)
-
-
 def set_chat_off(chat_obj, off):
     data = chat_data(chat_obj)
     data["off"] = bool(off)
