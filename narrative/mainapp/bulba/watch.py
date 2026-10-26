@@ -91,6 +91,8 @@ def user_data(user):
     # How Bulba's polish lands: replies kept, liked or rejected, and the rewrites they rejected (the polisher
     # is shown them as what not to do; see bulba/polish.py)
     data.setdefault("polish", {"kept": 0, "liked": 0, "rejected": 0, "examples": []})
+    # Things they told Bulba they dislike ("other: <name>" -> what it means), fixed and watched like any habit
+    data.setdefault("dislikes", {})
     return data
 
 
@@ -470,6 +472,9 @@ def _prompt(user, character, messages, picked, data, mine, writes_for_user, ask_
         parts.append("## Also answer they_direct (see \"Are they directing?\")")
     if mine["muted"]:
         parts += ["## They said they don't mind these (don't note them)", ", ".join(mine["muted"])]
+    if mine["dislikes"]:  # their own words, turned into habits: look for these too, with exactly this label
+        parts += ["## They told you they dislike these (note them like any slip, with exactly this label)",
+                  *[f"- {label}: {about}" for label, about in mine["dislikes"].items() if label in mine["fix"]]]
     if data["signals"]:
         parts.append("## What they did with replies")
         for s in data["signals"]:
@@ -787,8 +792,48 @@ def memory(user):
     mine = user_data(user)
     return {"taste": list(mine["taste"]), "taste_in_preset": [t for t in mine["taste"] if t in mine["taste_in_preset"]],
             "muted": [{"label": m, "title": title_of(m)} for m in mine["muted"]],
-            "fix": [{"label": m, "title": title_of(m)} for m in mine["fix"]],
+            "fix": [{"label": m, "title": title_of(m), "about": mine["dislikes"].get(m, "")} for m in mine["fix"]],
             "fix_model": "chat" if mine.get("fix_model") == "chat" else "bulba"}
+
+
+DISLIKE_PROMPT = (
+    "Someone using a roleplay app describes something they dislike in the AI's writing, in their own words. Turn "
+    "it into a habit an editor can spot and fix. Answer only with JSON: {\"name\": \"2 to 5 words, lower case\", "
+    "\"about\": \"one plain sentence: what to look for in a reply, concretely (not why it's bad)\"}. Keep their "
+    "meaning; don't widen it. No 'ensure', 'immersive', 'vivid'.")
+
+
+def word_dislike(user, raw):
+    """Bulba's wording for a dislike in their own words: {"name", "about"} (their words as they are if it fails)."""
+    raw = str(raw or "").strip()[:500]
+    if not raw:
+        raise ValueError("Write what you dislike first, in your own words.")
+    fallback = {"name": raw[:40].lower(), "about": raw}
+    try:
+        text = ai_client.complete(user, "bulba", [{"role": "system", "content": DISLIKE_PROMPT},
+                                                   {"role": "user", "content": raw}],
+                                  max_tokens=1500, temperature=0.3, response_format={"type": "json_object"})
+    except ai_client.AIError:
+        return fallback
+    data = _parse(text)
+    name, about = str(data.get("name") or "").strip()[:40], str(data.get("about") or "").strip()[:300]
+    return {"name": name.lower(), "about": about} if name and about else fallback
+
+
+def add_dislike(user, name, about):
+    """Adds it to the habits Bulba fixes (and Watch looks for). Returns its label."""
+    name, about = str(name or "").strip().lower()[:40], str(about or "").strip()[:300]
+    if not name:
+        raise ValueError("Give it a short name.")
+    label = "other: " + name
+    mine = user_data(user)
+    mine["dislikes"][label] = about or name
+    if label not in mine["fix"]:
+        mine["fix"].append(label)
+    if label in mine["muted"]:
+        mine["muted"].remove(label)
+    save_user_data(user, mine)
+    return label
 
 
 def change_memory(user, op, old="", new=""):
@@ -815,6 +860,7 @@ def change_memory(user, op, old="", new=""):
         if old not in mine["fix"]:
             raise ValueError("That one is gone; reload the page.")
         mine["fix"].remove(old)
+        mine["dislikes"].pop(old, None)
     elif op == "fix_model":
         if new not in ("bulba", "chat"):
             raise ValueError("Pick Bulba's model or your chat model.")
@@ -865,10 +911,26 @@ def tool_defs(fn, STR):
     return [fn("set_watch", "Switch Bulba Watch (your quiet reading of replies for habits, and the polish) on or off "
                "when they ask: everywhere, or only in this chat. It happens at once, no Apply.",
                {"on": {"type": "boolean"}, "scope": {"type": "string", "enum": ["everywhere", "this_chat"]}},
-               ["on", "scope"])]
+               ["on", "scope"]),
+            fn("add_dislike", "Add something they dislike in the replies to the habits Bulba fixes in every new reply "
+               "(and Bulba Watch looks for). Word it with them first: a short name and one concrete sentence of what "
+               "to look for, keeping their meaning. Use when they say they hate or keep seeing something.",
+               {"name": {"type": "string", "description": "2 to 5 words, lower case"},
+                "about": {"type": "string", "description": "One sentence: what it looks like in a reply"}},
+               ["name", "about"])]
 
 
-HANDLERS = {"set_watch": tool_set_watch}
+def tool_add_dislike(session, args):
+    try:
+        label = add_dislike(session.user, args.get("name"), args.get("about"))
+    except ValueError as e:
+        return {"error": str(e)}, []
+    state = page_state(session.user, session.chat) if session.chat is not None else None
+    return {"added": title_of(label), "note": "New replies get it rewritten (🧹 shows on replies), and Bulba Watch "
+            "looks for it. They can remove it on the Extras page."}, ([{"type": "watch", "watch": state}] if state else [])
+
+
+HANDLERS = {"set_watch": tool_set_watch, "add_dislike": tool_add_dislike}
 
 
 def for_bulba(notice):

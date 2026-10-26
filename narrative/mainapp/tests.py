@@ -4316,6 +4316,40 @@ class WatchChatTests(ChatPromptTests):
         state = self.post({"action": "watch_settings", "chat_off": False, "turn_on": True}).json()["watch"]
         self.assertEqual((state["on"], state["chat_off"]), (True, False))
 
+    def test_their_own_dislikes_are_fixed_and_watched(self):
+        from unittest import mock
+        from types import SimpleNamespace
+        from mainapp.bulba import watch, polish
+        self.client.get(self.url)
+        extras = reverse("users:extras")
+        with mock.patch("mainapp.bulba.watch.ai_client.complete",
+                        return_value='{"name": "constant smirking", "about": "A character smirks or smiles knowingly at the user."}'):
+            word = self.client.post(extras, json.dumps({"action": "watch_memory", "op": "word_dislike",
+                                                        "new": "he keeps smirking at everything I say"}),
+                                    content_type="application/json").json()
+        self.assertEqual(word["suggestion"]["name"], "constant smirking")
+        state = self.client.post(extras, json.dumps({"action": "watch_memory", "op": "add_dislike", **word["suggestion"]}),
+                                 content_type="application/json").json()["state"]
+        fix = state["watch_memory"]["fix"][0]
+        self.assertEqual((fix["label"], fix["about"]), ("other: constant smirking", "A character smirks or smiles knowingly at the user."))
+        # the polisher gets their words; the reader looks for it with that label
+        prompt = polish._prompt(self.character, self.chat_obj(), "He smirks.", [], "", ["other: constant smirking"])
+        self.assertIn("smirks or smiles knowingly", prompt[1]["content"])
+        for i in range(3):
+            self.post({"action": "chat", "message": f"Line {i}."})
+        self.post({"action": "watch"})
+        self.assertIn("other: constant smirking: A character smirks", self.reader_calls[-1]["messages"][1]["content"])
+        # Bulba in a chat can add one too; stopping it removes the wording
+        result, _ = watch.tool_add_dislike(SimpleNamespace(user=self.user, chat=self.chat_obj()),
+                                           {"name": "Em dashes", "about": "Sentences broken up with em dashes."})
+        self.assertEqual(result["added"], "Em dashes")
+        watch.change_memory(self.user, "stop_fix", "other: constant smirking")
+        self.assertNotIn("other: constant smirking", watch.user_data(self.user)["dislikes"])
+        # wording falls back to their own words when the model fails
+        from mainapp import ai_client
+        with mock.patch("mainapp.bulba.watch.ai_client.complete", side_effect=ai_client.AIError("down")):
+            self.assertEqual(watch.word_dislike(self.user, "Too many sighs")["about"], "Too many sighs")
+
     def test_bulba_switches_it_when_asked(self):
         from types import SimpleNamespace
         from mainapp.bulba import watch

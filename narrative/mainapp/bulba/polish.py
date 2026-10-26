@@ -94,10 +94,12 @@ def _examples(chat_obj, label):
 
 
 def _prompt(character, chat_obj, text, others, summary, habits, whose="reply", rejected=()):
+    dislikes = watch.user_data(character.author)["dislikes"]  # their own dislikes, in their (Bulba-worded) words
     lines = []
     for label in habits:
         if label in watch.LABELS or label.startswith("other: "):
-            line = f"- {watch.title_of(label, character.name)}: {MEANING.get(label, 'a habit they noticed in this chat')}"
+            meaning = MEANING.get(label) or dislikes.get(label) or "a habit they noticed in this chat"
+            line = f"- {watch.title_of(label, character.name)}: {meaning}"
             examples = _examples(chat_obj, label)
             if examples:
                 line += ". Seen in this chat: " + "; ".join(f"“{q}”" for q in examples)

@@ -5,9 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Extras - Narrative AI</title>
-    <link rel="stylesheet" href="{% static 'users/css/welcome.css' %}">
+    <link rel="stylesheet" href="{% static 'users/css/welcome.css' %}?v=2">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
-    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=1">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
 </head>
 <body class="na-body">
 {% include "partials/topbar.html" with active="extras" %}
@@ -77,10 +77,24 @@
             Changes save at once.</p>
         <ul class="memory" id="watchTaste"></ul>
         <h3 class="sub">Fixed automatically (Bulba's polish)</h3>
-        <p class="help">Habits you asked Bulba to fix ("Fix this automatically" on a note). Each new reply, swipe or
+        <p class="help">Habits you asked Bulba to fix ("Fix this automatically" on a note, or added below). Each new reply, swipe or
             continued reply gets a quick pass that rewrites only the sentences with them; the original is one click away
             under the reply. A small extra call each time a reply needs it.</p>
         <ul class="memory" id="watchFix"></ul>
+        <div class="dislike-add">
+            <label for="dislikeRaw">Something you dislike in the replies? Say it in your own words:</label>
+            <div class="dislike-row">
+                <input type="text" id="dislikeRaw" maxlength="500" placeholder="e.g. he keeps smirking at everything I say">
+                <button type="button" class="secondary" id="dislikeWord">🥔 Word it with Bulba</button>
+            </div>
+            <div class="dislike-check" id="dislikeCheck" hidden>
+                <input type="text" id="dislikeName" maxlength="40" placeholder="Short name">
+                <input type="text" id="dislikeAbout" maxlength="300" placeholder="What it looks like in a reply">
+                <div class="dislike-row"><button type="button" id="dislikeAdd">Add to the list</button>
+                    <button type="button" class="link" id="dislikeCancel">Cancel</button></div>
+            </div>
+            <p class="help">Bulba then rewrites it in new replies, and Bulba Watch looks for it too. You can also just tell 🥔 Bulba in a chat.</p>
+        </div>
         <label class="fix-model">Who rewrites:
             <select id="fixModel">
                 <option value="bulba">Bulba's model (cheaper; fine for wording fixes)</option>

@@ -417,6 +417,17 @@ def extras(request):
             return JsonResponse({"error": "Invalid request."}, status=400)
         if data.get("action") == "watch_memory":  # what Bulba Watch learned: reword, forget, or un-mute
             from mainapp.bulba import watch
+            if data.get("op") == "word_dislike":  # Bulba words what they dislike; they check it before adding
+                try:
+                    return JsonResponse({"status": "ok", "suggestion": watch.word_dislike(request.user, data.get("new"))})
+                except ValueError as e:
+                    return JsonResponse({"error": str(e)}, status=400)
+            if data.get("op") == "add_dislike":
+                try:
+                    watch.add_dislike(request.user, data.get("name"), data.get("about"))
+                except ValueError as e:
+                    return JsonResponse({"error": str(e)}, status=400)
+                return JsonResponse({"status": "ok", "state": _extras_state(request.user)})
             try:
                 watch.change_memory(request.user, data.get("op"), data.get("old"), data.get("new"))
             except ValueError as e:

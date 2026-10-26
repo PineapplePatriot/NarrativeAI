@@ -90,3 +90,11 @@ body.na-body {
 /* Some page stylesheets centre every h1: the shared header is always left-aligned */
 .na-head, .na-head .na-title, .na-page > h1.na-title, .na-page > .na-sub { text-align: left; }
 .na-head .na-sub { margin-left: 0; margin-right: 0; }
+
+/* One font everywhere (inputs and buttons too), and the page colour under short pages and overscroll */
+html { background: var(--bg-primary); }
+body.na-body { font-family: Inter, "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif; }
+/* zero priority: a page's own rule (a monospace editor, say) still wins */
+:where(body.na-body) :where(input, select, textarea, button) { font-family: inherit; }
+/* Forms inside a page column fill it (the profile and password forms were narrow centred cards) */
+.na-page .form-container { max-width: none; width: auto; margin-left: 0; margin-right: 0; }
