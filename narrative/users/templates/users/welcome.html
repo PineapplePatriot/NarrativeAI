@@ -69,6 +69,6 @@
 </main>
 {{ welcome_data|json_script:"welcome-data" }}
 <script>const WELCOME_URL = "{% url 'users:welcome' %}";</script>
-<script src="{% static 'users/js/welcome.js' %}"></script>
+<script src="{% static 'users/js/welcome.js' %}?v=2"></script>
 </body>
 </html>

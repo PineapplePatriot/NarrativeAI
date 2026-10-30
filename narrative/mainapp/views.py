@@ -2280,6 +2280,14 @@ def bulba_page(request):
     if not ai_client.has_connection(request.user):
         return redirect("users:welcome")
     session = _bulba_session(request.user)
+    route = request.GET.get("route")
+    if session and route in ("full", "fast") and len(session.events) == 1:  # picked on the welcome tour's last step
+        from .bulba import agent
+        try:
+            agent.take_route(session, route)
+            session.save()
+        except ValueError:  # no ready setup for this model: Bulba's opening asks as usual
+            pass
     from .models import BulbaSession
     # Bulba's conversations inside chats live on those chats' pages; list them so they're easy to find
     in_chats = [{"title": f"{b.chat.character.name} · {b.chat.title}", "events": len(b.events),
@@ -2291,6 +2299,26 @@ def bulba_page(request):
         "known_models": model_profiles.known_names(),
         "in_chats": in_chats,
     })
+
+
+@login_required
+def bulba_explain(request):
+    """What's this? Bulba explains one thing they clicked (or asked about) on a page."""
+    from .bulba import explain
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only"}, status=405)
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return JsonResponse({"error": "Invalid request."}, status=400)
+    if not isinstance(data, dict):
+        return JsonResponse({"error": "Invalid request."}, status=400)
+    if not ai_client.has_connection(request.user):
+        return JsonResponse({"error": "Bulba needs your OpenRouter key first (the welcome page)."}, status=400)
+    try:
+        return JsonResponse({"text": explain.explain(request.user, data)})
+    except ai_client.AIError as e:
+        return JsonResponse({"error": str(e)}, status=502)
 
 
 @login_required

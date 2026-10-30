@@ -5491,3 +5491,81 @@ class WatchMarkupTests(SimpleTestCase):
         note = watch.habits(data, [])[0]
         self.assertTrue(any(q.startswith('<font color=#b22222>"Mudra') for q in note["quotes"]))
         self.assertEqual(watch.raw_snippet("Nothing here.", "font color b22222 mu"), "")
+
+
+class HelpAndToursTests(BulbaTests):
+    """The guided tours' way into Bulba, "What's this?", and the app map Bulba explains from."""
+
+    def explain(self, **body):
+        from unittest import mock
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=self.fake_post):
+            return self.client.post(reverse("bulba_explain"), json.dumps(body), content_type="application/json")
+
+    def test_the_tour_picks_the_fast_route_once(self):
+        data = self.client.get(reverse("bulba") + "?route=fast").context["bulba_data"]
+        self.assertEqual(data["events"][1], {"type": "action", "text": "Fast route"})
+        self.assertTrue(all(c["route"].startswith("fast:") for c in data["events"][-1]["choices"]))
+        again = self.client.get(reverse("bulba") + "?route=full").context["bulba_data"]
+        self.assertEqual(len(again["events"]), len(data["events"]))  # already past the opening: nothing changes
+        self.assertEqual(self.bulba_calls, [])  # no AI needed
+
+    def test_the_tour_picks_the_full_setup(self):
+        data = self.client.get(reverse("bulba") + "?route=full").context["bulba_data"]
+        self.assertEqual(data["events"][1], {"type": "action", "text": "Full setup"})
+        self.assertEqual(data["state"]["stage"], "extras")
+        self.assertEqual(len(self.client.get(reverse("bulba") + "?route=nonsense").context["bulba_data"]["events"]),
+                         len(data["events"]))
+
+    def test_whats_this_answers_in_their_language_from_the_app_map(self):
+        resp = self.explain(lang="uk", page="/main/presets/", page_title="Presets", tag="button",
+                            label="Preview", heading="Your presets", question="")
+        self.assertEqual(resp.json(), {"text": "Sample number 1."})
+        sent = self.sample_calls[0]
+        self.assertEqual(sent["model"], "xiaomi/mimo-v2.6-pro")  # Bulba's model, not the chat model
+        self.assertIn("Answer in Ukrainian.", sent["messages"][0]["content"])
+        self.assertIn("The app, page by page", sent["messages"][0]["content"])
+        self.assertIn("'Preview'", sent["messages"][1]["content"])
+        self.assertIn("Section: Your presets", sent["messages"][1]["content"])
+        self.assertNotIn("sk-or-secret", json.dumps(sent))
+
+    def test_whats_this_passes_their_question_and_the_known_help(self):
+        self.explain(lang="en", label="🥔 Bulba", known="The setup potato.", question="Does it cost money?")
+        user = self.sample_calls[0]["messages"][1]["content"]
+        self.assertIn("Their question: Does it cost money?", user)
+        self.assertIn("The app's own short help for it: The setup potato.", user)
+        self.assertIn("Answer in English.", self.sample_calls[0]["messages"][0]["content"])
+
+    def test_whats_this_needs_a_key_and_a_proper_request(self):
+        self.assertEqual(self.client.get(reverse("bulba_explain")).status_code, 405)
+        self.assertEqual(self.explain().status_code, 200)
+        bad = self.client.post(reverse("bulba_explain"), "[1, 2]", content_type="application/json")
+        self.assertEqual(bad.status_code, 400)
+        self.main.delete()
+        resp = self.explain(label="Presets")
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("OpenRouter key", resp.json()["error"])
+
+    def test_every_page_has_the_help_button_and_the_tour(self):
+        for name in ("home", "presets", "bulba", "users:extras", "users:profile"):
+            html = self.client.get(reverse(name)).content.decode()
+            self.assertIn('class="na-help-btn"', html, name)
+            self.assertIn("js/tour.js", html, name)
+            self.assertIn(reverse("bulba_explain"), html, name)
+
+    def test_bulba_knows_the_app_map_in_setup_and_in_chats(self):
+        from mainapp.bulba import agent
+        from mainapp.models import BulbaSession
+        self.client.get(reverse("bulba"))
+        session = BulbaSession.objects.get(user=self.user, mode="setup")
+        self.assertIn("The app, page by page", agent.system_prompt(session))
+        self.assertIn('"What is this?"', agent.system_prompt(session))
+
+
+class BulbaInChatKnowsTheAppTests(BulbaInChatTests):
+    def test_bulba_in_a_chat_reads_the_app_map(self):
+        from mainapp.bulba import doctor
+        from mainapp.views import _bulba_chat_session
+        self.make_chat()
+        prompt = doctor.system_prompt(_bulba_chat_session(self.user, self.chat_obj))
+        self.assertIn("The app, page by page", prompt)
+        self.assertIn('"What is this?"', prompt)

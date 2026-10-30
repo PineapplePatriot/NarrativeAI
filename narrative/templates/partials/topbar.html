@@ -20,6 +20,8 @@
     <a href="{% url 'guide' %}" class="{% if active == 'guide' %}active{% endif %}" title="How to try the app">Guide</a>
   </nav>
   <div class="na-user">
+    <button type="button" class="na-help-btn" aria-label="Help" aria-haspopup="menu" aria-expanded="false"
+            title="Help: a tour of this page, or click anything to have it explained">?</button>
     <a href="{% url 'users:profile' %}" class="na-profile{% if active == 'profile' %} active{% endif %}" title="Your profile and persona">
       {% if request.user.photo %}<img src="{{ request.user.photo.url }}" alt="">{% else %}<span class="na-initial">{{ request.user.username|first|upper }}</span>{% endif %}
       <span class="na-username">{{ request.user.username }}</span>
@@ -29,3 +31,7 @@
     </a>
   </div>
 </header>
+<link rel="stylesheet" href="{% static 'css/tour.css' %}?v=2">
+<script>window.NA_HELP_CFG = {explain: "{% url 'bulba_explain' %}", bulba: "{% url 'bulba' %}", csrf: "{{ csrf_token }}"};</script>
+<script src="{% static 'js/help_text.js' %}?v=1" defer></script>
+<script src="{% static 'js/tour.js' %}?v=2" defer></script>

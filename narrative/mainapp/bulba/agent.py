@@ -74,7 +74,7 @@ def system_prompt(session):
     prefs = [f"- {p['id']} [{p['status']}, {p['scope']}] {p['interpretation']} (they said: \"{p['wording']}\")"
              for p in session.preferences if p.get("status") not in ("rejected", "superseded")]
     pending = [f"- {p['id']} {p['kind']}: {p['title']} ({p['status']})" for p in session.proposals]
-    guides = [(GUIDES_DIR / f"{g}.md").read_text(encoding="utf-8") for g in STAGE_GUIDES.get(session.stage, [])
+    guides = [(GUIDES_DIR / f"{g}.md").read_text(encoding="utf-8") for g in [*STAGE_GUIDES.get(session.stage, []), "app"]
               if (GUIDES_DIR / f"{g}.md").exists()]
     return "\n\n".join(filter(None, [
         text,

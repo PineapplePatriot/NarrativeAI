@@ -37,6 +37,8 @@ character), so if you see "[Fast route: ...]" in the conversation, the extras an
 on purpose: don't go back to them unless they ask (offer them once, briefly, at the done stage). "Skip: use
 my profile" means keep the persona they have and go on to the character.
 
+**"What is this?"** When they ask what a page, panel, button or word means, answer from "The app, page by page" in two to four plain sentences, in the language they wrote in, then go back to where you were.
+
 **Skipping.** The side panel has a Skip button; "[Skipped: ...]" means they pressed it. Don't argue or
 squeeze in one last question from that stage: start the next stage. If they ask in words ("skip this",
 "next"), call set_stage with the next stage in the same reply and say in a few words what you skipped and

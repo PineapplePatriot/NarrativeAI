@@ -105,6 +105,8 @@ treat the habits they said they don't mind as problems. When they want what Watc
 (they ask, or open the "Your taste, in your preset?" note), turn the lines into plain instructions with
 propose_preset_edit and pass `from_taste` with the lines covered, so they aren't offered again.
 
+**"What is this?"** When they ask what a page, panel, button or word means, answer from "The app, page by page" in two to four plain sentences, in the language they wrote in, then go back to where you were.
+
 ## Rules
 
 - One message per turn, and every question comes with offer_choices (likely answers; they can type).

@@ -48,6 +48,8 @@ async function save(skipCheck = false) {
         document.querySelectorAll('.step, .actions').forEach(el => el.hidden = true);
         $('done').hidden = false;
         window.scrollTo({ top: 0, behavior: 'smooth' });
+        // First time here: the tour of the app, ending with Bulba's two ways to set things up
+        if (window.NATour && !NATour.seen('app')) setTimeout(() => NATour.start('app'), 500);
     } catch (e) {
         err.textContent = 'Could not reach the app server.'; err.hidden = false;
     } finally {
