@@ -143,6 +143,33 @@ def trim_history(system_messages, chat_messages, samplers):
     return kept, len(chat_messages) - len(kept)
 
 
+# Background jobs (summary, trackers): what one request may hold. Room is kept for the answer (and thinking).
+JOB_ANSWER_ROOM = 8192
+UNKNOWN_WINDOW = 32000  # a model without a profile, and no context size set: assume a modest window
+
+
+def job_window(user, task):
+    """Tokens one request for a background job may send: the job's own window if set (Connections page),
+    else the chat's context size (when it's on); never more than the job's model can take, minus answer room."""
+    from mainapp import ai_client
+    _, model = ai_client.resolve(user, task)
+    limit = ((model_profiles.for_model(model) or {}).get("limits") or {}).get("context")
+    own = ai_client.get_task_setting(user, task).context
+    if not own:
+        ctx = for_user(user).get("context_size", {})
+        own = ctx.get("value") if ctx.get("on") else None
+    window = min([w for w in (own, limit) if w] or [UNKNOWN_WINDOW])
+    return max(2048, window - JOB_ANSWER_ROOM)
+
+
+def cut_to(text, tokens, keep="end"):
+    """The text shortened to about `tokens`, keeping its end (or start), marked where it was cut."""
+    chars = max(0, (tokens - 4) * 3)
+    if len(text or "") <= chars:
+        return text
+    return ("[…] " + text[-chars:]) if keep == "end" else (text[:chars] + " […]")
+
+
 def for_user(user):
     """Samplers of the user's active preset."""
     from mainapp import presets

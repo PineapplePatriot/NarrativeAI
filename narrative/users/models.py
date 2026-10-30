@@ -85,6 +85,8 @@ class TaskSetting(models.Model):
     enabled = models.BooleanField(default=True)
     mode = models.CharField(max_length=16, choices=MODES, default=MODE_MANUAL)
     interval = models.PositiveIntegerField(default=10, help_text="Run every N messages (automatic mode)")
+    # Background jobs only: the most this job sends at once (tokens); empty = the chat's context size
+    context = models.PositiveIntegerField(null=True, blank=True)
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=["user", "task"], name="unique_task_per_user")]

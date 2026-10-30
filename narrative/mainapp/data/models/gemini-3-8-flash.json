@@ -9,9 +9,10 @@
     "openrouter": "google/gemini-3.8-flash"
   },
   "openrouter_id_verified": false,
-  "verified": "2026-10-03",
+  "verified": "2026-10-30",
   "sources": [
-    "https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash"
+    "https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash",
+    "https://ai.google.dev/gemini-api/docs/prompting-strategies"
   ],
   "limits": {
     "context": 1048576,
@@ -35,13 +36,16 @@
       "status": "supported"
     },
     "temperature": {
-      "status": "unverified"
+      "status": "fixed",
+      "why": "Google's prompt guide (Oct 2026): Gemini 3.6 and later ignore it, so it isn't sent."
     },
     "top_p": {
-      "status": "unverified"
+      "status": "fixed",
+      "why": "Google's prompt guide (Oct 2026): Gemini 3.6 and later ignore it, so it isn't sent."
     },
     "top_k": {
-      "status": "unverified"
+      "status": "fixed",
+      "why": "Google's prompt guide (Oct 2026): Gemini 3.6 and later ignore it, so it isn't sent."
     },
     "stop": {
       "status": "unverified"

@@ -1342,6 +1342,51 @@ class SummaryPartsAndBranchTests(TrackerChatTests):
         self.assertEqual((resp["summary"], resp["summary_upto"]), ("", 0))
         self.assertEqual(resp["trackers"]["values"], {})
 
+    def small_window(self, task):
+        from mainapp import ai_client
+        setting = ai_client.get_task_setting(self.user, task)
+        setting.context = 4096  # the smallest allowed: 2,048 tokens left once the answer has room
+        setting.save()
+
+    def test_a_long_chat_is_summarized_in_pieces_that_fit_the_window(self):
+        self.small_window("summary")
+        for n in range(4):
+            self.post({"action": "chat", "message": f"Scene {n}. " + "word " * 900})  # ~1,500 tokens each
+        total = len(self.chat_file()["messages"])
+        self.post({"action": "summarize", "mode": "regen"})
+        spans = [(p["from"], p["to"]) for p in self.chat_file()["summary_parts"]]
+        self.assertGreater(len(spans), 1)
+        self.assertEqual((spans[0][0], spans[-1][1]), (0, total))           # nothing dropped
+        self.assertTrue(all(a[1] == b[0] for a, b in zip(spans, spans[1:])))  # one after another
+        calls = [c for c in self.all_calls if c["messages"][0]["content"].startswith(("Existing summary", "Summarize this entire"))]
+        self.assertTrue(all(len(c["messages"][1]["content"]) // 3 <= 2048 for c in calls))
+        self.assertIn("Summary", calls[-1]["messages"][0]["content"])  # later pieces continue the earlier ones
+
+    def test_tracker_update_keeps_to_the_window(self):
+        self.small_window("trackers")
+        self.post({"action": "chat", "message": "OLDEST " + "word " * 900})
+        for n in range(3):
+            self.post({"action": "chat", "message": f"Later {n} " + "word " * 900})
+        self.assertTrue(self.post({"action": "update_trackers"}).json()["success"])
+        call = [c for c in self.all_calls if c["messages"][0]["content"].startswith("You keep the story-state trackers")][-1]
+        sent = "".join(m["content"] for m in call["messages"])
+        self.assertLessEqual(len(sent) // 3, 2048 + 50)
+        self.assertNotIn("OLDEST", sent)
+        self.assertIn("Later 2", sent)
+
+    def test_job_window_follows_the_model_and_the_settings(self):
+        from mainapp import ai_client, samplers
+        from users.models import ConnectionProfile
+        self.assertEqual(samplers.job_window(self.user, "summary"), 32000 - 8192)  # the chat's context size
+        setting = ai_client.get_task_setting(self.user, "summary")
+        setting.context = 200000
+        setting.save()
+        self.assertEqual(samplers.job_window(self.user, "summary"), 200000 - 8192)  # its own window
+        ConnectionProfile.objects.filter(user=self.user).update(model="google/gemini-3.8-flash")
+        setting.context = 2000000
+        setting.save()
+        self.assertEqual(samplers.job_window(self.user, "summary"), 1048576 - 8192)  # never past the model's
+
     def test_regen_replaces_all_pieces(self):
         self.build_story()
         data = self.post({"action": "summarize", "mode": "regen"}).json()
@@ -1516,13 +1561,41 @@ class SamplerPageProfileTests(ChatPromptTests):
         self.assertIn("Claude Opus 5.5", data["known_models"])
 
 
+class GeminiArgonTests(ChatPromptTests):
+    """Gemini 4 Argon (research 2026-10-30): its own profile, ignored samplers left out, ready setups."""
+
+    def test_argon_has_its_own_profile_and_drops_ignored_samplers(self):
+        from mainapp import model_profiles, samplers
+        argon = model_profiles.for_model("google/gemini-4-argon")
+        self.assertEqual(argon["id"], "gemini-4-argon")
+        self.assertNotEqual(model_profiles.for_model("google/gemini-3.8-flash")["id"], "gemini-4-argon")
+        self.assertEqual(argon["limits"]["context"], 1048576)
+        self.assertEqual(list(argon["reasoning"]["choices"]), ["low", "medium", "high"])
+        status = model_profiles.sampler_status("google/gemini-4-argon", samplers.normalize({}))
+        for key in ("temperature", "top_p", "top_k", "frequency_penalty", "presence_penalty"):
+            self.assertIn(status[key]["status"], ("fixed", "unused"), key)
+        # Gemini 3.6+ ignores the sampling controls too (Google's prompt guide)
+        flash = model_profiles.sampler_status("google/gemini-3.8-flash", samplers.normalize({}))
+        self.assertEqual(flash["temperature"]["status"], "fixed")
+
+    def test_argon_ready_setups_start_on_low_thinking_with_room(self):
+        from mainapp import starters
+        ready = starters.ready_for("gemini-4-argon")
+        self.assertEqual({r["feel"] for r in ready}, {"back_and_forth", "rich_scene", "director"})
+        for r in ready:
+            s = starters.get(r["id"])["preset"]["samplers"]
+            self.assertEqual(s["reasoning_effort"]["value"], "low")
+            self.assertGreaterEqual(s["max_tokens"]["value"], 16000)  # thinking shares the output budget
+            self.assertNotIn("temperature", s)
+
+
 class StarterTests(ChatPromptTests):
     """Ready-made presets per model (mainapp/data/starters/*.json)."""
 
     def test_every_starter_is_a_sound_preset_for_its_model(self):
         from mainapp import model_profiles, presets, samplers, starters
         all_s = starters.all_starters()
-        self.assertEqual(len(all_s), 33)  # three experiences for each of the ten models, plus three community presets
+        self.assertEqual(len(all_s), 36)  # three experiences for each of the eleven models, plus three community presets
         for s in all_s:
             profile = next(p for p in model_profiles.all_profiles() if p["id"] == s["model"])
             self.assertEqual(profile["starters"][s["experience"]], s["id"])
@@ -1593,9 +1666,9 @@ class WelcomeTests(TestCase):
     def test_home_sends_new_users_here(self):
         self.assertRedirects(self.client.get(reverse("home")), self.url, fetch_redirect_response=False)
 
-    def test_lists_ten_models_recommended_first(self):
+    def test_lists_eleven_models_recommended_first(self):
         models = self.client.get(self.url).context["welcome_data"]["models"]
-        self.assertEqual(len(models), 10)
+        self.assertEqual(len(models), 11)
         self.assertEqual([m["name"] for m in models[:2]], ["Claude Opus 5.5", "MiMo v2.6 Pro"])
         self.assertTrue(all(m["best_for"] and m["openrouter"] and m["price"] for m in models))
 
@@ -5615,3 +5688,66 @@ class BulbaInChatKnowsTheAppTests(BulbaInChatTests):
         prompt = doctor.system_prompt(_bulba_chat_session(self.user, self.chat_obj))
         self.assertIn("The app, page by page", prompt)
         self.assertIn('"What is this?"', prompt)
+
+
+class BasicsAndStoryFormTests(BulbaTests):
+    """The basics form's new questions (2026-10-30 rules), and the story form's tracker chips."""
+
+    def test_initiative_invention_and_inner_thoughts_become_preferences(self):
+        from mainapp.bulba import agent
+        from mainapp.models import BulbaSession
+        self.client.get(reverse("bulba"))
+        session = BulbaSession.objects.get(user=self.user, mode="setup")
+        note = agent.apply_basics(session, {"pacing": "slow", "initiative": "drive", "invention": "canon",
+                                            "interior": "observe"})
+        texts = [p["interpretation"] for p in session.preferences]
+        self.assertTrue(any("start events and complications on their own" in t for t in texts))
+        self.assertTrue(any("Leave gaps open rather than inventing" in t for t in texts))
+        self.assertTrue(any("leave motives and feelings for the reader" in t for t in texts))
+        self.assertIn("Who moves the story:", note)
+        agent.apply_basics(session, {"initiative": "any"})
+        self.assertEqual(len(session.preferences), len(texts))  # "no preference" records nothing
+
+    def make_character(self):
+        from mainapp.models import BulbaSession, Character
+        self.client.get(reverse("bulba"))
+        session = BulbaSession.objects.get(user=self.user, mode="setup")
+        character = Character.objects.create(author=self.user, name="Rose", slug="rose-form", description="A florist.")
+        session.proposals.append({"id": "c1", "kind": "character", "status": "applied", "title": "Rose",
+                                  "summary": [], "payload": {}, "result": {"slug": character.slug}})
+        session.stage = "story"
+        session.save()
+        return session, character
+
+    def test_story_form_trackers_are_pre_ticked_and_applied_with_undo(self):
+        from mainapp.bulba import actions, agent
+        session, character = self.make_character()
+        result, events = agent.tool_show_extras_form(session, {"trackers": ["world", "relationships", "secrets"]})
+        form = events[0]
+        self.assertEqual(form["character"], "Rose")
+        self.assertEqual(form["values"]["trackers"], ["world", "relationships", "secrets"])
+        self.assertNotIn("custom", [t["id"] for t in form["trackers"]])
+        session.events.append(form)
+        session.save()
+        self.script = [("Done.", [])]
+        resp = self.api(action="extras_form", part="story",
+                        answers={"game": "off", "story_extras": [], "ideas": False, "trackers": ["world", "secrets"]})
+        self.assertEqual(resp.status_code, 200)
+        from mainapp import trackers
+        character.refresh_from_db()
+        on = {t for t, c in trackers.normalize_config(character.tracker_config)["trackers"].items() if c["on"]}
+        self.assertEqual(on, {"world", "secrets"})
+        session.refresh_from_db()
+        tracker_card = next(p for p in session.proposals if p["kind"] == "trackers")
+        self.assertEqual(tracker_card["status"], "applied")
+        actions.undo(session, tracker_card["id"])
+        character.refresh_from_db()
+        self.assertFalse(trackers.normalize_config(character.tracker_config)["trackers"]["secrets"]["on"])
+
+    def test_story_form_without_a_character_has_no_trackers_row(self):
+        from mainapp.bulba import agent
+        from mainapp.models import BulbaSession
+        self.client.get(reverse("bulba"))
+        session = BulbaSession.objects.get(user=self.user, mode="setup")
+        form = agent.tool_show_extras_form(session, {"trackers": ["world"]})[1][0]
+        self.assertNotIn("trackers", form)

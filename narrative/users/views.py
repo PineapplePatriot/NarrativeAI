@@ -85,7 +85,7 @@ def _connections_state(user):
             "task": task, "label": info["label"], "help": info["help"],
             "schedulable": info.get("schedulable", False), "toggleable": info.get("toggleable", False),
             "profile_id": ts.profile_id, "model": ts.model, "enabled": ts.enabled,
-            "mode": ts.mode, "interval": ts.interval,
+            "mode": ts.mode, "interval": ts.interval, "context": ts.context,
         })
     api_config = ApiConfig.objects.filter(user=user).first()
     eleven = api_config.eleven_key if api_config else ""
@@ -161,6 +161,10 @@ def _save_connections(user, data):
                 ts.interval = max(1, int(item.get("interval") or 10))
             except (TypeError, ValueError):
                 ts.interval = 10
+            try:  # empty = the chat's context size; never below a working minimum
+                ts.context = max(4096, min(2_000_000, int(item["context"]))) if item.get("context") else None
+            except (TypeError, ValueError):
+                ts.context = None
         ts.save()
 
     # The main chat always has a connection once any exists

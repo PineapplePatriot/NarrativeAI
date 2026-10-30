@@ -121,6 +121,9 @@ function renderTasks() {
             </label>
             <label ${t.mode === 'auto' ? '' : 'hidden'}>Every N messages
               <input data-f="interval" type="number" min="1" value="${t.interval}">
+            </label>
+            <label title="The most this job sends in one request. It never goes past what its model can take either.">Context window (tokens)
+              <input data-f="context" type="number" min="4096" step="1024" value="${t.context ?? ''}" placeholder="Same as the chat">
             </label>` : ''}
           </div>
         </div>`;
@@ -137,6 +140,7 @@ $('tasks').addEventListener('input', e => {
         const v = e.target.value;
         t.profile_id = v === '' ? null : (/^\d+$/.test(v) ? Number(v) : v);
     } else if (f === 'interval') t.interval = Number(e.target.value) || 1;
+    else if (f === 'context') t.context = Number(e.target.value) || null;
     else t[f] = e.target.value;
     markDirty();
     if (f === 'enabled' || f === 'mode' || f === 'profile_id') renderTasks();

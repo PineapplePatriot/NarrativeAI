@@ -94,6 +94,9 @@ const BASICS_FORM = [
     { key: 'genres', label: 'Genres', hint: 'pick any', multi: [['fluff', 'Fluff'], ['slice_of_life', 'Slice of life'], ['comedy', 'Comedy'], ['romance', 'Romance'], ['heartwarming', 'Heartwarming'], ['melancholy', 'Melancholy'], ['healing', 'Hurt/comfort'], ['angst', 'Angst'], ['tragedy', 'Tragedy']],
       adult: [['smut', 'Smut'], ['dead_dove', 'Dead dove']] },
     { key: 'pacing', label: 'Pacing', options: [['quick', 'Quick: skip the dull bits'], ['slow', 'Slow burn'], ['any', 'No preference']] },
+    { key: 'initiative', label: 'Who moves the story', hint: 'apart from pacing', options: [['react', 'They react; I lead'], ['continue', 'They keep the scene going'], ['drive', 'They bring new events'], ['any', 'No preference']] },
+    { key: 'invention', label: 'Making things up', hint: 'details the card doesn’t give', options: [['canon', 'Stick to the card and canon'], ['plausible', 'Small details are fine'], ['free', 'Invent freely'], ['any', 'No preference']] },
+    { key: 'interior', label: 'Inner thoughts', options: [['observe', 'Only what can be seen'], ['infer', 'Hints through behaviour'], ['enter', 'Inside the character’s head'], ['any', 'No preference']] },
     { key: 'voice', label: 'Narration voice', hint: 'optional', options: [['hemingway', 'Hemingway: lean'], ['mccarthy', 'McCarthy: solemn'], ['camus', 'Camus: wry'], ['kafka', 'Kafka: absurd'], ['ligotti', 'Ligotti: dread'], ['maupassant', 'Maupassant: cruel realism'], ['dickens', 'Dickens: theatrical'], ['ellis', 'Ellis: gossipy'], ['anime', 'Anime'], ['realism', 'Grounded realism'], ['fanfic', 'Fanfic'], ['webnovel', 'Web novel']] },
     { key: 'author', label: 'Write like', text: '', placeholder: 'Optional: an author whose style you love' },
     { key: 'keep_out', label: 'Anything to keep out?', text: '', placeholder: 'Optional, e.g. gore, spiders' },
@@ -151,7 +154,9 @@ function extrasForm(ev, live) {
             + row('Chance', radio('game', [['off', 'No dice'], ['dice', 'Dice'], ['full', 'Dice, inventory and conditions']], v.game))
             + row('Story extras', (ev.kinds || []).map(k => `<label class="pill"><input type="checkbox" name="x_story_extras"
                 value="${esc(k.id)}" ${(v.story_extras || []).includes(k.id) ? 'checked' : ''} ${dis}><span>${esc(k.label)}</span></label>`).join(''))
-            + row("Bulba's ideas button", check('ideas', 'Show it by the message box', v.ideas));
+            + row("Bulba's ideas button", check('ideas', 'Show it by the message box', v.ideas))
+            + (ev.trackers ? row(`Trackers for ${ev.character}`, ev.trackers.map(t => `<label class="pill" title="${esc(t.help)}"><input type="checkbox" name="x_trackers"
+                value="${esc(t.id)}" ${(v.trackers || []).includes(t.id) ? 'checked' : ''} ${dis}><span>${t.icon} ${esc(t.label)}</span></label>`).join('')) : '');
     }
     return `<form class="basics-form extras-form" data-extras="${esc(ev.part)}">${rows}
         ${live ? '<div class="form-actions"><button type="submit">Save these</button><span class="help">All of it can be changed later on the Extras page.</span></div>' : ''}
@@ -175,6 +180,8 @@ $('log').addEventListener('submit', e => {
     } else {
         answers = { game: picked('game'), ideas: get('ideas').checked,
                     story_extras: [...form.querySelectorAll('input[name="x_story_extras"]:checked')].map(b => b.value) };
+        if (form.querySelector('input[name="x_trackers"]'))
+            answers.trackers = [...form.querySelectorAll('input[name="x_trackers"]:checked')].map(b => b.value);
     }
     const formEvent = [...events].reverse().find(ev => ev.type === 'extras_form' && ev.part === part);
     if (formEvent) formEvent.answers = answers;  // the sent form keeps showing what they picked

@@ -20,9 +20,13 @@ Instructions come first; settings fix what words can't:
 Never touch a setting read_settings marks "fixed" or "unused" for this model: it isn't sent. Leave
 seed and stop sequences alone unless they ask.
 
-## Trackers (propose_trackers)
+## Trackers that fit the story (show_extras_form `trackers` in setup, propose_trackers in a chat)
 
-Match the story, not everything at once; each tracker adds a little to every reply's cost.
+In setup, pre-tick them in the story extras form (`trackers`, the full list you'd keep, World included); they
+untick what they don't want. In a chat, propose_trackers. Match the story, not everything at once: three to
+five is plenty, and each one adds a little to every reply's cost and to the tracker call (which keeps to its
+model's window, dropping the oldest messages first). Track what can matter later (who knows what, who owes
+whom, an object's condition), not scenery.
 - Slice of life, romance: World, Present characters, Relationships; Milestones and Scrapbook come
   with the story extras.
 - Mystery, intrigue, court drama: Plot threads, Secrets, Favours & debts, Off-screen.

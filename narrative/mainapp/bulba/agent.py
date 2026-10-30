@@ -6,6 +6,7 @@ import uuid
 from pathlib import Path
 
 from mainapp import ai_client, cards, model_profiles, presets, starters, thinking
+from mainapp.trackers import TRACKERS as TRACKER_LIST
 from mainapp.bulba import control, doctor, library, lore, rules, tune
 
 INSTRUCTIONS = Path(__file__).resolve().parent.parent / "data" / "bulba" / "instructions.md"
@@ -181,6 +182,9 @@ TOOLS = [
          "story_extras": {"type": "array", "items": {"type": "string", "enum": ["documents", "messages", "milestones",
                                                                                  "news", "keepsakes", "choices"]}},
          "ideas": {"type": "boolean"},
+         "trackers": {"type": "array", "description": "The trackers that fit this story and character, all of them "
+                      "(World is on unless you leave it out); tuning guide, 'Trackers that fit the story'",
+                      "items": {"type": "string", "enum": [t["id"] for t in TRACKER_LIST if t["id"] != "custom"]}},
          "why": {"type": "string", "description": "One line on why these fit their story (shown above the form)"}}),
     _fn("propose_preset", "Propose the finished preset: a starter plus a short 'your taste' section.",
         {"starter": STR, "name": STR, "taste": {"type": "string", "description": "Plain instructions to the model"},
@@ -489,6 +493,30 @@ BASICS = {
                  "important scenes and events.",
         "slow": "Slow burn: let things develop in small, earned steps, with quiet everyday moments between the "
                 "ones that move the story.",
+        "any": ""}),
+    # Asked apart from pacing: a slow story can still have characters who act, and a fast one passive ones
+    # (Writer's Block V2's separate controls; the Argon research's "pace and autonomy are separate questions")
+    "initiative": ("Who moves the story", {
+        "react": "Characters respond to what {{user}} says and does; new events come from {{user}}, not from the "
+                 "world. Develop the exchange in progress and hand it back.",
+        "continue": "Characters keep the current scene alive with their own wants and small moves; bigger events "
+                    "and complications wait for {{user}}.",
+        "drive": "Characters and the world may start events and complications on their own, as long as {{user}} "
+                 "keeps a meaningful choice in what happens next.",
+        "any": ""}),
+    # Ancient Access 2.2.3: "the card is a floor, not a ceiling", which can fight fandom canon: they choose
+    "invention": ("Making things up", {
+        "canon": "Keep to what the card and the source material establish. Leave gaps open rather than inventing "
+                 "backstory, people or canon details.",
+        "plausible": "Keep established card and world facts fixed; small plausible details (a habit, a minor "
+                     "person, a place) may be added where nothing is established.",
+        "free": "Treat the card as a starting point: invent backstory, people and places freely, without "
+                "contradicting anything already established.",
+        "any": ""}),
+    "interior": ("Inner thoughts", {  # Voyage 6's "reasons left unspoken" vs. a reflective narrator
+        "observe": "Show what can be seen and heard; leave motives and feelings for the reader to infer.",
+        "infer": "Let feelings show through behaviour, with an occasional brief hint of what someone thinks.",
+        "enter": "Go inside {{char}}'s head: thoughts and feelings can be written directly, briefly.",
         "any": ""}),
     "voice": ("Narration voice", {  # after Pura's narration voices and Celia's narrative styles
         "hemingway": "Narrate in the manner of Ernest Hemingway: short, plain, loaded sentences; feelings left under the surface.",
@@ -846,6 +874,17 @@ def extras_form_event(session, part, suggest=None, why=""):
                                  if state["openrouter"] else [])
     else:
         event["kinds"] = [{"id": k, "label": label} for k, label in extras_mod.KINDS.items()]
+        from mainapp import trackers as tracker_mod
+        from mainapp.bulba import lore
+        character = lore.target_character(session)
+        if character:  # its trackers, pre-ticked with Bulba's picks (or what it has now)
+            config = tracker_mod.normalize_config(character.tracker_config)
+            on_now = [t for t, c in config["trackers"].items() if c["on"] and t != "custom"]
+            picks = [t for t in (suggest or {}).get("trackers") or [] if t in config["trackers"] and t != "custom"]
+            event["character"] = character.name
+            event["trackers"] = [{"id": t["id"], "label": t["label"], "icon": t["icon"], "help": t["help"]}
+                                 for t in tracker_mod.TRACKERS if t["id"] != "custom"]
+            values["trackers"] = picks or on_now
     return event
 
 
@@ -888,8 +927,28 @@ def form_payload(part, answers):
     return payload, summary
 
 
+def form_trackers(session, answers):
+    """The story form's tracker chips as an applied-on-send trackers proposal: (proposal id, summary lines),
+    or None when the form had no trackers row or nothing changes."""
+    picked = answers.get("trackers")
+    character = lore.target_character(session)
+    if not isinstance(picked, list) or character is None:
+        return None
+    from mainapp import trackers as tracker_mod
+    config = tracker_mod.normalize_config(character.tracker_config)
+    picked = [t for t in picked if t in config["trackers"] and t != "custom"]
+    on_now = [t for t, c in config["trackers"].items() if c["on"] and t != "custom"]
+    turn_on, turn_off = [t for t in picked if t not in on_now], [t for t in on_now if t not in picked]
+    if not (turn_on or turn_off):
+        return None
+    result, _ = tune.tool_propose_trackers(session, {"turn_on": turn_on, "turn_off": turn_off,
+                                                     "why": "Picked in the story extras form."})
+    p = next(x for x in session.proposals if x["id"] == result["proposal"])
+    return p["id"], [line for line in p["summary"] if line not in ("Why:", "Picked in the story extras form.")]
+
+
 def tool_show_extras_form(session, args):
-    suggest = {k: args.get(k) for k in STORY_FORM_KEYS if k in args}
+    suggest = {k: args.get(k) for k in (*STORY_FORM_KEYS, "trackers") if k in args}
     return ({"shown": True, "note": "They'll answer with the form; their answers are applied directly. Wait."},
             [extras_form_event(session, "story", suggest, args.get("why"))])
 

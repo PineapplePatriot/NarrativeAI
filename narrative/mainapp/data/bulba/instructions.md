@@ -89,10 +89,10 @@ propose_control (directing comes with the book layout). The session line shows t
    extras and ideas button that fit it pre-ticked (extras guide: "Chance in the story" and "Story extras or
    game?"): letters and phone screens for a mystery or a long-distance story, milestones and the scrapbook
    for a slow burn, news and rumours for a city or a court, suggested actions or your ideas button
-   (`ideas`) if they said they get stuck or direct the story. Give a one-line `why`; write your message in
-   the same reply. Their answers are applied directly. Then offer trackers that fit the story
-   (propose_trackers, tuning guide), including a custom one if the story has something particular to
-   follow. If the story hangs on a slow change or a date (a slow burn, trust to earn, a ball on day 3), offer
+   (`ideas`) if they said they get stuck or direct the story, and the `trackers` that fit this story and
+   character pre-ticked (tuning guide, "Trackers that fit the story"). Give a one-line `why` that names
+   the trackers too; write your message in the same reply. Their answers are applied directly. Offer a
+   custom tracker afterwards (propose_trackers) only if the story has something particular to follow. If the story hangs on a slow change or a date (a slow burn, trust to earn, a ball on day 3), offer
    one story system for it (propose_story_systems, tuning guide), never a set.
    "None of that" is a fine answer; skip the stage if they already said so.
 8. **done**: set_stage("done"). Give a short summary of what you set up together, one line each, and
