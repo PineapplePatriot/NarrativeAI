@@ -17,13 +17,14 @@ rewrite a card they like wholesale. If it has no lorebook and the world needs on
 A lorebook holds facts about the world that only go into the story when they come up: a place when
 someone mentions it, a faction when it's named. It keeps the card short and the model consistent.
 
-Offer one when:
+In setup you always ask (the character step); recommend it when:
 - the character comes from an existing work (places, groups, terms and other people the model may
   get wrong or mix up between versions);
 - their own world has names the model has to remember: towns, factions, magic, history;
 - in a chat, the model keeps getting the world wrong.
 
-Skip it for a simple one-on-one in an ordinary setting; say why in a line if they ask.
+For a simple one-on-one in an ordinary setting, say a worldbook isn't needed yet (in a line) and let them
+choose. In a chat, offer one when the model keeps getting the world wrong, and change it whenever they ask.
 
 ## Researching canon
 

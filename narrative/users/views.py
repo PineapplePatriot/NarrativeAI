@@ -330,9 +330,33 @@ def _extras_state(user):
         "watch_memory": _watch_memory(user),
         "fix_model": _watch_memory(user)["fix_model"],  # who rewrites habits they approved (bulba/polish.py)
         "background": cheap["id"] if cheap else "chat",
+        "chat_context_restore": _chat_context_now(user),  # for Undo of Bulba's form
         "cheap_models": [m for m in _cheap_models() if not (main and m["openrouter"] == main.model)],
         "openrouter": bool(main and main.provider == ConnectionProfile.PROVIDER_OPENROUTER),
     }
+
+
+def _chat_context_now(user):
+    """What the chat's context size is now: the chosen value and the active preset's setting."""
+    from mainapp import presets, samplers
+    from mainapp.ai_client import get_task_setting
+    return {"chosen": get_task_setting(user, "chat").context,
+            "size": samplers.normalize(presets.get_active(user).data.get("samplers")).get("context_size")}
+
+
+def set_chat_context(user, value=None, restore=None):
+    """The chat's context size (Bulba's memory slider): remembered for presets made later, and set on the
+    active one now. `restore` puts back what _chat_context_now returned."""
+    from mainapp import presets, samplers
+    from mainapp.ai_client import get_task_setting
+    chat = get_task_setting(user, "chat")
+    chat.context = restore["chosen"] if restore else value
+    chat.save()
+    preset = presets.get_active(user)
+    current = samplers.normalize(preset.data.get("samplers"))
+    current["context_size"] = (restore or {}).get("size") or {"on": True, "value": value}
+    preset.data = {**preset.data, "samplers": current}
+    preset.save(update_fields=["data", "time_update"])
 
 
 def _watch_memory(user):
@@ -380,6 +404,10 @@ def apply_extras(user, data):
         if data.get("game") in ("off", "dice", "full"):
             from mainapp import game
             game.set_user_default(user, data["game"])
+        if data.get("chat_context"):
+            set_chat_context(user, max(4096, min(2_000_000, int(data["chat_context"]))))
+        elif isinstance(data.get("chat_context_restore"), dict):
+            set_chat_context(user, restore=data["chat_context_restore"])
         if "sprites" in data:
             emotion = get_task_setting(user, "emotion")
             emotion.enabled = bool(data["sprites"])

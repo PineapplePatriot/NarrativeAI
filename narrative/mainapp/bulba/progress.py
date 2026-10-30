@@ -17,7 +17,7 @@ STAGES = {
     "persona": ("You in the story", "Who you are when you talk to the character",
                 [("persona", "You in the story", 2, False)]),
     "character": ("Your character", "Import a card or describe one; lore and a look if you like",
-                  [("character", "Character ready", 3, False), ("lore", "Lore", 1, True),
+                  [("character", "Character ready", 3, False), ("lore", "Worldbook", 1, True),
                    ("theme", "Look and music", 1, True)]),
     "story": ("Story extras", "Dice, letters, trackers that fit your story",
               [("story", "Dice and story extras", 2, False), ("trackers", "Trackers", 1, True),

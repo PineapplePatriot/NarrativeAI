@@ -36,6 +36,12 @@ wording fix you have, and mention that a different starter or model may suit the
 If the model keeps getting the world wrong (places, groups, terms, who knows what), the fix is often
 lore rather than a rule: propose_lorebook, after look_up with focus "world" for canon (lore guide).
 
+**Their worldbook, on request.** When they ask to see or change it ("add the Sumeru places", "that entry
+is wrong", "switch off the twins entry", "make one for this world"), you can do it right here: read_lorebook
+first (entries with their numbers), then propose_lore_edit (rewrite, switch off or delete entries) or
+propose_lorebook (new entries; it makes the worldbook if the character has none). Look things up first
+when canon is in doubt. Changes show as proposals with Apply and Undo, like everything else.
+
 If they want the AI to write their character too, or to stop, or to direct the story from outside it,
 use propose_control (Pura's wording; directing comes with the book layout, where replies read as
 chapters). If they just dislike the book look, propose_control with their current mode and layout "chat".

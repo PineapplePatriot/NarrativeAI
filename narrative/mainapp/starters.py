@@ -63,6 +63,10 @@ def apply(user, starter_id):
         raise ValueError("No such starter.")
     data = presets.normalize(copy.deepcopy(s["preset"]))
     data["extras"] = {**data["extras"], "starter": {"id": s["id"], "model": s["model"], "based_on": s.get("based_on", [])}}
+    from mainapp import ai_client
+    chosen = ai_client.get_task_setting(user, "chat").context  # the memory they picked with Bulba wins
+    if chosen:
+        data["samplers"]["context_size"] = {"on": True, "value": chosen}
     card = _card(s)
     obj = Preset.objects.create(user=user, data=data,
                                 name=presets.unique_name(user, f"{s['title']} · {card['model_name']}"))

@@ -818,8 +818,9 @@ def take_route(session, route):
     feels = {k: v for k, v in (profile.get("starters") or {}).items() if k in FAST_FEELS}
     if route == "full":
         return _canned(session, "Full setup",
-                       "Good. Boring bits first, all in one go: tick what you want, change anything later on the "
-                       "Extras page.", after=[extras_form_event(session, "setup")])
+                       "Good. Boring bits first, all in one go: how much of the chat your model remembers (the "
+                       "slider shows roughly what a message costs at that size), summaries, trackers and the rest. "
+                       "Change anything later on the Extras page.", after=[extras_form_event(session, "setup")])
     if route == "fast":
         choices = []
         for feel in FAST_FEELS:
@@ -869,6 +870,8 @@ def extras_form_event(session, part, suggest=None, why=""):
             values[k] = v
     event = {"type": "extras_form", "part": part, "values": values, "why": str(why or "")[:300]}
     if part == "setup":
+        event.update(memory_and_prices(session.user, state))
+        values["chat_context"] = event["window"]["value"]
         event["has_voice_key"] = state["has_eleven_key"]
         event["cheap_models"] = ([{"id": m["id"], "name": m["name"]} for m in state["cheap_models"]]
                                  if state["openrouter"] else [])
@@ -886,6 +889,29 @@ def extras_form_event(session, part, suggest=None, why=""):
                                  for t in tracker_mod.TRACKERS if t["id"] != "custom"]
             values["trackers"] = picks or on_now
     return event
+
+
+def chat_window(user):
+    """(the chat's context size now, the chat model's whole window, the chat model id)."""
+    from mainapp import samplers as sampler_mod
+    try:
+        _, model = ai_client.resolve(user, "chat")
+    except ai_client.NoConnection:
+        model = ""
+    limit = ((model_profiles.for_model(model) or {}).get("limits") or {}).get("context") or 1_000_000
+    ctx = sampler_mod.for_user(user).get("context_size", {})
+    now = ai_client.get_task_setting(user, "chat").context or (ctx.get("value") if ctx.get("on") else None)
+    return min(now or sampler_mod.DEFAULT_WINDOW, limit), limit, model
+
+
+def memory_and_prices(user, state):
+    """The setup form's chat memory slider and the prices its cost estimates use (OpenRouter's list; none
+    when it can't be read or they use another provider)."""
+    from mainapp import pricing
+    value, limit, model = chat_window(user)
+    price = lambda m: list(pricing.per_token(m)) if state["openrouter"] and pricing.per_token(m) else None
+    return {"window": {"value": value, "max": limit, "model": state["chat_model"]},
+            "prices": {"chat": price(model), "bg": {m["id"]: price(m["openrouter"]) for m in state["cheap_models"]}}}
 
 
 def form_payload(part, answers):
@@ -910,6 +936,13 @@ def form_payload(part, answers):
             payload["fix_model"] = answers["fix_model"]
             summary.append("Fixing habits you approve: " + ("your chat model" if answers["fix_model"] == "chat"
                                                              else "Bulba's model (cheaper)"))
+        try:
+            context = int(answers.get("chat_context") or 0)
+        except (TypeError, ValueError):
+            context = 0
+        if context:
+            payload["chat_context"] = max(4096, min(2_000_000, context))
+            summary.append(f"Chat memory: about {payload['chat_context']:,} tokens")
         if isinstance(answers.get("background"), str) and answers["background"]:
             payload["background"] = answers["background"][:64]
             summary.append("Background jobs: " + ("your chat model" if answers["background"] == "chat" else answers["background"]))

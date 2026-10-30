@@ -1377,7 +1377,7 @@ class SummaryPartsAndBranchTests(TrackerChatTests):
     def test_job_window_follows_the_model_and_the_settings(self):
         from mainapp import ai_client, samplers
         from users.models import ConnectionProfile
-        self.assertEqual(samplers.job_window(self.user, "summary"), 32000 - 8192)  # the chat's context size
+        self.assertEqual(samplers.job_window(self.user, "summary"), 128000 - 8192)  # nothing set: 128k
         setting = ai_client.get_task_setting(self.user, "summary")
         setting.context = 200000
         setting.save()
@@ -5751,3 +5751,86 @@ class BasicsAndStoryFormTests(BulbaTests):
         session = BulbaSession.objects.get(user=self.user, mode="setup")
         form = agent.tool_show_extras_form(session, {"trackers": ["world"]})[1][0]
         self.assertNotIn("trackers", form)
+
+
+class MemoryAndCostTests(BulbaTests):
+    """Bulba's setup form: the chat's memory (context size) with cost estimates from OpenRouter's prices."""
+
+    PRICES = {"data": [{"id": "anthropic/claude-opus-5.5", "pricing": {"prompt": "0.000005", "completion": "0.000025"}},
+                       {"id": "deepseek/deepseek-v4-flash", "pricing": {"prompt": "0.0000001", "completion": "0.0000004"}},
+                       {"id": "broken", "pricing": {"prompt": "n/a"}}]}
+
+    def setUp(self):
+        super().setUp()
+        from django.core.cache import cache
+        cache.clear()
+
+    def prices(self, ok=True):
+        from unittest import mock
+        resp = mock.Mock(status_code=200)
+        resp.json.return_value = self.PRICES
+        resp.raise_for_status = mock.Mock() if ok else mock.Mock(side_effect=__import__("requests").HTTPError("503"))
+        return mock.patch("mainapp.pricing.requests.get", return_value=resp)
+
+    def test_prices_come_from_openrouter_and_are_cached(self):
+        from mainapp import pricing
+        with self.prices() as get:
+            self.assertEqual(pricing.per_token("anthropic/claude-opus-5.5"), (0.000005, 0.000025))
+            self.assertIsNone(pricing.per_token("broken"))
+            pricing.per_token("deepseek/deepseek-v4-flash")
+        self.assertEqual(get.call_count, 1)
+
+    def test_no_price_list_means_no_estimate(self):
+        from mainapp import pricing
+        with self.prices(ok=False):
+            self.assertIsNone(pricing.per_token("anthropic/claude-opus-5.5"))
+
+    def test_setup_form_carries_the_memory_slider_and_prices(self):
+        from mainapp.bulba import agent
+        from mainapp.models import BulbaSession
+        self.client.get(reverse("bulba"))
+        session = BulbaSession.objects.get(user=self.user, mode="setup")
+        with self.prices():
+            event = agent.extras_form_event(session, "setup")
+        self.assertEqual(event["window"]["max"], 1000000)            # Opus 5.5's window
+        self.assertEqual(event["values"]["chat_context"], event["window"]["value"])
+        self.assertEqual(event["prices"]["chat"], [0.000005, 0.000025])
+
+    def test_chosen_memory_sets_the_preset_and_later_starters_and_undoes(self):
+        from mainapp import ai_client, presets, samplers, starters
+        from mainapp.bulba import actions, agent
+        from mainapp.models import BulbaSession
+        self.client.get(reverse("bulba"))
+        session = BulbaSession.objects.get(user=self.user, mode="setup")
+        before = samplers.normalize(presets.get_active(self.user).data.get("samplers"))["context_size"]
+        payload, summary = agent.form_payload("setup", {"chat_context": 64000})
+        self.assertEqual(payload, {"chat_context": 64000})
+        self.assertIn("Chat memory: about 64,000 tokens", summary)
+        p = agent._proposal(session, "extras", "Extras", summary, payload)
+        actions.apply(session, p["id"])
+        self.assertEqual(ai_client.get_task_setting(self.user, "chat").context, 64000)
+        size = samplers.normalize(presets.get_active(self.user).data.get("samplers"))["context_size"]
+        self.assertEqual(size, {"on": True, "value": 64000})
+        actions.undo(session, p["id"])
+        self.assertIsNone(ai_client.get_task_setting(self.user, "chat").context)
+        self.assertEqual(samplers.normalize(presets.get_active(self.user).data.get("samplers"))["context_size"], before)
+        # Chosen again, a ready setup made later keeps it instead of its own 48k
+        actions.apply(session, agent._proposal(session, "extras", "Extras", summary, payload)["id"])
+        obj = starters.apply(self.user, "opus-back-and-forth")
+        self.assertEqual(samplers.normalize(obj.data["samplers"])["context_size"], {"on": True, "value": 64000})
+
+    def test_jobs_default_to_128k_when_nothing_is_set(self):
+        from mainapp import presets, samplers
+        preset = presets.get_active(self.user)
+        current = samplers.normalize(preset.data.get("samplers"))
+        current["context_size"] = {"on": False, "value": 32000}
+        preset.data = {**preset.data, "samplers": current}
+        preset.save()
+        self.assertEqual(samplers.job_window(self.user, "summary"), 128000 - 8192)
+
+    def test_every_model_knows_its_window(self):
+        from mainapp import model_profiles
+        windows = {p["id"]: p["limits"]["context"] for p in model_profiles.all_profiles()}
+        self.assertEqual(len(windows), 11)
+        self.assertTrue(all(w >= 1000000 for w in windows.values()), windows)
+        self.assertEqual(windows["mimo-v2-6-pro"], 1050000)
