@@ -47,48 +47,84 @@
     }
 
     // ---------------------------------------------------------------- HUD
-    function hudPills() {
+    // The strip reads like the scene's caption, not a row of boxes: the clock first, meters as small glowing
+    // gauges, the rest as quiet icon + text, tinted by the time of day and weather (see sceneMood)
+    const TIME_ICON = { night: '🌙', dusk: '🌇', dawn: '🌅', day: '☀️' };
+    const SKY_ICON = { storm: '⛈️', rain: '🌧️', snow: '❄️', fog: '🌫️' };
+    const pct = (v, min, max) => Math.max(0, Math.min(100, Math.round(((Number(v) || 0) - min) / ((max - min) || 1) * 100)));
+
+    function chip(tid, icon, text, title, open) {
+        return text ? `<button class="hud-pill ${recentlyChanged.has(tid) ? 'changed' : ''}" data-open="${open || specs[tid].panel}" title="${esc(title || specs[tid].label)}">`
+            + `<span class="hp-ico" aria-hidden="true">${icon}</span><span class="hp-text">${text}</span></button>` : '';
+    }
+    function gauge(tid, label, v, min, max, title, open) {
+        const p = pct(v, min, max);
+        return `<button class="hud-pill hud-meter ${recentlyChanged.has(tid) ? 'changed' : ''} ${Number(v) < 0 ? 'neg' : ''}" data-open="${open || specs[tid].panel}" title="${esc(title)}">`
+            + `<span class="hp-text">${esc(label)}</span><span class="hp-gauge" aria-hidden="true"><i style="width:${p}%"></i></span>`
+            + `<span class="hp-num">${esc(v)}</span></button>`;
+    }
+
+    function hudPills(mood) {
         const pills = [];
-        const add = (tid, text, title) => text && pills.push(
-            `<button class="hud-pill ${recentlyChanged.has(tid) ? 'changed' : ''}" data-open="${specs[tid].panel}" title="${esc(title || specs[tid].label)}">${text}</button>`);
+        const add = html => html && pills.push(html);
         for (const spec of enabled) {
             const v = value(spec.id);
             const n = Array.isArray(v) ? v.length : 0;
+            const range = key => spec.fields.find(f => f.key === key) || { min: 0, max: 100 };
             switch (spec.id) {
                 case 'world':
-                    add('world', v.location && `📍 ${esc(v.location)}`, 'Location');
-                    add('world', (v.time || v.date) && `🕐 ${esc([v.time, v.date].filter(Boolean).join(', '))}`, 'Time');
-                    add('world', (v.weather || v.temperature) && `🌦 ${esc([v.weather, v.temperature].filter(Boolean).join(', '))}`, 'Weather');
+                    add(chip('world', '📍', v.location && esc(v.location), 'Location'));
+                    add(chip('world', TIME_ICON[mood.time] || '🕐', (v.time || v.date) && esc([v.time, v.date].filter(Boolean).join(', ')), 'Time'));
+                    add(chip('world', SKY_ICON[mood.sky] || '🌤️', (v.weather || v.temperature) && esc([v.weather, v.temperature].filter(Boolean).join(', ')), 'Weather'));
                     break;
                 case 'characters': {
                     const names = v.map(c => c.name);
-                    add('characters', n && `👥 ${esc(names.slice(0, 3).join(', '))}${n > 3 ? ` +${n - 3}` : ''}`);
+                    add(chip('characters', '👥', n && `${esc(names.slice(0, 3).join(', '))}${n > 3 ? ` +${n - 3}` : ''}`));
                     break;
                 }
-                case 'relationships':
-                    v.slice(0, 2).forEach(r => add('relationships', `❤️ ${esc(r.name)} ${r.affection}`, `Affection ${r.affection}, trust ${r.trust}, tension ${r.tension}`));
+                case 'relationships': {
+                    const r = range('affection');
+                    v.slice(0, 2).forEach(x => add(gauge('relationships', `❤️ ${x.name}`, x.affection ?? 0, r.min, r.max,
+                        `Affection ${x.affection}, trust ${x.trust}, tension ${x.tension}`)));
                     break;
+                }
                 case 'stats':
-                    v.slice(0, 3).forEach(s => add('stats', `📊 ${esc(s.name)} ${s.value}${s.max ? '/' + s.max : ''}`));
+                    v.slice(0, 3).forEach(x => add(x.max
+                        ? gauge('stats', x.name, x.value, 0, Number(x.max), `${x.name} ${x.value}/${x.max}`)
+                        : chip('stats', '📊', `${esc(x.name)} ${esc(x.value)}`)));
                     break;
                 case 'conditions':
-                    add('conditions', n && `🩹 ${esc(v.map(c => c.name).slice(0, 2).join(', '))}${n > 2 ? ` +${n - 2}` : ''}`);
+                    add(chip('conditions', '🩹', n && `${esc(v.map(c => c.name).slice(0, 2).join(', '))}${n > 2 ? ` +${n - 2}` : ''}`));
                     break;
                 case 'quests': {
                     const open = v.filter(q => !q.done);
-                    add('quests', open.length && `🗺️ ${esc(open[0].title)}${open.length > 1 ? ` +${open.length - 1}` : ''}`);
+                    add(chip('quests', '🗺️', open.length && `${esc(open[0].title)}${open.length > 1 ? ` +${open.length - 1}` : ''}`));
                     break;
                 }
                 case 'custom':
                     spec.fields.slice(0, 3).forEach(f => {
-                        if (v[f.key] !== undefined && v[f.key] !== '') add('custom', `🧩 ${esc(f.label)}: ${esc(fmt(f, v[f.key]))}`);
+                        if (v[f.key] === undefined || v[f.key] === '') return;
+                        add(f.type === 'meter' ? gauge('custom', f.label, v[f.key], f.min, f.max, f.label)
+                                               : chip('custom', '🧩', `${esc(f.label)}: ${esc(fmt(f, v[f.key]))}`));
                     });
                     break;
                 default:
-                    add(spec.id, n && `${spec.icon} ${n}`, `${spec.label}: ${n}`);
+                    add(chip(spec.id, spec.icon, n && String(n), `${spec.label}: ${n}`));
             }
         }
         return pills;
+    }
+
+    // Time of day and weather for the tint: the World tracker first, else the story clock
+    function sceneMood() {
+        const A = window.Atmosphere;
+        if (!A || !A.timeOfDay) return { time: '', sky: '' };
+        const world = config.trackers.world && config.trackers.world.on ? value('world') : {};
+        return { time: A.timeOfDay(world.time || (story && story.clock) || ''), sky: A.weather(world.weather) };
+    }
+    function tint(el, mood) {
+        el.dataset.time = mood.time || '';
+        el.dataset.sky = mood.sky || '';
     }
 
     function fmt(field, v) {
@@ -101,8 +137,10 @@
         if (!hud) return;
         if (!config.layout.hud || !(enabled.length || story)) { hud.hidden = true; return; }
         hud.hidden = false;
-        const pills = storyPills().concat(hudPills());
-        hud.innerHTML = (pills.length ? pills.join('') : '<span class="hud-empty">Trackers will fill in after a few messages</span>')
+        const mood = sceneMood();
+        tint(hud, mood);
+        const pills = storyPills(mood).concat(hudPills(mood));
+        hud.innerHTML = `<span class="hud-sky" aria-hidden="true"></span><span class="hud-items">${pills.length ? pills.join('') : '<span class="hud-empty">Trackers will fill in after a few messages</span>'}</span>`
             + `<span class="hud-actions">
                  <button class="hud-btn" data-act="update" title="Update all trackers now">${updating ? '⏳' : '↻'}</button>
                  ${config.layout.panel ? '<button class="hud-btn" data-act="toggle" title="Show or hide the tracker panel">▤</button>' : ''}
@@ -110,29 +148,30 @@
     }
 
     // ------------------------------------------------------- Story systems
-    function storyPills() {
+    function storyPills(mood) {
         if (!story) return [];
-        const pills = story.meters.map(m => `<button class="hud-pill story-pill" data-open="story" title="A story system: moves slowly, only with scenes you keep">${esc(m.label)} ${esc(m.value)}/${esc(m.max)}</button>`);
-        if (story.clock) pills.unshift(`<button class="hud-pill story-pill" data-open="story" title="Story time">🕰 ${esc(story.clock)}</button>`);
+        const title = 'A story system: moves slowly, only with scenes you keep';
+        const pills = story.meters.map(m => gauge(null, m.label, m.value, m.min, m.max, title, 'story'));
+        if (story.clock) pills.unshift(`<button class="hud-pill hud-clock" data-open="story" title="Story time">`
+            + `<span class="hp-ico" aria-hidden="true">${TIME_ICON[mood.time] || '🕰'}</span><span class="hp-text">${esc(story.clock)}</span></button>`);
         return pills;
     }
 
     function storySection() {
         if (!story) return '';
+        const mood = sceneMood();
         const meters = story.meters.map(m => {
-            const pct = Math.round(((Number(m.value) || 0) - m.min) / ((m.max - m.min) || 1) * 100);
-            return `<div class="tf meter"><span class="tf-label">${esc(m.label)}</span>
-                      <div class="meter-bar"><div class="meter-fill" style="width:${Math.max(0, Math.min(100, pct))}%"></div></div>
-                      <b class="story-num">${esc(m.value)}/${esc(m.max)}</b></div>`;
+            const steps = Math.min(20, Math.max(1, (m.max - m.min) || 1));
+            return `<div class="story-meter"><div class="sm-top"><span>${esc(m.label)}</span><b>${esc(m.value)}<small>/${esc(m.max)}</small></b></div>
+                      <div class="meter-bar glow" style="--steps:${steps}"><div class="meter-fill" style="width:${pct(m.value, m.min, m.max)}%"></div></div></div>`;
         }).join('');
-        const events = (story.next_events || []).map(e => `<li>${esc(e.label)} <small>${esc(e.when)}</small></li>`).join('');
+        const events = (story.next_events || []).map(e => `<li><span>${esc(e.label)}</span><small>${esc(e.when)}</small></li>`).join('');
         const log = (story.log || []).slice().reverse().map(l => `<li>${esc(l)}</li>`).join('');
         return `<section class="t-card story-card" data-story="1">
-            <header><span>🎚 Story systems</span></header>
-            ${story.clock ? `<p class="story-clock">🕰 ${esc(story.clock)}</p>` : ''}
+            ${story.clock ? `<div class="story-clock"><span class="sc-ico" aria-hidden="true">${TIME_ICON[mood.time] || '🕰'}</span><span>${esc(story.clock)}</span>${mood.sky ? `<span class="sc-sky" title="${esc(mood.sky)}">${SKY_ICON[mood.sky]}</span>` : ''}</div>` : ''}
             ${meters}
-            ${events ? `<p class="story-sub">Coming up</p><ul class="story-list">${events}</ul>` : ''}
-            ${log ? `<p class="story-sub">Lately</p><ul class="story-list">${log}</ul>` : ''}
+            ${events ? `<p class="story-sub">Coming up</p><ul class="story-list timeline">${events}</ul>` : ''}
+            ${log ? `<p class="story-sub">Lately</p><ul class="story-list story-log">${log}</ul>` : ''}
             <p class="t-empty">${story.pending ? 'The last scene is read: it counts once you reply to it. ' : ''}Only scenes you keep move these; swipes and rewrites don't. Ask 🥔 Bulba to change them.</p>
           </section>`;
     }
@@ -159,10 +198,10 @@
                 break;
             }
             case 'list':
-                input = `<input data-path="${esc(path)}" value="${esc((v || []).join(', '))}" placeholder="comma-separated">`;
+                input = `<input data-path="${esc(path)}" value="${esc((v || []).join(', '))}" placeholder="—" title="Several, separated by commas">`;
                 break;
             default:
-                input = `<input data-path="${esc(path)}" value="${esc(v ?? '')}">`;
+                input = `<input data-path="${esc(path)}" value="${esc(v ?? '')}" placeholder="—">`;
         }
         return `<label class="tf ${field.type}"><span class="tf-label">${esc(field.label)}</span>${input}${lockBtn}</label>`;
     }
@@ -196,12 +235,13 @@
         if (!panel) return;
         if (!config.layout.panel) { panel.hidden = true; return; }
         panel.classList.toggle('left', config.layout.side === 'left');
+        tint(panel, sceneMood());
         const tabs = DATA.panels.filter(p => enabled.some(s => s.panel === p.id));
         if (!tabs.some(t => t.id === activeTab)) activeTab = (tabs[0] || {}).id;
 
         panel.innerHTML = `
           <div class="tp-head">
-            <b>Story state</b>
+            <b>✦ Story state</b>
             <span>
               <button class="icon-btn" data-act="update" title="Update all trackers now">${updating ? '⏳' : '↻'}</button>
               <button class="icon-btn ${lockMode ? 'active' : ''}" data-act="lockmode" title="Lock mode: pin values so the AI can't change them">🔒</button>

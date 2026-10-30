@@ -5557,9 +5557,13 @@ class HelpAndToursTests(BulbaTests):
         character = Character.objects.create(author=self.user, name="Rose", slug="rose-tour", description="A florist.")
         for url, tour in ((reverse("users:extras"), "extras"), (reverse("presets"), "presets"),
                           (reverse("character", kwargs={"slug": character.slug}), "character"),
-                          (reverse("add_character"), "character")):
+                          (reverse("add_character"), "character"),
+                          (reverse("tracker_setup", kwargs={"slug": character.slug}), "trackers"),
+                          (reverse("bulba"), "bulba"),
+                          (reverse("worldbook_detail", kwargs={"slug": Worldbook.objects.create(
+                              title="Lore", slug="lore-tour", author=self.user).slug}), "worldbook")):
             html = self.client.get(url).content.decode()
-            self.assertIn("window.NA_PAGE_TOUR = {name: '%s', auto: true}" % tour, html, url)
+            self.assertIn("window.NA_PAGE_TOUR = {name: '%s', auto: true" % tour, html, url)
 
     def test_bulba_knows_the_app_map_in_setup_and_in_chats(self):
         from mainapp.bulba import agent

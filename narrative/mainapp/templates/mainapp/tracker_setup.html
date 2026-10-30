@@ -74,5 +74,6 @@
 {{ setup_data|json_script:"setup-data" }}
 <script>const SAVE_URL = "{% url 'tracker_setup' character.slug %}";</script>
 <script src="{% static 'mainapp/js/tracker_setup.js' %}"></script>
+<script>window.NA_PAGE_TOUR = {name: 'trackers', auto: true};</script>
 </body>
 </html>

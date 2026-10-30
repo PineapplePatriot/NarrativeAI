@@ -92,6 +92,7 @@
 {{ bulba_data|json_script:"bulba-data" }}
 <script>const BULBA_API = "{% url 'bulba_api' %}{% if embed %}?chat={{ chat_obj.id }}{% endif %}";</script>
 <script src="{% static 'mainapp/js/bulba.js' %}?v={% now 'U' %}"></script>
+{% if not embed %}<script>window.NA_PAGE_TOUR = {name: 'bulba', auto: true, delay: 1200};</script>{% endif %}
 {% else %}
 <main class="bulba-empty">
     <div class="potato big">🥔</div>
