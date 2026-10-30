@@ -152,5 +152,6 @@
 {{ extras_data|json_script:"extras-data" }}
 <script>const EXTRAS_URL = "{% url 'users:extras' %}";</script>
 <script src="{% static 'users/js/extras.js' %}"></script>
+<script>window.NA_PAGE_TOUR = {name: 'extras', auto: true};</script>
 </body>
 </html>

@@ -161,5 +161,6 @@
 {% if has_eleven_key %}<script>window.ELEVEN_VOICES_URL = "{% url 'eleven_voices' %}";</script>
 <script src="{% static 'mainapp/js/voices.js' %}?v={% now 'U' %}"></script>{% endif %}
 
+<script>window.NA_PAGE_TOUR = {name: 'character', auto: true};</script>
 </body>
 </html>

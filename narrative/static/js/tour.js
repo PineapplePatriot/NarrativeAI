@@ -99,7 +99,7 @@
         tour.i = i;
         const item = HELP.items[tour.steps[i]];
         tour.target = find(item);
-        if (tour.target) tour.target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        if (tour.target) bringIntoView(tour.target);
         const [title, text] = words(item);
         const last = i === tour.steps.length - 1;
         const body = item.routes ? routesHtml() : `<p>${text}</p>`;
@@ -117,6 +117,16 @@
         tour.box.setAttribute('aria-label', title);
         place();
         (tour.box.querySelector('[data-act="next"]') || tour.box.querySelector('.na-route'))?.focus({ preventScroll: true });
+    }
+
+    // Into view below the sticky top bar: centred when it fits, else its top edge, so tall sections read from the top
+    function bringIntoView(node) {
+        const r = node.getBoundingClientRect(), bar = 60;
+        if (r.top >= bar && r.bottom <= innerHeight - 8) return;
+        const fits = r.height < innerHeight - bar - 180;
+        node.scrollIntoView({ block: fits ? 'center' : 'start', inline: 'nearest' });
+        const top = node.getBoundingClientRect().top;
+        if (top < bar) scrollBy(0, top - bar - 12);
     }
 
     function routesHtml() {

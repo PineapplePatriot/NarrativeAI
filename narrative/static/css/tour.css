@@ -30,7 +30,7 @@
 }
 .na-tbtn:hover { background: #2e3a58; }
 .na-tbtn.primary { background: linear-gradient(135deg, #7e3af2, #9863ff); border-color: transparent; color: #fff; }
-.na-tbtn.link { background: none; border: 0; color: #a78bfa; font-weight: 500; padding: 8px 0; }
+.na-tbtn.link { background: none; border: 0; color: #a78bfa; font-weight: 500; padding: 8px 0; text-decoration: none; font-size: 13.5px; }
 .na-tour-nav .na-tbtn.link { margin-right: auto; }
 .na-tbtn:disabled { opacity: .55; cursor: default; }
 .na-tbtn:focus-visible, .na-route:focus-visible, .na-help-menu .item:focus-visible { outline: 2px solid #c4b5fd; outline-offset: 2px; }

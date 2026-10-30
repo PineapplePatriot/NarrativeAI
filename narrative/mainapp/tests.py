@@ -5552,6 +5552,15 @@ class HelpAndToursTests(BulbaTests):
             self.assertIn("js/tour.js", html, name)
             self.assertIn(reverse("bulba_explain"), html, name)
 
+    def test_busy_pages_start_their_own_tour(self):
+        from mainapp.models import Character
+        character = Character.objects.create(author=self.user, name="Rose", slug="rose-tour", description="A florist.")
+        for url, tour in ((reverse("users:extras"), "extras"), (reverse("presets"), "presets"),
+                          (reverse("character", kwargs={"slug": character.slug}), "character"),
+                          (reverse("add_character"), "character")):
+            html = self.client.get(url).content.decode()
+            self.assertIn("window.NA_PAGE_TOUR = {name: '%s', auto: true}" % tour, html, url)
+
     def test_bulba_knows_the_app_map_in_setup_and_in_chats(self):
         from mainapp.bulba import agent
         from mainapp.models import BulbaSession
