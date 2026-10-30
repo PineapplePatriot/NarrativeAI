@@ -1,4 +1,5 @@
 import json
+import logging
 
 from django.db import transaction
 from django.http import JsonResponse
@@ -45,6 +46,12 @@ class RegisterUser(CreateView):
         from django.contrib.auth import login
         response = super().form_valid(form)
         login(self.request, self.object, backend="django.contrib.auth.backends.ModelBackend")
+        # Everyone starts with the shipped characters (Il Dottore, his lore, pictures and music), as the demo does
+        from mainapp.management.commands.seed_demo import load_packs
+        try:
+            load_packs(self.object)
+        except Exception:  # never block a sign-up over it
+            logging.getLogger(__name__).exception("Couldn't add the starting characters for %s", self.object)
         return response
 
 
@@ -459,15 +466,22 @@ def extras(request):
                     watch.add_dislike(request.user, data.get("name"), data.get("about"))
                 except ValueError as e:
                     return JsonResponse({"error": str(e)}, status=400)
-                return JsonResponse({"status": "ok", "state": _extras_state(request.user)})
+                return JsonResponse({"status": "ok", "state": _extras_page_state(request.user)})
             try:
                 watch.change_memory(request.user, data.get("op"), data.get("old"), data.get("new"))
             except ValueError as e:
                 return JsonResponse({"error": str(e)}, status=400)
-            return JsonResponse({"status": "ok", "state": _extras_state(request.user)})
+            return JsonResponse({"status": "ok", "state": _extras_page_state(request.user)})
         error = apply_extras(request.user, data)
         if error:
             return JsonResponse({"error": error}, status=400)
-        return JsonResponse({"status": "ok", "state": _extras_state(request.user)})
+        return JsonResponse({"status": "ok", "state": _extras_page_state(request.user)})
 
-    return render(request, "users/extras.html", {"extras_data": _extras_state(request.user)})
+    return render(request, "users/extras.html", {"extras_data": _extras_page_state(request.user)})
+
+
+def _extras_page_state(user):
+    """The Extras page: its switches, plus the chat memory slider and the prices its estimates use."""
+    from mainapp.bulba.agent import memory_and_prices
+    state = _extras_state(user)
+    return {**state, **memory_and_prices(user, state)}

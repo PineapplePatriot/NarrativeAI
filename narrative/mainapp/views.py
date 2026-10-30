@@ -2463,7 +2463,7 @@ def bulba_api(request):
         return JsonResponse({"events": events, "state": _bulba_state(session),
                              "watch": watch.page_state(request.user, session.chat)})
     elif action == "extras_form":  # the extras in one form: applied at once (Undo on the card)
-        part = "story" if data.get("part") == "story" else "setup"
+        part = data.get("part") if data.get("part") in ("story", "memory") else "setup"
         answers = data.get("answers") if isinstance(data.get("answers"), dict) else {}
         form_event = next((e for e in reversed(session.events) if e.get("type") == "extras_form"
                            and e.get("part") == part), None)
@@ -2475,7 +2475,8 @@ def bulba_api(request):
             return JsonResponse({"error": "Nothing picked."}, status=400)
         shown, note, proposal = [], "", None
         if payload:
-            proposal = agent._proposal(session, "extras", "Extras" if part == "setup" else "Story extras", summary, payload)
+            title = {"setup": "Extras", "story": "Story extras", "memory": "Chat memory"}[part]
+            proposal = agent._proposal(session, "memory" if part == "memory" else "extras", title, summary, payload)
             try:
                 note = actions.apply(session, proposal["id"])
             except actions.ProposalError as e:
@@ -2489,9 +2490,11 @@ def bulba_api(request):
             note = (note + " " + actions.apply(session, pid)).strip()
             shown.append({"type": "proposal", "id": pid})
             summary += lines
-        moved = agent.advance_stage(session, proposal) if proposal else None
+        moved = agent.advance_stage(session, proposal) if proposal and part != "memory" else None
         shown += [moved] if moved else []
-        if part == "setup" and session.stage == "taste":  # the basics form comes next, no AI needed
+        if part == "memory":  # the Fast route's memory step: on to the persona question, no AI needed
+            events = agent.after_memory_form(session, shown)
+        elif part == "setup" and session.stage == "taste":  # the basics form comes next, no AI needed
             events = agent._canned(session, "Sent the extras",
                                    "Done. Now the main part: how replies should read. Answer what you care about, "
                                    "skip the rest.", extra_events=shown, after=[{"type": "form", "form": "basics"}])

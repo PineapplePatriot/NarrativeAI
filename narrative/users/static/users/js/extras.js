@@ -20,7 +20,32 @@ function fill() {
         state.cheap_models.map(m => `<option value="${esc(m.id)}">${esc(m.name)} (${esc(m.price)}): ${esc(m.best_for)}</option>`).join('');
     $('background').value = state.background;
     $('background').disabled = !state.openrouter;
+    if (state.window) {
+        $('memorySection').hidden = false;
+        $('memoryModel').textContent = state.window.model || 'your chat model';
+        const steps = NACosts.steps(state.window.max);
+        $('chatContext').max = steps.length - 1;
+        $('chatContext').value = NACosts.nearest(steps, state.window.value);
+    }
+    costs();
 }
+
+// What a message, a summary and a tracker update cost with these settings (static/js/costs.js)
+function costs() {
+    if (!state.window) return;
+    const steps = NACosts.steps(state.window.max);
+    const size = steps[Number($('chatContext').value)] || steps[0];
+    const prices = state.prices || {};
+    const bg = ($('background').value !== 'chat' ? (prices.bg || {})[$('background').value] : prices.chat) || null;
+    $('memoryValue').textContent = NACosts.memory(size);
+    $('memoryCost').textContent = NACosts.chat(prices.chat, size);
+    for (const task of ['summary', 'trackers']) {
+        const mode = (document.querySelector(`input[name=${task}]:checked`) || {}).value;
+        $(`${task}Cost`).textContent = NACosts.job(task, bg, size, mode, Number($(`${task}Every`).value) || 1);
+    }
+}
+['chatContext', 'summaryEvery', 'trackersEvery', 'background'].forEach(id => $(id).addEventListener('input', costs));
+document.querySelectorAll('input[name=summary], input[name=trackers]').forEach(r => r.addEventListener('change', costs));
 
 function getCookie(name) {
     const m = document.cookie.split(';').map(c => c.trim()).find(c => c.startsWith(name + '='));
@@ -42,6 +67,7 @@ $('saveBtn').onclick = async () => {
         remove_eleven_key: $('removeElevenBox').checked,
     };
     if (state.openrouter) body.background = $('background').value;
+    if (state.window) body.chat_context = NACosts.steps(state.window.max)[Number($('chatContext').value)];
     try {
         const resp = await fetch(EXTRAS_URL, {
             method: 'POST',

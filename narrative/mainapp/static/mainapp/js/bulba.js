@@ -123,44 +123,33 @@ function basicsForm(live, answers) {
       </form>`;
 }
 
-// What things cost, for the setup form's estimates: OpenRouter's per-token prices (none: no estimate, never a guess).
-// A chat message sends the whole window once the chat fills it, and gets a reply of about 800 tokens back.
-const MEMORY_STEPS = [8000, 16000, 32000, 48000, 64000, 96000, 128000, 200000, 256000, 500000, 1000000];
-const REPLY_TOKENS = 800, AVG_MESSAGE = 450;  // a reply, and a message of the chat on average (yours are shorter)
-const money = usd => usd < 0.001 ? 'under $0.001' : '≈ ' + (usd < 0.01 ? `$${usd.toFixed(3)}` : `$${usd.toFixed(2)}`);
-const kTokens = n => n >= 1000000 ? `${n / 1000000}M` : `${Math.round(n / 1000)}k`;
-function memorySteps(max) { const s = MEMORY_STEPS.filter(n => n <= max); return s.length ? s : [max]; }
-
+// What things cost, for the setup and memory forms' estimates (static/js/costs.js)
 function costLines(form, ev) {
-    const steps = memorySteps(ev.window.max);
-    const slider = form.querySelector('[name="x_chat_context"]');
-    const size = steps[Number(slider.value)] || steps[0];
-    const chat = ev.prices.chat, bgPick = form.querySelector('[name="x_background"]');
-    const bg = (bgPick && bgPick.value !== 'chat' ? ev.prices.bg[bgPick.value] : chat) || null;
-    const cost = (p, tin, tout) => p ? tin * p[0] + tout * p[1] : null;
+    const C = window.NACosts, steps = C.steps(ev.window.max);
+    const size = steps[Number(form.querySelector('[name="x_chat_context"]').value)] || steps[0];
+    const bgPick = form.querySelector('[name="x_background"]');
+    const bg = (bgPick && bgPick.value !== 'chat' ? ev.prices.bg[bgPick.value] : ev.prices.chat) || null;
     const set = (key, text) => { const el = form.querySelector(`[data-cost="${key}"]`); if (el) el.textContent = text; };
-    form.querySelector("[data-memory-value]").textContent = `${kTokens(size)} tokens · about ${Math.round(size / AVG_MESSAGE).toLocaleString()} messages remembered`;
-    const each = cost(chat, size, REPLY_TOKENS);
-    set('chat', each == null ? 'No price to show: OpenRouter’s price list couldn’t be read.'
-        : `${money(each)} a message once the chat fills it, ${money(each * 100)} for 100 messages. At most: less before the chat fills it, and less where the provider caches the repeated part; thinking adds a little.`);
-    for (const [task, fn] of [['summary', n => cost(bg, Math.min(n * AVG_MESSAGE, size) + 300, 400)],
-                              ['trackers', n => cost(bg, Math.min(16, Math.max(4, n)) * AVG_MESSAGE + 1500, 500)]]) {
+    form.querySelector('[data-memory-value]').textContent = C.memory(size);
+    set('chat', C.chat(ev.prices.chat, size));
+    for (const task of ['summary', 'trackers']) {
+        const every = form.querySelector(`[name="x_${task}_every"]`);
+        if (!every) continue;
         const mode = (form.querySelector(`input[name="x_${task}"]:checked`) || {}).value;
-        const n = Number((form.querySelector(`[name="x_${task}_every"]`) || {}).value) || (task === 'summary' ? 10 : 2);
-        const usd = fn(n);
-        set(task, usd == null ? '' : mode === 'auto'
-            ? `${money(usd)} each time, every ${n} messages (${money(usd / n)} a message)` : `${money(usd)} each time you ask`);
+        set(task, C.job(task, bg, size, mode, Number(every.value) || (task === 'summary' ? 10 : 2)));
     }
 }
+const formEventFor = form => [...events].reverse().find(x => x.type === 'extras_form' && x.part === form.dataset.extras);
 $('log').addEventListener('input', e => {
-    const form = e.target.closest('[data-extras="setup"]');
-    const ev = form && [...events].reverse().find(x => x.type === 'extras_form' && x.part === 'setup');
+    const form = e.target.closest('[data-extras="setup"], [data-extras="memory"]');
+    const ev = form && formEventFor(form);
     if (ev && ev.window) costLines(form, ev);
 });
 function fillCosts() {
-    const form = document.querySelector('#log [data-extras="setup"]');
-    const ev = form && [...events].reverse().find(x => x.type === 'extras_form' && x.part === 'setup');
-    if (ev && ev.window) costLines(form, ev);
+    document.querySelectorAll('#log [data-extras="setup"], #log [data-extras="memory"]').forEach(form => {
+        const ev = formEventFor(form);
+        if (ev && ev.window) costLines(form, ev);
+    });
 }
 
 // The extras in one form: "setup" (summaries, trackers, pictures, Watch, background model) or "story" (dice,
@@ -176,12 +165,18 @@ function extrasForm(ev, live) {
     const row = (label, field, hint) => `<div class="form-row"><div class="form-label">${esc(label)}${hint ? `<small>${esc(hint)}</small>` : ''}</div>
         <div class="form-field">${field}</div></div>`;
     let rows;
-    if (ev.part === 'setup') {
-        const steps = ev.window ? memorySteps(ev.window.max) : [];
-        const at = steps.reduce((best, n, i) => Math.abs(n - (v.chat_context || 0)) < Math.abs(steps[best] - (v.chat_context || 0)) ? i : best, 0);
-        const cost = key => `<span class="help cost" data-cost="${key}"></span>`;
-        rows = (ev.window ? row('Chat memory', `<div class="memory"><input type="range" name="x_chat_context" min="0" max="${steps.length - 1}" step="1" value="${at}" ${dis}>
-                <b data-memory-value></b>${cost('chat')}</div>`, `how much of the chat ${ev.window.model || 'the model'} rereads for each reply; more remembers more and costs more`) : '')
+    const cost = key => `<span class="help cost" data-cost="${key}"></span>`;
+    const memoryRow = () => {
+        if (!ev.window) return '';
+        const steps = window.NACosts.steps(ev.window.max);
+        return row('Chat memory', `<div class="memory"><input type="range" name="x_chat_context" min="0" max="${steps.length - 1}" step="1"
+                value="${window.NACosts.nearest(steps, v.chat_context)}" ${dis}><b data-memory-value></b>${cost('chat')}</div>`,
+            `how much of the chat ${ev.window.model || 'the model'} rereads for each reply; more remembers more and costs more`);
+    };
+    if (ev.part === 'memory') {
+        rows = memoryRow();
+    } else if (ev.part === 'setup') {
+        rows = memoryRow()
             + row('Voices', ev.has_voice_key ? '<span class="help">On: your ElevenLabs key is saved.</span>'
                 : '<a class="choice" href="/users/extras/" target="_blank" rel="noopener">Add an ElevenLabs key ↗</a> <span class="help">optional; never paste keys in this chat</span>')
             + row('Story summary', radio('summary', [['auto', 'Automatic'], ['manual', 'Only when I ask']], (v.summary || {}).mode) + every('summary', v.summary) + cost('summary'), 'keeps long chats on track')
@@ -222,9 +217,11 @@ $('log').addEventListener('submit', e => {
             if (picked(t)) answers[t] = { mode: picked(t), interval: Number(get(`${t}_every`).value) || undefined };
         }
         if (get('background')) answers.background = get('background').value;
-        const memory = get('chat_context');
-        const formEv = [...events].reverse().find(x => x.type === 'extras_form' && x.part === 'setup');
-        if (memory && formEv && formEv.window) answers.chat_context = memorySteps(formEv.window.max)[Number(memory.value)];
+    }
+    if (part === 'setup' || part === 'memory') {
+        answers = answers || {};
+        const memory = get('chat_context'), formEv = formEventFor(form);
+        if (memory && formEv && formEv.window) answers.chat_context = window.NACosts.steps(formEv.window.max)[Number(memory.value)];
     } else {
         answers = { game: picked('game'), ideas: get('ideas').checked,
                     story_extras: [...form.querySelectorAll('input[name="x_story_extras"]:checked')].map(b => b.value) };

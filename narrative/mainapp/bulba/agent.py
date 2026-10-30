@@ -845,10 +845,20 @@ def take_route(session, route):
     p["status"] = "applied"
     session.stage = "persona"
     return _canned(session, f"Fast route: {starters.EXPERIENCES[feel]['label']}",
-                   f"Done: {note}\n\nTwo quick things and you're chatting. First, who are you in the story?",
-                   [{"label": "Keep me light: just a name"}, {"label": "Someone who lives in that world"},
-                    {"label": "You make someone up"}, {"label": "Skip: use my profile"}],
-                   extra_events=[{"type": "proposal", "id": p["id"]}, {"type": "stage", "stage": "persona"}])
+                   f"Done: {note}\n\nThree quick things and you're chatting. First, how much of the chat your model "
+                   "remembers: more remembers more and costs more, and the slider shows roughly what a message costs.",
+                   extra_events=[{"type": "proposal", "id": p["id"]}, {"type": "stage", "stage": "persona"}],
+                   after=[extras_form_event(session, "memory")])
+
+
+PERSONA_CHOICES = [{"label": "Keep me light: just a name"}, {"label": "Someone who lives in that world"},
+                   {"label": "You make someone up"}, {"label": "Skip: use my profile"}]
+
+
+def after_memory_form(session, shown):
+    """The Fast route's memory form is sent: on to who they are in the story (no AI needed)."""
+    return _canned(session, "Sent: chat memory", "Saved. Next, who are you in the story?", PERSONA_CHOICES,
+                   extra_events=shown)
 
 
 # ---------------------------------------------------------------------------
@@ -864,14 +874,17 @@ def extras_form_event(session, part, suggest=None, why=""):
     from users.views import _extras_state
     from mainapp import extras as extras_mod
     state = _extras_state(session.user)
-    values = {k: state.get(k) for k in (SETUP_FORM_KEYS if part == "setup" else STORY_FORM_KEYS)}
+    values = {k: state.get(k) for k in (SETUP_FORM_KEYS if part == "setup" else () if part == "memory" else STORY_FORM_KEYS)}
     for k, v in (suggest or {}).items():
         if k in values and v is not None:
             values[k] = v
     event = {"type": "extras_form", "part": part, "values": values, "why": str(why or "")[:300]}
-    if part == "setup":
+    if part in ("setup", "memory"):
         event.update(memory_and_prices(session.user, state))
         values["chat_context"] = event["window"]["value"]
+    if part == "memory":
+        return event
+    if part == "setup":
         event["has_voice_key"] = state["has_eleven_key"]
         event["cheap_models"] = ([{"id": m["id"], "name": m["name"]} for m in state["cheap_models"]]
                                  if state["openrouter"] else [])
@@ -918,6 +931,16 @@ def form_payload(part, answers):
     """Their answers as a propose_extras payload, and the lines the proposal card shows."""
     answers = answers if isinstance(answers, dict) else {}
     payload, summary = {}, []
+    if part in ("setup", "memory"):
+        try:
+            context = int(answers.get("chat_context") or 0)
+        except (TypeError, ValueError):
+            context = 0
+        if context:
+            payload["chat_context"] = max(4096, min(2_000_000, context))
+            summary.append(f"Chat memory: about {payload['chat_context']:,} tokens")
+    if part == "memory":
+        return payload, summary
     if part == "setup":
         for task, label in (("summary", "Story summary"), ("trackers", "Trackers")):
             item = answers.get(task) if isinstance(answers.get(task), dict) else {}
@@ -936,13 +959,6 @@ def form_payload(part, answers):
             payload["fix_model"] = answers["fix_model"]
             summary.append("Fixing habits you approve: " + ("your chat model" if answers["fix_model"] == "chat"
                                                              else "Bulba's model (cheaper)"))
-        try:
-            context = int(answers.get("chat_context") or 0)
-        except (TypeError, ValueError):
-            context = 0
-        if context:
-            payload["chat_context"] = max(4096, min(2_000_000, context))
-            summary.append(f"Chat memory: about {payload['chat_context']:,} tokens")
         if isinstance(answers.get("background"), str) and answers["background"]:
             payload["background"] = answers["background"][:64]
             summary.append("Background jobs: " + ("your chat model" if answers["background"] == "chat" else answers["background"]))

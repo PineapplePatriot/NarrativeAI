@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Extras - Narrative AI</title>
-    <link rel="stylesheet" href="{% static 'users/css/welcome.css' %}?v=2">
+    <link rel="stylesheet" href="{% static 'users/css/welcome.css' %}?v=3">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
 </head>
@@ -14,6 +14,17 @@
 <main class="welcome extras na-page na-narrow">
     <h1 class="na-title">Extras</h1>
     <p class="lead na-sub">The optional bits around the chat. Change them any time; nothing here is required.</p>
+
+    <section class="option" id="memorySection" hidden>
+        <h2>🧠 Chat memory</h2>
+        <p class="help">How much of the chat <b id="memoryModel"></b> rereads for each reply. More remembers more and costs
+            more; older events beyond it are kept by the story summary and trackers.</p>
+        <div class="memory">
+            <input type="range" id="chatContext" min="0" step="1">
+            <b id="memoryValue"></b>
+            <span class="help cost" id="memoryCost"></span>
+        </div>
+    </section>
 
     <section class="option">
         <h2>🔊 Voices</h2>
@@ -32,6 +43,7 @@
         <label class="choice"><input type="radio" name="summary" value="auto"> Automatically, every
             <input type="number" class="num" id="summaryEvery" min="1" max="200"> messages</label>
         <label class="choice"><input type="radio" name="summary" value="manual"> Only when I press Summarize in the chat</label>
+        <span class="help cost" id="summaryCost"></span>
     </section>
 
     <section class="option">
@@ -41,6 +53,7 @@
         <label class="choice"><input type="radio" name="trackers" value="auto"> Automatically, every
             <input type="number" class="num" id="trackersEvery" min="1" max="200"> messages</label>
         <label class="choice"><input type="radio" name="trackers" value="manual"> Only when I press Update</label>
+        <span class="help cost" id="trackersCost"></span>
     </section>
 
     <section class="option">
@@ -151,7 +164,8 @@
 </main>
 {{ extras_data|json_script:"extras-data" }}
 <script>const EXTRAS_URL = "{% url 'users:extras' %}";</script>
-<script src="{% static 'users/js/extras.js' %}"></script>
+<script src="{% static 'js/costs.js' %}?v=1"></script>
+<script src="{% static 'users/js/extras.js' %}?v=2"></script>
 <script>window.NA_PAGE_TOUR = {name: 'extras', auto: true};</script>
 </body>
 </html>

@@ -2199,6 +2199,26 @@ class CardImportTests(ChatPromptTests):
 
 
 class SignUpFlowTests(TestCase):
+    def setUp(self):
+        import shutil
+        import tempfile
+        media = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, media, ignore_errors=True)
+        override = override_settings(MEDIA_ROOT=media)
+        override.enable()
+        self.addCleanup(override.disable)
+
+    def test_new_accounts_start_with_il_dottore(self):
+        from mainapp.models import Character
+        self.client.post(reverse("users:register"), {
+            "username": "lumi", "email": "lumi@example.com",
+            "password1": "Lantern-Quay-81", "password2": "Lantern-Quay-81"})
+        dottore = Character.objects.get(author__username="lumi")
+        self.assertEqual(dottore.name, "Il Dottore")
+        self.assertIsNotNone(dottore.worldbook)
+        self.assertTrue(dottore.photo_neutral)
+        self.assertEqual(dottore.chats.count(), 1)  # a chat to open straight away
+
     def test_sign_up_logs_in_and_goes_to_welcome(self):
         response = self.client.post(reverse("users:register"), {
             "username": "wren", "email": "wren@example.com",
@@ -4135,6 +4155,13 @@ class SetupRoutesTests(BulbaTests):
         self.assertEqual(routes, ["fast:opus-back-and-forth", "fast:opus-rich-scene", "fast:opus-director"])
         self.assertTrue(all(c["hint"] for c in data["events"][-1]["choices"]))
         data = self.api(action="route", route="fast:opus-director").json()
+        # First the chat's memory (a slider with what a message costs), then who they are
+        self.assertEqual((data["events"][-1]["type"], data["events"][-1]["part"]), ("extras_form", "memory"))
+        self.assertIn("how much of the chat", data["events"][-2]["text"])
+        data = self.api(action="extras_form", part="memory", answers={"chat_context": 64000}).json()
+        from mainapp import samplers as samplers_mod
+        size = samplers_mod.normalize(presets_mod.get_active(self.user).data.get("samplers"))["context_size"]
+        self.assertEqual(size, {"on": True, "value": 64000})  # set on the ready setup it just made
         self.assertEqual(self.bulba_calls, [])  # all canned
         self.assertEqual(data["state"]["stage"], "persona")
         self.assertIn("who are you in the story", data["events"][-1]["text"])
