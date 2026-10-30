@@ -5438,6 +5438,39 @@ class StoryChatTests(ChatPromptTests):
         self.assertEqual(resp["story"]["meters"][0]["value"], 2)
         self.assertEqual(self.story()["values"]["trust"], 2)
 
+    def test_world_time_always_follows_the_story_clock(self):
+        self.post({"action": "chat", "message": "I help him up."})
+        # Even re-running only the World tracker, its "11:40 pm" loses to the story clock
+        world = self.post({"action": "update_trackers", "only": ["world"]}).json()["state"]["values"]["world"]
+        self.assertEqual((world["location"], world["date"], world["time"]), ("Square", "Day 1", "08:00"))
+        # A chat saved before this was kept shows them in agreement on the page
+        from mainapp import chats
+        chat = self.character.chats.first()
+        data = chats.read(chat)
+        data["trackers"]["values"]["world"]["time"] = "11:40 pm"
+        chats.write(chat, data)
+        page = self.client.get(reverse("chat", args=[self.character.slug]))
+        state = page.context["trackers_data"]["state"]["values"]["world"]
+        self.assertEqual(state["time"], "08:00")
+
+    def test_the_rail_switches_trackers_for_the_character(self):
+        resp = self.post({"action": "toggle_tracker", "tracker": "relationships", "on": True}).json()
+        self.assertTrue(resp["success"])
+        self.assertTrue(resp["config"]["trackers"]["relationships"]["on"])
+        self.assertIn("relationships", [s["id"] for s in resp["specs"]])
+        self.character.refresh_from_db()
+        self.assertTrue(self.character.tracker_config["trackers"]["relationships"]["on"])
+        self.assertTrue(self.character.tracker_config["trackers"]["world"]["on"])  # the others stay as they were
+        self.assertEqual(len(self.character.tracker_config["systems"]), 3)        # and so do the story systems
+        self.post({"action": "toggle_tracker", "tracker": "world", "on": False})
+        self.character.refresh_from_db()
+        self.assertFalse(self.character.tracker_config["trackers"]["world"]["on"])
+        # Switched off, the tracker call no longer asks for it
+        self.post({"action": "chat", "message": "Hi"})
+        self.post({"action": "update_trackers"})
+        self.assertNotIn('"world"', self.all_calls[-1]["messages"][0]["content"])
+        self.assertEqual(self.post({"action": "toggle_tracker", "tracker": "nope", "on": True}).status_code, 400)
+
     def test_story_systems_alone_use_the_tracker_call(self):
         self.character.tracker_config = {**self.character.tracker_config, "trackers": {"world": {"on": False}}}
         self.character.save()

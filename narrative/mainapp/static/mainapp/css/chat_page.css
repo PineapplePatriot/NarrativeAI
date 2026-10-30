@@ -2043,3 +2043,105 @@ body.polish-on .message-btn.polish-btn { display: flex; }
 }
 @keyframes tracker-glow { 30% { box-shadow: 0 0 16px rgba(110, 231, 183, 0.95); filter: brightness(1.3); } }
 @media (prefers-reduced-motion: reduce) { .hud-meter.moved .hp-num, .story-meter.moved .sm-top b, .hud-meter.moved .hp-gauge i, .story-meter.moved .meter-fill { animation: none; } }
+
+/* ---------- The tracker rail (replaces the tabbed panel) ----------
+   A slim glass column of icons on the scene's edge, one per tracker that's on; a card slides out beside it on
+   hover (or tap), and stays when clicked (📌). On phones it's a sheet: icons in a row, the card below. */
+.tracker-panel.tracker-rail {
+    top: 120px; bottom: auto; right: 14px; left: auto; width: auto; max-width: none; height: auto;
+    display: flex; flex-direction: row-reverse; align-items: flex-start; gap: 10px;
+    background: none; border: 0; box-shadow: none; border-radius: 0; overflow: visible;
+    -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+.tracker-panel.tracker-rail.left { right: auto; left: 14px; flex-direction: row; }
+.tracker-panel.tracker-rail[hidden] { display: none; }
+.tr-icons {
+    display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 6px;
+    max-height: calc(100vh - 150px); overflow-y: auto; scrollbar-width: none; border-radius: 18px;
+    background: linear-gradient(180deg, var(--p-tint), rgba(14, 18, 32, 0) 160px), rgba(14, 18, 32, 0.72);
+    -webkit-backdrop-filter: blur(14px) saturate(1.2); backdrop-filter: blur(14px) saturate(1.2);
+    border: 1px solid rgba(167, 139, 250, 0.2); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.tr-icons::-webkit-scrollbar { display: none; }
+.tr-icon {
+    position: relative; flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; border: 1px solid transparent;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 1.15rem; line-height: 1;
+    background: rgba(255, 255, 255, 0.05); color: #cbd5e1; text-decoration: none; cursor: pointer;
+    transition: background .15s, transform .15s, box-shadow .2s, border-color .2s;
+}
+.tr-icon:hover { background: rgba(255, 255, 255, 0.13); transform: scale(1.06); }
+.tr-icon.active {
+    background: linear-gradient(135deg, rgba(126, 58, 242, 0.55), rgba(167, 139, 250, 0.35)); border-color: rgba(196, 181, 253, 0.6);
+    box-shadow: 0 0 16px rgba(167, 139, 250, 0.55);
+}
+.tr-icon.small { width: 34px; height: 34px; font-size: 0.85rem; background: none; opacity: .75; }
+.tr-icon.small:hover, .tr-icon.small.active { opacity: 1; background: rgba(255, 255, 255, 0.1); box-shadow: none; }
+.tr-icon[data-item="add"] { font-size: 1.1rem; color: #a5b4fc; background: none; border: 1px dashed rgba(165, 180, 252, 0.35); }
+.tr-icon.changed::after {
+    content: ''; position: absolute; top: 4px; right: 4px; width: 8px; height: 8px; border-radius: 50%;
+    background: #34d399; box-shadow: 0 0 8px rgba(52, 211, 153, 0.9); animation: tr-dot 1.4s ease-in-out infinite;
+}
+@keyframes tr-dot { 50% { transform: scale(1.4); opacity: .6; } }
+.tr-gap { width: 22px; height: 1px; margin: 4px 0; background: rgba(148, 163, 184, 0.2); }
+
+.tr-flyout {
+    width: 330px; max-height: calc(100vh - 150px); overflow-y: auto; overscroll-behavior: contain; border-radius: 18px;
+    background: linear-gradient(180deg, var(--p-tint), rgba(14, 18, 32, 0) 200px), rgba(14, 18, 32, 0.86);
+    -webkit-backdrop-filter: blur(16px) saturate(1.25); backdrop-filter: blur(16px) saturate(1.25);
+    border: 1px solid rgba(167, 139, 250, 0.22); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    animation: tr-in .18s ease-out;
+}
+.tracker-rail.left .tr-flyout { animation-name: tr-in-left; }
+@keyframes tr-in { from { opacity: 0; transform: translateX(14px); } }
+@keyframes tr-in-left { from { opacity: 0; transform: translateX(-14px); } }
+.tr-flyout.pinned { border-color: rgba(196, 181, 253, 0.5); }
+.tr-head {
+    position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 12px 12px 8px 16px; background: rgba(16, 20, 36, 0.9); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+}
+.tr-head b { font-size: 0.95rem; letter-spacing: .02em; color: #fff; }
+.tr-head span { display: flex; gap: 4px; }
+.tr-pin.active { background: rgba(167, 139, 250, 0.3); }
+.tr-flyout .tp-body { padding: 4px 16px 10px; }
+.tr-flyout .story-card { padding: 4px 0 6px; border-bottom: 0; }
+.tr-flyout .tp-body .t-card { padding-top: 2px; }
+.tr-stop { display: flex; flex-direction: column; gap: 8px; padding: 10px 16px 14px; border-top: 1px solid rgba(148, 163, 184, 0.1); }
+.tr-stop.confirm { background: rgba(244, 63, 94, 0.08); }
+.tr-stop p { margin: 0; font-size: 0.82rem; color: #e2e8f0; line-height: 1.45; }
+.tr-stop > div { display: flex; gap: 8px; }
+.tr-foot, .tr-note { font-size: 0.74rem; font-style: italic; color: #64748b; margin: 0; }
+.tr-note { padding: 8px 16px 14px; }
+.tr-note a { color: #b794f6; }
+.tr-btn {
+    border-radius: 9px; padding: 6px 12px; font-size: 0.8rem; font-weight: 600; cursor: pointer;
+    border: 1px solid rgba(148, 163, 184, 0.25); background: rgba(255, 255, 255, 0.05); color: #e2e8f0;
+}
+.tr-btn:hover { background: rgba(255, 255, 255, 0.1); }
+.tr-btn.ghost { align-self: flex-start; background: none; border-color: transparent; color: #94a3b8; padding-left: 0; font-weight: 500; }
+.tr-btn.ghost:hover { color: #fda4af; background: none; }
+.tr-btn.danger { background: rgba(244, 63, 94, 0.2); border-color: rgba(251, 113, 133, 0.5); color: #fecdd3; }
+.tr-add { padding: 4px 10px 0; }
+.tr-addrow {
+    display: flex; gap: 10px; align-items: flex-start; width: 100%; text-align: left; padding: 9px 8px; margin: 0 0 2px;
+    border: 0; border-radius: 10px; background: none; color: #e2e8f0; cursor: pointer;
+}
+.tr-addrow:hover { background: rgba(255, 255, 255, 0.07); }
+.tr-addrow b { display: block; font-size: 0.86rem; }
+.tr-addrow small { display: block; font-size: 0.74rem; color: #8b95a8; line-height: 1.35; margin-top: 2px; }
+.tr-add-ico { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; background: rgba(148, 163, 184, 0.1); }
+@media (max-width: 768px) {
+    .tracker-panel.tracker-rail, .tracker-panel.tracker-rail.left {
+        top: auto; left: 8px; right: 8px; bottom: 8px; height: 62vh; flex-direction: column; align-items: stretch; gap: 0;
+        border-radius: 18px; overflow: hidden; border: 1px solid rgba(167, 139, 250, 0.22); z-index: 66;  /* over the Watch card */
+        background: linear-gradient(180deg, var(--p-tint), rgba(14, 18, 32, 0) 200px) #10141f;
+        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
+    }
+    .tr-icons { flex-direction: row; max-height: none; overflow-x: auto; overflow-y: hidden; border-radius: 0; padding: 8px 10px;
+                background: none; border: 0; border-bottom: 1px solid rgba(148, 163, 184, 0.12); box-shadow: none;
+                -webkit-backdrop-filter: none; backdrop-filter: none; }
+    .tr-gap { width: 1px; height: 22px; margin: 0 2px; }
+    .tr-flyout { width: auto; flex: 1; max-height: none; border: 0; border-radius: 0; box-shadow: none; background: none;
+                 -webkit-backdrop-filter: none; backdrop-filter: none; animation: none; }
+    .tr-pin { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .tr-flyout { animation: none; } .tr-icon.changed::after { animation: none; } }

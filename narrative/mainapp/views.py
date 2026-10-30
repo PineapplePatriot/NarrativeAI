@@ -215,6 +215,12 @@ def chat(request, slug):
         chat_state["story"] = story.state_of(chat_state["story"], systems)
         return chat_state["story"]
 
+    def _synced(state):
+        """The tracker state with the World's date and time from the story clock (when there is one)."""
+        if systems and isinstance(state.get("trackers"), dict):
+            story.sync_world(story_state(), systems, state["trackers"])
+        return state["trackers"]
+
     def story_payload():
         """What the tracker panel shows of the story systems (None when there are none)."""
         if not systems:
@@ -591,6 +597,17 @@ def chat(request, slug):
             return JsonResponse({"success": True, "note": note, "spending": ai_client.spending(request.user)})
 
         # ... inside chat view POST handler ...
+        elif action == "toggle_tracker":  # the tracker rail's Stop tracking / ＋: for this character, as on its Trackers page
+            tid = data.get("tracker")
+            if tid not in trackers.TRACKERS_BY_ID:
+                return JsonResponse({"success": False, "error": "No such tracker."}, status=400)
+            raw = dict(character.tracker_config or {})
+            switched = dict(raw.get("trackers") or {})
+            switched[tid] = {**(switched.get(tid) if isinstance(switched.get(tid), dict) else {}), "on": bool(data.get("on"))}
+            character.tracker_config = trackers.normalize_config({**raw, "trackers": switched})
+            character.save(update_fields=["tracker_config"])
+            page = _tracker_page_data(request.user, character, _synced(chat_state))
+            return JsonResponse({"success": True, "config": page["config"], "specs": page["specs"], "state": page["state"]})
         elif action in ("update_trackers", "save_trackers", "clear_trackers"):
             config = trackers.normalize_config(character.tracker_config, game_mode, "milestones" in extra_kinds,
             "keepsakes" in extra_kinds)
@@ -630,11 +647,13 @@ def chat(request, slug):
                     if last and last[0] == "assistant":
                         story.stage(story_state(), update, len(messages), last[2])
                 update.pop("_story", None)
-                if with_story and story.of_type(systems, "clock") and isinstance(update.get("world"), dict):
+                if story.of_type(systems, "clock") and isinstance(update.get("world"), dict):
                     update["world"] = {k: v for k, v in update["world"].items() if k not in ("date", "time")}
                 changed = trackers.apply_update(config, state, update, only)
                 if not only:
                     state["upto"] = len(messages)
+            if systems:  # with a story clock, the World tracker's date and time always show it
+                story.sync_world(story_state(), systems, state)
 
             chat_state["trackers"] = state
             chat_state["tracker_history"] = chats.add_snapshot(chat_state["tracker_history"], state, len(messages))
@@ -1263,7 +1282,7 @@ def chat(request, slug):
         "current_music": json.dumps(chat_state["current_music"] or (character.theme or {}).get("music") or {}),
         "music_follow": bool(chat_state["music_follow"].get("on")),
         "user_avatar": user_avatar,
-        "trackers_data": {**_tracker_page_data(request.user, character, chat_state["trackers"]), "story": story_payload()},
+        "trackers_data": {**_tracker_page_data(request.user, character, _synced(chat_state)), "story": story_payload()},
         "stream_replies": presets.normalize(presets.get_active(request.user).data)["options"]["streaming"],
         "chat": chat_obj,
         "chat_list": chats.summary_list(character, chat_obj.id),
@@ -1548,6 +1567,7 @@ def _tracker_page_data(user, character, raw_state):
         "state": trackers.normalize_state(raw_state, config),
         "schedule": {"mode": task.mode, "interval": task.interval},
         "setup_url": reverse("tracker_setup", args=[character.slug]),
+        "character_name": character.name,
     }
 
 
