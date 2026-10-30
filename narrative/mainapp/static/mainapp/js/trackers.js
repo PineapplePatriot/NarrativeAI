@@ -52,15 +52,26 @@
     const TIME_ICON = { night: '🌙', dusk: '🌇', dawn: '🌅', day: '☀️' };
     const SKY_ICON = { storm: '⛈️', rain: '🌧️', snow: '❄️', fog: '🌫️' };
     const pct = (v, min, max) => Math.max(0, Math.min(100, Math.round(((Number(v) || 0) - min) / ((max - min) || 1) * 100)));
+    // A meter that moved is drawn at its old width, then slides to the new one (see grow); its number pulses
+    const lastPct = new Map();
+    function moving(key, p) {
+        const from = lastPct.has(key) ? lastPct.get(key) : p;
+        lastPct.set(key, p);
+        return { from, moved: from !== p };
+    }
+    function grow(root) {
+        requestAnimationFrame(() => requestAnimationFrame(() =>
+            root.querySelectorAll('[data-to]').forEach(el => { el.style.width = el.dataset.to + '%'; })));
+    }
 
     function chip(tid, icon, text, title, open) {
         return text ? `<button class="hud-pill ${recentlyChanged.has(tid) ? 'changed' : ''}" data-open="${open || specs[tid].panel}" title="${esc(title || specs[tid].label)}">`
             + `<span class="hp-ico" aria-hidden="true">${icon}</span><span class="hp-text">${text}</span></button>` : '';
     }
     function gauge(tid, label, v, min, max, title, open) {
-        const p = pct(v, min, max);
-        return `<button class="hud-pill hud-meter ${recentlyChanged.has(tid) ? 'changed' : ''} ${Number(v) < 0 ? 'neg' : ''}" data-open="${open || specs[tid].panel}" title="${esc(title)}">`
-            + `<span class="hp-text">${esc(label)}</span><span class="hp-gauge" aria-hidden="true"><i style="width:${p}%"></i></span>`
+        const p = pct(v, min, max), m = moving(`hud:${tid || open}:${label}`, p);
+        return `<button class="hud-pill hud-meter ${recentlyChanged.has(tid) ? 'changed' : ''} ${m.moved ? 'moved' : ''} ${Number(v) < 0 ? 'neg' : ''}" data-open="${open || specs[tid].panel}" title="${esc(title)}">`
+            + `<span class="hp-text">${esc(label)}</span><span class="hp-gauge" aria-hidden="true"><i style="width:${m.from}%" data-to="${p}"></i></span>`
             + `<span class="hp-num">${esc(v)}</span></button>`;
     }
 
@@ -145,6 +156,7 @@
                  <button class="hud-btn" data-act="update" title="Update all trackers now">${updating ? '⏳' : '↻'}</button>
                  ${config.layout.panel ? '<button class="hud-btn" data-act="toggle" title="Show or hide the tracker panel">▤</button>' : ''}
                </span>`;
+        grow(hud);
     }
 
     // ------------------------------------------------------- Story systems
@@ -162,8 +174,9 @@
         const mood = sceneMood();
         const meters = story.meters.map(m => {
             const steps = Math.min(20, Math.max(1, (m.max - m.min) || 1));
-            return `<div class="story-meter"><div class="sm-top"><span>${esc(m.label)}</span><b>${esc(m.value)}<small>/${esc(m.max)}</small></b></div>
-                      <div class="meter-bar glow" style="--steps:${steps}"><div class="meter-fill" style="width:${pct(m.value, m.min, m.max)}%"></div></div></div>`;
+            const p = pct(m.value, m.min, m.max), mv = moving(`panel:story:${m.label}`, p);
+            return `<div class="story-meter ${mv.moved ? 'moved' : ''}"><div class="sm-top"><span>${esc(m.label)}</span><b>${esc(m.value)}<small>/${esc(m.max)}</small></b></div>
+                      <div class="meter-bar glow" style="--steps:${steps}"><div class="meter-fill" style="width:${mv.from}%" data-to="${p}"></div></div></div>`;
         }).join('');
         const events = (story.next_events || []).map(e => `<li><span>${esc(e.label)}</span><small>${esc(e.when)}</small></li>`).join('');
         const log = (story.log || []).slice().reverse().map(l => `<li>${esc(l)}</li>`).join('');
@@ -192,8 +205,8 @@
                 input = `<input type="number" data-path="${esc(path)}" value="${esc(v ?? '')}">`;
                 break;
             case 'meter': {
-                const pct = Math.round(((Number(v) || 0) - field.min) / (field.max - field.min) * 100);
-                input = `<div class="meter-bar"><div class="meter-fill ${Number(v) < 0 ? 'neg' : ''}" style="width:${Math.max(0, Math.min(100, pct))}%"></div></div>
+                const p = pct(v, field.min, field.max), mv = moving(`panel:${path}`, p);
+                input = `<div class="meter-bar"><div class="meter-fill ${Number(v) < 0 ? 'neg' : ''}" style="width:${mv.from}%" data-to="${p}"></div></div>
                          <input type="number" class="meter-num" min="${field.min}" max="${field.max}" data-path="${esc(path)}" value="${esc(v ?? field.min)}">`;
                 break;
             }
@@ -256,6 +269,7 @@
             <div class="tp-foot">${scheduleText()}</div>`
             : story ? `<div class="tp-foot">${scheduleText()}</div>`
             : `<p class="t-empty">No trackers are on for this character yet. <a href="${DATA.setup_url}">Choose trackers →</a></p>`}`;
+        grow(panel);
     }
 
     function scheduleText() {

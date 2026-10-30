@@ -113,3 +113,62 @@ label.mini input[type=time] { width: 120px }
 .entry input[data-e=text] { flex: 1 }
 .add-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px }
 @media (max-width: 600px) { label.mini .num { width: 90px } .system-head { flex-wrap: wrap } }
+
+/* Tracker tiles: each group has its own colour; a tile lights up in it when its tracker is on */
+.tk-group { --g: #a78bfa; border-color: color-mix(in srgb, var(--g) 22%, transparent);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--g) 10%, transparent), transparent 160px), rgba(30, 35, 58, 0.6); }
+.tk-group[data-panel="scene"] { --g: #38bdf8; }
+.tk-group[data-panel="characters"] { --g: #fb7185; }
+.tk-group[data-panel="you"] { --g: #fbbf24; }
+.tk-group h2 { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.tk-count { font-size: .78rem; font-weight: 600; color: color-mix(in srgb, var(--g) 70%, #fff); padding: 3px 10px; border-radius: 999px;
+    background: color-mix(in srgb, var(--g) 14%, transparent); }
+.tk-group .grid { gap: 10px; }
+.tk-group .tracker {
+    position: relative; cursor: pointer; padding: 14px; border-radius: 14px; margin: 0;
+    background: rgba(13, 18, 33, 0.55); border: 1px solid rgba(148, 163, 184, 0.12);
+    transition: border-color .25s, background .25s, box-shadow .25s, transform .15s;
+}
+.tk-group .tracker:hover { border-color: rgba(148, 163, 184, 0.3); transform: translateY(-1px); }
+.tk-group .tracker.on {
+    border-color: color-mix(in srgb, var(--g) 55%, transparent);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--g) 15%, transparent), rgba(13, 18, 33, 0.55) 70%);
+    box-shadow: 0 10px 28px -16px color-mix(in srgb, var(--g) 80%, transparent);
+}
+.tk-group .tracker.owned { cursor: default; }
+.tk-top { display: flex; align-items: center; gap: 10px; margin: 0 0 6px; cursor: pointer; }
+.tracker.owned .tk-top { cursor: default; }
+.tk-ico {
+    flex: 0 0 auto; width: 36px; height: 36px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center;
+    font-size: 1.15rem; background: rgba(148, 163, 184, 0.1); filter: grayscale(.7); opacity: .75; transition: filter .25s, opacity .25s, background .25s;
+}
+.tracker.on .tk-ico { filter: none; opacity: 1; background: color-mix(in srgb, var(--g) 22%, transparent);
+    box-shadow: 0 0 14px color-mix(in srgb, var(--g) 35%, transparent); }
+.tk-name { flex: 1; min-width: 0; font-weight: 650; font-size: 1rem; }
+.tracker:not(.on) .help, .tracker:not(.on) .chips { opacity: .65; }
+.tracker.on .chip { background: color-mix(in srgb, var(--g) 14%, transparent); color: #e2e8f0; }
+.tk-auto { font-size: .7rem; font-weight: 600; padding: 3px 8px; border-radius: 999px; color: #e2e8f0;
+    background: color-mix(in srgb, var(--g) 22%, transparent); white-space: nowrap; }
+.tk-prompt { margin: 8px 0 0; padding-top: 8px; border-top: 1px solid rgba(148, 163, 184, 0.12); }
+
+/* The on/off switch */
+input.tk-switch {
+    appearance: none; -webkit-appearance: none; flex: 0 0 auto; width: 40px; height: 22px; margin: 0; padding: 0;
+    border: 0; border-radius: 999px; background: rgba(148, 163, 184, 0.28); position: relative; cursor: pointer;
+    transition: background .25s, box-shadow .25s;
+}
+input.tk-switch::before {
+    content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%;
+    background: #e2e8f0; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4); transition: transform .25s cubic-bezier(.3, 1.4, .5, 1);
+}
+input.tk-switch:checked { background: linear-gradient(135deg, color-mix(in srgb, var(--g) 80%, #000), var(--g));
+    box-shadow: 0 0 12px color-mix(in srgb, var(--g) 55%, transparent); }
+input.tk-switch:checked::before { transform: translateX(18px); background: #fff; }
+input.tk-switch:focus-visible { outline: 2px solid #c4b5fd; outline-offset: 2px; }
+
+/* Story systems in the same spirit: soft tiles with a violet edge */
+#storySystemsCard .system { border: 1px solid rgba(167, 139, 250, 0.2); border-left: 3px solid #a78bfa; border-radius: 12px;
+    background: linear-gradient(135deg, rgba(126, 58, 242, 0.1), rgba(13, 18, 33, 0.55) 60%); }
+#storySystemsCard .system.warn { border-left-color: #f59e0b; }
+#storySystemsCard .system-head .kind { padding: 3px 10px; border-radius: 999px; background: rgba(167, 139, 250, 0.16); font-size: .85rem; }
+@media (prefers-reduced-motion: reduce) { .tk-group .tracker, input.tk-switch::before { transition: none; } }

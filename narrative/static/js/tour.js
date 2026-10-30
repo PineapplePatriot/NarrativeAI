@@ -195,6 +195,7 @@
             ${own && own !== 'app' ? `<button type="button" class="item" data-do="page">▶ ${esc(t('menuPage'))}</button>` : ''}
             <button type="button" class="item" data-do="app">▶ ${esc(t('menuApp'))}</button>
             <button type="button" class="item" data-do="pick">🔍 ${esc(t('menuPick'))}</button>
+            <button type="button" class="item" data-do="reset">↺ ${esc(t('menuReset'))}</button>
             <div class="lang-row"><span>${esc(t('lang'))}</span>${langSwitch()}</div>`;
         document.body.append(menu);
         const r = btn.getBoundingClientRect();
@@ -209,6 +210,7 @@
             if (what === 'page') start(own);
             else if (what === 'app') start('app');
             else if (what === 'pick') pick();
+            else if (what === 'reset') { resetTours(); start(own || 'app'); }
         });
     }
     function closeMenu() {
@@ -383,7 +385,14 @@
         }
     }
 
-    window.NATour = { start, pick, end, seen: name => store.get('na-tour-' + name) === 'seen', lang: () => lang };
+    // Every tour shows again on its page (this page's starts now)
+    function resetTours() {
+        try {
+            Object.keys(localStorage).filter(k => k.startsWith('na-tour-')).forEach(k => localStorage.removeItem(k));
+        } catch (e) { /* storage blocked: tours already show every time */ }
+    }
+
+    window.NATour = { start, pick, end, reset: resetTours, seen: name => store.get('na-tour-' + name) === 'seen', lang: () => lang };
 
     // A page's own tour starts by itself the first time that page is opened
     function autoStart() {
