@@ -6,6 +6,7 @@ import uuid
 from pathlib import Path
 
 from mainapp import ai_client, cards, model_profiles, presets, starters, thinking
+from mainapp.trackers import TRACKERS as TRACKER_LIST
 from mainapp.bulba import control, doctor, library, lore, rules, tune
 
 INSTRUCTIONS = Path(__file__).resolve().parent.parent / "data" / "bulba" / "instructions.md"
@@ -74,7 +75,7 @@ def system_prompt(session):
     prefs = [f"- {p['id']} [{p['status']}, {p['scope']}] {p['interpretation']} (they said: \"{p['wording']}\")"
              for p in session.preferences if p.get("status") not in ("rejected", "superseded")]
     pending = [f"- {p['id']} {p['kind']}: {p['title']} ({p['status']})" for p in session.proposals]
-    guides = [(GUIDES_DIR / f"{g}.md").read_text(encoding="utf-8") for g in STAGE_GUIDES.get(session.stage, [])
+    guides = [(GUIDES_DIR / f"{g}.md").read_text(encoding="utf-8") for g in [*STAGE_GUIDES.get(session.stage, []), "app"]
               if (GUIDES_DIR / f"{g}.md").exists()]
     return "\n\n".join(filter(None, [
         text,
@@ -181,6 +182,9 @@ TOOLS = [
          "story_extras": {"type": "array", "items": {"type": "string", "enum": ["documents", "messages", "milestones",
                                                                                  "news", "keepsakes", "choices"]}},
          "ideas": {"type": "boolean"},
+         "trackers": {"type": "array", "description": "The trackers that fit this story and character, all of them "
+                      "(World is on unless you leave it out); tuning guide, 'Trackers that fit the story'",
+                      "items": {"type": "string", "enum": [t["id"] for t in TRACKER_LIST if t["id"] != "custom"]}},
          "why": {"type": "string", "description": "One line on why these fit their story (shown above the form)"}}),
     _fn("propose_preset", "Propose the finished preset: a starter plus a short 'your taste' section.",
         {"starter": STR, "name": STR, "taste": {"type": "string", "description": "Plain instructions to the model"},
@@ -490,6 +494,30 @@ BASICS = {
         "slow": "Slow burn: let things develop in small, earned steps, with quiet everyday moments between the "
                 "ones that move the story.",
         "any": ""}),
+    # Asked apart from pacing: a slow story can still have characters who act, and a fast one passive ones
+    # (Writer's Block V2's separate controls; the Argon research's "pace and autonomy are separate questions")
+    "initiative": ("Who moves the story", {
+        "react": "Characters respond to what {{user}} says and does; new events come from {{user}}, not from the "
+                 "world. Develop the exchange in progress and hand it back.",
+        "continue": "Characters keep the current scene alive with their own wants and small moves; bigger events "
+                    "and complications wait for {{user}}.",
+        "drive": "Characters and the world may start events and complications on their own, as long as {{user}} "
+                 "keeps a meaningful choice in what happens next.",
+        "any": ""}),
+    # Ancient Access 2.2.3: "the card is a floor, not a ceiling", which can fight fandom canon: they choose
+    "invention": ("Making things up", {
+        "canon": "Keep to what the card and the source material establish. Leave gaps open rather than inventing "
+                 "backstory, people or canon details.",
+        "plausible": "Keep established card and world facts fixed; small plausible details (a habit, a minor "
+                     "person, a place) may be added where nothing is established.",
+        "free": "Treat the card as a starting point: invent backstory, people and places freely, without "
+                "contradicting anything already established.",
+        "any": ""}),
+    "interior": ("Inner thoughts", {  # Voyage 6's "reasons left unspoken" vs. a reflective narrator
+        "observe": "Show what can be seen and heard; leave motives and feelings for the reader to infer.",
+        "infer": "Let feelings show through behaviour, with an occasional brief hint of what someone thinks.",
+        "enter": "Go inside {{char}}'s head: thoughts and feelings can be written directly, briefly.",
+        "any": ""}),
     "voice": ("Narration voice", {  # after Pura's narration voices and Celia's narrative styles
         "hemingway": "Narrate in the manner of Ernest Hemingway: short, plain, loaded sentences; feelings left under the surface.",
         "mccarthy": "Narrate in the manner of Cormac McCarthy: heavy, rhythmic, solemn prose; a harsh, beautiful world.",
@@ -790,8 +818,9 @@ def take_route(session, route):
     feels = {k: v for k, v in (profile.get("starters") or {}).items() if k in FAST_FEELS}
     if route == "full":
         return _canned(session, "Full setup",
-                       "Good. Boring bits first, all in one go: tick what you want, change anything later on the "
-                       "Extras page.", after=[extras_form_event(session, "setup")])
+                       "Good. Boring bits first, all in one go: how much of the chat your model remembers (the "
+                       "slider shows roughly what a message costs at that size), summaries, trackers and the rest. "
+                       "Change anything later on the Extras page.", after=[extras_form_event(session, "setup")])
     if route == "fast":
         choices = []
         for feel in FAST_FEELS:
@@ -816,10 +845,20 @@ def take_route(session, route):
     p["status"] = "applied"
     session.stage = "persona"
     return _canned(session, f"Fast route: {starters.EXPERIENCES[feel]['label']}",
-                   f"Done: {note}\n\nTwo quick things and you're chatting. First, who are you in the story?",
-                   [{"label": "Keep me light: just a name"}, {"label": "Someone who lives in that world"},
-                    {"label": "You make someone up"}, {"label": "Skip: use my profile"}],
-                   extra_events=[{"type": "proposal", "id": p["id"]}, {"type": "stage", "stage": "persona"}])
+                   f"Done: {note}\n\nThree quick things and you're chatting. First, how much of the chat your model "
+                   "remembers: more remembers more and costs more, and the slider shows roughly what a message costs.",
+                   extra_events=[{"type": "proposal", "id": p["id"]}, {"type": "stage", "stage": "persona"}],
+                   after=[extras_form_event(session, "memory")])
+
+
+PERSONA_CHOICES = [{"label": "Keep me light: just a name"}, {"label": "Someone who lives in that world"},
+                   {"label": "You make someone up"}, {"label": "Skip: use my profile"}]
+
+
+def after_memory_form(session, shown):
+    """The Fast route's memory form is sent: on to who they are in the story (no AI needed)."""
+    return _canned(session, "Sent: chat memory", "Saved. Next, who are you in the story?", PERSONA_CHOICES,
+                   extra_events=shown)
 
 
 # ---------------------------------------------------------------------------
@@ -835,24 +874,73 @@ def extras_form_event(session, part, suggest=None, why=""):
     from users.views import _extras_state
     from mainapp import extras as extras_mod
     state = _extras_state(session.user)
-    values = {k: state.get(k) for k in (SETUP_FORM_KEYS if part == "setup" else STORY_FORM_KEYS)}
+    values = {k: state.get(k) for k in (SETUP_FORM_KEYS if part == "setup" else () if part == "memory" else STORY_FORM_KEYS)}
     for k, v in (suggest or {}).items():
         if k in values and v is not None:
             values[k] = v
     event = {"type": "extras_form", "part": part, "values": values, "why": str(why or "")[:300]}
+    if part in ("setup", "memory"):
+        event.update(memory_and_prices(session.user, state))
+        values["chat_context"] = event["window"]["value"]
+    if part == "memory":
+        return event
     if part == "setup":
         event["has_voice_key"] = state["has_eleven_key"]
         event["cheap_models"] = ([{"id": m["id"], "name": m["name"]} for m in state["cheap_models"]]
                                  if state["openrouter"] else [])
     else:
         event["kinds"] = [{"id": k, "label": label} for k, label in extras_mod.KINDS.items()]
+        from mainapp import trackers as tracker_mod
+        from mainapp.bulba import lore
+        character = lore.target_character(session)
+        if character:  # its trackers, pre-ticked with Bulba's picks (or what it has now)
+            config = tracker_mod.normalize_config(character.tracker_config)
+            on_now = [t for t, c in config["trackers"].items() if c["on"] and t != "custom"]
+            picks = [t for t in (suggest or {}).get("trackers") or [] if t in config["trackers"] and t != "custom"]
+            event["character"] = character.name
+            event["trackers"] = [{"id": t["id"], "label": t["label"], "icon": t["icon"], "help": t["help"]}
+                                 for t in tracker_mod.TRACKERS if t["id"] != "custom"]
+            values["trackers"] = picks or on_now
     return event
+
+
+def chat_window(user):
+    """(the chat's context size now, the chat model's whole window, the chat model id)."""
+    from mainapp import samplers as sampler_mod
+    try:
+        _, model = ai_client.resolve(user, "chat")
+    except ai_client.NoConnection:
+        model = ""
+    limit = ((model_profiles.for_model(model) or {}).get("limits") or {}).get("context") or 1_000_000
+    ctx = sampler_mod.for_user(user).get("context_size", {})
+    now = ai_client.get_task_setting(user, "chat").context or (ctx.get("value") if ctx.get("on") else None)
+    return min(now or sampler_mod.DEFAULT_WINDOW, limit), limit, model
+
+
+def memory_and_prices(user, state):
+    """The setup form's chat memory slider and the prices its cost estimates use (OpenRouter's list; none
+    when it can't be read or they use another provider)."""
+    from mainapp import pricing
+    value, limit, model = chat_window(user)
+    price = lambda m: list(pricing.per_token(m)) if state["openrouter"] and pricing.per_token(m) else None
+    return {"window": {"value": value, "max": limit, "model": state["chat_model"]},
+            "prices": {"chat": price(model), "bg": {m["id"]: price(m["openrouter"]) for m in state["cheap_models"]}}}
 
 
 def form_payload(part, answers):
     """Their answers as a propose_extras payload, and the lines the proposal card shows."""
     answers = answers if isinstance(answers, dict) else {}
     payload, summary = {}, []
+    if part in ("setup", "memory"):
+        try:
+            context = int(answers.get("chat_context") or 0)
+        except (TypeError, ValueError):
+            context = 0
+        if context:
+            payload["chat_context"] = max(4096, min(2_000_000, context))
+            summary.append(f"Chat memory: about {payload['chat_context']:,} tokens")
+    if part == "memory":
+        return payload, summary
     if part == "setup":
         for task, label in (("summary", "Story summary"), ("trackers", "Trackers")):
             item = answers.get(task) if isinstance(answers.get(task), dict) else {}
@@ -888,8 +976,28 @@ def form_payload(part, answers):
     return payload, summary
 
 
+def form_trackers(session, answers):
+    """The story form's tracker chips as an applied-on-send trackers proposal: (proposal id, summary lines),
+    or None when the form had no trackers row or nothing changes."""
+    picked = answers.get("trackers")
+    character = lore.target_character(session)
+    if not isinstance(picked, list) or character is None:
+        return None
+    from mainapp import trackers as tracker_mod
+    config = tracker_mod.normalize_config(character.tracker_config)
+    picked = [t for t in picked if t in config["trackers"] and t != "custom"]
+    on_now = [t for t, c in config["trackers"].items() if c["on"] and t != "custom"]
+    turn_on, turn_off = [t for t in picked if t not in on_now], [t for t in on_now if t not in picked]
+    if not (turn_on or turn_off):
+        return None
+    result, _ = tune.tool_propose_trackers(session, {"turn_on": turn_on, "turn_off": turn_off,
+                                                     "why": "Picked in the story extras form."})
+    p = next(x for x in session.proposals if x["id"] == result["proposal"])
+    return p["id"], [line for line in p["summary"] if line not in ("Why:", "Picked in the story extras form.")]
+
+
 def tool_show_extras_form(session, args):
-    suggest = {k: args.get(k) for k in STORY_FORM_KEYS if k in args}
+    suggest = {k: args.get(k) for k in (*STORY_FORM_KEYS, "trackers") if k in args}
     return ({"shown": True, "note": "They'll answer with the form; their answers are applied directly. Wait."},
             [extras_form_event(session, "story", suggest, args.get("why"))])
 

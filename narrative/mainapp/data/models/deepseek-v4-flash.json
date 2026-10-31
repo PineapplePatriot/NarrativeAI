@@ -15,7 +15,9 @@
     "https://api-docs.deepseek.com/api/create-chat-completion/",
     "https://openrouter.ai/deepseek/deepseek-v4-flash"
   ],
-  "limits": {},
+  "limits": {
+    "context": 1048576
+  },
   "reasoning": {
     "always_on": false,
     "default": "medium",

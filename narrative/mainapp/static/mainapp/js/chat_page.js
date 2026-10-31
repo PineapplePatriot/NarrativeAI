@@ -1732,7 +1732,7 @@ document.getElementById('aiSawBox')?.addEventListener('toggle', async (e) => {
         box.innerHTML = block('📚 Story summary', d.summary.length ? d.summary.map(p => `<p>${esc(p.text)}</p>`).join('') : '<i>none yet</i>')
             + block('📌 Pinned note', d.pinned_note ? esc(d.pinned_note) : '<i>none</i>')
             + block('📊 Trackers', d.trackers ? `<pre>${esc(d.trackers)}</pre>` : '<i>none</i>')
-            + block('📖 Lore that fired', d.lore.fired.length ? esc(d.lore.fired.join(', ')) : `<i>${d.lore.book ? 'nothing this time' : 'no lorebook'}</i>`)
+            + block('📖 Lore that fired', d.lore.fired.length ? esc(d.lore.fired.join(', ')) : `<i>${d.lore.book ? 'nothing this time' : 'no worldbook'}</i>`)
             + ((d.recalled || []).length ? block('🔁 Brought back from earlier', d.recalled.map(r => `<p><b>${esc(r.who)}:</b> ${esc(r.text)}</p>`).join('')
                 + '<p class="tool-help">Old messages that had fallen out of the AI\'s context, matched to the current scene (free).</p>') : '')
             + '<p class="tool-help">Something wrong here? Bulba can fix the summary or the pinned note: ask it in the 🥔 panel.</p>';

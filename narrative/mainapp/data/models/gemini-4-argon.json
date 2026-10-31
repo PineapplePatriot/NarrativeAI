@@ -1,0 +1,136 @@
+{
+  "id": "gemini-4-argon",
+  "name": "Gemini 4 Argon",
+  "match": [
+    "gemini-4-argon"
+  ],
+  "ids": {
+    "google": "gemini-4-argon",
+    "openrouter": "google/gemini-4-argon"
+  },
+  "openrouter_id_verified": false,
+  "verified": "2026-10-30",
+  "sources": [
+    "https://ai.google.dev/gemini-api/docs/models/gemini-4-argon",
+    "https://ai.google.dev/gemini-api/docs/latest-model",
+    "https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/guides/gemini-4-argon"
+  ],
+  "limits": {
+    "context": 1048576,
+    "output": 65536
+  },
+  "reasoning": {
+    "always_on": true,
+    "default": "medium",
+    "choices": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "note": "Thinking levels are low, medium (the default) or high; 'minimal' and a thinking budget are rejected. Thinking shares the output budget, so leave room in Response length. Try low first and keep the lowest that reads well."
+  },
+  "samplers": {
+    "max_tokens": {
+      "status": "supported"
+    },
+    "reasoning_effort": {
+      "status": "supported"
+    },
+    "temperature": {
+      "status": "fixed",
+      "why": "Gemini 4 Argon ignores it (Google's model guide), so it isn't sent."
+    },
+    "top_p": {
+      "status": "fixed",
+      "why": "Gemini 4 Argon ignores it (Google's model guide), so it isn't sent."
+    },
+    "top_k": {
+      "status": "fixed",
+      "why": "Gemini 4 Argon ignores it (Google's model guide), so it isn't sent."
+    },
+    "frequency_penalty": {
+      "status": "unused",
+      "why": "Google's Cloud guide rejects it for Argon."
+    },
+    "presence_penalty": {
+      "status": "unused",
+      "why": "Google's Cloud guide rejects it for Argon."
+    },
+    "stop": {
+      "status": "unverified"
+    },
+    "min_p": {
+      "status": "unverified"
+    },
+    "top_a": {
+      "status": "unverified"
+    },
+    "repetition_penalty": {
+      "status": "unverified"
+    },
+    "seed": {
+      "status": "unverified"
+    },
+    "verbosity": {
+      "status": "unused",
+      "why": "An OpenAI-only setting."
+    }
+  },
+  "style": {
+    "notes": [
+      {
+        "text": "Strong continuity, lore use, initiative and novelty; dialogue, cliffhangers and emotional scenes praised.",
+        "source": "community",
+        "ref": "Gemini 4 Argon research 2026-10-30, A1 A3",
+        "status": "reported"
+      },
+      {
+        "text": "Can rush through a major interaction or move the plot before the player answers; slowing it down can make replies flat and short.",
+        "source": "community",
+        "ref": "Gemini 4 Argon research 2026-10-30, A1",
+        "status": "reported"
+      },
+      {
+        "text": "A card's habit or trait can repeat in reply after reply.",
+        "source": "community",
+        "ref": "Gemini 4 Argon research 2026-10-30, A2",
+        "status": "reported"
+      },
+      {
+        "text": "Users mention the cost; don't swap in a cheaper model for its samples without asking.",
+        "source": "community",
+        "ref": "Gemini 4 Argon research 2026-10-30, A3",
+        "status": "reported"
+      },
+      {
+        "text": "Lightweight presets are recommended for it (Kindling, Chatfill, a tracker-free Pura, NoPussyfooting); not controlled comparisons.",
+        "source": "community",
+        "ref": "Gemini 4 Argon research 2026-10-30, A4 P5",
+        "status": "reported"
+      }
+    ],
+    "probes": [
+      "When something big happens (an apology, a confession), should the story stay on it until you answer, or keep moving?",
+      "Do you like characters who take the lead and bring new events, or ones that mostly react to you?",
+      "Should it invent details beyond the card, or stick to what's established?"
+    ],
+    "watch_for": [
+      "Rushing past a big moment before the player answers",
+      "One card trait in every reply",
+      "Characters deciding things the player should decide",
+      "Short, flat replies after being told to slow down"
+    ]
+  },
+  "starters": {
+    "back_and_forth": "argon-back-and-forth",
+    "rich_scene": "argon-rich-scene",
+    "director": "argon-director"
+  },
+  "card": {
+    "order": 2.5,
+    "recommended": false,
+    "price": "$$$",
+    "best_for": "Continuity, lore and characters with initiative; strong dialogue and emotional scenes.",
+    "watch_out": "Can rush past big moments before you answer, and repeat one trait. People mention the cost."
+  }
+}

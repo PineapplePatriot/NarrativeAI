@@ -437,7 +437,7 @@ body {
     gap: 6px;
     padding: 16px;
     border-radius: 14px;
-    background: rgba(42, 47, 74, 0.6);
+    background: var(--ui-primary);
     border: 1px solid rgba(148, 163, 184, 0.12);
     color: var(--text-primary);
     text-decoration: none;

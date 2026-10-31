@@ -34,7 +34,7 @@ def apply(session, pid):
         raise ProposalError("This proposal was already handled.")
     user, data = session.user, p["payload"]
 
-    if p["kind"] == "extras":
+    if p["kind"] in ("extras", "memory"):  # memory: the Fast route's chat memory step, an extras change too
         before = _extras_state(user)
         error = apply_extras(user, data)
         if error:
@@ -42,7 +42,7 @@ def apply(session, pid):
         p["undo"] = {"summary": before["summary"], "trackers": before["trackers"],
                      "sprites": before["sprites"], "background": before["background"], "game": before["game"],
                      "story_extras": before["story_extras"], "ideas": before["ideas"], "watch": before["watch"],
-                     "fix_model": before["fix_model"]}
+                     "fix_model": before["fix_model"], "chat_context_restore": before["chat_context_restore"]}
         note = "Extras saved."
     elif p["kind"] == "preset":
         from mainapp.bulba.agent import build_preset
@@ -143,7 +143,7 @@ def undo(session, pid):
         raise ProposalError("Only applied proposals can be undone.")
     user, before = session.user, p.get("undo") or {}
 
-    if p["kind"] == "extras":
+    if p["kind"] in ("extras", "memory"):  # memory: the Fast route's chat memory step, an extras change too
         apply_extras(user, before)
     elif p["kind"] == "preset":
         Preset.objects.filter(user=user, id=before.get("created")).delete()

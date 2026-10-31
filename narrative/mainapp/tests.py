@@ -1342,6 +1342,51 @@ class SummaryPartsAndBranchTests(TrackerChatTests):
         self.assertEqual((resp["summary"], resp["summary_upto"]), ("", 0))
         self.assertEqual(resp["trackers"]["values"], {})
 
+    def small_window(self, task):
+        from mainapp import ai_client
+        setting = ai_client.get_task_setting(self.user, task)
+        setting.context = 4096  # the smallest allowed: 2,048 tokens left once the answer has room
+        setting.save()
+
+    def test_a_long_chat_is_summarized_in_pieces_that_fit_the_window(self):
+        self.small_window("summary")
+        for n in range(4):
+            self.post({"action": "chat", "message": f"Scene {n}. " + "word " * 900})  # ~1,500 tokens each
+        total = len(self.chat_file()["messages"])
+        self.post({"action": "summarize", "mode": "regen"})
+        spans = [(p["from"], p["to"]) for p in self.chat_file()["summary_parts"]]
+        self.assertGreater(len(spans), 1)
+        self.assertEqual((spans[0][0], spans[-1][1]), (0, total))           # nothing dropped
+        self.assertTrue(all(a[1] == b[0] for a, b in zip(spans, spans[1:])))  # one after another
+        calls = [c for c in self.all_calls if c["messages"][0]["content"].startswith(("Existing summary", "Summarize this entire"))]
+        self.assertTrue(all(len(c["messages"][1]["content"]) // 3 <= 2048 for c in calls))
+        self.assertIn("Summary", calls[-1]["messages"][0]["content"])  # later pieces continue the earlier ones
+
+    def test_tracker_update_keeps_to_the_window(self):
+        self.small_window("trackers")
+        self.post({"action": "chat", "message": "OLDEST " + "word " * 900})
+        for n in range(3):
+            self.post({"action": "chat", "message": f"Later {n} " + "word " * 900})
+        self.assertTrue(self.post({"action": "update_trackers"}).json()["success"])
+        call = [c for c in self.all_calls if c["messages"][0]["content"].startswith("You keep the story-state trackers")][-1]
+        sent = "".join(m["content"] for m in call["messages"])
+        self.assertLessEqual(len(sent) // 3, 2048 + 50)
+        self.assertNotIn("OLDEST", sent)
+        self.assertIn("Later 2", sent)
+
+    def test_job_window_follows_the_model_and_the_settings(self):
+        from mainapp import ai_client, samplers
+        from users.models import ConnectionProfile
+        self.assertEqual(samplers.job_window(self.user, "summary"), 128000 - 8192)  # nothing set: 128k
+        setting = ai_client.get_task_setting(self.user, "summary")
+        setting.context = 200000
+        setting.save()
+        self.assertEqual(samplers.job_window(self.user, "summary"), 200000 - 8192)  # its own window
+        ConnectionProfile.objects.filter(user=self.user).update(model="google/gemini-3.8-flash")
+        setting.context = 2000000
+        setting.save()
+        self.assertEqual(samplers.job_window(self.user, "summary"), 1048576 - 8192)  # never past the model's
+
     def test_regen_replaces_all_pieces(self):
         self.build_story()
         data = self.post({"action": "summarize", "mode": "regen"}).json()
@@ -1516,13 +1561,41 @@ class SamplerPageProfileTests(ChatPromptTests):
         self.assertIn("Claude Opus 5.5", data["known_models"])
 
 
+class GeminiArgonTests(ChatPromptTests):
+    """Gemini 4 Argon (research 2026-10-30): its own profile, ignored samplers left out, ready setups."""
+
+    def test_argon_has_its_own_profile_and_drops_ignored_samplers(self):
+        from mainapp import model_profiles, samplers
+        argon = model_profiles.for_model("google/gemini-4-argon")
+        self.assertEqual(argon["id"], "gemini-4-argon")
+        self.assertNotEqual(model_profiles.for_model("google/gemini-3.8-flash")["id"], "gemini-4-argon")
+        self.assertEqual(argon["limits"]["context"], 1048576)
+        self.assertEqual(list(argon["reasoning"]["choices"]), ["low", "medium", "high"])
+        status = model_profiles.sampler_status("google/gemini-4-argon", samplers.normalize({}))
+        for key in ("temperature", "top_p", "top_k", "frequency_penalty", "presence_penalty"):
+            self.assertIn(status[key]["status"], ("fixed", "unused"), key)
+        # Gemini 3.6+ ignores the sampling controls too (Google's prompt guide)
+        flash = model_profiles.sampler_status("google/gemini-3.8-flash", samplers.normalize({}))
+        self.assertEqual(flash["temperature"]["status"], "fixed")
+
+    def test_argon_ready_setups_start_on_low_thinking_with_room(self):
+        from mainapp import starters
+        ready = starters.ready_for("gemini-4-argon")
+        self.assertEqual({r["feel"] for r in ready}, {"back_and_forth", "rich_scene", "director"})
+        for r in ready:
+            s = starters.get(r["id"])["preset"]["samplers"]
+            self.assertEqual(s["reasoning_effort"]["value"], "low")
+            self.assertGreaterEqual(s["max_tokens"]["value"], 16000)  # thinking shares the output budget
+            self.assertNotIn("temperature", s)
+
+
 class StarterTests(ChatPromptTests):
     """Ready-made presets per model (mainapp/data/starters/*.json)."""
 
     def test_every_starter_is_a_sound_preset_for_its_model(self):
         from mainapp import model_profiles, presets, samplers, starters
         all_s = starters.all_starters()
-        self.assertEqual(len(all_s), 33)  # three experiences for each of the ten models, plus three community presets
+        self.assertEqual(len(all_s), 36)  # three experiences for each of the eleven models, plus three community presets
         for s in all_s:
             profile = next(p for p in model_profiles.all_profiles() if p["id"] == s["model"])
             self.assertEqual(profile["starters"][s["experience"]], s["id"])
@@ -1593,9 +1666,9 @@ class WelcomeTests(TestCase):
     def test_home_sends_new_users_here(self):
         self.assertRedirects(self.client.get(reverse("home")), self.url, fetch_redirect_response=False)
 
-    def test_lists_ten_models_recommended_first(self):
+    def test_lists_eleven_models_recommended_first(self):
         models = self.client.get(self.url).context["welcome_data"]["models"]
-        self.assertEqual(len(models), 10)
+        self.assertEqual(len(models), 11)
         self.assertEqual([m["name"] for m in models[:2]], ["Claude Opus 5.5", "MiMo v2.6 Pro"])
         self.assertTrue(all(m["best_for"] and m["openrouter"] and m["price"] for m in models))
 
@@ -2126,6 +2199,26 @@ class CardImportTests(ChatPromptTests):
 
 
 class SignUpFlowTests(TestCase):
+    def setUp(self):
+        import shutil
+        import tempfile
+        media = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, media, ignore_errors=True)
+        override = override_settings(MEDIA_ROOT=media)
+        override.enable()
+        self.addCleanup(override.disable)
+
+    def test_new_accounts_start_with_il_dottore(self):
+        from mainapp.models import Character
+        self.client.post(reverse("users:register"), {
+            "username": "lumi", "email": "lumi@example.com",
+            "password1": "Lantern-Quay-81", "password2": "Lantern-Quay-81"})
+        dottore = Character.objects.get(author__username="lumi")
+        self.assertEqual(dottore.name, "Il Dottore")
+        self.assertIsNotNone(dottore.worldbook)
+        self.assertTrue(dottore.photo_neutral)
+        self.assertEqual(dottore.chats.count(), 1)  # a chat to open straight away
+
     def test_sign_up_logs_in_and_goes_to_welcome(self):
         response = self.client.post(reverse("users:register"), {
             "username": "wren", "email": "wren@example.com",
@@ -4062,6 +4155,13 @@ class SetupRoutesTests(BulbaTests):
         self.assertEqual(routes, ["fast:opus-back-and-forth", "fast:opus-rich-scene", "fast:opus-director"])
         self.assertTrue(all(c["hint"] for c in data["events"][-1]["choices"]))
         data = self.api(action="route", route="fast:opus-director").json()
+        # First the chat's memory (a slider with what a message costs), then who they are
+        self.assertEqual((data["events"][-1]["type"], data["events"][-1]["part"]), ("extras_form", "memory"))
+        self.assertIn("how much of the chat", data["events"][-2]["text"])
+        data = self.api(action="extras_form", part="memory", answers={"chat_context": 64000}).json()
+        from mainapp import samplers as samplers_mod
+        size = samplers_mod.normalize(presets_mod.get_active(self.user).data.get("samplers"))["context_size"]
+        self.assertEqual(size, {"on": True, "value": 64000})  # set on the ready setup it just made
         self.assertEqual(self.bulba_calls, [])  # all canned
         self.assertEqual(data["state"]["stage"], "persona")
         self.assertIn("who are you in the story", data["events"][-1]["text"])
@@ -4315,6 +4415,40 @@ class WatchChatTests(ChatPromptTests):
         watch.set_on(self.user, False)
         state = self.post({"action": "watch_settings", "chat_off": False, "turn_on": True}).json()["watch"]
         self.assertEqual((state["on"], state["chat_off"]), (True, False))
+
+    def test_their_own_dislikes_are_fixed_and_watched(self):
+        from unittest import mock
+        from types import SimpleNamespace
+        from mainapp.bulba import watch, polish
+        self.client.get(self.url)
+        extras = reverse("users:extras")
+        with mock.patch("mainapp.bulba.watch.ai_client.complete",
+                        return_value='{"name": "constant smirking", "about": "A character smirks or smiles knowingly at the user."}'):
+            word = self.client.post(extras, json.dumps({"action": "watch_memory", "op": "word_dislike",
+                                                        "new": "he keeps smirking at everything I say"}),
+                                    content_type="application/json").json()
+        self.assertEqual(word["suggestion"]["name"], "constant smirking")
+        state = self.client.post(extras, json.dumps({"action": "watch_memory", "op": "add_dislike", **word["suggestion"]}),
+                                 content_type="application/json").json()["state"]
+        fix = state["watch_memory"]["fix"][0]
+        self.assertEqual((fix["label"], fix["about"]), ("other: constant smirking", "A character smirks or smiles knowingly at the user."))
+        # the polisher gets their words; the reader looks for it with that label
+        prompt = polish._prompt(self.character, self.chat_obj(), "He smirks.", [], "", ["other: constant smirking"])
+        self.assertIn("smirks or smiles knowingly", prompt[1]["content"])
+        for i in range(3):
+            self.post({"action": "chat", "message": f"Line {i}."})
+        self.post({"action": "watch"})
+        self.assertIn("other: constant smirking: A character smirks", self.reader_calls[-1]["messages"][1]["content"])
+        # Bulba in a chat can add one too; stopping it removes the wording
+        result, _ = watch.tool_add_dislike(SimpleNamespace(user=self.user, chat=self.chat_obj()),
+                                           {"name": "Em dashes", "about": "Sentences broken up with em dashes."})
+        self.assertEqual(result["added"], "Em dashes")
+        watch.change_memory(self.user, "stop_fix", "other: constant smirking")
+        self.assertNotIn("other: constant smirking", watch.user_data(self.user)["dislikes"])
+        # wording falls back to their own words when the model fails
+        from mainapp import ai_client
+        with mock.patch("mainapp.bulba.watch.ai_client.complete", side_effect=ai_client.AIError("down")):
+            self.assertEqual(watch.word_dislike(self.user, "Too many sighs")["about"], "Too many sighs")
 
     def test_bulba_switches_it_when_asked(self):
         from types import SimpleNamespace
@@ -5404,6 +5538,39 @@ class StoryChatTests(ChatPromptTests):
         self.assertEqual(resp["story"]["meters"][0]["value"], 2)
         self.assertEqual(self.story()["values"]["trust"], 2)
 
+    def test_world_time_always_follows_the_story_clock(self):
+        self.post({"action": "chat", "message": "I help him up."})
+        # Even re-running only the World tracker, its "11:40 pm" loses to the story clock
+        world = self.post({"action": "update_trackers", "only": ["world"]}).json()["state"]["values"]["world"]
+        self.assertEqual((world["location"], world["date"], world["time"]), ("Square", "Day 1", "08:00"))
+        # A chat saved before this was kept shows them in agreement on the page
+        from mainapp import chats
+        chat = self.character.chats.first()
+        data = chats.read(chat)
+        data["trackers"]["values"]["world"]["time"] = "11:40 pm"
+        chats.write(chat, data)
+        page = self.client.get(reverse("chat", args=[self.character.slug]))
+        state = page.context["trackers_data"]["state"]["values"]["world"]
+        self.assertEqual(state["time"], "08:00")
+
+    def test_the_rail_switches_trackers_for_the_character(self):
+        resp = self.post({"action": "toggle_tracker", "tracker": "relationships", "on": True}).json()
+        self.assertTrue(resp["success"])
+        self.assertTrue(resp["config"]["trackers"]["relationships"]["on"])
+        self.assertIn("relationships", [s["id"] for s in resp["specs"]])
+        self.character.refresh_from_db()
+        self.assertTrue(self.character.tracker_config["trackers"]["relationships"]["on"])
+        self.assertTrue(self.character.tracker_config["trackers"]["world"]["on"])  # the others stay as they were
+        self.assertEqual(len(self.character.tracker_config["systems"]), 3)        # and so do the story systems
+        self.post({"action": "toggle_tracker", "tracker": "world", "on": False})
+        self.character.refresh_from_db()
+        self.assertFalse(self.character.tracker_config["trackers"]["world"]["on"])
+        # Switched off, the tracker call no longer asks for it
+        self.post({"action": "chat", "message": "Hi"})
+        self.post({"action": "update_trackers"})
+        self.assertNotIn('"world"', self.all_calls[-1]["messages"][0]["content"])
+        self.assertEqual(self.post({"action": "toggle_tracker", "tracker": "nope", "on": True}).status_code, 400)
+
     def test_story_systems_alone_use_the_tracker_call(self):
         self.character.tracker_config = {**self.character.tracker_config, "trackers": {"world": {"on": False}}}
         self.character.save()
@@ -5457,3 +5624,382 @@ class WatchMarkupTests(SimpleTestCase):
         note = watch.habits(data, [])[0]
         self.assertTrue(any(q.startswith('<font color=#b22222>"Mudra') for q in note["quotes"]))
         self.assertEqual(watch.raw_snippet("Nothing here.", "font color b22222 mu"), "")
+
+
+class HelpAndToursTests(BulbaTests):
+    """The guided tours' way into Bulba, "What's this?", and the app map Bulba explains from."""
+
+    def explain(self, **body):
+        from unittest import mock
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=self.fake_post):
+            return self.client.post(reverse("bulba_explain"), json.dumps(body), content_type="application/json")
+
+    def test_the_tour_picks_the_fast_route_once(self):
+        data = self.client.get(reverse("bulba") + "?route=fast").context["bulba_data"]
+        self.assertEqual(data["events"][1], {"type": "action", "text": "Fast route"})
+        self.assertTrue(all(c["route"].startswith("fast:") for c in data["events"][-1]["choices"]))
+        again = self.client.get(reverse("bulba") + "?route=full").context["bulba_data"]
+        self.assertEqual(len(again["events"]), len(data["events"]))  # already past the opening: nothing changes
+        self.assertEqual(self.bulba_calls, [])  # no AI needed
+
+    def test_the_tour_picks_the_full_setup(self):
+        data = self.client.get(reverse("bulba") + "?route=full").context["bulba_data"]
+        self.assertEqual(data["events"][1], {"type": "action", "text": "Full setup"})
+        self.assertEqual(data["state"]["stage"], "extras")
+        self.assertEqual(len(self.client.get(reverse("bulba") + "?route=nonsense").context["bulba_data"]["events"]),
+                         len(data["events"]))
+
+    def test_whats_this_answers_in_their_language_from_the_app_map(self):
+        resp = self.explain(lang="uk", page="/main/presets/", page_title="Presets", tag="button",
+                            label="Preview", heading="Your presets", question="")
+        self.assertEqual(resp.json(), {"text": "Sample number 1."})
+        sent = self.sample_calls[0]
+        self.assertEqual(sent["model"], "xiaomi/mimo-v2.6-pro")  # Bulba's model, not the chat model
+        self.assertIn("Answer in Ukrainian.", sent["messages"][0]["content"])
+        self.assertIn("The app, page by page", sent["messages"][0]["content"])
+        self.assertIn("'Preview'", sent["messages"][1]["content"])
+        self.assertIn("Section: Your presets", sent["messages"][1]["content"])
+        self.assertNotIn("sk-or-secret", json.dumps(sent))
+
+    def test_whats_this_passes_their_question_and_the_known_help(self):
+        self.explain(lang="en", label="🥔 Bulba", known="The setup potato.", question="Does it cost money?")
+        user = self.sample_calls[0]["messages"][1]["content"]
+        self.assertIn("Their question: Does it cost money?", user)
+        self.assertIn("The app's own short help for it: The setup potato.", user)
+        self.assertIn("Answer in English.", self.sample_calls[0]["messages"][0]["content"])
+
+    def test_whats_this_needs_a_key_and_a_proper_request(self):
+        self.assertEqual(self.client.get(reverse("bulba_explain")).status_code, 405)
+        self.assertEqual(self.explain().status_code, 200)
+        bad = self.client.post(reverse("bulba_explain"), "[1, 2]", content_type="application/json")
+        self.assertEqual(bad.status_code, 400)
+        self.main.delete()
+        resp = self.explain(label="Presets")
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("OpenRouter key", resp.json()["error"])
+
+    def test_every_page_has_the_help_button_and_the_tour(self):
+        for name in ("home", "presets", "bulba", "users:extras", "users:profile"):
+            html = self.client.get(reverse(name)).content.decode()
+            self.assertIn('class="na-help-btn"', html, name)
+            self.assertIn("js/tour.js", html, name)
+            self.assertIn(reverse("bulba_explain"), html, name)
+
+    def test_busy_pages_start_their_own_tour(self):
+        from mainapp.models import Character
+        character = Character.objects.create(author=self.user, name="Rose", slug="rose-tour", description="A florist.")
+        for url, tour in ((reverse("users:extras"), "extras"), (reverse("presets"), "presets"),
+                          (reverse("character", kwargs={"slug": character.slug}), "character"),
+                          (reverse("add_character"), "character"),
+                          (reverse("tracker_setup", kwargs={"slug": character.slug}), "trackers"),
+                          (reverse("bulba"), "bulba"),
+                          (reverse("worldbook_detail", kwargs={"slug": Worldbook.objects.create(
+                              title="Lore", slug="lore-tour", author=self.user).slug}), "worldbook")):
+            html = self.client.get(url).content.decode()
+            self.assertIn("window.NA_PAGE_TOUR = {name: '%s', auto: true" % tour, html, url)
+
+    def test_bulba_knows_the_app_map_in_setup_and_in_chats(self):
+        from mainapp.bulba import agent
+        from mainapp.models import BulbaSession
+        self.client.get(reverse("bulba"))
+        session = BulbaSession.objects.get(user=self.user, mode="setup")
+        self.assertIn("The app, page by page", agent.system_prompt(session))
+        self.assertIn('"What is this?"', agent.system_prompt(session))
+
+
+class BulbaInChatKnowsTheAppTests(BulbaInChatTests):
+    def test_bulba_in_a_chat_reads_the_app_map(self):
+        from mainapp.bulba import doctor
+        from mainapp.views import _bulba_chat_session
+        self.make_chat()
+        prompt = doctor.system_prompt(_bulba_chat_session(self.user, self.chat_obj))
+        self.assertIn("The app, page by page", prompt)
+        self.assertIn('"What is this?"', prompt)
+
+
+class BasicsAndStoryFormTests(BulbaTests):
+    """The basics form's new questions (2026-10-30 rules), and the story form's tracker chips."""
+
+    def test_initiative_invention_and_inner_thoughts_become_preferences(self):
+        from mainapp.bulba import agent
+        from mainapp.models import BulbaSession
+        self.client.get(reverse("bulba"))
+        session = BulbaSession.objects.get(user=self.user, mode="setup")
+        note = agent.apply_basics(session, {"pacing": "slow", "initiative": "drive", "invention": "canon",
+                                            "interior": "observe"})
+        texts = [p["interpretation"] for p in session.preferences]
+        self.assertTrue(any("start events and complications on their own" in t for t in texts))
+        self.assertTrue(any("Leave gaps open rather than inventing" in t for t in texts))
+        self.assertTrue(any("leave motives and feelings for the reader" in t for t in texts))
+        self.assertIn("Who moves the story:", note)
+        agent.apply_basics(session, {"initiative": "any"})
+        self.assertEqual(len(session.preferences), len(texts))  # "no preference" records nothing
+
+    def make_character(self):
+        from mainapp.models import BulbaSession, Character
+        self.client.get(reverse("bulba"))
+        session = BulbaSession.objects.get(user=self.user, mode="setup")
+        character = Character.objects.create(author=self.user, name="Rose", slug="rose-form", description="A florist.")
+        session.proposals.append({"id": "c1", "kind": "character", "status": "applied", "title": "Rose",
+                                  "summary": [], "payload": {}, "result": {"slug": character.slug}})
+        session.stage = "story"
+        session.save()
+        return session, character
+
+    def test_story_form_trackers_are_pre_ticked_and_applied_with_undo(self):
+        from mainapp.bulba import actions, agent
+        session, character = self.make_character()
+        result, events = agent.tool_show_extras_form(session, {"trackers": ["world", "relationships", "secrets"]})
+        form = events[0]
+        self.assertEqual(form["character"], "Rose")
+        self.assertEqual(form["values"]["trackers"], ["world", "relationships", "secrets"])
+        self.assertNotIn("custom", [t["id"] for t in form["trackers"]])
+        session.events.append(form)
+        session.save()
+        self.script = [("Done.", [])]
+        resp = self.api(action="extras_form", part="story",
+                        answers={"game": "off", "story_extras": [], "ideas": False, "trackers": ["world", "secrets"]})
+        self.assertEqual(resp.status_code, 200)
+        from mainapp import trackers
+        character.refresh_from_db()
+        on = {t for t, c in trackers.normalize_config(character.tracker_config)["trackers"].items() if c["on"]}
+        self.assertEqual(on, {"world", "secrets"})
+        session.refresh_from_db()
+        tracker_card = next(p for p in session.proposals if p["kind"] == "trackers")
+        self.assertEqual(tracker_card["status"], "applied")
+        actions.undo(session, tracker_card["id"])
+        character.refresh_from_db()
+        self.assertFalse(trackers.normalize_config(character.tracker_config)["trackers"]["secrets"]["on"])
+
+    def test_story_form_without_a_character_has_no_trackers_row(self):
+        from mainapp.bulba import agent
+        from mainapp.models import BulbaSession
+        self.client.get(reverse("bulba"))
+        session = BulbaSession.objects.get(user=self.user, mode="setup")
+        form = agent.tool_show_extras_form(session, {"trackers": ["world"]})[1][0]
+        self.assertNotIn("trackers", form)
+
+
+class MemoryAndCostTests(BulbaTests):
+    """Bulba's setup form: the chat's memory (context size) with cost estimates from OpenRouter's prices."""
+
+    PRICES = {"data": [{"id": "anthropic/claude-opus-5.5", "pricing": {"prompt": "0.000005", "completion": "0.000025"}},
+                       {"id": "deepseek/deepseek-v4-flash", "pricing": {"prompt": "0.0000001", "completion": "0.0000004"}},
+                       {"id": "broken", "pricing": {"prompt": "n/a"}}]}
+
+    def setUp(self):
+        super().setUp()
+        from django.core.cache import cache
+        cache.clear()
+
+    def prices(self, ok=True):
+        from unittest import mock
+        resp = mock.Mock(status_code=200)
+        resp.json.return_value = self.PRICES
+        resp.raise_for_status = mock.Mock() if ok else mock.Mock(side_effect=__import__("requests").HTTPError("503"))
+        return mock.patch("mainapp.pricing.requests.get", return_value=resp)
+
+    def test_prices_come_from_openrouter_and_are_cached(self):
+        from mainapp import pricing
+        with self.prices() as get:
+            self.assertEqual(pricing.per_token("anthropic/claude-opus-5.5"), (0.000005, 0.000025))
+            self.assertIsNone(pricing.per_token("broken"))
+            pricing.per_token("deepseek/deepseek-v4-flash")
+        self.assertEqual(get.call_count, 1)
+
+    def test_no_price_list_means_no_estimate(self):
+        from mainapp import pricing
+        with self.prices(ok=False):
+            self.assertIsNone(pricing.per_token("anthropic/claude-opus-5.5"))
+
+    def test_setup_form_carries_the_memory_slider_and_prices(self):
+        from mainapp.bulba import agent
+        from mainapp.models import BulbaSession
+        self.client.get(reverse("bulba"))
+        session = BulbaSession.objects.get(user=self.user, mode="setup")
+        with self.prices():
+            event = agent.extras_form_event(session, "setup")
+        self.assertEqual(event["window"]["max"], 1000000)            # Opus 5.5's window
+        self.assertEqual(event["values"]["chat_context"], event["window"]["value"])
+        self.assertEqual(event["prices"]["chat"], [0.000005, 0.000025])
+
+    def test_chosen_memory_sets_the_preset_and_later_starters_and_undoes(self):
+        from mainapp import ai_client, presets, samplers, starters
+        from mainapp.bulba import actions, agent
+        from mainapp.models import BulbaSession
+        self.client.get(reverse("bulba"))
+        session = BulbaSession.objects.get(user=self.user, mode="setup")
+        before = samplers.normalize(presets.get_active(self.user).data.get("samplers"))["context_size"]
+        payload, summary = agent.form_payload("setup", {"chat_context": 64000})
+        self.assertEqual(payload, {"chat_context": 64000})
+        self.assertIn("Chat memory: about 64,000 tokens", summary)
+        p = agent._proposal(session, "extras", "Extras", summary, payload)
+        actions.apply(session, p["id"])
+        self.assertEqual(ai_client.get_task_setting(self.user, "chat").context, 64000)
+        size = samplers.normalize(presets.get_active(self.user).data.get("samplers"))["context_size"]
+        self.assertEqual(size, {"on": True, "value": 64000})
+        actions.undo(session, p["id"])
+        self.assertIsNone(ai_client.get_task_setting(self.user, "chat").context)
+        self.assertEqual(samplers.normalize(presets.get_active(self.user).data.get("samplers"))["context_size"], before)
+        # Chosen again, a ready setup made later keeps it instead of its own 48k
+        actions.apply(session, agent._proposal(session, "extras", "Extras", summary, payload)["id"])
+        obj = starters.apply(self.user, "opus-back-and-forth")
+        self.assertEqual(samplers.normalize(obj.data["samplers"])["context_size"], {"on": True, "value": 64000})
+
+    def test_jobs_default_to_128k_when_nothing_is_set(self):
+        from mainapp import presets, samplers
+        preset = presets.get_active(self.user)
+        current = samplers.normalize(preset.data.get("samplers"))
+        current["context_size"] = {"on": False, "value": 32000}
+        preset.data = {**preset.data, "samplers": current}
+        preset.save()
+        self.assertEqual(samplers.job_window(self.user, "summary"), 128000 - 8192)
+
+    def test_every_model_knows_its_window(self):
+        from mainapp import model_profiles
+        windows = {p["id"]: p["limits"]["context"] for p in model_profiles.all_profiles()}
+        self.assertEqual(len(windows), 11)
+        self.assertTrue(all(w >= 1000000 for w in windows.values()), windows)
+        self.assertEqual(windows["mimo-v2-6-pro"], 1050000)
+
+
+@override_settings(MEDIA_ROOT="/tmp/narrative-test-media")
+class SecurityTests(TestCase):
+    """Sign-up emails, encrypted API keys and the login limit (31 October 2026)."""
+
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+
+    def register(self, username, email):
+        return self.client_class().post(reverse("users:register"), {
+            "username": username, "email": email, "password1": "Lantern-Quay-81", "password2": "Lantern-Quay-81"})
+
+    def test_email_is_required_and_unique_whatever_the_case(self):
+        self.assertEqual(self.register("a1", "Mira@Example.com").status_code, 302)
+        self.assertEqual(get_user_model().objects.get(username="a1").email, "mira@example.com")
+        dup = self.register("a2", "MIRA@example.com")
+        self.assertIn("already exists", str(dup.context["form"].errors["email"]))
+        empty = self.register("a3", "")
+        self.assertIn("required", str(empty.context["form"].errors["email"]))
+        self.assertEqual(self.register("a4", "other@example.com").status_code, 302)  # nothing left over blocks others
+
+    def test_profile_cannot_take_someone_elses_email(self):
+        from users.forms import ProfileUserForm
+        get_user_model().objects.create_user("owner", "taken@example.com", "pw12345!xyz")
+        me = get_user_model().objects.create_user("me", "me@example.com", "pw12345!xyz")
+        form = ProfileUserForm(data={"username": "me", "email": "Taken@Example.com"}, instance=me)
+        self.assertFalse(form.is_valid())
+        form = ProfileUserForm(data={"username": "me", "email": "ME@example.com"}, instance=me)
+        self.assertTrue(form.is_valid(), form.errors)  # their own address, any case
+
+    def test_api_keys_are_encrypted_in_the_database(self):
+        from django.db import connection
+        from users.models import ApiConfig, ConnectionProfile
+        user = get_user_model().objects.create_user("k", "k@example.com", "pw12345!xyz")
+        ConnectionProfile.objects.create(user=user, name="Main", api_key="sk-or-v1-secret-1234", model="m")
+        ApiConfig.objects.create(user=user, eleven_key="eleven-secret")
+        with connection.cursor() as c:
+            c.execute("SELECT api_key FROM users_connectionprofile")
+            raw = c.fetchone()[0]
+            c.execute("SELECT eleven_key FROM users_apiconfig")
+            raw_eleven = c.fetchone()[0]
+        self.assertTrue(raw.startswith("enc1:") and "secret" not in raw)
+        self.assertTrue(raw_eleven.startswith("enc1:") and "secret" not in raw_eleven)
+        profile = ConnectionProfile.objects.get(user=user)
+        self.assertEqual((profile.api_key, profile.key_hint), ("sk-or-v1-secret-1234", "…1234"))
+
+    def test_old_plain_keys_still_read_and_a_changed_secret_reads_as_empty(self):
+        from users import secret_fields
+        self.assertEqual(secret_fields.decrypt("sk-or-plain"), "sk-or-plain")
+        stored = secret_fields.encrypt("sk-or-v1-abc")
+        with self.settings(SECRET_KEY="a-different-secret-key"):
+            self.assertEqual(secret_fields.decrypt(stored), "")
+        self.assertEqual(secret_fields.decrypt(stored), "sk-or-v1-abc")
+
+    def test_too_many_wrong_passwords_lock_the_login(self):
+        get_user_model().objects.create_user("lock", "lock@example.com", "Right-Pass-123")
+        url = reverse("users:login")
+        for _ in range(10):
+            self.client.post(url, {"username": "lock", "password": "wrong"})
+        page = self.client.post(url, {"username": "lock", "password": "Right-Pass-123"})
+        self.assertContains(page, "Too many wrong passwords")
+        self.assertNotIn("_auth_user_id", self.client.session)
+        from django.core.cache import cache
+        cache.clear()  # the lock has passed
+        page = self.client.post(url, {"username": "lock", "password": "Right-Pass-123"})
+        self.assertEqual(page.status_code, 302)
+
+    def test_a_right_password_resets_the_count(self):
+        from django.core.cache import cache
+        get_user_model().objects.create_user("ok", "ok@example.com", "Right-Pass-123")
+        url = reverse("users:login")
+        for _ in range(5):
+            self.client.post(url, {"username": "ok", "password": "wrong"})
+        self.client.post(url, {"username": "ok", "password": "Right-Pass-123"})
+        self.assertIsNone(cache.get("login-fail:user:ok"))
+
+
+@override_settings(MEDIA_ROOT="/tmp/narrative-test-media")
+class UsageTests(TestCase):
+    """Activity recording and the usage report (users/activity.py, users/usage.py)."""
+
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        self.user = get_user_model().objects.create_user("reader", "reader@example.com", "pw12345!xyz")
+        self.client.force_login(self.user)
+
+    def test_pages_and_actions_are_recorded_but_not_polls_or_strangers(self):
+        from users.models import Activity
+        self.client.get(reverse("home"))
+        self.client.get(reverse("bulba_api"))  # a JSON poll: not a visit
+        self.client.post(reverse("users:extras"), json.dumps({"sprites": True}), content_type="application/json")
+        self.client.post(reverse("users:extras"), json.dumps({"sprites": False}), content_type="application/json")
+        kinds = list(Activity.objects.filter(user=self.user).values_list("kind", "path"))
+        self.assertEqual(kinds, [("page", "/"), ("action", "/users/extras/")])  # one action a minute
+        self.client.logout()
+        self.client.get(reverse("users:login"))
+        self.assertEqual(Activity.objects.count(), 2)
+
+    def test_report_counts_sessions_people_and_leaves_out_demo_and_staff(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        from users import usage
+        from users.models import Activity, UsageRecord
+        demo = get_user_model().objects.create_user("demo", "d@example.com", "pw12345!xyz")
+        staff = get_user_model().objects.create_user("boss", "b@example.com", "pw12345!xyz", is_staff=True)
+        start = timezone.now() - timedelta(days=2)
+        for minutes in (0, 10, 25, 120, 130):  # two sessions: 25 minutes, then (95 min later) 10 minutes
+            a = Activity.objects.create(user=self.user, kind="page", path="/")
+            Activity.objects.filter(pk=a.pk).update(at=start + timedelta(minutes=minutes))
+        a = Activity.objects.create(user=self.user, kind="page", path="/")  # and another day
+        for u in (demo, staff):
+            Activity.objects.create(user=u, kind="page", path="/")
+        UsageRecord.objects.create(user=self.user, task="chat", model="m", cost=0.25)
+        data = usage.report()
+        self.assertEqual([r["username"] for r in data["users"]], ["reader"])
+        row = data["users"][0]
+        self.assertEqual((row["sessions"], row["active_days"], row["spend"]), (3, 2, 0.25))
+        self.assertEqual(row["minutes"], 25 + 10 + 1)
+        s = data["summary"]
+        self.assertEqual((s["accounts"], s["active_users"], s["returning_users"], s["sessions"]), (1, 1, 1, 3))
+        self.assertEqual(len(usage.report(exclude=(), include_staff=True)["users"]), 3)
+        self.assertIn("reader", usage.csv_text(data))
+
+    def test_stats_page_is_only_for_staff_or_listed_users(self):
+        import os
+        from unittest import mock
+        self.assertEqual(self.client.get(reverse("users:stats")).status_code, 404)
+        with mock.patch.dict(os.environ, {"STATS_USERS": "someone, Reader"}):
+            page = self.client.get(reverse("users:stats"))
+            self.assertContains(page, "Per person")
+            csv = self.client.get(reverse("users:stats") + "?format=csv")
+            self.assertEqual(csv["Content-Type"], "text/csv")
+
+    def test_usage_report_command_runs(self):
+        import io
+        from django.core.management import call_command
+        out = io.StringIO()
+        call_command("usage_report", stdout=out)
+        self.assertIn("active users", out.getvalue())

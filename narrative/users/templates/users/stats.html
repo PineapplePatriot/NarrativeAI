@@ -1,0 +1,85 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Usage - Narrative AI</title>
+    <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
+    <style>
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; margin-bottom: 28px; }
+        .stat { background: var(--ui-primary); border: 1px solid var(--border-color); border-radius: 14px; padding: 14px 16px; }
+        .stat b { display: block; font-size: 1.6rem; color: #fff; }
+        .stat span { color: var(--text-secondary); font-size: .85rem; }
+        .stats-filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 20px; color: var(--text-secondary); }
+        .stats-filters a { color: var(--accent-soft); }
+        .stats-filters a.on { color: #fff; font-weight: 700; text-decoration: none; }
+        .table-wrap { overflow-x: auto; border: 1px solid var(--border-color); border-radius: 14px; margin-bottom: 28px; }
+        table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+        th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border-color); white-space: nowrap; }
+        th { color: var(--text-secondary); font-weight: 600; background: var(--ui-secondary); }
+        h2 { font-size: 1.1rem; margin: 0 0 10px; }
+        .two { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+        .note { color: var(--text-muted); font-size: .85rem; }
+    </style>
+</head>
+<body class="na-body">
+{% include "partials/topbar.html" %}
+<main class="na-page na-wide">
+    <div class="na-head">
+        <h1 class="na-title">Usage</h1>
+        <p class="na-sub">Who uses the app and how: from page views and actions of signed-in people. A session ends after
+            30 minutes without activity.{% if not demo %} The shared demo account is left out.{% endif %} Staff accounts are left out.</p>
+    </div>
+    <div class="stats-filters">
+        <span>Period:</span>
+        <a href="?{% if demo %}demo=1{% endif %}" class="{% if not days %}on{% endif %}">all time</a>
+        <a href="?days=7{% if demo %}&demo=1{% endif %}" class="{% if days == 7 %}on{% endif %}">7 days</a>
+        <a href="?days=30{% if demo %}&demo=1{% endif %}" class="{% if days == 30 %}on{% endif %}">30 days</a>
+        <span>·</span>
+        <a href="?{% if days %}days={{ days }}&{% endif %}{% if not demo %}demo=1{% endif %}">{% if demo %}leave out the demo account{% else %}count the demo account{% endif %}</a>
+        <span>·</span>
+        <a href="?{% if days %}days={{ days }}&{% endif %}{% if demo %}demo=1&{% endif %}format=csv">download CSV</a>
+    </div>
+
+    <div class="stats-grid">
+        {% for label, value in summary %}
+        <div class="stat"><b>{{ value }}</b><span>{{ label }}</span></div>
+        {% endfor %}
+    </div>
+
+    <div class="two">
+        <div>
+            <h2>Active users by day</h2>
+            <div class="table-wrap"><table>
+                <tr><th>Day</th><th>Users</th></tr>
+                {% for day, n in data.active_by_day %}<tr><td>{{ day }}</td><td>{{ n }}</td></tr>{% empty %}<tr><td colspan="2" class="note">No activity yet.</td></tr>{% endfor %}
+            </table></div>
+        </div>
+        <div>
+            <h2>Sign-ups by day</h2>
+            <div class="table-wrap"><table>
+                <tr><th>Day</th><th>Accounts</th></tr>
+                {% for day, n in data.signups_by_day %}<tr><td>{{ day }}</td><td>{{ n }}</td></tr>{% empty %}<tr><td colspan="2" class="note">No accounts yet.</td></tr>{% endfor %}
+            </table></div>
+        </div>
+    </div>
+
+    <h2>Per person</h2>
+    <div class="table-wrap"><table>
+        <tr>{% for c in columns %}<th>{{ c }}</th>{% endfor %}</tr>
+        {% for r in data.users %}
+        <tr>
+            <td>{{ r.username }}</td><td>{{ r.joined|date:"Y-m-d" }}</td><td>{{ r.last_seen|date:"Y-m-d H:i"|default:"–" }}</td>
+            <td>{{ r.active_days }}</td><td>{{ r.sessions }}</td><td>{{ r.minutes }}</td><td>{{ r.pages }}</td><td>{{ r.actions }}</td>
+            <td>{{ r.messages }}</td><td>{{ r.chats }}</td><td>{{ r.characters }}</td><td>{{ r.bulba_setup }}</td>
+            <td>{{ r.bulba_finished }}</td><td>{{ r.bulba_chat }}</td><td>${{ r.spend }}</td>
+        </tr>
+        {% endfor %}
+    </table></div>
+    <p class="note">Generated {{ data.generated|date:"Y-m-d H:i" }} (UTC). Minutes: from first to last activity of each session
+        (one page alone counts as a minute). Messages: the ones they wrote in their chats. Spend: what OpenRouter reported.</p>
+</main>
+</body>
+</html>

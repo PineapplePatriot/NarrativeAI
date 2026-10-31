@@ -20,7 +20,32 @@ function fill() {
         state.cheap_models.map(m => `<option value="${esc(m.id)}">${esc(m.name)} (${esc(m.price)}): ${esc(m.best_for)}</option>`).join('');
     $('background').value = state.background;
     $('background').disabled = !state.openrouter;
+    if (state.window) {
+        $('memorySection').hidden = false;
+        $('memoryModel').textContent = state.window.model || 'your chat model';
+        const steps = NACosts.steps(state.window.max);
+        $('chatContext').max = steps.length - 1;
+        $('chatContext').value = NACosts.nearest(steps, state.window.value);
+    }
+    costs();
 }
+
+// What a message, a summary and a tracker update cost with these settings (static/js/costs.js)
+function costs() {
+    if (!state.window) return;
+    const steps = NACosts.steps(state.window.max);
+    const size = steps[Number($('chatContext').value)] || steps[0];
+    const prices = state.prices || {};
+    const bg = ($('background').value !== 'chat' ? (prices.bg || {})[$('background').value] : prices.chat) || null;
+    $('memoryValue').textContent = NACosts.memory(size);
+    $('memoryCost').textContent = NACosts.chat(prices.chat, size);
+    for (const task of ['summary', 'trackers']) {
+        const mode = (document.querySelector(`input[name=${task}]:checked`) || {}).value;
+        $(`${task}Cost`).textContent = NACosts.job(task, bg, size, mode, Number($(`${task}Every`).value) || 1);
+    }
+}
+['chatContext', 'summaryEvery', 'trackersEvery', 'background'].forEach(id => $(id).addEventListener('input', costs));
+document.querySelectorAll('input[name=summary], input[name=trackers]').forEach(r => r.addEventListener('change', costs));
 
 function getCookie(name) {
     const m = document.cookie.split(';').map(c => c.trim()).find(c => c.startsWith(name + '='));
@@ -42,6 +67,7 @@ $('saveBtn').onclick = async () => {
         remove_eleven_key: $('removeElevenBox').checked,
     };
     if (state.openrouter) body.background = $('background').value;
+    if (state.window) body.chat_context = NACosts.steps(state.window.max)[Number($('chatContext').value)];
     try {
         const resp = await fetch(EXTRAS_URL, {
             method: 'POST',
@@ -74,7 +100,7 @@ function fillMemory() {
              <button type="button" class="x" data-edit="${i}" title="Reword">✎</button>
              <button type="button" class="x" data-forget="${i}" title="Remove">✕</button></span></li>`).join('')
         : '<li class="empty">Nothing yet. It learns as you rewrite or edit replies.</li>';
-    $('watchFix').innerHTML = (mem.fix || []).length ? mem.fix.map((m, i) => `<li><span>${esc(m.title)}</span><span class="memory-btns">
+    $('watchFix').innerHTML = (mem.fix || []).length ? mem.fix.map((m, i) => `<li><span>${esc(m.title)}${m.about ? `<small class="fix-about">${esc(m.about)}</small>` : ''}</span><span class="memory-btns">
         <button type="button" class="x" data-stopfix="${i}" title="Stop fixing this">✕</button></span></li>`).join('')
         : '<li class="empty">Nothing yet. Press "Fix this automatically" on one of Bulba\'s notes in a chat.</li>';
     $('fixModel').value = mem.fix_model || 'bulba';
@@ -111,6 +137,31 @@ document.addEventListener('click', e => {
     else if (t.dataset.stopfix !== undefined) changeMemory({ op: 'stop_fix', old: mem.fix[t.dataset.stopfix].label });
 });
 $('fixModel').addEventListener('change', e => changeMemory({ op: 'fix_model', new: e.target.value }));
+
+// Something they dislike: Bulba words it (a short name and what to look for), they check it, then it's added
+$('dislikeWord').addEventListener('click', async () => {
+    const raw = $('dislikeRaw').value.trim();
+    if (!raw) { $('dislikeRaw').focus(); return; }
+    const btn = $('dislikeWord'); btn.disabled = true; btn.textContent = '🥔 Wording…';
+    $('memoryError').hidden = true;
+    try {
+        const resp = await fetch(EXTRAS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ action: 'watch_memory', op: 'word_dislike', new: raw }),
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || 'Bulba could not word it.');
+        $('dislikeName').value = data.suggestion.name; $('dislikeAbout').value = data.suggestion.about;
+        $('dislikeCheck').hidden = false; $('dislikeName').focus();
+    } catch (err) { $('memoryError').textContent = err.message; $('memoryError').hidden = false; }
+    finally { btn.disabled = false; btn.textContent = '🥔 Word it with Bulba'; }
+});
+$('dislikeAdd').addEventListener('click', async () => {
+    await changeMemory({ op: 'add_dislike', name: $('dislikeName').value, about: $('dislikeAbout').value });
+    if ($('memoryError').hidden) { $('dislikeRaw').value = ''; $('dislikeCheck').hidden = true; }
+});
+$('dislikeCancel').addEventListener('click', () => { $('dislikeCheck').hidden = true; });
 document.addEventListener('keydown', e => {
     if (e.target.id === 'memoryEdit' && e.key === 'Enter') { e.preventDefault(); document.querySelector('[data-save]').click(); }
 });

@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import sys
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -27,7 +28,15 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY",
                             "django-insecure-@j*fchar=_5@me)6fya%a96&rigw5q0hn&td26p_+wk^m76^3s")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get("DJANGO_DEBUG", "1") == "1"
+# On Railway debug is off unless DJANGO_DEBUG=1 says otherwise; on your own computer it's on.
+ON_RAILWAY = bool(os.environ.get("RAILWAY_ENVIRONMENT") or os.environ.get("RAILWAY_PUBLIC_DOMAIN"))
+DEBUG = os.environ.get("DJANGO_DEBUG", "0" if ON_RAILWAY else "1") == "1"
+
+# A server never runs on the key written above (it's public on GitHub, and it signs every login). The Docker
+# build collects static files without the real key, so that one step may.
+if not DEBUG and SECRET_KEY.startswith("django-insecure-") and sys.argv[1:2] != ["collectstatic"]:
+    from django.core.exceptions import ImproperlyConfigured
+    raise ImproperlyConfigured("Set DJANGO_SECRET_KEY on the server (see docs/DEPLOY.md).")
 
 ALLOWED_HOSTS = [h.strip() for h in os.environ.get("DJANGO_ALLOWED_HOSTS", "").split(",") if h.strip()]
 if os.environ.get("RAILWAY_PUBLIC_DOMAIN"):  # Railway tells the app its own address
@@ -42,6 +51,13 @@ DATA_DIR = Path(os.environ.get("NARRATIVE_DATA_DIR") or Path(__file__).resolve()
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")  # the host ends HTTPS in front of the app
     SESSION_COOKIE_SECURE = CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 86400  # browsers stay on HTTPS for a day (short, so a mistake is easy to undo)
+    SESSION_COOKIE_AGE = 14 * 24 * 3600  # signed in for two weeks at most
+
+# Failed logins: after this many wrong passwords for one username (or from one address) in LOGIN_LOCK_SECONDS,
+# logging in is refused until the time has passed (users/views.py)
+LOGIN_MAX_FAILURES = 10
+LOGIN_LOCK_SECONDS = 15 * 60
 
 
 # Application definition
@@ -67,6 +83,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "users.activity.ActivityMiddleware",  # page views and actions, for the usage report (users/usage.py)
 ]
 
 ROOT_URLCONF = "narrative.urls"

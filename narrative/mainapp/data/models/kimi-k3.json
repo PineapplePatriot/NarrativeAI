@@ -13,7 +13,9 @@
   "sources": [
     "https://platform.kimi.ai/docs/guide/kimi-k3-quickstart"
   ],
-  "limits": {},
+  "limits": {
+    "context": 1048576
+  },
   "reasoning": {
     "always_on": true,
     "default": "high",

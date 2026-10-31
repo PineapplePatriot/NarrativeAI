@@ -13,32 +13,46 @@ window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); 
 const gameOwns = id => (id === 'milestones' && DATA.milestones_by_app) || (id === 'scrapbook' && DATA.scrapbook_by_app) || (['inventory', 'conditions'].includes(id) &&
     ((config.game || 'default') === 'default' ? DATA.game_default_mode : config.game) === 'full');
 
-// --- Tracker cards, grouped by panel ---
+// --- Tracker cards, grouped by panel: tiles with a switch that light up in their group's colour when on ---
 function renderPanels() {
     $('panels').innerHTML = DATA.panels.map(panel => {
-        const cards = DATA.trackers.filter(t => t.panel === panel.id).map(t => {
+        const list = DATA.trackers.filter(t => t.panel === panel.id);
+        const on = list.filter(t => gameOwns(t.id) || config.trackers[t.id].on).length;
+        const cards = list.map(t => {
             const c = config.trackers[t.id];
             const fields = t.id === 'custom' ? config.custom_fields : t.fields;
             if (gameOwns(t.id)) return `
-            <div class="tracker on" data-id="${t.id}">
-              <label class="check title"><input type="checkbox" checked disabled><span>${t.icon} ${esc(t.label)}</span></label>
+            <div class="tracker on owned" data-id="${t.id}">
+              <div class="tk-top"><span class="tk-ico" aria-hidden="true">${t.icon}</span><span class="tk-name">${esc(t.label)}</span>
+                <span class="tk-auto">kept by the app</span></div>
               <p class="help">${t.id === 'milestones' || t.id === 'scrapbook' ? 'Kept by the app while that story extra is on (Extras page).'
                 : `Kept by the app while Dice and inventory is on for ${esc(DATA.character_name)}: the AI changes it through the app, and nothing is guessed.`}</p>
             </div>`;
             return `
             <div class="tracker ${c.on ? 'on' : ''}" data-id="${t.id}">
-              <label class="check title"><input type="checkbox" data-f="on" ${c.on ? 'checked' : ''}>
-                <span>${t.icon} ${esc(t.label)}</span></label>
+              <label class="tk-top"><span class="tk-ico" aria-hidden="true">${t.icon}</span><span class="tk-name">${esc(t.label)}</span>
+                <input type="checkbox" class="tk-switch" data-f="on" ${c.on ? 'checked' : ''} aria-label="${esc(t.label)}"></label>
               <p class="help">${esc(t.help)}</p>
               <div class="chips">${fields.map(f => `<span class="chip">${esc(f.label)}</span>`).join('')
                 || '<span class="help">No fields yet: add them below.</span>'}</div>
-              <label class="check small"><input type="checkbox" data-f="prompt" ${c.prompt ? 'checked' : ''} ${c.on ? '' : 'disabled'}>
-                Add to the chat prompt, so the AI stays consistent with it</label>
+              ${c.on ? `<label class="check small tk-prompt"><input type="checkbox" data-f="prompt" ${c.prompt ? 'checked' : ''}>
+                Add to the chat prompt, so the AI stays consistent with it</label>` : ''}
             </div>`;
         }).join('');
-        return `<section class="card"><h2>${panel.icon} ${esc(panel.label)}</h2><div class="grid">${cards}</div></section>`;
+        return `<section class="card tk-group" data-panel="${panel.id}">
+            <h2><span>${panel.icon} ${esc(panel.label)}</span><small class="tk-count">${on} of ${list.length} on</small></h2>
+            <div class="grid">${cards}</div></section>`;
     }).join('');
 }
+
+// A click anywhere on a tile switches it (the switch and the prompt line handle their own clicks)
+$('panels').addEventListener('click', e => {
+    const card = e.target.closest('.tracker');
+    if (!card || card.classList.contains('owned') || e.target.closest('label, input, a, button')) return;
+    const box = card.querySelector('[data-f="on"]');
+    box.checked = !box.checked;
+    box.dispatchEvent(new Event('change', { bubbles: true }));
+});
 
 $('panels').addEventListener('change', e => {
     const card = e.target.closest('.tracker');

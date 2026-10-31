@@ -9,14 +9,15 @@
     <title>Narrative AI - Main Dashboard</title>
     <link rel="stylesheet" href="{% static 'css/main.css' %}">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
 </head>
-<body>
+<body class="na-body">
 {% include "partials/topbar.html" %}
 
-    <main class="home">
-        <section class="home-hero">
-            <h1>Narrative AI</h1>
-            <p>Roleplay and interactive stories with your characters: presets, lorebooks, story trackers and a summary that keeps long chats on track.</p>
+    <main class="home na-page na-wide">
+        <section class="na-head">
+            <h1 class="na-title">Narrative AI</h1>
+            <p class="na-sub">Roleplay and interactive stories with your characters: presets, worldbooks, story trackers and a summary that keeps long chats on track.</p>
         </section>
 
         <div class="home-banner guide-card" id="guideCard" hidden>

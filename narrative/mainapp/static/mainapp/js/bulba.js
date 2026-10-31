@@ -94,6 +94,9 @@ const BASICS_FORM = [
     { key: 'genres', label: 'Genres', hint: 'pick any', multi: [['fluff', 'Fluff'], ['slice_of_life', 'Slice of life'], ['comedy', 'Comedy'], ['romance', 'Romance'], ['heartwarming', 'Heartwarming'], ['melancholy', 'Melancholy'], ['healing', 'Hurt/comfort'], ['angst', 'Angst'], ['tragedy', 'Tragedy']],
       adult: [['smut', 'Smut'], ['dead_dove', 'Dead dove']] },
     { key: 'pacing', label: 'Pacing', options: [['quick', 'Quick: skip the dull bits'], ['slow', 'Slow burn'], ['any', 'No preference']] },
+    { key: 'initiative', label: 'Who moves the story', hint: 'apart from pacing', options: [['react', 'They react; I lead'], ['continue', 'They keep the scene going'], ['drive', 'They bring new events'], ['any', 'No preference']] },
+    { key: 'invention', label: 'Making things up', hint: 'details the card doesn’t give', options: [['canon', 'Stick to the card and canon'], ['plausible', 'Small details are fine'], ['free', 'Invent freely'], ['any', 'No preference']] },
+    { key: 'interior', label: 'Inner thoughts', options: [['observe', 'Only what can be seen'], ['infer', 'Hints through behaviour'], ['enter', 'Inside the character’s head'], ['any', 'No preference']] },
     { key: 'voice', label: 'Narration voice', hint: 'optional', options: [['hemingway', 'Hemingway: lean'], ['mccarthy', 'McCarthy: solemn'], ['camus', 'Camus: wry'], ['kafka', 'Kafka: absurd'], ['ligotti', 'Ligotti: dread'], ['maupassant', 'Maupassant: cruel realism'], ['dickens', 'Dickens: theatrical'], ['ellis', 'Ellis: gossipy'], ['anime', 'Anime'], ['realism', 'Grounded realism'], ['fanfic', 'Fanfic'], ['webnovel', 'Web novel']] },
     { key: 'author', label: 'Write like', text: '', placeholder: 'Optional: an author whose style you love' },
     { key: 'keep_out', label: 'Anything to keep out?', text: '', placeholder: 'Optional, e.g. gore, spiders' },
@@ -120,6 +123,35 @@ function basicsForm(live, answers) {
       </form>`;
 }
 
+// What things cost, for the setup and memory forms' estimates (static/js/costs.js)
+function costLines(form, ev) {
+    const C = window.NACosts, steps = C.steps(ev.window.max);
+    const size = steps[Number(form.querySelector('[name="x_chat_context"]').value)] || steps[0];
+    const bgPick = form.querySelector('[name="x_background"]');
+    const bg = (bgPick && bgPick.value !== 'chat' ? ev.prices.bg[bgPick.value] : ev.prices.chat) || null;
+    const set = (key, text) => { const el = form.querySelector(`[data-cost="${key}"]`); if (el) el.textContent = text; };
+    form.querySelector('[data-memory-value]').textContent = C.memory(size);
+    set('chat', C.chat(ev.prices.chat, size));
+    for (const task of ['summary', 'trackers']) {
+        const every = form.querySelector(`[name="x_${task}_every"]`);
+        if (!every) continue;
+        const mode = (form.querySelector(`input[name="x_${task}"]:checked`) || {}).value;
+        set(task, C.job(task, bg, size, mode, Number(every.value) || (task === 'summary' ? 10 : 2)));
+    }
+}
+const formEventFor = form => [...events].reverse().find(x => x.type === 'extras_form' && x.part === form.dataset.extras);
+$('log').addEventListener('input', e => {
+    const form = e.target.closest('[data-extras="setup"], [data-extras="memory"]');
+    const ev = form && formEventFor(form);
+    if (ev && ev.window) costLines(form, ev);
+});
+function fillCosts() {
+    document.querySelectorAll('#log [data-extras="setup"], #log [data-extras="memory"]').forEach(form => {
+        const ev = formEventFor(form);
+        if (ev && ev.window) costLines(form, ev);
+    });
+}
+
 // The extras in one form: "setup" (summaries, trackers, pictures, Watch, background model) or "story" (dice,
 // story extras, the ideas button, pre-ticked by Bulba). Sent answers are applied at once.
 function extrasForm(ev, live) {
@@ -133,11 +165,22 @@ function extrasForm(ev, live) {
     const row = (label, field, hint) => `<div class="form-row"><div class="form-label">${esc(label)}${hint ? `<small>${esc(hint)}</small>` : ''}</div>
         <div class="form-field">${field}</div></div>`;
     let rows;
-    if (ev.part === 'setup') {
-        rows = row('Voices', ev.has_voice_key ? '<span class="help">On: your ElevenLabs key is saved.</span>'
+    const cost = key => `<span class="help cost" data-cost="${key}"></span>`;
+    const memoryRow = () => {
+        if (!ev.window) return '';
+        const steps = window.NACosts.steps(ev.window.max);
+        return row('Chat memory', `<div class="memory"><input type="range" name="x_chat_context" min="0" max="${steps.length - 1}" step="1"
+                value="${window.NACosts.nearest(steps, v.chat_context)}" ${dis}><b data-memory-value></b>${cost('chat')}</div>`,
+            `how much of the chat ${ev.window.model || 'the model'} rereads for each reply; more remembers more and costs more`);
+    };
+    if (ev.part === 'memory') {
+        rows = memoryRow();
+    } else if (ev.part === 'setup') {
+        rows = memoryRow()
+            + row('Voices', ev.has_voice_key ? '<span class="help">On: your ElevenLabs key is saved.</span>'
                 : '<a class="choice" href="/users/extras/" target="_blank" rel="noopener">Add an ElevenLabs key ↗</a> <span class="help">optional; never paste keys in this chat</span>')
-            + row('Story summary', radio('summary', [['auto', 'Automatic'], ['manual', 'Only when I ask']], (v.summary || {}).mode) + every('summary', v.summary), 'keeps long chats on track')
-            + row('Story trackers', radio('trackers', [['auto', 'Automatic'], ['manual', 'Only when I ask']], (v.trackers || {}).mode) + every('trackers', v.trackers), 'where, when, who, how they feel')
+            + row('Story summary', radio('summary', [['auto', 'Automatic'], ['manual', 'Only when I ask']], (v.summary || {}).mode) + every('summary', v.summary) + cost('summary'), 'keeps long chats on track')
+            + row('Story trackers', radio('trackers', [['auto', 'Automatic'], ['manual', 'Only when I ask']], (v.trackers || {}).mode) + every('trackers', v.trackers) + cost('trackers'), 'where, when, who, how they feel')
             + row('Character pictures', check('sprites', 'Change with the mood', v.sprites), 'one small call per reply')
             + row('Bulba Watch', check('watch', 'On', v.watch), 'reads replies now and then for habits that repeat')
             + row('Fixing habits', radio('fix_model', [['bulba', "Bulba's model (cheaper)"], ['chat', 'My chat model (closer to its voice)']], v.fix_model || 'bulba'),
@@ -151,7 +194,9 @@ function extrasForm(ev, live) {
             + row('Chance', radio('game', [['off', 'No dice'], ['dice', 'Dice'], ['full', 'Dice, inventory and conditions']], v.game))
             + row('Story extras', (ev.kinds || []).map(k => `<label class="pill"><input type="checkbox" name="x_story_extras"
                 value="${esc(k.id)}" ${(v.story_extras || []).includes(k.id) ? 'checked' : ''} ${dis}><span>${esc(k.label)}</span></label>`).join(''))
-            + row("Bulba's ideas button", check('ideas', 'Show it by the message box', v.ideas));
+            + row("Bulba's ideas button", check('ideas', 'Show it by the message box', v.ideas))
+            + (ev.trackers ? row(`Trackers for ${ev.character}`, ev.trackers.map(t => `<label class="pill" title="${esc(t.help)}"><input type="checkbox" name="x_trackers"
+                value="${esc(t.id)}" ${(v.trackers || []).includes(t.id) ? 'checked' : ''} ${dis}><span>${t.icon} ${esc(t.label)}</span></label>`).join('')) : '');
     }
     return `<form class="basics-form extras-form" data-extras="${esc(ev.part)}">${rows}
         ${live ? '<div class="form-actions"><button type="submit">Save these</button><span class="help">All of it can be changed later on the Extras page.</span></div>' : ''}
@@ -172,9 +217,16 @@ $('log').addEventListener('submit', e => {
             if (picked(t)) answers[t] = { mode: picked(t), interval: Number(get(`${t}_every`).value) || undefined };
         }
         if (get('background')) answers.background = get('background').value;
+    }
+    if (part === 'setup' || part === 'memory') {
+        answers = answers || {};
+        const memory = get('chat_context'), formEv = formEventFor(form);
+        if (memory && formEv && formEv.window) answers.chat_context = window.NACosts.steps(formEv.window.max)[Number(memory.value)];
     } else {
         answers = { game: picked('game'), ideas: get('ideas').checked,
                     story_extras: [...form.querySelectorAll('input[name="x_story_extras"]:checked')].map(b => b.value) };
+        if (form.querySelector('input[name="x_trackers"]'))
+            answers.trackers = [...form.querySelectorAll('input[name="x_trackers"]:checked')].map(b => b.value);
     }
     const formEvent = [...events].reverse().find(ev => ev.type === 'extras_form' && ev.part === part);
     if (formEvent) formEvent.answers = answers;  // the sent form keeps showing what they picked
@@ -255,6 +307,7 @@ function render() {
         }
         return '';
     }).join('') + doneBlock();
+    fillCosts();
     $('log').scrollTop = $('log').scrollHeight;
     renderPanel();
 }

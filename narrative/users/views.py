@@ -1,4 +1,6 @@
 import json
+import logging
+import os
 
 from django.db import transaction
 from django.http import JsonResponse
@@ -45,6 +47,12 @@ class RegisterUser(CreateView):
         from django.contrib.auth import login
         response = super().form_valid(form)
         login(self.request, self.object, backend="django.contrib.auth.backends.ModelBackend")
+        # Everyone starts with the shipped characters (Il Dottore, his lore, pictures and music), as the demo does
+        from mainapp.management.commands.seed_demo import load_packs
+        try:
+            load_packs(self.object)
+        except Exception:  # never block a sign-up over it
+            logging.getLogger(__name__).exception("Couldn't add the starting characters for %s", self.object)
         return response
 
 
@@ -85,7 +93,7 @@ def _connections_state(user):
             "task": task, "label": info["label"], "help": info["help"],
             "schedulable": info.get("schedulable", False), "toggleable": info.get("toggleable", False),
             "profile_id": ts.profile_id, "model": ts.model, "enabled": ts.enabled,
-            "mode": ts.mode, "interval": ts.interval,
+            "mode": ts.mode, "interval": ts.interval, "context": ts.context,
         })
     api_config = ApiConfig.objects.filter(user=user).first()
     eleven = api_config.eleven_key if api_config else ""
@@ -161,6 +169,10 @@ def _save_connections(user, data):
                 ts.interval = max(1, int(item.get("interval") or 10))
             except (TypeError, ValueError):
                 ts.interval = 10
+            try:  # empty = the chat's context size; never below a working minimum
+                ts.context = max(4096, min(2_000_000, int(item["context"]))) if item.get("context") else None
+            except (TypeError, ValueError):
+                ts.context = None
         ts.save()
 
     # The main chat always has a connection once any exists
@@ -326,9 +338,33 @@ def _extras_state(user):
         "watch_memory": _watch_memory(user),
         "fix_model": _watch_memory(user)["fix_model"],  # who rewrites habits they approved (bulba/polish.py)
         "background": cheap["id"] if cheap else "chat",
+        "chat_context_restore": _chat_context_now(user),  # for Undo of Bulba's form
         "cheap_models": [m for m in _cheap_models() if not (main and m["openrouter"] == main.model)],
         "openrouter": bool(main and main.provider == ConnectionProfile.PROVIDER_OPENROUTER),
     }
+
+
+def _chat_context_now(user):
+    """What the chat's context size is now: the chosen value and the active preset's setting."""
+    from mainapp import presets, samplers
+    from mainapp.ai_client import get_task_setting
+    return {"chosen": get_task_setting(user, "chat").context,
+            "size": samplers.normalize(presets.get_active(user).data.get("samplers")).get("context_size")}
+
+
+def set_chat_context(user, value=None, restore=None):
+    """The chat's context size (Bulba's memory slider): remembered for presets made later, and set on the
+    active one now. `restore` puts back what _chat_context_now returned."""
+    from mainapp import presets, samplers
+    from mainapp.ai_client import get_task_setting
+    chat = get_task_setting(user, "chat")
+    chat.context = restore["chosen"] if restore else value
+    chat.save()
+    preset = presets.get_active(user)
+    current = samplers.normalize(preset.data.get("samplers"))
+    current["context_size"] = (restore or {}).get("size") or {"on": True, "value": value}
+    preset.data = {**preset.data, "samplers": current}
+    preset.save(update_fields=["data", "time_update"])
 
 
 def _watch_memory(user):
@@ -376,6 +412,10 @@ def apply_extras(user, data):
         if data.get("game") in ("off", "dice", "full"):
             from mainapp import game
             game.set_user_default(user, data["game"])
+        if data.get("chat_context"):
+            set_chat_context(user, max(4096, min(2_000_000, int(data["chat_context"]))))
+        elif isinstance(data.get("chat_context_restore"), dict):
+            set_chat_context(user, restore=data["chat_context_restore"])
         if "sprites" in data:
             emotion = get_task_setting(user, "emotion")
             emotion.enabled = bool(data["sprites"])
@@ -417,14 +457,60 @@ def extras(request):
             return JsonResponse({"error": "Invalid request."}, status=400)
         if data.get("action") == "watch_memory":  # what Bulba Watch learned: reword, forget, or un-mute
             from mainapp.bulba import watch
+            if data.get("op") == "word_dislike":  # Bulba words what they dislike; they check it before adding
+                try:
+                    return JsonResponse({"status": "ok", "suggestion": watch.word_dislike(request.user, data.get("new"))})
+                except ValueError as e:
+                    return JsonResponse({"error": str(e)}, status=400)
+            if data.get("op") == "add_dislike":
+                try:
+                    watch.add_dislike(request.user, data.get("name"), data.get("about"))
+                except ValueError as e:
+                    return JsonResponse({"error": str(e)}, status=400)
+                return JsonResponse({"status": "ok", "state": _extras_page_state(request.user)})
             try:
                 watch.change_memory(request.user, data.get("op"), data.get("old"), data.get("new"))
             except ValueError as e:
                 return JsonResponse({"error": str(e)}, status=400)
-            return JsonResponse({"status": "ok", "state": _extras_state(request.user)})
+            return JsonResponse({"status": "ok", "state": _extras_page_state(request.user)})
         error = apply_extras(request.user, data)
         if error:
             return JsonResponse({"error": error}, status=400)
-        return JsonResponse({"status": "ok", "state": _extras_state(request.user)})
+        return JsonResponse({"status": "ok", "state": _extras_page_state(request.user)})
 
-    return render(request, "users/extras.html", {"extras_data": _extras_state(request.user)})
+    return render(request, "users/extras.html", {"extras_data": _extras_page_state(request.user)})
+
+
+def _extras_page_state(user):
+    """The Extras page: its switches, plus the chat memory slider and the prices its estimates use."""
+    from mainapp.bulba.agent import memory_and_prices
+    state = _extras_state(user)
+    return {**state, **memory_and_prices(user, state)}
+
+
+def can_see_stats(user):
+    """Staff, or a username listed in the STATS_USERS variable on the server (comma-separated)."""
+    allowed = {u.strip().lower() for u in os.environ.get("STATS_USERS", "").split(",") if u.strip()}
+    return user.is_authenticated and (user.is_staff or user.username.lower() in allowed)
+
+
+@login_required
+def stats(request):
+    """The usage numbers (users/usage.py), for the project's owners only."""
+    from django.http import Http404, HttpResponse
+    from users import usage
+    if not can_see_stats(request.user):
+        raise Http404()
+    try:
+        days = int(request.GET.get("days") or 0) or None
+    except ValueError:
+        days = None
+    data = usage.report(days=days, exclude=() if request.GET.get("demo") else ("demo",))
+    if request.GET.get("format") == "csv":
+        response = HttpResponse(usage.csv_text(data), content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="narrativeai-usage.csv"'
+        return response
+    return render(request, "users/stats.html", {
+        "data": data, "days": days or "", "demo": bool(request.GET.get("demo")),
+        "summary": [(usage.LABELS.get(k, k), v) for k, v in data["summary"].items()],
+        "columns": [usage.COLUMN_LABELS[c] for c in usage.COLUMNS]})

@@ -1,0 +1,100 @@
+/* Shared look for every signed-in page (loaded after each page's own stylesheet, so it wins on what's shared):
+   one set of colours, one page header, two content widths, one button style. Pages keep their own inner layout. */
+
+:root {
+    /* Colours: one set, under every name the page stylesheets use */
+    --bg-primary: #121520; --bg: #121520;
+    --ui-primary: #2a2f4a; --card: #2a2f4a;
+    --ui-secondary: #1e293b; --card-2: #1e293b;
+    --ui-tertiary: #0f1424;
+    --accent-1: #7e3af2; --accent: #7e3af2; --accent-soft: #c4b5fd;
+    --accent-2: #10b981; --success: #10b981; --ok: #6ee7b7;
+    --accent-3: #f43f5e; --error: #ef4444;
+    --accent-4: #f59e0b; --warning: #f59e0b;
+    --text-primary: #f1f5f9; --text: #f1f5f9;
+    --text-secondary: #94a3b8; --muted: #94a3b8;
+    --text-muted: #8b95a8;
+    --border-color: rgba(148, 163, 184, 0.16); --border: rgba(148, 163, 184, 0.16);
+    --na-radius: 14px;
+}
+
+body.na-body {
+    background-color: var(--bg-primary);
+    background-image:
+        radial-gradient(circle at 18% 30%, rgba(126, 58, 242, 0.07) 0%, transparent 45%),
+        radial-gradient(circle at 82% 70%, rgba(16, 185, 129, 0.04) 0%, transparent 40%);
+    background-attachment: fixed;
+    color: var(--text-primary);
+}
+
+/* Content widths: wide for lists and editors, narrow for settings and forms */
+.na-page.na-page { box-sizing: border-box; width: 100%; margin: 0 auto; padding: 36px 32px 96px; }
+.na-page.na-wide { max-width: 1240px; }
+.na-page.na-narrow { max-width: 900px; }
+@media (max-width: 640px) { .na-page.na-page { padding: 22px 16px 88px; } }
+
+/* The page header: optional back link on top, title and one line under it, actions on the right */
+.na-head { margin: 0 0 28px; }
+.na-back {
+    display: inline-flex; align-items: center; gap: 6px; margin: 0 0 14px;
+    color: var(--text-secondary); text-decoration: none; font-size: .92rem; font-weight: 500;
+}
+.na-back:hover { color: var(--accent-soft); }
+.na-back svg { width: 16px; height: 16px; fill: currentColor; }
+.na-head-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px 24px; flex-wrap: wrap; }
+.na-head-text { min-width: 0; flex: 1 1 360px; }
+.na-head h1.na-title, .na-title {
+    margin: 0; font-size: clamp(1.9rem, 3.6vw, 2.5rem); font-weight: 700; line-height: 1.15; letter-spacing: -0.01em;
+    background: linear-gradient(135deg, var(--text-primary) 30%, #b794f6);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+.na-sub { margin: 8px 0 0; color: var(--text-secondary); font-size: 1.02rem; line-height: 1.55; max-width: 72ch; }
+.na-sub a { color: var(--accent-soft); }
+.na-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+@media (max-width: 640px) {
+    .na-head-row { flex-direction: column; align-items: stretch; }
+    .na-head-text { flex: none; }
+    .na-actions > * { flex: 1 1 auto; justify-content: center; }
+}
+
+/* Buttons for page headers (and anywhere a page opts in) */
+.na-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px; box-sizing: border-box;
+    min-height: 42px; padding: 0 18px; border-radius: 12px; border: 1px solid var(--border-color);
+    background: var(--ui-secondary); color: var(--text-primary); font: inherit; font-weight: 600; font-size: .95rem;
+    text-decoration: none; cursor: pointer; white-space: nowrap; transition: transform .15s, box-shadow .15s, background .15s;
+}
+.na-btn:hover { background: #26324a; }
+.na-btn svg { width: 18px; height: 18px; fill: currentColor; }
+.na-btn.na-primary { background: linear-gradient(135deg, var(--accent-1), #9863ff); border-color: transparent; color: #fff; }
+.na-btn.na-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(126, 58, 242, .3); }
+.na-btn input[type=file] { display: none; }
+
+/* Editable titles (a worldbook's name and description sit where a page title would) */
+.na-title-input.na-title-input {
+    width: 100%; box-sizing: border-box; margin: 0; padding: 2px 0; border: 0; border-bottom: 1px dashed transparent;
+    background: transparent; color: var(--text-primary); font: inherit; font-size: clamp(1.7rem, 3.2vw, 2.2rem); font-weight: 700;
+}
+.na-desc-input.na-desc-input {
+    width: 100%; box-sizing: border-box; margin: 6px 0 0; padding: 2px 0; border: 0; border-bottom: 1px dashed transparent;
+    background: transparent; color: var(--text-secondary); font: inherit; font-size: 1rem;
+}
+.na-title-input:hover, .na-desc-input:hover { border-bottom-color: var(--border-color); }
+.na-title-input:focus, .na-desc-input:focus { outline: none; border-bottom-color: var(--accent-1); }
+
+/* Pages whose title and description sit straight in the page (no .na-head wrapper) */
+.na-page > .na-back { display: flex; width: fit-content; }
+.na-page > h1.na-title { margin-bottom: 0; }
+.na-page > .na-sub { margin-bottom: 28px; }
+
+/* Some page stylesheets centre every h1: the shared header is always left-aligned */
+.na-head, .na-head .na-title, .na-page > h1.na-title, .na-page > .na-sub { text-align: left; }
+.na-head .na-sub { margin-left: 0; margin-right: 0; }
+
+/* One font everywhere (inputs and buttons too), and the page colour under short pages and overscroll */
+html { background: var(--bg-primary); }
+body.na-body { font-family: Inter, "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif; }
+/* zero priority: a page's own rule (a monospace editor, say) still wins */
+:where(body.na-body) :where(input, select, textarea, button) { font-family: inherit; }
+/* Forms inside a page column fill it (the profile and password forms were narrow centred cards) */
+.na-page .form-container { max-width: none; width: auto; margin-left: 0; margin-right: 0; }

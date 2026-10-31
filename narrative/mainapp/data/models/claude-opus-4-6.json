@@ -14,7 +14,9 @@
     "https://platform.claude.com/docs/en/models/opus-4-6/overview",
     "https://platform.claude.com/docs/en/build-with-claude/thinking"
   ],
-  "limits": {},
+  "limits": {
+    "context": 1000000
+  },
   "reasoning": {
     "always_on": false,
     "default": "off",

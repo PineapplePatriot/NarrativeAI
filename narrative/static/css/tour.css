@@ -1,0 +1,96 @@
+/* The guided tours, the ? menu and "What's this?" (static/js/tour.js). Own colours, so every page looks the same. */
+.na-tour-shade { position: fixed; inset: 0; z-index: 10000; }
+.na-tour-spot {
+    position: fixed; z-index: 10001; pointer-events: none; border-radius: 12px;
+    box-shadow: 0 0 0 200vmax rgba(4, 6, 14, 0.74); outline: 2px solid rgba(167, 139, 250, 0.9);
+    transition: top .25s ease, left .25s ease, width .25s ease, height .25s ease;
+}
+.na-tour-spot.center { outline: none; }
+.na-tour-box, .na-bubble, .na-help-menu {
+    position: fixed; box-sizing: border-box; color: #f1f5f9; background: #1b2033;
+    border: 1px solid rgba(167, 139, 250, 0.45); border-radius: 14px; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+    font: 14px/1.55 Inter, "Segoe UI", system-ui, -apple-system, Roboto, sans-serif; text-align: left;
+}
+.na-tour-box { z-index: 10002; width: min(380px, calc(100vw - 24px)); padding: 14px 18px 14px; transition: top .25s ease, left .25s ease; }
+.na-tour-box.wide { width: min(640px, calc(100vw - 24px)); }
+.na-tour-box h3, .na-bubble h3 { margin: 0 0 6px; font-size: 16px; font-weight: 700; color: #fff; line-height: 1.3; }
+.na-tour-box p, .na-bubble p { margin: 0; color: #cbd5e1; }
+.na-tour-box b, .na-bubble b { color: #fff; }
+.na-tour-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 12px; color: #94a3b8; }
+.na-tour-count { margin-right: auto; }
+.na-lang { display: inline-flex; border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 999px; overflow: hidden; }
+.na-lang button { background: none; border: 0; color: #94a3b8; font: 600 11.5px/1 Inter, system-ui, sans-serif; padding: 5px 9px; cursor: pointer; }
+.na-lang button.on { background: rgba(139, 92, 246, 0.4); color: #fff; }
+.na-x { background: none; border: 0; color: #94a3b8; font-size: 15px; line-height: 1; cursor: pointer; padding: 4px 6px; border-radius: 6px; }
+.na-x:hover { color: #fff; background: rgba(148, 163, 184, 0.15); }
+.na-tour-nav { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+.na-tbtn {
+    padding: 8px 16px; border-radius: 10px; border: 1px solid rgba(148, 163, 184, 0.25); background: #26304a;
+    color: #f1f5f9; font: 600 13.5px/1.2 Inter, system-ui, sans-serif; cursor: pointer; min-height: 0; width: auto; margin: 0;
+}
+.na-tbtn:hover { background: #2e3a58; }
+.na-tbtn.primary { background: linear-gradient(135deg, #7e3af2, #9863ff); border-color: transparent; color: #fff; }
+.na-tbtn.link { background: none; border: 0; color: #a78bfa; font-weight: 500; padding: 8px 0; text-decoration: none; font-size: 13.5px; }
+.na-tour-nav .na-tbtn.link { margin-right: auto; }
+.na-tbtn:disabled { opacity: .55; cursor: default; }
+.na-tbtn:focus-visible, .na-route:focus-visible, .na-help-menu .item:focus-visible { outline: 2px solid #c4b5fd; outline-offset: 2px; }
+
+/* The tour's last step: the two ways Bulba can set things up */
+.na-routes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+.na-route {
+    display: flex; flex-direction: column; gap: 4px; padding: 14px; border-radius: 12px; text-decoration: none;
+    border: 1px solid rgba(148, 163, 184, 0.22); background: #232a42; color: #f1f5f9; transition: border-color .15s, transform .15s;
+}
+.na-route:hover { border-color: #a78bfa; transform: translateY(-1px); }
+.na-route b { font-size: 15px; }
+.na-route small { color: #a5b4fc; font-weight: 600; font-size: 12.5px; }
+.na-route span { color: #cbd5e1; font-size: 13px; line-height: 1.5; margin-top: 2px; }
+.na-tour-box p.na-tour-note { margin-top: 10px; font-size: 12.5px; color: #94a3b8; }
+@media (max-width: 560px) { .na-routes { grid-template-columns: 1fr; } }
+
+/* The ? in the top bar, and its menu */
+.na-help-btn {
+    width: 30px; height: 30px; flex: 0 0 auto; padding: 0; border-radius: 50%; cursor: pointer;
+    border: 1px solid rgba(148, 163, 184, 0.3); background: none; color: #c9cde0; font: 700 14px/1 Inter, system-ui, sans-serif;
+}
+.na-help-btn:hover, .na-help-btn.open { background: rgba(139, 92, 246, 0.18); color: #fff; border-color: rgba(167, 139, 250, 0.6); }
+.na-help-menu { z-index: 9000; width: 260px; padding: 6px; border-color: rgba(148, 163, 184, 0.2); line-height: 1.3; }
+.na-help-menu .item {
+    display: block; width: 100%; text-align: left; padding: 10px 12px; border: 0; border-radius: 8px;
+    background: none; color: #e2e8f0; font: inherit; cursor: pointer; margin: 0;
+}
+.na-help-menu .item:hover { background: rgba(139, 92, 246, 0.16); }
+.na-help-menu .lang-row {
+    display: flex; align-items: center; justify-content: space-between; padding: 10px 12px 6px; margin-top: 4px;
+    border-top: 1px solid rgba(148, 163, 184, 0.14); color: #94a3b8; font-size: 12.5px;
+}
+
+/* What's this? */
+body.na-picking, body.na-picking * { cursor: help !important; }
+.na-pick-hl {
+    position: fixed; z-index: 9990; pointer-events: none; border: 2px solid #a78bfa; border-radius: 8px;
+    background: rgba(139, 92, 246, 0.10); transition: top .08s, left .08s, width .08s, height .08s;
+}
+.na-pick-banner {
+    position: fixed; z-index: 9995; top: 62px; left: 50%; transform: translateX(-50%); max-width: calc(100vw - 24px);
+    display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 16px; border-radius: 999px; box-sizing: border-box;
+    background: #7e3af2; color: #fff; font: 600 13.5px/1.3 Inter, system-ui, sans-serif; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+.na-pick-banner button {
+    cursor: pointer !important; border: 0; border-radius: 999px; padding: 6px 12px; background: rgba(255, 255, 255, 0.2);
+    color: #fff; font: inherit; flex: 0 0 auto;
+}
+.na-bubble { z-index: 9996; width: min(360px, calc(100vw - 24px)); padding: 12px 16px 14px; }
+.na-answer:not(:empty) { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(148, 163, 184, 0.14); }
+.na-bubble p.na-q { color: #a5b4fc; font-size: 12.5px; margin-bottom: 4px; }
+.na-bubble p.na-wait { color: #a5b4fc; }
+.na-bubble p.na-err { color: #fecdd3; }
+.na-ask { display: flex; gap: 6px; margin: 12px 0 0; }
+.na-ask input {
+    flex: 1; min-width: 0; width: auto; margin: 0; padding: 8px 10px; border-radius: 9px; box-sizing: border-box;
+    border: 1px solid rgba(148, 163, 184, 0.25); background: #11162a; color: #f1f5f9; font: 13.5px/1.3 Inter, system-ui, sans-serif;
+}
+.na-ask input:focus { outline: none; border-color: #a78bfa; }
+.na-bubble .na-more { margin-top: 6px; }
+/* One thing at a time: the chat's Watch card waits until the tour is over */
+body:has(.na-tour-box) .watch-card { visibility: hidden; }

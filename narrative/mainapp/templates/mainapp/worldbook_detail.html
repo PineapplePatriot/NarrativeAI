@@ -8,29 +8,30 @@
   <title>{{ worldbook.title }} - Worldbook</title>
   <link rel="stylesheet" href="{% static 'mainapp/css/worldbook_detail.css' %}">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
 </head>
-<body>
+<body class="na-body">
 {% include "partials/topbar.html" with active="worldbooks" %}
-<div class="container">
-  <div class="header">
-    <div class="row">
-      <a class="back" href="{% url 'worldbook_list' %}">
-        <svg viewBox="0 0 24 24"><path d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"/></svg>
-        Back to Worldbooks
-      </a>
-      <div class="title">
-        <input id="wbTitle" class="title-input" placeholder="Worldbook title"/>
-        <input id="wbDesc" class="desc-input" placeholder="Short description (optional)"/>
+<div class="container na-page na-wide">
+  <div class="na-head">
+    <a class="na-back" href="{% url 'worldbook_list' %}">
+      <svg viewBox="0 0 24 24"><path d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"/></svg>
+      Worldbooks
+    </a>
+    <div class="na-head-row">
+      <div class="na-head-text wb-head-text">
+        <input id="wbTitle" class="title-input na-title-input" placeholder="Worldbook title" aria-label="Worldbook title"/>
+        <input id="wbDesc" class="desc-input na-desc-input" placeholder="Short description (optional)" aria-label="Description"/>
       </div>
-      <div class="toolbar">
+      <div class="na-actions">
         <span class="pill unsaved" id="unsavedPill" hidden>Unsaved changes</span>
-        <button class="btn primary" id="newEntryBtn">
+        <button class="na-btn" id="newEntryBtn">
           <svg viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/></svg>
-          Add Entry
+          Add entry
         </button>
-        <button class="btn primary" id="saveWorldbookBtn">Save Worldbook</button>
-        <a class="btn" href="{% url 'worldbook_export' worldbook.slug %}" title="Download in this app's format">Export</a>
-        <a class="btn" href="{% url 'worldbook_export' worldbook.slug %}?format=sillytavern" title="Download for use in SillyTavern">Export for ST</a>
+        <a class="na-btn" href="{% url 'worldbook_export' worldbook.slug %}" title="Download in this app's format">Export</a>
+        <a class="na-btn" href="{% url 'worldbook_export' worldbook.slug %}?format=sillytavern" title="Download for use in SillyTavern">Export for ST</a>
+        <button class="na-btn na-primary" id="saveWorldbookBtn">Save</button>
       </div>
     </div>
   </div>
@@ -164,5 +165,6 @@
   };
 </script>
 <script src="{% static 'mainapp/js/worldbook_detail.js' %}"></script>
+<script>window.NA_PAGE_TOUR = {name: 'worldbook', auto: true};</script>
 </body>
 </html>

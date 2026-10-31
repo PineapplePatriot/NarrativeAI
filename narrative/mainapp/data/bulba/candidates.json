@@ -94,5 +94,161 @@
   "natural": "Let characters talk about what's in front of them. They bring up the past only when it matters to this moment, briefly and in their own words, the way people actually remember: imprecisely, selectively, without counting. They don't build a case from earlier events, tally how many times something happened, or sum up the relationship to prove a point. Not every reply needs a clever line or a sharp insight into someone's feelings; ordinary talk is fine.",
   "structured": "PAST IN DIALOGUE: only when relevant now; brief, in the speaker's words; no lists of earlier events, no counts or dates as arguments, no summing up the relationship. TONE: plain talk by default; wit and emotional insight only where this character would offer them.",
   "notes": "A Claude-family pattern (Opus, Fable): characters recite earlier scenes as evidence, keep score with numbers ('the third time', 'four days since'), and reach for a witty or therapist-level line instead of talking normally. Little reported in community preset threads (these models are the pricier ones), so it's from our own use. Overcorrection makes characters forget shared history: a callback that belongs to the moment is fine. Test an argument scene and a reunion: the past should come up once, briefly, if at all."
+ },
+ {
+  "problem": "Every reply has to move the plot; no room for quiet moments",
+  "natural": "A sustained exchange, silence or unresolved reaction can complete the reply. Advance events when the situation calls for it, rather than to meet a turn quota.",
+  "structured": "QUIET TURNS: a reply may hold on one exchange, a silence or an unresolved reaction. Advance events only when the situation calls for it.",
+  "notes": "Adapted from Sola Kindling V2. For slow burn and conversation. Pair with 'Rushing past a major moment' rather than using alone with a model that already stalls: quiet must still carry substance."
+ },
+ {
+  "problem": "Rushing past a major moment (an apology, a confession) before the player answers",
+  "natural": "Develop the exchange currently in progress. Let its response and immediate consequence land before moving time or introducing another event. Stop where the player's next decision matters.",
+  "structured": "ACTIVE EXCHANGE FIRST: respond to it, let the consequence land, then stop at the player's next decision. No time skips or new events past it.",
+  "notes": "From the Gemini 4 Argon research (a direct Argon report). Test with a difficult admission, an apology and an unresolved question. Overcorrection: flat, short replies; add 'Slowing down made replies flat' if that happens."
+ },
+ {
+  "problem": "Slowing down made replies flat and short",
+  "natural": "Give the active character a specific response shaped by what they want, what they noticed and what they choose to reveal. A quiet beat may change understanding without advancing the plot.",
+  "structured": "QUIET BEAT WITH SUBSTANCE: the response follows the character's want + what they noticed + what they reveal. Understanding can change while the plot stays still.",
+  "notes": "From the Gemini 4 Argon research. Use together with a pacing restriction, not instead of one."
+ },
+ {
+  "problem": "Strong emotion read as affection; reserved characters written as empty",
+  "natural": "Reserved behavior can conceal strong feeling. Intensity may reflect anger or fear; it does not automatically mean affection, cooperation or willingness.",
+  "structured": "FEELING VS SHOW: outward expression and inner emotion are separate. Intensity is not affection; reserve is not emptiness.",
+  "notes": "Adapted from Sola Kindling V2's Feeling Engine. Good for slow burn and cold or guarded characters."
+ },
+ {
+  "problem": "Suggested twists or ideas become canon before the scene shows them",
+  "natural": "Treat unused suggestions as possibilities. Record a development as an event only when the accepted scene actually establishes it.",
+  "structured": "POSSIBILITY VS CANON: suggestions, plans and foreshadowing stay possible until a kept scene establishes them.",
+  "notes": "Adapted from DEM V3's Undercurrents and Story Threads (noncommercial share-alike source: wording rewritten). Useful with the ideas button and director's notes, and for mystery."
+ },
+ {
+  "problem": "Characters know, suspect and believe the same things",
+  "natural": "Track what each relevant character knows, suspects and wrongly believes. Change those states through an event or communication they could perceive.",
+  "structured": "BELIEF STATE per character: knows / suspects / wrongly believes. Changes only through something they could perceive.",
+  "notes": "Adapted from DEM V3's Hidden Truths. For mystery and intrigue; pairs with the Secrets tracker."
+ },
+ {
+  "problem": "A small move from the player sets off a huge event",
+  "natural": "Match the scale of the response to the player's contribution and current pressures. A small social move need not trigger a scene-changing event.",
+  "structured": "PROPORTION: the response's scale follows the player's move and current pressure. Small moves get small consequences.",
+  "notes": "Adapted from DEM V3. Also covers stock theatrical reactions (the Argon research: keep reactions proportional to the event)."
+ },
+ {
+  "problem": "Every gesture comes with an explanation of its motive",
+  "natural": "Describe the relevant action or observation. Leave its motive implicit unless the chosen viewpoint or scene gives a reason to explain it.",
+  "structured": "UNSPOKEN MOTIVES: show the action; explain why only when the viewpoint gives access or the scene needs it.",
+  "notes": "Adapted from Voyage 6.0.1. Overcorrection: a reflective first-person narrator needs some explanation; check the 'Inner thoughts' answer from the basics form first."
+ },
+ {
+  "problem": "Experts talk shop in every conversation",
+  "natural": "Let expertise shape what a character notices. Match technical vocabulary to their listener and purpose; ordinary conversation need not become a workplace metaphor.",
+  "structured": "EXPERTISE: shapes attention, not every sentence. Jargon only with peers or when the purpose needs it.",
+  "notes": "Adapted from Voyage 6.0.1's professional-language rule, softened so the expertise stays part of the character."
+ },
+ {
+  "problem": "Rumours and news appear from nowhere, or are treated as fact",
+  "natural": "Attribute a rumor to a person or medium and distinguish the claim from confirmed fact. Characters learn it through a plausible encounter or communication.",
+  "structured": "RUMOURS: always from someone or something; claim ≠ fact; learned through a plausible channel.",
+  "notes": "Adapted from Voyage 6.0.1's news rules. Pairs with the News and rumours story extra and the Off-screen tracker."
+ },
+ {
+  "problem": "Characters change their deepest convictions too easily, or never budge at all",
+  "natural": "Let tactics and ordinary preferences change with circumstances. Deep convictions and long-held grievances need sustained, character-relevant reasons to change.",
+  "structured": "FLEXIBILITY LAYERS: tactics and preferences move easily; convictions and grievances need sustained, relevant reasons.",
+  "notes": "Adapted from Writer's Block Unlimited V2. Overcorrection: everyone resists persuasion; ordinary cooperation should stay easy."
+ },
+ {
+  "problem": "Characters always have to correct or one-up the player",
+  "natural": "A character may accept a sound point without adding a superior correction. Competence includes recognizing uncertainty, learning and yielding an argument.",
+  "structured": "EARNED AGREEMENT: a sound point can simply be accepted. Competent people can be uncertain, learn and concede.",
+  "notes": "Adapted from Writer's Block Unlimited V2. The fix for anti-sycophancy rules that went too far. Test: the player makes a genuinely good argument."
+ },
+ {
+  "problem": "Every conflict resolves in one warm moment; every scene ends with comfort",
+  "natural": "Understanding, forgiveness and closure depend on the relationship and events. An interaction may remain incomplete without requiring a comforting final line.",
+  "structured": "OPTIONAL CLOSURE: forgiveness and understanding follow the relationship's history; a scene may end unresolved.",
+  "notes": "Adapted from Writer's Block Unlimited V2 ('apologies need not land'). For angst, slow burn, drama."
+ },
+ {
+  "problem": "The model invents backstory or canon the user didn't want",
+  "natural": "Keep established card and world facts fixed. Add plausible personal details only within the user's selected invention policy; leave protected canon gaps open.",
+  "structured": "INVENTION POLICY: [stick to canon / small plausible details / invent freely]. Established facts never change.",
+  "notes": "Adapted from Ancient Access 2.2.3 ('the card is a floor, not a ceiling'). The basics form's 'Making things up' answer fills the placeholder. Fandom characters usually want 'stick to canon'."
+ },
+ {
+  "problem": "Big emotional moments feel thin (no fear of what comes next)",
+  "natural": "When the viewpoint is strongly affected, a brief feared future or imagined alternative may sharpen the decision. Mark it as imagination, not an event.",
+  "structured": "PROSPECTION: at emotional spikes only, one brief imagined future or alternative, clearly marked as imagined.",
+  "notes": "Adapted from Ancient Access 2.2.3. Use sparingly; test that the imagined event never becomes canon."
+ },
+ {
+  "problem": "Characters resist everything to prove they're independent",
+  "natural": "Cooperation, indifference and resistance each follow the character, setting and stakes. Do not manufacture opposition merely to demonstrate independence.",
+  "structured": "EQUAL CAUSES: agreement and refusal both need character-consistent reasons. No opposition just to show independence.",
+  "notes": "Adapted from Nemo Vivarium ('agreeableness is not presumed, but neither is refusal'). The counterpart of 'Automatic agreement, instant trust'."
+ },
+ {
+  "problem": "Agreeing to one thing makes a character agree to everything",
+  "natural": "Agreement to one act does not commit a character to another. Sharing information, lending resources, affection and loyalty can develop differently.",
+  "structured": "SEPARATE GATES: information, resources, affection and loyalty each have their own trust.",
+  "notes": "Adapted from Nemo Vivarium's Friction module. Pairs with the Relationships tracker (affection, trust and tension are already separate there)."
+ },
+ {
+  "problem": "Side characters leave or interrupt the scene for no reason",
+  "natural": "Let other characters pursue established responsibilities when timing makes them relevant. They need not abandon an engaging scene just to show they have a life.",
+  "structured": "ORDINARY AUTONOMY: duties and needs pull characters away only when timing makes them relevant.",
+  "notes": "Adapted from Nemo Vivarium. For ensembles and living worlds."
+ },
+ {
+  "problem": "Twists rewrite what already happened",
+  "natural": "A reveal may change the meaning of earlier events, but must preserve what was established to happen. Do not repair a twist by silently rewriting history.",
+  "structured": "NO RETCONS: reveals reinterpret; established events stay true.",
+  "notes": "Adapted from Nemo Magpie ('the old scene should read differently, never become false'). For long stories and mysteries."
+ },
+ {
+  "problem": "Objects lose track of what they are, or of where they are",
+  "natural": "Keep identity, provenance and capabilities stable. Update location, possession, condition and remaining resources separately as accepted events change them.",
+  "structured": "OBJECTS: identity, origin and abilities are fixed; location, owner, condition and charges change with accepted events.",
+  "notes": "Adapted from Nemo Magpie's dossiers. Pairs with the Inventory tracker. Track objects that matter, not furniture."
+ },
+ {
+  "problem": "Characters psychoanalyse each other",
+  "natural": "Let people respond in their own voice rather than routinely explaining one another's psychology. Insight should fit what this speaker would recognize and say.",
+  "structured": "NO PSYCHOANALYSIS: characters answer in their own voice; insight only where this speaker would have it.",
+  "notes": "Adapted from NoPussyfooting 4.5 (tuned for Argon and Gemini 3.8 Flash, one-on-one conversation). Overcorrection: an actual therapist should still sound like one."
+ },
+ {
+  "problem": "Background activity clutters an intimate conversation",
+  "natural": "Use nearby activity when it affects the exchange or grounds the setting. During an absorbed interaction, omit incidental background updates that dilute the focus.",
+  "structured": "FOCUS: background detail only when it affects the exchange or grounds the setting; drop it in absorbed moments.",
+  "notes": "Adapted from NoPussyfooting 4.5. One-on-one scenes; not evidence for large casts."
+ },
+ {
+  "problem": "Bundle: conversation with bite",
+  "natural": "Give each speaker a distinct purpose and voice. Let them accept good points, misread others, withhold information or disagree for character-specific reasons. Keep playful banter where it fits; do not turn every line into a comeback or psychoanalysis. Preserve the player's choices and leave a meaningful opening.",
+  "structured": "DIALOGUE: distinct purpose + voice per speaker; agreement, misreading, withholding and disagreement all need character reasons; banter where it fits, not every line; player's choices preserved; hand back at an opening.",
+  "notes": "A research-team assembly of the rules above (not from one preset), untested. For banter, subtext and ordinary scenes."
+ },
+ {
+  "problem": "Bundle: slow emotional development",
+  "natural": "Develop the active exchange before advancing time. Silence and unfinished feeling may carry a reply. Trust, affection and willingness are distinct; one warm moment does not resolve every conflict. Let evidence change the relationship at a pace that fits its history. Keep a reserved character reserved without making them empty.",
+  "structured": "SLOW BURN: active exchange first; quiet turns allowed; trust ≠ affection ≠ willingness; change follows evidence and history; reserved ≠ empty.",
+  "notes": "A research-team assembly, untested. For slow burn and angst."
+ },
+ {
+  "problem": "Bundle: a living world with restrained initiative",
+  "natural": "Advance established responsibilities and pressures as in-world time passes. Bring distant developments into the scene through witnesses, messages or other plausible channels. Distinguish reports from facts. Let the current interaction retain focus; ordinary quiet does not require a new interruption.",
+  "structured": "LIVING WORLD: pressures advance with time; distant news arrives through plausible channels; reports ≠ facts; the current scene keeps focus; quiet needs no interruption.",
+  "notes": "A research-team assembly, untested. Pairs with the Off-screen tracker and News and rumours."
+ },
+ {
+  "problem": "Bundle: long-story continuity",
+  "natural": "Preserve accepted events and stable identities. Keep interpretations, suspicions and open questions separate from facts. Record only consequential state changes. Unused suggestions remain possibilities. Resolve uncertainty without inventing past events, and let revelations reinterpret rather than replace established history.",
+  "structured": "CONTINUITY: accepted events and identities fixed; suspicion ≠ fact; record only consequential changes; suggestions stay possible; no invented past; reveals reinterpret, never replace.",
+  "notes": "A research-team assembly, untested. For long chats, mysteries; pairs with Memories and Plot threads."
  }
 ]

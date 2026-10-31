@@ -14,7 +14,9 @@
     "https://www.anthropic.com/news/claude-opus-4-7",
     "https://platform.claude.com/docs/en/build-with-claude/thinking"
   ],
-  "limits": {},
+  "limits": {
+    "context": 1000000
+  },
   "reasoning": {
     "always_on": false,
     "default": "off",

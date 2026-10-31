@@ -10,31 +10,31 @@
     <link rel="stylesheet" href="{% static 'mainapp/css/character_list.css' %}">
 
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
 </head>
-<body>
+<body class="na-body">
 {% include "partials/topbar.html" with active="characters" %}
-    <div class="container">
-        <div class="header">
-            <div class="header-left">
-                <div class="header-title">
-                    <h1>Characters</h1>
-                    <p>Choose a character to start your interactive story</p>
+    <div class="container na-page na-wide">
+        <div class="na-head">
+            <div class="na-head-row">
+                <div class="na-head-text">
+                    <h1 class="na-title">Characters</h1>
+                    <p class="na-sub">Choose a character to start your interactive story</p>
                 </div>
-            </div>
-            <div class="header-actions">
-            <form id="importForm" action="{% url 'character_import' %}" method="POST" enctype="multipart/form-data">
-                {% csrf_token %}
-                <label class="import-character-btn" title="A SillyTavern character card: .png or .json">
-                    ⬆ Import card
-                    <input type="file" name="card" id="importInput" accept=".png,.json,image/png,application/json" hidden>
-                </label>
-            </form>
-            <a href="{% url 'add_character' %}" class="create-character-btn">
-                <svg viewBox="0 0 24 24">
-                    <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/>
-                </svg>
-                New character
-            </a>
+                <div class="na-actions">
+                    <form id="importForm" action="{% url 'character_import' %}" method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <label class="na-btn" title="A SillyTavern character card: .png or .json">
+                            <svg viewBox="0 0 24 24"><path d="M9,16V10H5L12,3L19,10H15V16H9M5,20V18H19V20H5Z"/></svg>
+                            Import card
+                            <input type="file" name="card" id="importInput" accept=".png,.json,image/png,application/json" hidden>
+                        </label>
+                    </form>
+                    <a href="{% url 'add_character' %}" class="na-btn na-primary">
+                        <svg viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/></svg>
+                        New character
+                    </a>
+                </div>
             </div>
         </div>
         <div class="import-message" id="importMessage" hidden></div>

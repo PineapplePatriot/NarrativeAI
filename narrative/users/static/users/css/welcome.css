@@ -18,11 +18,11 @@ h1 { font-size: 2rem; margin: 0 0 6px; }
 .step h2 { font-size: 1.2rem; margin: 4px 0 6px; }
 .help { color: var(--muted); font-size: .9rem; line-height: 1.55; margin: 0 0 10px; }
 .help.small { font-size: .8rem; margin-top: 14px; }
-input[type=password] {
+input[type=password], .dislike-add input[type=text] {
     width: 100%; max-width: 480px; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--border);
     background: var(--card-2); color: var(--text); font-size: 1rem;
 }
-input[type=password]:focus { outline: none; border-color: var(--accent-soft); }
+input[type=password]:focus, .dislike-add input[type=text]:focus { outline: none; border-color: var(--accent-soft); }
 .models { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
 .model {
     display: flex; flex-direction: column; gap: 6px; padding: 14px; border-radius: 12px; cursor: pointer;
@@ -44,7 +44,7 @@ button, .btn {
     font-weight: 600; cursor: pointer; text-decoration: none; font-family: inherit; display: inline-block;
 }
 button:disabled { opacity: .55; cursor: default; }
-.btn.secondary { background: transparent; border: 1px solid rgba(167, 139, 250, .6); color: #ddd6fe; }
+.btn.secondary, button.secondary { background: transparent; border: 1px solid rgba(167, 139, 250, .6); color: #ddd6fe; }
 button.link { background: none; padding: 0; color: var(--accent-soft); text-decoration: underline; font-size: inherit; font-weight: 400; }
 .error { color: #fecdd3; background: rgba(244, 63, 94, .12); border: 1px solid rgba(244, 63, 94, .45); padding: 10px 14px; border-radius: 10px; margin: 0; }
 .done { display: flex; gap: 20px; align-items: flex-start; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; }
@@ -89,3 +89,18 @@ button.link { background: none; padding: 0; color: var(--accent-soft); text-deco
 .memory .x { background: none; border: none; color: var(--muted, #94a3b8); cursor: pointer; padding: 0 4px; font-size: .95rem; }
 .fix-model { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px; font-size: .9rem; }
 .memory .in-preset { color: var(--ok, #4ade80); font-size: .78rem; margin-left: 4px; }
+
+/* Extras → Bulba Watch: add something they dislike */
+.dislike-add { margin: 14px 0 6px; padding: 14px; border: 1px dashed var(--border); border-radius: 12px; }
+.dislike-add label { display: block; font-size: .9rem; margin-bottom: 8px; }
+.dislike-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.dislike-row input { flex: 1 1 240px; max-width: none; }
+.dislike-check input[type=text] { max-width: none; }
+.dislike-check { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.fix-about { display: block; font-size: .8rem; color: var(--muted); margin-top: 2px; }
+
+/* Extras → Chat memory: the slider and the cost lines */
+.extras .memory { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.extras .memory input[type=range] { width: 100%; accent-color: #8b5cf6; }
+.extras .cost { display: block; margin-top: 6px; color: #a5b4fc; font-size: .85rem; }
+.extras .cost:empty { display: none; }

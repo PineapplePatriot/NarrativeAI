@@ -3,7 +3,7 @@
 // pen menu (remembered in this browser), or when the system asks for reduced motion (tints only).
 window.Atmosphere = (function () {
     const scene = document.querySelector('.character-background');
-    if (!scene) return null;
+    if (!scene) return { update() {}, timeOfDay, weather };
     const layer = document.createElement('div');
     layer.className = 'atmosphere';
     layer.setAttribute('aria-hidden', 'true');
@@ -58,5 +58,5 @@ window.Atmosphere = (function () {
         toggle.checked = isOn();
         toggle.addEventListener('change', () => { store(toggle.checked ? 'on' : 'off'); last = null; update(window.__lastWorld); });
     }
-    return { update(world) { window.__lastWorld = world; update(world); } };
+    return { update(world) { window.__lastWorld = world; update(world); }, timeOfDay, weather };
 })();

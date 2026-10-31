@@ -192,7 +192,7 @@
  .worldbook-icon {
      width: 48px;
      height: 48px;
-     background: linear-gradient(135deg, var(--accent-4), #FCD34D);
+     background: linear-gradient(135deg, var(--accent-1), #9863FF);
      border-radius: 10px;
      display: flex;
      align-items: center;

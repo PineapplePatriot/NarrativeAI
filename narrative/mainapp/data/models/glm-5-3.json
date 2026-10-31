@@ -14,7 +14,9 @@
     "https://docs.z.ai/guides/llm/glm-5.3",
     "https://docs.z.ai/api-reference/llm/chat-completion"
   ],
-  "limits": {},
+  "limits": {
+    "context": 1048576
+  },
   "reasoning": {
     "always_on": true,
     "default": "high",

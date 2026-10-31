@@ -9,12 +9,13 @@
   <link rel="stylesheet" href="{% static 'mainapp/css/tracker_setup.css' %}">
   <link rel="stylesheet" href="{% static 'mainapp/css/samplers.css' %}">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
 </head>
-<body>
+<body class="na-body">
 {% include "partials/topbar.html" with active="samplers" %}
-<div class="page">
-  <h1>Samplers</h1>
-  <p class="subtitle">
+<div class="page na-page na-narrow">
+  <h1 class="na-title">Samplers</h1>
+  <p class="subtitle na-sub">
     Fine-tuning for how the main chat model writes, saved in your active preset
     <b>{{ preset_name }}</b> (<a href="{% url 'presets' %}">switch presets</a>).
     Switched-off samplers are not sent at all, so the model uses its own defaults. That is the safe choice when unsure.

@@ -5,28 +5,25 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>World Books - Narrative AI</title>
+  <title>Worldbooks - Narrative AI</title>
   <link rel="stylesheet" href="{% static 'mainapp/css/worldbook_list.css' %}">
 
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
 </head>
-<body>
+<body class="na-body">
 {% include "partials/topbar.html" with active="worldbooks" %}
-  <div class="container">
-    <div class="header">
-      <div class="header-content">
-        <a href="{% url 'home' %}" class="back-nav">
-          <svg viewBox="0 0 24 24"><path d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"/></svg>
-          Back to Dashboard
-        </a>
-        <div class="page-title">
-          <h1>World Books</h1>
-          <p class="page-subtitle">Manage your story contexts and lore databases</p>
+  <div class="container na-page na-wide">
+    <div class="na-head">
+      <div class="na-head-row">
+        <div class="na-head-text">
+          <h1 class="na-title">Worldbooks</h1>
+          <p class="na-sub">Lore the AI looks up when it comes up in the story: places, people, history, rules of the world.</p>
         </div>
-        <div class="actions">
-          <a class="btn primary" href="{% url 'worldbook_create' %}">
+        <div class="na-actions">
+          <a class="na-btn na-primary" href="{% url 'worldbook_create' %}">
             <svg viewBox="0 0 24 24"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/></svg>
-            Create New
+            New worldbook
           </a>
         </div>
       </div>

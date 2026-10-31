@@ -50,11 +50,25 @@ This is where their preferences go (propose_preset's `taste`). Rules:
 7. **The basics form's answers go in as they are.** Point of view, tense, speech and actions, language,
    coloured speech and in-story panels were recorded word for word; copy those lines into `taste`
    unchanged (they're tested wordings, including the HTML ones), and take the length from reply_length.
+   "Who moves the story", "Making things up" and "Inner thoughts" go in unchanged too. They're separate
+   on purpose: a slow-burn story can still have characters who act, so don't infer one from another.
 
 8. **If a tested block already does it, borrow it instead of writing a line** (propose_preset's
    `borrow`; see the writing guide). A borrowed block replaces the taste line, it doesn't repeat it.
 9. **Games and set formats** (stats, dice, a status panel, a phone screen) follow "Story first, unless
    it's a game" in the writing guide.
+10. **Lean first, then one repair per problem you saw.** Start from the starter and their answers; add a
+   repair (a library block) only for a failure that showed up in their samples or their chats, one at a
+   time, and take out a rule that adds nothing you can see. Fix authorship and facts first (who controls
+   their character, possibilities vs canon, who knows what), then character behaviour, then taste.
+   A model saying it will follow a rule proves nothing: judge the sentences.
+11. **No automatic reminders after the chat.** A late "remember to..." block only for a failure you
+   observed; remove it once it repeats a rule that already works or makes replies stiff (Ancient Access's
+   author dropped theirs for that reason).
+12. **Check a fix against its opposite.** An anti-therapy rule must not make an actual therapist
+   inarticulate; anti-agreement must still allow earned agreement; quiet pacing must not stop urgency when
+   there's danger. When you show a before/after sample, ask both whether the problem got better and
+   whether the writing got more enjoyable.
 
 ## Who writes their character
 

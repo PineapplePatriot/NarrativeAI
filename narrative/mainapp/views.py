@@ -72,8 +72,13 @@ import re
 
 log = logging.getLogger(__name__)
 
-def _summarize(user, messages, existing=""):
-    """One summary piece for `messages`, continuing `existing` when there is one."""
+def _summary_line(message):
+    return f"{message[0]}: {chats.prompt_text(message)}"
+
+
+def _summarize(user, messages, existing="", room=None):
+    """One summary piece for `messages`, continuing `existing` when there is one. With `room` (tokens), a single
+    message longer than that is cut to fit (its end kept)."""
     if existing:
         sys_prompt = (f"Existing summary: {existing}\n\nTask: Read the recent conversation below "
                       "and create a short paragraph summarizing ONLY the new events, advancing the existing summary.")
@@ -81,9 +86,31 @@ def _summarize(user, messages, existing=""):
         sys_prompt = ("Summarize this entire roleplay story concisely. Capture key events and current status. "
                       "Be clear and precise, focus on describing events and reactions in detail. "
                       "The summary should include Tone, Setting, Events, Current emotional state.")
-    prompt_text = "\n".join(f"{m[0]}: {chats.prompt_text(m)}" for m in messages)
+    lines = [_summary_line(m) for m in messages]
+    if room and len(lines) == 1:
+        lines = [samplers.cut_to(lines[0], room)]
+    prompt_text = "\n".join(lines)
     return ai_client.complete(user, "summary", [{"role": "system", "content": sys_prompt},
                                                 {"role": "user", "content": prompt_text}])
+
+
+def _summarize_pieces(user, messages, start, earlier=""):
+    """Summary pieces for `messages` (the first one is message number `start`): one piece when they fit the
+    summary model's window, else several in a row, each continuing the ones before, so nothing is dropped."""
+    window = samplers.job_window(user, "summary")
+    pieces, i = [], 0
+    while i < len(messages):
+        existing = "\n".join(filter(None, [earlier] + [p["text"] for p in pieces]))
+        room = max(1000, window - samplers.approx_tokens(existing) - 300)  # 300: the instructions
+        j, used = i, 0
+        while j < len(messages):
+            cost = samplers.approx_tokens(_summary_line(messages[j]))
+            if j > i and used + cost > room:
+                break
+            used, j = used + cost, j + 1
+        pieces.append({"text": _summarize(user, messages[i:j], existing, room), "from": start + i, "to": start + j})
+        i = j
+    return pieces
 
 
 def _photo(character, prefix, emotion):
@@ -214,6 +241,12 @@ def chat(request, slug):
     def story_state():
         chat_state["story"] = story.state_of(chat_state["story"], systems)
         return chat_state["story"]
+
+    def _synced(state):
+        """The tracker state with the World's date and time from the story clock (when there is one)."""
+        if systems and isinstance(state.get("trackers"), dict):
+            story.sync_world(story_state(), systems, state["trackers"])
+        return state["trackers"]
 
     def story_payload():
         """What the tracker panel shows of the story systems (None when there are none)."""
@@ -591,6 +624,17 @@ def chat(request, slug):
             return JsonResponse({"success": True, "note": note, "spending": ai_client.spending(request.user)})
 
         # ... inside chat view POST handler ...
+        elif action == "toggle_tracker":  # the tracker rail's Stop tracking / ＋: for this character, as on its Trackers page
+            tid = data.get("tracker")
+            if tid not in trackers.TRACKERS_BY_ID:
+                return JsonResponse({"success": False, "error": "No such tracker."}, status=400)
+            raw = dict(character.tracker_config or {})
+            switched = dict(raw.get("trackers") or {})
+            switched[tid] = {**(switched.get(tid) if isinstance(switched.get(tid), dict) else {}), "on": bool(data.get("on"))}
+            character.tracker_config = trackers.normalize_config({**raw, "trackers": switched})
+            character.save(update_fields=["tracker_config"])
+            page = _tracker_page_data(request.user, character, _synced(chat_state))
+            return JsonResponse({"success": True, "config": page["config"], "specs": page["specs"], "state": page["state"]})
         elif action in ("update_trackers", "save_trackers", "clear_trackers"):
             config = trackers.normalize_config(character.tracker_config, game_mode, "milestones" in extra_kinds,
             "keepsakes" in extra_kinds)
@@ -616,9 +660,28 @@ def chat(request, slug):
                 recent = (messages[-4:] if len(recent) < 4 else recent)[-16:]
                 user_name = request.user.name or request.user.username
                 named = [(user_name if m[0] == "user" else character.name, m[2]) for m in recent]
-                request_messages = trackers.update_messages(config, state, named, character.name, user_name, only)
-                if with_story:
-                    request_messages[0]["content"] += "\n\n" + story.prompt_section(systems, story_state())
+                def tracker_request(named):
+                    built = trackers.update_messages(config, state, named, character.name, user_name, only)
+                    if with_story:
+                        built[0]["content"] += "\n\n" + story.prompt_section(systems, story_state())
+                    return built
+
+                # Within the tracker model's window: the oldest messages go first (the latest scene matters most),
+                # then a single very long message keeps its end
+                window = samplers.job_window(request.user, "trackers")
+                size = lambda built: sum(samplers.approx_tokens(m["content"]) for m in built)
+                request_messages = tracker_request(named)
+                while len(named) > 1 and size(request_messages) > window:
+                    named = named[1:]
+                    request_messages = tracker_request(named)
+                if size(request_messages) > window:
+                    rest = size(request_messages) - samplers.approx_tokens(named[0][1])
+                    named = [(named[0][0], samplers.cut_to(named[0][1], window - rest))]
+                    request_messages = tracker_request(named)
+                if size(request_messages) > window:
+                    return JsonResponse({"success": False, "error": "The trackers hold more than the tracker model can "
+                                         "read at once. Clear some entries, or pick a model with a larger window on "
+                                         "the Connections page."})
                 try:
                     reply_text = ai_client.complete(request.user, "trackers", request_messages,
                                                     temperature=0.2, response_format={"type": "json_object"})
@@ -630,11 +693,13 @@ def chat(request, slug):
                     if last and last[0] == "assistant":
                         story.stage(story_state(), update, len(messages), last[2])
                 update.pop("_story", None)
-                if with_story and story.of_type(systems, "clock") and isinstance(update.get("world"), dict):
+                if story.of_type(systems, "clock") and isinstance(update.get("world"), dict):
                     update["world"] = {k: v for k, v in update["world"].items() if k not in ("date", "time")}
                 changed = trackers.apply_update(config, state, update, only)
                 if not only:
                     state["upto"] = len(messages)
+            if systems:  # with a story clock, the World tracker's date and time always show it
+                story.sync_world(story_state(), systems, state)
 
             chat_state["trackers"] = state
             chat_state["tracker_history"] = chats.add_snapshot(chat_state["tracker_history"], state, len(messages))
@@ -684,10 +749,10 @@ def chat(request, slug):
                         raise ValueError("Not enough history.")
                     earlier = chats.summary_text([p for p in parts if p["to"] <= start])
                     try:
-                        new_text = _summarize(request.user, messages[start:stop], earlier)
+                        new_parts = _summarize_pieces(request.user, messages[start:stop], start, earlier)
                     except ai_client.AIError as e:
                         raise ValueError(str(e))
-                    parts = sorted(parts + [{"text": new_text, "from": start, "to": stop}], key=lambda p: p["from"])
+                    parts = sorted(parts + new_parts, key=lambda p: p["from"])
             except ValueError as e:
                 return JsonResponse({"success": False, "error": str(e)})
 
@@ -715,7 +780,7 @@ def chat(request, slug):
             summary_mode = data.get("summary_mode", "transfer")
             if summary_mode == "rerun":
                 try:
-                    parts = [{"text": _summarize(request.user, messages[:count]), "from": 0, "to": count}]
+                    parts = _summarize_pieces(request.user, messages[:count], 0)
                 except ai_client.AIError as e:
                     return JsonResponse({"success": False, "error": str(e)})
             elif summary_mode == "transfer":
@@ -1263,7 +1328,7 @@ def chat(request, slug):
         "current_music": json.dumps(chat_state["current_music"] or (character.theme or {}).get("music") or {}),
         "music_follow": bool(chat_state["music_follow"].get("on")),
         "user_avatar": user_avatar,
-        "trackers_data": {**_tracker_page_data(request.user, character, chat_state["trackers"]), "story": story_payload()},
+        "trackers_data": {**_tracker_page_data(request.user, character, _synced(chat_state)), "story": story_payload()},
         "stream_replies": presets.normalize(presets.get_active(request.user).data)["options"]["streaming"],
         "chat": chat_obj,
         "chat_list": chats.summary_list(character, chat_obj.id),
@@ -1330,7 +1395,8 @@ def condense(user, character, message, persona=None):
     who = names["user"] if message[0] == "user" else character.name
     text = ai_client.complete(user, "summary", [
         {"role": "system", "content": CONDENSE_PROMPT},
-        {"role": "user", "content": f"{who}'s message:\n\n{message[2]}"}], max_tokens=1500, temperature=0.2)
+        {"role": "user", "content": f"{who}'s message:\n\n{samplers.cut_to(message[2], samplers.job_window(user, 'summary') - 500, keep='start')}"}],
+        max_tokens=1500, temperature=0.2)
     text = (text or "").strip()
     if not text:
         raise ai_client.AIError("The model sent back nothing. Try again.")
@@ -1548,6 +1614,7 @@ def _tracker_page_data(user, character, raw_state):
         "state": trackers.normalize_state(raw_state, config),
         "schedule": {"mode": task.mode, "interval": task.interval},
         "setup_url": reverse("tracker_setup", args=[character.slug]),
+        "character_name": character.name,
     }
 
 
@@ -2280,6 +2347,14 @@ def bulba_page(request):
     if not ai_client.has_connection(request.user):
         return redirect("users:welcome")
     session = _bulba_session(request.user)
+    route = request.GET.get("route")
+    if session and route in ("full", "fast") and len(session.events) == 1:  # picked on the welcome tour's last step
+        from .bulba import agent
+        try:
+            agent.take_route(session, route)
+            session.save()
+        except ValueError:  # no ready setup for this model: Bulba's opening asks as usual
+            pass
     from .models import BulbaSession
     # Bulba's conversations inside chats live on those chats' pages; list them so they're easy to find
     in_chats = [{"title": f"{b.chat.character.name} · {b.chat.title}", "events": len(b.events),
@@ -2291,6 +2366,26 @@ def bulba_page(request):
         "known_models": model_profiles.known_names(),
         "in_chats": in_chats,
     })
+
+
+@login_required
+def bulba_explain(request):
+    """What's this? Bulba explains one thing they clicked (or asked about) on a page."""
+    from .bulba import explain
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only"}, status=405)
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return JsonResponse({"error": "Invalid request."}, status=400)
+    if not isinstance(data, dict):
+        return JsonResponse({"error": "Invalid request."}, status=400)
+    if not ai_client.has_connection(request.user):
+        return JsonResponse({"error": "Bulba needs your OpenRouter key first (the welcome page)."}, status=400)
+    try:
+        return JsonResponse({"text": explain.explain(request.user, data)})
+    except ai_client.AIError as e:
+        return JsonResponse({"error": str(e)}, status=502)
 
 
 @login_required
@@ -2368,25 +2463,38 @@ def bulba_api(request):
         return JsonResponse({"events": events, "state": _bulba_state(session),
                              "watch": watch.page_state(request.user, session.chat)})
     elif action == "extras_form":  # the extras in one form: applied at once (Undo on the card)
-        part = "story" if data.get("part") == "story" else "setup"
+        part = data.get("part") if data.get("part") in ("story", "memory") else "setup"
         answers = data.get("answers") if isinstance(data.get("answers"), dict) else {}
         form_event = next((e for e in reversed(session.events) if e.get("type") == "extras_form"
                            and e.get("part") == part), None)
         if form_event is None:
             return JsonResponse({"error": "There's no form to answer."}, status=400)
         payload, summary = agent.form_payload(part, answers)
-        if not payload:
+        tracker_pick = agent.form_trackers(session, answers) if part == "story" else None
+        if not payload and not tracker_pick:
             return JsonResponse({"error": "Nothing picked."}, status=400)
-        proposal = agent._proposal(session, "extras", "Extras" if part == "setup" else "Story extras", summary, payload)
-        try:
-            note = actions.apply(session, proposal["id"])
-        except actions.ProposalError as e:
-            session.proposals.remove(proposal)
-            return JsonResponse({"error": str(e)}, status=400)
-        form_event["answers"] = {k: payload.get(k) for k in payload}
-        moved = agent.advance_stage(session, proposal)
-        shown = [{"type": "proposal", "id": proposal["id"]}] + ([moved] if moved else [])
-        if part == "setup" and session.stage == "taste":  # the basics form comes next, no AI needed
+        shown, note, proposal = [], "", None
+        if payload:
+            title = {"setup": "Extras", "story": "Story extras", "memory": "Chat memory"}[part]
+            proposal = agent._proposal(session, "memory" if part == "memory" else "extras", title, summary, payload)
+            try:
+                note = actions.apply(session, proposal["id"])
+            except actions.ProposalError as e:
+                session.proposals.remove(proposal)
+                return JsonResponse({"error": str(e)}, status=400)
+            shown.append({"type": "proposal", "id": proposal["id"]})
+        form_event["answers"] = {**{k: payload.get(k) for k in payload},
+                                 **({"trackers": answers["trackers"]} if tracker_pick is not None else {})}
+        if tracker_pick:  # the trackers they kept ticked, for the character: their own card, with Undo
+            pid, lines = tracker_pick
+            note = (note + " " + actions.apply(session, pid)).strip()
+            shown.append({"type": "proposal", "id": pid})
+            summary += lines
+        moved = agent.advance_stage(session, proposal) if proposal and part != "memory" else None
+        shown += [moved] if moved else []
+        if part == "memory":  # the Fast route's memory step: on to the persona question, no AI needed
+            events = agent.after_memory_form(session, shown)
+        elif part == "setup" and session.stage == "taste":  # the basics form comes next, no AI needed
             events = agent._canned(session, "Sent the extras",
                                    "Done. Now the main part: how replies should read. Answer what you care about, "
                                    "skip the rest.", extra_events=shown, after=[{"type": "form", "form": "basics"}])

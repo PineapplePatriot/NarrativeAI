@@ -14,7 +14,9 @@
     "https://openrouter.ai/xiaomi/mimo-v2.6-pro",
     "https://rentry.org/Evening-Truth-Xiaomi-MiMo-V26"
   ],
-  "limits": {},
+  "limits": {
+    "context": 1050000
+  },
   "reasoning": {
     "always_on": false,
     "default": "medium",

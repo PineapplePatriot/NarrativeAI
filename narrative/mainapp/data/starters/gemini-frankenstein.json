@@ -1643,11 +1643,11 @@
     "value": 1000000
    },
    "temperature": {
-    "on": true,
+    "on": false,
     "value": 0.7
    },
    "top_p": {
-    "on": true,
+    "on": false,
     "value": 0.8
    },
    "top_k": {

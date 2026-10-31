@@ -94,7 +94,8 @@ button.link { background: none; padding: 0; color: var(--accent-soft); text-deco
 .potato.big { font-size: 4rem; }
 
 @media (max-width: 860px) {
-    .bulba-layout { grid-template-columns: 1fr; }
+    .bulba-layout { grid-template-columns: minmax(0, 1fr); }
+    .bulba-layout > * { min-width: 0; }
     .bulba-panel { border-left: none; border-top: 1px solid var(--border); max-height: 40vh; }
     body { height: auto; min-height: 100%; }
     .log { max-height: none; }
@@ -215,3 +216,10 @@ body.embed .mini-progress { top: 0; }
 .extras-form .form-why { margin: 0 0 4px; }
 .extras-form input[type=number], .extras-form select { background: var(--card-2); color: var(--text);
     border: 1px solid var(--border); border-radius: 6px; padding: 3px 6px; font: inherit; }
+
+/* The setup form's chat memory slider and cost estimates */
+.extras-form .memory { display: flex; flex-direction: column; gap: 4px; width: 100%; }
+.extras-form .memory input[type=range] { width: 100%; accent-color: #8b5cf6; }
+.extras-form .memory b { font-size: .9rem; }
+.extras-form .cost { display: block; width: 100%; margin-top: 4px; color: #a5b4fc; }
+.extras-form .cost:empty { display: none; }

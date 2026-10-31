@@ -17,4 +17,5 @@ urlpatterns = [
     path("api-config/test/", views.connections_test, name="connections_test"),
     path("welcome/", views.welcome, name="welcome"),
     path("extras/", views.extras, name="extras"),
+    path("stats/", views.stats, name="stats"),
 ]

@@ -135,7 +135,7 @@ def system_prompt(session):
     from mainapp.bulba import agent
     text = (DATA_DIR / "doctor.md").read_text(encoding="utf-8")
     profile = agent.target_profile(session)
-    guides = [(DATA_DIR / "guides" / f"{g}.md").read_text(encoding="utf-8") for g in ("presets", "characters", "lore", "writing", "tuning")]
+    guides = [(DATA_DIR / "guides" / f"{g}.md").read_text(encoding="utf-8") for g in ("presets", "characters", "lore", "writing", "tuning", "app")]
     pending = [f"- {p['id']} {p['kind']}: {p['title']} ({p['status']})" for p in session.proposals]
     return "\n\n".join(filter(None, [
         text, *guides,
