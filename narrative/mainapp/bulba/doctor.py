@@ -277,6 +277,8 @@ def tool_retry_reply(session, args):
     proposal = next((p for p in session.proposals if p["id"] == args.get("from_proposal")), None)
     if args.get("from_proposal") and proposal is None:
         return {"error": "No proposal with that id."}, []
+    if proposal and proposal.get("status") == "applied":
+        proposal = None  # already saved: the preset and card as they are now carry it (applying again would double it)
     if proposal and proposal["kind"] == "preset_edit":
         try:
             preset = apply_edits(presets.normalize(presets.get_active(session.user).data), proposal["payload"]["edits"])

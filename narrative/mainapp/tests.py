@@ -2797,6 +2797,11 @@ class BulbaInChatTests(ChatPromptTests):
         self.script = [("Done.", [])]
         self.api(action="apply", id=proposal["id"])
         self.assertIn("Keep replies to two paragraphs.", json.dumps(presets_mod.get_active(self.user).data))
+        # A rewrite after Apply uses the saved preset (no "already in the preset" error, the rule sent once)
+        self.script = [("Again.", [self.call("retry_reply", from_proposal=proposal["id"])])]
+        data = self.api(action="say", text="again").json()
+        self.assertTrue(any(e["type"] == "samples" for e in data["events"]))
+        self.assertEqual(json.dumps(self.retry_calls[-1]["messages"]).count("Keep replies to two paragraphs."), 1)
         self.script = [("Undone.", [])]
         self.api(action="undo", id=proposal["id"])
         self.assertNotIn("Keep replies to two paragraphs.", json.dumps(presets_mod.get_active(self.user).data))
