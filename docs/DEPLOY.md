@@ -33,11 +33,12 @@ Open the service → **Variables** → add these. Values you make up yourself ar
 | Name | Value |
 |---|---|
 | `DJANGO_DEBUG` | `0` |
-| `DJANGO_SECRET_KEY` | *(yours)* a long random string, 50+ characters. A password manager's generator works; never reuse it anywhere. |
+| `DJANGO_SECRET_KEY` | *(yours)* a long random string, 50+ characters. A password manager's generator works; never reuse it anywhere. The app refuses to start on a server without it. **Don't change it later:** it also encrypts everyone's saved API keys, so after a change they'd have to paste their keys again. |
 | `NARRATIVE_DATA_DIR` | `/data` |
 | `DEMO_PASSWORD` | *(yours)* the password graders will type |
 | `DEMO_OPENROUTER_KEY` | *(optional)* an OpenRouter key just for the demo (see below) |
 | `DEMO_MODEL` | *(optional)* defaults to `mimo-v2-6-pro`; any file name in `narrative/mainapp/data/models/` without `.json` |
+| `STATS_USERS` | *(optional)* usernames that may open the usage page `/users/stats/`, comma-separated (e.g. `anna,mykola`). Staff accounts can open it anyway. |
 
 Type these into Railway only, never into a chat (including with Bulba or with me).
 

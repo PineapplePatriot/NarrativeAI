@@ -6,7 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create an account - Narrative AI</title>
-    <link rel="stylesheet" href="{% static 'users/css/register.css' %}">
+    <link rel="stylesheet" href="{% static 'users/css/register.css' %}?v=2">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
 </head>
 <body class="na-body">
@@ -30,6 +30,8 @@
             {% endfor %}
 
             <button type="submit">Create account</button>
+            <p class="privacy-note">A student project in a test run. We count which pages you open and when (never what you
+                write) to see how the app is used; nothing is shared with anyone. Your API key is stored encrypted.</p>
         </form>
         <p class="auth-switch">Already have an account? <a href="{% url 'users:login' %}">Log in</a></p>
     </div>

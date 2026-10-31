@@ -2,6 +2,8 @@ import os
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
+from .secret_fields import EncryptedCharField
+
 # Create your models here.
 class User(AbstractUser):
     name = models.CharField(max_length=30, blank=True, verbose_name="First name")
@@ -26,7 +28,7 @@ class ApiConfig(models.Model):
         on_delete=models.CASCADE,
         related_name="api_config"
     )
-    eleven_key = models.CharField(max_length=256, blank=True)
+    eleven_key = EncryptedCharField(max_length=512, blank=True)  # stored encrypted (users/secret_fields.py)
 
     def __str__(self):
         return f"API config for {self.user.username}"
@@ -47,7 +49,7 @@ class ConnectionProfile(models.Model):
     name = models.CharField(max_length=100)
     provider = models.CharField(max_length=32, choices=PROVIDERS, default=PROVIDER_OPENROUTER)
     base_url = models.CharField(max_length=512, blank=True, help_text="Only for custom providers")
-    api_key = models.CharField(max_length=512, blank=True)
+    api_key = EncryptedCharField(max_length=1024, blank=True)  # stored encrypted (users/secret_fields.py)
     model = models.CharField(max_length=256)
     time_create = models.DateTimeField(auto_now_add=True)
 
@@ -105,3 +107,16 @@ class UsageRecord(models.Model):
 
     class Meta:
         indexes = [models.Index(fields=["user", "time_create"])]
+
+
+class Activity(models.Model):
+    """What a signed-in person did and when, for usage numbers (users/usage.py): pages they opened, and actions
+    (sending a message, saving a setting), at most one action a minute. No content, only the path."""
+    KIND_PAGE, KIND_ACTION = "page", "action"
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="activity")
+    at = models.DateTimeField(auto_now_add=True, db_index=True)
+    kind = models.CharField(max_length=8)
+    path = models.CharField(max_length=200)
+
+    class Meta:
+        indexes = [models.Index(fields=["user", "at"])]

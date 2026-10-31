@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 
 from django.db import transaction
 from django.http import JsonResponse
@@ -485,3 +486,29 @@ def _extras_page_state(user):
     from mainapp.bulba.agent import memory_and_prices
     state = _extras_state(user)
     return {**state, **memory_and_prices(user, state)}
+
+
+def can_see_stats(user):
+    """Staff, or a username listed in the STATS_USERS variable on the server (comma-separated)."""
+    allowed = {u.strip().lower() for u in os.environ.get("STATS_USERS", "").split(",") if u.strip()}
+    return user.is_authenticated and (user.is_staff or user.username.lower() in allowed)
+
+
+@login_required
+def stats(request):
+    """The usage numbers (users/usage.py), for the project's owners only."""
+    from django.http import Http404, HttpResponse
+    from users import usage
+    if not can_see_stats(request.user):
+        raise Http404()
+    try:
+        days = int(request.GET.get("days") or 0) or None
+    except ValueError:
+        days = None
+    data = usage.report(days=days, exclude=() if request.GET.get("demo") else ("demo",))
+    if request.GET.get("format") == "csv":
+        response = HttpResponse(usage.csv_text(data), content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="narrativeai-usage.csv"'
+        return response
+    return render(request, "users/stats.html", {"data": data, "days": days or "", "demo": bool(request.GET.get("demo")),
+                                                "columns": usage.COLUMNS})

@@ -5861,3 +5861,145 @@ class MemoryAndCostTests(BulbaTests):
         self.assertEqual(len(windows), 11)
         self.assertTrue(all(w >= 1000000 for w in windows.values()), windows)
         self.assertEqual(windows["mimo-v2-6-pro"], 1050000)
+
+
+@override_settings(MEDIA_ROOT="/tmp/narrative-test-media")
+class SecurityTests(TestCase):
+    """Sign-up emails, encrypted API keys and the login limit (31 October 2026)."""
+
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+
+    def register(self, username, email):
+        return self.client_class().post(reverse("users:register"), {
+            "username": username, "email": email, "password1": "Lantern-Quay-81", "password2": "Lantern-Quay-81"})
+
+    def test_email_is_required_and_unique_whatever_the_case(self):
+        self.assertEqual(self.register("a1", "Mira@Example.com").status_code, 302)
+        self.assertEqual(get_user_model().objects.get(username="a1").email, "mira@example.com")
+        dup = self.register("a2", "MIRA@example.com")
+        self.assertIn("already exists", str(dup.context["form"].errors["email"]))
+        empty = self.register("a3", "")
+        self.assertIn("required", str(empty.context["form"].errors["email"]))
+        self.assertEqual(self.register("a4", "other@example.com").status_code, 302)  # nothing left over blocks others
+
+    def test_profile_cannot_take_someone_elses_email(self):
+        from users.forms import ProfileUserForm
+        get_user_model().objects.create_user("owner", "taken@example.com", "pw12345!xyz")
+        me = get_user_model().objects.create_user("me", "me@example.com", "pw12345!xyz")
+        form = ProfileUserForm(data={"username": "me", "email": "Taken@Example.com"}, instance=me)
+        self.assertFalse(form.is_valid())
+        form = ProfileUserForm(data={"username": "me", "email": "ME@example.com"}, instance=me)
+        self.assertTrue(form.is_valid(), form.errors)  # their own address, any case
+
+    def test_api_keys_are_encrypted_in_the_database(self):
+        from django.db import connection
+        from users.models import ApiConfig, ConnectionProfile
+        user = get_user_model().objects.create_user("k", "k@example.com", "pw12345!xyz")
+        ConnectionProfile.objects.create(user=user, name="Main", api_key="sk-or-v1-secret-1234", model="m")
+        ApiConfig.objects.create(user=user, eleven_key="eleven-secret")
+        with connection.cursor() as c:
+            c.execute("SELECT api_key FROM users_connectionprofile")
+            raw = c.fetchone()[0]
+            c.execute("SELECT eleven_key FROM users_apiconfig")
+            raw_eleven = c.fetchone()[0]
+        self.assertTrue(raw.startswith("enc1:") and "secret" not in raw)
+        self.assertTrue(raw_eleven.startswith("enc1:") and "secret" not in raw_eleven)
+        profile = ConnectionProfile.objects.get(user=user)
+        self.assertEqual((profile.api_key, profile.key_hint), ("sk-or-v1-secret-1234", "…1234"))
+
+    def test_old_plain_keys_still_read_and_a_changed_secret_reads_as_empty(self):
+        from users import secret_fields
+        self.assertEqual(secret_fields.decrypt("sk-or-plain"), "sk-or-plain")
+        stored = secret_fields.encrypt("sk-or-v1-abc")
+        with self.settings(SECRET_KEY="a-different-secret-key"):
+            self.assertEqual(secret_fields.decrypt(stored), "")
+        self.assertEqual(secret_fields.decrypt(stored), "sk-or-v1-abc")
+
+    def test_too_many_wrong_passwords_lock_the_login(self):
+        get_user_model().objects.create_user("lock", "lock@example.com", "Right-Pass-123")
+        url = reverse("users:login")
+        for _ in range(10):
+            self.client.post(url, {"username": "lock", "password": "wrong"})
+        page = self.client.post(url, {"username": "lock", "password": "Right-Pass-123"})
+        self.assertContains(page, "Too many wrong passwords")
+        self.assertNotIn("_auth_user_id", self.client.session)
+        from django.core.cache import cache
+        cache.clear()  # the lock has passed
+        page = self.client.post(url, {"username": "lock", "password": "Right-Pass-123"})
+        self.assertEqual(page.status_code, 302)
+
+    def test_a_right_password_resets_the_count(self):
+        from django.core.cache import cache
+        get_user_model().objects.create_user("ok", "ok@example.com", "Right-Pass-123")
+        url = reverse("users:login")
+        for _ in range(5):
+            self.client.post(url, {"username": "ok", "password": "wrong"})
+        self.client.post(url, {"username": "ok", "password": "Right-Pass-123"})
+        self.assertIsNone(cache.get("login-fail:user:ok"))
+
+
+@override_settings(MEDIA_ROOT="/tmp/narrative-test-media")
+class UsageTests(TestCase):
+    """Activity recording and the usage report (users/activity.py, users/usage.py)."""
+
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        self.user = get_user_model().objects.create_user("reader", "reader@example.com", "pw12345!xyz")
+        self.client.force_login(self.user)
+
+    def test_pages_and_actions_are_recorded_but_not_polls_or_strangers(self):
+        from users.models import Activity
+        self.client.get(reverse("home"))
+        self.client.get(reverse("bulba_api"))  # a JSON poll: not a visit
+        self.client.post(reverse("users:extras"), json.dumps({"sprites": True}), content_type="application/json")
+        self.client.post(reverse("users:extras"), json.dumps({"sprites": False}), content_type="application/json")
+        kinds = list(Activity.objects.filter(user=self.user).values_list("kind", "path"))
+        self.assertEqual(kinds, [("page", "/"), ("action", "/users/extras/")])  # one action a minute
+        self.client.logout()
+        self.client.get(reverse("users:login"))
+        self.assertEqual(Activity.objects.count(), 2)
+
+    def test_report_counts_sessions_people_and_leaves_out_demo_and_staff(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        from users import usage
+        from users.models import Activity, UsageRecord
+        demo = get_user_model().objects.create_user("demo", "d@example.com", "pw12345!xyz")
+        staff = get_user_model().objects.create_user("boss", "b@example.com", "pw12345!xyz", is_staff=True)
+        start = timezone.now() - timedelta(days=2)
+        for minutes in (0, 10, 25, 120, 130):  # two sessions: 25 minutes, then (95 min later) 10 minutes
+            a = Activity.objects.create(user=self.user, kind="page", path="/")
+            Activity.objects.filter(pk=a.pk).update(at=start + timedelta(minutes=minutes))
+        a = Activity.objects.create(user=self.user, kind="page", path="/")  # and another day
+        for u in (demo, staff):
+            Activity.objects.create(user=u, kind="page", path="/")
+        UsageRecord.objects.create(user=self.user, task="chat", model="m", cost=0.25)
+        data = usage.report()
+        self.assertEqual([r["username"] for r in data["users"]], ["reader"])
+        row = data["users"][0]
+        self.assertEqual((row["sessions"], row["active_days"], row["spend"]), (3, 2, 0.25))
+        self.assertEqual(row["minutes"], 25 + 10 + 1)
+        s = data["summary"]
+        self.assertEqual((s["accounts"], s["active_users"], s["returning_users"], s["sessions"]), (1, 1, 1, 3))
+        self.assertEqual(len(usage.report(exclude=(), include_staff=True)["users"]), 3)
+        self.assertIn("reader", usage.csv_text(data))
+
+    def test_stats_page_is_only_for_staff_or_listed_users(self):
+        import os
+        from unittest import mock
+        self.assertEqual(self.client.get(reverse("users:stats")).status_code, 404)
+        with mock.patch.dict(os.environ, {"STATS_USERS": "someone, Reader"}):
+            page = self.client.get(reverse("users:stats"))
+            self.assertContains(page, "Per person")
+            csv = self.client.get(reverse("users:stats") + "?format=csv")
+            self.assertEqual(csv["Content-Type"], "text/csv")
+
+    def test_usage_report_command_runs(self):
+        import io
+        from django.core.management import call_command
+        out = io.StringIO()
+        call_command("usage_report", stdout=out)
+        self.assertIn("active users", out.getvalue())
