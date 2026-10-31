@@ -162,7 +162,29 @@ def opening(session):
 # Edits
 # ---------------------------------------------------------------------------
 
-EDIT_ACTIONS = ("replace", "append", "enable", "disable", "add")
+EDIT_ACTIONS = ("replace", "append", "enable", "disable", "add", "remind")
+REMINDER = "Reply reminder"  # the in-chat block right before the model writes: a rule for every reply lands here
+REMINDER_LINE = 300
+
+
+def _remind(preset, line):
+    """Puts a one-line reminder at the very end of the prompt (in the chat, right before the reply), where
+    models follow it best: added to their "Reply reminder" block, or in a new one."""
+    line = " ".join(str(line or "").split())[:REMINDER_LINE]
+    if not line:
+        raise ValueError("A reminder needs one line of text.")
+    block = next((b for b in preset["blocks"] if b["kind"] == "prompt" and b["position"] == "in_chat"
+                  and b["name"] == REMINDER), None)
+    if block is None:
+        block = presets.normalize_block({"name": REMINDER, "kind": "prompt", "role": "system", "content": line,
+                                         "position": "in_chat", "depth": 0})
+        note = next((i for i, b in enumerate(preset["blocks"]) if b.get("marker") == "director_note"),
+                    len(preset["blocks"]))
+        preset["blocks"].insert(note, block)
+        return
+    block["enabled"] = True
+    if line not in block["content"]:
+        block["content"] = (block["content"].rstrip() + "\n" + line).strip()
 
 
 def apply_edits(preset, edits):
@@ -172,6 +194,9 @@ def apply_edits(preset, edits):
         action, name = e.get("action"), str(e.get("block") or "").strip()
         if action not in EDIT_ACTIONS:
             raise ValueError(f"Unknown edit action: {action}")
+        if action == "remind":
+            _remind(preset, e.get("content"))
+            continue
         if action == "add":
             if any(b["name"] == name for b in preset["blocks"]):
                 raise ValueError(f"“{name}” is already in the preset; switch it on or edit it instead.")
@@ -205,6 +230,8 @@ def _edit_line(e):
     action, name = e.get("action"), e.get("block") or "Bulba's fix"
     if action in ("enable", "disable"):
         return f"Switch {'on' if action == 'enable' else 'off'}: {name}"
+    if action == "remind":
+        return f"Reminder right before each reply:\n  {_clip(e.get('content'), 300)}"
     verb = {"replace": "Rewrite", "append": "Add to", "add": "New block"}[action]
     return f"{verb}: {name}\n  {_clip(e.get('content'), 600)}"
 
@@ -336,12 +363,13 @@ def tools():
             "Smallest change that fixes the problem; read a block before rewriting it.",
             {"edits": {"type": "array", "maxItems": 6, "items": {"type": "object", "properties": {
                 "action": {"type": "string", "enum": list(EDIT_ACTIONS),
-                           "description": "replace a block's text, append to it, switch it on/off, or add a new block"},
+                           "description": "replace a block's text, append to it, switch it on/off, add a new "
+                           "block, or remind: one short line put right before each reply (no block name needed)"},
                 "block": {"type": "string", "description": "The block's name (for add: the new block's name)"},
                 "content": {"type": "string", "description": "New text (replace/append/add)"},
                 "from_library": {"type": "string", "description": "Instead of content: add this library block "
                                  "word for word (exact name from find_practice)"}},
-                "required": ["action", "block"]}},
+                "required": ["action"]}},
              "from_taste": {"type": "array", "items": STR, "description": "When this puts what Bulba Watch learned "
                             "about their taste into the preset: the exact learned lines it covers"},
              "why": STR}, ["edits", "why"]),

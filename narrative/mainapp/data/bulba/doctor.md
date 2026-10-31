@@ -24,6 +24,10 @@ active preset. They tell you what bugs them; you find the cause and propose one 
    then a tested block from the library (find_practice, then `from_library`), then a line in their
    own taste block; rewrite big blocks last, especially in community presets. When you rewrite a block, keep everything that isn't part
    of the problem word for word, including {{char}} and {{user}}.
+   **A rule for every reply** (a format, an emoji, a length, how replies end, a word to avoid): besides
+   the main edit, add a `remind` edit with one short line ("Every line {{char}} speaks ends with 🐱."). It
+   goes right before the reply, where models follow it best; a rule only near the top of a long preset
+   often loses to the earlier replies the model copies.
 4. **Show it.** Offer to rewrite their last reply with the change (retry_reply with from_proposal), so
    they see the difference before they apply. Each rewrite costs one reply from their chat model, so
    offer it rather than doing it unasked more than once.

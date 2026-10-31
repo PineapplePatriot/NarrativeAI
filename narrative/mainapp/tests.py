@@ -2806,6 +2806,27 @@ class BulbaInChatTests(ChatPromptTests):
         self.api(action="undo", id=proposal["id"])
         self.assertNotIn("Keep replies to two paragraphs.", json.dumps(presets_mod.get_active(self.user).data))
 
+    def test_remind_edit_lands_right_before_the_reply(self):
+        self.make_chat()
+        from mainapp import presets as presets_mod
+        from mainapp.bulba.doctor import apply_edits
+        preset = presets_mod.normalize(presets_mod.get_active(self.user).data)
+        preset["blocks"] = [b for b in preset["blocks"] if b["name"] != "Reply reminder"]
+        once = apply_edits(preset, [{"action": "remind", "content": "Every line {{char}} speaks ends with 🐱."}])
+        block = next(b for b in once["blocks"] if b["name"] == "Reply reminder")
+        self.assertEqual((block["position"], block["depth"]), ("in_chat", 0))
+        twice = apply_edits(once, [{"action": "remind", "content": "Every line {{char}} speaks ends with 🐱."},
+                                   {"action": "remind", "content": "Keep it under 200 words."}])
+        reminder = next(b for b in twice["blocks"] if b["name"] == "Reply reminder")["content"]
+        self.assertEqual(reminder.count("🐱"), 1)
+        self.assertIn("Keep it under 200 words.", reminder)
+        from mainapp.views import build_chat_request
+        built = build_chat_request(self.user, self.character.chats.first(), preset=twice)
+        last = json.dumps(built["messages"][-2:], ensure_ascii=False)
+        self.assertIn("🐱", last)   # near the very end, not buried at the top
+        with self.assertRaises(ValueError):
+            apply_edits(once, [{"action": "remind", "content": "  "}])
+
     def test_bad_edits_are_refused(self):
         self.make_chat()
         self.script = [("", [self.call("propose_preset_edit", why="x", edits=[{"action": "replace", "block": "Nope", "content": "x"}])]),
