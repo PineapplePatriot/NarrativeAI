@@ -1669,8 +1669,23 @@ class WelcomeTests(TestCase):
     def test_lists_eleven_models_recommended_first(self):
         models = self.client.get(self.url).context["welcome_data"]["models"]
         self.assertEqual(len(models), 11)
-        self.assertEqual([m["name"] for m in models[:2]], ["Claude Opus 5.5", "MiMo v2.6 Pro"])
+        self.assertEqual([m["name"] for m in models[:3]], ["MiMo v2.6 Pro", "Gemini 4 Argon", "Claude Opus 5.5"])
+        self.assertTrue(all(m["recommended"] for m in models[:3]) and not any(m["recommended"] for m in models[3:]))
+        tiers = [len(m["price"]) for m in models[3:]]
+        self.assertEqual(tiers, sorted(tiers))  # no price list here: the rest by price tier, cheapest first
         self.assertTrue(all(m["best_for"] and m["openrouter"] and m["price"] for m in models))
+
+    def test_the_rest_follow_live_prices_when_known(self):
+        from unittest import mock
+        from django.core.cache import cache
+        from users.views import _welcome_models
+        cache.clear()
+        prices = {"anthropic/claude-fable-5.1": (0.0000001, 0.0000001)}  # pretend Fable became the cheapest
+        with mock.patch("mainapp.pricing.table", return_value={
+                m["openrouter"]: prices.get(m["openrouter"], (0.000001, 0.000002)) for m in _welcome_models()}):
+            models = _welcome_models()
+        self.assertEqual(models[3]["id"], "claude-fable-5-1")
+        self.assertEqual([m["id"] for m in models[:3]], ["mimo-v2-6-pro", "gemini-4-argon", "claude-opus-5-5"])
 
     def test_saving_sets_up_the_main_connection(self):
         from mainapp import ai_client

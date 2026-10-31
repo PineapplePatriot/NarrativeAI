@@ -127,8 +127,8 @@
     "director": "argon-director"
   },
   "card": {
-    "order": 2.5,
-    "recommended": false,
+    "order": 2,
+    "recommended": true,
     "price": "$$$",
     "best_for": "Continuity, lore and characters with initiative; strong dialogue and emotional scenes.",
     "watch_out": "Can rush past big moments before you answer, and repeat one trait. People mention the cost."

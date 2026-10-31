@@ -23,7 +23,7 @@ profile, and **?** (a tour of the page, or "What's this?": click anything to hav
 - **Extras**: the optional parts, all switchable: story summary, story trackers, story extras (letters, phone
   screens, rumours, keepsakes, suggested actions), Bulba's ideas button, Bulba Watch (and the habits it fixes),
   dice and inventory, character sprites, background jobs on a cheaper model, voices (ElevenLabs).
-- **🥔 Bulba**: the setup assistant. **Full setup** (about ten minutes): asks how you like stories, shows samples
+- **🥔 Bulba**: the setup assistant. **Full setup** (about twenty minutes): asks how you like stories, shows samples
   written by your own model, builds the preset, your persona and a character. **Fast route** (two minutes): the
   tested ready setup for your model, then only who you are and who you talk to. Every change is a proposal with
   Apply and Undo.

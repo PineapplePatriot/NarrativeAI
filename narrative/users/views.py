@@ -248,7 +248,17 @@ def _welcome_models():
                       "recommended": bool(card.get("recommended")), "price": card.get("price", ""),
                       "best_for": card.get("best_for", ""), "watch_out": card.get("watch_out", ""),
                       "order": card.get("order", 99)})
-    return sorted(cards, key=lambda c: c["order"])
+    return sorted(cards, key=_welcome_order)
+
+
+def _welcome_order(card):
+    """The popular ones first, in their own order (cheapest to priciest); then the rest from cheapest to priciest:
+    by OpenRouter's live prices when they can be read (a typical message: 8k in, 800 out), else by price tier."""
+    if card["recommended"]:
+        return (0, card["order"], 0, 0)
+    from mainapp import pricing
+    rate = pricing.per_token(card["openrouter"])
+    return (1, len(card["price"]) if not rate else 0, rate[0] * 8000 + rate[1] * 800 if rate else 0, card["order"])
 
 
 @login_required

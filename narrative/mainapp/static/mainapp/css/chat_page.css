@@ -2167,7 +2167,7 @@ body.polish-on .message-btn.polish-btn { display: flex; }
 .modal { box-sizing: border-box; max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); overflow-y: auto; }
 /* The background picker is about backgrounds: the music line and its switch belong to the music picker */
 #mediaModal[data-type="bg"] .music-now, #mediaModal[data-type="bg"] .music-follow { display: none !important; }
-/* Book layout: a director's note stays open (it's what steered the story), labelled as a note, not "you" */
-.layout-book .message.user.note::before { content: "🎬 director's note"; }
-.layout-book .message.user.note .message-content { display: block; max-width: 68ch; }
+/* Book layout: a director's note folds like their messages (both are directions there); the marker says which */
+.layout-book .message.user.note::before { content: "🎬 note"; }
+.layout-book .message.user.note.open::before { content: "🎬 note · fold"; }
 .layout-book .message.user.note .message-text::before { display: none; }

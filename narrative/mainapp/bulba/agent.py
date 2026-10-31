@@ -788,7 +788,7 @@ def opening(session):
     name = (target_profile(session) or {"name": "your model"})["name"]
     text = (f"Hi. I'm Bulba. Yes, a potato. You picked {name}, which is a choice.\n\n"
             "Two ways to do this:\n\n"
-            "**Full setup** (ten minutes, maybe): I find out how you like stories told, show you samples written by "
+            "**Full setup** (about twenty minutes): I find out how you like stories told, show you samples written by "
             "your own model, and build everything around that.\n\n"
             f"**Fast route**: you take the tested ready setup for {name}, then we only do who you are in the "
             "story and your character.\n\n"
