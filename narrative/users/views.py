@@ -45,8 +45,14 @@ class RegisterUser(CreateView):
     def form_valid(self, form):
         # Signed in straight away, then the welcome page (key + model), no second password prompt
         from django.contrib.auth import login
+        from users import verification
         response = super().form_valid(form)
         login(self.request, self.object, backend="django.contrib.auth.backends.ModelBackend")
+        if verification.enabled():  # the link goes out now; until it's clicked, only the waiting page opens
+            self.object.email_verified = False
+            self.object.save(update_fields=["email_verified"])
+            self.request.session["verify_error"] = verification.send(self.request, self.object) or ""
+            response = redirect("users:verify")
         # Everyone starts with the shipped characters (Il Dottore, his lore, pictures and music), as the demo does
         from mainapp.management.commands.seed_demo import load_packs
         try:
@@ -534,3 +540,33 @@ def stats(request):
         "data": data, "days": days or "", "demo": bool(request.GET.get("demo")),
         "summary": [(usage.LABELS.get(k, k), v) for k, v in data["summary"].items()],
         "columns": [usage.COLUMN_LABELS[c] for c in usage.COLUMNS]})
+
+
+@login_required
+def verify(request):
+    """"Check your email": where an unconfirmed account waits; it can send the link again."""
+    from users import verification
+    if request.user.email_verified or not verification.enabled():
+        return redirect("users:welcome")
+    error = request.session.pop("verify_error", "")
+    sent_again = False
+    if request.method == "POST":
+        error = verification.send(request, request.user) or ""
+        sent_again = not error
+    return render(request, "users/verify.html", {"error": error, "sent_again": sent_again,
+                                                 "days": verification.LINK_DAYS})
+
+
+def verify_link(request, token):
+    """The emailed link: confirms the account (and signs it in, on whatever device they opened it)."""
+    from django.contrib.auth import login
+    from users import verification
+    user = verification.check(token)
+    if user is None:
+        return render(request, "users/verify.html", {"bad_link": True, "days": verification.LINK_DAYS}, status=400)
+    if not user.email_verified:
+        user.email_verified = True
+        user.save(update_fields=["email_verified"])
+    if not request.user.is_authenticated or request.user.pk != user.pk:
+        login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+    return redirect("users:welcome")

@@ -18,6 +18,9 @@ class User(AbstractUser):
     persona_description = models.TextField(blank=True, default=None, null=True)
     # Pressed "I've filled it in" on the tester feedback form (static/js/feedback.js): no more reminders
     feedback_done = models.BooleanField(default=False)
+    # Confirmed by the emailed link (users/verification.py). Sign-up sets it False while verification is on;
+    # accounts from before, and ones made by hand or for the demo, count as confirmed.
+    email_verified = models.BooleanField(default=True)
 
     def __str__(self):
         return self.username

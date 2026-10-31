@@ -1699,7 +1699,7 @@ class WelcomeTests(TestCase):
         profile, model = ai_client.resolve(self.user, "chat")
         self.assertEqual((profile.api_key, model), ("sk-or-test", "anthropic/claude-opus-5.5"))
         self.assertEqual(self.user.connection_profiles.count(), 1)
-        self.assertEqual(self.client.get(reverse("home")).status_code, 200)
+        self.assertEqual(self.client.get(reverse("users:extras")).status_code, 200)
 
     def test_bad_key_can_be_saved_anyway(self):
         resp = self.post({"api_key": "nope", "model": "kimi-k3"}, ok=False)
@@ -6047,3 +6047,83 @@ class UsageTests(TestCase):
         out = io.StringIO()
         call_command("usage_report", stdout=out)
         self.assertIn("active users", out.getvalue())
+
+
+@override_settings(MEDIA_ROOT="/tmp/narrative-test-media")
+class EmailVerificationTests(TestCase):
+    """Sign-up email verification through Brevo (users/verification.py); Brevo itself is faked."""
+    ENV = {"BREVO_API_KEY": "brevo-test-key", "BREVO_SENDER_EMAIL": "team@example.com", "BREVO_SENDER_NAME": "NA"}
+
+    def setUp(self):
+        import os
+        from unittest import mock
+        from django.core.cache import cache
+        cache.clear()
+        self.env = mock.patch.dict(os.environ, self.ENV)
+        self.env.start()
+        self.addCleanup(self.env.stop)
+        self.sent = []
+        self.brevo = mock.patch("users.verification.requests.post", side_effect=self.fake_brevo)
+        self.brevo.start()
+        self.addCleanup(self.brevo.stop)
+
+    def fake_brevo(self, url, json=None, headers=None, timeout=None):
+        from unittest import mock
+        self.sent.append({"url": url, "json": json, "headers": headers})
+        return mock.Mock(status_code=201, text="{}")
+
+    def sign_up(self):
+        return self.client.post(reverse("users:register"), {
+            "username": "nova", "email": "nova@example.com", "password1": "Lantern-Quay-81", "password2": "Lantern-Quay-81"})
+
+    def link(self):
+        import re
+        return re.search(r'href="(http[^"]+)"', self.sent[-1]["json"]["htmlContent"]).group(1)
+
+    def test_sign_up_sends_a_link_and_waits_until_it_is_clicked(self):
+        resp = self.sign_up()
+        self.assertRedirects(resp, reverse("users:verify"))
+        self.assertEqual(self.sent[0]["headers"]["api-key"], "brevo-test-key")
+        self.assertEqual(self.sent[0]["json"]["to"][0]["email"], "nova@example.com")
+        self.assertEqual(self.sent[0]["json"]["sender"], {"email": "team@example.com", "name": "NA"})
+        self.assertContains(self.client.get(reverse("users:verify")), "nova@example.com")
+        # Nothing else opens yet; data requests get a clear refusal
+        self.assertRedirects(self.client.get(reverse("home")), reverse("users:verify"))
+        self.assertEqual(self.client.post(reverse("users:extras"), "{}", content_type="application/json").status_code, 403)
+        # The link confirms the account and lets them in
+        resp = self.client.get(self.link())
+        self.assertRedirects(resp, reverse("users:welcome"))
+        self.assertTrue(get_user_model().objects.get(username="nova").email_verified)
+        self.assertEqual(self.client.get(reverse("users:extras")).status_code, 200)
+
+    def test_the_link_works_on_another_device_and_bad_links_are_refused(self):
+        self.sign_up()
+        link = self.link()
+        other = self.client_class()
+        self.assertRedirects(other.get(link), reverse("users:welcome"))  # signed in there too
+        self.assertEqual(self.client_class().get(link.rstrip("/")[:-3] + "xyz/").status_code, 400)
+
+    def test_send_again_waits_a_minute(self):
+        from django.core.cache import cache
+        self.sign_up()
+        page = self.client.post(reverse("users:verify"))
+        self.assertContains(page, "just sent")
+        self.assertEqual(len(self.sent), 1)
+        cache.clear()
+        page = self.client.post(reverse("users:verify"))
+        self.assertContains(page, "Sent again")
+        self.assertEqual(len(self.sent), 2)
+
+    def test_existing_accounts_and_staff_are_not_held(self):
+        old = get_user_model().objects.create_user("old", "old@example.com", "pw12345!xyz")
+        self.assertTrue(old.email_verified)
+        self.client.force_login(old)
+        self.assertEqual(self.client.get(reverse("users:extras")).status_code, 200)
+
+    def test_without_brevo_sign_up_works_as_before(self):
+        import os
+        from unittest import mock
+        with mock.patch.dict(os.environ, {"BREVO_API_KEY": ""}):
+            self.assertRedirects(self.sign_up(), reverse("users:welcome"))
+        self.assertTrue(get_user_model().objects.get(username="nova").email_verified)
+        self.assertEqual(self.sent, [])

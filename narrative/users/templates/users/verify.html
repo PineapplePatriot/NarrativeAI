@@ -1,0 +1,62 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirm your email - Narrative AI</title>
+    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
+    <style>
+        .verify { max-width: 560px; margin: 12vh auto 0; padding: 0 16px; text-align: center; }
+        .verify .card { background: var(--ui-primary); border: 1px solid var(--border-color); border-radius: 18px; padding: 32px 28px; }
+        .verify .big { font-size: 2.6rem; margin-bottom: 6px; }
+        .verify h1 { margin: 0 0 10px; font-size: 1.6rem; color: #fff; }
+        .verify p { color: var(--text-secondary); line-height: 1.6; margin: 0 0 14px; }
+        .verify b { color: #fff; }
+        .verify .ua { font-size: .9rem; border-top: 1px solid var(--border-color); padding-top: 14px; margin-top: 18px; }
+        .verify .msg { border-radius: 10px; padding: 10px 14px; margin: 0 0 16px; }
+        .verify .msg.ok { background: rgba(16, 185, 129, .14); color: #6ee7b7; }
+        .verify .msg.err { background: rgba(244, 63, 94, .12); color: #fecdd3; }
+        .verify .row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
+        .verify a.link { color: var(--accent-soft); }
+    </style>
+</head>
+<body class="na-body">
+<main class="verify">
+    <div class="card">
+        {% if bad_link %}
+            <div class="big">⌛</div>
+            <h1>This link doesn't work any more</h1>
+            <p>It may be older than {{ days }} days, or already replaced by a newer one.
+                {% if user.is_authenticated %}Send yourself a fresh one below.{% else %}<a class="link" href="{% url 'users:login' %}">Log in</a> to get a fresh one.{% endif %}</p>
+            <p class="ua">Посилання вже не діє: воно старше за {{ days }} дні або його замінило новіше. Надішліть собі нове.</p>
+            {% if user.is_authenticated %}
+            <form method="post" action="{% url 'users:verify' %}" class="row">{% csrf_token %}
+                <button type="submit" class="na-btn na-primary">Send a new link</button>
+            </form>
+            {% endif %}
+        {% else %}
+            <div class="big">📬</div>
+            <h1>Check your email</h1>
+            {% if sent_again %}<p class="msg ok">Sent again. It can take a minute; check spam too.</p>{% endif %}
+            {% if error %}<p class="msg err">{{ error }}</p>{% endif %}
+            {% if error and not sent_again %}
+            <p>Your confirmation link goes to <b>{{ user.email }}</b>. Press <b>Send it again</b> in a minute; it works for {{ days }} days.</p>
+            <p class="ua">Посилання для підтвердження надійде на <b>{{ user.email }}</b>. Натисніть «Send it again» за хвилину;
+                воно діятиме {{ days }} дні.</p>
+            {% else %}
+            <p>We sent a link to <b>{{ user.email }}</b>. Open it to start using Narrative AI; it works for {{ days }} days.
+                Nothing there? Look in spam or promotions.</p>
+            <p class="ua">Ми надіслали посилання на <b>{{ user.email }}</b>. Відкрийте його, щоб почати користуватися Narrative AI
+                (діє {{ days }} дні). Немає листа? Перевірте «Спам» і «Промоакції».</p>
+            {% endif %}
+            <form method="post" class="row">{% csrf_token %}
+                <button type="submit" class="na-btn na-primary">Send it again</button>
+                <a class="na-btn" href="{% url 'users:logout' %}">Log out</a>
+            </form>
+            <p class="ua">Wrong address? Log out and sign up again with the right one.</p>
+        {% endif %}
+    </div>
+</main>
+</body>
+</html>
