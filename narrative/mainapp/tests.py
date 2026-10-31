@@ -1371,8 +1371,8 @@ class SummaryPartsAndBranchTests(TrackerChatTests):
         call = [c for c in self.all_calls if c["messages"][0]["content"].startswith("You keep the story-state trackers")][-1]
         sent = "".join(m["content"] for m in call["messages"])
         self.assertLessEqual(len(sent) // 3, 2048 + 50)
-        self.assertNotIn("OLDEST", sent)
-        self.assertIn("Later 2", sent)
+        self.assertNotIn("OLDEST", sent)        # the oldest go first...
+        self.assertIn("A reply.", sent)         # ...the newest stays
 
     def test_job_window_follows_the_model_and_the_settings(self):
         from mainapp import ai_client, samplers
@@ -4956,16 +4956,45 @@ class DirectorNoteTests(WatchChatTests):
         self.post({"action": "chat", "message": "Hi."})
         before = len(self.saved_messages())
         data = self.post({"action": "chat", "message": "", "guidance": "The storm reaches the harbour."}).json()
-        self.assertEqual(data["directed"], "The storm reaches the harbour.")
+        self.assertEqual(data["directed"], "")  # the note is a message of its own now, not a line on the reply
         msgs = self.saved_messages()
-        self.assertEqual(len(msgs), before + 1)
-        self.assertEqual(msgs[-1][0], "assistant")  # no message from them
-        self.assertEqual(chats.directed_of(tuple(msgs[-1])), "The storm reaches the harbour.")
+        self.assertEqual(len(msgs), before + 2)
+        self.assertTrue(chats.is_note(tuple(msgs[-2])))
+        self.assertEqual(msgs[-2][2], "The storm reaches the harbour.")
+        self.assertEqual(msgs[-1][0], "assistant")
+        sent = json.dumps(self.sent[-1]["messages"])
+        self.assertIn("Director's note for this reply: The storm reaches the harbour.", sent)
+        self.assertEqual(sent.count("The storm reaches the harbour."), 1)  # the slot only, not also in the history
+        self.assertContains(self.client.get(self.url), 'class="message user note"')
+        # Regenerate keeps the note in mind
+        self.post({"action": "regenerate"})
         self.assertIn("Director's note for this reply: The storm reaches the harbour.", json.dumps(self.sent[-1]["messages"]))
-        self.assertContains(self.client.get(self.url), "🎬 The storm reaches the harbour.")
+        # Later replies still see it, framed as a direction (not words said in the story)
+        self.post({"action": "chat", "message": "We wait."})
+        self.assertIn("[Director's note, outside the story", json.dumps(self.sent[-1]["messages"]))
+        # Edited like any message
+        self.post({"action": "edit", "index": before, "text": "The storm passes."})
+        self.assertTrue(chats.is_note(tuple(self.saved_messages()[before])))
+        self.assertEqual(self.saved_messages()[before][2], "The storm passes.")
         # nothing at all is still nothing
+        count = len(self.saved_messages())
         self.post({"action": "chat", "message": "", "guidance": " "})
-        self.assertEqual(len(self.saved_messages()), before + 1)
+        self.assertEqual(len(self.saved_messages()), count)
+
+    def test_a_note_with_a_message_follows_it_and_old_chats_regenerate_with_theirs(self):
+        from mainapp import chats
+        self.post({"action": "chat", "message": "I open the door.", "guidance": "Rose is hiding something."})
+        msgs = self.saved_messages()
+        self.assertEqual([m[2] for m in msgs[-3:-1]], ["I open the door.", "Rose is hiding something."])
+        self.assertTrue(chats.is_note(tuple(msgs[-2])) and not chats.is_note(tuple(msgs[-3])))
+        # A chat from before: the note lived on the reply; regenerate still uses it
+        data = chats.read(self.character.chats.first())
+        data["messages"] = [m for m in data["messages"] if not chats.is_note(tuple(m))]
+        data["messages"][-1] = list(chats.with_directed(tuple(data["messages"][-1]), "An old note."))
+        chats.write(self.character.chats.first(), data)
+        reply = self.post({"action": "regenerate"}).json()
+        self.assertIn("Director's note for this reply: An old note.", json.dumps(self.sent[-1]["messages"]))
+        self.assertEqual(reply["directed"], "An old note.")
 
     def test_be_creative_gives_two_notes(self):
         self.post({"action": "chat", "message": "Hi."})

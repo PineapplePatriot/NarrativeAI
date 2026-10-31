@@ -94,3 +94,25 @@ body.na-picking, body.na-picking * { cursor: help !important; }
 .na-bubble .na-more { margin-top: 6px; }
 /* One thing at a time: the chat's Watch card waits until the tour is over */
 body:has(.na-tour-box) .watch-card { visibility: hidden; }
+
+/* The tester feedback form: the 📝 button in the top bar and its card (static/js/feedback.js) */
+.na-feedback-btn {
+    display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; flex: 0 0 auto; cursor: pointer;
+    border-radius: 999px; border: 1px solid rgba(251, 191, 36, 0.5); background: rgba(251, 191, 36, 0.12);
+    color: #fde68a; font: 600 13px/1 Inter, system-ui, sans-serif;
+}
+.na-feedback-btn:hover { background: rgba(251, 191, 36, 0.22); }
+@media (max-width: 520px) { .na-feedback-btn span { display: none; } .na-feedback-btn { padding: 0 9px; } }
+.na-feedback-card {
+    position: fixed; right: 16px; bottom: 96px; z-index: 9500; width: min(380px, calc(100vw - 32px)); box-sizing: border-box;
+    padding: 16px 18px 14px; border-radius: 14px; background: #1b2033; border: 1px solid rgba(251, 191, 36, 0.5);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5); color: #f1f5f9; font: 14px/1.5 Inter, "Segoe UI", system-ui, sans-serif;
+    animation: na-feedback-in .25s ease-out;
+}
+@keyframes na-feedback-in { from { opacity: 0; transform: translateY(10px); } }
+.na-feedback-card b { display: block; font-size: 15px; margin: 0 24px 6px 0; }
+.na-feedback-card p { margin: 0 0 12px; color: #cbd5e1; }
+.na-feedback-card .na-x { position: absolute; top: 10px; right: 10px; }
+.na-feedback-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.na-feedback-actions a.na-tbtn { text-decoration: none; display: inline-flex; align-items: center; }
+@media (prefers-reduced-motion: reduce) { .na-feedback-card { animation: none; } }

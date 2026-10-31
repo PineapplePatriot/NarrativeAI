@@ -93,7 +93,7 @@ def report(days=None, exclude=("demo",), include_staff=False):
             "pages": pages[u.id], "actions": actions[u.id], "messages": sent, "chats": chats_used,
             "characters": characters.get(u.id, 0), "bulba_setup": bulba[u.id]["setup"],
             "bulba_finished": bulba[u.id]["finished"], "bulba_chat": bulba[u.id]["chat"],
-            "spend": round(spend.get(u.id) or 0, 4),
+            "spend": round(spend.get(u.id) or 0, 4), "feedback": "yes" if u.feedback_done else "",
         })
 
     active = [r for r in rows if r["sessions"]]
@@ -120,6 +120,7 @@ def report(days=None, exclude=("demo",), include_staff=False):
             "finished_bulba_setup": sum(1 for r in rows if r["bulba_finished"]),
             "used_bulba_in_a_chat": sum(1 for r in rows if r["bulba_chat"]),
             "spend_usd": round(sum(r["spend"] for r in rows), 2),
+            "filled_feedback_form": sum(1 for r in rows if r["feedback"]),
         },
         "signups_by_day": sorted(((d, n) for d, n in _by_day(r["joined"] for r in rows).items()), reverse=True),
         "active_by_day": sorted(((d, len(u)) for d, u in daily.items()), reverse=True),
@@ -141,16 +142,17 @@ LABELS = {
     "avg_session_minutes": "Average session (minutes)", "median_session_minutes": "Median session (minutes)",
     "page_views": "Page views", "messages_sent": "Messages sent", "finished_bulba_setup": "Finished Bulba's setup",
     "used_bulba_in_a_chat": "Used Bulba in a chat", "spend_usd": "Spent on AI (USD)",
+    "filled_feedback_form": "Filled in the feedback form",
 }
 COLUMN_LABELS = {
     "username": "User", "joined": "Joined", "last_seen": "Last seen", "active_days": "Days active",
     "sessions": "Sessions", "minutes": "Minutes", "pages": "Pages", "actions": "Actions", "messages": "Messages",
     "chats": "Chats", "characters": "Characters", "bulba_setup": "Bulba setups", "bulba_finished": "Setups finished",
-    "bulba_chat": "Bulba in chats", "spend": "Spend (USD)",
+    "bulba_chat": "Bulba in chats", "spend": "Spend (USD)", "feedback": "Feedback form",
 }
 
 COLUMNS = ["username", "joined", "last_seen", "active_days", "sessions", "minutes", "pages", "actions", "messages",
-           "chats", "characters", "bulba_setup", "bulba_finished", "bulba_chat", "spend"]
+           "chats", "characters", "bulba_setup", "bulba_finished", "bulba_chat", "spend", "feedback"]
 
 
 def csv_text(data):

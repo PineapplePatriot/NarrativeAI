@@ -18,4 +18,5 @@ urlpatterns = [
     path("welcome/", views.welcome, name="welcome"),
     path("extras/", views.extras, name="extras"),
     path("stats/", views.stats, name="stats"),
+    path("feedback/", views.feedback_done, name="feedback_done"),
 ]

@@ -488,6 +488,16 @@ def _extras_page_state(user):
     return {**state, **memory_and_prices(user, state)}
 
 
+@login_required
+def feedback_done(request):
+    """They filled in the feedback form: the button and the reminder go away for good."""
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only"}, status=405)
+    request.user.feedback_done = True
+    request.user.save(update_fields=["feedback_done"])
+    return JsonResponse({"status": "ok"})
+
+
 def can_see_stats(user):
     """Staff, or a username listed in the STATS_USERS variable on the server (comma-separated)."""
     allowed = {u.strip().lower() for u in os.environ.get("STATS_USERS", "").split(",") if u.strip()}

@@ -1,5 +1,25 @@
 let currentAudio = null;
 
+// A new mood picture fades in over the old one instead of jumping (instant with reduced motion, or the first time)
+function swapSprite(img, url) {
+    if (!url || img.getAttribute('src') === url) return;
+    if (!img.getAttribute('src') || window.matchMedia('(prefers-reduced-motion: reduce)').matches) { img.src = url; return; }
+    const ready = new Image();
+    ready.onload = () => {
+        img.parentNode.querySelectorAll('.sprite-incoming').forEach(old => old.remove());  // a newer one wins
+        const layer = img.cloneNode();
+        const look = getComputedStyle(img);
+        layer.classList.add('sprite-incoming');
+        layer.style.objectFit = look.objectFit;
+        layer.style.objectPosition = look.objectPosition;
+        layer.src = url;
+        img.parentNode.appendChild(layer);
+        requestAnimationFrame(() => requestAnimationFrame(() => layer.classList.add('in')));
+        setTimeout(() => { img.src = url; layer.remove(); }, 560);
+    };
+    ready.src = url;
+}
+
 function updateCharacterImages(photoUrl, photoSecond, charCount) {
     const c1 = document.getElementById('char1Container');
     const c2 = document.getElementById('char2Container');
@@ -9,13 +29,13 @@ function updateCharacterImages(photoUrl, photoSecond, charCount) {
 
     // Helper to update src
     const setImg = (container, url) => {
-        let img = container.querySelector('img.character-sprite');
+        let img = container.querySelector('img.character-sprite:not(.sprite-incoming)');
         if (!img) {
             img = document.createElement('img');
             img.className = 'character-sprite';
             container.appendChild(img);
         }
-        if (url) img.src = url;
+        swapSprite(img, url);
     };
 
     setImg(c1, photoUrl);
@@ -235,9 +255,10 @@ messageInput.addEventListener('input', function () {
     this.style.height = this.scrollHeight + 'px';
 });
 
-function addMessage(sender, text, specificAvatarUrl = null) {
+// note: a director's note, a message of its own (outside the story; edited and deleted like any message)
+function addMessage(sender, text, specificAvatarUrl = null, note = false) {
     const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${sender}`;
+    messageDiv.className = `message ${sender}${note ? ' note' : ''}`;
 
     const existingMessages = document.querySelectorAll('.message:not(#typingMessage)');
     const messageIndex = existingMessages.length;
@@ -509,6 +530,7 @@ function sendMessage(noteOnly = false) {
         messageInput.value = '';
         messageInput.style.height = 'auto';
     }
+    if (guidance) addMessage('user', guidance, window.USER_AVATAR, true);  // saved as a message of its own
 
     isGenerating = true;
     sendBtn.disabled = true;
@@ -537,12 +559,9 @@ function sendMessage(noteOnly = false) {
             if (window.Watch) Watch.afterReply(data);
             if (data.polish_due) runPolish(lastAssistant());
             if (data.music_due) followSceneMusic();
+            if (window.NAFeedback) NAFeedback.afterMessage();  // the tester feedback form, once a day at most
 
-            if (data.photo_url) {
-                const characterSprite = document.querySelector('.character-sprite');
-                if (characterSprite) {
-                    characterSprite.src = data.photo_url;
-                }
+            if (data.photo_url) {  // the sprite itself fades over in updateCharacterImages
                 const avatars = document.querySelectorAll('.message.assistant .message-avatar img');
                 avatars.forEach(img => img.src = data.photo_url);
             }
@@ -1047,6 +1066,7 @@ function openMediaModal(type) {
     currentMediaType = type;
     document.getElementById('mediaModalTitle').innerText = type === 'bg' ? "Select Background" : "Select Music";
     document.getElementById('musicFollowRow').hidden = type !== 'music';
+    mediaModal.dataset.type = type;  // the background picker hides the music controls (CSS)
     document.getElementById('musicFollow').checked = !!window.MUSIC_FOLLOW;
     mediaModal.classList.add('show');
     fetch('/main/api/media-resources/').then(r => r.json()).then(d => {

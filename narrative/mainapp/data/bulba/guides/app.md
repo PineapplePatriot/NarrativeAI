@@ -48,7 +48,10 @@ profile, and **?** (a tour of the page, or "What's this?": click anything to hav
 **Words people ask about**
 - Persona: who you are in the story (name and a description the AI reads).
 - Swipe: another version of a reply. Branch: a new chat that starts from one message.
-- Director mode: you steer the story from outside instead of playing a character; the AI writes everyone.
+- Director mode: you steer the story from outside instead of playing a character ("she finds the letter"); the AI
+  writes everyone, your character included, and the chat reads as a book. Roleplay is the other way: you play
+  your character, the AI plays the rest. Bulba switches between them in any chat when you ask; the pen menu's
+  Director's note works in both (a note is its own message: edit it, delete it, regenerate with it).
 - Summary: a short retelling of older events so long chats don't forget them.
 - Trackers: the state of the story the app keeps (place, time, who's there, relationships, inventory).
 - Story systems: rules the app keeps so the story can't rush them (Trust moves one step per scene at most).

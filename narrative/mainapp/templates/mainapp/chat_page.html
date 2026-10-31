@@ -8,7 +8,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Narrative AI - Chat with {{character.name}}</title>
-    <link rel="stylesheet" href="{% static 'mainapp/css/chat_page.css' %}?v=8">
+    <link rel="stylesheet" href="{% static 'mainapp/css/chat_page.css' %}?v=11">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
 </head>
@@ -55,8 +55,8 @@
             <div class="tracker-hud" id="trackerHud" hidden></div>
 
             <div class="messages-container" id="messagesContainer">
-                {% for sender, time, text, emotion, char_count, thoughts, game_lines, extras_html, audio_url, polish_json, directed, condensed in messages %}
-                <div class="message {{ sender }}" data-index="{{ forloop.counter0 }}" data-emotion="{{ emotion }}" data-char-count="{{ char_count }}">
+                {% for sender, time, text, emotion, char_count, thoughts, game_lines, extras_html, audio_url, polish_json, directed, condensed, is_note in messages %}
+                <div class="message {{ sender }}{% if is_note %} note{% endif %}" data-index="{{ forloop.counter0 }}" data-emotion="{{ emotion }}" data-char-count="{{ char_count }}">
                     {% if sender == "assistant" %}
                     {% if photo_neutral %}
                     <img src="{{ photo_neutral }}" alt="{{ character.name }}" class="message-avatar">

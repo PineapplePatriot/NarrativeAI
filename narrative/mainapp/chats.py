@@ -197,6 +197,16 @@ def prompt_text(message):
     return condensed_of(message) or message[2]
 
 
+def is_note(message):
+    """A director's note: a message of its own from them (role "user"), outside the story. The AI reads it
+    framed as a direction (views._history); it's edited, deleted and regenerated like any message."""
+    return message[0] == "user" and bool(_extras(message).get("note"))
+
+
+def as_note(message):
+    return _with(message, "note", True)
+
+
 def directed_of(message):
     """The director's note that steered this version of the reply, if any."""
     return _extras(message).get("directed") or ""

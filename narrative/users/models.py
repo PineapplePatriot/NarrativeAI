@@ -16,6 +16,8 @@ class User(AbstractUser):
     )
     persona_name = models.CharField(max_length=256, blank=True, default=None, null=True, verbose_name="Persona name")
     persona_description = models.TextField(blank=True, default=None, null=True)
+    # Pressed "I've filled it in" on the tester feedback form (static/js/feedback.js): no more reminders
+    feedback_done = models.BooleanField(default=False)
 
     def __str__(self):
         return self.username

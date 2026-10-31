@@ -74,7 +74,7 @@
             <td>{{ r.username }}</td><td>{{ r.joined|date:"Y-m-d" }}</td><td>{{ r.last_seen|date:"Y-m-d H:i"|default:"–" }}</td>
             <td>{{ r.active_days }}</td><td>{{ r.sessions }}</td><td>{{ r.minutes }}</td><td>{{ r.pages }}</td><td>{{ r.actions }}</td>
             <td>{{ r.messages }}</td><td>{{ r.chats }}</td><td>{{ r.characters }}</td><td>{{ r.bulba_setup }}</td>
-            <td>{{ r.bulba_finished }}</td><td>{{ r.bulba_chat }}</td><td>${{ r.spend }}</td>
+            <td>{{ r.bulba_finished }}</td><td>{{ r.bulba_chat }}</td><td>${{ r.spend }}</td><td>{{ r.feedback|default:"–" }}</td>
         </tr>
         {% endfor %}
     </table></div>

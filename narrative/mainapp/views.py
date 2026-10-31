@@ -113,6 +113,25 @@ def _summarize_pieces(user, messages, start, earlier=""):
     return pieces
 
 
+NOTE_FRAME = "[Director's note, outside the story (not something said or done in it): {text}]"
+
+
+def _history(messages, note_slot=False):
+    """The chat as the AI reads it. Director's notes come framed as directions; with note_slot, a note at the very
+    end is left out, because the request carries it in the preset's director's note slot."""
+    out = []
+    for i, m in enumerate(messages):
+        if m[0] not in ("user", "assistant"):
+            continue
+        text = extras.for_prompt(chats.prompt_text(m), chats.game_of(m))
+        if chats.is_note(m):
+            if note_slot and i == len(messages) - 1:
+                continue
+            text = NOTE_FRAME.replace("{text}", text)
+        out.append({"role": m[0], "content": text})
+    return out
+
+
 def _photo(character, prefix, emotion):
     """The sprite for an emotion, falling back to neutral."""
     image = getattr(character, f"{prefix}_{emotion}", None) or getattr(character, f"{prefix}_neutral", None)
@@ -858,8 +877,7 @@ def chat(request, slug):
                 preset = presets.normalize(presets.get_active(request.user).data)
                 _, chat_model = ai_client.resolve(request.user, "chat")
                 names = prompt_names(request.user, character, chat_state["persona"])
-                history = [{"role": m[0], "content": extras.for_prompt(chats.prompt_text(m), chats.game_of(m))}
-                       for m in messages if m[0] in ("user", "assistant")]
+                history = _history(messages)
                 history = regex_rules.run_on_history(regex_rules.for_chat(preset, character, request.user), history, names)
                 # The unfinished reply is the last message; the preset's continue nudge comes after it
                 nudge = preset["utility"]["continue_nudge"].strip() or presets.UTILITY_DEFAULTS["continue_nudge"]
@@ -958,13 +976,20 @@ def chat(request, slug):
 
             # A director's note can be sent on its own: the story goes on with no message from them
             note_only = action == "chat" and not user_message and bool(guidance.strip())
+            note = guidance.strip()[:2000] if action == "chat" else ""  # saved as a message of its own, after theirs
+            redo = guidance.strip() if action == "regenerate" else ""  # a redo instruction from the pen menu
+            directed = redo  # shown above the new reply: what steered it, when it isn't a message in the chat
+            if action == "regenerate" and messages and chats.is_note(messages[-1]):
+                guidance = "\n".join(filter(None, [messages[-1][2], redo]))  # regenerate keeps the note in mind
+            elif action == "regenerate" and not redo and regen_from is not None and chats.directed_of(regen_from):
+                guidance = directed = chats.directed_of(regen_from)  # older chats kept the note on the reply
             if (action == "chat" and (user_message or note_only)) or action == "regenerate":
                 # Regenerate re-answers the existing last user message, so only chat adds one
                 story_notes = []
                 if action == "chat" and systems:  # they went on from the last reply: what it changed now counts
                     story_notes = story.commit(story_state(), systems, messages)
                     story.sync_world(chat_state["story"], systems, chat_state["trackers"])
-                    story.snapshot(chat_state["story"], len(messages) + (1 if user_message else 0))
+                    story.snapshot(chat_state["story"], len(messages) + (1 if user_message else 0) + (1 if note else 0))
                 if action == "chat" and messages and messages[-1][0] == "assistant":
                     rec = chats.polish_of(messages[-1])
                     if rec and not rec.get("verdict"):  # they went on from a polished reply: a quiet yes
@@ -974,6 +999,8 @@ def chat(request, slug):
                     user_message = text_rules("saved", user_message, "user")
                     messages.append(("user", datetime.now().strftime("%H:%M"), user_message, "neutral", 1))
                     watch.on_user_message(request.user, chat_obj, user_message)  # their reply pace
+                if note:
+                    messages.append(chats.as_note(("user", datetime.now().strftime("%H:%M"), note, "neutral", 1)))
                 if action == "chat":  # steering more than playing? Bulba offers director mode
                     watch.note_steering(request.user, chat_obj, "note" if guidance.strip() else "play")
 
@@ -984,11 +1011,9 @@ def chat(request, slug):
                 api_messages = []
 
                 # (A card's own system prompt goes through the preset, see prompt_slots and presets.assemble)
-                # Add conversation history
-                for m in messages:
-                    if m[0] in ("user", "assistant"):
-                        # story extras the model showed come back as short descriptions, so it remembers them
-                        api_messages.append({"role": m[0], "content": extras.for_prompt(chats.prompt_text(m), chats.game_of(m))})
+                # Add conversation history (story extras the model showed come back as short descriptions, so it
+                # remembers them; director's notes framed as directions, the newest one in its own slot)
+                api_messages = _history(messages, note_slot=True)
 
                 try:
                     worldbook = None
@@ -1125,8 +1150,8 @@ def chat(request, slug):
                     new_message = chats.with_game(chats.with_reasoning(
                         ("assistant", datetime.now().strftime("%H:%M"), reply, final_emotion_str, char_count), reasoning),
                         [dict(op) for op in ops if op.get("type") != "notice"])
-                    if guidance.strip() and action in ("chat", "regenerate"):  # shown above the reply: what steered it
-                        new_message = chats.with_directed(new_message, guidance.strip()[:1000])
+                    if directed:  # shown above the reply: what steered it (a note is a message of its own instead)
+                        new_message = chats.with_directed(new_message, directed[:1000])
                     messages.append(chats.add_version(regen_from, new_message) if regen_from else new_message)
 
                     photo_url = _photo(character, "photo", emotion_char_1)
@@ -1297,7 +1322,7 @@ def chat(request, slug):
                                      [extras.render(op) for op in chats.game_of(m) if extras.is_extra(op)],
                                      (chats.audio_of(m) or {}).get("url", ""),
                                      polish.dumps(chats.polish_of(m)) if chats.polish_of(m) else "",
-                                     chats.directed_of(m), chats.condensed_of(m))
+                                     chats.directed_of(m), chats.condensed_of(m), chats.is_note(m))
                      for m in messages],
         "voice_on": bool(get_elevenlabs_key(request.user)),
         "swipes": chats.version_info(messages),
@@ -1587,8 +1612,7 @@ def build_chat_request(user, chat_obj, preset=None, character=None, drop_last_re
     preset = presets.normalize(preset or presets.get_active(user).data)
     persona = data.get("persona") if isinstance(data.get("persona"), dict) else {}
     names = prompt_names(user, character, persona)
-    history = [{"role": m[0], "content": extras.for_prompt(chats.prompt_text(m), chats.game_of(m))}
-                       for m in messages if m[0] in ("user", "assistant")]
+    history = _history(messages)
     history = regex_rules.run_on_history(regex_rules.for_chat(preset, character, user), history, names)
     if control.mode_of(preset) == "director" and not tail:
         history = control.frame_directions(history, names)

@@ -2145,3 +2145,29 @@ body.polish-on .message-btn.polish-btn { display: flex; }
     .tr-pin { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { .tr-flyout { animation: none; } .tr-icon.changed::after { animation: none; } }
+
+/* A director's note: a message of its own, outside the story (edit, delete or regenerate with it like any message) */
+.message.user.note .message-text { font-style: italic; color: #d8cffb; }
+.message.user.note .message-text::before {
+    content: "🎬 Director's note"; display: block; margin-bottom: 4px; font-style: normal; font-size: .72rem;
+    font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #a78bfa;
+}
+.message.user.note .message-content { border: 1px dashed rgba(167, 139, 250, 0.55); background: rgba(126, 58, 242, 0.1); }
+
+/* A new mood picture fades in over the old one (chat_page.js swapSprite) */
+.character-image-container { position: relative; }
+.character-image-container .character-sprite.sprite-incoming {
+    position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; pointer-events: none;
+    opacity: 0; transform: scale(1.015); transition: opacity .5s ease, transform .6s ease;
+}
+.character-image-container .character-sprite.sprite-incoming.in { opacity: 1; transform: scale(1); }
+
+/* Windows always fit the screen (the media picker ran past the top on shorter screens); they scroll inside */
+.modal-overlay { padding: 16px; box-sizing: border-box; }
+.modal { box-sizing: border-box; max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); overflow-y: auto; }
+/* The background picker is about backgrounds: the music line and its switch belong to the music picker */
+#mediaModal[data-type="bg"] .music-now, #mediaModal[data-type="bg"] .music-follow { display: none !important; }
+/* Book layout: a director's note stays open (it's what steered the story), labelled as a note, not "you" */
+.layout-book .message.user.note::before { content: "🎬 director's note"; }
+.layout-book .message.user.note .message-content { display: block; max-width: 68ch; }
+.layout-book .message.user.note .message-text::before { display: none; }
