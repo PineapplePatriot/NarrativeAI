@@ -1680,6 +1680,8 @@ details.thoughts .thoughts-text { white-space: pre-wrap; font-size: .85rem; opac
 .tools-menu { max-height: min(560px, calc(100vh - 230px)); max-height: min(560px, calc(100dvh - 230px)); }
 @media (max-height: 520px) { .tools-menu { max-height: calc(100dvh - 150px); } }
 .theme-check { display: flex; gap: 8px; align-items: center; margin-top: 12px; font-size: .88rem; opacity: .85; cursor: pointer; }
+.notebook-shortcut { display: inline-block; margin-top: 8px; font-size: .85rem; color: inherit; opacity: .85; }
+.notebook-shortcut:hover { opacity: 1; text-decoration: underline; }
 
 /* A sprite with a transparent background stands in the scene instead of sitting in a framed card */
 .character-panel:has(.standing) { padding-bottom: 0; }

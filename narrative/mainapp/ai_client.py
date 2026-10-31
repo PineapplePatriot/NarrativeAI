@@ -200,6 +200,14 @@ def spent_this_month(user):
     return round(total or 0.0, 4)
 
 
+def spent_total(user):
+    """Everything this account has spent through the app (requests whose cost the provider reported)."""
+    from django.db.models import Sum
+    from users.models import UsageRecord
+    total = UsageRecord.objects.filter(user=user).aggregate(s=Sum("cost"))["s"]
+    return round(total or 0.0, 4)
+
+
 def spending(user):
     """{"spent", "limit", "left"} for this calendar month, in dollars."""
     from django.conf import settings

@@ -57,6 +57,22 @@ LABELS = {
     "recounting": "Recounting and keeping score instead of talking",
 }
 CAUSES = ("model", "setup", "their_messages")
+# What each one looks like, in plain words (Bulba's notebook page)
+ABOUT = {
+    "same_openings": "He… He… He…: sentence after sentence starts the same way and the rhythm goes flat.",
+    "overworked_metaphor": "A small gesture turned into a showy figure of speech, again and again.",
+    "forced_callback": "\"The same look she gave him at the station\": pointing back at old scenes instead of this one.",
+    "unearned_depth": "A stranger suddenly delivering life wisdom the moment hasn't earned.",
+    "overexplaining": "Spelling out the subtext, the feeling, or why a joke was funny.",
+    "detail_fixation": "Lingering on smells, textures and sounds while the scene you care about waits.",
+    "out_of_character": "Acting or speaking against the character card, or knowing what they couldn't.",
+    "echoing_user": "Repeating or paraphrasing what you just wrote back at you.",
+    "writing_for_user": "Deciding what your character does, says or feels.",
+    "pet_phrase": "The model's stock phrases, or any phrase that keeps coming back.",
+    "repeated_phrase": "The same few words, word for word, across replies (checked for free, no AI).",
+    "misremembered_past": "Getting earlier events, names or facts wrong.",
+    "recounting": "Reciting old events as evidence, keeping score, or therapist-style insights.",
+}
 
 
 # ---------------------------------------------------------------------------
@@ -93,6 +109,7 @@ def user_data(user):
     data.setdefault("polish", {"kept": 0, "liked": 0, "rejected": 0, "examples": []})
     # Things they told Bulba they dislike ("other: <name>" -> what it means), fixed and watched like any habit
     data.setdefault("dislikes", {})
+    data.setdefault("model_off", [])  # known habits of their chat model they asked Watch not to look for
     return data
 
 
@@ -461,7 +478,7 @@ def _prompt(user, character, messages, picked, data, mine, writes_for_user, ask_
     from mainapp import model_profiles
     _, chat_model = ai_client.resolve(user, "chat")
     profile = model_profiles.for_model(chat_model) or {}
-    habits = (profile.get("style") or {}).get("watch_for") or []
+    habits = [h for h in (profile.get("style") or {}).get("watch_for") or [] if h not in mine["model_off"]]
     parts = [f"## The character: {character.name}",
              str(character.description or "")[:1500],
              str(character.personality or "")[:600]]
@@ -796,6 +813,32 @@ def memory(user):
             "fix_model": "chat" if mine.get("fix_model") == "chat" else "bulba"}
 
 
+def notebook(user):
+    """Bulba's notebook page: everything Watch looks for (the common habits, their chat model's own, theirs),
+    what it learned about their taste, and what the whole account has spent."""
+    from mainapp import model_profiles
+    mine = user_data(user)
+    try:
+        _, chat_model = ai_client.resolve(user, "chat")
+    except ai_client.AIError:  # no connection yet: the page still shows the rest
+        chat_model = ""
+    profile = model_profiles.for_model(chat_model) if chat_model else {}
+    profile = profile or {}
+    own = [label for label in mine["fix"] if label.startswith("other: ")]
+    return {
+        **memory(user),
+        "on": is_on(user),
+        "common": [{"label": label, "title": title_of(label), "about": ABOUT.get(label, ""),
+                    "on": label not in mine["muted"], "fixing": label in mine["fix"]} for label in LABELS],
+        "model": {"name": profile.get("name") or chat_model or "your chat model",
+                  "items": [{"text": h, "on": h not in mine["model_off"]}
+                            for h in (profile.get("style") or {}).get("watch_for") or []]},
+        "own": [{"label": label, "title": title_of(label), "about": mine["dislikes"].get(label, "")} for label in own],
+        "muted_other": [{"label": m, "title": title_of(m)} for m in mine["muted"] if m not in LABELS],
+        "spent": ai_client.spent_total(user),
+    }
+
+
 DISLIKE_PROMPT = (
     "Someone using a roleplay app describes something they dislike in the AI's writing, in their own words. Turn "
     "it into a habit an editor can spot and fix. Answer only with JSON: {\"name\": \"2 to 5 words, lower case\", "
@@ -861,6 +904,16 @@ def change_memory(user, op, old="", new=""):
             raise ValueError("That one is gone; reload the page.")
         mine["fix"].remove(old)
         mine["dislikes"].pop(old, None)
+    elif op == "mute":  # a built-in habit switched off on Bulba's notebook page: not looked for, not fixed
+        if old not in LABELS:
+            raise ValueError("That isn't one of the built-in habits.")
+        if old not in mine["muted"]:
+            mine["muted"].append(old)
+        mine["fix"] = [f for f in mine["fix"] if f != old]
+    elif op in ("model_off", "model_on"):
+        if not old or len(old) > 200:
+            raise ValueError("Which habit?")
+        mine["model_off"] = [h for h in mine["model_off"] if h != old] + ([old] if op == "model_off" else [])
     elif op == "fix_model":
         if new not in ("bulba", "chat"):
             raise ValueError("Pick Bulba's model or your chat model.")

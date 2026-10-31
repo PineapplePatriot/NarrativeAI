@@ -17,6 +17,7 @@
     <a href="{% url 'users:api_config' %}" class="{% if active == 'connections' %}active{% endif %}">Connections</a>
     <a href="{% url 'users:extras' %}" class="{% if active == 'extras' %}active{% endif %}" title="Summaries, trackers, pictures, voices, Bulba Watch">Extras</a>
     <a href="{% url 'bulba' %}" class="{% if active == 'bulba' %}active{% endif %}" title="Bulba, the setup potato">🥔 Bulba</a>
+    <a href="{% url 'users:notebook' %}" class="{% if active == 'notebook' %}active{% endif %}" title="What Bulba watches for, what it learned about you, what you've spent">📓 Notebook</a>
     <a href="{% url 'guide' %}" class="{% if active == 'guide' %}active{% endif %}" title="How to try the app">Guide</a>
   </nav>
   <div class="na-user">
@@ -35,7 +36,7 @@
 <link rel="stylesheet" href="{% static 'css/tour.css' %}?v=4">
 <script>window.NA_HELP_CFG = {explain: "{% url 'bulba_explain' %}", bulba: "{% url 'bulba' %}", csrf: "{{ csrf_token }}",
     bug: "{{ bug_form_url|escapejs }}", login: "{{ request.user.username|escapejs }}"};</script>
-<script src="{% static 'js/help_text.js' %}?v=7" defer></script>
+<script src="{% static 'js/help_text.js' %}?v=8" defer></script>
 <script src="{% static 'js/tour.js' %}?v=5" defer></script>
 {% if feedback_url %}<script>window.NA_FEEDBACK = {url: "{{ feedback_url|escapejs }}", done: "{% url 'users:feedback_done' %}", csrf: "{{ csrf_token }}"};</script>
 <script src="{% static 'js/feedback.js' %}?v=1" defer></script>{% endif %}

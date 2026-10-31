@@ -104,3 +104,12 @@ button.link { background: none; padding: 0; color: var(--accent-soft); text-deco
 .extras .memory input[type=range] { width: 100%; accent-color: #8b5cf6; }
 .extras .cost { display: block; margin-top: 6px; color: #a5b4fc; font-size: .85rem; }
 .extras .cost:empty { display: none; }
+
+/* Bulba's notebook */
+.notebook .spent-total { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 4px 0 6px; }
+.notebook .spent-total b { font-size: 1.7rem; }
+.memory.toggles li { justify-content: flex-start; }
+.memory.toggles li.off > label > span { opacity: .55; }
+.toggle-line { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; flex: 1; min-width: 0; }
+.toggle-line input { margin-top: 3px; flex: none; accent-color: #8b5cf6; }
+.notebook-link a { font-weight: 600; }

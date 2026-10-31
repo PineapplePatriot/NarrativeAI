@@ -462,6 +462,37 @@ def apply_extras(user, data):
     return None
 
 
+def _watch_memory_post(user, data, state):
+    """What Bulba Watch looks for and learned: reword, forget, switch habits off and on, add their own.
+    `state(user)` is the page's state, sent back after a change."""
+    from mainapp.bulba import watch
+    try:
+        if data.get("op") == "word_dislike":  # Bulba words what they dislike; they check it before adding
+            return JsonResponse({"status": "ok", "suggestion": watch.word_dislike(user, data.get("new"))})
+        if data.get("op") == "add_dislike":
+            watch.add_dislike(user, data.get("name"), data.get("about"))
+        else:
+            watch.change_memory(user, data.get("op"), str(data.get("old") or ""), data.get("new"))
+    except ValueError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+    return JsonResponse({"status": "ok", "state": state(user)})
+
+
+@login_required
+def notebook(request):
+    """Bulba's notebook: what Watch looks for (and the user can switch off or add), what it learned about
+    their taste, and what the whole account has spent."""
+    from mainapp.bulba import watch
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body.decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            return JsonResponse({"error": "Invalid request."}, status=400)
+        return _watch_memory_post(request.user, data, watch.notebook)
+    return render(request, "users/notebook.html", {"notebook_data": watch.notebook(request.user),
+                                                   "joined": request.user.date_joined})
+
+
 @login_required
 def extras(request):
     from mainapp.ai_client import get_task_setting, main_profile
@@ -471,24 +502,8 @@ def extras(request):
             data = json.loads(request.body.decode("utf-8"))
         except (ValueError, UnicodeDecodeError):
             return JsonResponse({"error": "Invalid request."}, status=400)
-        if data.get("action") == "watch_memory":  # what Bulba Watch learned: reword, forget, or un-mute
-            from mainapp.bulba import watch
-            if data.get("op") == "word_dislike":  # Bulba words what they dislike; they check it before adding
-                try:
-                    return JsonResponse({"status": "ok", "suggestion": watch.word_dislike(request.user, data.get("new"))})
-                except ValueError as e:
-                    return JsonResponse({"error": str(e)}, status=400)
-            if data.get("op") == "add_dislike":
-                try:
-                    watch.add_dislike(request.user, data.get("name"), data.get("about"))
-                except ValueError as e:
-                    return JsonResponse({"error": str(e)}, status=400)
-                return JsonResponse({"status": "ok", "state": _extras_page_state(request.user)})
-            try:
-                watch.change_memory(request.user, data.get("op"), data.get("old"), data.get("new"))
-            except ValueError as e:
-                return JsonResponse({"error": str(e)}, status=400)
-            return JsonResponse({"status": "ok", "state": _extras_page_state(request.user)})
+        if data.get("action") == "watch_memory":
+            return _watch_memory_post(request.user, data, _extras_page_state)
         error = apply_extras(request.user, data)
         if error:
             return JsonResponse({"error": error}, status=400)

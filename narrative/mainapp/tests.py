@@ -4632,6 +4632,71 @@ class WatchMemoryTests(TestCase):
         self.assertEqual(self.post(op="nonsense").status_code, 400)
 
 
+class NotebookPageTests(TestCase):
+    """Bulba's notebook: what Watch looks for (switchable), their own, their taste, the all-time spend."""
+
+    def setUp(self):
+        from mainapp.bulba import watch
+        self.user = get_user_model().objects.create_user(username="nb", password="pw12345!")
+        self.client.force_login(self.user)
+        mine = watch.user_data(self.user)
+        mine["taste"] = ["Keeps the banter"]
+        mine["fix"] = ["overexplaining"]
+        watch.save_user_data(self.user, mine)
+
+    def post(self, **body):
+        return self.client.post(reverse("users:notebook"), json.dumps({"action": "watch_memory", **body}),
+                                content_type="application/json")
+
+    def test_page_shows_everything(self):
+        from users.models import UsageRecord
+        UsageRecord.objects.create(user=self.user, task="chat", model="m", cost=1.25)
+        UsageRecord.objects.create(user=self.user, task="bulba", model="m", cost=0.5)
+        resp = self.client.get(reverse("users:notebook"))
+        self.assertEqual(resp.status_code, 200)
+        state = resp.context["notebook_data"]
+        self.assertEqual(state["spent"], 1.75)
+        common = {h["label"]: h for h in state["common"]}
+        self.assertTrue(common["overexplaining"]["on"] and common["overexplaining"]["fixing"])
+        self.assertTrue(all(h["about"] for h in state["common"]))
+        self.assertEqual(state["taste"], ["Keeps the banter"])
+        self.assertContains(self.client.get(reverse("users:extras")), "Open Bulba's notebook")
+
+    def test_switch_built_in_habits_and_model_habits(self):
+        from mainapp.bulba import watch
+        state = self.post(op="mute", old="overexplaining").json()["state"]
+        off = next(h for h in state["common"] if h["label"] == "overexplaining")
+        self.assertFalse(off["on"])
+        self.assertNotIn("overexplaining", watch.user_data(self.user)["fix"])  # off: not looked for, not fixed
+        self.post(op="unmute", old="overexplaining")
+        self.assertNotIn("overexplaining", watch.user_data(self.user)["muted"])
+        self.assertEqual(self.post(op="mute", old="other: made up").status_code, 400)
+        self.post(op="model_off", old="Fourth-wall leaks")
+        self.assertEqual(watch.user_data(self.user)["model_off"], ["Fourth-wall leaks"])
+        self.post(op="model_on", old="Fourth-wall leaks")
+        self.assertEqual(watch.user_data(self.user)["model_off"], [])
+
+    def test_own_dislike_listed(self):
+        state = self.post(op="add_dislike", name="smirking", about="Smirks in reply to everything.").json()["state"]
+        self.assertEqual(state["own"], [{"label": "other: smirking", "title": "Smirking",
+                                         "about": "Smirks in reply to everything."}])
+
+    def test_model_habit_switched_off_leaves_the_reader_prompt(self):
+        from unittest import mock
+        from mainapp.bulba import watch
+        mine = watch.user_data(self.user)
+        mine["model_off"] = ["Fourth-wall leaks"]
+        profile = {"style": {"watch_for": ["Fourth-wall leaks", "Spatial mistakes in physical scenes"]}}
+        character = mock.Mock(description="", personality="")
+        character.name = "C"
+        with mock.patch("mainapp.model_profiles.for_model", return_value=profile), \
+                mock.patch("mainapp.ai_client.resolve", return_value=(None, "xiaomi/mimo")):
+            text = watch._prompt(self.user, character, [["assistant", 0, "Hi."]], [0],
+                                 {"signals": []}, mine, False)[1]["content"]
+        self.assertIn("Spatial mistakes", text)
+        self.assertNotIn("Fourth-wall leaks", text)
+
+
 class WatchInBulbaContextTests(BulbaInChatTests):
     def test_in_chat_bulba_sees_what_watch_learned(self):
         from mainapp.bulba import watch

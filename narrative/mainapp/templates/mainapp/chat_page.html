@@ -8,7 +8,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Narrative AI - Chat with {{character.name}}</title>
-    <link rel="stylesheet" href="{% static 'mainapp/css/chat_page.css' %}?v=12">
+    <link rel="stylesheet" href="{% static 'mainapp/css/chat_page.css' %}?v=13">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
 </head>
@@ -256,6 +256,7 @@
                         <span class="tool-sublabel">🥔 Bulba Watch</span>
                         <label class="theme-check"><input type="checkbox" id="watchChatToggle" {% if watch_data.on and not watch_data.chat_off %}checked{% endif %}>
                             On in this chat <small>(Bulba reads replies now and then for habits; all chats: the Extras page)</small></label>
+                        <a class="notebook-shortcut" href="{% url 'users:notebook' %}" target="_blank" rel="noopener">📓 What Bulba watches for and knows about you →</a>
                         <span class="tool-sublabel">🌦 Scene <small>(this browser)</small></span>
                         <label class="theme-check"><input type="checkbox" id="atmosphereToggle" checked> Weather and time of day over the
                             background <small>(from the World tracker: <span id="atmosphereNow">nothing to show yet</span>)</small></label>
