@@ -5,7 +5,7 @@ window.NA_HELP = {
     ui: {
         en: {
             next: 'Next', back: 'Back', done: 'Done', skip: 'Skip the tour', close: 'Close', of: 'of',
-            menuPage: 'Tour of this page', menuApp: 'Tour of the app', menuPick: "What's this? Click anything", menuReset: 'Show all tours again',
+            menuPage: 'Tour of this page', menuApp: 'Tour of the app', menuPick: "What's this? Click anything", menuReset: 'Show all tours again', menuBug: 'Report a problem',
             lang: 'Language', pickBanner: 'Click anything and Bulba explains it', pickStop: 'Stop',
             askPh: 'Ask Bulba about it…', ask: 'Ask', more: '🥔 Tell me more', thinking: '🥔 Bulba is looking…',
             fail: "Bulba couldn't answer: ", thisThing: 'This',
@@ -18,7 +18,7 @@ window.NA_HELP = {
         },
         uk: {
             next: 'Далі', back: 'Назад', done: 'Готово', skip: 'Пропустити тур', close: 'Закрити', of: 'з',
-            menuPage: 'Тур цією сторінкою', menuApp: 'Тур застосунком', menuPick: 'Що це? Клацніть на будь-що', menuReset: 'Показати всі тури знову',
+            menuPage: 'Тур цією сторінкою', menuApp: 'Тур застосунком', menuPick: 'Що це? Клацніть на будь-що', menuReset: 'Показати всі тури знову', menuBug: 'Повідомити про проблему',
             lang: 'Мова', pickBanner: 'Клацніть на будь-що, і Бульба пояснить', pickStop: 'Стоп',
             askPh: 'Спитайте Бульбу про це…', ask: 'Спитати', more: '🥔 Розкажи більше', thinking: '🥔 Бульба дивиться…',
             fail: 'Бульба не змогла відповісти: ', thisThing: 'Це',

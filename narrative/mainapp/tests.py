@@ -6127,3 +6127,17 @@ class EmailVerificationTests(TestCase):
             self.assertRedirects(self.sign_up(), reverse("users:welcome"))
         self.assertTrue(get_user_model().objects.get(username="nova").email_verified)
         self.assertEqual(self.sent, [])
+
+
+class BugFormTests(TestCase):
+    def test_the_bug_form_link_reaches_signed_in_pages_only(self):
+        import os
+        from unittest import mock
+        user = get_user_model().objects.create_user("bugs", "bugs@example.com", "pw12345!xyz")
+        url = "https://docs.google.com/forms/d/e/X/viewform?entry.1=NA_PAGE&entry.2=NA_LOGIN"
+        with mock.patch.dict(os.environ, {"BUG_FORM_URL": url}):
+            self.assertNotContains(self.client.get(reverse("users:login")), "docs.google.com")
+            self.client.force_login(user)
+            page = self.client.get(reverse("users:extras"))
+        self.assertContains(page, 'bug: "https://docs.google.com/forms/d/e/X/viewform?entry.1\\u003DNA_PAGE')
+        self.assertContains(page, 'login: "bugs"')

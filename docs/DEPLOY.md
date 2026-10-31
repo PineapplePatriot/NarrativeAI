@@ -39,6 +39,7 @@ Open the service → **Variables** → add these. Values you make up yourself ar
 | `DEMO_OPENROUTER_KEY` | *(optional)* an OpenRouter key just for the demo (see below) |
 | `DEMO_MODEL` | *(optional)* defaults to `mimo-v2-6-pro`; any file name in `narrative/mainapp/data/models/` without `.json` |
 | `FEEDBACK_FORM_URL` | *(optional)* the link to your feedback form (e.g. a Google Form). Signed-in people get a 📝 Feedback button and a reminder after chatting (once a day) until they press "I've filled it in". Remove the variable to switch it off. |
+| `BUG_FORM_URL` | *(optional)* your bug report form. It opens from **? → Report a problem** on every page. Use Google Forms' **Get pre-filled link** and type `NA_PAGE`, `NA_BROWSER` and `NA_LOGIN` as the answers to the page, browser and login questions: the app fills in the real ones. |
 | `STATS_USERS` | *(optional)* usernames that may open the usage page `/users/stats/`, comma-separated (e.g. `anna,mykola`). Staff accounts can open it anyway. |
 
 Type these into Railway only, never into a chat (including with Bulba or with me).
