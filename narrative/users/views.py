@@ -510,5 +510,7 @@ def stats(request):
         response = HttpResponse(usage.csv_text(data), content_type="text/csv")
         response["Content-Disposition"] = 'attachment; filename="narrativeai-usage.csv"'
         return response
-    return render(request, "users/stats.html", {"data": data, "days": days or "", "demo": bool(request.GET.get("demo")),
-                                                "columns": usage.COLUMNS})
+    return render(request, "users/stats.html", {
+        "data": data, "days": days or "", "demo": bool(request.GET.get("demo")),
+        "summary": [(usage.LABELS.get(k, k), v) for k, v in data["summary"].items()],
+        "columns": [usage.COLUMN_LABELS[c] for c in usage.COLUMNS]})

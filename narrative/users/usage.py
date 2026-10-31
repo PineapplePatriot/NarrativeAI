@@ -134,6 +134,21 @@ def _by_day(times):
     return out
 
 
+LABELS = {
+    "accounts": "Accounts", "active_users": "Active users", "active_last_7_days": "Active in the last 7 days",
+    "active_last_day": "Active in the last day", "returning_users": "Came back another day",
+    "users_who_chatted": "Sent at least one message", "sessions": "Sessions",
+    "avg_session_minutes": "Average session (minutes)", "median_session_minutes": "Median session (minutes)",
+    "page_views": "Page views", "messages_sent": "Messages sent", "finished_bulba_setup": "Finished Bulba's setup",
+    "used_bulba_in_a_chat": "Used Bulba in a chat", "spend_usd": "Spent on AI (USD)",
+}
+COLUMN_LABELS = {
+    "username": "User", "joined": "Joined", "last_seen": "Last seen", "active_days": "Days active",
+    "sessions": "Sessions", "minutes": "Minutes", "pages": "Pages", "actions": "Actions", "messages": "Messages",
+    "chats": "Chats", "characters": "Characters", "bulba_setup": "Bulba setups", "bulba_finished": "Setups finished",
+    "bulba_chat": "Bulba in chats", "spend": "Spend (USD)",
+}
+
 COLUMNS = ["username", "joined", "last_seen", "active_days", "sessions", "minutes", "pages", "actions", "messages",
            "chats", "characters", "bulba_setup", "bulba_finished", "bulba_chat", "spend"]
 

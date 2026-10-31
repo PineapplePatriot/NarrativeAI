@@ -44,8 +44,8 @@
     </div>
 
     <div class="stats-grid">
-        {% for key, value in data.summary.items %}
-        <div class="stat"><b>{% if key == "spend_usd" %}${% endif %}{{ value }}</b><span>{{ key|cut:"_usd"|cut:"_" }}</span></div>
+        {% for label, value in summary %}
+        <div class="stat"><b>{{ value }}</b><span>{{ label }}</span></div>
         {% endfor %}
     </div>
 
@@ -68,7 +68,7 @@
 
     <h2>Per person</h2>
     <div class="table-wrap"><table>
-        <tr>{% for c in columns %}<th>{{ c|cut:"_" }}</th>{% endfor %}</tr>
+        <tr>{% for c in columns %}<th>{{ c }}</th>{% endfor %}</tr>
         {% for r in data.users %}
         <tr>
             <td>{{ r.username }}</td><td>{{ r.joined|date:"Y-m-d" }}</td><td>{{ r.last_seen|date:"Y-m-d H:i"|default:"–" }}</td>
