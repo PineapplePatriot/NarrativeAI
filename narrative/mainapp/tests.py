@@ -2,7 +2,7 @@ import json
 import types
 
 from django.contrib.auth import get_user_model
-from django.test import SimpleTestCase, TestCase, override_settings
+from django.test import SimpleTestCase, TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 
 from mainapp.lorebook import activate, format_for_prompt, normalize_book, to_sillytavern
@@ -6145,6 +6145,53 @@ class EditableTextProposalTests(SimpleTestCase):
                   "summary": ["Before:", "x", "After:", "y"], "payload": {"what": "pinned", "before": "x", "text": "y"}}
         p, _ = editing.edit(self.session(pinned), "p", {"text": ""})  # an empty pinned note removes it
         self.assertEqual(p["summary"][3], "(none)")
+
+
+@override_settings(MEDIA_ROOT="/tmp/narrative-test-media-restore")
+class RestoreBackupTests(TransactionTestCase):
+    """restore_backup puts a downloaded backup back (outside a test transaction, as on the server)."""
+
+    def test_backup_download(self):
+        import io, os, shutil, zipfile
+        from unittest import mock
+        shutil.rmtree("/tmp/narrative-test-media-restore", ignore_errors=True)
+        os.makedirs("/tmp/narrative-test-media-restore/backgrounds")
+        with open("/tmp/narrative-test-media-restore/backgrounds/a.png", "wb") as f:
+            f.write(b"png")
+        get_user_model().objects.create_user("reader", "reader@example.com", "pw12345!xyz")
+        self.client.login(username="reader", password="pw12345!xyz")
+        url = reverse("users:stats") + "?format=backup"
+        self.assertEqual(self.client.get(url).status_code, 404)  # not for everyone
+        with mock.patch.dict(os.environ, {"STATS_USERS": "reader"}):
+            self.assertContains(self.client.get(reverse("users:stats")), "Download backup")
+            resp = self.client.get(url)
+        self.assertEqual(resp["Content-Type"], "application/zip")
+        raw = b"".join(resp.streaming_content)
+        with zipfile.ZipFile(io.BytesIO(raw)) as z:
+            self.assertIn("db.sqlite3", z.namelist())
+            self.assertIn("media/backgrounds/a.png", z.namelist())
+
+    def test_restore_round_trip(self):
+        import io, os, shutil
+        from django.core.management import call_command
+        from users import backup
+        shutil.rmtree("/tmp/narrative-test-media-restore", ignore_errors=True)
+        os.makedirs("/tmp/narrative-test-media-restore/backgrounds")
+        with open("/tmp/narrative-test-media-restore/backgrounds/a.png", "wb") as f:
+            f.write(b"png")
+        get_user_model().objects.create_user("before", "before@example.com", "pw12345!xyz")
+        handle, _ = backup.make_zip()
+        path = "/tmp/narrative-test-restore.zip"
+        with open(path, "wb") as f:
+            f.write(handle.read())
+        handle.close()
+        get_user_model().objects.create_user("after", "after@example.com", "pw12345!xyz")
+        os.remove("/tmp/narrative-test-media-restore/backgrounds/a.png")
+        call_command("restore_backup", path, yes=True, stdout=io.StringIO())
+        self.assertFalse(get_user_model().objects.filter(username="after").exists())
+        self.assertTrue(get_user_model().objects.filter(username="before").exists())
+        self.assertTrue(os.path.exists("/tmp/narrative-test-media-restore/backgrounds/a.png"))
+        os.remove(path)
 
 
 @override_settings(MEDIA_ROOT="/tmp/narrative-test-media-delete")

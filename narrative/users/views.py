@@ -565,6 +565,11 @@ def stats(request):
         days = int(request.GET.get("days") or 0) or None
     except ValueError:
         days = None
+    if request.GET.get("format") == "backup":
+        from django.http import FileResponse
+        from users import backup
+        handle, name = backup.make_zip()
+        return FileResponse(handle, as_attachment=True, filename=name, content_type="application/zip")
     data = usage.report(days=days, exclude=() if request.GET.get("demo") else ("demo",))
     if request.GET.get("format") == "csv":
         response = HttpResponse(usage.csv_text(data), content_type="text/csv")

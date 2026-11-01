@@ -22,7 +22,10 @@
         h2 { font-size: 1.1rem; margin: 0 0 10px; }
         .two { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
         .note { color: var(--text-muted); font-size: .85rem; }
-    </style>
+        .backup-line { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin: 4px 0 22px; font-size: .88rem; opacity: .9; }
+    .backup-line span { flex: 1 1 320px; }
+    .backup-btn { padding: 8px 14px; border-radius: 10px; background: #6d28d9; color: #fff !important; text-decoration: none !important; font-weight: 600; white-space: nowrap; }
+</style>
 </head>
 <body class="na-body">
 {% include "partials/topbar.html" %}
@@ -42,6 +45,11 @@
         <span>·</span>
         <a href="?{% if days %}days={{ days }}&{% endif %}{% if demo %}demo=1&{% endif %}format=csv">download CSV</a>
     </div>
+
+    <p class="backup-line"><a class="backup-btn" href="?format=backup">💾 Download backup</a>
+        <span>The whole app in one zip: the database (every account, chat and setting) and all uploaded files.
+            Download one every day or two and before each update. Keep it private: it has everyone's emails, and
+            their saved keys (scrambled with the server's secret key). Restoring: docs/DEPLOY.md, "Backups".</span></p>
 
     <div class="stats-grid">
         {% for label, value in summary %}

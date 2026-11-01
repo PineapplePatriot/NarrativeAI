@@ -72,6 +72,24 @@ Open the link, log in as `demo` with your `DEMO_PASSWORD`, and check a chat repl
 Every push to the main branch rebuilds and redeploys by itself. The volume (database, chats, pictures)
 stays. Database changes (migrations) run automatically on start.
 
+## Backups
+
+Railway's own backups need its Pro plan, so the app makes its own. Log in with an account listed in
+`STATS_USERS`, open `/users/stats/` and press **💾 Download backup**. You get one zip with the database
+(every account, chat and setting) and all uploaded files. Download one every day or two, and always before
+merging an update. Keep the zips private (a personal drive, not the shared course folder or the repository):
+they hold everyone's emails, and their saved keys, scrambled with `DJANGO_SECRET_KEY`.
+
+**Restoring** (rare; replaces what's on the server with the backup):
+
+1. Put the zip somewhere with a *direct* download link, e.g. Dropbox (change `?dl=0` at the end of the share
+   link to `?dl=1`). Delete the shared file right after.
+2. In Railway, open the NarrativeAI service → **Console**, and run:
+   `python manage.py restore_backup "THE-LINK"` and type `yes`.
+3. **Deployments** → ⋮ on the latest one → **Redeploy**.
+
+The backup only works with the same `DJANGO_SECRET_KEY`: keep that variable as it is.
+
 ## If something goes wrong
 
 - **"Bad Request (400)":** the domain isn't known yet; redeploy once after generating it.
