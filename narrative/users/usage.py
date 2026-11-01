@@ -31,18 +31,29 @@ def length(session):
 
 
 def _messages_sent(user):
-    """Messages they wrote in their chats (read from the chat files), and how many chats have any."""
+    """(story messages, director's notes, chats with any) they wrote, read from the chat files. A note is a message
+    of its own now; before, it rode on the reply it steered ("directed"), so those count as notes too."""
     from mainapp import chats
     from mainapp.models import Chat
-    sent = with_messages = 0
+    sent = notes = with_messages = 0
     for chat in Chat.objects.filter(character__author=user):
         try:
-            mine = sum(1 for m in chats.read(chat).get("messages") or [] if m and m[0] == "user")
+            messages = [m for m in chats.read(chat).get("messages") or [] if isinstance(m, (list, tuple)) and m]
         except Exception:
             continue
+        mine = their_notes = 0
+        for i, m in enumerate(messages):
+            if m[0] == "user":
+                if chats.is_note(m):
+                    their_notes += 1
+                else:
+                    mine += 1
+            elif m[0] == "assistant" and chats.directed_of(m) and not (i and chats.is_note(messages[i - 1])):
+                their_notes += 1
         sent += mine
-        with_messages += mine > 0
-    return sent, with_messages
+        notes += their_notes
+        with_messages += (mine + their_notes) > 0
+    return sent, notes, with_messages
 
 
 def report(days=None, exclude=("demo",), include_staff=False):
@@ -84,13 +95,13 @@ def report(days=None, exclude=("demo",), include_staff=False):
     for u in users:
         sess = sessions_of(times[u.id])
         all_sessions += sess
-        sent, chats_used = _messages_sent(u)
+        sent, notes, chats_used = _messages_sent(u)
         days_active = len({t.date() for t in times[u.id]})
         rows.append({
             "username": u.username, "joined": u.date_joined, "last_seen": times[u.id][-1] if times[u.id] else None,
             "active_days": days_active, "sessions": len(sess),
             "minutes": round(sum((length(s) for s in sess), timedelta()).total_seconds() / 60),
-            "pages": pages[u.id], "actions": actions[u.id], "messages": sent, "chats": chats_used,
+            "pages": pages[u.id], "actions": actions[u.id], "messages": sent, "notes": notes, "chats": chats_used,
             "characters": characters.get(u.id, 0), "bulba_setup": bulba[u.id]["setup"],
             "bulba_finished": bulba[u.id]["finished"], "bulba_chat": bulba[u.id]["chat"],
             "spend": round(spend.get(u.id) or 0, 4), "feedback": "yes" if u.feedback_done else "",
@@ -111,12 +122,13 @@ def report(days=None, exclude=("demo",), include_staff=False):
             "active_last_7_days": sum(1 for r in active if r["last_seen"] and r["last_seen"] >= week_ago),
             "active_last_day": sum(1 for r in active if r["last_seen"] and r["last_seen"] >= day_ago),
             "returning_users": sum(1 for r in active if r["active_days"] >= 2),
-            "users_who_chatted": sum(1 for r in rows if r["messages"]),
+            "users_who_chatted": sum(1 for r in rows if r["messages"] or r["notes"]),
             "sessions": len(all_sessions),
             "avg_session_minutes": round(sum(lengths) / len(lengths), 1) if lengths else 0,
             "median_session_minutes": round(lengths[len(lengths) // 2], 1) if lengths else 0,
             "page_views": sum(r["pages"] for r in rows),
             "messages_sent": sum(r["messages"] for r in rows),
+            "notes_sent": sum(r["notes"] for r in rows),
             "finished_bulba_setup": sum(1 for r in rows if r["bulba_finished"]),
             "used_bulba_in_a_chat": sum(1 for r in rows if r["bulba_chat"]),
             "spend_usd": round(sum(r["spend"] for r in rows), 2),
@@ -140,19 +152,19 @@ LABELS = {
     "active_last_day": "Active in the last day", "returning_users": "Came back another day",
     "users_who_chatted": "Sent at least one message", "sessions": "Sessions",
     "avg_session_minutes": "Average session (minutes)", "median_session_minutes": "Median session (minutes)",
-    "page_views": "Page views", "messages_sent": "Messages sent", "finished_bulba_setup": "Finished Bulba's setup",
+    "page_views": "Page views", "messages_sent": "Messages sent", "notes_sent": "Director's notes sent", "finished_bulba_setup": "Finished Bulba's setup",
     "used_bulba_in_a_chat": "Used Bulba in a chat", "spend_usd": "Spent on AI (USD)",
     "filled_feedback_form": "Filled in the feedback form",
 }
 COLUMN_LABELS = {
     "username": "User", "joined": "Joined", "last_seen": "Last seen", "active_days": "Days active",
-    "sessions": "Sessions", "minutes": "Minutes", "pages": "Pages", "actions": "Actions", "messages": "Messages",
+    "sessions": "Sessions", "minutes": "Minutes", "pages": "Pages", "actions": "Actions", "messages": "Messages", "notes": "Director's notes",
     "chats": "Chats", "characters": "Characters", "bulba_setup": "Bulba setups", "bulba_finished": "Setups finished",
     "bulba_chat": "Bulba in chats", "spend": "Spend (USD)", "feedback": "Feedback form",
 }
 
 COLUMNS = ["username", "joined", "last_seen", "active_days", "sessions", "minutes", "pages", "actions", "messages",
-           "chats", "characters", "bulba_setup", "bulba_finished", "bulba_chat", "spend", "feedback"]
+           "notes", "chats", "characters", "bulba_setup", "bulba_finished", "bulba_chat", "spend", "feedback"]
 
 
 def csv_text(data):

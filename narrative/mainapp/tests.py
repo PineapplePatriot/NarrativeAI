@@ -6236,6 +6236,26 @@ class UsageTests(TestCase):
         self.assertEqual(len(usage.report(exclude=(), include_staff=True)["users"]), 3)
         self.assertIn("reader", usage.csv_text(data))
 
+    def test_director_notes_count_new_and_old_kind(self):
+        from mainapp import chats
+        from mainapp.models import Character, Chat
+        from users import usage
+        character = Character.objects.create(name="C", slug="c-usage", author=self.user)
+        chat = Chat.objects.create(character=character)
+        chats.write(chat, {"messages": [
+            ("assistant", 0, "Hello.", "neutral", 0),
+            ("user", 0, "Hi!", "neutral", 0),
+            chats.as_note(("user", 0, "Make it rain.", "neutral", 0)),
+            ("assistant", 0, "Rain.", "neutral", 0),
+            ("assistant", 0, "Snow.", "neutral", 0, {"directed": "Make it snow."}),  # a note from before
+        ]})
+        row = usage.report()["users"][0]
+        self.assertEqual((row["messages"], row["notes"], row["chats"]), (1, 2, 1))
+        only_notes = Chat.objects.create(character=character)
+        chats.write(only_notes, {"messages": [chats.as_note(("user", 0, "Begin.", "neutral", 0))]})
+        data = usage.report()
+        self.assertEqual((data["summary"]["notes_sent"], data["users"][0]["chats"]), (3, 2))
+
     def test_stats_page_is_only_for_staff_or_listed_users(self):
         import os
         from unittest import mock
