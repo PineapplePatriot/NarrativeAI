@@ -1,4 +1,5 @@
 import json
+import types
 
 from django.contrib.auth import get_user_model
 from django.test import SimpleTestCase, TestCase, override_settings
@@ -6089,6 +6090,34 @@ class SecurityTests(TestCase):
         from django.contrib.admin.forms import AdminAuthenticationForm
         from users.forms import AdminLoginForm, LoginLock
         self.assertTrue(issubclass(AdminLoginForm, LoginLock) and issubclass(AdminLoginForm, AdminAuthenticationForm))
+
+
+class EditableTextProposalTests(SimpleTestCase):
+    """Bulba's text cards can be edited by hand: a memory fix and a fixed message too."""
+
+    def session(self, *proposals):
+        return types.SimpleNamespace(proposals=list(proposals))
+
+    def test_memory_and_message_fix_are_editable(self):
+        from mainapp.bulba import editing
+        memory = {"id": "m", "kind": "memory_edit", "status": "pending", "title": "Story summary, piece 1",
+                  "summary": ["Before:", "Old.", "After:", "Bulba's.", "Why:", "wrong name"],
+                  "payload": {"what": "summary", "piece": 0, "before": "Old.", "text": "Bulba's."}}
+        fix = {"id": "f", "kind": "message_fix", "status": "pending", "title": "Fixed reply (1 change)",
+               "summary": ["Fix:", "  Before: a", "  After: b"],
+               "payload": {"chat_id": 1, "index": 3, "original": "a", "text": "b", "fixes": []}}
+        session = self.session(memory, fix)
+        self.assertEqual([f["path"] for f in editing.fields(memory)], ["text"])
+        p, changed = editing.edit(session, "m", {"text": "Mine."})
+        self.assertEqual((p["payload"]["text"], p["summary"][3], p["summary"][-1]), ("Mine.", "Mine.", "wrong name"))
+        p, _ = editing.edit(session, "f", {"text": "My version."})
+        self.assertEqual(p["summary"], ["Your edited version:", "My version."])
+        with self.assertRaises(ValueError):
+            editing.edit(session, "f", {"text": "  "})
+        pinned = {"id": "p", "kind": "memory_edit", "status": "pending", "title": "Pinned note",
+                  "summary": ["Before:", "x", "After:", "y"], "payload": {"what": "pinned", "before": "x", "text": "y"}}
+        p, _ = editing.edit(self.session(pinned), "p", {"text": ""})  # an empty pinned note removes it
+        self.assertEqual(p["summary"][3], "(none)")
 
 
 @override_settings(MEDIA_ROOT="/tmp/narrative-test-media-delete")
