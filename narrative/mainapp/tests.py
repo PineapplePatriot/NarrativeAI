@@ -3520,11 +3520,19 @@ class MediaUploadTests(ChatPromptTests):
         self.assertEqual(url, "/main/api/media-resources/")  # the page posts here
         ok = self.client.post(url, {"type": "bg", "file": SimpleUploadedFile("My Room.PNG", b"\x89PNG fake")}).json()
         self.assertTrue(ok["success"])
-        self.assertTrue(ok["url"].endswith("/backgrounds/custom/my-room.png"))
+        self.assertRegex(ok["url"], rf"/backgrounds/custom/u{self.user.id}/my-room-[0-9a-f]{{6}}\.png$")
+        again = self.client.post(url, {"type": "bg", "file": SimpleUploadedFile("My Room.PNG", b"\x89PNG other")}).json()
+        self.assertNotEqual(again["url"], ok["url"])  # same name, no overwrite
         bad = self.client.post(url, {"type": "music", "file": SimpleUploadedFile("x.exe", b"MZ")}).json()
         self.assertFalse(bad["success"])
-        listed = self.client.get(url).json()
-        self.assertIn("Custom: my-room.png", [b["name"] for b in listed["backgrounds"]])
+        listed = [b["url"] for b in self.client.get(url).json()["backgrounds"]]
+        self.assertIn(ok["url"], listed)
+        # Someone else doesn't see them
+        other = get_user_model().objects.create_user(username="other-uploader", password="pw12345!")
+        self.client.force_login(other)
+        theirs = [b["url"] for b in self.client.get(url).json()["backgrounds"]]
+        self.assertNotIn(ok["url"], theirs)
+        self.assertFalse(any(f"/u{self.user.id}/" in u for u in theirs))
 
 
 class DemoPackAndThemeTests(ChatPromptTests):
@@ -6073,6 +6081,13 @@ class SecurityTests(TestCase):
             self.client.post(url, {"username": "ok", "password": "wrong"})
         self.client.post(url, {"username": "ok", "password": "Right-Pass-123"})
         self.assertIsNone(cache.get("login-fail:user:ok"))
+
+
+    def test_admin_is_off_and_its_login_form_has_the_lock(self):
+        self.assertEqual(self.client.get("/admin/").status_code, 404)
+        from django.contrib.admin.forms import AdminAuthenticationForm
+        from users.forms import AdminLoginForm, LoginLock
+        self.assertTrue(issubclass(AdminLoginForm, LoginLock) and issubclass(AdminLoginForm, AdminAuthenticationForm))
 
 
 @override_settings(MEDIA_ROOT="/tmp/narrative-test-media")

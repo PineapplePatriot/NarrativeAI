@@ -2207,32 +2207,39 @@ def page_not_found(request, exception):
 
 # In mainapp/views.py
 
+MEDIA_EXTS = ('.png', '.jpg', '.jpeg', '.webp', '.gif', '.mp3', '.wav', '.ogg', '.m4a')
+
+
+def user_media_dir(user, kind):
+    """(folder on disk, URL prefix) for one person's own uploads ("backgrounds" or "music"). Each person has their
+    own folder, so nobody sees anyone else's files and two files with the same name never overwrite each other.
+    (Older uploads in the shared custom/ folder stay reachable by their URL but aren't listed for anyone.)"""
+    folder = os.path.join(settings.MEDIA_ROOT, kind, "custom", f"u{user.id}")
+    os.makedirs(folder, exist_ok=True)
+    return folder, f"{settings.MEDIA_URL}{kind}/custom/u{user.id}/"
+
+
+def unique_upload_name(base, ext):
+    return f"{slugify(base)[:60] or 'file'}-{uuid.uuid4().hex[:6]}{ext.lower()}"
+
+
 @login_required
 def get_media_resources(request):
-    # Define paths inside your MEDIA_ROOT
     bg_dir = os.path.join(settings.MEDIA_ROOT, "backgrounds")
     music_dir = os.path.join(settings.MEDIA_ROOT, "music")
-
-    # Auto-create directories so you don't get FileNotFoundError
     os.makedirs(bg_dir, exist_ok=True)
-    os.makedirs(os.path.join(bg_dir, "custom"), exist_ok=True)
     os.makedirs(music_dir, exist_ok=True)
-    os.makedirs(os.path.join(music_dir, "custom"), exist_ok=True)
 
-    def get_files(directory, url_prefix):
-        files = []
-        if os.path.exists(directory):
-            # 1. Scan main folder
-            for f in os.listdir(directory):
-                if f.lower().endswith(('.png', '.jpg', '.jpeg', '.webp', '.gif', '.mp3', '.wav', '.ogg', '.m4a')):
-                    files.append({"name": f, "url": f"{settings.MEDIA_URL}{url_prefix}/{f}"})
-
-            # 2. Scan 'custom' subfolder (user uploads)
-            custom_dir = os.path.join(directory, "custom")
-            if os.path.exists(custom_dir):
-                for f in os.listdir(custom_dir):
-                    if f.lower().endswith(('.png', '.jpg', '.jpeg', '.webp', '.gif', '.mp3', '.wav', '.ogg', '.m4a')):
-                        files.append({"name": f"Custom: {f}", "url": f"{settings.MEDIA_URL}{url_prefix}/custom/{f}"})
+    def get_files(kind):
+        """The files every install shares (put in the main folder by whoever runs the app), then this person's own."""
+        files, directory = [], os.path.join(settings.MEDIA_ROOT, kind)
+        for f in os.listdir(directory):
+            if f.lower().endswith(MEDIA_EXTS) and os.path.isfile(os.path.join(directory, f)):
+                files.append({"name": f, "url": f"{settings.MEDIA_URL}{kind}/{f}"})
+        mine, url = user_media_dir(request.user, kind)
+        for f in sorted(os.listdir(mine)):
+            if f.lower().endswith(MEDIA_EXTS):
+                files.append({"name": f"Mine: {f}", "url": url + f})
         return sorted(files, key=lambda x: x['name'])
 
     if request.method == "POST" and request.FILES:
@@ -2240,34 +2247,27 @@ def get_media_resources(request):
             file_type = request.POST.get("type")
             if "file" in request.FILES:
                 f = request.FILES["file"]
-                target_dir = bg_dir if file_type == "bg" else music_dir
-                prefix = "backgrounds" if file_type == "bg" else "music"
+                kind = "backgrounds" if file_type == "bg" else "music"
                 allowed = (".png", ".jpg", ".jpeg", ".webp", ".gif") if file_type == "bg" else (".mp3", ".ogg", ".wav", ".m4a")
                 base, ext = os.path.splitext(os.path.basename(f.name))
                 if ext.lower() not in allowed:
                     return JsonResponse({"success": False, "error": f"That file type can't be used here ({', '.join(allowed)})."})
                 if f.size > 25 * 1024 * 1024:
                     return JsonResponse({"success": False, "error": "That file is over 25 MB."})
-                name = (slugify(base) or "file") + ext.lower()
-
-                # Save to 'custom' subfolder to keep main folder clean
-                custom_path = os.path.join(target_dir, "custom", name)
-                with open(custom_path, 'wb+') as dest:
-                    for chunk in f.chunks(): dest.write(chunk)
-
-                return JsonResponse({
-                    "success": True,
-                    "url": f"{settings.MEDIA_URL}{prefix}/custom/{name}",
-                    "name": f"Custom: {name}"
-                })
+                folder, url = user_media_dir(request.user, kind)
+                name = unique_upload_name(base, ext)
+                with open(os.path.join(folder, name), 'wb') as dest:
+                    for chunk in f.chunks():
+                        dest.write(chunk)
+                return JsonResponse({"success": True, "url": url + name, "name": f"Mine: {name}"})
         except Exception as e:
             return JsonResponse({"success": False, "error": str(e)})
 
     # Return lists for GET requests
     return JsonResponse({
         # Built-in ones ship with the app (static/defaults/), so every install has them
-        "backgrounds": media_library.built_in("backgrounds") + get_files(bg_dir, "backgrounds"),
-        "music": media_library.built_in("music") + get_files(music_dir, "music")
+        "backgrounds": media_library.built_in("backgrounds") + get_files("backgrounds"),
+        "music": media_library.built_in("music") + get_files("music")
     })
 
 
@@ -2638,13 +2638,12 @@ def _bulba_picture_upload(request):
         return JsonResponse({"error": "That file isn't a picture."}, status=400)
     ext = os.path.splitext(upload.name)[1].lower() or ".png"
     if target == "background":
-        folder = os.path.join(settings.MEDIA_ROOT, "backgrounds", "custom")
-        os.makedirs(folder, exist_ok=True)
-        name = f"{character.slug}-{uuid.uuid4().hex[:6]}{ext}"
+        folder, url = user_media_dir(request.user, "backgrounds")
+        name = unique_upload_name(character.slug, ext)
         with open(os.path.join(folder, name), "wb") as f:
             f.write(raw)
         undo = {"character_id": character.id, "theme": dict(character.theme or {})}
-        character.theme = {**(character.theme or {}), "bg": f"{settings.MEDIA_URL}backgrounds/custom/{name}"}
+        character.theme = {**(character.theme or {}), "bg": url + name}
         character.save(update_fields=["theme"])
         kind, what = "theme", f"a background for {character.name}'s chats (now their theme)"
     else:
