@@ -88,7 +88,11 @@
     ],
     "probes": [],
     "watch_for": [
-      "Antagonists going soft when events turn harsh"
+      "Antagonists going soft when events turn harsh",
+      "Repeating the same room and action descriptions",
+      "Recapping instead of replying",
+      "Echoing the user's words and analysing them",
+      "Profound either/or closing lines (\"brave or cruel\")"
     ]
   },
   "starters": {

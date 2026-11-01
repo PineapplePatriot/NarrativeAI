@@ -113,3 +113,4 @@ button.link { background: none; padding: 0; color: var(--accent-soft); text-deco
 .toggle-line { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; flex: 1; min-width: 0; }
 .toggle-line input { margin-top: 3px; flex: none; accent-color: #8b5cf6; }
 .notebook-link a { font-weight: 600; }
+.notebook .spent-row { display: flex; gap: 28px; flex-wrap: wrap; }

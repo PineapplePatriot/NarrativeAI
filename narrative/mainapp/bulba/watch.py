@@ -836,6 +836,7 @@ def notebook(user):
         "own": [{"label": label, "title": title_of(label), "about": mine["dislikes"].get(label, "")} for label in own],
         "muted_other": [{"label": m, "title": title_of(m)} for m in mine["muted"] if m not in LABELS],
         "spent": ai_client.spent_total(user),
+        "month": ai_client.spent_this_month(user),
     }
 
 

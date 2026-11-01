@@ -92,7 +92,11 @@
       "Does this reaction make sense only for what just happened, or does it also feel right for their history together?"
     ],
     "watch_for": [
-      "Reactions that ignore shared history"
+      "Reactions that ignore shared history",
+      "Corporate or aphoristic lines instead of a real answer",
+      "Characters knowing what they couldn't",
+      "Job-speak taking over a character",
+      "Abstract status updates instead of something happening"
     ]
   },
   "starters": {

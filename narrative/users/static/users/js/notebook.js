@@ -22,6 +22,7 @@ const toggle = (i, on, kind, title, about, extra = '') =>
 
 function fill() {
     $('spentTotal').textContent = money(state.spent);
+    $('spentMonth').textContent = money(state.month);
     $('watchState').textContent = state.on ? 'on' : 'off';
     $('nbCommon').innerHTML = state.common.map((h, i) =>
         toggle(i, h.on, 'common', h.title, h.about, h.fixing ? ' <small class="in-preset" title="Rewritten out of new replies">🧹</small>' : '')).join('');

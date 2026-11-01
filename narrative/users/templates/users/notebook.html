@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bulba's notebook - Narrative AI</title>
-    <link rel="stylesheet" href="{% static 'users/css/welcome.css' %}?v=4">
+    <link rel="stylesheet" href="{% static 'users/css/welcome.css' %}?v=5">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
 </head>
@@ -18,7 +18,10 @@
 
     <section class="option" id="nbSpent">
         <h2>💸 Spent so far</h2>
-        <p class="spent-total"><b id="spentTotal"></b> <span class="help">since you joined ({{ joined|date:"j M Y" }})</span></p>
+        <div class="spent-row">
+            <p class="spent-total"><b id="spentMonth"></b> <span class="help">this month</span></p>
+            <p class="spent-total"><b id="spentTotal"></b> <span class="help">since you joined ({{ joined|date:"j M Y" }})</span></p>
+        </div>
         <p class="help">Everything this account sent through your OpenRouter key: replies, Bulba, Watch and its fixes,
             summaries, trackers, pictures. Your exact bill is on openrouter.ai; other providers don't report prices, so
             they aren't counted here.</p>
@@ -82,7 +85,7 @@
 </main>
 {{ notebook_data|json_script:"notebook-data" }}
 <script>const NOTEBOOK_URL = "{% url 'users:notebook' %}";</script>
-<script src="{% static 'users/js/notebook.js' %}?v=1"></script>
+<script src="{% static 'users/js/notebook.js' %}?v=2"></script>
 <script>window.NA_PAGE_TOUR = {name: 'notebook', auto: true};</script>
 </body>
 </html>

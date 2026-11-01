@@ -4664,6 +4664,7 @@ class NotebookPageTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         state = resp.context["notebook_data"]
         self.assertEqual(state["spent"], 1.75)
+        self.assertEqual(state["month"], 1.75)
         common = {h["label"]: h for h in state["common"]}
         self.assertTrue(common["overexplaining"]["on"] and common["overexplaining"]["fixing"])
         self.assertTrue(all(h["about"] for h in state["common"]))

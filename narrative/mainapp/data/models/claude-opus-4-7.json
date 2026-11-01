@@ -99,7 +99,10 @@
     ],
     "watch_for": [
       "Length swinging between bloated and thin",
-      "Recounting and keeping score in dialogue (reciting earlier events as evidence, counts like 'the third time'), or a witty or therapist-level line instead of plain talk"
+      "Recounting and keeping score in dialogue (reciting earlier events as evidence, counts like 'the third time'), or a witty or therapist-level line instead of plain talk",
+      "Chopped, staccato action lines",
+      "Abstract status updates (\"trust deepened\") instead of something happening",
+      "Thin, minimal scenes"
     ]
   },
   "starters": {

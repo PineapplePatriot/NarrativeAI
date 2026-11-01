@@ -12,7 +12,7 @@ from mainapp.bulba import control, doctor, library, lore, rules, tune
 INSTRUCTIONS = Path(__file__).resolve().parent.parent / "data" / "bulba" / "instructions.md"
 GUIDES_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba" / "guides"
 # Which guides Bulba reads at each stage (keeps the prompt, and the bill, small)
-STAGE_GUIDES = {"extras": ["extras"], "taste": ["asking", "presets", "writing"], "preset": ["presets", "writing"],
+STAGE_GUIDES = {"extras": ["extras"], "taste": ["asking", "presets", "writing"], "preset": ["presets", "writing", "slop"],
                 "persona": ["characters", "writing"], "character": ["characters", "lore", "writing"],
                 "story": ["extras", "tuning"], "done": ["characters", "lore", "writing", "tuning"]}
 REWRITABLE = ("Roleplay", "Style")
