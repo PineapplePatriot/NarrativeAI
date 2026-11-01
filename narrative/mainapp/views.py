@@ -410,6 +410,7 @@ def chat(request, slug):
             draft = text_rules("saved", str(data.get("text") or "").strip(), "user") if data.get("text") else ""
             preset = presets.normalize(presets.get_active(request.user).data)
             ask = (preset["utility"]["impersonation"].strip() or presets.UTILITY_DEFAULTS["impersonation"])
+            preset = control.for_impersonation(preset)  # its "never write for {{user}}" rules don't apply here
             if draft:
                 ask += ("\n\n[{{user}} sketched their next move below. Write it out as their full message, in the "
                         "story's language and style and about as long as their earlier messages: what they say, "

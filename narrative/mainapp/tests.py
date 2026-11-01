@@ -3265,13 +3265,26 @@ class ImpersonateAndTriggerTests(ChatPromptTests):
         data["utility"]["impersonation"] = "[Write as {{user}} now.]"
         data["blocks"].insert(0, presets_mod.normalize_block(
             {"name": "Imp", "content": "IMPERSONATE BLOCK", "triggers": ["impersonate"]}))
+        data["blocks"].insert(1, presets_mod.normalize_block(
+            {"name": "Rules", "content": "Stay vivid.\nNever speak or act for {{user}}.\nKeep it tense."}))
+        data["blocks"].append(presets_mod.normalize_block(
+            {"name": "Reply reminder", "content": "[Reply as {{char}} only.]", "position": "in_chat", "depth": 0}))
         obj.data = data
         obj.save()
         self.post({"action": "chat", "message": "Hi"})
-        self.assertNotIn("IMPERSONATE BLOCK", json.dumps(self.sent[-1]["messages"]))
+        normal = json.dumps(self.sent[-1]["messages"])
+        self.assertNotIn("IMPERSONATE BLOCK", normal)
+        self.assertIn("Never speak or act for", normal)
+        self.assertIn("Reply as", normal)
         resp = self.post({"action": "expand", "text": "i nod"}).json()
         self.assertEqual(resp["text"], "A reply.")
         sent = json.dumps(self.sent[-1]["messages"])
+        # Writing their message: the preset's rules against it are out, a frame on top says whose message it is
+        self.assertTrue(self.sent[-1]["messages"][0]["content"].startswith("[This turn is different. You are writing chatter's"))
+        self.assertNotIn("Never speak or act for", sent)
+        self.assertNotIn("Reply as", sent)
+        self.assertIn("Stay vivid.", sent)
+        self.assertIn("Keep it tense.", sent)
         self.assertIn("IMPERSONATE BLOCK", sent)
         self.assertIn("Write as chatter now.", sent)
         self.assertIn("i nod", sent)
@@ -3288,6 +3301,20 @@ class ImpersonateAndTriggerTests(ChatPromptTests):
             resp = self.client.post(self.url, json.dumps({"action": "expand", "text": "i nod"}),
                                     content_type="application/json").json()
         self.assertIn("reply length", resp["error"])
+
+
+class ImpersonationPresetTests(SimpleTestCase):
+    def test_director_and_write_modes_lose_their_block_when_writing_for_the_user(self):
+        from mainapp import presets as presets_mod
+        from mainapp.bulba import control
+        base = presets_mod.normalize({"blocks": [{"name": "Roleplay", "content": "Play {{char}}."},
+                                                 {"kind": "marker", "marker": "chat_history"}]})
+        for mode in ("dont", "write", "director"):
+            p = control.for_impersonation(control.apply_to_preset(base, mode))
+            names = [b["name"] for b in p["blocks"]]
+            self.assertNotIn(control.BLOCK, names)
+            self.assertEqual(names[0], "Writing for you")
+            self.assertIn("Play {{char}}.", json.dumps(p))
 
 
 class DirectorModeTests(BulbaTests):

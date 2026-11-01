@@ -62,6 +62,43 @@ def mode_of(preset):
 
 
 # ---------------------------------------------------------------------------
+# "Write for me" (impersonation): the preset is written for {{char}}'s replies, so for that one message its
+# rules that keep the AI off {{user}} come out, and a short frame on top says whose message this is
+# ---------------------------------------------------------------------------
+
+# Any line telling the AI not to write, speak, act or decide for {{user}} (our starters' and common community wording)
+AGENCY_LINE = re.compile(
+    r"^.*(\{\{user\}\}|the user|the player)[^\n]*\b(never|don.t|do not|avoid|must not|not allowed)\b[^\n]*"
+    r"\b(speak|write|act|decide|narrate|control|describe|dialogue|thoughts|actions|feelings)\b.*$\n?"
+    r"|^.*\b(never|don.t|do not|avoid|must not)\b[^\n]*\b(speak|writ|act|decid|narrat|control|describ)\w*\b[^\n]*"
+    r"(for |as |on behalf of )?(\{\{user\}\}|the user|the player).*$\n?", re.M | re.I)
+REMINDER = "Reply reminder"  # the in-chat "reply as {{char}}" nudge right before the reply (bulba/doctor.py)
+IMPERSONATE_TOP = (
+    "[This turn is different. You are writing {{user}}'s next message, as {{user}}, the player's own character, "
+    "not as {{char}}. The instructions below were written for {{char}}'s replies: follow their language, style "
+    "and the story so far, but this one message belongs to {{user}}: their words, actions and thoughts, in the "
+    "voice of {{user}}'s earlier messages. Don't write {{char}}'s or anyone else's reactions, and don't decide "
+    "what happens next.]")
+
+
+def for_impersonation(preset):
+    """A copy of the normalized preset for writing {{user}}'s message: their-agency rules and the Your character
+    block out, the reply-as-{{char}} reminder off, the frame on top. Blocks made for impersonation stay."""
+    preset = copy.deepcopy(preset)
+    keep = []
+    for b in preset["blocks"]:
+        if b["name"] == BLOCK or (b["name"] == REMINDER and b["position"] == "in_chat") or b["name"] == RF_ANTI_ECHO:
+            continue
+        if b["kind"] == "prompt" and "impersonate" not in (b.get("triggers") or []):
+            b["content"] = AGENCY_LINE.sub("", b["content"])
+        keep.append(b)
+    top = presets.normalize_block({"name": "Writing for you", "kind": "prompt", "content": IMPERSONATE_TOP,
+                                   "order": -10000})
+    preset["blocks"] = [top] + keep
+    return preset
+
+
+# ---------------------------------------------------------------------------
 # Director mode, per message: every direction carries what it means (Pura's block alone made models leave
 # {{user}}'s own character out of the scene: "never treat {{user}} as a character")
 # ---------------------------------------------------------------------------
