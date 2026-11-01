@@ -18,7 +18,7 @@ LINK_DAYS = 3
 SALT = "narrativeai-email-verification"
 RESEND_EVERY = 60  # seconds between two emails to one account
 # Pages an unverified account may still open: the waiting page, the link itself, logging out
-OPEN_PATHS = ("/users/verify", "/users/logout", "/users/login", "/static/", "/media/", "/favicon")
+OPEN_PATHS = ("/users/verify", "/users/logout", "/users/delete", "/users/login", "/static/", "/media/", "/favicon")
 
 
 def enabled():

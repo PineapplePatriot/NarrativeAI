@@ -18,6 +18,7 @@ urlpatterns = [
     path("welcome/", views.welcome, name="welcome"),
     path("extras/", views.extras, name="extras"),
     path("notebook/", views.notebook, name="notebook"),
+    path("delete/", views.delete_account, name="delete_account"),
     path("stats/", views.stats, name="stats"),
     path("feedback/", views.feedback_done, name="feedback_done"),
     path("verify/", views.verify, name="verify"),

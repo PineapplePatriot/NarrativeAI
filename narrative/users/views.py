@@ -479,6 +479,25 @@ def _watch_memory_post(user, data, state):
 
 
 @login_required
+def delete_account(request):
+    """The person deletes their own account and everything in it, after typing their password."""
+    from django.contrib.auth import logout
+    from . import account
+    error = ""
+    if request.method == "POST":
+        if not request.user.check_password(request.POST.get("password") or ""):
+            error = "Wrong password."
+        elif request.POST.get("confirm") != "on":
+            error = "Tick the box to confirm."
+        else:
+            user = request.user
+            logout(request)
+            account.delete_account(user)
+            return render(request, "users/deleted.html")
+    return render(request, "users/delete_account.html", {"error": error})
+
+
+@login_required
 def notebook(request):
     """Bulba's notebook: what Watch looks for (and the user can switch off or add), what it learned about
     their taste, and what the whole account has spent."""

@@ -6091,6 +6091,48 @@ class SecurityTests(TestCase):
         self.assertTrue(issubclass(AdminLoginForm, LoginLock) and issubclass(AdminLoginForm, AdminAuthenticationForm))
 
 
+@override_settings(MEDIA_ROOT="/tmp/narrative-test-media-delete")
+class DeleteAccountTests(TestCase):
+    def setUp(self):
+        import os, shutil
+        from django.core.files.base import ContentFile
+        from mainapp.models import Character, Worldbook, Preset
+        shutil.rmtree("/tmp/narrative-test-media-delete", ignore_errors=True)
+        self.user = get_user_model().objects.create_user("gone", "gone@example.com", "Right-Pass-123")
+        self.other = get_user_model().objects.create_user("stays", "stays@example.com", "Right-Pass-123")
+        self.char = Character.objects.create(name="Mine", slug="mine-del", author=self.user)
+        self.char.photo_neutral.save("mine.png", ContentFile(b"png"), save=True)
+        self.theirs = Character.objects.create(name="Theirs", slug="theirs-del", author=self.other)
+        Worldbook.objects.create(title="Book", slug="book-del", author=self.user)
+        Preset.objects.create(user=self.user, name="P", data={})
+        self.photo = self.char.photo_neutral.path
+        self.upload_dir = os.path.join("/tmp/narrative-test-media-delete", "backgrounds", "custom", f"u{self.user.id}")
+        os.makedirs(self.upload_dir)
+        open(os.path.join(self.upload_dir, "room.png"), "wb").close()
+        self.client.force_login(self.user)
+
+    def test_needs_password_and_confirmation(self):
+        url = reverse("users:delete_account")
+        self.assertContains(self.client.get(reverse("users:profile")), url)
+        self.assertContains(self.client.post(url, {"password": "wrong", "confirm": "on"}), "Wrong password")
+        self.assertContains(self.client.post(url, {"password": "Right-Pass-123"}), "Tick the box")
+        self.assertTrue(get_user_model().objects.filter(username="gone").exists())
+
+    def test_deletes_everything_of_theirs_and_nothing_else(self):
+        import os
+        from mainapp.models import Character, Worldbook, Preset
+        page = self.client.post(reverse("users:delete_account"), {"password": "Right-Pass-123", "confirm": "on"})
+        self.assertContains(page, "Your account is deleted")
+        self.assertFalse(get_user_model().objects.filter(username="gone").exists())
+        self.assertFalse(Character.objects.filter(slug="mine-del").exists())
+        self.assertFalse(Worldbook.objects.filter(slug="book-del").exists())
+        self.assertFalse(Preset.objects.filter(name="P").exists())
+        self.assertFalse(os.path.exists(self.photo))
+        self.assertFalse(os.path.exists(self.upload_dir))
+        self.assertTrue(Character.objects.filter(slug="theirs-del").exists())
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+
 @override_settings(MEDIA_ROOT="/tmp/narrative-test-media")
 class UsageTests(TestCase):
     """Activity recording and the usage report (users/activity.py, users/usage.py)."""
