@@ -6,7 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bulba - Narrative AI</title>
-    <link rel="stylesheet" href="{% static 'mainapp/css/bulba.css' %}?v=3">
+    <link rel="stylesheet" href="{% static 'mainapp/css/bulba.css' %}?v=5">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
 </head>
@@ -34,15 +34,17 @@
         <form class="picture-form" id="pictureForm" hidden>
             <input type="file" id="pictureFile" accept="image/png,image/jpeg,image/webp,image/gif">
             <select id="pictureAs">
+                <option value="look">Just show Bulba (a screenshot, character art, a place…)</option>
                 <option value="neutral">The character's picture (neutral)</option>
                 {% for m in "happy,sad,angry,surprised,scared,confused,calm,scheming"|split:"," %}<option value="{{ m }}">Mood: {{ m }}</option>{% endfor %}
                 <option value="background">A background for their chats</option>
             </select>
+            <input type="text" id="pictureText" maxlength="2000" placeholder="What should Bulba do with it? (optional)">
             <button type="submit">Add</button>
             <button type="button" class="ghost" id="pictureCancel">Cancel</button>
         </form>
         <form class="composer" id="composer">
-            <button type="button" class="attach" id="attachBtn" title="Add a picture (the character's, a mood, or a background)">📎</button>
+            <button type="button" class="attach" id="attachBtn" title="Show Bulba a picture, or add one as the character's, a mood or a background">📎</button>
             <textarea id="input" rows="1" placeholder="{% if embed %}What's off in this chat?{% else %}Talk to Bulba…{% endif %}"></textarea>
             <button type="submit" id="sendBtn">Send</button>
         </form>

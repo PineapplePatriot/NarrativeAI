@@ -2618,25 +2618,50 @@ def bulba_api(request):
 
 
 def _bulba_picture_upload(request):
+    """A picture for Bulba: just to look at ("look": a screenshot, character art, a place, a moodboard), or to
+    use as the character's picture, a mood or a background (Bulba looks at the main picture and backgrounds too)."""
     from django.core.files.base import ContentFile
-    from PIL import Image, UnidentifiedImageError
-    from .bulba import agent, lore
+    from .bulba import agent, lore, vision
     session = _bulba_for_request(request, restart=False)
     if session is None:
         return JsonResponse({"error": "Bulba isn't available."}, status=400)
-    character = lore.target_character(session)
-    if character is None:
-        return JsonResponse({"error": "Make or pick a character first, then add their pictures."}, status=400)
-    upload, target = request.FILES["picture"], request.POST.get("as", "neutral")
-    if target not in SPRITE_EMOTIONS + ["neutral", "background"]:
+    upload, target = request.FILES["picture"], request.POST.get("as", "look")
+    their_words = str(request.POST.get("text") or "").strip()[:2000]
+    if target not in SPRITE_EMOTIONS + ["neutral", "background", "look"]:
         return JsonResponse({"error": "Unknown kind of picture."}, status=400)
     if upload.size > 15 * 1024 * 1024:
         return JsonResponse({"error": "That picture is over 15 MB."}, status=400)
     raw = upload.read()
     try:
-        Image.open(io.BytesIO(raw)).verify()
-    except (UnidentifiedImageError, OSError, SyntaxError):
-        return JsonResponse({"error": "That file isn't a picture."}, status=400)
+        data_url, thumb = vision.prepare(raw)
+    except ValueError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+    character = lore.target_character(session)
+    if target != "look" and character is None:
+        return JsonResponse({"error": "Make or pick a character first, then add their pictures. (To just show "
+                                      "Bulba a picture, pick \"Just show Bulba\".)"}, status=400)
+    events = [{"type": "picture", "src": thumb, "text": their_words}]
+    seen = ""
+    if target in ("look", "neutral", "background"):
+        agent.set_activity(session, "Looking at the picture…")
+        try:
+            seen, who = vision.describe(request.user, data_url, their_words)
+            seen = f"What the picture shows (described by {who}, since you can't see it yourself):\n{seen}"
+        except ai_client.AIError as e:
+            if target == "look":
+                session.activity = ""
+                session.save(update_fields=["activity"])
+                return JsonResponse({"error": f"Couldn't look at the picture: {e}"}, status=400)
+            seen = ""
+    words = f"\nWhat they said with it: {their_words}" if their_words else ""
+    if target == "look":
+        session.events += events
+        events += agent.run_turn(session, None, action_note="You showed Bulba a picture" + (f": {their_words}" if their_words else ""),
+                                 model_note=f"They showed you a picture.{words}\n{seen}\nHelp with what they want; if "
+                                            "it isn't clear, say briefly what you see and ask.")
+        session.activity = ""
+        session.save()
+        return JsonResponse({"events": events, "state": _bulba_state(session)})
     ext = os.path.splitext(upload.name)[1].lower() or ".png"
     if target == "background":
         folder, url = user_media_dir(request.user, "backgrounds")
@@ -2654,9 +2679,10 @@ def _bulba_picture_upload(request):
         kind, what = "picture", f"{character.name}'s {'main' if target == 'neutral' else target} picture"
     p = agent._proposal(session, kind, f"Picture: {what}", ["Added from your upload."], {"character_id": character.id})
     p.update(status="applied", undo=undo)
-    events = [{"type": "proposal", "id": p["id"]}]
+    events.append({"type": "proposal", "id": p["id"]})
     session.events += events
-    events += agent.run_turn(session, None, action_note=f"Added {what}", model_note=f"They uploaded {what}; it's set.")
+    events += agent.run_turn(session, None, action_note=f"Added {what}",
+                             model_note=f"They uploaded {what}; it's set.{words}" + (f"\n{seen}" if seen else ""))
     session.activity = ""
     session.save()
     return JsonResponse({"events": events, "state": _bulba_state(session)})

@@ -3729,11 +3729,52 @@ class BulbaPicturesAndThemeTests(BulbaCardAndLoreTests):
         self.addCleanup(override.disable)
         self.addCleanup(shutil.rmtree, media, ignore_errors=True)
 
-    def send_picture(self, data, as_="neutral", name="me.png"):
+    def send_picture(self, data, as_="neutral", name="me.png", text="", seen="A tall man in a lab coat."):
         from unittest import mock
         from django.core.files.uploadedfile import SimpleUploadedFile
-        with mock.patch("mainapp.ai_client.requests.post", side_effect=self.fake_post):
-            return self.client.post(reverse("bulba_api"), {"picture": SimpleUploadedFile(name, data), "as": as_})
+        self.looked = []
+
+        def describe(user, url, words=""):
+            self.looked.append((url[:23], words))
+            return seen, "Gemini 3.8 Flash"
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=self.fake_post), \
+                mock.patch("mainapp.bulba.vision.describe", side_effect=describe):
+            return self.client.post(reverse("bulba_api"), {"picture": SimpleUploadedFile(name, data), "as": as_,
+                                                           "text": text})
+
+    def test_just_show_bulba_a_picture(self):
+        import os
+        from django.conf import settings
+        self.script = [("That's a screenshot of a reply.", [])]
+        data = self.send_picture(self.png(), as_="look", text="why is he so cold here?",
+                                 seen="A screenshot of a chat reply: 'Go away,' he said.").json()
+        pic = next(e for e in data["events"] if e["type"] == "picture")
+        self.assertTrue(pic["src"].startswith("data:image/jpeg;base64,"))
+        self.assertEqual(pic["text"], "why is he so cold here?")
+        self.assertEqual(self.looked, [("data:image/jpeg;base64,", "why is he so cold here?")])
+        note = self.bulba_calls[-1]["messages"][-1]["content"]
+        self.assertIn("'Go away,' he said.", note)
+        self.assertIn("why is he so cold here?", note)
+        # Not kept anywhere on the server, and no character needed
+        self.assertFalse(os.path.exists(os.path.join(settings.MEDIA_ROOT, "backgrounds")))
+        self.assertEqual(self.send_picture(b"not a picture", as_="look").status_code, 400)
+
+    def test_vision_picks_who_looks(self):
+        from unittest import mock
+        from mainapp.bulba import vision
+        from users.models import ConnectionProfile
+        ConnectionProfile.objects.filter(user=self.user).update(provider=ConnectionProfile.PROVIDER_OPENROUTER, api_key="k")
+        with mock.patch.object(vision, "_input_modalities", return_value={"xiaomi/mimo-v2.6-pro": ["text"]}):
+            self.assertEqual(vision.looker(self.user)[0], vision.FALLBACK)
+        with mock.patch.object(vision, "_input_modalities", return_value={"xiaomi/mimo-v2.6-pro": ["text", "image"]}):
+            self.assertEqual(vision.looker(self.user), ("xiaomi/mimo-v2.6-pro", "Bulba's own model"))
+        with mock.patch.object(vision, "_input_modalities", return_value={}), \
+                mock.patch("mainapp.ai_client.complete", return_value="A red square.") as complete:
+            url, thumb = vision.prepare(self.png())
+            self.assertEqual(vision.describe(self.user, url)[0], "A red square.")
+        sent = complete.call_args
+        self.assertEqual(sent.kwargs["model"], vision.FALLBACK)
+        self.assertEqual(sent.args[2][0]["content"][1]["image_url"]["url"], url)
 
     @staticmethod
     def png():
@@ -3751,6 +3792,7 @@ class BulbaPicturesAndThemeTests(BulbaCardAndLoreTests):
         self.assertEqual(self.send_picture(self.png(), as_="selfie").status_code, 400)
         self.script = [("Lovely.", [])]
         data = self.send_picture(self.png(), as_="angry").json()
+        self.assertEqual(self.looked, [])  # moods aren't looked at; the main picture is
         viktor = Character.objects.get(author=self.user, name="Viktor")
         self.assertTrue(viktor.photo_angry.name.endswith(".png"))
         self.assertIn("angry picture", self.bulba_calls[-1]["messages"][-1]["content"])
@@ -3760,7 +3802,8 @@ class BulbaPicturesAndThemeTests(BulbaCardAndLoreTests):
         viktor.refresh_from_db()
         self.assertFalse(viktor.photo_angry)
         self.script = [("Nice place.", [])]
-        self.send_picture(self.png(), as_="background")
+        self.send_picture(self.png(), as_="background", seen="A rainy harbour at night.")
+        self.assertIn("A rainy harbour at night.", self.bulba_calls[-1]["messages"][-1]["content"])
         viktor.refresh_from_db()
         self.assertIn("/backgrounds/custom/", viktor.theme["bg"])
 

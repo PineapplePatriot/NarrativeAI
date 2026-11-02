@@ -262,6 +262,8 @@ function render() {
                     ${choices ? `<div class="choices">${choices}</div>` : ''}</div></div>`;
         }
         if (ev.type === 'user') return `<div class="msg user"><div class="bubble">${esc(ev.text)}</div></div>`;
+        if (ev.type === 'picture') return `<div class="msg user"><div class="bubble picture-bubble">
+                <img src="${esc(ev.src)}" alt="Your picture">${ev.text ? `<div>${esc(ev.text)}</div>` : ''}</div></div>`;
         if (ev.type === 'action') return `<div class="action">${esc(ev.text)}</div>`;
         if (ev.type === 'note') return `<div class="note">✓ ${esc(ev.text)}</div>`;
         if (ev.type === 'watch') return '';  // sent to the chat page (Bulba switched Watch)
@@ -559,7 +561,7 @@ document.addEventListener('click', (e) => {
     });
 })();
 
-// Pictures: the character's (neutral or a mood) or a background, applied at once (Undo on the card)
+// Pictures: just to show Bulba, or the character's (neutral or a mood) or a background, applied at once (Undo on the card)
 (function () {
     const form = $('pictureForm');
     if (!form) return;
@@ -572,9 +574,11 @@ document.addEventListener('click', (e) => {
         const body = new FormData();
         body.append('picture', file);
         body.append('as', $('pictureAs').value);
+        body.append('text', $('pictureText').value.trim());
+        const looking = $('pictureAs').value === 'look';
         form.hidden = true;
-        $('pictureFile').value = '';
-        run(body, 'Adding the picture…');
+        $('pictureFile').value = ''; $('pictureText').value = '';
+        run(body, looking ? 'Bulba is looking at the picture…' : 'Adding the picture…');
     });
 })();
 
