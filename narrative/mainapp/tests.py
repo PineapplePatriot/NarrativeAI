@@ -2828,6 +2828,33 @@ class BulbaInChatTests(ChatPromptTests):
         with self.assertRaises(ValueError):
             apply_edits(once, [{"action": "remind", "content": "  "}])
 
+    def test_utility_prompts_can_be_read_and_edited(self):
+        self.make_chat()
+        from mainapp import presets as presets_mod
+        from mainapp.bulba.doctor import apply_edits
+        self.script = [("", [self.call("read_block", block="impersonation")]),
+                       ("Here.", [self.call("propose_preset_edit", why="better Write for me", edits=[
+                           {"action": "utility", "block": "impersonation", "content": "[Write {{user}}'s next move, in their voice.]"}])])]
+        data = self.api(action="say", text="I want a better write for me").json()
+        system = self.bulba_calls[0]["messages"][0]["content"]
+        self.assertIn("Utility prompts", system)
+        self.assertIn("impersonation (Impersonation", system)
+        read = json.loads(self.bulba_calls[1]["messages"][-1]["content"])
+        self.assertEqual(read["utility"], "impersonation")
+        p = data["state"]["proposals"][0]
+        self.assertIn("Utility prompt: Impersonation", json.dumps(p["summary"]))
+        self.assertEqual(p["editable"][0]["path"], "edits.0.content")  # editable by hand too
+        self.api(action="apply", id=p["id"])
+        self.assertEqual(presets_mod.normalize(presets_mod.get_active(self.user).data)["utility"]["impersonation"],
+                         "[Write {{user}}'s next move, in their voice.]")
+        preset = presets_mod.normalize(presets_mod.get_active(self.user).data)
+        with self.assertRaises(ValueError):
+            apply_edits(preset, [{"action": "utility", "block": "nonsense", "content": "x"}])
+        with self.assertRaises(ValueError):
+            apply_edits(preset, [{"action": "utility", "block": "impersonation", "content": " "}])
+        self.assertEqual(apply_edits(preset, [{"action": "utility", "block": "assistant_prefill", "content": ""}])
+                         ["utility"]["assistant_prefill"], "")
+
     def test_bad_edits_are_refused(self):
         self.make_chat()
         self.script = [("", [self.call("propose_preset_edit", why="x", edits=[{"action": "replace", "block": "Nope", "content": "x"}])]),

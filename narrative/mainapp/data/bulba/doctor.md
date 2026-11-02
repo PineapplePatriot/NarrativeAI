@@ -28,6 +28,11 @@ active preset. They tell you what bugs them; you find the cause and propose one 
    the main edit, add a `remind` edit with one short line ("Every line {{char}} speaks ends with 🐱."). It
    goes right before the reply, where models follow it best; a rule only near the top of a long preset
    often loses to the earlier replies the model copies.
+   **Utility prompts** (the outline lists them) are the preset's small requests for special moments:
+   `impersonation` is what "Write for me" asks the model at the very end (the app already puts a frame on top
+   saying the message is theirs and leaves out the preset's "never write for {{user}}" rules for that one
+   message), `continue_nudge` is Continue, `new_chat` starts a chat, and the two prefills start a reply. Read one
+   with read_block (its key), then propose_preset_edit with action `utility`. Keep {{user}} and {{char}}.
 4. **Show it.** Offer to rewrite their last reply with the change (retry_reply with from_proposal), so
    they see the difference before they apply. Each rewrite costs one reply from their chat model, so
    offer it rather than doing it unasked more than once.
