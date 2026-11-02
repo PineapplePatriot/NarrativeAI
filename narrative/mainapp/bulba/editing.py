@@ -41,6 +41,10 @@ def fields(p):
     elif kind == "greetings":
         for i, g in enumerate(data.get("greetings") or []):
             add(f"greetings.{i}", f"Greeting {i + 1}", g)
+    elif kind == "memory_edit":
+        add("text", "Pinned note" if data.get("what") == "pinned" else "Summary piece", data.get("text"))
+    elif kind == "message_fix":
+        add("text", "The fixed message", data.get("text"))
     return out
 
 
@@ -78,7 +82,8 @@ def edit(session, pid, values):
                 raise ValueError("A lore entry needs at least one word that brings it up.")
             _set(p["payload"], path, keys)
         else:
-            if not value and path in ("name", "description", "taste"):
+            if not value and (path in ("name", "description", "taste") or (path == "text" and not (
+                    p["kind"] == "memory_edit" and p["payload"].get("what") == "pinned"))):
                 raise ValueError(f"{f['label']} can't be empty.")
             _set(p["payload"], path, value)
             replaced.append(((f["value"] or "").strip(), value))
@@ -126,6 +131,13 @@ def _summary(p, replaced=()):
                     line = line.replace(before, after)
             out.append(line)
         return out
+    if kind == "memory_edit":  # Before / After / Why: the After is theirs now
+        if "After:" in old and old.index("After:") + 1 < len(old):
+            i = old.index("After:") + 1
+            return old[:i] + [data["text"] or "(none)"] + old[i + 1:]
+        return old
+    if kind == "message_fix":  # Bulba's per-fix lines no longer match: show the version they'll get
+        return ["Your edited version:", data["text"]]
     if kind == "greetings":
         return [f"{len(data['greetings'])} alternate greeting(s)."] + \
             [f"{i + 1}. {g[:300]}{'…' if len(g) > 300 else ''}" for i, g in enumerate(data["greetings"])] + why

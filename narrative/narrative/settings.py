@@ -83,6 +83,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "users.verification.VerificationMiddleware",  # unconfirmed emails wait on /users/verify/ (when Brevo is set)
     "users.activity.ActivityMiddleware",  # page views and actions, for the usage report (users/usage.py)
 ]
 
@@ -98,6 +99,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "users.context_processors.feedback",  # the tester feedback form link (FEEDBACK_FORM_URL)
             ],
         },
     },

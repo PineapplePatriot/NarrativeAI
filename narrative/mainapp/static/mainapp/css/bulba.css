@@ -223,3 +223,5 @@ body.embed .mini-progress { top: 0; }
 .extras-form .memory b { font-size: .9rem; }
 .extras-form .cost { display: block; width: 100%; margin-top: 4px; color: #a5b4fc; }
 .extras-form .cost:empty { display: none; }
+
+.basics-form .form-help { flex-basis: 100%; margin: 6px 0 0; font-size: .82rem; line-height: 1.5; color: var(--text-secondary, #94a3b8); }

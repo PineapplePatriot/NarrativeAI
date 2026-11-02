@@ -196,6 +196,7 @@
             <button type="button" class="item" data-do="app">▶ ${esc(t('menuApp'))}</button>
             <button type="button" class="item" data-do="pick">🔍 ${esc(t('menuPick'))}</button>
             <button type="button" class="item" data-do="reset">↺ ${esc(t('menuReset'))}</button>
+            ${CFG.bug ? `<button type="button" class="item" data-do="bug">🐞 ${esc(t('menuBug'))}</button>` : ''}
             <div class="lang-row"><span>${esc(t('lang'))}</span>${langSwitch()}</div>`;
         document.body.append(menu);
         const r = btn.getBoundingClientRect();
@@ -210,6 +211,7 @@
             if (what === 'page') start(own);
             else if (what === 'app') start('app');
             else if (what === 'pick') pick();
+            else if (what === 'bug') { closeMenu(); window.open(bugLink(), '_blank', 'noopener'); }
             else if (what === 'reset') { resetTours(); start(own || 'app'); }
         });
     }
@@ -383,6 +385,13 @@
         } finally {
             if (bubble === mine) { button.disabled = false; placeBubble(); }
         }
+    }
+
+    // The bug report form (BUG_FORM_URL). A Google Forms "pre-filled link" whose answers are NA_PAGE, NA_BROWSER
+    // and NA_LOGIN gets the page they were on, their browser and their login filled in
+    function bugLink() {
+        const fill = { NA_PAGE: location.href, NA_BROWSER: navigator.userAgent, NA_LOGIN: CFG.login || '' };
+        return CFG.bug.replace(/NA_(PAGE|BROWSER|LOGIN)/g, key => encodeURIComponent(fill[key]));
     }
 
     // Every tour shows again on its page (this page's starts now)

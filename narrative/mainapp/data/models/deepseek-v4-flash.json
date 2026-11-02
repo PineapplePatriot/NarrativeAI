@@ -82,7 +82,12 @@
       }
     ],
     "probes": [],
-    "watch_for": []
+    "watch_for": [
+      "The same scene shape in different words",
+      "One card trait in every reply",
+      "Persona and character traits crossing over",
+      "Spatial mistakes in physical scenes"
+    ]
   },
   "starters": {
     "back_and_forth": "dsv4flash-back-and-forth",

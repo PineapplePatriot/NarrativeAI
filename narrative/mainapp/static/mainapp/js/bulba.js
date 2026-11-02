@@ -86,7 +86,8 @@ const BASICS_FORM = [
     { key: 'pov', label: 'Point of view', options: [['second', 'You (“you step inside”)'], ['third', 'Third person (“she steps inside”)'], ['first', 'The character’s “I”']] },
     { key: 'tense', label: 'Tense', options: [['present', 'Present (“she turns”)'], ['past', 'Past (“she turned”)']] },
     { key: 'length', label: 'Reply length', options: [['short', 'A few lines'], ['medium', 'A few paragraphs'], ['long', 'A proper chunk']] },
-    { key: 'control', label: 'Your character', hint: 'who writes what you say and do', options: [['dont', 'Only me'], ['write', 'The AI may write me too'], ['director', 'I direct from outside the story']] },
+    { key: 'control', label: 'Your character', hint: 'who writes what you say and do', options: [['dont', 'Only me'], ['write', 'The AI may write me too'], ['director', 'I direct from outside the story']],
+      help: 'Roleplay (the first two): you play your character and the AI plays everyone else. Director: you aren’t in the story; you say what should happen (“she finds the letter”, “a storm hits the harbour”) and the AI writes the whole scene, your character included. Not sure? Pick roleplay: Bulba can switch it in any chat when you ask.' },
     { key: 'format', label: 'Speech and actions', options: [['quotes', '“Speech”, actions as plain text'], ['asterisks', '“Speech”, *actions*'], ['any', 'Doesn’t matter']] },
     { key: 'colors', label: 'Coloured speech', hint: 'each character speaks in their own colour', options: [['on', 'Yes'], ['off', 'No']] },
     { key: 'panels', label: 'In-story panels', hint: 'phone messages, notes and signs drawn as little panels', options: [['on', 'Yes'], ['off', 'No']] },
@@ -117,6 +118,7 @@ function basicsForm(live, answers) {
         <div class="form-field">${f.options
             ? f.options.map(([v, l]) => `<label class="pill"><input type="radio" name="b_${f.key}" value="${v}" ${on(f, v)} ${live ? '' : 'disabled'}><span>${esc(l)}</span></label>`).join('')
             : `<input type="text" name="b_${f.key}" value="${esc(a[f.key] || f.text || '')}" placeholder="${esc(f.placeholder || '')}" ${live ? '' : 'disabled'}>`}
+            ${f.help ? `<p class="help form-help">${esc(f.help)}</p>` : ''}
         </div></div>`).join('');
     return `<form class="basics-form" data-basics>${rows}
         ${live ? '<div class="form-actions"><button type="submit">Send</button><span class="help">Skip anything you don’t mind about.</span></div>' : ''}

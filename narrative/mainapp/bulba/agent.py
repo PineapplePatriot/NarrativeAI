@@ -12,7 +12,7 @@ from mainapp.bulba import control, doctor, library, lore, rules, tune
 INSTRUCTIONS = Path(__file__).resolve().parent.parent / "data" / "bulba" / "instructions.md"
 GUIDES_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba" / "guides"
 # Which guides Bulba reads at each stage (keeps the prompt, and the bill, small)
-STAGE_GUIDES = {"extras": ["extras"], "taste": ["asking", "presets", "writing"], "preset": ["presets", "writing"],
+STAGE_GUIDES = {"extras": ["extras"], "taste": ["asking", "presets", "writing"], "preset": ["presets", "writing", "slop"],
                 "persona": ["characters", "writing"], "character": ["characters", "lore", "writing"],
                 "story": ["extras", "tuning"], "done": ["characters", "lore", "writing", "tuning"]}
 REWRITABLE = ("Roleplay", "Style")
@@ -788,7 +788,7 @@ def opening(session):
     name = (target_profile(session) or {"name": "your model"})["name"]
     text = (f"Hi. I'm Bulba. Yes, a potato. You picked {name}, which is a choice.\n\n"
             "Two ways to do this:\n\n"
-            "**Full setup** (ten minutes, maybe): I find out how you like stories told, show you samples written by "
+            "**Full setup** (about twenty minutes): I find out how you like stories told, show you samples written by "
             "your own model, and build everything around that.\n\n"
             f"**Fast route**: you take the tested ready setup for {name}, then we only do who you are in the "
             "story and your character.\n\n"

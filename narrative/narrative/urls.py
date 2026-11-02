@@ -14,6 +14,7 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+import os
 import posixpath
 
 from django.contrib import admin
@@ -35,12 +36,18 @@ def media(request, path):
     return serve(request, clean, document_root=settings.MEDIA_ROOT)
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
     path('', index_page, name='home'),
     path('users/', include('users.urls', namespace="users")),
     path('main/', include('mainapp.urls')),
 
 ]
+# Django's admin pages are off unless DJANGO_ADMIN=1 is set (nobody uses them, and a login page nobody watches is
+# one more door to guess passwords at). Switched on, they sit behind the same login lock as the normal login.
+if os.environ.get("DJANGO_ADMIN") == "1":
+    from users.forms import AdminLoginForm
+    admin.site.login_form = AdminLoginForm
+    urlpatterns.insert(0, path("admin/", admin.site.urls))
+
 # Private files live in media too (chat logs, lorebooks, old settings). They are only read by the app itself,
 # so never hand them out by URL; everything else (sprites, backgrounds, music, voice clips) is served for the
 # pages that show it. On a server Django serves them itself: fine for a small site with a few users.

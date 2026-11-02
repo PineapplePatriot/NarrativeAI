@@ -1,0 +1,41 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delete account - Narrative AI</title>
+    <link rel="stylesheet" href="{% static 'users/css/profile.css' %}">
+    <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
+</head>
+<body class="na-body">
+{% include "partials/topbar.html" with active="profile" %}
+<div class="na-page na-narrow">
+    <div class="na-head">
+        <a class="na-back" href="{% url 'users:profile' %}">← Profile</a>
+        <h1 class="na-title">Delete your account</h1>
+        <p class="na-sub">This can't be undone.</p>
+    </div>
+    <div class="form-container delete-account">
+        <p>Deleting <b>{{ user.username }}</b> removes everything in it, for good:</p>
+        <ul>
+            <li>your characters and all their chats,</li>
+            <li>your worldbooks, presets and settings,</li>
+            <li>your conversations with Bulba and what it learned about you,</li>
+            <li>your saved API keys, your uploaded pictures, backgrounds and music, and voice clips.</li>
+        </ul>
+        <p class="help">Want to keep something? Download your characters as cards (open a character → "Share or back up") and export your
+            worldbooks first. Your OpenRouter account and its balance aren't touched; that's on openrouter.ai.</p>
+        <form method="post">
+            {% csrf_token %}
+            <label for="password">Your password</label>
+            <input type="password" name="password" id="password" autocomplete="current-password" required>
+            <label class="confirm-line"><input type="checkbox" name="confirm" required> I understand this deletes my account and everything in it</label>
+            {% if error %}<div class="form-error">{{ error }}</div>{% endif %}
+            <button type="submit" class="danger">Delete my account</button>
+        </form>
+    </div>
+</div>
+</body>
+</html>

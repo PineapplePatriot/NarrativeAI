@@ -2,18 +2,12 @@ from datetime import datetime
 
 from django import forms
 from django.contrib.auth import get_user_model
+from django.contrib.admin.forms import AdminAuthenticationForm
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm, PasswordChangeForm
 from .models import User, ApiConfig
 
-class LoginUserForm(AuthenticationForm):
-    username = forms.CharField(label="Login",
-        widget=forms.TextInput(attrs={'class': 'form-input'}))
-    password = forms.CharField(label="Password",
-        widget=forms.PasswordInput(attrs={'class': 'form-input'}))
-
-    class Meta:
-        model = get_user_model()
-        fields = ['username', 'password']
+class LoginLock:
+    """Mixed into a login form (the app's own, and the admin's when it's switched on)."""
 
     def clean(self):
         """Wrong passwords are counted per username and per address; past the limit, logging in waits
@@ -36,6 +30,21 @@ class LoginUserForm(AuthenticationForm):
             raise
         cache.delete(limits[0][0])
         return data
+
+
+class LoginUserForm(LoginLock, AuthenticationForm):
+    username = forms.CharField(label="Login",
+        widget=forms.TextInput(attrs={'class': 'form-input'}))
+    password = forms.CharField(label="Password",
+        widget=forms.PasswordInput(attrs={'class': 'form-input'}))
+
+    class Meta:
+        model = get_user_model()
+        fields = ['username', 'password']
+
+
+class AdminLoginForm(LoginLock, AdminAuthenticationForm):
+    pass
 
 
 def _failure_keys(request, username):

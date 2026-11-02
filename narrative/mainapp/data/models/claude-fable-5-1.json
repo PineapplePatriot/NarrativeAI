@@ -112,7 +112,10 @@
     "watch_for": [
       "Escalating faster than the user wants",
       "Dense paragraphs",
-      "Recounting and keeping score in dialogue (reciting earlier events as evidence, counts like 'the third time'), or a witty or therapist-level line instead of plain talk"
+      "Recounting and keeping score in dialogue (reciting earlier events as evidence, counts like 'the third time'), or a witty or therapist-level line instead of plain talk",
+      "Ornate metaphors that say little",
+      "An emotion explained after every line",
+      "Rushing past the moment or skipping time"
     ]
   },
   "starters": {
@@ -121,7 +124,7 @@
     "director": "fable-director"
   },
   "card": {
-    "order": 4,
+    "order": 17,
     "recommended": false,
     "price": "$$$$",
     "best_for": "Dramatic, angsty character stories with heightened, high-quality prose.",

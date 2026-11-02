@@ -88,7 +88,11 @@
     ],
     "probes": [],
     "watch_for": [
-      "Antagonists going soft when events turn harsh"
+      "Antagonists going soft when events turn harsh",
+      "Repeating the same room and action descriptions",
+      "Recapping instead of replying",
+      "Echoing the user's words and analysing them",
+      "Profound either/or closing lines (\"brave or cruel\")"
     ]
   },
   "starters": {
@@ -97,7 +101,7 @@
     "director": "dsv4pro-director"
   },
   "card": {
-    "order": 9,
+    "order": 12,
     "recommended": false,
     "price": "$",
     "best_for": "General roleplay and long stories on a budget.",

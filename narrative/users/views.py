@@ -45,8 +45,14 @@ class RegisterUser(CreateView):
     def form_valid(self, form):
         # Signed in straight away, then the welcome page (key + model), no second password prompt
         from django.contrib.auth import login
+        from users import verification
         response = super().form_valid(form)
         login(self.request, self.object, backend="django.contrib.auth.backends.ModelBackend")
+        if verification.enabled():  # the link goes out now; until it's clicked, only the waiting page opens
+            self.object.email_verified = False
+            self.object.save(update_fields=["email_verified"])
+            self.request.session["verify_error"] = verification.send(self.request, self.object) or ""
+            response = redirect("users:verify")
         # Everyone starts with the shipped characters (Il Dottore, his lore, pictures and music), as the demo does
         from mainapp.management.commands.seed_demo import load_packs
         try:
@@ -248,7 +254,17 @@ def _welcome_models():
                       "recommended": bool(card.get("recommended")), "price": card.get("price", ""),
                       "best_for": card.get("best_for", ""), "watch_out": card.get("watch_out", ""),
                       "order": card.get("order", 99)})
-    return sorted(cards, key=lambda c: c["order"])
+    return sorted(cards, key=_welcome_order)
+
+
+def _welcome_order(card):
+    """The popular ones first, in their own order (cheapest to priciest); then the rest from cheapest to priciest:
+    by OpenRouter's live prices when they can be read (a typical message: 8k in, 800 out), else by price tier."""
+    if card["recommended"]:
+        return (0, card["order"], 0, 0)
+    from mainapp import pricing
+    rate = pricing.per_token(card["openrouter"])
+    return (1, len(card["price"]) if not rate else 0, rate[0] * 8000 + rate[1] * 800 if rate else 0, card["order"])
 
 
 @login_required
@@ -446,6 +462,56 @@ def apply_extras(user, data):
     return None
 
 
+def _watch_memory_post(user, data, state):
+    """What Bulba Watch looks for and learned: reword, forget, switch habits off and on, add their own.
+    `state(user)` is the page's state, sent back after a change."""
+    from mainapp.bulba import watch
+    try:
+        if data.get("op") == "word_dislike":  # Bulba words what they dislike; they check it before adding
+            return JsonResponse({"status": "ok", "suggestion": watch.word_dislike(user, data.get("new"))})
+        if data.get("op") == "add_dislike":
+            watch.add_dislike(user, data.get("name"), data.get("about"))
+        else:
+            watch.change_memory(user, data.get("op"), str(data.get("old") or ""), data.get("new"))
+    except ValueError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+    return JsonResponse({"status": "ok", "state": state(user)})
+
+
+@login_required
+def delete_account(request):
+    """The person deletes their own account and everything in it, after typing their password."""
+    from django.contrib.auth import logout
+    from . import account
+    error = ""
+    if request.method == "POST":
+        if not request.user.check_password(request.POST.get("password") or ""):
+            error = "Wrong password."
+        elif request.POST.get("confirm") != "on":
+            error = "Tick the box to confirm."
+        else:
+            user = request.user
+            logout(request)
+            account.delete_account(user)
+            return render(request, "users/deleted.html")
+    return render(request, "users/delete_account.html", {"error": error})
+
+
+@login_required
+def notebook(request):
+    """Bulba's notebook: what Watch looks for (and the user can switch off or add), what it learned about
+    their taste, and what the whole account has spent."""
+    from mainapp.bulba import watch
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body.decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            return JsonResponse({"error": "Invalid request."}, status=400)
+        return _watch_memory_post(request.user, data, watch.notebook)
+    return render(request, "users/notebook.html", {"notebook_data": watch.notebook(request.user),
+                                                   "joined": request.user.date_joined})
+
+
 @login_required
 def extras(request):
     from mainapp.ai_client import get_task_setting, main_profile
@@ -455,24 +521,8 @@ def extras(request):
             data = json.loads(request.body.decode("utf-8"))
         except (ValueError, UnicodeDecodeError):
             return JsonResponse({"error": "Invalid request."}, status=400)
-        if data.get("action") == "watch_memory":  # what Bulba Watch learned: reword, forget, or un-mute
-            from mainapp.bulba import watch
-            if data.get("op") == "word_dislike":  # Bulba words what they dislike; they check it before adding
-                try:
-                    return JsonResponse({"status": "ok", "suggestion": watch.word_dislike(request.user, data.get("new"))})
-                except ValueError as e:
-                    return JsonResponse({"error": str(e)}, status=400)
-            if data.get("op") == "add_dislike":
-                try:
-                    watch.add_dislike(request.user, data.get("name"), data.get("about"))
-                except ValueError as e:
-                    return JsonResponse({"error": str(e)}, status=400)
-                return JsonResponse({"status": "ok", "state": _extras_page_state(request.user)})
-            try:
-                watch.change_memory(request.user, data.get("op"), data.get("old"), data.get("new"))
-            except ValueError as e:
-                return JsonResponse({"error": str(e)}, status=400)
-            return JsonResponse({"status": "ok", "state": _extras_page_state(request.user)})
+        if data.get("action") == "watch_memory":
+            return _watch_memory_post(request.user, data, _extras_page_state)
         error = apply_extras(request.user, data)
         if error:
             return JsonResponse({"error": error}, status=400)
@@ -486,6 +536,16 @@ def _extras_page_state(user):
     from mainapp.bulba.agent import memory_and_prices
     state = _extras_state(user)
     return {**state, **memory_and_prices(user, state)}
+
+
+@login_required
+def feedback_done(request):
+    """They filled in the feedback form: the button and the reminder go away for good."""
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only"}, status=405)
+    request.user.feedback_done = True
+    request.user.save(update_fields=["feedback_done"])
+    return JsonResponse({"status": "ok"})
 
 
 def can_see_stats(user):
@@ -505,6 +565,11 @@ def stats(request):
         days = int(request.GET.get("days") or 0) or None
     except ValueError:
         days = None
+    if request.GET.get("format") == "backup":
+        from django.http import FileResponse
+        from users import backup
+        handle, name = backup.make_zip()
+        return FileResponse(handle, as_attachment=True, filename=name, content_type="application/zip")
     data = usage.report(days=days, exclude=() if request.GET.get("demo") else ("demo",))
     if request.GET.get("format") == "csv":
         response = HttpResponse(usage.csv_text(data), content_type="text/csv")
@@ -514,3 +579,33 @@ def stats(request):
         "data": data, "days": days or "", "demo": bool(request.GET.get("demo")),
         "summary": [(usage.LABELS.get(k, k), v) for k, v in data["summary"].items()],
         "columns": [usage.COLUMN_LABELS[c] for c in usage.COLUMNS]})
+
+
+@login_required
+def verify(request):
+    """"Check your email": where an unconfirmed account waits; it can send the link again."""
+    from users import verification
+    if request.user.email_verified or not verification.enabled():
+        return redirect("users:welcome")
+    error = request.session.pop("verify_error", "")
+    sent_again = False
+    if request.method == "POST":
+        error = verification.send(request, request.user) or ""
+        sent_again = not error
+    return render(request, "users/verify.html", {"error": error, "sent_again": sent_again,
+                                                 "days": verification.LINK_DAYS})
+
+
+def verify_link(request, token):
+    """The emailed link: confirms the account (and signs it in, on whatever device they opened it)."""
+    from django.contrib.auth import login
+    from users import verification
+    user = verification.check(token)
+    if user is None:
+        return render(request, "users/verify.html", {"bad_link": True, "days": verification.LINK_DAYS}, status=400)
+    if not user.email_verified:
+        user.email_verified = True
+        user.save(update_fields=["email_verified"])
+    if not request.user.is_authenticated or request.user.pk != user.pk:
+        login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+    return redirect("users:welcome")

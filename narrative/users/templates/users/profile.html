@@ -55,7 +55,8 @@
         </form>
 
         <hr>
-        <p class="profile-links"><a href="{% url 'users:password_change' %}">Change password</a></p>
+        <p class="profile-links"><a href="{% url 'users:password_change' %}">Change password</a>
+            · <a class="danger-link" href="{% url 'users:delete_account' %}">Delete account</a></p>
     </div>
     </div>
 

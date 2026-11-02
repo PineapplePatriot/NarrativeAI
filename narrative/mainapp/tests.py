@@ -1,7 +1,8 @@
 import json
+import types
 
 from django.contrib.auth import get_user_model
-from django.test import SimpleTestCase, TestCase, override_settings
+from django.test import SimpleTestCase, TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 
 from mainapp.lorebook import activate, format_for_prompt, normalize_book, to_sillytavern
@@ -1371,8 +1372,8 @@ class SummaryPartsAndBranchTests(TrackerChatTests):
         call = [c for c in self.all_calls if c["messages"][0]["content"].startswith("You keep the story-state trackers")][-1]
         sent = "".join(m["content"] for m in call["messages"])
         self.assertLessEqual(len(sent) // 3, 2048 + 50)
-        self.assertNotIn("OLDEST", sent)
-        self.assertIn("Later 2", sent)
+        self.assertNotIn("OLDEST", sent)        # the oldest go first...
+        self.assertIn("A reply.", sent)         # ...the newest stays
 
     def test_job_window_follows_the_model_and_the_settings(self):
         from mainapp import ai_client, samplers
@@ -1669,8 +1670,23 @@ class WelcomeTests(TestCase):
     def test_lists_eleven_models_recommended_first(self):
         models = self.client.get(self.url).context["welcome_data"]["models"]
         self.assertEqual(len(models), 11)
-        self.assertEqual([m["name"] for m in models[:2]], ["Claude Opus 5.5", "MiMo v2.6 Pro"])
+        self.assertEqual([m["name"] for m in models[:3]], ["MiMo v2.6 Pro", "Gemini 4 Argon", "Claude Opus 5.5"])
+        self.assertTrue(all(m["recommended"] for m in models[:3]) and not any(m["recommended"] for m in models[3:]))
+        tiers = [len(m["price"]) for m in models[3:]]
+        self.assertEqual(tiers, sorted(tiers))  # no price list here: the rest by price tier, cheapest first
         self.assertTrue(all(m["best_for"] and m["openrouter"] and m["price"] for m in models))
+
+    def test_the_rest_follow_live_prices_when_known(self):
+        from unittest import mock
+        from django.core.cache import cache
+        from users.views import _welcome_models
+        cache.clear()
+        prices = {"anthropic/claude-fable-5.1": (0.0000001, 0.0000001)}  # pretend Fable became the cheapest
+        with mock.patch("mainapp.pricing.table", return_value={
+                m["openrouter"]: prices.get(m["openrouter"], (0.000001, 0.000002)) for m in _welcome_models()}):
+            models = _welcome_models()
+        self.assertEqual(models[3]["id"], "claude-fable-5-1")
+        self.assertEqual([m["id"] for m in models[:3]], ["mimo-v2-6-pro", "gemini-4-argon", "claude-opus-5-5"])
 
     def test_saving_sets_up_the_main_connection(self):
         from mainapp import ai_client
@@ -1684,7 +1700,7 @@ class WelcomeTests(TestCase):
         profile, model = ai_client.resolve(self.user, "chat")
         self.assertEqual((profile.api_key, model), ("sk-or-test", "anthropic/claude-opus-5.5"))
         self.assertEqual(self.user.connection_profiles.count(), 1)
-        self.assertEqual(self.client.get(reverse("home")).status_code, 200)
+        self.assertEqual(self.client.get(reverse("users:extras")).status_code, 200)
 
     def test_bad_key_can_be_saved_anyway(self):
         resp = self.post({"api_key": "nope", "model": "kimi-k3"}, ok=False)
@@ -2782,9 +2798,35 @@ class BulbaInChatTests(ChatPromptTests):
         self.script = [("Done.", [])]
         self.api(action="apply", id=proposal["id"])
         self.assertIn("Keep replies to two paragraphs.", json.dumps(presets_mod.get_active(self.user).data))
+        # A rewrite after Apply uses the saved preset (no "already in the preset" error, the rule sent once)
+        self.script = [("Again.", [self.call("retry_reply", from_proposal=proposal["id"])])]
+        data = self.api(action="say", text="again").json()
+        self.assertTrue(any(e["type"] == "samples" for e in data["events"]))
+        self.assertEqual(json.dumps(self.retry_calls[-1]["messages"]).count("Keep replies to two paragraphs."), 1)
         self.script = [("Undone.", [])]
         self.api(action="undo", id=proposal["id"])
         self.assertNotIn("Keep replies to two paragraphs.", json.dumps(presets_mod.get_active(self.user).data))
+
+    def test_remind_edit_lands_right_before_the_reply(self):
+        self.make_chat()
+        from mainapp import presets as presets_mod
+        from mainapp.bulba.doctor import apply_edits
+        preset = presets_mod.normalize(presets_mod.get_active(self.user).data)
+        preset["blocks"] = [b for b in preset["blocks"] if b["name"] != "Reply reminder"]
+        once = apply_edits(preset, [{"action": "remind", "content": "Every line {{char}} speaks ends with 🐱."}])
+        block = next(b for b in once["blocks"] if b["name"] == "Reply reminder")
+        self.assertEqual((block["position"], block["depth"]), ("in_chat", 0))
+        twice = apply_edits(once, [{"action": "remind", "content": "Every line {{char}} speaks ends with 🐱."},
+                                   {"action": "remind", "content": "Keep it under 200 words."}])
+        reminder = next(b for b in twice["blocks"] if b["name"] == "Reply reminder")["content"]
+        self.assertEqual(reminder.count("🐱"), 1)
+        self.assertIn("Keep it under 200 words.", reminder)
+        from mainapp.views import build_chat_request
+        built = build_chat_request(self.user, self.character.chats.first(), preset=twice)
+        last = json.dumps(built["messages"][-2:], ensure_ascii=False)
+        self.assertIn("🐱", last)   # near the very end, not buried at the top
+        with self.assertRaises(ValueError):
+            apply_edits(once, [{"action": "remind", "content": "  "}])
 
     def test_bad_edits_are_refused(self):
         self.make_chat()
@@ -3223,13 +3265,26 @@ class ImpersonateAndTriggerTests(ChatPromptTests):
         data["utility"]["impersonation"] = "[Write as {{user}} now.]"
         data["blocks"].insert(0, presets_mod.normalize_block(
             {"name": "Imp", "content": "IMPERSONATE BLOCK", "triggers": ["impersonate"]}))
+        data["blocks"].insert(1, presets_mod.normalize_block(
+            {"name": "Rules", "content": "Stay vivid.\nNever speak or act for {{user}}.\nKeep it tense."}))
+        data["blocks"].append(presets_mod.normalize_block(
+            {"name": "Reply reminder", "content": "[Reply as {{char}} only.]", "position": "in_chat", "depth": 0}))
         obj.data = data
         obj.save()
         self.post({"action": "chat", "message": "Hi"})
-        self.assertNotIn("IMPERSONATE BLOCK", json.dumps(self.sent[-1]["messages"]))
+        normal = json.dumps(self.sent[-1]["messages"])
+        self.assertNotIn("IMPERSONATE BLOCK", normal)
+        self.assertIn("Never speak or act for", normal)
+        self.assertIn("Reply as", normal)
         resp = self.post({"action": "expand", "text": "i nod"}).json()
         self.assertEqual(resp["text"], "A reply.")
         sent = json.dumps(self.sent[-1]["messages"])
+        # Writing their message: the preset's rules against it are out, a frame on top says whose message it is
+        self.assertTrue(self.sent[-1]["messages"][0]["content"].startswith("[This turn is different. You are writing chatter's"))
+        self.assertNotIn("Never speak or act for", sent)
+        self.assertNotIn("Reply as", sent)
+        self.assertIn("Stay vivid.", sent)
+        self.assertIn("Keep it tense.", sent)
         self.assertIn("IMPERSONATE BLOCK", sent)
         self.assertIn("Write as chatter now.", sent)
         self.assertIn("i nod", sent)
@@ -3246,6 +3301,20 @@ class ImpersonateAndTriggerTests(ChatPromptTests):
             resp = self.client.post(self.url, json.dumps({"action": "expand", "text": "i nod"}),
                                     content_type="application/json").json()
         self.assertIn("reply length", resp["error"])
+
+
+class ImpersonationPresetTests(SimpleTestCase):
+    def test_director_and_write_modes_lose_their_block_when_writing_for_the_user(self):
+        from mainapp import presets as presets_mod
+        from mainapp.bulba import control
+        base = presets_mod.normalize({"blocks": [{"name": "Roleplay", "content": "Play {{char}}."},
+                                                 {"kind": "marker", "marker": "chat_history"}]})
+        for mode in ("dont", "write", "director"):
+            p = control.for_impersonation(control.apply_to_preset(base, mode))
+            names = [b["name"] for b in p["blocks"]]
+            self.assertNotIn(control.BLOCK, names)
+            self.assertEqual(names[0], "Writing for you")
+            self.assertIn("Play {{char}}.", json.dumps(p))
 
 
 class DirectorModeTests(BulbaTests):
@@ -3479,11 +3548,19 @@ class MediaUploadTests(ChatPromptTests):
         self.assertEqual(url, "/main/api/media-resources/")  # the page posts here
         ok = self.client.post(url, {"type": "bg", "file": SimpleUploadedFile("My Room.PNG", b"\x89PNG fake")}).json()
         self.assertTrue(ok["success"])
-        self.assertTrue(ok["url"].endswith("/backgrounds/custom/my-room.png"))
+        self.assertRegex(ok["url"], rf"/backgrounds/custom/u{self.user.id}/my-room-[0-9a-f]{{6}}\.png$")
+        again = self.client.post(url, {"type": "bg", "file": SimpleUploadedFile("My Room.PNG", b"\x89PNG other")}).json()
+        self.assertNotEqual(again["url"], ok["url"])  # same name, no overwrite
         bad = self.client.post(url, {"type": "music", "file": SimpleUploadedFile("x.exe", b"MZ")}).json()
         self.assertFalse(bad["success"])
-        listed = self.client.get(url).json()
-        self.assertIn("Custom: my-room.png", [b["name"] for b in listed["backgrounds"]])
+        listed = [b["url"] for b in self.client.get(url).json()["backgrounds"]]
+        self.assertIn(ok["url"], listed)
+        # Someone else doesn't see them
+        other = get_user_model().objects.create_user(username="other-uploader", password="pw12345!")
+        self.client.force_login(other)
+        theirs = [b["url"] for b in self.client.get(url).json()["backgrounds"]]
+        self.assertNotIn(ok["url"], theirs)
+        self.assertFalse(any(f"/u{self.user.id}/" in u for u in theirs))
 
 
 class DemoPackAndThemeTests(ChatPromptTests):
@@ -4591,6 +4668,72 @@ class WatchMemoryTests(TestCase):
         self.assertEqual(self.post(op="nonsense").status_code, 400)
 
 
+class NotebookPageTests(TestCase):
+    """Bulba's notebook: what Watch looks for (switchable), their own, their taste, the all-time spend."""
+
+    def setUp(self):
+        from mainapp.bulba import watch
+        self.user = get_user_model().objects.create_user(username="nb", password="pw12345!")
+        self.client.force_login(self.user)
+        mine = watch.user_data(self.user)
+        mine["taste"] = ["Keeps the banter"]
+        mine["fix"] = ["overexplaining"]
+        watch.save_user_data(self.user, mine)
+
+    def post(self, **body):
+        return self.client.post(reverse("users:notebook"), json.dumps({"action": "watch_memory", **body}),
+                                content_type="application/json")
+
+    def test_page_shows_everything(self):
+        from users.models import UsageRecord
+        UsageRecord.objects.create(user=self.user, task="chat", model="m", cost=1.25)
+        UsageRecord.objects.create(user=self.user, task="bulba", model="m", cost=0.5)
+        resp = self.client.get(reverse("users:notebook"))
+        self.assertEqual(resp.status_code, 200)
+        state = resp.context["notebook_data"]
+        self.assertEqual(state["spent"], 1.75)
+        self.assertEqual(state["month"], 1.75)
+        common = {h["label"]: h for h in state["common"]}
+        self.assertTrue(common["overexplaining"]["on"] and common["overexplaining"]["fixing"])
+        self.assertTrue(all(h["about"] for h in state["common"]))
+        self.assertEqual(state["taste"], ["Keeps the banter"])
+        self.assertContains(self.client.get(reverse("users:extras")), "Open Bulba's notebook")
+
+    def test_switch_built_in_habits_and_model_habits(self):
+        from mainapp.bulba import watch
+        state = self.post(op="mute", old="overexplaining").json()["state"]
+        off = next(h for h in state["common"] if h["label"] == "overexplaining")
+        self.assertFalse(off["on"])
+        self.assertNotIn("overexplaining", watch.user_data(self.user)["fix"])  # off: not looked for, not fixed
+        self.post(op="unmute", old="overexplaining")
+        self.assertNotIn("overexplaining", watch.user_data(self.user)["muted"])
+        self.assertEqual(self.post(op="mute", old="other: made up").status_code, 400)
+        self.post(op="model_off", old="Fourth-wall leaks")
+        self.assertEqual(watch.user_data(self.user)["model_off"], ["Fourth-wall leaks"])
+        self.post(op="model_on", old="Fourth-wall leaks")
+        self.assertEqual(watch.user_data(self.user)["model_off"], [])
+
+    def test_own_dislike_listed(self):
+        state = self.post(op="add_dislike", name="smirking", about="Smirks in reply to everything.").json()["state"]
+        self.assertEqual(state["own"], [{"label": "other: smirking", "title": "Smirking",
+                                         "about": "Smirks in reply to everything."}])
+
+    def test_model_habit_switched_off_leaves_the_reader_prompt(self):
+        from unittest import mock
+        from mainapp.bulba import watch
+        mine = watch.user_data(self.user)
+        mine["model_off"] = ["Fourth-wall leaks"]
+        profile = {"style": {"watch_for": ["Fourth-wall leaks", "Spatial mistakes in physical scenes"]}}
+        character = mock.Mock(description="", personality="")
+        character.name = "C"
+        with mock.patch("mainapp.model_profiles.for_model", return_value=profile), \
+                mock.patch("mainapp.ai_client.resolve", return_value=(None, "xiaomi/mimo")):
+            text = watch._prompt(self.user, character, [["assistant", 0, "Hi."]], [0],
+                                 {"signals": []}, mine, False)[1]["content"]
+        self.assertIn("Spatial mistakes", text)
+        self.assertNotIn("Fourth-wall leaks", text)
+
+
 class WatchInBulbaContextTests(BulbaInChatTests):
     def test_in_chat_bulba_sees_what_watch_learned(self):
         from mainapp.bulba import watch
@@ -4956,16 +5099,45 @@ class DirectorNoteTests(WatchChatTests):
         self.post({"action": "chat", "message": "Hi."})
         before = len(self.saved_messages())
         data = self.post({"action": "chat", "message": "", "guidance": "The storm reaches the harbour."}).json()
-        self.assertEqual(data["directed"], "The storm reaches the harbour.")
+        self.assertEqual(data["directed"], "")  # the note is a message of its own now, not a line on the reply
         msgs = self.saved_messages()
-        self.assertEqual(len(msgs), before + 1)
-        self.assertEqual(msgs[-1][0], "assistant")  # no message from them
-        self.assertEqual(chats.directed_of(tuple(msgs[-1])), "The storm reaches the harbour.")
+        self.assertEqual(len(msgs), before + 2)
+        self.assertTrue(chats.is_note(tuple(msgs[-2])))
+        self.assertEqual(msgs[-2][2], "The storm reaches the harbour.")
+        self.assertEqual(msgs[-1][0], "assistant")
+        sent = json.dumps(self.sent[-1]["messages"])
+        self.assertIn("Director's note for this reply: The storm reaches the harbour.", sent)
+        self.assertEqual(sent.count("The storm reaches the harbour."), 1)  # the slot only, not also in the history
+        self.assertContains(self.client.get(self.url), 'class="message user note"')
+        # Regenerate keeps the note in mind
+        self.post({"action": "regenerate"})
         self.assertIn("Director's note for this reply: The storm reaches the harbour.", json.dumps(self.sent[-1]["messages"]))
-        self.assertContains(self.client.get(self.url), "🎬 The storm reaches the harbour.")
+        # Later replies still see it, framed as a direction (not words said in the story)
+        self.post({"action": "chat", "message": "We wait."})
+        self.assertIn("[Director's note, outside the story", json.dumps(self.sent[-1]["messages"]))
+        # Edited like any message
+        self.post({"action": "edit", "index": before, "text": "The storm passes."})
+        self.assertTrue(chats.is_note(tuple(self.saved_messages()[before])))
+        self.assertEqual(self.saved_messages()[before][2], "The storm passes.")
         # nothing at all is still nothing
+        count = len(self.saved_messages())
         self.post({"action": "chat", "message": "", "guidance": " "})
-        self.assertEqual(len(self.saved_messages()), before + 1)
+        self.assertEqual(len(self.saved_messages()), count)
+
+    def test_a_note_with_a_message_follows_it_and_old_chats_regenerate_with_theirs(self):
+        from mainapp import chats
+        self.post({"action": "chat", "message": "I open the door.", "guidance": "Rose is hiding something."})
+        msgs = self.saved_messages()
+        self.assertEqual([m[2] for m in msgs[-3:-1]], ["I open the door.", "Rose is hiding something."])
+        self.assertTrue(chats.is_note(tuple(msgs[-2])) and not chats.is_note(tuple(msgs[-3])))
+        # A chat from before: the note lived on the reply; regenerate still uses it
+        data = chats.read(self.character.chats.first())
+        data["messages"] = [m for m in data["messages"] if not chats.is_note(tuple(m))]
+        data["messages"][-1] = list(chats.with_directed(tuple(data["messages"][-1]), "An old note."))
+        chats.write(self.character.chats.first(), data)
+        reply = self.post({"action": "regenerate"}).json()
+        self.assertIn("Director's note for this reply: An old note.", json.dumps(self.sent[-1]["messages"]))
+        self.assertEqual(reply["directed"], "An old note.")
 
     def test_be_creative_gives_two_notes(self):
         self.post({"action": "chat", "message": "Hi."})
@@ -5940,6 +6112,130 @@ class SecurityTests(TestCase):
         self.assertIsNone(cache.get("login-fail:user:ok"))
 
 
+    def test_admin_is_off_and_its_login_form_has_the_lock(self):
+        self.assertEqual(self.client.get("/admin/").status_code, 404)
+        from django.contrib.admin.forms import AdminAuthenticationForm
+        from users.forms import AdminLoginForm, LoginLock
+        self.assertTrue(issubclass(AdminLoginForm, LoginLock) and issubclass(AdminLoginForm, AdminAuthenticationForm))
+
+
+class EditableTextProposalTests(SimpleTestCase):
+    """Bulba's text cards can be edited by hand: a memory fix and a fixed message too."""
+
+    def session(self, *proposals):
+        return types.SimpleNamespace(proposals=list(proposals))
+
+    def test_memory_and_message_fix_are_editable(self):
+        from mainapp.bulba import editing
+        memory = {"id": "m", "kind": "memory_edit", "status": "pending", "title": "Story summary, piece 1",
+                  "summary": ["Before:", "Old.", "After:", "Bulba's.", "Why:", "wrong name"],
+                  "payload": {"what": "summary", "piece": 0, "before": "Old.", "text": "Bulba's."}}
+        fix = {"id": "f", "kind": "message_fix", "status": "pending", "title": "Fixed reply (1 change)",
+               "summary": ["Fix:", "  Before: a", "  After: b"],
+               "payload": {"chat_id": 1, "index": 3, "original": "a", "text": "b", "fixes": []}}
+        session = self.session(memory, fix)
+        self.assertEqual([f["path"] for f in editing.fields(memory)], ["text"])
+        p, changed = editing.edit(session, "m", {"text": "Mine."})
+        self.assertEqual((p["payload"]["text"], p["summary"][3], p["summary"][-1]), ("Mine.", "Mine.", "wrong name"))
+        p, _ = editing.edit(session, "f", {"text": "My version."})
+        self.assertEqual(p["summary"], ["Your edited version:", "My version."])
+        with self.assertRaises(ValueError):
+            editing.edit(session, "f", {"text": "  "})
+        pinned = {"id": "p", "kind": "memory_edit", "status": "pending", "title": "Pinned note",
+                  "summary": ["Before:", "x", "After:", "y"], "payload": {"what": "pinned", "before": "x", "text": "y"}}
+        p, _ = editing.edit(self.session(pinned), "p", {"text": ""})  # an empty pinned note removes it
+        self.assertEqual(p["summary"][3], "(none)")
+
+
+@override_settings(MEDIA_ROOT="/tmp/narrative-test-media-restore")
+class RestoreBackupTests(TransactionTestCase):
+    """restore_backup puts a downloaded backup back (outside a test transaction, as on the server)."""
+
+    def test_backup_download(self):
+        import io, os, shutil, zipfile
+        from unittest import mock
+        shutil.rmtree("/tmp/narrative-test-media-restore", ignore_errors=True)
+        os.makedirs("/tmp/narrative-test-media-restore/backgrounds")
+        with open("/tmp/narrative-test-media-restore/backgrounds/a.png", "wb") as f:
+            f.write(b"png")
+        get_user_model().objects.create_user("reader", "reader@example.com", "pw12345!xyz")
+        self.client.login(username="reader", password="pw12345!xyz")
+        url = reverse("users:stats") + "?format=backup"
+        self.assertEqual(self.client.get(url).status_code, 404)  # not for everyone
+        with mock.patch.dict(os.environ, {"STATS_USERS": "reader"}):
+            self.assertContains(self.client.get(reverse("users:stats")), "Download backup")
+            resp = self.client.get(url)
+        self.assertEqual(resp["Content-Type"], "application/zip")
+        raw = b"".join(resp.streaming_content)
+        with zipfile.ZipFile(io.BytesIO(raw)) as z:
+            self.assertIn("db.sqlite3", z.namelist())
+            self.assertIn("media/backgrounds/a.png", z.namelist())
+
+    def test_restore_round_trip(self):
+        import io, os, shutil
+        from django.core.management import call_command
+        from users import backup
+        shutil.rmtree("/tmp/narrative-test-media-restore", ignore_errors=True)
+        os.makedirs("/tmp/narrative-test-media-restore/backgrounds")
+        with open("/tmp/narrative-test-media-restore/backgrounds/a.png", "wb") as f:
+            f.write(b"png")
+        get_user_model().objects.create_user("before", "before@example.com", "pw12345!xyz")
+        handle, _ = backup.make_zip()
+        path = "/tmp/narrative-test-restore.zip"
+        with open(path, "wb") as f:
+            f.write(handle.read())
+        handle.close()
+        get_user_model().objects.create_user("after", "after@example.com", "pw12345!xyz")
+        os.remove("/tmp/narrative-test-media-restore/backgrounds/a.png")
+        call_command("restore_backup", path, yes=True, stdout=io.StringIO())
+        self.assertFalse(get_user_model().objects.filter(username="after").exists())
+        self.assertTrue(get_user_model().objects.filter(username="before").exists())
+        self.assertTrue(os.path.exists("/tmp/narrative-test-media-restore/backgrounds/a.png"))
+        os.remove(path)
+
+
+@override_settings(MEDIA_ROOT="/tmp/narrative-test-media-delete")
+class DeleteAccountTests(TestCase):
+    def setUp(self):
+        import os, shutil
+        from django.core.files.base import ContentFile
+        from mainapp.models import Character, Worldbook, Preset
+        shutil.rmtree("/tmp/narrative-test-media-delete", ignore_errors=True)
+        self.user = get_user_model().objects.create_user("gone", "gone@example.com", "Right-Pass-123")
+        self.other = get_user_model().objects.create_user("stays", "stays@example.com", "Right-Pass-123")
+        self.char = Character.objects.create(name="Mine", slug="mine-del", author=self.user)
+        self.char.photo_neutral.save("mine.png", ContentFile(b"png"), save=True)
+        self.theirs = Character.objects.create(name="Theirs", slug="theirs-del", author=self.other)
+        Worldbook.objects.create(title="Book", slug="book-del", author=self.user)
+        Preset.objects.create(user=self.user, name="P", data={})
+        self.photo = self.char.photo_neutral.path
+        self.upload_dir = os.path.join("/tmp/narrative-test-media-delete", "backgrounds", "custom", f"u{self.user.id}")
+        os.makedirs(self.upload_dir)
+        open(os.path.join(self.upload_dir, "room.png"), "wb").close()
+        self.client.force_login(self.user)
+
+    def test_needs_password_and_confirmation(self):
+        url = reverse("users:delete_account")
+        self.assertContains(self.client.get(reverse("users:profile")), url)
+        self.assertContains(self.client.post(url, {"password": "wrong", "confirm": "on"}), "Wrong password")
+        self.assertContains(self.client.post(url, {"password": "Right-Pass-123"}), "Tick the box")
+        self.assertTrue(get_user_model().objects.filter(username="gone").exists())
+
+    def test_deletes_everything_of_theirs_and_nothing_else(self):
+        import os
+        from mainapp.models import Character, Worldbook, Preset
+        page = self.client.post(reverse("users:delete_account"), {"password": "Right-Pass-123", "confirm": "on"})
+        self.assertContains(page, "Your account is deleted")
+        self.assertFalse(get_user_model().objects.filter(username="gone").exists())
+        self.assertFalse(Character.objects.filter(slug="mine-del").exists())
+        self.assertFalse(Worldbook.objects.filter(slug="book-del").exists())
+        self.assertFalse(Preset.objects.filter(name="P").exists())
+        self.assertFalse(os.path.exists(self.photo))
+        self.assertFalse(os.path.exists(self.upload_dir))
+        self.assertTrue(Character.objects.filter(slug="theirs-del").exists())
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+
 @override_settings(MEDIA_ROOT="/tmp/narrative-test-media")
 class UsageTests(TestCase):
     """Activity recording and the usage report (users/activity.py, users/usage.py)."""
@@ -5987,6 +6283,26 @@ class UsageTests(TestCase):
         self.assertEqual(len(usage.report(exclude=(), include_staff=True)["users"]), 3)
         self.assertIn("reader", usage.csv_text(data))
 
+    def test_director_notes_count_new_and_old_kind(self):
+        from mainapp import chats
+        from mainapp.models import Character, Chat
+        from users import usage
+        character = Character.objects.create(name="C", slug="c-usage", author=self.user)
+        chat = Chat.objects.create(character=character)
+        chats.write(chat, {"messages": [
+            ("assistant", 0, "Hello.", "neutral", 0),
+            ("user", 0, "Hi!", "neutral", 0),
+            chats.as_note(("user", 0, "Make it rain.", "neutral", 0)),
+            ("assistant", 0, "Rain.", "neutral", 0),
+            ("assistant", 0, "Snow.", "neutral", 0, {"directed": "Make it snow."}),  # a note from before
+        ]})
+        row = usage.report()["users"][0]
+        self.assertEqual((row["messages"], row["notes"], row["chats"]), (1, 2, 1))
+        only_notes = Chat.objects.create(character=character)
+        chats.write(only_notes, {"messages": [chats.as_note(("user", 0, "Begin.", "neutral", 0))]})
+        data = usage.report()
+        self.assertEqual((data["summary"]["notes_sent"], data["users"][0]["chats"]), (3, 2))
+
     def test_stats_page_is_only_for_staff_or_listed_users(self):
         import os
         from unittest import mock
@@ -6003,3 +6319,97 @@ class UsageTests(TestCase):
         out = io.StringIO()
         call_command("usage_report", stdout=out)
         self.assertIn("active users", out.getvalue())
+
+
+@override_settings(MEDIA_ROOT="/tmp/narrative-test-media")
+class EmailVerificationTests(TestCase):
+    """Sign-up email verification through Brevo (users/verification.py); Brevo itself is faked."""
+    ENV = {"BREVO_API_KEY": "brevo-test-key", "BREVO_SENDER_EMAIL": "team@example.com", "BREVO_SENDER_NAME": "NA"}
+
+    def setUp(self):
+        import os
+        from unittest import mock
+        from django.core.cache import cache
+        cache.clear()
+        self.env = mock.patch.dict(os.environ, self.ENV)
+        self.env.start()
+        self.addCleanup(self.env.stop)
+        self.sent = []
+        self.brevo = mock.patch("users.verification.requests.post", side_effect=self.fake_brevo)
+        self.brevo.start()
+        self.addCleanup(self.brevo.stop)
+
+    def fake_brevo(self, url, json=None, headers=None, timeout=None):
+        from unittest import mock
+        self.sent.append({"url": url, "json": json, "headers": headers})
+        return mock.Mock(status_code=201, text="{}")
+
+    def sign_up(self):
+        return self.client.post(reverse("users:register"), {
+            "username": "nova", "email": "nova@example.com", "password1": "Lantern-Quay-81", "password2": "Lantern-Quay-81"})
+
+    def link(self):
+        import re
+        return re.search(r'href="(http[^"]+)"', self.sent[-1]["json"]["htmlContent"]).group(1)
+
+    def test_sign_up_sends_a_link_and_waits_until_it_is_clicked(self):
+        resp = self.sign_up()
+        self.assertRedirects(resp, reverse("users:verify"))
+        self.assertEqual(self.sent[0]["headers"]["api-key"], "brevo-test-key")
+        self.assertEqual(self.sent[0]["json"]["to"][0]["email"], "nova@example.com")
+        self.assertEqual(self.sent[0]["json"]["sender"], {"email": "team@example.com", "name": "NA"})
+        self.assertContains(self.client.get(reverse("users:verify")), "nova@example.com")
+        # Nothing else opens yet; data requests get a clear refusal
+        self.assertRedirects(self.client.get(reverse("home")), reverse("users:verify"))
+        self.assertEqual(self.client.post(reverse("users:extras"), "{}", content_type="application/json").status_code, 403)
+        # The link confirms the account and lets them in
+        resp = self.client.get(self.link())
+        self.assertRedirects(resp, reverse("users:welcome"))
+        self.assertTrue(get_user_model().objects.get(username="nova").email_verified)
+        self.assertEqual(self.client.get(reverse("users:extras")).status_code, 200)
+
+    def test_the_link_works_on_another_device_and_bad_links_are_refused(self):
+        self.sign_up()
+        link = self.link()
+        other = self.client_class()
+        self.assertRedirects(other.get(link), reverse("users:welcome"))  # signed in there too
+        self.assertEqual(self.client_class().get(link.rstrip("/")[:-3] + "xyz/").status_code, 400)
+
+    def test_send_again_waits_a_minute(self):
+        from django.core.cache import cache
+        self.sign_up()
+        page = self.client.post(reverse("users:verify"))
+        self.assertContains(page, "just sent")
+        self.assertEqual(len(self.sent), 1)
+        cache.clear()
+        page = self.client.post(reverse("users:verify"))
+        self.assertContains(page, "Sent again")
+        self.assertEqual(len(self.sent), 2)
+
+    def test_existing_accounts_and_staff_are_not_held(self):
+        old = get_user_model().objects.create_user("old", "old@example.com", "pw12345!xyz")
+        self.assertTrue(old.email_verified)
+        self.client.force_login(old)
+        self.assertEqual(self.client.get(reverse("users:extras")).status_code, 200)
+
+    def test_without_brevo_sign_up_works_as_before(self):
+        import os
+        from unittest import mock
+        with mock.patch.dict(os.environ, {"BREVO_API_KEY": ""}):
+            self.assertRedirects(self.sign_up(), reverse("users:welcome"))
+        self.assertTrue(get_user_model().objects.get(username="nova").email_verified)
+        self.assertEqual(self.sent, [])
+
+
+class BugFormTests(TestCase):
+    def test_the_bug_form_link_reaches_signed_in_pages_only(self):
+        import os
+        from unittest import mock
+        user = get_user_model().objects.create_user("bugs", "bugs@example.com", "pw12345!xyz")
+        url = "https://docs.google.com/forms/d/e/X/viewform?entry.1=NA_PAGE&entry.2=NA_LOGIN"
+        with mock.patch.dict(os.environ, {"BUG_FORM_URL": url}):
+            self.assertNotContains(self.client.get(reverse("users:login")), "docs.google.com")
+            self.client.force_login(user)
+            page = self.client.get(reverse("users:extras"))
+        self.assertContains(page, 'bug: "https://docs.google.com/forms/d/e/X/viewform?entry.1\\u003DNA_PAGE')
+        self.assertContains(page, 'login: "bugs"')

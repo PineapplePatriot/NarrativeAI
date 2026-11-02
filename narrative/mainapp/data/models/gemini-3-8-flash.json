@@ -93,7 +93,11 @@
     ],
     "watch_for": [
       "Escalation the user didn't ask for",
-      "Losing coherence"
+      "Losing coherence",
+      "Compulsory comebacks and one-upmanship",
+      "Relationships flattened into dominance or submission",
+      "Characters knowing what they couldn't",
+      "Deciding things for the player"
     ]
   },
   "starters": {
@@ -103,7 +107,7 @@
     "full_preset": "gemini-frankenstein"
   },
   "card": {
-    "order": 6,
+    "order": 13,
     "recommended": false,
     "price": "$",
     "best_for": "Lively worlds that throw complications at you; fast, cheap, good in languages other than English.",

@@ -96,7 +96,11 @@
       "When you say unhinged, do you mean surprising events, characters who act on ugly motives, or dramatic dialogue?"
     ],
     "watch_for": [
-      "Grandiose dialogue in modern settings"
+      "Grandiose dialogue in modern settings",
+      "Stalling: about to answer, never does",
+      "Rushing past the moment or skipping time",
+      "Job-speak taking over a character",
+      "Instructions or checklists leaking into the story"
     ]
   },
   "starters": {
@@ -105,7 +109,7 @@
     "director": "kimi-director"
   },
   "card": {
-    "order": 5,
+    "order": 14,
     "recommended": false,
     "price": "$$",
     "best_for": "Dark fantasy, theatrical characters and elaborate setups with lots of tracking.",

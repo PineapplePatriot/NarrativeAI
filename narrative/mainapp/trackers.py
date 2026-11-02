@@ -335,6 +335,8 @@ def update_messages(config, state, recent_messages, char_name, user_name, only=N
         "- Reply with ONLY a JSON object: {\"tracker_id\": value, ...}.\n"
         "- Include only trackers whose data changed. Omit unchanged ones.\n"
         "- If a tracker is still empty, fill it in from what the story shows so far.\n"
+        "- What lasts stays: weather, time of day, place, who is present and what they wear keep their current "
+        "values unless the recent messages show them change or enough time passes. Don't re-guess them.\n"
         "- For list trackers, return the COMPLETE updated list (drop entries that no longer apply).\n"
         "- For object trackers, return only the fields that changed.\n"
         "- Keep values short: a few words. Only use facts from the story; never invent events.\n"

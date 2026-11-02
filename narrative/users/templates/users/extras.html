@@ -85,41 +85,8 @@
             It also notices when you're taking much longer than usual to reply, and offers a hand. Each read is one small
             call on your key, usually under a cent. Any chat can switch it off for itself.</p>
         <label class="check"><input type="checkbox" id="watch"> Bulba Watch is on</label>
-        <h3 class="sub">What it learned about your taste</h3>
-        <p class="help">From the replies you rewrite or edit. Bulba can get it wrong: reword a line, or remove it.
-            Changes save at once.</p>
-        <ul class="memory" id="watchTaste"></ul>
-        <h3 class="sub">Fixed automatically (Bulba's polish)</h3>
-        <p class="help">Habits you asked Bulba to fix ("Fix this automatically" on a note, or added below). Each new reply, swipe or
-            continued reply gets a quick pass that rewrites only the sentences with them; the original is one click away
-            under the reply. A small extra call each time a reply needs it.</p>
-        <ul class="memory" id="watchFix"></ul>
-        <div class="dislike-add">
-            <label for="dislikeRaw">Something you dislike in the replies? Say it in your own words:</label>
-            <div class="dislike-row">
-                <input type="text" id="dislikeRaw" maxlength="500" placeholder="e.g. he keeps smirking at everything I say">
-                <button type="button" class="secondary" id="dislikeWord">🥔 Word it with Bulba</button>
-            </div>
-            <div class="dislike-check" id="dislikeCheck" hidden>
-                <input type="text" id="dislikeName" maxlength="40" placeholder="Short name">
-                <input type="text" id="dislikeAbout" maxlength="300" placeholder="What it looks like in a reply">
-                <div class="dislike-row"><button type="button" id="dislikeAdd">Add to the list</button>
-                    <button type="button" class="link" id="dislikeCancel">Cancel</button></div>
-            </div>
-            <p class="help">Bulba then rewrites it in new replies, and Bulba Watch looks for it too. You can also just tell 🥔 Bulba in a chat.</p>
-        </div>
-        <label class="fix-model">Who rewrites:
-            <select id="fixModel">
-                <option value="bulba">Bulba's model (cheaper; fine for wording fixes)</option>
-                <option value="chat">Your chat model (same voice; costs more)</option>
-            </select>
-        </label>
-        <div id="watchMutedBox" hidden>
-            <h3 class="sub">Habits you said you don't mind</h3>
-            <p class="help">Bulba won't bring these up. Remove one to have it noticed again.</p>
-            <ul class="memory" id="watchMuted"></ul>
-        </div>
-        <p class="error" id="memoryError" hidden></p>
+        <p class="help notebook-link"><a href="{% url 'users:notebook' %}">📓 Open Bulba's notebook</a>: what Watch looks
+            for (switch habits off, add your own), what it learned about your taste, and what your account has spent.</p>
     </section>
 
     <section class="option">
@@ -165,7 +132,7 @@
 {{ extras_data|json_script:"extras-data" }}
 <script>const EXTRAS_URL = "{% url 'users:extras' %}";</script>
 <script src="{% static 'js/costs.js' %}?v=1"></script>
-<script src="{% static 'users/js/extras.js' %}?v=2"></script>
+<script src="{% static 'users/js/extras.js' %}?v=3"></script>
 <script>window.NA_PAGE_TOUR = {name: 'extras', auto: true};</script>
 </body>
 </html>

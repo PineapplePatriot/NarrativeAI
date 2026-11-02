@@ -4,7 +4,7 @@ When someone asks what a page, panel, button or word means, answer from this map
 what it is, when they'd use it, and where it lives. Name buttons exactly as the app shows them (the app is in
 English; keep the English labels even when you answer in another language). Don't invent features that aren't here.
 
-**Top bar** (every page): Characters, Worldbooks, Presets, Samplers, Connections, Extras, 🥔 Bulba, Guide, the
+**Top bar** (every page): Characters, Worldbooks, Presets, Samplers, Connections, Extras, 🥔 Bulba, 📓 Notebook, Guide, the
 profile, and **?** (a tour of the page, or "What's this?": click anything to have it explained).
 
 - **Home**: your characters and recent chats; the way in.
@@ -21,9 +21,13 @@ profile, and **?** (a tour of the page, or "What's this?": click anything to hav
 - **Connections**: API keys and which model does which job (chat, Bulba, summaries...). The welcome page covers the
   basics; this page is for other providers or a model per feature.
 - **Extras**: the optional parts, all switchable: story summary, story trackers, story extras (letters, phone
-  screens, rumours, keepsakes, suggested actions), Bulba's ideas button, Bulba Watch (and the habits it fixes),
+  screens, rumours, keepsakes, suggested actions), Bulba's ideas button, the Bulba Watch switch (its lists are on the Notebook page),
   dice and inventory, character sprites, background jobs on a cheaper model, voices (ElevenLabs).
-- **🥔 Bulba**: the setup assistant. **Full setup** (about ten minutes): asks how you like stories, shows samples
+- **📓 Notebook** (Bulba's notebook): everything Bulba keeps about them. What Bulba Watch looks for: the common AI
+  writing habits and their chat model's known habits (each can be switched off), and their own dislikes (added in
+  their words, Bulba words them); the habits polished away automatically; what it learned about their taste
+  (reword or remove); and what the whole account has spent since sign-up.
+- **🥔 Bulba**: the setup assistant. **Full setup** (about twenty minutes): asks how you like stories, shows samples
   written by your own model, builds the preset, your persona and a character. **Fast route** (two minutes): the
   tested ready setup for your model, then only who you are and who you talk to. Every change is a proposal with
   Apply and Undo.
@@ -48,7 +52,10 @@ profile, and **?** (a tour of the page, or "What's this?": click anything to hav
 **Words people ask about**
 - Persona: who you are in the story (name and a description the AI reads).
 - Swipe: another version of a reply. Branch: a new chat that starts from one message.
-- Director mode: you steer the story from outside instead of playing a character; the AI writes everyone.
+- Director mode: you steer the story from outside instead of playing a character ("she finds the letter"); the AI
+  writes everyone, your character included, and the chat reads as a book. Roleplay is the other way: you play
+  your character, the AI plays the rest. Bulba switches between them in any chat when you ask; the pen menu's
+  Director's note works in both (a note is its own message: edit it, delete it, regenerate with it).
 - Summary: a short retelling of older events so long chats don't forget them.
 - Trackers: the state of the story the app keeps (place, time, who's there, relationships, inventory).
 - Story systems: rules the app keeps so the story can't rush them (Trust moves one step per scene at most).
@@ -56,4 +63,4 @@ profile, and **?** (a tour of the page, or "What's this?": click anything to hav
 - Bulba's polish: a quick pass that rewrites only the sentences with habits you asked it to fix.
 - Thoughts: what a thinking model thought before replying (folded above the reply).
 - Tokens: the pieces of text models count and charge for; more text in and out costs more.
-- Cost: everything runs on your OpenRouter key; the pen menu shows this month's total; the app stops at the limit.
+- Cost: everything runs on your OpenRouter key; the pen menu shows this month's total; the app stops at the limit. The Notebook page shows the all-time total.
