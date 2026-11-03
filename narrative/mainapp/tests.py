@@ -6264,6 +6264,65 @@ class RestoreBackupTests(TransactionTestCase):
         os.remove(path)
 
 
+class ForgotPasswordTests(TestCase):
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        self.user = get_user_model().objects.create_user("forgetful", "Forget@Example.com", "Old-Pass-123")
+
+    def ask(self, email, sent):
+        import os
+        from unittest import mock
+
+        def brevo(url, json=None, headers=None, timeout=None):
+            sent.append(json)
+            return mock.Mock(status_code=201, text="")
+        with mock.patch.dict(os.environ, {"BREVO_API_KEY": "k", "BREVO_SENDER_EMAIL": "app@example.com"}), \
+                mock.patch("users.verification.requests.post", side_effect=brevo):
+            return self.client.post(reverse("users:forgot"), {"email": email})
+
+    def test_reset_by_email_link(self):
+        import re
+        from django.core.cache import cache
+        self.assertContains(self.client.get(reverse("users:login")), reverse("users:forgot"))
+        sent = []
+        page = self.ask("forget@example.com", sent)  # any letter case
+        self.assertContains(page, "a link to set a new password is on its way")
+        self.assertEqual(sent[0]["to"][0]["email"].lower(), "forget@example.com")
+        link = re.search(r"http://testserver(/users/reset/[^\s\"<]+)", sent[0]["textContent"]).group(1)
+        # An unknown email gets the same page and no email
+        other = []
+        self.assertContains(self.ask("nobody@example.com", other), "a link to set a new password is on its way")
+        self.assertEqual(other, [])
+        # The link: a new password, the login lock lifted, and the link used up
+        cache.set("login-fail:user:forgetful", 99, 600)
+        self.assertContains(self.client.get(link), "Set a new password")
+        page = self.client.post(link, {"new_password1": "Brand-New-Pass-456", "new_password2": "Brand-New-Pass-456"})
+        self.assertContains(page, "Password changed")
+        self.assertIsNone(cache.get("login-fail:user:forgetful"))
+        self.assertTrue(self.client.login(username="forgetful", password="Brand-New-Pass-456"))
+        self.client.logout()
+        self.assertContains(self.client.get(link), "doesn")  # used once already
+        self.assertContains(self.client.get("/users/reset/xx/yy/"), "doesn")
+
+    def test_mismatched_passwords_and_no_email_setup(self):
+        import re
+        sent = []
+        self.ask("forget@example.com", sent)
+        link = re.search(r"http://testserver(/users/reset/[^\s\"<]+)", sent[0]["textContent"]).group(1)
+        page = self.client.post(link, {"new_password1": "Brand-New-Pass-456", "new_password2": "different-789X"})
+        self.assertNotContains(page, "Password changed")
+        self.assertTrue(get_user_model().objects.get(username="forgetful").check_password("Old-Pass-123"))
+        page = self.client.post(reverse("users:forgot"), {"email": "forget@example.com"})  # no Brevo variables
+        self.assertContains(page, "set up on this server")
+
+    def test_one_email_per_two_minutes(self):
+        sent = []
+        self.ask("forget@example.com", sent)
+        self.ask("forget@example.com", sent)
+        self.assertEqual(len(sent), 1)
+
+
 @override_settings(MEDIA_ROOT="/tmp/narrative-test-media-delete")
 class DeleteAccountTests(TestCase):
     def setUp(self):
@@ -6335,7 +6394,7 @@ class UsageTests(TestCase):
         from users.models import Activity, UsageRecord
         demo = get_user_model().objects.create_user("demo", "d@example.com", "pw12345!xyz")
         staff = get_user_model().objects.create_user("boss", "b@example.com", "pw12345!xyz", is_staff=True)
-        start = timezone.now() - timedelta(days=2)
+        start = (timezone.now() - timedelta(days=2)).replace(hour=9, minute=0)  # same day whatever the clock says
         for minutes in (0, 10, 25, 120, 130):  # two sessions: 25 minutes, then (95 min later) 10 minutes
             a = Activity.objects.create(user=self.user, kind="page", path="/")
             Activity.objects.filter(pk=a.pk).update(at=start + timedelta(minutes=minutes))

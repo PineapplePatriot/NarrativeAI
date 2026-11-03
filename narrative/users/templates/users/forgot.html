@@ -1,0 +1,35 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forgot password - Narrative AI</title>
+    <link rel="stylesheet" href="{% static 'users/css/login.css' %}">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
+</head>
+<body class="na-body">
+    <div class="auth-brand">✦ Narrative AI</div>
+    <div class="form-container">
+        <h1>Forgot your password?</h1>
+        {% if sent %}
+            <p>If <b>{{ email }}</b> has an account, a link to set a new password is on its way. It works for
+                {{ hours }} hours. Check your spam folder too.</p>
+            <p class="guide-link">Якщо на цю пошту є акаунт, ми надіслали посилання для нового пароля. Перевірте й спам.</p>
+            <div class="button-group"><a href="{% url 'users:login' %}" class="sign-in-link secondary">Back to log in</a></div>
+        {% else %}
+            <p>Type the email you signed up with, and we'll send you a link to set a new one.</p>
+            <form method="post">
+                {% csrf_token %}
+                <label for="email">Email</label>
+                <input type="email" name="email" id="email" class="form-input" value="{{ email }}" autocomplete="email" required>
+                {% if error %}<div class="form-error">{{ error }}</div>{% endif %}
+                <div class="button-group">
+                    <button type="submit">Send the link</button>
+                    <a href="{% url 'users:login' %}" class="sign-in-link secondary">Back to log in</a>
+                </div>
+            </form>
+        {% endif %}
+    </div>
+</body>
+</html>

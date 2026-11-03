@@ -18,7 +18,7 @@ LINK_DAYS = 3
 SALT = "narrativeai-email-verification"
 RESEND_EVERY = 60  # seconds between two emails to one account
 # Pages an unverified account may still open: the waiting page, the link itself, logging out
-OPEN_PATHS = ("/users/verify", "/users/logout", "/users/delete", "/users/login", "/static/", "/media/", "/favicon")
+OPEN_PATHS = ("/users/verify", "/users/logout", "/users/delete", "/users/forgot", "/users/reset", "/users/login", "/static/", "/media/", "/favicon")
 
 
 def enabled():
@@ -56,21 +56,26 @@ def send(request, user):
             f"<p>The link works for {LINK_DAYS} days. If you didn't sign up, ignore this email.</p><hr>"
             f"<p>Вітаємо! Підтвердіть пошту, щоб почати користуватися Narrative AI: натисніть кнопку вище. "
             f"Посилання діє {LINK_DAYS} дні. Якщо ви не реєструвалися, просто проігноруйте цей лист.</p>")
+    error = brevo_send(user, "Confirm your email · Підтвердіть пошту (Narrative AI)", html, text)
+    if error:
+        cache.delete(f"verify-sent:{user.pk}")
+    return error
+
+
+def brevo_send(user, subject, html, text):
+    """One email to the user through Brevo. Returns an error message for the page, or None when it went out."""
     body = {"sender": {"email": os.environ["BREVO_SENDER_EMAIL"],
                        "name": os.environ.get("BREVO_SENDER_NAME") or "Narrative AI"},
             "to": [{"email": user.email, "name": user.username}],
-            "subject": "Confirm your email · Підтвердіть пошту (Narrative AI)",
-            "htmlContent": html, "textContent": text}
+            "subject": subject, "htmlContent": html, "textContent": text}
     try:
         resp = requests.post(BREVO_URL, json=body, timeout=15,
                              headers={"api-key": os.environ["BREVO_API_KEY"], "accept": "application/json"})
     except requests.RequestException as e:
         log.warning("Brevo couldn't be reached: %s", e)
-        cache.delete(f"verify-sent:{user.pk}")
         return "The email couldn't be sent just now. Try again in a minute."
     if resp.status_code >= 400:
         log.warning("Brevo refused the email (%s): %s", resp.status_code, resp.text[:300])
-        cache.delete(f"verify-sent:{user.pk}")
         return "The email couldn't be sent. If it keeps happening, tell the people running this test."
     return None
 
