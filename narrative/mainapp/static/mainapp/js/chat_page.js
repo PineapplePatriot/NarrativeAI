@@ -761,8 +761,9 @@ function stopGeneration() {
 sendBtn.addEventListener('click', () => sendMessage());
 stopBtn.addEventListener('click', stopGeneration);
 
+// Enter is a new line (paragraphs, and phones have no Shift); the send button sends, or Ctrl/⌘+Enter on a computer
 messageInput.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !e.isComposing) {
         e.preventDefault();
         sendMessage();
     }
