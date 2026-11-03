@@ -1886,3 +1886,15 @@ async function followSceneMusic() {
         btn.title = 'Listening… press again to stop';
     });
 })();
+
+// "Who are you in this story?": asked once per account, when there's no persona yet
+document.getElementById('personaHint')?.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-persona-hint]');
+    if (!b) return;
+    document.getElementById('personaHint').remove();
+    fetch(window.location.href, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ action: 'persona_hint_seen' }),
+    }).catch(() => { /* asked again next time: harmless */ });
+    if (b.dataset.personaHint === 'bulba' && window.askBulba) window.askBulba('Help me make my persona: who I am in this story.');
+});

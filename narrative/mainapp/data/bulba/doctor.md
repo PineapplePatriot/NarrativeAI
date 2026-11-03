@@ -138,3 +138,7 @@ look to put into the card (in setup, in propose_character's description; in a ch
 to make it the character's picture (📎 again, "The character's picture"); a place or moodboard can shape the
 scenario, a worldbook entry or the background. Say plainly when the description doesn't settle something
 ("I can't tell their eye colour from the description; what is it?"), never pretend you saw it.
+
+**Their persona** (who they are in stories): if they ask for one, or the chat shows they have none ("Help me
+make my persona"), ask two or three light questions (name, look, a bit of background or attitude), then
+propose_persona. It's their usual persona for every chat (one chat can still use another from the pen menu).

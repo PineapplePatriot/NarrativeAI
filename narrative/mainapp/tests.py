@@ -2640,6 +2640,22 @@ class BasicsFormTests(BulbaTests):
         self.assertEqual(data["events"][0]["text"], "Sent the basics")
 
 
+class PersonaHintTests(ChatPromptTests):
+    def test_asked_once_when_there_is_no_persona(self):
+        self.assertContains(self.client.get(self.url), 'id="personaHint"')
+        self.client.post(self.url, json.dumps({"action": "persona_hint_seen"}), content_type="application/json")
+        self.assertNotContains(self.client.get(self.url), 'id="personaHint"')
+
+    def test_not_asked_with_a_persona(self):
+        self.user.persona_name = "Wren"
+        self.user.save()
+        self.assertNotContains(self.client.get(self.url), 'id="personaHint"')
+
+    def test_bulba_in_a_chat_can_make_one(self):
+        from mainapp.bulba import doctor
+        self.assertIn("propose_persona", [t["function"]["name"] for t in doctor.tools()])
+
+
 class SpriteMakerTests(ChatPromptTests):
     def test_mood_picture_from_the_neutral_one(self):
         import base64
@@ -4312,7 +4328,7 @@ class SetupRoutesTests(BulbaTests):
         self.assertEqual(self.bulba_calls, [])  # all canned
         self.assertEqual(data["state"]["stage"], "persona")
         self.assertIn("who are you in the story", data["events"][-1]["text"])
-        self.assertIn("Skip: use my profile", [c["label"] for c in data["events"][-1]["choices"]])
+        self.assertIn("Skip for now", [c["label"] for c in data["events"][-1]["choices"]])
         self.assertEqual(data["state"]["proposals"][-1]["status"], "applied")
         self.assertIn("Director", presets_mod.get_active(self.user).name)
         self.assertEqual(_appearance(self.user)["layout"], "book")  # directing comes with the book
@@ -6262,6 +6278,34 @@ class RestoreBackupTests(TransactionTestCase):
         self.assertTrue(get_user_model().objects.filter(username="before").exists())
         self.assertTrue(os.path.exists("/tmp/narrative-test-media-restore/backgrounds/a.png"))
         os.remove(path)
+
+
+class LoginAndProfileFieldsTests(TestCase):
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        self.user = get_user_model().objects.create_user("Leonardo", "leo@example.com", "Right-Pass-123")
+
+    def test_login_with_email_or_login(self):
+        url = reverse("users:login")
+        self.assertContains(self.client.get(url), "Login or email")
+        self.assertEqual(self.client.post(url, {"username": "LEO@example.com", "password": "Right-Pass-123"}).status_code, 302)
+        self.client.logout()
+        self.assertEqual(self.client.post(url, {"username": "Leonardo", "password": "Right-Pass-123"}).status_code, 302)
+        self.client.logout()
+        self.assertEqual(self.client.post(url, {"username": "leo@example.com", "password": "nope"}).status_code, 200)
+
+    def test_profile_and_signup_without_persona_or_last_name(self):
+        self.client.force_login(self.user)
+        page = self.client.get(reverse("users:profile"))
+        self.assertContains(page, "Login")
+        self.assertContains(page, "Date of birth")
+        for gone in ("Last name", "Persona name", "Persona description", "Username"):
+            self.assertNotContains(page, gone)
+        self.client.logout()
+        page = self.client.get(reverse("users:register"))
+        self.assertNotContains(page, "Persona")
+        self.assertNotContains(page, "Last name")
 
 
 class ForgotPasswordTests(TestCase):

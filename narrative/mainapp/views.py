@@ -600,6 +600,11 @@ def chat(request, slug):
             except ValueError as e:
                 return JsonResponse({"success": False, "error": str(e)}, status=400)
             return JsonResponse({"success": True, "watch": watch.page_state(request.user, chat_obj)})
+        elif action == "persona_hint_seen":  # "Who are you in the story?" is asked once per account
+            settings_obj, _ = ChatSettings.objects.get_or_create(author=request.user)
+            settings_obj.appearance = {**(settings_obj.appearance or {}), "persona_hint_seen": True}
+            settings_obj.save(update_fields=["appearance"])
+            return JsonResponse({"success": True})
         elif action == "watch_settings":  # the first-time note's buttons, and "off in this chat"
             if "keep_on" in data:
                 watch.intro_seen(request.user, bool(data["keep_on"]))
@@ -1332,6 +1337,7 @@ def chat(request, slug):
         "bulba_ideas": extras.ideas_on(request.user),
         "bulba_url": reverse("bulba_chat", kwargs={"chat_id": chat_obj.id}),
         "watch_data": watch.page_state(request.user, chat_obj),
+        "persona_hint": _persona_hint(request.user, chat_state["persona"]),
         "display_rules": {
             "rules": [r for r in regex_rules.for_chat(presets.normalize(presets.get_active(request.user).data), character, request.user)
                       if r["enabled"] and r["mode"] == "display"],
@@ -1564,6 +1570,14 @@ def word_note(user, character, messages, wish, rewrite=False, persona=None):
     if not text:
         raise ai_client.AIError("Bulba couldn't word it this time. Try again.")
     return text
+
+
+def _persona_hint(user, chat_persona):
+    """True once: they have no persona (none on the account, none in this chat) and haven't been asked yet."""
+    if getattr(user, "persona_name", "") or (chat_persona or {}).get("name"):
+        return False
+    obj = ChatSettings.objects.filter(author=user).first()
+    return not (obj and (obj.appearance or {}).get("persona_hint_seen"))
 
 
 def prompt_names(user, character, chat_persona=None):

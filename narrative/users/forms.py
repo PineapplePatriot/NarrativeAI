@@ -14,6 +14,11 @@ class LoginLock:
         (settings.LOGIN_MAX_FAILURES / LOGIN_LOCK_SECONDS). An address gets more tries: people share them."""
         from django.conf import settings
         from django.core.cache import cache
+        typed = (self.cleaned_data.get("username") or "").strip()
+        if "@" in typed:  # their email instead of the login: emails are unique per account
+            owner = get_user_model().objects.filter(email__iexact=typed).first()
+            if owner:
+                self.cleaned_data["username"] = owner.username
         limits = _failure_keys(self.request, self.cleaned_data.get("username"))
         if any(cache.get(key, 0) >= limit for key, limit in limits):
             raise forms.ValidationError(f"Too many wrong passwords. Try again in "
@@ -33,7 +38,7 @@ class LoginLock:
 
 
 class LoginUserForm(LoginLock, AuthenticationForm):
-    username = forms.CharField(label="Login",
+    username = forms.CharField(label="Login or email",
         widget=forms.TextInput(attrs={'class': 'form-input'}))
     password = forms.CharField(label="Password",
         widget=forms.PasswordInput(attrs={'class': 'form-input'}))
@@ -69,25 +74,19 @@ def unique_email(email, user=None):
 
 class RegisterUserForm(UserCreationForm):
     username = forms.CharField(label="Login", widget=forms.TextInput(attrs={'class': 'form-input'}))
-    email = forms.EmailField(label="E-mail", widget=forms.EmailInput(attrs={'class': 'form-input'}))  # required
+    email = forms.EmailField(label="Email", widget=forms.EmailInput(attrs={'class': 'form-input'}))  # required
     password1 = forms.CharField(label="Password", widget=forms.PasswordInput(attrs={'class': 'form-input'}))
     password2 = forms.CharField(label="Repeat password", widget=forms.PasswordInput(attrs={'class': 'form-input'}))
 
     class Meta:
         model = get_user_model()
-        fields = ['username', 'email', 'first_name', "last_name", 'password1', "password2", "persona_name", "persona_description"]
-        labels = {
-            'email': 'E-mail',
-            'first_name': "First name",
-            'last_name': "Last name",
-            'persona_name': "Persona name",
-            'persona_description': "Persona description"
-        }
+        # Who they are in stories (the persona) is made with Bulba, or asked once in their first chat
+        fields = ['username', 'email', 'first_name', 'password1', "password2"]
+        labels = {'email': 'Email', 'first_name': "First name"}
 
     widgets = {
         'email': forms.TextInput(attrs={'class': 'form-input'}),
         'first_name': forms.TextInput(attrs={'class': 'form-input'}),
-        'last_name': forms.TextInput(attrs={'class': 'form-input'}),
     }
 
 
@@ -100,17 +99,16 @@ class RegisterUserForm(UserCreationForm):
 class ProfileUserForm(forms.ModelForm):
     class Meta:
         model = User
-        fields = ['photo', 'first_name', 'last_name', 'date_birth', 'username', 'email','persona_name','persona_description']
+        # The persona (who they are in stories) is Bulba's job now, and each chat can have its own (the pen menu)
+        fields = ['photo', 'first_name', 'date_birth', 'username', 'email']
+        labels = {'username': "Login", 'email': "Email"}
+        help_texts = {'username': "What you type to log in (your email works too)."}
         widgets = {
             'photo': forms.FileInput(attrs={'class': 'form-input'}),
             'first_name': forms.TextInput(attrs={'class': 'form-input'}),
-            'last_name': forms.TextInput(attrs={'class': 'form-input'}),
             'date_birth': forms.DateInput(attrs={'type': 'date', 'class': 'form-input'}),
             'username': forms.TextInput(attrs={'class': 'form-input'}),
             'email': forms.EmailInput(attrs={'class': 'form-input'}),
-            'persona_name': forms.TextInput(attrs={'class': 'form-input'}),
-            'persona_description': forms.Textarea(attrs={'class': 'form-input', 'rows': 4,
-                                                         'placeholder': 'Who you are in the story: look, personality, background.'}),
         }
 
     def clean_email(self):

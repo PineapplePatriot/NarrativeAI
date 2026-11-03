@@ -2173,3 +2173,12 @@ body.polish-on .message-btn.polish-btn { display: flex; }
 .layout-book .message.user.note::before { content: "🎬 note"; }
 .layout-book .message.user.note.open::before { content: "🎬 note · fold"; }
 .layout-book .message.user.note .message-text::before { display: none; }
+
+/* "Who are you in this story?" (once, when there's no persona) */
+.persona-hint { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 0 0 8px; padding: 10px 12px;
+    border: 1px solid rgba(167, 139, 250, .45); border-radius: 12px; background: rgba(76, 29, 149, .25); font-size: .88rem; }
+.persona-hint > span:first-child { flex: 1 1 260px; }
+.persona-hint-btns { display: flex; gap: 6px; }
+.persona-hint button { padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(167, 139, 250, .6); background: #7c3aed;
+    color: #fff; cursor: pointer; font: inherit; }
+.persona-hint button.ghost { background: transparent; color: inherit; }

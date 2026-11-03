@@ -31,7 +31,7 @@ profile, and **?** (a tour of the page, or "What's this?": click anything to hav
   written by your own model, builds the preset, your persona and a character. **Fast route** (two minutes): the
   tested ready setup for your model, then only who you are and who you talk to. Every change is a proposal with
   Apply and Undo.
-- **Guide**: a written tour of everything. **Profile**: photo, persona (who you are in stories), password.
+- **Guide**: a written tour of everything. **Profile**: photo, first name, date of birth, login, email, password, and Delete account. The persona (who they are in stories) isn't there: Bulba makes it (setup, or in a chat), and each chat can use another one from the pen menu.
 
 **The chat page**
 - Messages: hover or tap one for edit, 🗜 condense (the AI gets a short version, you still see all of it), 🧹

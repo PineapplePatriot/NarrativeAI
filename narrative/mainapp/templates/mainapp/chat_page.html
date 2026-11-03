@@ -8,7 +8,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Narrative AI - Chat with {{character.name}}</title>
-    <link rel="stylesheet" href="{% static 'mainapp/css/chat_page.css' %}?v=13">
+    <link rel="stylesheet" href="{% static 'mainapp/css/chat_page.css' %}?v=14">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
 </head>
@@ -274,6 +274,13 @@
                         <div class="spending-meter"><div id="spendingFill" style="width: {% widthratio spending.spent spending.limit 100 %}%"></div></div>
                     </details>
                 </div>
+                {% if persona_hint %}
+                <div class="persona-hint" id="personaHint">
+                    <span>🥔 <b>Who are you in this story?</b> Right now {{ character.name }} only knows your login. Bulba can make you a persona in a minute: a name, a look, a bit of background.</span>
+                    <span class="persona-hint-btns"><button type="button" data-persona-hint="bulba">Make one with Bulba</button>
+                        <button type="button" class="ghost" data-persona-hint="later">Not now</button></span>
+                </div>
+                {% endif %}
                 <div class="ideas-box" id="ideasBox" hidden></div>
                 <div class="input-wrapper">
                     <button class="tools-btn" id="toolsBtn" onclick="toggleTools()"><svg class="icon" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>

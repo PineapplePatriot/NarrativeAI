@@ -852,7 +852,7 @@ def take_route(session, route):
 
 
 PERSONA_CHOICES = [{"label": "Keep me light: just a name"}, {"label": "Someone who lives in that world"},
-                   {"label": "You make someone up"}, {"label": "Skip: use my profile"}]
+                   {"label": "You make someone up"}, {"label": "Skip for now"}]
 
 
 def after_memory_form(session, shown):
