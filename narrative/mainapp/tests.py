@@ -6001,13 +6001,46 @@ class HelpAndToursTests(BulbaTests):
         with mock.patch("mainapp.ai_client.requests.post", side_effect=self.fake_post):
             return self.client.post(reverse("bulba_explain"), json.dumps(body), content_type="application/json")
 
-    def test_the_tour_picks_the_fast_route_once(self):
-        data = self.client.get(reverse("bulba") + "?route=fast").context["bulba_data"]
-        self.assertEqual(data["events"][1], {"type": "action", "text": "Fast route"})
-        self.assertTrue(all(c["route"].startswith("fast:") for c in data["events"][-1]["choices"]))
-        again = self.client.get(reverse("bulba") + "?route=full").context["bulba_data"]
-        self.assertEqual(len(again["events"]), len(data["events"]))  # already past the opening: nothing changes
+    def test_the_tour_picks_the_quick_setup(self):
+        resp = self.client.get(reverse("bulba") + "?route=fast")
+        self.assertRedirects(resp, reverse("quick_setup"), fetch_redirect_response=False)
+        page = self.client.get(reverse("quick_setup"))
+        self.assertContains(page, "How roleplay works here")
+        self.assertEqual(len(page.context["ready"]), 3)  # the model's tested writing styles
+        self.assertContains(page, "Let Bulba do it", count=6)
+        self.assertNotContains(page, ">None<")
+        self.assertContains(self.client.get(reverse("bulba")), "Switch to the quick setup")  # halfway, too
+        self.assertContains(self.client.get(reverse("bulba") + "?embed=1"), "helping with your setup")
         self.assertEqual(self.bulba_calls, [])  # no AI needed
+
+    def test_quick_setup_saves_everything(self):
+        from mainapp import presets as presets_mod
+        from mainapp.models import Character
+        ready = self.client.get(reverse("quick_setup")).context["ready"]
+        Character.objects.create(name="Mira", slug="mira-quick", author=self.user)
+        resp = self.client.post(reverse("quick_setup"), json.dumps({
+            "starter": ready[0]["id"], "chat_context": 64000, "persona_name": "Wren",
+            "persona_description": "A field medic.", "character": "mira-quick"}), content_type="application/json").json()
+        self.assertEqual(resp["url"], reverse("chat", args=["mira-quick"]))
+        self.user.refresh_from_db()
+        self.assertEqual((self.user.persona_name, self.user.persona_description), ("Wren", "A field medic."))
+        active = presets_mod.normalize(presets_mod.get_active(self.user).data)
+        self.assertEqual(active["extras"]["starter"]["id"], ready[0]["id"])
+        self.assertEqual(active["samplers"]["context_size"]["value"], 64000)
+        count = presets_mod.Preset.objects.filter(user=self.user).count() if hasattr(presets_mod, "Preset") else None
+        from mainapp.models import Preset
+        before = Preset.objects.filter(user=self.user).count()
+        self.client.post(reverse("quick_setup"), json.dumps({"starter": ready[0]["id"]}), content_type="application/json")
+        self.assertEqual(Preset.objects.filter(user=self.user).count(), before)  # saving again makes no new preset
+        bad = self.client.post(reverse("quick_setup"), json.dumps({"starter": "nonsense"}), content_type="application/json")
+        self.assertEqual(bad.status_code, 400)
+        no_char = self.client.post(reverse("quick_setup"), json.dumps({}), content_type="application/json").json()
+        self.assertIsNone(no_char["url"])
+
+    def test_a_character_made_from_quick_setup_comes_back(self):
+        resp = self.client.post(reverse("add_character") + "?next=quick", {"name": "Tov", "description": "x"})
+        if resp.status_code == 302:
+            self.assertTrue(resp["Location"].startswith(reverse("quick_setup") + "?character="))
 
     def test_the_tour_picks_the_full_setup(self):
         data = self.client.get(reverse("bulba") + "?route=full").context["bulba_data"]

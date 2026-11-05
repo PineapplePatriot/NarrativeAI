@@ -1,5 +1,5 @@
-// Bulba Watch on the chat page (mainapp/bulba/watch.py): a badge on the 🥔 button, a small note when a habit
-// keeps repeating, and the first-time note that says it's on (with the off switch).
+// Bulba Watch on the chat page (mainapp/bulba/watch.py): a number on the 🥔 button when a habit keeps repeating;
+// pressing it shows the note (nothing pops up on its own). The chat tour explains what Watch is.
 window.Watch = (function () {
     const dataEl = document.getElementById('watch-data');
     const btn = document.getElementById('bulbaBtn');
@@ -7,6 +7,8 @@ window.Watch = (function () {
     let state = JSON.parse(dataEl.textContent);
     let hiddenUntilNew = null;  // "Later": the note stays away until a newer one arrives
     let switched = null;  // the "Director mode?" note just used, for its Undo
+    let opened = false;   // notes never pop up on their own: the 🥔 shows a number, a press opens the note
+    let introDone = false;
     const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     // A quote as it looks in the chat: colour and simple formatting rendered, nothing else let through
     const shownQuote = q => window.DOMPurify
@@ -49,18 +51,9 @@ window.Watch = (function () {
         badge.hidden = !state.count;
         badge.textContent = state.count > 9 ? '9+' : String(state.count || '');
         btn.title = state.count ? 'Bulba noticed something' : 'Something off? Ask Bulba';
-        if (state.intro) {
-            card.hidden = false;
-            card.innerHTML = `<div class="watch-head"><span class="potato">🥔</span><b>Bulba Watch is on</b></div>
-                <p>Every ${state.every} replies I quietly read the latest ones for habits that keep repeating: the same
-                sentence shapes, over-explaining, acting out of character. I also learn what you like from the replies you
-                rewrite or edit. I only speak up when something keeps happening: you'll see a number on the 🥔 button.</p>
-                <p class="watch-small">Each read costs a little on your key (usually under a cent). You can switch it off any
-                time on the Extras page, or just for this chat.</p>
-                <div class="watch-actions"><button type="button" data-w="keep">Keep it on</button>
-                <button type="button" class="ghost" data-w="off">Turn it off</button>
-                <button type="button" class="ghost" data-w="chat-off">Off in this chat</button></div>`;
-            return;
+        if (state.intro && !introDone) {  // no card: the chat tour says what Watch is; mark it seen, keep it on
+            introDone = true;
+            post({ action: 'watch_settings', keep_on: true });
         }
         if (switched) {  // just switched to director mode from a note: a moment to undo it
             card.hidden = false;
@@ -72,7 +65,7 @@ window.Watch = (function () {
             return;
         }
         const n = (state.notices || [])[0];
-        if (!n || n.id === hiddenUntilNew) { card.hidden = true; return; }
+        if (!n || n.id === hiddenUntilNew || !opened) { card.hidden = true; if (!n) opened = false; return; }
         card.hidden = false;
         if (n.kind === 'director') {
             card.innerHTML = `<div class="watch-head"><span class="potato">🥔</span><b>${esc(n.title)}</b>
@@ -111,7 +104,7 @@ window.Watch = (function () {
         if (what === 'keep') return post({ action: 'watch_settings', keep_on: true });
         if (what === 'off') { await post({ action: 'watch_settings', keep_on: false }); return showChatNotice('Bulba Watch is off. Turn it back on on the Extras page.'); }
         if (what === 'chat-off') { await post({ action: 'watch_settings', keep_on: true, chat_off: true }); return showChatNotice('Bulba Watch is off for this chat.'); }
-        if (what === 'later') { hiddenUntilNew = (state.notices[0] || {}).id; return render(); }
+        if (what === 'later') { opened = false; return render(); }
         if (what === 'mute') { await post({ action: 'watch_note', id: b.dataset.id, status: 'muted' }); return showChatNotice("Got it: I won't bring that one up again."); }
         if (what === 'dismiss') return post({ action: 'watch_note', id: b.dataset.id, status: 'dismissed' });
         if (what === 'director' || what === 'director-undo') {
@@ -153,6 +146,15 @@ window.Watch = (function () {
         await post(on ? { action: 'watch_settings', chat_off: false, turn_on: true } : { action: 'watch_settings', chat_off: true });
         showChatNotice(on ? 'Bulba Watch is on in this chat.' : 'Bulba Watch is off in this chat. Other chats keep it.');
     });
+
+    // The 🥔 with a number: the first press shows Bulba's note (with its buttons); without one it opens Bulba
+    btn.addEventListener('click', (e) => {
+        if ((state.notices || []).length && card.hidden) {
+            e.stopImmediatePropagation();
+            opened = true;
+            render();
+        }
+    }, true);
 
     render();
     return {

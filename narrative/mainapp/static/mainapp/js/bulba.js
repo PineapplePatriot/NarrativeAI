@@ -433,6 +433,10 @@ $('input').addEventListener('keydown', e => {
 
 $('log').addEventListener('click', e => {
     const routeBtn = e.target.closest('[data-route]');
+    if (routeBtn && !routeBtn.disabled && !busy && routeBtn.dataset.route === 'fast') {
+        window.top.location.href = QUICK_URL;  // the quick way is a short form of its own
+        return;
+    }
     if (routeBtn && !routeBtn.disabled && !busy) {
         run({ action: 'route', route: routeBtn.dataset.route }, routeBtn.dataset.route.startsWith('fast:') ? 'Setting it up…' : 'One moment…');
         return;
@@ -651,3 +655,8 @@ if ($('skipBtn')) {
     $('skipBtn').addEventListener('click', skip);
     $('miniSkip').addEventListener('click', skip);
 }
+
+// Beside the Quick setup form: the ✕ closes the panel (the form reloads to show what Bulba applied)
+document.querySelector('[data-embed-close]')?.addEventListener('click', () => {
+    window.parent.postMessage({ quickBulba: 'close' }, window.location.origin);
+});

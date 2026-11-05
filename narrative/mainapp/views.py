@@ -2059,6 +2059,11 @@ class AddCharacter(CharacterBaseView, CreateView):
     title_page = "Add Character"
     success_url = reverse_lazy('characters_list')
 
+    def get_success_url(self):
+        if self.request.GET.get("next") == "quick":  # made from the Quick setup page: back there, with it picked
+            return reverse("quick_setup") + f"?character={self.object.slug}"
+        return super().get_success_url()
+
 
     def form_valid(self, form):
         a = form.save(commit=False)
@@ -2413,12 +2418,15 @@ def _bulba_for_request(request, restart=False):
 
 
 @login_required
+@xframe_options_sameorigin  # shown beside the Quick setup form (?embed=1); only this site may frame it
 def bulba_page(request):
     if not ai_client.has_connection(request.user):
         return redirect("users:welcome")
-    session = _bulba_session(request.user)
     route = request.GET.get("route")
-    if session and route in ("full", "fast") and len(session.events) == 1:  # picked on the welcome tour's last step
+    if route == "fast":  # the quick way is its own page now (Bulba can still be asked from every part of it)
+        return redirect("quick_setup")
+    session = _bulba_session(request.user)
+    if session and route == "full" and len(session.events) == 1:  # picked on the welcome tour's last step
         from .bulba import agent
         try:
             agent.take_route(session, route)
@@ -2435,6 +2443,52 @@ def bulba_page(request):
         "bulba_data": {"state": _bulba_state(session), "events": session.events} if session else None,
         "known_models": model_profiles.known_names(),
         "in_chats": in_chats,
+        "embed": request.GET.get("embed") == "1",  # beside the Quick setup form
+    })
+
+
+@login_required
+def quick_setup(request):
+    """The quick way in: a short form (writing style, chat memory, who you are, your character, and the extras
+    and worldbooks under Additional). Every part explains itself and can be handed to Bulba instead."""
+    from users.views import _extras_page_state, set_chat_context
+    if not ai_client.has_connection(request.user):
+        return redirect("users:welcome")
+    _, chat_model = ai_client.resolve(request.user, "chat")
+    profile = model_profiles.for_model(chat_model) or {}
+    ready = starters.ready_for(profile.get("id", "")) if profile else []
+    active = presets.get_active(request.user)
+    active_starter = (presets.normalize(active.data)["extras"].get("starter") or {}).get("id", "")
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body.decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            return JsonResponse({"error": "Invalid request."}, status=400)
+        user = request.user
+        if data.get("starter") and data["starter"] != active_starter:
+            if data["starter"] not in [r["id"] for r in ready]:
+                return JsonResponse({"error": "Pick one of the writing styles shown."}, status=400)
+            starters.apply_ready(user, data["starter"])
+        try:
+            context = int(data.get("chat_context") or 0)
+        except (TypeError, ValueError):
+            context = 0
+        if context:
+            set_chat_context(user, max(4096, min(2_000_000, context)))
+        if "persona_name" in data:
+            user.persona_name = str(data.get("persona_name") or "").strip()[:100]
+            user.persona_description = str(data.get("persona_description") or "").strip()[:8000]
+            user.save(update_fields=["persona_name", "persona_description"])
+        character = Character.objects.filter(author=user, slug=str(data.get("character") or "")).first()
+        url = reverse("chat", kwargs={"slug": character.slug}) if character else None
+        return JsonResponse({"status": "ok", "url": url})
+    state = _extras_page_state(request.user)
+    characters = list(Character.objects.filter(author=request.user).order_by("-time_update")[:12])
+    picked = request.GET.get("character") or (characters[0].slug if characters else "")
+    return render(request, "mainapp/quick.html", {
+        "model_name": profile.get("name") or chat_model, "ready": ready, "active_starter": active_starter,
+        "active_name": active.name, "characters": characters, "picked": picked,
+        "quick_data": {"window": state.get("window"), "prices": state.get("prices")},
     })
 
 

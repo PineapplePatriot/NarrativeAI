@@ -790,11 +790,11 @@ def opening(session):
             "Two ways to do this:\n\n"
             "**Full setup** (about twenty minutes): I find out how you like stories told, show you samples written by "
             "your own model, and build everything around that.\n\n"
-            f"**Fast route**: you take the tested ready setup for {name}, then we only do who you are in the "
-            "story and your character.\n\n"
-            "Either way, you can skip any step: press **Skip** in the panel, or just tell me. Just know that "
-            "every step you skip is one less thing tuned to you.")
-    choices = [{"label": "Full setup", "route": "full"}, {"label": "Fast route: the ready setup", "route": "fast"}]
+            f"**Quick setup** (a few minutes): a short form. Pick a tested writing style for {name}, say who you "
+            "are in the story, pick or import your character. Every part has a 🥔 button if you'd rather I did it.\n\n"
+            "In the full setup you can skip any step (press **Skip** in the panel, or just tell me), or switch to "
+            "the quick setup halfway. Just know that every step you skip is one less thing tuned to you.")
+    choices = [{"label": "Full setup", "route": "full"}, {"label": "Quick setup: a short form", "route": "fast"}]
     session.messages = [{"role": "assistant", "content": text}]
     session.events = [{"type": "bulba", "text": text, "choices": choices}]
 

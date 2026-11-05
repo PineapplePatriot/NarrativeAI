@@ -233,3 +233,5 @@ body.embed .mini-progress { top: 0; }
     .picture-form { position: sticky; bottom: 70px; background: var(--bg); z-index: 6; }
     .picture-form select { flex: 1 1 100%; }
 }
+.quick-switch { display: block; margin-top: 10px; font-size: .88rem; }
+body.embed .mini-progress { display: none !important; }  /* beside the Quick setup form: no step counter */

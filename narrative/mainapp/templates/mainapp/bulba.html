@@ -6,7 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bulba - Narrative AI</title>
-    <link rel="stylesheet" href="{% static 'mainapp/css/bulba.css' %}?v=5">
+    <link rel="stylesheet" href="{% static 'mainapp/css/bulba.css' %}?v=7">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
 </head>
@@ -16,10 +16,11 @@
 {% if embed %}
 <header class="embed-head">
     <span class="potato">🥔</span>
-    <b>Bulba</b><span class="embed-sub">· your chat with {{ chat_obj.character.name }}</span>
+    <b>Bulba</b><span class="embed-sub">{% if chat_obj %}· your chat with {{ chat_obj.character.name }}{% else %}· helping with your setup{% endif %}</span>
     <span class="embed-actions">
-        <a class="ghost-link" href="{% url 'bulba_transcript' %}?chat={{ chat_obj.id }}">Transcript</a>
-        <button type="button" class="link" data-restart>Start over</button>
+        {% if chat_obj %}<a class="ghost-link" href="{% url 'bulba_transcript' %}?chat={{ chat_obj.id }}">Transcript</a>
+        <button type="button" class="link" data-restart>Start over</button>{% endif %}
+        {% if not chat_obj %}<button type="button" class="link embed-close" data-embed-close title="Close">✕</button>{% endif %}
     </span>
 </header>
 {% endif %}
@@ -45,7 +46,7 @@
         </form>
         <form class="composer" id="composer">
             <button type="button" class="attach" id="attachBtn" title="Show Bulba a picture, or add one as the character's, a mood or a background">📎</button>
-            <textarea id="input" rows="1" placeholder="{% if embed %}What's off in this chat?{% else %}Talk to Bulba…{% endif %}"></textarea>
+            <textarea id="input" rows="1" placeholder="{% if embed and chat_obj %}What's off in this chat?{% else %}Talk to Bulba…{% endif %}"></textarea>
             <button type="submit" id="sendBtn">Send</button>
         </form>
     </main>
@@ -57,6 +58,7 @@
                 Bulba. Each step you skip leaves less of the setup tuned to you, so replies may fit your taste less well.</p>
             <ol class="stages" id="stages"></ol>
             <button type="button" class="ghost skip-btn" id="skipBtn" hidden>Skip this step ⤼</button>
+            <a class="ghost-link quick-switch" href="{% url 'quick_setup' %}" title="A short form instead; Bulba is still one click away for each part">⚡ Too long? Switch to the quick setup</a>
             <div id="panelChat"></div>
         </section>
         <section>
@@ -92,7 +94,8 @@
     </aside>
 </div>
 {{ bulba_data|json_script:"bulba-data" }}
-<script>const BULBA_API = "{% url 'bulba_api' %}{% if embed %}?chat={{ chat_obj.id }}{% endif %}";</script>
+<script>const BULBA_API = "{% url 'bulba_api' %}{% if embed and chat_obj %}?chat={{ chat_obj.id }}{% endif %}";
+const QUICK_URL = "{% url 'quick_setup' %}";</script>
 <script src="{% static 'js/costs.js' %}?v=1"></script>
 <script src="{% static 'mainapp/js/bulba.js' %}?v={% now 'U' %}"></script>
 {% if not embed %}<script>window.NA_PAGE_TOUR = {name: 'bulba', auto: true, delay: 1200};</script>{% endif %}
