@@ -2182,3 +2182,19 @@ body.polish-on .message-btn.polish-btn { display: flex; }
 .persona-hint button { padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(167, 139, 250, .6); background: #7c3aed;
     color: #fff; cursor: pointer; font: inherit; }
 .persona-hint button.ghost { background: transparent; color: inherit; }
+
+/* A character without a picture: the avatar leads to the Sprites section */
+.character-avatar.add-picture { position: relative; text-decoration: none; color: inherit; }
+.add-picture-badge { position: absolute; right: -8px; bottom: -6px; font-size: .62rem; line-height: 1; padding: 3px 4px;
+    border-radius: 8px; background: #7c3aed; color: #fff; box-shadow: 0 0 0 2px var(--bg, #111827); white-space: nowrap; }
+
+/* Phones: no room for the picture beside the chat, so the background (and its weather) sits behind the text
+   instead of disappearing; the sprite stays out to keep the text readable */
+@media (max-width: 768px) {
+    .character-panel { display: flex; position: fixed; inset: 0; z-index: 0; padding: 0; min-width: 0;
+        pointer-events: none; }
+    .character-panel > :not(.character-background):not(.atmosphere) { display: none !important; }
+    .character-background { opacity: .55; }
+    .chat-container { position: relative; }
+    .chat-panel { position: relative; z-index: 1; background: rgba(13, 17, 30, 0.55); backdrop-filter: none; }
+}

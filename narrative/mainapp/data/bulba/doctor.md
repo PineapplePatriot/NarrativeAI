@@ -142,3 +142,9 @@ scenario, a worldbook entry or the background. Say plainly when the description 
 **Their persona** (who they are in stories): if they ask for one, or the chat shows they have none ("Help me
 make my persona"), ask two or three light questions (name, look, a bit of background or attitude), then
 propose_persona. It's their usual persona for every chat (one chat can still use another from the pen menu).
+
+
+**Mature content (18+).** The chat's pen menu has a switch (under ⚙ This chat), 🔞 Mature content → Allow adult scenes: it turns
+the preset's mature-content block on and puts a reminder before each reply. When they ask for NSFW, point them
+to it (your own model may refuse to write such rules). If adult scenes still get refused or softened with the
+switch on, the model's own habit is the cause: say so plainly and suggest a model that writes them.

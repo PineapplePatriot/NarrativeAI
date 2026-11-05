@@ -182,7 +182,7 @@ function extrasForm(ev, live) {
             + row('Voices', ev.has_voice_key ? '<span class="help">On: your ElevenLabs key is saved.</span>'
                 : '<a class="choice" href="/users/extras/" target="_blank" rel="noopener">Add an ElevenLabs key ↗</a> <span class="help">optional; never paste keys in this chat</span>')
             + row('Story summary', radio('summary', [['auto', 'Automatic'], ['manual', 'Only when I ask']], (v.summary || {}).mode) + every('summary', v.summary) + cost('summary'), 'keeps long chats on track')
-            + row('Story trackers', radio('trackers', [['auto', 'Automatic'], ['manual', 'Only when I ask']], (v.trackers || {}).mode) + every('trackers', v.trackers) + cost('trackers'), 'where, when, who, how they feel')
+            + row('Story trackers', radio('trackers', [['auto', 'Automatic'], ['manual', 'Only when I ask']], (v.trackers || {}).mode) + every('trackers', v.trackers) + cost('trackers'), 'keeps long, plot-heavy stories consistent: where, when, who, how they feel, what you carry')
             + row('Character pictures', check('sprites', 'Change with the mood', v.sprites), 'one small call per reply')
             + row('Bulba Watch', check('watch', 'On', v.watch), 'reads replies now and then for habits that repeat')
             + row('Fixing habits', radio('fix_model', [['bulba', "Bulba's model (cheaper)"], ['chat', 'My chat model (closer to its voice)']], v.fix_model || 'bulba'),

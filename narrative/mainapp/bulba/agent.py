@@ -1021,6 +1021,18 @@ TURN_ENDING = {"offer_choices", "write_samples", "show_basics_form", "show_extra
                *tune.TURN_ENDING}
 
 
+# What a provider's content filter sends back instead of Bulba's answer (MiMo: "The request was rejected because
+# it was considered high risk"): the person gets a way forward instead
+MODERATION = re.compile(r"considered high risk|rejected because it|content (?:management|security) polic|"
+                        r"data_inspection_failed|inappropriate content|violat\w* (?:our|the) (?:content|usage) polic",
+                        re.I)
+REFUSED = ("My model's safety filter blocked that one (it isn't me being prudish, it's the provider). For adult "
+           "scenes there's a switch that needs no AI: in the chat, open the pen menu (✏️, bottom left) → "
+           "**⚙ This chat** → **🔞 Mature content** → *Allow adult scenes*. It switches your preset's mature-content rule on and adds a "
+           "reminder before each reply, so the chat model doesn't refuse either. For anything else, try saying it "
+           "another way.")
+
+
 def run_turn(session, user_text, action_note=None, model_note=None):
     """
     Adds the user's message (or a note about something they did, like pressing Apply), lets Bulba
@@ -1051,6 +1063,8 @@ def run_turn(session, user_text, action_note=None, model_note=None):
             session.spent += cost or 0
             calls = message.get("tool_calls") or []
             content = (message.get("content") or "").strip()
+            if not calls and MODERATION.search(content) and len(content) < 400:  # the provider's filter, not Bulba
+                content = REFUSED
             if not content and not calls:
                 break  # nothing more to say; an empty assistant turn would only confuse some providers
             entry = {"role": "assistant", "content": content}

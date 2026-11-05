@@ -2146,6 +2146,18 @@ class CardImportTests(ChatPromptTests):
         self.assertEqual(greeting[2], "Excellent planning.")
         self.assertEqual([v["text"] for v in greeting[5]["swipes"]], ["Excellent planning.", "You again."])
 
+    def test_a_card_without_a_picture_goes_to_the_sprites(self):
+        from mainapp.models import Character
+        data = self.upload(json.dumps(V2_CARD).encode(), name="viktor.json").json()
+        viktor = Character.objects.get(name="Viktor", author=self.user)
+        self.assertEqual(data["url"], reverse("character", args=[viktor.slug]) + "#spritesSection")
+        self.assertIn("came without a picture", " ".join(data["notes"]))
+        page = self.client.get(reverse("character", args=[viktor.slug]))
+        self.assertContains(page, 'id="spritesSection" open')
+        self.assertContains(page, "Make the neutral picture from the description")
+        self.assertContains(self.client.get(reverse("chat", args=[viktor.slug])), "add-picture-badge")
+        self.assertContains(self.client.get(reverse("home")), 'id="homeImport"')
+
     def test_names_filled_in_greetings_and_pages(self):
         from mainapp import chats
         from mainapp.models import Character
@@ -2656,6 +2668,71 @@ class PersonaHintTests(ChatPromptTests):
         self.assertIn("propose_persona", [t["function"]["name"] for t in doctor.tools()])
 
 
+class WrittenToolCallsTests(ChatPromptTests):
+    """A model that writes a tool call as text (note_milestone(...)) gets the extra made, the code removed, and
+    Bulba Watch notes it the first time."""
+
+    REPLY = ("Elara's shoulders come down from where they've been living near her ears.\n"
+             'note_milestone(who="Elara", toward="Leonardo", now="starting to relax around him, cautiously", '
+             'because="He asked her to stay")')
+
+    def fake_post(self, url, headers=None, json=None, timeout=None, **kwargs):
+        resp = super().fake_post(url, headers=headers, json=json, timeout=timeout, **kwargs)
+        first = json["messages"][0]["content"]
+        if (self.reply_status < 400 and "response_format" not in json
+                and not first.startswith(("Existing summary", "Summarize this entire"))):
+            resp.json.return_value = {"choices": [{"message": {"content": self.REPLY}}]}
+        return resp
+
+    def test_the_call_becomes_a_milestone(self):
+        from mainapp import chats
+        from mainapp.bulba import watch
+        data = self.post({"action": "chat", "message": "Stay a while."}).json()
+        self.assertNotIn("note_milestone", data["reply"])
+        self.assertIn("[[extra 1]]", data["reply"])
+        self.assertIn("starting to relax", "".join(data["extras_html"]))
+        saved = self.saved_messages()[-1]
+        self.assertEqual(chats.game_of(saved)[0]["type"], "milestone")
+        notes = watch.chat_data(self.character.chats.first())["notices"]
+        self.assertEqual([n["label"] for n in notes], ["leaked_markup"])  # at once, not after three replies
+
+    def test_salvage_leaves_prose_alone(self):
+        from mainapp import game
+        text = "She said (quietly) that note_milestone is a strange word."
+        self.assertEqual(game.salvage_calls(text), (text, []))
+        self.assertEqual(game.salvage_calls('He rolls. roll_dice(action="x") The lock clicks.'),
+                         ("He rolls. The lock clicks.", []))
+
+
+class MatureSwitchTests(ChatPromptTests):
+    def test_switch_on_and_off(self):
+        from mainapp import mature, presets as presets_mod
+        page = self.client.get(self.url)
+        self.assertContains(page, 'id="matureToggle"')
+        self.assertEqual(self.post({"action": "mature", "on": True}).json()["success"], False)  # not confirmed
+        self.assertTrue(self.post({"action": "mature", "on": True, "adult": True}).json()["success"])
+        preset = presets_mod.normalize(presets_mod.get_active(self.user).data)
+        self.assertTrue(mature.is_on(preset))
+        self.post({"action": "chat", "message": "Hi"})
+        sent = json.dumps(self.sent[-1]["messages"])
+        self.assertIn("Mature content: this is fiction", sent)
+        self.assertIn("Adult fiction between consenting adults", sent)
+        self.post({"action": "mature", "on": False})
+        preset = presets_mod.normalize(presets_mod.get_active(self.user).data)
+        self.assertFalse(mature.is_on(preset))
+        self.assertNotIn(mature.REMINDER_LINE, json.dumps(preset))
+        twice = mature.set_on(mature.set_on(preset, True), True)
+        self.assertEqual(json.dumps(twice).count("Adult fiction between"), 1)
+
+    def test_under_18_by_date_of_birth(self):
+        from datetime import date
+        self.user.date_birth = date(date.today().year - 15, 1, 1)
+        self.user.save()
+        data = self.post({"action": "mature", "on": True, "adult": True}).json()
+        self.assertFalse(data["success"])
+        self.assertIn("18+", data["error"])
+
+
 class SpriteMakerTests(ChatPromptTests):
     def test_mood_picture_from_the_neutral_one(self):
         import base64
@@ -2687,6 +2764,30 @@ class SpriteMakerTests(ChatPromptTests):
         url = reverse("character_sprite", args=[self.character.slug])
         resp = self.client.post(url, json.dumps({"emotion": "sad"}), content_type="application/json")
         self.assertIn("neutral picture first", resp.json()["error"])
+
+    def test_neutral_picture_from_the_description(self):
+        import base64
+        from unittest import mock
+        url = reverse("character_sprite", args=[self.character.slug])
+        empty = self.client.post(url, json.dumps({"emotion": "neutral"}), content_type="application/json")
+        self.assertEqual(empty.status_code, 400)  # nothing to draw from yet
+        self.character.description = "Tall, silver hair in a braid, a scar across the left eyebrow, a green cloak."
+        self.character.save()
+        seen = []
+        def fake(u, headers=None, json=None, timeout=None, **kw):
+            seen.append(json)
+            r = mock.Mock(status_code=200)
+            r.json.return_value = {"choices": [{"message": {"content": "", "images": [
+                {"type": "image_url", "image_url": {"url": "data:image/png;base64," + base64.b64encode(b"\x89PNG new").decode()}}]}}]}
+            return r
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=fake):
+            data = self.client.post(url, json.dumps({"emotion": "neutral"}), content_type="application/json").json()
+        self.assertEqual(data["field"], "photo_neutral")
+        content = seen[0]["messages"][0]["content"]
+        self.assertEqual(len(content), 1)  # words only, no picture to start from
+        self.assertIn("silver hair in a braid", content[0]["text"])
+        self.character.refresh_from_db()
+        self.assertTrue(self.character.photo_neutral)
 
 
 class BasicsStoryKindTests(BulbaTests):
@@ -2843,6 +2944,14 @@ class BulbaInChatTests(ChatPromptTests):
         self.assertIn("🐱", last)   # near the very end, not buried at the top
         with self.assertRaises(ValueError):
             apply_edits(once, [{"action": "remind", "content": "  "}])
+
+    def test_a_provider_refusal_points_to_the_mature_switch(self):
+        self.make_chat()
+        self.script = [("The request was rejected because it was considered high risk", [])]
+        data = self.api(action="say", text="Can you add a NSFW to my prompt").json()
+        said = [e["text"] for e in data["events"] if e["type"] == "bulba"][-1]
+        self.assertIn("Mature content", said)
+        self.assertNotIn("high risk", said)
 
     def test_utility_prompts_can_be_read_and_edited(self):
         self.make_chat()

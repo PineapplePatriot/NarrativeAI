@@ -30,6 +30,7 @@ from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
 from . import extras, game, media_library, recall, story, thinking, ai_client, cards, chats, regex_rules, model_profiles, presets, samplers, starters, trackers
 from .bulba import control, polish, watch
+from mainapp import mature
 
 from .utils import build_ai_request, get_elevenlabs_key
 from .lorebook import (
@@ -600,6 +601,11 @@ def chat(request, slug):
             except ValueError as e:
                 return JsonResponse({"success": False, "error": str(e)}, status=400)
             return JsonResponse({"success": True, "watch": watch.page_state(request.user, chat_obj)})
+        elif action == "mature":  # the pen menu's 18+ switch: edits the active preset directly (no AI)
+            error = mature.switch(request.user, bool(data.get("on")), bool(data.get("adult")))
+            if error:
+                return JsonResponse({"success": False, "error": error})
+            return JsonResponse({"success": True, "on": bool(data.get("on"))})
         elif action == "persona_hint_seen":  # "Who are you in the story?" is asked once per account
             settings_obj, _ = ChatSettings.objects.get_or_create(author=request.user)
             settings_obj.appearance = {**(settings_obj.appearance or {}), "persona_hint_seen": True}
@@ -1103,6 +1109,12 @@ def chat(request, slug):
                     """Emotion, saving, voice and the summary/tracker flags, once the reply is complete."""
                     reply = text_rules("saved", reply, "assistant")
                     reasoning = text_rules("saved", reasoning, "reasoning").strip() if reasoning else ""
+                    # A tool call the model wrote as text (note_milestone(...)): the extra, not the code
+                    first_n = max([o.get("n") or 0 for o in ops if extras.is_extra(o)] + [0]) + 1
+                    raw_reply = reply
+                    reply, written_calls = game.salvage_calls(reply, first_n=first_n)
+                    written_leak = watch.leaked(raw_reply) if reply != raw_reply else ""  # tidied, but Watch notes it
+                    ops = list(ops) + [game.GameEvent(o) for o in written_calls]
                     reply = extras.place(reply, ops)  # each story extra's marker, where it goes in the text
                     char_count = 1
                     emotion_char_1 = "neutral"
@@ -1165,7 +1177,8 @@ def chat(request, slug):
                                     if (character.is_mult or char_count >= 2) else None)
 
                     save_messages(messages)
-                    watch.on_reply_done(request.user, chat_obj, messages, character.name)  # free checks, pace clock
+                    watch.on_reply_done(request.user, chat_obj, messages, character.name,  # free checks, pace clock
+                                        leak=written_leak)
 
                     # Automatic summary: tell the page to run one in the background
                     summary_task = ai_client.get_task_setting(request.user, "summary")
@@ -1338,6 +1351,7 @@ def chat(request, slug):
         "bulba_url": reverse("bulba_chat", kwargs={"chat_id": chat_obj.id}),
         "watch_data": watch.page_state(request.user, chat_obj),
         "persona_hint": _persona_hint(request.user, chat_state["persona"]),
+        "mature_on": mature.is_on(presets.normalize(presets.get_active(request.user).data)),
         "display_rules": {
             "rules": [r for r in regex_rules.for_chat(presets.normalize(presets.get_active(request.user).data), character, request.user)
                       if r["enabled"] and r["mode"] == "display"],
@@ -2135,18 +2149,31 @@ def character_sprite(request, slug):
         return JsonResponse({"error": "Invalid request."}, status=400)
     emotion = data.get("emotion")
     prefix = "photo_second" if data.get("second") else "photo"
-    if emotion not in SPRITE_EMOTIONS:
+    if emotion not in SPRITE_EMOTIONS + ["neutral"]:
         return JsonResponse({"error": "Unknown mood."}, status=400)
     neutral = getattr(character, f"{prefix}_neutral")
-    if not neutral:
-        return JsonResponse({"error": "Add a neutral picture first; the others are made from it."}, status=400)
-    with neutral.open("rb") as f:
-        reference = f.read()
-    kind = "image/png" if reference.startswith(b"\x89PNG") else "image/webp" if reference[:4] == b"RIFF" else "image/jpeg"
     who = character.name if prefix == "photo" else f"the second character of {character.name}"
-    prompt = (f"This is {who}. Make a new picture of exactly the same character: same face, hair, body, outfit, "
-              f"art style, framing, lighting and background. Only the expression and body language change: show "
-              f"them {emotion}. No text, no borders, no extra people.")
+    reference, kind = None, "image/png"
+    if emotion == "neutral":  # the first picture, from the card's words (no picture to start from)
+        looks = "\n".join(t for t in (str(character.description or "")[:2500], str(character.personality or "")[:600],
+                                      str(data.get("hint") or "")[:600]) if t.strip())
+        if not looks.strip():
+            return JsonResponse({"error": "Write the character's description first (how they look helps most), "
+                                          "or upload a picture."}, status=400)
+        prompt = (f"A character portrait of {who}, for a visual-novel style chat: one person, waist up, facing the "
+                  f"viewer, a calm neutral expression, a simple background that suits them. Draw them as this "
+                  f"description says (appearance first; leave out anything that isn't visible):\n{looks}\n"
+                  "Illustrated, consistent and clean. No text, no borders, no extra people.")
+    else:
+        if not neutral:
+            return JsonResponse({"error": "Add a neutral picture first (upload one, or make it from the description "
+                                          "with the button above); the moods are made from it."}, status=400)
+        with neutral.open("rb") as f:
+            reference = f.read()
+        kind = "image/png" if reference.startswith(b"\x89PNG") else "image/webp" if reference[:4] == b"RIFF" else "image/jpeg"
+        prompt = (f"This is {who}. Make a new picture of exactly the same character: same face, hair, body, outfit, "
+                  f"art style, framing, lighting and background. Only the expression and body language change: show "
+                  f"them {emotion}. No text, no borders, no extra people.")
     model = data.get("model") or None
     if model:
         known = [m["id"] for m in ai_client.image_models()]
@@ -2197,8 +2224,12 @@ def character_import(request):
     if character.system_prompt or character.post_history_instructions:
         notes.append("The card has its own instructions; they take the place of your preset's main prompt "
                      "(see Advanced on the character's page).")
+    edit_url = reverse("character", kwargs={"slug": character.slug})
+    if not character.photo_neutral:  # a .json card, or a card without art: straight to where pictures go
+        notes.append("It came without a picture: add one in the Sprites section, or make it from the description.")
     return JsonResponse({"status": "ok", "name": character.name, "notes": notes,
-                         "url": reverse("chat", kwargs={"slug": character.slug}),
+                         "url": (reverse("chat", kwargs={"slug": character.slug}) if character.photo_neutral
+                                 else edit_url + "#spritesSection"),
                          "edit_url": reverse("character", kwargs={"slug": character.slug})})
 
 

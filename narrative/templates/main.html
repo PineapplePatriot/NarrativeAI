@@ -26,6 +26,24 @@
             <button type="button" class="guide-dismiss" id="guideDismiss" title="Hide this">✕</button>
         </div>
         <script>
+        // Import a card straight from the home page (the Characters page has the same button)
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('homeImport');
+            if (!form) return;
+            const input = form.querySelector('input[type=file]'), note = document.getElementById('homeImportNote');
+            input.addEventListener('change', async () => {
+                if (!input.files.length) return;
+                note.textContent = 'Reading ' + input.files[0].name + '…';
+                try {
+                    const resp = await fetch(form.action, { method: 'POST', body: new FormData(form) });
+                    const data = await resp.json();
+                    if (!resp.ok) throw new Error(data.error || 'Import failed.');
+                    note.textContent = 'Imported ' + data.name + (data.notes.length ? '. ' + data.notes.join(' ') : '.');
+                    setTimeout(() => { window.location.href = data.url; }, data.notes.length ? 2200 : 400);
+                } catch (err) { note.textContent = err.message; }
+                input.value = '';
+            });
+        });
             (function () {
                 const card = document.getElementById('guideCard');
                 let hidden = false;
@@ -66,7 +84,7 @@
                 </a>
                 {% empty %}
                 <div class="home-empty">
-                    <p>No characters yet. Create one to start your first story.</p>
+                    <p>No characters yet. Create one to start your first story, or import a card you already have.</p>
                     <a class="home-btn" href="{% url 'add_character' %}">+ Create a character</a>
                 </div>
                 {% endfor %}
@@ -76,6 +94,14 @@
                     <span class="home-char-text"><strong>New character</strong><span class="home-char-desc">Name, personality, greeting and sprites.</span></span>
                 </a>
                 {% endif %}
+                <form class="home-char home-char-new home-import" id="homeImport" action="{% url 'character_import' %}" method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <label class="home-import-label">
+                        <span class="home-avatar">📥</span>
+                        <span class="home-char-text"><strong>Import a card</strong><span class="home-char-desc" id="homeImportNote">A character from Chub, SillyTavern or JanitorAI (.png or .json), with its lore.</span></span>
+                        <input type="file" name="card" accept=".png,.json,image/png,application/json" hidden>
+                    </label>
+                </form>
             </div>
         </section>
 

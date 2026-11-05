@@ -1899,3 +1899,20 @@ document.getElementById('personaHint')?.addEventListener('click', (e) => {
     }).catch(() => { /* asked again next time: harmless */ });
     if (b.dataset.personaHint === 'bulba' && window.askBulba) window.askBulba('Help me make my persona: who I am in this story.');
 });
+
+// 🔞 Mature content: switched straight in the active preset (Bulba's own model won't do it)
+document.getElementById('matureToggle')?.addEventListener('change', async (e) => {
+    const box = e.target, on = box.checked;
+    if (on && !confirm('Mature content is for adults only. Are you 18 or older?')) { box.checked = false; return; }
+    try {
+        const resp = await fetch(window.location.href, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ action: 'mature', on, adult: on }),
+        });
+        const d = await resp.json();
+        if (!d.success) throw new Error(d.error || 'Could not change it.');
+    } catch (err) {
+        box.checked = !on;
+        alert(err.message);
+    }
+});
