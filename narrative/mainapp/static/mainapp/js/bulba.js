@@ -426,6 +426,7 @@ $('composer').addEventListener('submit', e => {
     if (busy) return;  // keep what they typed until Bulba is done
     const text = $('input').value;
     $('input').value = '';
+    fitInput(false);
     say(text);
 });
 $('input').addEventListener('keydown', e => {
@@ -661,3 +662,16 @@ if ($('skipBtn')) {
 document.querySelector('[data-embed-close]')?.addEventListener('click', () => {
     window.parent.postMessage({ quickBulba: 'close' }, window.location.origin);
 });
+
+// The message box grows with the text (up to ~40% of the screen); ⤢ opens it nearly full height for long texts
+function fitInput(big) {
+    const box = $('input'), wrap = box.closest('.composer-field');
+    if (typeof big === 'boolean') wrap.classList.toggle('big', big);
+    const isBig = wrap.classList.contains('big');
+    $('growBtn').textContent = isBig ? '⤡' : '⤢';
+    $('growBtn').title = isBig ? 'Back to a small box' : 'A bigger box, for longer texts';
+    box.style.height = 'auto';
+    if (!isBig) box.style.height = Math.min(box.scrollHeight + 2, window.innerHeight * 0.4) + 'px';
+}
+$('input').addEventListener('input', () => fitInput());
+$('growBtn').addEventListener('click', () => { fitInput(!$('input').closest('.composer-field').classList.contains('big')); $('input').focus(); });

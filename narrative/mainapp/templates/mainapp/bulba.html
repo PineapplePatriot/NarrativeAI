@@ -6,7 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bulba - Narrative AI</title>
-    <link rel="stylesheet" href="{% static 'mainapp/css/bulba.css' %}?v=7">
+    <link rel="stylesheet" href="{% static 'mainapp/css/bulba.css' %}?v=9">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
 </head>
@@ -46,7 +46,10 @@
         </form>
         <form class="composer" id="composer">
             <button type="button" class="attach" id="attachBtn" title="Show Bulba a picture, or add one as the character's, a mood or a background">📎</button>
-            <textarea id="input" rows="1" placeholder="{% if embed and chat_obj %}What's off in this chat?{% else %}Talk to Bulba…{% endif %}"></textarea>
+            <span class="composer-field">
+                <textarea id="input" rows="1" placeholder="{% if embed and chat_obj %}What's off in this chat?{% else %}Talk to Bulba…{% endif %}"></textarea>
+                <button type="button" class="grow-btn" id="growBtn" title="A bigger box, for longer texts" aria-label="Bigger box">⤢</button>
+            </span>
             <button type="submit" id="sendBtn">Send</button>
         </form>
     </main>

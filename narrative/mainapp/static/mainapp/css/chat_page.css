@@ -2216,3 +2216,4 @@ body.polish-on .message-btn.polish-btn { display: flex; }
 .persona-form[hidden] { display: none !important; }
 .tools-pane .theme-check, .director-switch { display: block; line-height: 1.45; }
 .tools-pane .theme-check input, .director-switch input { margin: 0 6px 0 0; vertical-align: -2px; }
+.input-field { max-height: 35vh; overflow-y: auto; }  /* longer passages stay visible while you write them */
