@@ -1916,3 +1916,44 @@ document.getElementById('matureToggle')?.addEventListener('change', async (e) =>
         alert(err.message);
     }
 });
+
+// The ✏️ panel: two tabs (🎬 Steer the story · ⚙ This chat), the last one used opens next time
+(function () {
+    const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+                    set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* fine: the first tab opens */ } } };
+    const tabs = document.querySelectorAll('.tools-tab');
+    const show = (id) => {
+        tabs.forEach(t => t.classList.toggle('on', t.dataset.pane === id));
+        document.querySelectorAll('.tools-pane').forEach(p => { p.hidden = p.id !== id; });
+        store.set('na-tools-tab', id);
+    };
+    tabs.forEach(t => t.addEventListener('click', () => show(t.dataset.pane)));
+    if (store.get('na-tools-tab') === 'paneChat') show('paneChat');
+    // "Four ways to steer": open the first time, folded after that (a click opens it again)
+    const guide = document.getElementById('steerGuide');
+    if (guide) {
+        if (store.get('na-steer-guide-seen')) guide.open = false;
+        document.getElementById('toolsBtn')?.addEventListener('click', () => store.set('na-steer-guide-seen', '1'));
+    }
+})();
+
+// 🎭 Director mode: switched straight in the active preset (replies read as a book while it's on)
+document.getElementById('directorToggle')?.addEventListener('change', async (e) => {
+    const box = e.target, on = box.checked;
+    try {
+        const resp = await fetch(window.location.href, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ action: 'director_switch', on }),
+        });
+        const d = await resp.json();
+        if (!d.success) throw new Error(d.error || 'Could not switch.');
+        document.body.classList.toggle('layout-book', d.layout === 'book');
+        document.querySelectorAll('#layoutChoice [data-layout]').forEach(x => x.classList.toggle('on', x.dataset.layout === d.layout));
+        if (window.showChatNotice) showChatNotice(on
+            ? 'Director mode is on: your messages are directions now, and the AI narrates the whole scene. Switch it off here any time.'
+            : 'Director mode is off: you play your character again.');
+    } catch (err) {
+        box.checked = !on;
+        alert(err.message);
+    }
+});

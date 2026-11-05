@@ -2198,3 +2198,22 @@ body.polish-on .message-btn.polish-btn { display: flex; }
     .chat-container { position: relative; }
     .chat-panel { position: relative; z-index: 1; background: rgba(13, 17, 30, 0.55); backdrop-filter: none; }
 }
+
+/* The ✏️ panel's two tabs */
+.tools-tabs { display: flex; align-items: center; gap: 6px; padding: 8px 10px; }
+.tools-tab { flex: 1; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border-color); background: transparent;
+    color: var(--text-secondary, #cbd5e1); font: inherit; font-weight: 600; font-size: .9rem; cursor: pointer; }
+.tools-tab.on { background: rgba(139, 92, 246, .22); border-color: rgba(167, 139, 250, .8); color: #fff; }
+.tools-x { flex: none; background: none; border: none; color: inherit; cursor: pointer; font-size: .85rem; padding: 6px; }
+.steer-guide summary { cursor: pointer; }
+.steer-ways { display: grid; gap: 8px; margin-top: 8px; font-size: .84rem; line-height: 1.45; }
+.steer-ways > div { padding: 8px 10px; border-radius: 10px; background: rgba(255, 255, 255, .04); }
+.steer-ways small { opacity: .7; }
+.director-switch { margin-top: 0; opacity: 1; }
+.tools-btn { position: relative; }
+.tools-badge { position: absolute; right: -4px; bottom: -4px; font-size: .62rem; line-height: 1; padding: 2px 3px; border-radius: 6px;
+    background: #334155; color: #e2e8f0; box-shadow: 0 0 0 2px var(--bg-primary, #0f172a); pointer-events: none; }
+.persona-form[hidden] { display: none !important; }
+.tools-pane .theme-check, .director-switch { display: block; line-height: 1.45; }
+.tools-pane .theme-check input, .director-switch input { margin: 0 6px 0 0; vertical-align: -2px; }
+.input-field { max-height: 35vh; overflow-y: auto; }  /* longer passages stay visible while you write them */

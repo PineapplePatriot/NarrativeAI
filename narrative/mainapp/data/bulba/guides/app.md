@@ -41,6 +41,7 @@ profile, and **?** (a tour of the page, or "What's this?": click anything to hav
   Bulba Watch noticed something), BG (background), Music (▶ plays it), Edit (the character).
 - Tracker strip above the messages: where and when the scene is, the weather, relationships. ↻ updates, ▤ opens
   the panel. Story systems (slow meters like Trust, a story clock, events) show at the top of that panel.
+- Pen menu (✏️) has two tabs: 🎬 Steer the story (the four ways to steer explained, a 🎭 Director mode switch, director's note with Word it for me and Be creative, redo, pinned note, memory) and ⚙ This chat (persona here, layout, Watch, mature content, scene, colour, spending).
 - Pen menu → ⚙ This chat → 🔞 Mature content (18+, all chats): switches the active preset's mature-content rule on, with a reminder before each reply so the model doesn't refuse (asks them to confirm they're 18+; a date of birth under 18 on the profile blocks it).
 - Message box: Enter starts a new paragraph; the send button sends (Ctrl+Enter on a computer). 🥔 = three ideas when stuck. The pencil-square = Write my message (the AI writes your
   next message in your voice; nothing is sent until you press send). 🎤 = speak your message.

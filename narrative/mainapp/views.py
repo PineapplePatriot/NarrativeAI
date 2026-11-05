@@ -601,6 +601,24 @@ def chat(request, slug):
             except ValueError as e:
                 return JsonResponse({"success": False, "error": str(e)}, status=400)
             return JsonResponse({"success": True, "watch": watch.page_state(request.user, chat_obj)})
+        elif action == "director_switch":  # the pen menu's 🎭 switch: director mode on or off, no AI
+            obj = presets.get_active(request.user)
+            preset = presets.normalize(obj.data)
+            now = control.mode_of(preset)
+            if data.get("on"):
+                if now != "director":
+                    preset["extras"] = {**preset["extras"], "control_before": now}
+                    preset = control.apply_to_preset(preset, "director")
+                set_layout(request.user, "book")
+            else:
+                before = preset["extras"].get("control_before")
+                preset = control.apply_to_preset(preset, before if before in ("dont", "write") else "dont")
+                preset["extras"] = {k: v for k, v in preset["extras"].items() if k != "control_before"}
+                set_layout(request.user, "chat")
+            obj.data = preset
+            obj.save(update_fields=["data", "time_update"])
+            return JsonResponse({"success": True, "on": control.mode_of(preset) == "director",
+                                 "layout": "book" if data.get("on") else "chat"})
         elif action == "mature":  # the pen menu's 18+ switch: edits the active preset directly (no AI)
             error = mature.switch(request.user, bool(data.get("on")), bool(data.get("adult")))
             if error:
@@ -1352,6 +1370,7 @@ def chat(request, slug):
         "watch_data": watch.page_state(request.user, chat_obj),
         "persona_hint": _persona_hint(request.user, chat_state["persona"]),
         "mature_on": mature.is_on(presets.normalize(presets.get_active(request.user).data)),
+        "director_on": control.mode_of(presets.normalize(presets.get_active(request.user).data)) == "director",
         "display_rules": {
             "rules": [r for r in regex_rules.for_chat(presets.normalize(presets.get_active(request.user).data), character, request.user)
                       if r["enabled"] and r["mode"] == "display"],
@@ -2528,6 +2547,35 @@ def bulba_chat_page(request, chat_id):
 
 @login_required
 def bulba_api(request):
+    """One Bulba action at a time per conversation: a phone that lost the connection mid-turn and sent again
+    would otherwise run two turns on the same conversation, and the one saved last would erase the other's cards."""
+    from django.core.cache import cache
+    if request.method != "POST":
+        return _bulba_api(request)
+    key = f"bulba-busy:{request.user.id}:{request.GET.get('chat') or 'setup'}"
+    if not cache.add(key, 1, BULBA_TURN_SECONDS):
+        return JsonResponse({"error": "Bulba is still working on your last message. Give it a moment, then try "
+                                      "again (the page shows the answer when it's ready).", "busy": True}, status=409)
+    try:
+        response = _bulba_api(request)
+    finally:
+        cache.delete(key)
+    if response.status_code == 400:  # a card from an older version of the conversation: show the current one
+        try:
+            error = json.loads(response.content).get("error", "")
+        except ValueError:
+            error = ""
+        if error.startswith("No such proposal"):
+            return JsonResponse({"error": "That card was out of date (Bulba's conversation moved on in the "
+                                          "meantime). The page will refresh to show the latest.", "stale": True},
+                                status=409)
+    return response
+
+
+BULBA_TURN_SECONDS = 330  # longer than any turn can take (gunicorn stops a request at 300)
+
+
+def _bulba_api(request):
     from .bulba import actions, agent, editing, progress
     from .models import BulbaSession
     if request.method == "GET":  # what Bulba is doing right now (the page asks while a turn runs)

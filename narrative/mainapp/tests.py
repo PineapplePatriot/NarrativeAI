@@ -2704,6 +2704,25 @@ class WrittenToolCallsTests(ChatPromptTests):
                          ("He rolls. The lock clicks.", []))
 
 
+class SteerMenuTests(ChatPromptTests):
+    def test_two_tabs_the_guide_and_the_director_switch(self):
+        from mainapp import presets as presets_mod
+        from mainapp.bulba import control
+        page = self.client.get(self.url)
+        for bit in ('data-pane="paneSteer"', 'data-pane="paneChat"', "Four ways to steer", 'id="directorToggle"'):
+            self.assertContains(page, bit)
+        data = self.post({"action": "director_switch", "on": True}).json()
+        self.assertEqual((data["on"], data["layout"]), (True, "book"))
+        active = presets_mod.normalize(presets_mod.get_active(self.user).data)
+        self.assertEqual(control.mode_of(active), "director")
+        self.assertContains(self.client.get(self.url), 'id="directorToggle" checked')
+        data = self.post({"action": "director_switch", "on": False}).json()
+        self.assertEqual((data["on"], data["layout"]), (False, "chat"))
+        active = presets_mod.normalize(presets_mod.get_active(self.user).data)
+        self.assertNotEqual(control.mode_of(active), "director")
+        self.assertNotIn("control_before", active["extras"])
+
+
 class MatureSwitchTests(ChatPromptTests):
     def test_switch_on_and_off(self):
         from mainapp import mature, presets as presets_mod
@@ -2952,6 +2971,23 @@ class BulbaInChatTests(ChatPromptTests):
         said = [e["text"] for e in data["events"] if e["type"] == "bulba"][-1]
         self.assertIn("Mature content", said)
         self.assertNotIn("high risk", said)
+
+    def test_one_action_at_a_time_and_stale_cards_refresh(self):
+        from django.core.cache import cache
+        self.make_chat()
+        key = f"bulba-busy:{self.user.id}:{self.chat_obj.id}"
+        cache.add(key, 1, 60)  # a turn still running (a phone that lost the connection and sent again)
+        busy = self.api(action="say", text="hello?")
+        self.assertEqual(busy.status_code, 409)
+        self.assertTrue(busy.json()["busy"])
+        cache.delete(key)
+        self.script = [("Hi.", [])]
+        self.assertEqual(self.api(action="say", text="hello?").status_code, 200)
+        self.assertIsNone(cache.get(key))  # released after the turn
+        stale = self.api(action="edit_proposal", id="gone123", values={"x": "y"})
+        self.assertEqual(stale.status_code, 409)
+        self.assertTrue(stale.json()["stale"])
+        self.assertIn("out of date", stale.json()["error"])
 
     def test_utility_prompts_can_be_read_and_edited(self):
         self.make_chat()
