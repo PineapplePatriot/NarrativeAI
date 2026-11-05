@@ -34,6 +34,7 @@ async function api(body) {
         body: body instanceof FormData ? body : JSON.stringify(body),
     });
     const data = await resp.json().catch(() => ({}));
+    if (data.stale) setTimeout(() => window.location.reload(), 400);  // an out-of-date card: show the latest
     if (!resp.ok) throw new Error(data.error || 'Something went wrong.');
     return data;
 }

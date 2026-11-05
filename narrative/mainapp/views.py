@@ -2547,6 +2547,35 @@ def bulba_chat_page(request, chat_id):
 
 @login_required
 def bulba_api(request):
+    """One Bulba action at a time per conversation: a phone that lost the connection mid-turn and sent again
+    would otherwise run two turns on the same conversation, and the one saved last would erase the other's cards."""
+    from django.core.cache import cache
+    if request.method != "POST":
+        return _bulba_api(request)
+    key = f"bulba-busy:{request.user.id}:{request.GET.get('chat') or 'setup'}"
+    if not cache.add(key, 1, BULBA_TURN_SECONDS):
+        return JsonResponse({"error": "Bulba is still working on your last message. Give it a moment, then try "
+                                      "again (the page shows the answer when it's ready).", "busy": True}, status=409)
+    try:
+        response = _bulba_api(request)
+    finally:
+        cache.delete(key)
+    if response.status_code == 400:  # a card from an older version of the conversation: show the current one
+        try:
+            error = json.loads(response.content).get("error", "")
+        except ValueError:
+            error = ""
+        if error.startswith("No such proposal"):
+            return JsonResponse({"error": "That card was out of date (Bulba's conversation moved on in the "
+                                          "meantime). The page will refresh to show the latest.", "stale": True},
+                                status=409)
+    return response
+
+
+BULBA_TURN_SECONDS = 330  # longer than any turn can take (gunicorn stops a request at 300)
+
+
+def _bulba_api(request):
     from .bulba import actions, agent, editing, progress
     from .models import BulbaSession
     if request.method == "GET":  # what Bulba is doing right now (the page asks while a turn runs)
