@@ -1,0 +1,120 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick setup - Narrative AI</title>
+    <link rel="stylesheet" href="{% static 'users/css/welcome.css' %}?v=5">
+    <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
+    <link rel="stylesheet" href="{% static 'mainapp/css/quick.css' %}?v=1">
+</head>
+<body class="na-body">
+{% include "partials/topbar.html" with active="bulba" %}
+<main class="welcome extras quick na-page na-narrow">
+    <h1 class="na-title">⚡ Quick setup</h1>
+    <p class="lead na-sub">A few choices and you're chatting. Each part says what it's for; if you'd rather not
+        decide, press <b>🥔 Let Bulba do it</b> and Bulba handles that part with you, right here.</p>
+
+    <section class="option gist">
+        <h2>How roleplay works here, in 20 seconds</h2>
+        <ul>
+            <li><b>You</b> play someone in the story (your <i>persona</i>): you write what they say and do.</li>
+            <li><b>The AI</b> plays the <i>character</i> you talk to, and everyone else in their world, and narrates.</li>
+            <li><b>The writing style</b> (a <i>preset</i>) is the set of rules the AI writes by: length, pace, voice.</li>
+            <li>Everything else (memory, trackers, lore) is optional and helps long stories stay consistent.</li>
+        </ul>
+        <p class="help">Prefer to be walked through it? <a href="{% url 'bulba' %}?route=full">The full setup with Bulba</a> takes about twenty minutes and tunes everything to your taste.</p>
+    </section>
+
+    <section class="option" id="qStyle">
+        <div class="q-head"><h2>1. Writing style</h2><button type="button" class="ghost q-bulba" data-ask="Help me choose a writing style for my stories with {{ model_name }}: ask me a couple of questions, then set it up.">🥔 Let Bulba do it</button></div>
+        <p class="help">Tested setups for <b>{{ model_name }}</b>. Change it any time on the Presets page. Now active: <i>{{ active_name }}</i>.</p>
+        {% if ready %}
+        <div class="q-choices">
+            {% for r in ready %}
+            <label class="q-choice"><input type="radio" name="starter" value="{{ r.id }}" {% if r.id == active_starter %}checked{% endif %}>
+                <span><b>{{ r.label }}</b><small>{{ r.tagline }}</small></span></label>
+            {% endfor %}
+            <label class="q-choice"><input type="radio" name="starter" value="" {% if not active_starter %}checked{% endif %}>
+                <span><b>Keep what I have</b><small>{{ active_name }}</small></span></label>
+        </div>
+        {% else %}
+        <p class="help">There's no tested setup for this model yet, so your current preset stays. Bulba can build one with you.</p>
+        {% endif %}
+    </section>
+
+    <section class="option" id="qMemory">
+        <div class="q-head"><h2>2. Chat memory</h2></div>
+        <p class="help">How much of the chat <b id="memoryModel"></b> rereads for each reply. More remembers more and costs
+            more; older events are kept by the story summary and trackers.</p>
+        <div class="memory">
+            <input type="range" id="chatContext" min="0" step="1">
+            <b id="memoryValue"></b>
+            <span class="help cost" id="memoryCost"></span>
+        </div>
+    </section>
+
+    <section class="option" id="qPersona">
+        <div class="q-head"><h2>3. You in the story</h2><button type="button" class="ghost q-bulba" data-ask="Help me make my persona: who I am in the story. Ask me two or three light questions, then propose it.">🥔 Let Bulba do it</button></div>
+        <p class="help">Who the AI talks to. A name is enough; a few words about your look and attitude make replies fit you better. You can leave it empty.</p>
+        <label for="personaName">Name</label>
+        <input type="text" id="personaName" maxlength="100" value="{{ user.persona_name|default:'' }}" placeholder="e.g. Wren">
+        <label for="personaDescription">About you <small>(optional)</small></label>
+        <textarea id="personaDescription" rows="3" maxlength="8000" placeholder="e.g. A field medic with steady hands and a habit of asking one question too many.">{{ user.persona_description|default:'' }}</textarea>
+    </section>
+
+    <section class="option" id="qCharacter">
+        <div class="q-head"><h2>4. Your character</h2><button type="button" class="ghost q-bulba" data-ask="Help me make a character to talk to: ask me what kind of story I want, then propose the character.">🥔 Let Bulba do it</button></div>
+        <p class="help">Who you'll talk to. Make one, import a card you already have (Chub, SillyTavern…), or pick one below.</p>
+        <div class="q-actions">
+            <a class="btn secondary" href="{% url 'add_character' %}?next=quick">+ Make a character</a>
+            <form id="qImport" action="{% url 'character_import' %}" method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <label class="btn secondary">📥 Import a card<input type="file" name="card" accept=".png,.json,image/png,application/json" hidden></label>
+            </form>
+        </div>
+        <p class="help" id="qImportNote" hidden></p>
+        {% if characters %}
+        <div class="q-choices q-chars">
+            {% for c in characters %}
+            <label class="q-choice"><input type="radio" name="character" value="{{ c.slug }}" {% if c.slug == picked %}checked{% endif %}>
+                <span>{% if c.photo_neutral %}<img src="{{ c.photo_neutral.url }}" alt="">{% else %}<i class="q-initial">{{ c.name|first|upper }}</i>{% endif %}
+                    <b>{{ c.name }}</b></span></label>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </section>
+
+    <details class="option q-more">
+        <summary><h2>Additional <small>(optional)</small></h2></summary>
+        <div class="q-extra">
+            <div><b>Extras</b>: summaries, story trackers (they keep long, plot-heavy stories consistent), pictures that change with the mood, voices, dice.</div>
+            <span><a class="btn secondary" href="{% url 'users:extras' %}" target="_blank" rel="noopener">Open Extras</a>
+                <button type="button" class="ghost q-bulba" data-ask="Help me pick the extras (summaries, trackers, pictures, dice): explain each in a line and set them up.">🥔 Let Bulba do it</button></span>
+        </div>
+        <div class="q-extra">
+            <div><b>Worldbook</b>: lore about your world (places, factions, rules) that the AI is reminded of when it comes up.</div>
+            <span><a class="btn secondary" href="{% url 'worldbook_create' %}" target="_blank" rel="noopener">Make a worldbook</a>
+                <button type="button" class="ghost q-bulba" data-ask="Help me make a worldbook (lore) for my story: ask me about the world, then propose it.">🥔 Let Bulba do it</button></span>
+        </div>
+    </details>
+
+    <div class="actions">
+        <p class="error" id="qError" hidden></p>
+        <button type="button" id="qStart">Save and start chatting</button>
+    </div>
+</main>
+
+<div class="q-drawer" id="qDrawer" hidden>
+    <iframe id="qFrame" title="Bulba"></iframe>
+</div>
+
+{{ quick_data|json_script:"quick-data" }}
+<script>const QUICK = { url: "{% url 'quick_setup' %}", bulba: "{% url 'bulba' %}?embed=1" };</script>
+<script src="{% static 'js/costs.js' %}?v=1"></script>
+<script src="{% static 'mainapp/js/quick.js' %}?v=1"></script>
+<script>window.NA_PAGE_TOUR = {name: 'quick', auto: true};</script>
+</body>
+</html>

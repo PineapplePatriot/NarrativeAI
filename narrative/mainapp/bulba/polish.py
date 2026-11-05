@@ -27,6 +27,8 @@ PROTECTED = re.compile(r"\[\[extra \d+\]\]|<[^>]{1,80}>|\{\{(?:char|user)\}\}")
 # What each habit means, for the rewriter (watch.md has the full version for the reader)
 MEANING = {
     "same_openings": "sentence after sentence starts the same way (he… he… he…)",
+    "leaked_markup": "the model's machinery in the story: written tool calls like note_milestone(...), thinking or "
+                     "template tags, out-of-character notes, unfilled {{macros}}; remove them, keep the story",
     "overworked_metaphor": "a small gesture or object stretched into a showy figure of speech",
     "forced_callback": "describing something by pointing back at an earlier scene instead of describing it here",
     "unearned_depth": "a profound line or life lesson the moment and the relationship haven't earned",

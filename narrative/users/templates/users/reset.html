@@ -1,0 +1,38 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New password - Narrative AI</title>
+    <link rel="stylesheet" href="{% static 'users/css/login.css' %}">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
+</head>
+<body class="na-body">
+    <div class="auth-brand">✦ Narrative AI</div>
+    <div class="form-container">
+        {% if bad_link %}
+            <h1>That link doesn't work</h1>
+            <p>It has expired or was already used. Ask for a new one.</p>
+            <div class="button-group"><a href="{% url 'users:forgot' %}" class="sign-in-link">Send a new link</a></div>
+        {% elif done %}
+            <h1>Password changed</h1>
+            <p>Log in as <b>{{ username }}</b> with your new password.</p>
+            <div class="button-group"><a href="{% url 'users:login' %}" class="sign-in-link">Log in</a></div>
+        {% else %}
+            <h1>Set a new password</h1>
+            <p>For <b>{{ username }}</b>.</p>
+            <form method="post">
+                {% csrf_token %}
+                {% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors }}</div>{% endif %}
+                {% for f in form %}
+                    <label for="{{ f.id_for_label }}">{{ f.label }}</label>
+                    {{ f }}
+                    {% if f.errors %}<div class="form-error">{{ f.errors }}</div>{% endif %}
+                {% endfor %}
+                <div class="button-group"><button type="submit">Save the new password</button></div>
+            </form>
+        {% endif %}
+    </div>
+</body>
+</html>

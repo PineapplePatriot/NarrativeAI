@@ -790,11 +790,11 @@ def opening(session):
             "Two ways to do this:\n\n"
             "**Full setup** (about twenty minutes): I find out how you like stories told, show you samples written by "
             "your own model, and build everything around that.\n\n"
-            f"**Fast route**: you take the tested ready setup for {name}, then we only do who you are in the "
-            "story and your character.\n\n"
-            "Either way, you can skip any step: press **Skip** in the panel, or just tell me. Just know that "
-            "every step you skip is one less thing tuned to you.")
-    choices = [{"label": "Full setup", "route": "full"}, {"label": "Fast route: the ready setup", "route": "fast"}]
+            f"**Quick setup** (a few minutes): a short form. Pick a tested writing style for {name}, say who you "
+            "are in the story, pick or import your character. Every part has a 🥔 button if you'd rather I did it.\n\n"
+            "In the full setup you can skip any step (press **Skip** in the panel, or just tell me), or switch to "
+            "the quick setup halfway. Just know that every step you skip is one less thing tuned to you.")
+    choices = [{"label": "Full setup", "route": "full"}, {"label": "Quick setup: a short form", "route": "fast"}]
     session.messages = [{"role": "assistant", "content": text}]
     session.events = [{"type": "bulba", "text": text, "choices": choices}]
 
@@ -852,7 +852,7 @@ def take_route(session, route):
 
 
 PERSONA_CHOICES = [{"label": "Keep me light: just a name"}, {"label": "Someone who lives in that world"},
-                   {"label": "You make someone up"}, {"label": "Skip: use my profile"}]
+                   {"label": "You make someone up"}, {"label": "Skip for now"}]
 
 
 def after_memory_form(session, shown):
@@ -1021,6 +1021,18 @@ TURN_ENDING = {"offer_choices", "write_samples", "show_basics_form", "show_extra
                *tune.TURN_ENDING}
 
 
+# What a provider's content filter sends back instead of Bulba's answer (MiMo: "The request was rejected because
+# it was considered high risk"): the person gets a way forward instead
+MODERATION = re.compile(r"considered high risk|rejected because it|content (?:management|security) polic|"
+                        r"data_inspection_failed|inappropriate content|violat\w* (?:our|the) (?:content|usage) polic",
+                        re.I)
+REFUSED = ("My model's safety filter blocked that one (it isn't me being prudish, it's the provider). For adult "
+           "scenes there's a switch that needs no AI: in the chat, open the pen menu (✏️, bottom left) → "
+           "**⚙ This chat** → **🔞 Mature content** → *Allow adult scenes*. It switches your preset's mature-content rule on and adds a "
+           "reminder before each reply, so the chat model doesn't refuse either. For anything else, try saying it "
+           "another way.")
+
+
 def run_turn(session, user_text, action_note=None, model_note=None):
     """
     Adds the user's message (or a note about something they did, like pressing Apply), lets Bulba
@@ -1051,6 +1063,8 @@ def run_turn(session, user_text, action_note=None, model_note=None):
             session.spent += cost or 0
             calls = message.get("tool_calls") or []
             content = (message.get("content") or "").strip()
+            if not calls and MODERATION.search(content) and len(content) < 400:  # the provider's filter, not Bulba
+                content = REFUSED
             if not content and not calls:
                 break  # nothing more to say; an empty assistant turn would only confuse some providers
             entry = {"role": "assistant", "content": content}

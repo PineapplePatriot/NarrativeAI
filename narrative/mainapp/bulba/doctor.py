@@ -86,6 +86,9 @@ def context(session):
             (persona.get("description") if persona.get("name") else getattr(user, "persona_description", "")) or
             "(no description)", 800),
         f"### Active preset: {active.name}\n{_preset_outline(preset)}\n"
+        "Utility prompts (edit with action utility; read_block with the key shows the text): " + "; ".join(
+            f"{k} ({presets.UTILITY_LABELS[k][0]}{', empty' if not preset['utility'].get(k, '').strip() else ''})"
+            for k in presets.UTILITY_LABELS) + "\n"
         "(read_block shows a block's text; text rules: "
         f"{sum(1 for r in preset['regex'] if r['enabled'])} on)",
         "### The last messages\n" + ("\n\n".join(recent) if recent else "(none yet)"),
@@ -162,7 +165,7 @@ def opening(session):
 # Edits
 # ---------------------------------------------------------------------------
 
-EDIT_ACTIONS = ("replace", "append", "enable", "disable", "add", "remind")
+EDIT_ACTIONS = ("replace", "append", "enable", "disable", "add", "remind", "utility")
 REMINDER = "Reply reminder"  # the in-chat block right before the model writes: a rule for every reply lands here
 REMINDER_LINE = 300
 
@@ -196,6 +199,14 @@ def apply_edits(preset, edits):
             raise ValueError(f"Unknown edit action: {action}")
         if action == "remind":
             _remind(preset, e.get("content"))
+            continue
+        if action == "utility":  # a utility prompt (Write for me, Continue, prefills): block is its key
+            if name not in presets.UTILITY_LABELS:
+                raise ValueError(f"No utility prompt “{name}”; use one of: {', '.join(presets.UTILITY_LABELS)}.")
+            text = str(e.get("content") or "").strip()
+            if not text and name in ("continue_nudge", "impersonation"):
+                raise ValueError(f"“{presets.UTILITY_LABELS[name][0]}” can't be empty.")
+            preset["utility"][name] = text
             continue
         if action == "add":
             if any(b["name"] == name for b in preset["blocks"]):
@@ -232,6 +243,9 @@ def _edit_line(e):
         return f"Switch {'on' if action == 'enable' else 'off'}: {name}"
     if action == "remind":
         return f"Reminder right before each reply:\n  {_clip(e.get('content'), 300)}"
+    if action == "utility":
+        label = presets.UTILITY_LABELS.get(name, (name,))[0]
+        return f"Utility prompt: {label}\n  {_clip(e.get('content'), 600) or '(empty)'}"
     verb = {"replace": "Rewrite", "append": "Add to", "add": "New block"}[action]
     return f"{verb}: {name}\n  {_clip(e.get('content'), 600)}"
 
@@ -243,6 +257,9 @@ def _edit_line(e):
 def tool_read_block(session, args):
     preset = presets.normalize(presets.get_active(session.user).data)
     name = str(args.get("block") or "").strip()
+    if name in presets.UTILITY_LABELS:
+        return {"utility": name, "label": presets.UTILITY_LABELS[name][0], "used_for": presets.UTILITY_LABELS[name][1],
+                "content": preset["utility"].get(name, "")}, []
     block = next((b for b in preset["blocks"] if b["name"] == name), None)
     if block is None:
         return {"error": f"No block called “{name}”. The outline lists the names."}, []
@@ -354,7 +371,7 @@ def tools():
     from mainapp.bulba import agent
     keep = {"offer_choices", "record_preference", "get_starter", "find_practice", "read_practice", "look_up",
             "propose_lorebook", "propose_extras", "read_lorebook", "propose_lore_edit", "propose_theme",
-            "offer_downloads", *tune.HANDLERS}
+            "offer_downloads", "propose_persona", *tune.HANDLERS}
     base = [t for t in agent.TOOLS if t["function"]["name"] in keep]
     return base + [
         _fn("read_block", "The full text of one block of the active preset (names are in the outline).",
@@ -364,8 +381,10 @@ def tools():
             {"edits": {"type": "array", "maxItems": 6, "items": {"type": "object", "properties": {
                 "action": {"type": "string", "enum": list(EDIT_ACTIONS),
                            "description": "replace a block's text, append to it, switch it on/off, add a new "
-                           "block, or remind: one short line put right before each reply (no block name needed)"},
-                "block": {"type": "string", "description": "The block's name (for add: the new block's name)"},
+                           "block, remind: one short line put right before each reply (no block name needed), or "
+                           "utility: rewrite a utility prompt (block = its key, e.g. impersonation)"},
+                "block": {"type": "string", "description": "The block's name (for add: the new block's name; for "
+                          "utility: the key)"},
                 "content": {"type": "string", "description": "New text (replace/append/add)"},
                 "from_library": {"type": "string", "description": "Instead of content: add this library block "
                                  "word for word (exact name from find_practice)"}},

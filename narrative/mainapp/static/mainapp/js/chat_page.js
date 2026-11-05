@@ -761,8 +761,9 @@ function stopGeneration() {
 sendBtn.addEventListener('click', () => sendMessage());
 stopBtn.addEventListener('click', stopGeneration);
 
+// Enter is a new line (paragraphs, and phones have no Shift); the send button sends, or Ctrl/⌘+Enter on a computer
 messageInput.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !e.isComposing) {
         e.preventDefault();
         sendMessage();
     }
@@ -1886,3 +1887,32 @@ async function followSceneMusic() {
         btn.title = 'Listening… press again to stop';
     });
 })();
+
+// "Who are you in this story?": asked once per account, when there's no persona yet
+document.getElementById('personaHint')?.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-persona-hint]');
+    if (!b) return;
+    document.getElementById('personaHint').remove();
+    fetch(window.location.href, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ action: 'persona_hint_seen' }),
+    }).catch(() => { /* asked again next time: harmless */ });
+    if (b.dataset.personaHint === 'bulba' && window.askBulba) window.askBulba('Help me make my persona: who I am in this story.');
+});
+
+// 🔞 Mature content: switched straight in the active preset (Bulba's own model won't do it)
+document.getElementById('matureToggle')?.addEventListener('change', async (e) => {
+    const box = e.target, on = box.checked;
+    if (on && !confirm('Mature content is for adults only. Are you 18 or older?')) { box.checked = false; return; }
+    try {
+        const resp = await fetch(window.location.href, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ action: 'mature', on, adult: on }),
+        });
+        const d = await resp.json();
+        if (!d.success) throw new Error(d.error || 'Could not change it.');
+    } catch (err) {
+        box.checked = !on;
+        alert(err.message);
+    }
+});

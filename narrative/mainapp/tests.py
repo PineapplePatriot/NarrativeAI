@@ -2146,6 +2146,18 @@ class CardImportTests(ChatPromptTests):
         self.assertEqual(greeting[2], "Excellent planning.")
         self.assertEqual([v["text"] for v in greeting[5]["swipes"]], ["Excellent planning.", "You again."])
 
+    def test_a_card_without_a_picture_goes_to_the_sprites(self):
+        from mainapp.models import Character
+        data = self.upload(json.dumps(V2_CARD).encode(), name="viktor.json").json()
+        viktor = Character.objects.get(name="Viktor", author=self.user)
+        self.assertEqual(data["url"], reverse("character", args=[viktor.slug]) + "#spritesSection")
+        self.assertIn("came without a picture", " ".join(data["notes"]))
+        page = self.client.get(reverse("character", args=[viktor.slug]))
+        self.assertContains(page, 'id="spritesSection" open')
+        self.assertContains(page, "Make the neutral picture from the description")
+        self.assertContains(self.client.get(reverse("chat", args=[viktor.slug])), "add-picture-badge")
+        self.assertContains(self.client.get(reverse("home")), 'id="homeImport"')
+
     def test_names_filled_in_greetings_and_pages(self):
         from mainapp import chats
         from mainapp.models import Character
@@ -2640,6 +2652,87 @@ class BasicsFormTests(BulbaTests):
         self.assertEqual(data["events"][0]["text"], "Sent the basics")
 
 
+class PersonaHintTests(ChatPromptTests):
+    def test_asked_once_when_there_is_no_persona(self):
+        self.assertContains(self.client.get(self.url), 'id="personaHint"')
+        self.client.post(self.url, json.dumps({"action": "persona_hint_seen"}), content_type="application/json")
+        self.assertNotContains(self.client.get(self.url), 'id="personaHint"')
+
+    def test_not_asked_with_a_persona(self):
+        self.user.persona_name = "Wren"
+        self.user.save()
+        self.assertNotContains(self.client.get(self.url), 'id="personaHint"')
+
+    def test_bulba_in_a_chat_can_make_one(self):
+        from mainapp.bulba import doctor
+        self.assertIn("propose_persona", [t["function"]["name"] for t in doctor.tools()])
+
+
+class WrittenToolCallsTests(ChatPromptTests):
+    """A model that writes a tool call as text (note_milestone(...)) gets the extra made, the code removed, and
+    Bulba Watch notes it the first time."""
+
+    REPLY = ("Elara's shoulders come down from where they've been living near her ears.\n"
+             'note_milestone(who="Elara", toward="Leonardo", now="starting to relax around him, cautiously", '
+             'because="He asked her to stay")')
+
+    def fake_post(self, url, headers=None, json=None, timeout=None, **kwargs):
+        resp = super().fake_post(url, headers=headers, json=json, timeout=timeout, **kwargs)
+        first = json["messages"][0]["content"]
+        if (self.reply_status < 400 and "response_format" not in json
+                and not first.startswith(("Existing summary", "Summarize this entire"))):
+            resp.json.return_value = {"choices": [{"message": {"content": self.REPLY}}]}
+        return resp
+
+    def test_the_call_becomes_a_milestone(self):
+        from mainapp import chats
+        from mainapp.bulba import watch
+        data = self.post({"action": "chat", "message": "Stay a while."}).json()
+        self.assertNotIn("note_milestone", data["reply"])
+        self.assertIn("[[extra 1]]", data["reply"])
+        self.assertIn("starting to relax", "".join(data["extras_html"]))
+        saved = self.saved_messages()[-1]
+        self.assertEqual(chats.game_of(saved)[0]["type"], "milestone")
+        notes = watch.chat_data(self.character.chats.first())["notices"]
+        self.assertEqual([n["label"] for n in notes], ["leaked_markup"])  # at once, not after three replies
+
+    def test_salvage_leaves_prose_alone(self):
+        from mainapp import game
+        text = "She said (quietly) that note_milestone is a strange word."
+        self.assertEqual(game.salvage_calls(text), (text, []))
+        self.assertEqual(game.salvage_calls('He rolls. roll_dice(action="x") The lock clicks.'),
+                         ("He rolls. The lock clicks.", []))
+
+
+class MatureSwitchTests(ChatPromptTests):
+    def test_switch_on_and_off(self):
+        from mainapp import mature, presets as presets_mod
+        page = self.client.get(self.url)
+        self.assertContains(page, 'id="matureToggle"')
+        self.assertEqual(self.post({"action": "mature", "on": True}).json()["success"], False)  # not confirmed
+        self.assertTrue(self.post({"action": "mature", "on": True, "adult": True}).json()["success"])
+        preset = presets_mod.normalize(presets_mod.get_active(self.user).data)
+        self.assertTrue(mature.is_on(preset))
+        self.post({"action": "chat", "message": "Hi"})
+        sent = json.dumps(self.sent[-1]["messages"])
+        self.assertIn("Mature content: this is fiction", sent)
+        self.assertIn("Adult fiction between consenting adults", sent)
+        self.post({"action": "mature", "on": False})
+        preset = presets_mod.normalize(presets_mod.get_active(self.user).data)
+        self.assertFalse(mature.is_on(preset))
+        self.assertNotIn(mature.REMINDER_LINE, json.dumps(preset))
+        twice = mature.set_on(mature.set_on(preset, True), True)
+        self.assertEqual(json.dumps(twice).count("Adult fiction between"), 1)
+
+    def test_under_18_by_date_of_birth(self):
+        from datetime import date
+        self.user.date_birth = date(date.today().year - 15, 1, 1)
+        self.user.save()
+        data = self.post({"action": "mature", "on": True, "adult": True}).json()
+        self.assertFalse(data["success"])
+        self.assertIn("18+", data["error"])
+
+
 class SpriteMakerTests(ChatPromptTests):
     def test_mood_picture_from_the_neutral_one(self):
         import base64
@@ -2671,6 +2764,30 @@ class SpriteMakerTests(ChatPromptTests):
         url = reverse("character_sprite", args=[self.character.slug])
         resp = self.client.post(url, json.dumps({"emotion": "sad"}), content_type="application/json")
         self.assertIn("neutral picture first", resp.json()["error"])
+
+    def test_neutral_picture_from_the_description(self):
+        import base64
+        from unittest import mock
+        url = reverse("character_sprite", args=[self.character.slug])
+        empty = self.client.post(url, json.dumps({"emotion": "neutral"}), content_type="application/json")
+        self.assertEqual(empty.status_code, 400)  # nothing to draw from yet
+        self.character.description = "Tall, silver hair in a braid, a scar across the left eyebrow, a green cloak."
+        self.character.save()
+        seen = []
+        def fake(u, headers=None, json=None, timeout=None, **kw):
+            seen.append(json)
+            r = mock.Mock(status_code=200)
+            r.json.return_value = {"choices": [{"message": {"content": "", "images": [
+                {"type": "image_url", "image_url": {"url": "data:image/png;base64," + base64.b64encode(b"\x89PNG new").decode()}}]}}]}
+            return r
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=fake):
+            data = self.client.post(url, json.dumps({"emotion": "neutral"}), content_type="application/json").json()
+        self.assertEqual(data["field"], "photo_neutral")
+        content = seen[0]["messages"][0]["content"]
+        self.assertEqual(len(content), 1)  # words only, no picture to start from
+        self.assertIn("silver hair in a braid", content[0]["text"])
+        self.character.refresh_from_db()
+        self.assertTrue(self.character.photo_neutral)
 
 
 class BasicsStoryKindTests(BulbaTests):
@@ -2827,6 +2944,41 @@ class BulbaInChatTests(ChatPromptTests):
         self.assertIn("🐱", last)   # near the very end, not buried at the top
         with self.assertRaises(ValueError):
             apply_edits(once, [{"action": "remind", "content": "  "}])
+
+    def test_a_provider_refusal_points_to_the_mature_switch(self):
+        self.make_chat()
+        self.script = [("The request was rejected because it was considered high risk", [])]
+        data = self.api(action="say", text="Can you add a NSFW to my prompt").json()
+        said = [e["text"] for e in data["events"] if e["type"] == "bulba"][-1]
+        self.assertIn("Mature content", said)
+        self.assertNotIn("high risk", said)
+
+    def test_utility_prompts_can_be_read_and_edited(self):
+        self.make_chat()
+        from mainapp import presets as presets_mod
+        from mainapp.bulba.doctor import apply_edits
+        self.script = [("", [self.call("read_block", block="impersonation")]),
+                       ("Here.", [self.call("propose_preset_edit", why="better Write for me", edits=[
+                           {"action": "utility", "block": "impersonation", "content": "[Write {{user}}'s next move, in their voice.]"}])])]
+        data = self.api(action="say", text="I want a better write for me").json()
+        system = self.bulba_calls[0]["messages"][0]["content"]
+        self.assertIn("Utility prompts", system)
+        self.assertIn("impersonation (Impersonation", system)
+        read = json.loads(self.bulba_calls[1]["messages"][-1]["content"])
+        self.assertEqual(read["utility"], "impersonation")
+        p = data["state"]["proposals"][0]
+        self.assertIn("Utility prompt: Impersonation", json.dumps(p["summary"]))
+        self.assertEqual(p["editable"][0]["path"], "edits.0.content")  # editable by hand too
+        self.api(action="apply", id=p["id"])
+        self.assertEqual(presets_mod.normalize(presets_mod.get_active(self.user).data)["utility"]["impersonation"],
+                         "[Write {{user}}'s next move, in their voice.]")
+        preset = presets_mod.normalize(presets_mod.get_active(self.user).data)
+        with self.assertRaises(ValueError):
+            apply_edits(preset, [{"action": "utility", "block": "nonsense", "content": "x"}])
+        with self.assertRaises(ValueError):
+            apply_edits(preset, [{"action": "utility", "block": "impersonation", "content": " "}])
+        self.assertEqual(apply_edits(preset, [{"action": "utility", "block": "assistant_prefill", "content": ""}])
+                         ["utility"]["assistant_prefill"], "")
 
     def test_bad_edits_are_refused(self):
         self.make_chat()
@@ -3702,11 +3854,52 @@ class BulbaPicturesAndThemeTests(BulbaCardAndLoreTests):
         self.addCleanup(override.disable)
         self.addCleanup(shutil.rmtree, media, ignore_errors=True)
 
-    def send_picture(self, data, as_="neutral", name="me.png"):
+    def send_picture(self, data, as_="neutral", name="me.png", text="", seen="A tall man in a lab coat."):
         from unittest import mock
         from django.core.files.uploadedfile import SimpleUploadedFile
-        with mock.patch("mainapp.ai_client.requests.post", side_effect=self.fake_post):
-            return self.client.post(reverse("bulba_api"), {"picture": SimpleUploadedFile(name, data), "as": as_})
+        self.looked = []
+
+        def describe(user, url, words=""):
+            self.looked.append((url[:23], words))
+            return seen, "Gemini 3.8 Flash"
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=self.fake_post), \
+                mock.patch("mainapp.bulba.vision.describe", side_effect=describe):
+            return self.client.post(reverse("bulba_api"), {"picture": SimpleUploadedFile(name, data), "as": as_,
+                                                           "text": text})
+
+    def test_just_show_bulba_a_picture(self):
+        import os
+        from django.conf import settings
+        self.script = [("That's a screenshot of a reply.", [])]
+        data = self.send_picture(self.png(), as_="look", text="why is he so cold here?",
+                                 seen="A screenshot of a chat reply: 'Go away,' he said.").json()
+        pic = next(e for e in data["events"] if e["type"] == "picture")
+        self.assertTrue(pic["src"].startswith("data:image/jpeg;base64,"))
+        self.assertEqual(pic["text"], "why is he so cold here?")
+        self.assertEqual(self.looked, [("data:image/jpeg;base64,", "why is he so cold here?")])
+        note = self.bulba_calls[-1]["messages"][-1]["content"]
+        self.assertIn("'Go away,' he said.", note)
+        self.assertIn("why is he so cold here?", note)
+        # Not kept anywhere on the server, and no character needed
+        self.assertFalse(os.path.exists(os.path.join(settings.MEDIA_ROOT, "backgrounds")))
+        self.assertEqual(self.send_picture(b"not a picture", as_="look").status_code, 400)
+
+    def test_vision_picks_who_looks(self):
+        from unittest import mock
+        from mainapp.bulba import vision
+        from users.models import ConnectionProfile
+        ConnectionProfile.objects.filter(user=self.user).update(provider=ConnectionProfile.PROVIDER_OPENROUTER, api_key="k")
+        with mock.patch.object(vision, "_input_modalities", return_value={"xiaomi/mimo-v2.6-pro": ["text"]}):
+            self.assertEqual(vision.looker(self.user)[0], vision.FALLBACK)
+        with mock.patch.object(vision, "_input_modalities", return_value={"xiaomi/mimo-v2.6-pro": ["text", "image"]}):
+            self.assertEqual(vision.looker(self.user), ("xiaomi/mimo-v2.6-pro", "Bulba's own model"))
+        with mock.patch.object(vision, "_input_modalities", return_value={}), \
+                mock.patch("mainapp.ai_client.complete", return_value="A red square.") as complete:
+            url, thumb = vision.prepare(self.png())
+            self.assertEqual(vision.describe(self.user, url)[0], "A red square.")
+        sent = complete.call_args
+        self.assertEqual(sent.kwargs["model"], vision.FALLBACK)
+        self.assertEqual(sent.args[2][0]["content"][1]["image_url"]["url"], url)
 
     @staticmethod
     def png():
@@ -3724,6 +3917,7 @@ class BulbaPicturesAndThemeTests(BulbaCardAndLoreTests):
         self.assertEqual(self.send_picture(self.png(), as_="selfie").status_code, 400)
         self.script = [("Lovely.", [])]
         data = self.send_picture(self.png(), as_="angry").json()
+        self.assertEqual(self.looked, [])  # moods aren't looked at; the main picture is
         viktor = Character.objects.get(author=self.user, name="Viktor")
         self.assertTrue(viktor.photo_angry.name.endswith(".png"))
         self.assertIn("angry picture", self.bulba_calls[-1]["messages"][-1]["content"])
@@ -3733,7 +3927,8 @@ class BulbaPicturesAndThemeTests(BulbaCardAndLoreTests):
         viktor.refresh_from_db()
         self.assertFalse(viktor.photo_angry)
         self.script = [("Nice place.", [])]
-        self.send_picture(self.png(), as_="background")
+        self.send_picture(self.png(), as_="background", seen="A rainy harbour at night.")
+        self.assertIn("A rainy harbour at night.", self.bulba_calls[-1]["messages"][-1]["content"])
         viktor.refresh_from_db()
         self.assertIn("/backgrounds/custom/", viktor.theme["bg"])
 
@@ -4242,7 +4437,7 @@ class SetupRoutesTests(BulbaTests):
         self.assertEqual(self.bulba_calls, [])  # all canned
         self.assertEqual(data["state"]["stage"], "persona")
         self.assertIn("who are you in the story", data["events"][-1]["text"])
-        self.assertIn("Skip: use my profile", [c["label"] for c in data["events"][-1]["choices"]])
+        self.assertIn("Skip for now", [c["label"] for c in data["events"][-1]["choices"]])
         self.assertEqual(data["state"]["proposals"][-1]["status"], "applied")
         self.assertIn("Director", presets_mod.get_active(self.user).name)
         self.assertEqual(_appearance(self.user)["layout"], "book")  # directing comes with the book
@@ -5806,13 +6001,46 @@ class HelpAndToursTests(BulbaTests):
         with mock.patch("mainapp.ai_client.requests.post", side_effect=self.fake_post):
             return self.client.post(reverse("bulba_explain"), json.dumps(body), content_type="application/json")
 
-    def test_the_tour_picks_the_fast_route_once(self):
-        data = self.client.get(reverse("bulba") + "?route=fast").context["bulba_data"]
-        self.assertEqual(data["events"][1], {"type": "action", "text": "Fast route"})
-        self.assertTrue(all(c["route"].startswith("fast:") for c in data["events"][-1]["choices"]))
-        again = self.client.get(reverse("bulba") + "?route=full").context["bulba_data"]
-        self.assertEqual(len(again["events"]), len(data["events"]))  # already past the opening: nothing changes
+    def test_the_tour_picks_the_quick_setup(self):
+        resp = self.client.get(reverse("bulba") + "?route=fast")
+        self.assertRedirects(resp, reverse("quick_setup"), fetch_redirect_response=False)
+        page = self.client.get(reverse("quick_setup"))
+        self.assertContains(page, "How roleplay works here")
+        self.assertEqual(len(page.context["ready"]), 3)  # the model's tested writing styles
+        self.assertContains(page, "Let Bulba do it", count=6)
+        self.assertNotContains(page, ">None<")
+        self.assertContains(self.client.get(reverse("bulba")), "Switch to the quick setup")  # halfway, too
+        self.assertContains(self.client.get(reverse("bulba") + "?embed=1"), "helping with your setup")
         self.assertEqual(self.bulba_calls, [])  # no AI needed
+
+    def test_quick_setup_saves_everything(self):
+        from mainapp import presets as presets_mod
+        from mainapp.models import Character
+        ready = self.client.get(reverse("quick_setup")).context["ready"]
+        Character.objects.create(name="Mira", slug="mira-quick", author=self.user)
+        resp = self.client.post(reverse("quick_setup"), json.dumps({
+            "starter": ready[0]["id"], "chat_context": 64000, "persona_name": "Wren",
+            "persona_description": "A field medic.", "character": "mira-quick"}), content_type="application/json").json()
+        self.assertEqual(resp["url"], reverse("chat", args=["mira-quick"]))
+        self.user.refresh_from_db()
+        self.assertEqual((self.user.persona_name, self.user.persona_description), ("Wren", "A field medic."))
+        active = presets_mod.normalize(presets_mod.get_active(self.user).data)
+        self.assertEqual(active["extras"]["starter"]["id"], ready[0]["id"])
+        self.assertEqual(active["samplers"]["context_size"]["value"], 64000)
+        count = presets_mod.Preset.objects.filter(user=self.user).count() if hasattr(presets_mod, "Preset") else None
+        from mainapp.models import Preset
+        before = Preset.objects.filter(user=self.user).count()
+        self.client.post(reverse("quick_setup"), json.dumps({"starter": ready[0]["id"]}), content_type="application/json")
+        self.assertEqual(Preset.objects.filter(user=self.user).count(), before)  # saving again makes no new preset
+        bad = self.client.post(reverse("quick_setup"), json.dumps({"starter": "nonsense"}), content_type="application/json")
+        self.assertEqual(bad.status_code, 400)
+        no_char = self.client.post(reverse("quick_setup"), json.dumps({}), content_type="application/json").json()
+        self.assertIsNone(no_char["url"])
+
+    def test_a_character_made_from_quick_setup_comes_back(self):
+        resp = self.client.post(reverse("add_character") + "?next=quick", {"name": "Tov", "description": "x"})
+        if resp.status_code == 302:
+            self.assertTrue(resp["Location"].startswith(reverse("quick_setup") + "?character="))
 
     def test_the_tour_picks_the_full_setup(self):
         data = self.client.get(reverse("bulba") + "?route=full").context["bulba_data"]
@@ -6194,6 +6422,93 @@ class RestoreBackupTests(TransactionTestCase):
         os.remove(path)
 
 
+class LoginAndProfileFieldsTests(TestCase):
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        self.user = get_user_model().objects.create_user("Leonardo", "leo@example.com", "Right-Pass-123")
+
+    def test_login_with_email_or_login(self):
+        url = reverse("users:login")
+        self.assertContains(self.client.get(url), "Login or email")
+        self.assertEqual(self.client.post(url, {"username": "LEO@example.com", "password": "Right-Pass-123"}).status_code, 302)
+        self.client.logout()
+        self.assertEqual(self.client.post(url, {"username": "Leonardo", "password": "Right-Pass-123"}).status_code, 302)
+        self.client.logout()
+        self.assertEqual(self.client.post(url, {"username": "leo@example.com", "password": "nope"}).status_code, 200)
+
+    def test_profile_and_signup_without_persona_or_last_name(self):
+        self.client.force_login(self.user)
+        page = self.client.get(reverse("users:profile"))
+        self.assertContains(page, "Login")
+        self.assertContains(page, "Date of birth")
+        for gone in ("Last name", "Persona name", "Persona description", "Username"):
+            self.assertNotContains(page, gone)
+        self.client.logout()
+        page = self.client.get(reverse("users:register"))
+        self.assertNotContains(page, "Persona")
+        self.assertNotContains(page, "Last name")
+
+
+class ForgotPasswordTests(TestCase):
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        self.user = get_user_model().objects.create_user("forgetful", "Forget@Example.com", "Old-Pass-123")
+
+    def ask(self, email, sent):
+        import os
+        from unittest import mock
+
+        def brevo(url, json=None, headers=None, timeout=None):
+            sent.append(json)
+            return mock.Mock(status_code=201, text="")
+        with mock.patch.dict(os.environ, {"BREVO_API_KEY": "k", "BREVO_SENDER_EMAIL": "app@example.com"}), \
+                mock.patch("users.verification.requests.post", side_effect=brevo):
+            return self.client.post(reverse("users:forgot"), {"email": email})
+
+    def test_reset_by_email_link(self):
+        import re
+        from django.core.cache import cache
+        self.assertContains(self.client.get(reverse("users:login")), reverse("users:forgot"))
+        sent = []
+        page = self.ask("forget@example.com", sent)  # any letter case
+        self.assertContains(page, "a link to set a new password is on its way")
+        self.assertEqual(sent[0]["to"][0]["email"].lower(), "forget@example.com")
+        link = re.search(r"http://testserver(/users/reset/[^\s\"<]+)", sent[0]["textContent"]).group(1)
+        # An unknown email gets the same page and no email
+        other = []
+        self.assertContains(self.ask("nobody@example.com", other), "a link to set a new password is on its way")
+        self.assertEqual(other, [])
+        # The link: a new password, the login lock lifted, and the link used up
+        cache.set("login-fail:user:forgetful", 99, 600)
+        self.assertContains(self.client.get(link), "Set a new password")
+        page = self.client.post(link, {"new_password1": "Brand-New-Pass-456", "new_password2": "Brand-New-Pass-456"})
+        self.assertContains(page, "Password changed")
+        self.assertIsNone(cache.get("login-fail:user:forgetful"))
+        self.assertTrue(self.client.login(username="forgetful", password="Brand-New-Pass-456"))
+        self.client.logout()
+        self.assertContains(self.client.get(link), "doesn")  # used once already
+        self.assertContains(self.client.get("/users/reset/xx/yy/"), "doesn")
+
+    def test_mismatched_passwords_and_no_email_setup(self):
+        import re
+        sent = []
+        self.ask("forget@example.com", sent)
+        link = re.search(r"http://testserver(/users/reset/[^\s\"<]+)", sent[0]["textContent"]).group(1)
+        page = self.client.post(link, {"new_password1": "Brand-New-Pass-456", "new_password2": "different-789X"})
+        self.assertNotContains(page, "Password changed")
+        self.assertTrue(get_user_model().objects.get(username="forgetful").check_password("Old-Pass-123"))
+        page = self.client.post(reverse("users:forgot"), {"email": "forget@example.com"})  # no Brevo variables
+        self.assertContains(page, "set up on this server")
+
+    def test_one_email_per_two_minutes(self):
+        sent = []
+        self.ask("forget@example.com", sent)
+        self.ask("forget@example.com", sent)
+        self.assertEqual(len(sent), 1)
+
+
 @override_settings(MEDIA_ROOT="/tmp/narrative-test-media-delete")
 class DeleteAccountTests(TestCase):
     def setUp(self):
@@ -6265,7 +6580,7 @@ class UsageTests(TestCase):
         from users.models import Activity, UsageRecord
         demo = get_user_model().objects.create_user("demo", "d@example.com", "pw12345!xyz")
         staff = get_user_model().objects.create_user("boss", "b@example.com", "pw12345!xyz", is_staff=True)
-        start = timezone.now() - timedelta(days=2)
+        start = (timezone.now() - timedelta(days=2)).replace(hour=9, minute=0)  # same day whatever the clock says
         for minutes in (0, 10, 25, 120, 130):  # two sessions: 25 minutes, then (95 min later) 10 minutes
             a = Activity.objects.create(user=self.user, kind="page", path="/")
             Activity.objects.filter(pk=a.pk).update(at=start + timedelta(minutes=minutes))

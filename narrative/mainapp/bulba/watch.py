@@ -55,6 +55,7 @@ LABELS = {
     "repeated_phrase": "The same phrase, word for word",
     "misremembered_past": "Getting past events wrong",
     "recounting": "Recounting and keeping score instead of talking",
+    "leaked_markup": "AI machinery in the reply (code, tool calls, instructions)",
 }
 CAUSES = ("model", "setup", "their_messages")
 # What each one looks like, in plain words (Bulba's notebook page)
@@ -72,6 +73,8 @@ ABOUT = {
     "repeated_phrase": "The same few words, word for word, across replies (checked for free, no AI).",
     "misremembered_past": "Getting earlier events, names or facts wrong.",
     "recounting": "Reciting old events as evidence, keeping score, or therapist-style insights.",
+    "leaked_markup": "note_milestone(...), <thinking>, [OOC: …], {{char}}: the model's machinery showing in the story. "
+                     "Noticed the first time (checked for free, no AI).",
 }
 
 
@@ -146,7 +149,7 @@ def _words(text):
     return len(str(text or "").split())
 
 
-def on_reply_done(user, chat_obj, messages, char_name="the character", now=None):
+def on_reply_done(user, chat_obj, messages, char_name="the character", now=None, leak=""):
     """After every reply: start the pace clock and run the free checks. Returns the notices they raised."""
     if not is_on(user):  # off means nothing is collected
         return []
@@ -155,7 +158,7 @@ def on_reply_done(user, chat_obj, messages, char_name="the character", now=None)
     data["pace"].update({"reply_at": now or time.time(), "reply_words": _words(reply)})
     raised = []
     if messages and messages[-1][0] == "assistant" and not data.get("off"):
-        free_checks(data, messages)
+        free_checks(data, messages, leak)
         mine = user_data(user)
         raised = habits(data, mine["muted"], char_name, mine["fix"])
     save_chat_data(chat_obj, data)
@@ -356,7 +359,31 @@ def due(user, chat_obj, messages):
 # Free checks (no AI), after every reply
 # ---------------------------------------------------------------------------
 
-FREE_LABELS = {"same_openings", "repeated_phrase"}
+FREE_LABELS = {"same_openings", "repeated_phrase", "leaked_markup"}
+IMMEDIATE = {"leaked_markup"}  # raised the first time, not once it's a habit
+# The model's machinery in a story: a written function call, thinking or chat-template tags, out-of-character
+# notes, unfilled macros, code fences, "As an AI"
+LEAK = re.compile(
+    r"\b[a-z]+_[a-z_]+\s*\(\s*(?:\w+\s*=|\{)"           # note_milestone(who=… / show_news({…
+    r"|</?(?:think|thinking|reasoning|scratchpad|tool_call|function_call|response)\b[^>]*>"
+    r"|<\|[a-z_]+\|>"
+    r"|\[\s*(?:OOC|ooc|Note to self|System|SYSTEM|Instruction|INSTRUCTION)\s*:"
+    r"|\(\s*(?:OOC|ooc)\s*:"
+    r"|\{\{\s*(?:char|user|random|getvar|setvar)[^}]*\}\}"
+    r"|^```"
+    r"|\bAs an AI\b|\bas a language model\b",
+    re.M)
+
+
+def leaked(text):
+    """The first bit of machinery in a reply (a short quote), or ""."""
+    m = LEAK.search(text or "")
+    if not m:
+        return ""
+    line_start = text.rfind("\n", 0, m.start()) + 1
+    line_end = text.find("\n", m.end())
+    line = text[line_start:line_end if line_end >= 0 else len(text)].strip()
+    return line[:160] + ("…" if len(line) > 160 else "")
 PHRASE_WORDS = 4
 STOP = set("a an the and or but of to in on at for with as by from into he she it they we you i his her its their "
            "our your my him them me us is was were be been are am had has have do did not no so that this then there "
@@ -391,7 +418,7 @@ def model_text(message):
     return str(rec["original"] if rec else message[2])
 
 
-def free_checks(data, messages):
+def free_checks(data, messages, extra_leak=""):
     """The same-openings and repeated-phrase checks on the newest reply; slips go into the log (and
     a phrase repeated across recent replies is logged at each of them)."""
     at = len(messages) - 1
@@ -402,6 +429,9 @@ def free_checks(data, messages):
     quote = same_openings(model_text(messages[at]))
     if quote:
         data["log"].append({"label": "same_openings", "quote": quote, "at": at, "cause": "model"})
+    leak = leaked(model_text(messages[at])) or (extra_leak or "")
+    if leak:
+        data["log"].append({"label": "leaked_markup", "quote": leak, "at": at, "cause": "model"})
     for phrase, where in repeated_phrases({i: model_text(messages[i]) for i in replies}, at):
         for i in where:
             if not any(e["label"] == "repeated_phrase" and e["at"] == i and e["quote"] == phrase for e in data["log"]):
@@ -678,11 +708,12 @@ def habits(data, muted, char_name="the character", fixing=()):
         if label in muted:
             continue
         window = (data.get("free_checked") or [] if label in FREE_LABELS else data["checked"])[-WINDOW:]
-        if len(window) < THRESHOLD:
+        need = 1 if label in IMMEDIATE else THRESHOLD
+        if len(window) < need:
             continue
         hits = [e for e in data["log"] if e["label"] == label and e["at"] in window]
         replies = {e["at"] for e in hits}
-        if len(replies) < THRESHOLD:
+        if len(replies) < need:
             continue
         # Once per habit for as long as the same replies show it
         if any(n["label"] == label and (n["status"] == "new" or n.get("at", -1) >= window[0]) for n in data["notices"]):
@@ -691,6 +722,9 @@ def habits(data, muted, char_name="the character", fixing=()):
         title = LABELS.get(label, label.replace("other: ", "").capitalize()).replace("{char}", char_name)
         persisting = label in fixing  # Bulba polishes it away, but the model keeps writing it
         text = f"{title}: in {len(replies)} of the last {len(window)} replies."
+        if label == "leaked_markup":
+            text = (f"{title}. Models sometimes write their own instructions or tool calls into the story. "
+                    "I can find what in your setup invites it and fix it, or tidy such bits out of new replies.")
         if persisting:
             text = (f"{title}: the model still writes it in {len(replies)} of the last {len(window)} replies; Bulba "
                     "has been fixing it each time. Fixing it at the source, in your preset, would stop it before "

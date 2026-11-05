@@ -69,7 +69,7 @@ if (location.hash === '#spritesSection') {
     if (sprites) { sprites.open = true; sprites.scrollIntoView({ block: 'start' }); }
 }
 
-// Nano Banana: make the missing mood pictures from the neutral one, one request per mood
+// Nano Banana: the neutral picture from the description, then the missing moods from it, one request each
 (function () {
     const box = document.getElementById('spriteMaker');
     if (!box) return;
@@ -77,47 +77,69 @@ if (location.hash === '#spritesSection') {
     // The image models OpenRouter offers right now (fetched once); the default is picked on the server
     fetch(box.dataset.models).then(r => r.json()).then(data => {
         const select = document.getElementById('spriteModel');
-        const label = m => m.name;
         (data.models || []).forEach(m => {
             const o = document.createElement('option');
-            o.value = m.id; o.textContent = label(m);
+            o.value = m.id; o.textContent = m.name;
             if (m.id === data.default) { o.selected = true; select.options[0].textContent = `Default (${m.name})`; }
             select.appendChild(o);
         });
     }).catch(() => { /* the default still works */ });
     const status = document.getElementById('spriteStatus');
     const cookie = name => (document.cookie.split(';').map(c => c.trim()).find(c => c.startsWith(name + '=')) || '').split('=')[1];
-    const hasPicture = field => !!document.querySelector(`[data-field-name="${field}"] .file-preview img`);
-    document.getElementById('makeSprites').onclick = async (e) => {
-        const btn = e.currentTarget;
-        const second = false;
-        if (!hasPicture('photo_neutral')) { status.textContent = 'Add and save a neutral picture first.'; return; }
+    const group = field => document.querySelector(`[data-field-name="${field}"]`);
+    const hasPicture = field => !!(group(field) && group(field).querySelector('.file-preview img'));
+    const unsaved = field => !!(group(field) && group(field).querySelector('input[type=file]')?.files.length);
+    // A second character: choose whose pictures to make
+    const mult = document.getElementById('id_is_mult'), forWrap = document.getElementById('spriteForWrap');
+    const showFor = () => { forWrap.hidden = !(mult && mult.checked); };
+    if (mult) { mult.addEventListener('change', showFor); showFor(); }
+    const prefix = () => (!forWrap.hidden && document.getElementById('spriteFor').value) ? 'photo_second' : 'photo';
+
+    async function make(mood) {
+        const resp = await fetch(box.dataset.url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': decodeURIComponent(cookie('csrftoken') || '') },
+            body: JSON.stringify({ emotion: mood, second: prefix() === 'photo_second',
+                                   model: document.getElementById('spriteModel').value || null }),
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || 'Something went wrong.');
+        const preview = group(data.field)?.querySelector('.file-preview');
+        if (preview) preview.innerHTML = `<img src="${data.url}?v=${Date.now()}" alt="${mood}">`;
+    }
+    const busy = on => ['makeNeutral', 'makeSprites'].forEach(id => { document.getElementById(id).disabled = on; });
+
+    document.getElementById('makeNeutral').onclick = async () => {
+        const field = `${prefix()}_neutral`;
+        if (unsaved(field)) { status.textContent = 'You picked a neutral picture: press Save to keep it (no need to make one).'; return; }
+        if (hasPicture(field) && !document.getElementById('remakeSprites').checked) {
+            status.textContent = 'There is a neutral picture already. Tick "also redo" to replace it.'; return;
+        }
+        busy(true);
+        status.textContent = 'Drawing the neutral picture from the description… (about 15 seconds)';
+        try {
+            await make('neutral');
+            status.textContent = "Done, and saved. Like it? Now make the moods from it (step 2).";
+        } catch (err) { status.textContent = `Couldn't make it: ${err.message}`; }
+        busy(false);
+    };
+
+    document.getElementById('makeSprites').onclick = async () => {
+        const p = prefix();
+        if (unsaved(`${p}_neutral`)) { status.textContent = 'Press Save first: the moods are made from the saved neutral picture.'; return; }
+        if (!hasPicture(`${p}_neutral`)) { status.textContent = 'Step 1 first: the moods are made from the neutral picture.'; return; }
         const redo = document.getElementById('remakeSprites').checked;
-        const todo = MOODS.filter(m => redo || !hasPicture(`photo_${m}`));
+        const todo = MOODS.filter(m => redo || !hasPicture(`${p}_${m}`));
         if (!todo.length) { status.textContent = 'Every mood already has a picture.'; return; }
-        btn.disabled = true;
+        busy(true);
         let made = 0;
         for (const mood of todo) {
             status.textContent = `Making “${mood}” (${made + 1} of ${todo.length})…`;
-            try {
-                const resp = await fetch(box.dataset.url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': decodeURIComponent(cookie('csrftoken') || '') },
-                    body: JSON.stringify({ emotion: mood, second, model: document.getElementById('spriteModel').value || null }),
-                });
-                const data = await resp.json();
-                if (!resp.ok) throw new Error(data.error || 'Something went wrong.');
-                const preview = document.querySelector(`[data-field-name="${data.field}"] .file-preview`);
-                if (preview) preview.innerHTML = `<img src="${data.url}?v=${Date.now()}" alt="${mood}">`;
-                made++;
-            } catch (err) {
-                status.textContent = `Stopped at “${mood}”: ${err.message}`;
-                btn.disabled = false;
-                return;
-            }
+            try { await make(mood); made++; }
+            catch (err) { status.textContent = `Stopped at “${mood}”: ${err.message}`; busy(false); return; }
         }
         status.textContent = `Done: ${made} new picture${made === 1 ? '' : 's'}. They're saved already.`;
-        btn.disabled = false;
+        busy(false);
     };
 })();
 

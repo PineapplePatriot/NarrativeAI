@@ -401,6 +401,8 @@
         } catch (e) { /* storage blocked: tours already show every time */ }
     }
 
+    // One pop-up at a time: cards that open by themselves wait while a tour, a Bulba note or another card is up
+    window.NAPopupBusy = () => !!(tour || document.querySelector('.watch-card:not([hidden]), .na-feedback-card, .na-explain'));
     window.NATour = { start, pick, end, reset: resetTours, seen: name => store.get('na-tour-' + name) === 'seen', lang: () => lang };
 
     // A page's own tour starts by itself the first time that page is opened

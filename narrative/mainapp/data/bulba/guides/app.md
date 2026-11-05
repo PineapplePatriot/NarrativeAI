@@ -27,11 +27,11 @@ profile, and **?** (a tour of the page, or "What's this?": click anything to hav
   writing habits and their chat model's known habits (each can be switched off), and their own dislikes (added in
   their words, Bulba words them); the habits polished away automatically; what it learned about their taste
   (reword or remove); and what the whole account has spent since sign-up.
-- **🥔 Bulba**: the setup assistant. **Full setup** (about twenty minutes): asks how you like stories, shows samples
+- **🥔 Bulba**: the setup assistant. The 📎 by its message box takes a picture: just to show Bulba (a screenshot, character art, a place or moodboard; a vision model describes it for Bulba), or as the character's picture, a mood or a background. **Full setup** (about twenty minutes): asks how you like stories, shows samples
   written by your own model, builds the preset, your persona and a character. **Fast route** (two minutes): the
   tested ready setup for your model, then only who you are and who you talk to. Every change is a proposal with
   Apply and Undo.
-- **Guide**: a written tour of everything. **Profile**: photo, persona (who you are in stories), password.
+- **Guide**: a written tour of everything. **Profile**: photo, first name, date of birth, login, email, password, and Delete account. The persona (who they are in stories) isn't there: Bulba makes it (setup, or in a chat), and each chat can use another one from the pen menu.
 
 **The chat page**
 - Messages: hover or tap one for edit, 🗜 condense (the AI gets a short version, you still see all of it), 🧹
@@ -41,7 +41,8 @@ profile, and **?** (a tour of the page, or "What's this?": click anything to hav
   Bulba Watch noticed something), BG (background), Music (▶ plays it), Edit (the character).
 - Tracker strip above the messages: where and when the scene is, the weather, relationships. ↻ updates, ▤ opens
   the panel. Story systems (slow meters like Trust, a story clock, events) show at the top of that panel.
-- Message box: Enter sends. 🥔 = three ideas when stuck. The pencil-square = Write my message (the AI writes your
+- Pen menu → ⚙ This chat → 🔞 Mature content (18+, all chats): switches the active preset's mature-content rule on, with a reminder before each reply so the model doesn't refuse (asks them to confirm they're 18+; a date of birth under 18 on the profile blocks it).
+- Message box: Enter starts a new paragraph; the send button sends (Ctrl+Enter on a computer). 🥔 = three ideas when stuck. The pencil-square = Write my message (the AI writes your
   next message in your voice; nothing is sent until you press send). 🎤 = speak your message.
 - The pen ✎ menu: Director's note (steers the next reply; Word it for me, Be creative), Redo the last reply,
   Pinned note (kept in mind for the whole chat), Story memory (summary, trackers, lore used, What the AI saw),

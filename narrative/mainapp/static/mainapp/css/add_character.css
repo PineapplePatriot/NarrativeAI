@@ -257,3 +257,5 @@ body { margin: 0; }
 .voice-cast { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
 .cast-title { margin-top: 16px; }
 @media (max-width: 600px) { .cast-row { flex-wrap: wrap; } .cast-row input { flex-basis: 100%; } }
+.sprite-steps { margin: 0 0 6px; padding-left: 20px; display: grid; gap: 10px; font-size: .9rem; line-height: 1.5; }
+.sprite-steps button { display: block; margin-top: 6px; }

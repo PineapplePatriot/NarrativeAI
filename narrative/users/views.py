@@ -36,6 +36,43 @@ class LoginUser(LoginView):
     extra_context = {"title": "Log in"}
 
 
+def forgot_password(request):
+    """Their email -> a link to set a new password (users/password_reset.py)."""
+    from users import password_reset, verification
+    sent, error, email = False, "", ""
+    if request.method == "POST":
+        email = str(request.POST.get("email") or "").strip()[:254]
+        if not verification.enabled():
+            error = "Password reset by email isn't set up on this server. Ask the people running this test."
+        elif "@" not in email:
+            error = "Type the email you signed up with."
+        else:
+            error = password_reset.request_reset(request, email) or ""
+            sent = not error
+    return render(request, "users/forgot.html", {"sent": sent, "error": error, "email": email,
+                                                 "hours": password_reset.LINK_HOURS})
+
+
+def reset_password(request, uidb64, token):
+    """The link from the email: set a new password, then log in with it."""
+    from django.contrib.auth.forms import SetPasswordForm
+    from users import password_reset
+    user = password_reset.user_for(uidb64, token)
+    if user is None:
+        return render(request, "users/reset.html", {"bad_link": True})
+    form = SetPasswordForm(user, request.POST or None)
+    for f in form.fields.values():
+        f.widget.attrs["class"] = "form-input"
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        if hasattr(user, "email_verified") and not user.email_verified:  # the link proves the email is theirs
+            user.email_verified = True
+            user.save(update_fields=["email_verified"])
+        password_reset.unlock(user)
+        return render(request, "users/reset.html", {"done": True, "username": user.username})
+    return render(request, "users/reset.html", {"form": form, "username": user.username})
+
+
 class RegisterUser(CreateView):
     form_class = RegisterUserForm
     template_name = 'users/register.html'

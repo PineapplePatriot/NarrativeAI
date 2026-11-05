@@ -225,3 +225,13 @@ body.embed .mini-progress { top: 0; }
 .extras-form .cost:empty { display: none; }
 
 .basics-form .form-help { flex-basis: 100%; margin: 6px 0 0; font-size: .82rem; line-height: 1.5; color: var(--text-secondary, #94a3b8); }
+.picture-form input[type=text] { flex: 1 1 220px; min-width: 0; background: var(--surface, #1e2130); color: inherit;
+    border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; }
+.picture-bubble img { display: block; max-width: 220px; max-height: 220px; border-radius: 8px; }
+.picture-bubble div { margin-top: 6px; }
+@media (max-width: 860px) {
+    .picture-form { position: sticky; bottom: 70px; background: var(--bg); z-index: 6; }
+    .picture-form select { flex: 1 1 100%; }
+}
+.quick-switch { display: block; margin-top: 10px; font-size: .88rem; }
+body.embed .mini-progress { display: none !important; }  /* beside the Quick setup form: no step counter */

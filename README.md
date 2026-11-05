@@ -2,8 +2,29 @@
 
 NarrativeAI is a web app for creative writing and roleplay with AI characters, set up like a visual novel: character sprites that change with emotion, backgrounds, music and optional voiced replies. You bring your own AI key (OpenRouter or any OpenAI-compatible server, including local models), and the app takes care of the prompting, memory and story bookkeeping around the chat.
 
+![A chat with Il Dottore: the story, his sprite over the lab background, and the Relationships tracker open](docs/screenshots/chat.webp)
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/bulba.webp" alt="Bulba, the setup potato, offering a full or a fast setup"><br><b>Bulba</b> sets everything up with you, then fixes what bugs you in a chat.</td>
+    <td width="50%"><img src="docs/screenshots/notebook.webp" alt="Bulba's notebook: spending and the AI writing habits Bulba Watch looks for"><br><b>Bulba's notebook</b>: the writing habits it watches for, your taste, your spending.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/trackers-setup.webp" alt="The Trackers page with Scene trackers switched on"><br><b>Story trackers</b>: the app keeps the story's state for the AI.</td>
+    <td><img src="docs/screenshots/presets.webp" alt="The Presets page with a starter preset and its request map"><br><b>Presets</b>: tested starters per model, and every block editable.</td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center"><img src="docs/screenshots/tour.webp" alt="The guided tour in Ukrainian, highlighting the Characters link" width="70%"><br><b>Guided tours</b> on every page, in English and Ukrainian.</td>
+  </tr>
+</table>
+
+<sub>Screenshots from a local copy with a short sample scene. The demo character's sprites are fan art shipped with the demo.</sub>
+
 ## Features
 
+- **Bulba**: a talking potato that sets the app up with you. The full setup (about twenty minutes) asks how you like stories, shows A/B samples written by your own model and builds the preset, your persona and a character; the fast route takes a tested setup for your model. In a chat, Bulba finds why replies go wrong (the preset, the card, the model's habits) and proposes one fix at a time, which you can edit, try on the last reply, apply and undo.
+- **Bulba Watch and the notebook**: every few replies Bulba quietly reads the latest ones for AI writing habits that keep coming back, and can rewrite them out of new replies. Bulba's notebook shows what it watches for (common habits, your model's known ones, your own), what it learned about your taste, and what your account has spent.
+- **Guided tours**: a spotlight tour on every page, a "What's this?" mode where Bulba explains anything you click, in English and Ukrainian.
 - **Characters**: description, scenario, first message, creator notes, and a set of emotion sprites (neutral, happy, sad, angry...). The sprite changes to match each reply. There's an optional second character and per-character ElevenLabs voices.
 - **Chat**: regenerate, continue, edit messages, a Director's Note to steer the next reply, magic-expand and spellcheck for your own messages, chat backgrounds and music.
 - **Story summary**: condenses older events so long chats stay coherent. It runs when you press a button, or automatically every N messages.
@@ -13,7 +34,7 @@ NarrativeAI is a web app for creative writing and roleplay with AI characters, s
   - You: Stats, Conditions, Inventory, Reputation, Achievements
   - Custom: your own fields
 
-  Values show as pills above the chat and in a side panel. You can edit them, and lock them so the AI can't change them.
+  The scene shows above the chat, and every tracker opens from an icon rail beside it, with animated meters. You can edit values, lock them so the AI can't change them, and switch a tracker off from the chat.
 - **Worldbooks (lorebooks)**: SillyTavern-style entries that are added to the prompt when their keywords come up. Entries can have secondary keywords, always-on entries and priorities, and there's a "test a message" panel that shows what fires and why. You can import and export SillyTavern lorebooks and lorebooks embedded in character cards.
 - **Connections**: several AI connections (keys and models). Each feature can use its own connection or model, for example an expensive model for the story and a cheap one for summaries and trackers.
 - **Presets**: the recipe for every request, built from prompt blocks you can switch on and off, edit, reorder and group. Blocks can sit at a fixed spot or inside the chat at a chosen depth. Macros like `{{char}}`, `{{random}}` and `{{setvar}}`/`{{getvar}}` are supported. SillyTavern presets import and export as they are, and a preview shows exactly what will be sent. One preset is active for all chats.

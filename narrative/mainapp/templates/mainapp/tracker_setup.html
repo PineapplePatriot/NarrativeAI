@@ -16,8 +16,10 @@
   <a class="na-back" href="{% url 'chat' character.slug %}">← Chat with {{ character.name }}</a>
   <h1 class="na-title">Trackers for {{ character.name }}</h1>
   <p class="subtitle na-sub">
-    Trackers keep a running record of the story (where you are, who's around, how they feel, your stats...)
-    using a separate, cheap AI call after replies. Turn on the ones that suit your story.
+    In a long, plot-heavy story the AI starts forgetting details: where you are, who's hurt, what you carry,
+    what was promised. Trackers keep a running record of the story (where you are, who's around, how they feel,
+    your stats...) and remind the AI of it before every reply, so the story stays consistent. A separate, cheap
+    AI call fills them in after replies. Turn on the ones that suit your story.
     How often they run and which model they use is set on the
     <a href="{% url 'users:api_config' %}">Connections page</a> under “Story trackers”.
   </p>

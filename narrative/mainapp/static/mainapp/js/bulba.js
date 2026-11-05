@@ -182,7 +182,7 @@ function extrasForm(ev, live) {
             + row('Voices', ev.has_voice_key ? '<span class="help">On: your ElevenLabs key is saved.</span>'
                 : '<a class="choice" href="/users/extras/" target="_blank" rel="noopener">Add an ElevenLabs key ↗</a> <span class="help">optional; never paste keys in this chat</span>')
             + row('Story summary', radio('summary', [['auto', 'Automatic'], ['manual', 'Only when I ask']], (v.summary || {}).mode) + every('summary', v.summary) + cost('summary'), 'keeps long chats on track')
-            + row('Story trackers', radio('trackers', [['auto', 'Automatic'], ['manual', 'Only when I ask']], (v.trackers || {}).mode) + every('trackers', v.trackers) + cost('trackers'), 'where, when, who, how they feel')
+            + row('Story trackers', radio('trackers', [['auto', 'Automatic'], ['manual', 'Only when I ask']], (v.trackers || {}).mode) + every('trackers', v.trackers) + cost('trackers'), 'keeps long, plot-heavy stories consistent: where, when, who, how they feel, what you carry')
             + row('Character pictures', check('sprites', 'Change with the mood', v.sprites), 'one small call per reply')
             + row('Bulba Watch', check('watch', 'On', v.watch), 'reads replies now and then for habits that repeat')
             + row('Fixing habits', radio('fix_model', [['bulba', "Bulba's model (cheaper)"], ['chat', 'My chat model (closer to its voice)']], v.fix_model || 'bulba'),
@@ -262,6 +262,8 @@ function render() {
                     ${choices ? `<div class="choices">${choices}</div>` : ''}</div></div>`;
         }
         if (ev.type === 'user') return `<div class="msg user"><div class="bubble">${esc(ev.text)}</div></div>`;
+        if (ev.type === 'picture') return `<div class="msg user"><div class="bubble picture-bubble">
+                <img src="${esc(ev.src)}" alt="Your picture">${ev.text ? `<div>${esc(ev.text)}</div>` : ''}</div></div>`;
         if (ev.type === 'action') return `<div class="action">${esc(ev.text)}</div>`;
         if (ev.type === 'note') return `<div class="note">✓ ${esc(ev.text)}</div>`;
         if (ev.type === 'watch') return '';  // sent to the chat page (Bulba switched Watch)
@@ -431,6 +433,10 @@ $('input').addEventListener('keydown', e => {
 
 $('log').addEventListener('click', e => {
     const routeBtn = e.target.closest('[data-route]');
+    if (routeBtn && !routeBtn.disabled && !busy && routeBtn.dataset.route === 'fast') {
+        window.top.location.href = QUICK_URL;  // the quick way is a short form of its own
+        return;
+    }
     if (routeBtn && !routeBtn.disabled && !busy) {
         run({ action: 'route', route: routeBtn.dataset.route }, routeBtn.dataset.route.startsWith('fast:') ? 'Setting it up…' : 'One moment…');
         return;
@@ -559,7 +565,7 @@ document.addEventListener('click', (e) => {
     });
 })();
 
-// Pictures: the character's (neutral or a mood) or a background, applied at once (Undo on the card)
+// Pictures: just to show Bulba, or the character's (neutral or a mood) or a background, applied at once (Undo on the card)
 (function () {
     const form = $('pictureForm');
     if (!form) return;
@@ -572,9 +578,11 @@ document.addEventListener('click', (e) => {
         const body = new FormData();
         body.append('picture', file);
         body.append('as', $('pictureAs').value);
+        body.append('text', $('pictureText').value.trim());
+        const looking = $('pictureAs').value === 'look';
         form.hidden = true;
-        $('pictureFile').value = '';
-        run(body, 'Adding the picture…');
+        $('pictureFile').value = ''; $('pictureText').value = '';
+        run(body, looking ? 'Bulba is looking at the picture…' : 'Adding the picture…');
     });
 })();
 
@@ -647,3 +655,8 @@ if ($('skipBtn')) {
     $('skipBtn').addEventListener('click', skip);
     $('miniSkip').addEventListener('click', skip);
 }
+
+// Beside the Quick setup form: the ✕ closes the panel (the form reloads to show what Bulba applied)
+document.querySelector('[data-embed-close]')?.addEventListener('click', () => {
+    window.parent.postMessage({ quickBulba: 'close' }, window.location.origin);
+});

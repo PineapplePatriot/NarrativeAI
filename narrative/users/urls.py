@@ -12,6 +12,8 @@ urlpatterns = [
     path('password-change/done/', PasswordChangeDoneView.as_view(template_name="users/password_change_done.html"), name="password_change_done"),
 
     path('register/', views.RegisterUser.as_view(), name='register'),
+    path("forgot/", views.forgot_password, name="forgot"),
+    path("reset/<str:uidb64>/<str:token>/", views.reset_password, name="reset"),
     path('profile/', views.ProfileUser.as_view(), name='profile'),
     path("api-config/", views.connections, name="api_config"),
     path("api-config/test/", views.connections_test, name="connections_test"),

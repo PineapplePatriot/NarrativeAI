@@ -380,3 +380,108 @@ def describe(op):
     if op.get("type") == "notice":
         return f"ℹ️ {op['text']}"
     return ""
+
+
+# ---------------------------------------------------------------------------
+# Tool calls written into the text (some models, MiMo often, write `note_milestone(who="...", ...)` as prose
+# instead of calling the tool): the story extra is made from it and the code leaves the reply
+# ---------------------------------------------------------------------------
+
+def _call_names():
+    from mainapp import extras
+    return sorted(set(TOOLS) | set(extras.TOOL_KIND) | {"draw_from_table"}, key=len, reverse=True)
+
+
+def _closing(text, start):
+    """Index just past the parenthesis that closes the one at text[start], skipping quoted text; -1 if none."""
+    depth, quote, i = 0, None, start
+    while i < len(text):
+        c = text[i]
+        if quote:
+            if c == "\\":
+                i += 1
+            elif c == quote:
+                quote = None
+        elif c in "\"'":
+            quote = c
+        elif c in "([{":
+            depth += 1
+        elif c in ")]}":
+            depth -= 1
+            if depth == 0:
+                return i + 1
+        i += 1
+    return -1
+
+
+def _arguments(inner):
+    """The arguments of a written call: name="value" keywords, or one JSON object. None if it isn't a call."""
+    import ast
+    inner = inner.strip()
+    if not inner:
+        return {}
+    if inner.startswith("{"):
+        try:
+            value = json.loads(inner)
+            return value if isinstance(value, dict) else None
+        except ValueError:
+            pass
+    try:
+        node = ast.parse(f"f({inner})", mode="eval").body
+    except SyntaxError:
+        return None
+    if node.args:
+        return None
+    out = {}
+    for kw in node.keywords:
+        if kw.arg is None:
+            return None
+        try:
+            out[kw.arg] = ast.literal_eval(kw.value)
+        except (ValueError, SyntaxError):
+            # JSON's true/false/null inside a keyword call
+            src = ast.get_source_segment(f"f({inner})", kw.value) or ""
+            try:
+                out[kw.arg] = json.loads(src)
+            except ValueError:
+                out[kw.arg] = src.strip("\"'")
+    return out
+
+
+def salvage_calls(text, state=None, first_n=1):
+    """(text without the written calls, ops made from them). Story extras become real ones (with their marker
+    where the call was); dice, inventory and table calls just leave the text: their result can't be known now."""
+    from mainapp import extras
+    names = _call_names()
+    pattern = re.compile(r"`{0,3}\b(" + "|".join(re.escape(n) for n in names) + r")\s*\(")
+    ops, out, pos, n = [], [], 0, first_n
+    for m in pattern.finditer(text):
+        if m.start() < pos:
+            continue
+        open_at = m.end() - 1
+        end = _closing(text, open_at)
+        if end < 0:
+            continue
+        args = _arguments(text[open_at + 1:end - 1])
+        if args is None:
+            continue
+        while end < len(text) and text[end] in "`;":
+            end += 1
+        out.append(text[pos:m.start()])
+        name = m.group(1)
+        if name in extras.TOOL_KIND:
+            _, made = extras.run_tool(name, args)
+            for op in made:
+                if op.get("type") not in extras.UNPLACED:
+                    op["n"] = n
+                    out.append(f"\n\n{extras.marker(n)}\n\n")
+                    n += 1
+                ops.append(op)
+        pos = end
+    if not ops and pos == 0:
+        return text, []
+    out.append(text[pos:])
+    cleaned = re.sub(r"[ \t]{2,}", " ", "".join(out))
+    cleaned = re.sub(r"[ \t]*\n[ \t]*", "\n", cleaned)
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned).strip()
+    return cleaned, ops

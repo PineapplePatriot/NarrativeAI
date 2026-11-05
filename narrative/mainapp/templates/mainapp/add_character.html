@@ -73,15 +73,22 @@
         </details>
 
         {# Sprites: folded away until you want them #}
-        <details class="form-section" id="spritesSection">
+        <details class="form-section" id="spritesSection" {% if object and not object.photo_neutral %}open{% endif %}>
             <summary><span>🖼️ Sprites</span> <small id="spriteCount"></small></summary>
             <p class="section-help">A picture for each emotion. The chat shows the one that matches the reply; neutral is used when one is missing.</p>
             {% if object %}
             <div class="sprite-maker" id="spriteMaker" data-url="{% url 'character_sprite' object.slug %}" data-models="{% url 'image_models' %}">
-                <button type="button" class="btn-secondary" id="makeSprites">✨ Make the missing moods with Nano Banana</button>
+                <ol class="sprite-steps">
+                    <li><b>The neutral picture.</b> Upload one below (<i>Neutral emotion</i>) and press <b>Save</b>, or
+                        have one drawn from the description:
+                        <button type="button" class="btn-secondary" id="makeNeutral">✨ Make the neutral picture from the description</button></li>
+                    <li><b>The moods.</b> Every other mood is made from the neutral picture, so it's the same person:
+                        <button type="button" class="btn-secondary" id="makeSprites">✨ Make the missing moods with Nano Banana</button></li>
+                </ol>
+                <label class="small-check" id="spriteForWrap" hidden>For <select id="spriteFor"><option value="">{{ object.name }}</option><option value="1">The second character</option></select></label>
                 <label class="small-check">Image model <select id="spriteModel"><option value="">Default (Nano Banana 2)</option></select></label>
-                <label class="small-check"><input type="checkbox" id="remakeSprites"> also redo moods that already have a picture</label>
-                <p class="section-help">Made from the neutral picture, one at a time, through your OpenRouter key: a few cents per picture, counted in your monthly spending. Save any new neutral picture first.</p>
+                <label class="small-check"><input type="checkbox" id="remakeSprites"> also redo pictures that already exist</label>
+                <p class="section-help">Through your OpenRouter key: a few cents per picture, counted in your monthly spending.</p>
                 <p class="section-help" id="spriteStatus" aria-live="polite"></p>
             </div>
             {% endif %}

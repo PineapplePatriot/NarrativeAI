@@ -30,6 +30,7 @@ from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
 from . import extras, game, media_library, recall, story, thinking, ai_client, cards, chats, regex_rules, model_profiles, presets, samplers, starters, trackers
 from .bulba import control, polish, watch
+from mainapp import mature
 
 from .utils import build_ai_request, get_elevenlabs_key
 from .lorebook import (
@@ -600,6 +601,16 @@ def chat(request, slug):
             except ValueError as e:
                 return JsonResponse({"success": False, "error": str(e)}, status=400)
             return JsonResponse({"success": True, "watch": watch.page_state(request.user, chat_obj)})
+        elif action == "mature":  # the pen menu's 18+ switch: edits the active preset directly (no AI)
+            error = mature.switch(request.user, bool(data.get("on")), bool(data.get("adult")))
+            if error:
+                return JsonResponse({"success": False, "error": error})
+            return JsonResponse({"success": True, "on": bool(data.get("on"))})
+        elif action == "persona_hint_seen":  # "Who are you in the story?" is asked once per account
+            settings_obj, _ = ChatSettings.objects.get_or_create(author=request.user)
+            settings_obj.appearance = {**(settings_obj.appearance or {}), "persona_hint_seen": True}
+            settings_obj.save(update_fields=["appearance"])
+            return JsonResponse({"success": True})
         elif action == "watch_settings":  # the first-time note's buttons, and "off in this chat"
             if "keep_on" in data:
                 watch.intro_seen(request.user, bool(data["keep_on"]))
@@ -1098,6 +1109,12 @@ def chat(request, slug):
                     """Emotion, saving, voice and the summary/tracker flags, once the reply is complete."""
                     reply = text_rules("saved", reply, "assistant")
                     reasoning = text_rules("saved", reasoning, "reasoning").strip() if reasoning else ""
+                    # A tool call the model wrote as text (note_milestone(...)): the extra, not the code
+                    first_n = max([o.get("n") or 0 for o in ops if extras.is_extra(o)] + [0]) + 1
+                    raw_reply = reply
+                    reply, written_calls = game.salvage_calls(reply, first_n=first_n)
+                    written_leak = watch.leaked(raw_reply) if reply != raw_reply else ""  # tidied, but Watch notes it
+                    ops = list(ops) + [game.GameEvent(o) for o in written_calls]
                     reply = extras.place(reply, ops)  # each story extra's marker, where it goes in the text
                     char_count = 1
                     emotion_char_1 = "neutral"
@@ -1160,7 +1177,8 @@ def chat(request, slug):
                                     if (character.is_mult or char_count >= 2) else None)
 
                     save_messages(messages)
-                    watch.on_reply_done(request.user, chat_obj, messages, character.name)  # free checks, pace clock
+                    watch.on_reply_done(request.user, chat_obj, messages, character.name,  # free checks, pace clock
+                                        leak=written_leak)
 
                     # Automatic summary: tell the page to run one in the background
                     summary_task = ai_client.get_task_setting(request.user, "summary")
@@ -1332,6 +1350,8 @@ def chat(request, slug):
         "bulba_ideas": extras.ideas_on(request.user),
         "bulba_url": reverse("bulba_chat", kwargs={"chat_id": chat_obj.id}),
         "watch_data": watch.page_state(request.user, chat_obj),
+        "persona_hint": _persona_hint(request.user, chat_state["persona"]),
+        "mature_on": mature.is_on(presets.normalize(presets.get_active(request.user).data)),
         "display_rules": {
             "rules": [r for r in regex_rules.for_chat(presets.normalize(presets.get_active(request.user).data), character, request.user)
                       if r["enabled"] and r["mode"] == "display"],
@@ -1564,6 +1584,14 @@ def word_note(user, character, messages, wish, rewrite=False, persona=None):
     if not text:
         raise ai_client.AIError("Bulba couldn't word it this time. Try again.")
     return text
+
+
+def _persona_hint(user, chat_persona):
+    """True once: they have no persona (none on the account, none in this chat) and haven't been asked yet."""
+    if getattr(user, "persona_name", "") or (chat_persona or {}).get("name"):
+        return False
+    obj = ChatSettings.objects.filter(author=user).first()
+    return not (obj and (obj.appearance or {}).get("persona_hint_seen"))
 
 
 def prompt_names(user, character, chat_persona=None):
@@ -2031,6 +2059,11 @@ class AddCharacter(CharacterBaseView, CreateView):
     title_page = "Add Character"
     success_url = reverse_lazy('characters_list')
 
+    def get_success_url(self):
+        if self.request.GET.get("next") == "quick":  # made from the Quick setup page: back there, with it picked
+            return reverse("quick_setup") + f"?character={self.object.slug}"
+        return super().get_success_url()
+
 
     def form_valid(self, form):
         a = form.save(commit=False)
@@ -2121,18 +2154,31 @@ def character_sprite(request, slug):
         return JsonResponse({"error": "Invalid request."}, status=400)
     emotion = data.get("emotion")
     prefix = "photo_second" if data.get("second") else "photo"
-    if emotion not in SPRITE_EMOTIONS:
+    if emotion not in SPRITE_EMOTIONS + ["neutral"]:
         return JsonResponse({"error": "Unknown mood."}, status=400)
     neutral = getattr(character, f"{prefix}_neutral")
-    if not neutral:
-        return JsonResponse({"error": "Add a neutral picture first; the others are made from it."}, status=400)
-    with neutral.open("rb") as f:
-        reference = f.read()
-    kind = "image/png" if reference.startswith(b"\x89PNG") else "image/webp" if reference[:4] == b"RIFF" else "image/jpeg"
     who = character.name if prefix == "photo" else f"the second character of {character.name}"
-    prompt = (f"This is {who}. Make a new picture of exactly the same character: same face, hair, body, outfit, "
-              f"art style, framing, lighting and background. Only the expression and body language change: show "
-              f"them {emotion}. No text, no borders, no extra people.")
+    reference, kind = None, "image/png"
+    if emotion == "neutral":  # the first picture, from the card's words (no picture to start from)
+        looks = "\n".join(t for t in (str(character.description or "")[:2500], str(character.personality or "")[:600],
+                                      str(data.get("hint") or "")[:600]) if t.strip())
+        if not looks.strip():
+            return JsonResponse({"error": "Write the character's description first (how they look helps most), "
+                                          "or upload a picture."}, status=400)
+        prompt = (f"A character portrait of {who}, for a visual-novel style chat: one person, waist up, facing the "
+                  f"viewer, a calm neutral expression, a simple background that suits them. Draw them as this "
+                  f"description says (appearance first; leave out anything that isn't visible):\n{looks}\n"
+                  "Illustrated, consistent and clean. No text, no borders, no extra people.")
+    else:
+        if not neutral:
+            return JsonResponse({"error": "Add a neutral picture first (upload one, or make it from the description "
+                                          "with the button above); the moods are made from it."}, status=400)
+        with neutral.open("rb") as f:
+            reference = f.read()
+        kind = "image/png" if reference.startswith(b"\x89PNG") else "image/webp" if reference[:4] == b"RIFF" else "image/jpeg"
+        prompt = (f"This is {who}. Make a new picture of exactly the same character: same face, hair, body, outfit, "
+                  f"art style, framing, lighting and background. Only the expression and body language change: show "
+                  f"them {emotion}. No text, no borders, no extra people.")
     model = data.get("model") or None
     if model:
         known = [m["id"] for m in ai_client.image_models()]
@@ -2183,8 +2229,12 @@ def character_import(request):
     if character.system_prompt or character.post_history_instructions:
         notes.append("The card has its own instructions; they take the place of your preset's main prompt "
                      "(see Advanced on the character's page).")
+    edit_url = reverse("character", kwargs={"slug": character.slug})
+    if not character.photo_neutral:  # a .json card, or a card without art: straight to where pictures go
+        notes.append("It came without a picture: add one in the Sprites section, or make it from the description.")
     return JsonResponse({"status": "ok", "name": character.name, "notes": notes,
-                         "url": reverse("chat", kwargs={"slug": character.slug}),
+                         "url": (reverse("chat", kwargs={"slug": character.slug}) if character.photo_neutral
+                                 else edit_url + "#spritesSection"),
                          "edit_url": reverse("character", kwargs={"slug": character.slug})})
 
 
@@ -2368,12 +2418,15 @@ def _bulba_for_request(request, restart=False):
 
 
 @login_required
+@xframe_options_sameorigin  # shown beside the Quick setup form (?embed=1); only this site may frame it
 def bulba_page(request):
     if not ai_client.has_connection(request.user):
         return redirect("users:welcome")
-    session = _bulba_session(request.user)
     route = request.GET.get("route")
-    if session and route in ("full", "fast") and len(session.events) == 1:  # picked on the welcome tour's last step
+    if route == "fast":  # the quick way is its own page now (Bulba can still be asked from every part of it)
+        return redirect("quick_setup")
+    session = _bulba_session(request.user)
+    if session and route == "full" and len(session.events) == 1:  # picked on the welcome tour's last step
         from .bulba import agent
         try:
             agent.take_route(session, route)
@@ -2390,6 +2443,52 @@ def bulba_page(request):
         "bulba_data": {"state": _bulba_state(session), "events": session.events} if session else None,
         "known_models": model_profiles.known_names(),
         "in_chats": in_chats,
+        "embed": request.GET.get("embed") == "1",  # beside the Quick setup form
+    })
+
+
+@login_required
+def quick_setup(request):
+    """The quick way in: a short form (writing style, chat memory, who you are, your character, and the extras
+    and worldbooks under Additional). Every part explains itself and can be handed to Bulba instead."""
+    from users.views import _extras_page_state, set_chat_context
+    if not ai_client.has_connection(request.user):
+        return redirect("users:welcome")
+    _, chat_model = ai_client.resolve(request.user, "chat")
+    profile = model_profiles.for_model(chat_model) or {}
+    ready = starters.ready_for(profile.get("id", "")) if profile else []
+    active = presets.get_active(request.user)
+    active_starter = (presets.normalize(active.data)["extras"].get("starter") or {}).get("id", "")
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body.decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            return JsonResponse({"error": "Invalid request."}, status=400)
+        user = request.user
+        if data.get("starter") and data["starter"] != active_starter:
+            if data["starter"] not in [r["id"] for r in ready]:
+                return JsonResponse({"error": "Pick one of the writing styles shown."}, status=400)
+            starters.apply_ready(user, data["starter"])
+        try:
+            context = int(data.get("chat_context") or 0)
+        except (TypeError, ValueError):
+            context = 0
+        if context:
+            set_chat_context(user, max(4096, min(2_000_000, context)))
+        if "persona_name" in data:
+            user.persona_name = str(data.get("persona_name") or "").strip()[:100]
+            user.persona_description = str(data.get("persona_description") or "").strip()[:8000]
+            user.save(update_fields=["persona_name", "persona_description"])
+        character = Character.objects.filter(author=user, slug=str(data.get("character") or "")).first()
+        url = reverse("chat", kwargs={"slug": character.slug}) if character else None
+        return JsonResponse({"status": "ok", "url": url})
+    state = _extras_page_state(request.user)
+    characters = list(Character.objects.filter(author=request.user).order_by("-time_update")[:12])
+    picked = request.GET.get("character") or (characters[0].slug if characters else "")
+    return render(request, "mainapp/quick.html", {
+        "model_name": profile.get("name") or chat_model, "ready": ready, "active_starter": active_starter,
+        "active_name": active.name, "characters": characters, "picked": picked,
+        "quick_data": {"window": state.get("window"), "prices": state.get("prices")},
     })
 
 
@@ -2618,25 +2717,50 @@ def bulba_api(request):
 
 
 def _bulba_picture_upload(request):
+    """A picture for Bulba: just to look at ("look": a screenshot, character art, a place, a moodboard), or to
+    use as the character's picture, a mood or a background (Bulba looks at the main picture and backgrounds too)."""
     from django.core.files.base import ContentFile
-    from PIL import Image, UnidentifiedImageError
-    from .bulba import agent, lore
+    from .bulba import agent, lore, vision
     session = _bulba_for_request(request, restart=False)
     if session is None:
         return JsonResponse({"error": "Bulba isn't available."}, status=400)
-    character = lore.target_character(session)
-    if character is None:
-        return JsonResponse({"error": "Make or pick a character first, then add their pictures."}, status=400)
-    upload, target = request.FILES["picture"], request.POST.get("as", "neutral")
-    if target not in SPRITE_EMOTIONS + ["neutral", "background"]:
+    upload, target = request.FILES["picture"], request.POST.get("as", "look")
+    their_words = str(request.POST.get("text") or "").strip()[:2000]
+    if target not in SPRITE_EMOTIONS + ["neutral", "background", "look"]:
         return JsonResponse({"error": "Unknown kind of picture."}, status=400)
     if upload.size > 15 * 1024 * 1024:
         return JsonResponse({"error": "That picture is over 15 MB."}, status=400)
     raw = upload.read()
     try:
-        Image.open(io.BytesIO(raw)).verify()
-    except (UnidentifiedImageError, OSError, SyntaxError):
-        return JsonResponse({"error": "That file isn't a picture."}, status=400)
+        data_url, thumb = vision.prepare(raw)
+    except ValueError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+    character = lore.target_character(session)
+    if target != "look" and character is None:
+        return JsonResponse({"error": "Make or pick a character first, then add their pictures. (To just show "
+                                      "Bulba a picture, pick \"Just show Bulba\".)"}, status=400)
+    events = [{"type": "picture", "src": thumb, "text": their_words}]
+    seen = ""
+    if target in ("look", "neutral", "background"):
+        agent.set_activity(session, "Looking at the picture…")
+        try:
+            seen, who = vision.describe(request.user, data_url, their_words)
+            seen = f"What the picture shows (described by {who}, since you can't see it yourself):\n{seen}"
+        except ai_client.AIError as e:
+            if target == "look":
+                session.activity = ""
+                session.save(update_fields=["activity"])
+                return JsonResponse({"error": f"Couldn't look at the picture: {e}"}, status=400)
+            seen = ""
+    words = f"\nWhat they said with it: {their_words}" if their_words else ""
+    if target == "look":
+        session.events += events
+        events += agent.run_turn(session, None, action_note="You showed Bulba a picture" + (f": {their_words}" if their_words else ""),
+                                 model_note=f"They showed you a picture.{words}\n{seen}\nHelp with what they want; if "
+                                            "it isn't clear, say briefly what you see and ask.")
+        session.activity = ""
+        session.save()
+        return JsonResponse({"events": events, "state": _bulba_state(session)})
     ext = os.path.splitext(upload.name)[1].lower() or ".png"
     if target == "background":
         folder, url = user_media_dir(request.user, "backgrounds")
@@ -2654,9 +2778,10 @@ def _bulba_picture_upload(request):
         kind, what = "picture", f"{character.name}'s {'main' if target == 'neutral' else target} picture"
     p = agent._proposal(session, kind, f"Picture: {what}", ["Added from your upload."], {"character_id": character.id})
     p.update(status="applied", undo=undo)
-    events = [{"type": "proposal", "id": p["id"]}]
+    events.append({"type": "proposal", "id": p["id"]})
     session.events += events
-    events += agent.run_turn(session, None, action_note=f"Added {what}", model_note=f"They uploaded {what}; it's set.")
+    events += agent.run_turn(session, None, action_note=f"Added {what}",
+                             model_note=f"They uploaded {what}; it's set.{words}" + (f"\n{seen}" if seen else ""))
     session.activity = ""
     session.save()
     return JsonResponse({"events": events, "state": _bulba_state(session)})

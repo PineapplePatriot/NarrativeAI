@@ -1,5 +1,5 @@
 /* The tester feedback form (FEEDBACK_FORM_URL on the server): a 📝 button in the top bar on every page, and a
-   small card after they send a chat message (at most once a day), until they press "I've filled it in". */
+   small card after they've sent ten chat messages (at most once a day, never over another pop-up), until they press "I've filled it in". */
 (function () {
     const CFG = window.NA_FEEDBACK;
     if (!CFG) return;
@@ -13,6 +13,7 @@
                     set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* the card may show again */ } } };
     const words = () => WORDS[(window.NATour && NATour.lang && NATour.lang()) || 'en'] || WORDS.en;
     let card = null;
+    const AFTER = 10;  // chat messages before the card first appears
 
     function close() { if (card) { card.remove(); card = null; } }
     function show() {
@@ -48,12 +49,20 @@
     window.NAFeedback = {
         show,
         // After a chat message: the card, once a day at most (the 📝 button is always there)
+        // After a chat message: the card, once they've sent AFTER messages, at most once a day, and never on top
+        // of another pop-up (a tour, a Bulba note); the 📝 button is always there
         afterMessage() {
             if (!window.NA_FEEDBACK) return;
+            const sent = Number(store.get('na-feedback-count') || 0) + 1;
+            store.set('na-feedback-count', String(sent));
+            if (sent < AFTER) return;
             const today = new Date().toISOString().slice(0, 10);
             if (store.get('na-feedback-shown') === today) return;
-            store.set('na-feedback-shown', today);
-            setTimeout(show, 1500);
+            setTimeout(() => {
+                if (window.NAPopupBusy && NAPopupBusy()) return;  // next message, then
+                store.set('na-feedback-shown', today);
+                show();
+            }, 1500);
         },
     };
 })();
