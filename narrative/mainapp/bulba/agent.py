@@ -1028,7 +1028,7 @@ MODERATION = re.compile(r"considered high risk|rejected because it|content (?:ma
                         re.I)
 REFUSED = ("My model's safety filter blocked that one (it isn't me being prudish, it's the provider). For adult "
            "scenes there's a switch that needs no AI: in the chat, open the pen menu (✏️, bottom left) → "
-           "**⚙ This chat** → **🔞 Mature content** → *Allow adult scenes*. It switches your preset's mature-content rule on and adds a "
+           "the **⚙ This chat** tab → **🔞 Mature content** → *Allow adult scenes*. It switches your preset's mature-content rule on and adds a "
            "reminder before each reply, so the chat model doesn't refuse either. For anything else, try saying it "
            "another way.")
 

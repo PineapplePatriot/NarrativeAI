@@ -601,6 +601,24 @@ def chat(request, slug):
             except ValueError as e:
                 return JsonResponse({"success": False, "error": str(e)}, status=400)
             return JsonResponse({"success": True, "watch": watch.page_state(request.user, chat_obj)})
+        elif action == "director_switch":  # the pen menu's 🎭 switch: director mode on or off, no AI
+            obj = presets.get_active(request.user)
+            preset = presets.normalize(obj.data)
+            now = control.mode_of(preset)
+            if data.get("on"):
+                if now != "director":
+                    preset["extras"] = {**preset["extras"], "control_before": now}
+                    preset = control.apply_to_preset(preset, "director")
+                set_layout(request.user, "book")
+            else:
+                before = preset["extras"].get("control_before")
+                preset = control.apply_to_preset(preset, before if before in ("dont", "write") else "dont")
+                preset["extras"] = {k: v for k, v in preset["extras"].items() if k != "control_before"}
+                set_layout(request.user, "chat")
+            obj.data = preset
+            obj.save(update_fields=["data", "time_update"])
+            return JsonResponse({"success": True, "on": control.mode_of(preset) == "director",
+                                 "layout": "book" if data.get("on") else "chat"})
         elif action == "mature":  # the pen menu's 18+ switch: edits the active preset directly (no AI)
             error = mature.switch(request.user, bool(data.get("on")), bool(data.get("adult")))
             if error:
@@ -1352,6 +1370,7 @@ def chat(request, slug):
         "watch_data": watch.page_state(request.user, chat_obj),
         "persona_hint": _persona_hint(request.user, chat_state["persona"]),
         "mature_on": mature.is_on(presets.normalize(presets.get_active(request.user).data)),
+        "director_on": control.mode_of(presets.normalize(presets.get_active(request.user).data)) == "director",
         "display_rules": {
             "rules": [r for r in regex_rules.for_chat(presets.normalize(presets.get_active(request.user).data), character, request.user)
                       if r["enabled"] and r["mode"] == "display"],

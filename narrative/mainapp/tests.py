@@ -2704,6 +2704,25 @@ class WrittenToolCallsTests(ChatPromptTests):
                          ("He rolls. The lock clicks.", []))
 
 
+class SteerMenuTests(ChatPromptTests):
+    def test_two_tabs_the_guide_and_the_director_switch(self):
+        from mainapp import presets as presets_mod
+        from mainapp.bulba import control
+        page = self.client.get(self.url)
+        for bit in ('data-pane="paneSteer"', 'data-pane="paneChat"', "Four ways to steer", 'id="directorToggle"'):
+            self.assertContains(page, bit)
+        data = self.post({"action": "director_switch", "on": True}).json()
+        self.assertEqual((data["on"], data["layout"]), (True, "book"))
+        active = presets_mod.normalize(presets_mod.get_active(self.user).data)
+        self.assertEqual(control.mode_of(active), "director")
+        self.assertContains(self.client.get(self.url), 'id="directorToggle" checked')
+        data = self.post({"action": "director_switch", "on": False}).json()
+        self.assertEqual((data["on"], data["layout"]), (False, "chat"))
+        active = presets_mod.normalize(presets_mod.get_active(self.user).data)
+        self.assertNotEqual(control.mode_of(active), "director")
+        self.assertNotIn("control_before", active["extras"])
+
+
 class MatureSwitchTests(ChatPromptTests):
     def test_switch_on_and_off(self):
         from mainapp import mature, presets as presets_mod

@@ -8,7 +8,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Narrative AI - Chat with {{character.name}}</title>
-    <link rel="stylesheet" href="{% static 'mainapp/css/chat_page.css' %}?v=16">
+    <link rel="stylesheet" href="{% static 'mainapp/css/chat_page.css' %}?v=18">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
 </head>
@@ -166,7 +166,30 @@
                     </button>
                 </div>
                 <div class="tools-menu" id="toolsMenu">
-                    <div class="tool-header"><span>Steer the story</span><span style="font-size:0.8rem; cursor:pointer;" onclick="toggleTools()">✕</span></div>
+                    <div class="tool-header tools-tabs" role="tablist">
+                        <button type="button" class="tools-tab on" role="tab" data-pane="paneSteer">🎬 Steer the story</button>
+                        <button type="button" class="tools-tab" role="tab" data-pane="paneChat">⚙ This chat</button>
+                        <button type="button" class="tools-x" onclick="toggleTools()" title="Close">✕</button>
+                    </div>
+                    <div class="tools-pane" id="paneSteer">
+                    <details class="tool-section steer-guide" id="steerGuide" open>
+                        <summary class="tool-label">🧭 Four ways to steer: which is which?</summary>
+                        <div class="steer-ways">
+                            <div><b>✍️ Write for me</b> <small>(the square pen in the message box)</small>: the AI writes <i>your</i>
+                                next message, in your voice. You're still a character in the story.</div>
+                            <div><b>🎬 Director's note</b> <small>(below)</small>: one instruction from outside the story, for the next
+                                reply: <i>“the storm reaches the harbour”</i>. Nobody in the story hears it.</div>
+                            <div><b>✨ Be creative · 🥔 Word it for me</b>: Bulba writes that note for you: what could happen next,
+                                a twist, or your rough idea said clearly.</div>
+                            <div><b>🎭 Director mode</b> <small>(the switch)</small>: <i>every</i> message you send becomes a direction,
+                                and the AI narrates the whole scene, your character included, like a book. For when you'd rather
+                                direct the story than act in it.</div>
+                        </div>
+                    </details>
+                    <div class="tool-section">
+                        <label class="theme-check director-switch"><input type="checkbox" id="directorToggle" {% if director_on %}checked{% endif %}>
+                            🎭 <b>Director mode</b> <small>(all chats: your messages become directions; replies read as a book)</small></label>
+                    </div>
                     <div class="tool-section">
                         <span class="tool-label">🎬 Director's note <small>steers the next reply</small></span>
                         <textarea class="tool-input" id="guidanceInput" rows="3" placeholder="e.g. She dodges the question; the storm reaches the harbour"></textarea>
@@ -232,8 +255,8 @@
                         </div>
                     </div>
 
-                    <details class="tool-section tool-details">
-                        <summary class="tool-label">⚙ This chat</summary>
+                    </div>
+                    <div class="tools-pane tool-section" id="paneChat" hidden>
                         <span class="tool-sublabel">🙂 You in this chat</span>
                         <div class="persona-line" id="personaLine">
                             {% if chat_persona.name %}<b>{{ chat_persona.name }}</b> (this chat only)
@@ -276,7 +299,7 @@
                         <div class="spending-line" id="spendingLine" data-spent="{{ spending.spent }}" data-limit="{{ spending.limit }}">
                             ${{ spending.spent|floatformat:2 }} of ${{ spending.limit|floatformat:2 }} used (chat, Bulba and background jobs)</div>
                         <div class="spending-meter"><div id="spendingFill" style="width: {% widthratio spending.spent spending.limit 100 %}%"></div></div>
-                    </details>
+                    </div>
                 </div>
                 {% if persona_hint %}
                 <div class="persona-hint" id="personaHint">
@@ -287,7 +310,7 @@
                 {% endif %}
                 <div class="ideas-box" id="ideasBox" hidden></div>
                 <div class="input-wrapper">
-                    <button class="tools-btn" id="toolsBtn" onclick="toggleTools()"><svg class="icon" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>
+                    <button class="tools-btn" id="toolsBtn" onclick="toggleTools()" title="Steer the story, and this chat's settings"><span class="tools-badge" aria-hidden="true">⚙</span><svg class="icon" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>
                     <textarea class="input-field" id="messageInput"placeholder="Continue the story with {{character.name}}..." rows="1"></textarea>
                     <div class="magic-btn-container" style="position:absolute; right:60px; bottom:12px;">
                         {% if bulba_ideas %}<button class="mini-tool-btn ideas-btn" id="ideasBtn" onclick="showIdeas()" title="Stuck? Bulba suggests three ways to go on">🥔</button>{% endif %}

@@ -148,3 +148,10 @@ propose_persona. It's their usual persona for every chat (one chat can still use
 the preset's mature-content block on and puts a reminder before each reply. When they ask for NSFW, point them
 to it (your own model may refuse to write such rules). If adult scenes still get refused or softened with the
 switch on, the model's own habit is the cause: say so plainly and suggest a model that writes them.
+
+**Director mode, and the other ways to steer.** The pen menu's 🎬 Steer tab explains them side by side and has a
+🎭 Director mode switch (no AI: it changes the preset and the layout to a book; off puts back how it was). Keep
+them apart when you explain: Write for me = the AI writes *their* next message as their character; a director's
+note = one instruction from outside the story for the next reply; ✨ Be creative / 🥔 Word it = you writing that
+note for them (a twist, what happens next); director mode = every message they send is a direction and the AI
+narrates the whole scene, their character included.
