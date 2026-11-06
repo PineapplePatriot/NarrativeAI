@@ -207,6 +207,41 @@ class ImportTests(SimpleTestCase):
 
 
 @override_settings(MEDIA_ROOT="/tmp/narrative-test-media")
+class InflectedLanguageTests(SimpleTestCase):
+    """Ukrainian, Polish and similar: other endings are caught, apostrophes count as one, English stays exact."""
+
+    def book(self, **settings):
+        return make_book([{"comment": "Dragon", "keys": ["дракон"], "content": "A dragon."},
+                          {"comment": "Fort", "keys": ["Червона Фортеця"], "content": "A fort."},
+                          {"comment": "Mint", "keys": ["м'ята"], "content": "Mint."},
+                          {"comment": "Cat", "keys": ["кіт"], "content": "A cat."}], **settings)
+
+    def test_other_endings(self):
+        book = self.book()
+        self.assertEqual(fired(book, ["Я бачу дракона"]), ["Dragon"])
+        self.assertEqual(fired(book, ["Драконів троє"]), ["Dragon"])
+        self.assertEqual(fired(book, ["біля Червоної Фортеці"]), ["Fort"])
+        self.assertEqual(fired(book, ["Вона пахла м’ятою"]), ["Mint"])  # another apostrophe and ending
+        self.assertEqual(fired(book, ["у кітелі"]), [])  # short words stay exact
+        self.assertEqual(fired(book, ["кіт спить"]), ["Cat"])
+
+    def test_exact_when_switched_off_and_for_english(self):
+        self.assertEqual(fired(self.book(flexible_endings=False), ["Я бачу дракона"]), [])
+        english = make_book([{"comment": "Dragon", "keys": ["dragon"], "content": "x"}])
+        self.assertEqual(fired(english, ["dragons"]), [])
+        self.assertEqual(fired(make_book([{"comment": "D", "keys": ["dragon"], "content": "x"}], flexible_endings=True),
+                               ["dragons"]), ["D"])
+
+    def test_notes_always_and_the_card_only_when_asked(self):
+        book = self.book()
+        self.assertEqual([e["comment"] for e in activate(book, ["Привіт"], notes_text="Прилітає дракон")["entries"]],
+                         ["Dragon"])
+        self.assertEqual(activate(book, ["Привіт"], card_text="Боїться драконів")["entries"], [])
+        on = self.book(scan_card=True)
+        self.assertEqual([e["comment"] for e in activate(on, ["Привіт"], card_text="Боїться драконів")["entries"]],
+                         ["Dragon"])
+
+
 class WorldbookViewTests(TestCase):
     def setUp(self):
         self.user = get_user_model().objects.create_user(username="ann", password="pw12345!")
@@ -232,6 +267,48 @@ class WorldbookViewTests(TestCase):
 
         resp = self.client.get(reverse("worldbook_export", args=[wb.slug]) + "?format=sillytavern")
         self.assertIn('"0"', resp.content.decode())
+
+    def test_word_forms_are_offered_not_saved(self):
+        from unittest import mock
+        from mainapp import ai_client
+        self.post_json(reverse("worldbook_create"), {"title": "Україна"})
+        wb = Worldbook.objects.get(author=self.user)
+        book = {"title": "Україна", "entries": [
+            {"uid": 0, "comment": "Kyiv", "keys": ["Київ"], "content": "The capital."},
+            {"uid": 1, "comment": "Dragon", "keys": ["дракон"], "content": "A dragon."},
+            {"uid": 2, "comment": "Rx", "keys": ["/dra.on/i"], "content": "x"}]}
+        answer = '{"forms": {"0": ["Києва", "Києві", "київський", "Київ"], "1": ["дракона", "драконів"]}}'
+        with mock.patch.object(ai_client, "complete", return_value=answer) as call:
+            data = self.post_json(reverse("worldbook_forms", args=[wb.slug]), {"book": book}).json()
+        self.assertEqual(data["forms"], {"0": ["Києва", "Києві", "київський"]})  # endings are caught already
+        self.assertNotIn("/dra.on/i", call.call_args[0][2][1]["content"])  # regex keys aren't sent
+        self.assertNotIn("Києві", json.dumps(Worldbook.objects.get(id=wb.id).json_file.read().decode()))
+        with mock.patch.object(ai_client, "complete", side_effect=ai_client.AIError("No connection.")):
+            self.assertEqual(self.post_json(reverse("worldbook_forms", args=[wb.slug]), {"book": book}).status_code, 502)
+        self.assertContains(self.client.get(reverse("worldbook_detail", args=[wb.slug])), 'id="formsBtn"')
+
+    def test_notes_bring_lore_into_the_chat(self):
+        from mainapp.lorebook import save_worldbook
+        from mainapp.models import Character
+        from mainapp.utils import build_ai_request
+        wb = Worldbook.objects.create(title="Keep", slug="keep", author=self.user)
+        save_worldbook(wb, {"title": "Keep", "entries": [
+            {"comment": "Ashen Keep", "keys": ["Ashen Keep"], "content": "A ruined fortress."},
+            {"comment": "Home", "keys": ["Brightwater"], "content": "A river town."}]})
+        rose = Character.objects.create(name="Rose", slug="rose-lore", author=self.user,
+                                        description="Rose grew up in Brightwater.")
+        prompt = build_ai_request(self.user, rose, worldbook_slug="keep", message="Hello",
+                                  guidance="Tonight they reach the Ashen Keep.")
+        lore = prompt["SystemPrompts"].get("WorldInfo", "")
+        self.assertIn("A ruined fortress.", lore)
+        self.assertNotIn("A river town.", lore)  # the description isn't read by default
+        prompt = build_ai_request(self.user, rose, worldbook_slug="keep", message="Hello",
+                                  persistent_guides={"note": "The Ashen Keep looms."})
+        self.assertIn("A ruined fortress.", prompt["SystemPrompts"].get("WorldInfo", ""))
+        save_worldbook(wb, {"title": "Keep", "settings": {"scan_card": True}, "entries": [
+            {"comment": "Home", "keys": ["Brightwater"], "content": "A river town."}]})
+        prompt = build_ai_request(self.user, rose, worldbook_slug="keep", message="Hello")
+        self.assertIn("A river town.", prompt["SystemPrompts"].get("WorldInfo", ""))
 
     def test_duplicate_titles_get_unique_slugs(self):
         self.post_json(reverse("worldbook_create"), {"title": "Lore"})

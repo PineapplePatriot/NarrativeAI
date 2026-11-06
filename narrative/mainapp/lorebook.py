@@ -12,6 +12,11 @@ How an entry gets into the prompt:
    package, see requirements-semantic.txt).
 5. Everything is sorted by `order` and trimmed to `token_budget`.
 
+Besides the chat, the director's notes (the pinned one and this reply's) are always scanned; the persona and
+the character's description and scenario only with `scan_card` on (off by default: a word there would fire its
+entry on every reply). In languages that change word endings (Ukrainian, Polish...), a plain key also catches
+its other endings ("дракон": дракона, драконів), and the apostrophes ' ’ ʼ count as one.
+
 Every decision is recorded in a report so the user can see why an entry
 was (or was not) used.
 """
@@ -35,6 +40,8 @@ DEFAULT_SETTINGS = {
     "semantic_enabled": False,  # meaning-based fallback, off by default
     "semantic_threshold": 0.5,
     "semantic_top_k": 2,
+    "scan_card": False,         # also scan the persona and the character's description and scenario
+    "flexible_endings": "auto", # "auto" (books with keys in such languages), True, False
 }
 
 DEFAULT_ENTRY = {
@@ -156,6 +163,9 @@ def normalize_settings(raw):
     s["semantic_enabled"] = _as_bool(raw.get("semantic_enabled"), s["semantic_enabled"])
     s["semantic_threshold"] = _as_float(raw.get("semantic_threshold"), s["semantic_threshold"])
     s["semantic_top_k"] = max(0, _as_int(raw.get("semantic_top_k"), s["semantic_top_k"]))
+    s["scan_card"] = _as_bool(raw.get("scan_card"), s["scan_card"])
+    flex = raw.get("flexible_endings", s["flexible_endings"])
+    s["flexible_endings"] = "auto" if flex in (None, "", "auto") else _as_bool(flex)
     return s
 
 
@@ -252,8 +262,33 @@ def to_sillytavern(book):
 # Matching
 # ---------------------------------------------------------------------------
 
+APOSTROPHES = str.maketrans({"’": "'", "ʼ": "'", "‘": "'", "`": "'", "′": "'"})
+# Letters of languages whose words change their endings a lot (Cyrillic; Polish, Czech, Slovak... marks)
+INFLECTED = re.compile(r"[\u0400-\u04ffąćęłńóśźżčďěňřšťůžýľĺŕ]", re.I)
+# Endings that go before a new one is added: vowels, the soft sign, й
+_SOFT_END = re.compile(r"[аеєиіїоуюяьйaeiouyąęó]{1,2}$", re.I)
+
+
+def inflected(book):
+    """Whether this book's keys are in a language that changes word endings (Ukrainian, Polish...)."""
+    flex = book["settings"].get("flexible_endings", "auto")
+    if flex != "auto":
+        return bool(flex)
+    return any(INFLECTED.search(k) for e in book["entries"] for k in e["keys"] + e["secondary_keys"])
+
+
+def _flexible_word(word):
+    """A word of 4+ letters also matches with another ending: дракон → дракона, Фортеця → Фортецю."""
+    if len(word.replace("'", "")) < 4 or not word.replace("'", "").isalpha():
+        return re.escape(word)
+    stem = _SOFT_END.sub("", word)
+    if len(stem) < 3:
+        stem = word
+    return re.escape(stem) + r"\w{0,4}"
+
+
 @lru_cache(maxsize=2048)
-def _key_pattern(key, case_sensitive, whole_words):
+def _key_pattern(key, case_sensitive, whole_words, flexible=False):
     # "/regex/flags" keys, as in SillyTavern
     m = re.fullmatch(r"/(.+)/([a-z]*)", key)
     if m:
@@ -262,14 +297,20 @@ def _key_pattern(key, case_sensitive, whole_words):
             return re.compile(m.group(1), flags)
         except re.error:
             pass  # not a valid regex, treat it as plain text
-    pattern = re.escape(key)
+    key = key.translate(APOSTROPHES)
+    if flexible and whole_words:
+        pattern = "".join(_flexible_word(part) if part.replace("'", "").isalpha() else re.escape(part)
+                          for part in re.split(r"([^\w']+)", key))  # м'ята stays one word
+    else:
+        pattern = re.escape(key)
     if whole_words:
         pattern = rf"(?<!\w){pattern}(?!\w)"
     return re.compile(pattern, 0 if case_sensitive else re.IGNORECASE)
 
 
-def _matching_keys(keys, text, case_sensitive, whole_words):
-    return [k for k in keys if k and _key_pattern(k, case_sensitive, whole_words).search(text)]
+def _matching_keys(keys, text, case_sensitive, whole_words, flexible=False):
+    text = text.translate(APOSTROPHES)
+    return [k for k in keys if k and _key_pattern(k, case_sensitive, whole_words, flexible).search(text)]
 
 
 def _message_text(msg):
@@ -281,12 +322,12 @@ def _message_text(msg):
     return str(msg or "")
 
 
-def _check_entry(entry, text, settings):
+def _check_entry(entry, text, settings, flexible=False):
     """Returns a reason string if the entry's keys fire on `text`, else None."""
     cs = settings["case_sensitive"] if entry["case_sensitive"] is None else entry["case_sensitive"]
     ww = settings["match_whole_words"] if entry["match_whole_words"] is None else entry["match_whole_words"]
 
-    primary = _matching_keys(entry["keys"], text, cs, ww)
+    primary = _matching_keys(entry["keys"], text, cs, ww, flexible)
     if not primary:
         return None
     reason = f'keyword "{primary[0]}"'
@@ -295,7 +336,7 @@ def _check_entry(entry, text, settings):
     if not secondary:
         return reason
 
-    hits = _matching_keys(secondary, text, cs, ww)
+    hits = _matching_keys(secondary, text, cs, ww, flexible)
     logic = entry["selective_logic"]
     if logic == "AND_ANY" and hits:
         return f'{reason} + "{hits[0]}"'
@@ -316,11 +357,13 @@ def entry_label(entry):
     return entry["comment"] or (entry["keys"][0] if entry["keys"] else f"Entry {entry['uid']}")
 
 
-def activate(book, messages):
+def activate(book, messages, notes_text="", card_text=""):
     """
     book: normalised book (see normalize_book)
     messages: recent chat messages, oldest first, newest last. Items can be
               strings, chat-log lists, or {"content": ...} dicts.
+    notes_text: the director's notes (pinned and this reply's), always scanned
+    card_text: the persona and the character's description and scenario, scanned with `scan_card` on
 
     Returns {"entries": [...included, in prompt order...],
              "report": [{uid, label, status, reason, ...}],
@@ -330,8 +373,11 @@ def activate(book, messages):
     texts = [_message_text(m) for m in messages]
     texts = [t for t in texts if t]
 
+    flexible = inflected(book)
+    extra = [t for t in (str(notes_text or ""), str(card_text or "") if settings.get("scan_card") else "") if t.strip()]
+
     def scan_text(depth):
-        return "\n".join(texts[-depth:]) if depth > 0 else ""
+        return "\n".join((texts[-depth:] if depth > 0 else []) + extra)
 
     fired = {}   # uid -> {"entry", "reason", "score"}
     report = []
@@ -345,7 +391,7 @@ def activate(book, messages):
                 fired[entry["uid"]] = {"entry": entry, "reason": "always on (constant)"}
             continue
         depth = settings["scan_depth"] if entry["scan_depth"] is None else entry["scan_depth"]
-        reason = _check_entry(entry, scan_text(depth), settings)
+        reason = _check_entry(entry, scan_text(depth), settings, flexible)
         if reason is None:
             continue
         if not entry["enabled"]:
@@ -367,7 +413,7 @@ def activate(book, messages):
                         or entry["exclude_recursion"] or not entry["content"].strip()):
                     continue
                 for f in source:
-                    reason = _check_entry(entry, f["entry"]["content"], settings)
+                    reason = _check_entry(entry, f["entry"]["content"], settings, flexible)
                     if reason:
                         hit = {"entry": entry, "reason": f'{reason} in "{entry_label(f["entry"])}" (recursion)'}
                         fired[entry["uid"]] = hit

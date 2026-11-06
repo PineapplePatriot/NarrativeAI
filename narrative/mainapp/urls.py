@@ -29,6 +29,7 @@ path('worldbook_create/', views.worldbook_create, name='worldbook_create'),
 path('worldbook_detail/<slug:slug>', views.worldbook_detail, name='worldbook_detail'),
 path('worldbook_list/', views.worldbook_list, name='worldbook_list'),
 path('worldbook_test/<slug:slug>', views.worldbook_test, name='worldbook_test'),
+path('worldbook_forms/<slug:slug>', views.worldbook_forms, name='worldbook_forms'),
 path('worldbook_export/<slug:slug>', views.worldbook_export, name='worldbook_export'),
 path('worldbook_delete/<slug:slug>', views.worldbook_delete, name='worldbook_delete'),
     ]

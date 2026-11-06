@@ -2052,6 +2052,67 @@ def worldbook_detail(request, slug):
     })
 
 
+WORD_FORMS_PROMPT = (
+    "You help with a roleplay lorebook. Each entry has keywords; an entry is used when one of them appears in the "
+    "chat. The app already catches a word with a different ending (дракон → дракона, драконів; Фортеця → Фортеці), "
+    "but not a word that changes inside (Київ → Києва, Києві; Lwów → Lwowie; кінь → коня). For each entry, list the "
+    "forms of its keywords that a story would use and that change inside the word: grammatical cases, plural, "
+    "the common adjective (Київ → київський). Same language as the keyword. Skip keywords in English or other "
+    "languages that barely change, regex keywords (/.../), and forms that only add or swap an ending. Don't invent "
+    "new names or synonyms. Answer with JSON only: {\"forms\": {\"<entry id>\": [\"form\", ...]}}; leave out "
+    "entries with nothing to add.")
+
+
+def word_forms(user, book):
+    """{uid: [new keys]}: forms the keys take inside the word, without the ones the flexible endings already catch."""
+    from mainapp.lorebook import _key_pattern
+    entries = [e for e in book["entries"] if e["keys"] and not e["constant"]][:120]
+    asked = {str(e["uid"]): [k for k in e["keys"] if not k.startswith("/")] for e in entries}
+    asked = {uid: keys for uid, keys in asked.items() if keys}
+    if not asked:
+        return {}
+    text = ai_client.complete(user, "bulba", [{"role": "system", "content": WORD_FORMS_PROMPT},
+                                              {"role": "user", "content": json.dumps(asked, ensure_ascii=False)}],
+                              timeout=120, temperature=0.2)
+    match = re.search(r"\{.*\}", text or "", re.S)
+    try:
+        forms = json.loads(match.group(0)).get("forms", {}) if match else {}
+    except (ValueError, AttributeError):
+        raise ai_client.AIError("Bulba's answer wasn't readable. Try again.")
+    out = {}
+    for e in entries:
+        keys = asked.get(str(e["uid"]), [])
+        new = []
+        for form in forms.get(str(e["uid"])) or []:
+            form = str(form).strip()[:60]
+            if not form or form.startswith("/") or form.lower() in [k.lower() for k in e["keys"] + new]:
+                continue
+            caught = any(_key_pattern(k, False, True, True).fullmatch(form.replace("’", "'")) for k in keys)
+            if not caught:
+                new.append(form)
+        if new:
+            out[e["uid"]] = new[:10]
+    return out
+
+
+@login_required
+def worldbook_forms(request, slug):
+    """🥔 Add word forms: Bulba's suggestions for the editor to show; nothing is saved here."""
+    get_object_or_404(Worldbook, slug=slug, author=request.user)
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only"}, status=405)
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    book = normalize_book(data.get("book") or {})
+    try:
+        forms = word_forms(request.user, book)
+    except ai_client.AIError as e:
+        return JsonResponse({"error": str(e)}, status=502)
+    return JsonResponse({"forms": forms, "note": "" if forms else "Nothing to add: the keywords already cover their forms."})
+
+
 @login_required
 def worldbook_test(request, slug):
     """Dry run: which entries would fire for the given messages, and why."""

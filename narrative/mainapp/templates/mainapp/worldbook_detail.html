@@ -6,7 +6,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>{{ worldbook.title }} - Worldbook</title>
-  <link rel="stylesheet" href="{% static 'mainapp/css/worldbook_detail.css' %}">
+  <link rel="stylesheet" href="{% static 'mainapp/css/worldbook_detail.css' %}?v=2">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
 </head>
@@ -78,6 +78,23 @@
           <label class="check"><input type="checkbox" id="sCase"/> Case-sensitive keywords</label>
           <label class="check"><input type="checkbox" id="sWhole"/> Match whole words only</label>
           <label class="check"><input type="checkbox" id="sRecursive"/> Entries can trigger other entries</label>
+          <label class="check"><input type="checkbox" id="sCard"/> Also look in your persona and the character's description</label>
+          <span class="hint">The chat and your director's notes are always read. With this on, a name in the persona
+            or the description brings its entry in on every reply (more cost, less room for other lore).</span>
+          <label>Word endings
+            <select id="sFlex">
+              <option value="auto">Automatic (on for Ukrainian, Polish…)</option>
+              <option value="true">Flexible (дракон → дракона)</option>
+              <option value="false">Exact words only</option>
+            </select>
+          </label>
+        </div>
+        <div class="forms-box" id="formsBox">
+          <h4 class="card-title">🥔 Word forms</h4>
+          <p class="hint">Endings are caught by themselves, but some words change inside (Київ → Києві). Bulba can add
+            those forms to the keywords; you see them before anything is saved.</p>
+          <button class="btn full" id="formsBtn" type="button">🥔 Add word forms</button>
+          <div id="formsResult"></div>
         </div>
         <details class="advanced">
           <summary>Semantic search (optional)</summary>
@@ -162,9 +179,10 @@
   const URLS = {
     save: "{% url 'worldbook_detail' worldbook.slug %}",
     test: "{% url 'worldbook_test' worldbook.slug %}",
+    forms: "{% url 'worldbook_forms' worldbook.slug %}",
   };
 </script>
-<script src="{% static 'mainapp/js/worldbook_detail.js' %}"></script>
+<script src="{% static 'mainapp/js/worldbook_detail.js' %}?v=2"></script>
 <script>window.NA_PAGE_TOUR = {name: 'worldbook', auto: true};</script>
 </body>
 </html>
