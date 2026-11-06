@@ -29,7 +29,9 @@ INSTRUCTIONS = Path(__file__).resolve().parent.parent / "data" / "bulba" / "watc
 
 EVERY = 3          # read after this many new replies
 WINDOW = 6         # a habit is judged over the last this-many replies read...
-THRESHOLD = 3      # ...and needs to show up in at least this many of them
+THRESHOLD = 2      # ...and needs to show up in at least this many of them
+PHRASE_THRESHOLD = 3  # a repeated four-word phrase needs three replies (two is often just the scene)
+FIRST_READ = 2     # the first read comes sooner: after this many replies
 MAX_READ = 8       # replies sent to the reader at most (after a long pause in reading)
 LOG_MAX = 120
 TASTE_MAX = 20
@@ -56,6 +58,12 @@ LABELS = {
     "misremembered_past": "Getting past events wrong",
     "recounting": "Recounting and keeping score instead of talking",
     "leaked_markup": "AI machinery in the reply (code, tool calls, instructions)",
+    "same_shape": "Every reply built the same way",
+    "overlong": "Replies far longer than the moment needs",
+    "long_thinking": "Very long thinking before every reply",
+    "staccato": "Chopped, fragment-by-fragment sentences",
+    "corrective_contrast": "Feelings defined by what they're not",
+    "ending_formula": "The same kind of ending every time",
 }
 CAUSES = ("model", "setup", "their_messages")
 # What each one looks like, in plain words (Bulba's notebook page)
@@ -75,6 +83,14 @@ ABOUT = {
     "recounting": "Reciting old events as evidence, keeping score, or therapist-style insights.",
     "leaked_markup": "note_milestone(...), <thinking>, [OOC: …], {{char}}: the model's machinery showing in the story. "
                      "Noticed the first time (checked for free, no AI).",
+    "same_shape": "Same number of paragraphs in the same order (action, line, action, question…), reply after reply. "
+                  "Checked for free, no AI.",
+    "overlong": "Many times longer than your messages, every time: the story slows and costs more. Checked for free.",
+    "long_thinking": "A thinking model that thinks for pages before each reply: slower and pricier, rarely better. "
+                     "Checked for free.",
+    "staccato": "\"The key. His hand. Still. Waiting.\": fragments used for drama all the time.",
+    "corrective_contrast": "\"It wasn't anger. It was something older.\": a contrast as emotional punctuation.",
+    "ending_formula": "Every reply ends on a question, a cliffhanger or a profound one-liner.",
 }
 
 
@@ -113,6 +129,12 @@ def user_data(user):
     # Things they told Bulba they dislike ("other: <name>" -> what it means), fixed and watched like any habit
     data.setdefault("dislikes", {})
     data.setdefault("model_off", [])  # known habits of their chat model they asked Watch not to look for
+    # On for everyone from the start (once: if they stop it on the Notebook page it stays stopped): the model's
+    # machinery (note_milestone(...), <thinking>, [OOC: ...]) tidied out of new replies
+    if not data.get("defaults_v1"):
+        data["defaults_v1"] = True
+        if "leaked_markup" not in data["fix"]:
+            data["fix"] = data["fix"] + ["leaked_markup"]
     return data
 
 
@@ -352,14 +374,19 @@ def due(user, chat_obj, messages):
     data = chat_data(chat_obj)
     if data.get("off"):
         return False
-    return len(_replies_since(messages, min(data["upto"], len(messages)))) >= EVERY
+    return len(_replies_since(messages, min(data["upto"], len(messages)))) >= (EVERY if data["upto"] else FIRST_READ)
 
 
 # ---------------------------------------------------------------------------
 # Free checks (no AI), after every reply
 # ---------------------------------------------------------------------------
 
-FREE_LABELS = {"same_openings", "repeated_phrase", "leaked_markup"}
+FREE_LABELS = {"same_openings", "repeated_phrase", "leaked_markup", "same_shape", "overlong", "long_thinking"}
+# About the reply as a whole: Bulba's polish can't rewrite these away; the fix belongs in the preset or settings
+NO_POLISH = {"same_shape", "overlong", "long_thinking"}
+OVERLONG_WORDS = 450   # a reply this long, and much longer than their messages...
+OVERLONG_TIMES = 5     # ...this many times their usual length
+LONG_THINKING_WORDS = 1200
 IMMEDIATE = {"leaked_markup"}  # raised the first time, not once it's a habit
 # The model's machinery in a story: a written function call, thinking or chat-template tags, out-of-character
 # notes, unfilled macros, code fences, "As an AI"
@@ -432,11 +459,44 @@ def free_checks(data, messages, extra_leak=""):
     leak = leaked(model_text(messages[at])) or (extra_leak or "")
     if leak:
         data["log"].append({"label": "leaked_markup", "quote": leak, "at": at, "cause": "model"})
+    text = model_text(messages[at])
+    shapes = {i: shape(model_text(messages[i])) for i in replies}
+    if len(shapes[at]) >= 3:
+        alike = [i for i in replies if i != at and shapes[i] == shapes[at]]
+        if len(alike) >= THRESHOLD - 1:
+            for i in alike[-(THRESHOLD - 1):] + [at]:
+                if not any(e["label"] == "same_shape" and e["at"] == i for e in data["log"]):
+                    data["log"].append({"label": "same_shape", "at": i, "cause": "model",
+                                        "quote": "paragraphs: " + " → ".join(SHAPE_WORDS[k] for k in shapes[i])})
+    theirs = [len(str(m[2]).split()) for m in messages[:at] if m[0] == "user"][-3:]
+    words = len(text.split())
+    if theirs and words >= OVERLONG_WORDS and words >= OVERLONG_TIMES * max(1, sum(theirs) / len(theirs)):
+        data["log"].append({"label": "overlong", "at": at, "cause": "setup",
+                            "quote": f"{words} words, to your {round(sum(theirs) / len(theirs))}"})
+    from mainapp import chats as chats_mod
+    thought = len(chats_mod.reasoning_of(messages[at]).split())
+    if thought >= LONG_THINKING_WORDS:
+        data["log"].append({"label": "long_thinking", "at": at, "cause": "setup", "quote": f"{thought} words of thinking"})
     for phrase, where in repeated_phrases({i: model_text(messages[i]) for i in replies}, at):
         for i in where:
             if not any(e["label"] == "repeated_phrase" and e["at"] == i and e["quote"] == phrase for e in data["log"]):
                 data["log"].append({"label": "repeated_phrase", "quote": phrase, "at": i, "cause": "model",
                                     "shown": raw_snippet(model_text(messages[i]), phrase)})
+
+
+SHAPE_WORDS = {"d": "dialogue", "a": "action", "n": "narration", "q": "ends on a question"}
+
+
+def shape(text):
+    """A reply's build: what each paragraph opens with (dialogue, action, narration), and a question at the end."""
+    paras = [p.strip() for p in re.split(r"\n\s*\n", str(text or "")) if p.strip()]
+    out = []
+    for p in paras:
+        first = p.lstrip("_ ")[:1]
+        out.append("d" if first in "\"“«„'" else "a" if p.startswith("*") else "n")
+    if paras and paras[-1].rstrip("*_\"”» ").endswith("?"):
+        out.append("q")
+    return tuple(out)
 
 
 def _grams(text):
@@ -452,7 +512,7 @@ def repeated_phrases(texts, newest):
     found = []
     for g in grams.get(newest, ()):
         where = sorted(i for i, gs in grams.items() if g in gs)
-        if len(where) >= THRESHOLD:
+        if len(where) >= PHRASE_THRESHOLD:
             found.append((g, where))
     found.sort(key=lambda f: (-len(f[1]), f[0]))
     picked = []
@@ -735,7 +795,8 @@ def habits(data, muted, char_name="the character", fixing=()):
         notice = {"id": uuid.uuid4().hex[:10], "kind": "user" if theirs else "pattern", "label": label,
                   "title": title, "text": text, "quotes": list(dict.fromkeys(e.get("shown") or e["quote"] for e in reversed(hits)))[:3][::-1],
                   "causes": sorted({e["cause"] for e in hits}), "count": len(replies), "of": len(window),
-                  "at": window[-1], "status": "new", "time": time.time(), "persisting": persisting}
+                  "at": window[-1], "status": "new", "time": time.time(), "persisting": persisting,
+                  "nofix": label in NO_POLISH}
         data["notices"].append(notice)
         raised.append(notice)
     return raised
@@ -752,7 +813,7 @@ def page_state(user, chat_obj):
     mine = user_data(user)
     return {"on": on, "chat_off": bool(data.get("off")), "intro": on and not mine.get("intro_seen"),
             "fixing": [title_of(m) for m in mine["fix"]] if on and not data.get("off") else [],  # the 🧹 button
-            "every": EVERY, "notices": [{**{k: n.get(k) for k in ("id", "kind", "title", "text", "quotes", "index")},
+            "every": EVERY, "notices": [{**{k: n.get(k) for k in ("id", "kind", "title", "text", "quotes", "index", "nofix")},
                                          "fixing": n.get("label") in mine["fix"]}
                                         for n in reversed(new)][:3], "count": len(new)}
 

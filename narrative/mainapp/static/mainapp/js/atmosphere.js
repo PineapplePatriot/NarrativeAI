@@ -43,7 +43,10 @@ window.Atmosphere = (function () {
 
     function update(world) {
         world = world || {};
-        const next = isOn() ? `${timeOfDay(world.time)}|${weather(world.weather)}` : '|';
+        // Until the World tracker says what the weather is, the character's theme does (Bulba's pick, or the
+        // background's name): a rainy scene opens with rain
+        const seen = weather(world.weather) || (world.weather ? '' : (window.THEME_WEATHER || ''));
+        const next = isOn() ? `${timeOfDay(world.time)}|${seen}` : '|';
         if (next === last) return;
         last = next;
         const [time, sky] = next.split('|');
@@ -58,5 +61,6 @@ window.Atmosphere = (function () {
         toggle.checked = isOn();
         toggle.addEventListener('change', () => { store(toggle.checked ? 'on' : 'off'); last = null; update(window.__lastWorld); });
     }
+    update(window.__lastWorld || {});  // the theme's weather straight away, before any tracker has run
     return { update(world) { window.__lastWorld = world; update(world); }, timeOfDay, weather };
 })();

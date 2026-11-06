@@ -56,6 +56,35 @@ function proposalEditor(p) {
       </div>`;
 }
 
+// A theme card shows the look itself: the background, the music (▶ to listen), the colour on a sample line
+const WEATHER_ICON = { rain: '🌧', snow: '❄️', fog: '🌫', storm: '⛈', clear: '☀️' };
+function themePreview(v) {
+    const color = /^#[0-9a-fA-F]{6}$/.test(v.color || '') ? v.color : '';
+    return `<div class="theme-preview">
+        ${v.bg ? `<div class="tp-bg" style="background-image:url('${encodeURI(v.bg)}')">
+            ${v.weather && WEATHER_ICON[v.weather] ? `<span class="tp-weather">${WEATHER_ICON[v.weather]} ${esc(v.weather)}</span>` : ''}
+            ${color ? `<span class="tp-line" style="color:${color}">“A line in this colour.”</span>` : ''}</div>`
+          : color ? `<div class="tp-line solo" style="color:${color}">“A line in this colour.”</div>` : ''}
+        ${v.skin_name ? `<span class="tp-skin tp-skin-${esc(v.skin || '')}">Chat style: ${esc(v.skin_name)}</span>` : ''}
+        ${v.music ? `<button type="button" class="ghost tp-play" data-play="${esc(v.music)}">▶ Listen: ${esc(v.music_name || 'music')}</button>` : ''}
+      </div>`;
+}
+let previewAudio = null;
+document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-play]');
+    if (!b) return;
+    if (previewAudio && previewAudio.dataset.src === b.dataset.play && !previewAudio.paused) {
+        previewAudio.pause(); b.textContent = b.textContent.replace('⏸', '▶'); return;
+    }
+    if (previewAudio) previewAudio.pause();
+    document.querySelectorAll('[data-play]').forEach(x => { x.textContent = x.textContent.replace('⏸', '▶'); });
+    previewAudio = new Audio(b.dataset.play);
+    previewAudio.dataset.src = b.dataset.play;
+    previewAudio.volume = 0.6;
+    previewAudio.play().then(() => { b.textContent = b.textContent.replace('▶', '⏸'); }).catch(() => {});
+    previewAudio.addEventListener('ended', () => { b.textContent = b.textContent.replace('⏸', '▶'); });
+});
+
 function proposalCard(ev) {
     const p = state.proposals.find(x => x.id === ev.id);
     if (!p) return '';
@@ -76,6 +105,7 @@ function proposalCard(ev) {
         <div class="proposal-body${(p.summary || []).join('\n').length > 900 ? ' folded' : ''}">${(p.summary || []).map(l => /^[^\s].{0,40}:$/.test(l)
             ? `<div class="proposal-label">${esc(l.slice(0, -1))}</div>` : `<div>${esc(l)}</div>`).join('')}</div>
         ${(p.summary || []).join('\n').length > 900 ? '<button type="button" class="link unfold">Show all</button>' : ''}
+        ${p.preview ? themePreview(p.preview) : ''}
         <div class="proposal-actions">${actions}${chatLink}</div>
       </div>`;
 }
@@ -95,6 +125,9 @@ const BASICS_FORM = [
     { section: 'What kind of story' },
     { key: 'genres', label: 'Genres', hint: 'pick any', multi: [['fluff', 'Fluff'], ['slice_of_life', 'Slice of life'], ['comedy', 'Comedy'], ['romance', 'Romance'], ['heartwarming', 'Heartwarming'], ['melancholy', 'Melancholy'], ['healing', 'Hurt/comfort'], ['angst', 'Angst'], ['tragedy', 'Tragedy']],
       adult: [['smut', 'Smut'], ['dead_dove', 'Dead dove']] },
+    { key: 'mature', label: 'Adult scenes (18+)', hint: 'violence, dark themes, sex when the story goes there',
+      options: [['on', 'Allow them: I’m 18 or older'], ['off', 'Keep it clean']],
+      help: 'Switches your preset’s mature-content rule on, with a reminder before each reply so the model doesn’t refuse. Change it any time: pen menu → This chat.' },
     { key: 'pacing', label: 'Pacing', options: [['quick', 'Quick: skip the dull bits'], ['slow', 'Slow burn'], ['any', 'No preference']] },
     { key: 'initiative', label: 'Who moves the story', hint: 'apart from pacing', options: [['react', 'They react; I lead'], ['continue', 'They keep the scene going'], ['drive', 'They bring new events'], ['any', 'No preference']] },
     { key: 'invention', label: 'Making things up', hint: 'details the card doesn’t give', options: [['canon', 'Stick to the card and canon'], ['plausible', 'Small details are fine'], ['free', 'Invent freely'], ['any', 'No preference']] },

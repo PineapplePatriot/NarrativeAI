@@ -34,6 +34,12 @@ note nothing for it. Never invent a slip to have something to say.
   with numbers ("the third time this week", "four days since you"), sums up the relationship to make a point,
   or reaches for a witty line or a therapist-level insight into someone's feelings. One brief callback that
   belongs to the moment is fine; the slip is the recital, the tally, the performed insight.
+- **staccato**: drama made of fragments, sentence after sentence ("The key. His hand. Still. Waiting."). One
+  short line for a real jolt is fine; the slip is the habit.
+- **corrective_contrast**: feelings or moments defined by what they're not ("It wasn't anger. It was something
+  older. Not a wound, but a reckoning."). A real misunderstanding being corrected is fine.
+- **ending_formula**: the reply ends the same kind of way every time: a question to them, a cliffhanger, an
+  interruption, or a profound one-liner ("You're either very brave or very cruel"). Quote the ending.
 - **pet_phrase**: one of this model's known stock phrases or habits (listed below), or any phrase
   that keeps coming back across replies.
 

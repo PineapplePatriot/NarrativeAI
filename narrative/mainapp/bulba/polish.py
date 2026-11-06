@@ -27,6 +27,9 @@ PROTECTED = re.compile(r"\[\[extra \d+\]\]|<[^>]{1,80}>|\{\{(?:char|user)\}\}")
 # What each habit means, for the rewriter (watch.md has the full version for the reader)
 MEANING = {
     "same_openings": "sentence after sentence starts the same way (he… he… he…)",
+    "staccato": "drama made of fragments (\"The key. His hand. Still.\"): join them into complete sentences",
+    "corrective_contrast": "feelings defined by what they're not (\"It wasn't anger. It was something older.\"): say it directly",
+    "ending_formula": "the reply ending on a stock question, cliffhanger or one-liner: end on the scene's own last beat",
     "leaked_markup": "the model's machinery in the story: written tool calls like note_milestone(...), thinking or "
                      "template tags, out-of-character notes, unfilled {{macros}}; remove them, keep the story",
     "overworked_metaphor": "a small gesture or object stretched into a showy figure of speech",

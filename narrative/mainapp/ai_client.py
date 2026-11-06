@@ -146,6 +146,18 @@ GEMINI_SAFETY = [{"category": c, "threshold": "BLOCK_NONE"} for c in (
     "HARM_CATEGORY_DANGEROUS_CONTENT")]
 
 
+def _route(profile, payload):
+    """OpenRouter provider routing from the model's profile (MiMo: only hosts whose filters don't refuse ordinary
+    adult fiction). Left alone when the request already says where to go."""
+    if profile.provider != ConnectionProfile.PROVIDER_OPENROUTER or "provider" in payload:
+        return
+    from mainapp import model_profiles
+    mp = model_profiles.for_model(str(payload.get("model") or ""))
+    routing = (mp or {}).get("openrouter_provider")
+    if routing:
+        payload["provider"] = {k: v for k, v in routing.items() if not k.startswith("_")}
+
+
 def _blocked(text):
     return bool(MODERATION.search(str(text or "")))
 
@@ -246,6 +258,7 @@ def _request(user, task, messages, timeout=None, **params):
     payload.update({k: v for k, v in params.items() if v is not None})
     if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER and str(payload["model"]).startswith("google/"):
         payload.setdefault("safety_settings", GEMINI_SAFETY)
+    _route(profile, payload)
     timeout = TEST_TIMEOUT or timeout or TASKS.get(task, {}).get("timeout", 60)
     label = TASKS.get(task, {}).get("label", task)
 
@@ -389,6 +402,7 @@ def stream(user, task, messages, timeout=None, **params):
     payload.update({k: v for k, v in params.items() if v is not None})
     if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER and str(payload["model"]).startswith("google/"):
         payload.setdefault("safety_settings", GEMINI_SAFETY)  # Gemini's adjustable filters off (see GEMINI_SAFETY)
+    _route(profile, payload)
     read_timeout = TEST_TIMEOUT or timeout or TASKS.get(task, {}).get("timeout", 60)  # max wait between two pieces
     label = TASKS.get(task, {}).get("label", task)
 

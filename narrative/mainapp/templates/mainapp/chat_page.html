@@ -8,13 +8,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Narrative AI - Chat with {{character.name}}</title>
-    <link rel="stylesheet" href="{% static 'mainapp/css/chat_page.css' %}?v=19">
+    <link rel="stylesheet" href="{% static 'mainapp/css/chat_page.css' %}?v=21">
+    <link rel="stylesheet" href="{% static 'mainapp/css/chat_skins.css' %}?v=1">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
 </head>
 
-<body class="{% if appearance.layout == 'book' %}layout-book{% endif %}" data-dialogue="{% if appearance.dialogue_color == 'preset' %}preset{% else %}color{% endif %}" style="--dialogue-color: {% if appearance.dialogue_color == 'preset' %}inherit{% else %}{{ appearance.dialogue_color }}{% endif %}">
+<body class="{% if appearance.layout == 'book' %}layout-book{% endif %}{% if skin %} skin-{{ skin }}{% endif %}" data-dialogue="{% if appearance.dialogue_color == 'preset' %}preset{% else %}color{% endif %}" style="--dialogue-color: {% if appearance.dialogue_color == 'preset' %}inherit{% else %}{{ appearance.dialogue_color }}{% endif %}">
 {% include "partials/topbar.html" with active="characters" %}
+<div class="skin-fx" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+<script>try { if (localStorage.getItem('chat-fx') === 'off') document.body.classList.add('fx-off'); } catch (e) { /* effects stay on */ }</script>
 
     <div class="chat-container">
         <audio id="bgMusicPlayer" loop></audio>
@@ -284,6 +287,16 @@
                         <span class="tool-sublabel">🔞 Mature content <small>(18+, all chats)</small></span>
                         <label class="theme-check"><input type="checkbox" id="matureToggle" {% if mature_on %}checked{% endif %}>
                             Allow adult scenes <small>(switches the preset's mature-content rule on, with a reminder before each reply so the model doesn't refuse)</small></label>
+                        <span class="tool-sublabel">🖼 Chat style <small>(bubbles, buttons, a light effect)</small></span>
+                        <div class="chip-row skin-choice" id="skinChoice">
+                            <button type="button" class="preset-btn {% if not chat_skin_choice %}on{% endif %}" data-skin="">{{ character.name }}'s{% if character_skin %} ({{ character_skin_name }}){% else %} (plain){% endif %}</button>
+                            {% for key, label in chat_skins.items %}
+                            <button type="button" class="preset-btn {% if chat_skin_choice == key %}on{% endif %}" data-skin="{{ key }}">{{ label }}</button>
+                            {% endfor %}
+                            <button type="button" class="preset-btn {% if chat_skin_choice == 'none' %}on{% endif %}" data-skin="none">Plain</button>
+                        </div>
+                        <label class="theme-check"><input type="checkbox" id="skinFxToggle" checked> Effects <small>(candle light, scanlines, grid, petals; this browser; off by itself if your device asks for less motion)</small></label>
+                        <small class="skin-note">The first chip follows the character (Bulba sets it with their look: ask for a chat style); the others are for this chat only.</small>
                         <span class="tool-sublabel">🌦 Scene <small>(this browser)</small></span>
                         <label class="theme-check"><input type="checkbox" id="atmosphereToggle" checked> Weather and time of day over the
                             background <small>(from the World tracker: <span id="atmosphereNow">nothing to show yet</span>)</small></label>
@@ -311,8 +324,8 @@
                 <div class="ideas-box" id="ideasBox" hidden></div>
                 <div class="input-wrapper">
                     <button class="tools-btn" id="toolsBtn" onclick="toggleTools()" title="Steer the story, and this chat's settings"><span class="tools-badge" aria-hidden="true">⚙</span><svg class="icon" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>
-                    <textarea class="input-field" id="messageInput"placeholder="Continue the story with {{character.name}}..." rows="1"></textarea>
-                    <div class="magic-btn-container" style="position:absolute; right:60px; bottom:12px;">
+                    <textarea class="input-field" id="messageInput" placeholder="Continue the story with {{character.name}}…" data-short-placeholder="Your turn…" rows="1"></textarea>
+                    <div class="magic-btn-container">
                         {% if bulba_ideas %}<button class="mini-tool-btn ideas-btn" id="ideasBtn" onclick="showIdeas()" title="Stuck? Bulba suggests three ways to go on">🥔</button>{% endif %}
                         <button class="mini-tool-btn mic-btn" id="micBtn" type="button" hidden title="Speak your message (your browser turns it into text; nothing is sent until you press send)"><svg viewBox="0 0 24 24" style="width:20px; height:20px; fill:currentColor;"><path d="M12,2A3,3 0 0,1 15,5V11A3,3 0 0,1 12,14A3,3 0 0,1 9,11V5A3,3 0 0,1 12,2M19,11C19,14.53 16.39,17.44 13,17.93V21H11V17.93C7.61,17.44 5,14.53 5,11H7A5,5 0 0,0 12,16A5,5 0 0,0 17,11H19Z" /></svg></button>
                         <button class="mini-tool-btn" id="expandBtn" onclick="expandInput()" title="Write my message: the AI writes it (or fleshes out your draft) in your voice, following the preset and lore"><svg viewBox="0 0 24 24" style="width:20px; height:20px; fill:currentColor;"><path d="M19,19V5H5V19H19M19,3A2,2 0 0,1 21,5V19C21,20.11 20.1,21 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3H19M16.7,9.35L15.7,10.35L13.65,8.3L14.65,7.3C14.86,7.08 15.21,7.08 15.42,7.3L16.7,8.58C16.92,8.79 16.92,9.14 16.7,9.35M7,14.94L13.06,8.88L15.12,10.94L9.06,17H7V14.94Z" /></svg></button>
@@ -438,6 +451,7 @@
         window.SAVED_MUSIC = JSON.parse('{{ current_music|escapejs }}');
         window.MUSIC_FOLLOW = {{ music_follow|yesno:"true,false" }};
         window.SAVED_BG = "{{ current_bg|escapejs }}";
+        window.THEME_WEATHER = "{{ theme_weather|escapejs }}";
         window.INIT_PHOTO_URL = "{{ photo_url|default:'' }}";
         window.INIT_PHOTO_SECOND = "{{ photo_second|default:'' }}";
         window.INIT_CHAR_COUNT = {{ char_count|default:1 }};
@@ -478,6 +492,8 @@
     <script src="{% static 'mainapp/js/watch.js' %}?v={% now 'U' %}"></script>
     <script src="{% static 'mainapp/js/chats.js' %}?v={% now 'U' %}"></script>
     <script src="{% static 'mainapp/js/summary.js' %}?v={% now 'U' %}"></script>
+    <script src="{% static 'js/scrolldown.js' %}?v=1"></script>
+    <script>NAScrollDown.attach(document.getElementById('messagesContainer'), {above: document.querySelector('.input-container')});</script>
 
 </body>
 

@@ -30,7 +30,7 @@ from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
 from . import extras, game, media_library, recall, story, thinking, ai_client, cards, chats, regex_rules, model_profiles, presets, samplers, starters, trackers
 from .bulba import control, polish, watch
-from mainapp import mature
+from mainapp import mature, refusals
 
 from .utils import build_ai_request, get_elevenlabs_key
 from .lorebook import (
@@ -167,6 +167,7 @@ def chat(request, slug):
         "context_guides": {},
         "current_bg": "",
         "current_music": {},
+        "skin": "",             # this chat's own chat style ("" = the character's; see CHAT_SKINS)
         "music_follow": {},     # {"on": bool, "since": replies since the last pick}: music follows the scene
         "last_recall": [],      # old messages free recall brought back for the last reply (see mainapp/recall.py)
         "persona": {},          # {"name", "description"}: who the user is in this chat only (else their usual persona)
@@ -213,6 +214,7 @@ def chat(request, slug):
                         chat_state["context_guides"] = data.get("context_guides", {})
                         chat_state["current_bg"] = data.get("current_bg", "")
                         chat_state["current_music"] = data.get("current_music", {})
+                        chat_state["skin"] = data.get("skin") if data.get("skin") in (*CHAT_SKINS, "none") else ""
                         chat_state["music_follow"] = data.get("music_follow") if isinstance(data.get("music_follow"), dict) else {}
                         chat_state["last_recall"] = data.get("last_recall") if isinstance(data.get("last_recall"), list) else []
                         chat_state["persona"] = data.get("persona") if isinstance(data.get("persona"), dict) else {}
@@ -307,6 +309,7 @@ def chat(request, slug):
             "context_guides": chat_state["context_guides"],
             "current_bg": chat_state["current_bg"],
             "current_music": chat_state["current_music"],
+            "skin": chat_state["skin"],
             "music_follow": chat_state["music_follow"],
             "last_recall": chat_state["last_recall"],
             "persona": chat_state["persona"],
@@ -624,6 +627,19 @@ def chat(request, slug):
             if error:
                 return JsonResponse({"success": False, "error": error})
             return JsonResponse({"success": True, "on": bool(data.get("on"))})
+        elif action == "refusal_model":  # asked once: which model steps in when a reply is refused
+            try:
+                refusals.choose(request.user, str(data.get("model") or ""), ai_client.resolve(request.user, "chat")[1])
+            except ValueError as e:
+                return JsonResponse({"success": False, "error": str(e)}, status=400)
+            return JsonResponse({"success": True})
+        elif action == "set_skin":  # the pen menu's chat style: this chat only ("" = the character's)
+            skin = str(data.get("skin") or "")
+            if skin not in CHAT_SKINS and skin not in ("", "none"):
+                return JsonResponse({"success": False, "error": "Unknown style."}, status=400)
+            chat_state["skin"] = skin
+            save_messages(messages)
+            return JsonResponse({"success": True, "skin": chat_skin(character, skin)})
         elif action == "persona_hint_seen":  # "Who are you in the story?" is asked once per account
             settings_obj, _ = ChatSettings.objects.get_or_create(author=request.user)
             settings_obj.appearance = {**(settings_obj.appearance or {}), "persona_hint_seen": True}
@@ -1072,6 +1088,14 @@ def chat(request, slug):
                     # --- Build the request from the active preset ---
                     preset = presets.normalize(presets.get_active(request.user).data)
                     _, chat_model = ai_client.resolve(request.user, "chat")
+                    own_model = chat_model
+                    # A refused reply rewritten on the model they picked to step in: just this reply, with
+                    # settings made for that model (the chat model stays what it is)
+                    stand_in = str(data.get("model") or "")
+                    if action != "regenerate" or stand_in not in [o["id"] for o in refusals.options(own_model)]:
+                        stand_in = ""
+                    if stand_in:
+                        chat_model = stand_in
                     names = prompt_names(request.user, character, chat_state["persona"])
                     history = regex_rules.run_on_history(regex_rules.for_chat(preset, character, request.user), api_messages, names)
                     if control.mode_of(preset) == "director":  # each direction says what it means (see control.py)
@@ -1085,6 +1109,8 @@ def chat(request, slug):
                     game_state = game.current_state(chat_state, messages)
                     built = game.add_to_request(built, game_mode, game_state, names, extra_kinds,
                                                 tables=story.of_type(systems, "table"))
+                    if stand_in:
+                        built = {**built, "params": {**built["params"], "model": stand_in}}
                     game_ops = []
                     # Stream when the page asks for it and the preset allows it
                     streaming = bool(data.get("stream")) and preset["options"].get("streaming", True)
@@ -1125,6 +1151,14 @@ def chat(request, slug):
 
                 def finish_reply(reply, reasoning="", ops=()):
                     """Emotion, saving, voice and the summary/tracker flags, once the reply is complete."""
+                    if refusals.is_refusal(reply):  # not a story reply: never saved; the page offers a stand-in
+                        if regen_from is not None:
+                            messages.append(regen_from)
+                        save_messages(messages)
+                        return {"refused": True, "already": bool(stand_in), "text": reply[:300],
+                                "model": refusals.name_of(stand_in or own_model),
+                                "stand_in": refusals.stand_in_for(request.user, own_model),
+                                "options": refusals.options(own_model)}
                     reply = text_rules("saved", reply, "assistant")
                     reasoning = text_rules("saved", reasoning, "reasoning").strip() if reasoning else ""
                     # A tool call the model wrote as text (note_milestone(...)): the extra, not the code
@@ -1369,6 +1403,12 @@ def chat(request, slug):
         "bulba_url": reverse("bulba_chat", kwargs={"chat_id": chat_obj.id}),
         "watch_data": watch.page_state(request.user, chat_obj),
         "persona_hint": _persona_hint(request.user, chat_state["persona"]),
+        "theme_weather": theme_weather(character, chat_state.get("current_bg") or ""),
+        "skin": chat_skin(character, chat_state.get("skin") or ""),
+        "chat_skin_choice": chat_state.get("skin") or "",
+        "character_skin": (character.theme or {}).get("skin") if (character.theme or {}).get("skin") in CHAT_SKINS else "",
+        "chat_skins": CHAT_SKINS,
+        "character_skin_name": CHAT_SKINS.get((character.theme or {}).get("skin") or "", ""),
         "mature_on": mature.is_on(presets.normalize(presets.get_active(request.user).data)),
         "director_on": control.mode_of(presets.normalize(presets.get_active(request.user).data)) == "director",
         "display_rules": {
@@ -1603,6 +1643,35 @@ def word_note(user, character, messages, wish, rewrite=False, persona=None):
     if not text:
         raise ai_client.AIError("Bulba couldn't word it this time. Try again.")
     return text
+
+
+WEATHERS = ("rain", "snow", "fog", "storm", "clear")
+# Chat styles: bubbles, buttons and one light effect (static mainapp/css/chat_skins.css), per character
+CHAT_SKINS = {"parchment": "📜 Parchment", "neon": "🌆 Neon", "lab": "🧪 Lab", "romance": "🌸 Romance"}
+
+
+def chat_skin(character, chat_choice=""):
+    """The style a chat shows: its own pick ("none" = plain), else the character's, else plain ("")."""
+    if chat_choice == "none":
+        return ""
+    if chat_choice in CHAT_SKINS:
+        return chat_choice
+    skin = (character.theme or {}).get("skin")
+    return skin if skin in CHAT_SKINS else ""
+
+
+def theme_weather(character, background=""):
+    """The weather a chat opens with until the World tracker says otherwise: the theme's, else a guess from the
+    background's name ("Rainy" → rain). "" when there's nothing to go on."""
+    theme = character.theme or {}
+    if theme.get("weather") in WEATHERS:
+        return "" if theme["weather"] == "clear" else theme["weather"]
+    name = (str(background or theme.get("bg") or "")).lower()
+    for word, weather in (("storm", "storm"), ("thunder", "storm"), ("rain", "rain"), ("snow", "snow"),
+                          ("blizzard", "snow"), ("fog", "fog"), ("mist", "fog")):
+        if word in name:
+            return weather
+    return ""
 
 
 def _persona_hint(user, chat_persona):
@@ -2358,8 +2427,18 @@ def _bulba_state(session):
         "model": profile["name"] if profile else session.target_model,
         "preferences": [p for p in session.preferences if p.get("status") not in ("rejected", "superseded")],
         "proposals": [{**{k: p.get(k) for k in ("id", "kind", "title", "status", "result", "edited")},
-                       "summary": _shown_summary(session, p), "editable": editing.fields(p)} for p in session.proposals],
+                       "summary": _shown_summary(session, p), "editable": editing.fields(p),
+                       **({"preview": _theme_preview(p)} if p["kind"] == "theme" else {})} for p in session.proposals],
     }
+
+
+def _theme_preview(p):
+    """What a theme card shows besides its words: the background picture, the music to play, the colour."""
+    t = (p.get("payload") or {}).get("theme") or {}
+    bg, music = t.get("background") or {}, t.get("music") or {}
+    return {"bg": bg.get("url", ""), "bg_name": bg.get("name", ""), "music": music.get("url", ""),
+            "music_name": music.get("name", ""), "color": t.get("dialogue_color", ""), "weather": t.get("weather", ""),
+            "skin": t.get("skin", ""), "skin_name": CHAT_SKINS.get(t.get("skin", ""), "")}
 
 
 def _bulba_chat_link(session):
@@ -2494,6 +2573,10 @@ def quick_setup(request):
             context = 0
         if context:
             set_chat_context(user, max(4096, min(2_000_000, context)))
+        if isinstance(data.get("mature"), bool) and data["mature"] != mature.is_on(presets.normalize(presets.get_active(user).data)):
+            error = mature.switch(user, data["mature"], adult_confirmed=data["mature"])
+            if error:
+                return JsonResponse({"error": error}, status=400)
         if "persona_name" in data:
             user.persona_name = str(data.get("persona_name") or "").strip()[:100]
             user.persona_description = str(data.get("persona_description") or "").strip()[:8000]
@@ -2507,6 +2590,7 @@ def quick_setup(request):
     return render(request, "mainapp/quick.html", {
         "model_name": profile.get("name") or chat_model, "ready": ready, "active_starter": active_starter,
         "active_name": active.name, "characters": characters, "picked": picked,
+        "mature_on": mature.is_on(presets.normalize(active.data)),
         "quick_data": {"window": state.get("window"), "prices": state.get("prices")},
     })
 

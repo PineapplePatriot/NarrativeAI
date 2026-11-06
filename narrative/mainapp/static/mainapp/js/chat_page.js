@@ -540,6 +540,7 @@ function sendMessage(noteOnly = false) {
 
     requestReply({ message: message, guidance: guidance })
         .then(data => {
+            if (data.refused) return handleRefusal(data);
             if (data.error || data.stopped) {
                 if (data.bubble) setSwipes({ count: 1, current: 0 });  // the partial reply was kept
                 if (data.error) showChatError(data.error);
@@ -1143,7 +1144,7 @@ function setVolume(v) { bgMusic.volume = v; }
 
 
 // A new version of the AI's last reply. The old one stays as a swipe (and comes back if this fails).
-function regenerateReply(guidance = '') {
+function regenerateReply(guidance = '', model = '') {
     if (isGenerating) return;
     const msgs = document.querySelectorAll('.message:not(#typingMessage)');
     const last = msgs[msgs.length - 1];
@@ -1154,8 +1155,9 @@ function regenerateReply(guidance = '') {
     isGenerating = true; sendBtn.disabled = true; typingMessage.style.display = 'flex'; scrollToBottom();
     stopContainer.style.display = 'block';
     const restore = () => { if (old) { old.style.display = ''; setSwipes(before); } };
-    requestReply({ action: 'regenerate', guidance: guidance })
+    requestReply(model ? { action: 'regenerate', guidance: guidance, model } : { action: 'regenerate', guidance: guidance })
         .then(d => {
+            if (d.refused) { restore(); return handleRefusal(d); }  // the server kept the old reply
             if (d.error || d.stopped) {
                 // The server keeps any text that arrived as a new version; with none, the old reply stays
                 if (!d.bubble) restore();
@@ -1957,3 +1959,77 @@ document.getElementById('directorToggle')?.addEventListener('change', async (e) 
         alert(err.message);
     }
 });
+
+// The message box's hint fits on one line: the long one where there's room, "Your turn…" on narrow screens
+(function () {
+    const box = document.getElementById('messageInput');
+    if (!box) return;
+    const long = box.getAttribute('placeholder'), short = box.dataset.shortPlaceholder || long;
+    const fit = () => { box.setAttribute('placeholder', box.clientWidth < 320 ? short : long); };
+    window.addEventListener('resize', fit);
+    fit();
+})();
+
+
+// A refused reply (a provider's filter, or the model declining) never goes into the story. The first time, they
+// pick which model steps in; after that, a refused reply is rewritten on it (just that one reply)
+function handleRefusal(d) {
+    if (d.bubble) d.bubble.closest('.message')?.remove();
+    const nameOf = id => ((d.options || []).find(o => o.id === id) || {}).name || id;
+    if (d.already) {
+        showChatError(`${d.model} refused this one too. Try Regenerate, reword your message, or switch on 🔞 Mature content (pen menu → This chat).`);
+        return;
+    }
+    if (d.stand_in) {
+        showChatNotice(`${d.model} refused this reply, so ${nameOf(d.stand_in)} is writing it instead (just this one).`);
+        setTimeout(() => regenerateReply('', d.stand_in), 0);
+        return;
+    }
+    const box = document.createElement('div');
+    box.className = 'refusal-ask';
+    box.setAttribute('role', 'dialog');
+    box.innerHTML = `<b>${escHtml(d.model)} refused this reply</b>
+        <p>It wasn't saved. Which model should step in when a reply is refused? It writes only that reply; your chat
+        model stays the same. You're asked once.</p>
+        <div class="refusal-options">${(d.options || []).map(o => `<button type="button" data-standin="${escHtml(o.id)}">
+            <b>${escHtml(o.name)}</b><small>${escHtml(o.note)}</small></button>`).join('')}</div>
+        <button type="button" class="link-btn" data-standin="">Not now</button>`;
+    document.body.appendChild(box);
+    box.addEventListener('click', async (e) => {
+        const b = e.target.closest('[data-standin]');
+        if (!b) return;
+        box.remove();
+        if (!b.dataset.standin) return;
+        await fetch(window.location.href, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ action: 'refusal_model', model: b.dataset.standin }),
+        }).catch(() => {});
+        regenerateReply('', b.dataset.standin);
+    });
+}
+
+// 🖼 Chat style: the character's, one of the four for this chat, or plain; the effects switch is per browser
+(function () {
+    const choice = document.getElementById('skinChoice');
+    if (choice) choice.addEventListener('click', async (e) => {
+        const b = e.target.closest('[data-skin]');
+        if (!b) return;
+        const resp = await fetch(window.location.href, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ action: 'set_skin', skin: b.dataset.skin }),
+        });
+        const d = await resp.json().catch(() => ({}));
+        if (!d.success) { showChatNotice(d.error || 'Could not change the chat style.'); return; }
+        [...document.body.classList].filter(c => c.startsWith('skin-')).forEach(c => document.body.classList.remove(c));
+        if (d.skin) document.body.classList.add('skin-' + d.skin);
+        choice.querySelectorAll('[data-skin]').forEach(x => x.classList.toggle('on', x === b));
+    });
+    const fx = document.getElementById('skinFxToggle');
+    if (fx) {
+        fx.checked = !document.body.classList.contains('fx-off');
+        fx.addEventListener('change', () => {
+            document.body.classList.toggle('fx-off', !fx.checked);
+            try { localStorage.setItem('chat-fx', fx.checked ? 'on' : 'off'); } catch (err) { /* this page only */ }
+        });
+    }
+})();

@@ -92,7 +92,7 @@ window.Watch = (function () {
             <p>${esc(n.text)}</p>
             ${quotes ? `<ul class="watch-quotes">${quotes}</ul>` : ''}
             <div class="watch-actions"><button type="button" data-w="open" data-id="${esc(n.id)}">${{ pace: 'Get some help', taste: 'Put them in my preset', keeper: 'Keep them (with Bulba)' }[n.kind] || 'Look at it with Bulba'}</button>
-            ${['pace', 'taste', 'keeper', 'continuity'].includes(n.kind) || n.fixing ? '' : `<button type="button" class="ghost" data-w="fix" data-id="${esc(n.id)}" title="From now on, new replies get a quick polish that rewrites this habit (a small cost each time)">Fix this automatically</button>`}
+            ${['pace', 'taste', 'keeper', 'continuity'].includes(n.kind) || n.fixing || n.nofix ? '' : `<button type="button" class="ghost" data-w="fix" data-id="${esc(n.id)}" title="From now on, new replies get a quick polish that rewrites this habit (a small cost each time)">Fix this automatically</button>`}
             ${['pace', 'taste', 'keeper', 'continuity'].includes(n.kind) ? '' : `<button type="button" class="ghost" data-w="mute" data-id="${esc(n.id)}">I don't mind this</button>`}
             <button type="button" class="ghost" data-w="dismiss" data-id="${esc(n.id)}">Not now</button></div>`;
     }

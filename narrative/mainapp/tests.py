@@ -259,6 +259,12 @@ class WorldbookViewTests(TestCase):
         self.assertEqual(self.client.post(reverse("worldbook_delete", args=["secret"])).status_code, 404)
 
 
+def _no_default_fixes(user):
+    """Most tests start from no habits being fixed (a real account starts with the leaked-markup fix on)."""
+    from mainapp.bulba import watch
+    watch.save_user_data(user, {**watch.user_data(user), "fix": []})
+
+
 class ChatPromptTests(TestCase):
     """The chat view, with OpenRouter replaced by a fake."""
 
@@ -275,6 +281,7 @@ class ChatPromptTests(TestCase):
         from users.models import ConnectionProfile
 
         self.user = get_user_model().objects.create_user(username="chatter", password="pw12345!")
+        _no_default_fixes(self.user)
         ConnectionProfile.objects.create(user=self.user, name="Main", api_key="test-key", model="test/model")
         self.character = Character.objects.create(name="Rose", slug="rose-chat-test", author=self.user,
                                                   initial_message="Hello, traveller.")
@@ -687,8 +694,8 @@ class SamplerTests(SimpleTestCase):
 class SamplerChatTests(ChatPromptTests):
     def test_samplers_sent_as_parameters_not_prompt_text(self):
         from mainapp.models import ChatSettings
-        ChatSettings.objects.create(author=self.user, samplers={
-            "temperature": {"on": True, "value": 0.6}, "max_tokens": {"on": True, "value": 1234}})
+        ChatSettings.objects.update_or_create(author=self.user, defaults={"samplers": {
+            "temperature": {"on": True, "value": 0.6}, "max_tokens": {"on": True, "value": 1234}}})
         self.post({"action": "chat", "message": "Hello"})
         payload = self.sent[-1]
         self.assertEqual((payload["temperature"], payload["max_tokens"]), (0.6, 1234))
@@ -1767,6 +1774,7 @@ class BulbaTests(TestCase):
     def setUp(self):
         from users.models import ConnectionProfile
         self.user = get_user_model().objects.create_user(username="potato", password="pw12345!")
+        _no_default_fixes(self.user)
         self.main = ConnectionProfile.objects.create(user=self.user, name="Main", api_key="sk-or-secret",
                                                      model="anthropic/claude-opus-5.5")
         self.client.force_login(self.user)
@@ -2704,6 +2712,93 @@ class WrittenToolCallsTests(ChatPromptTests):
                          ("He rolls. The lock clicks.", []))
 
 
+class MatureInSetupTests(BulbaTests):
+    def test_the_basics_form_switches_it_and_new_presets_keep_it(self):
+        from mainapp import mature, presets as presets_mod, starters
+        self.script = [("Noted.", [])]
+        self.api(action="basics", answers={"mature": "on"})
+        self.assertTrue(mature.wanted(self.user))
+        self.assertTrue(mature.is_on(presets_mod.normalize(presets_mod.get_active(self.user).data)))
+        some = starters.all_starters()[0]["id"]
+        obj = starters.apply(self.user, some)  # a preset made later (Bulba's preset step, a starter)
+        self.assertTrue(mature.is_on(presets_mod.normalize(obj.data)))
+        self.script = [("Noted.", [])]
+        self.api(action="basics", answers={"mature": "off"})
+        self.assertFalse(mature.wanted(self.user))
+        self.assertFalse(mature.is_on(presets_mod.normalize(starters.apply(self.user, some).data)))
+
+    def test_quick_setup_has_it(self):
+        from mainapp import mature, presets as presets_mod
+        page = self.client.get(reverse("quick_setup"))
+        self.assertContains(page, 'id="qMature"')
+        self.assertContains(page, "Let Bulba pick it")
+        self.client.post(reverse("quick_setup"), json.dumps({"mature": True}), content_type="application/json")
+        self.assertTrue(mature.is_on(presets_mod.normalize(presets_mod.get_active(self.user).data)))
+
+
+class DefaultFixTests(TestCase):
+    def test_a_new_account_has_the_leak_fix_on_and_can_stop_it(self):
+        from mainapp.bulba import watch
+        user = get_user_model().objects.create_user("fresh", "fresh@example.com", "pw12345!xyz")
+        self.assertIn("leaked_markup", watch.user_data(user)["fix"])
+        watch.change_memory(user, "stop_fix", "leaked_markup")
+        self.assertNotIn("leaked_markup", watch.user_data(user)["fix"])  # stopped stays stopped
+
+
+class RefusalTests(ChatPromptTests):
+    REPLY = "I'm sorry, but I can't continue this roleplay because the request involves explicit content."
+
+    def fake_post(self, url, headers=None, json=None, timeout=None, **kwargs):
+        resp = super().fake_post(url, headers=headers, json=json, timeout=timeout, **kwargs)
+        first = json["messages"][0]["content"]
+        if (self.refuse and self.reply_status < 400 and "response_format" not in json
+                and not first.startswith(("Existing summary", "Summarize this entire"))
+                and json.get("model") != self.ok_model):
+            resp.json.return_value = {"choices": [{"message": {"content": self.REPLY}}]}
+        return resp
+
+    ok_model = "google/gemini-4-argon"
+    refuse = False  # the chat tests this class inherits run as usual
+
+    def test_a_refused_reply_is_not_saved_and_asks_once(self):
+        from mainapp import refusals
+        self.refuse = True
+        self.client.get(self.url)
+        before = len(self.saved_messages())
+        data = self.post({"action": "chat", "message": "Kiss me."}).json()
+        self.assertTrue(data["refused"])
+        self.assertEqual(data["stand_in"], "")  # not chosen yet: the page asks
+        self.assertEqual([o["id"] for o in data["options"]], [i for i, _, _ in refusals.STAND_INS])
+        self.assertEqual(len(self.saved_messages()), before + 1)  # their message, no refusal
+        self.assertEqual(self.post({"action": "refusal_model", "model": "nonsense"}).status_code, 400)
+        self.post({"action": "refusal_model", "model": "google/gemini-4-argon"})
+        data = self.post({"action": "regenerate", "model": "google/gemini-4-argon"}).json()
+        self.assertEqual(data["reply"], "A reply.")  # the stand-in wrote it
+        self.assertEqual(self.sent[-1]["model"], "google/gemini-4-argon")
+        self.post({"action": "chat", "message": "Again."})
+        data = self.post({"action": "chat", "message": "And again."}).json()
+        self.assertEqual(data["stand_in"], "google/gemini-4-argon")  # from now on, no question
+
+    def test_the_stand_in_refusing_too_is_said_once(self):
+        self.refuse, self.ok_model = True, "none"
+        self.post({"action": "chat", "message": "Kiss me."})
+        data = self.post({"action": "regenerate", "model": "deepseek/deepseek-v4-flash"}).json()
+        self.assertTrue(data["refused"] and data["already"])
+
+    def test_detection_leaves_story_lines_alone(self):
+        from mainapp import refusals
+        self.assertTrue(refusals.is_refusal("The request was rejected because it was considered high risk"))
+        self.assertFalse(refusals.is_refusal('"I\'m sorry," she whispered, "I can\'t do this anymore." She turned away.'))
+        self.assertEqual([o["id"] for o in refusals.options("google/gemini-4-argon")][0], "xiaomi/mimo-v2.6-pro")
+
+    def test_mimo_is_pinned_to_providers_that_dont_filter(self):
+        from users.models import ConnectionProfile
+        ConnectionProfile.objects.filter(user=self.user).update(model="xiaomi/mimo-v2.6-pro",
+                                                                provider=ConnectionProfile.PROVIDER_OPENROUTER)
+        self.post({"action": "chat", "message": "Hi"})
+        self.assertEqual(self.sent[-1]["provider"], {"only": ["xiaomi", "deepinfra"], "allow_fallbacks": False})
+
+
 class SteerMenuTests(ChatPromptTests):
     def test_two_tabs_the_guide_and_the_director_switch(self):
         from mainapp import presets as presets_mod
@@ -2721,6 +2816,28 @@ class SteerMenuTests(ChatPromptTests):
         active = presets_mod.normalize(presets_mod.get_active(self.user).data)
         self.assertNotEqual(control.mode_of(active), "director")
         self.assertNotIn("control_before", active["extras"])
+
+
+class ChatSkinTests(ChatPromptTests):
+    def test_character_style_then_this_chat_then_plain(self):
+        from mainapp.views import chat_skin
+        page = self.client.get(self.url)
+        self.assertContains(page, 'id="skinChoice"')
+        self.assertContains(page, 'id="skinFxToggle"')
+        self.assertNotContains(page, "skin-parchment")
+        self.character.theme = {**(self.character.theme or {}), "skin": "parchment"}
+        self.character.save()
+        self.assertContains(self.client.get(self.url), " skin-parchment")
+        self.assertEqual(self.post({"action": "set_skin", "skin": "neon"}).json()["skin"], "neon")
+        page = self.client.get(self.url)
+        self.assertContains(page, " skin-neon")
+        self.assertNotContains(page, " skin-parchment\"")
+        self.assertEqual(self.post({"action": "set_skin", "skin": "none"}).json()["skin"], "")
+        self.assertNotContains(self.client.get(self.url), " skin-neon")
+        self.assertEqual(self.post({"action": "set_skin", "skin": ""}).json()["skin"], "parchment")  # back to the character's
+        self.assertFalse(self.post({"action": "set_skin", "skin": "disco"}).json()["success"])
+        self.character.theme = {"skin": "bogus"}
+        self.assertEqual(chat_skin(self.character), "")
 
 
 class MatureSwitchTests(ChatPromptTests):
@@ -4000,8 +4117,14 @@ class BulbaPicturesAndThemeTests(BulbaCardAndLoreTests):
             self.upload(V2_CARD)
             self.script = [("", [self.call("propose_theme", background="Nowhere", why="x")]),
                            ("Here's a look.", [self.call("propose_theme", background="lab 13", music="Quiet Lab",
-                                                         dialogue_color="#67e8f9", why="a scientist")])]
+                                                         dialogue_color="#67e8f9", weather="rain", chat_style="lab",
+                                                         why="a scientist")])]
             data = self.api(action="say", text="give him a theme").json()
+        preview = data["state"]["proposals"][-1]["preview"]  # the card shows the look, not just names
+        self.assertEqual(preview["bg"], "/static/defaults/backgrounds/lab-13.webp")
+        self.assertEqual(preview["music"], "/static/defaults/music/quiet-lab.mp3")
+        self.assertEqual((preview["color"], preview["weather"]), ("#67e8f9", "rain"))
+        self.assertEqual((preview["skin"], preview["skin_name"]), ("lab", "🧪 Lab"))
         pid = data["state"]["proposals"][-1]["id"]
         self.script = [("Done.", [])]
         self.api(action="apply", id=pid)
@@ -4009,6 +4132,15 @@ class BulbaPicturesAndThemeTests(BulbaCardAndLoreTests):
         self.assertEqual(viktor.theme["bg"], "/static/defaults/backgrounds/lab-13.webp")
         self.assertEqual(viktor.theme["music"]["name"], "Quiet Lab")
         self.assertEqual(viktor.theme["dialogue_color"], "#67e8f9")
+        self.assertEqual(viktor.theme["weather"], "rain")
+        self.assertEqual(viktor.theme["skin"], "lab")
+        from mainapp.views import theme_weather
+        self.assertEqual(theme_weather(viktor), "rain")
+        viktor.theme = {"bg": "/static/defaults/backgrounds/snowy-pass.webp"}
+        self.assertEqual(theme_weather(viktor), "snow")  # guessed from the background's name
+        viktor.theme = {"bg": "/x/rainy-street.webp", "weather": "clear"}
+        self.assertEqual(theme_weather(viktor), "")  # the theme's own pick wins
+        viktor.refresh_from_db()
         self.script = [("Undone.", [])]
         self.api(action="undo", id=pid)
         viktor.refresh_from_db()
@@ -4633,14 +4765,14 @@ class WatchLogicTests(SimpleTestCase):
     def test_one_slip_is_nothing_a_repeat_is_a_habit(self):
         from mainapp.bulba import watch
         slip = lambda at: {"label": "forced_callback", "quote": f"the voice he used {at}", "at": at, "cause": "model"}
-        data = self.data([slip(3), slip(9)])
-        self.assertEqual(watch.habits(data, []), [])
-        data["log"].append(slip(11))
-        notes = watch.habits(data, [])
+        data = self.data([slip(3)])
+        self.assertEqual(watch.habits(data, []), [])  # once is nothing
+        data["log"].append(slip(9))
+        notes = watch.habits(data, [])  # twice in the last few replies is a habit
         self.assertEqual(len(notes), 1)
         self.assertEqual(notes[0]["kind"], "pattern")
-        self.assertIn("3 of the last 6", notes[0]["text"])
-        self.assertEqual(len(notes[0]["quotes"]), 3)
+        self.assertIn("2 of the last 6", notes[0]["text"])
+        self.assertEqual(len(notes[0]["quotes"]), 2)
         self.assertEqual(watch.habits(data, []), [])  # raised once
         # muted habits never come back
         self.assertEqual(watch.habits(self.data([slip(3), slip(9), slip(11)]), ["forced_callback"]), [])
@@ -4671,10 +4803,29 @@ class WatchLogicTests(SimpleTestCase):
 
     def test_free_and_paid_slips_are_judged_over_their_own_replies(self):
         from mainapp.bulba import watch
-        # the reader has only seen two replies so far: not enough to call anything a habit yet
-        data = {"log": [{"label": "overexplaining", "quote": "q", "at": at, "cause": "model"} for at in (2, 4)],
-                "checked": [2, 4], "free_checked": [2, 4, 6, 8], "notices": []}
+        # the reader has only seen one reply so far: not enough to call anything a habit yet
+        data = {"log": [{"label": "overexplaining", "quote": "q", "at": at, "cause": "model"} for at in (4,)],
+                "checked": [4], "free_checked": [2, 4, 6, 8], "notices": []}
         self.assertEqual(watch.habits(data, []), [])
+
+    def test_shape_length_and_thinking_are_checked_for_free(self):
+        from mainapp import chats
+        from mainapp.bulba import watch
+        built = '*He turns.*\n\n"A line."\n\n*He waits.* Well?'
+        msgs = [("assistant", "", "Hello.", "", 1)]
+        data = {"log": [], "checked": [], "free_checked": [], "notices": []}
+        for n in range(2):
+            msgs += [("user", "", "ok", "", 1), ("assistant", "", built, "", 1)]
+            watch.free_checks(data, msgs)
+        self.assertIn("same_shape", [e["label"] for e in data["log"]])
+        long_reply = chats.with_reasoning(("assistant", "", " ".join(["word"] * 600), "", 1), " ".join(["think"] * 1500))
+        msgs += [("user", "", "go on", "", 1), long_reply]
+        watch.free_checks(data, msgs)
+        labels = [e["label"] for e in data["log"] if e["at"] == len(msgs) - 1]
+        self.assertIn("overlong", labels)
+        self.assertIn("long_thinking", labels)
+        note = next(n for n in watch.habits(data, []) if n["label"] == "same_shape")
+        self.assertTrue(note["nofix"])  # a preset fix, not something polish can rewrite
 
     def test_their_own_messages_are_brought_up_gently(self):
         from mainapp.bulba import watch
@@ -4712,7 +4863,7 @@ class WatchChatTests(ChatPromptTests):
         self.assertTrue(page.context["watch_data"]["on"])
         self.assertTrue(page.context["watch_data"]["intro"])  # the first-time note
         dues = [self.post({"action": "chat", "message": f"Line {i}."}).json()["watch_due"] for i in range(5)]
-        self.assertEqual(dues, [False, True, True, True, True])  # every 3: the greeting counts as a reply; not read yet
+        self.assertEqual(dues, [True, True, True, True, True])  # the first read after 2 replies (the greeting counts)
         self.reader_answer = {"slips": [{"reply": n, "label": "unearned_depth", "quote": f"wise line {n}",
                                          "cause": "model"} for n in (1, 3, 5)],
                               "taste": ["Keeps the banter, cuts the speeches"]}

@@ -60,6 +60,7 @@ async function save(go) {
         starter: (document.querySelector('input[name=starter]:checked') || {}).value || '',
         persona_name: $('personaName').value, persona_description: $('personaDescription').value,
         character: (document.querySelector('input[name=character]:checked') || {}).value || '',
+        mature: $('qMature').checked,
     };
     if (data.window) body.chat_context = steps[Number($('chatContext').value)];
     $('qError').hidden = true;
@@ -77,3 +78,8 @@ async function save(go) {
     } catch (err) { $('qError').textContent = err.message; $('qError').hidden = false; }
 }
 $('qStart').addEventListener('click', () => save(true));
+
+// 🔞: asks once that they're an adult
+$('qMature').addEventListener('change', (e) => {
+    if (e.target.checked && !confirm('Adult scenes are for adults only. Are you 18 or older?')) e.target.checked = false;
+});
