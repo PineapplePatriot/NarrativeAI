@@ -65,4 +65,5 @@ profile, and **?** (a tour of the page, or "What's this?": click anything to hav
 - Bulba's polish: a quick pass that rewrites only the sentences with habits you asked it to fix.
 - Thoughts: what a thinking model thought before replying (folded above the reply).
 - Tokens: the pieces of text models count and charge for; more text in and out costs more.
+- Bulba itself runs on MiMo v2.6 Pro (cheap). When MiMo's provider filter blocks a request ("considered high risk"), the app retries it on DeepSeek V4 Flash and keeps Bulba there for about half a day, so a setup never gets stuck on it.
 - Cost: everything runs on your OpenRouter key; the pen menu shows this month's total; the app stops at the limit. The Notebook page shows the all-time total.

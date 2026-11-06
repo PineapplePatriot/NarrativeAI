@@ -5,8 +5,10 @@ Every feature calls `complete(user, task, messages, ...)` with a task name from
 TASKS. Which connection profile and model a task uses is set per user on the
 Connections page; tasks without their own setting use the main chat connection.
 """
+import json
 import logging
 import os
+import re
 
 import requests
 
@@ -128,6 +130,21 @@ def is_enabled(user, task):
 
 # Bulba's own model (the samples it shows always come from the user's chat model)
 BULBA_MODEL = "xiaomi/mimo-v2.6-pro"
+# When MiMo's provider filter blocks a request ("considered high risk"), Bulba's jobs move to this model for a
+# while: the conversation that tripped it would trip it again on every later step
+BULBA_FALLBACK = "deepseek/deepseek-v4-flash"
+FALLBACK_HOURS = 12
+MODERATION = re.compile(r"considered high risk|rejected because it|content (?:management|security) polic|"
+                        r"data_inspection_failed|inappropriate content|violat\w* (?:our|the) (?:content|usage) polic",
+                        re.I)
+
+
+def _fallback_key(user):
+    return f"bulba-fallback:{getattr(user, 'pk', '')}"
+
+
+def _blocked(text):
+    return bool(MODERATION.search(str(text or "")))
 
 
 def resolve(user, task):
@@ -142,7 +159,10 @@ def resolve(user, task):
         if profile is None:
             raise NoConnection("No AI connection is set up yet.")
         # Through OpenRouter Bulba uses our model; on a custom server (local testing) the server's own
-        return profile, (BULBA_MODEL if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER else profile.model)
+        if profile.provider != ConnectionProfile.PROVIDER_OPENROUTER:
+            return profile, profile.model
+        from django.core.cache import cache
+        return profile, (BULBA_FALLBACK if cache.get(_fallback_key(user)) else BULBA_MODEL)
     setting = get_task_setting(user, task)
     chat_setting = setting if task == "chat" else get_task_setting(user, "chat")
     profile = setting.profile or main_profile(user)
@@ -235,6 +255,15 @@ def _request(user, task, messages, timeout=None, **params):
     except requests.RequestException as e:
         raise AIError(f"{label}: could not reach {profile.name} ({e.__class__.__name__}).")
 
+    # MiMo's provider filter blocked one of Bulba's requests: the same request again on the backup model, and
+    # Bulba's next jobs go there too for a while (the conversation would trip the filter at every step)
+    if (task in ("bulba", "watch", "polish") and payload["model"] == BULBA_MODEL
+            and profile.provider == ConnectionProfile.PROVIDER_OPENROUTER and _blocked_reply(resp)):
+        from django.core.cache import cache
+        cache.set(_fallback_key(user), True, FALLBACK_HOURS * 3600)
+        logging.getLogger(__name__).info("Bulba's model was blocked by its provider's filter; using %s", BULBA_FALLBACK)
+        return _request(user, task, messages, timeout, **{**params, "model": BULBA_FALLBACK})
+
     if resp.status_code >= 400:
         raise AIError(f"{label}: {profile.name} returned an error ({resp.status_code}): {_error_text(resp)}")
 
@@ -245,8 +274,28 @@ def _request(user, task, messages, timeout=None, **params):
     if isinstance(data, dict) and data.get("error"):  # OpenRouter can report errors with HTTP 200
         raise AIError(f"{label}: {profile.name} returned an error: {_error_text(resp)}")
     if isinstance(data, dict):
-        record_cost(user, task, model, (data.get("usage") or {}).get("cost"))
+        record_cost(user, task, payload["model"], (data.get("usage") or {}).get("cost"))
     return profile, data
+
+
+def _blocked_reply(resp):
+    """A provider filter's refusal, as an error or as the whole (short) reply text."""
+    if resp.status_code >= 400:
+        return _blocked(_error_text(resp))
+    try:
+        data = resp.json()
+    except ValueError:
+        return False
+    if not isinstance(data, dict):
+        return False
+    if data.get("error"):
+        return _blocked(json.dumps(data["error"]))
+    try:
+        message = data["choices"][0]["message"]
+    except (KeyError, IndexError, TypeError):
+        return False
+    content = str(message.get("content") or "")
+    return not message.get("tool_calls") and len(content) < 400 and _blocked(content)
 
 
 def complete(user, task, messages, timeout=None, **params):

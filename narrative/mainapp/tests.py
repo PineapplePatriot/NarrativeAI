@@ -2964,9 +2964,26 @@ class BulbaInChatTests(ChatPromptTests):
         with self.assertRaises(ValueError):
             apply_edits(once, [{"action": "remind", "content": "  "}])
 
-    def test_a_provider_refusal_points_to_the_mature_switch(self):
+    def test_a_provider_refusal_moves_bulba_to_the_backup_model(self):
+        from django.core.cache import cache
+        from mainapp import ai_client
+        self.addCleanup(cache.clear)
         self.make_chat()
-        self.script = [("The request was rejected because it was considered high risk", [])]
+        self.script = [("The request was rejected because it was considered high risk", []), ("Sure, here goes.", [])]
+        data = self.api(action="say", text="Make the card detailed").json()
+        said = [e["text"] for e in data["events"] if e["type"] == "bulba"][-1]
+        self.assertEqual(said, "Sure, here goes.")  # retried, the person never sees the filter
+        self.assertEqual([c["model"] for c in self.bulba_calls[-2:]], [ai_client.BULBA_MODEL, ai_client.BULBA_FALLBACK])
+        self.script = [("Next step.", [])]
+        self.api(action="say", text="ok")
+        self.assertEqual(self.bulba_calls[-1]["model"], ai_client.BULBA_FALLBACK)  # stays on it for a while
+
+    def test_when_both_models_refuse_bulba_says_what_to_do(self):
+        from django.core.cache import cache
+        self.addCleanup(cache.clear)
+        self.make_chat()
+        self.script = [("The request was rejected because it was considered high risk", []),
+                       ("The request was rejected because it was considered high risk", [])]
         data = self.api(action="say", text="Can you add a NSFW to my prompt").json()
         said = [e["text"] for e in data["events"] if e["type"] == "bulba"][-1]
         self.assertIn("Mature content", said)
