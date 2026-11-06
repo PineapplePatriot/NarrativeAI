@@ -478,6 +478,8 @@
     <script src="{% static 'mainapp/js/watch.js' %}?v={% now 'U' %}"></script>
     <script src="{% static 'mainapp/js/chats.js' %}?v={% now 'U' %}"></script>
     <script src="{% static 'mainapp/js/summary.js' %}?v={% now 'U' %}"></script>
+    <script src="{% static 'js/scrolldown.js' %}?v=1"></script>
+    <script>NAScrollDown.attach(document.getElementById('messagesContainer'), {above: document.querySelector('.input-container')});</script>
 
 </body>
 
