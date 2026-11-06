@@ -6,7 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profile - Narrative AI</title>
-    <link rel="stylesheet" href="{% static 'users/css/profile.css' %}">
+    <link rel="stylesheet" href="{% static 'users/css/profile.css' %}?v=2">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
 </head>
@@ -15,7 +15,7 @@
     <div class="na-page na-narrow">
     <div class="na-head">
         <h1 class="na-title">{{ title }}</h1>
-        <p class="na-sub">Your photo, name, login and password. Who you are in stories (your persona) is made with 🥔 Bulba.</p>
+        <p class="na-sub">Your photo, name, login and password, and who you are in stories (your persona).</p>
     </div>
     <div class="form-container">
 
@@ -41,13 +41,22 @@
             {% endif %}
 
             <!-- Всі інші поля -->
-            {% for field in form %}
-                {% if field.name != 'photo' %}
-                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                    {{ field }}
-                    {% if field.errors %}
-                        <div class="form-error">{{ field.errors }}</div>
-                    {% endif %}
+            {% for field in form.account_fields %}
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}
+                    <div class="form-error">{{ field.errors }}</div>
+                {% endif %}
+            {% endfor %}
+
+            <h2 class="persona-head" id="persona">🎭 You in stories</h2>
+            <p class="persona-help">Who the AI talks to in every chat, unless a chat has its own (pen menu → This chat).
+                Leave it empty if you'd rather not, or <a href="{% url 'bulba' %}?draft={{ 'Help me make my persona: who I am in the story. Ask me two or three light questions, then propose it.'|urlencode }}">let 🥔 Bulba make one</a>.</p>
+            {% for field in form.persona_fields %}
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}
+                    <div class="form-error">{{ field.errors }}</div>
                 {% endif %}
             {% endfor %}
 
