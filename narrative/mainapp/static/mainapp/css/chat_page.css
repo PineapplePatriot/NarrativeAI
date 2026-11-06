@@ -2217,3 +2217,18 @@ body.polish-on .message-btn.polish-btn { display: flex; }
 .tools-pane .theme-check, .director-switch { display: block; line-height: 1.45; }
 .tools-pane .theme-check input, .director-switch input { margin: 0 6px 0 0; vertical-align: -2px; }
 .input-field { max-height: 35vh; overflow-y: auto; }  /* longer passages stay visible while you write them */
+
+/* The message row lines up: the hint on one line, the small icons centred in a one-line box */
+.input-field::placeholder { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.magic-btn-container { position: absolute; right: 60px; bottom: 6px; display: flex; align-items: center; height: 32px; }
+
+/* Wider speech bubbles, with a strip of the scene still showing beside them */
+.message-content { max-width: 85%; }
+@media (max-width: 768px) {
+    .messages-container { padding: 12px 8px; }
+    .message { gap: 8px; }
+    .message-avatar { width: 28px; height: 28px; font-size: .75rem; }
+    .message-content { max-width: calc(100% - 28px - 8px - 22px); padding: 12px 14px;
+        background: rgba(30, 35, 58, 0.86); backdrop-filter: blur(3px); }
+    .user .message-content { background: rgba(28, 46, 70, 0.86); }
+}

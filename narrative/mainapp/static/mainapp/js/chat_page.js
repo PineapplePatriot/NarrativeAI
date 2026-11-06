@@ -1957,3 +1957,13 @@ document.getElementById('directorToggle')?.addEventListener('change', async (e) 
         alert(err.message);
     }
 });
+
+// The message box's hint fits on one line: the long one where there's room, "Your turn…" on narrow screens
+(function () {
+    const box = document.getElementById('messageInput');
+    if (!box) return;
+    const long = box.getAttribute('placeholder'), short = box.dataset.shortPlaceholder || long;
+    const fit = () => { box.setAttribute('placeholder', box.clientWidth < 320 ? short : long); };
+    window.addEventListener('resize', fit);
+    fit();
+})();
