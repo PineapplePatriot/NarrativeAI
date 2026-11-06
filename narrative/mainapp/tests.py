@@ -2671,6 +2671,20 @@ class PersonaHintTests(ChatPromptTests):
         self.user.save()
         self.assertNotContains(self.client.get(self.url), 'id="personaHint"')
 
+    def test_the_hint_also_points_to_the_profile(self):
+        self.assertContains(self.client.get(self.url), 'href="/users/profile/#persona"')
+
+    def test_a_chat_persona_becomes_the_usual_one(self):
+        self.post({"action": "chat_persona", "name": "Captain Ivy", "description": "Ship's captain."})
+        self.assertFalse(self.post({"action": "persona_to_account", "name": " "}).json()["success"])
+        data = self.post({"action": "persona_to_account", "name": "Captain Ivy", "description": "Ship's captain."}).json()
+        self.assertEqual((data["success"], data["name"], data["persona"]), (True, "Captain Ivy", {}))
+        self.user.refresh_from_db()
+        self.assertEqual((self.user.persona_name, self.user.persona_description), ("Captain Ivy", "Ship's captain."))
+        page = self.client.get(self.url)
+        self.assertContains(page, "<b>Captain Ivy</b> (your usual persona)")
+        self.assertContains(page, 'id="personaMakeUsual"')
+
     def test_bulba_in_a_chat_can_make_one(self):
         from mainapp.bulba import doctor
         self.assertIn("propose_persona", [t["function"]["name"] for t in doctor.tools()])

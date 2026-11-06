@@ -950,6 +950,16 @@ def chat(request, slug):
             save_messages(messages)
             return JsonResponse({"success": True, "persona": chat_state["persona"],
                                  "name": prompt_names(request.user, character, chat_state["persona"])["user"]})
+        elif action == "persona_to_account":  # this chat's persona becomes their usual one (the profile's)
+            name = str(data.get("name") or "").strip()[:100]
+            if not name:
+                return JsonResponse({"success": False, "error": "Give the persona a name first."}, status=400)
+            request.user.persona_name = name
+            request.user.persona_description = str(data.get("description") or "").strip()[:8000]
+            request.user.save(update_fields=["persona_name", "persona_description"])
+            chat_state["persona"] = {}  # the chat now follows the usual persona, which is this one
+            save_messages(messages)
+            return JsonResponse({"success": True, "persona": {}, "name": name})
         elif action == "appearance" and "layout" in data:  # chat bubbles or chapters
             try:
                 set_layout(request.user, data.get("layout"))
