@@ -546,6 +546,11 @@ def apply_basics(session, answers):
     """Records the form's answers as confirmed preferences; returns the message Bulba reads."""
     answers = answers if isinstance(answers, dict) else {}
     lines = []
+    if answers.get("mature") in ("on", "off"):  # no AI: the preset's mature rule, now and for presets made later
+        from mainapp import mature
+        error = mature.switch(session.user, answers["mature"] == "on", adult_confirmed=answers["mature"] == "on")
+        lines.append("Adult scenes: " + (error or ("allowed (the mature-content rule is on in every preset they "
+                                                    "get from now on)" if answers["mature"] == "on" else "kept out")))
     for key, (label, options) in BASICS.items():
         if key == "genres":
             picked = [g for g in (answers.get(key) or []) if isinstance(g, str) and g in options][:6]

@@ -245,3 +245,14 @@ body.embed .mini-progress { display: none !important; }  /* beside the Quick set
 .grow-btn:hover { background: rgba(139, 92, 246, .25); }
 .composer { align-items: flex-end; }
 .composer > button, .composer > .attach { min-height: 44px; align-self: flex-end; }
+
+/* A theme card's preview: the background, a sample line in the colour, the music to listen to */
+.theme-preview { display: grid; gap: 8px; margin: 10px 0 4px; }
+.tp-bg { position: relative; height: 150px; border-radius: 10px; background-size: cover; background-position: center;
+    border: 1px solid var(--border); display: flex; align-items: flex-end; padding: 10px; }
+.tp-bg::before { content: ""; position: absolute; inset: 0; border-radius: 10px; background: linear-gradient(transparent 40%, rgba(0, 0, 0, .55)); }
+.tp-line { position: relative; font-weight: 600; font-size: .95rem; text-shadow: 0 1px 3px rgba(0, 0, 0, .8); }
+.tp-line.solo { padding: 8px 12px; border-radius: 10px; background: rgba(0, 0, 0, .25); }
+.tp-weather { position: absolute; top: 8px; right: 8px; font-size: .78rem; padding: 3px 8px; border-radius: 10px;
+    background: rgba(0, 0, 0, .5); color: #fff; }
+.tp-play { justify-self: start; }

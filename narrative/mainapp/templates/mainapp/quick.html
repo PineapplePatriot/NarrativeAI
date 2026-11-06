@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="{% static 'users/css/welcome.css' %}?v=5">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
-    <link rel="stylesheet" href="{% static 'mainapp/css/quick.css' %}?v=1">
+    <link rel="stylesheet" href="{% static 'mainapp/css/quick.css' %}?v=2">
 </head>
 <body class="na-body">
 {% include "partials/topbar.html" with active="bulba" %}
@@ -43,6 +43,8 @@
         {% else %}
         <p class="help">There's no tested setup for this model yet, so your current preset stays. Bulba can build one with you.</p>
         {% endif %}
+        <label class="q-mature"><input type="checkbox" id="qMature" {% if mature_on %}checked{% endif %}>
+            🔞 <b>Allow adult scenes</b> <small>(18+: violence, dark themes, sex when the story goes there. Change it any time in the chat: pen menu → This chat.)</small></label>
     </section>
 
     <section class="option" id="qMemory">
@@ -95,6 +97,10 @@
                 <button type="button" class="ghost q-bulba" data-ask="Help me pick the extras (summaries, trackers, pictures, dice): explain each in a line and set them up.">🥔 Let Bulba do it</button></span>
         </div>
         <div class="q-extra">
+            <div><b>The look</b>: the background, music, your character's dialogue colour, and the weather the chat opens with.</div>
+            <span><button type="button" class="ghost q-bulba" data-ask="Pick a look for my character's chats: a background, music, a dialogue colour and the weather the chat opens with, from what the app has.">🥔 Let Bulba pick it</button></span>
+        </div>
+        <div class="q-extra">
             <div><b>Worldbook</b>: lore about your world (places, factions, rules) that the AI is reminded of when it comes up.</div>
             <span><a class="btn secondary" href="{% url 'worldbook_create' %}" target="_blank" rel="noopener">Make a worldbook</a>
                 <button type="button" class="ghost q-bulba" data-ask="Help me make a worldbook (lore) for my story: ask me about the world, then propose it.">🥔 Let Bulba do it</button></span>
@@ -114,7 +120,7 @@
 {{ quick_data|json_script:"quick-data" }}
 <script>const QUICK = { url: "{% url 'quick_setup' %}", bulba: "{% url 'bulba' %}?embed=1" };</script>
 <script src="{% static 'js/costs.js' %}?v=1"></script>
-<script src="{% static 'mainapp/js/quick.js' %}?v=1"></script>
+<script src="{% static 'mainapp/js/quick.js' %}?v=2"></script>
 <script>window.NA_PAGE_TOUR = {name: 'quick', auto: true};</script>
 </body>
 </html>

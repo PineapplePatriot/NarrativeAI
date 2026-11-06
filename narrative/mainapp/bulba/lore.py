@@ -280,6 +280,12 @@ def tool_propose_theme(session, args):
                     "choices": [i["name"] for i in media_library.built_in(kind)]}, []
         theme[key] = item
         summary.append(f"{label}: {item['name']}")
+    weather = str(args.get("weather") or "").strip().lower()
+    if weather:
+        if weather not in ("rain", "snow", "fog", "storm", "clear"):
+            return {"error": "weather is rain, snow, fog, storm or clear."}, []
+        theme["weather"] = weather
+        summary.append(f"Weather at the start: {weather}")
     color = str(args.get("dialogue_color") or "").strip()
     if color:
         if not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
@@ -309,6 +315,8 @@ def apply_theme(session, p):
         theme["music"] = {"url": t["music"]["url"], "name": t["music"]["name"]} if t["music"] else {}
     if t.get("dialogue_color"):
         theme["dialogue_color"] = t["dialogue_color"]
+    if t.get("weather"):
+        theme["weather"] = t["weather"]
     character.theme = theme
     character.save(update_fields=["theme"])
     return f"{character.name}'s theme is set; chats with them open with it (unless a chat picked its own)."
@@ -368,6 +376,9 @@ def tool_defs(fn, STR, setup=True):
            {"background": {"type": "string", "enum": [i["name"] for i in media_library.built_in("backgrounds")] + ["none"]},
             "music": {"type": "string", "enum": [i["name"] for i in media_library.built_in("music")] + ["none"]},
             "dialogue_color": {"type": "string", "description": "Hex, e.g. #67e8f9; readable on a dark background"},
+            "weather": {"type": "string", "enum": ["rain", "snow", "fog", "storm", "clear"],
+                        "description": "The weather the chat opens with (shown over the background) until the World "
+                                       "tracker says otherwise. Match the background and the opening scene."},
             "why": STR}, ["why"]),
         fn("read_lorebook", "The character's lorebook entries (numbers, keys, text), before changing any.", {}),
         fn("offer_downloads", "Show download buttons for their preset, the character's card and its lorebook "

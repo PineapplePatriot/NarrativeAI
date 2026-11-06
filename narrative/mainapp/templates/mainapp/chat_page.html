@@ -438,6 +438,7 @@
         window.SAVED_MUSIC = JSON.parse('{{ current_music|escapejs }}');
         window.MUSIC_FOLLOW = {{ music_follow|yesno:"true,false" }};
         window.SAVED_BG = "{{ current_bg|escapejs }}";
+        window.THEME_WEATHER = "{{ theme_weather|escapejs }}";
         window.INIT_PHOTO_URL = "{{ photo_url|default:'' }}";
         window.INIT_PHOTO_SECOND = "{{ photo_second|default:'' }}";
         window.INIT_CHAR_COUNT = {{ char_count|default:1 }};

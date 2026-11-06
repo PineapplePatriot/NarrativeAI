@@ -1369,6 +1369,7 @@ def chat(request, slug):
         "bulba_url": reverse("bulba_chat", kwargs={"chat_id": chat_obj.id}),
         "watch_data": watch.page_state(request.user, chat_obj),
         "persona_hint": _persona_hint(request.user, chat_state["persona"]),
+        "theme_weather": theme_weather(character, chat_state.get("current_bg") or ""),
         "mature_on": mature.is_on(presets.normalize(presets.get_active(request.user).data)),
         "director_on": control.mode_of(presets.normalize(presets.get_active(request.user).data)) == "director",
         "display_rules": {
@@ -1603,6 +1604,23 @@ def word_note(user, character, messages, wish, rewrite=False, persona=None):
     if not text:
         raise ai_client.AIError("Bulba couldn't word it this time. Try again.")
     return text
+
+
+WEATHERS = ("rain", "snow", "fog", "storm", "clear")
+
+
+def theme_weather(character, background=""):
+    """The weather a chat opens with until the World tracker says otherwise: the theme's, else a guess from the
+    background's name ("Rainy" → rain). "" when there's nothing to go on."""
+    theme = character.theme or {}
+    if theme.get("weather") in WEATHERS:
+        return "" if theme["weather"] == "clear" else theme["weather"]
+    name = (str(background or theme.get("bg") or "")).lower()
+    for word, weather in (("storm", "storm"), ("thunder", "storm"), ("rain", "rain"), ("snow", "snow"),
+                          ("blizzard", "snow"), ("fog", "fog"), ("mist", "fog")):
+        if word in name:
+            return weather
+    return ""
 
 
 def _persona_hint(user, chat_persona):
@@ -2358,8 +2376,17 @@ def _bulba_state(session):
         "model": profile["name"] if profile else session.target_model,
         "preferences": [p for p in session.preferences if p.get("status") not in ("rejected", "superseded")],
         "proposals": [{**{k: p.get(k) for k in ("id", "kind", "title", "status", "result", "edited")},
-                       "summary": _shown_summary(session, p), "editable": editing.fields(p)} for p in session.proposals],
+                       "summary": _shown_summary(session, p), "editable": editing.fields(p),
+                       **({"preview": _theme_preview(p)} if p["kind"] == "theme" else {})} for p in session.proposals],
     }
+
+
+def _theme_preview(p):
+    """What a theme card shows besides its words: the background picture, the music to play, the colour."""
+    t = (p.get("payload") or {}).get("theme") or {}
+    bg, music = t.get("background") or {}, t.get("music") or {}
+    return {"bg": bg.get("url", ""), "bg_name": bg.get("name", ""), "music": music.get("url", ""),
+            "music_name": music.get("name", ""), "color": t.get("dialogue_color", ""), "weather": t.get("weather", "")}
 
 
 def _bulba_chat_link(session):
@@ -2494,6 +2521,10 @@ def quick_setup(request):
             context = 0
         if context:
             set_chat_context(user, max(4096, min(2_000_000, context)))
+        if isinstance(data.get("mature"), bool) and data["mature"] != mature.is_on(presets.normalize(presets.get_active(user).data)):
+            error = mature.switch(user, data["mature"], adult_confirmed=data["mature"])
+            if error:
+                return JsonResponse({"error": error}, status=400)
         if "persona_name" in data:
             user.persona_name = str(data.get("persona_name") or "").strip()[:100]
             user.persona_description = str(data.get("persona_description") or "").strip()[:8000]
@@ -2507,6 +2538,7 @@ def quick_setup(request):
     return render(request, "mainapp/quick.html", {
         "model_name": profile.get("name") or chat_model, "ready": ready, "active_starter": active_starter,
         "active_name": active.name, "characters": characters, "picked": picked,
+        "mature_on": mature.is_on(presets.normalize(active.data)),
         "quick_data": {"window": state.get("window"), "prices": state.get("prices")},
     })
 

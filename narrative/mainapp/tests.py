@@ -2704,6 +2704,30 @@ class WrittenToolCallsTests(ChatPromptTests):
                          ("He rolls. The lock clicks.", []))
 
 
+class MatureInSetupTests(BulbaTests):
+    def test_the_basics_form_switches_it_and_new_presets_keep_it(self):
+        from mainapp import mature, presets as presets_mod, starters
+        self.script = [("Noted.", [])]
+        self.api(action="basics", answers={"mature": "on"})
+        self.assertTrue(mature.wanted(self.user))
+        self.assertTrue(mature.is_on(presets_mod.normalize(presets_mod.get_active(self.user).data)))
+        some = starters.all_starters()[0]["id"]
+        obj = starters.apply(self.user, some)  # a preset made later (Bulba's preset step, a starter)
+        self.assertTrue(mature.is_on(presets_mod.normalize(obj.data)))
+        self.script = [("Noted.", [])]
+        self.api(action="basics", answers={"mature": "off"})
+        self.assertFalse(mature.wanted(self.user))
+        self.assertFalse(mature.is_on(presets_mod.normalize(starters.apply(self.user, some).data)))
+
+    def test_quick_setup_has_it(self):
+        from mainapp import mature, presets as presets_mod
+        page = self.client.get(reverse("quick_setup"))
+        self.assertContains(page, 'id="qMature"')
+        self.assertContains(page, "Let Bulba pick it")
+        self.client.post(reverse("quick_setup"), json.dumps({"mature": True}), content_type="application/json")
+        self.assertTrue(mature.is_on(presets_mod.normalize(presets_mod.get_active(self.user).data)))
+
+
 class SteerMenuTests(ChatPromptTests):
     def test_two_tabs_the_guide_and_the_director_switch(self):
         from mainapp import presets as presets_mod
@@ -4000,8 +4024,12 @@ class BulbaPicturesAndThemeTests(BulbaCardAndLoreTests):
             self.upload(V2_CARD)
             self.script = [("", [self.call("propose_theme", background="Nowhere", why="x")]),
                            ("Here's a look.", [self.call("propose_theme", background="lab 13", music="Quiet Lab",
-                                                         dialogue_color="#67e8f9", why="a scientist")])]
+                                                         dialogue_color="#67e8f9", weather="rain", why="a scientist")])]
             data = self.api(action="say", text="give him a theme").json()
+        preview = data["state"]["proposals"][-1]["preview"]  # the card shows the look, not just names
+        self.assertEqual(preview["bg"], "/static/defaults/backgrounds/lab-13.webp")
+        self.assertEqual(preview["music"], "/static/defaults/music/quiet-lab.mp3")
+        self.assertEqual((preview["color"], preview["weather"]), ("#67e8f9", "rain"))
         pid = data["state"]["proposals"][-1]["id"]
         self.script = [("Done.", [])]
         self.api(action="apply", id=pid)
@@ -4009,6 +4037,14 @@ class BulbaPicturesAndThemeTests(BulbaCardAndLoreTests):
         self.assertEqual(viktor.theme["bg"], "/static/defaults/backgrounds/lab-13.webp")
         self.assertEqual(viktor.theme["music"]["name"], "Quiet Lab")
         self.assertEqual(viktor.theme["dialogue_color"], "#67e8f9")
+        self.assertEqual(viktor.theme["weather"], "rain")
+        from mainapp.views import theme_weather
+        self.assertEqual(theme_weather(viktor), "rain")
+        viktor.theme = {"bg": "/static/defaults/backgrounds/snowy-pass.webp"}
+        self.assertEqual(theme_weather(viktor), "snow")  # guessed from the background's name
+        viktor.theme = {"bg": "/x/rainy-street.webp", "weather": "clear"}
+        self.assertEqual(theme_weather(viktor), "")  # the theme's own pick wins
+        viktor.refresh_from_db()
         self.script = [("Undone.", [])]
         self.api(action="undo", id=pid)
         viktor.refresh_from_db()

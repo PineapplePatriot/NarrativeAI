@@ -50,7 +50,8 @@ def apply(session, pid):
         obj = starters.apply(user, data["starter"])
         preset = build_preset(data)
         extras = presets.normalize(obj.data)["extras"]  # keeps the starter's credit
-        obj.data = {**preset, "extras": {**extras, "bulba": {"session": session.id}}}
+        from mainapp import mature
+        obj.data = mature.keep(user, {**preset, "extras": {**extras, "bulba": {"session": session.id}}})
         obj.name = presets.unique_name(user, data.get("name") or obj.name, exclude_id=obj.id)
         obj.save()
         p["undo"] = {"created": obj.id, "previous": previous.id}

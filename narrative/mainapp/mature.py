@@ -69,6 +69,25 @@ def set_on(preset, on):
     return preset
 
 
+def wanted(user):
+    """Did they switch mature content on (remembered on the account, so presets made later get it too)?"""
+    from mainapp.models import ChatSettings
+    obj = ChatSettings.objects.filter(author=user).first()
+    return bool(obj and (obj.appearance or {}).get("mature"))
+
+
+def _remember(user, on):
+    from mainapp.models import ChatSettings
+    obj, _ = ChatSettings.objects.get_or_create(author=user)
+    obj.appearance = {**(obj.appearance or {}), "mature": bool(on)}
+    obj.save(update_fields=["appearance"])
+
+
+def keep(user, data):
+    """A preset being made (a starter, Bulba's setup): with mature content on, if they asked for it."""
+    return set_on(presets.normalize(data), True) if wanted(user) else data
+
+
 def switch(user, on, adult_confirmed=False):
     """Turns it on or off in their active preset. Returns an error for the page, or None."""
     if on:
@@ -80,4 +99,5 @@ def switch(user, on, adult_confirmed=False):
     obj = presets.get_active(user)
     obj.data = set_on(presets.normalize(obj.data), on)
     obj.save(update_fields=["data", "time_update"])
+    _remember(user, on)
     return None

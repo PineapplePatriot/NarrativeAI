@@ -68,6 +68,8 @@ def apply(user, starter_id):
     if chosen:
         data["samplers"]["context_size"] = {"on": True, "value": chosen}
     card = _card(s)
+    from mainapp import mature
+    data = mature.keep(user, data)  # they switched adult scenes on earlier (the setup's form, the chat's menu)
     obj = Preset.objects.create(user=user, data=data,
                                 name=presets.unique_name(user, f"{s['title']} · {card['model_name']}"))
     presets.activate(obj)
