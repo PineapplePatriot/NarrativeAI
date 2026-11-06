@@ -2964,26 +2964,31 @@ class BulbaInChatTests(ChatPromptTests):
         with self.assertRaises(ValueError):
             apply_edits(once, [{"action": "remind", "content": "  "}])
 
-    def test_a_provider_refusal_moves_bulba_to_the_backup_model(self):
-        from django.core.cache import cache
+    def test_a_refusal_is_retried_on_argon_then_deepseek_only_for_that_request(self):
         from mainapp import ai_client
-        self.addCleanup(cache.clear)
         self.make_chat()
-        self.script = [("The request was rejected because it was considered high risk", []), ("Sure, here goes.", [])]
+        blocked = "The request was rejected because it was considered high risk"
+        self.script = [(blocked, []), ("Sure, here goes.", [])]
         data = self.api(action="say", text="Make the card detailed").json()
         said = [e["text"] for e in data["events"] if e["type"] == "bulba"][-1]
-        self.assertEqual(said, "Sure, here goes.")  # retried, the person never sees the filter
-        self.assertEqual([c["model"] for c in self.bulba_calls[-2:]], [ai_client.BULBA_MODEL, ai_client.BULBA_FALLBACK])
+        self.assertEqual(said, "Sure, here goes.")  # the person never sees the filter
+        self.assertEqual([c["model"] for c in self.bulba_calls[-2:]], [ai_client.BULBA_MODEL, "google/gemini-4-argon"])
+        self.assertIn({"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+                      self.bulba_calls[-1]["safety_settings"])
+        self.assertNotIn("safety_settings", self.bulba_calls[-2])  # only Gemini gets them
         self.script = [("Next step.", [])]
         self.api(action="say", text="ok")
-        self.assertEqual(self.bulba_calls[-1]["model"], ai_client.BULBA_FALLBACK)  # stays on it for a while
+        self.assertEqual(self.bulba_calls[-1]["model"], ai_client.BULBA_MODEL)  # back to MiMo: no sticky switch
+        self.script = [(blocked, []), (blocked, []), ("Fine, done.", [])]  # Argon refuses too: DeepSeek, last
+        self.api(action="say", text="again")
+        self.assertEqual([c["model"] for c in self.bulba_calls[-3:]],
+                         [ai_client.BULBA_MODEL, "google/gemini-4-argon", "deepseek/deepseek-v4-flash"])
 
     def test_when_both_models_refuse_bulba_says_what_to_do(self):
         from django.core.cache import cache
         self.addCleanup(cache.clear)
         self.make_chat()
-        self.script = [("The request was rejected because it was considered high risk", []),
-                       ("The request was rejected because it was considered high risk", [])]
+        self.script = [("The request was rejected because it was considered high risk", [])] * 3
         data = self.api(action="say", text="Can you add a NSFW to my prompt").json()
         said = [e["text"] for e in data["events"] if e["type"] == "bulba"][-1]
         self.assertIn("Mature content", said)

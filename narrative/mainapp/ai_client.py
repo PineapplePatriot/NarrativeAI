@@ -130,17 +130,20 @@ def is_enabled(user, task):
 
 # Bulba's own model (the samples it shows always come from the user's chat model)
 BULBA_MODEL = "xiaomi/mimo-v2.6-pro"
-# When MiMo's provider filter blocks a request ("considered high risk"), Bulba's jobs move to this model for a
-# while: the conversation that tripped it would trip it again on every later step
-BULBA_FALLBACK = "deepseek/deepseek-v4-flash"
-FALLBACK_HOURS = 12
+# When a provider's filter refuses one of Bulba's requests ("considered high risk"), that one request is sent
+# again down this chain, only on a refusal: Gemini 4 Argon first (dependable with conventional adult content),
+# DeepSeek V4 Flash only if Argon refuses too
+BULBA_FALLBACKS = ["google/gemini-4-argon", "deepseek/deepseek-v4-flash"]
+BULBA_FALLBACK = BULBA_FALLBACKS[0]
 MODERATION = re.compile(r"considered high risk|rejected because it|content (?:management|security) polic|"
-                        r"data_inspection_failed|inappropriate content|violat\w* (?:our|the) (?:content|usage) polic",
+                        r"data_inspection_failed|inappropriate content|violat\w* (?:our|the) (?:content|usage) polic|"
+                        r"PROHIBITED_CONTENT|blocked (?:due to|by) safety|finish_reason.{0,6}(?:SAFETY|content_filter)",
                         re.I)
-
-
-def _fallback_key(user):
-    return f"bulba-fallback:{getattr(user, 'pk', '')}"
+# Gemini's adjustable filters, off as far as the API allows (the core protections can't be and aren't touched);
+# sent ourselves so it doesn't depend on what OpenRouter passes by default. BLOCK_NONE: some versions refuse OFF
+GEMINI_SAFETY = [{"category": c, "threshold": "BLOCK_NONE"} for c in (
+    "HARM_CATEGORY_HARASSMENT", "HARM_CATEGORY_HATE_SPEECH", "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+    "HARM_CATEGORY_DANGEROUS_CONTENT")]
 
 
 def _blocked(text):
@@ -159,10 +162,7 @@ def resolve(user, task):
         if profile is None:
             raise NoConnection("No AI connection is set up yet.")
         # Through OpenRouter Bulba uses our model; on a custom server (local testing) the server's own
-        if profile.provider != ConnectionProfile.PROVIDER_OPENROUTER:
-            return profile, profile.model
-        from django.core.cache import cache
-        return profile, (BULBA_FALLBACK if cache.get(_fallback_key(user)) else BULBA_MODEL)
+        return profile, (BULBA_MODEL if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER else profile.model)
     setting = get_task_setting(user, task)
     chat_setting = setting if task == "chat" else get_task_setting(user, "chat")
     profile = setting.profile or main_profile(user)
@@ -244,6 +244,8 @@ def _request(user, task, messages, timeout=None, **params):
         params.setdefault("usage", {"include": True})  # OpenRouter then reports the cost
     payload = {"model": model, "messages": messages}
     payload.update({k: v for k, v in params.items() if v is not None})
+    if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER and str(payload["model"]).startswith("google/"):
+        payload.setdefault("safety_settings", GEMINI_SAFETY)
     timeout = TEST_TIMEOUT or timeout or TASKS.get(task, {}).get("timeout", 60)
     label = TASKS.get(task, {}).get("label", task)
 
@@ -255,14 +257,13 @@ def _request(user, task, messages, timeout=None, **params):
     except requests.RequestException as e:
         raise AIError(f"{label}: could not reach {profile.name} ({e.__class__.__name__}).")
 
-    # MiMo's provider filter blocked one of Bulba's requests: the same request again on the backup model, and
-    # Bulba's next jobs go there too for a while (the conversation would trip the filter at every step)
-    if (task in ("bulba", "watch", "polish") and payload["model"] == BULBA_MODEL
+    # A provider's filter refused one of Bulba's requests: this request again on the next model in the chain
+    chain = [BULBA_MODEL] + BULBA_FALLBACKS
+    if (task in ("bulba", "watch", "polish") and payload["model"] in chain[:-1]
             and profile.provider == ConnectionProfile.PROVIDER_OPENROUTER and _blocked_reply(resp)):
-        from django.core.cache import cache
-        cache.set(_fallback_key(user), True, FALLBACK_HOURS * 3600)
-        logging.getLogger(__name__).info("Bulba's model was blocked by its provider's filter; using %s", BULBA_FALLBACK)
-        return _request(user, task, messages, timeout, **{**params, "model": BULBA_FALLBACK})
+        nxt = chain[chain.index(payload["model"]) + 1]
+        logging.getLogger(__name__).info("%s refused one of Bulba's requests; trying %s", payload["model"], nxt)
+        return _request(user, task, messages, timeout, **{**params, "model": nxt})
 
     if resp.status_code >= 400:
         raise AIError(f"{label}: {profile.name} returned an error ({resp.status_code}): {_error_text(resp)}")
@@ -295,7 +296,12 @@ def _blocked_reply(resp):
     except (KeyError, IndexError, TypeError):
         return False
     content = str(message.get("content") or "")
-    return not message.get("tool_calls") and len(content) < 400 and _blocked(content)
+    if message.get("tool_calls"):
+        return False
+    finish = str((data["choices"][0] or {}).get("finish_reason") or "").lower()
+    if finish in ("content_filter", "safety", "prohibited_content") and not content.strip():
+        return True  # Gemini: stopped by its filter, nothing written
+    return len(content) < 400 and _blocked(content)
 
 
 def complete(user, task, messages, timeout=None, **params):
@@ -381,6 +387,8 @@ def stream(user, task, messages, timeout=None, **params):
         params.setdefault("usage", {"include": True})  # the cost arrives with the last piece
     payload = {"model": model, "messages": messages, "stream": True}
     payload.update({k: v for k, v in params.items() if v is not None})
+    if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER and str(payload["model"]).startswith("google/"):
+        payload.setdefault("safety_settings", GEMINI_SAFETY)  # Gemini's adjustable filters off (see GEMINI_SAFETY)
     read_timeout = TEST_TIMEOUT or timeout or TASKS.get(task, {}).get("timeout", 60)  # max wait between two pieces
     label = TASKS.get(task, {}).get("label", task)
 
