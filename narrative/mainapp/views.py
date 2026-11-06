@@ -645,6 +645,11 @@ def chat(request, slug):
             settings_obj.appearance = {**(settings_obj.appearance or {}), "persona_hint_seen": True}
             settings_obj.save(update_fields=["appearance"])
             return JsonResponse({"success": True})
+        elif action == "forms_hint_seen":  # "your worldbook got better at Ukrainian" is shown once per account
+            settings_obj, _ = ChatSettings.objects.get_or_create(author=request.user)
+            settings_obj.appearance = {**(settings_obj.appearance or {}), "forms_hint_seen": True}
+            settings_obj.save(update_fields=["appearance"])
+            return JsonResponse({"success": True})
         elif action == "watch_settings":  # the first-time note's buttons, and "off in this chat"
             if "keep_on" in data:
                 watch.intro_seen(request.user, bool(data["keep_on"]))
@@ -1413,6 +1418,7 @@ def chat(request, slug):
         "bulba_url": reverse("bulba_chat", kwargs={"chat_id": chat_obj.id}),
         "watch_data": watch.page_state(request.user, chat_obj),
         "persona_hint": _persona_hint(request.user, chat_state["persona"]),
+        "forms_hint": (not _persona_hint(request.user, chat_state["persona"])) and _forms_hint(request.user, character),
         "theme_weather": theme_weather(character, chat_state.get("current_bg") or ""),
         "skin": chat_skin(character, chat_state.get("skin") or ""),
         "chat_skin_choice": chat_state.get("skin") or "",
@@ -1690,6 +1696,22 @@ def _persona_hint(user, chat_persona):
         return False
     obj = ChatSettings.objects.filter(author=user).first()
     return not (obj and (obj.appearance or {}).get("persona_hint_seen"))
+
+
+def _forms_hint(user, character):
+    """The worldbook URL, once per account: the character's worldbook is in a language that changes words
+    (Ukrainian, Polish...), so "🥔 Add word forms" can catch the forms that change inside a word."""
+    obj = ChatSettings.objects.filter(author=user).first()
+    if obj and (obj.appearance or {}).get("forms_hint_seen"):
+        return ""
+    wb = character.worldbook
+    if wb is None or wb.author_id != user.id:
+        return ""
+    from mainapp import lorebook
+    try:
+        return reverse("worldbook_detail", args=[wb.slug]) if lorebook.inflected(load_worldbook(wb)) else ""
+    except Exception:  # an unreadable book: nothing to suggest
+        return ""
 
 
 def prompt_names(user, character, chat_persona=None):
@@ -2127,7 +2149,7 @@ def worldbook_test(request, slug):
     # Uses the book as currently shown in the editor, so unsaved edits can be tested
     book = normalize_book(data.get("book") or {})
     messages = [m for m in data.get("messages", []) if isinstance(m, str) and m.strip()]
-    result = activate(book, messages)
+    result = activate(book, messages, notes_text=str(data.get("note") or "")[:4000])
     return JsonResponse({
         "report": result["report"],
         "notes": result["notes"],

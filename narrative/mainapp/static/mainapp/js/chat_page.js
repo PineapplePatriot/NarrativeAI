@@ -2039,3 +2039,14 @@ function handleRefusal(d) {
         });
     }
 })();
+
+// "Your worldbook got better at your language": shown once per account, either button closes it for good
+document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-forms-hint]');
+    if (!b) return;
+    document.getElementById('formsHint')?.remove();
+    fetch(window.location.href, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ action: 'forms_hint_seen' }), keepalive: true,
+    }).catch(() => { /* shown again next time: harmless */ });
+});

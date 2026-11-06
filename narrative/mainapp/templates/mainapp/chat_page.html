@@ -323,6 +323,13 @@
                         <button type="button" class="ghost" data-persona-hint="later">Not now</button></span>
                 </div>
                 {% endif %}
+                {% if forms_hint %}
+                <div class="persona-hint" id="formsHint">
+                    <span>🥔 <b>Your worldbook got better at your language.</b> It now catches other endings (дракон → дракона) and reads your director's notes. Some words change inside (Київ → Києві): one press of <b>🥔 Add word forms</b> on the worldbook page covers those too.</span>
+                    <span class="persona-hint-btns"><a class="ghost persona-hint-link" href="{{ forms_hint }}#formsBox" target="_blank" rel="noopener" data-forms-hint="open">Open the worldbook</a>
+                        <button type="button" class="ghost" data-forms-hint="later">Got it</button></span>
+                </div>
+                {% endif %}
                 <div class="ideas-box" id="ideasBox" hidden></div>
                 <div class="input-wrapper">
                     <button class="tools-btn" id="toolsBtn" onclick="toggleTools()" title="Steer the story, and this chat's settings"><span class="tools-badge" aria-hidden="true">⚙</span><svg class="icon" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>

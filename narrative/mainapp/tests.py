@@ -287,6 +287,40 @@ class WorldbookViewTests(TestCase):
             self.assertEqual(self.post_json(reverse("worldbook_forms", args=[wb.slug]), {"book": book}).status_code, 502)
         self.assertContains(self.client.get(reverse("worldbook_detail", args=[wb.slug])), 'id="formsBtn"')
 
+    def test_the_test_panel_reads_a_note(self):
+        self.post_json(reverse("worldbook_create"), {"title": "Notes"})
+        wb = Worldbook.objects.get(author=self.user)
+        book = {"title": "Notes", "entries": [{"uid": 0, "comment": "Keep", "keys": ["Ashen Keep"], "content": "Ruins."}]}
+        report = self.post_json(reverse("worldbook_test", args=[wb.slug]),
+                                {"book": book, "messages": [], "note": "They reach the Ashen Keep."}).json()["report"]
+        self.assertEqual([r["label"] for r in report], ["Keep"])
+
+    def test_once_in_a_chat_for_a_ukrainian_worldbook(self):
+        from mainapp.lorebook import save_worldbook
+        from mainapp.models import Character
+        wb = Worldbook.objects.create(title="Світ", slug="svit", author=self.user)
+        save_worldbook(wb, {"title": "Світ", "entries": [{"comment": "Kyiv", "keys": ["Київ"], "content": "Столиця."}]})
+        rose = Character.objects.create(name="Rose", slug="rose-forms", author=self.user, worldbook=wb)
+        from users.models import ConnectionProfile
+        ConnectionProfile.objects.create(user=self.user, name="Main", api_key="k", model="test/model")
+        self.user.persona_name = "Wren"  # the persona question comes first otherwise
+        self.user.save()
+        url = reverse("chat", args=[rose.slug])
+        page = self.client.get(url)
+        self.assertContains(page, 'id="formsHint"')
+        self.assertContains(page, reverse("worldbook_detail", args=["svit"]) + "#formsBox")
+        self.post_json(url, {"action": "forms_hint_seen"})
+        self.assertNotContains(self.client.get(url), 'id="formsHint"')
+        english = Worldbook.objects.create(title="World", slug="world-en", author=self.user)
+        save_worldbook(english, {"title": "World", "entries": [{"comment": "K", "keys": ["Keep"], "content": "x"}]})
+        other = get_user_model().objects.create_user(username="eng", password="pw12345!", persona_name="Ann")
+        Character.objects.create(name="Bo", slug="bo-en", author=other, worldbook=english)
+        english.author = other
+        english.save()
+        ConnectionProfile.objects.create(user=other, name="Main", api_key="k", model="test/model")
+        self.client.force_login(other)
+        self.assertNotContains(self.client.get(reverse("chat", args=["bo-en"])), 'id="formsHint"')
+
     def test_notes_bring_lore_into_the_chat(self):
         from mainapp.lorebook import save_worldbook
         from mainapp.models import Character

@@ -60,6 +60,8 @@
         <p class="muted hint">Paste a few recent chat messages, one per line, newest last.
           Shows which entries would be added and why. Uses your unsaved edits too.</p>
         <textarea id="testInput" placeholder="We finally reached the capital.&#10;Is Dottore still in his lab?"></textarea>
+        <label class="test-note">Director's note <small>(optional: notes are read too)</small>
+          <input id="testNote" placeholder="Tonight they reach the capital."/></label>
         <button class="btn primary full" id="testBtn">Run test</button>
         <div id="testResults"></div>
       </div>
@@ -182,7 +184,7 @@
     forms: "{% url 'worldbook_forms' worldbook.slug %}",
   };
 </script>
-<script src="{% static 'mainapp/js/worldbook_detail.js' %}?v=2"></script>
+<script src="{% static 'mainapp/js/worldbook_detail.js' %}?v=3"></script>
 <script>window.NA_PAGE_TOUR = {name: 'worldbook', auto: true};</script>
 </body>
 </html>

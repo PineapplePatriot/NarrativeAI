@@ -232,10 +232,11 @@ const STATUS_TEXT = { included: 'added', over_budget: 'over budget', disabled: '
 $('testBtn').onclick = async () => {
     readSettings();
     const messages = $('testInput').value.split('\n').map(s => s.trim()).filter(Boolean);
-    if (!messages.length) { $('testResults').innerHTML = '<p class="muted">Type at least one message.</p>'; return; }
+    const note = $('testNote').value.trim();
+    if (!messages.length && !note) { $('testResults').innerHTML = '<p class="muted">Type at least one message or a note.</p>'; return; }
     $('testResults').innerHTML = '<p class="muted">Testing…</p>';
     try {
-        const data = await postJson(URLS.test, { book, messages });
+        const data = await postJson(URLS.test, { book, messages, note });
         const rows = data.report.map(r => `
           <div class="result ${r.status}">
             <div class="result-head"><b>${escapeHtml(r.label)}</b><span class="status">${STATUS_TEXT[r.status] || r.status}</span></div>
