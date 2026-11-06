@@ -30,7 +30,7 @@ from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
 from . import extras, game, media_library, recall, story, thinking, ai_client, cards, chats, regex_rules, model_profiles, presets, samplers, starters, trackers
 from .bulba import control, polish, watch
-from mainapp import mature
+from mainapp import mature, refusals
 
 from .utils import build_ai_request, get_elevenlabs_key
 from .lorebook import (
@@ -624,6 +624,12 @@ def chat(request, slug):
             if error:
                 return JsonResponse({"success": False, "error": error})
             return JsonResponse({"success": True, "on": bool(data.get("on"))})
+        elif action == "refusal_model":  # asked once: which model steps in when a reply is refused
+            try:
+                refusals.choose(request.user, str(data.get("model") or ""), ai_client.resolve(request.user, "chat")[1])
+            except ValueError as e:
+                return JsonResponse({"success": False, "error": str(e)}, status=400)
+            return JsonResponse({"success": True})
         elif action == "persona_hint_seen":  # "Who are you in the story?" is asked once per account
             settings_obj, _ = ChatSettings.objects.get_or_create(author=request.user)
             settings_obj.appearance = {**(settings_obj.appearance or {}), "persona_hint_seen": True}
@@ -1072,6 +1078,14 @@ def chat(request, slug):
                     # --- Build the request from the active preset ---
                     preset = presets.normalize(presets.get_active(request.user).data)
                     _, chat_model = ai_client.resolve(request.user, "chat")
+                    own_model = chat_model
+                    # A refused reply rewritten on the model they picked to step in: just this reply, with
+                    # settings made for that model (the chat model stays what it is)
+                    stand_in = str(data.get("model") or "")
+                    if action != "regenerate" or stand_in not in [o["id"] for o in refusals.options(own_model)]:
+                        stand_in = ""
+                    if stand_in:
+                        chat_model = stand_in
                     names = prompt_names(request.user, character, chat_state["persona"])
                     history = regex_rules.run_on_history(regex_rules.for_chat(preset, character, request.user), api_messages, names)
                     if control.mode_of(preset) == "director":  # each direction says what it means (see control.py)
@@ -1085,6 +1099,8 @@ def chat(request, slug):
                     game_state = game.current_state(chat_state, messages)
                     built = game.add_to_request(built, game_mode, game_state, names, extra_kinds,
                                                 tables=story.of_type(systems, "table"))
+                    if stand_in:
+                        built = {**built, "params": {**built["params"], "model": stand_in}}
                     game_ops = []
                     # Stream when the page asks for it and the preset allows it
                     streaming = bool(data.get("stream")) and preset["options"].get("streaming", True)
@@ -1125,6 +1141,14 @@ def chat(request, slug):
 
                 def finish_reply(reply, reasoning="", ops=()):
                     """Emotion, saving, voice and the summary/tracker flags, once the reply is complete."""
+                    if refusals.is_refusal(reply):  # not a story reply: never saved; the page offers a stand-in
+                        if regen_from is not None:
+                            messages.append(regen_from)
+                        save_messages(messages)
+                        return {"refused": True, "already": bool(stand_in), "text": reply[:300],
+                                "model": refusals.name_of(stand_in or own_model),
+                                "stand_in": refusals.stand_in_for(request.user, own_model),
+                                "options": refusals.options(own_model)}
                     reply = text_rules("saved", reply, "assistant")
                     reasoning = text_rules("saved", reasoning, "reasoning").strip() if reasoning else ""
                     # A tool call the model wrote as text (note_milestone(...)): the extra, not the code

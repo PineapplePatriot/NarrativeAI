@@ -2232,3 +2232,14 @@ body.polish-on .message-btn.polish-btn { display: flex; }
         background: rgba(30, 35, 58, 0.86); backdrop-filter: blur(3px); }
     .user .message-content { background: rgba(28, 46, 70, 0.86); }
 }
+
+/* Asked once, when a reply is refused: which model steps in */
+.refusal-ask { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); z-index: 80; width: min(460px, calc(100vw - 24px));
+    padding: 14px 16px; border-radius: 14px; background: #1e1b3a; border: 1px solid rgba(167, 139, 250, .6);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, .5); font-size: .9rem; line-height: 1.45; }
+.refusal-ask p { margin: 6px 0 10px; opacity: .9; }
+.refusal-options { display: grid; gap: 6px; margin-bottom: 6px; }
+.refusal-options button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; padding: 8px 12px;
+    border-radius: 10px; border: 1px solid var(--border-color); background: rgba(255, 255, 255, .04); color: inherit; cursor: pointer; font: inherit; }
+.refusal-options button:hover { border-color: rgba(167, 139, 250, .8); background: rgba(139, 92, 246, .15); }
+.refusal-options small { opacity: .7; font-size: .8rem; }

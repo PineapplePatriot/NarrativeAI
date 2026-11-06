@@ -129,6 +129,12 @@ def user_data(user):
     # Things they told Bulba they dislike ("other: <name>" -> what it means), fixed and watched like any habit
     data.setdefault("dislikes", {})
     data.setdefault("model_off", [])  # known habits of their chat model they asked Watch not to look for
+    # On for everyone from the start (once: if they stop it on the Notebook page it stays stopped): the model's
+    # machinery (note_milestone(...), <thinking>, [OOC: ...]) tidied out of new replies
+    if not data.get("defaults_v1"):
+        data["defaults_v1"] = True
+        if "leaked_markup" not in data["fix"]:
+            data["fix"] = data["fix"] + ["leaked_markup"]
     return data
 
 

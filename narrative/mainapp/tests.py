@@ -259,6 +259,12 @@ class WorldbookViewTests(TestCase):
         self.assertEqual(self.client.post(reverse("worldbook_delete", args=["secret"])).status_code, 404)
 
 
+def _no_default_fixes(user):
+    """Most tests start from no habits being fixed (a real account starts with the leaked-markup fix on)."""
+    from mainapp.bulba import watch
+    watch.save_user_data(user, {**watch.user_data(user), "fix": []})
+
+
 class ChatPromptTests(TestCase):
     """The chat view, with OpenRouter replaced by a fake."""
 
@@ -275,6 +281,7 @@ class ChatPromptTests(TestCase):
         from users.models import ConnectionProfile
 
         self.user = get_user_model().objects.create_user(username="chatter", password="pw12345!")
+        _no_default_fixes(self.user)
         ConnectionProfile.objects.create(user=self.user, name="Main", api_key="test-key", model="test/model")
         self.character = Character.objects.create(name="Rose", slug="rose-chat-test", author=self.user,
                                                   initial_message="Hello, traveller.")
@@ -687,8 +694,8 @@ class SamplerTests(SimpleTestCase):
 class SamplerChatTests(ChatPromptTests):
     def test_samplers_sent_as_parameters_not_prompt_text(self):
         from mainapp.models import ChatSettings
-        ChatSettings.objects.create(author=self.user, samplers={
-            "temperature": {"on": True, "value": 0.6}, "max_tokens": {"on": True, "value": 1234}})
+        ChatSettings.objects.update_or_create(author=self.user, defaults={"samplers": {
+            "temperature": {"on": True, "value": 0.6}, "max_tokens": {"on": True, "value": 1234}}})
         self.post({"action": "chat", "message": "Hello"})
         payload = self.sent[-1]
         self.assertEqual((payload["temperature"], payload["max_tokens"]), (0.6, 1234))
@@ -1767,6 +1774,7 @@ class BulbaTests(TestCase):
     def setUp(self):
         from users.models import ConnectionProfile
         self.user = get_user_model().objects.create_user(username="potato", password="pw12345!")
+        _no_default_fixes(self.user)
         self.main = ConnectionProfile.objects.create(user=self.user, name="Main", api_key="sk-or-secret",
                                                      model="anthropic/claude-opus-5.5")
         self.client.force_login(self.user)
@@ -2726,6 +2734,69 @@ class MatureInSetupTests(BulbaTests):
         self.assertContains(page, "Let Bulba pick it")
         self.client.post(reverse("quick_setup"), json.dumps({"mature": True}), content_type="application/json")
         self.assertTrue(mature.is_on(presets_mod.normalize(presets_mod.get_active(self.user).data)))
+
+
+class DefaultFixTests(TestCase):
+    def test_a_new_account_has_the_leak_fix_on_and_can_stop_it(self):
+        from mainapp.bulba import watch
+        user = get_user_model().objects.create_user("fresh", "fresh@example.com", "pw12345!xyz")
+        self.assertIn("leaked_markup", watch.user_data(user)["fix"])
+        watch.change_memory(user, "stop_fix", "leaked_markup")
+        self.assertNotIn("leaked_markup", watch.user_data(user)["fix"])  # stopped stays stopped
+
+
+class RefusalTests(ChatPromptTests):
+    REPLY = "I'm sorry, but I can't continue this roleplay because the request involves explicit content."
+
+    def fake_post(self, url, headers=None, json=None, timeout=None, **kwargs):
+        resp = super().fake_post(url, headers=headers, json=json, timeout=timeout, **kwargs)
+        first = json["messages"][0]["content"]
+        if (self.refuse and self.reply_status < 400 and "response_format" not in json
+                and not first.startswith(("Existing summary", "Summarize this entire"))
+                and json.get("model") != self.ok_model):
+            resp.json.return_value = {"choices": [{"message": {"content": self.REPLY}}]}
+        return resp
+
+    ok_model = "google/gemini-4-argon"
+    refuse = False  # the chat tests this class inherits run as usual
+
+    def test_a_refused_reply_is_not_saved_and_asks_once(self):
+        from mainapp import refusals
+        self.refuse = True
+        self.client.get(self.url)
+        before = len(self.saved_messages())
+        data = self.post({"action": "chat", "message": "Kiss me."}).json()
+        self.assertTrue(data["refused"])
+        self.assertEqual(data["stand_in"], "")  # not chosen yet: the page asks
+        self.assertEqual([o["id"] for o in data["options"]], [i for i, _, _ in refusals.STAND_INS])
+        self.assertEqual(len(self.saved_messages()), before + 1)  # their message, no refusal
+        self.assertEqual(self.post({"action": "refusal_model", "model": "nonsense"}).status_code, 400)
+        self.post({"action": "refusal_model", "model": "google/gemini-4-argon"})
+        data = self.post({"action": "regenerate", "model": "google/gemini-4-argon"}).json()
+        self.assertEqual(data["reply"], "A reply.")  # the stand-in wrote it
+        self.assertEqual(self.sent[-1]["model"], "google/gemini-4-argon")
+        self.post({"action": "chat", "message": "Again."})
+        data = self.post({"action": "chat", "message": "And again."}).json()
+        self.assertEqual(data["stand_in"], "google/gemini-4-argon")  # from now on, no question
+
+    def test_the_stand_in_refusing_too_is_said_once(self):
+        self.refuse, self.ok_model = True, "none"
+        self.post({"action": "chat", "message": "Kiss me."})
+        data = self.post({"action": "regenerate", "model": "deepseek/deepseek-v4-flash"}).json()
+        self.assertTrue(data["refused"] and data["already"])
+
+    def test_detection_leaves_story_lines_alone(self):
+        from mainapp import refusals
+        self.assertTrue(refusals.is_refusal("The request was rejected because it was considered high risk"))
+        self.assertFalse(refusals.is_refusal('"I\'m sorry," she whispered, "I can\'t do this anymore." She turned away.'))
+        self.assertEqual([o["id"] for o in refusals.options("google/gemini-4-argon")][0], "xiaomi/mimo-v2.6-pro")
+
+    def test_mimo_is_pinned_to_providers_that_dont_filter(self):
+        from users.models import ConnectionProfile
+        ConnectionProfile.objects.filter(user=self.user).update(model="xiaomi/mimo-v2.6-pro",
+                                                                provider=ConnectionProfile.PROVIDER_OPENROUTER)
+        self.post({"action": "chat", "message": "Hi"})
+        self.assertEqual(self.sent[-1]["provider"], {"only": ["xiaomi", "deepinfra"], "allow_fallbacks": False})
 
 
 class SteerMenuTests(ChatPromptTests):
