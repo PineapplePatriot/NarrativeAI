@@ -81,7 +81,7 @@ def _entries(raw):
         if not isinstance(e, dict):
             continue
         content = str(e.get("content") or "").strip()[:2500]
-        keys = [str(k).strip() for k in (e.get("keys") or []) if str(k).strip()][:10]
+        keys = [str(k).strip() for k in (e.get("keys") or []) if str(k).strip()][:MAX_KEYS]
         always = bool(e.get("always"))
         if not content or not (keys or always):
             continue
@@ -206,7 +206,7 @@ def edit_book(book, edits):
             if "content" in ed and str(ed["content"]).strip():
                 entry["content"] = str(ed["content"]).strip()[:2500]
             if isinstance(ed.get("keys"), list):
-                entry["keys"] = [str(k).strip() for k in ed["keys"] if str(k).strip()][:10]
+                entry["keys"] = [str(k).strip() for k in ed["keys"] if str(k).strip()][:MAX_KEYS]
             if ed.get("title"):
                 entry["comment"] = str(ed["title"]).strip()[:120]
             if "always" in ed:
@@ -365,17 +365,25 @@ def tool_offer_card_upload(session, args):
     return {"status": "upload box shown; they'll send the file or answer"}, [{"type": "card_upload"}]
 
 
+# Keywords in languages that change words (Ukrainian, Polish...): endings are caught by the app, inner changes are not
+KEYS_HELP = ("Names, aliases and terms that bring it into the story, in the chat's language. The app already catches "
+             "a word with another ending (дракон: дракона, драконів), so list a word once; but where a word changes "
+             "inside (Ukrainian, Polish and similar: Київ, Києва, Києві, київський; кінь, коня), add those forms too. "
+             "Up to 16.")
+MAX_KEYS = 16
+
+
 def tool_defs(fn, STR, setup=True):
     entry = {"type": "object", "properties": {
         "title": STR,
-        "keys": {"type": "array", "items": STR, "description": "Names, aliases and terms that bring it into the story"},
+        "keys": {"type": "array", "items": STR, "description": KEYS_HELP},
         "content": {"type": "string", "description": "The facts, written as plain description of the world"},
         "always": {"type": "boolean", "description": "Always in the story (only for the core premise, 1-3 entries)"}},
         "required": ["content"]}
     edits = {"type": "array", "maxItems": 15, "items": {"type": "object", "properties": {
         "entry": {"type": "integer", "description": "The entry's number from read_lorebook"},
         "action": {"type": "string", "enum": list(LORE_EDIT_ACTIONS)},
-        "title": STR, "keys": {"type": "array", "items": STR},
+        "title": STR, "keys": {"type": "array", "items": STR, "description": "The full new list (replace). " + KEYS_HELP},
         "content": {"type": "string", "description": "New text (replace)"},
         "always": {"type": "boolean"}}, "required": ["entry", "action"]}}
     from mainapp import media_library

@@ -77,7 +77,7 @@ def edit(session, pid, values):
         if value == (f["value"] or "").strip():
             continue
         if path.endswith(".keys"):
-            keys = [k.strip() for k in value.split(",") if k.strip()][:10]
+            keys = [k.strip() for k in value.split(",") if k.strip()][:16]
             if not keys:
                 raise ValueError("A lore entry needs at least one word that brings it up.")
             _set(p["payload"], path, keys)

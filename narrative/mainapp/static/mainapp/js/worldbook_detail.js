@@ -29,6 +29,8 @@ function fillHeaderAndSettings() {
     $('sCase').checked = s.case_sensitive;
     $('sWhole').checked = s.match_whole_words;
     $('sRecursive').checked = s.recursive_scan;
+    $('sCard').checked = !!s.scan_card;
+    $('sFlex').value = String(s.flexible_endings ?? 'auto');
     $('sSemantic').checked = s.semantic_enabled;
     $('sThreshold').value = s.semantic_threshold;
     $('sTopK').value = s.semantic_top_k;
@@ -43,13 +45,15 @@ function readSettings() {
         case_sensitive: $('sCase').checked,
         match_whole_words: $('sWhole').checked,
         recursive_scan: $('sRecursive').checked,
+        scan_card: $('sCard').checked,
+        flexible_endings: $('sFlex').value === 'auto' ? 'auto' : $('sFlex').value === 'true',
         semantic_enabled: $('sSemantic').checked,
         semantic_threshold: Number($('sThreshold').value) || 0,
         semantic_top_k: Number($('sTopK').value) || 0,
     });
 }
 
-['wbTitle', 'wbDesc', 'sScanDepth', 'sBudget', 'sCase', 'sWhole', 'sRecursive', 'sSemantic', 'sThreshold', 'sTopK']
+['wbTitle', 'wbDesc', 'sScanDepth', 'sBudget', 'sCase', 'sWhole', 'sRecursive', 'sCard', 'sFlex', 'sSemantic', 'sThreshold', 'sTopK']
     .forEach(id => $(id).addEventListener('input', () => { readSettings(); markDirty(); }));
 
 // --- Entry list ---
@@ -228,10 +232,11 @@ const STATUS_TEXT = { included: 'added', over_budget: 'over budget', disabled: '
 $('testBtn').onclick = async () => {
     readSettings();
     const messages = $('testInput').value.split('\n').map(s => s.trim()).filter(Boolean);
-    if (!messages.length) { $('testResults').innerHTML = '<p class="muted">Type at least one message.</p>'; return; }
+    const note = $('testNote').value.trim();
+    if (!messages.length && !note) { $('testResults').innerHTML = '<p class="muted">Type at least one message or a note.</p>'; return; }
     $('testResults').innerHTML = '<p class="muted">Testing…</p>';
     try {
-        const data = await postJson(URLS.test, { book, messages });
+        const data = await postJson(URLS.test, { book, messages, note });
         const rows = data.report.map(r => `
           <div class="result ${r.status}">
             <div class="result-head"><b>${escapeHtml(r.label)}</b><span class="status">${STATUS_TEXT[r.status] || r.status}</span></div>
@@ -243,6 +248,37 @@ $('testBtn').onclick = async () => {
     } catch (err) {
         $('testResults').innerHTML = `<p class="warn">Test failed: ${escapeHtml(err.message)}</p>`;
     }
+};
+
+// --- 🥔 Word forms: Bulba suggests the forms a word takes inside (Київ → Києві); nothing is saved until they add them ---
+let proposedForms = null;
+$('formsBtn').onclick = async () => {
+    readSettings();
+    const btn = $('formsBtn'), out = $('formsResult');
+    btn.disabled = true;
+    out.innerHTML = '<p class="muted">Bulba is going through the keywords…</p>';
+    try {
+        const data = await postJson(URLS.forms, { book });
+        proposedForms = data.forms || {};
+        const rows = book.entries.filter(e => (proposedForms[e.uid] || []).length).map(e => `
+          <div class="result included"><div class="result-head"><b>${escapeHtml(label(e))}</b></div>
+            <div class="muted">+ ${proposedForms[e.uid].map(escapeHtml).join(', ')}</div></div>`).join('');
+        out.innerHTML = rows
+            ? rows + `<button class="btn primary full" id="formsApply" type="button">Add these to the keywords</button>`
+            : `<p class="muted">${escapeHtml(data.note || 'Nothing to add: the keywords already cover their forms.')}</p>`;
+        if (rows) $('formsApply').onclick = () => {
+            book.entries.forEach(e => {
+                const extra = (proposedForms[e.uid] || []).filter(k => !e.keys.some(x => x.toLowerCase() === k.toLowerCase()));
+                e.keys = [...e.keys, ...extra];
+            });
+            proposedForms = null;
+            out.innerHTML = '<p class="muted">Added. Press Save to keep them (or reload the page to drop them).</p>';
+            markDirty();
+            render();
+        };
+    } catch (err) {
+        out.innerHTML = `<p class="warn">${escapeHtml(err.message)}</p>`;
+    } finally { btn.disabled = false; }
 };
 
 fillHeaderAndSettings();

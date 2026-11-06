@@ -2182,6 +2182,7 @@ body.polish-on .message-btn.polish-btn { display: flex; }
 .persona-hint button { padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(167, 139, 250, .6); background: #7c3aed;
     color: #fff; cursor: pointer; font: inherit; }
 .persona-hint button.ghost { background: transparent; color: inherit; }
+.persona-hint-link { padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(167, 139, 250, .6); color: inherit; text-decoration: none; font-size: inherit; white-space: nowrap; }
 
 /* A character without a picture: the avatar leads to the Sprites section */
 .character-avatar.add-picture { position: relative; text-decoration: none; color: inherit; }

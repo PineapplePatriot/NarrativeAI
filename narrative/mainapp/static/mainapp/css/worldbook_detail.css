@@ -389,3 +389,11 @@ label.check input { width: auto; accent-color: var(--accent-1) }
     z-index: 20
 }
 .btn { font-size: .9rem; line-height: 1.2 }
+
+/* 🥔 Word forms */
+.forms-box { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-color, rgba(255,255,255,.1)); }
+.forms-box .btn { margin-top: 8px; }
+#formsResult { margin-top: 8px; }
+#formsResult .btn { margin-top: 8px; }
+.test-note { display: block; margin: 8px 0; font-size: .85rem; }
+.test-note input { width: 100%; box-sizing: border-box; margin-top: 4px; }

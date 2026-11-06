@@ -41,6 +41,15 @@ spoilers or facts from the wrong timeline.
   runs Sumeru's schools and bans dream research." Not instructions to the model, no "{{char}} will".
 - **Keys are what people would say in the chat**: the name, short forms, nicknames, common
   misspellings. Avoid ordinary words ("the city", "magic") that would fire the entry all the time.
+- **Keys in the chat's language, with their forms.** The app already catches a word with another
+  ending (дракон also finds дракона, драконів), so a word goes in once. But in Ukrainian, Polish and
+  similar languages some words change inside: add those forms (Київ, Києва, Києві, київський; кінь,
+  коня). An English book needs none of this. On an existing book, the worldbook page's "🥔 Add word
+  forms" button does it for every entry; in a chat, propose_lore_edit with the full new key lists.
+- **What's read for keys:** the last few chat messages (the book's scan depth) and the director's
+  notes (the pinned one and this reply's), always. The persona and the character's description only
+  when the book's "Also look in your persona and the character's description" setting is on; it's off
+  because a name there fires its entry on every reply.
 - **"Always" only for the premise**: one to three entries that must be there in every reply (the
   setting's era and basic rules). Everything else waits for its keys.
 - **Don't repeat the card.** What's in the character's description stays there; lore is the world

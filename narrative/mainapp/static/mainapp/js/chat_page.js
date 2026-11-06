@@ -1405,12 +1405,12 @@ branchModal.addEventListener('click', (e) => { if (e.target === branchModal) clo
     if (!form) return;
     const line = document.getElementById('personaLine');
     document.getElementById('personaEdit').onclick = () => { form.hidden = !form.hidden; };
-    const save = async (name, description) => {
+    const save = async (name, description, action = 'chat_persona') => {
         try {
             const resp = await fetch(window.location.href, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-                body: JSON.stringify({ action: 'chat_persona', name, description }),
+                body: JSON.stringify({ action, name, description }),
             });
             const data = await resp.json();
             if (!data.success) throw new Error(data.error || 'Not saved.');
@@ -1424,6 +1424,12 @@ branchModal.addEventListener('click', (e) => { if (e.target === branchModal) clo
         e.preventDefault();
         save(document.getElementById('personaName').value.trim(), document.getElementById('personaDesc').value.trim());
     });
+    document.getElementById('personaMakeUsual').onclick = () => {
+        const name = document.getElementById('personaName').value.trim();
+        if (!name) { showChatError('Give the persona a name first.'); return; }
+        if (!confirm('Make "' + name + '" your usual persona? It replaces the one on your profile, and every chat without its own persona will use it.')) return;
+        save(name, document.getElementById('personaDesc').value.trim(), 'persona_to_account');
+    };
     document.getElementById('personaReset').onclick = () => {
         document.getElementById('personaName').value = ''; document.getElementById('personaDesc').value = '';
         save('', '');
@@ -1897,7 +1903,7 @@ document.getElementById('personaHint')?.addEventListener('click', (e) => {
     document.getElementById('personaHint').remove();
     fetch(window.location.href, {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-        body: JSON.stringify({ action: 'persona_hint_seen' }),
+        body: JSON.stringify({ action: 'persona_hint_seen' }), keepalive: true,  // survives going to the profile
     }).catch(() => { /* asked again next time: harmless */ });
     if (b.dataset.personaHint === 'bulba' && window.askBulba) window.askBulba('Help me make my persona: who I am in this story.');
 });
@@ -2033,3 +2039,14 @@ function handleRefusal(d) {
         });
     }
 })();
+
+// "Your worldbook got better at your language": shown once per account, either button closes it for good
+document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-forms-hint]');
+    if (!b) return;
+    document.getElementById('formsHint')?.remove();
+    fetch(window.location.href, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ action: 'forms_hint_seen' }), keepalive: true,
+    }).catch(() => { /* shown again next time: harmless */ });
+});

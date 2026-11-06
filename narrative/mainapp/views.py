@@ -645,6 +645,11 @@ def chat(request, slug):
             settings_obj.appearance = {**(settings_obj.appearance or {}), "persona_hint_seen": True}
             settings_obj.save(update_fields=["appearance"])
             return JsonResponse({"success": True})
+        elif action == "forms_hint_seen":  # "your worldbook got better at Ukrainian" is shown once per account
+            settings_obj, _ = ChatSettings.objects.get_or_create(author=request.user)
+            settings_obj.appearance = {**(settings_obj.appearance or {}), "forms_hint_seen": True}
+            settings_obj.save(update_fields=["appearance"])
+            return JsonResponse({"success": True})
         elif action == "watch_settings":  # the first-time note's buttons, and "off in this chat"
             if "keep_on" in data:
                 watch.intro_seen(request.user, bool(data["keep_on"]))
@@ -950,6 +955,16 @@ def chat(request, slug):
             save_messages(messages)
             return JsonResponse({"success": True, "persona": chat_state["persona"],
                                  "name": prompt_names(request.user, character, chat_state["persona"])["user"]})
+        elif action == "persona_to_account":  # this chat's persona becomes their usual one (the profile's)
+            name = str(data.get("name") or "").strip()[:100]
+            if not name:
+                return JsonResponse({"success": False, "error": "Give the persona a name first."}, status=400)
+            request.user.persona_name = name
+            request.user.persona_description = str(data.get("description") or "").strip()[:8000]
+            request.user.save(update_fields=["persona_name", "persona_description"])
+            chat_state["persona"] = {}  # the chat now follows the usual persona, which is this one
+            save_messages(messages)
+            return JsonResponse({"success": True, "persona": {}, "name": name})
         elif action == "appearance" and "layout" in data:  # chat bubbles or chapters
             try:
                 set_layout(request.user, data.get("layout"))
@@ -1403,6 +1418,7 @@ def chat(request, slug):
         "bulba_url": reverse("bulba_chat", kwargs={"chat_id": chat_obj.id}),
         "watch_data": watch.page_state(request.user, chat_obj),
         "persona_hint": _persona_hint(request.user, chat_state["persona"]),
+        "forms_hint": (not _persona_hint(request.user, chat_state["persona"])) and _forms_hint(request.user, character),
         "theme_weather": theme_weather(character, chat_state.get("current_bg") or ""),
         "skin": chat_skin(character, chat_state.get("skin") or ""),
         "chat_skin_choice": chat_state.get("skin") or "",
@@ -1680,6 +1696,22 @@ def _persona_hint(user, chat_persona):
         return False
     obj = ChatSettings.objects.filter(author=user).first()
     return not (obj and (obj.appearance or {}).get("persona_hint_seen"))
+
+
+def _forms_hint(user, character):
+    """The worldbook URL, once per account: the character's worldbook is in a language that changes words
+    (Ukrainian, Polish...), so "🥔 Add word forms" can catch the forms that change inside a word."""
+    obj = ChatSettings.objects.filter(author=user).first()
+    if obj and (obj.appearance or {}).get("forms_hint_seen"):
+        return ""
+    wb = character.worldbook
+    if wb is None or wb.author_id != user.id:
+        return ""
+    from mainapp import lorebook
+    try:
+        return reverse("worldbook_detail", args=[wb.slug]) if lorebook.inflected(load_worldbook(wb)) else ""
+    except Exception:  # an unreadable book: nothing to suggest
+        return ""
 
 
 def prompt_names(user, character, chat_persona=None):
@@ -2042,6 +2074,67 @@ def worldbook_detail(request, slug):
     })
 
 
+WORD_FORMS_PROMPT = (
+    "You help with a roleplay lorebook. Each entry has keywords; an entry is used when one of them appears in the "
+    "chat. The app already catches a word with a different ending (дракон → дракона, драконів; Фортеця → Фортеці), "
+    "but not a word that changes inside (Київ → Києва, Києві; Lwów → Lwowie; кінь → коня). For each entry, list the "
+    "forms of its keywords that a story would use and that change inside the word: grammatical cases, plural, "
+    "the common adjective (Київ → київський). Same language as the keyword. Skip keywords in English or other "
+    "languages that barely change, regex keywords (/.../), and forms that only add or swap an ending. Don't invent "
+    "new names or synonyms. Answer with JSON only: {\"forms\": {\"<entry id>\": [\"form\", ...]}}; leave out "
+    "entries with nothing to add.")
+
+
+def word_forms(user, book):
+    """{uid: [new keys]}: forms the keys take inside the word, without the ones the flexible endings already catch."""
+    from mainapp.lorebook import _key_pattern
+    entries = [e for e in book["entries"] if e["keys"] and not e["constant"]][:120]
+    asked = {str(e["uid"]): [k for k in e["keys"] if not k.startswith("/")] for e in entries}
+    asked = {uid: keys for uid, keys in asked.items() if keys}
+    if not asked:
+        return {}
+    text = ai_client.complete(user, "bulba", [{"role": "system", "content": WORD_FORMS_PROMPT},
+                                              {"role": "user", "content": json.dumps(asked, ensure_ascii=False)}],
+                              timeout=120, temperature=0.2)
+    match = re.search(r"\{.*\}", text or "", re.S)
+    try:
+        forms = json.loads(match.group(0)).get("forms", {}) if match else {}
+    except (ValueError, AttributeError):
+        raise ai_client.AIError("Bulba's answer wasn't readable. Try again.")
+    out = {}
+    for e in entries:
+        keys = asked.get(str(e["uid"]), [])
+        new = []
+        for form in forms.get(str(e["uid"])) or []:
+            form = str(form).strip()[:60]
+            if not form or form.startswith("/") or form.lower() in [k.lower() for k in e["keys"] + new]:
+                continue
+            caught = any(_key_pattern(k, False, True, True).fullmatch(form.replace("’", "'")) for k in keys)
+            if not caught:
+                new.append(form)
+        if new:
+            out[e["uid"]] = new[:10]
+    return out
+
+
+@login_required
+def worldbook_forms(request, slug):
+    """🥔 Add word forms: Bulba's suggestions for the editor to show; nothing is saved here."""
+    get_object_or_404(Worldbook, slug=slug, author=request.user)
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only"}, status=405)
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    book = normalize_book(data.get("book") or {})
+    try:
+        forms = word_forms(request.user, book)
+    except ai_client.AIError as e:
+        return JsonResponse({"error": str(e)}, status=502)
+    return JsonResponse({"forms": forms, "note": "" if forms else "Nothing to add: the keywords already cover their forms."})
+
+
 @login_required
 def worldbook_test(request, slug):
     """Dry run: which entries would fire for the given messages, and why."""
@@ -2056,7 +2149,7 @@ def worldbook_test(request, slug):
     # Uses the book as currently shown in the editor, so unsaved edits can be tested
     book = normalize_book(data.get("book") or {})
     messages = [m for m in data.get("messages", []) if isinstance(m, str) and m.strip()]
-    result = activate(book, messages)
+    result = activate(book, messages, notes_text=str(data.get("note") or "")[:4000])
     return JsonResponse({
         "report": result["report"],
         "notes": result["notes"],

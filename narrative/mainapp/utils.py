@@ -45,7 +45,15 @@ def build_ai_request(user, character: Character, chat=None, worldbook_slug=None,
             scan_messages = list(chat_history)
             if last_user_message_text:
                 scan_messages.append(last_user_message_text)
-            lore = activate(load_worldbook(wb), scan_messages)
+            # The director's notes always count; the persona and the card only with the book's scan_card on
+            from mainapp.views import pinned_note
+            notes_text = "\n".join(t for t in (pinned_note(persistent_guides) if isinstance(persistent_guides, dict)
+                                                else "", guidance or "") if t)
+            persona = chat_file_data.get("persona") if isinstance(chat_file_data.get("persona"), dict) else {}
+            persona_text = (persona.get("description") if persona.get("name")
+                            else getattr(user, "persona_description", "")) or ""
+            card_text = "\n".join(t for t in (persona_text, character.description or "", character.scenario or "") if t)
+            lore = activate(load_worldbook(wb), scan_messages, notes_text=notes_text, card_text=card_text)
             # Text rules placed on lore entries (SillyTavern's "World Info" placement)
             from mainapp import presets, regex_rules
             rules = [r for r in regex_rules.for_chat(presets.normalize(presets.get_active(user).data), character, user)

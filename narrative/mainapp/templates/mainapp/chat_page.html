@@ -8,7 +8,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Narrative AI - Chat with {{character.name}}</title>
-    <link rel="stylesheet" href="{% static 'mainapp/css/chat_page.css' %}?v=21">
+    <link rel="stylesheet" href="{% static 'mainapp/css/chat_page.css' %}?v=22">
     <link rel="stylesheet" href="{% static 'mainapp/css/chat_skins.css' %}?v=1">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
@@ -273,6 +273,7 @@
                             <div style="display:flex; gap:6px; flex-wrap:wrap;">
                                 <button type="submit" class="tool-action-btn">Save for this chat</button>
                                 <button type="button" class="tool-action-btn" id="personaReset">Use my usual persona</button>
+                                <button type="button" class="tool-action-btn" id="personaMakeUsual" title="Saves it to your profile, so every chat without its own persona uses it">Make this my usual persona</button>
                             </div>
                         </form>
                         <span class="tool-sublabel">📖 Layout <small>(all chats)</small></span>
@@ -318,7 +319,15 @@
                 <div class="persona-hint" id="personaHint">
                     <span>🥔 <b>Who are you in this story?</b> Right now {{ character.name }} only knows your login. Bulba can make you a persona in a minute: a name, a look, a bit of background.</span>
                     <span class="persona-hint-btns"><button type="button" data-persona-hint="bulba">Make one with Bulba</button>
+                        <a class="ghost persona-hint-link" href="{% url 'users:profile' %}#persona" data-persona-hint="profile">I'll write it myself</a>
                         <button type="button" class="ghost" data-persona-hint="later">Not now</button></span>
+                </div>
+                {% endif %}
+                {% if forms_hint %}
+                <div class="persona-hint" id="formsHint">
+                    <span>🥔 <b>Your worldbook got better at your language.</b> It now catches other endings (дракон → дракона) and reads your director's notes. Some words change inside (Київ → Києві): one press of <b>🥔 Add word forms</b> on the worldbook page covers those too.</span>
+                    <span class="persona-hint-btns"><a class="ghost persona-hint-link" href="{{ forms_hint }}#formsBox" target="_blank" rel="noopener" data-forms-hint="open">Open the worldbook</a>
+                        <button type="button" class="ghost" data-forms-hint="later">Got it</button></span>
                 </div>
                 {% endif %}
                 <div class="ideas-box" id="ideasBox" hidden></div>
