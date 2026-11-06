@@ -280,6 +280,13 @@ def tool_propose_theme(session, args):
                     "choices": [i["name"] for i in media_library.built_in(kind)]}, []
         theme[key] = item
         summary.append(f"{label}: {item['name']}")
+    skin = str(args.get("chat_style") or "").strip().lower()
+    if skin:
+        from mainapp.views import CHAT_SKINS
+        if skin not in CHAT_SKINS and skin != "none":
+            return {"error": f"chat_style is one of {', '.join(CHAT_SKINS)} or none."}, []
+        theme["skin"] = "" if skin == "none" else skin
+        summary.append(f"Chat style: {CHAT_SKINS.get(skin, 'plain')}")
     weather = str(args.get("weather") or "").strip().lower()
     if weather:
         if weather not in ("rain", "snow", "fog", "storm", "clear"):
@@ -317,6 +324,8 @@ def apply_theme(session, p):
         theme["dialogue_color"] = t["dialogue_color"]
     if t.get("weather"):
         theme["weather"] = t["weather"]
+    if "skin" in t:
+        theme["skin"] = t["skin"]
     character.theme = theme
     character.save(update_fields=["theme"])
     return f"{character.name}'s theme is set; chats with them open with it (unless a chat picked its own)."
@@ -376,6 +385,10 @@ def tool_defs(fn, STR, setup=True):
            {"background": {"type": "string", "enum": [i["name"] for i in media_library.built_in("backgrounds")] + ["none"]},
             "music": {"type": "string", "enum": [i["name"] for i in media_library.built_in("music")] + ["none"]},
             "dialogue_color": {"type": "string", "description": "Hex, e.g. #67e8f9; readable on a dark background"},
+            "chat_style": {"type": "string", "enum": ["parchment", "neon", "lab", "romance", "none"],
+                           "description": "The chat's style (bubbles, buttons, a light effect): parchment for fantasy "
+                                          "and historical, neon for cyberpunk and night cities, lab for sci-fi, "
+                                          "medicine and science, romance for soft love stories; none keeps it plain"},
             "weather": {"type": "string", "enum": ["rain", "snow", "fog", "storm", "clear"],
                         "description": "The weather the chat opens with (shown over the background) until the World "
                                        "tracker says otherwise. Match the background and the opening scene."},

@@ -2818,6 +2818,28 @@ class SteerMenuTests(ChatPromptTests):
         self.assertNotIn("control_before", active["extras"])
 
 
+class ChatSkinTests(ChatPromptTests):
+    def test_character_style_then_this_chat_then_plain(self):
+        from mainapp.views import chat_skin
+        page = self.client.get(self.url)
+        self.assertContains(page, 'id="skinChoice"')
+        self.assertContains(page, 'id="skinFxToggle"')
+        self.assertNotContains(page, "skin-parchment")
+        self.character.theme = {**(self.character.theme or {}), "skin": "parchment"}
+        self.character.save()
+        self.assertContains(self.client.get(self.url), " skin-parchment")
+        self.assertEqual(self.post({"action": "set_skin", "skin": "neon"}).json()["skin"], "neon")
+        page = self.client.get(self.url)
+        self.assertContains(page, " skin-neon")
+        self.assertNotContains(page, " skin-parchment\"")
+        self.assertEqual(self.post({"action": "set_skin", "skin": "none"}).json()["skin"], "")
+        self.assertNotContains(self.client.get(self.url), " skin-neon")
+        self.assertEqual(self.post({"action": "set_skin", "skin": ""}).json()["skin"], "parchment")  # back to the character's
+        self.assertFalse(self.post({"action": "set_skin", "skin": "disco"}).json()["success"])
+        self.character.theme = {"skin": "bogus"}
+        self.assertEqual(chat_skin(self.character), "")
+
+
 class MatureSwitchTests(ChatPromptTests):
     def test_switch_on_and_off(self):
         from mainapp import mature, presets as presets_mod
@@ -4095,12 +4117,14 @@ class BulbaPicturesAndThemeTests(BulbaCardAndLoreTests):
             self.upload(V2_CARD)
             self.script = [("", [self.call("propose_theme", background="Nowhere", why="x")]),
                            ("Here's a look.", [self.call("propose_theme", background="lab 13", music="Quiet Lab",
-                                                         dialogue_color="#67e8f9", weather="rain", why="a scientist")])]
+                                                         dialogue_color="#67e8f9", weather="rain", chat_style="lab",
+                                                         why="a scientist")])]
             data = self.api(action="say", text="give him a theme").json()
         preview = data["state"]["proposals"][-1]["preview"]  # the card shows the look, not just names
         self.assertEqual(preview["bg"], "/static/defaults/backgrounds/lab-13.webp")
         self.assertEqual(preview["music"], "/static/defaults/music/quiet-lab.mp3")
         self.assertEqual((preview["color"], preview["weather"]), ("#67e8f9", "rain"))
+        self.assertEqual((preview["skin"], preview["skin_name"]), ("lab", "🧪 Lab"))
         pid = data["state"]["proposals"][-1]["id"]
         self.script = [("Done.", [])]
         self.api(action="apply", id=pid)
@@ -4109,6 +4133,7 @@ class BulbaPicturesAndThemeTests(BulbaCardAndLoreTests):
         self.assertEqual(viktor.theme["music"]["name"], "Quiet Lab")
         self.assertEqual(viktor.theme["dialogue_color"], "#67e8f9")
         self.assertEqual(viktor.theme["weather"], "rain")
+        self.assertEqual(viktor.theme["skin"], "lab")
         from mainapp.views import theme_weather
         self.assertEqual(theme_weather(viktor), "rain")
         viktor.theme = {"bg": "/static/defaults/backgrounds/snowy-pass.webp"}

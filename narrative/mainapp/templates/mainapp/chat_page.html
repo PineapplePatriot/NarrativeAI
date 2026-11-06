@@ -9,12 +9,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Narrative AI - Chat with {{character.name}}</title>
     <link rel="stylesheet" href="{% static 'mainapp/css/chat_page.css' %}?v=21">
+    <link rel="stylesheet" href="{% static 'mainapp/css/chat_skins.css' %}?v=1">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
 </head>
 
-<body class="{% if appearance.layout == 'book' %}layout-book{% endif %}" data-dialogue="{% if appearance.dialogue_color == 'preset' %}preset{% else %}color{% endif %}" style="--dialogue-color: {% if appearance.dialogue_color == 'preset' %}inherit{% else %}{{ appearance.dialogue_color }}{% endif %}">
+<body class="{% if appearance.layout == 'book' %}layout-book{% endif %}{% if skin %} skin-{{ skin }}{% endif %}" data-dialogue="{% if appearance.dialogue_color == 'preset' %}preset{% else %}color{% endif %}" style="--dialogue-color: {% if appearance.dialogue_color == 'preset' %}inherit{% else %}{{ appearance.dialogue_color }}{% endif %}">
 {% include "partials/topbar.html" with active="characters" %}
+<div class="skin-fx" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+<script>try { if (localStorage.getItem('chat-fx') === 'off') document.body.classList.add('fx-off'); } catch (e) { /* effects stay on */ }</script>
 
     <div class="chat-container">
         <audio id="bgMusicPlayer" loop></audio>
@@ -284,6 +287,16 @@
                         <span class="tool-sublabel">🔞 Mature content <small>(18+, all chats)</small></span>
                         <label class="theme-check"><input type="checkbox" id="matureToggle" {% if mature_on %}checked{% endif %}>
                             Allow adult scenes <small>(switches the preset's mature-content rule on, with a reminder before each reply so the model doesn't refuse)</small></label>
+                        <span class="tool-sublabel">🖼 Chat style <small>(bubbles, buttons, a light effect)</small></span>
+                        <div class="chip-row skin-choice" id="skinChoice">
+                            <button type="button" class="preset-btn {% if not chat_skin_choice %}on{% endif %}" data-skin="">{{ character.name }}'s{% if character_skin %} ({{ character_skin_name }}){% else %} (plain){% endif %}</button>
+                            {% for key, label in chat_skins.items %}
+                            <button type="button" class="preset-btn {% if chat_skin_choice == key %}on{% endif %}" data-skin="{{ key }}">{{ label }}</button>
+                            {% endfor %}
+                            <button type="button" class="preset-btn {% if chat_skin_choice == 'none' %}on{% endif %}" data-skin="none">Plain</button>
+                        </div>
+                        <label class="theme-check"><input type="checkbox" id="skinFxToggle" checked> Effects <small>(candle light, scanlines, grid, petals; this browser; off by itself if your device asks for less motion)</small></label>
+                        <small class="skin-note">The first chip follows the character (Bulba sets it with their look: ask for a chat style); the others are for this chat only.</small>
                         <span class="tool-sublabel">🌦 Scene <small>(this browser)</small></span>
                         <label class="theme-check"><input type="checkbox" id="atmosphereToggle" checked> Weather and time of day over the
                             background <small>(from the World tracker: <span id="atmosphereNow">nothing to show yet</span>)</small></label>

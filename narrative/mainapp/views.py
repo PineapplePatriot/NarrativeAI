@@ -167,6 +167,7 @@ def chat(request, slug):
         "context_guides": {},
         "current_bg": "",
         "current_music": {},
+        "skin": "",             # this chat's own chat style ("" = the character's; see CHAT_SKINS)
         "music_follow": {},     # {"on": bool, "since": replies since the last pick}: music follows the scene
         "last_recall": [],      # old messages free recall brought back for the last reply (see mainapp/recall.py)
         "persona": {},          # {"name", "description"}: who the user is in this chat only (else their usual persona)
@@ -213,6 +214,7 @@ def chat(request, slug):
                         chat_state["context_guides"] = data.get("context_guides", {})
                         chat_state["current_bg"] = data.get("current_bg", "")
                         chat_state["current_music"] = data.get("current_music", {})
+                        chat_state["skin"] = data.get("skin") if data.get("skin") in (*CHAT_SKINS, "none") else ""
                         chat_state["music_follow"] = data.get("music_follow") if isinstance(data.get("music_follow"), dict) else {}
                         chat_state["last_recall"] = data.get("last_recall") if isinstance(data.get("last_recall"), list) else []
                         chat_state["persona"] = data.get("persona") if isinstance(data.get("persona"), dict) else {}
@@ -307,6 +309,7 @@ def chat(request, slug):
             "context_guides": chat_state["context_guides"],
             "current_bg": chat_state["current_bg"],
             "current_music": chat_state["current_music"],
+            "skin": chat_state["skin"],
             "music_follow": chat_state["music_follow"],
             "last_recall": chat_state["last_recall"],
             "persona": chat_state["persona"],
@@ -630,6 +633,13 @@ def chat(request, slug):
             except ValueError as e:
                 return JsonResponse({"success": False, "error": str(e)}, status=400)
             return JsonResponse({"success": True})
+        elif action == "set_skin":  # the pen menu's chat style: this chat only ("" = the character's)
+            skin = str(data.get("skin") or "")
+            if skin not in CHAT_SKINS and skin not in ("", "none"):
+                return JsonResponse({"success": False, "error": "Unknown style."}, status=400)
+            chat_state["skin"] = skin
+            save_messages(messages)
+            return JsonResponse({"success": True, "skin": chat_skin(character, skin)})
         elif action == "persona_hint_seen":  # "Who are you in the story?" is asked once per account
             settings_obj, _ = ChatSettings.objects.get_or_create(author=request.user)
             settings_obj.appearance = {**(settings_obj.appearance or {}), "persona_hint_seen": True}
@@ -1394,6 +1404,11 @@ def chat(request, slug):
         "watch_data": watch.page_state(request.user, chat_obj),
         "persona_hint": _persona_hint(request.user, chat_state["persona"]),
         "theme_weather": theme_weather(character, chat_state.get("current_bg") or ""),
+        "skin": chat_skin(character, chat_state.get("skin") or ""),
+        "chat_skin_choice": chat_state.get("skin") or "",
+        "character_skin": (character.theme or {}).get("skin") if (character.theme or {}).get("skin") in CHAT_SKINS else "",
+        "chat_skins": CHAT_SKINS,
+        "character_skin_name": CHAT_SKINS.get((character.theme or {}).get("skin") or "", ""),
         "mature_on": mature.is_on(presets.normalize(presets.get_active(request.user).data)),
         "director_on": control.mode_of(presets.normalize(presets.get_active(request.user).data)) == "director",
         "display_rules": {
@@ -1631,6 +1646,18 @@ def word_note(user, character, messages, wish, rewrite=False, persona=None):
 
 
 WEATHERS = ("rain", "snow", "fog", "storm", "clear")
+# Chat styles: bubbles, buttons and one light effect (static mainapp/css/chat_skins.css), per character
+CHAT_SKINS = {"parchment": "📜 Parchment", "neon": "🌆 Neon", "lab": "🧪 Lab", "romance": "🌸 Romance"}
+
+
+def chat_skin(character, chat_choice=""):
+    """The style a chat shows: its own pick ("none" = plain), else the character's, else plain ("")."""
+    if chat_choice == "none":
+        return ""
+    if chat_choice in CHAT_SKINS:
+        return chat_choice
+    skin = (character.theme or {}).get("skin")
+    return skin if skin in CHAT_SKINS else ""
 
 
 def theme_weather(character, background=""):
@@ -2410,7 +2437,8 @@ def _theme_preview(p):
     t = (p.get("payload") or {}).get("theme") or {}
     bg, music = t.get("background") or {}, t.get("music") or {}
     return {"bg": bg.get("url", ""), "bg_name": bg.get("name", ""), "music": music.get("url", ""),
-            "music_name": music.get("name", ""), "color": t.get("dialogue_color", ""), "weather": t.get("weather", "")}
+            "music_name": music.get("name", ""), "color": t.get("dialogue_color", ""), "weather": t.get("weather", ""),
+            "skin": t.get("skin", ""), "skin_name": CHAT_SKINS.get(t.get("skin", ""), "")}
 
 
 def _bulba_chat_link(session):

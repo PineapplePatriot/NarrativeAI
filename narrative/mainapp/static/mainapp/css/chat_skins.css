@@ -1,0 +1,128 @@
+/* Chat styles (per character, overridable per chat): bubble frames, colours, buttons, one light effect.
+   body.skin-<name>; the effect layer is .skin-fx, off with body.fx-off or reduced motion. */
+
+.skin-fx { position: fixed; inset: 0; pointer-events: none; z-index: 1; display: none; overflow: hidden; }
+body[class*="skin-"] .skin-fx { display: block; }
+body.fx-off .skin-fx { display: none !important; }
+@media (prefers-reduced-motion: reduce) { .skin-fx { display: none !important; } }
+.chat-container { position: relative; z-index: 2; }
+
+/* ---------- 📜 Parchment: warm paper, inked border, serif, wax-red buttons, candle flicker ---------- */
+body.skin-parchment { --ui-primary: #3b2a1c; --ui-secondary: #2a1e14; --accent-1: #9b2c2c; --border-color: rgba(214, 180, 120, .35); }
+body.skin-parchment .messages-container { --dialogue-color: #7a1f1f; }
+body.skin-parchment[data-dialogue="preset"] .messages-container { --dialogue-color: inherit; }
+body.skin-parchment .message-content {
+    background: linear-gradient(180deg, #f3e6c8, #e8d4a8); color: #2b1d10;
+    border: 2px solid #6b4a2a; border-radius: 4px 14px 6px 12px;
+    box-shadow: inset 0 0 22px rgba(120, 80, 30, .35), 0 3px 10px rgba(0, 0, 0, .4);
+    font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+}
+body.skin-parchment .user .message-content { background: linear-gradient(180deg, #eadcbc, #dcc596); border-color: #5a3d22; }
+body.skin-parchment .message-content::before { display: none; }
+body.skin-parchment .message-content em, body.skin-parchment .message-content i { color: #5b4128; }
+body.skin-parchment .send-btn, body.skin-parchment .tools-btn {
+    background: radial-gradient(circle at 35% 30%, #c53030, #7f1d1d 70%); border: 1px solid #4a1010; border-radius: 50%;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, .5), inset 0 -2px 4px rgba(0, 0, 0, .35);
+}
+body.skin-parchment .header-btn { border-color: rgba(214, 180, 120, .45); font-family: Georgia, serif; }
+body.skin-parchment .skin-fx { box-shadow: inset 0 0 120px rgba(255, 160, 60, .18); animation: candle 3.2s ease-in-out infinite; }
+@keyframes candle {
+    0%, 100% { box-shadow: inset 0 0 120px rgba(255, 160, 60, .18); }
+    30% { box-shadow: inset 0 0 140px rgba(255, 140, 40, .26); }
+    55% { box-shadow: inset 0 0 105px rgba(255, 170, 70, .14); }
+    80% { box-shadow: inset 0 0 135px rgba(255, 150, 50, .22); }
+}
+
+/* ---------- 🌆 Neon: dark glass, cyan-magenta glow, sharp corners, monospace accents, scanlines ---------- */
+body.skin-neon { --ui-primary: #0d0f1f; --ui-secondary: #090b16; --accent-1: #ff2bd6; --border-color: rgba(0, 240, 255, .35); }
+body.skin-neon .message-content {
+    background: rgba(10, 12, 30, .72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    border: 1px solid rgba(0, 240, 255, .55); border-radius: 0;
+    box-shadow: 0 0 12px rgba(0, 240, 255, .25), inset 0 0 12px rgba(255, 43, 214, .08);
+}
+body.skin-neon .user .message-content { border-color: rgba(255, 43, 214, .6); box-shadow: 0 0 12px rgba(255, 43, 214, .25); }
+body.skin-neon .message-content::before { display: none; }
+body.skin-neon .message-name, body.skin-neon .tool-sublabel, body.skin-neon .header-btn {
+    font-family: "JetBrains Mono", "Fira Code", Consolas, monospace; letter-spacing: .02em;
+}
+body.skin-neon .send-btn, body.skin-neon .tools-btn {
+    background: transparent; border: 1px solid #00f0ff; border-radius: 0; box-shadow: 0 0 10px rgba(0, 240, 255, .5);
+}
+body.skin-neon .send-btn:hover { box-shadow: 0 0 16px rgba(255, 43, 214, .7); border-color: #ff2bd6; }
+body.skin-neon .header-btn { border-radius: 0; border-color: rgba(0, 240, 255, .45); }
+body.skin-neon .skin-fx {
+    background: repeating-linear-gradient(0deg, rgba(0, 240, 255, .05) 0 1px, transparent 1px 4px);
+    animation: scan 7s linear infinite;
+}
+body.skin-neon .skin-fx::after {
+    content: ''; position: absolute; left: 0; right: 0; height: 120px; top: -120px;
+    background: linear-gradient(180deg, transparent, rgba(255, 43, 214, .07), transparent); animation: sweep 6s linear infinite;
+}
+@keyframes scan { from { background-position: 0 0; } to { background-position: 0 40px; } }
+@keyframes sweep { from { top: -120px; } to { top: 100%; } }
+
+/* ---------- 🧪 Lab: cool white-blue panels, technical lines, corner brackets, small caps, faint grid ---------- */
+body.skin-lab { --ui-primary: #17283b; --ui-secondary: #102030; --accent-1: #1d6fd8; --border-color: rgba(120, 170, 220, .45); }
+body.skin-lab .messages-container { --dialogue-color: #0b4fa8; }
+body.skin-lab[data-dialogue="preset"] .messages-container { --dialogue-color: inherit; }
+body.skin-lab .message-content {
+    background: linear-gradient(180deg, rgba(240, 246, 252, .96), rgba(222, 234, 246, .96)); color: #13253a;
+    border: 1px solid #8fb3d9; border-radius: 2px;
+    background-image: linear-gradient(#1d6fd8, #1d6fd8), linear-gradient(#1d6fd8, #1d6fd8),
+                      linear-gradient(#1d6fd8, #1d6fd8), linear-gradient(#1d6fd8, #1d6fd8),
+                      linear-gradient(180deg, rgba(240, 246, 252, .96), rgba(222, 234, 246, .96));
+    background-size: 14px 2px, 2px 14px, 14px 2px, 2px 14px, auto;
+    background-position: left top, left top, right bottom, right bottom, 0 0;
+    background-repeat: no-repeat;
+}
+body.skin-lab .user .message-content { border-style: dashed; }
+body.skin-lab .message-content::before { display: none; }
+body.skin-lab .message-content em, body.skin-lab .message-content i { color: #3d5a78; }
+body.skin-lab .message-name, body.skin-lab .tool-sublabel { font-variant: small-caps; letter-spacing: .06em; }
+body.skin-lab .send-btn, body.skin-lab .tools-btn { background: #1d6fd8; border-radius: 3px; border: 1px solid #9cc4f0; }
+body.skin-lab .header-btn { border-radius: 3px; font-variant: small-caps; }
+body.skin-lab .skin-fx {
+    background-image: linear-gradient(rgba(140, 190, 240, .07) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(140, 190, 240, .07) 1px, transparent 1px);
+    background-size: 28px 28px; animation: grid 20s linear infinite;
+}
+@keyframes grid { from { background-position: 0 0; } to { background-position: 28px 28px; } }
+
+/* ---------- 🌸 Romance: rounded rosy bubbles, soft glow, pastel buttons, drifting petals ---------- */
+body.skin-romance { --ui-primary: #3a2233; --ui-secondary: #2a1825; --accent-1: #f08bb4; --border-color: rgba(255, 182, 210, .35); }
+body.skin-romance .message-content {
+    background: linear-gradient(160deg, rgba(92, 44, 72, .88), rgba(64, 34, 58, .88));
+    border: 1px solid rgba(255, 182, 210, .45); border-radius: 22px;
+    box-shadow: 0 0 18px rgba(255, 150, 190, .18);
+}
+body.skin-romance .user .message-content { background: linear-gradient(160deg, rgba(120, 60, 95, .8), rgba(90, 50, 85, .8)); }
+body.skin-romance .message-content::before { display: none; }
+body.skin-romance .send-btn, body.skin-romance .tools-btn {
+    background: linear-gradient(135deg, #f9a8d4, #f472b6); border-radius: 999px; border: none; box-shadow: 0 3px 12px rgba(244, 114, 182, .4);
+}
+body.skin-romance .header-btn { border-radius: 999px; }
+body.skin-romance .skin-fx i {
+    position: absolute; top: -20px; width: 12px; height: 9px; border-radius: 12px 1px 12px 1px;
+    background: rgba(255, 182, 210, .55); animation: petal linear infinite;
+}
+body.skin-romance .skin-fx i:nth-child(1) { left: 8%;  animation-duration: 14s; animation-delay: 0s; }
+body.skin-romance .skin-fx i:nth-child(2) { left: 26%; animation-duration: 18s; animation-delay: 4s; }
+body.skin-romance .skin-fx i:nth-child(3) { left: 47%; animation-duration: 16s; animation-delay: 9s; }
+body.skin-romance .skin-fx i:nth-child(4) { left: 68%; animation-duration: 20s; animation-delay: 2s; }
+body.skin-romance .skin-fx i:nth-child(5) { left: 86%; animation-duration: 15s; animation-delay: 7s; }
+body:not(.skin-romance) .skin-fx i { display: none; }
+@keyframes petal {
+    0% { transform: translate(0, 0) rotate(0); opacity: 0; }
+    10% { opacity: 1; }
+    50% { transform: translate(40px, 50vh) rotate(180deg); }
+    100% { transform: translate(-20px, 105vh) rotate(360deg); opacity: 0; }
+}
+
+/* Light bubbles: keep the text inside readable */
+body.skin-parchment .message-content .message-text, body.skin-lab .message-content .message-text { color: inherit; }
+
+/* The pen menu's style chips */
+.skin-choice { display: flex; flex-wrap: wrap; gap: 6px; }
+.skin-note { display: block; opacity: .7; margin: 2px 0 8px; font-size: .8rem; line-height: 1.4; }
+body.skin-parchment .message-content .message-text, body.skin-parchment .message-content .message-text :not(code):not(pre) {
+    font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif; }

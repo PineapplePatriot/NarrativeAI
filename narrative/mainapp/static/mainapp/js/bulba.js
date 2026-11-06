@@ -65,6 +65,7 @@ function themePreview(v) {
             ${v.weather && WEATHER_ICON[v.weather] ? `<span class="tp-weather">${WEATHER_ICON[v.weather]} ${esc(v.weather)}</span>` : ''}
             ${color ? `<span class="tp-line" style="color:${color}">“A line in this colour.”</span>` : ''}</div>`
           : color ? `<div class="tp-line solo" style="color:${color}">“A line in this colour.”</div>` : ''}
+        ${v.skin_name ? `<span class="tp-skin tp-skin-${esc(v.skin || '')}">Chat style: ${esc(v.skin_name)}</span>` : ''}
         ${v.music ? `<button type="button" class="ghost tp-play" data-play="${esc(v.music)}">▶ Listen: ${esc(v.music_name || 'music')}</button>` : ''}
       </div>`;
 }

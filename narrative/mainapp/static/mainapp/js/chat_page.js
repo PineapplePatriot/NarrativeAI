@@ -2007,3 +2007,29 @@ function handleRefusal(d) {
         regenerateReply('', b.dataset.standin);
     });
 }
+
+// 🖼 Chat style: the character's, one of the four for this chat, or plain; the effects switch is per browser
+(function () {
+    const choice = document.getElementById('skinChoice');
+    if (choice) choice.addEventListener('click', async (e) => {
+        const b = e.target.closest('[data-skin]');
+        if (!b) return;
+        const resp = await fetch(window.location.href, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ action: 'set_skin', skin: b.dataset.skin }),
+        });
+        const d = await resp.json().catch(() => ({}));
+        if (!d.success) { showChatNotice(d.error || 'Could not change the chat style.'); return; }
+        [...document.body.classList].filter(c => c.startsWith('skin-')).forEach(c => document.body.classList.remove(c));
+        if (d.skin) document.body.classList.add('skin-' + d.skin);
+        choice.querySelectorAll('[data-skin]').forEach(x => x.classList.toggle('on', x === b));
+    });
+    const fx = document.getElementById('skinFxToggle');
+    if (fx) {
+        fx.checked = !document.body.classList.contains('fx-off');
+        fx.addEventListener('change', () => {
+            document.body.classList.toggle('fx-off', !fx.checked);
+            try { localStorage.setItem('chat-fx', fx.checked ? 'on' : 'off'); } catch (err) { /* this page only */ }
+        });
+    }
+})();

@@ -256,3 +256,9 @@ body.embed .mini-progress { display: none !important; }  /* beside the Quick set
 .tp-weather { position: absolute; top: 8px; right: 8px; font-size: .78rem; padding: 3px 8px; border-radius: 10px;
     background: rgba(0, 0, 0, .5); color: #fff; }
 .tp-play { justify-self: start; }
+.theme-preview .tp-skin { display: inline-block; margin: 6px 6px 0 0; padding: 3px 10px; border-radius: 999px; font-size: .82rem;
+    border: 1px solid var(--border, rgba(255,255,255,.15)); }
+.tp-skin-parchment { background: #f3e6c8; color: #2b1d10; border-color: #6b4a2a !important; font-family: Georgia, serif; }
+.tp-skin-neon { background: #0d0f1f; color: #00f0ff; border-color: #ff2bd6 !important; border-radius: 0 !important; font-family: monospace; }
+.tp-skin-lab { background: #e8f0f8; color: #13253a; border-color: #1d6fd8 !important; border-radius: 2px !important; font-variant: small-caps; }
+.tp-skin-romance { background: #5c2c48; color: #ffd1e3; border-color: #f9a8d4 !important; }
