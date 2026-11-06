@@ -287,6 +287,69 @@ class WorldbookViewTests(TestCase):
             self.assertEqual(self.post_json(reverse("worldbook_forms", args=[wb.slug]), {"book": book}).status_code, 502)
         self.assertContains(self.client.get(reverse("worldbook_detail", args=[wb.slug])), 'id="formsBtn"')
 
+    def expand_book(self):
+        return {"title": "Teyvat", "based_on": "Genshin Impact", "entries": [
+            {"uid": 0, "comment": "Dottore", "keys": ["Dottore"], "content": "The Second of the Harbingers."},
+            {"uid": 1, "comment": "Sumeru", "keys": ["Sumeru"], "content": "A nation of wisdom."}]}
+
+    def run_expand(self, book, what, research, answer, uid=None):
+        from unittest import mock
+        from mainapp import ai_client
+        from users.models import ConnectionProfile
+        self.post_json(reverse("worldbook_create"), {"title": "Teyvat"})
+        wb = Worldbook.objects.get(author=self.user)
+        profile = ConnectionProfile.objects.create(user=self.user, name="OR", api_key="k", model="x/y",
+                                                   provider=ConnectionProfile.PROVIDER_OPENROUTER)
+        message = {"content": research, "annotations": [{"url_citation": {"url": "https://wiki.example/dottore"}}]}
+        with mock.patch.object(ai_client, "resolve", return_value=(profile, "x/y")), \
+                mock.patch.object(ai_client, "complete_message", return_value=(message, 0.01)) as web, \
+                mock.patch.object(ai_client, "complete", return_value=answer) as ask:
+            body = {"book": book, "what": what, **({"uid": uid} if uid is not None else {})}
+            resp = self.post_json(reverse("worldbook_expand", args=[wb.slug]), body)
+        return resp, web, ask
+
+    def test_expand_from_the_web(self):
+        answer = json.dumps({"canon": True, "entries": {
+            "0": {"keys": ["Il Dottore", "Zandik", "dottore"], "add": "He experiments on himself."},
+            "1": {"keys": [], "add": "A nation of wisdom."}},  # repeats the entry: dropped
+            "new": [{"title": "Akademiya", "keys": ["Akademiya"], "content": "Sumeru's school."},
+                    {"title": "Sumeru", "keys": ["Sumeru"], "content": "dup"}]})
+        resp, web, ask = self.run_expand(self.expand_book(), ["keys", "lore", "new"], "Dottore, also Zandik...", answer)
+        data = resp.json()
+        self.assertEqual(data["origin"], "web")
+        self.assertEqual(data["entries"], {"0": {"keys": ["Il Dottore", "Zandik"], "add": "He experiments on himself."}})
+        self.assertEqual([n["title"] for n in data["new"]], ["Akademiya"])
+        self.assertEqual(data["sources"], ["https://wiki.example/dottore"])
+        self.assertIn("Genshin Impact", web.call_args[0][2][1]["content"])  # the web search is about the work
+        self.assertIn("Research:", ask.call_args[0][2][0]["content"])
+
+    def test_expand_an_own_world_is_invented(self):
+        book = {**self.expand_book(), "based_on": ""}
+        answer = json.dumps({"canon": True, "entries": {"0": {"keys": ["the Doctor"]}}, "new": []})
+        resp, web, ask = self.run_expand(book, ["keys"], "NOT FOUND", answer)
+        data = resp.json()
+        self.assertEqual(data["origin"], "invented")
+        self.assertIn("invented", data["note"])
+        self.assertEqual(data["entries"]["0"]["keys"], ["the Doctor"])
+
+    def test_expand_one_entry_never_adds_new_ones(self):
+        answer = json.dumps({"canon": True, "entries": {"1": {"keys": ["Sumeru City"]}},
+                             "new": [{"title": "X", "keys": ["X"], "content": "x"}]})
+        resp, web, ask = self.run_expand(self.expand_book(), ["keys", "lore", "new"], "Sumeru City...", answer, uid=1)
+        data = resp.json()
+        self.assertEqual((data["entries"], data["new"]), ({"1": {"keys": ["Sumeru City"], "add": ""}}, []))
+        self.assertIn("Sumeru in Genshin Impact", web.call_args[0][2][1]["content"])
+        self.assertNotIn("Dottore", ask.call_args[0][2][1]["content"])  # only that entry is sent
+
+    def test_based_on_is_kept_and_shown(self):
+        self.post_json(reverse("worldbook_create"), {"title": "Teyvat"})
+        wb = Worldbook.objects.get(author=self.user)
+        self.post_json(reverse("worldbook_detail", args=[wb.slug]), {**self.expand_book(), "based_on": "Genshin, Sumeru arc"})
+        page = self.client.get(reverse("worldbook_detail", args=[wb.slug]))
+        self.assertEqual(page.context["worldbook_json"]["based_on"], "Genshin, Sumeru arc")
+        self.assertContains(page, 'id="expandBtn"')
+        self.assertContains(page, 'id="entryExpandBtn"')
+
     def test_the_test_panel_reads_a_note(self):
         self.post_json(reverse("worldbook_create"), {"title": "Notes"})
         wb = Worldbook.objects.get(author=self.user)

@@ -79,3 +79,6 @@ the name they give (an empty name lists their characters).
   wrong (propose_lore_edit: rewrite, switch off or delete). New facts go in with propose_lorebook. Never
   rewrite a card they wrote or like wholesale.
 - The first message (initial_message) only affects new chats; say so if they change it.
+- For a big pass over a whole book (more names and nicknames for every entry, missing places and people),
+  the worldbook page's "🥔 Expand with Bulba" does it in one go and lets them tick what to keep; mention it
+  when they ask for that. In a chat you can still do it entry by entry (look_up, then propose_lore_edit).

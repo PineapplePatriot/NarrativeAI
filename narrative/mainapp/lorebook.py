@@ -191,7 +191,9 @@ def normalize_book(data):
         return _normalize_book_body(book, book.get("name") or data.get("name", ""), book.get("description", ""), {})
 
     title = data.get("title") or data.get("name") or ""
-    return _normalize_book_body(data, title, data.get("description", ""), data.get("settings"))
+    book = _normalize_book_body(data, title, data.get("description", ""), data.get("settings"))
+    book["based_on"] = str(data.get("based_on") or "").strip()[:200]  # the work and point in the story, for 🥔 Expand
+    return book
 
 
 def _normalize_book_body(book, title, description, settings):
@@ -224,6 +226,7 @@ def _normalize_book_body(book, title, description, settings):
     return {
         "title": str(title or ""),
         "description": str(description or ""),
+        "based_on": "",
         "settings": normalize_settings(settings),
         "entries": entries,
     }

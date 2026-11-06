@@ -15,7 +15,10 @@ profile, and **?** (a tour of the page, or "What's this?": click anything to hav
   up. Each entry has keywords; when a keyword appears in recent messages or the director's notes, the entry is
   added to what the AI reads (the persona and character description too, if the book's setting says so). Other
   word endings are caught in Ukrainian, Polish and similar; "🥔 Add word forms" adds forms that change inside
-  (Київ → Києві). "Test a message" shows which entries would fire. A character uses one worldbook.
+  (Київ → Києві). "🥔 Expand with Bulba" suggests more keywords (other names, nicknames), more lore and missing
+  entries, from the web when its "Based on" field names the work, invented to fit for their own world; "🥔 Expand
+  this entry" does it in one entry's editor. "Test a message" shows which entries would fire. A character uses one
+  worldbook.
 - **Presets**: the instructions sent with every reply (how to write, how long, who controls your character). Ready
   starters are tuned per model; SillyTavern presets import as they are. The Preview tab shows exactly what's sent.
 - **Samplers**: model settings such as temperature (how adventurous the wording is) and reply length. Most people

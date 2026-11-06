@@ -6,7 +6,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>{{ worldbook.title }} - Worldbook</title>
-  <link rel="stylesheet" href="{% static 'mainapp/css/worldbook_detail.css' %}?v=2">
+  <link rel="stylesheet" href="{% static 'mainapp/css/worldbook_detail.css' %}?v=3">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
 </head>
@@ -64,6 +64,21 @@
           <input id="testNote" placeholder="Tonight they reach the capital."/></label>
         <button class="btn primary full" id="testBtn">Run test</button>
         <div id="testResults"></div>
+      </div>
+
+      <div class="card" id="expandCard">
+        <h3 class="card-title">🥔 Expand with Bulba</h3>
+        <label class="test-note">Based on <small>(the work and the point in the story; empty for your own world)</small>
+          <input id="wbBasedOn" maxlength="200" placeholder="e.g. Genshin Impact, Sumeru arc"/></label>
+        <div class="expand-what">
+          <label class="check"><input type="checkbox" id="xKeys" checked/> More keywords <small>(other names, short names, nicknames)</small></label>
+          <label class="check"><input type="checkbox" id="xLore"/> More lore in entries</label>
+          <label class="check"><input type="checkbox" id="xNew"/> New entries the book is missing</label>
+        </div>
+        <p class="hint">With “Based on” filled, Bulba looks the work up on the web first (a few cents). For your own
+          world it suggests what fits the book, marked as invented. You pick what to add; nothing is saved until you press Save.</p>
+        <button class="btn primary full" id="expandBtn" type="button">🥔 Expand the book</button>
+        <div id="expandResult"></div>
       </div>
 
       <div class="card">
@@ -168,6 +183,11 @@
         </div>
       </div>
     </details>
+    <div class="entry-expand">
+      <button class="btn" id="entryExpandBtn" type="button">🥔 Expand this entry</button>
+      <span class="hint">More keywords and any missing facts, from the web when “Based on” is filled.</span>
+      <div id="entryExpandResult"></div>
+    </div>
     <div class="footer">
       <button class="btn" id="cancelBtn">Cancel</button>
       <button class="btn primary" id="saveBtn">Save Entry</button>
@@ -182,9 +202,10 @@
     save: "{% url 'worldbook_detail' worldbook.slug %}",
     test: "{% url 'worldbook_test' worldbook.slug %}",
     forms: "{% url 'worldbook_forms' worldbook.slug %}",
+    expand: "{% url 'worldbook_expand' worldbook.slug %}",
   };
 </script>
-<script src="{% static 'mainapp/js/worldbook_detail.js' %}?v=3"></script>
+<script src="{% static 'mainapp/js/worldbook_detail.js' %}?v=4"></script>
 <script>window.NA_PAGE_TOUR = {name: 'worldbook', auto: true};</script>
 </body>
 </html>

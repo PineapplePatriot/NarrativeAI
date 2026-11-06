@@ -2136,6 +2136,29 @@ def worldbook_forms(request, slug):
 
 
 @login_required
+def worldbook_expand(request, slug):
+    """🥔 Expand: more keywords, more lore, missing entries (the whole book, or one entry); nothing is saved here."""
+    from mainapp.bulba import expand
+    get_object_or_404(Worldbook, slug=slug, author=request.user)
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only"}, status=405)
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    book = normalize_book(data.get("book") or {})
+    what = tuple(w for w in (data.get("what") or ["keys", "lore", "new"]) if w in ("keys", "lore", "new")) or ("keys",)
+    uid = data.get("uid")
+    try:
+        result = expand.expand(request.user, book, what, int(uid) if uid is not None else None)
+    except ValueError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+    except ai_client.AIError as e:
+        return JsonResponse({"error": str(e)}, status=502)
+    return JsonResponse(result)
+
+
+@login_required
 def worldbook_test(request, slug):
     """Dry run: which entries would fire for the given messages, and why."""
     get_object_or_404(Worldbook, slug=slug, author=request.user)
