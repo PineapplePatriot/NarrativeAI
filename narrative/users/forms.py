@@ -99,9 +99,11 @@ class RegisterUserForm(UserCreationForm):
 class ProfileUserForm(forms.ModelForm):
     class Meta:
         model = User
-        # The persona (who they are in stories) is Bulba's job now, and each chat can have its own (the pen menu)
-        fields = ['photo', 'first_name', 'date_birth', 'username', 'email']
-        labels = {'username': "Login", 'email': "Email"}
+        # The persona (who they are in stories): Bulba can make it, they can edit it here; each chat can still
+        # have its own (the pen menu)
+        fields = ['photo', 'first_name', 'date_birth', 'username', 'email', 'persona_name', 'persona_description']
+        labels = {'username': "Login", 'email': "Email", 'persona_name': "Name in stories",
+                  'persona_description': "About you in stories"}
         help_texts = {'username': "What you type to log in (your email works too)."}
         widgets = {
             'photo': forms.FileInput(attrs={'class': 'form-input'}),
@@ -109,10 +111,27 @@ class ProfileUserForm(forms.ModelForm):
             'date_birth': forms.DateInput(attrs={'type': 'date', 'class': 'form-input'}),
             'username': forms.TextInput(attrs={'class': 'form-input'}),
             'email': forms.EmailInput(attrs={'class': 'form-input'}),
+            'persona_name': forms.TextInput(attrs={'class': 'form-input', 'maxlength': 100, 'placeholder': 'e.g. Wren'}),
+            'persona_description': forms.Textarea(attrs={'class': 'form-input', 'rows': 5, 'maxlength': 8000,
+                'placeholder': 'Your look, attitude, a habit or two. The AI reads this to know who it talks to.'}),
         }
+
+    PERSONA = ('persona_name', 'persona_description')
+
+    def account_fields(self):
+        return [f for f in self if f.name != 'photo' and f.name not in self.PERSONA]
+
+    def persona_fields(self):
+        return [self[n] for n in self.PERSONA]
 
     def clean_email(self):
         return unique_email(self.cleaned_data.get('email'), self.instance)
+
+    def clean(self):
+        data = super().clean()
+        for n in self.PERSONA:  # empty stays empty (not None), so the chat's "who are you?" hint reads it right
+            data[n] = (data.get(n) or '').strip()
+        return data
 
 class UserPasswordChangeForm(PasswordChangeForm):
     old_password = forms.CharField(label="Old password", widget=forms.PasswordInput(attrs={'class': 'form-input'}))

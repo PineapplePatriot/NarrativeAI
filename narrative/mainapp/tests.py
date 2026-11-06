@@ -6653,10 +6653,29 @@ class LoginAndProfileFieldsTests(TestCase):
         self.assertContains(page, "Date of birth")
         for gone in ("Last name", "Persona name", "Persona description", "Username"):
             self.assertNotContains(page, gone)
+        self.assertContains(page, "You in stories")  # the persona Bulba makes can be edited here
         self.client.logout()
         page = self.client.get(reverse("users:register"))
         self.assertNotContains(page, "Persona")
         self.assertNotContains(page, "Last name")
+
+
+    def test_edit_the_persona_on_the_profile(self):
+        self.user.persona_name, self.user.persona_description = "Wren", "A field medic."  # as Bulba leaves it
+        self.user.save()
+        self.client.force_login(self.user)
+        page = self.client.get(reverse("users:profile"))
+        self.assertContains(page, 'value="Wren"')
+        self.assertContains(page, "A field medic.")
+        form = {"first_name": "", "date_birth": "", "username": self.user.username, "email": self.user.email,
+                "persona_name": "Wren Vale", "persona_description": "  A medic who asks one question too many. "}
+        self.client.post(reverse("users:profile"), form)
+        self.user.refresh_from_db()
+        self.assertEqual((self.user.persona_name, self.user.persona_description),
+                         ("Wren Vale", "A medic who asks one question too many."))
+        self.client.post(reverse("users:profile"), {**form, "persona_name": "", "persona_description": ""})
+        self.user.refresh_from_db()
+        self.assertEqual((self.user.persona_name, self.user.persona_description), ("", ""))
 
 
 class ForgotPasswordTests(TestCase):

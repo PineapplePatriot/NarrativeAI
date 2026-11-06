@@ -153,3 +153,9 @@ a { color: #c4b5fd; }
 .delete-account .confirm-line input { width: auto; margin-top: 3px; }
 .delete-account button.danger { background: #b91c1c; }
 .delete-account button.danger:hover { background: #dc2626; }
+
+/* You in stories (the persona) */
+.persona-head { margin: 22px 0 4px; font-size: 1.05rem; }
+.persona-help { margin: 0 0 8px; font-size: .88rem; opacity: .8; line-height: 1.5; }
+textarea.form-input { width: 100%; box-sizing: border-box; resize: vertical; font: inherit; }
+.persona-help a { display: inline; margin: 0; padding: 0; }
