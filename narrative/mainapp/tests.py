@@ -4633,14 +4633,14 @@ class WatchLogicTests(SimpleTestCase):
     def test_one_slip_is_nothing_a_repeat_is_a_habit(self):
         from mainapp.bulba import watch
         slip = lambda at: {"label": "forced_callback", "quote": f"the voice he used {at}", "at": at, "cause": "model"}
-        data = self.data([slip(3), slip(9)])
-        self.assertEqual(watch.habits(data, []), [])
-        data["log"].append(slip(11))
-        notes = watch.habits(data, [])
+        data = self.data([slip(3)])
+        self.assertEqual(watch.habits(data, []), [])  # once is nothing
+        data["log"].append(slip(9))
+        notes = watch.habits(data, [])  # twice in the last few replies is a habit
         self.assertEqual(len(notes), 1)
         self.assertEqual(notes[0]["kind"], "pattern")
-        self.assertIn("3 of the last 6", notes[0]["text"])
-        self.assertEqual(len(notes[0]["quotes"]), 3)
+        self.assertIn("2 of the last 6", notes[0]["text"])
+        self.assertEqual(len(notes[0]["quotes"]), 2)
         self.assertEqual(watch.habits(data, []), [])  # raised once
         # muted habits never come back
         self.assertEqual(watch.habits(self.data([slip(3), slip(9), slip(11)]), ["forced_callback"]), [])
@@ -4671,10 +4671,29 @@ class WatchLogicTests(SimpleTestCase):
 
     def test_free_and_paid_slips_are_judged_over_their_own_replies(self):
         from mainapp.bulba import watch
-        # the reader has only seen two replies so far: not enough to call anything a habit yet
-        data = {"log": [{"label": "overexplaining", "quote": "q", "at": at, "cause": "model"} for at in (2, 4)],
-                "checked": [2, 4], "free_checked": [2, 4, 6, 8], "notices": []}
+        # the reader has only seen one reply so far: not enough to call anything a habit yet
+        data = {"log": [{"label": "overexplaining", "quote": "q", "at": at, "cause": "model"} for at in (4,)],
+                "checked": [4], "free_checked": [2, 4, 6, 8], "notices": []}
         self.assertEqual(watch.habits(data, []), [])
+
+    def test_shape_length_and_thinking_are_checked_for_free(self):
+        from mainapp import chats
+        from mainapp.bulba import watch
+        built = '*He turns.*\n\n"A line."\n\n*He waits.* Well?'
+        msgs = [("assistant", "", "Hello.", "", 1)]
+        data = {"log": [], "checked": [], "free_checked": [], "notices": []}
+        for n in range(2):
+            msgs += [("user", "", "ok", "", 1), ("assistant", "", built, "", 1)]
+            watch.free_checks(data, msgs)
+        self.assertIn("same_shape", [e["label"] for e in data["log"]])
+        long_reply = chats.with_reasoning(("assistant", "", " ".join(["word"] * 600), "", 1), " ".join(["think"] * 1500))
+        msgs += [("user", "", "go on", "", 1), long_reply]
+        watch.free_checks(data, msgs)
+        labels = [e["label"] for e in data["log"] if e["at"] == len(msgs) - 1]
+        self.assertIn("overlong", labels)
+        self.assertIn("long_thinking", labels)
+        note = next(n for n in watch.habits(data, []) if n["label"] == "same_shape")
+        self.assertTrue(note["nofix"])  # a preset fix, not something polish can rewrite
 
     def test_their_own_messages_are_brought_up_gently(self):
         from mainapp.bulba import watch
@@ -4712,7 +4731,7 @@ class WatchChatTests(ChatPromptTests):
         self.assertTrue(page.context["watch_data"]["on"])
         self.assertTrue(page.context["watch_data"]["intro"])  # the first-time note
         dues = [self.post({"action": "chat", "message": f"Line {i}."}).json()["watch_due"] for i in range(5)]
-        self.assertEqual(dues, [False, True, True, True, True])  # every 3: the greeting counts as a reply; not read yet
+        self.assertEqual(dues, [True, True, True, True, True])  # the first read after 2 replies (the greeting counts)
         self.reader_answer = {"slips": [{"reply": n, "label": "unearned_depth", "quote": f"wise line {n}",
                                          "cause": "model"} for n in (1, 3, 5)],
                               "taste": ["Keeps the banter, cuts the speeches"]}
