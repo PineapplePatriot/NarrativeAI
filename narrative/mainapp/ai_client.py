@@ -5,8 +5,10 @@ Every feature calls `complete(user, task, messages, ...)` with a task name from
 TASKS. Which connection profile and model a task uses is set per user on the
 Connections page; tasks without their own setting use the main chat connection.
 """
+import json
 import logging
 import os
+import re
 
 import requests
 
@@ -128,6 +130,24 @@ def is_enabled(user, task):
 
 # Bulba's own model (the samples it shows always come from the user's chat model)
 BULBA_MODEL = "xiaomi/mimo-v2.6-pro"
+# When a provider's filter refuses one of Bulba's requests ("considered high risk"), that one request is sent
+# again down this chain, only on a refusal: Gemini 4 Argon first (dependable with conventional adult content),
+# DeepSeek V4 Flash only if Argon refuses too
+BULBA_FALLBACKS = ["google/gemini-4-argon", "deepseek/deepseek-v4-flash"]
+BULBA_FALLBACK = BULBA_FALLBACKS[0]
+MODERATION = re.compile(r"considered high risk|rejected because it|content (?:management|security) polic|"
+                        r"data_inspection_failed|inappropriate content|violat\w* (?:our|the) (?:content|usage) polic|"
+                        r"PROHIBITED_CONTENT|blocked (?:due to|by) safety|finish_reason.{0,6}(?:SAFETY|content_filter)",
+                        re.I)
+# Gemini's adjustable filters, off as far as the API allows (the core protections can't be and aren't touched);
+# sent ourselves so it doesn't depend on what OpenRouter passes by default. BLOCK_NONE: some versions refuse OFF
+GEMINI_SAFETY = [{"category": c, "threshold": "BLOCK_NONE"} for c in (
+    "HARM_CATEGORY_HARASSMENT", "HARM_CATEGORY_HATE_SPEECH", "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+    "HARM_CATEGORY_DANGEROUS_CONTENT")]
+
+
+def _blocked(text):
+    return bool(MODERATION.search(str(text or "")))
 
 
 def resolve(user, task):
@@ -224,6 +244,8 @@ def _request(user, task, messages, timeout=None, **params):
         params.setdefault("usage", {"include": True})  # OpenRouter then reports the cost
     payload = {"model": model, "messages": messages}
     payload.update({k: v for k, v in params.items() if v is not None})
+    if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER and str(payload["model"]).startswith("google/"):
+        payload.setdefault("safety_settings", GEMINI_SAFETY)
     timeout = TEST_TIMEOUT or timeout or TASKS.get(task, {}).get("timeout", 60)
     label = TASKS.get(task, {}).get("label", task)
 
@@ -235,6 +257,14 @@ def _request(user, task, messages, timeout=None, **params):
     except requests.RequestException as e:
         raise AIError(f"{label}: could not reach {profile.name} ({e.__class__.__name__}).")
 
+    # A provider's filter refused one of Bulba's requests: this request again on the next model in the chain
+    chain = [BULBA_MODEL] + BULBA_FALLBACKS
+    if (task in ("bulba", "watch", "polish") and payload["model"] in chain[:-1]
+            and profile.provider == ConnectionProfile.PROVIDER_OPENROUTER and _blocked_reply(resp)):
+        nxt = chain[chain.index(payload["model"]) + 1]
+        logging.getLogger(__name__).info("%s refused one of Bulba's requests; trying %s", payload["model"], nxt)
+        return _request(user, task, messages, timeout, **{**params, "model": nxt})
+
     if resp.status_code >= 400:
         raise AIError(f"{label}: {profile.name} returned an error ({resp.status_code}): {_error_text(resp)}")
 
@@ -245,8 +275,33 @@ def _request(user, task, messages, timeout=None, **params):
     if isinstance(data, dict) and data.get("error"):  # OpenRouter can report errors with HTTP 200
         raise AIError(f"{label}: {profile.name} returned an error: {_error_text(resp)}")
     if isinstance(data, dict):
-        record_cost(user, task, model, (data.get("usage") or {}).get("cost"))
+        record_cost(user, task, payload["model"], (data.get("usage") or {}).get("cost"))
     return profile, data
+
+
+def _blocked_reply(resp):
+    """A provider filter's refusal, as an error or as the whole (short) reply text."""
+    if resp.status_code >= 400:
+        return _blocked(_error_text(resp))
+    try:
+        data = resp.json()
+    except ValueError:
+        return False
+    if not isinstance(data, dict):
+        return False
+    if data.get("error"):
+        return _blocked(json.dumps(data["error"]))
+    try:
+        message = data["choices"][0]["message"]
+    except (KeyError, IndexError, TypeError):
+        return False
+    content = str(message.get("content") or "")
+    if message.get("tool_calls"):
+        return False
+    finish = str((data["choices"][0] or {}).get("finish_reason") or "").lower()
+    if finish in ("content_filter", "safety", "prohibited_content") and not content.strip():
+        return True  # Gemini: stopped by its filter, nothing written
+    return len(content) < 400 and _blocked(content)
 
 
 def complete(user, task, messages, timeout=None, **params):
@@ -332,6 +387,8 @@ def stream(user, task, messages, timeout=None, **params):
         params.setdefault("usage", {"include": True})  # the cost arrives with the last piece
     payload = {"model": model, "messages": messages, "stream": True}
     payload.update({k: v for k, v in params.items() if v is not None})
+    if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER and str(payload["model"]).startswith("google/"):
+        payload.setdefault("safety_settings", GEMINI_SAFETY)  # Gemini's adjustable filters off (see GEMINI_SAFETY)
     read_timeout = TEST_TIMEOUT or timeout or TASKS.get(task, {}).get("timeout", 60)  # max wait between two pieces
     label = TASKS.get(task, {}).get("label", task)
 
