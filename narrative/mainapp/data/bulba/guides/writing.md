@@ -1,37 +1,45 @@
 # Guide: writing instructions (v0.1)
 
-Used whenever you write or change text the chat model will read: the taste section, a rewrite, a new
-block, a card. The short version: **borrow tested wording first, write your own last, and write it
-plainly.**
+Used whenever you write or change instructions the chat model will read. Start from the selected
+model's base, preserve the user's choices, and express each requirement precisely in plain language.
+The user should not have to know how to write a preset.
 
-## Borrow before you write
+## Develop the base around their preferences
 
-Community presets (Realistic Frankenstein, Pura's Director, Celia) were tuned over hundreds of
-chats; a block from them beats anything you'd improvise. So, in this order:
+1. Read the active instructions before adding anything. Remove or revise a conflicting requirement
+   rather than appending another prohibition. Preserve unrelated instructions and authorship permissions.
+2. Translate each preference into a specific behavior: what the model should do, when it applies,
+   and what remains allowed. Ask one concrete question only if the answer changes the instruction.
+3. Consult the research candidates with find_practice/read_practice. Use the underlying mechanism
+   and write a self-contained instruction suited to this model and the existing base. Community
+   wording is reference material, not proof of effectiveness for this model, language or user.
+   Do not automatically copy whole community modules. Do not assume permission to redistribute them.
+   An explicit request to work with a user's imported preset is a separate case: preserve its unrelated text.
+4. Keep separate preferences separate: reply length, initiative, interior narration, tone and authorship
+   do not imply one another. Never infer that short replies need less emotion or that detail requires new events.
+5. For each disliked pattern, name the underlying behavior, including paraphrases and translations.
+   Explain the desired alternative without making it compulsory in every reply. Allow omission when
+   the sentence adds nothing. Retain meaningful exceptions and the user's preferred voice.
+6. Show the proposed instructions before Apply. Use an existing sample or an offered comparison to
+   assess the actual writing. A reference's popularity and the model's claim of compliance are not validation.
 
-1. **What's already in their preset.** Switch a block on or off, or change a line in it. In a
-   community preset most fixes already exist as a toggle that's off.
-2. **A tested block from the library** (find_practice, read_practice), added word for word with
-   `borrow` (setup) or `from_library` (in a chat). Don't paraphrase it or "tidy it up": its odd
-   wording is often the part that works. Tell them where it's from in a few words ("the anti-echo
-   block from Realistic Frankenstein").
-   - Read it first. If its author's note says it pairs with another block ("keep ON with", "works in
-     tandem with", "pair with"), bring that one too or don't use it.
-   - Skip blocks meant for a different model ("Gemini", "GLM Edition") unless it's their model, and
-     blocks that only work with Realistic Frankenstein's thinking steps (they mention the scratchpad,
-     a CoT or `{{getvar}}` templates) unless that's their preset.
-   - Mind the size: a 20,000-character engine makes every reply cost more. Say so if you suggest one.
-   - Some blocks are adult content, jailbreaks or prefills (NSFW, Gooner, Dead Dove, "JB", "Prefill").
-     Only when they ask for that content or that model trick, never as a quality fix.
-   - Blocks with `{{random::...}}` or `{{roll...}}` put chance into the story. Check their taste for
-     randomness first (extras guide).
-3. **The research cookbook's wording** (library entries starting "Cookbook:"). It's untested, so it comes
-   after the presets. Each problem has a story wording and a rule wording: pick one, never both.
-   Story wording suits story-first setups; rule wording suits game setups, or a model that ignored
-   the story version. Fill in any [bracketed] part yourself.
-4. **The starter's own wording**, when what they want is close to a line it already has.
-5. **Your own text**, only when nothing above covers it. Match the style of the blocks around it, and
-   keep it as short as it can be while staying concrete.
+## Translate complaints into instructions
+
+- Clenching and unclenching, opening and closing the mouth, repeated jaw or breath reactions:
+  "Do not routinely interrupt dialogue with reversible physical reactions to indicate emotion.
+  Include a gesture when it contributes specific information or affects the interaction; otherwise omit it."
+- "Something in his gaze" and similar vague changes:
+  "Describe what the viewpoint can perceive when the detail matters. Do not imply emotional depth
+  through an unnamed change in someone's eyes, expression or voice. The sentence may be omitted."
+- A character describing the listener's own recent actions back to them:
+  "Respond to the meaning or consequence of the other person's words and actions. Do not recite
+  what they already know unless clarification, disagreement or the character's purpose requires it."
+- The same structure under new wording:
+  "Let the current exchange determine the reply's structure. Do not repeat the same sequence of
+  gesture, observation, challenge and closing question across replies. A relevant answer can stand alone."
+
+These examples are candidate instructions, not universal bans or measured improvements. Select only
+what the user dislikes or their writing demonstrates. Never add the whole list automatically.
 
 ## No AI-speak
 
@@ -39,7 +47,7 @@ The model copies the register of its instructions. Instructions that read like a
 that read like one. When you write:
 
 - **Say what happens, not what it should feel like.** Not "create an immersive, emotionally rich
-  experience" but "let one physical detail of the room carry the mood".
+  experience" but "describe the room only where its details affect what the viewpoint notices or does".
 - **None of these:** "ensure", "it is crucial/essential", "delve", "tapestry", "nuanced", "vibrant",
   "dynamic", "rich", "immersive", "authentic", "seamless", "elevate", "foster", "a testament to",
   "strive to", "make sure to", "remember to", "always strive". Also no stacked adjectives ("vivid,
@@ -56,8 +64,8 @@ that read like one. When you write:
 ## "Don't" rules that work
 
 A "don't" is fine when it targets a habit they actually saw. Give it a scope, and either an
-alternative or permission to leave the beat out: "Don't use a tightened jaw as automatic emotional
-punctuation; leave the beat out when it adds nothing." Don't name a replacement to use every time
+alternative or permission to omit the reaction: "Don't use a tightened jaw as automatic emotional
+punctuation; omit the reaction when it adds nothing." Don't name a replacement to use every time
 (clenched hands in every reply is the same problem). Banned words come back as synonyms, so name the
 habit, not the word. No threats, no piles of "always" and "never".
 

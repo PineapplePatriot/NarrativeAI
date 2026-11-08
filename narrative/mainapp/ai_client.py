@@ -19,6 +19,12 @@ TEST_TIMEOUT = int(os.environ.get("NARRATIVE_AI_TIMEOUT") or 0)
 
 # Ordered: this is also the order on the Connections page
 TASKS = {
+    "translation": {
+        "label": "Translation",
+        "help": "Translates English story text and synchronizes edits without rewriting the story.",
+        "timeout": 120,
+        "hidden": True,  # backend foundation; expose when all chat operations support bilingual text
+    },
     "chat": {
         "label": "Main chat",
         "help": "Story replies, regenerate and continue.",

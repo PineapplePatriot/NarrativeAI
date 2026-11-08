@@ -387,7 +387,7 @@ def tools():
                           "utility: the key)"},
                 "content": {"type": "string", "description": "New text (replace/append/add)"},
                 "from_library": {"type": "string", "description": "Instead of content: add this library block "
-                                 "word for word (exact name from find_practice)"}},
+                                 "word for word when requested and permitted (exact name from find_practice). Normally use content to express the relevant principle."}},
                 "required": ["action"]}},
              "from_taste": {"type": "array", "items": STR, "description": "When this puts what Bulba Watch learned "
                             "about their taste into the preset: the exact learned lines it covers"},

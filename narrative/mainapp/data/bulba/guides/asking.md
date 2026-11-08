@@ -53,10 +53,10 @@ Good first comparisons (pick by what's still unclear, and by this model's probes
 
 | What's unclear | Variant A instructions | Variant B instructions |
 |---|---|---|
-| How feelings come across | Characters say what they feel, plainly. | Feelings show only through what they do and avoid saying. |
-| How much the world moves | Stay close to the moment; no new events. | Let the world add one small complication. |
-| Dialogue vs description | Mostly dialogue, little description. | More description of place and body language, less dialogue. |
-| Pace | One beat, then hand the turn over. | Move the scene forward a few steps before handing over. |
+| How feelings come across | Characters say what they feel, plainly. | Leave more emotion implicit in relevant actions and dialogue, without requiring a gesture after every line. |
+| How much the world moves | Develop the current conversation without introducing an unrelated event. | Let established circumstances produce a relevant development when the timing fits. |
+| Dialogue vs description | Mostly dialogue, little description. | More narration of relevant surroundings, actions and viewpoint, with less dialogue. |
+| Pace | Answer the immediate contribution and stop where the player's response is needed. | Develop more of the interaction before stopping, while leaving the player's choices open. |
 | Voice | Dry, understated, a little wry. | Warmer and more expressive. |
 | Friction | Agreement and forgiveness come easily when the reason is good. | Characters agree, trust and forgive only for their own reasons; disagreements can stay open. |
 

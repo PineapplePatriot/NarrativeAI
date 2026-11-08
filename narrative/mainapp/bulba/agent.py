@@ -12,9 +12,9 @@ from mainapp.bulba import control, doctor, library, lore, rules, tune
 INSTRUCTIONS = Path(__file__).resolve().parent.parent / "data" / "bulba" / "instructions.md"
 GUIDES_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba" / "guides"
 # Which guides Bulba reads at each stage (keeps the prompt, and the bill, small)
-STAGE_GUIDES = {"extras": ["extras"], "taste": ["asking", "presets", "writing"], "preset": ["presets", "writing", "slop"],
+STAGE_GUIDES = {"extras": ["extras"], "taste": ["asking", "presets", "writing", "slop"], "preset": ["presets", "writing", "slop"],
                 "persona": ["characters", "writing"], "character": ["characters", "lore", "writing"],
-                "story": ["extras", "tuning"], "done": ["characters", "lore", "writing", "tuning"]}
+                "story": ["extras", "tuning"], "done": ["characters", "lore", "writing", "tuning", "slop"]}
 REWRITABLE = ("Roleplay", "Style")
 TEST_CHARACTER = Path(__file__).resolve().parent.parent / "data" / "bulba" / "test-character.json"
 
@@ -203,7 +203,7 @@ TOOLS = [
                         "description": "Blocks of the starter to switch off (exact names), e.g. a community "
                                        "preset's random-event engines for someone who wants no chance"},
          "borrow": {"type": "array", "maxItems": 6, "items": STR,
-                    "description": "Library blocks (exact names from find_practice) to add word for word"},
+                    "description": "Optional verbatim library import (exact names from find_practice), only when requested and permitted. Normally express the relevant principle in taste or rewrite."},
          "why": STR},
         ["starter", "taste", "why"]),
     _fn("propose_persona", "Propose who the user is in the story.",
@@ -734,7 +734,7 @@ def tool_propose_preset(session, args):
     if switch_off:
         summary += ["Switched off:", *[f"  {n}" for n in switch_off]]
     if borrow:
-        summary += ["Tested blocks added from the community presets:", *[f"  {n}" for n in borrow]]
+        summary += ["Library blocks added:", *[f"  {n}" for n in borrow]]
     summary += ["Your taste:", *[f"  {line}" for line in taste.splitlines() if line.strip()]]
     if reply_length:
         summary += ["Reply length:", f"  {LENGTHS[reply_length]}"]
@@ -816,7 +816,7 @@ def opening(session):
             "Two ways to do this:\n\n"
             "**Full setup** (about twenty minutes): I find out how you like stories told, show you samples written by "
             "your own model, and build everything around that.\n\n"
-            f"**Quick setup** (a few minutes): a short form. Pick a tested writing style for {name}, say who you "
+            f"**Quick setup** (a few minutes): a short form. Pick a ready writing style for {name}, say who you "
             "are in the story, pick or import your character. Every part has a 🥔 button if you'd rather I did it.\n\n"
             "In the full setup you can skip any step (press **Skip** in the panel, or just tell me), or switch to "
             "the quick setup halfway. Just know that every step you skip is one less thing tuned to you.")

@@ -319,7 +319,11 @@ def _matching_keys(keys, text, case_sensitive, whole_words, flexible=False):
 def _message_text(msg):
     # chat logs store messages as [role, time, text, emotion, char_count]
     if isinstance(msg, (list, tuple)):
-        return str(msg[2]) if len(msg) > 2 else ""
+        if len(msg) <= 2:
+            return ""
+        from mainapp.translation import translation_of
+        rec = translation_of(msg)
+        return str(msg[2]) + ("\n" + rec["text"] if rec else "")
     if isinstance(msg, dict):
         return str(msg.get("content") or msg.get("text") or "")
     return str(msg or "")

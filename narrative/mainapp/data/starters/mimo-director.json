@@ -40,7 +40,7 @@
         "name": "Style",
         "kind": "prompt",
         "role": "system",
-        "content": "Style:\n- Avoid melodrama, cliché phrases and overused metaphors. Use specific, natural, grounded language.\n- Strong verbs and a clear sequence of actions; vary sentence length and structure.\n- No em-dashes.\n- Stay inside the story: no notes to the reader, no commentary about the roleplay.\n- Keep positions, distances and who-is-holding-what consistent.\n- A full scene beat per reply, under 700 tokens unless the director asks for more.",
+        "content": "Style:\n- Avoid melodrama, cliché phrases and overused metaphors. Use specific, natural, grounded language.\n- Use clear verbs and connect actions in their causal and temporal order. Avoid routinely attaching several simultaneous actions to one sentence. Vary sentence length and structure.\n- Respond to the meaning and consequences of the other person's words and actions. Restate them only when the speaker has a reason, such as clarification or disagreement.\n- Include physical reactions and descriptions of expression when they contribute specific information. Omit an unnecessary reaction instead of repeating a gesture or implying an unnamed change in someone's gaze.\n- No em-dashes.\n- Stay inside the story: no notes to the reader, no commentary about the roleplay.\n- Keep positions, distances and who-is-holding-what consistent.\n- Develop the requested interaction, under 700 tokens unless the director asks for more.",
         "enabled": true
       },
       {
@@ -151,5 +151,6 @@
       "post_processing": "merge",
       "streaming": true
     }
-  }
+  },
+  "revision_note": "Revised in NarrativeAI: explicit interaction and sentence-construction guidance; no fixed per-reply action sequence. Writing quality requires comparison on the selected model."
 }

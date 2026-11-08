@@ -5149,7 +5149,8 @@ class WatchLogicTests(SimpleTestCase):
             raised += watch.habits(data, [])
         self.assertEqual(len(raised), 1)  # on the third time, not before
         self.assertEqual(raised[0]["label"], "repeated_phrase")
-        self.assertIn("corner of his mouth", " ".join(raised[0]["quotes"]))
+        self.assertTrue(raised[0]["quotes"])
+        self.assertTrue(all(q in tic for q in raised[0]["quotes"]))  # evidence belongs to this repeated sentence
         self.assertEqual(len(raised[0]["quotes"]), len(set(raised[0]["quotes"])))  # each quote once
         # ordinary filler isn't a phrase
         self.assertEqual(watch.repeated_phrases({1: "and then he said that", 3: "and then he said that",
@@ -5575,7 +5576,7 @@ class PolishChatTests(WatchChatTests):
         chat = self.chat_obj()
         data = watch.chat_data(chat)
         data["checked"] = data["free_checked"] = [1, 3, 5]
-        data["log"] = [{"label": label, "quote": f"which meant he was sad {at}", "at": at, "cause": "model"}
+        data["log"] = [{"label": label, "quote": "which meant he was sad" if label == "repeated_phrase" else f"which meant he was sad {at}", "at": at, "cause": "model"}
                        for at in (1, 3, 5)]
         note = watch.habits(data, [])[0]
         watch.save_chat_data(chat, data)
@@ -7331,3 +7332,50 @@ class BugFormTests(TestCase):
             page = self.client.get(reverse("users:extras"))
         self.assertContains(page, 'bug: "https://docs.google.com/forms/d/e/X/viewform?entry.1\\u003DNA_PAGE')
         self.assertContains(page, 'login: "bugs"')
+
+
+class WatchEvidenceRegressionTests(SimpleTestCase):
+    def test_unrelated_phrase_matches_do_not_combine_into_a_habit(self):
+        from mainapp.bulba import watch
+        data = {"log": [{"label": "repeated_phrase", "quote": phrase, "shown": phrase,
+                         "at": at, "cause": "model"}
+                        for phrase, positions in (("you told me yesterday", (1, 3)),
+                                                  ("we should leave now", (3, 5))) for at in positions],
+                "checked": [], "free_checked": [1, 3, 5], "notices": []}
+        self.assertEqual(watch.habits(data, []), [])
+
+    def test_phrase_notice_contains_evidence_for_one_phrase_only(self):
+        from mainapp.bulba import watch
+        data = {"log": [{"label": "repeated_phrase", "quote": phrase,
+                         "shown": f"Reply {at}: {phrase}", "at": at, "cause": "model"}
+                        for phrase in ("his hand opened and closed", "something changed in his gaze")
+                        for at in (1, 3, 5)],
+                "checked": [], "free_checked": [1, 3, 5], "notices": []}
+        note = watch.habits(data, [])[0]
+        self.assertEqual(note["count"], 3)
+        self.assertTrue(all("his hand opened and closed" in q for q in note["quotes"]))
+
+    def test_distinct_semantic_habits_can_qualify_together(self):
+        from mainapp.bulba import watch
+        quotes = {"stock_reactions": "рука стискається і розтискається",
+                  "vague_emotion": "щось у погляді стає різкішим",
+                  "echoing_user": "ти стоїш поруч, і ти мажеш вуха кремом"}
+        data = {"log": [{"label": label, "quote": quote, "at": at, "cause": "model"}
+                        for label, quote in quotes.items() for at in (1, 3)],
+                "checked": [1, 3], "notices": []}
+        notes = watch.habits(data, [])
+        self.assertEqual({n["label"] for n in notes}, set(quotes))
+        self.assertTrue(all(n["count"] == 2 for n in notes))
+
+    def test_all_pending_findings_reach_the_ui_with_individual_counts(self):
+        from unittest.mock import patch
+        from mainapp.bulba import watch
+        notices = [{"id": str(i), "label": "vague_emotion", "status": "new", "count": 2, "of": 3}
+                   for i in range(5)]
+        with patch.object(watch, "chat_data", return_value={"notices": notices}), \
+             patch.object(watch, "is_on", return_value=True), \
+             patch.object(watch, "user_data", return_value={"fix": [], "intro_seen": True}):
+            state = watch.page_state(None, None)
+        self.assertEqual(state["count"], 5)
+        self.assertEqual([n["id"] for n in state["notices"]], ["4", "3", "2", "1", "0"])
+        self.assertTrue(all(n["count"] == 2 and n["of"] == 3 for n in state["notices"]))

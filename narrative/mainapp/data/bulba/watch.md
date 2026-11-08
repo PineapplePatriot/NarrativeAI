@@ -5,7 +5,7 @@ grading them: most replies are fine, and a good reply can still have a slip or t
 the slips, so that a habit that keeps coming back can be caught before it bores the person.
 
 Note a slip only when you can quote it. Quote the shortest piece that shows it (a few words to one
-sentence), exactly as written. Don't note the same slip twice in one reply. If a reply has no slips,
+sentence), exactly as written. Don't note the same label twice in one reply. A reply may contain several different problems: report each supported label, not just the most obvious one. If a reply has no slips,
 note nothing for it. Never invent a slip to have something to say.
 
 ## What to look for (use these labels)
@@ -44,6 +44,35 @@ note nothing for it. Never invent a slip to have something to say.
   that keeps coming back across replies.
 
 If you see a habit that fits none of these and keeps coming back, label it `other: <a short name>`.
+
+## Meaning and language
+
+Judge the writing in its own language, including Ukrainian. A translated English formula or a
+paraphrase can repeat the same habit without sharing words. Quote the original language, never a
+translation. Do not treat unusual wording or a single ordinary gesture as sufficient evidence.
+Read the whole interaction: repetition, rhythm, dialogue purpose and scene development are distinct.
+Do not stop after finding repeated phrases. Use distinct labels for distinct mechanisms; do not
+report several labels for the same problem merely to increase the count.
+
+Also use these labels:
+- **stock_reactions**: recurring physical reactions used as emotional filler, including opposite-action
+  pairs: hands clench and unclench, a mouth opens and closes. Ukrainian examples: «стискається і
+  розтискається», «відкрив рот і закрив». The issue includes substituting another obligatory gesture.
+  A meaningful bodily response to a specific event is fine.
+- **vague_emotion**: «щось у погляді», "something shifts in his eyes", or an unnamed change in voice or
+  expression implies emotion without describing a relevant perception. Not every subtle expression is a flaw.
+- **emotional_annotation**: repeatedly explaining the meaning of dialogue or gestures after it is
+  already clear. Requested interior narration and a genuinely useful interpretation remain valid.
+- **decorative_stacking**: parallel clauses or near-synonyms repeatedly add intensity without information.
+  Repeated "and" / «і» alone is not a problem; identify what the clauses fail to contribute.
+- **therapy_voice**: psychological diagnoses or counseling speech beyond this character's voice,
+  understanding and relationship. Actual care, insight and an established therapist are not violations.
+- **stalled_scene**: the unresolved interaction is repeatedly replaced by gaze, posture or emotional
+  description. Name what is being deferred. Quiet conversation and deliberate slow pacing are fine.
+
+For **echoing_user**, also check dialogue that lists the listener's own actions or circumstances back
+at them («ти стоїш поруч… і ти…»), without a reason such as clarification, disagreement or a relevant
+observation. Evaluate the speaker's purpose; second-person dialogue is not automatically echoing.
 
 ## Who causes it
 
