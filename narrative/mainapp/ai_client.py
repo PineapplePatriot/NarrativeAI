@@ -315,6 +315,8 @@ def _request(user, task, messages, timeout=None, **params):
         return _request(user, task, messages, timeout, **{**params, "model": nxt})
 
     if resp.status_code >= 400:
+        if "PROHIBITED_CONTENT" in _error_text(resp):
+            raise AIError(f"{label}: {profile.name} " + block_explanation("PROHIBITED_CONTENT"))
         raise AIError(f"{label}: {profile.name} returned an error ({resp.status_code}): {_error_text(resp)}")
 
     try:
@@ -456,6 +458,7 @@ def stream(user, task, messages, timeout=None, **params):
             raise AIError(f"{label}: {profile.name} returned an error ({resp.status_code}): {_error_text(resp)}")
         resp.encoding = "utf-8"
         calls, details = {}, []
+        wrote, stop = False, ""  # any text at all; why it stopped (a provider's block often comes as just this)
         try:
             # chunk_size=1: hand over every line as soon as it arrives. The default waits for 512 bytes,
             # and chunk_size=None waits for the whole reply on servers that don't use chunked encoding.
@@ -472,11 +475,15 @@ def stream(user, task, messages, timeout=None, **params):
                     continue
                 if event.get("error"):
                     err = event["error"]
-                    raise AIError(f"{label}: {profile.name} stopped with an error: "
-                                  f"{err.get('message') if isinstance(err, dict) else err}")
+                    msg = str(err.get('message') if isinstance(err, dict) else err)
+                    if "PROHIBITED_CONTENT" in msg:
+                        raise AIError(f"{label}: {profile.name} " + block_explanation("PROHIBITED_CONTENT"))
+                    raise AIError(f"{label}: {profile.name} stopped with an error: {msg}")
                 if isinstance(event.get("usage"), dict):
                     record_cost(user, task, model, event["usage"].get("cost"))
                 choices = event.get("choices") or []
+                if choices:
+                    stop = str(choices[0].get("native_finish_reason") or choices[0].get("finish_reason") or stop)
                 delta = (choices[0].get("delta") or {}) if choices else {}
                 for tc in delta.get("tool_calls") or []:  # arrive in pieces: name first, arguments in bits
                     slot = calls.setdefault(tc.get("index", len(calls)), {"id": "", "type": "function",
@@ -489,6 +496,7 @@ def stream(user, task, messages, timeout=None, **params):
                     details.extend(d for d in delta["reasoning_details"] if isinstance(d, dict))
                 text = delta.get("content")
                 if text:
+                    wrote = True
                     yield text
                 else:
                     thought = delta.get("reasoning") or delta.get("reasoning_content")
@@ -498,10 +506,51 @@ def stream(user, task, messages, timeout=None, **params):
                         yield Reasoning(thought)
         except requests.RequestException as e:
             raise AIError(f"{label}: the connection to {profile.name} broke off ({e.__class__.__name__}).")
+        if not wrote and not calls and _blocking_stop(stop):  # blocked without an error: say so, not "empty"
+            raise AIError(f"{label}: {profile.name} " + block_explanation(stop))
+        if not wrote and not calls and stop and stop.lower() not in ("stop", "end_turn", "eos"):
+            # Nothing written for another reason (Gemini: a fumbled tool call, recitation, out of room): say which
+            logging.getLogger(__name__).warning("%s sent no text (stop reason %s)", model, stop)
+            raise AIError(f"{label}: {profile.name} " + empty_explanation(stop))
         if calls:
             result = ToolCalls(calls[i] for i in sorted(calls))
             result.reasoning_details = _merge_details(details) or None
             yield result
+
+
+BLOCK_STOPS = ("content_filter", "safety", "prohibited_content", "blocklist", "spii", "image_safety")
+
+
+def empty_explanation(reason):
+    """Plain words for a reply that stopped before writing anything, by the provider's stop reason."""
+    r = str(reason or "").upper()
+    if "FUNCTION_CALL" in r or "TOOL" in r:  # contains "tool": game.stream_reply then retries without tools
+        return (f"fumbled a tool call ({reason}) and wrote nothing. The app's tools are the story extras and dice; "
+                "it tries again without them.")
+    if "RECITATION" in r:
+        return ("wrote nothing because the reply would have repeated published text word for word (Gemini's "
+                "RECITATION check). It usually comes from canon text copied into the card or the lorebook (quotes, "
+                "wiki descriptions): reword those in your own words, or press Regenerate.")
+    if r in ("LENGTH", "MAX_TOKENS"):
+        return ("used up the whole reply length thinking and wrote nothing. Raise the reply length limit (Samplers "
+                "page) or set Thinking to Light (pen menu → This chat).")
+    return f"wrote nothing (it stopped with \"{reason}\"). Press Regenerate to try again."
+
+
+def _blocking_stop(stop):
+    return str(stop or "").lower() in BLOCK_STOPS
+
+
+def block_explanation(reason):
+    """Plain words for a provider's block (Gemini's especially), for the chat's error line."""
+    r = str(reason or "").upper()
+    if "PROHIBITED" in r:
+        return ("was blocked by Gemini's own filter (PROHIBITED_CONTENT), which no setting can switch off. It judges "
+                "the whole request, not just the last message: most often characters who are or read as minors in a "
+                "story where adult content is allowed. Check the characters' ages on the card, switch 🔞 Mature "
+                "content off for this story (pen menu → This chat), or use another model for it.")
+    return (f"blocked the reply with its content filter ({reason}). Press Regenerate to try again, or reword "
+            "your message.")
 
 
 def _merge_details(details):
