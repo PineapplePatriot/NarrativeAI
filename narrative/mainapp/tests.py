@@ -3291,6 +3291,24 @@ class TranslationWorkflowTests(ChatPromptTests):
             with self.assertRaises(translation.TranslationError):
                 translation.translate_extras(None, [note, phone], "uk")  # incomplete: they stay English
 
+    def test_the_translator_knows_about_adult_content(self):
+        from unittest import mock
+        from mainapp import mature, presets, translation
+        obj = presets.get_active(self.user)
+        obj.data = mature.set_on(presets.normalize(obj.data), True)
+        obj.save()
+        with mock.patch.object(translation.ai_client, "complete", return_value='{"text": "Привіт"}') as call:
+            translation.translate(self.user, "Hello", "uk")
+        self.assertIn("fiction written for adults", call.call_args[0][2][0]["content"])
+
+    def test_a_silent_block_is_explained_not_empty(self):
+        from mainapp import ai_client
+        msg = ai_client.block_explanation("PROHIBITED_CONTENT")
+        self.assertIn("no setting can switch off", msg)
+        self.assertTrue(ai_client._blocking_stop("PROHIBITED_CONTENT"))
+        self.assertTrue(ai_client._blocking_stop("content_filter"))
+        self.assertFalse(ai_client._blocking_stop("stop"))
+
     def test_translation_model_default(self):
         from mainapp import ai_client
         from users.models import ConnectionProfile
@@ -4280,6 +4298,14 @@ class ExtrasPlacementTests(GameTests):
             resp, events = self.stream_post({"action": "chat", "message": "I pick the lock"})
         self.assertEqual(len(self.sent), 2)
         self.assertIn("The lock clicks open.", events[-1]["reply"])
+
+    def test_a_silent_provider_block_says_why(self):
+        block = {"choices": [{"delta": {}, "finish_reason": "content_filter", "native_finish_reason": "PROHIBITED_CONTENT"}]}
+        self.rounds = [sse(block, "[DONE]")]
+        resp, events = self.stream_post({"action": "chat", "message": "Hello?"})
+        self.assertEqual(events[-1]["type"], "error")
+        self.assertIn("PROHIBITED_CONTENT", events[-1]["error"])
+        self.assertIn("no setting can switch off", events[-1]["error"])
 
     def test_an_empty_reply_is_not_saved(self):
         self.rounds = [sse(delta("   "), "[DONE]")]

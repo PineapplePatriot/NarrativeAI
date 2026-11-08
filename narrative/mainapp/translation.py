@@ -28,6 +28,22 @@ class TranslationError(ai_client.AIError):
     pass
 
 
+ADULT_NOTE = ("\n\nThis is fiction written for adults who switched mature content on. Translate everything in it "
+              "faithfully, mature, violent or explicit parts included, in the same register: never soften, skip, "
+              "summarize or refuse them.")
+
+
+def _instructions(user, base):
+    """The translator's instructions; with mature content on, it's told the story is for adults."""
+    if user is None:
+        return base
+    try:
+        from mainapp import mature, presets
+        return base + (ADULT_NOTE if mature.is_on(presets.normalize(presets.get_active(user).data)) else "")
+    except Exception:  # no preset yet: the plain instructions
+        return base
+
+
 def fingerprint(text):
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
@@ -39,7 +55,7 @@ def translate(user, text, target, *, source="en", glossary=None):
     if not text or source == target:
         return text
     raw = ai_client.complete(user, "translation", [
-        {"role": "system", "content": INSTRUCTIONS},
+        {"role": "system", "content": _instructions(user, INSTRUCTIONS)},
         {"role": "user", "content": json.dumps({"source_language": LANGUAGES[source],
          "target_language": LANGUAGES[target], "glossary": glossary or {}, "text": text}, ensure_ascii=False)},
     ], response_format={"type": "json_object"}, max_tokens=16000)
@@ -220,7 +236,7 @@ def translate_extras(user, ops, target, glossary=None):
     if not slots or target == "en":
         return []
     raw = ai_client.complete(user, "translation", [
-        {"role": "system", "content": LIST_PROMPT},
+        {"role": "system", "content": _instructions(user, LIST_PROMPT)},
         {"role": "user", "content": json.dumps({"source_language": "English", "target_language": LANGUAGES[target],
          "glossary": glossary or {}, "texts": [s[2] for s in slots]}, ensure_ascii=False)},
     ], response_format={"type": "json_object"}, max_tokens=8000)
