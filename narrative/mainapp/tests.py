@@ -3317,6 +3317,15 @@ class TranslationWorkflowTests(ChatPromptTests):
         self.assertEqual(ai_client.resolve(self.user, "chat")[1], "test/model")
 
 
+class GeminiWordingTests(SimpleTestCase):
+    def test_the_mature_reminder_is_plain_for_gemini_and_claude(self):
+        from mainapp import mature
+        msgs = [{"role": "system", "content": "Rules.\n" + mature.REMINDER_LINE}, {"role": "user", "content": "Hi"}]
+        self.assertIn(mature.PLAIN_LINE, mature.for_model(msgs, "google/gemini-4-argon")[0]["content"])
+        self.assertNotIn("don't refuse", mature.for_model(msgs, "anthropic/claude-opus-5.5")[0]["content"])
+        self.assertIn(mature.REMINDER_LINE, mature.for_model(msgs, "xiaomi/mimo-v2.6-pro")[0]["content"])
+
+
 class OutOfStepPageTests(ChatPromptTests):
     def test_deleting_a_message_the_server_never_saved_reloads(self):
         data = self.post({"action": "delete", "index": 7}).json()

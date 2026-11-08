@@ -295,6 +295,8 @@ def _request(user, task, messages, timeout=None, **params):
     if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER and str(payload["model"]).startswith("google/"):
         payload.setdefault("safety_settings", GEMINI_SAFETY)
     _route(profile, payload)
+    from mainapp import mature
+    payload["messages"] = mature.for_model(payload.get("messages") or [], payload.get("model"))
     _light_reasoning(profile, task, payload, user)
     timeout = TEST_TIMEOUT or timeout or TASKS.get(task, {}).get("timeout", 60)
     label = TASKS.get(task, {}).get("label", task)
@@ -442,6 +444,8 @@ def stream(user, task, messages, timeout=None, **params):
     if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER and str(payload["model"]).startswith("google/"):
         payload.setdefault("safety_settings", GEMINI_SAFETY)  # Gemini's adjustable filters off (see GEMINI_SAFETY)
     _route(profile, payload)
+    from mainapp import mature
+    payload["messages"] = mature.for_model(payload.get("messages") or [], payload.get("model"))
     _light_reasoning(profile, task, payload, user)
     read_timeout = TEST_TIMEOUT or timeout or TASKS.get(task, {}).get("timeout", 60)  # max wait between two pieces
     label = TASKS.get(task, {}).get("label", task)
