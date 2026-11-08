@@ -55,12 +55,24 @@ def translate(user, text, target, *, source="en", glossary=None):
     return translated
 
 
-def with_translation(message, text, language):
+def with_translation(message, text, language, extras=None):
+    """`extras`: the message's story extras with their words translated (shown instead of the English ones)."""
     from mainapp import chats
     if language not in LANGUAGES or language == "en":
         raise TranslationError("A translated message needs a supported non-English language.")
-    return chats._with(message, "translation", {"source_hash": fingerprint(message[2]),
-                                               "language": language, "text": text})
+    rec = {"source_hash": fingerprint(message[2]), "language": language, "text": text}
+    if extras:
+        rec["extras"] = extras
+    return chats._with(message, "translation", rec)
+
+
+def shown_extras(message, language):
+    """The message's story extras as they're shown: translated when its translation has them."""
+    from mainapp import chats
+    ops = chats.game_of(message)
+    rec = translation_of(message) if language else None
+    tops = (rec or {}).get("extras")
+    return tops if rec and rec["language"] == language and isinstance(tops, list) and len(tops) == len(ops) else ops
 
 
 def translation_of(message):
@@ -83,7 +95,8 @@ def synchronize_edit(user, message, edited_text, language, *, glossary=None):
     if language == "en":
         return chats._with(chats.set_text(message, edited_text), "translation", None)
     english = translate(user, edited_text, "en", source=language, glossary=glossary)
-    return with_translation(chats.set_text(message, english), edited_text, language)
+    kept = (translation_of(message) or {}).get("extras")  # the extras' translation still fits: they didn't change
+    return with_translation(chats.set_text(message, english), edited_text, language, kept)
 
 
 # --- The chat workflow (profile → Story language) ---
@@ -165,3 +178,62 @@ def already_in(text, lang):
     if not script or len(letters) < 10:
         return False
     return sum(1 for ch in letters if re.match(script, ch)) / len(letters) > 0.5
+
+
+# --- Story extras (letters, phone screens, milestones, news, keepsakes, suggested actions) ---
+# Only their words are translated; names, times, states and numbers stay as they are.
+EXTRA_FIELDS = {"document": ("label", "text", "detail"), "milestone": ("now", "because"),
+                "keepsake": ("title", "detail", "medium")}
+LIST_PROMPT = INSTRUCTIONS.replace(
+    "Return only a JSON\nobject with one string field, text, containing the complete translation.",
+    "The text is a JSON list of short pieces from one story; translate each one. Return only a JSON object with\n"
+    "one field, texts: the translated pieces, in the same order and the same number.")
+
+
+def _extra_slots(ops):
+    """(op index, path, text) for every translatable string in the extras."""
+    out = []
+    for i, op in enumerate(ops):
+        kind = op.get("type")
+        for f in EXTRA_FIELDS.get(kind, ()):
+            if isinstance(op.get(f), str) and op[f].strip():
+                out.append((i, (f,), op[f]))
+        if kind == "messages":
+            for j, m in enumerate(op.get("messages") or []):
+                if isinstance(m, dict) and str(m.get("text") or "").strip():
+                    out.append((i, ("messages", j, "text"), m["text"]))
+        if kind == "news":
+            for j, item in enumerate(op.get("items") or []):
+                if isinstance(item, dict) and str(item.get("headline") or "").strip():
+                    out.append((i, ("items", j, "headline"), item["headline"]))
+        if kind == "choices":
+            for j, a in enumerate(op.get("actions") or []):
+                if isinstance(a, str) and a.strip():
+                    out.append((i, ("actions", j), a))
+    return out
+
+
+def translate_extras(user, ops, target, glossary=None):
+    """The extras with their words in `target` (one call for all of them); [] when there's nothing to do."""
+    import copy
+    slots = _extra_slots(ops)
+    if not slots or target == "en":
+        return []
+    raw = ai_client.complete(user, "translation", [
+        {"role": "system", "content": LIST_PROMPT},
+        {"role": "user", "content": json.dumps({"source_language": "English", "target_language": LANGUAGES[target],
+         "glossary": glossary or {}, "texts": [s[2] for s in slots]}, ensure_ascii=False)},
+    ], response_format={"type": "json_object"}, max_tokens=8000)
+    try:
+        texts = json.loads(raw).get("texts")
+    except (ValueError, TypeError, AttributeError):
+        texts = None
+    if not isinstance(texts, list) or len(texts) != len(slots) or not all(isinstance(t, str) for t in texts):
+        raise TranslationError("The story extras came back incomplete; they stay in English.")
+    out = copy.deepcopy(list(ops))
+    for (i, path, _), text in zip(slots, texts):
+        node = out[i]
+        for key in path[:-1]:
+            node = node[key]
+        node[path[-1]] = text
+    return out

@@ -264,15 +264,21 @@ function isBusy(say = false) {
     if (finishing && say) showChatNotice('One moment: Bulba is still finishing the last reply.');
     return isGenerating || finishing > 0;
 }
+let placeholderBefore = null;
 function lockWhileFinishing() {
     finishing++;
     sendBtn.disabled = true;
     messagesContainer.classList.add('finishing');
+    if (placeholderBefore === null) {
+        placeholderBefore = messageInput.placeholder;
+        messageInput.placeholder = 'Bulba is finishing the reply…';
+    }
 }
 function unlockFinished() {
     finishing = Math.max(0, finishing - 1);
     if (finishing) return;
     messagesContainer.classList.remove('finishing');
+    if (placeholderBefore !== null) { messageInput.placeholder = placeholderBefore; placeholderBefore = null; }
     if (!isGenerating) sendBtn.disabled = false;
 }
 let currentRequest = null;
@@ -2188,6 +2194,7 @@ async function translateMessage(messageEl) {
             return;
         }
         showText(messageEl, d.text);
+        if (d.extras_html && d.extras_html.length) setExtras(messageEl, d.extras_html);  // letters, phone screens…
         if (d.same) messageEl.querySelectorAll('.original-btn, .translate-btn').forEach(b => b.remove());  // already in it
         else setOriginal(messageEl, d.original);
         messageEl.querySelector('.message-text').removeAttribute('data-untranslated');
@@ -2224,4 +2231,13 @@ async function afterReplyText(messageEl, polishDue) {
     });
     const last = lastAssistant();
     if (last && last.querySelector('.message-text[data-untranslated]')) translateMessage(last);
+})();
+
+
+// The chat page never scrolls as a whole (only the messages do): on phones the keyboard or a fling during a reply
+// could push it up and leave it there, hiding the header
+(function () {
+    const back = () => { if (window.scrollY || document.documentElement.scrollTop) window.scrollTo(0, 0); };
+    window.addEventListener('scroll', back, { passive: true });
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', () => setTimeout(back, 50));
 })();
