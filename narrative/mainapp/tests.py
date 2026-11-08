@@ -3240,6 +3240,28 @@ class TranslationWorkflowTests(ChatPromptTests):
         self.assertTrue(d["text"].startswith("UK: "))  # cleaned in English, then into the language they write in
         self.assertIn("translated into Ukrainian", json.dumps(self.sent[-1]["messages"][-1]))
 
+    def test_a_swipe_keeps_its_translation(self):
+        from unittest import mock
+        from mainapp import translation
+        self.read_in("uk")
+        self.post({"action": "chat", "message": "Hi"})
+        index = len(self.saved_messages()) - 1
+        with mock.patch.object(translation, "translate", side_effect=self.fake_translate):
+            self.post({"action": "translate", "index": index})       # version 1 translated
+            self.post({"action": "regenerate"})                      # version 2
+            self.post({"action": "translate", "index": index})       # version 2 translated
+            calls = len(self.translated)
+            back = self.post({"action": "swipe", "to": 0}).json()     # back to version 1
+            forth = self.post({"action": "swipe", "to": 1}).json()    # and forth
+        self.assertEqual(len(self.translated), calls)  # nothing translated again
+        self.assertTrue(back["reply"].startswith("UK: ") and forth["reply"].startswith("UK: "))
+        self.assertFalse(back["untranslated"] or forth["untranslated"])
+
+    def test_write_my_message_ends_on_a_user_turn(self):
+        self.post({"action": "expand", "text": "i nod"})
+        last = self.sent[-1]["messages"][-1]
+        self.assertEqual(last["role"], "user")  # Gemini and the newest Claude refuse ending on the model's reply
+
     def test_translation_model_default(self):
         from mainapp import ai_client
         from users.models import ConnectionProfile

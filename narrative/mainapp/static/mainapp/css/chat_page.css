@@ -2260,3 +2260,5 @@ body.polish-on .message-btn.polish-btn { display: flex; }
 .message-btn.original-btn.on { background: rgba(139, 92, 246, .35); }
 .sum-translated { white-space: pre-wrap; line-height: 1.5; font-size: .9rem; padding: 6px 2px; }
 #summaryLanguage.on { background: rgba(139, 92, 246, .3); }
+/* A reply still being polished or translated: its buttons wait */
+.messages-container.finishing .message-actions, .messages-container.finishing .swipe-btn { opacity: .35; pointer-events: none; }
