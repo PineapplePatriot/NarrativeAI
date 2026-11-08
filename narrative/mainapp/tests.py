@@ -3006,6 +3006,14 @@ class SteerMenuTests(ChatPromptTests):
         self.assertNotIn("control_before", active["extras"])
 
 
+class OutOfStepPageTests(ChatPromptTests):
+    def test_deleting_a_message_the_server_never_saved_reloads(self):
+        data = self.post({"action": "delete", "index": 7}).json()
+        self.assertEqual((data["success"], data["resync"]), (False, True))
+        data = self.post({"action": "edit", "index": 7, "text": "x"}).json()
+        self.assertEqual((data["success"], data["resync"]), (False, True))
+
+
 class ChatSkinTests(ChatPromptTests):
     def test_character_style_then_this_chat_then_plain(self):
         from mainapp.views import chat_skin
@@ -6965,6 +6973,27 @@ class DeleteAccountTests(TestCase):
         self.assertFalse(os.path.exists(self.upload_dir))
         self.assertTrue(Character.objects.filter(slug="theirs-del").exists())
         self.assertNotIn("_auth_user_id", self.client.session)
+
+
+    def test_delete_one_character(self):
+        import os
+        from mainapp.models import Character, Chat, Worldbook
+        book = Worldbook.objects.get(slug="book-del")
+        self.char.worldbook = book
+        self.char.save()
+        Chat.objects.create(character=self.char, title="One")
+        url = reverse("character_delete", args=["mine-del"])
+        self.assertEqual(self.client.get(url).status_code, 405)
+        self.assertEqual(self.client.post(reverse("character_delete", args=["theirs-del"])).status_code, 404)
+        self.assertContains(self.client.get(reverse("characters_list")), url)
+        self.assertContains(self.client.get(reverse("character", args=["mine-del"])), 'id="deleteCharacterBtn"')
+        data = self.client.post(url).json()
+        self.assertEqual((data["success"], data["url"]), (True, reverse("characters_list")))
+        self.assertFalse(Character.objects.filter(slug="mine-del").exists())
+        self.assertFalse(Chat.objects.filter(title="One").exists())
+        self.assertFalse(os.path.exists(self.photo))
+        self.assertTrue(Worldbook.objects.filter(slug="book-del").exists())  # the worldbook stays
+        self.assertTrue(Character.objects.filter(slug="theirs-del").exists())
 
 
 @override_settings(MEDIA_ROOT="/tmp/narrative-test-media")

@@ -530,7 +530,8 @@ $('prefs').addEventListener('click', async e => {
     const edit = e.target.closest('[data-edit-pref]');
     if (edit) {
         const pref = state.preferences.find(p => p.id === edit.dataset.editPref);
-        const text = pref && prompt('How should Bulba remember this?', pref.interpretation);
+        const text = pref && await NADialog.prompt('How should Bulba remember this?', pref.interpretation,
+                                                   { multiline: true, ok: 'Save' });
         if (!text || !text.trim() || text.trim() === pref.interpretation) return;
         try { state = (await api({ action: 'edit_preference', id: pref.id, text: text.trim() })).state; renderPanel(); }
         catch (err) { alert(err.message); }
@@ -570,8 +571,8 @@ $('budgetForm').onsubmit = async e => {
     } catch (err) { $('budgetNote').textContent = err.message; }
 };
 
-document.querySelectorAll('#restartBtn, [data-restart]').forEach(b => b.onclick = () => {
-    if (confirm('Start the conversation over? Anything you already applied stays.')) run({ action: 'restart' });
+document.querySelectorAll('#restartBtn, [data-restart]').forEach(b => b.onclick = async () => {
+    if (await NADialog.confirm('Start the conversation over? Anything you already applied stays.', { ok: 'Start over' })) run({ action: 'restart' });
 });
 
 render();

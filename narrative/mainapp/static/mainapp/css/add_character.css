@@ -259,3 +259,8 @@ body { margin: 0; }
 @media (max-width: 600px) { .cast-row { flex-wrap: wrap; } .cast-row input { flex-basis: 100%; } }
 .sprite-steps { margin: 0 0 6px; padding-left: 20px; display: grid; gap: 10px; font-size: .9rem; line-height: 1.5; }
 .sprite-steps button { display: block; margin-top: 6px; }
+
+/* 🗑 Delete on the edit page, out of the way under Save */
+.danger-zone { margin: 18px 0 0; text-align: center; }
+.link-danger { background: none; border: none; color: #f87171; cursor: pointer; font: inherit; font-size: .9rem; text-decoration: underline; }
+.link-danger:hover { color: #fca5a5; }

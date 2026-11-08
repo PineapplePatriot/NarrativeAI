@@ -398,3 +398,7 @@ body {
 .tag-filter .tag { border: 1px solid transparent; cursor: pointer; font-family: inherit; }
 .tag-filter .tag.on { border-color: var(--accent-1); background: rgba(126, 58, 242, 0.4); color: #fff; }
 .character-tags .tag[data-tag] { cursor: pointer; }
+
+/* 🗑 Delete on a card */
+.btn-delete { background: transparent; color: var(--text-secondary); border: 1px solid var(--border-color); padding: 10px 14px; }
+.btn-delete:hover { color: #fca5a5; border-color: rgba(248, 113, 113, .6); background: rgba(220, 38, 38, .12); }

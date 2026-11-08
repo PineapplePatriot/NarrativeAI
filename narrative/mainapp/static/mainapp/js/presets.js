@@ -82,14 +82,15 @@ document.querySelector('.toolbar').addEventListener('click', async e => {
     if (!action) return;
     try {
         if (action === 'rename') {
-            const name = prompt('New name', preset.name);
+            const name = await NADialog.prompt('New name for this preset:', preset.name, { ok: 'Rename' });
             if (!name) return;
             const data = await act({ action, id: preset.id, name });
             presets = data.presets; preset.name = data.preset.name;
             renderList(); renderHead();
             return;
         }
-        if (action === 'delete' && !confirm(`Delete “${preset.name}”? This cannot be undone.`)) return;
+        if (action === 'delete' && !await NADialog.confirm(`Delete “${preset.name}”? This cannot be undone.`,
+                                                            { ok: 'Delete', danger: true })) return;
         await flushSave();
         goTo((await act({ action, id: preset.id })).selected);
     } catch (err) { alert(err.message); }
@@ -313,7 +314,7 @@ $('foldAll').onclick = () => { groupList().forEach(g => collapsed.add(g.key)); s
 $('unfoldAll').onclick = () => { collapsed.clear(); saveFolds(); renderBlocks(); };
 
 // Clicks: open editor, fold group, move, delete, duplicate
-$('blocks').addEventListener('click', e => {
+$('blocks').addEventListener('click', async e => {
     const chips = e.target.closest('.folded-chips');
     if (chips) { collapsed.delete(chips.dataset.fold); saveFolds(); renderBlocks(); return; }
     const t = e.target.closest('button');
@@ -333,7 +334,7 @@ $('blocks').addEventListener('click', e => {
         renderBlocks(); scheduleSave();
     } else if (t.dataset.delete) {
         const b = blockById(t.dataset.delete);
-        if (b.kind !== 'header' && !confirm(`Delete “${b.name}”?`)) return;
+        if (b.kind !== 'header' && !await NADialog.confirm(`Delete “${b.name}”?`, { ok: 'Delete', danger: true })) return;
         preset.blocks = preset.blocks.filter(x => x.id !== b.id);
         open.delete(b.id);
         renderBlocks(); scheduleSave();
@@ -674,7 +675,7 @@ $('rules').addEventListener('click', async e => {
     const r = ruleById(box.dataset.rule);
     const a = el.dataset.ract;
     if (a === 'open') { openRules.has(r.id) ? openRules.delete(r.id) : openRules.add(r.id); renderRules(); }
-    if (a === 'delete' && confirm(`Delete the rule “${r.name}”?`)) {
+    if (a === 'delete' && await NADialog.confirm(`Delete the rule “${r.name}”?`, { ok: 'Delete', danger: true })) {
         setRuleList(ruleList().filter(x => x !== r)); renderRules(); rulesChanged();
     }
     if (a === 'test') {

@@ -158,3 +158,17 @@ document.querySelectorAll('[data-card-rule]').forEach(box => box.addEventListene
         status.textContent = 'Saved.';
     } catch (err) { box.checked = !box.checked; status.textContent = err.message; }
 }));
+
+// 🗑 Delete this character (edit page): asks first, then back to the list
+document.getElementById('deleteCharacterBtn')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget, chats = Number(btn.dataset.chats) || 0;
+    const ok = await NADialog.confirm(`Delete ${btn.dataset.name}${chats ? ` and ${chats === 1 ? 'their chat' : `all ${chats} of their chats`}` : ''}? `
+        + 'Their pictures go too. Their worldbook stays on the Worldbooks page. This can\'t be undone.',
+        { title: '🗑 Delete character', ok: 'Delete', danger: true });
+    if (!ok) return;
+    const token = (document.cookie.split(';').map(c => c.trim()).find(c => c.startsWith('csrftoken=')) || '').split('=')[1];
+    const resp = await fetch(btn.dataset.deleteUrl, { method: 'POST', headers: { 'X-CSRFToken': decodeURIComponent(token || '') } });
+    const data = await resp.json().catch(() => ({}));
+    if (resp.ok) window.location.href = data.url;
+    else NADialog.alert('Could not delete it. Try again.');
+});

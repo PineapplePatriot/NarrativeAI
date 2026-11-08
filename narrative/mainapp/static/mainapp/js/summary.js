@@ -141,7 +141,8 @@ window.Summary = (() => {
                 busy = true; render();
                 try { await post({ action: 'summary_rerun', piece }); } finally { busy = false; render(); }
             } else if (act === 'delete') {
-                if (confirm('Delete this summary piece? Its messages will be left out of the summary until you summarize them again.')) {
+                if (await NADialog.confirm('Delete this summary piece? Its messages will be left out of the summary until you summarize them again.',
+                                           { ok: 'Delete', danger: true })) {
                     await post({ action: 'summary_delete', piece });
                 }
             }
@@ -165,9 +166,10 @@ window.Summary = (() => {
         try { await post({ action: 'summary_pause', paused: !data.paused }); } catch (err) { alert(err.message); }
     });
 
-    document.getElementById('summaryRedo').addEventListener('click', () => {
+    document.getElementById('summaryRedo').addEventListener('click', async () => {
         if (busy) return;
-        if (confirm(`Summarize all ${data.total} messages again as one piece? This replaces every piece and costs tokens (more for long chats).`)) {
+        if (await NADialog.confirm(`Summarize all ${data.total} messages again as one piece? This replaces every piece and costs tokens (more for long chats).`,
+                                   { ok: 'Summarize again' })) {
             run({ mode: 'regen' });
         }
     });

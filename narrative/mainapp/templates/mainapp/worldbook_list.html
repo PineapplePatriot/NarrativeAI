@@ -76,7 +76,7 @@
       return m ? decodeURIComponent(m.slice(name.length + 1)) : null;
     }
     document.querySelectorAll('.action-btn.delete').forEach(btn => btn.addEventListener('click', async () => {
-      if (!confirm(`Delete “${btn.dataset.title}”? This cannot be undone.`)) return;
+      if (!await NADialog.confirm(`Delete “${btn.dataset.title}”? This cannot be undone.`, { ok: 'Delete', danger: true })) return;
       const resp = await fetch(btn.dataset.url, { method: 'POST', headers: { 'X-CSRFToken': getCookie('csrftoken') } });
       const data = await resp.json().catch(() => ({}));
       if (resp.ok) btn.closest('.worldbook-card').remove();

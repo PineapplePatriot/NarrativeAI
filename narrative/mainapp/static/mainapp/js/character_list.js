@@ -54,3 +54,18 @@ document.addEventListener("DOMContentLoaded", function () {
         input.value = "";
     });
 });
+
+// 🗑 on a card: asks first, then the card goes
+document.getElementById('charactersGrid')?.addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-delete-url]');
+    if (!btn) return;
+    const chats = Number(btn.dataset.chats) || 0;
+    const ok = await NADialog.confirm(`Delete ${btn.dataset.name}${chats ? ` and ${chats === 1 ? 'their chat' : `all ${chats} of their chats`}` : ''}? `
+        + 'Their pictures go too. Their worldbook stays on the Worldbooks page. This can\'t be undone.',
+        { title: '🗑 Delete character', ok: 'Delete', danger: true });
+    if (!ok) return;
+    const token = (document.cookie.split(';').map(c => c.trim()).find(c => c.startsWith('csrftoken=')) || '').split('=')[1];
+    const resp = await fetch(btn.dataset.deleteUrl, { method: 'POST', headers: { 'X-CSRFToken': decodeURIComponent(token || '') } });
+    if (resp.ok) btn.closest('.character-card').remove();
+    else NADialog.alert('Could not delete it. Try again.');
+});

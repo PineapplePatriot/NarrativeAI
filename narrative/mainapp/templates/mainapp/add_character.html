@@ -157,6 +157,9 @@
 
         {% if object %}
             <button type="submit" class="btn-primary">💾 Save</button>
+            <p class="danger-zone"><button type="button" class="link-danger" id="deleteCharacterBtn"
+                data-delete-url="{% url 'character_delete' object.slug %}" data-name="{{ object.name }}"
+                data-chats="{{ object.chats.count }}">🗑 Delete {{ object.name }}</button></p>
         {% else %}
             <button type="submit" class="btn-primary">Create character</button>
         {% endif %}

@@ -140,7 +140,7 @@ function closeModal() { $('modal').style.display = 'none'; }
 function updateTokenHint() { $('fTokens').textContent = `~${approxTokens($('fContent').value)} tokens`; }
 $('fContent').addEventListener('input', updateTokenHint);
 
-function saveEntry() {
+async function saveEntry() {
     const obj = {
         comment: $('fComment').value.trim(),
         keys: splitKeys($('fKeys').value),
@@ -159,7 +159,8 @@ function saveEntry() {
     };
     if (!obj.content.trim()) { alert('Content is required.'); return; }
     if (!obj.keys.length && !obj.constant &&
-        !confirm('This entry has no keywords and is not "always on", so it will only fire through semantic search. Save anyway?')) return;
+        !await NADialog.confirm('This entry has no keywords and isn\'t “always on”, so it will never come into the story by itself. Save anyway?',
+                                { ok: 'Save anyway' })) return;
 
     if (editingUid === null) {
         book.entries.push({ ...DEFAULTS.entry, ...obj, uid: nextUid() });
@@ -179,8 +180,8 @@ function duplicate(uid) {
     render();
 }
 
-function del(uid) {
-    if (!confirm('Delete this entry?')) return;
+async function del(uid) {
+    if (!await NADialog.confirm('Delete this entry?', { ok: 'Delete', danger: true })) return;
     book.entries = book.entries.filter(e => e.uid !== uid);
     markDirty();
     render();

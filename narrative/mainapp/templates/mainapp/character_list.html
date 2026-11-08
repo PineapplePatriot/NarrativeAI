@@ -7,7 +7,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Narrative AI - Character Selection</title>
-    <link rel="stylesheet" href="{% static 'mainapp/css/character_list.css' %}">
+    <link rel="stylesheet" href="{% static 'mainapp/css/character_list.css' %}?v=2">
 
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
@@ -91,6 +91,9 @@
                     <a href="{% url 'character' character.slug %}" class="btn btn-secondary">
                         Edit
                     </a>
+                    <button type="button" class="btn btn-delete" title="Delete {{ character.name }}"
+                            data-delete-url="{% url 'character_delete' character.slug %}" data-name="{{ character.name }}"
+                            data-chats="{{ character.chat_count }}" aria-label="Delete {{ character.name }}">🗑</button>
                 </div>
             </div>
             {% empty %}
@@ -102,6 +105,6 @@
         </div>
     </div>
 
-    <script src="{% static 'mainapp/js/character_list.js' %}"></script>
+    <script src="{% static 'mainapp/js/character_list.js' %}?v=2"></script>
 </body>
 </html>

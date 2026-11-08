@@ -634,7 +634,7 @@ function saveMessage(index) {
     let newText = editTextarea.value.trim();
 
     if (!newText) {
-        alert('Message cannot be empty');
+        showChatError('A message can\'t be empty.');
         return;
     }
 
@@ -664,7 +664,8 @@ function saveMessage(index) {
                 cancelEdit(index);
                 if (data.watch && window.Watch) Watch.refresh(data.watch);  // edited a polished reply: Bulba asks why
             } else {
-                alert('Error saving message: ' + (data.error || 'Unknown error'));
+                if (data.resync) { showChatNotice(data.error); setTimeout(() => window.location.reload(), 900); }
+                else showChatError('Could not save it: ' + (data.error || 'unknown error'));
             }
         })
         .catch(error => {
@@ -733,13 +734,16 @@ function confirmDelete() {
                 if (window.Summary) Summary.set(data.summary_data);
                 if (window.Trackers && Trackers.setState) Trackers.setState(data.trackers);
                 if (window.Trackers && Trackers.setStory) Trackers.setStory(data.story);
+            } else if (data.resync) {
+                showChatNotice(data.error);  // the page was out of step with the saved chat
+                setTimeout(() => window.location.reload(), 900);
             } else {
-                alert('Error deleting message: ' + (data.error || 'Unknown error'));
+                showChatError('Could not delete it: ' + (data.error || 'unknown error'));
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Error deleting message');
+            showChatError('Could not delete it: the app server didn\'t answer.');
         })
         .finally(() => {
             closeDeleteModal();
@@ -1424,10 +1428,11 @@ branchModal.addEventListener('click', (e) => { if (e.target === branchModal) clo
         e.preventDefault();
         save(document.getElementById('personaName').value.trim(), document.getElementById('personaDesc').value.trim());
     });
-    document.getElementById('personaMakeUsual').onclick = () => {
+    document.getElementById('personaMakeUsual').onclick = async () => {
         const name = document.getElementById('personaName').value.trim();
         if (!name) { showChatError('Give the persona a name first.'); return; }
-        if (!confirm('Make "' + name + '" your usual persona? It replaces the one on your profile, and every chat without its own persona will use it.')) return;
+        if (!await NADialog.confirm(`Make “${name}” your usual persona? It replaces the one on your profile, and every chat without its own persona will use it.`,
+                                    { ok: 'Make it usual' })) return;
         save(name, document.getElementById('personaDesc').value.trim(), 'persona_to_account');
     };
     document.getElementById('personaReset').onclick = () => {
@@ -1911,7 +1916,8 @@ document.getElementById('personaHint')?.addEventListener('click', (e) => {
 // 🔞 Mature content: switched straight in the active preset (Bulba's own model won't do it)
 document.getElementById('matureToggle')?.addEventListener('change', async (e) => {
     const box = e.target, on = box.checked;
-    if (on && !confirm('Mature content is for adults only. Are you 18 or older?')) { box.checked = false; return; }
+    if (on && !await NADialog.confirm('Mature content is for adults only. Are you 18 or older?',
+                                      { title: '🔞 Adult scenes', ok: "Yes, I'm 18+", cancel: 'No' })) { box.checked = false; return; }
     try {
         const resp = await fetch(window.location.href, {
             method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },

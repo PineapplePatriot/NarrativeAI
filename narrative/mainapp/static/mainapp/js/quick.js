@@ -80,6 +80,7 @@ async function save(go) {
 $('qStart').addEventListener('click', () => save(true));
 
 // 🔞: asks once that they're an adult
-$('qMature').addEventListener('change', (e) => {
-    if (e.target.checked && !confirm('Adult scenes are for adults only. Are you 18 or older?')) e.target.checked = false;
+$('qMature').addEventListener('change', async (e) => {
+    if (e.target.checked && !await NADialog.confirm('Adult scenes are for adults only. Are you 18 or older?',
+                                                    { title: '🔞 Adult scenes', ok: "Yes, I'm 18+", cancel: 'No' })) e.target.checked = false;
 });

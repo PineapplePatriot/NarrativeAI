@@ -375,8 +375,9 @@ def chat(request, slug):
                     save_messages(messages)
                     return JsonResponse({"success": True, "text": new_text,
                                          "watch": watch.page_state(request.user, chat_obj)})
-                else:
-                    return JsonResponse({"success": False, "error": "Invalid message index"})
+                else:  # out of step with the page (a reply that failed and was never saved): reload it
+                    return JsonResponse({"success": False, "resync": True,
+                                         "error": "This chat changed since the page loaded. Reloading it."})
 
             except (ValueError, KeyError) as e:
                 return JsonResponse({"success": False, "error": "Invalid request data"})
@@ -403,8 +404,9 @@ def chat(request, slug):
                                          "summary_data": summary_payload(),
                                          "trackers": trackers.normalize_state(chat_state["trackers"], config),
                                          "story": story_payload()})
-                else:
-                    return JsonResponse({"success": False, "error": "Invalid message index"})
+                else:  # the page shows a message the server never saved (a reply that failed): reload it
+                    return JsonResponse({"success": False, "resync": True,
+                                         "error": "This chat changed since the page loaded. Reloading it."})
 
             except (ValueError, KeyError) as e:
                 return JsonResponse({"success": False, "error": "Invalid request data"})
@@ -2217,6 +2219,18 @@ def worldbook_list(request):
         wb.entry_count = len(load_worldbook(wb)["entries"])
     return render(request, "mainapp/worldbook_list.html", {"worldbooks": worldbooks})
 
+
+
+@login_required
+def character_delete(request, slug):
+    """Deletes one of their characters with its chats and files (POST); its worldbook stays."""
+    from users import account
+    character = get_object_or_404(Character, slug=slug, author=request.user)
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only"}, status=405)
+    name = character.name
+    account.delete_character(character)
+    return JsonResponse({"success": True, "name": name, "url": reverse("characters_list")})
 
 
 class CharactersList(LoginRequiredMixin, ListView):
