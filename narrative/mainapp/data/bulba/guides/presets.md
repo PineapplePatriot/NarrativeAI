@@ -53,8 +53,9 @@ This is where their preferences go (propose_preset's `taste`). Rules:
    "Who moves the story", "Making things up" and "Inner thoughts" go in unchanged too. They're separate
    on purpose: a slow-burn story can still have characters who act, so don't infer one from another.
 
-8. **If a tested block already does it, borrow it instead of writing a line** (propose_preset's
-   `borrow`; see the writing guide). A borrowed block replaces the taste line, it doesn't repeat it.
+8. **Use research to make the requirement concrete.** Consult the writing guide and relevant library
+   candidates. Adapt the principle into a self-contained instruction; do not automatically copy a
+   community block or duplicate a rule already present.
 9. **Games and set formats** (stats, dice, a status panel, a phone screen) follow "Story first, unless
    it's a game" in the writing guide.
 10. **Lean first, then one repair per problem you saw.** Start from the starter and their answers; add a

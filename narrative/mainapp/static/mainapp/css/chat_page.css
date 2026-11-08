@@ -2244,3 +2244,12 @@ body.polish-on .message-btn.polish-btn { display: flex; }
     border-radius: 10px; border: 1px solid var(--border-color); background: rgba(255, 255, 255, .04); color: inherit; cursor: pointer; font: inherit; }
 .refusal-options button:hover { border-color: rgba(167, 139, 250, .8); background: rgba(139, 92, 246, .15); }
 .refusal-options small { opacity: .7; font-size: .8rem; }
+
+/* Watch findings stay compact; evidence and actions open for one finding at a time. */
+.watch-card { max-height: calc(100dvh - 200px); overflow-y: auto; }
+.watch-findings { display: grid; gap: 6px; margin-top: 8px; }
+.watch-finding { display: flex; flex-direction: column; gap: 3px; text-align: left;
+    width: 100%; padding: 8px 10px; border: 1px solid #64748b; border-radius: 8px;
+    background: transparent; color: inherit; cursor: pointer; }
+.watch-finding small { opacity: .75; }
+.watch-back { background: transparent; color: inherit; border: 0; padding: 0 0 8px; cursor: pointer; }

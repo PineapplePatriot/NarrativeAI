@@ -6,6 +6,8 @@ from .secret_fields import EncryptedCharField
 
 # Create your models here.
 class User(AbstractUser):
+    # Reserved for the bilingual workflow. Existing accounts retain their current generation behavior.
+    display_language = models.CharField(max_length=16, default="en")
     name = models.CharField(max_length=30, blank=True, verbose_name="First name")
     date_birth = models.DateTimeField(blank=True, null=True, verbose_name="Date of birth")
     photo = models.ImageField(

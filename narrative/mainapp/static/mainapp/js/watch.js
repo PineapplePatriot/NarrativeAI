@@ -7,6 +7,7 @@ window.Watch = (function () {
     let state = JSON.parse(dataEl.textContent);
     let hiddenUntilNew = null;  // "Later": the note stays away until a newer one arrives
     let switched = null;  // the "Director mode?" note just used, for its Undo
+    let selectedNotice = null;
     let opened = false;   // notes never pop up on their own: the 🥔 shows a number, a press opens the note
     let introDone = false;
     const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -45,6 +46,13 @@ window.Watch = (function () {
     }
 
     function render() {
+        renderCard();
+        if (!card.hidden && selectedNotice && (state.notices || []).length > 1 && !switched) {
+            card.insertAdjacentHTML('afterbegin', '<button type="button" class="watch-back" data-w="list">← All findings</button>');
+        }
+    }
+
+    function renderCard() {
         polishButtons();
         const toggle = document.getElementById('watchChatToggle');
         if (toggle) toggle.checked = !!(state.on && !state.chat_off);
@@ -64,7 +72,18 @@ window.Watch = (function () {
                 <button type="button" class="ghost" data-w="director-undo">Undo</button></div>`;
             return;
         }
-        const n = (state.notices || [])[0];
+        const notices = state.notices || [];
+        if (selectedNotice && !notices.some(n => n.id === selectedNotice)) selectedNotice = null;
+        if (opened && notices.length > 1 && !selectedNotice) {
+            card.hidden = false;
+            card.innerHTML = `<div class="watch-head"><span class="potato">🥔</span><b>${notices.length} findings</b>
+                <button type="button" class="watch-x" data-w="later" aria-label="Close findings">✕</button></div>
+                <div class="watch-findings">${notices.map(n => `<button type="button" class="watch-finding" data-w="select" data-id="${esc(n.id)}">
+                    <span>${esc(n.title)}</span>${n.count && n.of ? `<small>${esc(n.count)} of ${esc(n.of)} replies</small>` : ''}
+                </button>`).join('')}</div>`;
+            return;
+        }
+        const n = notices.find(n => n.id === selectedNotice) || notices[0];
         if (!n || n.id === hiddenUntilNew || !opened) { card.hidden = true; if (!n) opened = false; return; }
         card.hidden = false;
         if (n.kind === 'director') {
@@ -101,10 +120,12 @@ window.Watch = (function () {
         const b = e.target.closest('[data-w]');
         if (!b) return;
         const what = b.dataset.w;
+        if (what === 'select') { selectedNotice = b.dataset.id; return render(); }
+        if (what === 'list') { selectedNotice = null; return render(); }
         if (what === 'keep') return post({ action: 'watch_settings', keep_on: true });
         if (what === 'off') { await post({ action: 'watch_settings', keep_on: false }); return showChatNotice('Bulba Watch is off. Turn it back on on the Extras page.'); }
         if (what === 'chat-off') { await post({ action: 'watch_settings', keep_on: true, chat_off: true }); return showChatNotice('Bulba Watch is off for this chat.'); }
-        if (what === 'later') { opened = false; return render(); }
+        if (what === 'later') { selectedNotice = null; opened = false; return render(); }
         if (what === 'mute') { await post({ action: 'watch_note', id: b.dataset.id, status: 'muted' }); return showChatNotice("Got it: I won't bring that one up again."); }
         if (what === 'dismiss') return post({ action: 'watch_note', id: b.dataset.id, status: 'dismissed' });
         if (what === 'director' || what === 'director-undo') {

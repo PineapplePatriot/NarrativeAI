@@ -1,4 +1,4 @@
-"""Tested blocks Bulba can borrow from the community presets we ship (word for word, before writing its own)."""
+"""Research candidates and community references for developing specific writing instructions."""
 import json
 import re
 from functools import lru_cache
@@ -11,7 +11,7 @@ SOURCES = ["mimo-frankenstein", "gemini-frankenstein", "mimo-frankenstein-pico"]
 # Community presets that aren't starters: their blocks only (converted from the SillyTavern files)
 LIBRARY_DIR = Path(__file__).resolve().parent.parent / "data" / "library"
 LIBRARY_FILES = ["pura-director-16", "celia-4-6"]
-# Original candidate wording from the research cookbook (docs/research/): untested, so it comes after the presets
+# Original candidate wording from the research cookbook (docs/research/); live effectiveness is unverified.
 CANDIDATES = Path(__file__).resolve().parent.parent / "data" / "bulba" / "candidates.json"
 CANDIDATE_SOURCE = "Research cookbook (untested candidate)"
 PLACEHOLDER = re.compile(r"\[[a-z][^\]]*\]")
@@ -119,7 +119,7 @@ def search(query, limit=12):
         name, note, body = b["name"].lower(), b["summary"].lower(), b["content"].lower()
         score = sum(4 * (w in name) + 2 * (w in note) + (w in body) for w in words)
         if b["source"] == CANDIDATE_SOURCE:
-            score *= 0.8  # tested preset blocks first
+            score *= 1.2  # relevant original research candidates before automatic community copying
         if score:
             scored.append((score, b))
     scored.sort(key=lambda s: -s[0])
@@ -149,10 +149,10 @@ def tool_read_practice(session, args):
 
 def tool_defs(fn, STR):
     return [
-        fn("find_practice", "Search the tested blocks of the community presets (Realistic Frankenstein, Pura's Director, Celia) for one "
+        fn("find_practice", "Search original research candidates and community reference blocks for a principle "
            "that already does what you need: anti-echo, dialogue, pacing, NPC behaviour, dice and stats, "
            "inventories, relationship meters, in-story graphics, coloured speech... Empty query lists them all. "
-           "Check here before writing an instruction yourself.", {"query": STR}),
+           "Community inclusion does not establish effectiveness or redistribution permission. Adapt relevant principles.", {"query": STR}),
         fn("read_practice", "The full text of one library block (exact name from find_practice).",
            {"block": STR}, ["block"]),
     ]
