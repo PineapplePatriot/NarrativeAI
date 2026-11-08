@@ -581,6 +581,15 @@ def apply_basics(session, answers):
             if key == "language" and raw.lower() in ("english", "en"):
                 lines.append(f"{label}: English")
                 continue
+            if key == "language":
+                from mainapp import translation
+                code = translation.language_code(raw)
+                if code:  # written in English, translated for them (profile → Story language), not a preset rule
+                    session.user.display_language = code
+                    session.user.save(update_fields=["display_language"])
+                    lines.append(f"{label}: {translation.LANGUAGES[code]}. Set on their profile: replies are written in "
+                                 "English and translated for them, so write no language rule into the preset")
+                    continue
             text = (f"Write the whole story in {raw}." if key == "language" else f"Keep out: {raw}.")
             scope = "boundary" if key == "keep_out" else "general"
         elif key == "panels" and raw == "on":  # drawn by the app (mainapp/extras.py), not written as HTML

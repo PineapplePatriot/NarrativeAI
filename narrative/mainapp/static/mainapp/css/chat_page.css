@@ -2253,3 +2253,10 @@ body.polish-on .message-btn.polish-btn { display: flex; }
     background: transparent; color: inherit; cursor: pointer; }
 .watch-finding small { opacity: .75; }
 .watch-back { background: transparent; color: inherit; border: 0; padding: 0 0 8px; cursor: pointer; }
+
+/* Read in another language: a stage line stands in for the English until the translation is there */
+.message.translating .message-text, .message.translating .story-extras { display: none; }
+.translate-stage { font-size: .85rem; opacity: .75; font-style: italic; padding: 2px 0; }
+.message-btn.original-btn.on { background: rgba(139, 92, 246, .35); }
+.sum-translated { white-space: pre-wrap; line-height: 1.5; font-size: .9rem; padding: 6px 2px; }
+#summaryLanguage.on { background: rgba(139, 92, 246, .3); }

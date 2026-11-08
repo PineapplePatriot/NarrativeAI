@@ -69,6 +69,17 @@ document.addEventListener("click", (event) => {
         case "delete":
             if (index !== null) deleteMessage(index);
             break;
+        case "original": {  // 🌐 the English a translated reply was written in, and back
+            const el = btn.closest('.message'), textDiv = el && el.querySelector('.message-text');
+            if (!textDiv || !textDiv.dataset.original) break;
+            const showing = btn.classList.toggle('on');
+            textDiv.innerHTML = renderChatMessage(decodeURIComponent(showing ? textDiv.dataset.original : textDiv.dataset.raw), textDiv);
+            btn.title = showing ? `Back to ${window.READING_LANGUAGE_NAME}` : 'Show the English it was written in';
+            break;
+        }
+        case "translate":
+            translateMessage(btn.closest('.message'));
+            break;
         case "play-sound": {
             const i = btn.closest('.message') ? btn.closest('.message').dataset.index : index;
             voiceReply(btn, Number(i), event.shiftKey);
@@ -352,6 +363,7 @@ async function requestReply(body) {
         frame = null;
         bubble.innerHTML = renderChatMessage(text, bubble);
         bubble.setAttribute('data-raw', encodeURIComponent(text));
+        if (window.READING_LANGUAGE) setStage(bubble.closest('.message'), '✍️ Writing…');  // shown once translated
         scrollToBottom();
     };
 
@@ -544,6 +556,7 @@ function sendMessage(noteOnly = false) {
             if (data.empty) { if (data.bubble) data.bubble.closest('.message')?.remove(); showChatError(data.error); return; }
             if (data.error || data.stopped) {
                 if (data.bubble) setSwipes({ count: 1, current: 0 });  // the partial reply was kept
+                if (data.bubble && window.READING_LANGUAGE) translateMessage(data.bubble.closest('.message'));
                 if (data.error) showChatError(data.error);
                 return;
             }
@@ -559,7 +572,7 @@ function sendMessage(noteOnly = false) {
             if (data.summary_due) generateSummary('append', true);
             if (window.Trackers) { Trackers.setStory(data.story); Trackers.afterReply(data); }
             if (window.Watch) Watch.afterReply(data);
-            if (data.polish_due) runPolish(lastAssistant());
+            afterReplyText(lastAssistant(), data.polish_due);
             if (data.music_due) followSceneMusic();
             if (window.NAFeedback) NAFeedback.afterMessage();  // the tester feedback form, once a day at most
 
@@ -639,7 +652,13 @@ function saveMessage(index) {
         return;
     }
 
-    // Send edit request to server
+    // Send edit request to server (a translated reply: Bulba updates the English the story continues from)
+    const translated = !!(window.READING_LANGUAGE && messageText.dataset.original);
+    const saveBtn = message.querySelector('.save-btn');
+    if (translated) {
+        setStage(message, '🌐 Bulba is updating the English version…', true);
+        if (saveBtn) saveBtn.disabled = true;
+    }
     fetch(window.location.href, {
         method: 'POST',
         headers: {
@@ -662,16 +681,21 @@ function saveMessage(index) {
 
                 // Keep textarea synced with the raw text
                 editTextarea.value = newText;
+                if (data.original) messageText.dataset.original = encodeURIComponent(data.original);
                 cancelEdit(index);
                 if (data.watch && window.Watch) Watch.refresh(data.watch);  // edited a polished reply: Bulba asks why
             } else {
                 if (data.resync) { showChatNotice(data.error); setTimeout(() => window.location.reload(), 900); }
-                else showChatError('Could not save it: ' + (data.error || 'unknown error'));
+                else showChatError(data.keep_draft ? data.error + ' Your edit is still here: press Save to try again.'
+                                                   : 'Could not save it: ' + (data.error || 'unknown error'));
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Error saving message');
+            showChatError('Could not save it: the app server didn\'t answer. Your edit is still here.');
+        })
+        .finally(() => {
+            if (translated) { setStage(message, null); if (saveBtn) saveBtn.disabled = false; }
         });
 }
 
@@ -1024,7 +1048,7 @@ function continueGeneration() {
                 messageTextDiv.setAttribute('data-raw', encodeURIComponent(data.reply));
                 hiddenTextarea.value = data.reply;
                 setPolish(lastMsgElement, null);  // the continued text is new: polish it again if asked
-                if (data.polish_due) runPolish(lastMsgElement);
+                afterReplyText(lastMsgElement, data.polish_due);
 
                 scrollToBottom();
             } else {
@@ -1167,7 +1191,11 @@ function regenerateReply(guidance = '', model = '') {
             if (d.error || d.stopped) {
                 // The server keeps any text that arrived as a new version; with none, the old reply stays
                 if (!d.bubble) restore();
-                else { if (old) old.remove(); setSwipes(before ? { count: before.count + 1, current: before.count } : { count: 1, current: 0 }); }
+                else {
+                    if (old) old.remove();
+                    setSwipes(before ? { count: before.count + 1, current: before.count } : { count: 1, current: 0 });
+                    if (window.READING_LANGUAGE) translateMessage(d.bubble.closest('.message'));
+                }
                 if (d.error) showChatError(d.error);
                 return;
             }
@@ -1177,7 +1205,7 @@ function regenerateReply(guidance = '', model = '') {
             if (d.summary_due) generateSummary('append', true);
             if (window.Trackers) { Trackers.setStory(d.story); Trackers.afterReply(d); }
             if (window.Watch) Watch.afterReply(d);
-            if (d.polish_due) runPolish(lastAssistant());
+            afterReplyText(lastAssistant(), d.polish_due);
             if (d.music_due) followSceneMusic();
         })
         .catch(err => { console.error(err); restore(); showChatError('Could not reach the app server.'); })
@@ -1222,6 +1250,8 @@ function swipe(step) {
             const last = msgs[msgs.length - 1];
             const textDiv = last.querySelector('.message-text');
             textDiv.innerHTML = renderChatMessage(d.reply, textDiv);
+            setOriginal(last, d.original || '');
+            if (d.untranslated && window.READING_LANGUAGE) translateMessage(last);
             setThoughts(last, d.reasoning || '');
             setGame(last, d.game);
             setExtras(last, d.extras_html);
@@ -1683,7 +1713,8 @@ function setPolish(messageEl, info, busy = false) {
 function runPolish(messageEl, now = false, index = null, again = false) {
     if (!messageEl) { if (now) showChatNotice("There's no reply to polish yet; the next one will be."); return; }
     setPolish(messageEl, null, true);
-    fetch(window.location.href, {
+    if (window.READING_LANGUAGE) setStage(messageEl, '🧹 Revising…');
+    return fetch(window.location.href, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
         body: JSON.stringify(index === null || Number.isNaN(index) ? { action: 'polish', now, again } : { action: 'polish', now, index, again }),
@@ -1700,7 +1731,8 @@ function runPolish(messageEl, now = false, index = null, again = false) {
             showText(messageEl, d.reply);
             setPolish(messageEl, d.polish);
         })
-        .catch(() => setPolish(messageEl, null));
+        .catch(() => setPolish(messageEl, null))
+        .finally(() => { if (window.READING_LANGUAGE) translateMessage(messageEl); });  // polished English, then translated
 }
 
 window.polishLatestNow = () => runPolish(lastAssistant(), true);
@@ -2077,4 +2109,89 @@ document.addEventListener('click', (e) => {
         const help = document.getElementById('thinkingHelp');
         if (on && help) help.textContent = `${on.textContent.trim()}: ${on.title}. Less thinking makes replies quicker and cheaper.`;
     });
+})();
+
+
+// --- Read in another language (profile → Story language): replies are written in English, then translated ---
+// A stage line ("Writing…", "Revising…", "Translating…") stands in for the text until the translation is there.
+function setStage(messageEl, text, keepText = false) {
+    if (!messageEl) return;
+    let line = messageEl.querySelector('.translate-stage');
+    messageEl.classList.toggle('translating', !!text && !keepText);
+    if (!text) { if (line) line.remove(); return; }
+    if (!line) {
+        line = document.createElement('div');
+        line.className = 'translate-stage';
+        const textDiv = messageEl.querySelector('.message-text');
+        textDiv.parentNode.insertBefore(line, textDiv);
+    }
+    line.textContent = text;
+}
+
+// 🌐 on a translated reply: shows the English; 🌐 (translate) on one that isn't yet
+function setOriginal(messageEl, original) {
+    if (!messageEl) return;
+    const textDiv = messageEl.querySelector('.message-text');
+    const actions = messageEl.querySelector('.message-actions');
+    messageEl.querySelectorAll('.original-btn, .translate-btn').forEach(b => b.remove());
+    if (original) textDiv.dataset.original = encodeURIComponent(original);
+    else delete textDiv.dataset.original;
+    if (!window.READING_LANGUAGE || !actions || !messageEl.classList.contains('assistant')) return;
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'message-btn ' + (original ? 'original-btn' : 'translate-btn');
+    b.dataset.action = original ? 'original' : 'translate';
+    b.dataset.index = messageEl.dataset.index;
+    b.title = original ? 'Show the English it was written in' : `Translate into ${window.READING_LANGUAGE_NAME}`;
+    b.textContent = '🌐';
+    actions.insertBefore(b, actions.firstChild);
+}
+
+const translating = new WeakSet();
+async function translateMessage(messageEl) {
+    if (!window.READING_LANGUAGE || !messageEl || translating.has(messageEl)) return;
+    translating.add(messageEl);
+    setStage(messageEl, `🌐 Translating into ${window.READING_LANGUAGE_NAME}…`);
+    try {
+        const resp = await fetch(window.location.href, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ action: 'translate', index: Number(messageEl.dataset.index) }),
+        });
+        const d = await resp.json().catch(() => ({}));
+        if (!d.success) {
+            setOriginal(messageEl, '');
+            if (d.resync) { showChatNotice('This chat changed since the page loaded. Reloading it.'); setTimeout(() => window.location.reload(), 900); }
+            else showChatError(`${d.error || "Couldn't translate it."} The English is shown; press 🌐 on the reply to try again.`);
+            return;
+        }
+        showText(messageEl, d.text);
+        setOriginal(messageEl, d.original);
+        messageEl.querySelector('.message-text').removeAttribute('data-untranslated');
+    } catch (err) {
+        setOriginal(messageEl, '');
+        showChatError("Couldn't reach the app server to translate. The English is shown; press 🌐 to try again.");
+    } finally {
+        translating.delete(messageEl);
+        setStage(messageEl, null);
+        scrollToBottom();
+    }
+}
+
+// A reply is written: polish it if that's due (it translates after), else translate it now
+function afterReplyText(messageEl, polishDue) {
+    if (window.READING_LANGUAGE && messageEl) setStage(messageEl, polishDue ? '🧹 Revising…' : `🌐 Translating into ${window.READING_LANGUAGE_NAME}…`);
+    if (polishDue) runPolish(messageEl);
+    else if (window.READING_LANGUAGE) translateMessage(messageEl);
+}
+
+// On load: the newest reply (e.g. a new chat's greeting) is translated by itself; older ones on 🌐
+(function () {
+    if (!window.READING_LANGUAGE) return;
+    document.querySelectorAll('.message.assistant:not(#typingMessage)').forEach(el => {
+        const textDiv = el.querySelector('.message-text');
+        if (textDiv && textDiv.dataset.original) setOriginal(el, decodeURIComponent(textDiv.dataset.original));
+        else if (textDiv && textDiv.dataset.untranslated) setOriginal(el, '');
+    });
+    const last = lastAssistant();
+    if (last && last.querySelector('.message-text[data-untranslated]')) translateMessage(last);
 })();

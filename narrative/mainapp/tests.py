@@ -3118,6 +3118,108 @@ class JobPromptTests(ChatPromptTests):
         self.assertEqual(edited["utility"]["tracker_rules"], "- Short.")
 
 
+class TranslationWorkflowTests(ChatPromptTests):
+    """Profile → Story language: replies are written in English and translated for reading."""
+
+    def read_in(self, lang):
+        self.user.display_language = lang
+        self.user.save()
+
+    def fake_translate(self, user, text, target, source="en", glossary=None):
+        self.translated.append((text, target, source))
+        return ("UK: " if target == "uk" else "EN: ") + text
+
+    def setUp(self):
+        super().setUp()
+        self.translated = []
+
+    def test_english_readers_are_untouched(self):
+        self.post({"action": "chat", "message": "Hi"})
+        self.assertNotIn("Write your reply in English", json.dumps(self.sent[-1]["messages"]))
+        self.assertNotContains(self.client.get(self.url), "data-untranslated")
+
+    def test_written_in_english_translated_and_shown(self):
+        from unittest import mock
+        from mainapp import translation
+        self.read_in("uk")
+        self.post({"action": "chat", "message": "Привіт"})
+        self.assertIn("translated into Ukrainian", self.sent[-1]["messages"][-1]["content"])  # the last instruction
+        index = len(self.saved_messages()) - 1
+        page = self.client.get(self.url)
+        self.assertContains(page, 'data-untranslated="1"')
+        self.assertContains(page, 'window.READING_LANGUAGE = "uk"')
+        english = self.saved_messages()[-1][2]
+        with mock.patch.object(translation, "translate", side_effect=self.fake_translate):
+            d = self.post({"action": "translate", "index": index}).json()
+            self.assertEqual((d["text"], d["original"]), ("UK: " + english, english))
+            self.post({"action": "translate", "index": index})  # already there: no second call
+        self.assertEqual(len(self.translated), 1)
+        saved = self.saved_messages()[-1]
+        self.assertEqual(saved[2], english)  # the story keeps the English
+        page = self.client.get(self.url)
+        self.assertContains(page, "UK: " + english[:20])
+        self.assertContains(page, "data-original=")
+
+    def test_editing_the_translation_updates_the_english(self):
+        from unittest import mock
+        from mainapp import ai_client, translation
+        self.read_in("uk")
+        self.post({"action": "chat", "message": "Привіт"})
+        index = len(self.saved_messages()) - 1
+        with mock.patch.object(translation, "translate", side_effect=self.fake_translate):
+            self.post({"action": "translate", "index": index})
+            d = self.post({"action": "edit", "index": index, "text": "Нова версія"}).json()
+        self.assertEqual((d["success"], d["original"]), (True, "EN: Нова версія"))
+        saved = self.saved_messages()[index]
+        self.assertEqual(saved[2], "EN: Нова версія")
+        self.assertEqual(translation.display_text(saved, "uk"), "Нова версія")
+        with mock.patch.object(translation, "translate", side_effect=ai_client.AIError("down")):
+            d = self.post({"action": "edit", "index": index, "text": "Ще інша"}).json()
+        self.assertTrue(d["keep_draft"])
+        self.assertEqual(self.saved_messages()[index][2], "EN: Нова версія")  # nothing saved
+
+    def test_summary_translated_on_demand_and_cached(self):
+        from unittest import mock
+        from mainapp import chats, translation
+        self.read_in("uk")
+        self.post({"action": "chat", "message": "Hi"})
+        chat = self.character.chats.first()
+        data = chats.read(chat)
+        data["summary_parts"] = [{"text": "They met at the station.", "from": 0, "to": 2}]
+        chats.write(chat, data)
+        with mock.patch.object(translation, "translate", side_effect=self.fake_translate):
+            d = self.post({"action": "summary_translate"}).json()
+            self.post({"action": "summary_translate"})
+        self.assertEqual(d["pieces"], ["UK: They met at the station."])
+        self.assertEqual(len(self.translated), 1)
+        self.assertEqual(chats.read(chat)["summary_parts"][0]["text"], "They met at the station.")  # stays English
+
+    def test_profile_setting_and_the_old_language_rule(self):
+        from mainapp import presets, translation
+        obj = presets.get_active(self.user)
+        data = presets.normalize(obj.data)
+        data["blocks"][0]["content"] = (data["blocks"][0].get("content") or "") + " Write the whole story in Ukrainian."
+        data["blocks"][0]["kind"] = "prompt"
+        obj.data = data
+        obj.save()
+        self.assertContains(self.client.get(reverse("users:profile")), 'name="drop_language_rule"')
+        form = {"username": self.user.username, "email": self.user.email or "chatter@example.com",
+                "display_language": "uk", "drop_language_rule": "on", "first_name": "", "date_birth": ""}
+        self.client.post(reverse("users:profile"), form)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.display_language, "uk")
+        self.assertFalse(translation.language_rule_in_preset(self.user))
+        self.assertEqual(translation.language_code("українська"), "uk")
+        self.assertIsNone(translation.language_code("Klingon"))
+
+    def test_translation_model_default(self):
+        from mainapp import ai_client
+        from users.models import ConnectionProfile
+        ConnectionProfile.objects.filter(user=self.user).update(provider=ConnectionProfile.PROVIDER_OPENROUTER)
+        self.assertEqual(ai_client.resolve(self.user, "translation")[1], ai_client.TRANSLATION_MODEL)
+        self.assertEqual(ai_client.resolve(self.user, "chat")[1], "test/model")
+
+
 class OutOfStepPageTests(ChatPromptTests):
     def test_deleting_a_message_the_server_never_saved_reloads(self):
         data = self.post({"action": "delete", "index": 7}).json()

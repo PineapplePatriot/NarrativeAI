@@ -1,5 +1,31 @@
 # English generation and translated display
 
+## Status, 8 November 2026 (integration done; live quality still to test)
+
+On: Profile → You in stories → Story language. Any language but English turns the workflow on.
+
+- Chat, regenerate and continue end with an English-writing instruction (translation.english_note).
+- Order on the page: stream (hidden behind "✍️ Writing…") → polish if due ("🧹 Revising…") →
+  translate ("🌐 Translating…") → show. A reply cut short (Stop, error) is translated too.
+- `translate` action translates one reply and writes only that message back (trackers or a summary
+  saved meanwhile are kept). Each swipe keeps its own translation (chats.VERSION_KEYS).
+- 🌐 on a translated reply shows the English and back; 🌐 on an untranslated one translates it. On
+  load the newest reply (a new chat's greeting) is translated by itself; older ones on 🌐.
+- Editing a translated reply: "Bulba is updating the English version…", synchronize_edit, saved only
+  on success; on failure the draft stays and nothing is saved.
+- Summary panel: 🌐 <language> shows the pieces translated (read-only, cached per piece in the chat
+  file's translation_cache); the pieces stay English for the AI.
+- Trackers write their values in the reading language (no extra call).
+- Profile save offers to remove the basics form's "Write the whole story in X." from the active
+  preset; the setup's Story language answer now sets the profile setting instead of a preset rule.
+- Translation task is on the Connections page; without its own model it uses
+  ai_client.TRANSLATION_MODEL (google/gemini-3.8-flash) through OpenRouter.
+- User messages are not translated (the model reads them as written).
+
+Still open: story extras (letters, phone screens) stay English; exports show the English; live
+comparison of translators and of English-then-translate vs direct Ukrainian.
+
+
 ## Implemented foundation
 
 `users.User.display_language` defaults to `en`. It is not yet exposed in the profile form;

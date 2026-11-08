@@ -114,7 +114,7 @@ def _extras(message):
 
 # Things each version (swipe) of a reply keeps for itself: the model's thoughts, and the dice and
 # inventory changes it made (see mainapp/game.py), so flipping swipes flips them too
-VERSION_KEYS = ("reasoning", "game", "audio", "polish", "directed", "condensed")
+VERSION_KEYS = ("reasoning", "game", "audio", "polish", "directed", "condensed", "translation")
 
 
 def _version(message):

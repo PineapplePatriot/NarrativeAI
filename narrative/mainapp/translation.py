@@ -84,3 +84,69 @@ def synchronize_edit(user, message, edited_text, language, *, glossary=None):
         return chats._with(chats.set_text(message, edited_text), "translation", None)
     english = translate(user, edited_text, "en", source=language, glossary=glossary)
     return with_translation(chats.set_text(message, english), edited_text, language)
+
+
+# --- The chat workflow (profile → Story language) ---
+
+NATIVE_NAMES = {"українська": "uk", "украинский": "uk", "ukrainian": "uk", "polski": "pl", "polish": "pl",
+                "deutsch": "de", "german": "de", "français": "fr", "french": "fr", "español": "es", "spanish": "es",
+                "italiano": "it", "italian": "it", "português": "pt", "portuguese": "pt", "日本語": "ja",
+                "japanese": "ja", "한국어": "ko", "korean": "ko", "中文": "zh", "chinese": "zh"}
+
+
+def language_code(name):
+    """The code for a language they typed ("Ukrainian", "українська", "uk"), or None if it isn't supported."""
+    name = str(name or "").strip().lower()
+    if name in LANGUAGES:
+        return name
+    return NATIVE_NAMES.get(name) or next((c for c, n in LANGUAGES.items() if n.lower() == name), None)
+
+def reading_language(user):
+    """The language they read the story in, when it isn't English (else None): replies are written in English
+    and translated for them."""
+    lang = getattr(user, "display_language", "en") or "en"
+    return lang if lang in LANGUAGES and lang != "en" else None
+
+
+ENGLISH_NOTE = ("[Write your reply in English, whatever language the messages, the card or the instructions use: "
+                "it is translated into {language} for the reader afterwards. Keep names, titles and terms exactly as "
+                "the story spells them.]")
+
+
+def english_note(user):
+    """The last system message of a story request in the translation workflow, or None."""
+    lang = reading_language(user)
+    return {"role": "system", "content": ENGLISH_NOTE.format(language=LANGUAGES[lang])} if lang else None
+
+
+LANGUAGE_RULE = re.compile(r"\s*Write the whole story in [^.\n]{2,40}\.")
+
+
+def drop_language_rule(user):
+    """Removes the basics form's "Write the whole story in X." from the active preset (the translation workflow
+    replaces it). Returns how many it removed; everything else in the preset stays."""
+    from mainapp import presets
+    obj = presets.get_active(user)
+    data = presets.normalize(obj.data)
+    removed = 0
+    for block in data["blocks"]:
+        if block.get("kind") == "prompt" and LANGUAGE_RULE.search(block.get("content") or ""):
+            block["content"], n = LANGUAGE_RULE.subn("", block["content"])
+            removed += n
+    if removed:
+        obj.data = data
+        obj.save(update_fields=["data"])
+    return removed
+
+
+def language_rule_in_preset(user):
+    from mainapp import presets
+    data = presets.normalize(presets.get_active(user).data)
+    return any(b.get("kind") == "prompt" and LANGUAGE_RULE.search(b.get("content") or "") for b in data["blocks"])
+
+
+def tracker_language_rule(user):
+    """Read in another language: tracker values (short words they read in the panel) are written in it directly,
+    which costs nothing extra; the story model reads them fine."""
+    lang = reading_language(user)
+    return (f"\n- Write the values in {LANGUAGES[lang]}, keeping names as the story spells them." if lang else "")

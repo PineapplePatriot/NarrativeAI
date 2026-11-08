@@ -19,16 +19,17 @@ TEST_TIMEOUT = int(os.environ.get("NARRATIVE_AI_TIMEOUT") or 0)
 
 # Ordered: this is also the order on the Connections page
 TASKS = {
-    "translation": {
-        "label": "Translation",
-        "help": "Translates English story text and synchronizes edits without rewriting the story.",
-        "timeout": 120,
-        "hidden": True,  # backend foundation; expose when all chat operations support bilingual text
-    },
     "chat": {
         "label": "Main chat",
         "help": "Story replies, regenerate and continue.",
         "timeout": 180,
+    },
+    "translation": {
+        "label": "Translation",
+        "help": "Translates the story into the language you read it in (Profile → Story language). The story is "
+                "written in English and translated, faithfully, without rewriting it. Without a model of its own it "
+                "uses Gemini 3.8 Flash through OpenRouter.",
+        "timeout": 120,
     },
     "summary": {
         "label": "Story summary",
@@ -136,6 +137,9 @@ def is_enabled(user, task):
 
 # Bulba's own model (the samples it shows always come from the user's chat model)
 BULBA_MODEL = "xiaomi/mimo-v2.6-pro"
+# Translation (profile → Story language) without a model of its own: cheap and strong in Ukrainian and other
+# languages. Not the chat model, which is often the one weak in that language: that's why it writes English
+TRANSLATION_MODEL = "google/gemini-3.8-flash"
 # When a provider's filter refuses one of Bulba's requests ("considered high risk"), that one request is sent
 # again down this chain, only on a refusal: Gemini 4 Argon first (dependable with conventional adult content),
 # DeepSeek V4 Flash only if Argon refuses too
@@ -189,6 +193,8 @@ def resolve(user, task):
 
     if setting.model:
         model = setting.model
+    elif task == "translation" and setting.profile is None and profile.provider == ConnectionProfile.PROVIDER_OPENROUTER:
+        model = TRANSLATION_MODEL
     elif setting.profile is None and chat_setting.model:
         model = chat_setting.model  # follows the main chat's model override
     else:

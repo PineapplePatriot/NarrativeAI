@@ -159,3 +159,7 @@ a { color: #c4b5fd; }
 .persona-help { margin: 0 0 8px; font-size: .88rem; opacity: .8; line-height: 1.5; }
 textarea.form-input { width: 100%; box-sizing: border-box; resize: vertical; font: inherit; }
 .persona-help a { display: inline; margin: 0; padding: 0; }
+.language-rule { display: flex !important; gap: 8px; align-items: flex-start; font-size: .88rem; margin: 6px 0 12px; line-height: 1.45; }
+.language-rule input { margin-top: 3px; width: auto !important; }
+.language-rule small { opacity: .75; }
+select.form-input { width: 100%; box-sizing: border-box; }

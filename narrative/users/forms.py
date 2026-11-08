@@ -101,10 +101,16 @@ class ProfileUserForm(forms.ModelForm):
         model = User
         # The persona (who they are in stories): Bulba can make it, they can edit it here; each chat can still
         # have its own (the pen menu)
-        fields = ['photo', 'first_name', 'date_birth', 'username', 'email', 'persona_name', 'persona_description']
-        labels = {'username': "Login", 'email': "Email", 'persona_name': "Name in stories",
+        fields = ['photo', 'first_name', 'date_birth', 'username', 'email', 'display_language',
+                  'persona_name', 'persona_description']
+        labels = {'username': "Login", 'email': "Email", 'display_language': "Story language",
+                  'persona_name': "Name in stories",
                   'persona_description': "About you in stories"}
-        help_texts = {'username': "What you type to log in (your email works too)."}
+        help_texts = {'username': "What you type to log in (your email works too).",
+                      'display_language': "The language you read stories in. In any language but English, the AI "
+                                          "writes in English (most models write it best) and each reply is "
+                                          "translated for you; 🌐 on a reply shows the English. You can write your "
+                                          "own messages in any language."}
         widgets = {
             'photo': forms.FileInput(attrs={'class': 'form-input'}),
             'first_name': forms.TextInput(attrs={'class': 'form-input'}),
@@ -118,14 +124,24 @@ class ProfileUserForm(forms.ModelForm):
 
     PERSONA = ('persona_name', 'persona_description')
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from mainapp.translation import LANGUAGES
+        self.fields['display_language'] = forms.ChoiceField(
+            choices=list(LANGUAGES.items()), label="Story language", required=False,
+            help_text=self.Meta.help_texts['display_language'], widget=forms.Select(attrs={'class': 'form-input'}))
+
     def account_fields(self):
-        return [f for f in self if f.name != 'photo' and f.name not in self.PERSONA]
+        return [f for f in self if f.name not in ('photo', 'display_language') and f.name not in self.PERSONA]
 
     def persona_fields(self):
         return [self[n] for n in self.PERSONA]
 
     def clean_email(self):
         return unique_email(self.cleaned_data.get('email'), self.instance)
+
+    def clean_display_language(self):
+        return self.cleaned_data.get('display_language') or getattr(self.instance, 'display_language', 'en') or 'en'
 
     def clean(self):
         data = super().clean()

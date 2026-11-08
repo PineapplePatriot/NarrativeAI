@@ -113,6 +113,20 @@ class ProfileUser(LoginRequiredMixin, UpdateView):
     def get_object(self, queryset=None):
         return self.request.user
 
+    def get_context_data(self, **kwargs):
+        from mainapp import translation
+        context = super().get_context_data(**kwargs)
+        context["language_rule"] = translation.language_rule_in_preset(self.request.user)
+        return context
+
+    def form_valid(self, form):
+        from mainapp import translation
+        response = super().form_valid(form)
+        # Read in another language: the old "Write the whole story in X." would fight the English the AI now writes
+        if translation.reading_language(self.object) and self.request.POST.get("drop_language_rule"):
+            translation.drop_language_rule(self.object)
+        return response
+
 class UserPasswordChange(LoginRequiredMixin, PasswordChangeView):
     form_class = UserPasswordChangeForm
     success_url = reverse_lazy("users:password_change_done")

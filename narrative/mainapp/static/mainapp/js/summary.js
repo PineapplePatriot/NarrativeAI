@@ -46,6 +46,37 @@ window.Summary = (() => {
             ${data.auto ? `<button type="button" class="icon-btn" data-sum="pause">${data.paused ? '▶ Resume' : '⏸ Pause'}</button>` : ''}`;
     }
 
+    // 🌐 Read in another language: the pieces stay English for the AI; this shows them translated (read-only)
+    let shownIn = false, translatedPieces = [];
+    async function toggleLanguage(btn) {
+        if (shownIn) { shownIn = false; btn.classList.remove('on'); render(); return; }
+        btn.disabled = true;
+        const label = btn.textContent;
+        btn.textContent = '🌐 Translating…';
+        try {
+            const resp = await fetch(window.location.href, {
+                method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify({ action: 'summary_translate' }),
+            });
+            const d = await resp.json().catch(() => ({}));
+            if (!d.success) throw new Error(d.error || "Couldn't translate it.");
+            translatedPieces = d.pieces; shownIn = true; btn.classList.add('on');
+            render();
+        } catch (err) { NADialog.alert(err.message); }
+        finally { btn.disabled = false; btn.textContent = label; }
+    }
+    if (window.READING_LANGUAGE) {
+        const foot = document.querySelector('.sum-foot');
+        if (foot) {
+            const b = document.createElement('button');
+            b.type = 'button'; b.className = 'icon-btn'; b.id = 'summaryLanguage';
+            b.textContent = `🌐 ${window.READING_LANGUAGE_NAME}`;
+            b.title = 'Read the summary in your story language (it stays English for the AI; edit it in English)';
+            b.addEventListener('click', () => toggleLanguage(b));
+            foot.insertBefore(b, document.getElementById('summaryRedo'));
+        }
+    }
+
     function render() {
         renderStatus();
         if (!data.total) { body.innerHTML = '<p class="t-empty">No messages yet.</p>'; return; }
@@ -57,7 +88,9 @@ window.Summary = (() => {
                             <button type="button" class="icon-btn small" data-sum="rerun" title="Summarize these messages again">↻</button>
                             <button type="button" class="icon-btn small" data-sum="delete" title="Delete this piece">🗑</button>
                         </span></header>
-                    <textarea class="sum-text" rows="3">${esc(r.text)}</textarea>
+                    ${shownIn && translatedPieces[r.index] !== undefined
+                        ? `<div class="sum-translated">${esc(translatedPieces[r.index])}</div>`
+                        : `<textarea class="sum-text" rows="3">${esc(r.text)}</textarea>`}
                     <div class="sum-meta">~${tokens(r.text)} tokens <span class="sum-saved"></span></div>
                 </div>`;
             if (r.kind === 'gap') return `
