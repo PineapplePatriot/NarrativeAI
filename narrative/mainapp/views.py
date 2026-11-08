@@ -495,9 +495,12 @@ def chat(request, slug):
                         f"outcomes.]\n{draft}")
             names = prompt_names(request.user, character, chat_state["persona"])
             ask = ask.replace("{{user}}", names["user"]).replace("{{char}}", names["char"])
+            reading = translation.reading_language(request.user)  # read in another language: English, cleaned, translated
+            english = translation.english_note(request.user)
             try:
                 built = build_chat_request(request.user, chat_obj, preset=preset, drop_last_reply=False,
-                                           generation="impersonate", tail=[{"role": "system", "content": ask}])
+                                           generation="impersonate",
+                                           tail=[{"role": "system", "content": ask}] + ([english] if english else []))
                 message, _ = ai_client.complete_message(request.user, "chat", built["messages"], **built["params"])
             except ai_client.AIError as e:
                 return JsonResponse({"success": False, "error": str(e)})
@@ -522,6 +525,13 @@ def chat(request, slug):
                                                         chat_state["summary"], habits, whose="theirs")
                 except ai_client.AIError as e:
                     log.info("Polish skipped for a written message: %s", e)
+            if reading and not translation.already_in(written, reading):  # into the language they write in
+                try:
+                    written = translation.translate(request.user, written, reading,
+                                                    glossary=_glossary(request.user, character, chat_state))
+                except ai_client.AIError as e:
+                    return JsonResponse({"success": False, "error": f"Written, but not translated: {e}",
+                                         "text": draft, "spending": ai_client.spending(request.user)})
             return JsonResponse({"success": True, "text": written, "polished": len(fixed),
                                  "spending": ai_client.spending(request.user)})
 

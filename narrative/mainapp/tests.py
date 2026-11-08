@@ -3230,6 +3230,16 @@ class TranslationWorkflowTests(ChatPromptTests):
         self.assertTrue(translation.already_in("Він усміхається і наливає чай.", "uk"))
         self.assertFalse(translation.already_in("He smiles and pours the tea.", "uk"))
 
+    def test_write_my_message_is_written_in_english_then_translated(self):
+        from unittest import mock
+        from mainapp import translation
+        self.read_in("uk")
+        with mock.patch.object(translation, "translate", side_effect=self.fake_translate):
+            d = self.post({"action": "expand", "text": "іду до дверей"}).json()
+        self.assertTrue(d["success"])
+        self.assertTrue(d["text"].startswith("UK: "))  # cleaned in English, then into the language they write in
+        self.assertIn("translated into Ukrainian", json.dumps(self.sent[-1]["messages"][-1]))
+
     def test_translation_model_default(self):
         from mainapp import ai_client
         from users.models import ConnectionProfile

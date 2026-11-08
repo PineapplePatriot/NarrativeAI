@@ -19,7 +19,7 @@ from mainapp import ai_client
 from mainapp.bulba import watch
 
 INSTRUCTIONS = Path(__file__).resolve().parent.parent / "data" / "bulba" / "polish.md"
-MAX_FIXES = 8
+MAX_FIXES = 12  # long replies can hold more slips than a short one
 MAX_CHANGED = 0.4  # at most this share of the reply may change...
 MAX_CHANGED_SHORT = 300  # ...or this many characters, so a short reply can still get a sentence fixed
 PROTECTED = re.compile(r"\[\[extra \d+\]\]|<[^>]{1,80}>|\{\{(?:char|user)\}\}")
