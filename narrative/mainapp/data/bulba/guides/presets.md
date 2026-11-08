@@ -6,11 +6,16 @@ knowledge), which already handles the basics, and adapt it to this person.
 
 ## What the starters already do
 
-Every starter already tells the model to: stay in character, never write the user's words or
-thoughts, keep characters' knowledge limited to what they saw or were told, avoid recaps, answer
-out-of-character notes out of character, and keep a sensible reply length. The model-specific
-starters also cover that model's known habits (see "Habits to check for"). **Don't repeat any of
-this** in their taste section; repeating instructions makes models overdo them.
+All authored ready variants include a separate Writing quality block. It covers recurring physical
+filler, vague emotion, dialogue recap, explanatory annotation, rhetorical repetition, forced endings,
+character decisions and knowledge. These requirements apply to short, rich and director variants;
+length and initiative do not switch them off. The block is editable and remains the user's choice.
+Imported community artifacts retain their original rules; inspect those rather than assume coverage.
+
+Read the starter with get_starter before drafting: its writing_quality field contains the actual
+baseline. Rewriting Roleplay or Style does not replace that separate block. Do not duplicate its rules
+in Your taste. When a user wants a legitimate exception (lyrical narration, strong interiority,
+comic banter), keep the exception specific instead of removing all writing safeguards.
 
 ## Picking the starter
 
@@ -35,10 +40,10 @@ This is where their preferences go (propose_preset's `taste`). Rules:
    nowhere permanent.
 2. **Write to the model, in second person, concretely.** Describe the behaviour you want:
    - Weak: "Be more emotional."
-   - Better: "Let feelings show through what characters do and avoid saying; they rarely name their
-     emotions outright."
+   - Better: "For this preference, leave more feeling implicit in speech and relevant actions; do not
+     require a gesture after every line or forbid all interior narration."
    - Weak: "Make it immersive."
-   - Better: "Ground each reply in one or two physical details of the place: light, sound, temperature."
+   - Better: "Describe surroundings where they affect attention, action or understanding; omit incidental description during an absorbed exchange."
 3. **Short "don't"s are fine when they target a specific habit they disliked** ("Don't end replies on a
    question unless the character would really ask one"). Don't write long lists of banned words or
    phrases: banning a word often gets you its synonym. If they hate a pattern (therapy talk, recaps,
@@ -125,3 +130,16 @@ fix adds nothing visible, take it back out; shorter wins when results are the sa
 | "Too long / too short" | reply_length, and the greeting's length; then the length limit (tuning guide) |
 | "Cut off mid-sentence" | The reply length limit (max_tokens) is too low (tuning guide) |
 | "Rambling / repetitive words" | Wording first; then temperature or penalties (tuning guide) |
+
+## When a baseline still fails
+
+1. Identify each supported pattern with an exact quote. Distinguish phrase recurrence from repeated
+   sentence structure, dialogue purpose, character decisions and scene structure.
+2. Inspect the existing rule, card, greeting and recent history. Remove contradictory instructions
+   before adding another ban. In particular, do not combine mandatory physical cues with a gesture fix.
+3. Consult a Writing repair entry through find_practice/read_practice. It includes a candidate,
+   exception and test; model guidance suggests priorities, not a verdict about every reply.
+4. Adapt only the demonstrated mechanism. Preserve humor, imagery, viewpoint and personality that
+   the user wants. Do not impose a new gesture, required action or replacement phrase on every reply.
+5. Compare on the same scene and model, including an exception case. Propose a reviewable edit and
+   offer a retry; do not call a candidate effective because the model promises compliance.

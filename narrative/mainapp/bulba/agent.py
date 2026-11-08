@@ -5,7 +5,7 @@ import re
 import uuid
 from pathlib import Path
 
-from mainapp import ai_client, cards, model_profiles, presets, starters, thinking
+from mainapp import ai_client, cards, model_profiles, presets, starters, thinking, writing_quality
 from mainapp.trackers import TRACKERS as TRACKER_LIST
 from mainapp.bulba import control, doctor, library, lore, rules, tune
 
@@ -64,6 +64,7 @@ def model_knowledge(profile):
         s = starters.get(sid)
         if s:
             lines.append(f"- {s['id']}: {s['title']}. {s['tagline']} {s['description']}")
+    lines += ["", writing_quality.guidance(profile["id"])]
     return "\n".join(lines)
 
 
@@ -373,7 +374,9 @@ def tool_get_starter(session, args):
         return {"error": "No starter for this model."}, []
     sections = {b["name"]: b["content"] for b in starter["preset"]["blocks"]
                 if b.get("kind") == "prompt" and b.get("name") in REWRITABLE}
-    result = {"id": starter["id"], "title": starter["title"], "sections": sections}
+    result = {"id": starter["id"], "title": starter["title"], "sections": sections,
+              "writing_quality": next((b["content"] for b in starter["preset"]["blocks"]
+                                       if b.get("id") == writing_quality.BLOCK_ID), "")}
     if not sections:  # a community preset: its switched-on blocks, and which of them add chance
         result["blocks_on"] = [b["name"] + (" (adds chance)" if library.CHANCE.search(b.get("content") or "") else "")
                                for b in starter["preset"]["blocks"]

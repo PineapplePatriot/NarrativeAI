@@ -10,7 +10,7 @@ import json
 from functools import lru_cache
 from pathlib import Path
 
-from mainapp import model_profiles, presets
+from mainapp import model_profiles, presets, writing_quality
 
 DATA_DIR = Path(__file__).resolve().parent / "data" / "starters"
 
@@ -28,7 +28,7 @@ def all_starters():
     out = []
     for path in sorted(DATA_DIR.glob("*.json")):
         with open(path, encoding="utf-8") as f:
-            out.append(json.load(f))
+            out.append(writing_quality.add_baseline(json.load(f)))
     return out
 
 
