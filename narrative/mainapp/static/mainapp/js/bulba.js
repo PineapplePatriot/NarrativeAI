@@ -435,6 +435,8 @@ async function run(body, label) {
         if (body.action === 'say') events.pop();  // the server sends it back with the rest
         events = body.action === 'restart' ? data.events : events.concat(data.events);
         state = data.state;
+        // Beside Quick setup: the form shows what Bulba just set (a character, persona, worldbook, extras…)
+        if (window.parent !== window) window.parent.postMessage({ quickBulba: 'changed' }, window.location.origin);
     } catch (err) {
         if (body.action === 'say') events.pop();
         events.push({ type: 'error', text: err.message });
@@ -605,7 +607,11 @@ document.addEventListener('click', (e) => {
 (function () {
     const form = $('pictureForm');
     if (!form) return;
-    $('attachBtn').onclick = () => { form.hidden = !form.hidden; };
+    $('attachBtn').onclick = () => {
+        form.hidden = !form.hidden;
+        // Their character has no picture yet (Bulba usually just asked for it): a picture sent now is that one
+        if (!form.hidden && typeof state !== 'undefined' && state && state.needs_portrait) $('pictureAs').value = 'neutral';
+    };
     $('pictureCancel').onclick = () => { form.hidden = true; };
     form.addEventListener('submit', (e) => {
         e.preventDefault();

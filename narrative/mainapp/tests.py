@@ -6816,6 +6816,44 @@ class WatchMarkupTests(SimpleTestCase):
         self.assertEqual(watch.raw_snippet("Nothing here.", "font color b22222 mu"), "")
 
 
+class QuickSetupBesideBulbaTests(BulbaTests):
+    """Quick setup shows what's set now (Bulba changes things beside it), and its Basics."""
+
+    def post_quick(self, **data):
+        return self.client.post(reverse("quick_setup"), json.dumps(data), content_type="application/json")
+
+    def test_status_and_basics(self):
+        from mainapp import presets, translation
+        from mainapp.lorebook import save_worldbook
+        from mainapp.models import Character, Worldbook
+        wb = Worldbook.objects.create(title="Bridge", slug="bridge-q", author=self.user)
+        save_worldbook(wb, {"title": "Bridge", "entries": [{"keys": ["bridge"], "content": "Fog."}]})
+        Character.objects.create(name="Lucien", slug="lucien-q", author=self.user, worldbook=wb,
+                                 theme={"skin": "parchment"})
+        s = self.client.get(reverse("quick_setup") + "?status=1&character=lucien-q").json()
+        self.assertEqual(s["worldbook"], "“Bridge” (1 entries)")
+        self.assertIn("Parchment", s["look"])
+        self.assertEqual([c["name"] for c in s["characters"]], ["Lucien"])
+        page = self.client.get(reverse("quick_setup") + "?character=lucien-q")
+        self.assertContains(page, 'id="qLanguage"')
+        self.assertContains(page, "“Bridge” (1 entries)")
+        self.post_quick(pov="second", tense="present", format="bogus", display_language="uk")
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.display_language, "uk")
+        basics = next(b for b in presets.normalize(presets.get_active(self.user).data)["blocks"] if b["name"] == "Basics")
+        self.assertIn("second person", basics["content"])
+        self.assertIn("present tense", basics["content"])
+        self.post_quick(pov="", tense="past")  # changed again: the same block, not a second one
+        blocks = [b for b in presets.normalize(presets.get_active(self.user).data)["blocks"] if b["name"] == "Basics"]
+        self.assertEqual(len(blocks), 1)
+        self.assertEqual(blocks[0]["content"], "Write in past tense.")
+
+    def test_bulba_beside_it_opens_links_in_the_whole_window(self):
+        page = self.client.get(reverse("bulba") + "?embed=1")
+        self.assertContains(page, '<base target="_top">')
+        self.assertNotContains(self.client.get(reverse("bulba")), '<base target="_top">')
+
+
 class HelpAndToursTests(BulbaTests):
     """The guided tours' way into Bulba, "What's this?", and the app map Bulba explains from."""
 

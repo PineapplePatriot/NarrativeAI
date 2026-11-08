@@ -48,12 +48,45 @@ document.querySelectorAll('[data-ask]').forEach(btn => btn.addEventListener('cli
     if (!frame.src) frame.src = url;
     else frame.contentWindow.postMessage({ bulbaDraft: btn.dataset.ask }, window.location.origin);
     drawer.hidden = false;
+    document.body.classList.add('with-bulba');  // the form makes room: both side by side (a sheet below on phones)
 }));
 window.addEventListener('message', (e) => {
-    if (e.origin !== window.location.origin || !e.data || e.data.quickBulba !== 'close') return;
+    if (e.origin !== window.location.origin || !e.data) return;
+    if (e.data.quickBulba === 'changed') refresh();  // Bulba applied something: the form shows it
+    if (e.data.quickBulba !== 'close') return;
     drawer.hidden = true;
-    window.location.reload();  // shows what Bulba applied (persona, character, style)
+    document.body.classList.remove('with-bulba');
+    refresh();
 });
+
+// What's set now, section by section (Bulba changes things beside the form)
+let personaTouched = false;
+['personaName', 'personaDescription'].forEach(id => $(id).addEventListener('input', () => { personaTouched = true; }));
+const escQ = s => String(s ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
+async function refresh() {
+    const picked = (document.querySelector('input[name=character]:checked') || {}).value || '';
+    let s;
+    try {
+        const resp = await fetch(QUICK.url + '?status=1' + (picked ? '&character=' + encodeURIComponent(picked) : ''));
+        s = await resp.json();
+    } catch (err) { return; }
+    $('qStyleNow').textContent = s.style;
+    if (!personaTouched) { $('personaName').value = s.persona_name; $('personaDescription').value = s.persona_description; }
+    const chosen = picked || s.picked;
+    $('qChars').innerHTML = s.characters.map(c => `<label class="q-choice"><input type="radio" name="character" value="${escQ(c.slug)}" ${c.slug === chosen ? 'checked' : ''}>
+        <span>${c.photo ? `<img src="${escQ(c.photo)}" alt="">` : `<i class="q-initial">${escQ((c.name || '?')[0].toUpperCase())}</i>`}
+        <b>${escQ(c.name)}</b></span></label>`).join('');
+    if (!document.querySelector('input[name=character]:checked') && s.characters.length) {
+        document.querySelector('input[name=character]').checked = true;  // the newest (Bulba just made it)
+    }
+    $('qExtrasNow').textContent = s.extras ? '✓ ' + s.extras : ''; $('qExtrasNow').hidden = !s.extras;
+    $('qLookNow').textContent = s.look ? '✓ ' + s.look : ''; $('qLookNow').hidden = !s.look;
+    $('qWorldbookNow').hidden = !s.worldbook;
+    $('qWorldbookNow').querySelector('span').textContent = s.worldbook;
+    $('qWorldbookLink').href = s.worldbook_url || '#';
+    if (s.extras || s.look || s.worldbook) document.querySelector('.q-more').open = true;
+}
+document.addEventListener('change', (e) => { if (e.target.name === 'character') refresh(); });
 
 async function save(go) {
     const body = {
@@ -61,6 +94,8 @@ async function save(go) {
         persona_name: $('personaName').value, persona_description: $('personaDescription').value,
         character: (document.querySelector('input[name=character]:checked') || {}).value || '',
         mature: $('qMature').checked,
+        display_language: $('qLanguage').value,
+        pov: $('qPov').value, tense: $('qTense').value, format: $('qFormat').value,
     };
     if (data.window) body.chat_context = steps[Number($('chatContext').value)];
     $('qError').hidden = true;

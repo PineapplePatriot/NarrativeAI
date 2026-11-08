@@ -2657,9 +2657,12 @@ def get_media_resources(request):
 # ---------------------------------------------------------------------------
 
 def _bulba_state(session):
-    from .bulba import agent, editing, progress
+    from .bulba import agent, editing, lore, progress
     profile = agent.target_profile(session)
+    character = lore.target_character(session)
     return {
+        # the 📎 form starts on "The character's picture" while they have none (a picture sent then is theirs)
+        "needs_portrait": bool(character and not character.photo_neutral),
         "id": session.id, "stage": session.stage, "stages": agent.STAGES,
         "progress": progress.progress(session, agent.STAGES) if session.mode == "setup" else None,
         "spent": round(session.spent, 4), "budget": session.budget, "month": ai_client.spending(session.user),
@@ -2823,18 +2826,104 @@ def quick_setup(request):
             user.persona_name = str(data.get("persona_name") or "").strip()[:100]
             user.persona_description = str(data.get("persona_description") or "").strip()[:8000]
             user.save(update_fields=["persona_name", "persona_description"])
+        if data.get("display_language") in translation.LANGUAGES and data["display_language"] != user.display_language:
+            user.display_language = data["display_language"]
+            user.save(update_fields=["display_language"])
+            if translation.reading_language(user):  # the old "Write the whole story in X." would fight it
+                translation.drop_language_rule(user)
+        if any(k in data for k in QUICK_BASICS):
+            _save_quick_basics(user, {k: data.get(k) for k in QUICK_BASICS})
         character = Character.objects.filter(author=user, slug=str(data.get("character") or "")).first()
         url = reverse("chat", kwargs={"slug": character.slug}) if character else None
         return JsonResponse({"status": "ok", "url": url})
     state = _extras_page_state(request.user)
     characters = list(Character.objects.filter(author=request.user).order_by("-time_update")[:12])
     picked = request.GET.get("character") or (characters[0].slug if characters else "")
+    if request.GET.get("status"):  # the page refreshes its sections after Bulba applies something beside it
+        return JsonResponse(_quick_status(request.user, picked, characters))
     return render(request, "mainapp/quick.html", {
+        "status": _quick_status(request.user, picked, characters),
+        "languages": translation.LANGUAGES, "basics": _quick_basics(request.user),
         "model_name": profile.get("name") or chat_model, "ready": ready, "active_starter": active_starter,
         "active_name": active.name, "characters": characters, "picked": picked,
         "mature_on": mature.is_on(presets.normalize(active.data)),
         "quick_data": {"window": state.get("window"), "prices": state.get("prices")},
     })
+
+
+# Quick setup's Basics: point of view, tense, speech and actions (Bulba's own wording, agent.BASICS), kept as one
+# "Basics" block in the active preset; the story language is the profile's (translation workflow)
+QUICK_BASICS = ("pov", "tense", "format")
+
+
+def _quick_basics(user):
+    from mainapp.models import ChatSettings
+    obj = ChatSettings.objects.filter(author=user).first()
+    saved = ((obj.appearance or {}).get("quick_basics") if obj else None) or {}
+    return {"display_language": user.display_language or "en", **{k: saved.get(k, "") for k in QUICK_BASICS}}
+
+
+def _save_quick_basics(user, picks):
+    from mainapp.bulba.agent import BASICS
+    from mainapp.models import ChatSettings
+    picks = {k: v for k, v in picks.items() if v in (BASICS[k][1] or {})}
+    obj, _ = ChatSettings.objects.get_or_create(author=user)
+    obj.appearance = {**(obj.appearance or {}), "quick_basics": picks}
+    obj.save(update_fields=["appearance"])
+    lines = [BASICS[k][1][v] for k, v in picks.items() if BASICS[k][1][v]]
+    active = presets.get_active(user)
+    data = presets.normalize(active.data)
+    block = next((b for b in data["blocks"] if b["name"] == "Basics" and b["kind"] == "prompt"), None)
+    if block is not None:
+        block["content"] = "\n".join(lines)
+        block["enabled"] = bool(lines)
+    elif lines:
+        new = presets.normalize_block({"name": "Basics", "kind": "prompt", "content": "\n".join(lines)})
+        at = next((i for i, b in enumerate(data["blocks"]) if b.get("marker") == "chat_history"), len(data["blocks"]))
+        data["blocks"].insert(at, new)
+    else:
+        return
+    active.data = data
+    active.save(update_fields=["data"])
+
+
+def _quick_status(user, picked, characters):
+    """What's set now, per section of Quick setup (shown with ✓, refreshed after Bulba applies something)."""
+    from users.views import _extras_state
+    active = presets.get_active(user)
+    ex = _extras_state(user)
+    character = next((c for c in characters if c.slug == picked), None)
+    theme = (character.theme or {}) if character else {}
+    extras_bits = []
+    if ex["summary"]["mode"] == "auto":
+        extras_bits.append(f"summaries every {ex['summary']['interval']} messages")
+    if ex["trackers"]["mode"] == "auto":
+        extras_bits.append(f"trackers every {ex['trackers']['interval']} messages")
+    if ex["sprites"]:
+        extras_bits.append("mood pictures")
+    if ex["story_extras"]:
+        extras_bits.append(", ".join(extras.KINDS[k].lower() for k in ex["story_extras"]))
+    if ex["game"] != "off":
+        extras_bits.append("dice" if ex["game"] == "dice" else "dice and inventory")
+    look = []
+    if theme.get("bg"):
+        look.append(os.path.splitext(os.path.basename(str(theme["bg"])))[0].replace("-", " ").replace("_", " "))
+    if (theme.get("music") or {}).get("name"):
+        look.append("music: " + theme["music"]["name"])
+    if theme.get("skin") in CHAT_SKINS:
+        look.append(CHAT_SKINS[theme["skin"]])
+    wb = character.worldbook if character and character.worldbook_id else None
+    return {
+        "style": active.name,
+        "persona_name": user.persona_name or "", "persona_description": user.persona_description or "",
+        "characters": [{"slug": c.slug, "name": c.name, "photo": c.photo_neutral.url if c.photo_neutral else ""}
+                       for c in characters],
+        "picked": picked, "character_name": character.name if character else "",
+        "extras": "; ".join(extras_bits),
+        "look": " · ".join(look),
+        "worldbook": (f"“{wb.title}” ({len(load_worldbook(wb)['entries'])} entries)" if wb else ""),
+        "worldbook_url": reverse("worldbook_detail", args=[wb.slug]) if wb else "",
+    }
 
 
 @login_required
