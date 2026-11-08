@@ -114,3 +114,6 @@ button.link { background: none; padding: 0; color: var(--accent-soft); text-deco
 .toggle-line input { margin-top: 3px; flex: none; accent-color: #8b5cf6; }
 .notebook-link a { font-weight: 600; }
 .notebook .spent-row { display: flex; gap: 28px; flex-wrap: wrap; }
+.bg-thinking { align-items: flex-start !important; margin-top: 14px !important; line-height: 1.45; }
+.bg-thinking input { margin-top: 3px; }
+.bg-thinking small { opacity: .75; }

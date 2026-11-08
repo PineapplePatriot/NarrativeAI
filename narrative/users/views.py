@@ -392,9 +392,21 @@ def _extras_state(user):
         "fix_model": _watch_memory(user)["fix_model"],  # who rewrites habits they approved (bulba/polish.py)
         "background": cheap["id"] if cheap else "chat",
         "chat_context_restore": _chat_context_now(user),  # for Undo of Bulba's form
+        "thinking": _thinking_now(user),
+        "background_thinking": _background_thinking(user),
         "cheap_models": [m for m in _cheap_models() if not (main and m["openrouter"] == main.model)],
         "openrouter": bool(main and main.provider == ConnectionProfile.PROVIDER_OPENROUTER),
     }
+
+
+def _thinking_now(user):
+    from mainapp import samplers
+    return samplers.thinking_now(user)
+
+
+def _background_thinking(user):
+    from mainapp import samplers
+    return samplers.background_thinking(user)
 
 
 def _chat_context_now(user):
@@ -469,6 +481,16 @@ def apply_extras(user, data):
             set_chat_context(user, max(4096, min(2_000_000, int(data["chat_context"]))))
         elif isinstance(data.get("chat_context_restore"), dict):
             set_chat_context(user, restore=data["chat_context_restore"])
+        if data.get("background_thinking") in ("light", "model"):
+            from mainapp import samplers
+            samplers.set_background_thinking(user, data["background_thinking"])
+        if data.get("thinking") in ("default", "off", "light", "full"):
+            from mainapp import samplers
+            from mainapp.ai_client import resolve
+            try:
+                samplers.set_thinking(user, data["thinking"], resolve(user, "chat")[1])
+            except ValueError:
+                pass  # a level this chat model can't do: left as it is
         if "sprites" in data:
             emotion = get_task_setting(user, "emotion")
             emotion.enabled = bool(data["sprites"])

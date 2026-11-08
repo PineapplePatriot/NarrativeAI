@@ -276,6 +276,15 @@
                                 <button type="button" class="tool-action-btn" id="personaMakeUsual" title="Saves it to your profile, so every chat without its own persona uses it">Make this my usual persona</button>
                             </div>
                         </form>
+                        {% if thinking_options|length > 1 %}
+                        <span class="tool-sublabel">🧠 Thinking before replies <small>(all chats with this model)</small></span>
+                        <div class="chip-row" id="thinkingChoice">
+                            {% for o in thinking_options %}
+                            <button type="button" class="preset-btn {% if o.id == thinking_now %}on{% endif %}" data-thinking="{{ o.id }}" title="{{ o.help }}">{{ o.label }}</button>
+                            {% endfor %}
+                        </div>
+                        <small class="skin-note" id="thinkingHelp">{% for o in thinking_options %}{% if o.id == thinking_now %}{{ o.label }}: {{ o.help }}.{% endif %}{% endfor %} Less thinking makes replies quicker and cheaper.</small>
+                        {% endif %}
                         <span class="tool-sublabel">📖 Layout <small>(all chats)</small></span>
                         <div class="chip-row" id="layoutChoice">
                             <button type="button" class="preset-btn {% if appearance.layout != 'book' %}on{% endif %}" data-layout="chat">💬 Chat</button>

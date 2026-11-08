@@ -39,6 +39,10 @@ def tool_read_settings(session, args):
             "this_model": status.get(k, {}).get("status", "unverified"),
             **({"why": status[k]["why"]} if status.get(k, {}).get("why") else {})}
         for k, v in current.items()}}
+    model = _active_model(user)
+    out["thinking"] = {"story": sampler_mod.thinking_now(user), "background": sampler_mod.background_thinking(user),
+                       "levels_this_model_can_do": [o["id"] for o in sampler_mod.thinking_options(model)],
+                       "change_with": "propose_extras (thinking, background_thinking)"}
     character = target_character(session)
     if character:
         config = tracker_mod.normalize_config(character.tracker_config)

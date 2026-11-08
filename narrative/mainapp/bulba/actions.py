@@ -42,7 +42,8 @@ def apply(session, pid):
         p["undo"] = {"summary": before["summary"], "trackers": before["trackers"],
                      "sprites": before["sprites"], "background": before["background"], "game": before["game"],
                      "story_extras": before["story_extras"], "ideas": before["ideas"], "watch": before["watch"],
-                     "fix_model": before["fix_model"], "chat_context_restore": before["chat_context_restore"]}
+                     "fix_model": before["fix_model"], "chat_context_restore": before["chat_context_restore"],
+                     "thinking": before["thinking"], "background_thinking": before["background_thinking"]}
         note = "Extras saved."
     elif p["kind"] == "preset":
         from mainapp.bulba.agent import build_preset

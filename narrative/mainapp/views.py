@@ -647,6 +647,13 @@ def chat(request, slug):
             settings_obj.appearance = {**(settings_obj.appearance or {}), "persona_hint_seen": True}
             settings_obj.save(update_fields=["appearance"])
             return JsonResponse({"success": True})
+        elif action == "thinking":  # 🧠 the pen menu: how much the chat model thinks before story replies
+            _, chat_model = ai_client.resolve(request.user, "chat")
+            try:
+                samplers.set_thinking(request.user, str(data.get("level") or ""), chat_model)
+            except ValueError as e:
+                return JsonResponse({"success": False, "error": str(e)}, status=400)
+            return JsonResponse({"success": True, "level": samplers.thinking_now(request.user)})
         elif action == "forms_hint_seen":  # "your worldbook got better at Ukrainian" is shown once per account
             settings_obj, _ = ChatSettings.objects.get_or_create(author=request.user)
             settings_obj.appearance = {**(settings_obj.appearance or {}), "forms_hint_seen": True}
@@ -1433,6 +1440,8 @@ def chat(request, slug):
         "chat_skin_choice": chat_state.get("skin") or "",
         "character_skin": (character.theme or {}).get("skin") if (character.theme or {}).get("skin") in CHAT_SKINS else "",
         "chat_skins": CHAT_SKINS,
+        "thinking_options": samplers.thinking_options(ai_client.resolve(request.user, "chat")[1]),
+        "thinking_now": samplers.thinking_now(request.user),
         "character_skin_name": CHAT_SKINS.get((character.theme or {}).get("skin") or "", ""),
         "mature_on": mature.is_on(presets.normalize(presets.get_active(request.user).data)),
         "director_on": control.mode_of(presets.normalize(presets.get_active(request.user).data)) == "director",

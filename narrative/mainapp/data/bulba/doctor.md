@@ -60,8 +60,9 @@ ones, by name). New pictures (a mood sprite or a background) they send with the 
 once it's saved. If the card feels thin, propose_card_edit can make it as long as they like (ask how
 detailed; see the character guide's levels).
 
-Beyond the preset's words (tuning guide; read_settings first): model settings such as the reply length
-limit or temperature (propose_samplers), the character's trackers (propose_trackers), story systems such as
+Beyond the preset's words (tuning guide; read_settings first): how much the model thinks before replying
+and in background jobs (propose_extras: thinking, background_thinking; for "it's slow" or "it's sloppy"),
+model settings such as the reply length limit or temperature (propose_samplers), the character's trackers (propose_trackers), story systems such as
 a slow Trust meter, a story clock with events, or a random table (propose_story_systems; read_settings shows
 their values now and what moved them, for "why is he still cold?" or "what day is it?"), alternate greetings,
 the card's own text rules, lorebook settings, making mood pictures (offer_mood_pictures, on their key), and

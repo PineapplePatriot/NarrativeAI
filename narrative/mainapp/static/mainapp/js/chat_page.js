@@ -2058,3 +2058,23 @@ document.addEventListener('click', (e) => {
         body: JSON.stringify({ action: 'forms_hint_seen' }), keepalive: true,
     }).catch(() => { /* shown again next time: harmless */ });
 });
+
+// 🧠 Thinking before story replies (the active preset's reasoning effort, in plain words)
+(function () {
+    const choice = document.getElementById('thinkingChoice');
+    if (!choice) return;
+    choice.addEventListener('click', async (e) => {
+        const b = e.target.closest('[data-thinking]');
+        if (!b) return;
+        const resp = await fetch(window.location.href, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ action: 'thinking', level: b.dataset.thinking }),
+        });
+        const d = await resp.json().catch(() => ({}));
+        if (!d.success) { showChatError(d.error || 'Could not change it.'); return; }
+        choice.querySelectorAll('[data-thinking]').forEach(x => x.classList.toggle('on', x.dataset.thinking === d.level));
+        const on = choice.querySelector(`[data-thinking="${d.level}"]`);
+        const help = document.getElementById('thinkingHelp');
+        if (on && help) help.textContent = `${on.textContent.trim()}: ${on.title}. Less thinking makes replies quicker and cheaper.`;
+    });
+})();

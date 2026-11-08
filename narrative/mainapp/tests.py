@@ -3026,6 +3026,50 @@ class LightReasoningTests(SimpleTestCase):
         self.assertEqual(self.payload("trackers", "xiaomi/mimo-v2.6-pro", reasoning={"effort": "high"}), {"effort": "high"})
 
 
+class ThinkingLevelTests(ChatPromptTests):
+    def use_model(self, model):
+        from users.models import ConnectionProfile
+        ConnectionProfile.objects.filter(user=self.user).update(model=model, provider=ConnectionProfile.PROVIDER_OPENROUTER)
+
+    def test_levels_by_model(self):
+        from mainapp import samplers
+        ids = lambda m: [o["id"] for o in samplers.thinking_options(m)]
+        self.assertEqual(ids("xiaomi/mimo-v2.6-pro"), ["default", "off", "full"])  # on or off only
+        self.assertEqual(ids("google/gemini-4-argon"), ["default", "light", "full"])  # always thinks
+        self.assertEqual(ids("anthropic/claude-opus-4.6"), ["default", "off", "light", "full"])
+
+    def test_pen_menu_sets_the_story_replies(self):
+        from mainapp import presets, samplers
+        self.use_model("xiaomi/mimo-v2.6-pro")
+        page = self.client.get(self.url)
+        self.assertContains(page, 'id="thinkingChoice"')
+        self.assertContains(page, 'data-thinking="off"')
+        self.assertNotContains(page, 'data-thinking="light"')
+        self.assertEqual(self.post({"action": "thinking", "level": "off"}).json()["level"], "off")
+        self.assertEqual(samplers.for_user(self.user)["reasoning_effort"], {"on": True, "value": "off"})
+        self.post({"action": "chat", "message": "Hi"})
+        self.assertEqual(self.sent[-1].get("reasoning"), {"enabled": False})
+        self.assertFalse(self.post({"action": "thinking", "level": "light"}).json()["success"])  # MiMo can't
+        self.post({"action": "thinking", "level": "default"})
+        self.assertFalse(samplers.for_user(self.user)["reasoning_effort"]["on"])
+
+    def test_background_and_bulba(self):
+        from mainapp import ai_client, samplers
+        import types
+        self.assertEqual(samplers.background_thinking(self.user), "light")
+        payload = {"model": "xiaomi/mimo-v2.6-pro"}
+        ai_client._light_reasoning(types.SimpleNamespace(provider="openrouter"), "trackers", payload, self.user)
+        self.assertEqual(payload["reasoning"], {"enabled": False})
+        from users.views import apply_extras, _extras_state
+        self.use_model("xiaomi/mimo-v2.6-pro")
+        self.assertIsNone(apply_extras(self.user, {"thinking": "off", "background_thinking": "model"}))
+        self.assertEqual((_extras_state(self.user)["thinking"], _extras_state(self.user)["background_thinking"]),
+                         ("off", "model"))
+        payload = {"model": "xiaomi/mimo-v2.6-pro"}
+        ai_client._light_reasoning(types.SimpleNamespace(provider="openrouter"), "trackers", payload, self.user)
+        self.assertNotIn("reasoning", payload)  # the model's own default, as asked
+
+
 class OutOfStepPageTests(ChatPromptTests):
     def test_deleting_a_message_the_server_never_saved_reloads(self):
         data = self.post({"action": "delete", "index": 7}).json()
@@ -4393,6 +4437,20 @@ class BulbaPicturesAndThemeTests(BulbaCardAndLoreTests):
         self.api(action="undo", id=pid)
         viktor.refresh_from_db()
         self.assertNotIn("dialogue_color", viktor.theme)
+
+    def test_bulba_sets_thinking(self):
+        from mainapp import samplers
+        self.script = [("Lighter thinking.", [self.call("propose_extras", thinking="light", background_thinking="model",
+                                                         why="replies are slow")])]
+        data = self.api(action="say", text="replies take forever").json()
+        p = data["state"]["proposals"][-1]
+        self.assertIn("Thinking before story replies: light", json.dumps(p))
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=p["id"])
+        self.assertEqual((samplers.thinking_now(self.user), samplers.background_thinking(self.user)), ("light", "model"))
+        self.script = [("Undone.", [])]
+        self.api(action="undo", id=p["id"])
+        self.assertEqual((samplers.thinking_now(self.user), samplers.background_thinking(self.user)), ("default", "light"))
 
     def test_long_cards_are_kept_whole(self):
         from mainapp.models import Character

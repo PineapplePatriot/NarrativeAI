@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Extras - Narrative AI</title>
-    <link rel="stylesheet" href="{% static 'users/css/welcome.css' %}?v=3">
+    <link rel="stylesheet" href="{% static 'users/css/welcome.css' %}?v=6">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
 </head>
@@ -112,6 +112,10 @@
         <p class="help">Summaries, trackers and sprites run alongside your chat with <b id="chatModel"></b>. A cheaper model does them just as well
             and can save a lot on expensive chat models. It uses the same OpenRouter key.</p>
         <select id="background"></select>
+        <label class="choice bg-thinking"><input type="checkbox" id="bgThinking">
+            🧠 Let background jobs think lightly <small>(on: they think as little as the model allows, so trackers and
+            summaries come back faster and cost less; off: the model's own thinking, slower, for when trackers come out
+            sloppy). How much the story replies think is in the chat: pen menu → This chat.</small></label>
     </section>
 
     <div class="actions">
@@ -132,7 +136,7 @@
 {{ extras_data|json_script:"extras-data" }}
 <script>const EXTRAS_URL = "{% url 'users:extras' %}";</script>
 <script src="{% static 'js/costs.js' %}?v=1"></script>
-<script src="{% static 'users/js/extras.js' %}?v=3"></script>
+<script src="{% static 'users/js/extras.js' %}?v=4"></script>
 <script>window.NA_PAGE_TOUR = {name: 'extras', auto: true};</script>
 </body>
 </html>

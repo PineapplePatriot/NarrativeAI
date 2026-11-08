@@ -175,3 +175,79 @@ def for_user(user):
     """Samplers of the user's active preset."""
     from mainapp import presets
     return normalize(presets.get_active(user).data.get("samplers"))
+
+
+# --- Thinking, in plain words (the pen menu, the Extras page and Bulba) ---
+# The story reply's level is the active preset's "reasoning_effort" sampler; background jobs (trackers, summaries...)
+# think as little as the model allows unless they asked for the model's own default (ai_client.LIGHT_TASKS).
+THINKING = {"default": "Model's default", "off": "Off", "light": "Light", "full": "Full"}
+THINKING_HELP = {"default": "however the model normally thinks",
+                 "off": "fastest and cheapest, a little less careful",
+                 "light": "a quick think before writing",
+                 "full": "slowest and priciest, the most careful"}
+
+
+def _effort_for(level, choices):
+    """The reasoning_effort value for a level on a model with these choices (None = it can't)."""
+    if level == "off":
+        return "off" if not choices or "off" in choices else None
+    if level == "light":
+        return next((c for c in ("low", "minimal") if not choices or c in choices), None)
+    if level == "full":
+        return next((c for c in ("high", "medium") if not choices or c in choices), None)
+    return None
+
+
+def thinking_options(model):
+    """The levels this chat model can do: [{"id", "label", "help"}]; just the default for a model that doesn't think."""
+    from mainapp import model_profiles
+    profile = model_profiles.for_model(model) or {}
+    info = profile.get("reasoning")
+    if profile and not info:
+        return [{"id": "default", "label": THINKING["default"], "help": "this model doesn't think before writing"}]
+    choices = (info or {}).get("choices") or {}
+    levels = ["default"] + [lv for lv in ("off", "light", "full") if _effort_for(lv, choices)]
+    if "light" in levels and "full" in levels and _effort_for("light", choices) == _effort_for("full", choices):
+        levels.remove("light")
+    return [{"id": lv, "label": THINKING[lv], "help": THINKING_HELP[lv]} for lv in levels]
+
+
+def thinking_now(user):
+    """The story reply's thinking level, from the active preset."""
+    item = for_user(user).get("reasoning_effort") or {}
+    if not item.get("on"):
+        return "default"
+    value = item.get("value")
+    return "off" if value == "off" else "light" if value in ("low", "minimal") else "full"
+
+
+def set_thinking(user, level, model):
+    """Sets the story reply's thinking on the active preset. Raises ValueError for a level the model can't do."""
+    from mainapp import model_profiles, presets
+    if level not in [o["id"] for o in thinking_options(model)]:
+        raise ValueError("That model can't think at that level.")
+    obj = presets.get_active(user)
+    data = dict(obj.data or {})
+    s = normalize(data.get("samplers"))
+    choices = ((model_profiles.for_model(model) or {}).get("reasoning") or {}).get("choices") or {}
+    if level == "default":
+        s["reasoning_effort"] = {**s["reasoning_effort"], "on": False}
+    else:
+        s["reasoning_effort"] = {"on": True, "value": _effort_for(level, choices)}
+    data["samplers"] = s
+    obj.data = data
+    obj.save(update_fields=["data"])
+
+
+def background_thinking(user):
+    """'light' (background jobs think as little as the model allows; the default) or 'model' (its own default)."""
+    from mainapp.models import ChatSettings
+    obj = ChatSettings.objects.filter(author=user).first()
+    return "model" if obj and (obj.appearance or {}).get("background_thinking") == "model" else "light"
+
+
+def set_background_thinking(user, value):
+    from mainapp.models import ChatSettings
+    obj, _ = ChatSettings.objects.get_or_create(author=user)
+    obj.appearance = {**(obj.appearance or {}), "background_thinking": "model" if value == "model" else "light"}
+    obj.save(update_fields=["appearance"])

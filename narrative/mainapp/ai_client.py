@@ -253,9 +253,13 @@ def spending(user):
 LIGHT_TASKS = ("summary", "trackers", "emotion", "voice_split", "watch", "writing_tools")
 
 
-def _light_reasoning(profile, task, payload):
+def _light_reasoning(profile, task, payload, user=None):
     if task not in LIGHT_TASKS or "reasoning" in payload or profile.provider != ConnectionProfile.PROVIDER_OPENROUTER:
         return
+    if user is not None:
+        from mainapp import samplers
+        if samplers.background_thinking(user) == "model":  # they asked for the model's own default (Extras page)
+            return
     from mainapp import model_profiles
     info = (model_profiles.for_model(payload["model"]) or {}).get("reasoning") or {}
     choices = info.get("choices") or {}
@@ -278,7 +282,7 @@ def _request(user, task, messages, timeout=None, **params):
     if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER and str(payload["model"]).startswith("google/"):
         payload.setdefault("safety_settings", GEMINI_SAFETY)
     _route(profile, payload)
-    _light_reasoning(profile, task, payload)
+    _light_reasoning(profile, task, payload, user)
     timeout = TEST_TIMEOUT or timeout or TASKS.get(task, {}).get("timeout", 60)
     label = TASKS.get(task, {}).get("label", task)
 
@@ -423,7 +427,7 @@ def stream(user, task, messages, timeout=None, **params):
     if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER and str(payload["model"]).startswith("google/"):
         payload.setdefault("safety_settings", GEMINI_SAFETY)  # Gemini's adjustable filters off (see GEMINI_SAFETY)
     _route(profile, payload)
-    _light_reasoning(profile, task, payload)
+    _light_reasoning(profile, task, payload, user)
     read_timeout = TEST_TIMEOUT or timeout or TASKS.get(task, {}).get("timeout", 60)  # max wait between two pieces
     label = TASKS.get(task, {}).get("label", task)
 

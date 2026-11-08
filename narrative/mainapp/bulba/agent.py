@@ -175,6 +175,14 @@ TOOLS = [
          "background": {"type": "string", "description": "'chat', or a cheap model id: mimo-v2-6-pro, gemini-3-8-flash, glm-5-3, deepseek-v4-pro, deepseek-v4-flash"},
          "watch": {"type": "boolean", "description": "Bulba Watch (on by default): include only to switch it off "
                                                      "(false) or back on"},
+         "thinking": {"type": "string", "enum": ["default", "off", "light", "full"],
+                      "description": "How much the chat model thinks before each story reply: off is fastest and "
+                                     "cheapest, full the most careful and slowest; default is the model's own. Some "
+                                     "models can't do every level (the app says which)"},
+         "background_thinking": {"type": "string", "enum": ["light", "model"],
+                                 "description": "Background jobs (trackers, summaries, emotion, Watch): light (think as "
+                                                "little as the model allows; the default, faster and cheaper) or model "
+                                                "(its own default)"},
          "why": STR}, ["why"]),
     _fn("show_extras_form", "The story stage's extras in one form: dice, story extras, the ideas button. Pre-tick "
         "what fits their story; they change what they like and send it, and it's applied. Write your message first.",
@@ -654,6 +662,19 @@ def tool_propose_extras(session, args):
         from mainapp import game
         payload["game"] = args["game"]
         summary.append("Dice and inventory: " + game.MODE_LABELS[args["game"]].lower())
+    if args.get("thinking") in ("default", "off", "light", "full"):
+        from mainapp import samplers
+        _, chat_model = ai_client.resolve(session.user, "chat")
+        levels = {o["id"]: o for o in samplers.thinking_options(chat_model)}
+        if args["thinking"] not in levels:
+            return {"error": f"The chat model can't think at that level; it can do: {', '.join(levels)}."}, []
+        payload["thinking"] = args["thinking"]
+        o = levels[args["thinking"]]
+        summary.append(f"Thinking before story replies: {o['label'].lower()} ({o['help']})")
+    if args.get("background_thinking") in ("light", "model"):
+        payload["background_thinking"] = args["background_thinking"]
+        summary.append("Thinking for background jobs: " + ("light (faster, cheaper)" if args["background_thinking"] == "light"
+                                                            else "the model's own default"))
     bg = args.get("background")
     cheap = {m["id"]: m["name"] for m in _cheap_models()}
     if bg == "chat" or bg in cheap:

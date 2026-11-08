@@ -16,7 +16,13 @@ Instructions come first; settings fix what words can't:
   checking the preset isn't asking for the repetition.
 - **Thinking models:** reasoning_effort decides how much they think before replying: lower is faster
   and cheaper, higher helps plots with many threads. On the newest Claude models it replaces
-  temperature.
+  temperature. In plain words people choose it as Thinking: off, light, full or the model's default
+  (pen menu → This chat; you: propose_extras with `thinking`). Background jobs (trackers, summaries,
+  emotion, Watch) think as little as the model allows by default; `background_thinking: "model"`
+  gives them the model's own thinking, which is slower and costs more, for when trackers come out
+  sloppy.
+- **"Replies are slow" / "it takes minutes":** first suggest lighter thinking for the story (off or
+  light) and fewer story extras; a long chat memory and many trackers in the prompt add time too.
 Never touch a setting read_settings marks "fixed" or "unused" for this model: it isn't sent. Leave
 seed and stop sequences alone unless they ask.
 
