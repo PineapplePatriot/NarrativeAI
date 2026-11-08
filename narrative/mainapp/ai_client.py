@@ -248,6 +248,25 @@ def spending(user):
     return {"spent": spent, "limit": limit, "left": round(max(0.0, limit - spent), 4)}
 
 
+# Background jobs fill in JSON or short notes: a thinking model thinks as little as it allows there (the story reply
+# keeps the Samplers page's setting; Bulba and polishing keep the model's own default, they're writing work)
+LIGHT_TASKS = ("summary", "trackers", "emotion", "voice_split", "watch", "writing_tools")
+
+
+def _light_reasoning(profile, task, payload):
+    if task not in LIGHT_TASKS or "reasoning" in payload or profile.provider != ConnectionProfile.PROVIDER_OPENROUTER:
+        return
+    from mainapp import model_profiles
+    info = (model_profiles.for_model(payload["model"]) or {}).get("reasoning") or {}
+    choices = info.get("choices") or {}
+    if "off" in choices:
+        payload["reasoning"] = {"enabled": False}
+    else:
+        lowest = next((c for c in ("minimal", "low", "medium") if c in choices), None)
+        if lowest:
+            payload["reasoning"] = {"effort": lowest}
+
+
 def _request(user, task, messages, timeout=None, **params):
     """Sends one chat completion request and returns (profile, the parsed JSON reply)."""
     check_limit(user)
@@ -259,6 +278,7 @@ def _request(user, task, messages, timeout=None, **params):
     if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER and str(payload["model"]).startswith("google/"):
         payload.setdefault("safety_settings", GEMINI_SAFETY)
     _route(profile, payload)
+    _light_reasoning(profile, task, payload)
     timeout = TEST_TIMEOUT or timeout or TASKS.get(task, {}).get("timeout", 60)
     label = TASKS.get(task, {}).get("label", task)
 
@@ -403,6 +423,7 @@ def stream(user, task, messages, timeout=None, **params):
     if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER and str(payload["model"]).startswith("google/"):
         payload.setdefault("safety_settings", GEMINI_SAFETY)  # Gemini's adjustable filters off (see GEMINI_SAFETY)
     _route(profile, payload)
+    _light_reasoning(profile, task, payload)
     read_timeout = TEST_TIMEOUT or timeout or TASKS.get(task, {}).get("timeout", 60)  # max wait between two pieces
     label = TASKS.get(task, {}).get("label", task)
 

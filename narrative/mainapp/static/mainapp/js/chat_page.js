@@ -541,6 +541,7 @@ function sendMessage(noteOnly = false) {
     requestReply({ message: message, guidance: guidance })
         .then(data => {
             if (data.refused) return handleRefusal(data);
+            if (data.empty) { if (data.bubble) data.bubble.closest('.message')?.remove(); showChatError(data.error); return; }
             if (data.error || data.stopped) {
                 if (data.bubble) setSwipes({ count: 1, current: 0 });  // the partial reply was kept
                 if (data.error) showChatError(data.error);
@@ -995,7 +996,7 @@ function continueGeneration() {
     const msgs = document.querySelectorAll('.message:not(#typingMessage)');
     // Ensure the last message is from the assistant
     if (msgs.length === 0 || !msgs[msgs.length - 1].classList.contains('assistant')) {
-        return alert("Can only continue the AI's last message.");
+        return showChatError("Only the AI's last reply can be continued.");
     }
 
     isGenerating = true;
@@ -1027,7 +1028,7 @@ function continueGeneration() {
 
                 scrollToBottom();
             } else {
-                alert(data.error || "Error continuing generation.");
+                showChatError(data.error || "Couldn't continue the reply.");
             }
         }).finally(() => {
             isGenerating = false;
@@ -1162,6 +1163,7 @@ function regenerateReply(guidance = '', model = '') {
     requestReply(model ? { action: 'regenerate', guidance: guidance, model } : { action: 'regenerate', guidance: guidance })
         .then(d => {
             if (d.refused) { restore(); return handleRefusal(d); }  // the server kept the old reply
+            if (d.empty) { if (d.bubble) d.bubble.closest('.message')?.remove(); restore(); showChatError(d.error); return; }
             if (d.error || d.stopped) {
                 // The server keeps any text that arrived as a new version; with none, the old reply stays
                 if (!d.bubble) restore();

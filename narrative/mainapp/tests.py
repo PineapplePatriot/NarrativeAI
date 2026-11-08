@@ -3006,6 +3006,26 @@ class SteerMenuTests(ChatPromptTests):
         self.assertNotIn("control_before", active["extras"])
 
 
+class LightReasoningTests(SimpleTestCase):
+    """Background jobs (trackers, summaries...) think as little as the model allows; the story reply is untouched."""
+
+    def payload(self, task, model, provider="openrouter", **extra):
+        import types
+        from mainapp import ai_client
+        payload = {"model": model, "messages": [], **extra}
+        ai_client._light_reasoning(types.SimpleNamespace(provider=provider), task, payload)
+        return payload.get("reasoning")
+
+    def test_levels(self):
+        self.assertEqual(self.payload("trackers", "xiaomi/mimo-v2.6-pro"), {"enabled": False})  # can switch off
+        self.assertEqual(self.payload("summary", "google/gemini-4-argon"), {"effort": "low"})  # always thinks
+        self.assertIsNone(self.payload("chat", "xiaomi/mimo-v2.6-pro"))  # the story keeps its setting
+        self.assertIsNone(self.payload("bulba", "xiaomi/mimo-v2.6-pro"))
+        self.assertIsNone(self.payload("trackers", "xiaomi/mimo-v2.6-pro", provider="openai"))
+        self.assertIsNone(self.payload("trackers", "someone/unknown-model"))
+        self.assertEqual(self.payload("trackers", "xiaomi/mimo-v2.6-pro", reasoning={"effort": "high"}), {"effort": "high"})
+
+
 class OutOfStepPageTests(ChatPromptTests):
     def test_deleting_a_message_the_server_never_saved_reloads(self):
         data = self.post({"action": "delete", "index": 7}).json()
@@ -3963,6 +3983,38 @@ class ExtrasPlacementTests(GameTests):
         earlier = next(m["content"] for m in self.sent[-1]["messages"] if m["content"].startswith("You open the door."))
         self.assertIn("[Note shown: Note. It reads: Gone fishing.]", earlier)
         self.assertNotIn("[[extra 1]]", earlier)
+
+    def test_a_written_reply_with_an_extra_at_the_end_is_one_request(self):
+        from mainapp import extras
+        extras.set_kinds(self.user, ["milestones"])
+        story = "She laughs and pours the tea. " * 15  # a whole reply, then the milestone
+        self.rounds = [sse(delta(story), *tool_call("note_milestone", {"who": "Rose", "toward": "You", "now": "warmer",
+                                                                        "because": "the tea"}), "[DONE]"),
+                       sse(delta("SHOULD NOT BE ASKED"), "[DONE]")]
+        resp, events = self.stream_post({"action": "chat", "message": "Tea?"})
+        self.assertEqual(len(self.sent), 1)  # no second request just to say "go on"
+        self.assertNotIn("SHOULD NOT", events[-1]["reply"])
+        self.assertIn("[[extra 1]]", events[-1]["reply"])  # placed by the app
+
+    def test_a_roll_still_waits_for_its_result(self):
+        from unittest import mock
+        self.set_mode("dice")
+        story = "Mira kneels at the lock and works the pick. " * 10
+        self.rounds = [sse(delta(story), *tool_call("roll_dice", {"action": "Mira picks the lock", "difficulty": 10}),
+                           "[DONE]"),
+                       sse(delta("The lock clicks open."), "[DONE]")]
+        with mock.patch("random.SystemRandom.randint", return_value=14):
+            resp, events = self.stream_post({"action": "chat", "message": "I pick the lock"})
+        self.assertEqual(len(self.sent), 2)
+        self.assertIn("The lock clicks open.", events[-1]["reply"])
+
+    def test_an_empty_reply_is_not_saved(self):
+        self.rounds = [sse(delta("   "), "[DONE]")]
+        resp, events = self.stream_post({"action": "chat", "message": "Hello?"})
+        self.assertTrue(events[-1]["empty"])
+        saved = self.saved_messages()
+        self.assertEqual((saved[-1][0], saved[-1][2]), ("user", "Hello?"))  # their message stays, no blank reply
+        self.assertFalse(any(m[0] == "assistant" and not m[2].strip() for m in saved))
 
     def test_unplaced_extra_goes_after_its_paragraph_or_the_end(self):
         from mainapp import extras

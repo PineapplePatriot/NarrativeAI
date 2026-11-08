@@ -1176,6 +1176,13 @@ def chat(request, slug):
                                 "model": refusals.name_of(stand_in or own_model),
                                 "stand_in": refusals.stand_in_for(request.user, own_model),
                                 "options": refusals.options(own_model)}
+                    if not str(reply or "").strip() and not [o for o in ops if extras.is_extra(o)]:
+                        # Nothing came back (the model thought and stopped, or only called tools): not saved
+                        if regen_from is not None:
+                            messages.append(regen_from)
+                        save_messages(messages)
+                        return {"error": "The reply came back empty. Press Regenerate (↻) to try again; if it keeps "
+                                         "happening, switch some extras off on the Extras page.", "empty": True}
                     reply = text_rules("saved", reply, "assistant")
                     reasoning = text_rules("saved", reasoning, "reasoning").strip() if reasoning else ""
                     # A tool call the model wrote as text (note_milestone(...)): the extra, not the code
