@@ -3597,7 +3597,7 @@ class BulbaInChatTests(ChatPromptTests):
         said = [e["text"] for e in data["events"] if e["type"] == "bulba"][-1]
         self.assertEqual(said, "Sure, here goes.")  # the person never sees the filter
         self.assertEqual([c["model"] for c in self.bulba_calls[-2:]], [ai_client.BULBA_MODEL, "google/gemini-4-argon"])
-        self.assertIn({"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+        self.assertIn({"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "OFF"},
                       self.bulba_calls[-1]["safety_settings"])
         self.assertNotIn("safety_settings", self.bulba_calls[-2])  # only Gemini gets them
         self.script = [("Next step.", [])]
