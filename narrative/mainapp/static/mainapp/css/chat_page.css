@@ -23,11 +23,14 @@
     font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
+html { height: 100%; overflow: hidden; overscroll-behavior: none; }
 body {
     background-color: var(--bg-primary);
     color: var(--text-primary);
     height: 100vh;
+    height: 100dvh;  /* the visible screen on phones (100vh includes the hidden address bar) */
     overflow: hidden;
+    overscroll-behavior: none;
     background-image:
         radial-gradient(circle at 20% 35%, rgba(46, 49, 73, 0.15) 0%, transparent 50%),
         radial-gradient(circle at 75% 44%, rgba(126, 58, 242, 0.08) 0%, transparent 33%),
@@ -2119,7 +2122,7 @@ body.polish-on .message-btn.polish-btn { display: flex; }
     border: 1px solid rgba(148, 163, 184, 0.25); background: rgba(255, 255, 255, 0.05); color: #e2e8f0;
 }
 .tr-btn:hover { background: rgba(255, 255, 255, 0.1); }
-.tr-btn.ghost { align-self: flex-start; background: none; border-color: transparent; color: #94a3b8; padding-left: 0; font-weight: 500; }
+.tr-btn.ghost { align-self: flex-start; background: none; border: 1px solid rgba(248, 113, 113, .45); color: #fca5a5; padding: 6px 12px; font-weight: 500; border-radius: 8px; }
 .tr-btn.ghost:hover { color: #fda4af; background: none; }
 .tr-btn.danger { background: rgba(244, 63, 94, 0.2); border-color: rgba(251, 113, 133, 0.5); color: #fecdd3; }
 .tr-add { padding: 4px 10px 0; }
@@ -2262,3 +2265,11 @@ body.polish-on .message-btn.polish-btn { display: flex; }
 #summaryLanguage.on { background: rgba(139, 92, 246, .3); }
 /* A reply still being polished or translated: its buttons wait */
 .messages-container.finishing .message-actions, .messages-container.finishing .swipe-btn { opacity: .35; pointer-events: none; }
+
+/* A reply still being revised or translated doesn't look finished: no time or swipe arrows yet, a pulsing stage */
+.message.translating .message-time, .message.translating .swipe-nav,
+.messages-container.finishing .message:has(.translate-stage) .swipe-nav { visibility: hidden; }
+.translate-stage { animation: stagePulse 1.4s ease-in-out infinite; }
+@keyframes stagePulse { 50% { opacity: .4; } }
+@media (prefers-reduced-motion: reduce) { .translate-stage { animation: none; } }
+.messages-container.finishing ~ * .send-btn, .send-btn:disabled { opacity: .45; }

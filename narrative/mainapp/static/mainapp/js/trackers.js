@@ -438,7 +438,7 @@
                 keys[keys.length - 1].select();
                 scheduleSave();
             } else if (t.dataset.act === 'pin') { pinned = !pinned; renderPanel(); }
-            else if (t.dataset.act === 'close') closeItem();
+            else if (t.dataset.act === 'close') { closeItem(); if (isPhone()) setPanelOpen(false); }  // a sheet: ✕ closes it
             else if (t.dataset.act === 'stop') { stopping = t.dataset.trackerStop; pinned = true; renderPanel(); }
             else if (t.dataset.act === 'keep') { stopping = null; renderPanel(); }
             else if (t.dataset.act === 'lockmode') { lockMode = !lockMode; pinned = pinned || !!railItem; renderPanel(); }

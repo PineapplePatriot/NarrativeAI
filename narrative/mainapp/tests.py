@@ -3262,6 +3262,35 @@ class TranslationWorkflowTests(ChatPromptTests):
         last = self.sent[-1]["messages"][-1]
         self.assertEqual(last["role"], "user")  # Gemini and the newest Claude refuse ending on the model's reply
 
+    def test_story_extras_are_translated_too(self):
+        from unittest import mock
+        from mainapp import chats, translation
+        self.read_in("uk")
+        self.post({"action": "chat", "message": "Hi"})
+        chat = self.character.chats.first()
+        data = chats.read(chat)
+        index = len(data["messages"]) - 1
+        note = {"type": "document", "kind": "note", "label": "Torn corner", "text": "Room 404.", "detail": "", "n": 1}
+        phone = {"type": "messages", "owner": "Rose", "with_whom": "Kai",
+                 "messages": [{"from": "Kai", "text": "Where are you?", "status": "sent", "time": "9:00"}]}
+        data["messages"][index] = list(chats.with_game(tuple(data["messages"][index]), [note, phone]))
+        chats.write(chat, data)
+        answer = json.dumps({"texts": ["Відірваний куток", "Кімната 404.", "Де ти?"]})
+        with mock.patch.object(translation, "translate", side_effect=self.fake_translate), \
+                mock.patch.object(translation.ai_client, "complete", return_value=answer) as call:
+            d = self.post({"action": "translate", "index": index}).json()
+        sent = json.loads(call.call_args[0][2][1]["content"])["texts"]
+        self.assertEqual(sent, ["Torn corner", "Room 404.", "Where are you?"])  # names, times and states stay out
+        self.assertIn("Кімната 404.", "".join(d["extras_html"]))
+        saved = self.saved_messages()[index]
+        self.assertEqual(chats.game_of(saved)[0]["text"], "Room 404.")  # the story keeps the English
+        page = self.client.get(self.url)
+        self.assertContains(page, "Де ти?")
+        self.assertContains(page, "Kai")
+        with mock.patch.object(translation.ai_client, "complete", return_value='{"texts": ["one"]}'):
+            with self.assertRaises(translation.TranslationError):
+                translation.translate_extras(None, [note, phone], "uk")  # incomplete: they stay English
+
     def test_translation_model_default(self):
         from mainapp import ai_client
         from users.models import ConnectionProfile

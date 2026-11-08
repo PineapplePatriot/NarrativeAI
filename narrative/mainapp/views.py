@@ -437,20 +437,27 @@ def chat(request, slug):
             if translation.already_in(messages[index][2], reading):  # written in it before the workflow: as it is
                 return JsonResponse({"success": True, "text": messages[index][2], "original": "", "same": True})
             source = messages[index][2]
+            glossary = _glossary(request.user, character, chat_state)
             try:
-                text = translation.translate(request.user, source, reading,
-                                             glossary=_glossary(request.user, character, chat_state))
+                text = translation.translate(request.user, source, reading, glossary=glossary)
             except ai_client.AIError as e:
                 return JsonResponse({"success": False, "error": str(e)})
+            try:  # the letters, phone screens and the like in it: one more call, and they stay English if it fails
+                extra_ops = translation.translate_extras(request.user, chats.game_of(messages[index]), reading, glossary)
+            except ai_client.AIError as e:
+                log.info("Story extras not translated: %s", e)
+                extra_ops = []
             # The file as it is now (trackers or a summary may have been saved meanwhile): only this message changes
             fresh = chats.read(chat_obj)
             now = [tuple(m) for m in fresh.get("messages") or []]
             if not (0 <= index < len(now)) or now[index][2] != source:
                 return JsonResponse({"success": False, "error": "The reply changed while it was being translated. "
                                                                  "Translate it again."})
-            now[index] = translation.with_translation(now[index], text, reading)
+            now[index] = translation.with_translation(now[index], text, reading, extra_ops)
             chats.write(chat_obj, {**fresh, "messages": now})
-            return JsonResponse({"success": True, "text": text, "original": source})
+            return JsonResponse({"success": True, "text": text, "original": source,
+                                 "extras_html": [extras.render(op) for op in translation.shown_extras(now[index], reading)
+                                                 if extras.is_extra(op)]})
 
         # Handle delete action
         elif action == "delete":
@@ -1002,7 +1009,8 @@ def chat(request, slug):
                                      and not translation.already_in(text, reading)),
                 "reasoning": chats.reasoning_of(messages[-1]),
                 "game": [game.describe(op) for op in chats.game_of(messages[-1]) if not extras.is_extra(op)],
-                "extras_html": [extras.render(op) for op in chats.game_of(messages[-1]) if extras.is_extra(op)],
+                "extras_html": [extras.render(op) for op in translation.shown_extras(messages[-1], reading)
+                                if extras.is_extra(op)],
                 "game_trackers": game_trackers(),
                 "photo_url": _photo(character, "photo", emo1),
                 "photo_second": _photo(character, "photo_second", emo2 or "neutral")
@@ -1517,7 +1525,7 @@ def chat(request, slug):
         # The template shows the version on screen, and its thoughts (if the model sent any)
         "messages": [(m[0], m[1], _shown(m, reading), m[3], m[4]) + (chats.reasoning_of(m),
                                      [game.describe(op) for op in chats.game_of(m) if not extras.is_extra(op)],
-                                     [extras.render(op) for op in chats.game_of(m) if extras.is_extra(op)],
+                                     [extras.render(op) for op in translation.shown_extras(m, reading) if extras.is_extra(op)],
                                      (chats.audio_of(m) or {}).get("url", ""),
                                      polish.dumps(chats.polish_of(m)) if chats.polish_of(m) else "",
                                      chats.directed_of(m), chats.condensed_of(m), chats.is_note(m),
