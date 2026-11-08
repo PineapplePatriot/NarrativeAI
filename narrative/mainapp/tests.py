@@ -3070,6 +3070,54 @@ class ThinkingLevelTests(ChatPromptTests):
         self.assertNotIn("reasoning", payload)  # the model's own default, as asked
 
 
+class JobPromptTests(ChatPromptTests):
+    """The app's own jobs read their instructions from the preset's utility prompts."""
+
+    def set_utility(self, **values):
+        from mainapp import presets
+        obj = presets.get_active(self.user)
+        data = presets.normalize(obj.data)
+        data["utility"].update(values)
+        obj.data = data
+        obj.save()
+
+    def test_defaults_then_their_own(self):
+        from mainapp import presets, trackers
+        self.assertEqual(presets.job_prompt(self.user, "summary_new"), presets.JOB_DEFAULTS["summary_new"])
+        self.set_utility(summary_new="Summarize in Ukrainian, as a list.", tracker_rules="- Values in one word.",
+                         ideas_player="Ideas for {{user}} with {{char}}.", condense="  ")
+        self.assertEqual(presets.job_prompt(self.user, "summary_new"), "Summarize in Ukrainian, as a list.")
+        self.assertEqual(presets.job_prompt(self.user, "condense"), presets.JOB_DEFAULTS["condense"])  # empty: default
+        self.assertEqual(presets.job_prompt(self.user, "ideas_player", {"user": "Wren", "char": "Rose"}),
+                         "Ideas for Wren with Rose.")
+        config = trackers.normalize_config({})
+        state = trackers.normalize_state({}, config)
+        built = trackers.update_messages(config, state, [("Wren", "Hi")], "Rose", "Wren",
+                                         rules=presets.job_prompt(self.user, "tracker_rules"))
+        system = built[0]["content"]
+        self.assertIn("- Values in one word.", system)
+        self.assertIn("Reply with ONLY a JSON object", system)  # the format stays
+        self.assertIn("Never change locked values", system)
+        self.assertNotIn("For object trackers", system)
+
+    def test_the_summary_uses_it(self):
+        from mainapp import views
+        from unittest import mock
+        self.set_utility(summary_new="Keep only who owes whom.")
+        with mock.patch.object(views.ai_client, "complete", return_value="ok") as call:
+            views._summarize(self.user, [("user", "1", "I lend you ten coins.", "neutral", 1)])
+        self.assertEqual(call.call_args[0][2][0]["content"], "Keep only who owes whom.")
+
+    def test_shown_on_the_presets_page_and_bulba_can_edit(self):
+        from mainapp import presets
+        from mainapp.bulba import doctor
+        page = self.client.get(reverse("presets"))
+        self.assertIn("tracker_rules", page.context["preset_page"]["job_defaults"])
+        preset = presets.normalize(presets.get_active(self.user).data)
+        edited = doctor.apply_edits(preset, [{"action": "utility", "block": "tracker_rules", "content": "- Short."}])
+        self.assertEqual(edited["utility"]["tracker_rules"], "- Short.")
+
+
 class OutOfStepPageTests(ChatPromptTests):
     def test_deleting_a_message_the_server_never_saved_reloads(self):
         data = self.post({"action": "delete", "index": 7}).json()

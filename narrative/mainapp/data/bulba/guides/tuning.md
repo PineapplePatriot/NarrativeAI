@@ -21,6 +21,13 @@ Instructions come first; settings fix what words can't:
   emotion, Watch) think as little as the model allows by default; `background_thinking: "model"`
   gives them the model's own thinking, which is slower and costs more, for when trackers come out
   sloppy.
+- **The app's own jobs** have their instructions in the preset's utility prompts (edit action
+  "utility", block = the key): summary_new and summary_continue (what a summary keeps), tracker_rules
+  (how trackers are filled: shorter values, what to leave alone), condense, director_note (how a wish
+  becomes a note), note_ideas ("Be creative"), ideas_player and ideas_director (the 🥔 ideas). For
+  "the summary forgets X", "trackers are too wordy", "the ideas are boring", change these, not the
+  story prompts. Write only the instructions: the app always adds the answer format (JSON, the
+  tracker list, locked values), so never ask for a format there. Empty brings back the default.
 - **"Replies are slow" / "it takes minutes":** first suggest lighter thinking for the story (off or
   light) and fewer story extras; a long chat memory and many trackers in the prompt add time too.
 Never touch a setting read_settings marks "fixed" or "unused" for this model: it isn't sent. Leave

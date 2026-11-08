@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Presets - Narrative AI</title>
   <link rel="stylesheet" href="{% static 'mainapp/css/tracker_setup.css' %}">
-  <link rel="stylesheet" href="{% static 'mainapp/css/presets.css' %}">
+  <link rel="stylesheet" href="{% static 'mainapp/css/presets.css' %}?v=2">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
 </head>
@@ -102,7 +102,9 @@
 
       <section class="card" data-panel="utility">
         <h2>Utility prompts</h2>
-        <p class="help">Small prompts used for specific actions rather than every message.</p>
+        <p class="help">Small prompts used for specific actions rather than every message. The “App jobs” below are
+          the instructions for summaries, trackers and the helpers; the app adds what they must answer with, so an
+          edit can't break them. Empty means the default; {{'{{'}}char}} and {{'{{'}}user}} work. 🥔 Bulba can change these for you too.</p>
         <div id="utility"></div>
       </section>
 
@@ -157,7 +159,7 @@
     samplers: "{% url 'samplers' %}",
   };
 </script>
-<script src="{% static 'mainapp/js/presets.js' %}"></script>
+<script src="{% static 'mainapp/js/presets.js' %}?v=2"></script>
 <script>window.NA_PAGE_TOUR = {name: 'presets', auto: true};</script>
 </body>
 </html>

@@ -71,13 +71,79 @@ UTILITY_DEFAULTS = {
     "assistant_impersonation": "",
 }
 
+# The app's own jobs: only their instructions are here (what to keep, how to write); the format each job must
+# answer in (JSON, the tracker list, locked values...) stays in the code, so an edit can't break the job.
+# Empty = the default. {{char}} and {{user}} work.
+JOB_DEFAULTS = {
+    "summary_new": "Summarize this entire roleplay story concisely. Capture key events and current status. Be clear "
+                   "and precise, focus on describing events and reactions in detail. The summary should include "
+                   "Tone, Setting, Events, Current emotional state.",
+    "summary_continue": "Read the recent conversation below and create a short paragraph summarizing ONLY the new "
+                        "events, advancing the existing summary.",
+    "tracker_rules": "- Include only trackers whose data changed. Omit unchanged ones.\n"
+                     "- If a tracker is still empty, fill it in from what the story shows so far.\n"
+                     "- What lasts stays: weather, time of day, place, who is present and what they wear keep their "
+                     "current values unless the recent messages show them change or enough time passes. Don't "
+                     "re-guess them.\n"
+                     "- For list trackers, return the COMPLETE updated list (drop entries that no longer apply).\n"
+                     "- For object trackers, return only the fields that changed.\n"
+                     "- Keep values short: a few words. Only use facts from the story; never invent events.\n"
+                     "- Numbers and meters must be numbers within their range.",
+    "condense": "Condense one message from a roleplay so the AI can keep it in mind in fewer words. Keep what matters "
+                "later: what happened, decisions, promises, names, places, objects, how people feel about each "
+                "other, and any line of dialogue worth remembering word for word. Drop description and repetition. "
+                "Same person and tense as the message, plain sentences, at most a quarter of its length.",
+    "director_note": "One to three short sentences, addressed to the model, saying concretely what should happen or "
+                     "how it should read. Keep their meaning; don't add events, twists or details they didn't ask "
+                     "for. Name characters as they appear in the chat. Never write {{user}}'s words, actions or "
+                     "thoughts unless they asked for exactly that. Plain words: no 'ensure', 'immersive', 'vivid', "
+                     "'delve', capitals or exclamation marks.",
+    "note_ideas": "Write two director's notes for the next reply, each one or two short sentences addressed to the "
+                  "roleplay model, saying concretely what should happen or how it should read. \"logical\": what "
+                  "would most naturally happen next, given the scene and the people in it. \"creative\": an "
+                  "unexpected turn that still fits the characters and the world (a complication, an arrival, a "
+                  "reveal, a change of place or time), not a random one. Name characters as they appear in the chat. "
+                  "Never write {{user}}'s words, actions or thoughts. Plain words: no 'ensure', 'immersive', "
+                  "'vivid', 'delve', capitals or exclamation marks.",
+    "ideas_player": "Suggest three different things {{user}} could do or say next, as {{user}}. Each is one or two "
+                    "short sentences they could send as their message, written the way {{user}}'s recent messages "
+                    "are written (same person, tense and style). Make the three genuinely different: one that goes "
+                    "along with the scene, one that pushes it somewhere, one unexpected but in character for "
+                    "{{user}}. Only {{user}}'s own words and actions; never decide what {{char}} or anyone else does "
+                    "or feels. Stay true to what has happened and to the world.",
+    "ideas_director": "Suggest three different things that could happen next, each one or two short sentences they "
+                      "could send as a direction (\"{{char}} finds the letter\", \"A storm cuts the power\"). Make "
+                      "them genuinely different: one that deepens the current scene, one that moves the plot, one "
+                      "surprising but believable in this world. Stay true to what has happened, the characters and "
+                      "the world.",
+}
+UTILITY_DEFAULTS.update(JOB_DEFAULTS)
+
 UTILITY_LABELS = {
     "continue_nudge": ("Continue nudge", "Sent when you press Continue."),
     "impersonation": ("Impersonation", "Used when the AI writes your next message for you."),
     "new_chat": ("New chat", "Placed before the chat in strict mode, when the chat would otherwise start with the character."),
     "assistant_prefill": ("Assistant prefill", "Starts the AI's reply for it. Skipped on models that reject prefill (newest Claude)."),
     "assistant_impersonation": ("Impersonation prefill", "Starts the impersonated message."),
+    "summary_new": ("Story summary", "How the summary model writes a summary from scratch."),
+    "summary_continue": ("Summary, continued", "How it adds the newest events to an existing summary."),
+    "tracker_rules": ("Tracker rules", "How the trackers are kept up to date (answering in JSON, the tracker list and "
+                                       "locked values are added by the app)."),
+    "condense": ("Condense a message", "🗜 on a message: the short version the AI reads instead."),
+    "director_note": ("Director's note wording", "How a rough wish in the Steer tab is written into a note."),
+    "note_ideas": ("Be creative", "The two notes (logical, creative) the Steer tab suggests."),
+    "ideas_player": ("🥔 Ideas, as you", "Three ideas for what you could write next."),
+    "ideas_director": ("🥔 Ideas, directing", "Three ideas for what could happen next, when you direct."),
 }
+JOB_KEYS = tuple(JOB_DEFAULTS)
+
+
+def job_prompt(user, key, names=None):
+    """A job's instructions from the active preset (its default when empty), with {{char}} and {{user}} filled in."""
+    text = (normalize(get_active(user).data)["utility"].get(key) or "").strip() or JOB_DEFAULTS[key]
+    for macro, value in (names or {}).items():
+        text = text.replace("{{" + macro + "}}", value)
+    return text
 
 MACRO_HELP = [
     ("{{char}} / {{user}}", "Character name / your persona name"),

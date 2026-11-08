@@ -80,13 +80,10 @@ def _summary_line(message):
 def _summarize(user, messages, existing="", room=None):
     """One summary piece for `messages`, continuing `existing` when there is one. With `room` (tokens), a single
     message longer than that is cut to fit (its end kept)."""
-    if existing:
-        sys_prompt = (f"Existing summary: {existing}\n\nTask: Read the recent conversation below "
-                      "and create a short paragraph summarizing ONLY the new events, advancing the existing summary.")
+    if existing:  # the instructions are the preset's utility prompts (Presets page → Utility prompts)
+        sys_prompt = f"Existing summary: {existing}\n\nTask: {presets.job_prompt(user, 'summary_continue')}"
     else:
-        sys_prompt = ("Summarize this entire roleplay story concisely. Capture key events and current status. "
-                      "Be clear and precise, focus on describing events and reactions in detail. "
-                      "The summary should include Tone, Setting, Events, Current emotional state.")
+        sys_prompt = presets.job_prompt(user, "summary_new")
     lines = [_summary_line(m) for m in messages]
     if room and len(lines) == 1:
         lines = [samplers.cut_to(lines[0], room)]
@@ -740,7 +737,9 @@ def chat(request, slug):
                 user_name = request.user.name or request.user.username
                 named = [(user_name if m[0] == "user" else character.name, m[2]) for m in recent]
                 def tracker_request(named):
-                    built = trackers.update_messages(config, state, named, character.name, user_name, only)
+                    built = trackers.update_messages(config, state, named, character.name, user_name, only,
+                                                     rules=presets.job_prompt(request.user, "tracker_rules",
+                                                                              {"char": character.name, "user": user_name}))
                     if with_story:
                         built[0]["content"] += "\n\n" + story.prompt_section(systems, story_state())
                     return built
@@ -1512,20 +1511,12 @@ def pinned_note(guides):
     return "\n".join(f"{label}: {guides[key]}" for key, label in labels if guides.get(key))
 
 
-WORD_NOTE_PROMPT = (
-    "You help someone steer their roleplay with an AI. They give you a rough wish for {what}; you write it as "
-    "a director's note the roleplay model will follow. One to three short sentences, addressed to the model, "
-    "saying concretely what should happen or how it should read. Keep their meaning; don't add events, twists "
-    "or details they didn't ask for. Name characters as they appear in the chat. Never write {user}'s words, "
-    "actions or thoughts unless they asked for exactly that. Plain words: no 'ensure', 'immersive', 'vivid', "
-    "'delve', capitals or exclamation marks. Reply with the note only.")
+# The fixed frame of each job; the instructions in between are the preset's (presets.JOB_DEFAULTS)
+WORD_NOTE_PROMPT = ("You help someone steer their roleplay with an AI. They give you a rough wish for {what}; you "
+                    "write it as a director's note the roleplay model will follow. {rules} Reply with the note only.")
 
 
-CONDENSE_PROMPT = (
-    "Condense one message from a roleplay so the AI can keep it in mind in fewer words. Keep what matters later: "
-    "what happened, decisions, promises, names, places, objects, how people feel about each other, and any line "
-    "of dialogue worth remembering word for word. Drop description and repetition. Same person and tense as the "
-    "message, plain sentences, at most a quarter of its length. Reply with the condensed message only.")
+CONDENSE_TAIL = " Reply with the condensed message only."
 
 
 def condense(user, character, message, persona=None):
@@ -1533,7 +1524,7 @@ def condense(user, character, message, persona=None):
     names = prompt_names(user, character, persona)
     who = names["user"] if message[0] == "user" else character.name
     text = ai_client.complete(user, "summary", [
-        {"role": "system", "content": CONDENSE_PROMPT},
+        {"role": "system", "content": presets.job_prompt(user, "condense", names) + CONDENSE_TAIL},
         {"role": "user", "content": f"{who}'s message:\n\n{samplers.cut_to(message[2], samplers.job_window(user, 'summary') - 500, keep='start')}"}],
         max_tokens=1500, temperature=0.2)
     text = (text or "").strip()
@@ -1564,14 +1555,8 @@ def scene_music(user, messages, current=""):
     return tracks[n - 1] if 1 <= n <= len(tracks) else None
 
 
-NOTE_IDEAS_PROMPT = (
-    "You help someone direct their roleplay with an AI. Read the chat and write two director's notes for the next "
-    "reply, each one or two short sentences addressed to the roleplay model, saying concretely what should happen "
-    "or how it should read. \"logical\": what would most naturally happen next, given the scene and the people in "
-    "it. \"creative\": an unexpected turn that still fits the characters and the world (a complication, an "
-    "arrival, a reveal, a change of place or time), not a random one. Name characters as they appear in the chat. "
-    "Never write {user}'s words, actions or thoughts. Plain words: no 'ensure', 'immersive', 'vivid', 'delve', "
-    "capitals or exclamation marks. Answer only with JSON: {{\"logical\": \"...\", \"creative\": \"...\"}}")
+NOTE_IDEAS_PROMPT = ("You help someone direct their roleplay with an AI. Read the chat. {rules} "
+                     "Answer only with JSON: {{\"logical\": \"...\", \"creative\": \"...\"}}")
 
 
 def bulba_quick(user, messages, max_tokens=1500, **params):
@@ -1606,7 +1591,7 @@ def note_ideas(user, character, messages, summary="", persona=None):
         raise ai_client.AIError("Start the story first: there's nothing to direct yet.")
     transcript = "\n\n".join(f"{names['user'] if m[0] == 'user' else character.name}: {m[2][:1500]}" for m in recent)
     text = bulba_quick(user, [
-        {"role": "system", "content": NOTE_IDEAS_PROMPT.format(user=names["user"])},
+        {"role": "system", "content": NOTE_IDEAS_PROMPT.format(rules=presets.job_prompt(user, "note_ideas", names))},
         {"role": "user", "content": (f"The story so far: {summary[:2000]}\n\n" if summary else "")
                                     + f"The latest messages (latest last):\n\n{transcript}"}],
         temperature=0.8, response_format={"type": "json_object"})
@@ -1617,21 +1602,8 @@ def note_ideas(user, character, messages, summary="", persona=None):
     return ideas
 
 
-IDEAS_PROMPT = {
-    "player": (
-        "You help someone who is stuck in a roleplay with an AI. Read the chat and suggest three different things "
-        "{user} could do or say next, as {user}. Each is one or two short sentences they could send as their "
-        "message, written the way {user}'s recent messages are written (same person, tense and style). Make the "
-        "three genuinely different: one that goes along with the scene, one that pushes it somewhere, one "
-        "unexpected but in character for {user}. Only {user}'s own words and actions; never decide what "
-        "{char} or anyone else does or feels. Stay true to what has happened and to the world."),
-    "director": (
-        "You help someone who directs a roleplay with an AI from outside the story. Read the chat and suggest "
-        "three different things that could happen next, each one or two short sentences they could send as a "
-        "direction (\"{char} finds the letter\", \"A storm cuts the power\"). Make them genuinely different: one "
-        "that deepens the current scene, one that moves the plot, one surprising but believable in this world. "
-        "Stay true to what has happened, the characters and the world."),
-}
+IDEAS_PROMPT = {"player": "You help someone who is stuck in a roleplay with an AI. Read the chat.",
+                "director": "You help someone who directs a roleplay with an AI from outside the story. Read the chat."}
 IDEAS_STYLE = ("Plain words, no 'ensure', 'immersive', 'vivid', 'delve', no capitals for emphasis, no exclamation "
                "marks. Answer with JSON only: {\"ideas\": [\"...\", \"...\", \"...\"]}")
 
@@ -1641,7 +1613,7 @@ def bulba_ideas(user, character, messages, mode, persona=None, summary=""):
     names = prompt_names(user, character, persona)
     recent = [m for m in messages if m[0] in ("user", "assistant")][-8:]
     transcript = "\n\n".join(f"{names['user'] if m[0] == 'user' else character.name}: {m[2][:1500]}" for m in recent)
-    system = IDEAS_PROMPT[mode].format(user=names["user"], char=names["char"]) + "\n\n" + IDEAS_STYLE
+    system = (IDEAS_PROMPT[mode] + " " + presets.job_prompt(user, "ideas_" + mode, names) + "\n\n" + IDEAS_STYLE)
     about = f"{character.name}: {(character.description or '')[:1500]}"
     story = f"The story so far (summary): {summary[:2000]}\n\n" if summary else ""
     text = bulba_quick(user, [
@@ -1668,7 +1640,7 @@ def word_note(user, character, messages, wish, rewrite=False, persona=None):
     recent = [m for m in messages if m[0] in ("user", "assistant")][-6:]
     transcript = "\n\n".join(f"{names['user'] if m[0] == 'user' else character.name}: {m[2][:1500]}" for m in recent)
     what = "a new version of the last reply" if rewrite else "the next reply"
-    system = WORD_NOTE_PROMPT.format(what=what, user=names["user"])
+    system = WORD_NOTE_PROMPT.format(what=what, rules=presets.job_prompt(user, "director_note", names))
     text = bulba_quick(user, [
         {"role": "system", "content": system},
         {"role": "user", "content": f"The chat so far (latest last):\n\n{transcript}\n\nTheir wish: {wish}"}],
@@ -1941,6 +1913,7 @@ def preset_list(request):
         "preset": {"id": selected.id, "name": selected.name, **presets.normalize(selected.data)},
         "markers": presets.MARKERS,
         "utility_labels": presets.UTILITY_LABELS,
+        "job_defaults": presets.JOB_DEFAULTS,
         "macro_help": presets.MACRO_HELP,
         "post_processing": presets.POST_PROCESSING,
         "characters": [{"slug": c.slug, "name": c.name} for c in Character.objects.filter(author=request.user)],

@@ -324,8 +324,11 @@ def ai_trackers(config):
     return [s for s in enabled_trackers(config) if s["id"] not in config.get("game_owned", [])]
 
 
-def update_messages(config, state, recent_messages, char_name, user_name, only=None):
-    """Messages for the tracker AI call."""
+def update_messages(config, state, recent_messages, char_name, user_name, only=None, rules=None):
+    """Messages for the tracker AI call. `rules`: the preset's tracker rules (presets.JOB_DEFAULTS); the JSON
+    answer, the tracker list and the locks are always added here."""
+    from mainapp import presets
+    rules = (rules or "").strip() or presets.JOB_DEFAULTS["tracker_rules"]
     specs = [s for s in ai_trackers(config) if not only or s["id"] in only]
     current = {s["id"]: state["values"].get(s["id"], empty_value(s)) for s in specs}
     system = (
@@ -333,14 +336,7 @@ def update_messages(config, state, recent_messages, char_name, user_name, only=N
         "Read the recent messages and update the trackers to match what is true NOW in the story.\n\n"
         "Rules:\n"
         "- Reply with ONLY a JSON object: {\"tracker_id\": value, ...}.\n"
-        "- Include only trackers whose data changed. Omit unchanged ones.\n"
-        "- If a tracker is still empty, fill it in from what the story shows so far.\n"
-        "- What lasts stays: weather, time of day, place, who is present and what they wear keep their current "
-        "values unless the recent messages show them change or enough time passes. Don't re-guess them.\n"
-        "- For list trackers, return the COMPLETE updated list (drop entries that no longer apply).\n"
-        "- For object trackers, return only the fields that changed.\n"
-        "- Keep values short: a few words. Only use facts from the story; never invent events.\n"
-        "- Numbers and meters must be numbers within their range.\n"
+        + rules + "\n"
         "- Never change locked values.\n\n"
         "Trackers:\n" + "\n".join(_describe(s) for s in specs) + "\n\n"
         "Current values:\n" + json.dumps(current, ensure_ascii=False) + "\n\n"
