@@ -131,6 +131,17 @@ def _with(message, key, value):
         extras[key] = value
     else:
         extras.pop(key, None)
+    # A swipe keeps its own copy of these: the one on screen gets the change too, so flipping away and back keeps
+    # it (a translation or a polish that arrived after the version was made)
+    if key in VERSION_KEYS and extras.get("swipes"):
+        versions = [dict(v) for v in extras["swipes"]]
+        current = extras.get("swipe", 0)
+        if 0 <= current < len(versions) and versions[current].get("text") == message[2]:
+            if value:
+                versions[current][key] = value
+            else:
+                versions[current].pop(key, None)
+            extras["swipes"] = versions
     return tuple(message[:5]) + ((extras,) if extras else ())
 
 

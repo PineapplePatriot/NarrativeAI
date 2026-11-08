@@ -498,9 +498,12 @@ def chat(request, slug):
             reading = translation.reading_language(request.user)  # read in another language: English, cleaned, translated
             english = translation.english_note(request.user)
             try:
+                # As a user turn, so the request ends on one: Gemini and the newest Claude refuse a conversation that
+                # ends on the model's own reply (OpenRouter moves system messages out of the conversation)
                 built = build_chat_request(request.user, chat_obj, preset=preset, drop_last_reply=False,
                                            generation="impersonate",
-                                           tail=[{"role": "system", "content": ask}] + ([english] if english else []))
+                                           tail=[{"role": "user", "content": ask + (
+                                               "\n\n" + english["content"] if english else "")}])
                 message, _ = ai_client.complete_message(request.user, "chat", built["messages"], **built["params"])
             except ai_client.AIError as e:
                 return JsonResponse({"success": False, "error": str(e)})

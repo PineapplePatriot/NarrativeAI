@@ -258,6 +258,23 @@ const stopBtn = document.getElementById('stopBtn');
 const deleteModal = document.getElementById('deleteModal');
 
 let isGenerating = false;
+// A reply that's written but still being polished or translated: nothing new starts until it's finished
+let finishing = 0;
+function isBusy(say = false) {
+    if (finishing && say) showChatNotice('One moment: Bulba is still finishing the last reply.');
+    return isGenerating || finishing > 0;
+}
+function lockWhileFinishing() {
+    finishing++;
+    sendBtn.disabled = true;
+    messagesContainer.classList.add('finishing');
+}
+function unlockFinished() {
+    finishing = Math.max(0, finishing - 1);
+    if (finishing) return;
+    messagesContainer.classList.remove('finishing');
+    if (!isGenerating) sendBtn.disabled = false;
+}
 let currentRequest = null;
 let deleteMessageIndex = -1;
 
@@ -533,7 +550,7 @@ function sendMessage(noteOnly = false) {
     const message = noteOnly ? '' : messageInput.value.trim();
     const guideInput = document.getElementById('guidanceInput');
     const guidance = guideInput ? guideInput.value.trim() : '';
-    if ((!message && !(noteOnly && guidance)) || isGenerating) return;
+    if ((!message && !(noteOnly && guidance)) || isBusy(true)) return;
     if (guideInput) guideInput.value = '';
 
     clearSwipeNav();
@@ -589,7 +606,7 @@ function sendMessage(noteOnly = false) {
         })
         .finally(() => {
             isGenerating = false;
-            sendBtn.disabled = false;
+            sendBtn.disabled = isBusy();  // still finishing (polish, translation): stays off until it's done
             stopContainer.style.display = 'none';
             typingMessage.style.display = 'none';
             scrollToBottom();
@@ -620,6 +637,7 @@ function updateMessageIndices() {
 
 // Edit message functionality
 function editMessage(index) {
+    if (isBusy(true)) return;
     const message = document.querySelector(`[data-index="${index}"]`);
     if (!message) return;
 
@@ -720,6 +738,7 @@ function cancelEdit(index) {
 
 // Delete message
 function deleteMessage(index) {
+    if (isBusy(true)) return;
     deleteMessageIndex = index;
     deleteModal.classList.add('show');
 }
@@ -782,7 +801,7 @@ function stopGeneration() {
         currentRequest = null;
     }
     isGenerating = false;
-    sendBtn.disabled = false;
+    sendBtn.disabled = isBusy();
     stopContainer.style.display = 'none';
     typingMessage.style.display = 'none';
 }
@@ -986,7 +1005,7 @@ function generateSummary(mode, auto = false) {
 // Write my message (impersonate): the AI writes your next message, or fleshes out your draft, following the
 // preset, lore and summary. Nothing is sent: it lands in the box for you to edit.
 async function expandInput() {
-    if (isGenerating) return;
+    if (isBusy(true)) return;
     const draft = messageInput.value;
     const btn = document.getElementById('expandBtn');
     if (btn) btn.disabled = true;
@@ -1017,6 +1036,7 @@ function spellcheckInput() {
 }
 
 function continueGeneration() {
+    if (isBusy(true)) return;
     const msgs = document.querySelectorAll('.message:not(#typingMessage)');
     // Ensure the last message is from the assistant
     if (msgs.length === 0 || !msgs[msgs.length - 1].classList.contains('assistant')) {
@@ -1174,7 +1194,7 @@ function setVolume(v) { bgMusic.volume = v; }
 
 // A new version of the AI's last reply. The old one stays as a swipe (and comes back if this fails).
 function regenerateReply(guidance = '', model = '') {
-    if (isGenerating) return;
+    if (isBusy(true)) return;
     const msgs = document.querySelectorAll('.message:not(#typingMessage)');
     const last = msgs[msgs.length - 1];
     const old = last && last.classList.contains('assistant') ? last : null;
@@ -1209,7 +1229,7 @@ function regenerateReply(guidance = '', model = '') {
             if (d.music_due) followSceneMusic();
         })
         .catch(err => { console.error(err); restore(); showChatError('Could not reach the app server.'); })
-        .finally(() => { isGenerating = false; sendBtn.disabled = false; stopContainer.style.display = 'none'; typingMessage.style.display = 'none'; updateMessageIndices(); });
+        .finally(() => { isGenerating = false; sendBtn.disabled = isBusy(); stopContainer.style.display = 'none'; typingMessage.style.display = 'none'; updateMessageIndices(); });
 }
 
 // --- Swipes: ‹ 2/3 › under the AI's last reply ---
@@ -1234,7 +1254,7 @@ function setSwipes(info) {
 
 function swipe(step) {
     const info = window.LAST_SWIPES;
-    if (!info || isGenerating) return;
+    if (!info || isBusy(true)) return;
     const to = info.current + step;
     if (to < 0) return;
     if (to >= info.count) { regenerateReply(); return; }  // past the newest: write a new one
@@ -1712,8 +1732,9 @@ function setPolish(messageEl, info, busy = false) {
 // now: they just pressed "Fix this automatically", so this reply is polished too and they hear why if it isn't
 function runPolish(messageEl, now = false, index = null, again = false) {
     if (!messageEl) { if (now) showChatNotice("There's no reply to polish yet; the next one will be."); return; }
-    setPolish(messageEl, null, true);
-    if (window.READING_LANGUAGE) setStage(messageEl, '🧹 Revising…');
+    if (window.READING_LANGUAGE) setStage(messageEl, '🧹 Revising…');  // the stage line says it (one line, not two)
+    else setPolish(messageEl, null, true);
+    lockWhileFinishing();
     return fetch(window.location.href, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
@@ -1732,7 +1753,8 @@ function runPolish(messageEl, now = false, index = null, again = false) {
             setPolish(messageEl, d.polish);
         })
         .catch(() => setPolish(messageEl, null))
-        .finally(() => { if (window.READING_LANGUAGE) translateMessage(messageEl); });  // polished English, then translated
+        .then(() => window.READING_LANGUAGE ? translateMessage(messageEl) : null)  // polished English, then translated
+        .finally(unlockFinished);
 }
 
 window.polishLatestNow = () => runPolish(lastAssistant(), true);
@@ -2151,6 +2173,7 @@ const translating = new WeakSet();
 async function translateMessage(messageEl) {
     if (!window.READING_LANGUAGE || !messageEl || translating.has(messageEl)) return;
     translating.add(messageEl);
+    lockWhileFinishing();
     setStage(messageEl, `🌐 Translating into ${window.READING_LANGUAGE_NAME}…`);
     try {
         const resp = await fetch(window.location.href, {
@@ -2173,16 +2196,22 @@ async function translateMessage(messageEl) {
         showChatError("Couldn't reach the app server to translate. The English is shown; press 🌐 to try again.");
     } finally {
         translating.delete(messageEl);
+        unlockFinished();
         setStage(messageEl, null);
         scrollToBottom();
     }
 }
 
 // A reply is written: polish it if that's due (it translates after), else translate it now
-function afterReplyText(messageEl, polishDue) {
-    if (window.READING_LANGUAGE && messageEl) setStage(messageEl, polishDue ? '🧹 Revising…' : `🌐 Translating into ${window.READING_LANGUAGE_NAME}…`);
-    if (polishDue) runPolish(messageEl);
-    else if (window.READING_LANGUAGE) translateMessage(messageEl);
+async function afterReplyText(messageEl, polishDue) {
+    if (!messageEl || !(polishDue || window.READING_LANGUAGE)) return;
+    if (window.READING_LANGUAGE) setStage(messageEl, polishDue ? '🧹 Revising…' : `🌐 Translating into ${window.READING_LANGUAGE_NAME}…`);
+    lockWhileFinishing();  // the reply isn't done until it's polished and translated
+    try {
+        await (polishDue ? runPolish(messageEl) : translateMessage(messageEl));
+    } finally {
+        unlockFinished();
+    }
 }
 
 // On load: the newest reply (e.g. a new chat's greeting) is translated by itself; older ones on 🌐
