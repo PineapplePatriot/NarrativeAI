@@ -44,6 +44,12 @@ PACE_Z = 1.5
 PACE_COOLDOWN = 20  # replies between two pace notes in one chat
 
 LABELS = {
+    "stock_reactions": "Stock physical reactions used as emotional filler",
+    "vague_emotion": "Vague changes in eyes, expression or voice",
+    "emotional_annotation": "Explaining the emotion after every line",
+    "decorative_stacking": "Stacking descriptions that add no new meaning",
+    "therapy_voice": "Psychological analysis outside the character's voice",
+    "stalled_scene": "Repeated reactions instead of developing the interaction",
     "same_openings": "Sentences keep starting the same way",
     "overworked_metaphor": "Metaphors stretched too far",
     "forced_callback": "Leaning on earlier scenes instead of describing this one",
@@ -66,8 +72,16 @@ LABELS = {
     "ending_formula": "The same kind of ending every time",
 }
 CAUSES = ("model", "setup", "their_messages")
+# Known AI slop, whoever the reader is: rewritten out of new replies by default (fix_known, polish.approved)
+KNOWN_FIX = ("stock_reactions", "vague_emotion", "emotional_annotation", "corrective_contrast", "staccato")
 # What each one looks like, in plain words (Bulba's notebook page)
 ABOUT = {
+    "stock_reactions": "Clenching and unclenching hands, opening and closing the mouth, jaw or breath cues repeated as emotional filler. A meaningful physical reaction is fine.",
+    "vague_emotion": "Something changes in their eyes, gaze or voice, but the description never specifies what is perceived or contributes to the scene.",
+    "emotional_annotation": "The narrator explains what every line or gesture means after the reader could already infer it. Preserve requested interior narration.",
+    "decorative_stacking": "Repeated near-synonyms and parallel descriptions add emphasis without new information.",
+    "therapy_voice": "Characters routinely diagnose feelings or deliver counseling language beyond their voice, knowledge or relationship.",
+    "stalled_scene": "Replies repeat observations and reactions without addressing the unresolved exchange. Quiet conversation is not inherently stalled.",
     "same_openings": "He… He… He…: sentence after sentence starts the same way and the rhythm goes flat.",
     "overworked_metaphor": "A small gesture turned into a showy figure of speech, again and again.",
     "forced_callback": "\"The same look she gave him at the station\": pointing back at old scenes instead of this one.",
@@ -129,6 +143,9 @@ def user_data(user):
     # Things they told Bulba they dislike ("other: <name>" -> what it means), fixed and watched like any habit
     data.setdefault("dislikes", {})
     data.setdefault("model_off", [])  # known habits of their chat model they asked Watch not to look for
+    # Known slop is rewritten out of new replies for everyone, no taste needed (Notebook page: off switch): the
+    # universal tells (KNOWN_FIX) and their chat model's own known habits (the ticked ones); muted ones stay out
+    data.setdefault("fix_known", True)
     # On for everyone from the start (once: if they stop it on the Notebook page it stays stopped): the model's
     # machinery (note_milestone(...), <thinking>, [OOC: ...]) tidied out of new replies
     if not data.get("defaults_v1"):
@@ -772,6 +789,14 @@ def habits(data, muted, char_name="the character", fixing=()):
         if len(window) < need:
             continue
         hits = [e for e in data["log"] if e["label"] == label and e["at"] in window]
+        if label == "repeated_phrase":
+            # A notice must demonstrate ONE repeated phrase, not pool unrelated matches.
+            groups = {}
+            for hit in hits:
+                groups.setdefault(hit["quote"], []).append(hit)
+            eligible = [group for group in groups.values()
+                        if len({e["at"] for e in group}) >= PHRASE_THRESHOLD]
+            hits = max(eligible, key=lambda group: len({e["at"] for e in group}), default=[])
         replies = {e["at"] for e in hits}
         if len(replies) < need:
             continue
@@ -813,9 +838,9 @@ def page_state(user, chat_obj):
     mine = user_data(user)
     return {"on": on, "chat_off": bool(data.get("off")), "intro": on and not mine.get("intro_seen"),
             "fixing": [title_of(m) for m in mine["fix"]] if on and not data.get("off") else [],  # the 🧹 button
-            "every": EVERY, "notices": [{**{k: n.get(k) for k in ("id", "kind", "title", "text", "quotes", "index", "nofix")},
+            "every": EVERY, "notices": [{**{k: n.get(k) for k in ("id", "kind", "title", "text", "quotes", "index", "nofix", "count", "of")},
                                          "fixing": n.get("label") in mine["fix"]}
-                                        for n in reversed(new)][:3], "count": len(new)}
+                                        for n in reversed(new)], "count": len(new)}
 
 
 def set_notice(user, chat_obj, notice_id, status):
@@ -895,6 +920,8 @@ def polish_rejected(user, chat_obj, index, why, rec, habits):
 
 
 def title_of(label, char_name="The character"):
+    if label == "model_known":  # polish.MODEL_KNOWN: the chat model's own known habits
+        return "Your model's known habits"
     return LABELS.get(label, label.replace("other: ", "").capitalize()).replace("{char}", char_name)
 
 
@@ -924,11 +951,15 @@ def notebook(user):
         **memory(user),
         "on": is_on(user),
         "common": [{"label": label, "title": title_of(label), "about": ABOUT.get(label, ""),
-                    "on": label not in mine["muted"], "fixing": label in mine["fix"]} for label in LABELS],
+                    "on": label not in mine["muted"],
+                    "fixing": label in mine["fix"] or (mine.get("fix_known", True) and label in KNOWN_FIX)}
+                   for label in LABELS],
         "model": {"name": profile.get("name") or chat_model or "your chat model",
                   "items": [{"text": h, "on": h not in mine["model_off"]}
                             for h in (profile.get("style") or {}).get("watch_for") or []]},
         "own": [{"label": label, "title": title_of(label), "about": mine["dislikes"].get(label, "")} for label in own],
+        "fix_known": mine.get("fix_known", True),
+        "known_fix": [title_of(label) for label in KNOWN_FIX if label not in mine["muted"]],
         "muted_other": [{"label": m, "title": title_of(m)} for m in mine["muted"] if m not in LABELS],
         "spent": ai_client.spent_total(user),
         "month": ai_client.spent_this_month(user),
@@ -1010,6 +1041,8 @@ def change_memory(user, op, old="", new=""):
         if not old or len(old) > 200:
             raise ValueError("Which habit?")
         mine["model_off"] = [h for h in mine["model_off"] if h != old] + ([old] if op == "model_off" else [])
+    elif op == "fix_known":  # the Notebook page's switch: rewrite the known slop out of new replies
+        mine["fix_known"] = bool(new)
     elif op == "fix_model":
         if new not in ("bulba", "chat"):
             raise ValueError("Pick Bulba's model or your chat model.")
@@ -1125,12 +1158,12 @@ def for_bulba(notice):
                 f"{notice.get('count')} of the last {notice.get('of')} replies), although you polish it away each "
                 f"time they see it. Examples, as the model wrote them:\n{quotes}\nThey opened the note. In two "
                 "sentences: polishing hides it, but the model hasn't stopped. Offer the fix at the source: a preset "
-                "change (propose_preset_edit, tested wording first with find_practice; or the model settings if "
+                "change (propose_preset_edit, inspect relevant research with find_practice; or the model settings if "
                 "it's a repetition problem). If the polish itself let some through, also offer polish_message on "
                 "the latest replies. Keeping the polish as it is stays a fine answer.]")
     return (f"[Bulba Watch noticed a habit: {notice['title']} (in {notice.get('count')} of the last "
             f"{notice.get('of')} replies). Examples:\n{quotes}\nLikely source: {causes}. They opened the note. "
             "In two or three sentences, show them the habit with one quote and say where it comes from (the "
             "model, the preset or card, or their own messages: if theirs, say it gently and as a shared thing, "
-            "never as blame). Then propose one fix the usual way, borrowing tested wording first. A good reply "
+            "never as blame). Then propose one fix the usual way, using a relevant research principle. A good reply "
             "can still have a slip or two: the point is that it keeps repeating.]")

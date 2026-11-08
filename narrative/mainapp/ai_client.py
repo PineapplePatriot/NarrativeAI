@@ -24,6 +24,13 @@ TASKS = {
         "help": "Story replies, regenerate and continue.",
         "timeout": 180,
     },
+    "translation": {
+        "label": "Translation",
+        "help": "Translates the story into the language you read it in (Profile → Story language). The story is "
+                "written in English and translated, faithfully, without rewriting it. Without a model of its own it "
+                "uses Gemini 3.8 Flash through OpenRouter.",
+        "timeout": 120,
+    },
     "summary": {
         "label": "Story summary",
         "help": "Condenses older events. Automatic mode runs every N messages; "
@@ -130,6 +137,9 @@ def is_enabled(user, task):
 
 # Bulba's own model (the samples it shows always come from the user's chat model)
 BULBA_MODEL = "xiaomi/mimo-v2.6-pro"
+# Translation (profile → Story language) without a model of its own: cheap and strong in Ukrainian and other
+# languages. Not the chat model, which is often the one weak in that language: that's why it writes English
+TRANSLATION_MODEL = "google/gemini-3.8-flash"
 # When a provider's filter refuses one of Bulba's requests ("considered high risk"), that one request is sent
 # again down this chain, only on a refusal: Gemini 4 Argon first (dependable with conventional adult content),
 # DeepSeek V4 Flash only if Argon refuses too
@@ -183,6 +193,8 @@ def resolve(user, task):
 
     if setting.model:
         model = setting.model
+    elif task == "translation" and setting.profile is None and profile.provider == ConnectionProfile.PROVIDER_OPENROUTER:
+        model = TRANSLATION_MODEL
     elif setting.profile is None and chat_setting.model:
         model = chat_setting.model  # follows the main chat's model override
     else:
@@ -248,6 +260,29 @@ def spending(user):
     return {"spent": spent, "limit": limit, "left": round(max(0.0, limit - spent), 4)}
 
 
+# Background jobs fill in JSON or short notes: a thinking model thinks as little as it allows there (the story reply
+# keeps the Samplers page's setting; Bulba and polishing keep the model's own default, they're writing work)
+LIGHT_TASKS = ("summary", "trackers", "emotion", "voice_split", "watch", "writing_tools")
+
+
+def _light_reasoning(profile, task, payload, user=None):
+    if task not in LIGHT_TASKS or "reasoning" in payload or profile.provider != ConnectionProfile.PROVIDER_OPENROUTER:
+        return
+    if user is not None:
+        from mainapp import samplers
+        if samplers.background_thinking(user) == "model":  # they asked for the model's own default (Extras page)
+            return
+    from mainapp import model_profiles
+    info = (model_profiles.for_model(payload["model"]) or {}).get("reasoning") or {}
+    choices = info.get("choices") or {}
+    if "off" in choices:
+        payload["reasoning"] = {"enabled": False}
+    else:
+        lowest = next((c for c in ("minimal", "low", "medium") if c in choices), None)
+        if lowest:
+            payload["reasoning"] = {"effort": lowest}
+
+
 def _request(user, task, messages, timeout=None, **params):
     """Sends one chat completion request and returns (profile, the parsed JSON reply)."""
     check_limit(user)
@@ -259,6 +294,7 @@ def _request(user, task, messages, timeout=None, **params):
     if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER and str(payload["model"]).startswith("google/"):
         payload.setdefault("safety_settings", GEMINI_SAFETY)
     _route(profile, payload)
+    _light_reasoning(profile, task, payload, user)
     timeout = TEST_TIMEOUT or timeout or TASKS.get(task, {}).get("timeout", 60)
     label = TASKS.get(task, {}).get("label", task)
 
@@ -403,6 +439,7 @@ def stream(user, task, messages, timeout=None, **params):
     if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER and str(payload["model"]).startswith("google/"):
         payload.setdefault("safety_settings", GEMINI_SAFETY)  # Gemini's adjustable filters off (see GEMINI_SAFETY)
     _route(profile, payload)
+    _light_reasoning(profile, task, payload, user)
     read_timeout = TEST_TIMEOUT or timeout or TASKS.get(task, {}).get("timeout", 60)  # max wait between two pieces
     label = TASKS.get(task, {}).get("label", task)
 

@@ -65,7 +65,8 @@ $('profiles').addEventListener('click', async e => {
     const p = state.profiles.find(x => String(x.id) === card.dataset.id);
     if (act === 'remove') {
         const used = state.tasks.filter(t => String(t.profile_id) === String(p.id)).map(t => t.label);
-        if (!confirm(`Remove “${p.name || 'this connection'}”?` + (used.length ? `\n${used.join(', ')} will switch to the main chat connection.` : ''))) return;
+        if (!await NADialog.confirm(`Remove “${p.name || 'this connection'}”?` + (used.length ? `\n${used.join(', ')} will switch to the main chat connection.` : ''),
+                                    { ok: 'Remove', danger: true })) return;
         state.profiles = state.profiles.filter(x => x !== p);
         state.tasks.forEach(t => { if (String(t.profile_id) === String(p.id)) t.profile_id = null; });
         markDirty(); renderProfiles(); renderTasks();

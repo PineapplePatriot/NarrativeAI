@@ -397,3 +397,12 @@ label.check input { width: auto; accent-color: var(--accent-1) }
 #formsResult .btn { margin-top: 8px; }
 .test-note { display: block; margin: 8px 0; font-size: .85rem; }
 .test-note input { width: 100%; box-sizing: border-box; margin-top: 4px; }
+/* 🥔 Expand */
+.expand-what { display: flex; flex-direction: column; gap: 4px; margin: 6px 0; }
+.expand-what small { opacity: .7; }
+#expandResult, #entryExpandResult { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.x-pick { align-items: flex-start !important; line-height: 1.45; font-size: .85rem; }
+.x-pick input { margin-top: 3px; }
+.x-origin { font-size: .8rem; opacity: .8; margin: 0; }
+.entry-expand { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border-color, rgba(255,255,255,.1)); }
+.entry-expand .hint { display: block; margin: 6px 0 0; }

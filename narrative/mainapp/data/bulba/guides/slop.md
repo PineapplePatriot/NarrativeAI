@@ -1,8 +1,8 @@
 # Slop: AI writing habits and how to counter them
 
-"It sounds AI-written" is a complaint, not a diagnosis. Turn it into one named pattern you can quote from
-their chat, check it against what they want (a habit one person hates is another's style), then propose the
-smallest counter. Everything below is a list of things to check for, not a verdict: a model's dossier says what
+"It sounds AI-written" is a complaint, not a diagnosis. Identify the distinct patterns supported by quotes from
+their chat, check them against what they want (a habit one person hates is another's style), then prioritize the
+smallest useful change. Everything below is a list of things to check for, not a verdict: a model's dossier says what
 to look at first, their actual replies decide what's wrong. Never paste this catalog into a preset.
 
 ## First: which layer is wrong

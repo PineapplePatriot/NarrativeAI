@@ -82,14 +82,15 @@ document.querySelector('.toolbar').addEventListener('click', async e => {
     if (!action) return;
     try {
         if (action === 'rename') {
-            const name = prompt('New name', preset.name);
+            const name = await NADialog.prompt('New name for this preset:', preset.name, { ok: 'Rename' });
             if (!name) return;
             const data = await act({ action, id: preset.id, name });
             presets = data.presets; preset.name = data.preset.name;
             renderList(); renderHead();
             return;
         }
-        if (action === 'delete' && !confirm(`Delete “${preset.name}”? This cannot be undone.`)) return;
+        if (action === 'delete' && !await NADialog.confirm(`Delete “${preset.name}”? This cannot be undone.`,
+                                                            { ok: 'Delete', danger: true })) return;
         await flushSave();
         goTo((await act({ action, id: preset.id })).selected);
     } catch (err) { alert(err.message); }
@@ -313,7 +314,7 @@ $('foldAll').onclick = () => { groupList().forEach(g => collapsed.add(g.key)); s
 $('unfoldAll').onclick = () => { collapsed.clear(); saveFolds(); renderBlocks(); };
 
 // Clicks: open editor, fold group, move, delete, duplicate
-$('blocks').addEventListener('click', e => {
+$('blocks').addEventListener('click', async e => {
     const chips = e.target.closest('.folded-chips');
     if (chips) { collapsed.delete(chips.dataset.fold); saveFolds(); renderBlocks(); return; }
     const t = e.target.closest('button');
@@ -333,7 +334,7 @@ $('blocks').addEventListener('click', e => {
         renderBlocks(); scheduleSave();
     } else if (t.dataset.delete) {
         const b = blockById(t.dataset.delete);
-        if (b.kind !== 'header' && !confirm(`Delete “${b.name}”?`)) return;
+        if (b.kind !== 'header' && !await NADialog.confirm(`Delete “${b.name}”?`, { ok: 'Delete', danger: true })) return;
         preset.blocks = preset.blocks.filter(x => x.id !== b.id);
         open.delete(b.id);
         renderBlocks(); scheduleSave();
@@ -459,13 +460,32 @@ $('addSlot').onchange = e => {
 
 // --------------------------------------------------------- Utility prompts
 function renderUtility() {
-    $('utility').innerHTML = Object.entries(DATA.utility_labels).map(([key, [label, help]]) => `
-      <label class="utility">${esc(label)} <span class="hint">${esc(help)}</span>
-        <textarea data-utility="${key}" rows="2">${esc(preset.utility[key] || '')}</textarea></label>`).join('');
+    const jobs = DATA.job_defaults || {};
+    const row = ([key, [label, help]]) => {
+        const job = key in jobs, changed = job && (preset.utility[key] || '').trim() && preset.utility[key].trim() !== jobs[key];
+        return `<label class="utility">${esc(label)} <span class="hint">${esc(help)}</span>
+          ${job ? `<button type="button" class="ghost reset-utility" data-reset="${key}" ${changed ? '' : 'hidden'}>Reset to default</button>` : ''}
+          <textarea data-utility="${key}" rows="${job ? 5 : 2}" placeholder="${job ? esc(jobs[key]) : ''}">${esc(preset.utility[key] || '')}</textarea></label>`;
+    };
+    const entries = Object.entries(DATA.utility_labels);
+    $('utility').innerHTML = entries.filter(([k]) => !(k in jobs)).map(row).join('')
+        + (Object.keys(jobs).length ? '<h3 class="utility-group">🧰 App jobs</h3>' + entries.filter(([k]) => k in jobs).map(row).join('') : '');
 }
 $('utility').addEventListener('input', e => {
     const key = e.target.dataset.utility;
-    if (key) { preset.utility[key] = e.target.value; scheduleSave(); }
+    if (!key) return;
+    preset.utility[key] = e.target.value;
+    const reset = $('utility').querySelector(`[data-reset="${key}"]`);
+    if (reset) reset.hidden = !e.target.value.trim() || e.target.value.trim() === (DATA.job_defaults || {})[key];
+    scheduleSave();
+});
+$('utility').addEventListener('click', e => {
+    const key = e.target.dataset && e.target.dataset.reset;
+    if (!key) return;
+    e.preventDefault();
+    preset.utility[key] = DATA.job_defaults[key];
+    renderUtility();
+    scheduleSave();
 });
 
 // ----------------------------------------------------------------- Saving
@@ -674,7 +694,7 @@ $('rules').addEventListener('click', async e => {
     const r = ruleById(box.dataset.rule);
     const a = el.dataset.ract;
     if (a === 'open') { openRules.has(r.id) ? openRules.delete(r.id) : openRules.add(r.id); renderRules(); }
-    if (a === 'delete' && confirm(`Delete the rule “${r.name}”?`)) {
+    if (a === 'delete' && await NADialog.confirm(`Delete the rule “${r.name}”?`, { ok: 'Delete', danger: true })) {
         setRuleList(ruleList().filter(x => x !== r)); renderRules(); rulesChanged();
     }
     if (a === 'test') {

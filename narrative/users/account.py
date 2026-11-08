@@ -41,29 +41,57 @@ def _media_path(url_or_name):
     return path if path.startswith(root + os.sep) else None
 
 
-def delete_account(user):
+def _character_files(character, skip_ids):
+    """The stored files a character uses (its pictures, unless another character still does; its chat logs and
+    voice clips)."""
     from mainapp import chats
+    from mainapp.models import Character
+    files = set()
+    for field in _file_fields(Character):
+        name = getattr(character, field).name
+        if name and not _still_used(name, skip_ids):
+            files.add(name)
+    for chat in character.chats.all():
+        if chat.log_file:
+            files.add(chat.log_file.name)
+        try:
+            messages = chats.read(chat).get("messages") or []
+        except Exception:  # an unreadable log still goes
+            messages = []
+        for m in messages:
+            audio = (chats._extras(m).get("audio") or {}).get("url") if isinstance(m, (list, tuple)) else None
+            if audio:
+                files.add(audio)
+    return files
+
+
+def _remove_files(files):
+    for name in files:  # after the database, so a failed delete never leaves records pointing at missing files
+        path = _media_path(name)
+        if path and os.path.isfile(path):
+            try:
+                os.remove(path)
+            except OSError as e:
+                log.warning("Could not remove %s: %s", path, e)
+
+
+def delete_character(character):
+    """One character, its chats (and their Bulba talks) and its files. Its worldbook stays: it's a separate
+    thing on the Worldbooks page and may be used by other characters."""
+    files = _character_files(character, [character.id])
+    with transaction.atomic():
+        character.delete()
+    _remove_files(files)
+
+
+def delete_account(user):
     from mainapp.models import Character, ChatSettings, Worldbook
 
     characters = list(Character.objects.filter(author=user))
     char_ids = [c.id for c in characters]
     files = set()
     for character in characters:
-        for field in _file_fields(Character):
-            name = getattr(character, field).name
-            if name and not _still_used(name, char_ids):
-                files.add(name)
-        for chat in character.chats.all():
-            if chat.log_file:
-                files.add(chat.log_file.name)
-            try:
-                messages = chats.read(chat).get("messages") or []
-            except Exception:  # an unreadable log still goes
-                messages = []
-            for m in messages:
-                audio = (chats._extras(m).get("audio") or {}).get("url") if isinstance(m, (list, tuple)) else None
-                if audio:
-                    files.add(audio)
+        files |= _character_files(character, char_ids)
     for book in Worldbook.objects.filter(author=user):
         if book.json_file:
             files.add(book.json_file.name)
@@ -83,12 +111,6 @@ def delete_account(user):
         ChatSettings.objects.filter(author=user).delete()
         user.delete()                                          # presets, keys, Bulba, usage, activity: cascade
 
-    for name in files:  # after the database, so a failed delete never leaves records pointing at missing files
-        path = _media_path(name)
-        if path and os.path.isfile(path):
-            try:
-                os.remove(path)
-            except OSError as e:
-                log.warning("Could not remove %s: %s", path, e)
+    _remove_files(files)
     for folder in folders:
         shutil.rmtree(folder, ignore_errors=True)

@@ -287,6 +287,69 @@ class WorldbookViewTests(TestCase):
             self.assertEqual(self.post_json(reverse("worldbook_forms", args=[wb.slug]), {"book": book}).status_code, 502)
         self.assertContains(self.client.get(reverse("worldbook_detail", args=[wb.slug])), 'id="formsBtn"')
 
+    def expand_book(self):
+        return {"title": "Teyvat", "based_on": "Genshin Impact", "entries": [
+            {"uid": 0, "comment": "Dottore", "keys": ["Dottore"], "content": "The Second of the Harbingers."},
+            {"uid": 1, "comment": "Sumeru", "keys": ["Sumeru"], "content": "A nation of wisdom."}]}
+
+    def run_expand(self, book, what, research, answer, uid=None):
+        from unittest import mock
+        from mainapp import ai_client
+        from users.models import ConnectionProfile
+        self.post_json(reverse("worldbook_create"), {"title": "Teyvat"})
+        wb = Worldbook.objects.get(author=self.user)
+        profile = ConnectionProfile.objects.create(user=self.user, name="OR", api_key="k", model="x/y",
+                                                   provider=ConnectionProfile.PROVIDER_OPENROUTER)
+        message = {"content": research, "annotations": [{"url_citation": {"url": "https://wiki.example/dottore"}}]}
+        with mock.patch.object(ai_client, "resolve", return_value=(profile, "x/y")), \
+                mock.patch.object(ai_client, "complete_message", return_value=(message, 0.01)) as web, \
+                mock.patch.object(ai_client, "complete", return_value=answer) as ask:
+            body = {"book": book, "what": what, **({"uid": uid} if uid is not None else {})}
+            resp = self.post_json(reverse("worldbook_expand", args=[wb.slug]), body)
+        return resp, web, ask
+
+    def test_expand_from_the_web(self):
+        answer = json.dumps({"canon": True, "entries": {
+            "0": {"keys": ["Il Dottore", "Zandik", "dottore"], "add": "He experiments on himself."},
+            "1": {"keys": [], "add": "A nation of wisdom."}},  # repeats the entry: dropped
+            "new": [{"title": "Akademiya", "keys": ["Akademiya"], "content": "Sumeru's school."},
+                    {"title": "Sumeru", "keys": ["Sumeru"], "content": "dup"}]})
+        resp, web, ask = self.run_expand(self.expand_book(), ["keys", "lore", "new"], "Dottore, also Zandik...", answer)
+        data = resp.json()
+        self.assertEqual(data["origin"], "web")
+        self.assertEqual(data["entries"], {"0": {"keys": ["Il Dottore", "Zandik"], "add": "He experiments on himself."}})
+        self.assertEqual([n["title"] for n in data["new"]], ["Akademiya"])
+        self.assertEqual(data["sources"], ["https://wiki.example/dottore"])
+        self.assertIn("Genshin Impact", web.call_args[0][2][1]["content"])  # the web search is about the work
+        self.assertIn("Research:", ask.call_args[0][2][0]["content"])
+
+    def test_expand_an_own_world_is_invented(self):
+        book = {**self.expand_book(), "based_on": ""}
+        answer = json.dumps({"canon": True, "entries": {"0": {"keys": ["the Doctor"]}}, "new": []})
+        resp, web, ask = self.run_expand(book, ["keys"], "NOT FOUND", answer)
+        data = resp.json()
+        self.assertEqual(data["origin"], "invented")
+        self.assertIn("invented", data["note"])
+        self.assertEqual(data["entries"]["0"]["keys"], ["the Doctor"])
+
+    def test_expand_one_entry_never_adds_new_ones(self):
+        answer = json.dumps({"canon": True, "entries": {"1": {"keys": ["Sumeru City"]}},
+                             "new": [{"title": "X", "keys": ["X"], "content": "x"}]})
+        resp, web, ask = self.run_expand(self.expand_book(), ["keys", "lore", "new"], "Sumeru City...", answer, uid=1)
+        data = resp.json()
+        self.assertEqual((data["entries"], data["new"]), ({"1": {"keys": ["Sumeru City"], "add": ""}}, []))
+        self.assertIn("Sumeru in Genshin Impact", web.call_args[0][2][1]["content"])
+        self.assertNotIn("Dottore", ask.call_args[0][2][1]["content"])  # only that entry is sent
+
+    def test_based_on_is_kept_and_shown(self):
+        self.post_json(reverse("worldbook_create"), {"title": "Teyvat"})
+        wb = Worldbook.objects.get(author=self.user)
+        self.post_json(reverse("worldbook_detail", args=[wb.slug]), {**self.expand_book(), "based_on": "Genshin, Sumeru arc"})
+        page = self.client.get(reverse("worldbook_detail", args=[wb.slug]))
+        self.assertEqual(page.context["worldbook_json"]["based_on"], "Genshin, Sumeru arc")
+        self.assertContains(page, 'id="expandBtn"')
+        self.assertContains(page, 'id="entryExpandBtn"')
+
     def test_the_test_panel_reads_a_note(self):
         self.post_json(reverse("worldbook_create"), {"title": "Notes"})
         wb = Worldbook.objects.get(author=self.user)
@@ -2943,6 +3006,256 @@ class SteerMenuTests(ChatPromptTests):
         self.assertNotIn("control_before", active["extras"])
 
 
+class LightReasoningTests(SimpleTestCase):
+    """Background jobs (trackers, summaries...) think as little as the model allows; the story reply is untouched."""
+
+    def payload(self, task, model, provider="openrouter", **extra):
+        import types
+        from mainapp import ai_client
+        payload = {"model": model, "messages": [], **extra}
+        ai_client._light_reasoning(types.SimpleNamespace(provider=provider), task, payload)
+        return payload.get("reasoning")
+
+    def test_levels(self):
+        self.assertEqual(self.payload("trackers", "xiaomi/mimo-v2.6-pro"), {"enabled": False})  # can switch off
+        self.assertEqual(self.payload("summary", "google/gemini-4-argon"), {"effort": "low"})  # always thinks
+        self.assertIsNone(self.payload("chat", "xiaomi/mimo-v2.6-pro"))  # the story keeps its setting
+        self.assertIsNone(self.payload("bulba", "xiaomi/mimo-v2.6-pro"))
+        self.assertIsNone(self.payload("trackers", "xiaomi/mimo-v2.6-pro", provider="openai"))
+        self.assertIsNone(self.payload("trackers", "someone/unknown-model"))
+        self.assertEqual(self.payload("trackers", "xiaomi/mimo-v2.6-pro", reasoning={"effort": "high"}), {"effort": "high"})
+
+
+class ThinkingLevelTests(ChatPromptTests):
+    def use_model(self, model):
+        from users.models import ConnectionProfile
+        ConnectionProfile.objects.filter(user=self.user).update(model=model, provider=ConnectionProfile.PROVIDER_OPENROUTER)
+
+    def test_levels_by_model(self):
+        from mainapp import samplers
+        ids = lambda m: [o["id"] for o in samplers.thinking_options(m)]
+        self.assertEqual(ids("xiaomi/mimo-v2.6-pro"), ["default", "off", "full"])  # on or off only
+        self.assertEqual(ids("google/gemini-4-argon"), ["default", "light", "full"])  # always thinks
+        self.assertEqual(ids("anthropic/claude-opus-4.6"), ["default", "off", "light", "full"])
+
+    def test_pen_menu_sets_the_story_replies(self):
+        from mainapp import presets, samplers
+        self.use_model("xiaomi/mimo-v2.6-pro")
+        page = self.client.get(self.url)
+        self.assertContains(page, 'id="thinkingChoice"')
+        self.assertContains(page, 'data-thinking="off"')
+        self.assertNotContains(page, 'data-thinking="light"')
+        self.assertEqual(self.post({"action": "thinking", "level": "off"}).json()["level"], "off")
+        self.assertEqual(samplers.for_user(self.user)["reasoning_effort"], {"on": True, "value": "off"})
+        self.post({"action": "chat", "message": "Hi"})
+        self.assertEqual(self.sent[-1].get("reasoning"), {"enabled": False})
+        self.assertFalse(self.post({"action": "thinking", "level": "light"}).json()["success"])  # MiMo can't
+        self.post({"action": "thinking", "level": "default"})
+        self.assertFalse(samplers.for_user(self.user)["reasoning_effort"]["on"])
+
+    def test_background_and_bulba(self):
+        from mainapp import ai_client, samplers
+        import types
+        self.assertEqual(samplers.background_thinking(self.user), "light")
+        payload = {"model": "xiaomi/mimo-v2.6-pro"}
+        ai_client._light_reasoning(types.SimpleNamespace(provider="openrouter"), "trackers", payload, self.user)
+        self.assertEqual(payload["reasoning"], {"enabled": False})
+        from users.views import apply_extras, _extras_state
+        self.use_model("xiaomi/mimo-v2.6-pro")
+        self.assertIsNone(apply_extras(self.user, {"thinking": "off", "background_thinking": "model"}))
+        self.assertEqual((_extras_state(self.user)["thinking"], _extras_state(self.user)["background_thinking"]),
+                         ("off", "model"))
+        payload = {"model": "xiaomi/mimo-v2.6-pro"}
+        ai_client._light_reasoning(types.SimpleNamespace(provider="openrouter"), "trackers", payload, self.user)
+        self.assertNotIn("reasoning", payload)  # the model's own default, as asked
+
+
+class JobPromptTests(ChatPromptTests):
+    """The app's own jobs read their instructions from the preset's utility prompts."""
+
+    def set_utility(self, **values):
+        from mainapp import presets
+        obj = presets.get_active(self.user)
+        data = presets.normalize(obj.data)
+        data["utility"].update(values)
+        obj.data = data
+        obj.save()
+
+    def test_defaults_then_their_own(self):
+        from mainapp import presets, trackers
+        self.assertEqual(presets.job_prompt(self.user, "summary_new"), presets.JOB_DEFAULTS["summary_new"])
+        self.set_utility(summary_new="Summarize in Ukrainian, as a list.", tracker_rules="- Values in one word.",
+                         ideas_player="Ideas for {{user}} with {{char}}.", condense="  ")
+        self.assertEqual(presets.job_prompt(self.user, "summary_new"), "Summarize in Ukrainian, as a list.")
+        self.assertEqual(presets.job_prompt(self.user, "condense"), presets.JOB_DEFAULTS["condense"])  # empty: default
+        self.assertEqual(presets.job_prompt(self.user, "ideas_player", {"user": "Wren", "char": "Rose"}),
+                         "Ideas for Wren with Rose.")
+        config = trackers.normalize_config({})
+        state = trackers.normalize_state({}, config)
+        built = trackers.update_messages(config, state, [("Wren", "Hi")], "Rose", "Wren",
+                                         rules=presets.job_prompt(self.user, "tracker_rules"))
+        system = built[0]["content"]
+        self.assertIn("- Values in one word.", system)
+        self.assertIn("Reply with ONLY a JSON object", system)  # the format stays
+        self.assertIn("Never change locked values", system)
+        self.assertNotIn("For object trackers", system)
+
+    def test_the_summary_uses_it(self):
+        from mainapp import views
+        from unittest import mock
+        self.set_utility(summary_new="Keep only who owes whom.")
+        with mock.patch.object(views.ai_client, "complete", return_value="ok") as call:
+            views._summarize(self.user, [("user", "1", "I lend you ten coins.", "neutral", 1)])
+        self.assertEqual(call.call_args[0][2][0]["content"], "Keep only who owes whom.")
+
+    def test_shown_on_the_presets_page_and_bulba_can_edit(self):
+        from mainapp import presets
+        from mainapp.bulba import doctor
+        page = self.client.get(reverse("presets"))
+        self.assertIn("tracker_rules", page.context["preset_page"]["job_defaults"])
+        preset = presets.normalize(presets.get_active(self.user).data)
+        edited = doctor.apply_edits(preset, [{"action": "utility", "block": "tracker_rules", "content": "- Short."}])
+        self.assertEqual(edited["utility"]["tracker_rules"], "- Short.")
+
+
+class TranslationWorkflowTests(ChatPromptTests):
+    """Profile → Story language: replies are written in English and translated for reading."""
+
+    def read_in(self, lang):
+        self.user.display_language = lang
+        self.user.save()
+
+    def fake_translate(self, user, text, target, source="en", glossary=None):
+        self.translated.append((text, target, source))
+        return ("UK: " if target == "uk" else "EN: ") + text
+
+    def setUp(self):
+        super().setUp()
+        self.translated = []
+
+    def test_english_readers_are_untouched(self):
+        self.post({"action": "chat", "message": "Hi"})
+        self.assertNotIn("Write your reply in English", json.dumps(self.sent[-1]["messages"]))
+        self.assertNotContains(self.client.get(self.url), "data-untranslated")
+
+    def test_written_in_english_translated_and_shown(self):
+        from unittest import mock
+        from mainapp import translation
+        self.read_in("uk")
+        self.post({"action": "chat", "message": "Привіт"})
+        self.assertIn("translated into Ukrainian", self.sent[-1]["messages"][-1]["content"])  # the last instruction
+        index = len(self.saved_messages()) - 1
+        page = self.client.get(self.url)
+        self.assertContains(page, 'data-untranslated="1"')
+        self.assertContains(page, 'window.READING_LANGUAGE = "uk"')
+        english = self.saved_messages()[-1][2]
+        with mock.patch.object(translation, "translate", side_effect=self.fake_translate):
+            d = self.post({"action": "translate", "index": index}).json()
+            self.assertEqual((d["text"], d["original"]), ("UK: " + english, english))
+            self.post({"action": "translate", "index": index})  # already there: no second call
+        self.assertEqual(len(self.translated), 1)
+        saved = self.saved_messages()[-1]
+        self.assertEqual(saved[2], english)  # the story keeps the English
+        page = self.client.get(self.url)
+        self.assertContains(page, "UK: " + english[:20])
+        self.assertContains(page, "data-original=")
+
+    def test_editing_the_translation_updates_the_english(self):
+        from unittest import mock
+        from mainapp import ai_client, translation
+        self.read_in("uk")
+        self.post({"action": "chat", "message": "Привіт"})
+        index = len(self.saved_messages()) - 1
+        with mock.patch.object(translation, "translate", side_effect=self.fake_translate):
+            self.post({"action": "translate", "index": index})
+            d = self.post({"action": "edit", "index": index, "text": "Нова версія"}).json()
+        self.assertEqual((d["success"], d["original"]), (True, "EN: Нова версія"))
+        saved = self.saved_messages()[index]
+        self.assertEqual(saved[2], "EN: Нова версія")
+        self.assertEqual(translation.display_text(saved, "uk"), "Нова версія")
+        with mock.patch.object(translation, "translate", side_effect=ai_client.AIError("down")):
+            d = self.post({"action": "edit", "index": index, "text": "Ще інша"}).json()
+        self.assertTrue(d["keep_draft"])
+        self.assertEqual(self.saved_messages()[index][2], "EN: Нова версія")  # nothing saved
+
+    def test_summary_translated_on_demand_and_cached(self):
+        from unittest import mock
+        from mainapp import chats, translation
+        self.read_in("uk")
+        self.post({"action": "chat", "message": "Hi"})
+        chat = self.character.chats.first()
+        data = chats.read(chat)
+        data["summary_parts"] = [{"text": "They met at the station.", "from": 0, "to": 2}]
+        chats.write(chat, data)
+        with mock.patch.object(translation, "translate", side_effect=self.fake_translate):
+            d = self.post({"action": "summary_translate"}).json()
+            self.post({"action": "summary_translate"})
+        self.assertEqual(d["pieces"], ["UK: They met at the station."])
+        self.assertEqual(len(self.translated), 1)
+        self.assertEqual(chats.read(chat)["summary_parts"][0]["text"], "They met at the station.")  # stays English
+
+    def test_profile_setting_and_the_old_language_rule(self):
+        from mainapp import presets, translation
+        obj = presets.get_active(self.user)
+        data = presets.normalize(obj.data)
+        data["blocks"][0]["content"] = (data["blocks"][0].get("content") or "") + " Write the whole story in Ukrainian."
+        data["blocks"][0]["kind"] = "prompt"
+        obj.data = data
+        obj.save()
+        self.assertContains(self.client.get(reverse("users:profile")), 'name="drop_language_rule"')
+        form = {"username": self.user.username, "email": self.user.email or "chatter@example.com",
+                "display_language": "uk", "drop_language_rule": "on", "first_name": "", "date_birth": ""}
+        self.client.post(reverse("users:profile"), form)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.display_language, "uk")
+        self.assertFalse(translation.language_rule_in_preset(self.user))
+        self.assertEqual(translation.language_code("українська"), "uk")
+        self.assertIsNone(translation.language_code("Klingon"))
+
+    def test_replies_already_in_the_language_are_left_alone(self):
+        from unittest import mock
+        from mainapp import chats, translation
+        self.read_in("uk")
+        self.post({"action": "chat", "message": "Привіт"})
+        chat = self.character.chats.first()
+        data = chats.read(chat)
+        data["messages"][-1][2] = "Він усміхається і наливає чай у дві чашки, не питаючи."  # written before the switch
+        chats.write(chat, data)
+        page = self.client.get(self.url).content.decode()
+        self.assertEqual(page.count('data-untranslated="1"'), 1)  # the English greeting only, not the Ukrainian reply
+        with mock.patch.object(translation, "translate", side_effect=self.fake_translate):
+            d = self.post({"action": "translate", "index": len(data["messages"]) - 1}).json()
+        self.assertTrue(d["same"])
+        self.assertEqual(self.translated, [])  # no paid call
+        self.assertTrue(translation.already_in("Він усміхається і наливає чай.", "uk"))
+        self.assertFalse(translation.already_in("He smiles and pours the tea.", "uk"))
+
+    def test_write_my_message_is_written_in_english_then_translated(self):
+        from unittest import mock
+        from mainapp import translation
+        self.read_in("uk")
+        with mock.patch.object(translation, "translate", side_effect=self.fake_translate):
+            d = self.post({"action": "expand", "text": "іду до дверей"}).json()
+        self.assertTrue(d["success"])
+        self.assertTrue(d["text"].startswith("UK: "))  # cleaned in English, then into the language they write in
+        self.assertIn("translated into Ukrainian", json.dumps(self.sent[-1]["messages"][-1]))
+
+    def test_translation_model_default(self):
+        from mainapp import ai_client
+        from users.models import ConnectionProfile
+        ConnectionProfile.objects.filter(user=self.user).update(provider=ConnectionProfile.PROVIDER_OPENROUTER)
+        self.assertEqual(ai_client.resolve(self.user, "translation")[1], ai_client.TRANSLATION_MODEL)
+        self.assertEqual(ai_client.resolve(self.user, "chat")[1], "test/model")
+
+
+class OutOfStepPageTests(ChatPromptTests):
+    def test_deleting_a_message_the_server_never_saved_reloads(self):
+        data = self.post({"action": "delete", "index": 7}).json()
+        self.assertEqual((data["success"], data["resync"]), (False, True))
+        data = self.post({"action": "edit", "index": 7, "text": "x"}).json()
+        self.assertEqual((data["success"], data["resync"]), (False, True))
+
+
 class ChatSkinTests(ChatPromptTests):
     def test_character_style_then_this_chat_then_plain(self):
         from mainapp.views import chat_skin
@@ -3893,6 +4206,38 @@ class ExtrasPlacementTests(GameTests):
         self.assertIn("[Note shown: Note. It reads: Gone fishing.]", earlier)
         self.assertNotIn("[[extra 1]]", earlier)
 
+    def test_a_written_reply_with_an_extra_at_the_end_is_one_request(self):
+        from mainapp import extras
+        extras.set_kinds(self.user, ["milestones"])
+        story = "She laughs and pours the tea. " * 15  # a whole reply, then the milestone
+        self.rounds = [sse(delta(story), *tool_call("note_milestone", {"who": "Rose", "toward": "You", "now": "warmer",
+                                                                        "because": "the tea"}), "[DONE]"),
+                       sse(delta("SHOULD NOT BE ASKED"), "[DONE]")]
+        resp, events = self.stream_post({"action": "chat", "message": "Tea?"})
+        self.assertEqual(len(self.sent), 1)  # no second request just to say "go on"
+        self.assertNotIn("SHOULD NOT", events[-1]["reply"])
+        self.assertIn("[[extra 1]]", events[-1]["reply"])  # placed by the app
+
+    def test_a_roll_still_waits_for_its_result(self):
+        from unittest import mock
+        self.set_mode("dice")
+        story = "Mira kneels at the lock and works the pick. " * 10
+        self.rounds = [sse(delta(story), *tool_call("roll_dice", {"action": "Mira picks the lock", "difficulty": 10}),
+                           "[DONE]"),
+                       sse(delta("The lock clicks open."), "[DONE]")]
+        with mock.patch("random.SystemRandom.randint", return_value=14):
+            resp, events = self.stream_post({"action": "chat", "message": "I pick the lock"})
+        self.assertEqual(len(self.sent), 2)
+        self.assertIn("The lock clicks open.", events[-1]["reply"])
+
+    def test_an_empty_reply_is_not_saved(self):
+        self.rounds = [sse(delta("   "), "[DONE]")]
+        resp, events = self.stream_post({"action": "chat", "message": "Hello?"})
+        self.assertTrue(events[-1]["empty"])
+        saved = self.saved_messages()
+        self.assertEqual((saved[-1][0], saved[-1][2]), ("user", "Hello?"))  # their message stays, no blank reply
+        self.assertFalse(any(m[0] == "assistant" and not m[2].strip() for m in saved))
+
     def test_unplaced_extra_goes_after_its_paragraph_or_the_end(self):
         from mainapp import extras
         ops = [{"type": "document", "n": 1, "at": 5, "kind": "note", "label": "x", "text": "y", "detail": ""},
@@ -4270,6 +4615,20 @@ class BulbaPicturesAndThemeTests(BulbaCardAndLoreTests):
         self.api(action="undo", id=pid)
         viktor.refresh_from_db()
         self.assertNotIn("dialogue_color", viktor.theme)
+
+    def test_bulba_sets_thinking(self):
+        from mainapp import samplers
+        self.script = [("Lighter thinking.", [self.call("propose_extras", thinking="light", background_thinking="model",
+                                                         why="replies are slow")])]
+        data = self.api(action="say", text="replies take forever").json()
+        p = data["state"]["proposals"][-1]
+        self.assertIn("Thinking before story replies: light", json.dumps(p))
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=p["id"])
+        self.assertEqual((samplers.thinking_now(self.user), samplers.background_thinking(self.user)), ("light", "model"))
+        self.script = [("Undone.", [])]
+        self.api(action="undo", id=p["id"])
+        self.assertEqual((samplers.thinking_now(self.user), samplers.background_thinking(self.user)), ("default", "light"))
 
     def test_long_cards_are_kept_whole(self):
         from mainapp.models import Character
@@ -4920,7 +5279,8 @@ class WatchLogicTests(SimpleTestCase):
             raised += watch.habits(data, [])
         self.assertEqual(len(raised), 1)  # on the third time, not before
         self.assertEqual(raised[0]["label"], "repeated_phrase")
-        self.assertIn("corner of his mouth", " ".join(raised[0]["quotes"]))
+        self.assertTrue(raised[0]["quotes"])
+        self.assertTrue(all(q in tic for q in raised[0]["quotes"]))  # evidence belongs to this repeated sentence
         self.assertEqual(len(raised[0]["quotes"]), len(set(raised[0]["quotes"])))  # each quote once
         # ordinary filler isn't a phrase
         self.assertEqual(watch.repeated_phrases({1: "and then he said that", 3: "and then he said that",
@@ -5328,6 +5688,31 @@ class PolishChatTests(WatchChatTests):
         super().setUp()
         self.polish_calls = []
         self.polish_answer = {"fixes": []}
+        from mainapp.bulba import watch
+        watch.save_user_data(self.user, {**watch.user_data(self.user), "fix_known": False})  # only what they approve
+
+    def test_known_slop_is_fixed_by_default(self):
+        from mainapp.bulba import polish, watch
+        from unittest import mock
+        watch.save_user_data(self.user, {**watch.user_data(self.user), "fix_known": True})
+        with mock.patch.object(polish, "model_habits", return_value=["Smirks in every reply"]):
+            habits = polish.approved(self.user)
+            self.assertIn("stock_reactions", habits)
+            self.assertIn("vague_emotion", habits)
+            self.assertIn(polish.MODEL_KNOWN, habits)
+            prompt = polish._prompt(self.character, self.character.chats.first() or self.chat_for_test(),
+                                    "Text.", [], "", habits)[1]["content"]
+        self.assertIn("Known habits of this model: Smirks in every reply", prompt)
+        self.assertIn("hands clenching and unclenching", prompt)
+        watch.change_memory(self.user, "mute", "vague_emotion")  # "I don't mind this" still wins
+        self.assertNotIn("vague_emotion", polish.approved(self.user))
+        watch.change_memory(self.user, "fix_known", new=False)  # the Notebook switch
+        self.assertNotIn("stock_reactions", polish.approved(self.user))
+        self.assertEqual(watch.notebook(self.user)["fix_known"], False)
+
+    def chat_for_test(self):
+        from mainapp import chats
+        return chats.create(self.character)
 
     def fake_post(self, url, headers=None, json=None, timeout=None, **kwargs):
         import json as json_mod
@@ -5346,7 +5731,7 @@ class PolishChatTests(WatchChatTests):
         chat = self.chat_obj()
         data = watch.chat_data(chat)
         data["checked"] = data["free_checked"] = [1, 3, 5]
-        data["log"] = [{"label": label, "quote": f"which meant he was sad {at}", "at": at, "cause": "model"}
+        data["log"] = [{"label": label, "quote": "which meant he was sad" if label == "repeated_phrase" else f"which meant he was sad {at}", "at": at, "cause": "model"}
                        for at in (1, 3, 5)]
         note = watch.habits(data, [])[0]
         watch.save_chat_data(chat, data)
@@ -6904,6 +7289,27 @@ class DeleteAccountTests(TestCase):
         self.assertNotIn("_auth_user_id", self.client.session)
 
 
+    def test_delete_one_character(self):
+        import os
+        from mainapp.models import Character, Chat, Worldbook
+        book = Worldbook.objects.get(slug="book-del")
+        self.char.worldbook = book
+        self.char.save()
+        Chat.objects.create(character=self.char, title="One")
+        url = reverse("character_delete", args=["mine-del"])
+        self.assertEqual(self.client.get(url).status_code, 405)
+        self.assertEqual(self.client.post(reverse("character_delete", args=["theirs-del"])).status_code, 404)
+        self.assertContains(self.client.get(reverse("characters_list")), url)
+        self.assertContains(self.client.get(reverse("character", args=["mine-del"])), 'id="deleteCharacterBtn"')
+        data = self.client.post(url).json()
+        self.assertEqual((data["success"], data["url"]), (True, reverse("characters_list")))
+        self.assertFalse(Character.objects.filter(slug="mine-del").exists())
+        self.assertFalse(Chat.objects.filter(title="One").exists())
+        self.assertFalse(os.path.exists(self.photo))
+        self.assertTrue(Worldbook.objects.filter(slug="book-del").exists())  # the worldbook stays
+        self.assertTrue(Character.objects.filter(slug="theirs-del").exists())
+
+
 @override_settings(MEDIA_ROOT="/tmp/narrative-test-media")
 class UsageTests(TestCase):
     """Activity recording and the usage report (users/activity.py, users/usage.py)."""
@@ -7081,3 +7487,50 @@ class BugFormTests(TestCase):
             page = self.client.get(reverse("users:extras"))
         self.assertContains(page, 'bug: "https://docs.google.com/forms/d/e/X/viewform?entry.1\\u003DNA_PAGE')
         self.assertContains(page, 'login: "bugs"')
+
+
+class WatchEvidenceRegressionTests(SimpleTestCase):
+    def test_unrelated_phrase_matches_do_not_combine_into_a_habit(self):
+        from mainapp.bulba import watch
+        data = {"log": [{"label": "repeated_phrase", "quote": phrase, "shown": phrase,
+                         "at": at, "cause": "model"}
+                        for phrase, positions in (("you told me yesterday", (1, 3)),
+                                                  ("we should leave now", (3, 5))) for at in positions],
+                "checked": [], "free_checked": [1, 3, 5], "notices": []}
+        self.assertEqual(watch.habits(data, []), [])
+
+    def test_phrase_notice_contains_evidence_for_one_phrase_only(self):
+        from mainapp.bulba import watch
+        data = {"log": [{"label": "repeated_phrase", "quote": phrase,
+                         "shown": f"Reply {at}: {phrase}", "at": at, "cause": "model"}
+                        for phrase in ("his hand opened and closed", "something changed in his gaze")
+                        for at in (1, 3, 5)],
+                "checked": [], "free_checked": [1, 3, 5], "notices": []}
+        note = watch.habits(data, [])[0]
+        self.assertEqual(note["count"], 3)
+        self.assertTrue(all("his hand opened and closed" in q for q in note["quotes"]))
+
+    def test_distinct_semantic_habits_can_qualify_together(self):
+        from mainapp.bulba import watch
+        quotes = {"stock_reactions": "рука стискається і розтискається",
+                  "vague_emotion": "щось у погляді стає різкішим",
+                  "echoing_user": "ти стоїш поруч, і ти мажеш вуха кремом"}
+        data = {"log": [{"label": label, "quote": quote, "at": at, "cause": "model"}
+                        for label, quote in quotes.items() for at in (1, 3)],
+                "checked": [1, 3], "notices": []}
+        notes = watch.habits(data, [])
+        self.assertEqual({n["label"] for n in notes}, set(quotes))
+        self.assertTrue(all(n["count"] == 2 for n in notes))
+
+    def test_all_pending_findings_reach_the_ui_with_individual_counts(self):
+        from unittest.mock import patch
+        from mainapp.bulba import watch
+        notices = [{"id": str(i), "label": "vague_emotion", "status": "new", "count": 2, "of": 3}
+                   for i in range(5)]
+        with patch.object(watch, "chat_data", return_value={"notices": notices}), \
+             patch.object(watch, "is_on", return_value=True), \
+             patch.object(watch, "user_data", return_value={"fix": [], "intro_seen": True}):
+            state = watch.page_state(None, None)
+        self.assertEqual(state["count"], 5)
+        self.assertEqual([n["id"] for n in state["notices"]], ["4", "3", "2", "1", "0"])
+        self.assertTrue(all(n["count"] == 2 and n["of"] == 3 for n in state["notices"]))

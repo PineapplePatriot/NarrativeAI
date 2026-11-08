@@ -191,7 +191,9 @@ def normalize_book(data):
         return _normalize_book_body(book, book.get("name") or data.get("name", ""), book.get("description", ""), {})
 
     title = data.get("title") or data.get("name") or ""
-    return _normalize_book_body(data, title, data.get("description", ""), data.get("settings"))
+    book = _normalize_book_body(data, title, data.get("description", ""), data.get("settings"))
+    book["based_on"] = str(data.get("based_on") or "").strip()[:200]  # the work and point in the story, for 🥔 Expand
+    return book
 
 
 def _normalize_book_body(book, title, description, settings):
@@ -224,6 +226,7 @@ def _normalize_book_body(book, title, description, settings):
     return {
         "title": str(title or ""),
         "description": str(description or ""),
+        "based_on": "",
         "settings": normalize_settings(settings),
         "entries": entries,
     }
@@ -316,7 +319,11 @@ def _matching_keys(keys, text, case_sensitive, whole_words, flexible=False):
 def _message_text(msg):
     # chat logs store messages as [role, time, text, emotion, char_count]
     if isinstance(msg, (list, tuple)):
-        return str(msg[2]) if len(msg) > 2 else ""
+        if len(msg) <= 2:
+            return ""
+        from mainapp.translation import translation_of
+        rec = translation_of(msg)
+        return str(msg[2]) + ("\n" + rec["text"] if rec else "")
     if isinstance(msg, dict):
         return str(msg.get("content") or msg.get("text") or "")
     return str(msg or "")

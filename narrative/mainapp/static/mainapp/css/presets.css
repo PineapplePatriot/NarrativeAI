@@ -335,3 +335,7 @@ button.legend:hover { color: var(--text-primary) }
 .scope-tabs button { background: transparent; border: 1px solid var(--border, rgba(148,163,184,.25)); color: inherit;
                      padding: 6px 12px; border-radius: 999px; cursor: pointer; font-size: .85rem; }
 .scope-tabs button.active { border-color: var(--accent, #8b5cf6); background: rgba(139, 92, 246, .15); }
+
+/* Utility prompts: the app's jobs */
+.utility-group { margin: 20px 0 6px; font-size: 1rem; }
+.reset-utility { float: right; font-size: .8rem; padding: 3px 10px; cursor: pointer; }

@@ -49,12 +49,13 @@ window.Chats = (() => {
         const chat = chats.find(c => c.id === id);
         try {
             if (btn.dataset.chatAct === 'rename') {
-                const title = prompt('Chat name:', chat.title);
+                const title = await NADialog.prompt('Chat name:', chat.title, { ok: 'Rename' });
                 if (title && title.trim()) {
                     await post({ action: 'rename_chat', id, title });
                     if (chat.current) document.getElementById('chatTitle').textContent = title.trim();
                 }
-            } else if (confirm(`Delete “${chat.title}” and all its messages? This can't be undone.`)) {
+            } else if (await NADialog.confirm(`Delete “${chat.title}” and all its messages? This can't be undone.`,
+                                              { ok: 'Delete', danger: true })) {
                 await post({ action: 'delete_chat', id });
             }
         } catch (err) { alert(err.message); }

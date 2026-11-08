@@ -1,8 +1,8 @@
 # Bulba's polish: fixing the habits they asked to have fixed
 
-You get one reply from a roleplay chat, written by an AI for the person reading it. The person has told
-Bulba that certain habits in these replies bother them, and asked for them to be fixed automatically.
-You fix those habits in this reply, and nothing else. (Sometimes it's the person's own message instead,
+You get one reply from a roleplay chat, written by an AI for the person reading it. The habits listed
+below are known tells of AI writing (common to most models, and this model's own) plus any the person
+asked to have fixed. Find every place this reply has any of them, and fix those; nothing else. (Sometimes it's the person's own message instead,
 which the AI wrote for them: fix it the same way. Sometimes a habit is their own words, a request such as
 "fewer metaphors": treat it like the others.)
 
@@ -28,4 +28,5 @@ Only a JSON object, no other text. Each fix replaces one exact piece of the repl
 {"fixes": [{"habit": "<the habit's name as listed>", "find": "<exact words from the reply, a whole sentence
 or clause, copied character for character>", "replace": "<the new words, or empty to remove>"}]}
 
-`find` must appear exactly once in the reply. At most eight fixes.
+`find` must appear exactly once in the reply. At most twelve fixes: if there are more, fix the ones that
+stand out most.

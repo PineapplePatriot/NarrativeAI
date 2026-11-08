@@ -19,6 +19,7 @@ function fill() {
         state.cheap_models.map(m => `<option value="${esc(m.id)}">${esc(m.name)} (${esc(m.price)}): ${esc(m.best_for)}</option>`).join('');
     $('background').value = state.background;
     $('background').disabled = !state.openrouter;
+    $('bgThinking').checked = state.background_thinking !== 'model';
     if (state.window) {
         $('memorySection').hidden = false;
         $('memoryModel').textContent = state.window.model || 'your chat model';
@@ -64,6 +65,7 @@ $('saveBtn').onclick = async () => {
         story_extras: [...document.querySelectorAll('input[name=story_extras]:checked')].map(b => b.value),
         eleven_key: $('elevenKey').value,
         remove_eleven_key: $('removeElevenBox').checked,
+        background_thinking: $('bgThinking').checked ? 'light' : 'model',
     };
     if (state.openrouter) body.background = $('background').value;
     if (state.window) body.chat_context = NACosts.steps(state.window.max)[Number($('chatContext').value)];

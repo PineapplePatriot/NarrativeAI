@@ -6,7 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profile - Narrative AI</title>
-    <link rel="stylesheet" href="{% static 'users/css/profile.css' %}?v=2">
+    <link rel="stylesheet" href="{% static 'users/css/profile.css' %}?v=3">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
 </head>
@@ -50,6 +50,14 @@
             {% endfor %}
 
             <h2 class="persona-head" id="persona">🎭 You in stories</h2>
+            <label for="{{ form.display_language.id_for_label }}">{{ form.display_language.label }}</label>
+            {{ form.display_language }}
+            <p class="persona-help">{{ form.display_language.help_text }}</p>
+            {% if language_rule %}
+            <label class="language-rule"><input type="checkbox" name="drop_language_rule" checked>
+                Also remove “Write the whole story in …” from my active preset <small>(with a story language other
+                than English it would fight the English the AI now writes; the rest of the preset stays)</small></label>
+            {% endif %}
             <p class="persona-help">Who the AI talks to in every chat, unless a chat has its own (pen menu → This chat).
                 Leave it empty if you'd rather not, or <a href="{% url 'bulba' %}?draft={{ 'Help me make my persona: who I am in the story. Ask me two or three light questions, then propose it.'|urlencode }}">let 🥔 Bulba make one</a>.</p>
             {% for field in form.persona_fields %}

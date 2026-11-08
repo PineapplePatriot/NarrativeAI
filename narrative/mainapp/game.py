@@ -22,6 +22,10 @@ MODES = ("off", "dice", "full")
 MODE_LABELS = {"off": "Off", "dice": "Dice only", "full": "Dice and inventory"}
 OWNED_TRACKERS = ("inventory", "conditions")   # in "full" mode, the app keeps these
 MAX_TOOL_ROUNDS = 4
+# Tools whose result the story needs before it goes on; the rest (an item, a condition, a story extra) are done
+# once called, so a reply that's already written isn't sent back to the model just to say "go on"
+NEEDS_RESULT = ("roll_dice", "draw_from_table")
+WRITTEN_ENOUGH = 300  # characters in a round: the reply is there, the tools came at its end
 DICE = re.compile(r"^\s*(\d{0,2})d(\d{1,3})\s*([+-]\s*\d{1,3})?\s*$", re.I)
 
 
@@ -350,6 +354,11 @@ def stream_reply(user, messages, params, state, rng=None):
                                                  "where it appears in the story."}
                 yield GameEvent(op)
             messages.append({"role": "tool", "tool_call_id": call.get("id", ""), "content": json.dumps(result)})
+        # The reply is written and nothing it called needs an answer: done (another round would cost a whole new
+        # request, thinking included, just to say "go on"; the extras are placed by extras.place)
+        if len("".join(text).strip()) >= WRITTEN_ENOUGH and not any(
+                (c.get("function") or {}).get("name") in NEEDS_RESULT for c in calls):
+            return
 
 
 def list_first(generator):

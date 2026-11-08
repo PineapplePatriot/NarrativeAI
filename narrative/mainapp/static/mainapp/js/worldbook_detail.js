@@ -23,6 +23,7 @@ function triState(v) { return v === '' ? null : v === 'true'; }
 function fillHeaderAndSettings() {
     $('wbTitle').value = book.title;
     $('wbDesc').value = book.description;
+    $('wbBasedOn').value = book.based_on || '';
     const s = book.settings;
     $('sScanDepth').value = s.scan_depth;
     $('sBudget').value = s.token_budget;
@@ -39,6 +40,7 @@ function fillHeaderAndSettings() {
 function readSettings() {
     book.title = $('wbTitle').value.trim();
     book.description = $('wbDesc').value.trim();
+    book.based_on = $('wbBasedOn').value.trim();
     Object.assign(book.settings, {
         scan_depth: Number($('sScanDepth').value) || 0,
         token_budget: Number($('sBudget').value) || 0,
@@ -53,7 +55,7 @@ function readSettings() {
     });
 }
 
-['wbTitle', 'wbDesc', 'sScanDepth', 'sBudget', 'sCase', 'sWhole', 'sRecursive', 'sCard', 'sFlex', 'sSemantic', 'sThreshold', 'sTopK']
+['wbTitle', 'wbDesc', 'wbBasedOn', 'sScanDepth', 'sBudget', 'sCase', 'sWhole', 'sRecursive', 'sCard', 'sFlex', 'sSemantic', 'sThreshold', 'sTopK']
     .forEach(id => $(id).addEventListener('input', () => { readSettings(); markDirty(); }));
 
 // --- Entry list ---
@@ -129,6 +131,7 @@ function openModal(uid) {
     $('fExcludeRec').checked = e.exclude_recursion;
     $('fPreventRec').checked = e.prevent_recursion;
     updateTokenHint();
+    $('entryExpandResult').innerHTML = '';
     $('modal').style.display = 'flex';
     $('fComment').focus();
 }
@@ -137,7 +140,7 @@ function closeModal() { $('modal').style.display = 'none'; }
 function updateTokenHint() { $('fTokens').textContent = `~${approxTokens($('fContent').value)} tokens`; }
 $('fContent').addEventListener('input', updateTokenHint);
 
-function saveEntry() {
+async function saveEntry() {
     const obj = {
         comment: $('fComment').value.trim(),
         keys: splitKeys($('fKeys').value),
@@ -156,7 +159,8 @@ function saveEntry() {
     };
     if (!obj.content.trim()) { alert('Content is required.'); return; }
     if (!obj.keys.length && !obj.constant &&
-        !confirm('This entry has no keywords and is not "always on", so it will only fire through semantic search. Save anyway?')) return;
+        !await NADialog.confirm('This entry has no keywords and isn\'t “always on”, so it will never come into the story by itself. Save anyway?',
+                                { ok: 'Save anyway' })) return;
 
     if (editingUid === null) {
         book.entries.push({ ...DEFAULTS.entry, ...obj, uid: nextUid() });
@@ -176,8 +180,8 @@ function duplicate(uid) {
     render();
 }
 
-function del(uid) {
-    if (!confirm('Delete this entry?')) return;
+async function del(uid) {
+    if (!await NADialog.confirm('Delete this entry?', { ok: 'Delete', danger: true })) return;
     book.entries = book.entries.filter(e => e.uid !== uid);
     markDirty();
     render();
@@ -275,6 +279,86 @@ $('formsBtn').onclick = async () => {
             out.innerHTML = '<p class="muted">Added. Press Save to keep them (or reload the page to drop them).</p>';
             markDirty();
             render();
+        };
+    } catch (err) {
+        out.innerHTML = `<p class="warn">${escapeHtml(err.message)}</p>`;
+    } finally { btn.disabled = false; }
+};
+
+// --- 🥔 Expand: more keywords, more lore, missing entries; they tick what to add, then Save ---
+const ORIGIN = { web: '🌐 from the web', memory: '🧠 from what Bulba knows', invented: '✨ invented' };
+function sourcesHtml(data) {
+    return data.sources && data.sources.length ? `<details class="advanced"><summary>Sources</summary>${data.sources.map(u =>
+        `<div><a href="${escapeHtml(u)}" target="_blank" rel="noopener">${escapeHtml(u.replace(/^https?:\/\//, '').slice(0, 60))}</a></div>`).join('')}</details>` : '';
+}
+function tick(id, html) { return `<label class="check x-pick"><input type="checkbox" data-pick="${id}" checked/> <span>${html}</span></label>`; }
+
+$('expandBtn').onclick = async () => {
+    readSettings();
+    const what = [['xKeys', 'keys'], ['xLore', 'lore'], ['xNew', 'new']].filter(([id]) => $(id).checked).map(([, w]) => w);
+    const out = $('expandResult'), btn = $('expandBtn');
+    if (!what.length) { out.innerHTML = '<p class="muted">Tick at least one.</p>'; return; }
+    btn.disabled = true;
+    out.innerHTML = '<p class="muted">Bulba is ' + (book.based_on ? 'looking it up and ' : '') + 'going through the book… (up to a few minutes)</p>';
+    try {
+        const data = await postJson(URLS.expand, { book, what });
+        const rows = [];
+        book.entries.forEach(e => {
+            const s = data.entries[e.uid];
+            if (!s) return;
+            if (s.keys.length) rows.push(tick(`k${e.uid}`, `<b>${escapeHtml(label(e))}</b>: + ${s.keys.map(escapeHtml).join(', ')}`));
+            if (s.add) rows.push(tick(`a${e.uid}`, `<b>${escapeHtml(label(e))}</b>, more lore: <i>${escapeHtml(s.add)}</i>`));
+        });
+        data.new.forEach((n, i) => rows.push(tick(`n${i}`, `<b>New: ${escapeHtml(n.title)}</b> (${n.keys.map(escapeHtml).join(', ')})<br><i>${escapeHtml(n.content)}</i>`)));
+        out.innerHTML = `<p class="x-origin">${ORIGIN[data.origin] || ''}</p>` + (data.note ? `<p class="muted">${escapeHtml(data.note)}</p>` : '')
+            + rows.join('') + sourcesHtml(data)
+            + (rows.length ? '<button class="btn primary full" id="expandApply" type="button">Add the ticked ones</button>' : '');
+        if (!rows.length) return;
+        $('expandApply').onclick = () => {
+            const picked = id => out.querySelector(`[data-pick="${id}"]`)?.checked;
+            const tag = data.origin === 'invented' ? ' (invented)' : '';
+            book.entries.forEach(e => {
+                const s = data.entries[e.uid];
+                if (!s) return;
+                if (picked(`k${e.uid}`)) e.keys = [...e.keys, ...s.keys.filter(k => !e.keys.some(x => x.toLowerCase() === k.toLowerCase()))];
+                if (picked(`a${e.uid}`)) e.content = e.content.trim() + '\n' + s.add;
+            });
+            data.new.forEach((n, i) => {
+                if (picked(`n${i}`)) book.entries.push({ ...DEFAULTS.entry, uid: nextUid(), comment: n.title + tag, keys: n.keys, content: n.content });
+            });
+            out.innerHTML = '<p class="muted">Added. Press Save to keep them (or reload the page to drop them).</p>';
+            markDirty();
+            render();
+        };
+    } catch (err) {
+        out.innerHTML = `<p class="warn">${escapeHtml(err.message)}</p>`;
+    } finally { btn.disabled = false; }
+};
+
+// The same for the entry being edited: the suggestions go into the editor's fields, then Save Entry
+$('entryExpandBtn').onclick = async () => {
+    readSettings();
+    const out = $('entryExpandResult'), btn = $('entryExpandBtn');
+    const entry = { ...DEFAULTS.entry, uid: 0, comment: $('fComment').value.trim(), keys: splitKeys($('fKeys').value),
+                    content: $('fContent').value };
+    if (!entry.content.trim() && !entry.keys.length) { out.innerHTML = '<p class="muted">Write a title or keywords first.</p>'; return; }
+    if (!entry.content.trim()) entry.content = entry.comment || entry.keys[0];
+    btn.disabled = true;
+    out.innerHTML = '<p class="muted">Bulba is on it…</p>';
+    try {
+        const data = await postJson(URLS.expand, { book: { title: book.title, description: book.description,
+            based_on: book.based_on, entries: [entry] }, what: ['keys', 'lore'], uid: 0 });
+        const s = data.entries[0];
+        if (!s) { out.innerHTML = `<p class="muted">${escapeHtml(data.note || 'Nothing to add.')}</p>`; return; }
+        out.innerHTML = `<p class="x-origin">${ORIGIN[data.origin] || ''}</p>`
+            + (s.keys.length ? tick('k', `+ ${s.keys.map(escapeHtml).join(', ')}`) : '')
+            + (s.add ? tick('a', `<i>${escapeHtml(s.add)}</i>`) : '') + sourcesHtml(data)
+            + '<button class="btn primary" id="entryExpandApply" type="button">Put them in</button>';
+        $('entryExpandApply').onclick = () => {
+            if (out.querySelector('[data-pick="k"]')?.checked) $('fKeys').value = [...splitKeys($('fKeys').value), ...s.keys].join(', ');
+            if (out.querySelector('[data-pick="a"]')?.checked) $('fContent').value = ($('fContent').value.trim() + '\n' + s.add).trim();
+            updateTokenHint();
+            out.innerHTML = '<p class="muted">In the fields above. Press Save Entry to keep them.</p>';
         };
     } catch (err) {
         out.innerHTML = `<p class="warn">${escapeHtml(err.message)}</p>`;

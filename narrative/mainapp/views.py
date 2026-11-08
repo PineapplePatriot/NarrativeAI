@@ -28,7 +28,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
-from . import extras, game, media_library, recall, story, thinking, ai_client, cards, chats, regex_rules, model_profiles, presets, samplers, starters, trackers
+from . import extras, game, media_library, recall, story, thinking, ai_client, cards, chats, regex_rules, model_profiles, presets, samplers, starters, trackers, translation
 from .bulba import control, polish, watch
 from mainapp import mature, refusals
 
@@ -80,13 +80,10 @@ def _summary_line(message):
 def _summarize(user, messages, existing="", room=None):
     """One summary piece for `messages`, continuing `existing` when there is one. With `room` (tokens), a single
     message longer than that is cut to fit (its end kept)."""
-    if existing:
-        sys_prompt = (f"Existing summary: {existing}\n\nTask: Read the recent conversation below "
-                      "and create a short paragraph summarizing ONLY the new events, advancing the existing summary.")
+    if existing:  # the instructions are the preset's utility prompts (Presets page → Utility prompts)
+        sys_prompt = f"Existing summary: {existing}\n\nTask: {presets.job_prompt(user, 'summary_continue')}"
     else:
-        sys_prompt = ("Summarize this entire roleplay story concisely. Capture key events and current status. "
-                      "Be clear and precise, focus on describing events and reactions in detail. "
-                      "The summary should include Tone, Setting, Events, Current emotional state.")
+        sys_prompt = presets.job_prompt(user, "summary_new")
     lines = [_summary_line(m) for m in messages]
     if room and len(lines) == 1:
         lines = [samplers.cut_to(lines[0], room)]
@@ -366,6 +363,24 @@ def chat(request, slug):
                 if 0 <= index < len(messages):
                     # Update the message text, keep other fields
                     new_text = text_rules("saved", new_text, messages[index][0], edits_only=True)
+                    reading = translation.reading_language(request.user)
+                    if reading and messages[index][0] == "assistant" and translation.translation_of(messages[index]):
+                        # They edited the translation they read: the English the story continues from follows it
+                        shown = translation.display_text(messages[index], reading)
+                        if new_text == shown:
+                            return JsonResponse({"success": True, "text": new_text, "translated": True,
+                                                 "watch": watch.page_state(request.user, chat_obj)})
+                        try:
+                            paired = translation.synchronize_edit(request.user, messages[index], new_text, reading,
+                                                                  glossary=_glossary(request.user, character, chat_state))
+                        except ai_client.AIError as e:
+                            return JsonResponse({"success": False, "keep_draft": True,
+                                                 "error": f"Couldn't update the English version, so nothing was saved: {e}"})
+                        watch.note_signal(request.user, chat_obj, "edited", messages[index][2], paired[2])
+                        messages[index] = paired
+                        save_messages(messages)
+                        return JsonResponse({"success": True, "text": new_text, "translated": True,
+                                             "original": paired[2], "watch": watch.page_state(request.user, chat_obj)})
                     if messages[index][0] == "assistant" and messages[index][2] != new_text:
                         watch.note_signal(request.user, chat_obj, "edited", messages[index][2], new_text)
                         rec = chats.polish_of(messages[index])
@@ -375,11 +390,67 @@ def chat(request, slug):
                     save_messages(messages)
                     return JsonResponse({"success": True, "text": new_text,
                                          "watch": watch.page_state(request.user, chat_obj)})
-                else:
-                    return JsonResponse({"success": False, "error": "Invalid message index"})
+                else:  # out of step with the page (a reply that failed and was never saved): reload it
+                    return JsonResponse({"success": False, "resync": True,
+                                         "error": "This chat changed since the page loaded. Reloading it."})
 
             except (ValueError, KeyError) as e:
                 return JsonResponse({"success": False, "error": "Invalid request data"})
+
+        elif action == "summary_translate":  # 🌐 in the summary panel: the pieces in the language they read
+            reading = translation.reading_language(request.user)
+            if not reading:
+                return JsonResponse({"success": False, "error": "Your story language is English."})
+            fresh = chats.read(chat_obj)
+            cache = dict(fresh.get("translation_cache") or {})  # {fingerprint:language: text}, only for summaries
+            out, changed = [], False
+            try:
+                for part in chat_state["summary_parts"]:
+                    key = f"{translation.fingerprint(part['text'])}:{reading}"
+                    if translation.already_in(part["text"], reading):  # an older summary written in it already
+                        out.append(part["text"])
+                        continue
+                    if key not in cache:
+                        cache[key] = translation.translate(request.user, part["text"], reading,
+                                                           glossary=_glossary(request.user, character, chat_state))
+                        changed = True
+                    out.append(cache[key])
+            except ai_client.AIError as e:
+                return JsonResponse({"success": False, "error": str(e)})
+            if changed:  # only this key changes in the file (the summary itself stays English)
+                live = {f"{translation.fingerprint(p['text'])}:{reading}" for p in chat_state["summary_parts"]}
+                fresh = chats.read(chat_obj)
+                chats.write(chat_obj, {**fresh, "translation_cache": {k: v for k, v in cache.items() if k in live}})
+            return JsonResponse({"success": True, "pieces": out, "language": translation.LANGUAGES[reading]})
+        elif action == "translate":  # a reply (English) into the language they read, once it's written and polished
+            reading = translation.reading_language(request.user)
+            try:
+                index = int(data.get("index"))
+            except (TypeError, ValueError):
+                return JsonResponse({"success": False, "error": "Invalid request data"})
+            if not reading or not 0 <= index < len(messages) or messages[index][0] != "assistant":
+                return JsonResponse({"success": False, "resync": not (0 <= index < len(messages)),
+                                     "error": "Nothing to translate there."})
+            done = translation.translation_of(messages[index])
+            if done and done["language"] == reading:
+                return JsonResponse({"success": True, "text": done["text"], "original": messages[index][2]})
+            if translation.already_in(messages[index][2], reading):  # written in it before the workflow: as it is
+                return JsonResponse({"success": True, "text": messages[index][2], "original": "", "same": True})
+            source = messages[index][2]
+            try:
+                text = translation.translate(request.user, source, reading,
+                                             glossary=_glossary(request.user, character, chat_state))
+            except ai_client.AIError as e:
+                return JsonResponse({"success": False, "error": str(e)})
+            # The file as it is now (trackers or a summary may have been saved meanwhile): only this message changes
+            fresh = chats.read(chat_obj)
+            now = [tuple(m) for m in fresh.get("messages") or []]
+            if not (0 <= index < len(now)) or now[index][2] != source:
+                return JsonResponse({"success": False, "error": "The reply changed while it was being translated. "
+                                                                 "Translate it again."})
+            now[index] = translation.with_translation(now[index], text, reading)
+            chats.write(chat_obj, {**fresh, "messages": now})
+            return JsonResponse({"success": True, "text": text, "original": source})
 
         # Handle delete action
         elif action == "delete":
@@ -403,8 +474,9 @@ def chat(request, slug):
                                          "summary_data": summary_payload(),
                                          "trackers": trackers.normalize_state(chat_state["trackers"], config),
                                          "story": story_payload()})
-                else:
-                    return JsonResponse({"success": False, "error": "Invalid message index"})
+                else:  # the page shows a message the server never saved (a reply that failed): reload it
+                    return JsonResponse({"success": False, "resync": True,
+                                         "error": "This chat changed since the page loaded. Reloading it."})
 
             except (ValueError, KeyError) as e:
                 return JsonResponse({"success": False, "error": "Invalid request data"})
@@ -423,9 +495,12 @@ def chat(request, slug):
                         f"outcomes.]\n{draft}")
             names = prompt_names(request.user, character, chat_state["persona"])
             ask = ask.replace("{{user}}", names["user"]).replace("{{char}}", names["char"])
+            reading = translation.reading_language(request.user)  # read in another language: English, cleaned, translated
+            english = translation.english_note(request.user)
             try:
                 built = build_chat_request(request.user, chat_obj, preset=preset, drop_last_reply=False,
-                                           generation="impersonate", tail=[{"role": "system", "content": ask}])
+                                           generation="impersonate",
+                                           tail=[{"role": "system", "content": ask}] + ([english] if english else []))
                 message, _ = ai_client.complete_message(request.user, "chat", built["messages"], **built["params"])
             except ai_client.AIError as e:
                 return JsonResponse({"success": False, "error": str(e)})
@@ -450,6 +525,13 @@ def chat(request, slug):
                                                         chat_state["summary"], habits, whose="theirs")
                 except ai_client.AIError as e:
                     log.info("Polish skipped for a written message: %s", e)
+            if reading and not translation.already_in(written, reading):  # into the language they write in
+                try:
+                    written = translation.translate(request.user, written, reading,
+                                                    glossary=_glossary(request.user, character, chat_state))
+                except ai_client.AIError as e:
+                    return JsonResponse({"success": False, "error": f"Written, but not translated: {e}",
+                                         "text": draft, "spending": ai_client.spending(request.user)})
             return JsonResponse({"success": True, "text": written, "polished": len(fixed),
                                  "spending": ai_client.spending(request.user)})
 
@@ -645,6 +727,13 @@ def chat(request, slug):
             settings_obj.appearance = {**(settings_obj.appearance or {}), "persona_hint_seen": True}
             settings_obj.save(update_fields=["appearance"])
             return JsonResponse({"success": True})
+        elif action == "thinking":  # 🧠 the pen menu: how much the chat model thinks before story replies
+            _, chat_model = ai_client.resolve(request.user, "chat")
+            try:
+                samplers.set_thinking(request.user, str(data.get("level") or ""), chat_model)
+            except ValueError as e:
+                return JsonResponse({"success": False, "error": str(e)}, status=400)
+            return JsonResponse({"success": True, "level": samplers.thinking_now(request.user)})
         elif action == "forms_hint_seen":  # "your worldbook got better at Ukrainian" is shown once per account
             settings_obj, _ = ChatSettings.objects.get_or_create(author=request.user)
             settings_obj.appearance = {**(settings_obj.appearance or {}), "forms_hint_seen": True}
@@ -731,7 +820,10 @@ def chat(request, slug):
                 user_name = request.user.name or request.user.username
                 named = [(user_name if m[0] == "user" else character.name, m[2]) for m in recent]
                 def tracker_request(named):
-                    built = trackers.update_messages(config, state, named, character.name, user_name, only)
+                    built = trackers.update_messages(config, state, named, character.name, user_name, only,
+                                                     rules=presets.job_prompt(request.user, "tracker_rules",
+                                                                              {"char": character.name, "user": user_name})
+                                                     + translation.tracker_language_rule(request.user))
                     if with_story:
                         built[0]["content"] += "\n\n" + story.prompt_section(systems, story_state())
                     return built
@@ -899,8 +991,12 @@ def chat(request, slug):
             save_messages(messages)
             _, _, text, emotion, char_count = messages[-1][:5]
             emo1, _, emo2 = (emotion or "neutral").partition("|")
+            reading = translation.reading_language(request.user)
             return JsonResponse({
-                "success": True, "reply": text, "emotion": emotion, "char_count": char_count,
+                "success": True, "reply": _shown(messages[-1], reading), "emotion": emotion, "char_count": char_count,
+                "original": text if reading and _shown(messages[-1], reading) != text else "",
+                "untranslated": bool(reading and not translation.translation_of(messages[-1])
+                                     and not translation.already_in(text, reading)),
                 "reasoning": chats.reasoning_of(messages[-1]),
                 "game": [game.describe(op) for op in chats.game_of(messages[-1]) if not extras.is_extra(op)],
                 "extras_html": [extras.render(op) for op in chats.game_of(messages[-1]) if extras.is_extra(op)],
@@ -936,7 +1032,9 @@ def chat(request, slug):
                 built, _ = recall.assemble_with_recall(
                     presets.assemble, preset, prompt_slots(request.user, character, prompt, chat_state["persona"]),
                     history, names, chat_model, generation="continue")
-                new_chunk = ai_client.complete(request.user, "chat", built["messages"], **built["params"])
+                english = translation.english_note(request.user)
+                new_chunk = ai_client.complete(request.user, "chat", built["messages"] + ([english] if english else []),
+                                               **built["params"])
             except ai_client.AIError as e:
                 return JsonResponse({"success": False, "error": str(e)})
 
@@ -1126,6 +1224,9 @@ def chat(request, slug):
                                                 tables=story.of_type(systems, "table"))
                     if stand_in:
                         built = {**built, "params": {**built["params"], "model": stand_in}}
+                    english = translation.english_note(request.user)  # read in another language: written in English
+                    if english:
+                        built = {**built, "messages": built["messages"] + [english]}
                     game_ops = []
                     # Stream when the page asks for it and the preset allows it
                     streaming = bool(data.get("stream")) and preset["options"].get("streaming", True)
@@ -1174,6 +1275,13 @@ def chat(request, slug):
                                 "model": refusals.name_of(stand_in or own_model),
                                 "stand_in": refusals.stand_in_for(request.user, own_model),
                                 "options": refusals.options(own_model)}
+                    if not str(reply or "").strip() and not [o for o in ops if extras.is_extra(o)]:
+                        # Nothing came back (the model thought and stopped, or only called tools): not saved
+                        if regen_from is not None:
+                            messages.append(regen_from)
+                        save_messages(messages)
+                        return {"error": "The reply came back empty. Press Regenerate (↻) to try again; if it keeps "
+                                         "happening, switch some extras off on the Extras page.", "empty": True}
                     reply = text_rules("saved", reply, "assistant")
                     reasoning = text_rules("saved", reasoning, "reasoning").strip() if reasoning else ""
                     # A tool call the model wrote as text (note_milestone(...)): the extra, not the code
@@ -1401,15 +1509,23 @@ def chat(request, slug):
         user_avatar = request.user.photo.url
 
     sync_game_trackers(messages)
+    reading = translation.reading_language(request.user)  # profile → Story language: replies shown translated
     context = {
         # The template shows the version on screen, and its thoughts (if the model sent any)
-        "messages": [tuple(m[:5]) + (chats.reasoning_of(m),
+        "messages": [(m[0], m[1], _shown(m, reading), m[3], m[4]) + (chats.reasoning_of(m),
                                      [game.describe(op) for op in chats.game_of(m) if not extras.is_extra(op)],
                                      [extras.render(op) for op in chats.game_of(m) if extras.is_extra(op)],
                                      (chats.audio_of(m) or {}).get("url", ""),
                                      polish.dumps(chats.polish_of(m)) if chats.polish_of(m) else "",
-                                     chats.directed_of(m), chats.condensed_of(m), chats.is_note(m))
+                                     chats.directed_of(m), chats.condensed_of(m), chats.is_note(m),
+                                     # read in another language: the English it was written in, or "to translate"
+                                     m[2] if reading and _shown(m, reading) != m[2] else "",
+                                     bool(reading and m[0] == "assistant" and not chats.is_note(m)
+                                          and not translation.translation_of(m)
+                                          and not translation.already_in(m[2], reading)))
                      for m in messages],
+        "reading_language": reading or "",
+        "reading_language_name": translation.LANGUAGES.get(reading or "", ""),
         "voice_on": bool(get_elevenlabs_key(request.user)),
         "swipes": chats.version_info(messages),
         "spending": ai_client.spending(request.user),
@@ -1424,6 +1540,8 @@ def chat(request, slug):
         "chat_skin_choice": chat_state.get("skin") or "",
         "character_skin": (character.theme or {}).get("skin") if (character.theme or {}).get("skin") in CHAT_SKINS else "",
         "chat_skins": CHAT_SKINS,
+        "thinking_options": samplers.thinking_options(ai_client.resolve(request.user, "chat")[1]),
+        "thinking_now": samplers.thinking_now(request.user),
         "character_skin_name": CHAT_SKINS.get((character.theme or {}).get("skin") or "", ""),
         "mature_on": mature.is_on(presets.normalize(presets.get_active(request.user).data)),
         "director_on": control.mode_of(presets.normalize(presets.get_active(request.user).data)) == "director",
@@ -1494,20 +1612,12 @@ def pinned_note(guides):
     return "\n".join(f"{label}: {guides[key]}" for key, label in labels if guides.get(key))
 
 
-WORD_NOTE_PROMPT = (
-    "You help someone steer their roleplay with an AI. They give you a rough wish for {what}; you write it as "
-    "a director's note the roleplay model will follow. One to three short sentences, addressed to the model, "
-    "saying concretely what should happen or how it should read. Keep their meaning; don't add events, twists "
-    "or details they didn't ask for. Name characters as they appear in the chat. Never write {user}'s words, "
-    "actions or thoughts unless they asked for exactly that. Plain words: no 'ensure', 'immersive', 'vivid', "
-    "'delve', capitals or exclamation marks. Reply with the note only.")
+# The fixed frame of each job; the instructions in between are the preset's (presets.JOB_DEFAULTS)
+WORD_NOTE_PROMPT = ("You help someone steer their roleplay with an AI. They give you a rough wish for {what}; you "
+                    "write it as a director's note the roleplay model will follow. {rules} Reply with the note only.")
 
 
-CONDENSE_PROMPT = (
-    "Condense one message from a roleplay so the AI can keep it in mind in fewer words. Keep what matters later: "
-    "what happened, decisions, promises, names, places, objects, how people feel about each other, and any line "
-    "of dialogue worth remembering word for word. Drop description and repetition. Same person and tense as the "
-    "message, plain sentences, at most a quarter of its length. Reply with the condensed message only.")
+CONDENSE_TAIL = " Reply with the condensed message only."
 
 
 def condense(user, character, message, persona=None):
@@ -1515,7 +1625,7 @@ def condense(user, character, message, persona=None):
     names = prompt_names(user, character, persona)
     who = names["user"] if message[0] == "user" else character.name
     text = ai_client.complete(user, "summary", [
-        {"role": "system", "content": CONDENSE_PROMPT},
+        {"role": "system", "content": presets.job_prompt(user, "condense", names) + CONDENSE_TAIL},
         {"role": "user", "content": f"{who}'s message:\n\n{samplers.cut_to(message[2], samplers.job_window(user, 'summary') - 500, keep='start')}"}],
         max_tokens=1500, temperature=0.2)
     text = (text or "").strip()
@@ -1546,14 +1656,8 @@ def scene_music(user, messages, current=""):
     return tracks[n - 1] if 1 <= n <= len(tracks) else None
 
 
-NOTE_IDEAS_PROMPT = (
-    "You help someone direct their roleplay with an AI. Read the chat and write two director's notes for the next "
-    "reply, each one or two short sentences addressed to the roleplay model, saying concretely what should happen "
-    "or how it should read. \"logical\": what would most naturally happen next, given the scene and the people in "
-    "it. \"creative\": an unexpected turn that still fits the characters and the world (a complication, an "
-    "arrival, a reveal, a change of place or time), not a random one. Name characters as they appear in the chat. "
-    "Never write {user}'s words, actions or thoughts. Plain words: no 'ensure', 'immersive', 'vivid', 'delve', "
-    "capitals or exclamation marks. Answer only with JSON: {{\"logical\": \"...\", \"creative\": \"...\"}}")
+NOTE_IDEAS_PROMPT = ("You help someone direct their roleplay with an AI. Read the chat. {rules} "
+                     "Answer only with JSON: {{\"logical\": \"...\", \"creative\": \"...\"}}")
 
 
 def bulba_quick(user, messages, max_tokens=1500, **params):
@@ -1588,7 +1692,7 @@ def note_ideas(user, character, messages, summary="", persona=None):
         raise ai_client.AIError("Start the story first: there's nothing to direct yet.")
     transcript = "\n\n".join(f"{names['user'] if m[0] == 'user' else character.name}: {m[2][:1500]}" for m in recent)
     text = bulba_quick(user, [
-        {"role": "system", "content": NOTE_IDEAS_PROMPT.format(user=names["user"])},
+        {"role": "system", "content": NOTE_IDEAS_PROMPT.format(rules=presets.job_prompt(user, "note_ideas", names))},
         {"role": "user", "content": (f"The story so far: {summary[:2000]}\n\n" if summary else "")
                                     + f"The latest messages (latest last):\n\n{transcript}"}],
         temperature=0.8, response_format={"type": "json_object"})
@@ -1599,21 +1703,8 @@ def note_ideas(user, character, messages, summary="", persona=None):
     return ideas
 
 
-IDEAS_PROMPT = {
-    "player": (
-        "You help someone who is stuck in a roleplay with an AI. Read the chat and suggest three different things "
-        "{user} could do or say next, as {user}. Each is one or two short sentences they could send as their "
-        "message, written the way {user}'s recent messages are written (same person, tense and style). Make the "
-        "three genuinely different: one that goes along with the scene, one that pushes it somewhere, one "
-        "unexpected but in character for {user}. Only {user}'s own words and actions; never decide what "
-        "{char} or anyone else does or feels. Stay true to what has happened and to the world."),
-    "director": (
-        "You help someone who directs a roleplay with an AI from outside the story. Read the chat and suggest "
-        "three different things that could happen next, each one or two short sentences they could send as a "
-        "direction (\"{char} finds the letter\", \"A storm cuts the power\"). Make them genuinely different: one "
-        "that deepens the current scene, one that moves the plot, one surprising but believable in this world. "
-        "Stay true to what has happened, the characters and the world."),
-}
+IDEAS_PROMPT = {"player": "You help someone who is stuck in a roleplay with an AI. Read the chat.",
+                "director": "You help someone who directs a roleplay with an AI from outside the story. Read the chat."}
 IDEAS_STYLE = ("Plain words, no 'ensure', 'immersive', 'vivid', 'delve', no capitals for emphasis, no exclamation "
                "marks. Answer with JSON only: {\"ideas\": [\"...\", \"...\", \"...\"]}")
 
@@ -1623,7 +1714,7 @@ def bulba_ideas(user, character, messages, mode, persona=None, summary=""):
     names = prompt_names(user, character, persona)
     recent = [m for m in messages if m[0] in ("user", "assistant")][-8:]
     transcript = "\n\n".join(f"{names['user'] if m[0] == 'user' else character.name}: {m[2][:1500]}" for m in recent)
-    system = IDEAS_PROMPT[mode].format(user=names["user"], char=names["char"]) + "\n\n" + IDEAS_STYLE
+    system = (IDEAS_PROMPT[mode] + " " + presets.job_prompt(user, "ideas_" + mode, names) + "\n\n" + IDEAS_STYLE)
     about = f"{character.name}: {(character.description or '')[:1500]}"
     story = f"The story so far (summary): {summary[:2000]}\n\n" if summary else ""
     text = bulba_quick(user, [
@@ -1650,7 +1741,7 @@ def word_note(user, character, messages, wish, rewrite=False, persona=None):
     recent = [m for m in messages if m[0] in ("user", "assistant")][-6:]
     transcript = "\n\n".join(f"{names['user'] if m[0] == 'user' else character.name}: {m[2][:1500]}" for m in recent)
     what = "a new version of the last reply" if rewrite else "the next reply"
-    system = WORD_NOTE_PROMPT.format(what=what, user=names["user"])
+    system = WORD_NOTE_PROMPT.format(what=what, rules=presets.job_prompt(user, "director_note", names))
     text = bulba_quick(user, [
         {"role": "system", "content": system},
         {"role": "user", "content": f"The chat so far (latest last):\n\n{transcript}\n\nTheir wish: {wish}"}],
@@ -1712,6 +1803,17 @@ def _forms_hint(user, character):
         return reverse("worldbook_detail", args=[wb.slug]) if lorebook.inflected(load_worldbook(wb)) else ""
     except Exception:  # an unreadable book: nothing to suggest
         return ""
+
+
+def _shown(message, reading):
+    """The text a message shows: its translation in the language they read, else what was written."""
+    return translation.display_text(message, reading) if reading else message[2]
+
+
+def _glossary(user, character, chat_state):
+    """Names the translation keeps as they are."""
+    names = prompt_names(user, character, (chat_state or {}).get("persona"))
+    return {n: n for n in (names["char"], names["user"]) if n}
 
 
 def prompt_names(user, character, chat_persona=None):
@@ -1923,6 +2025,7 @@ def preset_list(request):
         "preset": {"id": selected.id, "name": selected.name, **presets.normalize(selected.data)},
         "markers": presets.MARKERS,
         "utility_labels": presets.UTILITY_LABELS,
+        "job_defaults": presets.JOB_DEFAULTS,
         "macro_help": presets.MACRO_HELP,
         "post_processing": presets.POST_PROCESSING,
         "characters": [{"slug": c.slug, "name": c.name} for c in Character.objects.filter(author=request.user)],
@@ -2136,6 +2239,29 @@ def worldbook_forms(request, slug):
 
 
 @login_required
+def worldbook_expand(request, slug):
+    """🥔 Expand: more keywords, more lore, missing entries (the whole book, or one entry); nothing is saved here."""
+    from mainapp.bulba import expand
+    get_object_or_404(Worldbook, slug=slug, author=request.user)
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only"}, status=405)
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    book = normalize_book(data.get("book") or {})
+    what = tuple(w for w in (data.get("what") or ["keys", "lore", "new"]) if w in ("keys", "lore", "new")) or ("keys",)
+    uid = data.get("uid")
+    try:
+        result = expand.expand(request.user, book, what, int(uid) if uid is not None else None)
+    except ValueError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+    except ai_client.AIError as e:
+        return JsonResponse({"error": str(e)}, status=502)
+    return JsonResponse(result)
+
+
+@login_required
 def worldbook_test(request, slug):
     """Dry run: which entries would fire for the given messages, and why."""
     get_object_or_404(Worldbook, slug=slug, author=request.user)
@@ -2194,6 +2320,18 @@ def worldbook_list(request):
         wb.entry_count = len(load_worldbook(wb)["entries"])
     return render(request, "mainapp/worldbook_list.html", {"worldbooks": worldbooks})
 
+
+
+@login_required
+def character_delete(request, slug):
+    """Deletes one of their characters with its chats and files (POST); its worldbook stays."""
+    from users import account
+    character = get_object_or_404(Character, slug=slug, author=request.user)
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only"}, status=405)
+    name = character.name
+    account.delete_character(character)
+    return JsonResponse({"success": True, "name": name, "url": reverse("characters_list")})
 
 
 class CharactersList(LoginRequiredMixin, ListView):

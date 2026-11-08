@@ -12,9 +12,9 @@ from mainapp.bulba import control, doctor, library, lore, rules, tune
 INSTRUCTIONS = Path(__file__).resolve().parent.parent / "data" / "bulba" / "instructions.md"
 GUIDES_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba" / "guides"
 # Which guides Bulba reads at each stage (keeps the prompt, and the bill, small)
-STAGE_GUIDES = {"extras": ["extras"], "taste": ["asking", "presets", "writing"], "preset": ["presets", "writing", "slop"],
+STAGE_GUIDES = {"extras": ["extras"], "taste": ["asking", "presets", "writing", "slop"], "preset": ["presets", "writing", "slop"],
                 "persona": ["characters", "writing"], "character": ["characters", "lore", "writing"],
-                "story": ["extras", "tuning"], "done": ["characters", "lore", "writing", "tuning"]}
+                "story": ["extras", "tuning"], "done": ["characters", "lore", "writing", "tuning", "slop"]}
 REWRITABLE = ("Roleplay", "Style")
 TEST_CHARACTER = Path(__file__).resolve().parent.parent / "data" / "bulba" / "test-character.json"
 
@@ -175,6 +175,14 @@ TOOLS = [
          "background": {"type": "string", "description": "'chat', or a cheap model id: mimo-v2-6-pro, gemini-3-8-flash, glm-5-3, deepseek-v4-pro, deepseek-v4-flash"},
          "watch": {"type": "boolean", "description": "Bulba Watch (on by default): include only to switch it off "
                                                      "(false) or back on"},
+         "thinking": {"type": "string", "enum": ["default", "off", "light", "full"],
+                      "description": "How much the chat model thinks before each story reply: off is fastest and "
+                                     "cheapest, full the most careful and slowest; default is the model's own. Some "
+                                     "models can't do every level (the app says which)"},
+         "background_thinking": {"type": "string", "enum": ["light", "model"],
+                                 "description": "Background jobs (trackers, summaries, emotion, Watch): light (think as "
+                                                "little as the model allows; the default, faster and cheaper) or model "
+                                                "(its own default)"},
          "why": STR}, ["why"]),
     _fn("show_extras_form", "The story stage's extras in one form: dice, story extras, the ideas button. Pre-tick "
         "what fits their story; they change what they like and send it, and it's applied. Write your message first.",
@@ -195,7 +203,7 @@ TOOLS = [
                         "description": "Blocks of the starter to switch off (exact names), e.g. a community "
                                        "preset's random-event engines for someone who wants no chance"},
          "borrow": {"type": "array", "maxItems": 6, "items": STR,
-                    "description": "Library blocks (exact names from find_practice) to add word for word"},
+                    "description": "Optional verbatim library import (exact names from find_practice), only when requested and permitted. Normally express the relevant principle in taste or rewrite."},
          "why": STR},
         ["starter", "taste", "why"]),
     _fn("propose_persona", "Propose who the user is in the story.",
@@ -573,6 +581,15 @@ def apply_basics(session, answers):
             if key == "language" and raw.lower() in ("english", "en"):
                 lines.append(f"{label}: English")
                 continue
+            if key == "language":
+                from mainapp import translation
+                code = translation.language_code(raw)
+                if code:  # written in English, translated for them (profile → Story language), not a preset rule
+                    session.user.display_language = code
+                    session.user.save(update_fields=["display_language"])
+                    lines.append(f"{label}: {translation.LANGUAGES[code]}. Set on their profile: replies are written in "
+                                 "English and translated for them, so write no language rule into the preset")
+                    continue
             text = (f"Write the whole story in {raw}." if key == "language" else f"Keep out: {raw}.")
             scope = "boundary" if key == "keep_out" else "general"
         elif key == "panels" and raw == "on":  # drawn by the app (mainapp/extras.py), not written as HTML
@@ -654,6 +671,19 @@ def tool_propose_extras(session, args):
         from mainapp import game
         payload["game"] = args["game"]
         summary.append("Dice and inventory: " + game.MODE_LABELS[args["game"]].lower())
+    if args.get("thinking") in ("default", "off", "light", "full"):
+        from mainapp import samplers
+        _, chat_model = ai_client.resolve(session.user, "chat")
+        levels = {o["id"]: o for o in samplers.thinking_options(chat_model)}
+        if args["thinking"] not in levels:
+            return {"error": f"The chat model can't think at that level; it can do: {', '.join(levels)}."}, []
+        payload["thinking"] = args["thinking"]
+        o = levels[args["thinking"]]
+        summary.append(f"Thinking before story replies: {o['label'].lower()} ({o['help']})")
+    if args.get("background_thinking") in ("light", "model"):
+        payload["background_thinking"] = args["background_thinking"]
+        summary.append("Thinking for background jobs: " + ("light (faster, cheaper)" if args["background_thinking"] == "light"
+                                                            else "the model's own default"))
     bg = args.get("background")
     cheap = {m["id"]: m["name"] for m in _cheap_models()}
     if bg == "chat" or bg in cheap:
@@ -713,7 +743,7 @@ def tool_propose_preset(session, args):
     if switch_off:
         summary += ["Switched off:", *[f"  {n}" for n in switch_off]]
     if borrow:
-        summary += ["Tested blocks added from the community presets:", *[f"  {n}" for n in borrow]]
+        summary += ["Library blocks added:", *[f"  {n}" for n in borrow]]
     summary += ["Your taste:", *[f"  {line}" for line in taste.splitlines() if line.strip()]]
     if reply_length:
         summary += ["Reply length:", f"  {LENGTHS[reply_length]}"]
@@ -795,7 +825,7 @@ def opening(session):
             "Two ways to do this:\n\n"
             "**Full setup** (about twenty minutes): I find out how you like stories told, show you samples written by "
             "your own model, and build everything around that.\n\n"
-            f"**Quick setup** (a few minutes): a short form. Pick a tested writing style for {name}, say who you "
+            f"**Quick setup** (a few minutes): a short form. Pick a ready writing style for {name}, say who you "
             "are in the story, pick or import your character. Every part has a 🥔 button if you'd rather I did it.\n\n"
             "In the full setup you can skip any step (press **Skip** in the panel, or just tell me), or switch to "
             "the quick setup halfway. Just know that every step you skip is one less thing tuned to you.")
