@@ -2231,45 +2231,105 @@ def word_forms(user, book):
     return out
 
 
+# 🥔 Word forms and Expand run in the background when the page asks: the job's result waits (an hour) for them to
+# come back, even if they leave the page. One process (gunicorn, one worker) holds the jobs in its cache.
+BOOK_JOB_SECONDS = 3600
+
+
+def _book_job_key(user, slug, kind):
+    return f"bookjob:{user.id}:{slug}:{kind}"
+
+
+def _book_job(request, slug, kind, data, run):
+    """GET: the job's state. POST with background: start `run` in a thread (unless one is running). Else run it now."""
+    import threading
+    import time as time_mod
+    from django.core.cache import cache
+    from django.db import connection
+    key = _book_job_key(request.user, slug, kind)
+    if request.method == "GET":
+        job = cache.get(key) or {"status": "none"}
+        if job.get("status") == "running":
+            job = {**job, "seconds": int(time_mod.time() - job.get("started", time_mod.time()))}
+        if request.GET.get("clear") and job.get("status") in ("done", "error"):
+            cache.delete(key)
+        return JsonResponse(job)
+    if not data.get("background"):
+        return None  # the caller runs it now
+    if (cache.get(key) or {}).get("status") == "running":
+        return JsonResponse({"status": "running"})
+    cache.set(key, {"status": "running", "started": time_mod.time()}, BOOK_JOB_SECONDS)
+
+    def work():
+        try:
+            cache.set(key, {"status": "done", "result": run()}, BOOK_JOB_SECONDS)
+        except (ai_client.AIError, ValueError) as e:
+            cache.set(key, {"status": "error", "error": str(e)}, BOOK_JOB_SECONDS)
+        except Exception as e:  # never leave it "running" forever
+            log.exception("Worldbook job failed")
+            cache.set(key, {"status": "error", "error": f"Something went wrong ({e.__class__.__name__})."}, BOOK_JOB_SECONDS)
+        finally:
+            connection.close()
+    threading.Thread(target=work, daemon=True).start()
+    return JsonResponse({"status": "running"})
+
+
+def _book_request(request, slug):
+    get_object_or_404(Worldbook, slug=slug, author=request.user)
+    if request.method == "GET":
+        return {}, None
+    if request.method != "POST":
+        return None, JsonResponse({"error": "POST only"}, status=405)
+    try:
+        return json.loads(request.body.decode("utf-8")), None
+    except (ValueError, UnicodeDecodeError):
+        return None, JsonResponse({"error": "Invalid JSON"}, status=400)
+
+
 @login_required
 def worldbook_forms(request, slug):
     """🥔 Add word forms: Bulba's suggestions for the editor to show; nothing is saved here."""
-    get_object_or_404(Worldbook, slug=slug, author=request.user)
-    if request.method != "POST":
-        return JsonResponse({"error": "POST only"}, status=405)
-    try:
-        data = json.loads(request.body.decode("utf-8"))
-    except (ValueError, UnicodeDecodeError):
-        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    data, error = _book_request(request, slug)
+    if error:
+        return error
+    user = request.user
     book = normalize_book(data.get("book") or {})
+
+    def run():
+        forms = word_forms(user, book)
+        return {"forms": forms, "note": "" if forms else "Nothing to add: the keywords already cover their forms."}
+    background = _book_job(request, slug, "forms", data, run)
+    if background is not None:
+        return background
     try:
-        forms = word_forms(request.user, book)
+        return JsonResponse(run())
     except ai_client.AIError as e:
         return JsonResponse({"error": str(e)}, status=502)
-    return JsonResponse({"forms": forms, "note": "" if forms else "Nothing to add: the keywords already cover their forms."})
 
 
 @login_required
 def worldbook_expand(request, slug):
     """🥔 Expand: more keywords, more lore, missing entries (the whole book, or one entry); nothing is saved here."""
     from mainapp.bulba import expand
-    get_object_or_404(Worldbook, slug=slug, author=request.user)
-    if request.method != "POST":
-        return JsonResponse({"error": "POST only"}, status=405)
-    try:
-        data = json.loads(request.body.decode("utf-8"))
-    except (ValueError, UnicodeDecodeError):
-        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    data, error = _book_request(request, slug)
+    if error:
+        return error
+    user = request.user
     book = normalize_book(data.get("book") or {})
     what = tuple(w for w in (data.get("what") or ["keys", "lore", "new"]) if w in ("keys", "lore", "new")) or ("keys",)
     uid = data.get("uid")
+
+    def run():
+        return expand.expand(user, book, what, int(uid) if uid is not None else None)
+    background = _book_job(request, slug, "expand", data, run)
+    if background is not None:
+        return background
     try:
-        result = expand.expand(request.user, book, what, int(uid) if uid is not None else None)
+        return JsonResponse(run())
     except ValueError as e:
         return JsonResponse({"error": str(e)}, status=400)
     except ai_client.AIError as e:
         return JsonResponse({"error": str(e)}, status=502)
-    return JsonResponse(result)
 
 
 @login_required

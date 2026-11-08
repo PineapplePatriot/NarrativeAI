@@ -350,6 +350,29 @@ class WorldbookViewTests(TestCase):
         self.assertContains(page, 'id="expandBtn"')
         self.assertContains(page, 'id="entryExpandBtn"')
 
+    def test_word_forms_in_the_background(self):
+        import time
+        from unittest import mock
+        from django.core.cache import cache
+        from mainapp import views
+        cache.clear()
+        self.post_json(reverse("worldbook_create"), {"title": "Bg"})
+        wb = Worldbook.objects.get(author=self.user)
+        url = reverse("worldbook_forms", args=[wb.slug])
+        self.assertEqual(self.client.get(url).json()["status"], "none")
+        with mock.patch.object(views, "word_forms", return_value={0: ["Києві"]}):
+            started = self.post_json(url, {"book": {"title": "Bg", "entries": []}, "background": True}).json()
+            self.assertEqual(started["status"], "running")
+            for _ in range(50):  # the page polls the same way
+                job = self.client.get(url).json()
+                if job["status"] != "running":
+                    break
+                time.sleep(0.05)
+        self.assertEqual(job["status"], "done")
+        self.assertEqual(job["result"]["forms"], {"0": ["Києві"]})
+        self.client.get(url + "?clear=1")
+        self.assertEqual(self.client.get(url).json()["status"], "none")  # shown once, then gone
+
     def test_the_test_panel_reads_a_note(self):
         self.post_json(reverse("worldbook_create"), {"title": "Notes"})
         wb = Worldbook.objects.get(author=self.user)
