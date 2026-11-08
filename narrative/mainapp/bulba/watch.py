@@ -72,6 +72,8 @@ LABELS = {
     "ending_formula": "The same kind of ending every time",
 }
 CAUSES = ("model", "setup", "their_messages")
+# Known AI slop, whoever the reader is: rewritten out of new replies by default (fix_known, polish.approved)
+KNOWN_FIX = ("stock_reactions", "vague_emotion", "emotional_annotation", "corrective_contrast", "staccato")
 # What each one looks like, in plain words (Bulba's notebook page)
 ABOUT = {
     "stock_reactions": "Clenching and unclenching hands, opening and closing the mouth, jaw or breath cues repeated as emotional filler. A meaningful physical reaction is fine.",
@@ -141,6 +143,9 @@ def user_data(user):
     # Things they told Bulba they dislike ("other: <name>" -> what it means), fixed and watched like any habit
     data.setdefault("dislikes", {})
     data.setdefault("model_off", [])  # known habits of their chat model they asked Watch not to look for
+    # Known slop is rewritten out of new replies for everyone, no taste needed (Notebook page: off switch): the
+    # universal tells (KNOWN_FIX) and their chat model's own known habits (the ticked ones); muted ones stay out
+    data.setdefault("fix_known", True)
     # On for everyone from the start (once: if they stop it on the Notebook page it stays stopped): the model's
     # machinery (note_milestone(...), <thinking>, [OOC: ...]) tidied out of new replies
     if not data.get("defaults_v1"):
@@ -915,6 +920,8 @@ def polish_rejected(user, chat_obj, index, why, rec, habits):
 
 
 def title_of(label, char_name="The character"):
+    if label == "model_known":  # polish.MODEL_KNOWN: the chat model's own known habits
+        return "Your model's known habits"
     return LABELS.get(label, label.replace("other: ", "").capitalize()).replace("{char}", char_name)
 
 
@@ -944,11 +951,15 @@ def notebook(user):
         **memory(user),
         "on": is_on(user),
         "common": [{"label": label, "title": title_of(label), "about": ABOUT.get(label, ""),
-                    "on": label not in mine["muted"], "fixing": label in mine["fix"]} for label in LABELS],
+                    "on": label not in mine["muted"],
+                    "fixing": label in mine["fix"] or (mine.get("fix_known", True) and label in KNOWN_FIX)}
+                   for label in LABELS],
         "model": {"name": profile.get("name") or chat_model or "your chat model",
                   "items": [{"text": h, "on": h not in mine["model_off"]}
                             for h in (profile.get("style") or {}).get("watch_for") or []]},
         "own": [{"label": label, "title": title_of(label), "about": mine["dislikes"].get(label, "")} for label in own],
+        "fix_known": mine.get("fix_known", True),
+        "known_fix": [title_of(label) for label in KNOWN_FIX if label not in mine["muted"]],
         "muted_other": [{"label": m, "title": title_of(m)} for m in mine["muted"] if m not in LABELS],
         "spent": ai_client.spent_total(user),
         "month": ai_client.spent_this_month(user),
@@ -1030,6 +1041,8 @@ def change_memory(user, op, old="", new=""):
         if not old or len(old) > 200:
             raise ValueError("Which habit?")
         mine["model_off"] = [h for h in mine["model_off"] if h != old] + ([old] if op == "model_off" else [])
+    elif op == "fix_known":  # the Notebook page's switch: rewrite the known slop out of new replies
+        mine["fix_known"] = bool(new)
     elif op == "fix_model":
         if new not in ("bulba", "chat"):
             raise ValueError("Pick Bulba's model or your chat model.")

@@ -5678,6 +5678,31 @@ class PolishChatTests(WatchChatTests):
         super().setUp()
         self.polish_calls = []
         self.polish_answer = {"fixes": []}
+        from mainapp.bulba import watch
+        watch.save_user_data(self.user, {**watch.user_data(self.user), "fix_known": False})  # only what they approve
+
+    def test_known_slop_is_fixed_by_default(self):
+        from mainapp.bulba import polish, watch
+        from unittest import mock
+        watch.save_user_data(self.user, {**watch.user_data(self.user), "fix_known": True})
+        with mock.patch.object(polish, "model_habits", return_value=["Smirks in every reply"]):
+            habits = polish.approved(self.user)
+            self.assertIn("stock_reactions", habits)
+            self.assertIn("vague_emotion", habits)
+            self.assertIn(polish.MODEL_KNOWN, habits)
+            prompt = polish._prompt(self.character, self.character.chats.first() or self.chat_for_test(),
+                                    "Text.", [], "", habits)[1]["content"]
+        self.assertIn("Known habits of this model: Smirks in every reply", prompt)
+        self.assertIn("hands clenching and unclenching", prompt)
+        watch.change_memory(self.user, "mute", "vague_emotion")  # "I don't mind this" still wins
+        self.assertNotIn("vague_emotion", polish.approved(self.user))
+        watch.change_memory(self.user, "fix_known", new=False)  # the Notebook switch
+        self.assertNotIn("stock_reactions", polish.approved(self.user))
+        self.assertEqual(watch.notebook(self.user)["fix_known"], False)
+
+    def chat_for_test(self):
+        from mainapp import chats
+        return chats.create(self.character)
 
     def fake_post(self, url, headers=None, json=None, timeout=None, **kwargs):
         import json as json_mod

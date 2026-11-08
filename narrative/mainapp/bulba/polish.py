@@ -46,12 +46,47 @@ MEANING = {
                   "performed witty or therapist-like insight (say it the way this person would just talk, or drop it)",
     "misremembered_past": "retelling earlier events inaccurately, leaving out what mattered, or inventing details "
                           "of the past (correct it to what the summary says happened)",
+    "stock_reactions": "stock physical reactions standing in for emotion: hands clenching and unclenching, a jaw "
+                       "tightening, breath caught or let out, a gesture he 'doesn't notice' himself making, often in "
+                       "pairs; in any language, translated forms included. Replace with what this person would "
+                       "actually do or say here, or cut it",
+    "vague_emotion": "vague changes in the eyes, face or voice (\"something in his gaze shifts\", \"something "
+                     "flickers in her eyes\", \"his voice changes\"): say the specific thing, or cut it",
+    "emotional_annotation": "explaining the feeling after a line or gesture that already showed it: cut the "
+                            "explanation",
+    "decorative_stacking": "piling up descriptions that add no new meaning: keep the one that does the work",
+    "therapy_voice": "psychological analysis in a voice the character wouldn't use: say it the way they would",
+    "stalled_scene": "reactions repeating while nothing in the interaction moves: let the character decide or act",
 }
 
 
+MODEL_KNOWN = "model_known"  # the chat model's own known habits (its profile's watch_for, the ticked ones)
+
+
+def model_habits(user):
+    """Their chat model's known habits that are ticked on the Notebook page."""
+    from mainapp import model_profiles
+    try:
+        _, model = ai_client.resolve(user, "chat")
+    except ai_client.AIError:
+        return []
+    off = set(watch.user_data(user).get("model_off") or [])
+    items = ((model_profiles.for_model(model) or {}).get("style") or {}).get("watch_for") or []
+    return [h for h in items if h not in off]
+
+
 def approved(user):
-    """The habits they asked to have fixed (Watch must be on)."""
-    return list(watch.user_data(user).get("fix") or []) if watch.is_on(user) else []
+    """The habits rewritten out of new replies (Watch must be on): the ones they asked for, plus the known slop
+    (watch.KNOWN_FIX and their model's known habits) unless they switched that off or muted one."""
+    if not watch.is_on(user):
+        return []
+    mine = watch.user_data(user)
+    habits = list(mine.get("fix") or [])
+    if mine.get("fix_known", True):
+        habits += [h for h in watch.KNOWN_FIX if h not in mine.get("muted", []) and h not in habits]
+        if model_habits(user):
+            habits.append(MODEL_KNOWN)
+    return habits
 
 
 # Habits that can't apply to the person's own message ("Write my message")
@@ -102,6 +137,11 @@ def _prompt(character, chat_obj, text, others, summary, habits, whose="reply", r
     dislikes = watch.user_data(character.author)["dislikes"]  # their own dislikes, in their (Bulba-worded) words
     lines = []
     for label in habits:
+        if label == MODEL_KNOWN:
+            known = model_habits(character.author)
+            if known:
+                lines.append("- Known habits of this model: " + "; ".join(known))
+            continue
         if label in watch.LABELS or label.startswith("other: "):
             meaning = MEANING.get(label) or dislikes.get(label) or "a habit they noticed in this chat"
             line = f"- {watch.title_of(label, character.name)}: {meaning}"

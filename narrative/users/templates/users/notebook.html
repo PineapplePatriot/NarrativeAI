@@ -62,6 +62,8 @@
         <h3 class="sub">🧹 Fixed automatically</h3>
         <p class="help">Each new reply gets a quick pass that rewrites only the sentences with these habits; the original
             is one click away under the reply. A small extra call each time a reply needs it.</p>
+        <label class="toggle-line known-switch"><input type="checkbox" id="fixKnown">
+            <span>Always fix the known AI habits <small class="fix-about" id="fixKnownList"></small></span></label>
         <ul class="memory" id="nbFix"></ul>
         <label class="fix-model">Who rewrites:
             <select id="fixModel">
@@ -85,7 +87,7 @@
 </main>
 {{ notebook_data|json_script:"notebook-data" }}
 <script>const NOTEBOOK_URL = "{% url 'users:notebook' %}";</script>
-<script src="{% static 'users/js/notebook.js' %}?v=2"></script>
+<script src="{% static 'users/js/notebook.js' %}?v=3"></script>
 <script>window.NA_PAGE_TOUR = {name: 'notebook', auto: true};</script>
 </body>
 </html>

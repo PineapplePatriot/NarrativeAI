@@ -37,6 +37,10 @@ function fill() {
         <button type="button" class="x" data-stopfix="${i}" title="Stop fixing this">✕</button></span></li>`).join('')
         : '<li class="empty">Nothing yet. Press "Fix this automatically" on one of Bulba\'s notes in a chat, or add your own above.</li>';
     $('fixModel').value = state.fix_model || 'bulba';
+    $('fixKnown').checked = state.fix_known !== false;
+    $('fixKnownList').textContent = (state.known_fix || []).join(' · ')
+        + (state.model.items.some(h => h.on) ? ` · and ${state.model.name}'s ticked habits above` : '')
+        + '. Known tells of AI writing, whatever your taste; switch a single one off in the lists above.';
     $('nbMutedBox').hidden = !state.muted_other.length;
     $('nbMuted').innerHTML = state.muted_other.map((m, i) => `<li><span>${esc(m.title)}</span><span class="memory-btns">
         <button type="button" class="x" data-unmute="${i}" title="Notice it again">✕</button></span></li>`).join('');
@@ -76,6 +80,7 @@ document.addEventListener('change', e => {
     if (t.dataset.common !== undefined) change({ op: t.checked ? 'unmute' : 'mute', old: state.common[t.dataset.common].label });
     else if (t.dataset.model !== undefined) change({ op: t.checked ? 'model_on' : 'model_off', old: state.model.items[t.dataset.model].text });
     else if (t.id === 'fixModel') change({ op: 'fix_model', new: t.value });
+    else if (t.id === 'fixKnown') change({ op: 'fix_known', new: t.checked });
 });
 
 document.addEventListener('click', e => {
