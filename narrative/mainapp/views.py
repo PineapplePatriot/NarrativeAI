@@ -407,6 +407,9 @@ def chat(request, slug):
             try:
                 for part in chat_state["summary_parts"]:
                     key = f"{translation.fingerprint(part['text'])}:{reading}"
+                    if translation.already_in(part["text"], reading):  # an older summary written in it already
+                        out.append(part["text"])
+                        continue
                     if key not in cache:
                         cache[key] = translation.translate(request.user, part["text"], reading,
                                                            glossary=_glossary(request.user, character, chat_state))
@@ -431,6 +434,8 @@ def chat(request, slug):
             done = translation.translation_of(messages[index])
             if done and done["language"] == reading:
                 return JsonResponse({"success": True, "text": done["text"], "original": messages[index][2]})
+            if translation.already_in(messages[index][2], reading):  # written in it before the workflow: as it is
+                return JsonResponse({"success": True, "text": messages[index][2], "original": "", "same": True})
             source = messages[index][2]
             try:
                 text = translation.translate(request.user, source, reading,
@@ -980,7 +985,8 @@ def chat(request, slug):
             return JsonResponse({
                 "success": True, "reply": _shown(messages[-1], reading), "emotion": emotion, "char_count": char_count,
                 "original": text if reading and _shown(messages[-1], reading) != text else "",
-                "untranslated": bool(reading and not translation.translation_of(messages[-1])),
+                "untranslated": bool(reading and not translation.translation_of(messages[-1])
+                                     and not translation.already_in(text, reading)),
                 "reasoning": chats.reasoning_of(messages[-1]),
                 "game": [game.describe(op) for op in chats.game_of(messages[-1]) if not extras.is_extra(op)],
                 "extras_html": [extras.render(op) for op in chats.game_of(messages[-1]) if extras.is_extra(op)],
@@ -1505,7 +1511,8 @@ def chat(request, slug):
                                      # read in another language: the English it was written in, or "to translate"
                                      m[2] if reading and _shown(m, reading) != m[2] else "",
                                      bool(reading and m[0] == "assistant" and not chats.is_note(m)
-                                          and not translation.translation_of(m)))
+                                          and not translation.translation_of(m)
+                                          and not translation.already_in(m[2], reading)))
                      for m in messages],
         "reading_language": reading or "",
         "reading_language_name": translation.LANGUAGES.get(reading or "", ""),

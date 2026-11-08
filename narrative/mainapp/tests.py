@@ -3212,6 +3212,24 @@ class TranslationWorkflowTests(ChatPromptTests):
         self.assertEqual(translation.language_code("українська"), "uk")
         self.assertIsNone(translation.language_code("Klingon"))
 
+    def test_replies_already_in_the_language_are_left_alone(self):
+        from unittest import mock
+        from mainapp import chats, translation
+        self.read_in("uk")
+        self.post({"action": "chat", "message": "Привіт"})
+        chat = self.character.chats.first()
+        data = chats.read(chat)
+        data["messages"][-1][2] = "Він усміхається і наливає чай у дві чашки, не питаючи."  # written before the switch
+        chats.write(chat, data)
+        page = self.client.get(self.url).content.decode()
+        self.assertEqual(page.count('data-untranslated="1"'), 1)  # the English greeting only, not the Ukrainian reply
+        with mock.patch.object(translation, "translate", side_effect=self.fake_translate):
+            d = self.post({"action": "translate", "index": len(data["messages"]) - 1}).json()
+        self.assertTrue(d["same"])
+        self.assertEqual(self.translated, [])  # no paid call
+        self.assertTrue(translation.already_in("Він усміхається і наливає чай.", "uk"))
+        self.assertFalse(translation.already_in("He smiles and pours the tea.", "uk"))
+
     def test_translation_model_default(self):
         from mainapp import ai_client
         from users.models import ConnectionProfile

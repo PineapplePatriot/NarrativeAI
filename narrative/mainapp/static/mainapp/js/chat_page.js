@@ -2165,7 +2165,8 @@ async function translateMessage(messageEl) {
             return;
         }
         showText(messageEl, d.text);
-        setOriginal(messageEl, d.original);
+        if (d.same) messageEl.querySelectorAll('.original-btn, .translate-btn').forEach(b => b.remove());  // already in it
+        else setOriginal(messageEl, d.original);
         messageEl.querySelector('.message-text').removeAttribute('data-untranslated');
     } catch (err) {
         setOriginal(messageEl, '');

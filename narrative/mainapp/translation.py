@@ -150,3 +150,18 @@ def tracker_language_rule(user):
     which costs nothing extra; the story model reads them fine."""
     lang = reading_language(user)
     return (f"\n- Write the values in {LANGUAGES[lang]}, keeping names as the story spells them." if lang else "")
+
+
+# Old replies written before the workflow (e.g. straight in Ukrainian) are already in the reading language: never
+# translated again. Told by the alphabet, for languages that have their own; Latin-script ones can't be told this way.
+SCRIPTS = {"uk": r"[Ѐ-ӿ]", "ja": r"[぀-ヿ一-鿿]", "ko": r"[가-힯]",
+           "zh": r"[一-鿿]"}
+
+
+def already_in(text, lang):
+    """Whether this text is already written in `lang` (most of its letters are in that language's alphabet)."""
+    script = SCRIPTS.get(lang)
+    letters = re.findall(r"[^\W\d_]", str(text or ""))
+    if not script or len(letters) < 10:
+        return False
+    return sum(1 for ch in letters if re.match(script, ch)) / len(letters) > 0.5
