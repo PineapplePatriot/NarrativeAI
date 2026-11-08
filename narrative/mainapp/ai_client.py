@@ -508,6 +508,10 @@ def stream(user, task, messages, timeout=None, **params):
             raise AIError(f"{label}: the connection to {profile.name} broke off ({e.__class__.__name__}).")
         if not wrote and not calls and _blocking_stop(stop):  # blocked without an error: say so, not "empty"
             raise AIError(f"{label}: {profile.name} " + block_explanation(stop))
+        if not wrote and not calls and stop and stop.lower() not in ("stop", "end_turn", "eos"):
+            # Nothing written for another reason (Gemini: a fumbled tool call, recitation, out of room): say which
+            logging.getLogger(__name__).warning("%s sent no text (stop reason %s)", model, stop)
+            raise AIError(f"{label}: {profile.name} " + empty_explanation(stop))
         if calls:
             result = ToolCalls(calls[i] for i in sorted(calls))
             result.reasoning_details = _merge_details(details) or None
@@ -515,6 +519,22 @@ def stream(user, task, messages, timeout=None, **params):
 
 
 BLOCK_STOPS = ("content_filter", "safety", "prohibited_content", "blocklist", "spii", "image_safety")
+
+
+def empty_explanation(reason):
+    """Plain words for a reply that stopped before writing anything, by the provider's stop reason."""
+    r = str(reason or "").upper()
+    if "FUNCTION_CALL" in r or "TOOL" in r:  # contains "tool": game.stream_reply then retries without tools
+        return (f"fumbled a tool call ({reason}) and wrote nothing. The app's tools are the story extras and dice; "
+                "it tries again without them.")
+    if "RECITATION" in r:
+        return ("wrote nothing because the reply would have repeated published text word for word (Gemini's "
+                "RECITATION check). It usually comes from canon text copied into the card or the lorebook (quotes, "
+                "wiki descriptions): reword those in your own words, or press Regenerate.")
+    if r in ("LENGTH", "MAX_TOKENS"):
+        return ("used up the whole reply length thinking and wrote nothing. Raise the reply length limit (Samplers "
+                "page) or set Thinking to Light (pen menu → This chat).")
+    return f"wrote nothing (it stopped with \"{reason}\"). Press Regenerate to try again."
 
 
 def _blocking_stop(stop):

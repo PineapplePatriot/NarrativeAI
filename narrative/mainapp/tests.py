@@ -4307,6 +4307,24 @@ class ExtrasPlacementTests(GameTests):
         self.assertIn("PROHIBITED_CONTENT", events[-1]["error"])
         self.assertIn("no setting can switch off", events[-1]["error"])
 
+    def test_a_fumbled_tool_call_retries_without_tools(self):
+        from mainapp import extras
+        extras.set_kinds(self.user, ["documents"])
+        fumble = {"choices": [{"delta": {}, "finish_reason": "error", "native_finish_reason": "MALFORMED_FUNCTION_CALL"}]}
+        self.rounds = [sse(fumble, "[DONE]"), sse(delta("The rain keeps on."), "[DONE]")]
+        resp, events = self.stream_post({"action": "chat", "message": "Hello?"})
+        self.assertEqual(events[-1]["type"], "done")
+        self.assertEqual(events[-1]["reply"], "The rain keeps on.")
+        self.assertIn("tools", self.sent[0])
+        self.assertNotIn("tools", self.sent[1])  # asked again without them
+
+    def test_recitation_says_why(self):
+        stop = {"choices": [{"delta": {}, "finish_reason": "content_filter", "native_finish_reason": "RECITATION"}]}
+        self.rounds = [sse(stop, "[DONE]")]
+        resp, events = self.stream_post({"action": "chat", "message": "Hello?"})
+        self.assertEqual(events[-1]["type"], "error")
+        self.assertIn("published text", events[-1]["error"])
+
     def test_an_empty_reply_is_not_saved(self):
         self.rounds = [sse(delta("   "), "[DONE]")]
         resp, events = self.stream_post({"action": "chat", "message": "Hello?"})
