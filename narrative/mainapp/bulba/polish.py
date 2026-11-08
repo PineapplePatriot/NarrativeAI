@@ -396,3 +396,44 @@ def tool_defs(fn, STR):
            "they say they want that habit gone for good; they confirm with Apply.",
            {"habits": habits, "why": STR}, ["habits"]),
     ]
+
+
+# --- Bulba's own drafts (a character card, lore entries): the known slop out before anyone sees them ---
+SECTION = "§§ {} §§"
+
+
+def clean_written(user, fields, what="character card"):
+    """{field: text} with the known AI habits rewritten out (one pass for all of them). On any trouble, or with
+    "Always fix the known AI habits" off, the fields come back as they were."""
+    mine = watch.user_data(user)
+    if not mine.get("fix_known", True):
+        return fields
+    texts = {k: v for k, v in fields.items() if isinstance(v, str) and v.strip()}
+    if not texts:
+        return fields
+    habits = [h for h in watch.KNOWN_FIX if h not in mine.get("muted", [])]
+    habits += [h for h in mine.get("fix") or [] if h in MEANING and h not in watch.FREE_LABELS
+               and h not in NOT_FOR_THEIR_MESSAGE and h not in habits]
+    if not habits:
+        return fields
+    combined = "\n\n".join(SECTION.format(k) + "\n" + v for k, v in texts.items())
+    lines = "\n".join(f"- {watch.title_of(h)}: {MEANING[h]}" for h in habits)
+    try:
+        answer = ai_client.complete(user, "polish", [
+            {"role": "system", "content": INSTRUCTIONS.read_text(encoding="utf-8")},
+            {"role": "user", "content": f"## Habits to fix\n{lines}\n\n## A {what} Bulba drafted (not a reply: fix the "
+                                        "same habits in its prose; keep every fact, name, {{char}}/{{user}} and the "
+                                        f"§§ section lines exactly)\n{combined}"}],
+            max_tokens=4000, temperature=0, response_format={"type": "json_object"})
+        new, kept = apply_fixes(combined, _parse(answer))
+    except ai_client.AIError:
+        return fields
+    if not kept:
+        return fields
+    parts = re.split(r"(?m)^§§ (\S+) §§\n", "\n\n" + new)
+    out = dict(fields)
+    found = {parts[i]: parts[i + 1].strip() for i in range(1, len(parts) - 1, 2)}
+    if set(found) != set(texts) or not all(found.values()):
+        return fields  # a section line was lost or emptied: keep the draft as it was
+    out.update(found)
+    return out

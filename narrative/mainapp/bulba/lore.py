@@ -98,6 +98,10 @@ def tool_propose_lorebook(session, args):
     entries = _entries(args.get("entries"))
     if not entries:
         return {"error": "No usable entries: each needs content and either keys or always=true."}, []
+    from mainapp.bulba import polish  # the known AI habits out of Bulba's own lore, in one pass
+    cleaned = polish.clean_written(session.user, {f"e{i}": e["content"] for i, e in enumerate(entries)}, "lorebook")
+    for i, e in enumerate(entries):
+        e["content"] = cleaned.get(f"e{i}", e["content"])
     title = str(args.get("title") or f"{character.name}'s world").strip()[:120]
     adding = bool(character.worldbook_id)
     summary = [f"{'Added to' if adding else 'New lorebook for'} {character.name}"

@@ -436,7 +436,7 @@ class WorldbookViewTests(TestCase):
 def _no_default_fixes(user):
     """Most tests start from no habits being fixed (a real account starts with the leaked-markup fix on)."""
     from mainapp.bulba import watch
-    watch.save_user_data(user, {**watch.user_data(user), "fix": []})
+    watch.save_user_data(user, {**watch.user_data(user), "fix": [], "fix_known": False})
 
 
 class ChatPromptTests(TestCase):
@@ -3324,6 +3324,39 @@ class GeminiWordingTests(SimpleTestCase):
         self.assertIn(mature.PLAIN_LINE, mature.for_model(msgs, "google/gemini-4-argon")[0]["content"])
         self.assertNotIn("don't refuse", mature.for_model(msgs, "anthropic/claude-opus-5.5")[0]["content"])
         self.assertIn(mature.REMINDER_LINE, mature.for_model(msgs, "xiaomi/mimo-v2.6-pro")[0]["content"])
+
+
+class CleanDraftTests(TestCase):
+    """Bulba's own card and lore drafts lose the known AI habits before anyone sees them."""
+
+    def setUp(self):
+        self.user = get_user_model().objects.create_user("drafter", "d@example.com", "pw12345!")
+
+    def test_fields_cleaned_in_one_pass_and_kept_apart(self):
+        from unittest import mock
+        from mainapp.bulba import polish
+        fields = {"description": "Tall. His jaw tightens when he lies.", "greeting": "Fog. Something in his gaze shifts."}
+        answer = json.dumps({"fixes": [{"habit": "Vague changes", "find": "Something in his gaze shifts.",
+                                        "replace": "He looks at you a second too long."}]})
+        with mock.patch.object(polish.ai_client, "complete", return_value=answer) as call:
+            out = polish.clean_written(self.user, fields)
+        self.assertEqual(out["greeting"], "Fog. He looks at you a second too long.")
+        self.assertEqual(out["description"], fields["description"])
+        self.assertIn("hands clenching and unclenching", call.call_args[0][2][1]["content"])
+
+    def test_trouble_keeps_the_draft(self):
+        from unittest import mock
+        from mainapp.bulba import polish, watch
+        fields = {"description": "Tall and quiet.", "greeting": "Hello."}
+        broken = json.dumps({"fixes": [{"habit": "x", "find": "§§ greeting §§\nHello.", "replace": "Hi."}]})
+        with mock.patch.object(polish.ai_client, "complete", return_value=broken):
+            self.assertEqual(polish.clean_written(self.user, fields), fields)  # a section line lost
+        with mock.patch.object(polish.ai_client, "complete", side_effect=polish.ai_client.AIError("down")):
+            self.assertEqual(polish.clean_written(self.user, fields), fields)
+        watch.change_memory(self.user, "fix_known", new=False)
+        with mock.patch.object(polish.ai_client, "complete") as call:
+            self.assertEqual(polish.clean_written(self.user, fields), fields)
+        call.assert_not_called()  # the Notebook switch is off: no call
 
 
 class OutOfStepPageTests(ChatPromptTests):

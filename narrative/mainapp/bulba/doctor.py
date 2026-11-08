@@ -298,6 +298,9 @@ def tool_propose_preset_edit(session, args):
 def tool_propose_card_edit(session, args):
     from mainapp.bulba.agent import _proposal
     fields = {f: str(args.get(f)).strip()[:40000] for f in CARD_FIELDS if isinstance(args.get(f), str) and args.get(f).strip()}
+    if fields:
+        from mainapp.bulba import polish
+        fields = polish.clean_written(session.user, fields)  # the known AI habits out of Bulba's own draft
     if not fields:
         return {"error": "Change at least one field (description, personality, scenario, example_dialogue)."}, []
     character = lore.target_character(session)

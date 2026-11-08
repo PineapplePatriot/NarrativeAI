@@ -769,6 +769,8 @@ def tool_propose_character(session, args):
         return {"error": "Need a name and a description."}, []
     payload = {k: str(args.get(k, "")).strip()[:40000]
                for k in ("description", "scenario", "greeting", "personality", "example_dialogue")}
+    from mainapp.bulba import polish
+    payload = polish.clean_written(session.user, payload)  # the known AI habits out of the draft (the greeting most)
     payload["name"] = name
     summary = ["Description:", payload["description"]]
     if payload["personality"]:
