@@ -3317,6 +3317,15 @@ class TranslationWorkflowTests(ChatPromptTests):
         self.assertEqual(ai_client.resolve(self.user, "chat")[1], "test/model")
 
 
+class GeminiWordingTests(SimpleTestCase):
+    def test_the_mature_reminder_is_plain_for_gemini_and_claude(self):
+        from mainapp import mature
+        msgs = [{"role": "system", "content": "Rules.\n" + mature.REMINDER_LINE}, {"role": "user", "content": "Hi"}]
+        self.assertIn(mature.PLAIN_LINE, mature.for_model(msgs, "google/gemini-4-argon")[0]["content"])
+        self.assertNotIn("don't refuse", mature.for_model(msgs, "anthropic/claude-opus-5.5")[0]["content"])
+        self.assertIn(mature.REMINDER_LINE, mature.for_model(msgs, "xiaomi/mimo-v2.6-pro")[0]["content"])
+
+
 class OutOfStepPageTests(ChatPromptTests):
     def test_deleting_a_message_the_server_never_saved_reloads(self):
         data = self.post({"action": "delete", "index": 7}).json()
@@ -3597,7 +3606,7 @@ class BulbaInChatTests(ChatPromptTests):
         said = [e["text"] for e in data["events"] if e["type"] == "bulba"][-1]
         self.assertEqual(said, "Sure, here goes.")  # the person never sees the filter
         self.assertEqual([c["model"] for c in self.bulba_calls[-2:]], [ai_client.BULBA_MODEL, "google/gemini-4-argon"])
-        self.assertIn({"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+        self.assertIn({"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "OFF"},
                       self.bulba_calls[-1]["safety_settings"])
         self.assertNotIn("safety_settings", self.bulba_calls[-2])  # only Gemini gets them
         self.script = [("Next step.", [])]

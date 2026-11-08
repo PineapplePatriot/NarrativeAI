@@ -150,10 +150,11 @@ MODERATION = re.compile(r"considered high risk|rejected because it|content (?:ma
                         r"PROHIBITED_CONTENT|blocked (?:due to|by) safety|finish_reason.{0,6}(?:SAFETY|content_filter)",
                         re.I)
 # Gemini's adjustable filters, off as far as the API allows (the core protections can't be and aren't touched);
-# sent ourselves so it doesn't depend on what OpenRouter passes by default. BLOCK_NONE: some versions refuse OFF
-GEMINI_SAFETY = [{"category": c, "threshold": "BLOCK_NONE"} for c in (
+# sent ourselves so it doesn't depend on what OpenRouter passes by default. As SillyTavern sends them: "OFF" switches
+# a filter off entirely, where "BLOCK_NONE" still runs it (newer models still block with it now and then)
+GEMINI_SAFETY = [{"category": c, "threshold": "OFF"} for c in (
     "HARM_CATEGORY_HARASSMENT", "HARM_CATEGORY_HATE_SPEECH", "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-    "HARM_CATEGORY_DANGEROUS_CONTENT")]
+    "HARM_CATEGORY_DANGEROUS_CONTENT", "HARM_CATEGORY_CIVIC_INTEGRITY")]
 
 
 def _route(profile, payload):
@@ -294,6 +295,8 @@ def _request(user, task, messages, timeout=None, **params):
     if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER and str(payload["model"]).startswith("google/"):
         payload.setdefault("safety_settings", GEMINI_SAFETY)
     _route(profile, payload)
+    from mainapp import mature
+    payload["messages"] = mature.for_model(payload.get("messages") or [], payload.get("model"))
     _light_reasoning(profile, task, payload, user)
     timeout = TEST_TIMEOUT or timeout or TASKS.get(task, {}).get("timeout", 60)
     label = TASKS.get(task, {}).get("label", task)
@@ -441,6 +444,8 @@ def stream(user, task, messages, timeout=None, **params):
     if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER and str(payload["model"]).startswith("google/"):
         payload.setdefault("safety_settings", GEMINI_SAFETY)  # Gemini's adjustable filters off (see GEMINI_SAFETY)
     _route(profile, payload)
+    from mainapp import mature
+    payload["messages"] = mature.for_model(payload.get("messages") or [], payload.get("model"))
     _light_reasoning(profile, task, payload, user)
     read_timeout = TEST_TIMEOUT or timeout or TASKS.get(task, {}).get("timeout", 60)  # max wait between two pieces
     label = TASKS.get(task, {}).get("label", task)
