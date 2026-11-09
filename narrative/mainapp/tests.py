@@ -7907,3 +7907,33 @@ class WatchEvidenceRegressionTests(SimpleTestCase):
         self.assertEqual(state["count"], 5)
         self.assertEqual([n["id"] for n in state["notices"]], ["4", "3", "2", "1", "0"])
         self.assertTrue(all(n["count"] == 2 and n["of"] == 3 for n in state["notices"]))
+
+
+class TomatoPitTests(TestCase):
+    """🍅 The secret Tomato Pit: progress on the account, added up from every device."""
+
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(username="thrower", password="pw12345!")
+        self.client.force_login(self.user)
+
+    def post(self, body):
+        return self.client.post(reverse("tomato_state"), json.dumps(body), content_type="application/json").json()
+
+    def test_throws_from_two_devices_add_up_and_achievements_merge(self):
+        self.assertEqual(self.client.get(reverse("tomato_pit")).status_code, 200)
+        self.assertEqual(self.client.get(reverse("tomato_state")).json()["count"], 0)
+        self.post({"add": 40, "add_waits": 2, "ach": {"first": 1}, "days": ["2026-11-09"], "best10": 31, "found": True})
+        state = self.post({"add": 15, "ach": {"rage": 2}, "days": ["2026-11-10"], "skin": "carrot"})
+        self.assertEqual((state["count"], state["waits"], state["best10"], state["skin"]), (55, 2, 31, "carrot"))
+        self.assertEqual(set(state["ach"]), {"first", "rage"})
+        self.assertEqual(state["days"], ["2026-11-09", "2026-11-10"])
+        self.assertTrue(state["found"])
+
+    def test_nonsense_is_bounded(self):
+        state = self.post({"add": 10 ** 9, "best10": 10 ** 6, "add_waits": -5, "ach": "x", "days": "y"})
+        self.assertEqual((state["count"], state["best10"], state["waits"]), (3000, 200, 0))
+        self.assertEqual(self.client.post(reverse("tomato_state"), "{", content_type="application/json").status_code, 400)
+
+    def test_needs_an_account(self):
+        self.client.logout()
+        self.assertEqual(self.client.get(reverse("tomato_state")).status_code, 302)

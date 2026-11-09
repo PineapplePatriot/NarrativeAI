@@ -101,6 +101,7 @@
 <script>const BULBA_API = "{% url 'bulba_api' %}{% if embed and chat_obj %}?chat={{ chat_obj.id }}{% endif %}";
 const QUICK_URL = "{% url 'quick_setup' %}";</script>
 <script src="{% static 'js/costs.js' %}?v=1"></script>
+{% if embed %}<script src="{% static 'js/tomato.js' %}?v=3" data-pit="{% url 'tomato_pit' %}" data-state="{% url 'tomato_state' %}"></script>{% endif %}
 <script src="{% static 'mainapp/js/bulba.js' %}?v={% now 'U' %}"></script>
 <script src="{% static 'js/scrolldown.js' %}?v=1"></script>
 <script>NAScrollDown.attach(document.getElementById('log'), {above: document.getElementById('composer')});</script>

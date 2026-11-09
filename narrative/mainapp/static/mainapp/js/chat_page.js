@@ -283,6 +283,7 @@ function unlockFinished() {
 }
 let currentRequest = null;
 let deleteMessageIndex = -1;
+if (window.NATomato) NATomato.watch(() => isBusy());  // 🍅 a slow reply (writing, polishing, translating)
 
 messageInput.addEventListener('input', function () {
     this.style.height = 'auto';

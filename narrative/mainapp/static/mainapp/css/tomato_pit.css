@@ -1,0 +1,30 @@
+.pit { max-width: 860px; }
+.pit-head h1 { margin: 8px 0 4px; }
+.pit-field { position: relative; width: 100%; min-height: 260px; margin: 18px 0; border-radius: 22px; cursor: crosshair;
+    border: 2px dashed rgba(255, 255, 255, .18); background: radial-gradient(circle at 50% 40%, rgba(224, 53, 43, .18), transparent 65%), rgba(255, 255, 255, .03);
+    color: inherit; font: inherit; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+.pit-field:active .pit-ammo { transform: scale(.82) rotate(-20deg); }
+.pit-ammo { font-size: 4.5rem; line-height: 1; transition: transform .08s; }
+.pit-count { font-size: 2.4rem; font-weight: 800; letter-spacing: .02em; }
+.pit-hint { opacity: .65; font-size: .9rem; }
+.pit-rate { position: absolute; right: 16px; top: 12px; font-size: .8rem; opacity: .7; }
+.pit-box { background: rgba(255, 255, 255, .04); border: 1px solid rgba(255, 255, 255, .1); border-radius: 16px; padding: 16px; margin: 0 0 16px; }
+.pit-box-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.pit-box h2 { margin: 0 0 10px; font-size: 1.1rem; }
+.pit-box h3 { margin: 12px 0 8px; font-size: .85rem; opacity: .7; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+.pit-skins { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
+.pit-skin { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 6px; border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, .12); background: transparent; color: inherit; font: inherit; font-size: .8rem; cursor: pointer; text-align: center; }
+.pit-skin .e { font-size: 2rem; line-height: 1.1; }
+.pit-skin.on { border-color: #8b5cf6; background: rgba(139, 92, 246, .16); }
+.pit-skin:disabled { cursor: default; opacity: .45; }
+.pit-skin:disabled .e { filter: grayscale(1) brightness(.5) !important; }
+.pit-skin small { opacity: .7; font-size: .72rem; }
+.pit-ach { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
+.pit-ach li { padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, .1); opacity: .45; }
+.pit-ach li.got { opacity: 1; border-color: rgba(242, 183, 44, .55); background: rgba(242, 183, 44, .08); }
+.pit-ach b { display: block; }
+.pit-ach small { opacity: .75; }
+#pitCard { width: 100%; height: auto; border-radius: 12px; display: block; margin: 8px 0 12px; }
+.pit-share { display: flex; gap: 8px; flex-wrap: wrap; }
