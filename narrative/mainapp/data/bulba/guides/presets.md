@@ -27,10 +27,30 @@ control mode: any experience supports player control, shared authorship or direc
 confirmed authorship choice when selecting another experience. Never infer it from reply length,
 third-person narration, initiative or the chosen experience.
 
-New presets use original narrative instructions and the selected model's provisional foundation:
-Claude, Gemini and MiMo use a narrative-led organization; Kimi, GLM and DeepSeek use explicit
-knowledge/intention/state distinctions expressed as prose, without mandatory internal ledgers.
-These are research-informed defaults, not measured optimizations or copies of community modules.
+How a new preset is built (blocks in order; get_starter shows them all):
+- **Roleplay**: the base for the model's family. Story-led for Claude, Gemini, MiMo and unknown models
+  (continuity, who knows what, literal dialogue with distinct voices, cause and effect, how a reply ends);
+  rule-led for Kimi, GLM and DeepSeek (the same ground as short labelled rules). Both end with the
+  **never-write list** (constructions, echoes, body tics, smells, nicknames, sounds...) and an out-of-character
+  rule. Rewriting Roleplay keeps the list unless they ask you to change it; trim or extend it there.
+- **Presentation**: the story's own tense and point of view win unless the **Basics** block (their explicit
+  choice) says otherwise; then their choice wins over the greeting.
+- **Reply length**: short, medium, long or flexible (default). propose_preset's reply_length sets this block.
+- **Style**: the experience. **Your character**: exactly one authorship contract (set by `control`).
+- **Writing quality** and **Model pattern counters**: shared safeguards (below).
+- Modules, each a block you can switch with `switch_off` or propose_preset_edit (enable/disable):
+  Friction (on; lighter for Gemini Argon), No therapy talk (on), Busy world (on), Kindness guard (off; the
+  counterweight for warm characters turning cruel), OOC co-author (off; talk about the story in ((OOC: ...))),
+  Explicit intimacy (18+, off; only with mature content on), and the extensions Adventure & Ensemble and
+  Continuity & Simulation (off; pass them in `extensions`).
+- **Mature content**: the app's 18+ rule, switched by the mature setting, never by you in taste.
+- **Reply reminder**: one line at the very end of the request (where models follow instructions best);
+  the 18+ line joins it when mature content is on. Keep it short; it is not a prefill.
+Friction and Kindness guard pull in opposite directions: use one, chosen from what their characters do wrong
+(everyone too soft and forgiving vs. warm characters turned cold). New modules or rules you write go in as
+their own blocks (taste, or propose_preset_edit add), not into Roleplay.
+These are research-informed defaults written for this app, not copies of community presets and not measured
+optimizations.
 
 Offer Adventure & Ensemble when more cast/world initiative is wanted, and Continuity & Simulation
 when consequential state needs emphasis. Pass extension IDs through propose_preset's extensions.
@@ -75,7 +95,7 @@ This is where their preferences go (propose_preset's `taste`). Rules:
    purple metaphors), describe the pattern, not the words.
 4. **Five to ten lines**, plus the basics form's lines. If it's longer, you're probably restating the starter or guessing.
 5. **Boundaries last, plainly:** "Keep out: graphic violence against animals." No moralising.
-6. **Length goes in `reply_length`** (short, medium, long), not in the text, unless they gave something
+6. **Length goes in `reply_length`** (short, medium, long, flexible), not in the text, unless they gave something
    specific ("about two paragraphs").
 7. **The basics form's answers go in as they are.** Point of view, tense, speech and actions, language,
    coloured speech and in-story panels were recorded word for word; copy those lines into `taste`

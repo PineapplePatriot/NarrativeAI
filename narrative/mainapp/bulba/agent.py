@@ -94,6 +94,9 @@ def model_knowledge(profile):
         s = starters.get(sid)
         if s:
             lines.append(f"- {s['id']}: {s['title']}. {s['tagline']} {s['description']}")
+    base = experiences.base_of(profile["id"])
+    lines += ["", f"Its experience presets use the {'story-led' if base == 'narrative' else 'rule-led'} base "
+              "(see the preset guide for the blocks and modules)."]
     lines += ["", writing_quality.guidance(profile["id"])]
     return "\n".join(lines)
 
@@ -228,7 +231,7 @@ TOOLS = [
          "why": {"type": "string", "description": "One line on why these fit their story (shown above the form)"}}),
     _fn("propose_preset", "Propose the finished preset: a starter plus a short 'your taste' section.",
         {"starter": STR, "name": STR, "taste": {"type": "string", "description": "Plain instructions to the model"},
-         "reply_length": {"type": "string", "enum": ["short", "medium", "long"]},
+         "reply_length": {"type": "string", "enum": ["short", "medium", "long", "flexible"]},
          "rewrite": {"type": "object", "description": "Only if the starter contradicts them: full replacement text for its Roleplay and/or Style section",
                      "properties": {"Roleplay": STR, "Style": STR}},
          "switch_off": {"type": "array", "maxItems": 10, "items": STR,
@@ -361,6 +364,8 @@ def build_preset(payload):
         if block["kind"] == "prompt" and block["name"] in (payload.get("rewrite") or {}):
             block["content"] = payload["rewrite"][block["name"]]
     length = LENGTHS.get(payload.get("reply_length"))
+    if length and experiences.set_length(preset, payload["reply_length"]):  # an experience preset: its Reply length block
+        length = ""
     if length and not _replace_length_line(preset, length):
         payload = {**payload, "taste": (payload.get("taste", "") + "\n" + length).strip()}
     for block in preset["blocks"]:
@@ -517,7 +522,7 @@ BASICS = {
         "third": "Narrate in third person (\"she steps inside\").",
         "first": "Narrate in first person from {{char}}'s point of view (\"I step inside\")."}),
     "tense": ("Tense", {"present": "Write in present tense.", "past": "Write in past tense."}),
-    "length": ("Reply length", {"short": "short", "medium": "medium", "long": "long"}),
+    "length": ("Reply length", {"short": "short", "medium": "medium", "long": "long", "flexible": "flexible"}),
     "control": ("Your character", {  # handled by propose_preset itself (bulba/control.py), not the taste text
         "dont": "dont", "write": "write", "director": "director"}),
     "format": ("Speech and actions", {
@@ -594,7 +599,8 @@ BASICS = {
     "author": ("Write like", None),  # free text: an author they love
     "keep_out": ("Keep out", None),  # free text
 }
-LENGTH_WORDS = {"short": "a few lines", "medium": "a few paragraphs", "long": "a proper chunk"}
+LENGTH_WORDS = {"short": "short (two to four paragraphs)", "medium": "medium (five to eight paragraphs)",
+                "long": "long (a full sequence of events)", "flexible": "flexible (brief in talk, fuller in big moments)"}
 
 
 def tool_show_basics_form(session, args):
@@ -746,9 +752,10 @@ def tool_propose_extras(session, args):
     return {"proposal": p["id"], "status": "waiting for Apply"}, [{"type": "proposal", "id": p["id"]}]
 
 
-LENGTHS = {"short": "Keep replies short: one to three paragraphs.",
-           "medium": "Keep replies to about three to five paragraphs.",
-           "long": "Longer replies are welcome: five or more paragraphs when the moment allows."}
+LENGTHS = {"short": "Keep replies short: two to four paragraphs.",
+           "medium": "Keep replies to about five to eight paragraphs.",
+           "long": "Longer replies are welcome: a full sequence of events when the moment allows.",
+           "flexible": "Let the scene set the length: brief in conversation, fuller for big moments."}
 
 
 def tool_propose_preset(session, args):

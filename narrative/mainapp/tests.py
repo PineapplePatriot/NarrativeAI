@@ -1843,7 +1843,7 @@ class StarterTests(ChatPromptTests):
     def test_every_starter_is_a_sound_preset_for_its_model(self):
         from mainapp import model_profiles, presets, samplers, starters
         all_s = starters.all_starters()
-        self.assertEqual(len(all_s), 33)  # three original experiences for each of the eleven models
+        self.assertEqual(len(all_s), 36)  # three original experiences for each of the eleven models and "Any model"
         for s in all_s:
             profile = model_profiles.by_id(s["model"])
             self.assertEqual(profile["starters"][s["experience"]], s["id"])
@@ -1884,7 +1884,7 @@ class StarterTests(ChatPromptTests):
         plain = model_profiles.for_style("mistralai/mistral-large")
         self.assertTrue(plain["_generic"])
         self.assertEqual([r["id"] for r in starters.ready_for(plain["id"])],
-                         ["any-back-and-forth", "any-rich-scene", "any-director"])
+                         ["any-experience-conversation", "any-experience-drama", "any-experience-storytelling"])
         self.assertNotIn("Any model", model_profiles.known_names())  # never offered as a model to pick
         self.assertIsNone(model_profiles.for_style(""))
         # the plain presets: no stock gestures, no metaphors to imitate
@@ -1892,16 +1892,38 @@ class StarterTests(ChatPromptTests):
         self.assertIn("stock gestures", text)
         self.assertNotIn("beat", text.lower())
 
+    def test_quick_setup_sets_length_and_who_writes_your_character(self):
+        from mainapp import presets
+        from mainapp.bulba import control
+        from users.models import ConnectionProfile
+        ConnectionProfile.objects.filter(user=self.user).update(model="z-ai/glm-5.3")
+        url = reverse("quick_setup")
+        self.client.post(url, json.dumps({"starter": "glm-experience-drama", "length": "short", "control": "director"}),
+                         content_type="application/json")
+        data = presets.normalize(presets.get_active(self.user).data)
+        self.assertEqual(control.mode_of(data), "director")
+        length = next(b for b in data["blocks"] if b["name"] == "Reply length")["content"]
+        self.assertIn("two to four paragraphs", length)
+        self.assertIn("## Knowledge", next(b for b in data["blocks"] if b["name"] == "Roleplay")["content"])  # rule-led
+        page = self.client.get(url)
+        self.assertEqual((page.context["basics"]["length"], page.context["basics"]["control"]), ("short", "director"))
+        # changing only who writes, on the same preset
+        self.client.post(url, json.dumps({"starter": "glm-experience-drama", "control": "write", "length": "flexible"}),
+                         content_type="application/json")
+        data = presets.normalize(presets.get_active(self.user).data)
+        self.assertEqual(control.mode_of(data), "write")
+        self.assertIn("flexible", next(b for b in data["blocks"] if b["name"] == "Reply length")["content"])
+
     def test_quick_setup_names_what_an_unknown_model_gets(self):
         from users.models import ConnectionProfile
         ConnectionProfile.objects.filter(user=self.user).update(model="moonshotai/kimi-k2")
         page = self.client.get(reverse("quick_setup"))
         self.assertContains(page, "borrowed from Kimi K3")
-        self.assertEqual([r["id"] for r in page.context["ready"]][0], "kimi-back-and-forth")
+        self.assertEqual([r["id"] for r in page.context["ready"]][0], "kimi-experience-conversation")
         ConnectionProfile.objects.filter(user=self.user).update(model="mistralai/mistral-large")
         page = self.client.get(reverse("quick_setup"))
         self.assertContains(page, "plain presets for any model")
-        self.assertEqual(page.context["ready"][0]["id"], "any-back-and-forth")
+        self.assertEqual(page.context["ready"][0]["id"], "any-experience-conversation")
 
     def test_using_a_starter_makes_an_active_copy_with_credit(self):
         from mainapp.models import Preset
@@ -2100,7 +2122,7 @@ class BulbaTests(TestCase):
         self.assertEqual(session.target_model, "any-model")
         knowledge = agent.model_knowledge(agent.target_profile(session))
         self.assertIn("no notes for and no relative of", knowledge)
-        self.assertIn("any-rich-scene", knowledge)
+        self.assertIn("any-experience-storytelling", knowledge)
 
     def test_unknown_model_with_a_relative_borrows_its_knowledge(self):
         self.main.model = "moonshotai/kimi-k2"
@@ -2113,7 +2135,7 @@ class BulbaTests(TestCase):
         self.assertEqual(session.target_model, "kimi-k3")
         knowledge = agent.model_knowledge(agent.target_profile(session))
         self.assertIn("closest relative", knowledge)
-        self.assertIn("kimi-rich-scene", knowledge)
+        self.assertIn("kimi-experience-storytelling", knowledge)
 
     def test_bulba_runs_on_its_own_model_and_never_sees_keys(self):
         self.script = [("", [self.call("get_current_setup")]), ("You're on Opus. Voices?", [])]
@@ -2185,7 +2207,7 @@ class BulbaTests(TestCase):
         self.assertIn("Keep the teasing light.", taste["content"])
         # Their length replaces the starter's own length rule: one rule, not two
         style = next(b for b in active.data["blocks"] if b["name"] == "Style")["content"]
-        self.assertIn("Keep replies short: one to three paragraphs.", style)
+        self.assertIn("Keep replies short: two to four paragraphs.", style)
         self.assertNotIn("Usually one to three short paragraphs", style)
         self.assertNotIn("paragraphs", taste["content"])
 
@@ -2612,12 +2634,12 @@ class BulbaOnboardingRunTests(BulbaTests):
         from mainapp.bulba.agent import build_preset
         preset = build_preset({"starter": "opus-rich-scene", "taste": "Push back.", "reply_length": "medium"})
         style = next(b for b in preset["blocks"] if b["name"] == "Style")["content"]
-        self.assertIn("- Keep replies to about three to five paragraphs. End where {{user}} has something to answer.", style)
+        self.assertIn("- Keep replies to about five to eight paragraphs. End where {{user}} has something to answer.", style)
         self.assertNotIn("three to six", style)
         # A starter without a length line gets it in the taste section instead
         preset = build_preset({"starter": "mimo-rich-scene", "taste": "Push back.", "reply_length": "short"})
         taste = next(b for b in preset["blocks"] if b["name"] == "Your taste")["content"]
-        self.assertIn("one to three paragraphs", taste)
+        self.assertIn("two to four paragraphs", taste)
 
     def test_names_filled_on_cards_the_user_reads(self):
         self.script = [("Look.", [self.call(

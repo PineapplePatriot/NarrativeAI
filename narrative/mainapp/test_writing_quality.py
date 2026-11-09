@@ -6,7 +6,7 @@ from mainapp.bulba import agent, library
 class WritingQualityTests(SimpleTestCase):
     def test_all_authored_variants_assemble_one_quality_block(self):
         authored = [s for s in starters.all_starters() if s['experience'] in starters.READY_FEELS]
-        self.assertEqual(len(authored), 33)
+        self.assertEqual(len(authored), 36)
         for starter in authored:
             with self.subTest(starter=starter['id']):
                 blocks = starter['preset']['blocks']
@@ -62,7 +62,7 @@ class WritingQualityTests(SimpleTestCase):
     def test_each_variant_has_its_model_counter_once_and_enabled(self):
         for s in starters.all_starters():
             counters = [b for b in s['preset']['blocks'] if b.get('id') == writing_quality.COUNTER_ID]
-            if s['experience'] not in starters.READY_FEELS:
+            if s['experience'] not in starters.READY_FEELS or s['model'] == 'any-model':
                 self.assertEqual(counters, [])
                 continue
             self.assertEqual(len(counters), 1, s['id'])

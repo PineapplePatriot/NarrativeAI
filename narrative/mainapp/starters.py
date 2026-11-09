@@ -36,8 +36,9 @@ def legacy_starters():
 @lru_cache(maxsize=1)
 def all_starters():
     templates = {s['id']: s for s in legacy_starters()}
+    profiles = [*model_profiles.all_profiles(), model_profiles.generic()]  # "Any model" too (no notes, no relative)
     return [experiences.generate(templates[p['starters']['rich_scene']], p, feel)
-            for p in model_profiles.all_profiles() for feel in experiences.EXPERIENCES]
+            for p in profiles for feel in experiences.EXPERIENCES]
 
 
 def get(starter_id):

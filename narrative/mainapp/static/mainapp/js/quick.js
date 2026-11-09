@@ -130,6 +130,7 @@ async function save(go) {
         mature: $('qMature').checked,
         display_language: $('qLanguage').value,
         pov: $('qPov').value, tense: $('qTense').value, format: $('qFormat').value,
+        length: $('qLength').value || 'flexible', control: $('qControl').value,
     };
     if (data.window) body.chat_context = steps[Number($('chatContext').value)];
     $('qError').hidden = true;

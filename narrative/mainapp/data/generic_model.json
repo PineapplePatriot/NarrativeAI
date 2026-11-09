@@ -7,7 +7,7 @@
   "style": {
     "notes": [
       {
-        "text": "No notes for this model yet. The ready presets are written plainly, without relying on any one model's quirks.",
+        "text": "No notes for this model yet. The ready experiences use the story-led base, which relies on no one model's quirks.",
         "source": "NarrativeAI",
         "status": "default"
       }
@@ -18,7 +18,10 @@
   "starters": {
     "back_and_forth": "any-back-and-forth",
     "rich_scene": "any-rich-scene",
-    "director": "any-director"
+    "director": "any-director",
+    "conversation": "any-experience-conversation",
+    "drama": "any-experience-drama",
+    "storytelling": "any-experience-storytelling"
   },
   "card": {
     "price": "?",

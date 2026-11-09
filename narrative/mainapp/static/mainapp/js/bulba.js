@@ -117,7 +117,7 @@ const BASICS_FORM = [
     { key: 'language', label: 'Story language', text: 'English' },
     { key: 'pov', label: 'Point of view', options: [['second', 'You (“you step inside”)'], ['third', 'Third person (“she steps inside”)'], ['first', 'The character’s “I”']] },
     { key: 'tense', label: 'Tense', options: [['present', 'Present (“she turns”)'], ['past', 'Past (“she turned”)']] },
-    { key: 'length', label: 'Reply length', options: [['short', 'A few lines'], ['medium', 'A few paragraphs'], ['long', 'A proper chunk']] },
+    { key: 'length', label: 'Reply length', options: [['short', 'Short: 2–4 paragraphs'], ['medium', 'Medium: 5–8 paragraphs'], ['long', 'Long: a full sequence'], ['flexible', 'Flexible: follows the scene']] },
     { key: 'control', label: 'Your character', hint: 'who writes what you say and do', options: [['dont', 'Only me'], ['write', 'The AI may write me too'], ['director', 'I direct from outside the story']],
       help: 'Roleplay (the first two): you play your character and the AI plays everyone else. Director: you aren’t in the story; you say what should happen (“she finds the letter”, “a storm hits the harbour”) and the AI writes the whole scene, your character included. Not sure? Pick roleplay: Bulba can switch it in any chat when you ask.' },
     { key: 'format', label: 'Speech and actions', options: [['quotes', '“Speech”, actions as plain text'], ['asterisks', '“Speech”, *actions*'], ['any', 'Doesn’t matter']] },
