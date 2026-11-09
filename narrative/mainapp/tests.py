@@ -6090,7 +6090,10 @@ class PolishChatTests(WatchChatTests):
         self.approve()
         self.post({"action": "chat", "message": "Go on."})
         self.assertTrue(self.post({"action": "regenerate"}).json()["polish_due"])
-        self.assertTrue(self.post({"action": "continue"}).json()["polish_due"])
+        calls = len(self.polish_calls)
+        # Continue: only the new part is cleaned, right away; what they already read isn't polished again
+        self.assertFalse(self.post({"action": "continue"}).json()["polish_due"])
+        self.assertEqual(len(self.polish_calls), calls + 1)
 
     def test_their_chat_model_if_they_choose_it(self):
         self.approve()
