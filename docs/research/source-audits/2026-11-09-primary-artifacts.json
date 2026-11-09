@@ -1,0 +1,80 @@
+{
+  "artifacts": [
+    {
+      "repository": "https://github.com/platberlitz/platberlitz.github.io",
+      "commit": "d548baa41899fb0bdd22c8325bfba5af633afe5d",
+      "path": "preset/Pura's Director Preset 16.0 (SillyTavern).json",
+      "sha256": "994ed627fcc76c33e233f3a8b65014e6a5b89535d91089ff3fe3ca9a486b71c6",
+      "bytes": 264960,
+      "prompt_count": 77,
+      "retrieved": "2026-11-09",
+      "inspection": "prompt text, order metadata and selected creator documentation; not full macro execution or live generation"
+    },
+    {
+      "repository": "https://github.com/platberlitz/platberlitz.github.io",
+      "commit": "d548baa41899fb0bdd22c8325bfba5af633afe5d",
+      "path": "preset/The Ethereality Express 1.1.json",
+      "sha256": "03243f1d5c8104324de5963a3f7a96860ff2dc54f3055e3e10e671671cb5db7b",
+      "bytes": 264862,
+      "prompt_count": 78,
+      "retrieved": "2026-11-09",
+      "inspection": "prompt text, order metadata and selected creator documentation; not full macro execution or live generation"
+    },
+    {
+      "repository": "https://github.com/lsennn/Deus-ex-machina",
+      "commit": "5fb7ad39de33f191a4aaf61d138f91e40d7b2526",
+      "path": "DEUS EX MACHINA V3 ST.json",
+      "sha256": "a4ae6343c3a0bbc6ae0efe96e1219bdf9ba6f61e391baa7cb0278479be140f70",
+      "bytes": 648844,
+      "prompt_count": 168,
+      "retrieved": "2026-11-09",
+      "inspection": "prompt text, order metadata and selected creator documentation; not full macro execution or live generation"
+    },
+    {
+      "repository": "https://github.com/pyrxpia/sola-hub",
+      "commit": "eae025e76015345294bc2c59feeae3caaf842bab",
+      "path": "presets/☀️ 🧡 Sola Kindling V2 ST 🧡 ☀️.json",
+      "sha256": "ce856465ce93b3790f569bd4208ebfc8ca03db48c2d35ef1c8fdeaeb73fd087c",
+      "bytes": 142302,
+      "prompt_count": 17,
+      "retrieved": "2026-11-09",
+      "inspection": "prompt text, order metadata and selected creator documentation; not full macro execution or live generation"
+    },
+    {
+      "repository": "https://github.com/pyrxpia/sola-hub",
+      "commit": "eae025e76015345294bc2c59feeae3caaf842bab",
+      "path": "presets/☀️ 🧡 Sola V4 Flame ST 🧡 ☀️.json",
+      "sha256": "2c6f926faba8e41b12aa5eabca6a78141f50f9c81db69a8ee75efb22c1e01c5e",
+      "bytes": 263750,
+      "prompt_count": 137,
+      "retrieved": "2026-11-09",
+      "inspection": "prompt text, order metadata and selected creator documentation; not full macro execution or live generation"
+    },
+    {
+      "repository": "https://github.com/NemoVonNirgend/NemoEngine",
+      "commit": "986dd7f5395a81cef2b90c4de6d2c8bb13130edf",
+      "path": "Vivarium/Nemo Vivarium v1.0 Beta.json",
+      "sha256": "7e55e6c1c0ee6502a5924ce65e1eb7cc093401a0152a36374ab522a3d6476e3f",
+      "bytes": 49355,
+      "prompt_count": 17,
+      "retrieved": "2026-11-09",
+      "inspection": "prompt text, order metadata and selected creator documentation; not full macro execution or live generation"
+    },
+    {
+      "repository": "https://github.com/NemoVonNirgend/NemoEngine",
+      "commit": "986dd7f5395a81cef2b90c4de6d2c8bb13130edf",
+      "path": "Magpie/Magpie v1 Beta-2.1.json",
+      "sha256": "eb63f6bb8bd845dd4e1020ca9bd8c9f566f6c47022a6175b94dd01e055b8d941",
+      "bytes": 313003,
+      "prompt_count": 79,
+      "retrieved": "2026-11-09",
+      "inspection": "prompt text, order metadata and selected creator documentation; not full macro execution or live generation"
+    }
+  ],
+  "pending": [
+    "User-linked Reddit post and comments",
+    "Evening-Truth current Rentry guidance",
+    "RF/FF current creator release and MiMo configuration",
+    "Chatfill and Ancient Access creator sources"
+  ]
+}
