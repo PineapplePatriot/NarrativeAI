@@ -47,7 +47,7 @@
         { id: 'patient', name: 'Patient critic', about: 'Threw something during 10 real waits.', unlocks: 'egg' },
         { id: 'long', name: 'Long haul', about: 'Kept throwing through a wait over a minute.' },
         { id: 'rage', name: 'Rage', about: '30 throws in 10 seconds.', unlocks: 'balloon' },
-        { id: 'berserk', name: 'Berserk', about: '60 throws in 10 seconds. Your mouse is fine?' },
+        { id: 'berserk', name: 'Berserk', about: '60 throws in 10 seconds. Is your hand okay?' },
         { id: 'night', name: 'Night owl', about: 'Threw between 2 and 5 in the morning.', unlocks: 'pie' },
         { id: 'regular', name: 'Regular', about: 'Threw on 7 different days.' },
         { id: 'collector', name: 'Collector', about: 'Unlocked 10 skins.' },
@@ -55,15 +55,17 @@
     ];
 
     const css = `
-.na-tom-btn { position: fixed; left: 16px; bottom: 90px; z-index: 9000; display: flex; align-items: center; gap: 8px;
+.na-tom-btn { position: fixed; right: 12px; top: 42%; z-index: 9000; display: flex; align-items: center; gap: 8px;
     background: rgba(20, 22, 34, .92); color: #f1f5f9; border: 1px solid rgba(255,255,255,.15); border-radius: 999px;
     padding: 6px 14px 6px 6px; box-shadow: 0 8px 24px rgba(0,0,0,.4); font: inherit; font-size: .85rem; cursor: pointer;
     animation: naTomIn .35s cubic-bezier(.2,1.6,.4,1); transition: opacity .4s; }
 .na-tom-btn .na-tom-face { font-size: 1.9rem; line-height: 1; display: inline-block; transition: transform .1s; }
 .na-tom-btn:active .na-tom-face { transform: scale(.85) rotate(-15deg); }
 .na-tom-btn small { opacity: .7; display: block; font-size: .72rem; }
+.na-tom-btn.thrown .na-tom-line { display: none; }  /* after the first throw: just the tomato and the count */
+@media (max-width: 600px) { .na-tom-btn { max-width: 58vw; } .na-tom-btn .na-tom-line { font-size: .78rem; } }
 .na-tom-btn.fading { opacity: 0; pointer-events: none; }
-.na-tom-pit-link { position: fixed; left: 16px; bottom: 150px; z-index: 9000; background: #7c3aed; color: #fff; padding: 8px 14px;
+.na-tom-pit-link { position: fixed; right: 12px; top: calc(42% - 54px); z-index: 9000; background: #7c3aed; color: #fff; padding: 8px 14px;
     border-radius: 12px; text-decoration: none; font-size: .85rem; box-shadow: 0 8px 24px rgba(0,0,0,.4); animation: naTomIn .4s ease-out; }
 .na-tom-fly { position: fixed; z-index: 9001; pointer-events: none; font-size: 2rem; line-height: 1; will-change: transform;
     transition: transform .32s cubic-bezier(.3,.1,.6,1); }
@@ -266,6 +268,7 @@
         btn.addEventListener('click', () => {
             const r = btn.querySelector('.na-tom-face').getBoundingClientRect();
             throwOne({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
+            btn.classList.add('thrown');
             paintButton();
         });
         document.body.appendChild(btn);

@@ -65,45 +65,84 @@
         clearTimeout(cardTimer);
         cardTimer = setTimeout(drawCard, 250);  // not on every single throw
     }
+    // Text that wraps inside `maxW`, at most `lines` lines (the last one ends in … if it had to be cut)
+    function wrap(g, text, x, y, maxW, lineH, lines) {
+        const words = String(text).split(/\s+/);
+        let line = '', n = 0;
+        for (let i = 0; i < words.length; i++) {
+            const next = line ? line + ' ' + words[i] : words[i];
+            if (g.measureText(next).width <= maxW || !line) { line = next; continue; }
+            if (n === lines - 1) { line += '…'; break; }
+            g.fillText(line, x, y + n * lineH);
+            n++;
+            line = words[i];
+        }
+        if (line) g.fillText(line, x, y + n * lineH);
+        return y + (n + 1) * lineH;
+    }
+    const FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+    const EMOJI = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
     function drawCard() {
         const d = T.data(), s = T.skin(), c = $('pitCard'), g = c.getContext('2d');
-        const bg = g.createLinearGradient(0, 0, 1200, 630);
+        const W = 1200, H = 630, X = 430, MAXW = W - X - 70;
+        const bg = g.createLinearGradient(0, 0, W, H);
         bg.addColorStop(0, '#1a1027');
         bg.addColorStop(1, '#2b0f14');
         g.fillStyle = bg;
-        g.fillRect(0, 0, 1200, 630);
-        // splats in the skin's colour
+        g.fillRect(0, 0, W, H);
+        // a few soft splats in the skin's colour, kept faint so the text stays readable
         let seed = d.count + 7;
         const rnd = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
-        g.globalAlpha = .22;
+        g.globalAlpha = .1;
         g.fillStyle = s.color;
-        for (let i = 0; i < 14; i++) {
+        for (let i = 0; i < 12; i++) {
             g.beginPath();
-            g.arc(rnd() * 1200, rnd() * 630, 20 + rnd() * 60, 0, Math.PI * 2);
+            g.arc(rnd() * W, rnd() * H, 20 + rnd() * 70, 0, Math.PI * 2);
             g.fill();
         }
         g.globalAlpha = 1;
-        g.font = '220px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+        // the skin, big, on a glow
+        const glow = g.createRadialGradient(215, 300, 10, 215, 300, 190);
+        glow.addColorStop(0, s.color + '55');
+        glow.addColorStop(1, 'transparent');
+        g.fillStyle = glow;
+        g.fillRect(0, 80, 430, 440);
         g.textBaseline = 'middle';
+        g.textAlign = 'center';
+        g.font = `210px ${EMOJI}`;
         g.filter = s.filter || 'none';
-        g.fillText(s.emoji, 80, 300);
+        g.fillText(s.emoji, 215, 300);
         g.filter = 'none';
+        g.textAlign = 'left';
+        g.textBaseline = 'alphabetic';
+        g.shadowColor = 'rgba(0, 0, 0, .45)';
+        g.shadowBlur = 10;
+        g.fillStyle = '#f2b72c';
+        g.font = `700 26px ${FONT}`;
+        g.fillText('THE TOMATO PIT', X, 130);
         g.fillStyle = '#ffffff';
-        g.font = '800 96px system-ui, -apple-system, "Segoe UI", sans-serif';
-        g.fillText(d.count.toLocaleString(), 400, 230);
-        g.font = '600 40px system-ui, -apple-system, "Segoe UI", sans-serif';
-        g.fillStyle = '#f1e4e4';
-        g.fillText(`${(d.count === 1 ? s.name : many(s)).toLowerCase()} thrown at Narrative AI`, 400, 310);
-        g.fillText('while waiting for a reply.', 400, 360);
+        g.font = `800 112px ${FONT}`;
+        g.fillText(d.count.toLocaleString(), X, 240);
+        g.fillStyle = '#f3e8e8';
+        g.font = `600 38px ${FONT}`;
+        let y = wrap(g, `${(d.count === 1 ? s.name : many(s)).toLowerCase()} thrown at Narrative AI while waiting for a reply.`,
+                     X, 300, MAXW, 48, 2);
         const best = [...T.ACHIEVEMENTS].reverse().find(a => d.ach[a.id] && a.id !== 'first' && a.id !== 'pit')
             || T.ACHIEVEMENTS.find(a => d.ach[a.id]);
-        g.font = '500 32px system-ui, -apple-system, "Segoe UI", sans-serif';
-        g.fillStyle = '#f2b72c';
-        if (best) g.fillText(`🏅 ${best.name}: ${best.about}`.slice(0, 60), 400, 440);
-        g.fillStyle = 'rgba(255,255,255,.55)';
-        g.font = '500 28px system-ui, -apple-system, "Segoe UI", sans-serif';
+        if (best) {
+            y += 22;
+            g.fillStyle = '#f2b72c';
+            g.font = `700 32px ${FONT}`;
+            g.fillText(`🏅 ${best.name}`, X, y);
+            g.fillStyle = 'rgba(255, 255, 255, .72)';
+            g.font = `500 26px ${FONT}`;
+            wrap(g, best.about, X, y + 38, MAXW, 34, 2);
+        }
+        g.shadowBlur = 0;
+        g.fillStyle = 'rgba(255, 255, 255, .5)';
+        g.font = `500 24px ${FONT}`;
         const open = T.SKINS.filter(T.unlocked).length;
-        g.fillText(`${open}/${T.SKINS.length} skins · best ${d.best10 || 0} throws in 10 seconds · 🕳️ the Tomato Pit`, 80, 570);
+        g.fillText(`${open}/${T.SKINS.length} skins  ·  best ${d.best10 || 0} throws in 10 seconds`, 70, H - 48);
         try { $('pitDownload').href = c.toDataURL('image/png'); } catch (e) { /* a locked-down browser: no download */ }
     }
     $('pitShare').addEventListener('click', async () => {
