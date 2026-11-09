@@ -210,6 +210,18 @@ def normalize_block(raw):
     }
 
 
+def _ensure_pinned_note(blocks):
+    """The chat's pinned note needs its slot: presets made from starters (and imports) never had one, so the note
+    was silently left out. Added after the summary (or before the trackers / chat history)."""
+    markers = [b.get("marker") for b in blocks if b.get("kind") == "marker"]
+    if "chat_history" not in markers or "world_context" in markers:
+        return
+    after = next((i + 1 for i, b in enumerate(blocks) if b.get("marker") == "summary"), None)
+    if after is None:
+        after = next(i for i, b in enumerate(blocks) if b.get("marker") in ("trackers", "chat_history"))
+    blocks.insert(after, normalize_block(_marker("world_context")))
+
+
 def normalize(raw):
     raw = raw if isinstance(raw, dict) else {}
     blocks, seen = [], set()
@@ -221,6 +233,7 @@ def normalize(raw):
             block["id"] = uuid.uuid4().hex
         seen.add(block["id"])
         blocks.append(block)
+    _ensure_pinned_note(blocks)
     utility_raw = raw.get("utility") if isinstance(raw.get("utility"), dict) else {}
     utility = {k: str(utility_raw.get(k, v) or "") for k, v in UTILITY_DEFAULTS.items()}
     options_raw = raw.get("options") if isinstance(raw.get("options"), dict) else {}

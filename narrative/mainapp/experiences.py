@@ -93,7 +93,7 @@ def generate(template, profile, feel):
         prompt(REMINDER, data['reminders']['dont'], role='user', position='in_chat', depth=0),
         *director_note,
     ]
-    preset.setdefault('extras', {})['original_experience'] = {'id': feel, 'foundation': base}
+    preset.setdefault('extras', {})['original_experience'] = {'id': feel, 'foundation': base, 'model': profile['id']}
     starter = {'id': profile['starters'][feel], 'model': profile['id'], 'experience': feel,
                'title': experience.get('name', experience['title']), 'kind': experience['title'],
                'tagline': f"{experience['title']}: {experience['description']}",

@@ -1623,6 +1623,7 @@ def chat(request, slug):
         "bulba_url": reverse("bulba_chat", kwargs={"chat_id": chat_obj.id}),
         "watch_data": watch.page_state(request.user, chat_obj),
         "persona_hint": _persona_hint(request.user, chat_state["persona"]),
+        "preset_hint": _preset_hint(request.user),
         "forms_hint": (not _persona_hint(request.user, chat_state["persona"])) and _forms_hint(request.user, character),
         "theme_weather": theme_weather(character, chat_state.get("current_bg") or ""),
         "skin": chat_skin(character, chat_state.get("skin") or ""),
@@ -1868,6 +1869,45 @@ def theme_weather(character, background=""):
         if word in name:
             return weather
     return ""
+
+
+def _preset_hint(user):
+    """The one-time preset note for the chat page (preset_upgrade.py); never breaks the page."""
+    from mainapp import preset_upgrade
+    try:
+        return preset_upgrade.pending(user)
+    except Exception:
+        logging.getLogger(__name__).exception("Preset upgrade check failed")
+        return None
+
+
+@login_required
+def preset_upgrade_action(request):
+    """The chat page's preset note: switch, keep mine, undo, rebuild for the new model, not now."""
+    from mainapp import preset_upgrade
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only"}, status=405)
+    try:
+        data = json.loads(request.body.decode("utf-8") or "{}")
+    except (ValueError, UnicodeDecodeError):
+        return JsonResponse({"error": "Invalid request."}, status=400)
+    action, user = data.get("action"), request.user
+    if action == "switch":
+        new = preset_upgrade.switch(user, mark="chosen")
+        return JsonResponse({"ok": bool(new), "text": f"Switched to “{new.name}”. Your old preset is still in the list."
+                             if new else "Couldn't switch: check your connection first."})
+    if action == "undo":
+        return JsonResponse({"ok": preset_upgrade.undo(user), "text": "Back to your previous preset."})
+    if action == "rebuild":
+        obj = preset_upgrade.rebuild(user)
+        return JsonResponse({"ok": bool(obj), "text": f"Rebuilt for your current model: “{obj.name}”." if obj else
+                             "Couldn't rebuild: check your connection first."})
+    if action == "undo_rebuild":
+        return JsonResponse({"ok": preset_upgrade.undo_rebuild(user), "text": "Back as it was."})
+    if action in ("keep", "later"):
+        preset_upgrade.decline(user, str(data.get("kind") or ""), str(data.get("pair") or ""))
+        return JsonResponse({"ok": True})
+    return JsonResponse({"error": "Unknown action."}, status=400)
 
 
 def _persona_hint(user, chat_persona):

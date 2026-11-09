@@ -257,3 +257,86 @@ class FirstPresetTests(TestCase):
         world = [m["title"] for m in experiences.catalog()["modules"].values() if m["group"] == "world"]
         for t in ("World: Aliens", "World: Vampires", "World: Prophetic visions"):
             self.assertIn(t, world)
+
+
+@override_settings(LEGACY_FIRST_PRESET=False)
+class PresetUpgradeTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        from users.models import ConnectionProfile
+        from mainapp.models import Preset
+        self.user = get_user_model().objects.create_user(username="oldtimer", password="pw12345!")
+        self.conn = ConnectionProfile.objects.create(user=self.user, name="Main", api_key="k", model="z-ai/glm-5.3")
+        self.Preset = Preset
+
+    def make(self, data, name):
+        obj = self.Preset.objects.create(user=self.user, name=name, data=data)
+        presets.activate(obj)
+        return obj
+
+    def test_the_pinned_note_has_a_slot_in_every_preset(self):
+        for sid in ('opus-experience-drama', 'glm-rich-scene', 'gemini-frankenstein'):
+            data = presets.normalize(starters.get(sid)['preset'])
+            self.assertIn('world_context', [b.get('marker') for b in data['blocks']], sid)
+            built = presets.assemble(data, {'chat_history': True, 'world_context': 'Pinned note: at the docks'},
+                                     [{'role': 'user', 'content': 'Hi'}], {'char': 'Rose', 'user': 'Anya'}, '')
+            self.assertIn('at the docks', str(built['messages']), sid)
+
+    def test_an_untouched_old_starter_switches_with_its_choices_and_can_be_undone(self):
+        from mainapp import mature, preset_upgrade
+        from mainapp.bulba import control
+        raw = preset_upgrade._raw_starter('glm-back-and-forth')
+        data = mature.set_on(presets.normalize(raw['preset']), True)
+        data['extras']['starter'] = {'id': 'glm-back-and-forth', 'model': 'glm-5-3'}
+        data = control.apply_to_preset(data, 'write')
+        data['blocks'].insert(1, presets.normalize_block({'name': 'Your taste', 'kind': 'prompt', 'content': 'Keep it wry.'}))
+        old = self.make(data, 'Back-and-forth · GLM 5.3')
+        hint = preset_upgrade.pending(self.user)
+        self.assertEqual(hint['kind'], 'switched')
+        active = presets.get_active(self.user)
+        self.assertEqual(active.name, 'Tête-à-tête · GLM 5.3')
+        new = presets.normalize(active.data)
+        self.assertEqual(control.mode_of(new), 'write')
+        self.assertTrue(mature.is_on(new))
+        self.assertIn('Keep it wry.', str(new['blocks']))
+        self.assertIsNone(preset_upgrade.pending(self.user))  # shown once
+        self.assertTrue(preset_upgrade.undo(self.user))
+        self.assertEqual(presets.get_active(self.user).id, old.id)
+        self.assertIsNone(preset_upgrade.pending(self.user))  # and never again by itself
+
+    def test_an_edited_old_preset_is_only_offered(self):
+        from mainapp import preset_upgrade
+        raw = preset_upgrade._raw_starter('glm-rich-scene')
+        data = presets.normalize(raw['preset'])
+        data['extras']['starter'] = {'id': 'glm-rich-scene', 'model': 'glm-5-3'}
+        next(b for b in data['blocks'] if b['name'] == 'Style')['content'] += '\n- My own rule.'
+        old = self.make(data, 'Rich scene · GLM 5.3')
+        hint = preset_upgrade.pending(self.user)
+        self.assertEqual((hint['kind'], hint['to']), ('offer_upgrade', 'Heartstrings · GLM 5.3'))
+        self.assertEqual(presets.get_active(self.user).id, old.id)  # nothing switched by itself
+        preset_upgrade.decline(self.user, 'offer_upgrade')
+        self.assertIsNone(preset_upgrade.pending(self.user))
+
+    def test_a_model_change_offers_a_rebuild_that_keeps_their_choices(self):
+        from mainapp import preset_upgrade
+        data = experiences.set_modules(experiences.configure(presets.normalize(starters.get('glm-experience-storytelling')['preset']), 'director'),
+                                       {'hard_mode': True, 'friction': False})
+        experiences.set_length(data, 'short')
+        self.make(data, 'Deep Water · GLM 5.3')
+        self.assertIsNone(preset_upgrade.pending(self.user))
+        self.conn.model = 'anthropic/claude-opus-5-5'
+        self.conn.save()
+        hint = preset_upgrade.pending(self.user)
+        self.assertEqual((hint['kind'], hint['from'], hint['to']), ('offer_rebuild', 'GLM 5.3', 'Claude Opus 5.5'))
+        obj = preset_upgrade.rebuild(self.user)
+        self.assertEqual(obj.name, 'Deep Water · Claude Opus 5.5')
+        new = presets.normalize(obj.data)
+        on = {b['name'] for b in new['blocks'] if b['enabled']}
+        self.assertIn('Hard mode', on)
+        self.assertNotIn('Friction', on)
+        self.assertEqual(control.mode_of(new), 'director')
+        self.assertIn('two to four', next(b for b in new['blocks'] if b['name'] == 'Reply length')['content'])
+        self.assertIn('# How this story is written', next(b for b in new['blocks'] if b['name'] == 'Roleplay')['content'])
+        self.assertIsNone(preset_upgrade.pending(self.user))
+        self.assertTrue(preset_upgrade.undo_rebuild(self.user))
+        self.assertEqual(presets.get_active(self.user).name, 'Deep Water · GLM 5.3')

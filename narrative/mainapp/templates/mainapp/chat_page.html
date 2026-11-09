@@ -346,6 +346,23 @@
                         <div class="spending-meter"><div id="spendingFill" style="width: {% widthratio spending.spent spending.limit 100 %}%"></div></div>
                     </div>
                 </div>
+                {% if preset_hint %}
+                <div class="persona-hint" id="presetHint" data-url="{% url 'preset_upgrade' %}" data-kind="{{ preset_hint.kind }}" data-pair="{{ preset_hint.pair|default:'' }}">
+                    {% if preset_hint.kind == 'switched' %}
+                    <span>✨ <b>New writing style.</b> Your preset is now “{{ preset_hint.to }}”, one of the new writing styles, with your taste, adult setting and who-writes-what carried over. “{{ preset_hint.from }}” is still in your list.</span>
+                    <span class="persona-hint-btns"><button type="button" data-preset-hint="later">Great</button>
+                        <button type="button" class="ghost" data-preset-hint="undo">Undo: use my old one</button></span>
+                    {% elif preset_hint.kind == 'offer_upgrade' %}
+                    <span>✨ <b>New writing styles are here.</b> “{{ preset_hint.from }}” is an older preset. Try “{{ preset_hint.to }}”? Your taste, adult setting and who-writes-what come along; your old one stays in the list.</span>
+                    <span class="persona-hint-btns"><button type="button" data-preset-hint="switch">Switch</button>
+                        <button type="button" class="ghost" data-preset-hint="keep">Keep mine</button></span>
+                    {% else %}
+                    <span>🔁 <b>New model, same style?</b> “{{ preset_hint.preset }}” was made for {{ preset_hint.from }}; you now chat with {{ preset_hint.to }}. Rebuild it for {{ preset_hint.to }} (same experience, modules and taste)?</span>
+                    <span class="persona-hint-btns"><button type="button" data-preset-hint="rebuild">Rebuild it</button>
+                        <button type="button" class="ghost" data-preset-hint="keep">Keep as is</button></span>
+                    {% endif %}
+                </div>
+                {% endif %}
                 {% if persona_hint %}
                 <div class="persona-hint" id="personaHint">
                     <span>🥔 <b>Who are you in this story?</b> Right now {{ character.name }} only knows your login. Bulba can make you a persona in a minute: a name, a look, a bit of background.</span>

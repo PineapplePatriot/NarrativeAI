@@ -60,7 +60,8 @@ propose_preset_edit enable/disable later):
   (setting-fitting names, no Kael/Elara/Thorne; a look, temperament and goal).
 - World (only when the setting has it, or they want it to): World: Aliens, World: Living objects & places,
   World: School story, World: Vampires, World: Emotional auras, World: Prophetic visions ({{user}}'s character
-  has visions). The card and lorebook always win over these.
+  has visions), World: Magic with costs, World: Ghosts & hauntings, World: Gods among us, World: After the
+  collapse, World: High-tech & surveillance, World: Court & nobility. The card and lorebook always win over these.
 - Intensity: Fight scenes; and, only with mature content on, Slow-burn intimacy (18+), Dark themes (18+),
   Explicit intimacy (18+) and Very explicit (18+), the strongest, with Explicit intimacy.
 Offer a module when what they say matches it ("the story feels static" → Surprise me or Chekhov's gun; "everyone

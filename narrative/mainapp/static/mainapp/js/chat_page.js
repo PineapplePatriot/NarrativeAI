@@ -2255,3 +2255,20 @@ async function afterReplyText(messageEl, polishDue) {
     window.addEventListener('scroll', back, { passive: true });
     if (window.visualViewport) window.visualViewport.addEventListener('resize', () => setTimeout(back, 50));
 })();
+
+// The one-time preset note (preset_upgrade.py): moved to a new writing style, an offer to move, or a rebuild offer
+document.getElementById('presetHint')?.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-preset-hint]');
+    if (!b) return;
+    const hint = document.getElementById('presetHint');
+    const action = b.dataset.presetHint;
+    const resp = await fetch(hint.dataset.url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ action, kind: hint.dataset.kind, pair: hint.dataset.pair }) }).catch(() => null);
+    const d = resp ? await resp.json().catch(() => ({})) : {};
+    hint.remove();
+    if (d.text) showChatNotice(d.text);
+    if (['switch', 'undo', 'rebuild'].includes(action) && d.ok) {
+        if (action === 'rebuild') showChatNotice(d.text + ' Changed your mind? Ask Bulba, or pick the previous one on the Presets page.');
+        setTimeout(() => window.location.reload(), 1600);
+    }
+});
