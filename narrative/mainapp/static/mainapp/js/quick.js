@@ -97,6 +97,7 @@ window.addEventListener('message', (e) => {
 let personaTouched = false;
 ['personaName', 'personaDescription'].forEach(id => $(id).addEventListener('input', () => { personaTouched = true; }));
 const escQ = s => String(s ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
+const knownChars = new Set([...document.querySelectorAll('input[name=character]')].map(i => i.value));
 async function refresh() {
     const picked = (document.querySelector('input[name=character]:checked') || {}).value || '';
     let s;
@@ -106,7 +107,10 @@ async function refresh() {
     } catch (err) { return; }
     $('qStyleNow').textContent = s.style;
     if (!personaTouched) { $('personaName').value = s.persona_name; $('personaDescription').value = s.persona_description; }
-    const chosen = picked || s.picked;
+    // A character that wasn't there before (Bulba just made or imported it beside the form) becomes the pick
+    const fresh = s.characters.find(c => !knownChars.has(c.slug));
+    s.characters.forEach(c => knownChars.add(c.slug));
+    const chosen = (fresh && fresh.slug) || picked || s.picked;
     $('qChars').innerHTML = s.characters.map(c => `<label class="q-choice"><input type="radio" name="character" value="${escQ(c.slug)}" ${c.slug === chosen ? 'checked' : ''}>
         <span>${c.photo ? `<img src="${escQ(c.photo)}" alt="">` : `<i class="q-initial">${escQ((c.name || '?')[0].toUpperCase())}</i>`}
         <b>${escQ(c.name)}</b></span></label>`).join('');

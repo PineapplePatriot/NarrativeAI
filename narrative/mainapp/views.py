@@ -2894,6 +2894,9 @@ def _bulba_session(user, restart=False):
     if profile is None:
         return None
     session = BulbaSession.objects.filter(user=user, active=True, mode="setup").first()
+    if session and not restart and session.target_model != profile["id"]:
+        logging.getLogger(__name__).info("Setup conversation %s restarted: the chat model changed (%s -> %s)",
+                                         session.id, session.target_model, profile["id"])
     if session and (restart or session.target_model != profile["id"]):
         session.active = False
         session.save(update_fields=["active"])

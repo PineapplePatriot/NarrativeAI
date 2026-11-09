@@ -306,6 +306,13 @@ def tool_propose_card_edit(session, args):
     character = lore.target_character(session)
     if character is None:
         return {"error": "There's no character to change yet."}, []
+    first = (character.name or "").split()[0].lower() if (character.name or "").split() else ""
+    new_text = " ".join(fields.get(f, "") for f in ("description", "personality", "initial_message")).lower()
+    if first and len(fields.get("description", "")) > 200 and first not in new_text and not args.get("same_character"):
+        # A whole new description that never names them: almost always meant for a new character
+        return {"error": f"This edit would replace {character.name}'s card with someone who isn't {character.name}. "
+                         "For a new character use propose_character; only if they asked to turn "
+                         f"{character.name} into someone else, call again with same_character true."}, []
     summary = []
     for f, text in fields.items():
         summary += [f"{f.replace('_', ' ').capitalize()}:", text]
@@ -364,9 +371,12 @@ def _fn(name, description, properties, required=()):
             "parameters": {"type": "object", "properties": properties, "required": list(required)}}}
 
 
-CARD_EDIT_TOOL = _fn("propose_card_edit", "Propose changes to this character's card (only the fields you change).",
+CARD_EDIT_TOOL = _fn("propose_card_edit", "Propose changes to the card of the character you're working on (only the "
+            "fields you change). Never for a new or different character: that is propose_character.",
             {"description": STR, "personality": STR, "scenario": STR, "example_dialogue": STR,
              "initial_message": {"type": "string", "description": "The first message (only new chats start with it)"},
+             "same_character": {"type": "boolean", "description": "Only when they asked to turn this character into "
+                                "someone with another name: the edit is meant to replace who they are"},
              "why": STR}, ["why"])
 
 

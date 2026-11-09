@@ -75,6 +75,8 @@ def apply(session, pid):
             example_dialogue=data.get("example_dialogue", ""))
         p["undo"] = {"created": character.id}
         p["result"] = {"slug": character.slug}
+        if session.mode == "setup":  # the new character is the one Bulba works on now (not one it looked at before)
+            session.focus = character
         note = f"{character.name} is ready to chat."
     elif p["kind"] == "theme":
         from mainapp.bulba import lore
@@ -161,6 +163,8 @@ def undo(session, pid):
     elif p["kind"] == "character":
         character = Character.objects.filter(author=user, id=before.get("created")).first()
         if character:
+            if session.focus_id == character.id:  # Bulba was working on it: on to nothing in particular
+                session.focus = None
             for chat in character.chats.all():
                 chats.delete(chat)
             character.delete()

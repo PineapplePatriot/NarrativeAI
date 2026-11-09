@@ -4055,6 +4055,26 @@ class BulbaCardAndLoreTests(BulbaTests):
         self.assertFalse(Character.objects.filter(name="Viktor").exists())
         self.assertFalse(Worldbook.objects.filter(title="Station lore").exists())
 
+    def test_a_card_edit_for_someone_else_is_refused_and_a_new_character_becomes_the_focus(self):
+        from mainapp.bulba import lore
+        from mainapp.models import BulbaSession, Character
+        self.upload(V2_CARD)
+        aslan = ("[Identity]\nThe character is Aslan, the great lion of Narnia, King above all High Kings, son of "
+                 "the Emperor-beyond-the-Sea, who sang Narnia into being. He is no one's pet and comes and goes as "
+                 "he will. A huge lion, larger than any mortal lion, golden and warm.")
+        self.script = [("Here it is.", [self.call("propose_card_edit", description=aslan, why="new character")])]
+        self.api(action="say", text="make me Aslan")
+        session = BulbaSession.objects.get(user=self.user, active=True)
+        self.assertFalse(any(p["kind"] == "card_edit" for p in session.proposals))  # refused: Viktor stays Viktor
+        self.assertNotIn("Aslan", Character.objects.get(author=self.user, name="Viktor").description)
+        # A character Bulba makes becomes the one it works on (not the card it looked at before)
+        self.script = [("Here.", [self.call("propose_character", name="Aslan", description=aslan, greeting="He waits.")])]
+        pid = self.api(action="say", text="new character then").json()["state"]["proposals"][-1]["id"]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=pid)
+        session.refresh_from_db()
+        self.assertEqual(lore.target_character(session).name, "Aslan")
+
     def test_lorebook_added_to_existing_and_new(self):
         from mainapp import lorebook
         from mainapp.models import Character

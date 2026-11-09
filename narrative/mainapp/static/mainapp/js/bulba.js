@@ -741,3 +741,7 @@ function fitInput(big) {
 }
 $('input').addEventListener('input', () => fitInput());
 $('growBtn').addEventListener('click', () => { fitInput(!$('input').closest('.composer-field').classList.contains('big')); $('input').focus(); });
+
+// Opened again from the browser's back/forward memory (phones keep pages): the conversation may have moved on
+// meanwhile (Bulba beside Quick setup, another tab), so load it fresh instead of showing an old copy
+window.addEventListener('pageshow', (e) => { if (e.persisted) window.location.reload(); });
