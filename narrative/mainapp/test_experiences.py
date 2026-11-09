@@ -155,3 +155,48 @@ class ExperienceBuildTests(SimpleTestCase):
         preset = agent.build_preset({'starter': 'opus-experience-conversation', 'reply_length': 'long', 'taste': ''})
         self.assertIn('full sequence', next(x for x in preset['blocks'] if x['name'] == 'Reply length')['content'])
         self.assertFalse(any(x['name'] == 'Your taste' for x in preset['blocks']))  # no second length rule
+
+
+class ExperienceModuleTests(SimpleTestCase):
+    """The optional modules adapted from Pura, Sola and Realistic Frankenstein, and the model fixes."""
+
+    def test_every_module_is_there_off_by_default_and_assembles_when_on(self):
+        data = presets.normalize(starters.get('glm-experience-storytelling')['preset'])
+        names = {m['title'] for m in experiences.catalog()['modules'].values()}
+        self.assertGreaterEqual(len(names), 26)
+        on_by_default = {b['name'] for b in data['blocks'] if b['name'] in names and b['enabled']}
+        self.assertEqual(on_by_default, {'Friction', 'No therapy talk', 'Busy world'})
+        for b in data['blocks']:
+            if b['name'] in names:
+                b['enabled'] = True
+        built = presets.assemble(data, {'chat_history': True}, [{'role': 'user', 'content': 'Hi'}],
+                                 {'char': 'Rose', 'user': 'Anya'}, 'z-ai/glm-5.3')
+        text = '\n'.join(m['content'] for m in built['messages'])
+        self.assertNotIn('{{', text)  # the random picks (Surprise me, names) resolve
+        self.assertFalse([n for n in built['notes'] if 'nknown macro' in n])
+        self.assertIn('Kael', text)  # the banned-names list
+        self.assertIn('Narration voice', text)
+
+    def test_bulba_switches_modules_on_one_voice_at_a_time(self):
+        preset = agent.build_preset({'starter': 'opus-experience-drama', 'taste': '',
+                                     'switch_on': ['Hard mode', 'Voice: Camus (wry)'], 'switch_off': ['Friction']})
+        on = {b['name'] for b in preset['blocks'] if b['enabled']}
+        self.assertTrue({'Hard mode', 'Voice: Camus (wry)'} <= on)
+        self.assertNotIn('Friction', on)
+        from unittest import mock
+        session = type('S', (), {'user': None, 'preferences': [], 'proposals': [], 'target_model': 'claude-opus-5-5'})()
+        with mock.patch.object(agent, 'target_profile', return_value=__import__('mainapp.model_profiles', fromlist=['x']).by_id('claude-opus-5-5')):
+            result, _ = agent.tool_propose_preset(session, {'starter': 'opus-experience-drama', 'taste': 'x', 'why': 'y',
+                                                            'switch_on': ['Voice: Camus (wry)', 'Voice: Kafka (absurd)']})
+        self.assertIn('One narration voice', result['error'])
+
+    def test_model_fixes_land_in_the_right_counters(self):
+        c = writing_quality.catalog()['default_counters']
+        self.assertIn('one-word filler', c['glm-5-3'])
+        for m in ('glm-5-3', 'kimi-k3', 'deepseek-v4-pro', 'deepseek-v4-flash'):
+            self.assertIn('Keep thinking short', c[m])
+        self.assertNotIn('Keep thinking short', c['claude-opus-5-5'])
+        for m in ('gemini-3-8-flash', 'gemini-4-argon'):
+            self.assertIn('husky', c[m])
+        for m in ('claude-opus-5-5', 'claude-fable-5-1'):
+            self.assertIn('internet idioms', c[m])

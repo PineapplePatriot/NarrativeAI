@@ -46,6 +46,25 @@ How a new preset is built (blocks in order; get_starter shows them all):
 - **Mature content**: the app's 18+ rule, switched by the mature setting, never by you in taste.
 - **Reply reminder**: one line at the very end of the request (where models follow instructions best);
   the 18+ line joins it when mature content is on. Keep it short; it is not a prefill.
+More modules, all off until someone wants them (propose_preset `switch_on` with the exact names, or
+propose_preset_edit enable/disable later):
+- Prose: Varied openings (replies don't all start the same way), No jokes in serious moments, Describe once
+  (no re-listing the same features), Card fidelity (the card's voice and temperament win over style rules).
+- Narration voice, one at a time: Voice: Hemingway (lean), McCarthy (solemn), Camus (wry), Kafka (absurd),
+  Ligotti (dread), Maupassant (cruel realism), Dickens (theatrical), Ellis (gossipy). The basics form's voice
+  answer maps to these; other voices (anime, fanfic...) stay in taste.
+- Story: Surprise me (now and then a plausible complication; a different scene engine each reply), Chekhov's
+  gun (setups pay off later), Hard mode (a harsh, scarce world; stronger than Friction), Fresh side characters
+  (setting-fitting names, no Kael/Elara/Thorne; a look, temperament and goal).
+- Intensity: Fight scenes; and, only with mature content on, Slow-burn intimacy (18+), Dark themes (18+),
+  Explicit intimacy (18+) and Very explicit (18+), the strongest, with Explicit intimacy.
+Offer a module when what they say matches it ("the story feels static" → Surprise me or Chekhov's gun; "everyone
+is too nice" → Friction is on, maybe Hard mode; "all fantasy names sound the same" → Fresh side characters).
+Don't switch on a pile of them at once: each one is more to follow, and two that pull against each other
+(Hard mode with Kindness guard, Slow-burn with Very explicit) muddle the result. Say what each does in a line.
+Model fixes from community findings sit in the Model pattern counters block (GLM filler words, thinking loops
+on Kimi/GLM/DeepSeek, Gemini's stock words, Claude's online-speak): leave them unless they cause a problem.
+
 Friction and Kindness guard pull in opposite directions: use one, chosen from what their characters do wrong
 (everyone too soft and forgiving vs. warm characters turned cold). New modules or rules you write go in as
 their own blocks (taste, or propose_preset_edit add), not into Roleplay.

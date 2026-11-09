@@ -234,6 +234,9 @@ TOOLS = [
          "reply_length": {"type": "string", "enum": ["short", "medium", "long", "flexible"]},
          "rewrite": {"type": "object", "description": "Only if the starter contradicts them: full replacement text for its Roleplay and/or Style section",
                      "properties": {"Roleplay": STR, "Style": STR}},
+         "switch_on": {"type": "array", "maxItems": 10, "items": STR,
+                       "description": "Experience modules to switch on (exact block names, e.g. 'Hard mode', "
+                                      "'Voice: Camus (wry)', 'Chekhov\'s gun'); see the preset guide"},
          "switch_off": {"type": "array", "maxItems": 10, "items": STR,
                         "description": "Blocks of the starter to switch off (exact names), e.g. a community "
                                        "preset's random-event engines for someone who wants no chance"},
@@ -371,6 +374,8 @@ def build_preset(payload):
     for block in preset["blocks"]:
         if block["name"] in (payload.get("switch_off") or []):
             block["enabled"] = False
+        elif block["name"] in (payload.get("switch_on") or []):
+            block["enabled"] = True
     for name in reversed(payload.get("borrow") or []):
         block = library.get(name)
         if block and not any(b["name"] == name for b in preset["blocks"]):
@@ -678,6 +683,9 @@ def apply_basics(session, answers):
             if not text:
                 lines.append(f"{label}: no preference")
                 continue
+        if key == "voice" and f"voice_{raw}" in experiences.catalog()["modules"]:
+            title = experiences.catalog()["modules"][f"voice_{raw}"]["title"]
+            text += f" (an experience preset has this as a module: propose_preset switch_on ['{title}'], not taste)"
         lines.append(f"{label}: {text}")
         tool_record_preference(session, {"wording": f"Basics form: {label.lower()}", "interpretation": text,
                                          "scope": scope, "strength": "firm", "status": "confirmed"})
@@ -779,7 +787,11 @@ def tool_propose_preset(session, args):
                          if str(p.get("key", "")).startswith("control:") and p["status"] == "confirmed"), None)
     control_mode = control_pref["key"].split(":", 1)[1] if control_pref else "dont"
     switch_off = [str(n).strip() for n in (args.get("switch_off") or [])][:10]
-    missing = [n for n in switch_off if n not in originals]
+    switch_on = [str(n).strip() for n in (args.get("switch_on") or [])][:10]
+    voices = [n for n in switch_on if n.startswith("Voice:")]
+    if len(voices) > 1:
+        return {"error": "One narration voice at a time."}, []
+    missing = [n for n in switch_off + switch_on if n not in originals]
     if missing:
         return {"error": f"The starter has no block called: {', '.join(missing)}."}, []
     borrow = [str(n).strip() for n in (args.get("borrow") or [])][:6]
@@ -801,6 +813,8 @@ def tool_propose_preset(session, args):
         from mainapp.bulba import control
         summary += ["Your character:", f"  {control.MODES[control_mode]}"
                     + (" (and the book layout: replies as chapters)" if control_mode == "director" else "")]
+    if switch_on:
+        summary += ["Switched on:", *[f"  {n}" for n in switch_on]]
     if switch_off:
         summary += ["Switched off:", *[f"  {n}" for n in switch_off]]
     if borrow:
@@ -810,7 +824,7 @@ def tool_propose_preset(session, args):
         summary += ["Reply length:", f"  {LENGTHS[reply_length]}"]
     p = _proposal(session, "preset", f"Preset: {name}", summary,
                   {"starter": starter["id"], "name": name, "taste": taste, "rewrite": rewrite,
-                   "reply_length": reply_length, "borrow": borrow, "switch_off": switch_off,
+                   "reply_length": reply_length, "borrow": borrow, "switch_off": switch_off, "switch_on": switch_on,
                    "control": control_mode, "extensions": extensions})
     return {"proposal": p["id"], "status": "waiting for Apply"}, [{"type": "proposal", "id": p["id"]}]
 
