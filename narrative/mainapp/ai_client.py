@@ -215,14 +215,61 @@ def _headers(profile):
 
 
 def _error_text(resp):
+    """The error in words. OpenRouter wraps a provider's own reason ("Provider returned error"): the real one, from
+    metadata.raw, is added so it's visible (Gemini's 400s say exactly which field it didn't accept)."""
     try:
         data = resp.json()
         err = data.get("error", data)
         if isinstance(err, dict):
-            return str(err.get("message") or err)
+            text = str(err.get("message") or err)
+            meta = err.get("metadata") if isinstance(err.get("metadata"), dict) else {}
+            raw = meta.get("raw")
+            if raw:
+                if not isinstance(raw, str):
+                    raw = json.dumps(raw, ensure_ascii=False)
+                try:  # Google's own JSON: just its message
+                    inner = json.loads(raw)
+                    inner = inner[0] if isinstance(inner, list) and inner else inner
+                    raw = str(((inner or {}).get("error") or {}).get("message") or raw) if isinstance(inner, dict) else raw
+                except ValueError:
+                    pass
+                who = f" ({meta['provider_name']})" if meta.get("provider_name") else ""
+                text += f"{who}: {raw[:400]}"
+            return text
         return str(err)
     except ValueError:
         return resp.text[:300] or resp.reason
+
+
+# Gemini answered 400 to a request carrying our safety settings: try again with less (the civic-integrity category
+# first, which newer models may not accept; then none). A refused request isn't billed, so a retry costs nothing.
+SAFETY_FALLBACKS = (
+    ("without the civic-integrity filter setting",
+     lambda p: {**p, "safety_settings": [s for s in GEMINI_SAFETY if s["category"] != "HARM_CATEGORY_CIVIC_INTEGRITY"]}),
+    ("without safety settings", lambda p: {k: v for k, v in p.items() if k != "safety_settings"}),
+)
+
+
+def _post(profile, payload, **kwargs):
+    """POST the request; a Gemini 400 is retried with fewer safety settings (logged, so the cause shows in the logs)."""
+    url = f"{profile.api_url}/chat/completions"
+    resp = requests.post(url, headers=_headers(profile), json=payload, **kwargs)
+    for how, change in SAFETY_FALLBACKS:
+        if not (resp.status_code == 400 and str(payload.get("model") or "").startswith("google/")
+                and "safety_settings" in payload):
+            break
+        reason = _error_text(resp)
+        if MODERATION.search(reason):
+            break
+        logging.getLogger(__name__).warning("%s refused the request (400: %s); trying again %s",
+                                            payload.get("model"), reason[:600], how)
+        resp.close()
+        payload = change(payload)
+        resp = requests.post(url, headers=_headers(profile), json=payload, **kwargs)
+    if resp.status_code >= 400:
+        logging.getLogger(__name__).warning("%s returned %s: %s", payload.get("model"), resp.status_code,
+                                            _error_text(resp)[:800])
+    return resp
 
 
 def record_cost(user, task, model, cost):
@@ -302,8 +349,7 @@ def _request(user, task, messages, timeout=None, **params):
     label = TASKS.get(task, {}).get("label", task)
 
     try:
-        resp = requests.post(f"{profile.api_url}/chat/completions", headers=_headers(profile),
-                             json=payload, timeout=timeout)
+        resp = _post(profile, payload, timeout=timeout)
     except requests.Timeout:
         raise AIError(f"{label}: {profile.name} did not answer within {timeout} seconds.")
     except requests.RequestException as e:
@@ -451,8 +497,7 @@ def stream(user, task, messages, timeout=None, **params):
     label = TASKS.get(task, {}).get("label", task)
 
     try:
-        resp = requests.post(f"{profile.api_url}/chat/completions", headers=_headers(profile),
-                             json=payload, timeout=(15, read_timeout), stream=True)
+        resp = _post(profile, payload, timeout=(15, read_timeout), stream=True)
     except requests.Timeout:
         raise AIError(f"{label}: {profile.name} did not answer within {read_timeout} seconds.")
     except requests.RequestException as e:

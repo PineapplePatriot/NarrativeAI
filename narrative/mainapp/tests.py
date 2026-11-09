@@ -1797,6 +1797,35 @@ class GeminiArgonTests(ChatPromptTests):
         flash = model_profiles.sampler_status("google/gemini-3.8-flash", samplers.normalize({}))
         self.assertEqual(flash["temperature"]["status"], "fixed")
 
+    def test_a_gemini_400_shows_googles_reason_and_retries_with_fewer_safety_settings(self):
+        from unittest import mock
+        from mainapp import ai_client
+        from users.models import ConnectionProfile
+        ConnectionProfile.objects.filter(user=self.user).update(model="google/gemini-3.8-flash")
+        raw = json.dumps({"error": {"code": 400, "message": "Invalid value at 'safety_settings[4].category'"}})
+        refused = {"error": {"message": "Provider returned error", "code": 400,
+                             "metadata": {"raw": raw, "provider_name": "Google AI Studio"}}}
+        calls = []
+
+        def answer(url, headers=None, json=None, **kw):
+            calls.append(json)
+            resp = mock.Mock(status_code=400 if len(calls) < 3 else 200)
+            resp.json.return_value = refused if len(calls) < 3 else {"choices": [{"message": {"content": "Hi."}}]}
+            return resp
+
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=answer):
+            self.assertEqual(ai_client.complete(self.user, "chat", [{"role": "user", "content": "Hello"}]), "Hi.")
+        self.assertEqual(len(calls[0]["safety_settings"]), 5)
+        self.assertEqual(len(calls[1]["safety_settings"]), 4)   # civic integrity left out
+        self.assertNotIn("safety_settings", calls[2])           # then none
+        # When nothing helps, the error says Google's own reason, not just "Provider returned error"
+        with mock.patch("mainapp.ai_client.requests.post",
+                        side_effect=lambda *a, **k: mock.Mock(status_code=400, json=mock.Mock(return_value=refused))):
+            with self.assertRaises(ai_client.AIError) as e:
+                ai_client.complete(self.user, "chat", [{"role": "user", "content": "Hello"}])
+        self.assertIn("Google AI Studio", str(e.exception))
+        self.assertIn("safety_settings[4].category", str(e.exception))
+
     def test_argon_ready_setups_start_on_low_thinking_with_room(self):
         from mainapp import starters
         ready = starters.ready_for("gemini-4-argon")
