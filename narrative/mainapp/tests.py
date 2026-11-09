@@ -1914,6 +1914,25 @@ class StarterTests(ChatPromptTests):
         self.assertEqual(control.mode_of(data), "write")
         self.assertIn("flexible", next(b for b in data["blocks"] if b["name"] == "Reply length")["content"])
 
+    def test_quick_setup_story_modules_one_voice_and_18_plus_only_when_allowed(self):
+        from mainapp import presets
+        from users.models import ConnectionProfile
+        ConnectionProfile.objects.filter(user=self.user).update(model="z-ai/glm-5.3")
+        url = reverse("quick_setup")
+        self.client.post(url, json.dumps({"starter": "glm-experience-drama", "modules": {
+            "chekhov": True, "friction": False, "voice_camus": True, "voice_kafka": False, "dark_themes": True}}),
+            content_type="application/json")
+        on = {b["name"] for b in presets.normalize(presets.get_active(self.user).data)["blocks"] if b["enabled"]}
+        self.assertIn("Chekhov's gun", on)
+        self.assertIn("Voice: Camus (wry)", on)
+        self.assertNotIn("Friction", on)
+        self.assertNotIn("Dark themes (18+)", on)  # adult scenes aren't allowed here
+        groups = {g["key"]: g for g in self.client.get(url).context["module_groups"]}
+        self.assertTrue(next(m for m in groups["story"]["modules"] if m["key"] == "chekhov")["on"])
+        bad = self.client.post(url, json.dumps({"modules": {"voice_camus": True, "voice_kafka": True}}),
+                               content_type="application/json")
+        self.assertEqual(bad.status_code, 400)
+
     def test_quick_setup_names_what_an_unknown_model_gets(self):
         from users.models import ConnectionProfile
         ConnectionProfile.objects.filter(user=self.user).update(model="moonshotai/kimi-k2")
@@ -3652,9 +3671,30 @@ class BasicsStoryKindTests(BulbaTests):
         self.assertIn("real emotional connection", told)
         self.assertNotIn("nonsense", told)
         self.assertIn("Slow burn", told)
-        self.assertIn("Ernest Hemingway", told)
+        self.assertIn("Voice: Hemingway (lean)", told)  # a module now, switched on by propose_preset
         self.assertIn("Write in the style of Terry Pratchett", told)
         self.assertEqual(len(data["state"]["preferences"]), 4)
+
+    def test_story_modules_and_dark_genres_reach_the_preset(self):
+        from mainapp.bulba import agent
+        from mainapp.models import BulbaSession
+        self.script = [("Noted.", [])]
+        self.api(action="basics", answers={"modules": ["surprise_me", "hard_mode", "bogus"],
+                                           "genres": ["dead_dove"], "voice": "camus"})
+        session = BulbaSession.objects.get(user=self.user, active=True)
+        self.assertEqual(set(agent.form_modules(session)),
+                         {"Surprise me", "Hard mode", "Dark themes (18+)", "Voice: Camus (wry)"})
+        # propose_preset switches them on by itself; a voice Bulba picks replaces the form's
+        self.script = [("Here.", [self.call("propose_preset", starter="opus-experience-drama", taste="x", why="y",
+                                            switch_on=["Voice: Kafka (absurd)"])])]
+        state = self.api(action="say", text="build it").json()["state"]
+        p = next(x for x in session.__class__.objects.get(id=session.id).proposals if x["kind"] == "preset")
+        self.assertEqual(set(p["payload"]["switch_on"]),
+                         {"Voice: Kafka (absurd)", "Surprise me", "Hard mode", "Dark themes (18+)"})
+        preset = agent.build_preset(p["payload"])
+        on = {b["name"] for b in preset["blocks"] if b["enabled"]}
+        self.assertTrue({"Surprise me", "Hard mode", "Dark themes (18+)", "Voice: Kafka (absurd)"} <= on)
+        self.assertNotIn("Voice: Camus (wry)", on)
 
 
 class ImageModelTests(SimpleTestCase):

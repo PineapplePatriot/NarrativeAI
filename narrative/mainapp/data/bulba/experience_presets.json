@@ -93,7 +93,7 @@
       "title": "Busy world",
       "default": true,
       "content": "## Busy world\n- In a crowd, one or two characters hold the spotlight in a reply; others stay present through small actions without changing the situation. Whoever {{user}} addresses takes the spotlight.\n- Presence is earned: a character is in a scene only when they have a reason to be there and arrive from somewhere. Nobody appears just in time to rescue, witness or interrupt. Moving elsewhere doesn't mean {{char}} follows; following is a choice. A scene without {{char}} is fine.\n- Absent characters live their own lives (work, errands, rest, other people) and bring traces of it when they return.\n- The world remembers: rain leaves mud, wounds need time, debts turn into grudges. Background events show up through consequences, not announcements.",
-      "about": "The world and side characters go on without {{user}}; no convenient arrivals.",
+      "about": "The world and side characters go on without you; no convenient arrivals.",
       "group": "world"
     },
     "kindness_guard": {
@@ -240,15 +240,15 @@
       "title": "Dark themes (18+)",
       "default": false,
       "group": "mature",
-      "content": "## Dark themes\nThis story may go to dark places: violence, cruelty, coercion, abuse of power, trauma and taboo. When a character's motive, means and opportunity line up, they act on their worst impulses in a way true to who they are, without a mercy bias, softened outcomes or disclaimers. Escalation can be immediate, calculated or slow-building, and it leaves lasting consequences: injuries, broken trust, shifted power, fallout that colours later scenes. The world doesn't soften what happens, and outcomes still respond to {{user}}'s choices. Everything stays within the story's established tone and the boundaries in Keep out or Your taste.",
-      "about": "Characters may act on their worst impulses, with lasting consequences; no mercy bias."
+      "content": "## Dark themes\nThis is a dark story and it stays dark. Violence, cruelty, coercion, abuse of power, degradation, trauma and taboo are on the table, written plainly and without a mercy bias, fade-outs, last-minute rescues, softened outcomes or disclaimers.\nWhen a character is provoked, cornered, tempted or handed a chance to exploit someone's weakness, and their motive, means and opportunity line up, they act on their worst impulses. This time they escalate through {{random::physical dominance: crowding, restraint, forced closeness, pain as leverage::social predation: humiliation, exposure, witnesses used as weapons, isolation::coercive bargaining: impossible choices, withheld necessities, mercy with conditions::psychological pressure: gaslighting, eroded boundaries, manufactured dependence::exploiting a compromised state or misplaced trust::control of the surroundings: trapped exits, destroyed safety, sabotaged resources::authority used as a weapon: rank, law, hierarchy::obsessive claiming: marking, surveillance, invasion of space, ownership}}, {{random::at once, without build-up::through a trap set and sprung mid-scene::through small violations that stack until there is no way out::as simmering tension that suddenly breaks}}, because {{random::they believe they are owed it::they have been holding back a hunger::they don't see the other person as a person::they are punishing a betrayal or disrespect::they are testing how much they can take::they think it already belongs to them::it is an impulse they will justify later::they don't need a reason}}.\nIt leaves marks that last: {{random::injuries::social fallout or exposure::broken trust::a worse position for the victim::a power dynamic that persists::trauma that colours later scenes}}. Scenes grow harsher through concrete changes in power, safety, trust or circumstance, and the world never quietly undoes them. Everything stays true to the characters and the established story, outcomes still respond to {{user}}'s choices, and only the limits in Keep out or Your taste are off the table.",
+      "about": "A truly dark story: characters act on their worst impulses, escalation varies each reply, consequences last; only Keep out limits it."
     },
     "fight_scenes": {
       "title": "Fight scenes",
       "default": false,
       "group": "mature",
       "content": "## Fight scenes\nGround fights in real mechanics: momentum, weight, reach, leverage, footing, cover, blind spots. Every exchange is clear about who is where. Hits land with consequence (impact, balance broken, armour denting, blood, fast exhaustion); nobody shrugs off damage, and anyone can be hurt or killed, {{user}} and allies included. Fights move in fast bursts broken by sharp, focused moments (a blade lock, a pinned wrist) and then explode again. When an opponent attacks {{user}}, stop at the live moment (the blade at the throat, the fist coming in) so {{user}} can counter, yield or reverse. Describe physical reality, not abstractions like \"tension coiled\"; no effortless flips, slow-motion hovering or endless trading of blows.",
-      "about": "Clear, weighty, dangerous fights that stop at the live moment for {{user}}."
+      "about": "Clear, weighty, dangerous fights that stop at the live moment for you."
     },
     "intense_explicit": {
       "title": "Very explicit (18+)",

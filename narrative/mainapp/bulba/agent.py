@@ -544,6 +544,8 @@ BASICS = {
               "self-contained HTML panel with inline styles (for example a phone chat as message bubbles), "
               "then carry on with the prose.",
         "off": ""}),
+    "modules": ("Story modules", {k: m["title"] for k, m in experiences.catalog()["modules"].items()
+                                   if not m["default"] and not k.startswith("voice_")}),
     "genres": ("Genres", {  # several may be picked (wording after Celia's genre toggles)
         "fluff": "light-hearted warmth, affectionate exchanges and cozy moments",
         "slice_of_life": "the quiet charm of everyday life, routine and small connections",
@@ -629,6 +631,17 @@ def apply_basics(session, answers):
                 lines.append(f"{label}: {text}")
                 tool_record_preference(session, {"wording": "Basics form: genres", "interpretation": text,
                                                  "scope": "general", "strength": "firm", "status": "confirmed"})
+                implied = [m for g, m in GENRE_MODULES.items() if g in picked]
+                if implied:
+                    _record_modules(session, implied, "Basics form: genres")
+            continue
+        if key == "modules":
+            cat = experiences.catalog()["modules"]
+            picked = [m for m in (answers.get(key) or []) if isinstance(m, str) and m in options][:12]
+            if picked:
+                lines.append(f"{label}: " + ", ".join(cat[m]["title"] for m in picked)
+                             + " (propose_preset switches these on itself; don't repeat them in taste)")
+                _record_modules(session, picked, "Basics form: story modules")
             continue
         raw = str(answers.get(key) or "").strip()[:300]
         if not raw:
@@ -684,8 +697,10 @@ def apply_basics(session, answers):
                 lines.append(f"{label}: no preference")
                 continue
         if key == "voice" and f"voice_{raw}" in experiences.catalog()["modules"]:
+            _record_modules(session, [f"voice_{raw}"], "Basics form: narration voice")
             title = experiences.catalog()["modules"][f"voice_{raw}"]["title"]
-            text += f" (an experience preset has this as a module: propose_preset switch_on ['{title}'], not taste)"
+            lines.append(f"{label}: the {title} module (propose_preset switches it on itself; not taste)")
+            continue
         lines.append(f"{label}: {text}")
         tool_record_preference(session, {"wording": f"Basics form: {label.lower()}", "interpretation": text,
                                          "scope": scope, "strength": "firm", "status": "confirmed"})
@@ -700,6 +715,8 @@ def tool_record_preference(session, args):
             "status": args.get("status") if args.get("status") in ("tentative", "confirmed", "rejected") else "tentative"}
     if args.get("key") in ("control:dont", "control:write", "control:director"):  # the basics form, or said later
         pref["key"] = args["key"]
+    elif str(args.get("key") or "").startswith("modules:"):  # experience modules picked on the basics form
+        pref["key"] = str(args["key"])[:400]
     replaced = next((p for p in session.preferences if p["id"] == args.get("replaces")), None)
     if replaced:
         replaced["status"] = "superseded"
@@ -766,6 +783,29 @@ LENGTHS = {"short": "Keep replies short: two to four paragraphs.",
            "flexible": "Let the scene set the length: brief in conversation, fuller for big moments."}
 
 
+GENRE_MODULES = {"smut": "explicit_intimacy", "dead_dove": "dark_themes"}  # genre picks that come with a module
+
+
+def _record_modules(session, keys, wording):
+    cat = experiences.catalog()["modules"]
+    tool_record_preference(session, {"wording": wording, "key": "modules:" + ",".join(keys),
+                                     "interpretation": "Switch on: " + ", ".join(cat[k]["title"] for k in keys),
+                                     "scope": "general", "strength": "firm", "status": "confirmed"})
+
+
+def form_modules(session):
+    """Module block names the basics form asked for (modules, a voice, genres that imply one), for a new preset."""
+    cat = experiences.catalog()["modules"]
+    titles = []
+    for p in session.preferences:
+        if p.get("status") != "confirmed":
+            continue
+        key = str(p.get("key") or "")
+        if key.startswith("modules:"):
+            titles += [cat[k]["title"] for k in key[8:].split(",") if k in cat]
+    return list(dict.fromkeys(titles))
+
+
 def tool_propose_preset(session, args):
     starter = _starter_for(session, args.get("starter"))
     if starter is None:
@@ -788,6 +828,10 @@ def tool_propose_preset(session, args):
     control_mode = control_pref["key"].split(":", 1)[1] if control_pref else "dont"
     switch_off = [str(n).strip() for n in (args.get("switch_off") or [])][:10]
     switch_on = [str(n).strip() for n in (args.get("switch_on") or [])][:10]
+    if (starter["preset"].get("extras") or {}).get("original_experience"):  # what the basics form asked for, too
+        asked_voice = any(n.startswith("Voice:") for n in switch_on)
+        switch_on += [n for n in form_modules(session) if n not in switch_on and n not in (args.get("switch_off") or [])
+                      and not (asked_voice and n.startswith("Voice:"))]
     voices = [n for n in switch_on if n.startswith("Voice:")]
     if len(voices) > 1:
         return {"error": "One narration voice at a time."}, []
@@ -959,7 +1003,7 @@ def take_route(session, route):
     name = f"{s['title']} · {profile.get('name', '')}"
     p = _proposal(session, "preset", f"Preset: {name}", [f"The ready {s['title']} setup for {profile.get('name', '')}"],
                   {"starter": s["id"], "name": name, "taste": "", "rewrite": {}, "reply_length": "", "borrow": [],
-                   "switch_off": [], "control": "director" if feel == "director" else next((p["key"].split(":", 1)[1] for p in session.preferences
+                   "switch_on": form_modules(session), "switch_off": [], "control": "director" if feel == "director" else next((p["key"].split(":", 1)[1] for p in session.preferences
                                     if p.get("key", "").startswith("control:") and p.get("status") == "confirmed"), "dont")})
     note = actions.apply(session, p["id"])
     p["status"] = "applied"

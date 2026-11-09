@@ -3011,6 +3011,17 @@ def quick_setup(request):
                 translation.drop_language_rule(user)
         if any(k in data for k in QUICK_BASICS):
             _save_quick_basics(user, {k: data.get(k) for k in QUICK_BASICS})
+        if isinstance(data.get("modules"), dict):  # the optional story modules (experiences.py)
+            active = presets.get_active(user)
+            try:
+                updated = experiences.set_modules(presets.normalize(active.data), data["modules"],
+                                                  (model_profiles.for_style(chat_model) or {}).get("id", ""))
+            except ValueError as e:
+                return JsonResponse({"error": str(e)}, status=400)
+            if not mature.is_on(updated):  # 18+ modules only with adult scenes allowed
+                updated = experiences.set_modules(updated, {k: False for k in experiences.ADULT})
+            active.data = updated
+            active.save(update_fields=["data"])
         character = Character.objects.filter(author=user, slug=str(data.get("character") or "")).first()
         url = reverse("chat", kwargs={"slug": character.slug}) if character else None
         return JsonResponse({"status": "ok", "url": url})
@@ -3028,6 +3039,7 @@ def quick_setup(request):
         "ready": ready, "active_starter": active_starter,
         "active_name": active.name, "characters": characters, "picked": picked,
         "mature_on": mature.is_on(presets.normalize(active.data)),
+        "module_groups": _module_groups(presets.normalize(active.data)),
         "quick_data": {"window": state.get("window"), "prices": state.get("prices")},
     })
 
@@ -3037,6 +3049,15 @@ def quick_setup(request):
 QUICK_BASICS = ("pov", "tense", "format", "length", "control")
 # length goes in the preset's Reply length block, control is the Your character contract; the rest are Basics lines
 BASICS_LINES = ("pov", "tense", "format")
+
+
+def _module_groups(preset):
+    """Quick setup's optional story modules, grouped (voices as one pick), with what the active preset has on."""
+    groups = {}
+    for m in experiences.module_states(preset):
+        groups.setdefault(m["group"], []).append(m)
+    order = ["characters", "world", "story", "prose", "collaboration", "voice", "mature"]
+    return [{"key": g, "label": experiences.GROUP_LABELS.get(g, g), "modules": groups[g]} for g in order if g in groups]
 
 
 def _quick_basics(user):

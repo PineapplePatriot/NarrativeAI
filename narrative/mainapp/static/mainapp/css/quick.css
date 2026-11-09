@@ -55,3 +55,14 @@
     body.with-bulba .quick { padding-bottom: 62vh; }
 }
 .quick .q-extra .q-now span { display: inline; }
+
+.quick .q-modules { margin-top: 14px; border: 1px solid var(--border, rgba(255,255,255,.12)); border-radius: 12px; padding: 10px 14px; }
+.quick .q-modules summary { cursor: pointer; font-weight: 600; }
+.quick .q-modules summary small { font-weight: 400; color: var(--muted, #94a3b8); }
+.quick .q-mod-group { margin: 12px 0 4px; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
+.quick .q-mod-group > b { grid-column: 1 / -1; font-size: .85rem; color: var(--muted, #94a3b8); text-transform: uppercase; letter-spacing: .05em; }
+.quick .q-mod-group > select { grid-column: 1 / -1; max-width: 360px; }
+.quick .q-mod { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border: 1px solid var(--border, rgba(255,255,255,.1)); border-radius: 10px; cursor: pointer; }
+.quick .q-mod input { margin-top: 3px; accent-color: #8b5cf6; }
+.quick .q-mod span { display: flex; flex-direction: column; gap: 2px; font-size: .9rem; }
+.quick .q-mod small { color: var(--muted, #94a3b8); font-size: .78rem; line-height: 1.35; }

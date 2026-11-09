@@ -62,6 +62,8 @@ def set_on(preset, on):
         preset["blocks"].insert(after, block)
     if block is not None:
         block["enabled"] = bool(on)
+    if not on:  # switched off: the 18+ modules go off too (switched back on, they stay off until asked for)
+        _adult_modules_off(preset)
     reminder = next((b for b in preset["blocks"] if b["kind"] == "prompt" and b["name"] == REMINDER
                      and b["position"] == "in_chat"), None)
     if on:
@@ -95,9 +97,21 @@ def _remember(user, on):
     obj.save(update_fields=["appearance"])
 
 
+# Experience modules that only belong in adult stories (experiences.py): off whenever mature content is off
+ADULT_MODULES = ("Slow-burn intimacy (18+)", "Dark themes (18+)", "Explicit intimacy (18+)", "Very explicit (18+)")
+
+
+def _adult_modules_off(preset):
+    for b in preset["blocks"]:
+        if b.get("name") in ADULT_MODULES:
+            b["enabled"] = False
+    return preset
+
+
 def keep(user, data):
-    """A preset being made (a starter, Bulba's setup): with mature content on, if they asked for it."""
-    return set_on(presets.normalize(data), True) if wanted(user) else data
+    """A preset being made (a starter, Bulba's setup): with mature content on, if they asked for it; without it,
+    no 18+ module either."""
+    return set_on(presets.normalize(data), True) if wanted(user) else _adult_modules_off(presets.normalize(data))
 
 
 def switch(user, on, adult_confirmed=False):

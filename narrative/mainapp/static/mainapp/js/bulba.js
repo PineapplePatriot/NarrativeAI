@@ -126,6 +126,13 @@ const BASICS_FORM = [
     { section: 'What kind of story' },
     { key: 'genres', label: 'Genres', hint: 'pick any', multi: [['fluff', 'Fluff'], ['slice_of_life', 'Slice of life'], ['comedy', 'Comedy'], ['romance', 'Romance'], ['heartwarming', 'Heartwarming'], ['melancholy', 'Melancholy'], ['healing', 'Hurt/comfort'], ['angst', 'Angst'], ['tragedy', 'Tragedy']],
       adult: [['smut', 'Smut'], ['dead_dove', 'Dead dove']] },
+    { key: 'modules', label: 'Story modules', hint: 'optional extras, pick any',
+      multi: [['surprise_me', 'Surprise me: now and then a complication'], ['chekhov', 'Chekhov’s gun: setups pay off'], ['hard_mode', 'Hard mode: a harsh world'],
+              ['fresh_characters', 'Fresh side characters'], ['fight_scenes', 'Fight scenes'], ['varied_openings', 'Varied openings'],
+              ['no_bathos', 'No jokes in serious moments'], ['describe_once', 'Describe once'], ['card_fidelity', 'Card fidelity: the card’s voice wins'],
+              ['kindness_guard', 'Kindness guard: no needless cruelty'], ['ooc_collaborator', 'Chat with the AI as co-author (OOC)']],
+      adult: [['slow_burn', 'Slow-burn intimacy'], ['dark_themes', 'Dark themes'], ['explicit_intimacy', 'Explicit intimacy'], ['intense_explicit', 'Very explicit']],
+      adultLabel: '18+ modules' },
     { key: 'mature', label: 'Adult scenes (18+)', hint: 'violence, dark themes, sex when the story goes there',
       options: [['on', 'Allow them: I’m 18 or older'], ['off', 'Keep it clean']],
       help: 'Switches your preset’s mature-content rule on, with a reminder before each reply so the model doesn’t refuse. Change it any time: pen menu → This chat.' },
@@ -148,7 +155,7 @@ function basicsForm(live, answers) {
         <div class="form-label">${esc(f.label)}${f.hint ? `<small>${esc(f.hint)}</small>` : ''}</div>
         <div class="form-field">${chips(f, f.multi)}
             ${f.adult ? `<span class="adult-chips" ${f.adult.some(([v]) => on(f, v)) ? '' : 'hidden'}>${chips(f, f.adult)}</span>
-            <button type="button" class="link adult-toggle" ${dis}>Show 18+ genres</button>` : ''}</div></div>` : `<div class="form-row">
+            <button type="button" class="link adult-toggle" ${dis}>Show ${esc(f.adultLabel || '18+ genres')}</button>` : ''}</div></div>` : `<div class="form-row">
         <div class="form-label">${esc(f.label)}${f.hint ? `<small>${esc(f.hint)}</small>` : ''}</div>
         <div class="form-field">${f.options
             ? f.options.map(([v, l]) => `<label class="pill"><input type="radio" name="b_${f.key}" value="${v}" ${on(f, v)} ${live ? '' : 'disabled'}><span>${esc(l)}</span></label>`).join('')
@@ -502,7 +509,7 @@ $('log').addEventListener('click', e => {
     if (!t) return;
     const chips = t.previousElementSibling;
     chips.hidden = !chips.hidden;
-    t.textContent = chips.hidden ? 'Show 18+ genres' : 'Hide 18+ genres';
+    t.textContent = t.textContent.replace(chips.hidden ? 'Hide' : 'Show', chips.hidden ? 'Show' : 'Hide');
 });
 
 $('log').addEventListener('submit', e => {

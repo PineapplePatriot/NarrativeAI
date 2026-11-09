@@ -200,3 +200,30 @@ class ExperienceModuleTests(SimpleTestCase):
             self.assertIn('husky', c[m])
         for m in ('claude-opus-5-5', 'claude-fable-5-1'):
             self.assertIn('internet idioms', c[m])
+
+
+class WriteForMeTests(SimpleTestCase):
+    def test_write_my_message_leaves_out_the_reply_length_and_surprises(self):
+        from mainapp import mature
+        data = experiences.set_modules(presets.normalize(starters.get('opus-experience-drama')['preset']),
+                                       {'surprise_me': True, 'dark_themes': True})
+        data = mature.set_on(data, True)
+        names = {b['name'] for b in control.for_impersonation(data)['blocks'] if b['enabled']}
+        for gone in ('Your character', 'Reply reminder', 'Reply length', 'Surprise me'):
+            self.assertNotIn(gone, names)
+        for kept in ('Roleplay', 'Style', 'Dark themes (18+)', 'Mature content (optional)', 'Writing for you'):
+            self.assertIn(kept, names)
+
+
+class AdultModuleTests(SimpleTestCase):
+    def test_18_plus_modules_go_off_with_mature_content(self):
+        from mainapp import mature
+        data = experiences.set_modules(presets.normalize(starters.get('opus-experience-drama')['preset']),
+                                       {'dark_themes': True, 'slow_burn': True, 'chekhov': True})
+        on = mature.set_on(data, True)
+        self.assertTrue(next(b for b in on['blocks'] if b['name'] == 'Dark themes (18+)')['enabled'])
+        off = mature.set_on(on, False)
+        names = {b['name'] for b in off['blocks'] if b['enabled']}
+        self.assertNotIn('Dark themes (18+)', names)
+        self.assertNotIn('Slow-burn intimacy (18+)', names)
+        self.assertIn("Chekhov's gun", names)

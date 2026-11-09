@@ -122,6 +122,15 @@ async function refresh() {
 }
 document.addEventListener('change', (e) => { if (e.target.name === 'character') refresh(); });
 
+// Story modules: every checkbox, and the one narration voice (picking one switches the others off)
+function modulePicks() {
+    const picks = {};
+    document.querySelectorAll('[data-module]').forEach(box => { if (!box.closest('[hidden]')) picks[box.dataset.module] = box.checked; });
+    const voice = $('qVoice');
+    if (voice) [...voice.options].forEach(o => { if (o.value) picks[o.value] = o.value === voice.value; });
+    return picks;
+}
+
 async function save(go) {
     const body = {
         starter: (document.querySelector('input[name=starter]:checked') || {}).value || '',
@@ -131,6 +140,7 @@ async function save(go) {
         display_language: $('qLanguage').value,
         pov: $('qPov').value, tense: $('qTense').value, format: $('qFormat').value,
         length: $('qLength').value || 'flexible', control: $('qControl').value,
+        modules: modulePicks(),
     };
     if (data.window) body.chat_context = steps[Number($('chatContext').value)];
     $('qError').hidden = true;
@@ -150,6 +160,9 @@ async function save(go) {
 $('qStart').addEventListener('click', () => save(true));
 
 // 🔞: asks once that they're an adult
+$('qMature').addEventListener('change', () => {  // 18+ modules show only with adult scenes allowed
+    document.querySelectorAll('.q-mod-adult').forEach(l => { l.hidden = !$('qMature').checked; });
+});
 $('qMature').addEventListener('change', async (e) => {
     if (e.target.checked && !await NADialog.confirm('Adult scenes are for adults only. Are you 18 or older?',
                                                     { title: '🔞 Adult scenes', ok: "Yes, I'm 18+", cancel: 'No' })) e.target.checked = false;

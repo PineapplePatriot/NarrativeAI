@@ -124,3 +124,49 @@ def configure(preset, mode='dont', extensions=()):
         lines = [l for l in reminder['content'].split('\n') if l.strip() not in known]
         reminder['content'] = '\n'.join([catalog()['reminders'][mode], *[l for l in lines if l.strip()]])
     return result
+
+
+GROUP_LABELS = {'characters': 'Characters', 'world': 'World', 'story': 'Story drive', 'prose': 'Prose',
+                'collaboration': 'Talking to the AI', 'mature': 'Fights and 18+', 'voice': 'Narration voice'}
+ADULT = {'slow_burn', 'dark_themes', 'explicit_intimacy', 'intense_explicit'}
+
+
+def module_states(preset):
+    """Every module with whether this preset has it on (a preset without the block counts as its default, off
+    for presets that aren't experience presets)."""
+    names = {b.get('name'): b for b in preset.get('blocks', []) if b.get('kind') == 'prompt'}
+    experience = bool((preset.get('extras') or {}).get('original_experience'))
+    out = []
+    for key, m in catalog()['modules'].items():
+        block = names.get(m['title'])
+        on = block['enabled'] if block else (m['default'] and experience)
+        out.append({'key': key, 'title': m['title'], 'about': m['about'], 'group': m.get('group', 'story'),
+                    'adult': key in ADULT, 'on': bool(on)})
+    return out
+
+
+def set_modules(preset, wanted, model_id=''):
+    """A copy with modules switched on or off ({key: bool}); missing blocks are added before the story slots.
+    One narration voice at a time."""
+    from mainapp import presets
+    cat = catalog()['modules']
+    wanted = {k: bool(v) for k, v in wanted.items() if k in cat}
+    if sum(1 for k, v in wanted.items() if v and k.startswith('voice_')) > 1:
+        raise ValueError('One narration voice at a time.')
+    if any(v for k, v in wanted.items() if k.startswith('voice_')):  # picking a voice switches the others off
+        for k in cat:
+            if k.startswith('voice_') and not wanted.get(k):
+                wanted[k] = False
+    result = copy.deepcopy(preset)
+    for key, on in wanted.items():
+        m = cat[key]
+        block = next((b for b in result['blocks'] if b.get('name') == m['title'] and b.get('kind') == 'prompt'), None)
+        if block is None:
+            if not on:
+                continue
+            block = presets.normalize_block({'name': m['title'], 'kind': 'prompt',
+                                             'content': m.get('variants', {}).get(model_id, m['content'])})
+            at = next((i for i, b in enumerate(result['blocks']) if b.get('kind') == 'marker'), len(result['blocks']))
+            result['blocks'].insert(at, block)
+        block['enabled'] = on
+    return result

@@ -79,6 +79,7 @@ AGENCY_LINE = re.compile(
     r"\b(speak|write|act|decide|narrate|control|describe|dialogue|thoughts|actions|feelings)\b.*$\n?"
     r"|^.*\b(never|don.t|do not|avoid|must not)\b[^\n]*\b(speak|writ|act|decid|narrat|control|describ)\w*\b[^\n]*"
     r"(for |as |on behalf of )?(\{\{user\}\}|the user|the player).*$\n?", re.M | re.I)
+FOR_REPLIES_ONLY = ("Reply length", "Surprise me")  # experience-preset blocks left out of Write my message
 REMINDER = "Reply reminder"  # the in-chat "reply as {{char}}" nudge right before the reply (bulba/doctor.py)
 IMPERSONATE_TOP = (
     "[This turn is different. You are writing {{user}}'s next message, as {{user}}, the player's own character, "
@@ -95,6 +96,8 @@ def for_impersonation(preset):
     keep = []
     for b in preset["blocks"]:
         if b["name"] == BLOCK or (b["name"] == REMINDER and b["position"] == "in_chat") or b["name"] == RF_ANTI_ECHO:
+            continue
+        if b["name"] in FOR_REPLIES_ONLY:  # the reply's length and new complications aren't for their message
             continue
         if b["kind"] == "prompt" and "impersonate" not in (b.get("triggers") or []):
             b["content"] = AGENCY_LINE.sub("", b["content"])
