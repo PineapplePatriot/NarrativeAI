@@ -63,6 +63,53 @@ def guide_page(request):
 
 
 @login_required
+def tomato_pit(request):
+    """🍅 The secret Tomato Pit: throw as many as you like (static/js/tomato.js; progress kept on the account)."""
+    return render(request, "mainapp/tomato_pit.html")
+
+
+TOMATO_MAX_ADD = 3000  # throws one sync may add (it syncs every few seconds: well above any human rate)
+
+
+def _tomato_state(raw):
+    raw = raw if isinstance(raw, dict) else {}
+    num = lambda v: max(0, int(v)) if isinstance(v, (int, float)) and not isinstance(v, bool) else 0
+    return {"count": num(raw.get("count")), "waits": num(raw.get("waits")), "best10": num(raw.get("best10")),
+            "skin": str(raw.get("skin") or "tomato")[:20], "found": bool(raw.get("found")),
+            "ach": {str(k)[:20]: num(v) for k, v in list((raw.get("ach") or {}).items())[:50]}
+            if isinstance(raw.get("ach"), dict) else {},
+            "days": [str(d)[:10] for d in (raw.get("days") or [])][-30:] if isinstance(raw.get("days"), list) else []}
+
+
+@login_required
+def tomato_state(request):
+    """The account's tomatoes. POST adds what this browser threw since its last sync (a delta, so two devices
+    add up instead of overwriting each other) and merges achievements, days and the picked skin."""
+    from .models import ChatSettings
+    obj, _ = ChatSettings.objects.get_or_create(author=request.user)
+    state = _tomato_state((obj.appearance or {}).get("tomatoes"))
+    if request.method == "POST":
+        try:
+            body = json.loads(request.body.decode("utf-8") or "{}")
+        except (ValueError, UnicodeDecodeError):
+            return JsonResponse({"error": "Invalid request."}, status=400)
+        sent = _tomato_state(body)
+        add = min(TOMATO_MAX_ADD, max(0, int(body.get("add") or 0))) if isinstance(body.get("add"), int) else 0
+        state["count"] += add
+        state["waits"] += min(100, max(0, int(body.get("add_waits") or 0))) if isinstance(body.get("add_waits"), int) else 0
+        state["best10"] = min(200, max(state["best10"], sent["best10"]))  # nobody throws 20 a second for 10 seconds
+        state["found"] = state["found"] or sent["found"]
+        for k, v in sent["ach"].items():
+            state["ach"].setdefault(k, v)
+        state["days"] = sorted(set(state["days"]) | set(sent["days"]))[-30:]
+        if "skin" in body:
+            state["skin"] = sent["skin"]
+        obj.appearance = {**(obj.appearance or {}), "tomatoes": state}
+        obj.save(update_fields=["appearance"])
+    return JsonResponse(state)
+
+
+@login_required
 def characters_list(request):
     return render(request, 'mainapp/characters.html')
 

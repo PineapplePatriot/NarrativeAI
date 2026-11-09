@@ -40,16 +40,50 @@ importForm.querySelector('input[type=file]').addEventListener('change', async (e
     input.value = '';
 });
 
+// Their own preset (SillyTavern or exported from here): saved, made active, "Keep what I have" picked so the
+// form doesn't swap it for a ready style; Bulba can look it over and tailor it
+$('qPresetFile').addEventListener('change', async (e) => {
+    const input = e.target, note = $('qPresetNote'), file = input.files[0];
+    if (!file) return;
+    note.hidden = false;
+    note.textContent = 'Reading ' + file.name + '…';
+    const call = async (body) => {
+        const resp = await fetch(QUICK.presets, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': cookie('csrftoken') },
+            body: JSON.stringify(body),
+        });
+        const d = await resp.json();
+        if (!resp.ok) throw new Error(d.error || 'Import failed.');
+        return d;
+    };
+    try {
+        let parsed;
+        try { parsed = JSON.parse(await file.text()); } catch (err) { throw new Error("That file isn't a preset (it isn't JSON)."); }
+        const made = await call({ action: 'import', data: parsed, name: file.name.replace(/\.json$/i, '') });
+        await call({ action: 'activate', id: made.selected });
+        const name = (made.presets || []).find(p => p.id === made.selected)?.name || file.name.replace(/\.json$/i, '');
+        const keep = document.querySelector('input[name=starter][value=""]');
+        if (keep) { keep.checked = true; keep.nextElementSibling.querySelector('small').textContent = name; }
+        $('qStyleNow').textContent = name;
+        note.innerHTML = `✓ “${escQ(name)}” is your writing style now. <button type="button" class="ghost q-bulba" data-ask="${escQ(
+            'I just imported my own preset, “' + name + '”. Look it over: tell me briefly what it does well and anything that ' +
+            "fights my taste or my model, and suggest small changes. Keep what works; don't replace it with a ready style.")}">🥔 Have Bulba look it over</button>`;
+    } catch (err) { note.textContent = err.message; }
+    input.value = '';
+});
+
 // Bulba beside the form, already asked about that part (nothing is sent until they press Send)
 const drawer = $('qDrawer'), frame = $('qFrame');
-document.querySelectorAll('[data-ask]').forEach(btn => btn.addEventListener('click', async () => {
+document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-ask]');
+    if (!btn) return;
     await save(false);  // Bulba sees what's already filled in
     const url = QUICK.bulba + '&draft=' + encodeURIComponent(btn.dataset.ask);
     if (!frame.src) frame.src = url;
     else frame.contentWindow.postMessage({ bulbaDraft: btn.dataset.ask }, window.location.origin);
     drawer.hidden = false;
     document.body.classList.add('with-bulba');  // the form makes room: both side by side (a sheet below on phones)
-}));
+});
 window.addEventListener('message', (e) => {
     if (e.origin !== window.location.origin || !e.data) return;
     if (e.data.quickBulba === 'changed') refresh();  // Bulba applied something: the form shows it

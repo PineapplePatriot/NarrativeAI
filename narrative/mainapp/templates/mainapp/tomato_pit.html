@@ -1,0 +1,50 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>The Tomato Pit</title>
+  <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
+  <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
+  <link rel="stylesheet" href="{% static 'mainapp/css/tomato_pit.css' %}?v=1">
+</head>
+<body class="na-body">
+{% include "partials/topbar.html" %}
+<div class="container na-page pit">
+  <header class="pit-head">
+    <h1>🕳️ The Tomato Pit</h1>
+    <p class="muted">You weren't supposed to find this. Throw as many as you like: at the app, at the wait, at life.
+      Your tomatoes, skins and achievements are kept on your account.</p>
+  </header>
+
+  <button type="button" class="pit-field" id="pitField" aria-label="Throw">
+    <span class="pit-ammo" id="pitAmmo">🍅</span>
+    <span class="pit-count" id="pitCount">0</span>
+    <span class="pit-hint">Click, tap or hold Space to throw</span>
+    <span class="pit-rate" id="pitRate"></span>
+  </button>
+
+  <section class="pit-box">
+    <div class="pit-box-head"><h2>Skins</h2><span class="muted" id="pitSkinCount"></span></div>
+    <div id="pitSkins"></div>
+  </section>
+
+  <section class="pit-box">
+    <div class="pit-box-head"><h2>Achievements</h2><span class="muted" id="pitAchCount"></span></div>
+    <ul class="pit-ach" id="pitAch"></ul>
+  </section>
+
+  <section class="pit-box">
+    <div class="pit-box-head"><h2>Share your splatter</h2></div>
+    <p class="muted">A picture of your count, your skin and your best achievement, ready to post.</p>
+    <canvas id="pitCard" width="1200" height="630" aria-label="Your share card"></canvas>
+    <div class="pit-share">
+      <button type="button" class="na-btn na-primary" id="pitShare">📤 Share</button>
+      <a class="na-btn" id="pitDownload" style="text-decoration:none" download="tomato-pit.png" href="#">⬇ Download the picture</a>
+    </div>
+  </section>
+</div>
+<script src="{% static 'mainapp/js/tomato_pit.js' %}?v=3"></script>
+</body>
+</html>

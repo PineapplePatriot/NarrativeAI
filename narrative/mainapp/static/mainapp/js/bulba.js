@@ -3,6 +3,7 @@ const INIT = JSON.parse($('bulba-data').textContent);
 let state = INIT.state;
 let events = INIT.events;
 let busy = false;
+if (window.NATomato) NATomato.watch(() => busy);  // 🍅 a long Bulba turn
 
 const STAGE_LABELS = { extras: 'Extras', taste: 'How replies read', preset: 'Your preset', persona: 'You in the story',
                        character: 'Your character', story: 'Story extras', done: 'Done' };

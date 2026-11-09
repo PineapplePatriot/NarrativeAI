@@ -262,7 +262,13 @@ function progressHtml(text, seconds) {
         <p class="muted">${escapeHtml(text)}${seconds ? ` · ${seconds}s` : ''}</p>
         <p class="hint">You can leave this page: Bulba keeps going, and the suggestions wait here until you add or dismiss them.</p></div>`;
 }
+let jobsRunning = 0;
+if (window.NATomato) NATomato.watch(() => jobsRunning > 0);  // 🍅 word forms or Expand taking a while
 async function waitForJob(url, out, text) {
+    jobsRunning++;
+    try { return await waitForJobLoop(url, out, text); } finally { jobsRunning--; }
+}
+async function waitForJobLoop(url, out, text) {
     for (;;) {
         const resp = await fetch(url, { headers: { 'X-CSRFToken': getCookie('csrftoken') } });
         const job = await resp.json().catch(() => ({ status: 'error', error: 'The app server did not answer.' }));
@@ -275,7 +281,9 @@ async function waitForJob(url, out, text) {
 }
 async function runJob(url, body, out, text) {
     out.innerHTML = progressHtml(text);
-    const started = await postJson(url, { ...body, background: true });
+    jobsRunning++;  // the start counts as waiting too
+    let started;
+    try { started = await postJson(url, { ...body, background: true }); } finally { jobsRunning--; }
     if (started.status !== 'running') return started;  // answered at once
     return waitForJob(url, out, text);
 }

@@ -43,6 +43,11 @@
         {% else %}
         <p class="help">There's no tested setup for this model yet, so your current preset stays. Bulba can build one with you.</p>
         {% endif %}
+        <div class="q-actions">
+            <label class="btn secondary">📥 Use my own preset<input type="file" id="qPresetFile" accept=".json,application/json" hidden></label>
+            <small class="help">A SillyTavern chat-completion preset (.json), or one exported from here.</small>
+        </div>
+        <p class="help" id="qPresetNote" hidden></p>
         <div class="q-basics">
             <label>Story language
                 <select id="qLanguage">{% for code, name in languages.items %}<option value="{{ code }}" {% if code == basics.display_language %}selected{% endif %}>{{ name }}</option>{% endfor %}</select>
@@ -138,7 +143,7 @@
 </div>
 
 {{ quick_data|json_script:"quick-data" }}
-<script>const QUICK = { url: "{% url 'quick_setup' %}", bulba: "{% url 'bulba' %}?embed=1" };</script>
+<script>const QUICK = { url: "{% url 'quick_setup' %}", bulba: "{% url 'bulba' %}?embed=1", presets: "{% url 'presets' %}" };</script>
 <script src="{% static 'js/costs.js' %}?v=1"></script>
 <script src="{% static 'mainapp/js/quick.js' %}?v=3"></script>
 <script>window.NA_PAGE_TOUR = {name: 'quick', auto: true};</script>
