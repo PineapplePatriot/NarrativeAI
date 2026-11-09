@@ -2050,8 +2050,8 @@ def preset_list(request):
             obj = Preset.objects.create(user=request.user, data=preset,
                                         name=presets.unique_name(request.user, data.get("name") or suggested))
         elif action == "new_default":
-            obj = Preset.objects.create(user=request.user, data=presets.build_default(request.user),
-                                        name=presets.unique_name(request.user, presets.DEFAULT_NAME))
+            fresh, name = presets.first_preset(request.user)
+            obj = Preset.objects.create(user=request.user, data=fresh, name=presets.unique_name(request.user, name))
         elif action == "use_starter":
             try:
                 obj = starters.apply(request.user, data.get("starter"), mode=data.get("control"), extensions=data.get("extensions") or [])

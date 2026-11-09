@@ -227,3 +227,33 @@ class AdultModuleTests(SimpleTestCase):
         self.assertNotIn('Dark themes (18+)', names)
         self.assertNotIn('Slow-burn intimacy (18+)', names)
         self.assertIn("Chekhov's gun", names)
+
+
+
+from django.test import TestCase, override_settings
+
+
+@override_settings(LEGACY_FIRST_PRESET=False)
+class FirstPresetTests(TestCase):
+    def test_a_new_account_starts_on_heartstrings_for_its_model(self):
+        from django.contrib.auth import get_user_model
+        from users.models import ConnectionProfile
+        user = get_user_model().objects.create_user(username="newbie", password="pw12345!")
+        ConnectionProfile.objects.create(user=user, name="Main", api_key="k", model="moonshotai/kimi-k3")
+        active = presets.get_active(user)
+        self.assertEqual(active.name, "Heartstrings · Kimi K3")
+        data = presets.normalize(active.data)
+        self.assertIn("## Knowledge", next(b for b in data["blocks"] if b["name"] == "Roleplay")["content"])
+        self.assertEqual(control.mode_of(data), "dont")
+        self.assertNotIn("World Reality Augments", str(data))
+        # no connection yet: the plain one
+        other = get_user_model().objects.create_user(username="nokey", password="pw12345!")
+        self.assertTrue(presets.get_active(other).name.startswith("Heartstrings · Any model"))
+
+    def test_names_and_world_modules(self):
+        titles = {s["experience"]: s["title"] for s in starters.all_starters() if s["model"] == "mimo-v2-6-pro"}
+        self.assertEqual(titles, {"conversation": "Tête-à-tête", "drama": "Heartstrings", "storytelling": "Deep Water"})
+        self.assertIn("Character Drama", starters.get("mimo-experience-drama")["description"])
+        world = [m["title"] for m in experiences.catalog()["modules"].values() if m["group"] == "world"]
+        for t in ("World: Aliens", "World: Vampires", "World: Prophetic visions"):
+            self.assertIn(t, world)

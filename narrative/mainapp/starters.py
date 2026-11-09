@@ -13,9 +13,9 @@ from mainapp import model_profiles, presets, writing_quality, experiences
 DATA_DIR = Path(__file__).resolve().parent / "data" / "starters"
 
 EXPERIENCES = {
-    "conversation": {"label": "Conversation & Chemistry", "order": 0},
-    "drama": {"label": "Character Drama", "order": 1},
-    "storytelling": {"label": "Immersive Storytelling", "order": 2},
+    "conversation": {"label": "Tête-à-tête", "order": 0},  # Conversation & Chemistry
+    "drama": {"label": "Heartstrings", "order": 1},  # Character Drama (the default for new accounts)
+    "storytelling": {"label": "Deep Water", "order": 2},  # Immersive Storytelling
     "back_and_forth": {"label": "Back-and-forth", "order": 0},
     "rich_scene": {"label": "Rich scene", "order": 1},
     "director": {"label": "Director seat", "order": 2},

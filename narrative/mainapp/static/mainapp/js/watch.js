@@ -77,6 +77,7 @@ window.Watch = (function () {
         if (opened && notices.length > 1 && !selectedNotice) {
             card.hidden = false;
             card.innerHTML = `<div class="watch-head"><span class="potato">🥔</span><b>${notices.length} findings</b>
+                ${bulbaOpen() ? '' : '<button type="button" class="watch-talk" data-w="talk">💬 Talk to Bulba</button>'}
                 <button type="button" class="watch-x" data-w="later" aria-label="Close findings">✕</button></div>
                 <div class="watch-findings">${notices.map(n => `<button type="button" class="watch-finding" data-w="select" data-id="${esc(n.id)}">
                     <span>${esc(n.title)}</span>${n.count && n.of ? `<small>${esc(n.count)} of ${esc(n.of)} replies</small>` : ''}
@@ -126,6 +127,7 @@ window.Watch = (function () {
         if (what === 'off') { await post({ action: 'watch_settings', keep_on: false }); return showChatNotice('Bulba Watch is off. Turn it back on on the Extras page.'); }
         if (what === 'chat-off') { await post({ action: 'watch_settings', keep_on: true, chat_off: true }); return showChatNotice('Bulba Watch is off for this chat.'); }
         if (what === 'later') { selectedNotice = null; opened = false; return render(); }
+        if (what === 'talk') { selectedNotice = null; opened = false; render(); bypass = true; return btn.click(); }
         if (what === 'mute') { await post({ action: 'watch_note', id: b.dataset.id, status: 'muted' }); return showChatNotice("Got it: I won't bring that one up again."); }
         if (what === 'dismiss') return post({ action: 'watch_note', id: b.dataset.id, status: 'dismissed' });
         if (what === 'director' || what === 'director-undo') {
@@ -169,11 +171,17 @@ window.Watch = (function () {
     });
 
     // The 🥔 with a number: the first press shows Bulba's note (with its buttons); without one it opens Bulba
+    // One press always does something visible: on a wide screen Bulba opens with the findings beside it; on a
+    // phone (the drawer would cover them) the findings show first, with "Talk to Bulba" right at the top
+    let bypass = false;
+    const wide = () => window.innerWidth >= 900;
+    function bulbaOpen() { const d = document.querySelector('.bulba-drawer'); return !!(d && !d.hidden && wide()); }
     btn.addEventListener('click', (e) => {
+        if (bypass) { bypass = false; return; }
         if ((state.notices || []).length && card.hidden) {
-            e.stopImmediatePropagation();
+            if (!wide()) e.stopImmediatePropagation();
             opened = true;
-            render();
+            setTimeout(render, 0);  // after the drawer opened, so the card knows whether to offer "Talk to Bulba"
         }
     }, true);
 

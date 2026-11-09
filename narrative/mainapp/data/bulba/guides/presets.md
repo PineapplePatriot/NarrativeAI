@@ -21,7 +21,9 @@ comic banter), keep the exception specific instead of removing all writing safeg
 
 ## Picking the experience
 
-Offer Conversation & Chemistry, Character Drama, or Immersive Storytelling for every selected model.
+Offer the three experiences for every selected model, by the names people see: **Tête-à-tête** (Conversation
+& Chemistry), **Heartstrings** (Character Drama, the default every new account starts on) and **Deep Water**
+(Immersive Storytelling).
 They describe what the participant wants to read, not length or authorship. Directing is a separate
 control mode: any experience supports player control, shared authorship or directing. Preserve a
 confirmed authorship choice when selecting another experience. Never infer it from reply length,
@@ -56,6 +58,9 @@ propose_preset_edit enable/disable later):
 - Story: Surprise me (now and then a plausible complication; a different scene engine each reply), Chekhov's
   gun (setups pay off later), Hard mode (a harsh, scarce world; stronger than Friction), Fresh side characters
   (setting-fitting names, no Kael/Elara/Thorne; a look, temperament and goal).
+- World (only when the setting has it, or they want it to): World: Aliens, World: Living objects & places,
+  World: School story, World: Vampires, World: Emotional auras, World: Prophetic visions ({{user}}'s character
+  has visions). The card and lorebook always win over these.
 - Intensity: Fight scenes; and, only with mature content on, Slow-burn intimacy (18+), Dark themes (18+),
   Explicit intimacy (18+) and Very explicit (18+), the strongest, with Explicit intimacy.
 Offer a module when what they say matches it ("the story feels static" → Surprise me or Chekhov's gun; "everyone

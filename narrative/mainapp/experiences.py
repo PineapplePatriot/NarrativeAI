@@ -95,8 +95,9 @@ def generate(template, profile, feel):
     ]
     preset.setdefault('extras', {})['original_experience'] = {'id': feel, 'foundation': base}
     starter = {'id': profile['starters'][feel], 'model': profile['id'], 'experience': feel,
-               'title': experience['title'], 'tagline': experience['description'],
-               'description': experience['description'], 'status': 'research-informed', 'based_on': [], 'preset': preset}
+               'title': experience.get('name', experience['title']), 'kind': experience['title'],
+               'tagline': f"{experience['title']}: {experience['description']}",
+               'description': f"{experience['title']}: {experience['description']}", 'status': 'research-informed', 'based_on': [], 'preset': preset}
     return writing_quality.add_baseline(starter)
 
 

@@ -8,7 +8,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Narrative AI - Chat with {{character.name}}</title>
-    <link rel="stylesheet" href="{% static 'mainapp/css/chat_page.css' %}?v=26">
+    <link rel="stylesheet" href="{% static 'mainapp/css/chat_page.css' %}?v=27">
     <link rel="stylesheet" href="{% static 'mainapp/css/chat_skins.css' %}?v=2">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
@@ -302,6 +302,25 @@
                         <div class="effects-sub" id="effectsSub">
                         <label class="theme-check"><input type="checkbox" id="atmosphereToggle" checked> Weather and time of day
                             <small>(follows the scene from the World tracker{% if theme_weather %}; until it says otherwise, {{ character.name }}'s {{ theme_weather }}{% endif %}. Now: <span id="atmosphereNow">nothing to show yet</span>)</small></label>
+                        <div class="atmo-picks" id="atmoPicks">
+                            <span class="atmo-label">Weather</span>
+                            <div class="chip-row" data-atmo="weather">
+                                <button type="button" class="preset-btn" data-pick="">🎬 Follow the scene</button>
+                                <button type="button" class="preset-btn" data-pick="clear">☀️ Clear</button>
+                                <button type="button" class="preset-btn" data-pick="rain">🌧 Rain</button>
+                                <button type="button" class="preset-btn" data-pick="storm">⛈ Storm</button>
+                                <button type="button" class="preset-btn" data-pick="snow">❄️ Snow</button>
+                                <button type="button" class="preset-btn" data-pick="fog">🌫 Fog</button>
+                            </div>
+                            <span class="atmo-label">Time of day</span>
+                            <div class="chip-row" data-atmo="time">
+                                <button type="button" class="preset-btn" data-pick="">🎬 Follow the scene</button>
+                                <button type="button" class="preset-btn" data-pick="dawn">🌅 Dawn</button>
+                                <button type="button" class="preset-btn" data-pick="day">🏙 Day</button>
+                                <button type="button" class="preset-btn" data-pick="dusk">🌇 Dusk</button>
+                                <button type="button" class="preset-btn" data-pick="night">🌙 Night</button>
+                            </div>
+                        </div>
                         <label class="theme-check"><input type="checkbox" id="skinFxToggle" checked> The chat style's light effect <small>(candle light, scanlines, grid, petals; off by itself if your device asks for less motion)</small></label>
                         </div>
                         <span class="tool-sublabel">🖼 Chat style <small>(bubbles, buttons, a light effect)</small></span>

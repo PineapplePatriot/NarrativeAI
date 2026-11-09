@@ -4,6 +4,11 @@ import types
 from django.contrib.auth import get_user_model
 from django.test import SimpleTestCase, TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
+from django.conf import settings as _settings
+
+# Most tests here exercise the chat's mechanics on the original default preset; the default experience preset
+# for new accounts (Heartstrings) has its own tests in test_experiences.FirstPresetTests
+_settings.LEGACY_FIRST_PRESET = True
 
 from mainapp.lorebook import activate, format_for_prompt, normalize_book, to_sillytavern
 from mainapp.models import Worldbook
@@ -1968,7 +1973,7 @@ class StarterTests(ChatPromptTests):
         groups = self.client.get(reverse("presets")).context["preset_page"]["starters"]
         self.assertTrue(groups[0]["yours"])
         self.assertEqual(groups[0]["model_name"], "Claude Opus 5.5")
-        self.assertEqual([s["title"] for s in groups[0]["starters"]], ["Conversation & Chemistry", "Character Drama", "Immersive Storytelling"])
+        self.assertEqual([s["title"] for s in groups[0]["starters"]], ["Tête-à-tête", "Heartstrings", "Deep Water"])
 
 
 class WelcomeTests(TestCase):
