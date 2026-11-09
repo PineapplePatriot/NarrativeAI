@@ -100,6 +100,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "users.context_processors.feedback",  # the tester feedback form link (FEEDBACK_FORM_URL)
+                "users.context_processors.tomato_pit",  # the 🍅 Pit in the top bar, once found
             ],
         },
     },

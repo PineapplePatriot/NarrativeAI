@@ -7,10 +7,10 @@
   <title>The Tomato Pit</title>
   <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
   <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
-  <link rel="stylesheet" href="{% static 'mainapp/css/tomato_pit.css' %}?v=2">
+  <link rel="stylesheet" href="{% static 'mainapp/css/tomato_pit.css' %}?v=3">
 </head>
 <body class="na-body">
-{% include "partials/topbar.html" %}
+{% include "partials/topbar.html" with active="tomatoes" %}
 <div class="container na-page pit">
   <header class="pit-head">
     <h1>🕳️ The Tomato Pit</h1>
@@ -24,6 +24,27 @@
     <span class="pit-hint">Click, tap or hold Space to throw</span>
     <span class="pit-rate" id="pitRate"></span>
   </button>
+
+  <section class="pit-box" id="wallBox">
+    <div class="pit-box-head"><h2>🎨 Splat wall</h2><span class="muted" id="wallCount"></span></div>
+    <p class="muted">Tap where it should land, or drag to keep throwing. It paints with the skin you picked (every throw counts).</p>
+    <div class="wall-tools">
+      <div class="wall-chips" id="wallBg" role="group" aria-label="Wall">
+        <button type="button" data-bg="night">Night</button><button type="button" data-bg="plaster">Plaster</button>
+        <button type="button" data-bg="brick">Brick</button><button type="button" data-bg="chalk">Chalkboard</button>
+      </div>
+      <div class="wall-chips" id="wallSize" role="group" aria-label="Size">
+        <button type="button" data-size="22">S</button><button type="button" data-size="38">M</button><button type="button" data-size="62">L</button>
+      </div>
+      <label class="wall-check"><input type="checkbox" id="wallEmoji" checked> Show what was thrown</label>
+    </div>
+    <canvas id="wall" width="1200" height="750" aria-label="Your splat wall"></canvas>
+    <div class="pit-share">
+      <button type="button" class="na-btn" id="wallUndo">↶ Undo</button>
+      <button type="button" class="na-btn" id="wallClear">Clear the wall</button>
+      <a class="na-btn na-primary" id="wallDownload" download="splat-wall.png" href="#" style="text-decoration:none">⬇ Download the wall</a>
+    </div>
+  </section>
 
   <section class="pit-box">
     <div class="pit-box-head"><h2>Skins</h2><span class="muted" id="pitSkinCount"></span></div>
@@ -45,6 +66,6 @@
     </div>
   </section>
 </div>
-<script src="{% static 'mainapp/js/tomato_pit.js' %}?v=5"></script>
+<script src="{% static 'mainapp/js/tomato_pit.js' %}?v=6"></script>
 </body>
 </html>
