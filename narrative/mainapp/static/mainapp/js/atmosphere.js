@@ -8,6 +8,12 @@ window.Atmosphere = (function () {
     layer.className = 'atmosphere';
     layer.setAttribute('aria-hidden', 'true');
     scene.after(layer);
+    // The weather again in front of the chat, only around the edges (the middle stays clear for reading): on a
+    // phone the replies cover nearly all of the background, so the layer behind them alone was barely seen
+    const front = document.createElement('div');
+    front.className = 'atmosphere atmo-front';
+    front.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(front);
     let last = null;
 
     const store = (v) => { try { if (v === undefined) return localStorage.getItem('atmosphere'); localStorage.setItem('atmosphere', v); } catch (e) { return null; } };
@@ -38,6 +44,7 @@ window.Atmosphere = (function () {
         if (/rain|drizzl|shower|downpour|wet/.test(w)) return 'rain';
         if (/snow|blizzard|sleet|flurr/.test(w)) return 'snow';
         if (/fog|mist|haze|smog/.test(w)) return 'fog';
+        if (/clear|sunny|cloudless|fair|bright sky|blue sky/.test(w)) return 'clear';
         return '';
     }
 
@@ -45,13 +52,17 @@ window.Atmosphere = (function () {
         world = world || {};
         // Until the World tracker says what the weather is, the character's theme does (Bulba's pick, or the
         // background's name): a rainy scene opens with rain
-        const seen = weather(world.weather) || (world.weather ? '' : (window.THEME_WEATHER || ''));
+        // Weather it doesn't recognise ("cold, still air", "indoors") keeps the theme's; only a clear sky ends it
+        const told = weather(world.weather);
+        const seen = told === 'clear' ? '' : (told || window.THEME_WEATHER || '');
         const next = isOn() ? `${timeOfDay(world.time)}|${seen}` : '|';
         if (next === last) return;
         last = next;
         const [time, sky] = next.split('|');
         layer.className = 'atmosphere' + (time ? ` time-${time}` : '') + (sky ? ` sky-${sky}` : '');
         layer.innerHTML = sky ? `<div class="sky"></div>${sky === 'storm' ? '<div class="flash"></div>' : ''}` : '';
+        front.className = 'atmosphere atmo-front' + (sky ? ` sky-${sky}` : '');
+        front.innerHTML = sky ? '<div class="sky"></div>' : '';
         const label = document.getElementById('atmosphereNow');
         if (label) label.textContent = [time, sky].filter(Boolean).join(', ') || 'nothing to show yet';
     }
@@ -62,5 +73,5 @@ window.Atmosphere = (function () {
         toggle.addEventListener('change', () => { store(toggle.checked ? 'on' : 'off'); last = null; update(window.__lastWorld); });
     }
     update(window.__lastWorld || {});  // the theme's weather straight away, before any tracker has run
-    return { update(world) { window.__lastWorld = world; update(world); }, timeOfDay, weather };
+    return { refresh() { last = null; update(window.__lastWorld || {}); }, update(world) { window.__lastWorld = world; update(world); }, timeOfDay, weather };
 })();

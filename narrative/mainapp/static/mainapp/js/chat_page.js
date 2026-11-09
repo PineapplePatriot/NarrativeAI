@@ -2108,6 +2108,18 @@ function handleRefusal(d) {
             try { localStorage.setItem('chat-fx', fx.checked ? 'on' : 'off'); } catch (err) { /* this page only */ }
         });
     }
+    // ✨ Effects on/off: both kinds at once (weather and time of day, the style's light effect)
+    const all = document.getElementById('effectsAll'), atmo = document.getElementById('atmosphereToggle');
+    if (all && fx && atmo) {
+        const sync = () => { all.checked = fx.checked || atmo.checked; document.getElementById('effectsSub').classList.toggle('dim', !all.checked); };
+        all.addEventListener('change', () => {
+            const want = all.checked;  // read once: each box's own change re-syncs the main switch
+            [fx, atmo].forEach(box => { if (box.checked !== want) { box.checked = want; box.dispatchEvent(new Event('change')); } });
+            sync();
+        });
+        [fx, atmo].forEach(box => box.addEventListener('change', sync));
+        setTimeout(sync, 0);  // after atmosphere.js has read its own setting
+    }
 })();
 
 // "Your worldbook got better at your language": shown once per account, either button closes it for good

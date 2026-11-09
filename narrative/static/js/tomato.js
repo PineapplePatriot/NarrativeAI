@@ -52,6 +52,20 @@
         { id: 'regular', name: 'Regular', about: 'Threw on 7 different days.' },
         { id: 'collector', name: 'Collector', about: 'Unlocked 10 skins.' },
         { id: 'lucky', name: 'Lucky splat', about: 'A one-in-500 golden splat.', unlocks: 'star' },
+        { id: 'fivek', name: 'Ketchup factory', about: '5,000 tomatoes.' },
+        { id: 'fiftyk', name: 'Harvest season', about: '50,000 tomatoes.' },
+        { id: 'hundredk', name: 'Greenhouse', about: '100,000 tomatoes. That was a whole field.' },
+        { id: 'marathon', name: 'Marathon', about: 'Kept throwing through a wait over three minutes.' },
+        { id: 'devoted', name: 'Devoted critic', about: 'Threw on 30 different days.' },
+        { id: 'wardrobe', name: 'Wardrobe', about: 'Threw with 5 different skins.' },
+        { id: 'everything', name: 'Completionist', about: 'Unlocked every skin.' },
+        // 👻 Secrets: hidden until earned
+        { id: 'million', name: 'A Million', about: '1,000,000 tomatoes. We are impressed. And a little worried.', secret: true },
+        { id: 'traitor', name: 'Traitor', about: 'Threw 100 potatoes. Bulba saw that.', secret: true },
+        { id: 'boo', name: 'Boo', about: 'Threw 100 ghost tomatoes.', secret: true },
+        { id: 'midnight', name: 'Witching hour', about: 'Threw at exactly midnight.', secret: true },
+        { id: 'answer', name: 'The answer', about: 'The 42nd throw of a single wait.', secret: true },
+        { id: 'leet', name: '1337', about: 'Your 1,337th tomato.', secret: true },
     ];
 
     const css = `
@@ -104,7 +118,8 @@
 
     function merge(server) {  // the account's state plus what's still on its way there
         const ach = Object.assign({}, data.ach, server.ach || {});
-        data = Object.assign(blank(), server, {
+        const bySkin = data.bySkin || {};  // kept in this browser (what it unlocks is on the account)
+        data = Object.assign(blank(), server, { bySkin,
             count: (server.count || 0) + pending.add, waits: (server.waits || 0) + pending.add_waits,
             ach, days: [...new Set([...(server.days || []), ...data.days])].slice(-30),
             best10: Math.max(server.best10 || 0, data.best10 || 0), found: !!(server.found || data.found),
@@ -160,7 +175,7 @@
         const a = ACHIEVEMENTS.find(x => x.id === id);
         data.ach[id] = Date.now();
         const s = a.unlocks && SKINS.find(x => x.id === a.unlocks);
-        toast('🏅 ' + a.name, a.about + (s ? ` Unlocked: ${s.emoji} ${s.name}.` : ''));
+        toast((a.secret ? '👻 ' : '🏅 ') + a.name, a.about + (s ? ` Unlocked: ${s.emoji} ${s.name}.` : ''));
     }
 
     // --- One throw: a flight from `from` (or nowhere) to a random spot, then a splat that fades fast ---
@@ -227,10 +242,20 @@
             if (!waitThrows) { data.waits++; pending.add_waits++; }
             waitThrows++;
         }
+        data.bySkin = data.bySkin || {};
+        data.bySkin[data.skin] = (data.bySkin[data.skin] || 0) + 1;
         award('first');
-        if (data.count >= 100) award('hundred');
-        if (data.count >= 1000) award('thousand');
-        if (data.count >= 10000) award('tenk');
+        [[100, 'hundred'], [1000, 'thousand'], [5000, 'fivek'], [10000, 'tenk'], [50000, 'fiftyk'],
+         [100000, 'hundredk'], [1000000, 'million']].forEach(([n, id]) => { if (data.count >= n) award(id); });
+        if (data.count === 1337) award('leet');
+        if (waiting && waited >= 180) award('marathon');
+        if (waiting && waitThrows === 42) award('answer');
+        if (data.days.length >= 30) award('devoted');
+        if (Object.keys(data.bySkin).length >= 5) award('wardrobe');
+        if ((data.bySkin.potato || 0) >= 100) award('traitor');
+        if ((data.bySkin.ghost || 0) >= 100) award('boo');
+        const t = new Date();
+        if (t.getHours() === 0 && t.getMinutes() === 0) award('midnight');
         if (data.waits >= 10) award('patient');
         if (waiting && waited >= 60) award('long');
         if (recent.length >= 30) award('rage');
@@ -241,6 +266,7 @@
         if (lucky) award('lucky');
         const after = SKINS.filter(unlocked);
         if (after.length >= 10) award('collector');
+        if (after.length === SKINS.length) award('everything');
         if (after.length > before) {
             const fresh = after.filter(s => !s.ach && s.at === data.count)[0];
             if (fresh) toast('New skin: ' + fresh.emoji + ' ' + fresh.name, PIT ? 'Pick it in the Tomato Pit.' : '');

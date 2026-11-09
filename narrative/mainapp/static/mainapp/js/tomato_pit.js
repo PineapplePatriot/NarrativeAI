@@ -50,8 +50,12 @@
         }).join('')}</div>`).join('');
         const got = T.ACHIEVEMENTS.filter(a => d.ach[a.id]);
         $('pitAchCount').textContent = `${got.length} of ${T.ACHIEVEMENTS.length}`;
-        $('pitAch').innerHTML = T.ACHIEVEMENTS.map(a => `<li class="${d.ach[a.id] ? 'got' : ''}"><b>${d.ach[a.id] ? '🏅' : '🔒'} ${esc(a.name)}</b>
-            <small>${esc(a.about)}</small></li>`).join('');
+        $('pitAch').innerHTML = T.ACHIEVEMENTS.map(a => {
+            const got = d.ach[a.id];
+            if (a.secret && !got) return '<li class="secret"><b>👻 Secret</b><small>Keep throwing.</small></li>';
+            return `<li class="${got ? 'got' : ''}"><b>${got ? (a.secret ? '👻' : '🏅') : '🔒'} ${esc(a.name)}</b>
+                <small>${esc(a.about)}</small></li>`;
+        }).join('');
         card();
     }
     $('pitSkins').addEventListener('click', (e) => {

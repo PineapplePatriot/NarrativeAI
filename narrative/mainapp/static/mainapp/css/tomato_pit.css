@@ -28,3 +28,4 @@
 .pit-ach small { opacity: .75; }
 #pitCard { width: 100%; height: auto; border-radius: 12px; display: block; margin: 8px 0 12px; }
 .pit-share { display: flex; gap: 8px; flex-wrap: wrap; }
+.pit-ach li.secret { border-style: dashed; }

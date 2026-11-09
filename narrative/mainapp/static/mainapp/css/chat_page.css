@@ -1820,12 +1820,28 @@ body:has(#toolsMenu.show) .watch-card { display: none; }  /* the pen menu wins w
                       radial-gradient(circle, rgba(255, 255, 255, .45) .8px, transparent 1.3px);
     background-size: 73px 89px, 127px 109px, 53px 61px; background-position: 0 0, 35px 50px, 17px 29px;
     animation: atmo-snow 9s linear infinite; }
-.atmosphere.sky-fog .sky { inset: 0; background: linear-gradient(90deg, rgba(220, 225, 235, .0), rgba(220, 225, 235, .28), rgba(220, 225, 235, .05));
-    background-size: 200% 100%; filter: blur(8px); animation: atmo-fog 22s ease-in-out infinite alternate; }
+.atmosphere.sky-fog .sky { inset: -10%;
+    background: radial-gradient(ellipse 60% 40% at 20% 85%, rgba(215, 222, 235, .55), transparent 70%),
+                radial-gradient(ellipse 55% 35% at 80% 20%, rgba(215, 222, 235, .42), transparent 70%),
+                radial-gradient(ellipse 70% 30% at 60% 60%, rgba(215, 222, 235, .3), transparent 70%),
+                linear-gradient(90deg, rgba(220, 225, 235, .08), rgba(220, 225, 235, .3), rgba(220, 225, 235, .1));
+    background-size: 160% 160%, 150% 150%, 170% 170%, 200% 100%; filter: blur(14px);
+    animation: atmo-fog 26s ease-in-out infinite alternate; }
+/* In front of the chat: the same weather, only around the edges, softer */
+.atmosphere.atmo-front { position: fixed; z-index: 3; opacity: .7;
+    /* edges only, and never over the top bars or the message box */
+    -webkit-mask-image: radial-gradient(ellipse 75% 70% at 50% 50%, transparent 45%, #000 100%),
+        linear-gradient(180deg, transparent 150px, #000 230px, #000 calc(100% - 200px), transparent calc(100% - 130px));
+    -webkit-mask-composite: source-in;
+    mask-image: radial-gradient(ellipse 75% 70% at 50% 50%, transparent 45%, #000 100%),
+        linear-gradient(180deg, transparent 150px, #000 230px, #000 calc(100% - 200px), transparent calc(100% - 130px));
+    mask-composite: intersect; }
+.atmosphere.atmo-front.sky-fog { opacity: .85; }
 .atmosphere .flash { position: absolute; inset: 0; background: rgba(230, 235, 255, .55); opacity: 0; animation: atmo-flash 9s infinite; }
 @keyframes atmo-rain { to { background-position: -30px 120px; } }
 @keyframes atmo-snow { to { background-position: 30px 712px, 85px 813px, 40px 517px; } }
-@keyframes atmo-fog { to { background-position: 100% 0; } }
+@keyframes atmo-fog { 0% { background-position: 0% 0%, 100% 0%, 50% 100%, 0 0; }
+    100% { background-position: 100% 30%, 0% 40%, 0% 0%, 100% 0; } }
 @keyframes atmo-flash { 0%, 91%, 93%, 96%, 100% { opacity: 0; } 92%, 95% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .atmosphere .sky, .atmosphere .flash { animation: none; } .atmosphere .flash { display: none; } }
 
@@ -2273,3 +2289,7 @@ body.polish-on .message-btn.polish-btn { display: flex; }
 @keyframes stagePulse { 50% { opacity: .4; } }
 @media (prefers-reduced-motion: reduce) { .translate-stage { animation: none; } }
 .messages-container.finishing ~ * .send-btn, .send-btn:disabled { opacity: .45; }
+
+/* ✨ Effects in the pen menu: the two kinds sit under the main switch */
+.effects-sub { padding-left: 14px; border-left: 2px solid rgba(255, 255, 255, .08); margin: 2px 0 8px; }
+.effects-sub.dim { opacity: .55; }
