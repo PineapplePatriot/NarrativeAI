@@ -93,6 +93,13 @@ def blocks():
                        "summary": item["problem"], "on_in_source": False,
                        "exception": item["exception"], "test": item["test"],
                        "provenance": item["provenance"], "evidence": item["evidence"], "examples": item["examples"]}
+    for item in writing_quality.catalog().get("phrase_candidates", []):
+        name = f"Phrase exclusion candidate: {item['id']}"
+        found[name] = {"name": name, "source": CANDIDATE_SOURCE,
+                       "content": f"Exclude {item['expression']} only within this scope: {item['scope']} {item['exception']}",
+                       "summary": f"User-selected exclusion: {item['expression']}. {item['scope']}",
+                       "on_in_source": False, "exception": item["exception"],
+                       "evidence": "Editorial candidate, not an enabled global blacklist or verified model-specific frequency claim."}
     return found
 
 

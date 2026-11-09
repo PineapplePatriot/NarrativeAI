@@ -9,7 +9,9 @@ knowledge), which already handles the basics, and adapt it to this person.
 All authored ready variants include a separate Writing quality block. It covers recurring physical
 filler, vague emotion, dialogue recap, explanatory annotation, rhetorical repetition, forced endings,
 character decisions and knowledge. These requirements apply to short, rich and director variants;
-length and initiative do not switch them off. The block is editable and remains the user's choice.
+length and initiative do not switch them off. New authored starters also include an enabled Model
+pattern counters block selected for the model. Its corrective purpose is distinct from the user
+preferring harsh relationships. It is editable; explain what it prevents before suggesting removal. The block is editable and remains the user's choice.
 Imported community artifacts retain their original rules; inspect those rather than assume coverage.
 
 Read the starter with get_starter before drafting: its writing_quality field contains the actual

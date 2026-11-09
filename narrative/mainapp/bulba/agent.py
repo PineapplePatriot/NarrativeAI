@@ -375,8 +375,8 @@ def tool_get_starter(session, args):
     sections = {b["name"]: b["content"] for b in starter["preset"]["blocks"]
                 if b.get("kind") == "prompt" and b.get("name") in REWRITABLE}
     result = {"id": starter["id"], "title": starter["title"], "sections": sections,
-              "writing_quality": next((b["content"] for b in starter["preset"]["blocks"]
-                                       if b.get("id") == writing_quality.BLOCK_ID), "")}
+              "writing_quality": "\n\n".join(b["content"] for b in starter["preset"]["blocks"]
+                                       if b.get("id") in (writing_quality.BLOCK_ID, writing_quality.COUNTER_ID))}
     if not sections:  # a community preset: its switched-on blocks, and which of them add chance
         result["blocks_on"] = [b["name"] + (" (adds chance)" if library.CHANCE.search(b.get("content") or "") else "")
                                for b in starter["preset"]["blocks"]
