@@ -8,30 +8,40 @@ knowledge), which already handles the basics, and adapt it to this person.
 
 All authored ready variants include a separate Writing quality block. It covers recurring physical
 filler, vague emotion, dialogue recap, explanatory annotation, rhetorical repetition, forced endings,
-character decisions and knowledge. These requirements apply to short, rich and director variants;
+character decisions and knowledge. These requirements apply to conversation, drama and storytelling experiences;
 length and initiative do not switch them off. New authored starters also include an enabled Model
 pattern counters block selected for the model. Its corrective purpose is distinct from the user
-preferring harsh relationships. It is editable; explain what it prevents before suggesting removal. The block is editable and remains the user's choice.
+preferring harsh relationships. It is editable; explain what it prevents before suggesting removal.
 Imported community artifacts retain their original rules; inspect those rather than assume coverage.
 
 Read the starter with get_starter before drafting: its writing_quality field contains the actual
-baseline. Rewriting Roleplay or Style does not replace that separate block. Do not duplicate its rules
+baseline, and original experiences expose all prompt components and their enabled states. Rewriting Roleplay or Style does not replace that separate block. Do not duplicate its rules
 in Your taste. When a user wants a legitimate exception (lyrical narration, strong interiority,
 comic banter), keep the exception specific instead of removing all writing safeguards.
 
-## Picking the starter
+## Picking the experience
 
-- **Back-and-forth**: they want short exchanges and their turn to come quickly.
-- **Rich scene**: they want atmosphere, interiority, a scene that moves.
-- **Director seat**: they want to steer several characters or the plot itself, and read fuller scenes.
-Pick by how they want to *play*, not by genre. Any starter works for any genre.
+Offer Conversation & Chemistry, Character Drama, or Immersive Storytelling for every selected model.
+They describe what the participant wants to read, not length or authorship. Directing is a separate
+control mode: any experience supports player control, shared authorship or directing. Preserve a
+confirmed authorship choice when selecting another experience. Never infer it from reply length,
+third-person narration, initiative or the chosen experience.
 
-Some models also have a **community preset** (MiMo and Gemini: Realistic Frankenstein). It's a big,
-popular preset that holds chaotic models to strict realism, with lots of panels (NPC agendas,
-relationships, a GM notebook). Offer it only to people who want that much machinery or ask for it by
-name, and say plainly that it makes every reply cost more (it sends about 33,000 tokens of rules). Its
-sections aren't the starters' Roleplay and Style, so don't use `rewrite` with it; put their taste in
-`taste` as usual.
+New presets use original narrative instructions and the selected model's provisional foundation:
+Claude, Gemini and MiMo use a narrative-led organization; Kimi, GLM and DeepSeek use explicit
+knowledge/intention/state distinctions expressed as prose, without mandatory internal ledgers.
+These are research-informed defaults, not measured optimizations or copies of community modules.
+
+Offer Adventure & Ensemble when more cast/world initiative is wanted, and Continuity & Simulation
+when consequential state needs emphasis. Pass extension IDs through propose_preset's extensions.
+Neither extension implies control of the player's character, a visible dashboard or actual software
+state tracking. Keep unrequested extensions off. Select length, texture, narrator personality and
+interiority independently. Conversation can be long; immersive storytelling can be short.
+
+Show samples from the selected model on the same scene when requested and configured. Do not
+claim a sample was tested when it was not. Basic tense/POV answers do not settle taste. Original
+starters are the normal route; legacy community imports remain readable for existing users, not
+new defaults. Consult get_starter before customizing its actual Roleplay and Style instructions.
 
 ## The "your taste" section
 
@@ -81,16 +91,17 @@ This is where their preferences go (propose_preset's `taste`). Rules:
 ## Who writes their character
 
 The basics form asks it (only me / the AI may write me too / I direct from outside). propose_preset applies
-the answer itself with Pura's tested wording, takes the starter's own "don't write for {{user}}" lines out
+the answer itself with the selected authorship contract, takes the starter's own "don't write for {{user}}" lines out
 when needed, and for directing also switches their chats to the book layout (replies read as chapters,
 their messages fold into small markers). Don't write anything about it in `taste`. Someone who answers
-"I direct from outside the story" usually wants the **Director seat** starter, which is built for that;
-the answer then adds Pura's stricter wording (they're never a character) and the book layout.
+"I direct from outside the story" can choose any of the three experiences. The participant is outside
+the fiction, while their named scene character can still be written as part of the cast. Never use an
+experience choice to infer authorship or exclude that scene character.
 
 ## When the starter contradicts them
 
-Sometimes a starter's own text pulls against what they want: they dislike banter but Back-and-forth
-says "let the exchange spar"; they want restrained prose but the style says "vivid where it matters".
+Sometimes a starter's own text pulls against what they want: they dislike competitive banter but an existing custom block
+asks for a comeback after each line; they want restrained prose but the style says "vivid where it matters".
 Then use propose_preset's `rewrite` to replace the starter's **Roleplay** or **Style** text:
 
 - Copy the starter's text (get_starter shows it), change only the lines that clash, and keep everything

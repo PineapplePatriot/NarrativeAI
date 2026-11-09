@@ -16,13 +16,17 @@ def catalog():
 
 def add_baseline(starter):
     """Materialize an ordinary editable/exportable block. Never rewrite a saved user preset."""
-    if starter.get("experience") not in ("back_and_forth", "rich_scene", "director"):
+    if starter.get("experience") not in ("back_and_forth", "rich_scene", "director", "conversation", "drama", "storytelling"):
         return starter
     blocks = starter["preset"]["blocks"]
     if not any(b.get("id") == BLOCK_ID for b in blocks):
         index = next((i + 1 for i, b in enumerate(blocks) if b.get("name") == "Style"), 0)
+        baseline = catalog()["baseline"]
+        if (starter["preset"].get("extras") or {}).get("original_experience"):
+            from mainapp import experiences
+            baseline = experiences.catalog()["foundation"]
         blocks.insert(index, {"id": BLOCK_ID, "name": BLOCK_NAME, "kind": "prompt", "role": "system",
-                              "enabled": True, "content": catalog()["baseline"]})
+                              "enabled": True, "content": baseline})
     counter = catalog().get("default_counters", {}).get(starter.get("model"))
     if counter and not any(b.get("id") == COUNTER_ID for b in blocks):
         index = next(i + 1 for i, b in enumerate(blocks) if b.get("id") == BLOCK_ID)

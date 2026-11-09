@@ -125,7 +125,10 @@
   "starters": {
     "back_and_forth": "argon-back-and-forth",
     "rich_scene": "argon-rich-scene",
-    "director": "argon-director"
+    "director": "argon-director",
+    "conversation": "argon-experience-conversation",
+    "drama": "argon-experience-drama",
+    "storytelling": "argon-experience-storytelling"
   },
   "card": {
     "order": 2,

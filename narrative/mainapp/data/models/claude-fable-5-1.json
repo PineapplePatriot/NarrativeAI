@@ -121,7 +121,10 @@
   "starters": {
     "back_and_forth": "fable-back-and-forth",
     "rich_scene": "fable-rich-scene",
-    "director": "fable-director"
+    "director": "fable-director",
+    "conversation": "fable-experience-conversation",
+    "drama": "fable-experience-drama",
+    "storytelling": "fable-experience-storytelling"
   },
   "card": {
     "order": 17,

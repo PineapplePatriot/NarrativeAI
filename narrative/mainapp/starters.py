@@ -1,20 +1,21 @@
-"""
-Starters: ready-made presets per model, one for each experience (mainapp/data/starters/*.json).
+"""Original experience catalog plus compatibility lookup for legacy starters.
 
-A starter is a normal preset plus a title, a description and the community presets it was
-based on (credited and linked, not copied wholesale). Using one creates a preset the user
-owns and activates it, so it can be edited and exported like any other.
+New presets use independently authored components; legacy artifacts remain readable for saved
+proposals and user imports. Creating a preset never rewrites an existing saved preset.
 """
 import copy
 import json
 from functools import lru_cache
 from pathlib import Path
 
-from mainapp import model_profiles, presets, writing_quality
+from mainapp import model_profiles, presets, writing_quality, experiences
 
 DATA_DIR = Path(__file__).resolve().parent / "data" / "starters"
 
 EXPERIENCES = {
+    "conversation": {"label": "Conversation & Chemistry", "order": 0},
+    "drama": {"label": "Character Drama", "order": 1},
+    "storytelling": {"label": "Immersive Storytelling", "order": 2},
     "back_and_forth": {"label": "Back-and-forth", "order": 0},
     "rich_scene": {"label": "Rich scene", "order": 1},
     "director": {"label": "Director seat", "order": 2},
@@ -24,7 +25,7 @@ EXPERIENCES = {
 
 
 @lru_cache(maxsize=1)
-def all_starters():
+def legacy_starters():
     out = []
     for path in sorted(DATA_DIR.glob("*.json")):
         with open(path, encoding="utf-8") as f:
@@ -32,8 +33,15 @@ def all_starters():
     return out
 
 
+@lru_cache(maxsize=1)
+def all_starters():
+    templates = {s['id']: s for s in legacy_starters()}
+    return [experiences.generate(templates[p['starters']['rich_scene']], p, feel)
+            for p in model_profiles.all_profiles() for feel in experiences.EXPERIENCES]
+
+
 def get(starter_id):
-    return next((s for s in all_starters() if s["id"] == starter_id), None)
+    return next((s for s in [*all_starters(), *legacy_starters()] if s["id"] == starter_id), None)
 
 
 def _card(s):
@@ -55,13 +63,17 @@ def for_page(model):
             for mid, cards in ordered]
 
 
-def apply(user, starter_id):
+def apply(user, starter_id, mode=None, extensions=()):
     """Create the user's own preset from a starter and make it active."""
     from mainapp.models import Preset
     s = get(starter_id)
     if s is None:
         raise ValueError("No such starter.")
     data = presets.normalize(copy.deepcopy(s["preset"]))
+    if data["extras"].get("original_experience"):
+        from mainapp.bulba import control
+        chosen_mode = mode if mode is not None else control.mode_of(presets.normalize(presets.get_active(user).data))
+        data = experiences.configure(data, chosen_mode, extensions)
     data["extras"] = {**data["extras"], "starter": {"id": s["id"], "model": s["model"], "based_on": s.get("based_on", [])}}
     from mainapp import ai_client
     chosen = ai_client.get_task_setting(user, "chat").context  # the memory they picked with Bulba wins
@@ -76,11 +88,11 @@ def apply(user, starter_id):
     return obj
 
 
-READY_FEELS = ("back_and_forth", "rich_scene", "director")
+READY_FEELS = experiences.EXPERIENCES
 
 
 def ready_for(model_id):
-    """The model's ready presets for a quick start: back-and-forth, rich scene, director seat."""
+    """The same three reading experiences for every supported model."""
     profile = next((p for p in model_profiles.all_profiles() if p["id"] == model_id), {})
     out = []
     for feel in READY_FEELS:
@@ -90,13 +102,13 @@ def ready_for(model_id):
     return out
 
 
-def apply_ready(user, starter_id):
-    """A ready preset as it is (no Bulba). The director seat comes with Pura's wording and the book layout."""
+def apply_ready(user, starter_id, mode=None, extensions=()):
+    """Apply a ready experience with independent authorship and optional extensions."""
     s = get(starter_id)
-    if s is None or s.get("experience") not in READY_FEELS:
+    if s is None or s.get("experience") not in (*READY_FEELS, "back_and_forth", "rich_scene", "director"):
         raise ValueError("No such ready setup.")
-    obj = apply(user, starter_id)
-    if s["experience"] == "director":
+    obj = apply(user, starter_id, mode=mode, extensions=extensions)
+    if (mode == "director") or (s["experience"] == "director" and mode is None):
         from mainapp.bulba import control
         from mainapp.views import set_layout
         obj.data = control.apply_to_preset(presets.normalize(obj.data), "director")

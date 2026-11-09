@@ -117,7 +117,10 @@
     "rich_scene": "mimo-rich-scene",
     "director": "mimo-director",
     "full_preset": "mimo-frankenstein",
-    "full_preset_fast": "mimo-frankenstein-pico"
+    "full_preset_fast": "mimo-frankenstein-pico",
+    "conversation": "mimo-experience-conversation",
+    "drama": "mimo-experience-drama",
+    "storytelling": "mimo-experience-storytelling"
   },
   "openrouter_id_verified": true,
   "card": {

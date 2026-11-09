@@ -57,9 +57,18 @@
             </div>
             <div class="ready" id="ready" hidden>
                 <h3>Or just take a ready preset</h3>
-                <p class="help">Tested setups for your model. One click, nothing to answer; change it any time on the
+                <p class="help">Research-informed experiences for your model. One click, nothing to answer; change it any time on the
                     Presets page or with Bulba later. It won't know your taste yet.</p>
-                <div class="ready-list" id="readyList"></div>
+
+        <label for="experienceControl">Authorship</label>
+        <select id="experienceControl">
+          <option value="dont">Roleplay — I control my character</option>
+          <option value="write">Shared authorship — write my character too</option>
+          <option value="director">Directing — I guide the whole cast</option>
+        </select>
+        <label><input type="checkbox" data-experience-extension="adventure"> Adventure &amp; Ensemble</label>
+        <label><input type="checkbox" data-experience-extension="continuity"> Continuity &amp; Simulation</label>
+<div class="ready-list" id="readyList"></div>
                 <p class="error" id="readyError" hidden></p>
             </div>
             <p class="help small">Advanced settings (other providers, a cheaper model for summaries, voices) live on the
