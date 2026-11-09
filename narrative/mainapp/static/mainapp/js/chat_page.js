@@ -1073,8 +1073,9 @@ function continueGeneration() {
                 messageTextDiv.innerHTML = renderedHtml;
                 messageTextDiv.setAttribute('data-raw', encodeURIComponent(data.reply));
                 hiddenTextarea.value = data.reply;
-                setPolish(lastMsgElement, null);  // the continued text is new: polish it again if asked
-                afterReplyText(lastMsgElement, data.polish_due);
+                setPolish(lastMsgElement, null);
+                if (data.translated) setOriginal(lastMsgElement, data.original);  // only the new part was translated
+                else afterReplyText(lastMsgElement, data.polish_due);
 
                 scrollToBottom();
             } else {

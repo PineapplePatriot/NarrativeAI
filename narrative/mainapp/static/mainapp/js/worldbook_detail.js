@@ -260,15 +260,15 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 function progressHtml(text, seconds) {
     return `<div class="job-progress"><div class="job-bar"><span></span></div>
         <p class="muted">${escapeHtml(text)}${seconds ? ` · ${seconds}s` : ''}</p>
-        <p class="hint">You can leave this page: Bulba keeps going, and the suggestions wait here when you come back.</p></div>`;
+        <p class="hint">You can leave this page: Bulba keeps going, and the suggestions wait here until you add or dismiss them.</p></div>`;
 }
 async function waitForJob(url, out, text) {
     for (;;) {
         const resp = await fetch(url, { headers: { 'X-CSRFToken': getCookie('csrftoken') } });
         const job = await resp.json().catch(() => ({ status: 'error', error: 'The app server did not answer.' }));
-        if (job.status === 'done') { fetch(url + '?clear=1').catch(() => {}); return job.result; }
+        if (job.status === 'done') return job.result;  // kept until they add it or dismiss it
         if (job.status === 'error') { fetch(url + '?clear=1').catch(() => {}); throw new Error(job.error || 'Something went wrong.'); }
-        if (job.status === 'none') throw new Error('The job was lost (the app restarted). Press the button again.');
+        if (job.status === 'none') throw new Error('The job was lost (the app restarted while it ran). Press the button again.');
         out.innerHTML = progressHtml(text, job.seconds);
         await sleep(2500);
     }
@@ -288,9 +288,13 @@ function showForms(data) {
       <div class="result included"><div class="result-head"><b>${escapeHtml(label(e))}</b></div>
         <div class="muted">+ ${proposedForms[e.uid].map(escapeHtml).join(', ')}</div></div>`).join('');
     out.innerHTML = rows
-        ? rows + `<button class="btn primary full" id="formsApply" type="button">Add these to the keywords</button>`
+        ? rows + `<button class="btn primary full" id="formsApply" type="button">Add these to the keywords</button>
+                  <button class="btn full" id="formsDismiss" type="button">Dismiss</button>`
         : `<p class="muted">${escapeHtml(data.note || 'Nothing to add: the keywords already cover their forms.')}</p>`;
-    if (rows) $('formsApply').onclick = () => {
+    if (!rows) { fetch(URLS.forms + '?clear=1').catch(() => {}); return; }
+    $('formsDismiss').onclick = () => { fetch(URLS.forms + '?clear=1').catch(() => {}); out.innerHTML = ''; proposedForms = null; };
+    $('formsApply').onclick = () => {
+        fetch(URLS.forms + '?clear=1').catch(() => {});
         book.entries.forEach(e => {
             const extra = (proposedForms[e.uid] || []).filter(k => !e.keys.some(x => x.toLowerCase() === k.toLowerCase()));
             e.keys = [...e.keys, ...extra];
@@ -331,9 +335,12 @@ function showExpand(data) {
     data.new.forEach((n, i) => rows.push(tick(`n${i}`, `<b>New: ${escapeHtml(n.title)}</b> (${n.keys.map(escapeHtml).join(', ')})<br><i>${escapeHtml(n.content)}</i>`)));
     out.innerHTML = `<p class="x-origin">${ORIGIN[data.origin] || ''}</p>` + (data.note ? `<p class="muted">${escapeHtml(data.note)}</p>` : '')
         + rows.join('') + sourcesHtml(data)
-        + (rows.length ? '<button class="btn primary full" id="expandApply" type="button">Add the ticked ones</button>' : '');
-    if (!rows.length) return;
+        + (rows.length ? '<button class="btn primary full" id="expandApply" type="button">Add the ticked ones</button>'
+                         + '<button class="btn full" id="expandDismiss" type="button">Dismiss</button>' : '');
+    if (!rows.length) { fetch(URLS.expand + '?clear=1').catch(() => {}); return; }
+    $('expandDismiss').onclick = () => { fetch(URLS.expand + '?clear=1').catch(() => {}); out.innerHTML = ''; };
     $('expandApply').onclick = () => {
+        fetch(URLS.expand + '?clear=1').catch(() => {});
         const picked = id => out.querySelector(`[data-pick="${id}"]`)?.checked;
         const tag = data.origin === 'invented' ? ' (invented)' : '';
         book.entries.forEach(e => {

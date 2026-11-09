@@ -242,6 +242,43 @@ class InflectedLanguageTests(SimpleTestCase):
                          ["Dragon"])
 
 
+class WorldbookBackgroundJobTests(TransactionTestCase):
+    """Word forms and Expand in the background: the result is saved and waits until added or dismissed."""
+
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(username="annbg", password="pw12345!")
+        self.client.force_login(self.user)
+
+    def post_json(self, url, data):
+        return self.client.post(url, json.dumps(data), content_type="application/json")
+
+    def test_word_forms_in_the_background(self):
+        import time
+        from unittest import mock
+        from django.core.cache import cache
+        from mainapp import views
+        cache.clear()
+        self.post_json(reverse("worldbook_create"), {"title": "Bg"})
+        wb = Worldbook.objects.get(author=self.user)
+        url = reverse("worldbook_forms", args=[wb.slug])
+        self.assertEqual(self.client.get(url).json()["status"], "none")
+        with mock.patch.object(views, "word_forms", return_value={0: ["Києві"]}):
+            started = self.post_json(url, {"book": {"title": "Bg", "entries": []}, "background": True}).json()
+            self.assertEqual(started["status"], "running")
+            for _ in range(50):  # the page polls the same way
+                job = self.client.get(url).json()
+                if job["status"] != "running":
+                    break
+                time.sleep(0.05)
+        self.assertEqual(job["status"], "done")
+        self.assertEqual(job["result"]["forms"], {"0": ["Києві"]})
+        cache.clear()  # a restart loses the cache, not the result
+        self.assertEqual(self.client.get(url).json()["status"], "done")  # still waiting after being shown
+        self.client.get(url + "?clear=1")  # they added or dismissed it
+        self.assertEqual(self.client.get(url).json()["status"], "none")
+
+
+
 class WorldbookViewTests(TestCase):
     def setUp(self):
         self.user = get_user_model().objects.create_user(username="ann", password="pw12345!")
@@ -349,29 +386,6 @@ class WorldbookViewTests(TestCase):
         self.assertEqual(page.context["worldbook_json"]["based_on"], "Genshin, Sumeru arc")
         self.assertContains(page, 'id="expandBtn"')
         self.assertContains(page, 'id="entryExpandBtn"')
-
-    def test_word_forms_in_the_background(self):
-        import time
-        from unittest import mock
-        from django.core.cache import cache
-        from mainapp import views
-        cache.clear()
-        self.post_json(reverse("worldbook_create"), {"title": "Bg"})
-        wb = Worldbook.objects.get(author=self.user)
-        url = reverse("worldbook_forms", args=[wb.slug])
-        self.assertEqual(self.client.get(url).json()["status"], "none")
-        with mock.patch.object(views, "word_forms", return_value={0: ["Києві"]}):
-            started = self.post_json(url, {"book": {"title": "Bg", "entries": []}, "background": True}).json()
-            self.assertEqual(started["status"], "running")
-            for _ in range(50):  # the page polls the same way
-                job = self.client.get(url).json()
-                if job["status"] != "running":
-                    break
-                time.sleep(0.05)
-        self.assertEqual(job["status"], "done")
-        self.assertEqual(job["result"]["forms"], {"0": ["Києві"]})
-        self.client.get(url + "?clear=1")
-        self.assertEqual(self.client.get(url).json()["status"], "none")  # shown once, then gone
 
     def test_the_test_panel_reads_a_note(self):
         self.post_json(reverse("worldbook_create"), {"title": "Notes"})
@@ -3331,6 +3345,30 @@ class TranslationWorkflowTests(ChatPromptTests):
         self.assertTrue(ai_client._blocking_stop("PROHIBITED_CONTENT"))
         self.assertTrue(ai_client._blocking_stop("content_filter"))
         self.assertFalse(ai_client._blocking_stop("stop"))
+
+    def test_continue_adds_only_the_new_part(self):
+        from unittest import mock
+        from mainapp import translation, views
+        self.read_in("uk")
+        self.post({"action": "chat", "message": "Hi"})
+        index = len(self.saved_messages()) - 1
+        with mock.patch.object(translation, "translate", side_effect=self.fake_translate):
+            first = self.post({"action": "translate", "index": index}).json()["text"]
+            with mock.patch.object(views.ai_client, "complete", return_value="She opens the door."):
+                d = self.post({"action": "continue"}).json()
+        self.assertTrue(d["translated"])
+        self.assertTrue(d["reply"].startswith(first))  # what they read stays word for word
+        self.assertTrue(d["reply"].endswith("UK: She opens the door."))
+        self.assertEqual(self.translated[-1][0], "She opens the door.")  # only the new part was translated
+        self.assertTrue(self.saved_messages()[index][2].endswith("She opens the door."))
+
+    def test_continue_that_rewrites_adds_nothing(self):
+        from mainapp import views
+        self.assertIsNone(views._only_new("The rain had not stopped for three days now.",
+                                          "The rain had not stopped for three days now. It went on."))
+        self.assertEqual(views._only_new("He waited by the window for a long, long while, saying nothing.",
+                                         "for a long, long while, saying nothing. Then he left."), " Then he left.")
+        self.assertEqual(views._only_new("Short.", "And more."), "And more.")
 
     def test_translation_model_default(self):
         from mainapp import ai_client

@@ -1039,7 +1039,10 @@ def chat(request, slug):
                 history = regex_rules.run_on_history(regex_rules.for_chat(preset, character, request.user), history, names)
                 # The unfinished reply is the last message; the preset's continue nudge comes after it
                 nudge = preset["utility"]["continue_nudge"].strip() or presets.UTILITY_DEFAULTS["continue_nudge"]
-                history.append({"role": "system", "content": nudge})
+                # Gemini and the newest Claude don't continue a reply the request ends on (OpenRouter moves system
+                # messages out): they write a new one. A user turn asks them plainly.
+                nudge_role = "user" if str(chat_model).startswith(("google/", "anthropic/")) else "system"
+                history.append({"role": nudge_role, "content": nudge})
                 built, _ = recall.assemble_with_recall(
                     presets.assemble, preset, prompt_slots(request.user, character, prompt, chat_state["persona"]),
                     history, names, chat_model, generation="continue")
@@ -1049,14 +1052,42 @@ def chat(request, slug):
             except ai_client.AIError as e:
                 return JsonResponse({"success": False, "error": str(e)})
 
-            new_chunk = (new_chunk or "").rstrip()
+            new_chunk = _only_new(last_text, (new_chunk or "").rstrip())
+            if new_chunk is None:
+                return JsonResponse({"success": False, "error": "The model wrote the reply over again instead of "
+                                                                 "continuing it, so nothing was added. Press Continue again."})
+            if not new_chunk.strip():
+                return JsonResponse({"success": False, "error": "The model had nothing to add. The reply stays as it is."})
+            # Only the new part is cleaned of the known habits: what they already read stays word for word
+            habits = polish.approved(request.user)
+            if habits and not watch.chat_data(chat_obj).get("off"):
+                try:
+                    new_chunk, _fixed = polish.polish_text(request.user, character, chat_obj, new_chunk,
+                                                           polish.others_before(messages, len(messages)),
+                                                           chat_state["summary"], habits)
+                except ai_client.AIError as e:
+                    log.info("Polish skipped for a continuation: %s", e)
             if new_chunk and not new_chunk[0].isspace() and new_chunk[0] not in ".,;:!?)…'\"" and not last_text.endswith((" ", "\n")):
                 new_chunk = " " + new_chunk
             full_text = text_rules("saved", last_text + new_chunk, "assistant")
-            messages[-1] = chats.set_text(messages[-1], full_text)
+            reading = translation.reading_language(request.user)
+            before = translation.translation_of(messages[-1]) if reading else None
+            messages[-1] = chats._with(chats.set_text(messages[-1], full_text), "polish", None)  # its old Undo no longer fits
+            shown = full_text
+            if before and before["language"] == reading:
+                # Read in another language: only the new part is translated; the translation they read stays
+                try:
+                    added = translation.translate(request.user, new_chunk.strip(), reading,
+                                                  glossary=_glossary(request.user, character, chat_state))
+                    shown = before["text"].rstrip() + ("\n\n" if new_chunk.startswith("\n") else " ") + added
+                    messages[-1] = translation.with_translation(messages[-1], shown, reading, before.get("extras"))
+                except ai_client.AIError as e:
+                    log.info("Continuation not translated: %s", e)
+                    shown = full_text
             save_messages(messages)
-            return JsonResponse({"success": True, "reply": full_text,
-                                 "polish_due": polish.due(request.user, chat_obj, messages)})
+            return JsonResponse({"success": True, "reply": shown, "translated": shown != full_text,
+                                 "original": full_text if shown != full_text else "",
+                                 "polish_due": False})  # the new part is cleaned already; the rest stays
         elif action == "chat_persona":  # who the user is in this chat only; empty name = their usual persona
             name = str(data.get("name") or "").strip()[:100]
             chat_state["persona"] = ({"name": name, "description": str(data.get("description") or "").strip()[:4000]}
@@ -1821,6 +1852,21 @@ def _shown(message, reading):
     return translation.display_text(message, reading) if reading else message[2]
 
 
+def _only_new(last_text, chunk):
+    """What a Continue really added. A model that wrote the reply over (it starts like the reply did) gives None;
+    one that repeated the last bit before going on loses the repeat."""
+    if not chunk:
+        return ""
+    head = last_text.strip()[:60]
+    if len(head) >= 20 and chunk.strip().startswith(head):
+        return None
+    last, start = last_text.rstrip(), chunk.lstrip()
+    for k in range(min(len(last), len(start), 400), 29, -1):  # the longest bit of the ending it repeated first
+        if start.startswith(last[-k:]):
+            return start[k:]
+    return chunk
+
+
 def _glossary(user, character, chat_state):
     """Names the translation keeps as they are."""
     names = prompt_names(user, character, (chat_state or {}).get("persona"))
@@ -2231,44 +2277,68 @@ def word_forms(user, book):
     return out
 
 
-# 🥔 Word forms and Expand run in the background when the page asks: the job's result waits (an hour) for them to
-# come back, even if they leave the page. One process (gunicorn, one worker) holds the jobs in its cache.
-BOOK_JOB_SECONDS = 3600
+# 🥔 Word forms and Expand run in the background when the page asks. While one runs, the cache knows; a finished
+# one is saved with their settings (it survives restarts) and waits until they add it or dismiss it.
+BOOK_JOB_SECONDS = 3600  # how long a running job may take before it counts as lost
 
 
 def _book_job_key(user, slug, kind):
     return f"bookjob:{user.id}:{slug}:{kind}"
 
 
+def _stored_jobs(user):
+    from mainapp.models import ChatSettings
+    obj = ChatSettings.objects.filter(author=user).first()
+    return dict((obj.appearance or {}).get("book_jobs") or {}) if obj else {}
+
+
+def _store_job(user, name, job):
+    from mainapp.models import ChatSettings
+    obj, _ = ChatSettings.objects.get_or_create(author=user)
+    jobs = dict((obj.appearance or {}).get("book_jobs") or {})
+    if job is None:
+        jobs.pop(name, None)
+    else:
+        jobs[name] = job
+    obj.appearance = {**(obj.appearance or {}), "book_jobs": jobs}
+    obj.save(update_fields=["appearance"])
+
+
 def _book_job(request, slug, kind, data, run):
-    """GET: the job's state. POST with background: start `run` in a thread (unless one is running). Else run it now."""
+    """GET: the job's state (?clear=1 after they added or dismissed it). POST with background: start `run` in a
+    thread (unless one is running). Else None: the caller runs it now."""
     import threading
     import time as time_mod
     from django.core.cache import cache
     from django.db import connection
-    key = _book_job_key(request.user, slug, kind)
+    user, key, name = request.user, _book_job_key(request.user, slug, kind), f"{slug}:{kind}"
     if request.method == "GET":
-        job = cache.get(key) or {"status": "none"}
-        if job.get("status") == "running":
-            job = {**job, "seconds": int(time_mod.time() - job.get("started", time_mod.time()))}
-        if request.GET.get("clear") and job.get("status") in ("done", "error"):
-            cache.delete(key)
-        return JsonResponse(job)
+        if request.GET.get("clear"):
+            _store_job(user, name, None)
+            return JsonResponse({"status": "none"})
+        running = cache.get(key)
+        if running:
+            return JsonResponse({"status": "running", "seconds": int(time_mod.time() - running["started"])})
+        return JsonResponse(_stored_jobs(user).get(name) or {"status": "none"})
     if not data.get("background"):
-        return None  # the caller runs it now
-    if (cache.get(key) or {}).get("status") == "running":
+        return None
+    if cache.get(key):
         return JsonResponse({"status": "running"})
-    cache.set(key, {"status": "running", "started": time_mod.time()}, BOOK_JOB_SECONDS)
+    cache.set(key, {"started": time_mod.time()}, BOOK_JOB_SECONDS)
+    _store_job(user, name, None)  # a new run replaces what was waiting
 
     def work():
         try:
-            cache.set(key, {"status": "done", "result": run()}, BOOK_JOB_SECONDS)
+            job = {"status": "done", "result": run()}
         except (ai_client.AIError, ValueError) as e:
-            cache.set(key, {"status": "error", "error": str(e)}, BOOK_JOB_SECONDS)
+            job = {"status": "error", "error": str(e)}
         except Exception as e:  # never leave it "running" forever
             log.exception("Worldbook job failed")
-            cache.set(key, {"status": "error", "error": f"Something went wrong ({e.__class__.__name__})."}, BOOK_JOB_SECONDS)
+            job = {"status": "error", "error": f"Something went wrong ({e.__class__.__name__})."}
+        try:
+            _store_job(user, name, {**job, "time": time_mod.time()})
         finally:
+            cache.delete(key)
             connection.close()
     threading.Thread(target=work, daemon=True).start()
     return JsonResponse({"status": "running"})
