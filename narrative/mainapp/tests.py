@@ -1814,15 +1814,15 @@ class StarterTests(ChatPromptTests):
     def test_every_starter_is_a_sound_preset_for_its_model(self):
         from mainapp import model_profiles, presets, samplers, starters
         all_s = starters.all_starters()
-        self.assertEqual(len(all_s), 36)  # three experiences for each of the eleven models, plus three community presets
+        self.assertEqual(len(all_s), 39)  # three experiences for each of the eleven models and "Any model", plus three community presets
         for s in all_s:
-            profile = next(p for p in model_profiles.all_profiles() if p["id"] == s["model"])
+            profile = model_profiles.by_id(s["model"])
             self.assertEqual(profile["starters"][s["experience"]], s["id"])
             preset = presets.normalize(s["preset"])
             markers = [b["marker"] for b in preset["blocks"] if b["kind"] == "marker"]
             self.assertIn("chat_history", markers, s["id"])
             # it sends nothing the model fixes or doesn't have
-            model = profile["ids"]["openrouter"]
+            model = profile["ids"].get("openrouter", "some/unknown-model")
             params, skipped = samplers.to_api_params(preset["samplers"], model)
             self.assertEqual(skipped, [], s["id"])
             # every macro is known and the request assembles
@@ -1841,6 +1841,38 @@ class StarterTests(ChatPromptTests):
             # explicit content is opt-in
             mature = [b for b in preset["blocks"] if b["name"].startswith("Mature")]
             self.assertTrue(mature and not mature[0]["enabled"], s["id"])
+
+    def test_unknown_models_borrow_from_a_relative_or_get_the_plain_presets(self):
+        from mainapp import model_profiles, starters
+        self.assertIsNone(model_profiles.relative("z-ai/glm-5.3"))  # it has its own
+        self.assertEqual(model_profiles.relative("z-ai/glm-4.6")["id"], "glm-5-3")
+        self.assertEqual(model_profiles.relative("google/gemini-2.5-pro")["id"], "gemini-4-argon")
+        self.assertEqual(model_profiles.relative("google/gemini-2.5-flash")["id"], "gemini-3-8-flash")
+        kimi = model_profiles.for_style("moonshotai/kimi-k2")
+        self.assertTrue(kimi["_borrowed"])
+        self.assertEqual((kimi["id"], kimi["_actual"]), ("kimi-k3", "moonshotai/kimi-k2"))
+        self.assertIsNone(model_profiles.for_model("moonshotai/kimi-k2"))  # samplers and limits stay unverified
+        plain = model_profiles.for_style("mistralai/mistral-large")
+        self.assertTrue(plain["_generic"])
+        self.assertEqual([r["id"] for r in starters.ready_for(plain["id"])],
+                         ["any-back-and-forth", "any-rich-scene", "any-director"])
+        self.assertNotIn("Any model", model_profiles.known_names())  # never offered as a model to pick
+        self.assertIsNone(model_profiles.for_style(""))
+        # the plain presets: no stock gestures, no metaphors to imitate
+        text = starters.get("any-rich-scene")["preset"]["blocks"][2]["content"]
+        self.assertIn("stock gestures", text)
+        self.assertNotIn("beat", text.lower())
+
+    def test_quick_setup_names_what_an_unknown_model_gets(self):
+        from users.models import ConnectionProfile
+        ConnectionProfile.objects.filter(user=self.user).update(model="moonshotai/kimi-k2")
+        page = self.client.get(reverse("quick_setup"))
+        self.assertContains(page, "borrowed from Kimi K3")
+        self.assertEqual([r["id"] for r in page.context["ready"]][0], "kimi-back-and-forth")
+        ConnectionProfile.objects.filter(user=self.user).update(model="mistralai/mistral-large")
+        page = self.client.get(reverse("quick_setup"))
+        self.assertContains(page, "plain presets for any model")
+        self.assertEqual(page.context["ready"][0]["id"], "any-back-and-forth")
 
     def test_using_a_starter_makes_an_active_copy_with_credit(self):
         from mainapp.models import Preset
@@ -2026,10 +2058,33 @@ class BulbaTests(TestCase):
         self.assertTrue(data["events"][0]["choices"])
         self.assertEqual(self.bulba_calls, [])  # starting costs nothing
 
-    def test_unknown_model_gets_a_friendly_page(self):
+    def test_unknown_model_gets_the_plain_any_model_setup(self):
+        # No profile and no relative: Bulba still runs, on the plain "Any model" presets, under its real name
         self.main.model = "some/other-model"
         self.main.save()
-        self.assertIsNone(self.client.get(reverse("bulba")).context["bulba_data"])
+        data = self.client.get(reverse("bulba")).context["bulba_data"]
+        self.assertEqual(data["state"]["model"], "other-model")
+        self.assertIn("You picked other-model", data["events"][0]["text"])
+        from mainapp.bulba import agent
+        from mainapp.models import BulbaSession
+        session = BulbaSession.objects.get(user=self.user, active=True, mode="setup")
+        self.assertEqual(session.target_model, "any-model")
+        knowledge = agent.model_knowledge(agent.target_profile(session))
+        self.assertIn("no notes for and no relative of", knowledge)
+        self.assertIn("any-rich-scene", knowledge)
+
+    def test_unknown_model_with_a_relative_borrows_its_knowledge(self):
+        self.main.model = "moonshotai/kimi-k2"
+        self.main.save()
+        data = self.client.get(reverse("bulba")).context["bulba_data"]
+        self.assertEqual(data["state"]["model"], "kimi-k2")
+        from mainapp.bulba import agent
+        from mainapp.models import BulbaSession
+        session = BulbaSession.objects.get(user=self.user, active=True, mode="setup")
+        self.assertEqual(session.target_model, "kimi-k3")
+        knowledge = agent.model_knowledge(agent.target_profile(session))
+        self.assertIn("closest relative", knowledge)
+        self.assertIn("kimi-rich-scene", knowledge)
 
     def test_bulba_runs_on_its_own_model_and_never_sees_keys(self):
         self.script = [("", [self.call("get_current_setup")]), ("You're on Opus. Voices?", [])]

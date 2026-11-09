@@ -82,3 +82,58 @@ def public(profile):
 
 def known_names():
     return [p["name"] for p in all_profiles()]
+
+
+# --- A model we have no profile for (an older GLM, Kimi K2...): its closest relative's style knowledge ---
+# Starters and known habits carry over within a family (they come from the same lab's training); limits,
+# samplers and reasoning levels don't, so those keep coming from for_model() alone (unknown = unverified).
+FAMILIES = (
+    (r"glm|zhipu|z-ai", "glm-5-3"),
+    (r"kimi|moonshot", "kimi-k3"),
+    (r"deepseek", "deepseek-v4-pro"),
+    (r"mimo|xiaomi", "mimo-v2-6-pro"),
+    (r"claude|anthropic", "claude-opus-5-5"),
+    (r"gemini.*(pro|ultra|argon)", "gemini-4-argon"),
+    (r"gemini|gemma", "gemini-3-8-flash"),
+)
+
+
+def relative(model):
+    """The profile of an unknown model's closest relative, or None."""
+    if not model or for_model(model):
+        return None
+    for pattern, pid in FAMILIES:
+        if re.search(pattern, model, re.I):
+            return next((p for p in all_profiles() if p["id"] == pid), None)
+    return None
+
+
+def for_style(model):
+    """The profile whose starters and known habits fit this model: its own, else its closest relative's (marked
+    "_borrowed" with the model they actually use), else the generic "Any model" one (marked "_generic")."""
+    own = for_model(model)
+    if own:
+        return own
+    rel = relative(model)
+    if rel:
+        return {**rel, "_borrowed": True, "_actual": model}
+    return {**generic(), "_generic": True, "_actual": model} if model else None
+
+
+# --- A model with no relative either: "Any model", plain ready presets that rely on no one model's quirks ---
+GENERIC_FILE = Path(__file__).resolve().parent / "data" / "generic_model.json"
+
+
+@lru_cache(maxsize=1)
+def generic():
+    with open(GENERIC_FILE, encoding="utf-8") as f:
+        profile = json.load(f)
+    profile["_match"] = []
+    return profile
+
+
+def by_id(pid):
+    """A profile by its id, the generic "Any model" one included (it is never in the model list)."""
+    if pid == generic()["id"]:
+        return generic()
+    return next((p for p in all_profiles() if p["id"] == pid), None)

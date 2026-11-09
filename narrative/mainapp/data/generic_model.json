@@ -1,0 +1,28 @@
+{
+  "id": "any-model",
+  "name": "Any model",
+  "match": [],
+  "ids": {},
+  "generic": true,
+  "style": {
+    "notes": [
+      {
+        "text": "No notes for this model yet. The ready presets are written plainly, without relying on any one model's quirks.",
+        "source": "NarrativeAI",
+        "status": "default"
+      }
+    ],
+    "watch_for": [],
+    "probes": []
+  },
+  "starters": {
+    "back_and_forth": "any-back-and-forth",
+    "rich_scene": "any-rich-scene",
+    "director": "any-director"
+  },
+  "card": {
+    "price": "?",
+    "best_for": "Any model we have no notes for.",
+    "watch_out": "Untested: watch the first replies."
+  }
+}

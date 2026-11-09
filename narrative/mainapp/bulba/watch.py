@@ -584,7 +584,7 @@ def _established(chat_obj, character):
 def _prompt(user, character, messages, picked, data, mine, writes_for_user, ask_directing=False, chat_obj=None):
     from mainapp import model_profiles
     _, chat_model = ai_client.resolve(user, "chat")
-    profile = model_profiles.for_model(chat_model) or {}
+    profile = model_profiles.for_style(chat_model) or {}  # an unknown model: its closest relative's known habits
     habits = [h for h in (profile.get("style") or {}).get("watch_for") or [] if h not in mine["model_off"]]
     parts = [f"## The character: {character.name}",
              str(character.description or "")[:1500],
@@ -944,7 +944,7 @@ def notebook(user):
         _, chat_model = ai_client.resolve(user, "chat")
     except ai_client.AIError:  # no connection yet: the page still shows the rest
         chat_model = ""
-    profile = model_profiles.for_model(chat_model) if chat_model else {}
+    profile = model_profiles.for_style(chat_model) if chat_model else {}
     profile = profile or {}
     own = [label for label in mine["fix"] if label.startswith("other: ")]
     return {
@@ -954,7 +954,9 @@ def notebook(user):
                     "on": label not in mine["muted"],
                     "fixing": label in mine["fix"] or (mine.get("fix_known", True) and label in KNOWN_FIX)}
                    for label in LABELS],
-        "model": {"name": profile.get("name") or chat_model or "your chat model",
+        "model": {"name": (f"{chat_model} (borrowed from {profile['name']}, its closest relative)"
+                           if profile.get("_borrowed") else chat_model if profile.get("_generic")
+                           else profile.get("name") or chat_model or "your chat model"),
                   "items": [{"text": h, "on": h not in mine["model_off"]}
                             for h in (profile.get("style") or {}).get("watch_for") or []]},
         "own": [{"label": label, "title": title_of(label), "about": mine["dislikes"].get(label, "")} for label in own],

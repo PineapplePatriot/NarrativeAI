@@ -71,7 +71,7 @@ def model_habits(user):
     except ai_client.AIError:
         return []
     off = set(watch.user_data(user).get("model_off") or [])
-    items = ((model_profiles.for_model(model) or {}).get("style") or {}).get("watch_for") or []
+    items = ((model_profiles.for_style(model) or {}).get("style") or {}).get("watch_for") or []
     return [h for h in items if h not in off]
 
 

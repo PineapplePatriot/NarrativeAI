@@ -2799,7 +2799,7 @@ def _bulba_state(session):
         "chat": _bulba_chat_link(session) if session.mode == "setup" else None,
         "mode": session.mode,
         "chat_with": session.chat.character.name if session.mode == "chat" and session.chat_id else "",
-        "model": profile["name"] if profile else session.target_model,
+        "model": agent.shown_name(profile) if profile else session.target_model,
         "preferences": [p for p in session.preferences if p.get("status") not in ("rejected", "superseded")],
         "proposals": [{**{k: p.get(k) for k in ("id", "kind", "title", "status", "result", "edited")},
                        "summary": _shown_summary(session, p), "editable": editing.fields(p),
@@ -2842,7 +2842,7 @@ def _bulba_session(user, restart=False):
         _, chat_model = ai_client.resolve(user, "chat")
     except ai_client.NoConnection:
         return None
-    profile = model_profiles.for_model(chat_model)
+    profile = model_profiles.for_style(chat_model)  # an unknown model: its closest relative's knowledge
     if profile is None:
         return None
     session = BulbaSession.objects.filter(user=user, active=True, mode="setup").first()
@@ -2865,7 +2865,7 @@ def _bulba_chat_session(user, chat_obj, restart=False):
         _, chat_model = ai_client.resolve(user, "chat")
     except ai_client.NoConnection:
         return None
-    profile = model_profiles.for_model(chat_model)
+    profile = model_profiles.for_style(chat_model)
     session = BulbaSession.objects.filter(user=user, active=True, mode="chat", chat=chat_obj).first()
     if session and restart:
         session.active = False
@@ -2928,7 +2928,7 @@ def quick_setup(request):
     if not ai_client.has_connection(request.user):
         return redirect("users:welcome")
     _, chat_model = ai_client.resolve(request.user, "chat")
-    profile = model_profiles.for_model(chat_model) or {}
+    profile = model_profiles.for_style(chat_model) or {}  # an unknown model: its closest relative's ready setups
     ready = starters.ready_for(profile.get("id", "")) if profile else []
     active = presets.get_active(request.user)
     active_starter = (presets.normalize(active.data)["extras"].get("starter") or {}).get("id", "")
@@ -2974,7 +2974,10 @@ def quick_setup(request):
     return render(request, "mainapp/quick.html", {
         "status": _quick_status(request.user, picked, characters),
         "languages": translation.LANGUAGES, "basics": _quick_basics(request.user),
-        "model_name": profile.get("name") or chat_model, "ready": ready, "active_starter": active_starter,
+        "model_name": (f"{chat_model}, borrowed from {profile['name']} (its closest relative; not tested on yours)"
+                       if profile.get("_borrowed") else f"{chat_model} (no notes for it yet: plain presets for any model)"
+                       if profile.get("_generic") else profile.get("name") or chat_model),
+        "ready": ready, "active_starter": active_starter,
         "active_name": active.name, "characters": characters, "picked": picked,
         "mature_on": mature.is_on(presets.normalize(active.data)),
         "quick_data": {"window": state.get("window"), "prices": state.get("prices")},
