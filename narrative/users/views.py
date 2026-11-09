@@ -334,7 +334,7 @@ def welcome(request):
         if data.get("action") == "ready":  # the ready preset only, no Bulba
             from mainapp import starters
             try:
-                obj = starters.apply_ready(request.user, data.get("starter"))
+                obj = starters.apply_ready(request.user, data.get("starter"), mode=data.get("control"), extensions=data.get("extensions") or [])
             except ValueError as e:
                 return JsonResponse({"error": str(e)}, status=400)
             return JsonResponse({"status": "ok", "preset": obj.name, "next": reverse("characters_list")})

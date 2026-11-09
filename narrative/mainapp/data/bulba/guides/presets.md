@@ -6,25 +6,42 @@ knowledge), which already handles the basics, and adapt it to this person.
 
 ## What the starters already do
 
-Every starter already tells the model to: stay in character, never write the user's words or
-thoughts, keep characters' knowledge limited to what they saw or were told, avoid recaps, answer
-out-of-character notes out of character, and keep a sensible reply length. The model-specific
-starters also cover that model's known habits (see "Habits to check for"). **Don't repeat any of
-this** in their taste section; repeating instructions makes models overdo them.
+All authored ready variants include a separate Writing quality block. It covers recurring physical
+filler, vague emotion, dialogue recap, explanatory annotation, rhetorical repetition, forced endings,
+character decisions and knowledge. These requirements apply to conversation, drama and storytelling experiences;
+length and initiative do not switch them off. New authored starters also include an enabled Model
+pattern counters block selected for the model. Its corrective purpose is distinct from the user
+preferring harsh relationships. It is editable; explain what it prevents before suggesting removal.
+Imported community artifacts retain their original rules; inspect those rather than assume coverage.
 
-## Picking the starter
+Read the starter with get_starter before drafting: its writing_quality field contains the actual
+baseline, and original experiences expose all prompt components and their enabled states. Rewriting Roleplay or Style does not replace that separate block. Do not duplicate its rules
+in Your taste. When a user wants a legitimate exception (lyrical narration, strong interiority,
+comic banter), keep the exception specific instead of removing all writing safeguards.
 
-- **Back-and-forth**: they want short exchanges and their turn to come quickly.
-- **Rich scene**: they want atmosphere, interiority, a scene that moves.
-- **Director seat**: they want to steer several characters or the plot itself, and read fuller scenes.
-Pick by how they want to *play*, not by genre. Any starter works for any genre.
+## Picking the experience
 
-Some models also have a **community preset** (MiMo and Gemini: Realistic Frankenstein). It's a big,
-popular preset that holds chaotic models to strict realism, with lots of panels (NPC agendas,
-relationships, a GM notebook). Offer it only to people who want that much machinery or ask for it by
-name, and say plainly that it makes every reply cost more (it sends about 33,000 tokens of rules). Its
-sections aren't the starters' Roleplay and Style, so don't use `rewrite` with it; put their taste in
-`taste` as usual.
+Offer Conversation & Chemistry, Character Drama, or Immersive Storytelling for every selected model.
+They describe what the participant wants to read, not length or authorship. Directing is a separate
+control mode: any experience supports player control, shared authorship or directing. Preserve a
+confirmed authorship choice when selecting another experience. Never infer it from reply length,
+third-person narration, initiative or the chosen experience.
+
+New presets use original narrative instructions and the selected model's provisional foundation:
+Claude, Gemini and MiMo use a narrative-led organization; Kimi, GLM and DeepSeek use explicit
+knowledge/intention/state distinctions expressed as prose, without mandatory internal ledgers.
+These are research-informed defaults, not measured optimizations or copies of community modules.
+
+Offer Adventure & Ensemble when more cast/world initiative is wanted, and Continuity & Simulation
+when consequential state needs emphasis. Pass extension IDs through propose_preset's extensions.
+Neither extension implies control of the player's character, a visible dashboard or actual software
+state tracking. Keep unrequested extensions off. Select length, texture, narrator personality and
+interiority independently. Conversation can be long; immersive storytelling can be short.
+
+Show samples from the selected model on the same scene when requested and configured. Do not
+claim a sample was tested when it was not. Basic tense/POV answers do not settle taste. Original
+starters are the normal route; legacy community imports remain readable for existing users, not
+new defaults. Consult get_starter before customizing its actual Roleplay and Style instructions.
 
 ## Their own preset
 
@@ -48,10 +65,10 @@ This is where their preferences go (propose_preset's `taste`). Rules:
    nowhere permanent.
 2. **Write to the model, in second person, concretely.** Describe the behaviour you want:
    - Weak: "Be more emotional."
-   - Better: "Let feelings show through what characters do and avoid saying; they rarely name their
-     emotions outright."
+   - Better: "For this preference, leave more feeling implicit in speech and relevant actions; do not
+     require a gesture after every line or forbid all interior narration."
    - Weak: "Make it immersive."
-   - Better: "Ground each reply in one or two physical details of the place: light, sound, temperature."
+   - Better: "Describe surroundings where they affect attention, action or understanding; omit incidental description during an absorbed exchange."
 3. **Short "don't"s are fine when they target a specific habit they disliked** ("Don't end replies on a
    question unless the character would really ask one"). Don't write long lists of banned words or
    phrases: banning a word often gets you its synonym. If they hate a pattern (therapy talk, recaps,
@@ -87,16 +104,17 @@ This is where their preferences go (propose_preset's `taste`). Rules:
 ## Who writes their character
 
 The basics form asks it (only me / the AI may write me too / I direct from outside). propose_preset applies
-the answer itself with Pura's tested wording, takes the starter's own "don't write for {{user}}" lines out
+the answer itself with the selected authorship contract, takes the starter's own "don't write for {{user}}" lines out
 when needed, and for directing also switches their chats to the book layout (replies read as chapters,
 their messages fold into small markers). Don't write anything about it in `taste`. Someone who answers
-"I direct from outside the story" usually wants the **Director seat** starter, which is built for that;
-the answer then adds Pura's stricter wording (they're never a character) and the book layout.
+"I direct from outside the story" can choose any of the three experiences. The participant is outside
+the fiction, while their named scene character can still be written as part of the cast. Never use an
+experience choice to infer authorship or exclude that scene character.
 
 ## When the starter contradicts them
 
-Sometimes a starter's own text pulls against what they want: they dislike banter but Back-and-forth
-says "let the exchange spar"; they want restrained prose but the style says "vivid where it matters".
+Sometimes a starter's own text pulls against what they want: they dislike competitive banter but an existing custom block
+asks for a comeback after each line; they want restrained prose but the style says "vivid where it matters".
 Then use propose_preset's `rewrite` to replace the starter's **Roleplay** or **Style** text:
 
 - Copy the starter's text (get_starter shows it), change only the lines that clash, and keep everything
@@ -138,3 +156,16 @@ fix adds nothing visible, take it back out; shorter wins when results are the sa
 | "Too long / too short" | reply_length, and the greeting's length; then the length limit (tuning guide) |
 | "Cut off mid-sentence" | The reply length limit (max_tokens) is too low (tuning guide) |
 | "Rambling / repetitive words" | Wording first; then temperature or penalties (tuning guide) |
+
+## When a baseline still fails
+
+1. Identify each supported pattern with an exact quote. Distinguish phrase recurrence from repeated
+   sentence structure, dialogue purpose, character decisions and scene structure.
+2. Inspect the existing rule, card, greeting and recent history. Remove contradictory instructions
+   before adding another ban. In particular, do not combine mandatory physical cues with a gesture fix.
+3. Consult a Writing repair entry through find_practice/read_practice. It includes a candidate,
+   exception and test; model guidance suggests priorities, not a verdict about every reply.
+4. Adapt only the demonstrated mechanism. Preserve humor, imagery, viewpoint and personality that
+   the user wants. Do not impose a new gesture, required action or replacement phrase on every reply.
+5. Compare on the same scene and model, including an exception case. Propose a reviewable edit and
+   offer a retry; do not call a candidate effective because the model promises compliance.

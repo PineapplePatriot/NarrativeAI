@@ -1829,7 +1829,7 @@ class GeminiArgonTests(ChatPromptTests):
     def test_argon_ready_setups_start_on_low_thinking_with_room(self):
         from mainapp import starters
         ready = starters.ready_for("gemini-4-argon")
-        self.assertEqual({r["feel"] for r in ready}, {"back_and_forth", "rich_scene", "director"})
+        self.assertEqual({r["feel"] for r in ready}, {"conversation", "drama", "storytelling"})
         for r in ready:
             s = starters.get(r["id"])["preset"]["samplers"]
             self.assertEqual(s["reasoning_effort"]["value"], "low")
@@ -1843,7 +1843,7 @@ class StarterTests(ChatPromptTests):
     def test_every_starter_is_a_sound_preset_for_its_model(self):
         from mainapp import model_profiles, presets, samplers, starters
         all_s = starters.all_starters()
-        self.assertEqual(len(all_s), 39)  # three experiences for each of the eleven models and "Any model", plus three community presets
+        self.assertEqual(len(all_s), 33)  # three original experiences for each of the eleven models
         for s in all_s:
             profile = model_profiles.by_id(s["model"])
             self.assertEqual(profile["starters"][s["experience"]], s["id"])
@@ -1927,7 +1927,7 @@ class StarterTests(ChatPromptTests):
         groups = self.client.get(reverse("presets")).context["preset_page"]["starters"]
         self.assertTrue(groups[0]["yours"])
         self.assertEqual(groups[0]["model_name"], "Claude Opus 5.5")
-        self.assertEqual([s["title"] for s in groups[0]["starters"]], ["Back-and-forth", "Rich scene", "Director seat"])
+        self.assertEqual([s["title"] for s in groups[0]["starters"]], ["Conversation & Chemistry", "Character Drama", "Immersive Storytelling"])
 
 
 class WelcomeTests(TestCase):
@@ -5431,7 +5431,7 @@ class SetupRoutesTests(BulbaTests):
         self.client.get(reverse("bulba"))
         data = self.api(action="route", route="fast").json()
         routes = [c["route"] for c in data["events"][-1]["choices"]]
-        self.assertEqual(routes, ["fast:opus-back-and-forth", "fast:opus-rich-scene", "fast:opus-director"])
+        self.assertEqual(routes, ["fast:opus-experience-conversation", "fast:opus-experience-drama", "fast:opus-experience-storytelling"])
         self.assertTrue(all(c["hint"] for c in data["events"][-1]["choices"]))
         data = self.api(action="route", route="fast:opus-director").json()
         # First the chat's memory (a slider with what a message costs), then who they are
@@ -5541,7 +5541,7 @@ class WelcomeReadyPresetTests(TestCase):
 
     def test_saving_the_model_lists_its_ready_presets(self):
         data = self.post(model="mimo-v2-6-pro", skip_check=True).json()
-        self.assertEqual([r["feel"] for r in data["ready"]], ["back_and_forth", "rich_scene", "director"])
+        self.assertEqual([r["feel"] for r in data["ready"]], ["conversation", "drama", "storytelling"])
         self.assertTrue(all(r["tagline"] for r in data["ready"]))
 
     def test_a_ready_preset_is_applied_without_bulba(self):

@@ -2054,7 +2054,7 @@ def preset_list(request):
                                         name=presets.unique_name(request.user, presets.DEFAULT_NAME))
         elif action == "use_starter":
             try:
-                obj = starters.apply(request.user, data.get("starter"))
+                obj = starters.apply(request.user, data.get("starter"), mode=data.get("control"), extensions=data.get("extensions") or [])
             except ValueError as e:
                 return JsonResponse({"error": str(e)}, status=400)
         elif obj is None:
@@ -2134,6 +2134,7 @@ def preset_list(request):
         "post_processing": presets.POST_PROCESSING,
         "characters": [{"slug": c.slug, "name": c.name} for c in Character.objects.filter(author=request.user)],
         "starters": starters.for_page(_chat_model(request.user)),
+        "experience_control": control.mode_of(presets.normalize(selected.data)),
         "starter_of": (presets.normalize(selected.data)["extras"].get("starter") or {}).get("id"),
         "my_rules": regex_rules.user_rules(request.user),
     }})

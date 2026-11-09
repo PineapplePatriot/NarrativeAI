@@ -106,7 +106,10 @@
   "starters": {
     "back_and_forth": "kimi-back-and-forth",
     "rich_scene": "kimi-rich-scene",
-    "director": "kimi-director"
+    "director": "kimi-director",
+    "conversation": "kimi-experience-conversation",
+    "drama": "kimi-experience-drama",
+    "storytelling": "kimi-experience-storytelling"
   },
   "card": {
     "order": 14,

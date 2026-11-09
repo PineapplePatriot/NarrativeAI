@@ -32,8 +32,17 @@
         <p class="help" id="importStatus"></p>
       </section>
       <section class="card starters-card">
-        <h2>✨ Starters</h2>
-        <p class="help">Ready-made setups, tuned per model. Using one makes your own copy and switches to it.</p>
+        <h2>✨ Experiences</h2>
+        <p class="help">Research-informed starting points for your model. Length, voice and authorship can be customized independently. Using one creates and activates your own copy.</p>
+
+        <label for="experienceControl">Authorship</label>
+        <select id="experienceControl">
+          <option value="dont">Roleplay — I control my character</option>
+          <option value="write">Shared authorship — write my character too</option>
+          <option value="director">Directing — I guide the whole cast</option>
+        </select>
+        <label><input type="checkbox" data-experience-extension="adventure"> Adventure &amp; Ensemble</label>
+        <label><input type="checkbox" data-experience-extension="continuity"> Continuity &amp; Simulation</label>
         <div id="starterList"></div>
       </section>
       <section class="card macro-help">

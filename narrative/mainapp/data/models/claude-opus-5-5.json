@@ -121,7 +121,10 @@
   "starters": {
     "back_and_forth": "opus-back-and-forth",
     "rich_scene": "opus-rich-scene",
-    "director": "opus-director"
+    "director": "opus-director",
+    "conversation": "opus-experience-conversation",
+    "drama": "opus-experience-drama",
+    "storytelling": "opus-experience-storytelling"
   },
   "openrouter_id_verified": false,
   "card": {

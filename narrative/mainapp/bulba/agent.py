@@ -5,7 +5,7 @@ import re
 import uuid
 from pathlib import Path
 
-from mainapp import ai_client, cards, model_profiles, presets, starters, thinking
+from mainapp import ai_client, cards, model_profiles, presets, starters, thinking, writing_quality, experiences
 from mainapp.trackers import TRACKERS as TRACKER_LIST
 from mainapp.bulba import control, doctor, library, lore, rules, tune
 
@@ -89,10 +89,12 @@ def model_knowledge(profile):
     if fixed:
         lines.append("Settings this model fixes itself (don't promise to change them): " + ", ".join(fixed))
     lines += ["", "Starters for this model (the base for propose_preset):"]
-    for sid in profile.get("starters", {}).values():
+    for feel in starters.READY_FEELS:
+        sid = profile.get("starters", {}).get(feel)
         s = starters.get(sid)
         if s:
             lines.append(f"- {s['id']}: {s['title']}. {s['tagline']} {s['description']}")
+    lines += ["", writing_quality.guidance(profile["id"])]
     return "\n".join(lines)
 
 
@@ -234,6 +236,7 @@ TOOLS = [
                                        "preset's random-event engines for someone who wants no chance"},
          "borrow": {"type": "array", "maxItems": 6, "items": STR,
                     "description": "Optional verbatim library import (exact names from find_practice), only when requested and permitted. Normally express the relevant principle in taste or rewrite."},
+         "extensions": {"type": "array", "items": {"type": "string", "enum": ["adventure", "continuity"]}},
          "why": STR},
         ["starter", "taste", "why"]),
     _fn("propose_persona", "Propose who the user is in the story.",
@@ -336,7 +339,7 @@ def _starter_for(session, starter_id):
     allowed = set(profile.get("starters", {}).values())
     if starter_id in allowed:
         return starters.get(starter_id)
-    default = profile.get("starters", {}).get("rich_scene")
+    default = profile.get("starters", {}).get("storytelling") or profile.get("starters", {}).get("rich_scene")
     return starters.get(default) if default else None
 
 
@@ -352,6 +355,8 @@ def build_preset(payload):
     """A normalized preset from a preset proposal's payload: starter, rewritten sections, taste."""
     starter = starters.get(payload["starter"])
     preset = presets.normalize(starter["preset"])
+    if preset["extras"].get("original_experience"):
+        preset = experiences.configure(preset, payload.get("control") or "dont", payload.get("extensions") or [])
     for block in preset["blocks"]:
         if block["kind"] == "prompt" and block["name"] in (payload.get("rewrite") or {}):
             block["content"] = payload["rewrite"][block["name"]]
@@ -415,7 +420,13 @@ def tool_get_starter(session, args):
         return {"error": "No starter for this model."}, []
     sections = {b["name"]: b["content"] for b in starter["preset"]["blocks"]
                 if b.get("kind") == "prompt" and b.get("name") in REWRITABLE}
-    result = {"id": starter["id"], "title": starter["title"], "sections": sections}
+    result = {"id": starter["id"], "title": starter["title"], "sections": sections,
+              "writing_quality": "\n\n".join(b["content"] for b in starter["preset"]["blocks"]
+                                       if b.get("id") in (writing_quality.BLOCK_ID, writing_quality.COUNTER_ID))}
+    if (starter["preset"].get("extras") or {}).get("original_experience"):
+        result["components"] = [{"name": b.get("name"), "enabled": b.get("enabled", True), "content": b.get("content", "")}
+                                for b in starter["preset"]["blocks"] if b.get("kind") == "prompt"]
+        result["status"] = "Research-informed original configuration; live effectiveness unverified."
     if not sections:  # a community preset: its switched-on blocks, and which of them add chance
         result["blocks_on"] = [b["name"] + (" (adds chance)" if library.CHANCE.search(b.get("content") or "") else "")
                                for b in starter["preset"]["blocks"]
@@ -771,6 +782,9 @@ def tool_propose_preset(session, args):
     unfilled = [n for n in borrow if library.needs_filling(library.get(n))]
     if unfilled:
         return {"error": f"{', '.join(unfilled)} has [bracketed] parts: fill them in and put it in taste instead."}, []
+    extensions = args.get("extensions") or []
+    if not isinstance(extensions, list) or any(not isinstance(e, str) or e not in experiences.catalog()["extensions"] for e in extensions):
+        return {"error": "Unknown experience extension."}, []
     profile = target_profile(session) or {}
     name = str(args.get("name") or f"My setup · {profile.get('name', '')}").strip()[:120]
     summary = [f"Built on the {starter['title']} starter for {profile.get('name', '')}"]
@@ -790,7 +804,7 @@ def tool_propose_preset(session, args):
     p = _proposal(session, "preset", f"Preset: {name}", summary,
                   {"starter": starter["id"], "name": name, "taste": taste, "rewrite": rewrite,
                    "reply_length": reply_length, "borrow": borrow, "switch_off": switch_off,
-                   "control": control_mode})
+                   "control": control_mode, "extensions": extensions})
     return {"proposal": p["id"], "status": "waiting for Apply"}, [{"type": "proposal", "id": p["id"]}]
 
 
@@ -879,7 +893,7 @@ def opening(session):
     session.events = [{"type": "bulba", "text": text, "choices": choices}]
 
 
-FAST_FEELS = ("back_and_forth", "rich_scene", "director")
+FAST_FEELS = starters.READY_FEELS
 
 
 def _canned(session, picked, text, choices=None, extra_events=(), after=()):
@@ -913,6 +927,10 @@ def take_route(session, route):
         return _canned(session, "Fast route",
                        "Pick the feel. You can change it any time on the Presets page, or ask me in a chat.", choices)
     starter_id = route.partition(":")[2]
+    # Honor old saved quick-setup links without offering legacy categories to new users.
+    for key in ("back_and_forth", "rich_scene", "director"):
+        if profile.get("starters", {}).get(key) == starter_id:
+            feels[key] = starter_id
     feel = next((k for k, v in feels.items() if v == starter_id), None)
     s = starters.get(starter_id) if route.startswith("fast:") and feel else None
     if s is None:
@@ -920,7 +938,8 @@ def take_route(session, route):
     name = f"{s['title']} · {profile.get('name', '')}"
     p = _proposal(session, "preset", f"Preset: {name}", [f"The ready {s['title']} setup for {profile.get('name', '')}"],
                   {"starter": s["id"], "name": name, "taste": "", "rewrite": {}, "reply_length": "", "borrow": [],
-                   "switch_off": [], "control": "director" if feel == "director" else "dont"})
+                   "switch_off": [], "control": "director" if feel == "director" else next((p["key"].split(":", 1)[1] for p in session.preferences
+                                    if p.get("key", "").startswith("control:") and p.get("status") == "confirmed"), "dont")})
     note = actions.apply(session, p["id"])
     p["status"] = "applied"
     session.stage = "persona"

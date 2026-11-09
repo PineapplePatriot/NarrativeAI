@@ -98,7 +98,10 @@
   "starters": {
     "back_and_forth": "dsv4pro-back-and-forth",
     "rich_scene": "dsv4pro-rich-scene",
-    "director": "dsv4pro-director"
+    "director": "dsv4pro-director",
+    "conversation": "dsv4pro-experience-conversation",
+    "drama": "dsv4pro-experience-drama",
+    "storytelling": "dsv4pro-experience-storytelling"
   },
   "card": {
     "order": 12,

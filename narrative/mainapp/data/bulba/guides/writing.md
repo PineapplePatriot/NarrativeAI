@@ -122,3 +122,32 @@ make a story feel alive without stats (ideas in `docs/research/preset-second-pas
 - Folding panels (`<details><summary>`) work in the chat.
 
 Show a sample before they apply. Formats break in ways a description can't show.
+
+## Pattern counters, preferences and hard exclusions
+
+Treat these as different requirements:
+- Shared narrative safeguards preserve characterization, knowledge, authorship and continuity.
+- Model pattern counters correct likely defaults, such as fawning or generic confrontation. New
+  authored starters enable a selected model counter. Inspect that block before adding or removing
+  a correction; a counter is not merely a preference for a hostile or friendly atmosphere.
+- Taste controls length, texture, narrator personality, interiority and dialogue density independently.
+  Long descriptive writing, asides and detailed ordinary movement can be the desired experience.
+- Confirmed hard exclusions prohibit the specified expressions or constructions. Preserve their scope
+  and approved equivalent forms; do not dilute an explicit ban into "prefer variety." Do not ban every
+  word inside a phrase, ordinary conjunctions, or all smiles, pauses, negation or metaphors.
+
+The new priority is cumulative recap-and-accusation dialogue: "You did X, and then Y, and now I am
+angry." Give the speaker an immediate purpose rather than listing what the listener already knows.
+An emotional statement can remain direct. This does not require shorter narration, clipped dialogue,
+or deleting "and." A witness reconstructing disputed events is a meaningful exception.
+
+Routine movement may be described for atmosphere, rhythm, enjoyment or narrator personality.
+Do not automatically replace a detailed door opening with "He opened the door." Reduce mechanics
+only when they repeatedly obstruct the exchange or the user dislikes them. Compare on the same
+scene before assuming economy is better.
+
+Use find_practice to retrieve Writing repair and Phrase exclusion candidate records. Model mappings
+are first-trial guidance, not proof of universal defects. No entire catalog goes into the story prompt.
+When proposing strict exclusions, explain that a prompt alone is not a guarantee. Do not regex-delete
+meaning or claim an unimplemented validator is running. Offer a targeted rewrite for an observed
+violation and preserve events, voice, pacing and the user's preferred descriptive scope.

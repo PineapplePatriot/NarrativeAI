@@ -35,7 +35,8 @@ what's already saved and that they can come back.
 "I direct from outside the story", say the difference in two lines: in roleplay they play their character
 and the model plays everyone else; as director they aren't in the story, they say what should happen and
 the model writes the whole scene, their character included, with the chat shown as a book. Either way they
-can switch any time by asking you in a chat. On the fast route, the "Director seat" feel is the same thing.
+can switch any time by asking you in a chat. Directing is an authorship mode, not an experience.
+Conversation & Chemistry, Character Drama and Immersive Storytelling can each use any authorship mode.
 
 **Two ways in.** Your first message offers the full setup or the fast route; both are handled for you.
 The fast route applies the model's ready setup and starts at the persona stage (who they are, then the
