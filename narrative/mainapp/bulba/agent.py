@@ -167,6 +167,7 @@ TOOLS = [
         "Same scene for both; each variant adds its own instructions.",
         {"starter": {"type": "string", "description": "Starter id to build on (from the model knowledge)"},
          "from_proposal": {"type": "string", "description": "Instead of a starter: build on one of your preset proposals (id), to test exactly what they'd get"},
+         "from_active": {"type": "boolean", "description": "Instead of a starter: their active preset as it is (a preset they brought themselves)"},
          "scenario": {"type": "string", "description": "The situation, two or three sentences"},
          "user_turn": {"type": "string", "description": "What the user's character just said or did"},
          "character": {"type": "object", "description": "Optional; a neutral test character is used otherwise",
@@ -247,6 +248,10 @@ TOOLS = [
     *control.tool_defs(_fn, STR),
     *rules.tool_defs(_fn, STR),
     doctor.CARD_EDIT_TOOL,
+    _fn("offer_preset_upload", "Show an upload box for a preset they already have and like (a SillyTavern "
+        "chat-completion preset .json, or one exported from this app). Once it's in, it's their active preset; "
+        "tailor it with read_block and propose_preset_edit instead of propose_preset.", {}),
+    *doctor.PRESET_EDIT_TOOLS,
 ]
 
 
@@ -419,11 +424,17 @@ def tool_get_starter(session, args):
 
 
 def tool_write_samples(session, args):
-    proposal = next((p for p in session.proposals if p["id"] == args.get("from_proposal") and p["kind"] == "preset"), None)
+    proposal = next((p for p in session.proposals if p["id"] == args.get("from_proposal")
+                     and p["kind"] in ("preset", "preset_edit")), None)
     if args.get("from_proposal") and proposal is None:
         return {"error": "No preset proposal with that id."}, []
-    if proposal:
+    if proposal and proposal["kind"] == "preset_edit":  # a change to the preset they brought: as if applied
+        active = presets.normalize(presets.get_active(session.user).data)
+        preset = active if proposal.get("status") == "applied" else doctor.apply_edits(active, proposal["payload"]["edits"])
+    elif proposal:
         preset = build_preset(proposal["payload"])
+    elif args.get("from_active"):  # their active preset as it is (one they brought themselves)
+        preset = presets.normalize(presets.get_active(session.user).data)
     else:
         starter = _starter_for(session, args.get("starter"))
         if starter is None:
@@ -821,6 +832,9 @@ HANDLERS = {
     "propose_persona": tool_propose_persona, "propose_character": tool_propose_character,
     **library.HANDLERS, **lore.HANDLERS, **tune.HANDLERS, **control.HANDLERS, **rules.HANDLERS,
     "propose_card_edit": doctor.tool_propose_card_edit,
+    "offer_preset_upload": lambda session, args: ({"status": "upload box shown; they'll send the file or answer"},
+                                                  [{"type": "preset_upload"}]),
+    "read_block": doctor.tool_read_block, "propose_preset_edit": doctor.tool_propose_preset_edit,
 }
 
 

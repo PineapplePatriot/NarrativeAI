@@ -3875,6 +3875,57 @@ class BulbaInChatTests(ChatPromptTests):
         self.assertEqual(self.client.get(reverse("bulba_chat", args=[self.chat_obj.id])).status_code, 404)
 
 
+class BulbaOwnPresetTests(BulbaTests):
+    """They bring their own preset into the setup; Bulba tailors it instead of building one."""
+
+    ST_PRESET = {"temperature": 0.8, "openai_max_tokens": 900,
+                 "prompts": [{"identifier": "main", "name": "Main Prompt", "role": "system",
+                              "content": "Write {{char}} vividly. Always write 600 words.", "system_prompt": True},
+                             {"identifier": "chatHistory", "name": "Chat History", "marker": True}],
+                 "prompt_order": [{"character_id": 100001, "order": [{"identifier": "main", "enabled": True},
+                                                                     {"identifier": "chatHistory", "enabled": True}]}]}
+
+    def upload(self, raw, name="My Fave.json"):
+        from unittest import mock
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        f = SimpleUploadedFile(name, raw, content_type="application/json")
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=self.fake_post):
+            return self.client.post(reverse("bulba_api"), {"preset": f})
+
+    def test_their_preset_is_imported_made_active_and_tailored(self):
+        from mainapp import presets
+        self.script = [("Got one you like?", [self.call("offer_preset_upload")])]
+        data = self.api(action="say", text="I have my own preset").json()
+        self.assertTrue(any(e["type"] == "preset_upload" for e in data["events"]))
+        self.script = [("It's solid, but the 600-word rule fights your short replies.", [])]
+        data = self.upload(json.dumps(self.ST_PRESET).encode()).json()
+        active = presets.get_active(self.user)
+        self.assertEqual(active.name, "My Fave")
+        self.assertIn("Always write 600 words.", json.dumps(active.data))
+        sent = self.bulba_calls[-1]["messages"][-1]["content"]
+        self.assertIn("Imported their own preset", sent)
+        self.assertIn("Main Prompt", sent)  # the outline
+        steps = {s["label"]: s["done"] for st in data["state"]["progress"]["stages"] for s in st["steps"]}
+        self.assertTrue(steps["Preset applied"])
+        # Bulba tailors it in the setup: read a block, propose an edit, test it, apply it
+        self.script = [("Let me look.", [self.call("read_block", block="Main Prompt")]),
+                       ("Here's a change.", [self.call("propose_preset_edit", why="their short replies", edits=[
+                           {"action": "replace", "block": "Main Prompt", "content": "Write {{char}} plainly. Keep replies short."}])])]
+        pid = self.api(action="say", text="fix the length").json()["state"]["proposals"][-1]["id"]
+        self.script = [("Sample.", [self.call("write_samples", from_proposal=pid, variants=[{"label": "x", "instructions": ""}])])]
+        self.api(action="say", text="show me")
+        self.assertIn("Keep replies short.", json.dumps(self.sample_calls[-1]["messages"]))
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=pid)
+        self.assertIn("Keep replies short.", json.dumps(presets.get_active(self.user).data))
+
+    def test_a_file_that_isnt_a_preset_is_refused(self):
+        self.client.get(reverse("bulba"))
+        resp = self.upload(b'{"hello": 1}')
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("isn't a preset", resp.json()["error"])
+
+
 class BulbaCardAndLoreTests(BulbaTests):
     """Bulba takes a card they already have, fixes it, and writes lore for its world."""
 
@@ -5595,6 +5646,34 @@ class WatchChatTests(ChatPromptTests):
 
     def chat_obj(self):
         return self.character.chats.first()
+
+    def test_a_habit_the_model_keeps_writing_in_two_chats_is_learned_as_its_own(self):
+        from mainapp.bulba import polish, watch
+        mine = watch.user_data(self.user)
+        mine["fix_known"] = True
+        note = lambda **kw: {"kind": "pattern", "label": "unearned_depth", "causes": ["model"], "text": "Speeches.", **kw}
+        first = note()
+        self.assertTrue(watch.learn_from(self.user, mine, types.SimpleNamespace(id=1), [first]))
+        self.assertEqual(mine["model_learned"]["test/model"], [])  # one chat isn't a habit of the model yet
+        self.assertNotIn("learned", first)
+        # their own messages or the setup count for nothing; another chat makes it the model's own
+        watch.learn_from(self.user, mine, types.SimpleNamespace(id=2), [note(causes=["model", "their_messages"])])
+        self.assertEqual(mine["model_learned"]["test/model"], [])
+        second = note()
+        watch.learn_from(self.user, mine, types.SimpleNamespace(id=2), [second])
+        self.assertEqual(mine["model_learned"]["test/model"], ["unearned_depth"])
+        self.assertTrue(second["learned"])
+        self.assertIn("2 different chats", second["text"])
+        watch.save_user_data(self.user, mine)
+        self.assertIn("unearned_depth", polish.approved(self.user))  # fixed in its new replies
+        nb = watch.notebook(self.user)["model"]["items"]
+        self.assertEqual([i["key"] for i in nb if i.get("key")], ["unearned_depth"])
+        # the Notebook switch stops it, and the default fixes switch covers it too
+        watch.change_memory(self.user, "model_off", "unearned_depth")
+        self.assertNotIn("unearned_depth", polish.approved(self.user))
+        watch.change_memory(self.user, "model_on", "unearned_depth")
+        watch.change_memory(self.user, "fix_known", new="")
+        self.assertNotIn("unearned_depth", polish.approved(self.user))
 
     def test_reads_every_three_replies_and_raises_a_habit(self):
         page = self.client.get(self.url)

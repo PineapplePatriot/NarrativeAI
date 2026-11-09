@@ -311,6 +311,13 @@ function render() {
                 <input type="file" name="card" accept=".png,.json,image/png,application/json" ${live ? '' : 'disabled'}></label>
                 <button type="submit" ${live ? '' : 'disabled'}>Import</button></form>`;
         }
+        if (ev.type === 'preset_upload') {
+            const live = i === types.lastIndexOf('preset_upload') && i > answeredUpTo && !busy;
+            return `<form class="card-upload" data-preset-upload>
+                <label>Your preset <small>(.json: a SillyTavern chat-completion preset, or one exported from here)</small>
+                <input type="file" name="preset" accept=".json,application/json" ${live ? '' : 'disabled'}></label>
+                <button type="submit" ${live ? '' : 'disabled'}>Import</button></form>`;
+        }
         if (ev.type === 'make_pictures') return `<div class="make-pictures" data-url="${esc(ev.url)}" data-moods="${esc(ev.moods.join(','))}">
             <button type="button" data-make-pictures>🎨 Make ${ev.moods.length} mood picture${ev.moods.length === 1 ? '' : 's'} of ${esc(ev.name)}</button>
             <small>A few cents each, on your key. About 15 seconds per picture.</small><div class="progress"></div></div>`;
@@ -506,6 +513,17 @@ $('log').addEventListener('submit', e => {
     const body = new FormData();
     body.append('card', file);
     run(body, 'Importing your card…');
+});
+
+$('log').addEventListener('submit', e => {
+    const form = e.target.closest('[data-preset-upload]');
+    if (!form) return;
+    e.preventDefault();
+    const file = form.querySelector('input[type=file]').files[0];
+    if (!file) return;
+    const body = new FormData();
+    body.append('preset', file);
+    run(body, 'Importing your preset…');
 });
 
 $('log').addEventListener('submit', e => {

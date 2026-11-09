@@ -3134,6 +3134,8 @@ def _bulba_api(request):
         return JsonResponse({"error": "POST only"}, status=405)
     if request.FILES.get("card"):  # a card they already have, from the upload box
         return _bulba_card_upload(request)
+    if request.FILES.get("preset"):  # a preset they already have (SillyTavern or ours), from the upload box
+        return _bulba_preset_upload(request)
     if request.FILES.get("picture"):  # the character's picture, a mood, or a background
         return _bulba_picture_upload(request)
     try:
@@ -3401,6 +3403,42 @@ def _bulba_card_upload(request):
     note = (f"Imported their card: {proposal['title']} — chat: {link['url']}, pictures (Sprites section): "
             f"{link['edit_url']}\n\n{lore.card_report(character)}")
     events += agent.run_turn(session, None, action_note=f"Imported {character.name}", model_note=note)
+    session.activity = ""
+    session.save()
+    return JsonResponse({"events": events, "state": _bulba_state(session)})
+
+
+MAX_PRESET_BYTES = 5 * 1024 * 1024
+
+
+def _bulba_preset_upload(request):
+    """Their own preset, brought into the setup: saved and made active, then Bulba tailors it (propose_preset_edit)."""
+    from .bulba import agent, doctor
+    from .models import Preset
+    session = _bulba_for_request(request, restart=False)
+    if session is None or session.mode != "setup":
+        return JsonResponse({"error": "Presets can be brought in during setup (or on the Presets page)."}, status=400)
+    upload = request.FILES["preset"]
+    if upload.size > MAX_PRESET_BYTES:
+        return JsonResponse({"error": "That file is over 5 MB, too big for a preset."}, status=400)
+    try:
+        preset, suggested = presets.from_any(json.loads(upload.read().decode("utf-8-sig")))
+    except (ValueError, TypeError, AttributeError, UnicodeDecodeError) as e:
+        return JsonResponse({"error": f"That file isn't a preset this app can read: {e}"}, status=400)
+    name = suggested or upload.name.rsplit(".", 1)[0] or "My preset"
+    from . import mature
+    obj = Preset.objects.create(user=request.user, data=mature.keep(request.user, preset),
+                                name=presets.unique_name(request.user, name))
+    presets.activate(obj)
+    events = [{"type": "action", "text": f"Imported your preset: {obj.name}"}]
+    session.events += events
+    normalized = presets.normalize(obj.data)
+    note = (f"Imported their own preset “{obj.name}”; it's saved and active now. Outline:\n"
+            f"{doctor._preset_outline(normalized)}\n\nDon't replace it with a starter (no propose_preset). Read the "
+            "blocks that matter (read_block), tell them in two or three lines what it does well and anything that "
+            "fights what they told you (or their model's known habits), and offer to tailor it with "
+            "propose_preset_edit: their taste, their length, the habits they hate. Small changes; they can say no.")
+    events += agent.run_turn(session, None, action_note=f"Imported {obj.name}", model_note=note)
     session.activity = ""
     session.save()
     return JsonResponse({"events": events, "state": _bulba_state(session)})

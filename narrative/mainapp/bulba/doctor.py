@@ -370,6 +370,29 @@ CARD_EDIT_TOOL = _fn("propose_card_edit", "Propose changes to this character's c
              "why": STR}, ["why"])
 
 
+# Reading and changing the active preset: in a chat, and in the setup for a preset they brought themselves
+PRESET_EDIT_TOOLS = [
+    _fn("read_block", "The full text of one block of the active preset (names are in the outline).",
+        {"block": STR}, ["block"]),
+    _fn("propose_preset_edit", "Propose changes to the active preset (they press Apply; Undo puts it back). "
+        "Smallest change that fixes the problem; read a block before rewriting it.",
+        {"edits": {"type": "array", "maxItems": 6, "items": {"type": "object", "properties": {
+            "action": {"type": "string", "enum": list(EDIT_ACTIONS),
+                       "description": "replace a block's text, append to it, switch it on/off, add a new "
+                       "block, remind: one short line put right before each reply (no block name needed), or "
+                       "utility: rewrite a utility prompt (block = its key, e.g. impersonation)"},
+            "block": {"type": "string", "description": "The block's name (for add: the new block's name; for "
+                      "utility: the key)"},
+            "content": {"type": "string", "description": "New text (replace/append/add)"},
+            "from_library": {"type": "string", "description": "Instead of content: add this library block "
+                             "word for word when requested and permitted (exact name from find_practice). Normally use content to express the relevant principle."}},
+            "required": ["action"]}},
+         "from_taste": {"type": "array", "items": STR, "description": "When this puts what Bulba Watch learned "
+                        "about their taste into the preset: the exact learned lines it covers"},
+         "why": STR}, ["edits", "why"]),
+]
+
+
 def tools():
     from mainapp.bulba import agent
     keep = {"offer_choices", "record_preference", "get_starter", "find_practice", "read_practice", "look_up",
@@ -377,24 +400,7 @@ def tools():
             "offer_downloads", "propose_persona", *tune.HANDLERS}
     base = [t for t in agent.TOOLS if t["function"]["name"] in keep]
     return base + [
-        _fn("read_block", "The full text of one block of the active preset (names are in the outline).",
-            {"block": STR}, ["block"]),
-        _fn("propose_preset_edit", "Propose changes to the active preset (they press Apply; Undo puts it back). "
-            "Smallest change that fixes the problem; read a block before rewriting it.",
-            {"edits": {"type": "array", "maxItems": 6, "items": {"type": "object", "properties": {
-                "action": {"type": "string", "enum": list(EDIT_ACTIONS),
-                           "description": "replace a block's text, append to it, switch it on/off, add a new "
-                           "block, remind: one short line put right before each reply (no block name needed), or "
-                           "utility: rewrite a utility prompt (block = its key, e.g. impersonation)"},
-                "block": {"type": "string", "description": "The block's name (for add: the new block's name; for "
-                          "utility: the key)"},
-                "content": {"type": "string", "description": "New text (replace/append/add)"},
-                "from_library": {"type": "string", "description": "Instead of content: add this library block "
-                                 "word for word when requested and permitted (exact name from find_practice). Normally use content to express the relevant principle."}},
-                "required": ["action"]}},
-             "from_taste": {"type": "array", "items": STR, "description": "When this puts what Bulba Watch learned "
-                            "about their taste into the preset: the exact learned lines it covers"},
-             "why": STR}, ["edits", "why"]),
+        *PRESET_EDIT_TOOLS,
         CARD_EDIT_TOOL,
         *polish.tool_defs(_fn, STR),
         *watch_mod.tool_defs(_fn, STR),

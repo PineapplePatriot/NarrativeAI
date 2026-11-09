@@ -77,7 +77,8 @@ def model_habits(user):
 
 def approved(user):
     """The habits rewritten out of new replies (Watch must be on): the ones they asked for, plus the known slop
-    (watch.KNOWN_FIX and their model's known habits) unless they switched that off or muted one."""
+    (watch.KNOWN_FIX, their model's known habits and the ones Watch learned it has) unless they switched that off
+    or muted one."""
     if not watch.is_on(user):
         return []
     mine = watch.user_data(user)
@@ -86,6 +87,7 @@ def approved(user):
         habits += [h for h in watch.KNOWN_FIX if h not in mine.get("muted", []) and h not in habits]
         if model_habits(user):
             habits.append(MODEL_KNOWN)
+        habits += [h for h in watch.learned(mine, watch.chat_model(user)) if h not in habits]  # Watch learned them
     return habits
 
 
