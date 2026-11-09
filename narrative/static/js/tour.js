@@ -10,7 +10,7 @@
         get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
         set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private window: the tour just shows again */ } },
     };
-    let lang = store.get('na-lang') || ((navigator.language || '').toLowerCase().startsWith('uk') ? 'uk' : 'en');
+    let lang = store.get('na-lang') || 'en';  // English unless they picked УКР themselves (the choice is remembered)
     const t = key => (HELP.ui[lang] || HELP.ui.en)[key];
     const words = item => item[lang] || item.en;
     const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
