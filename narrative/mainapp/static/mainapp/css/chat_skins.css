@@ -9,8 +9,6 @@ body.fx-off .skin-fx { display: none !important; }
 
 /* ---------- 📜 Parchment: warm paper, inked border, serif, wax-red buttons, candle flicker ---------- */
 body.skin-parchment { --ui-primary: #3b2a1c; --ui-secondary: #2a1e14; --accent-1: #9b2c2c; --border-color: rgba(214, 180, 120, .35); }
-body.skin-parchment .messages-container { --dialogue-color: #7a1f1f; }
-body.skin-parchment[data-dialogue="preset"] .messages-container { --dialogue-color: inherit; }
 body.skin-parchment .message-content {
     background: linear-gradient(180deg, #f3e6c8, #e8d4a8); color: #2b1d10;
     border: 2px solid #6b4a2a; border-radius: 4px 14px 6px 12px;
@@ -63,8 +61,6 @@ body.skin-neon .skin-fx::after {
 
 /* ---------- 🧪 Lab: cool white-blue panels, technical lines, corner brackets, small caps, faint grid ---------- */
 body.skin-lab { --ui-primary: #17283b; --ui-secondary: #102030; --accent-1: #1d6fd8; --border-color: rgba(120, 170, 220, .45); }
-body.skin-lab .messages-container { --dialogue-color: #0b4fa8; }
-body.skin-lab[data-dialogue="preset"] .messages-container { --dialogue-color: inherit; }
 body.skin-lab .message-content {
     background: linear-gradient(180deg, rgba(240, 246, 252, .96), rgba(222, 234, 246, .96)); color: #13253a;
     border: 1px solid #8fb3d9; border-radius: 2px;
@@ -126,3 +122,9 @@ body.skin-parchment .message-content .message-text, body.skin-lab .message-conte
 .skin-note { display: block; opacity: .7; margin: 2px 0 8px; font-size: .8rem; line-height: 1.4; }
 body.skin-parchment .message-content .message-text, body.skin-parchment .message-content .message-text :not(code):not(pre) {
     font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif; }
+
+/* Light bubbles: their own dialogue colour (theme or pen menu) still applies, darkened enough to read on paper */
+body.skin-parchment:not([data-dialogue="preset"]) .message-content .message-text .quoted {
+    color: color-mix(in srgb, var(--dialogue-color, #e594f2) 50%, #2b1408); }
+body.skin-lab:not([data-dialogue="preset"]) .message-content .message-text .quoted {
+    color: color-mix(in srgb, var(--dialogue-color, #e594f2) 50%, #0b1f3a); }

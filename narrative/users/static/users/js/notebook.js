@@ -28,7 +28,7 @@ function fill() {
         toggle(i, h.on, 'common', h.title, h.about, h.fixing ? ' <small class="in-preset" title="Rewritten out of new replies">🧹</small>' : '')).join('');
     $('nbModelName').textContent = state.model.name;
     $('nbModel').innerHTML = state.model.items.length
-        ? state.model.items.map((h, i) => toggle(i, h.on, 'model', h.text, '')).join('')
+        ? state.model.items.map((h, i) => toggle(i, h.on, 'model', h.text, h.about || '')).join('')
         : '<li class="empty">Nothing special noted for this model; the common list covers it.</li>';
     $('nbOwn').innerHTML = state.own.length ? state.own.map((m, i) => `<li><span>${esc(m.title)}${m.about ? `<small class="fix-about">${esc(m.about)}</small>` : ''}</span>
         <span class="memory-btns"><button type="button" class="x" data-stopown="${i}" title="Remove">✕</button></span></li>`).join('')
@@ -78,7 +78,7 @@ async function change(body) {
 document.addEventListener('change', e => {
     const t = e.target;
     if (t.dataset.common !== undefined) change({ op: t.checked ? 'unmute' : 'mute', old: state.common[t.dataset.common].label });
-    else if (t.dataset.model !== undefined) change({ op: t.checked ? 'model_on' : 'model_off', old: state.model.items[t.dataset.model].text });
+    else if (t.dataset.model !== undefined) change({ op: t.checked ? 'model_on' : 'model_off', old: state.model.items[t.dataset.model].key || state.model.items[t.dataset.model].text });
     else if (t.id === 'fixModel') change({ op: 'fix_model', new: t.value });
     else if (t.id === 'fixKnown') change({ op: 'fix_known', new: t.checked });
 });

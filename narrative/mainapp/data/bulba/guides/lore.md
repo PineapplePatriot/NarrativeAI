@@ -52,6 +52,10 @@ spoilers or facts from the wrong timeline.
   because a name there fires its entry on every reply.
 - **"Always" only for the premise**: one to three entries that must be there in every reply (the
   setting's era and basic rules). Everything else waits for its keys.
+- **Plain, specific prose, without the known AI habits:** no "something in the air shifts", no stock
+  reactions or feelings explained, no dramatic fragments. Lore is description of the world, and the chat
+  model picks up its style. In your own words, not copied from a wiki (Gemini refuses to repeat published
+  text word for word).
 - **Don't repeat the card.** What's in the character's description stays there; lore is the world
   around them.
 - **What characters know is separate from what's true.** If a fact is secret, say who knows it.

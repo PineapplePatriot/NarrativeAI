@@ -95,11 +95,11 @@ if (location.hash === '#spritesSection') {
     if (mult) { mult.addEventListener('change', showFor); showFor(); }
     const prefix = () => (!forWrap.hidden && document.getElementById('spriteFor').value) ? 'photo_second' : 'photo';
 
-    async function make(mood) {
+    async function make(mood, second = prefix() === 'photo_second') {
         const resp = await fetch(box.dataset.url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': decodeURIComponent(cookie('csrftoken') || '') },
-            body: JSON.stringify({ emotion: mood, second: prefix() === 'photo_second',
+            body: JSON.stringify({ emotion: mood, second,
                                    model: document.getElementById('spriteModel').value || null }),
         });
         const data = await resp.json();
@@ -141,6 +141,26 @@ if (location.hash === '#spritesSection') {
         status.textContent = `Done: ${made} new picture${made === 1 ? '' : 's'}. They're saved already.`;
         busy(false);
     };
+
+    // ↻ next to one mood picture: redraw just that one (a few cents), when only one came out wrong
+    function addRedo(groupEl) {
+        const name = groupEl.dataset.fieldName || '';
+        const m = name.match(/^(photo|photo_second)_(\w+)$/);
+        if (!m || !MOODS.includes(m[2]) || groupEl.querySelector('.sprite-redo')) return;
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'sprite-redo'; b.textContent = '↻ Redo';
+        b.title = `Draw “${m[2]}” again from the neutral picture (a few cents)`;
+        b.onclick = async () => {
+            if (!hasPicture(`${m[1]}_neutral`)) { status.textContent = 'The moods are made from the neutral picture: add that first.'; return; }
+            b.disabled = true; busy(true);
+            status.textContent = `Drawing “${m[2]}” again… (about 15 seconds)`;
+            try { await make(m[2], m[1] === 'photo_second'); status.textContent = `“${m[2]}” redone and saved.`; }
+            catch (err) { status.textContent = `Couldn't redo “${m[2]}”: ${err.message}`; }
+            b.disabled = false; busy(false);
+        };
+        (groupEl.querySelector('.file-preview') || groupEl).after(b);
+    }
+    document.querySelectorAll('[data-field-name^="photo"]').forEach(addRedo);
 })();
 
 // The card's own text rules: switch each on or off right away

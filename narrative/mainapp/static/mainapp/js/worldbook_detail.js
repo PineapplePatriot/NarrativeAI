@@ -254,35 +254,65 @@ $('testBtn').onclick = async () => {
     }
 };
 
-// --- 🥔 Word forms: Bulba suggests the forms a word takes inside (Київ → Києві); nothing is saved until they add them ---
+// --- 🥔 Word forms and Expand run in the background: a progress bar meanwhile, and the result waits on the server
+// (an hour) if they leave the page; coming back shows it ---
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function progressHtml(text, seconds) {
+    return `<div class="job-progress"><div class="job-bar"><span></span></div>
+        <p class="muted">${escapeHtml(text)}${seconds ? ` · ${seconds}s` : ''}</p>
+        <p class="hint">You can leave this page: Bulba keeps going, and the suggestions wait here until you add or dismiss them.</p></div>`;
+}
+async function waitForJob(url, out, text) {
+    for (;;) {
+        const resp = await fetch(url, { headers: { 'X-CSRFToken': getCookie('csrftoken') } });
+        const job = await resp.json().catch(() => ({ status: 'error', error: 'The app server did not answer.' }));
+        if (job.status === 'done') return job.result;  // kept until they add it or dismiss it
+        if (job.status === 'error') { fetch(url + '?clear=1').catch(() => {}); throw new Error(job.error || 'Something went wrong.'); }
+        if (job.status === 'none') throw new Error('The job was lost (the app restarted while it ran). Press the button again.');
+        out.innerHTML = progressHtml(text, job.seconds);
+        await sleep(2500);
+    }
+}
+async function runJob(url, body, out, text) {
+    out.innerHTML = progressHtml(text);
+    const started = await postJson(url, { ...body, background: true });
+    if (started.status !== 'running') return started;  // answered at once
+    return waitForJob(url, out, text);
+}
+
 let proposedForms = null;
+function showForms(data) {
+    const out = $('formsResult');
+    proposedForms = data.forms || {};
+    const rows = book.entries.filter(e => (proposedForms[e.uid] || []).length).map(e => `
+      <div class="result included"><div class="result-head"><b>${escapeHtml(label(e))}</b></div>
+        <div class="muted">+ ${proposedForms[e.uid].map(escapeHtml).join(', ')}</div></div>`).join('');
+    out.innerHTML = rows
+        ? rows + `<button class="btn primary full" id="formsApply" type="button">Add these to the keywords</button>
+                  <button class="btn full" id="formsDismiss" type="button">Dismiss</button>`
+        : `<p class="muted">${escapeHtml(data.note || 'Nothing to add: the keywords already cover their forms.')}</p>`;
+    if (!rows) { fetch(URLS.forms + '?clear=1').catch(() => {}); return; }
+    $('formsDismiss').onclick = () => { fetch(URLS.forms + '?clear=1').catch(() => {}); out.innerHTML = ''; proposedForms = null; };
+    $('formsApply').onclick = () => {
+        fetch(URLS.forms + '?clear=1').catch(() => {});
+        book.entries.forEach(e => {
+            const extra = (proposedForms[e.uid] || []).filter(k => !e.keys.some(x => x.toLowerCase() === k.toLowerCase()));
+            e.keys = [...e.keys, ...extra];
+        });
+        proposedForms = null;
+        out.innerHTML = '<p class="muted">Added. Press Save to keep them (or reload the page to drop them).</p>';
+        markDirty();
+        render();
+    };
+}
+const FORMS_TEXT = 'Bulba is going through the keywords for word forms…';
 $('formsBtn').onclick = async () => {
     readSettings();
     const btn = $('formsBtn'), out = $('formsResult');
     btn.disabled = true;
-    out.innerHTML = '<p class="muted">Bulba is going through the keywords…</p>';
-    try {
-        const data = await postJson(URLS.forms, { book });
-        proposedForms = data.forms || {};
-        const rows = book.entries.filter(e => (proposedForms[e.uid] || []).length).map(e => `
-          <div class="result included"><div class="result-head"><b>${escapeHtml(label(e))}</b></div>
-            <div class="muted">+ ${proposedForms[e.uid].map(escapeHtml).join(', ')}</div></div>`).join('');
-        out.innerHTML = rows
-            ? rows + `<button class="btn primary full" id="formsApply" type="button">Add these to the keywords</button>`
-            : `<p class="muted">${escapeHtml(data.note || 'Nothing to add: the keywords already cover their forms.')}</p>`;
-        if (rows) $('formsApply').onclick = () => {
-            book.entries.forEach(e => {
-                const extra = (proposedForms[e.uid] || []).filter(k => !e.keys.some(x => x.toLowerCase() === k.toLowerCase()));
-                e.keys = [...e.keys, ...extra];
-            });
-            proposedForms = null;
-            out.innerHTML = '<p class="muted">Added. Press Save to keep them (or reload the page to drop them).</p>';
-            markDirty();
-            render();
-        };
-    } catch (err) {
-        out.innerHTML = `<p class="warn">${escapeHtml(err.message)}</p>`;
-    } finally { btn.disabled = false; }
+    try { showForms(await runJob(URLS.forms, { book }, out, FORMS_TEXT)); }
+    catch (err) { out.innerHTML = `<p class="warn">${escapeHtml(err.message)}</p>`; }
+    finally { btn.disabled = false; }
 };
 
 // --- 🥔 Expand: more keywords, more lore, missing entries; they tick what to add, then Save ---
@@ -293,47 +323,65 @@ function sourcesHtml(data) {
 }
 function tick(id, html) { return `<label class="check x-pick"><input type="checkbox" data-pick="${id}" checked/> <span>${html}</span></label>`; }
 
+function showExpand(data) {
+    const out = $('expandResult');
+    const rows = [];
+    book.entries.forEach(e => {
+        const s = data.entries[e.uid];
+        if (!s) return;
+        if (s.keys.length) rows.push(tick(`k${e.uid}`, `<b>${escapeHtml(label(e))}</b>: + ${s.keys.map(escapeHtml).join(', ')}`));
+        if (s.add) rows.push(tick(`a${e.uid}`, `<b>${escapeHtml(label(e))}</b>, more lore: <i>${escapeHtml(s.add)}</i>`));
+    });
+    data.new.forEach((n, i) => rows.push(tick(`n${i}`, `<b>New: ${escapeHtml(n.title)}</b> (${n.keys.map(escapeHtml).join(', ')})<br><i>${escapeHtml(n.content)}</i>`)));
+    out.innerHTML = `<p class="x-origin">${ORIGIN[data.origin] || ''}</p>` + (data.note ? `<p class="muted">${escapeHtml(data.note)}</p>` : '')
+        + rows.join('') + sourcesHtml(data)
+        + (rows.length ? '<button class="btn primary full" id="expandApply" type="button">Add the ticked ones</button>'
+                         + '<button class="btn full" id="expandDismiss" type="button">Dismiss</button>' : '');
+    if (!rows.length) { fetch(URLS.expand + '?clear=1').catch(() => {}); return; }
+    $('expandDismiss').onclick = () => { fetch(URLS.expand + '?clear=1').catch(() => {}); out.innerHTML = ''; };
+    $('expandApply').onclick = () => {
+        fetch(URLS.expand + '?clear=1').catch(() => {});
+        const picked = id => out.querySelector(`[data-pick="${id}"]`)?.checked;
+        const tag = data.origin === 'invented' ? ' (invented)' : '';
+        book.entries.forEach(e => {
+            const s = data.entries[e.uid];
+            if (!s) return;
+            if (picked(`k${e.uid}`)) e.keys = [...e.keys, ...s.keys.filter(k => !e.keys.some(x => x.toLowerCase() === k.toLowerCase()))];
+            if (picked(`a${e.uid}`)) e.content = e.content.trim() + '\n' + s.add;
+        });
+        data.new.forEach((n, i) => {
+            if (picked(`n${i}`)) book.entries.push({ ...DEFAULTS.entry, uid: nextUid(), comment: n.title + tag, keys: n.keys, content: n.content });
+        });
+        out.innerHTML = '<p class="muted">Added. Press Save to keep them (or reload the page to drop them).</p>';
+        markDirty();
+        render();
+    };
+}
+const EXPAND_TEXT = 'Bulba is going through the book (up to a few minutes)…';
 $('expandBtn').onclick = async () => {
     readSettings();
     const what = [['xKeys', 'keys'], ['xLore', 'lore'], ['xNew', 'new']].filter(([id]) => $(id).checked).map(([, w]) => w);
     const out = $('expandResult'), btn = $('expandBtn');
     if (!what.length) { out.innerHTML = '<p class="muted">Tick at least one.</p>'; return; }
     btn.disabled = true;
-    out.innerHTML = '<p class="muted">Bulba is ' + (book.based_on ? 'looking it up and ' : '') + 'going through the book… (up to a few minutes)</p>';
-    try {
-        const data = await postJson(URLS.expand, { book, what });
-        const rows = [];
-        book.entries.forEach(e => {
-            const s = data.entries[e.uid];
-            if (!s) return;
-            if (s.keys.length) rows.push(tick(`k${e.uid}`, `<b>${escapeHtml(label(e))}</b>: + ${s.keys.map(escapeHtml).join(', ')}`));
-            if (s.add) rows.push(tick(`a${e.uid}`, `<b>${escapeHtml(label(e))}</b>, more lore: <i>${escapeHtml(s.add)}</i>`));
-        });
-        data.new.forEach((n, i) => rows.push(tick(`n${i}`, `<b>New: ${escapeHtml(n.title)}</b> (${n.keys.map(escapeHtml).join(', ')})<br><i>${escapeHtml(n.content)}</i>`)));
-        out.innerHTML = `<p class="x-origin">${ORIGIN[data.origin] || ''}</p>` + (data.note ? `<p class="muted">${escapeHtml(data.note)}</p>` : '')
-            + rows.join('') + sourcesHtml(data)
-            + (rows.length ? '<button class="btn primary full" id="expandApply" type="button">Add the ticked ones</button>' : '');
-        if (!rows.length) return;
-        $('expandApply').onclick = () => {
-            const picked = id => out.querySelector(`[data-pick="${id}"]`)?.checked;
-            const tag = data.origin === 'invented' ? ' (invented)' : '';
-            book.entries.forEach(e => {
-                const s = data.entries[e.uid];
-                if (!s) return;
-                if (picked(`k${e.uid}`)) e.keys = [...e.keys, ...s.keys.filter(k => !e.keys.some(x => x.toLowerCase() === k.toLowerCase()))];
-                if (picked(`a${e.uid}`)) e.content = e.content.trim() + '\n' + s.add;
-            });
-            data.new.forEach((n, i) => {
-                if (picked(`n${i}`)) book.entries.push({ ...DEFAULTS.entry, uid: nextUid(), comment: n.title + tag, keys: n.keys, content: n.content });
-            });
-            out.innerHTML = '<p class="muted">Added. Press Save to keep them (or reload the page to drop them).</p>';
-            markDirty();
-            render();
-        };
-    } catch (err) {
-        out.innerHTML = `<p class="warn">${escapeHtml(err.message)}</p>`;
-    } finally { btn.disabled = false; }
+    try { showExpand(await runJob(URLS.expand, { book, what }, out, (book.based_on ? 'Bulba is looking it up and going through the book' : EXPAND_TEXT.replace('…', '')) + '…')); }
+    catch (err) { out.innerHTML = `<p class="warn">${escapeHtml(err.message)}</p>`; }
+    finally { btn.disabled = false; }
 };
+
+// Back on the page: a job that's still running shows its progress, a finished one its suggestions
+(async function resumeJobs() {
+    for (const [url, out, text, show, btn] of [[URLS.forms, $('formsResult'), FORMS_TEXT, showForms, $('formsBtn')],
+                                                [URLS.expand, $('expandResult'), EXPAND_TEXT, showExpand, $('expandBtn')]]) {
+        try {
+            const job = await (await fetch(url)).json();
+            if (job.status === 'none') continue;
+            btn.disabled = job.status === 'running';
+            show(await waitForJob(url, out, text));
+        } catch (err) { out.innerHTML = `<p class="warn">${escapeHtml(err.message)}</p>`; }
+        finally { btn.disabled = false; }
+    }
+})();
 
 // The same for the entry being edited: the suggestions go into the editor's fields, then Save Entry
 $('entryExpandBtn').onclick = async () => {

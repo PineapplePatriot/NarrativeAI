@@ -242,6 +242,43 @@ class InflectedLanguageTests(SimpleTestCase):
                          ["Dragon"])
 
 
+class WorldbookBackgroundJobTests(TransactionTestCase):
+    """Word forms and Expand in the background: the result is saved and waits until added or dismissed."""
+
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(username="annbg", password="pw12345!")
+        self.client.force_login(self.user)
+
+    def post_json(self, url, data):
+        return self.client.post(url, json.dumps(data), content_type="application/json")
+
+    def test_word_forms_in_the_background(self):
+        import time
+        from unittest import mock
+        from django.core.cache import cache
+        from mainapp import views
+        cache.clear()
+        self.post_json(reverse("worldbook_create"), {"title": "Bg"})
+        wb = Worldbook.objects.get(author=self.user)
+        url = reverse("worldbook_forms", args=[wb.slug])
+        self.assertEqual(self.client.get(url).json()["status"], "none")
+        with mock.patch.object(views, "word_forms", return_value={0: ["Києві"]}):
+            started = self.post_json(url, {"book": {"title": "Bg", "entries": []}, "background": True}).json()
+            self.assertEqual(started["status"], "running")
+            for _ in range(50):  # the page polls the same way
+                job = self.client.get(url).json()
+                if job["status"] != "running":
+                    break
+                time.sleep(0.05)
+        self.assertEqual(job["status"], "done")
+        self.assertEqual(job["result"]["forms"], {"0": ["Києві"]})
+        cache.clear()  # a restart loses the cache, not the result
+        self.assertEqual(self.client.get(url).json()["status"], "done")  # still waiting after being shown
+        self.client.get(url + "?clear=1")  # they added or dismissed it
+        self.assertEqual(self.client.get(url).json()["status"], "none")
+
+
+
 class WorldbookViewTests(TestCase):
     def setUp(self):
         self.user = get_user_model().objects.create_user(username="ann", password="pw12345!")
@@ -436,7 +473,7 @@ class WorldbookViewTests(TestCase):
 def _no_default_fixes(user):
     """Most tests start from no habits being fixed (a real account starts with the leaked-markup fix on)."""
     from mainapp.bulba import watch
-    watch.save_user_data(user, {**watch.user_data(user), "fix": []})
+    watch.save_user_data(user, {**watch.user_data(user), "fix": [], "fix_known": False})
 
 
 class ChatPromptTests(TestCase):
@@ -1777,15 +1814,15 @@ class StarterTests(ChatPromptTests):
     def test_every_starter_is_a_sound_preset_for_its_model(self):
         from mainapp import model_profiles, presets, samplers, starters
         all_s = starters.all_starters()
-        self.assertEqual(len(all_s), 36)  # three experiences for each of the eleven models, plus three community presets
+        self.assertEqual(len(all_s), 39)  # three experiences for each of the eleven models and "Any model", plus three community presets
         for s in all_s:
-            profile = next(p for p in model_profiles.all_profiles() if p["id"] == s["model"])
+            profile = model_profiles.by_id(s["model"])
             self.assertEqual(profile["starters"][s["experience"]], s["id"])
             preset = presets.normalize(s["preset"])
             markers = [b["marker"] for b in preset["blocks"] if b["kind"] == "marker"]
             self.assertIn("chat_history", markers, s["id"])
             # it sends nothing the model fixes or doesn't have
-            model = profile["ids"]["openrouter"]
+            model = profile["ids"].get("openrouter", "some/unknown-model")
             params, skipped = samplers.to_api_params(preset["samplers"], model)
             self.assertEqual(skipped, [], s["id"])
             # every macro is known and the request assembles
@@ -1804,6 +1841,38 @@ class StarterTests(ChatPromptTests):
             # explicit content is opt-in
             mature = [b for b in preset["blocks"] if b["name"].startswith("Mature")]
             self.assertTrue(mature and not mature[0]["enabled"], s["id"])
+
+    def test_unknown_models_borrow_from_a_relative_or_get_the_plain_presets(self):
+        from mainapp import model_profiles, starters
+        self.assertIsNone(model_profiles.relative("z-ai/glm-5.3"))  # it has its own
+        self.assertEqual(model_profiles.relative("z-ai/glm-4.6")["id"], "glm-5-3")
+        self.assertEqual(model_profiles.relative("google/gemini-2.5-pro")["id"], "gemini-4-argon")
+        self.assertEqual(model_profiles.relative("google/gemini-2.5-flash")["id"], "gemini-3-8-flash")
+        kimi = model_profiles.for_style("moonshotai/kimi-k2")
+        self.assertTrue(kimi["_borrowed"])
+        self.assertEqual((kimi["id"], kimi["_actual"]), ("kimi-k3", "moonshotai/kimi-k2"))
+        self.assertIsNone(model_profiles.for_model("moonshotai/kimi-k2"))  # samplers and limits stay unverified
+        plain = model_profiles.for_style("mistralai/mistral-large")
+        self.assertTrue(plain["_generic"])
+        self.assertEqual([r["id"] for r in starters.ready_for(plain["id"])],
+                         ["any-back-and-forth", "any-rich-scene", "any-director"])
+        self.assertNotIn("Any model", model_profiles.known_names())  # never offered as a model to pick
+        self.assertIsNone(model_profiles.for_style(""))
+        # the plain presets: no stock gestures, no metaphors to imitate
+        text = starters.get("any-rich-scene")["preset"]["blocks"][2]["content"]
+        self.assertIn("stock gestures", text)
+        self.assertNotIn("beat", text.lower())
+
+    def test_quick_setup_names_what_an_unknown_model_gets(self):
+        from users.models import ConnectionProfile
+        ConnectionProfile.objects.filter(user=self.user).update(model="moonshotai/kimi-k2")
+        page = self.client.get(reverse("quick_setup"))
+        self.assertContains(page, "borrowed from Kimi K3")
+        self.assertEqual([r["id"] for r in page.context["ready"]][0], "kimi-back-and-forth")
+        ConnectionProfile.objects.filter(user=self.user).update(model="mistralai/mistral-large")
+        page = self.client.get(reverse("quick_setup"))
+        self.assertContains(page, "plain presets for any model")
+        self.assertEqual(page.context["ready"][0]["id"], "any-back-and-forth")
 
     def test_using_a_starter_makes_an_active_copy_with_credit(self):
         from mainapp.models import Preset
@@ -1989,10 +2058,33 @@ class BulbaTests(TestCase):
         self.assertTrue(data["events"][0]["choices"])
         self.assertEqual(self.bulba_calls, [])  # starting costs nothing
 
-    def test_unknown_model_gets_a_friendly_page(self):
+    def test_unknown_model_gets_the_plain_any_model_setup(self):
+        # No profile and no relative: Bulba still runs, on the plain "Any model" presets, under its real name
         self.main.model = "some/other-model"
         self.main.save()
-        self.assertIsNone(self.client.get(reverse("bulba")).context["bulba_data"])
+        data = self.client.get(reverse("bulba")).context["bulba_data"]
+        self.assertEqual(data["state"]["model"], "other-model")
+        self.assertIn("You picked other-model", data["events"][0]["text"])
+        from mainapp.bulba import agent
+        from mainapp.models import BulbaSession
+        session = BulbaSession.objects.get(user=self.user, active=True, mode="setup")
+        self.assertEqual(session.target_model, "any-model")
+        knowledge = agent.model_knowledge(agent.target_profile(session))
+        self.assertIn("no notes for and no relative of", knowledge)
+        self.assertIn("any-rich-scene", knowledge)
+
+    def test_unknown_model_with_a_relative_borrows_its_knowledge(self):
+        self.main.model = "moonshotai/kimi-k2"
+        self.main.save()
+        data = self.client.get(reverse("bulba")).context["bulba_data"]
+        self.assertEqual(data["state"]["model"], "kimi-k2")
+        from mainapp.bulba import agent
+        from mainapp.models import BulbaSession
+        session = BulbaSession.objects.get(user=self.user, active=True, mode="setup")
+        self.assertEqual(session.target_model, "kimi-k3")
+        knowledge = agent.model_knowledge(agent.target_profile(session))
+        self.assertIn("closest relative", knowledge)
+        self.assertIn("kimi-rich-scene", knowledge)
 
     def test_bulba_runs_on_its_own_model_and_never_sees_keys(self):
         self.script = [("", [self.call("get_current_setup")]), ("You're on Opus. Voices?", [])]
@@ -3309,6 +3401,30 @@ class TranslationWorkflowTests(ChatPromptTests):
         self.assertTrue(ai_client._blocking_stop("content_filter"))
         self.assertFalse(ai_client._blocking_stop("stop"))
 
+    def test_continue_adds_only_the_new_part(self):
+        from unittest import mock
+        from mainapp import translation, views
+        self.read_in("uk")
+        self.post({"action": "chat", "message": "Hi"})
+        index = len(self.saved_messages()) - 1
+        with mock.patch.object(translation, "translate", side_effect=self.fake_translate):
+            first = self.post({"action": "translate", "index": index}).json()["text"]
+            with mock.patch.object(views.ai_client, "complete", return_value="She opens the door."):
+                d = self.post({"action": "continue"}).json()
+        self.assertTrue(d["translated"])
+        self.assertTrue(d["reply"].startswith(first))  # what they read stays word for word
+        self.assertTrue(d["reply"].endswith("UK: She opens the door."))
+        self.assertEqual(self.translated[-1][0], "She opens the door.")  # only the new part was translated
+        self.assertTrue(self.saved_messages()[index][2].endswith("She opens the door."))
+
+    def test_continue_that_rewrites_adds_nothing(self):
+        from mainapp import views
+        self.assertIsNone(views._only_new("The rain had not stopped for three days now.",
+                                          "The rain had not stopped for three days now. It went on."))
+        self.assertEqual(views._only_new("He waited by the window for a long, long while, saying nothing.",
+                                         "for a long, long while, saying nothing. Then he left."), " Then he left.")
+        self.assertEqual(views._only_new("Short.", "And more."), "And more.")
+
     def test_translation_model_default(self):
         from mainapp import ai_client
         from users.models import ConnectionProfile
@@ -3324,6 +3440,39 @@ class GeminiWordingTests(SimpleTestCase):
         self.assertIn(mature.PLAIN_LINE, mature.for_model(msgs, "google/gemini-4-argon")[0]["content"])
         self.assertNotIn("don't refuse", mature.for_model(msgs, "anthropic/claude-opus-5.5")[0]["content"])
         self.assertIn(mature.REMINDER_LINE, mature.for_model(msgs, "xiaomi/mimo-v2.6-pro")[0]["content"])
+
+
+class CleanDraftTests(TestCase):
+    """Bulba's own card and lore drafts lose the known AI habits before anyone sees them."""
+
+    def setUp(self):
+        self.user = get_user_model().objects.create_user("drafter", "d@example.com", "pw12345!")
+
+    def test_fields_cleaned_in_one_pass_and_kept_apart(self):
+        from unittest import mock
+        from mainapp.bulba import polish
+        fields = {"description": "Tall. His jaw tightens when he lies.", "greeting": "Fog. Something in his gaze shifts."}
+        answer = json.dumps({"fixes": [{"habit": "Vague changes", "find": "Something in his gaze shifts.",
+                                        "replace": "He looks at you a second too long."}]})
+        with mock.patch.object(polish.ai_client, "complete", return_value=answer) as call:
+            out = polish.clean_written(self.user, fields)
+        self.assertEqual(out["greeting"], "Fog. He looks at you a second too long.")
+        self.assertEqual(out["description"], fields["description"])
+        self.assertIn("hands clenching and unclenching", call.call_args[0][2][1]["content"])
+
+    def test_trouble_keeps_the_draft(self):
+        from unittest import mock
+        from mainapp.bulba import polish, watch
+        fields = {"description": "Tall and quiet.", "greeting": "Hello."}
+        broken = json.dumps({"fixes": [{"habit": "x", "find": "§§ greeting §§\nHello.", "replace": "Hi."}]})
+        with mock.patch.object(polish.ai_client, "complete", return_value=broken):
+            self.assertEqual(polish.clean_written(self.user, fields), fields)  # a section line lost
+        with mock.patch.object(polish.ai_client, "complete", side_effect=polish.ai_client.AIError("down")):
+            self.assertEqual(polish.clean_written(self.user, fields), fields)
+        watch.change_memory(self.user, "fix_known", new=False)
+        with mock.patch.object(polish.ai_client, "complete") as call:
+            self.assertEqual(polish.clean_written(self.user, fields), fields)
+        call.assert_not_called()  # the Notebook switch is off: no call
 
 
 class OutOfStepPageTests(ChatPromptTests):
@@ -3724,6 +3873,57 @@ class BulbaInChatTests(ChatPromptTests):
         other = get_user_model().objects.create_user(username="other", password="pw12345!")
         self.client.force_login(other)
         self.assertEqual(self.client.get(reverse("bulba_chat", args=[self.chat_obj.id])).status_code, 404)
+
+
+class BulbaOwnPresetTests(BulbaTests):
+    """They bring their own preset into the setup; Bulba tailors it instead of building one."""
+
+    ST_PRESET = {"temperature": 0.8, "openai_max_tokens": 900,
+                 "prompts": [{"identifier": "main", "name": "Main Prompt", "role": "system",
+                              "content": "Write {{char}} vividly. Always write 600 words.", "system_prompt": True},
+                             {"identifier": "chatHistory", "name": "Chat History", "marker": True}],
+                 "prompt_order": [{"character_id": 100001, "order": [{"identifier": "main", "enabled": True},
+                                                                     {"identifier": "chatHistory", "enabled": True}]}]}
+
+    def upload(self, raw, name="My Fave.json"):
+        from unittest import mock
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        f = SimpleUploadedFile(name, raw, content_type="application/json")
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=self.fake_post):
+            return self.client.post(reverse("bulba_api"), {"preset": f})
+
+    def test_their_preset_is_imported_made_active_and_tailored(self):
+        from mainapp import presets
+        self.script = [("Got one you like?", [self.call("offer_preset_upload")])]
+        data = self.api(action="say", text="I have my own preset").json()
+        self.assertTrue(any(e["type"] == "preset_upload" for e in data["events"]))
+        self.script = [("It's solid, but the 600-word rule fights your short replies.", [])]
+        data = self.upload(json.dumps(self.ST_PRESET).encode()).json()
+        active = presets.get_active(self.user)
+        self.assertEqual(active.name, "My Fave")
+        self.assertIn("Always write 600 words.", json.dumps(active.data))
+        sent = self.bulba_calls[-1]["messages"][-1]["content"]
+        self.assertIn("Imported their own preset", sent)
+        self.assertIn("Main Prompt", sent)  # the outline
+        steps = {s["label"]: s["done"] for st in data["state"]["progress"]["stages"] for s in st["steps"]}
+        self.assertTrue(steps["Preset applied"])
+        # Bulba tailors it in the setup: read a block, propose an edit, test it, apply it
+        self.script = [("Let me look.", [self.call("read_block", block="Main Prompt")]),
+                       ("Here's a change.", [self.call("propose_preset_edit", why="their short replies", edits=[
+                           {"action": "replace", "block": "Main Prompt", "content": "Write {{char}} plainly. Keep replies short."}])])]
+        pid = self.api(action="say", text="fix the length").json()["state"]["proposals"][-1]["id"]
+        self.script = [("Sample.", [self.call("write_samples", from_proposal=pid, variants=[{"label": "x", "instructions": ""}])])]
+        self.api(action="say", text="show me")
+        self.assertIn("Keep replies short.", json.dumps(self.sample_calls[-1]["messages"]))
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=pid)
+        self.assertIn("Keep replies short.", json.dumps(presets.get_active(self.user).data))
+
+    def test_a_file_that_isnt_a_preset_is_refused(self):
+        self.client.get(reverse("bulba"))
+        resp = self.upload(b'{"hello": 1}')
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("isn't a preset", resp.json()["error"])
 
 
 class BulbaCardAndLoreTests(BulbaTests):
@@ -5447,6 +5647,34 @@ class WatchChatTests(ChatPromptTests):
     def chat_obj(self):
         return self.character.chats.first()
 
+    def test_a_habit_the_model_keeps_writing_in_two_chats_is_learned_as_its_own(self):
+        from mainapp.bulba import polish, watch
+        mine = watch.user_data(self.user)
+        mine["fix_known"] = True
+        note = lambda **kw: {"kind": "pattern", "label": "unearned_depth", "causes": ["model"], "text": "Speeches.", **kw}
+        first = note()
+        self.assertTrue(watch.learn_from(self.user, mine, types.SimpleNamespace(id=1), [first]))
+        self.assertEqual(mine["model_learned"]["test/model"], [])  # one chat isn't a habit of the model yet
+        self.assertNotIn("learned", first)
+        # their own messages or the setup count for nothing; another chat makes it the model's own
+        watch.learn_from(self.user, mine, types.SimpleNamespace(id=2), [note(causes=["model", "their_messages"])])
+        self.assertEqual(mine["model_learned"]["test/model"], [])
+        second = note()
+        watch.learn_from(self.user, mine, types.SimpleNamespace(id=2), [second])
+        self.assertEqual(mine["model_learned"]["test/model"], ["unearned_depth"])
+        self.assertTrue(second["learned"])
+        self.assertIn("2 different chats", second["text"])
+        watch.save_user_data(self.user, mine)
+        self.assertIn("unearned_depth", polish.approved(self.user))  # fixed in its new replies
+        nb = watch.notebook(self.user)["model"]["items"]
+        self.assertEqual([i["key"] for i in nb if i.get("key")], ["unearned_depth"])
+        # the Notebook switch stops it, and the default fixes switch covers it too
+        watch.change_memory(self.user, "model_off", "unearned_depth")
+        self.assertNotIn("unearned_depth", polish.approved(self.user))
+        watch.change_memory(self.user, "model_on", "unearned_depth")
+        watch.change_memory(self.user, "fix_known", new="")
+        self.assertNotIn("unearned_depth", polish.approved(self.user))
+
     def test_reads_every_three_replies_and_raises_a_habit(self):
         page = self.client.get(self.url)
         self.assertTrue(page.context["watch_data"]["on"])
@@ -5996,7 +6224,10 @@ class PolishChatTests(WatchChatTests):
         self.approve()
         self.post({"action": "chat", "message": "Go on."})
         self.assertTrue(self.post({"action": "regenerate"}).json()["polish_due"])
-        self.assertTrue(self.post({"action": "continue"}).json()["polish_due"])
+        calls = len(self.polish_calls)
+        # Continue: only the new part is cleaned, right away; what they already read isn't polished again
+        self.assertFalse(self.post({"action": "continue"}).json()["polish_due"])
+        self.assertEqual(len(self.polish_calls), calls + 1)
 
     def test_their_chat_model_if_they_choose_it(self):
         self.approve()
@@ -6814,6 +7045,44 @@ class WatchMarkupTests(SimpleTestCase):
         note = watch.habits(data, [])[0]
         self.assertTrue(any(q.startswith('<font color=#b22222>"Mudra') for q in note["quotes"]))
         self.assertEqual(watch.raw_snippet("Nothing here.", "font color b22222 mu"), "")
+
+
+class QuickSetupBesideBulbaTests(BulbaTests):
+    """Quick setup shows what's set now (Bulba changes things beside it), and its Basics."""
+
+    def post_quick(self, **data):
+        return self.client.post(reverse("quick_setup"), json.dumps(data), content_type="application/json")
+
+    def test_status_and_basics(self):
+        from mainapp import presets, translation
+        from mainapp.lorebook import save_worldbook
+        from mainapp.models import Character, Worldbook
+        wb = Worldbook.objects.create(title="Bridge", slug="bridge-q", author=self.user)
+        save_worldbook(wb, {"title": "Bridge", "entries": [{"keys": ["bridge"], "content": "Fog."}]})
+        Character.objects.create(name="Lucien", slug="lucien-q", author=self.user, worldbook=wb,
+                                 theme={"skin": "parchment"})
+        s = self.client.get(reverse("quick_setup") + "?status=1&character=lucien-q").json()
+        self.assertEqual(s["worldbook"], "“Bridge” (1 entries)")
+        self.assertIn("Parchment", s["look"])
+        self.assertEqual([c["name"] for c in s["characters"]], ["Lucien"])
+        page = self.client.get(reverse("quick_setup") + "?character=lucien-q")
+        self.assertContains(page, 'id="qLanguage"')
+        self.assertContains(page, "“Bridge” (1 entries)")
+        self.post_quick(pov="second", tense="present", format="bogus", display_language="uk")
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.display_language, "uk")
+        basics = next(b for b in presets.normalize(presets.get_active(self.user).data)["blocks"] if b["name"] == "Basics")
+        self.assertIn("second person", basics["content"])
+        self.assertIn("present tense", basics["content"])
+        self.post_quick(pov="", tense="past")  # changed again: the same block, not a second one
+        blocks = [b for b in presets.normalize(presets.get_active(self.user).data)["blocks"] if b["name"] == "Basics"]
+        self.assertEqual(len(blocks), 1)
+        self.assertEqual(blocks[0]["content"], "Write in past tense.")
+
+    def test_bulba_beside_it_opens_links_in_the_whole_window(self):
+        page = self.client.get(reverse("bulba") + "?embed=1")
+        self.assertContains(page, '<base target="_top">')
+        self.assertNotContains(self.client.get(reverse("bulba")), '<base target="_top">')
 
 
 class HelpAndToursTests(BulbaTests):

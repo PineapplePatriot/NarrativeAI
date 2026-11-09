@@ -143,6 +143,10 @@ def user_data(user):
     # Things they told Bulba they dislike ("other: <name>" -> what it means), fixed and watched like any habit
     data.setdefault("dislikes", {})
     data.setdefault("model_off", [])  # known habits of their chat model they asked Watch not to look for
+    # Habits Watch saw a model itself write (not the setup, not their messages) in LEARN_AFTER chats: learned as
+    # that model's own ({model id: [labels]}), fixed in its new replies like its known habits; model_seen counts
+    data.setdefault("model_learned", {})
+    data.setdefault("model_seen", {})
     # Known slop is rewritten out of new replies for everyone, no taste needed (Notebook page: off switch): the
     # universal tells (KNOWN_FIX) and their chat model's own known habits (the ticked ones); muted ones stay out
     data.setdefault("fix_known", True)
@@ -584,7 +588,7 @@ def _established(chat_obj, character):
 def _prompt(user, character, messages, picked, data, mine, writes_for_user, ask_directing=False, chat_obj=None):
     from mainapp import model_profiles
     _, chat_model = ai_client.resolve(user, "chat")
-    profile = model_profiles.for_model(chat_model) or {}
+    profile = model_profiles.for_style(chat_model) or {}  # an unknown model: its closest relative's known habits
     habits = [h for h in (profile.get("style") or {}).get("watch_for") or [] if h not in mine["model_off"]]
     parts = [f"## The character: {character.name}",
              str(character.description or "")[:1500],
@@ -685,6 +689,8 @@ def read(user, character, chat_obj, messages, writes_for_user=False):
     save_user_data(user, mine)
     raised = story_notes(data, answer, picked, character.name)  # logs "getting the past wrong" slips first
     raised += habits(data, mine["muted"], character.name, mine["fix"])
+    if learn_from(user, mine, chat_obj, raised):
+        save_user_data(user, mine)
     taste_note = offer_taste(data, mine)
     if taste_note:
         raised.append(taste_note)
@@ -695,6 +701,52 @@ def read(user, character, chat_obj, messages, writes_for_user=False):
             raised.append(notice)
     save_chat_data(chat_obj, data)
     return raised
+
+
+LEARN_AFTER = 2  # chats where the model itself kept writing a habit before Watch learns it as that model's own
+
+
+def chat_model(user):
+    try:
+        return ai_client.resolve(user, "chat")[1] or ""
+    except ai_client.AIError:
+        return ""
+
+
+def learned(mine, model):
+    """The habits learned as this model's own that still apply (not switched off or muted)."""
+    off = set(mine.get("model_off") or []) | set(mine.get("muted") or [])
+    return [label for label in (mine.get("model_learned") or {}).get(model, []) if label not in off]
+
+
+def learn_from(user, mine, chat_obj, raised):
+    """Notes just raised about a habit the model itself writes (the cause is only the model): counted per model, and
+    once it's shown up in LEARN_AFTER chats it's learned as that model's own and fixed in its new replies (the note
+    says so; the Notebook page undoes it). True if anything changed."""
+    model = chat_model(user)
+    if not model:
+        return False
+    changed = False
+    seen = mine.setdefault("model_seen", {}).setdefault(model, {})
+    known = mine.setdefault("model_learned", {}).setdefault(model, [])
+    for n in raised:
+        label = n.get("label")
+        if (n.get("kind") != "pattern" or n.get("causes") != ["model"] or label in NO_POLISH or label in known
+                or label in mine["fix"]):
+            continue
+        chats = seen.setdefault(label, [])
+        if chat_obj.id not in chats:
+            chats.append(chat_obj.id)
+            del chats[:-LEARN_AFTER]
+            changed = True
+        if len(chats) >= LEARN_AFTER:
+            known.append(label)
+            if mine.get("fix_known", True):
+                short = model.split("/")[-1]
+                n["text"] += (f" I've now seen {short} write this in {len(chats)} different chats, so it's one of its "
+                              "own habits: Bulba fixes it in its new replies from now on (undo on Bulba's notebook page).")
+                n["learned"] = True
+    return changed
 
 
 KEEP_OFFER = 2  # new lasting facts before Bulba offers to keep them in the card or lorebook
@@ -944,7 +996,7 @@ def notebook(user):
         _, chat_model = ai_client.resolve(user, "chat")
     except ai_client.AIError:  # no connection yet: the page still shows the rest
         chat_model = ""
-    profile = model_profiles.for_model(chat_model) if chat_model else {}
+    profile = model_profiles.for_style(chat_model) if chat_model else {}
     profile = profile or {}
     own = [label for label in mine["fix"] if label.startswith("other: ")]
     return {
@@ -954,9 +1006,14 @@ def notebook(user):
                     "on": label not in mine["muted"],
                     "fixing": label in mine["fix"] or (mine.get("fix_known", True) and label in KNOWN_FIX)}
                    for label in LABELS],
-        "model": {"name": profile.get("name") or chat_model or "your chat model",
+        "model": {"name": (f"{chat_model} (borrowed from {profile['name']}, its closest relative)"
+                           if profile.get("_borrowed") else chat_model if profile.get("_generic")
+                           else profile.get("name") or chat_model or "your chat model"),
                   "items": [{"text": h, "on": h not in mine["model_off"]}
-                            for h in (profile.get("style") or {}).get("watch_for") or []]},
+                            for h in (profile.get("style") or {}).get("watch_for") or []]
+                           + [{"text": title_of(label), "key": label, "on": label not in mine["model_off"],
+                               "about": "Learned by Watch: this model kept writing it in your chats."}
+                              for label in (mine["model_learned"].get(chat_model) or []) if label not in mine["muted"]]},
         "own": [{"label": label, "title": title_of(label), "about": mine["dislikes"].get(label, "")} for label in own],
         "fix_known": mine.get("fix_known", True),
         "known_fix": [title_of(label) for label in KNOWN_FIX if label not in mine["muted"]],

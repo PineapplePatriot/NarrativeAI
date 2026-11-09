@@ -69,8 +69,11 @@ propose_control (directing comes with the book layout). The session line shows t
    voice better. Nothing is rewritten until they approve a habit. Without the form (they typed instead),
    propose_extras as before.
 2. **taste**: how they like replies to read. Follow the asking guide. This is the main part.
-3. **preset**: propose_preset following the preset guide, then offer one fresh sample built from the
-   proposal (write_samples with from_proposal) before they apply it. Once it's applied, **text rules**, in
+3. **preset**: first ask once whether they already have a preset they like (offer_choices, e.g. "Build
+   one with me", "I have my own preset (a SillyTavern .json)"). On their own: offer_preset_upload; once
+   it's in it's active, so don't propose_preset: review it and tailor it with propose_preset_edit (preset
+   guide, "Their own preset"). Otherwise propose_preset following the preset guide, then offer one fresh
+   sample built from the proposal (write_samples with from_proposal) before they apply it. Once it's applied, **text rules**, in
    two or three lines: read_text_rules, say in plain words what the preset's own rules already do (hide the
    thinking, tidy quotes...; "none" is fine), and that text rules are automatic find-and-replace on every
    reply, for formatting, never for the story. Ask with offer_choices whether there's anything they always
@@ -153,6 +156,7 @@ question, or a line about the proposal) in the same reply as the call, not after
 - read_text_rules / propose_text_rules: find-and-replace rules in the preset or their own list (formatting
   and clean-up only).
 - propose_control: who writes their character (and the book layout for directing), once a preset is applied.
+- offer_preset_upload / read_block / propose_preset_edit: a preset they brought themselves, and changes to it.
 - offer_card_upload / propose_card_edit / propose_lorebook: their own card, fixes to it, and lore (lore
   guide).
 - work_on_character / read_lorebook / propose_lore_edit: changing a character or lorebook that already

@@ -33,7 +33,26 @@ class BudgetReached(Exception):
 # ---------------------------------------------------------------------------
 
 def target_profile(session):
-    return next((p for p in model_profiles.all_profiles() if p["id"] == session.target_model), None)
+    profile = model_profiles.by_id(session.target_model)
+    if profile is None:
+        return None
+    try:  # a model we have no profile for works from its closest relative's, or the generic one: say so
+        _, actual = ai_client.resolve(session.user, "chat")
+    except ai_client.AIError:
+        return profile
+    style = model_profiles.for_style(actual) if actual else None
+    if style and style["id"] == profile["id"] and (style.get("_borrowed") or style.get("_generic")):
+        return style
+    return profile
+
+
+def shown_name(profile):
+    """The model's name for people: the one they actually use when it's borrowed or generic."""
+    if not profile:
+        return "your model"
+    if profile.get("_borrowed") or profile.get("_generic"):
+        return profile["_actual"].split("/")[-1]
+    return profile["name"]
 
 
 def model_knowledge(profile):
@@ -41,6 +60,16 @@ def model_knowledge(profile):
     card = profile.get("card", {})
     style = profile.get("style", {})
     lines = [f"## Model knowledge: {profile['name']}", ""]
+    if profile.get("_borrowed"):
+        lines += [f"They actually use {profile['_actual']}, which we have no notes for. What follows is about "
+                  f"{profile['name']}, its closest relative: the ready presets and known habits usually carry over "
+                  "within a family, but its exact settings and limits may differ. Say so if they ask; watch the "
+                  "replies (Bulba Watch learns this model's own habits as it goes) rather than assuming.", ""]
+    elif profile.get("_generic"):
+        lines += [f"They use {profile['_actual']}, which we have no notes for and no relative of. Work from the plain "
+                  "'Any model' presets below, which rely on no one model's quirks. Its settings and limits are unknown: "
+                  "test samples before promising anything, and tell them Bulba Watch will learn its habits as they "
+                  "chat. If they have a preset they like for it (a SillyTavern JSON), offer to import that instead.", ""]
     if card:
         lines += [f"Where it shines: {card.get('best_for', '')}", f"Watch out: {card.get('watch_out', '')}",
                   f"Price: {card.get('price', '?')} (from $ cheap to $$$$ expensive)", ""]
@@ -138,6 +167,7 @@ TOOLS = [
         "Same scene for both; each variant adds its own instructions.",
         {"starter": {"type": "string", "description": "Starter id to build on (from the model knowledge)"},
          "from_proposal": {"type": "string", "description": "Instead of a starter: build on one of your preset proposals (id), to test exactly what they'd get"},
+         "from_active": {"type": "boolean", "description": "Instead of a starter: their active preset as it is (a preset they brought themselves)"},
          "scenario": {"type": "string", "description": "The situation, two or three sentences"},
          "user_turn": {"type": "string", "description": "What the user's character just said or did"},
          "character": {"type": "object", "description": "Optional; a neutral test character is used otherwise",
@@ -218,6 +248,10 @@ TOOLS = [
     *control.tool_defs(_fn, STR),
     *rules.tool_defs(_fn, STR),
     doctor.CARD_EDIT_TOOL,
+    _fn("offer_preset_upload", "Show an upload box for a preset they already have and like (a SillyTavern "
+        "chat-completion preset .json, or one exported from this app). Once it's in, it's their active preset; "
+        "tailor it with read_block and propose_preset_edit instead of propose_preset.", {}),
+    *doctor.PRESET_EDIT_TOOLS,
 ]
 
 
@@ -390,11 +424,17 @@ def tool_get_starter(session, args):
 
 
 def tool_write_samples(session, args):
-    proposal = next((p for p in session.proposals if p["id"] == args.get("from_proposal") and p["kind"] == "preset"), None)
+    proposal = next((p for p in session.proposals if p["id"] == args.get("from_proposal")
+                     and p["kind"] in ("preset", "preset_edit")), None)
     if args.get("from_proposal") and proposal is None:
         return {"error": "No preset proposal with that id."}, []
-    if proposal:
+    if proposal and proposal["kind"] == "preset_edit":  # a change to the preset they brought: as if applied
+        active = presets.normalize(presets.get_active(session.user).data)
+        preset = active if proposal.get("status") == "applied" else doctor.apply_edits(active, proposal["payload"]["edits"])
+    elif proposal:
         preset = build_preset(proposal["payload"])
+    elif args.get("from_active"):  # their active preset as it is (one they brought themselves)
+        preset = presets.normalize(presets.get_active(session.user).data)
     else:
         starter = _starter_for(session, args.get("starter"))
         if starter is None:
@@ -769,6 +809,8 @@ def tool_propose_character(session, args):
         return {"error": "Need a name and a description."}, []
     payload = {k: str(args.get(k, "")).strip()[:40000]
                for k in ("description", "scenario", "greeting", "personality", "example_dialogue")}
+    from mainapp.bulba import polish
+    payload = polish.clean_written(session.user, payload)  # the known AI habits out of the draft (the greeting most)
     payload["name"] = name
     summary = ["Description:", payload["description"]]
     if payload["personality"]:
@@ -790,6 +832,9 @@ HANDLERS = {
     "propose_persona": tool_propose_persona, "propose_character": tool_propose_character,
     **library.HANDLERS, **lore.HANDLERS, **tune.HANDLERS, **control.HANDLERS, **rules.HANDLERS,
     "propose_card_edit": doctor.tool_propose_card_edit,
+    "offer_preset_upload": lambda session, args: ({"status": "upload box shown; they'll send the file or answer"},
+                                                  [{"type": "preset_upload"}]),
+    "read_block": doctor.tool_read_block, "propose_preset_edit": doctor.tool_propose_preset_edit,
 }
 
 
@@ -820,7 +865,7 @@ def _trimmed(messages):
 
 def opening(session):
     """Bulba's first message (canned, so starting costs nothing): the full setup or the fast route."""
-    name = (target_profile(session) or {"name": "your model"})["name"]
+    name = shown_name(target_profile(session))
     text = (f"Hi. I'm Bulba. Yes, a potato. You picked {name}, which is a choice.\n\n"
             "Two ways to do this:\n\n"
             "**Full setup** (about twenty minutes): I find out how you like stories told, show you samples written by "

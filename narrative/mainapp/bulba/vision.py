@@ -82,9 +82,16 @@ def describe(user, data_url, their_words=""):
     model, who = looker(user)
     text = [{"type": "text", "text": PROMPT + (f"\n\nWhat they said with it: {their_words}" if their_words else "")},
             {"type": "image_url", "image_url": {"url": data_url}}]
+    # Room for a thinking model's thoughts before the description (900 tokens could all go to thinking, leaving
+    # nothing), and as little thinking as it allows: describing a picture doesn't need it
+    light = {"reasoning": {"effort": "low"}} if model != FALLBACK else {}
     answer = ai_client.complete(user, "bulba", [{"role": "user", "content": text}], model=model,
-                                max_tokens=900, temperature=0.2)
+                                max_tokens=4000, temperature=0.2, **light)
     answer = (answer or "").strip()
+    if not answer and model != FALLBACK:  # still nothing: the cheap vision model has a look instead
+        answer = (ai_client.complete(user, "bulba", [{"role": "user", "content": text}], model=FALLBACK,
+                                     max_tokens=4000, temperature=0.2) or "").strip()
+        who = "Gemini 3.8 Flash"
     if not answer:
         raise ai_client.AIError("The picture came back with no description. Try again.")
     return answer, who

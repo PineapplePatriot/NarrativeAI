@@ -406,3 +406,10 @@ label.check input { width: auto; accent-color: var(--accent-1) }
 .x-origin { font-size: .8rem; opacity: .8; margin: 0; }
 .entry-expand { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border-color, rgba(255,255,255,.1)); }
 .entry-expand .hint { display: block; margin: 6px 0 0; }
+/* A background job: an animated bar, so it's clear Bulba is working */
+.job-progress { display: flex; flex-direction: column; gap: 6px; }
+.job-bar { height: 8px; border-radius: 99px; background: rgba(148, 163, 184, .18); overflow: hidden; position: relative; }
+.job-bar span { position: absolute; inset: 0; width: 40%; border-radius: 99px;
+    background: linear-gradient(90deg, #8b5cf6, #c084fc); animation: jobSlide 1.4s ease-in-out infinite; }
+@keyframes jobSlide { 0% { left: -40%; } 100% { left: 100%; } }
+@media (prefers-reduced-motion: reduce) { .job-bar span { animation: none; width: 100%; opacity: .6; } }

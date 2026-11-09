@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="{% static 'users/css/welcome.css' %}?v=5">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
-    <link rel="stylesheet" href="{% static 'mainapp/css/quick.css' %}?v=2">
+    <link rel="stylesheet" href="{% static 'mainapp/css/quick.css' %}?v=3">
 </head>
 <body class="na-body">
 {% include "partials/topbar.html" with active="bulba" %}
@@ -30,7 +30,7 @@
 
     <section class="option" id="qStyle">
         <div class="q-head"><h2>1. Writing style</h2><button type="button" class="ghost q-bulba" data-ask="Help me choose a writing style for my stories with {{ model_name }}: ask me a couple of questions, then set it up.">🥔 Let Bulba do it</button></div>
-        <p class="help">Tested setups for <b>{{ model_name }}</b>. Change it any time on the Presets page. Now active: <i>{{ active_name }}</i>.</p>
+        <p class="help">Tested setups for <b>{{ model_name }}</b>. Change it any time on the Presets page. Now active: <i id="qStyleNow">{{ active_name }}</i>.</p>
         {% if ready %}
         <div class="q-choices">
             {% for r in ready %}
@@ -43,6 +43,24 @@
         {% else %}
         <p class="help">There's no tested setup for this model yet, so your current preset stays. Bulba can build one with you.</p>
         {% endif %}
+        <div class="q-basics">
+            <label>Story language
+                <select id="qLanguage">{% for code, name in languages.items %}<option value="{{ code }}" {% if code == basics.display_language %}selected{% endif %}>{{ name }}</option>{% endfor %}</select>
+                <small>Not English: the AI writes in English and each reply is translated for you (🌐 shows the English).</small></label>
+            <label>Point of view
+                <select id="qPov"><option value="">As the style has it</option>
+                    <option value="second" {% if basics.pov == "second" %}selected{% endif %}>You (“you step inside”)</option>
+                    <option value="third" {% if basics.pov == "third" %}selected{% endif %}>Third person (“she steps inside”)</option>
+                    <option value="first" {% if basics.pov == "first" %}selected{% endif %}>The character's “I”</option></select></label>
+            <label>Tense
+                <select id="qTense"><option value="">As the style has it</option>
+                    <option value="present" {% if basics.tense == "present" %}selected{% endif %}>Present</option>
+                    <option value="past" {% if basics.tense == "past" %}selected{% endif %}>Past</option></select></label>
+            <label>Speech and actions
+                <select id="qFormat"><option value="">As the style has it</option>
+                    <option value="quotes" {% if basics.format == "quotes" %}selected{% endif %}>“Speech” in quotes, actions as prose</option>
+                    <option value="asterisks" {% if basics.format == "asterisks" %}selected{% endif %}>“Speech”, *actions in asterisks*</option></select></label>
+        </div>
         <label class="q-mature"><input type="checkbox" id="qMature" {% if mature_on %}checked{% endif %}>
             🔞 <b>Allow adult scenes</b> <small>(18+: violence, dark themes, sex when the story goes there. Change it any time in the chat: pen menu → This chat.)</small></label>
     </section>
@@ -78,30 +96,32 @@
             </form>
         </div>
         <p class="help" id="qImportNote" hidden></p>
-        {% if characters %}
-        <div class="q-choices q-chars">
+        <div class="q-choices q-chars" id="qChars">
             {% for c in characters %}
             <label class="q-choice"><input type="radio" name="character" value="{{ c.slug }}" {% if c.slug == picked %}checked{% endif %}>
                 <span>{% if c.photo_neutral %}<img src="{{ c.photo_neutral.url }}" alt="">{% else %}<i class="q-initial">{{ c.name|first|upper }}</i>{% endif %}
                     <b>{{ c.name }}</b></span></label>
             {% endfor %}
         </div>
-        {% endif %}
     </section>
 
-    <details class="option q-more">
+    <details class="option q-more" {% if status.extras or status.look or status.worldbook %}open{% endif %}>
         <summary><h2>Additional <small>(optional)</small></h2></summary>
         <div class="q-extra">
-            <div><b>Extras</b>: summaries, story trackers (they keep long, plot-heavy stories consistent), pictures that change with the mood, voices, dice.</div>
+            <div><b>Extras</b>: summaries, story trackers (they keep long, plot-heavy stories consistent), pictures that change with the mood, voices, dice.
+                <p class="q-now" id="qExtrasNow" {% if not status.extras %}hidden{% endif %}>✓ {{ status.extras }}</p></div>
             <span><a class="btn secondary" href="{% url 'users:extras' %}" target="_blank" rel="noopener">Open Extras</a>
                 <button type="button" class="ghost q-bulba" data-ask="Help me pick the extras (summaries, trackers, pictures, dice): explain each in a line and set them up.">🥔 Let Bulba do it</button></span>
         </div>
         <div class="q-extra">
-            <div><b>The look</b>: the background, music, your character's dialogue colour, and the weather the chat opens with.</div>
+            <div><b>The look</b>: the background, music, your character's dialogue colour, and the weather the chat opens with.
+                <p class="q-now" id="qLookNow" {% if not status.look %}hidden{% endif %}>✓ {{ status.look }}</p></div>
             <span><button type="button" class="ghost q-bulba" data-ask="Pick a look for my character's chats: a background, music, a dialogue colour and the weather the chat opens with, from what the app has.">🥔 Let Bulba pick it</button></span>
         </div>
         <div class="q-extra">
-            <div><b>Worldbook</b>: lore about your world (places, factions, rules) that the AI is reminded of when it comes up.</div>
+            <div><b>Worldbook</b>: lore about your world (places, factions, rules) that the AI is reminded of when it comes up.
+                <p class="q-now" id="qWorldbookNow" {% if not status.worldbook %}hidden{% endif %}>✓ <span>{{ status.worldbook }}</span>
+                    <a id="qWorldbookLink" href="{{ status.worldbook_url }}" target="_blank" rel="noopener">open</a></p></div>
             <span><a class="btn secondary" href="{% url 'worldbook_create' %}" target="_blank" rel="noopener">Make a worldbook</a>
                 <button type="button" class="ghost q-bulba" data-ask="Help me make a worldbook (lore) for my story: ask me about the world, then propose it.">🥔 Let Bulba do it</button></span>
         </div>
@@ -120,7 +140,7 @@
 {{ quick_data|json_script:"quick-data" }}
 <script>const QUICK = { url: "{% url 'quick_setup' %}", bulba: "{% url 'bulba' %}?embed=1" };</script>
 <script src="{% static 'js/costs.js' %}?v=1"></script>
-<script src="{% static 'mainapp/js/quick.js' %}?v=2"></script>
+<script src="{% static 'mainapp/js/quick.js' %}?v=3"></script>
 <script>window.NA_PAGE_TOUR = {name: 'quick', auto: true};</script>
 </body>
 </html>

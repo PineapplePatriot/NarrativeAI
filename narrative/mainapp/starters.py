@@ -37,7 +37,7 @@ def get(starter_id):
 
 
 def _card(s):
-    profile = next((p for p in model_profiles.all_profiles() if p["id"] == s["model"]), {})
+    profile = model_profiles.by_id(s["model"]) or {}
     return {"id": s["id"], "title": s["title"], "tagline": s["tagline"], "description": s["description"],
             "experience": s["experience"], "model": s["model"], "model_name": profile.get("name", s["model"]),
             "based_on": s.get("based_on", []), "status": s.get("status", "draft")}
@@ -45,7 +45,7 @@ def _card(s):
 
 def for_page(model):
     """Starters grouped by model, the user's chat model first."""
-    mine = model_profiles.for_model(model)
+    mine = model_profiles.for_style(model)
     groups = {}
     for s in all_starters():
         groups.setdefault(s["model"], []).append(_card(s))
@@ -81,7 +81,7 @@ READY_FEELS = ("back_and_forth", "rich_scene", "director")
 
 def ready_for(model_id):
     """The model's ready presets for a quick start: back-and-forth, rich scene, director seat."""
-    profile = next((p for p in model_profiles.all_profiles() if p["id"] == model_id), {})
+    profile = model_profiles.by_id(model_id) or {}
     out = []
     for feel in READY_FEELS:
         s = get((profile.get("starters") or {}).get(feel, ""))

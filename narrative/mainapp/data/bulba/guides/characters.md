@@ -132,6 +132,13 @@ picked in the taste stage: a long descriptive greeting teaches long descriptive 
 
 No backstory summary in the greeting; let it come out in play.
 
+**Write the card without the known AI habits** (the chat model copies the greeting's style for the whole
+story, so it matters most there): no stock physical reactions standing in for feelings (hands clenching and
+unclenching, a jaw tightening, breath held, a gesture "he doesn't notice"), no vague eyes or voice ("something
+in his gaze shifts"), no feeling explained right after it was shown, no "it wasn't X, it was Y", no dramatic
+fragments. Say the specific thing: what this person does or says here. In any language: these come translated
+too. Your drafts get a cleanup pass for these before they're shown, but write them clean in the first place.
+
 ### Example dialogue
 
 Only if it helps (a distinctive voice is the usual reason). Two or three short exchanges in different

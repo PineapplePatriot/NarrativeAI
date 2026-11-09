@@ -45,7 +45,8 @@ def _done_steps(session):
         done.add("noted")
     if any(p["kind"] == "preset" and p.get("status") != "replaced" for p in session.proposals):
         done.add("preset_proposed")
-    if "preset" in kinds:
+    if "preset" in kinds or any(ev.get("type") == "action" and str(ev.get("text", "")).startswith("Imported your preset")
+                                for ev in session.events):  # their own preset, brought in
         done |= {"preset", "preset_proposed"}
     if "persona" in kinds:
         done.add("persona")
