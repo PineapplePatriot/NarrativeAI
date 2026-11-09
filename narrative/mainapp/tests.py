@@ -7958,6 +7958,13 @@ class TomatoPitTests(TestCase):
         self.assertEqual(state["days"], ["2026-11-09", "2026-11-10"])
         self.assertTrue(state["found"])
 
+    def test_the_pit_joins_the_menu_once_found(self):
+        page = self.client.get(reverse("characters_list"))
+        self.assertNotContains(page, "🍅 Pit")
+        self.post({"found": True, "ach": {"pit": 1}})
+        self.assertContains(self.client.get(reverse("characters_list")), "🍅 Pit")
+        self.assertEqual(self.client.get(reverse("tomato_pit")).status_code, 200)
+
     def test_nonsense_is_bounded(self):
         state = self.post({"add": 10 ** 9, "best10": 10 ** 6, "add_waits": -5, "ach": "x", "days": "y"})
         self.assertEqual((state["count"], state["best10"], state["waits"]), (3000, 200, 0))

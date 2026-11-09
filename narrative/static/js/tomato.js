@@ -36,7 +36,36 @@
         { id: 'floppy', name: 'Floppy disk', emoji: '💾', color: '#3a4250', at: 5000, kind: 'Objects' },
         { id: 'trophy', name: 'Trophy', emoji: '🏆', color: '#e8b923', at: 10000, kind: 'Objects' },
         { id: 'star', name: 'Lucky star', emoji: '🌟', color: '#ffe066', ach: 'lucky', kind: 'Objects' },
+        // Wild
+        { id: 'cheese', name: 'Cheese wheel', emoji: '🧀', color: '#f6c445', at: 125, kind: 'Wild' },
+        { id: 'pizza', name: 'Pizza slice', emoji: '🍕', color: '#e8743b', at: 250, kind: 'Wild' },
+        { id: 'banana', name: 'Banana peel', emoji: '🍌', color: '#f5d547', at: 350, kind: 'Wild', note: 'Classic.' },
+        { id: 'watermelon', name: 'Watermelon', emoji: '🍉', color: '#e94b5a', at: 600, kind: 'Wild' },
+        { id: 'cake', name: 'Birthday cake', emoji: '🎂', color: '#f5b8d0', at: 900, kind: 'Wild' },
+        { id: 'rainbow', name: 'Rainbow tomato', emoji: '🍅', random: true, color: '#e0352b', at: 1250, kind: 'Wild', note: 'A different colour every throw.' },
+        { id: 'duck', name: 'Duck', emoji: '🦆', color: '#7fb069', at: 2000, kind: 'Wild', note: 'It volunteered.' },
+        { id: 'octopus', name: 'Octopus', emoji: '🐙', color: '#2a1f3d', at: 3500, kind: 'Wild', note: 'Splats in ink.' },
+        { id: 'sneaker', name: 'Sneaker', emoji: '👟', color: '#d9dde3', at: 4000, kind: 'Wild' },
+        { id: 'unicorn', name: 'Unicorn', emoji: '🦄', random: true, color: '#f5b8d0', ach: 'wardrobe', kind: 'Wild' },
+        // Weird
+        { id: 'invisible', name: 'Invisible tomato', emoji: '🍅', filter: 'opacity(.12)', color: 'rgba(255,255,255,.12)', at: 6000, kind: 'Weird', note: 'Are you sure you threw something?' },
+        { id: 'brain', name: 'Brain', emoji: '🧠', color: '#f1a7b5', at: 7500, kind: 'Weird', note: 'Big brain move.' },
+        { id: 'tooth', name: 'Tooth', emoji: '🦷', color: '#f2efe6', at: 15000, kind: 'Weird', note: "Don't ask where it came from." },
+        { id: 'mushroom', name: 'Mushroom', emoji: '🍄', color: '#d6453d', at: 25000, kind: 'Weird' },
+        { id: 'planet', name: 'Small planet', emoji: '🪐', color: '#d9a35b', at: 50000, kind: 'Weird', note: 'Throwing is relative.' },
+        { id: 'eye', name: 'Eye', emoji: '👁️', color: '#e8eef5', ach: 'midnight', kind: 'Weird', note: 'It saw you.' },
+        { id: 'melting', name: 'Melting face', emoji: '🫠', color: '#f5c542', ach: 'answer', kind: 'Weird' },
+        { id: 'crystal', name: 'Crystal ball', emoji: '🔮', color: '#8e6ee6', ach: 'boo', kind: 'Weird', note: 'It predicted this.' },
+        { id: 'ufo', name: 'UFO', emoji: '🛸', color: '#9fb3c8', ach: 'hundredk', kind: 'Weird' },
+        { id: 'realghost', name: 'An actual ghost', emoji: '👻', color: '#eef2f7', ach: 'million', kind: 'Weird', note: 'It was always going to be this.' },
     ];
+    // How a skin looks on this throw: most always the same, "random" ones (rainbow, unicorn) a new colour each time
+    function look(s, lucky) {
+        if (lucky) return { color: '#ffd23f', filter: 'hue-rotate(38deg) saturate(1.8) brightness(1.2)' };
+        if (!s.random) return { color: s.color, filter: s.filter || '' };
+        const h = Math.floor(Math.random() * 360);
+        return { color: `hsl(${h}, 85%, 58%)`, filter: s.emoji === '🍅' ? `hue-rotate(${h}deg) saturate(1.4)` : '' };
+    }
 
     const ACHIEVEMENTS = [
         { id: 'first', name: 'First blood', about: 'Threw your first tomato.' },
@@ -52,6 +81,20 @@
         { id: 'regular', name: 'Regular', about: 'Threw on 7 different days.' },
         { id: 'collector', name: 'Collector', about: 'Unlocked 10 skins.' },
         { id: 'lucky', name: 'Lucky splat', about: 'A one-in-500 golden splat.', unlocks: 'star' },
+        { id: 'fivek', name: 'Ketchup factory', about: '5,000 tomatoes.' },
+        { id: 'fiftyk', name: 'Harvest season', about: '50,000 tomatoes.' },
+        { id: 'hundredk', name: 'Greenhouse', about: '100,000 tomatoes. That was a whole field.' },
+        { id: 'marathon', name: 'Marathon', about: 'Kept throwing through a wait over three minutes.' },
+        { id: 'devoted', name: 'Devoted critic', about: 'Threw on 30 different days.' },
+        { id: 'wardrobe', name: 'Wardrobe', about: 'Threw with 5 different skins.' },
+        { id: 'everything', name: 'Completionist', about: 'Unlocked every skin (secrets aside).' },
+        // 👻 Secrets: hidden until earned
+        { id: 'million', name: 'A Million', about: '1,000,000 tomatoes. We are impressed. And a little worried.', secret: true },
+        { id: 'traitor', name: 'Traitor', about: 'Threw 100 potatoes. Bulba saw that.', secret: true },
+        { id: 'boo', name: 'Boo', about: 'Threw 100 ghost tomatoes.', secret: true },
+        { id: 'midnight', name: 'Witching hour', about: 'Threw at exactly midnight.', secret: true },
+        { id: 'answer', name: 'The answer', about: 'The 42nd throw of a single wait.', secret: true },
+        { id: 'leet', name: '1337', about: 'Your 1,337th tomato.', secret: true },
     ];
 
     const css = `
@@ -104,7 +147,8 @@
 
     function merge(server) {  // the account's state plus what's still on its way there
         const ach = Object.assign({}, data.ach, server.ach || {});
-        data = Object.assign(blank(), server, {
+        const bySkin = data.bySkin || {};  // kept in this browser (what it unlocks is on the account)
+        data = Object.assign(blank(), server, { bySkin,
             count: (server.count || 0) + pending.add, waits: (server.waits || 0) + pending.add_waits,
             ach, days: [...new Set([...(server.days || []), ...data.days])].slice(-30),
             best10: Math.max(server.best10 || 0, data.best10 || 0), found: !!(server.found || data.found),
@@ -160,7 +204,7 @@
         const a = ACHIEVEMENTS.find(x => x.id === id);
         data.ach[id] = Date.now();
         const s = a.unlocks && SKINS.find(x => x.id === a.unlocks);
-        toast('🏅 ' + a.name, a.about + (s ? ` Unlocked: ${s.emoji} ${s.name}.` : ''));
+        toast((a.secret ? '👻 ' : '🏅 ') + a.name, a.about + (s ? ` Unlocked: ${s.emoji} ${s.name}.` : ''));
     }
 
     // --- One throw: a flight from `from` (or nowhere) to a random spot, then a splat that fades fast ---
@@ -170,12 +214,12 @@
         const m = 50;
         return { x: m + Math.random() * Math.max(1, innerWidth - 2 * m), y: m + Math.random() * Math.max(1, innerHeight - 2 * m) };
     }
-    function splat(x, y, s, lucky) {
+    function splat(x, y, s, lk) {
         const el = document.createElement('div');
         el.className = 'na-tom-splat';
         el.style.left = x + 'px';
         el.style.top = y + 'px';
-        const color = lucky ? '#ffd23f' : s.color;
+        const color = lk.color;
         const drops = Array.from({ length: 7 }, () => {
             const a = Math.random() * Math.PI * 2, r = 30 + Math.random() * 26, size = 4 + Math.random() * 9;
             return `<circle cx="${60 + Math.cos(a) * r}" cy="${60 + Math.sin(a) * r}" r="${size}"/>`;
@@ -186,7 +230,7 @@
         }).join(' ');
         el.innerHTML = `<svg viewBox="0 0 120 120" width="120" height="120" aria-hidden="true"><g fill="${color}" opacity=".9">
             <polygon points="${blob}" stroke="${color}" stroke-width="10" stroke-linejoin="round"/>${drops}</g></svg>
-            <span class="na-tom-bit" style="--r:${Math.round(Math.random() * 360)}deg;${s.filter ? 'filter:' + s.filter : ''}">${s.emoji}</span>`;
+            <span class="na-tom-bit" style="--r:${Math.round(Math.random() * 360)}deg;${lk.filter ? 'filter:' + lk.filter : ''}">${s.emoji}</span>`;
         document.body.appendChild(el);
         setTimeout(() => el.remove(), 1600);
     }
@@ -194,21 +238,22 @@
         const s = skin();
         const to = spot();
         const lucky = Math.random() < 1 / 500;
+        const lk = look(s, lucky);
         const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
         if (from && !reduce) {
             const fly = document.createElement('div');
             fly.className = 'na-tom-fly';
             fly.textContent = s.emoji;
-            if (s.filter) fly.style.filter = s.filter;
+            if (lk.filter) fly.style.filter = lk.filter;
             fly.style.left = (from.x - 16) + 'px';
             fly.style.top = (from.y - 16) + 'px';
             document.body.appendChild(fly);
             requestAnimationFrame(() => requestAnimationFrame(() => {
                 fly.style.transform = `translate(${to.x - from.x}px, ${to.y - from.y}px) rotate(${Math.random() > .5 ? '' : '-'}540deg)`;
             }));
-            setTimeout(() => { fly.remove(); splat(to.x, to.y, s, lucky); }, 330);
+            setTimeout(() => { fly.remove(); splat(to.x, to.y, s, lk); }, 330);
         } else {
-            splat(to.x, to.y, s, lucky);
+            splat(to.x, to.y, s, lk);
         }
         count(lucky);
     }
@@ -227,10 +272,20 @@
             if (!waitThrows) { data.waits++; pending.add_waits++; }
             waitThrows++;
         }
+        data.bySkin = data.bySkin || {};
+        data.bySkin[data.skin] = (data.bySkin[data.skin] || 0) + 1;
         award('first');
-        if (data.count >= 100) award('hundred');
-        if (data.count >= 1000) award('thousand');
-        if (data.count >= 10000) award('tenk');
+        [[100, 'hundred'], [1000, 'thousand'], [5000, 'fivek'], [10000, 'tenk'], [50000, 'fiftyk'],
+         [100000, 'hundredk'], [1000000, 'million']].forEach(([n, id]) => { if (data.count >= n) award(id); });
+        if (data.count === 1337) award('leet');
+        if (waiting && waited >= 180) award('marathon');
+        if (waiting && waitThrows === 42) award('answer');
+        if (data.days.length >= 30) award('devoted');
+        if (Object.keys(data.bySkin).length >= 5) award('wardrobe');
+        if ((data.bySkin.potato || 0) >= 100) award('traitor');
+        if ((data.bySkin.ghost || 0) >= 100) award('boo');
+        const t = new Date();
+        if (t.getHours() === 0 && t.getMinutes() === 0) award('midnight');
         if (data.waits >= 10) award('patient');
         if (waiting && waited >= 60) award('long');
         if (recent.length >= 30) award('rage');
@@ -241,6 +296,8 @@
         if (lucky) award('lucky');
         const after = SKINS.filter(unlocked);
         if (after.length >= 10) award('collector');
+        const secret = new Set(ACHIEVEMENTS.filter(a => a.secret).map(a => a.id));
+        if (SKINS.every(x => (x.ach && secret.has(x.ach)) || unlocked(x))) award('everything');
         if (after.length > before) {
             const fresh = after.filter(s => !s.ach && s.at === data.count)[0];
             if (fresh) toast('New skin: ' + fresh.emoji + ' ' + fresh.name, PIT ? 'Pick it in the Tomato Pit.' : '');
@@ -324,7 +381,9 @@
     window.NATomato = {
         SKINS, ACHIEVEMENTS,
         watch(fn) { watchers.push(fn); },
-        throwOne, toast, unlocked,
+        throwOne, toast, unlocked, look,
+        // One throw that something else drew (the splat wall): counted like any other; says if it was lucky
+        tally() { const lucky = Math.random() < 1 / 500; count(lucky); return lucky; },
         data: () => data,
         skin,
         pick(id) { const s = SKINS.find(x => x.id === id); if (s && unlocked(s)) { data.skin = pending.skin = id; save(); changed(); paintButton(); sync(); } },
