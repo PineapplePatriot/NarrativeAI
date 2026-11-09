@@ -4,7 +4,7 @@ import re
 from functools import lru_cache
 from pathlib import Path
 
-from mainapp import starters
+from mainapp import starters, writing_quality
 
 # The presets Anya provided. Later files only add blocks the earlier ones don't have.
 SOURCES = ["mimo-frankenstein", "gemini-frankenstein", "mimo-frankenstein-pico"]
@@ -87,6 +87,19 @@ def blocks():
             name = f"Cookbook: {c['problem']} ({label})"
             found[name] = {"name": name, "source": CANDIDATE_SOURCE, "content": c[form],
                            "summary": f"{c['problem']}. {c['notes']}", "on_in_source": False}
+    for item in writing_quality.catalog()["modules"]:
+        name = f"Writing repair: {item['problem']}"
+        found[name] = {"name": name, "source": CANDIDATE_SOURCE, "content": item["instruction"],
+                       "summary": item["problem"], "on_in_source": False,
+                       "exception": item["exception"], "test": item["test"],
+                       "provenance": item["provenance"], "evidence": item["evidence"], "examples": item["examples"]}
+    for item in writing_quality.catalog().get("phrase_candidates", []):
+        name = f"Phrase exclusion candidate: {item['id']}"
+        found[name] = {"name": name, "source": CANDIDATE_SOURCE,
+                       "content": f"Exclude {item['expression']} only within this scope: {item['scope']} {item['exception']}",
+                       "summary": f"User-selected exclusion: {item['expression']}. {item['scope']}",
+                       "on_in_source": False, "exception": item["exception"],
+                       "evidence": "Editorial candidate, not an enabled global blacklist or verified model-specific frequency claim."}
     return found
 
 
@@ -141,8 +154,11 @@ def tool_read_practice(session, args):
     if b is None:
         return {"error": "No such block in the library; use find_practice for the exact name."}, []
     result = {"block": b["name"], "from": b["source"], "content": b["content"][:12000]}
+    for key in ("exception", "test", "provenance", "evidence", "examples"):
+        if key in b:
+            result[key] = b[key]
     if b["source"] == CANDIDATE_SOURCE:
-        result["note"] = ("Untested wording from research; the story and rule wordings are alternatives, never both. "
+        result["note"] = ("Research candidate, not a verified improvement. Preserve its exceptions and evaluate the proposed change. "
                           + ("Fill in the [bracketed] parts and add it as your own text." if needs_filling(b) else ""))
     return result, []
 

@@ -114,7 +114,10 @@
   "starters": {
     "back_and_forth": "opus46-back-and-forth",
     "rich_scene": "opus46-rich-scene",
-    "director": "opus46-director"
+    "director": "opus46-director",
+    "conversation": "opus46-experience-conversation",
+    "drama": "opus46-experience-drama",
+    "storytelling": "opus46-experience-storytelling"
   },
   "card": {
     "order": 15,

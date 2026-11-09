@@ -28,7 +28,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
-from . import extras, game, media_library, recall, story, thinking, ai_client, cards, chats, regex_rules, model_profiles, presets, samplers, starters, trackers, translation
+from . import extras, game, media_library, recall, story, thinking, ai_client, cards, chats, regex_rules, experiences, model_profiles, presets, samplers, starters, trackers, translation
 from .bulba import control, polish, watch
 from mainapp import mature, refusals
 
@@ -2054,7 +2054,7 @@ def preset_list(request):
                                         name=presets.unique_name(request.user, presets.DEFAULT_NAME))
         elif action == "use_starter":
             try:
-                obj = starters.apply(request.user, data.get("starter"))
+                obj = starters.apply(request.user, data.get("starter"), mode=data.get("control"), extensions=data.get("extensions") or [])
             except ValueError as e:
                 return JsonResponse({"error": str(e)}, status=400)
         elif obj is None:
@@ -2134,6 +2134,7 @@ def preset_list(request):
         "post_processing": presets.POST_PROCESSING,
         "characters": [{"slug": c.slug, "name": c.name} for c in Character.objects.filter(author=request.user)],
         "starters": starters.for_page(_chat_model(request.user)),
+        "experience_control": control.mode_of(presets.normalize(selected.data)),
         "starter_of": (presets.normalize(selected.data)["extras"].get("starter") or {}).get("id"),
         "my_rules": regex_rules.user_rules(request.user),
     }})
@@ -2988,7 +2989,7 @@ def quick_setup(request):
         if data.get("starter") and data["starter"] != active_starter:
             if data["starter"] not in [r["id"] for r in ready]:
                 return JsonResponse({"error": "Pick one of the writing styles shown."}, status=400)
-            starters.apply_ready(user, data["starter"])
+            starters.apply_ready(user, data["starter"], mode=data.get("control") if data.get("control") in experiences.CONTRACTS else None)
         try:
             context = int(data.get("chat_context") or 0)
         except (TypeError, ValueError):
@@ -3010,6 +3011,17 @@ def quick_setup(request):
                 translation.drop_language_rule(user)
         if any(k in data for k in QUICK_BASICS):
             _save_quick_basics(user, {k: data.get(k) for k in QUICK_BASICS})
+        if isinstance(data.get("modules"), dict):  # the optional story modules (experiences.py)
+            active = presets.get_active(user)
+            try:
+                updated = experiences.set_modules(presets.normalize(active.data), data["modules"],
+                                                  (model_profiles.for_style(chat_model) or {}).get("id", ""))
+            except ValueError as e:
+                return JsonResponse({"error": str(e)}, status=400)
+            if not mature.is_on(updated):  # 18+ modules only with adult scenes allowed
+                updated = experiences.set_modules(updated, {k: False for k in experiences.ADULT})
+            active.data = updated
+            active.save(update_fields=["data"])
         character = Character.objects.filter(author=user, slug=str(data.get("character") or "")).first()
         url = reverse("chat", kwargs={"slug": character.slug}) if character else None
         return JsonResponse({"status": "ok", "url": url})
@@ -3027,20 +3039,35 @@ def quick_setup(request):
         "ready": ready, "active_starter": active_starter,
         "active_name": active.name, "characters": characters, "picked": picked,
         "mature_on": mature.is_on(presets.normalize(active.data)),
+        "module_groups": _module_groups(presets.normalize(active.data)),
         "quick_data": {"window": state.get("window"), "prices": state.get("prices")},
     })
 
 
 # Quick setup's Basics: point of view, tense, speech and actions (Bulba's own wording, agent.BASICS), kept as one
 # "Basics" block in the active preset; the story language is the profile's (translation workflow)
-QUICK_BASICS = ("pov", "tense", "format")
+QUICK_BASICS = ("pov", "tense", "format", "length", "control")
+# length goes in the preset's Reply length block, control is the Your character contract; the rest are Basics lines
+BASICS_LINES = ("pov", "tense", "format")
+
+
+def _module_groups(preset):
+    """Quick setup's optional story modules, grouped (voices as one pick), with what the active preset has on."""
+    groups = {}
+    for m in experiences.module_states(preset):
+        groups.setdefault(m["group"], []).append(m)
+    order = ["characters", "world", "story", "prose", "collaboration", "voice", "mature"]
+    return [{"key": g, "label": experiences.GROUP_LABELS.get(g, g), "modules": groups[g]} for g in order if g in groups]
 
 
 def _quick_basics(user):
     from mainapp.models import ChatSettings
     obj = ChatSettings.objects.filter(author=user).first()
     saved = ((obj.appearance or {}).get("quick_basics") if obj else None) or {}
-    return {"display_language": user.display_language or "en", **{k: saved.get(k, "") for k in QUICK_BASICS}}
+    out = {"display_language": user.display_language or "en", **{k: saved.get(k, "") for k in QUICK_BASICS}}
+    from mainapp.bulba import control
+    out["control"] = control.mode_of(presets.normalize(presets.get_active(user).data))  # what the preset says now
+    return out
 
 
 def _save_quick_basics(user, picks):
@@ -3048,11 +3075,17 @@ def _save_quick_basics(user, picks):
     from mainapp.models import ChatSettings
     picks = {k: v for k, v in picks.items() if v in (BASICS[k][1] or {})}
     obj, _ = ChatSettings.objects.get_or_create(author=user)
-    obj.appearance = {**(obj.appearance or {}), "quick_basics": picks}
+    obj.appearance = {**(obj.appearance or {}), "quick_basics": {k: v for k, v in picks.items() if k != "control"}}
     obj.save(update_fields=["appearance"])
-    lines = [BASICS[k][1][v] for k, v in picks.items() if BASICS[k][1][v]]
+    lines = [BASICS[k][1][v] for k, v in picks.items() if k in BASICS_LINES and BASICS[k][1][v]]
     active = presets.get_active(user)
     data = presets.normalize(active.data)
+    from mainapp.bulba import control
+    if picks.get("control") and picks["control"] != control.mode_of(data):
+        data = control.apply_to_preset(data, picks["control"])
+        if picks["control"] == "director":
+            set_layout(user, "book")
+    length_set = bool(picks.get("length")) and experiences.set_length(data, picks["length"])
     block = next((b for b in data["blocks"] if b["name"] == "Basics" and b["kind"] == "prompt"), None)
     if block is not None:
         block["content"] = "\n".join(lines)
@@ -3061,7 +3094,7 @@ def _save_quick_basics(user, picks):
         new = presets.normalize_block({"name": "Basics", "kind": "prompt", "content": "\n".join(lines)})
         at = next((i for i, b in enumerate(data["blocks"]) if b.get("marker") == "chat_history"), len(data["blocks"]))
         data["blocks"].insert(at, new)
-    else:
+    elif not (length_set or picks.get("control")):
         return
     active.data = data
     active.save(update_fields=["data"])

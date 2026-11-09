@@ -9,7 +9,7 @@ authors' advice for an AI that writes the user is to switch that off and Embelli
 import copy
 import re
 
-from mainapp import presets
+from mainapp import presets, experiences
 from mainapp.bulba import library
 
 MODES = {"dont": "The AI never writes for you", "write": "The AI writes your character too",
@@ -28,6 +28,10 @@ def wording(mode):
 
 def apply_to_preset(preset, mode):
     """A copy of the normalized preset set to this mode."""
+    if (preset.get("extras") or {}).get("original_experience"):
+        selected = [key for key, value in experiences.catalog()['extensions'].items()
+                    if any(b.get('name') == value['title'] and b.get('enabled') for b in preset['blocks'])]
+        return experiences.configure(preset, mode, selected)
     preset = copy.deepcopy(preset)
     preset["blocks"] = [b for b in preset["blocks"] if b["name"] != BLOCK]
     names = {b["name"]: b for b in preset["blocks"]}
@@ -55,6 +59,9 @@ def mode_of(preset):
     """Which mode a preset is in, as far as we can tell."""
     block = next((b for b in preset["blocks"] if b["name"] == BLOCK and b["enabled"]), None)
     if block:
+        for mode, text in experiences.CONTRACTS.items():
+            if block["content"].strip() == text:
+                return mode
         for mode in ("write", "director", "dont"):
             if block["content"].strip() == wording(mode):
                 return mode
@@ -72,6 +79,7 @@ AGENCY_LINE = re.compile(
     r"\b(speak|write|act|decide|narrate|control|describe|dialogue|thoughts|actions|feelings)\b.*$\n?"
     r"|^.*\b(never|don.t|do not|avoid|must not)\b[^\n]*\b(speak|writ|act|decid|narrat|control|describ)\w*\b[^\n]*"
     r"(for |as |on behalf of )?(\{\{user\}\}|the user|the player).*$\n?", re.M | re.I)
+FOR_REPLIES_ONLY = ("Reply length", "Surprise me")  # experience-preset blocks left out of Write my message
 REMINDER = "Reply reminder"  # the in-chat "reply as {{char}}" nudge right before the reply (bulba/doctor.py)
 IMPERSONATE_TOP = (
     "[This turn is different. You are writing {{user}}'s next message, as {{user}}, the player's own character, "
@@ -88,6 +96,8 @@ def for_impersonation(preset):
     keep = []
     for b in preset["blocks"]:
         if b["name"] == BLOCK or (b["name"] == REMINDER and b["position"] == "in_chat") or b["name"] == RF_ANTI_ECHO:
+            continue
+        if b["name"] in FOR_REPLIES_ONLY:  # the reply's length and new complications aren't for their message
             continue
         if b["kind"] == "prompt" and "impersonate" not in (b.get("triggers") or []):
             b["content"] = AGENCY_LINE.sub("", b["content"])

@@ -102,7 +102,10 @@
   "starters": {
     "back_and_forth": "glm-back-and-forth",
     "rich_scene": "glm-rich-scene",
-    "director": "glm-director"
+    "director": "glm-director",
+    "conversation": "glm-experience-conversation",
+    "drama": "glm-experience-drama",
+    "storytelling": "glm-experience-storytelling"
   },
   "card": {
     "order": 11,

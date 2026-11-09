@@ -1,0 +1,301 @@
+{
+  "baseline": "Writing quality applies at every reply length and level of detail:\n- Let character purpose, accepted history and the current interaction determine what happens. Do not interrupt an emotional response, change the relationship tone or rush the scene merely to demonstrate a stylistic rule. Description, asides and interior narration can develop the scene in the selected voice.\n- Respond to the current words and actions through their meaning and consequences. Do not recite what the other person just said or describe their own situation back to them without a communicative reason. Clarification, disagreement and deliberate callbacks remain available.\n- Narrative detail may serve atmosphere, rhythm, narrator personality or the pleasure of physical description as well as plot. Do not automatically shorten routine movement. Reduce repeated mechanics only when they displace the chosen interaction.\n- In dialogue, do not chain the listener's known actions through repeated and/and then/and now clauses before announcing an emotional verdict. Give the speaker an immediate purpose: an answer, demand, objection, admission or refusal. Preserve ordinary conjunctions and intentional character-specific rambling; do not substitute clipped fragments.\n- Choose physical reactions for their relevance to this person and event. Do not routinely express emotion through jaw tension, interrupted breathing, clenching and unclenching, opening and closing the mouth, or an unnamed change in the eyes or voice. Omit an unnecessary reaction rather than substitute another obligatory gesture.\n- Let dialogue serve the speaker's purpose. Do not explain the emotional meaning of every line, diagnose another person's psychology, or turn ordinary answers into maxims, clever corrections or assessments of their character. Preserve insight, affection, humor and interior narration when the characterization and viewpoint support them.\n- Use varied, connected sentences. Repeated fragments, corrective contrasts and lists of near-synonyms should not supply intensity in place of information. A purposeful fragment, contrast, image or list is allowed.\n- Let the interaction determine the reply's structure. Do not replay the same gesture-dialogue-reaction sequence, compulsory question or dramatic ending. Quiet conversation may continue without a new complication; relevant action should occur rather than be repeatedly prepared or described as imminent.\n- Derive cooperation, resistance and emotional change from motives, evidence and relationship history. Praise, attraction or a few friendly exchanges do not automatically produce admiration, loyalty or trust. Neither affection nor an apology erases established flaws or consequences. Independence does not require hostility or disagreement.\n- Preserve established events and who knows them. Do not invent a disclosure, player action or convenient clue to justify a character's knowledge. Describe meaningful changes rather than announcing that trust, tension or intimacy has changed.",
+  "modules": [
+    {
+      "id": "gesture_filler",
+      "problem": "Stock physical reactions",
+      "instruction": "Use physical reactions in keeping with the selected narrator and scene. Remove a recurring reaction when it merely labels emotion or repeatedly interrupts the intended exchange; do not replace every omitted gesture with another obligatory gesture. Detailed movement may remain for atmosphere or enjoyment.",
+      "exception": "An injury or physical task can make repeated hand movements necessary. Deliberate physical description can also serve atmosphere or narrator personality; do not treat all detailed movement as emotional filler.",
+      "test": "Repeated emotional exchanges: clench/unclench must not become compulsory cup handling.",
+      "provenance": "S04; Cookbook 4.9; Pura grounded prose and RF targeted exclusions",
+      "evidence": "research candidate; live effectiveness unverified",
+      "examples": {
+        "problem": "His fingers close, then open. His mouth opens, then closes. He does not notice.",
+        "alternative": "He declines to answer the question.",
+        "scope": "Independent illustrations, not replacements to insert into a real chat. Preserve established facts when rewriting."
+      }
+    },
+    {
+      "id": "annotation",
+      "problem": "Vague emotions and explanatory narration",
+      "instruction": "Describe a relevant perception or the requested interior experience directly. Do not repeatedly imply depth through something changing in a gaze, or explain what every spoken line means.",
+      "exception": "A reflective narrator can name feelings; ambiguity can be intentional.",
+      "test": "Compare a guarded speaker with an explicitly introspective viewpoint.",
+      "provenance": "S06/S09; Voyage6.0.1 motive restraint",
+      "evidence": "research candidate; live effectiveness unverified",
+      "examples": {
+        "problem": "Something changes in his gaze. His words carry a vulnerability he cannot name.",
+        "alternative": "He admits he cannot answer while she is listening.",
+        "scope": "Independent illustrations, not replacements to insert into a real chat. Preserve established facts when rewriting."
+      }
+    },
+    {
+      "id": "rhythm",
+      "problem": "Fragments, contrasts and stacked synonyms",
+      "instruction": "Use connected sentences of varied length. Reserve fragments and corrective contrasts for moments that need them; remove repeated rhetorical emphasis that adds no distinction.",
+      "exception": "A panicked No. Stop. and correction of a real misunderstanding are valid.",
+      "test": "An argument and an urgent warning must retain different rhythms.",
+      "provenance": "S01-S03; RF contrast and staccato modules",
+      "evidence": "research candidate; live effectiveness unverified",
+      "examples": {
+        "problem": "A choice. A silence. Not anger. Something deeper. Older. Truer.",
+        "alternative": "He asks who else received the letter.",
+        "scope": "Independent illustrations, not replacements to insert into a real chat. Preserve established facts when rewriting."
+      }
+    },
+    {
+      "id": "dialogue",
+      "problem": "Therapy, aphorisms and compulsory wit",
+      "instruction": "Answer from the speaker's knowledge, purpose and vocabulary. Insight, comfort and humor should fit this person and relationship; ordinary answers need not diagnose, lecture or outdo the other speaker.",
+      "exception": "Preserve an established counselor, philosopher or witty character.",
+      "test": "Compare a counselor, exhausted guard and humorous sibling.",
+      "provenance": "S10-S15; Pura meaning-first; NoPussyfooting conversational focus",
+      "evidence": "research candidate; live effectiveness unverified",
+      "examples": {
+        "problem": "Your fear is valid. You are either brave or foolish. Perhaps both.",
+        "alternative": "I cannot promise it is safe. Do you still want the address?",
+        "scope": "Independent illustrations, not replacements to insert into a real chat. Preserve established facts when rewriting."
+      }
+    },
+    {
+      "id": "traits",
+      "problem": "Occupation or signature trait dominates every reply",
+      "instruction": "Let traits influence relevant choices without performing every trait or professional metaphor in each reply. Preserve interests and relationships beyond the character's occupation.",
+      "exception": "Technical vocabulary is appropriate when the subject and listener warrant it.",
+      "test": "A professional discussion and an ordinary family conversation should differ.",
+      "provenance": "S07/S18; Voyage expertise; Kindling conditional characterization",
+      "evidence": "research candidate; live effectiveness unverified",
+      "examples": {
+        "problem": "The accountant audits her apology and files her grief as an unpaid debt.",
+        "alternative": "The accountant asks why she waited until today to apologize.",
+        "scope": "Independent illustrations, not replacements to insert into a real chat. Preserve established facts when rewriting."
+      }
+    },
+    {
+      "id": "pace",
+      "problem": "Repeated structure, stalling or rushing",
+      "instruction": "Address consequential actions in order. Carry out the response rather than endlessly preparing it. Develop unresolved interaction before advancing time; no required twist, interruption, gesture sequence or closing question.",
+      "exception": "Urgency can warrant immediate action; meaningful quiet is not stagnation.",
+      "test": "A quiet confession, routine transaction and urgent escape should proceed differently.",
+      "provenance": "S22-S28; DEM scale; Kindling quiet turns; Pura continuity",
+      "evidence": "research candidate; live effectiveness unverified",
+      "examples": {
+        "problem": "He prepares to answer. His eyes change. He almost speaks. He waits.",
+        "alternative": "He gives the answer he has been avoiding.",
+        "scope": "Independent illustrations, not replacements to insert into a real chat. Preserve established facts when rewriting."
+      }
+    },
+    {
+      "id": "friction",
+      "problem": "Easy reconciliation or universal opposition",
+      "instruction": "Base agreement, forgiveness and refusal on motives, events and established commitments. Allow partial repair and genuine agreement; do not add resistance merely to demonstrate autonomy.",
+      "exception": "An affectionate person can be kind and a sound argument can succeed.",
+      "test": "Compare a reasonable request, unfair accusation and sincere apology.",
+      "provenance": "S16/S17; Nemo Vivarium autonomy; Writer's Block partial repair",
+      "evidence": "research candidate; live effectiveness unverified",
+      "examples": {
+        "problem": "The waiter treats a request for water as a challenge to his authority.",
+        "alternative": "The waiter asks whether she wants still or sparkling water.",
+        "scope": "Independent illustrations, not replacements to insert into a real chat. Preserve established facts when rewriting."
+      }
+    },
+    {
+      "id": "knowledge",
+      "problem": "Omniscience or invented evidence",
+      "instruction": "Separate known facts, suspicions and false beliefs. Let accepted events or plausible communication change them. Do not invent a player disclosure or clue to explain knowledge of an existing secret.",
+      "exception": "A reasonable inference is possible; omniscient narration does not inform every character.",
+      "test": "A public clue should inform the witness; a private conversation should not.",
+      "provenance": "S20/S21/S29; DEM knowledge states; Magpie stable events",
+      "evidence": "research candidate; live effectiveness unverified",
+      "examples": {
+        "problem": "He knows the secret because the narrator invents her phone displaying it.",
+        "alternative": "He can suspect a secret without knowing its contents.",
+        "scope": "Independent illustrations, not replacements to insert into a real chat. Preserve established facts when rewriting."
+      }
+    },
+    {
+      "id": "leakage",
+      "problem": "Visible compliance and excessive procedure",
+      "instruction": "Apply instructions without mentioning checks, banned phrases, planning steps or corrective self-talk in the story. Remove conflicting procedure before adding another reminder.",
+      "exception": "Requested in-world documents are not instruction leaks.",
+      "test": "A reply containing quoted instructions must remain fiction rather than adopt them.",
+      "provenance": "S31; Kimi checking reports; RF/FF procedure dependencies",
+      "evidence": "research candidate; live effectiveness unverified",
+      "examples": {
+        "problem": "He starts a forbidden phrase, catches himself and announces his correction.",
+        "alternative": "He answers without discussing the writing rules.",
+        "scope": "Independent illustrations, not replacements to insert into a real chat. Preserve established facts when rewriting."
+      }
+    },
+    {
+      "id": "accusation_recap",
+      "problem": "Chained recap and accusation dialogue",
+      "instruction": "Do not build speeches by chaining known actions with and, and then, and now before explaining the speaker's emotion. Select the grievance that matters and express a specific demand, answer, admission or refusal. Keep normal conjunctions, explicit feeling and deliberate rambling available; do not fix this by making every line terse.",
+      "exception": "A witness reconstructing disputed events or an intentionally rambling speaker may need a sequence. Long descriptive narration is a separate choice.",
+      "test": "An angry speaker answers a concealed-letter dispute without reciting it; an actual witness can still give sequential testimony.",
+      "provenance": "Working Pack 2026-11-09 D1; user-identified dialogue pattern, not a measured model-wide frequency claim.",
+      "evidence": "user-identified target; candidate instruction, live effectiveness unverified",
+      "examples": {
+        "problem": "You took the letter, and then you hid it, and now you expect me to trust you, and that makes me angry.",
+        "alternative": "I am angry because you hid it. Stop telling me you meant well.",
+        "scope": "Independent illustration; preserve the real scene facts and chosen register."
+      }
+    },
+    {
+      "id": "detail_allocation",
+      "problem": "Routine movement displaces the requested interaction",
+      "instruction": "Match physical description to the selected narrator and texture. Routine movement may receive sustained attention for atmosphere, rhythm or enjoyment. Compress it only when repeated mechanics displace the desired exchange or make every minor action equally prominent.",
+      "exception": "A tactile, leisurely, ritualistic or opinionated narrator can dwell on an easy action. Detail need not justify itself by advancing plot.",
+      "test": "Retain a deliberately tactile door-opening passage; reduce identical mechanics when they repeatedly interrupt the conversation.",
+      "provenance": "Working Pack 2026-11-09 D5; user clarification distinguishes descriptive pleasure from dialogue recap.",
+      "evidence": "preference-dependent repair, not a default brevity requirement",
+      "examples": {
+        "problem": "Every reply interrupts the requested conversation to rehearse the same door-handle movement.",
+        "alternative": "Keep the selected physical detail where the reader enjoys it; resume the exchange when repetition obstructs it.",
+        "scope": "Evaluate allocation across replies rather than declaring a single detailed action defective."
+      }
+    },
+    {
+      "id": "false_precision",
+      "problem": "Unsupported numerical or diagnostic certainty",
+      "instruction": "Separate observation, inference and confirmed fact. Do not invent exact force, timing, measurements or medical certainty to demonstrate intelligence. Expertise can include uncertainty and relevant questions. Preserve precise facts that the story establishes and the speaker could know.",
+      "exception": "A measured dose, negotiated price, known deadline or established extraordinary ability may justify precision.",
+      "test": "An expert asks about an ambiguous injury but can still report a known measurement accurately.",
+      "provenance": "Working Pack 2026-11-09 D6; supplied blind-comparison discussion.",
+      "evidence": "diagnostic candidate, not a ban on numbers or competent characters",
+      "examples": {
+        "problem": "The marks proved exactly how much pressure was used and for how long.",
+        "alternative": "He studies the marks and asks how long she was held.",
+        "scope": "Illustrations are not authority to invent an examination in another scene."
+      }
+    }
+  ],
+  "models": {
+    "claude-opus-5-5": [
+      "traits",
+      "rhythm",
+      "annotation"
+    ],
+    "claude-opus-4-6": [
+      "rhythm",
+      "gesture_filler",
+      "dialogue"
+    ],
+    "claude-opus-4-7": [
+      "rhythm",
+      "pace"
+    ],
+    "claude-fable-5-1": [
+      "annotation",
+      "pace"
+    ],
+    "kimi-k3": [
+      "leakage",
+      "traits",
+      "pace"
+    ],
+    "mimo-v2-6-pro": [
+      "accusation_recap",
+      "pace",
+      "friction",
+      "gesture_filler",
+      "knowledge"
+    ],
+    "gemini-3-8-flash": [
+      "accusation_recap",
+      "dialogue",
+      "knowledge",
+      "friction"
+    ],
+    "gemini-4-argon": [
+      "accusation_recap",
+      "traits",
+      "pace",
+      "false_precision"
+    ],
+    "glm-5-3": [
+      "dialogue",
+      "knowledge",
+      "traits"
+    ],
+    "deepseek-v4-pro": [
+      "pace",
+      "dialogue"
+    ],
+    "deepseek-v4-flash": [
+      "pace",
+      "traits",
+      "knowledge"
+    ]
+  },
+  "default_counters": {
+    "claude-opus-5-5": "Preserve independent priorities, boundaries and established grievances through praise, attraction and kindness. Do not turn brief rapport into devotion, moral endorsement or automatic forgiveness. Let concessions follow meaningful reasons and retain conflicting commitments. Genuine affection and earned agreement remain possible. Every spoken line must be something this character, with their world, era and education, could plausibly say: present-day internet idioms only for characters established as very online, exclamations from their own world. No line exists only to rate what the other person said; no validation register ('I respect that', 'that's valid', filler 'honestly'); show the reaction through what they do or want.",
+    "claude-opus-4-6": "Keep boundaries, flaws and conflicting goals consequential as relationships warm. Do not reward the player with rapid trust, admiration or reconciliation merely for being pleasant. Resistance must fit the stakes; a reasonable request may succeed. Every spoken line must be something this character, with their world, era and education, could plausibly say: present-day internet idioms only for characters established as very online, exclamations from their own world. No line exists only to rate what the other person said; no validation register ('I respect that', 'that's valid', filler 'honestly'); show the reaction through what they do or want.",
+    "claude-opus-4-7": "Develop the actual exchange rather than a compressed outline or fragment list. Preserve disagreement and independent priorities through friendliness without making every encounter hostile. Every spoken line must be something this character, with their world, era and education, could plausibly say: present-day internet idioms only for characters established as very online, exclamations from their own world. No line exists only to rate what the other person said; no validation register ('I respect that', 'that's valid', filler 'honestly'); show the reaction through what they do or want.",
+    "claude-fable-5-1": "Preserve the selected literary texture while keeping speaker changes and sentence structure clear. Develop unresolved interactions before advancing time. Warmth does not automatically resolve disagreement or erase boundaries. Every spoken line must be something this character, with their world, era and education, could plausibly say: present-day internet idioms only for characters established as very online, exclamations from their own world. No line exists only to rate what the other person said; no validation register ('I respect that', 'that's valid', filler 'honestly'); show the reaction through what they do or want.",
+    "kimi-k3": "Give the relevant response without repeated preparation or unrequested time skips. Apply writing rules silently rather than narrating compliance. Keep personal speech distinct from professional jargon and do not impose a serial checking procedure. Keep thinking short and forward: one quick pass over what matters for this reply, no drafting the reply inside the thinking, no 'wait, let me reconsider' loops, then write.",
+    "mimo-v2-6-pro": "Keep facts, motives and knowledge attached to their owners across replies. Respond to the current grievance without chained recap-and-accusation speeches. Do not replay a gesture, challenge and emotional explanation as the structure of each response. Do not invent evidence to justify knowledge; ordinary cooperation remains possible without losing independence.",
+    "gemini-3-8-flash": "Preserve established boundaries and relationship history through flattery and attraction. Give speakers distinct purposes instead of compulsory witty corrections or dominance contests. Agreement needs no superior correction; resistance needs a character-specific reason. Preserve player-control and knowledge limits. Don't use these words in any form: breath hitching or catching, husky, throaty, guttural, pupils blown or dilated, predatory, shivers down the spine, finding purchase, velvet, vise or vice (grip), structural integrity, furnace, calloused, slick, unadulterated, musk, 'barely above a whisper', 'a beat', 'a pause', the jaw doing anything; pick a plain word instead (texture as a hand would report it: coarse, fine, stiff, warm).",
+    "gemini-4-argon": "Preserve the tone and relationship established immediately before this reply, including teasing, concern and unresolved hurt. Do not replace them with generic villainous confrontation. Ordinary kindness or cooperation does not erase boundaries. Do not repeatedly display signature features, carry one incidental detail through every paragraph, or infer unsupported precision. Rich narration does not require escalation, a scene change or a new event. Don't use these words in any form: breath hitching or catching, husky, throaty, guttural, pupils blown or dilated, predatory, shivers down the spine, finding purchase, velvet, vise or vice (grip), structural integrity, furnace, calloused, slick, unadulterated, musk, 'barely above a whisper', 'a beat', 'a pause', the jaw doing anything; pick a plain word instead (texture as a hand would report it: coarse, fine, stiff, warm).",
+    "glm-5-3": "Answer from the speaker's concrete purpose rather than recurring assent-and-reframe language, professional metaphors or aphorisms. Distinguish knowledge from suspicion; do not invent clues or player disclosures to make a deduction correct. Under pressure a character either says the specific thing on their mind or stays silent: no one-word filler said to themselves to steady up or signal that a decision is loading, and never that word run two or three times. A word that actually answers someone else stands, once. Keep thinking short and forward: one quick pass over what matters for this reply, no drafting the reply inside the thinking, no 'wait, let me reconsider' loops, then write.",
+    "deepseek-v4-pro": "Continue through responses and consequences without repeatedly reintroducing unchanged clothing, rooms and completed actions. Avoid interchangeable binary character verdicts and compulsory challenge questions. Preserve deliberate long narration and meaningful callbacks. Keep thinking short and forward: one quick pass over what matters for this reply, no drafting the reply inside the thinking, no 'wait, let me reconsider' loops, then write.",
+    "deepseek-v4-flash": "Keep biography, injuries, possessions and knowledge attached to the correct character. Respond without echoing the player or restaging the same gesture sequence. Rich detail does not make character attributes interchangeable. Keep thinking short and forward: one quick pass over what matters for this reply, no drafting the reply inside the thinking, no 'wait, let me reconsider' loops, then write."
+  },
+  "counter_evidence": "Default trial settings synthesized from research dossiers and user calibration. Enabled corrective purpose is distinct from an optional hostile atmosphere. These are not measured optimizations.",
+  "phrase_candidates": [
+    {
+      "id": "held_breath",
+      "expression": "a breath they did not know they were holding",
+      "scope": "The unnoticed-held-breath release formula and close paraphrases.",
+      "exception": "Do not prohibit literal breathing or an established physical cause."
+    },
+    {
+      "id": "dialogue_taste",
+      "expression": "tasting the words",
+      "scope": "The recurring metaphor attached to echoing dialogue.",
+      "exception": "Literal taste and user-approved imagery remain available."
+    },
+    {
+      "id": "binary_verdict",
+      "expression": "brave or foolish; maybe both",
+      "scope": "Interchangeable binary character-assessment endings.",
+      "exception": "A meaningful either/or choice with real consequences is allowed."
+    },
+    {
+      "id": "timing_labels",
+      "expression": "a beat; a pause",
+      "scope": "Standalone narrator timing labels, only if explicitly rejected.",
+      "exception": "Music, literal blows, natural pauses and other ordinary uses are not prohibited."
+    },
+    {
+      "id": "vague_scent",
+      "expression": "something uniquely him/her/them",
+      "scope": "Vague personal-scent conclusions.",
+      "exception": "Established recognizable scents and relevant sensory detail remain valid."
+    },
+    {
+      "id": "dialogue_relabel",
+      "expression": "not a request; a command",
+      "scope": "Formulaic narrator relabeling of an already clear spoken line.",
+      "exception": "A character can explicitly correct a genuine misunderstanding."
+    },
+    {
+      "id": "stock_emotion",
+      "expression": "predatory grin; eyes darkened; jaw tightened",
+      "scope": "Only the user-rejected stock emotional cue and cosmetic paraphrases used in that function.",
+      "exception": "Not all smiles, changes in light, bodily descriptions, literal injury or desired menace are prohibited."
+    },
+    {
+      "id": "atmospheric_tension",
+      "expression": "the air crackled with tension",
+      "scope": "Generic declarations of atmosphere in place of the scene-specific interaction.",
+      "exception": "Literal electrical discharge and user-approved imagery remain possible."
+    },
+    {
+      "id": "relationship_label",
+      "expression": "heavy and proprietary",
+      "scope": "Only this exact recurring relationship label and equivalents explicitly rejected by the user.",
+      "exception": "Do not prohibit possessive dynamics or descriptive narration the user actually wants."
+    }
+  ]
+}

@@ -5,7 +5,7 @@ import re
 import uuid
 from pathlib import Path
 
-from mainapp import ai_client, cards, model_profiles, presets, starters, thinking
+from mainapp import ai_client, cards, model_profiles, presets, starters, thinking, writing_quality, experiences
 from mainapp.trackers import TRACKERS as TRACKER_LIST
 from mainapp.bulba import control, doctor, library, lore, rules, tune
 
@@ -89,10 +89,15 @@ def model_knowledge(profile):
     if fixed:
         lines.append("Settings this model fixes itself (don't promise to change them): " + ", ".join(fixed))
     lines += ["", "Starters for this model (the base for propose_preset):"]
-    for sid in profile.get("starters", {}).values():
+    for feel in starters.READY_FEELS:
+        sid = profile.get("starters", {}).get(feel)
         s = starters.get(sid)
         if s:
             lines.append(f"- {s['id']}: {s['title']}. {s['tagline']} {s['description']}")
+    base = experiences.base_of(profile["id"])
+    lines += ["", f"Its experience presets use the {'story-led' if base == 'narrative' else 'rule-led'} base "
+              "(see the preset guide for the blocks and modules)."]
+    lines += ["", writing_quality.guidance(profile["id"])]
     return "\n".join(lines)
 
 
@@ -226,14 +231,18 @@ TOOLS = [
          "why": {"type": "string", "description": "One line on why these fit their story (shown above the form)"}}),
     _fn("propose_preset", "Propose the finished preset: a starter plus a short 'your taste' section.",
         {"starter": STR, "name": STR, "taste": {"type": "string", "description": "Plain instructions to the model"},
-         "reply_length": {"type": "string", "enum": ["short", "medium", "long"]},
+         "reply_length": {"type": "string", "enum": ["short", "medium", "long", "flexible"]},
          "rewrite": {"type": "object", "description": "Only if the starter contradicts them: full replacement text for its Roleplay and/or Style section",
                      "properties": {"Roleplay": STR, "Style": STR}},
+         "switch_on": {"type": "array", "maxItems": 10, "items": STR,
+                       "description": "Experience modules to switch on (exact block names, e.g. 'Hard mode', "
+                                      "'Voice: Camus (wry)', 'Chekhov\'s gun'); see the preset guide"},
          "switch_off": {"type": "array", "maxItems": 10, "items": STR,
                         "description": "Blocks of the starter to switch off (exact names), e.g. a community "
                                        "preset's random-event engines for someone who wants no chance"},
          "borrow": {"type": "array", "maxItems": 6, "items": STR,
                     "description": "Optional verbatim library import (exact names from find_practice), only when requested and permitted. Normally express the relevant principle in taste or rewrite."},
+         "extensions": {"type": "array", "items": {"type": "string", "enum": ["adventure", "continuity"]}},
          "why": STR},
         ["starter", "taste", "why"]),
     _fn("propose_persona", "Propose who the user is in the story.",
@@ -336,7 +345,7 @@ def _starter_for(session, starter_id):
     allowed = set(profile.get("starters", {}).values())
     if starter_id in allowed:
         return starters.get(starter_id)
-    default = profile.get("starters", {}).get("rich_scene")
+    default = profile.get("starters", {}).get("storytelling") or profile.get("starters", {}).get("rich_scene")
     return starters.get(default) if default else None
 
 
@@ -352,15 +361,21 @@ def build_preset(payload):
     """A normalized preset from a preset proposal's payload: starter, rewritten sections, taste."""
     starter = starters.get(payload["starter"])
     preset = presets.normalize(starter["preset"])
+    if preset["extras"].get("original_experience"):
+        preset = experiences.configure(preset, payload.get("control") or "dont", payload.get("extensions") or [])
     for block in preset["blocks"]:
         if block["kind"] == "prompt" and block["name"] in (payload.get("rewrite") or {}):
             block["content"] = payload["rewrite"][block["name"]]
     length = LENGTHS.get(payload.get("reply_length"))
+    if length and experiences.set_length(preset, payload["reply_length"]):  # an experience preset: its Reply length block
+        length = ""
     if length and not _replace_length_line(preset, length):
         payload = {**payload, "taste": (payload.get("taste", "") + "\n" + length).strip()}
     for block in preset["blocks"]:
         if block["name"] in (payload.get("switch_off") or []):
             block["enabled"] = False
+        elif block["name"] in (payload.get("switch_on") or []):
+            block["enabled"] = True
     for name in reversed(payload.get("borrow") or []):
         block = library.get(name)
         if block and not any(b["name"] == name for b in preset["blocks"]):
@@ -415,7 +430,13 @@ def tool_get_starter(session, args):
         return {"error": "No starter for this model."}, []
     sections = {b["name"]: b["content"] for b in starter["preset"]["blocks"]
                 if b.get("kind") == "prompt" and b.get("name") in REWRITABLE}
-    result = {"id": starter["id"], "title": starter["title"], "sections": sections}
+    result = {"id": starter["id"], "title": starter["title"], "sections": sections,
+              "writing_quality": "\n\n".join(b["content"] for b in starter["preset"]["blocks"]
+                                       if b.get("id") in (writing_quality.BLOCK_ID, writing_quality.COUNTER_ID))}
+    if (starter["preset"].get("extras") or {}).get("original_experience"):
+        result["components"] = [{"name": b.get("name"), "enabled": b.get("enabled", True), "content": b.get("content", "")}
+                                for b in starter["preset"]["blocks"] if b.get("kind") == "prompt"]
+        result["status"] = "Research-informed original configuration; live effectiveness unverified."
     if not sections:  # a community preset: its switched-on blocks, and which of them add chance
         result["blocks_on"] = [b["name"] + (" (adds chance)" if library.CHANCE.search(b.get("content") or "") else "")
                                for b in starter["preset"]["blocks"]
@@ -506,7 +527,7 @@ BASICS = {
         "third": "Narrate in third person (\"she steps inside\").",
         "first": "Narrate in first person from {{char}}'s point of view (\"I step inside\")."}),
     "tense": ("Tense", {"present": "Write in present tense.", "past": "Write in past tense."}),
-    "length": ("Reply length", {"short": "short", "medium": "medium", "long": "long"}),
+    "length": ("Reply length", {"short": "short", "medium": "medium", "long": "long", "flexible": "flexible"}),
     "control": ("Your character", {  # handled by propose_preset itself (bulba/control.py), not the taste text
         "dont": "dont", "write": "write", "director": "director"}),
     "format": ("Speech and actions", {
@@ -523,6 +544,8 @@ BASICS = {
               "self-contained HTML panel with inline styles (for example a phone chat as message bubbles), "
               "then carry on with the prose.",
         "off": ""}),
+    "modules": ("Story modules", {k: m["title"] for k, m in experiences.catalog()["modules"].items()
+                                   if not m["default"] and not k.startswith("voice_")}),
     "genres": ("Genres", {  # several may be picked (wording after Celia's genre toggles)
         "fluff": "light-hearted warmth, affectionate exchanges and cozy moments",
         "slice_of_life": "the quiet charm of everyday life, routine and small connections",
@@ -583,7 +606,8 @@ BASICS = {
     "author": ("Write like", None),  # free text: an author they love
     "keep_out": ("Keep out", None),  # free text
 }
-LENGTH_WORDS = {"short": "a few lines", "medium": "a few paragraphs", "long": "a proper chunk"}
+LENGTH_WORDS = {"short": "short (two to four paragraphs)", "medium": "medium (five to eight paragraphs)",
+                "long": "long (a full sequence of events)", "flexible": "flexible (brief in talk, fuller in big moments)"}
 
 
 def tool_show_basics_form(session, args):
@@ -607,6 +631,17 @@ def apply_basics(session, answers):
                 lines.append(f"{label}: {text}")
                 tool_record_preference(session, {"wording": "Basics form: genres", "interpretation": text,
                                                  "scope": "general", "strength": "firm", "status": "confirmed"})
+                implied = [m for g, m in GENRE_MODULES.items() if g in picked]
+                if implied:
+                    _record_modules(session, implied, "Basics form: genres")
+            continue
+        if key == "modules":
+            cat = experiences.catalog()["modules"]
+            picked = [m for m in (answers.get(key) or []) if isinstance(m, str) and m in options][:12]
+            if picked:
+                lines.append(f"{label}: " + ", ".join(cat[m]["title"] for m in picked)
+                             + " (propose_preset switches these on itself; don't repeat them in taste)")
+                _record_modules(session, picked, "Basics form: story modules")
             continue
         raw = str(answers.get(key) or "").strip()[:300]
         if not raw:
@@ -661,6 +696,11 @@ def apply_basics(session, answers):
             if not text:
                 lines.append(f"{label}: no preference")
                 continue
+        if key == "voice" and f"voice_{raw}" in experiences.catalog()["modules"]:
+            _record_modules(session, [f"voice_{raw}"], "Basics form: narration voice")
+            title = experiences.catalog()["modules"][f"voice_{raw}"]["title"]
+            lines.append(f"{label}: the {title} module (propose_preset switches it on itself; not taste)")
+            continue
         lines.append(f"{label}: {text}")
         tool_record_preference(session, {"wording": f"Basics form: {label.lower()}", "interpretation": text,
                                          "scope": scope, "strength": "firm", "status": "confirmed"})
@@ -675,6 +715,8 @@ def tool_record_preference(session, args):
             "status": args.get("status") if args.get("status") in ("tentative", "confirmed", "rejected") else "tentative"}
     if args.get("key") in ("control:dont", "control:write", "control:director"):  # the basics form, or said later
         pref["key"] = args["key"]
+    elif str(args.get("key") or "").startswith("modules:"):  # experience modules picked on the basics form
+        pref["key"] = str(args["key"])[:400]
     replaced = next((p for p in session.preferences if p["id"] == args.get("replaces")), None)
     if replaced:
         replaced["status"] = "superseded"
@@ -735,9 +777,33 @@ def tool_propose_extras(session, args):
     return {"proposal": p["id"], "status": "waiting for Apply"}, [{"type": "proposal", "id": p["id"]}]
 
 
-LENGTHS = {"short": "Keep replies short: one to three paragraphs.",
-           "medium": "Keep replies to about three to five paragraphs.",
-           "long": "Longer replies are welcome: five or more paragraphs when the moment allows."}
+LENGTHS = {"short": "Keep replies short: two to four paragraphs.",
+           "medium": "Keep replies to about five to eight paragraphs.",
+           "long": "Longer replies are welcome: a full sequence of events when the moment allows.",
+           "flexible": "Let the scene set the length: brief in conversation, fuller for big moments."}
+
+
+GENRE_MODULES = {"smut": "explicit_intimacy", "dead_dove": "dark_themes"}  # genre picks that come with a module
+
+
+def _record_modules(session, keys, wording):
+    cat = experiences.catalog()["modules"]
+    tool_record_preference(session, {"wording": wording, "key": "modules:" + ",".join(keys),
+                                     "interpretation": "Switch on: " + ", ".join(cat[k]["title"] for k in keys),
+                                     "scope": "general", "strength": "firm", "status": "confirmed"})
+
+
+def form_modules(session):
+    """Module block names the basics form asked for (modules, a voice, genres that imply one), for a new preset."""
+    cat = experiences.catalog()["modules"]
+    titles = []
+    for p in session.preferences:
+        if p.get("status") != "confirmed":
+            continue
+        key = str(p.get("key") or "")
+        if key.startswith("modules:"):
+            titles += [cat[k]["title"] for k in key[8:].split(",") if k in cat]
+    return list(dict.fromkeys(titles))
 
 
 def tool_propose_preset(session, args):
@@ -761,7 +827,15 @@ def tool_propose_preset(session, args):
                          if str(p.get("key", "")).startswith("control:") and p["status"] == "confirmed"), None)
     control_mode = control_pref["key"].split(":", 1)[1] if control_pref else "dont"
     switch_off = [str(n).strip() for n in (args.get("switch_off") or [])][:10]
-    missing = [n for n in switch_off if n not in originals]
+    switch_on = [str(n).strip() for n in (args.get("switch_on") or [])][:10]
+    if (starter["preset"].get("extras") or {}).get("original_experience"):  # what the basics form asked for, too
+        asked_voice = any(n.startswith("Voice:") for n in switch_on)
+        switch_on += [n for n in form_modules(session) if n not in switch_on and n not in (args.get("switch_off") or [])
+                      and not (asked_voice and n.startswith("Voice:"))]
+    voices = [n for n in switch_on if n.startswith("Voice:")]
+    if len(voices) > 1:
+        return {"error": "One narration voice at a time."}, []
+    missing = [n for n in switch_off + switch_on if n not in originals]
     if missing:
         return {"error": f"The starter has no block called: {', '.join(missing)}."}, []
     borrow = [str(n).strip() for n in (args.get("borrow") or [])][:6]
@@ -771,6 +845,9 @@ def tool_propose_preset(session, args):
     unfilled = [n for n in borrow if library.needs_filling(library.get(n))]
     if unfilled:
         return {"error": f"{', '.join(unfilled)} has [bracketed] parts: fill them in and put it in taste instead."}, []
+    extensions = args.get("extensions") or []
+    if not isinstance(extensions, list) or any(not isinstance(e, str) or e not in experiences.catalog()["extensions"] for e in extensions):
+        return {"error": "Unknown experience extension."}, []
     profile = target_profile(session) or {}
     name = str(args.get("name") or f"My setup · {profile.get('name', '')}").strip()[:120]
     summary = [f"Built on the {starter['title']} starter for {profile.get('name', '')}"]
@@ -780,6 +857,8 @@ def tool_propose_preset(session, args):
         from mainapp.bulba import control
         summary += ["Your character:", f"  {control.MODES[control_mode]}"
                     + (" (and the book layout: replies as chapters)" if control_mode == "director" else "")]
+    if switch_on:
+        summary += ["Switched on:", *[f"  {n}" for n in switch_on]]
     if switch_off:
         summary += ["Switched off:", *[f"  {n}" for n in switch_off]]
     if borrow:
@@ -789,8 +868,8 @@ def tool_propose_preset(session, args):
         summary += ["Reply length:", f"  {LENGTHS[reply_length]}"]
     p = _proposal(session, "preset", f"Preset: {name}", summary,
                   {"starter": starter["id"], "name": name, "taste": taste, "rewrite": rewrite,
-                   "reply_length": reply_length, "borrow": borrow, "switch_off": switch_off,
-                   "control": control_mode})
+                   "reply_length": reply_length, "borrow": borrow, "switch_off": switch_off, "switch_on": switch_on,
+                   "control": control_mode, "extensions": extensions})
     return {"proposal": p["id"], "status": "waiting for Apply"}, [{"type": "proposal", "id": p["id"]}]
 
 
@@ -879,7 +958,7 @@ def opening(session):
     session.events = [{"type": "bulba", "text": text, "choices": choices}]
 
 
-FAST_FEELS = ("back_and_forth", "rich_scene", "director")
+FAST_FEELS = starters.READY_FEELS
 
 
 def _canned(session, picked, text, choices=None, extra_events=(), after=()):
@@ -913,6 +992,10 @@ def take_route(session, route):
         return _canned(session, "Fast route",
                        "Pick the feel. You can change it any time on the Presets page, or ask me in a chat.", choices)
     starter_id = route.partition(":")[2]
+    # Honor old saved quick-setup links without offering legacy categories to new users.
+    for key in ("back_and_forth", "rich_scene", "director"):
+        if profile.get("starters", {}).get(key) == starter_id:
+            feels[key] = starter_id
     feel = next((k for k, v in feels.items() if v == starter_id), None)
     s = starters.get(starter_id) if route.startswith("fast:") and feel else None
     if s is None:
@@ -920,7 +1003,8 @@ def take_route(session, route):
     name = f"{s['title']} · {profile.get('name', '')}"
     p = _proposal(session, "preset", f"Preset: {name}", [f"The ready {s['title']} setup for {profile.get('name', '')}"],
                   {"starter": s["id"], "name": name, "taste": "", "rewrite": {}, "reply_length": "", "borrow": [],
-                   "switch_off": [], "control": "director" if feel == "director" else "dont"})
+                   "switch_on": form_modules(session), "switch_off": [], "control": "director" if feel == "director" else next((p["key"].split(":", 1)[1] for p in session.preferences
+                                    if p.get("key", "").startswith("control:") and p.get("status") == "confirmed"), "dont")})
     note = actions.apply(session, p["id"])
     p["status"] = "applied"
     session.stage = "persona"

@@ -75,7 +75,7 @@ $('readyList').addEventListener('click', async e => {
         const resp = await fetch(WELCOME_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-            body: JSON.stringify({ action: 'ready', starter: btn.dataset.starter }),
+            body: JSON.stringify({ action: 'ready', starter: btn.dataset.starter, control: $('experienceControl').value, extensions: [...document.querySelectorAll('[data-experience-extension]:checked')].map(e => e.dataset.experienceExtension) }),
         });
         const data = await resp.json();
         if (!resp.ok) throw new Error(data.error || 'Could not set it up.');

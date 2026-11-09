@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="{% static 'users/css/welcome.css' %}?v=5">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
-    <link rel="stylesheet" href="{% static 'mainapp/css/quick.css' %}?v=3">
+    <link rel="stylesheet" href="{% static 'mainapp/css/quick.css' %}?v=4">
 </head>
 <body class="na-body">
 {% include "partials/topbar.html" with active="bulba" %}
@@ -30,7 +30,7 @@
 
     <section class="option" id="qStyle">
         <div class="q-head"><h2>1. Writing style</h2><button type="button" class="ghost q-bulba" data-ask="Help me choose a writing style for my stories with {{ model_name }}: ask me a couple of questions, then set it up.">🥔 Let Bulba do it</button></div>
-        <p class="help">Tested setups for <b>{{ model_name }}</b>. Change it any time on the Presets page. Now active: <i id="qStyleNow">{{ active_name }}</i>.</p>
+        <p class="help">Writing experiences for <b>{{ model_name }}</b>. Change it any time on the Presets page. Now active: <i id="qStyleNow">{{ active_name }}</i>.</p>
         {% if ready %}
         <div class="q-choices">
             {% for r in ready %}
@@ -53,21 +53,51 @@
                 <select id="qLanguage">{% for code, name in languages.items %}<option value="{{ code }}" {% if code == basics.display_language %}selected{% endif %}>{{ name }}</option>{% endfor %}</select>
                 <small>Not English: the AI writes in English and each reply is translated for you (🌐 shows the English).</small></label>
             <label>Point of view
-                <select id="qPov"><option value="">As the style has it</option>
+                <select id="qPov"><option value="">As the story has it</option>
                     <option value="second" {% if basics.pov == "second" %}selected{% endif %}>You (“you step inside”)</option>
                     <option value="third" {% if basics.pov == "third" %}selected{% endif %}>Third person (“she steps inside”)</option>
                     <option value="first" {% if basics.pov == "first" %}selected{% endif %}>The character's “I”</option></select></label>
             <label>Tense
-                <select id="qTense"><option value="">As the style has it</option>
+                <select id="qTense"><option value="">As the story has it</option>
                     <option value="present" {% if basics.tense == "present" %}selected{% endif %}>Present</option>
                     <option value="past" {% if basics.tense == "past" %}selected{% endif %}>Past</option></select></label>
+            <label>Reply length
+                <select id="qLength"><option value="">Flexible (follows the scene)</option>
+                    <option value="short" {% if basics.length == "short" %}selected{% endif %}>Short: 2–4 paragraphs</option>
+                    <option value="medium" {% if basics.length == "medium" %}selected{% endif %}>Medium: 5–8 paragraphs</option>
+                    <option value="long" {% if basics.length == "long" %}selected{% endif %}>Long: a full sequence of events</option></select></label>
+            <label>Your character
+                <select id="qControl">
+                    <option value="dont" {% if basics.control == "dont" %}selected{% endif %}>Only I write my character</option>
+                    <option value="write" {% if basics.control == "write" %}selected{% endif %}>The AI may write my character too</option>
+                    <option value="director" {% if basics.control == "director" %}selected{% endif %}>I direct from outside the story</option></select>
+                <small>Directing: you say what should happen and the AI writes the whole scene, your character included (the chat reads as a book).</small></label>
             <label>Speech and actions
-                <select id="qFormat"><option value="">As the style has it</option>
+                <select id="qFormat"><option value="">As the story has it</option>
                     <option value="quotes" {% if basics.format == "quotes" %}selected{% endif %}>“Speech” in quotes, actions as prose</option>
                     <option value="asterisks" {% if basics.format == "asterisks" %}selected{% endif %}>“Speech”, *actions in asterisks*</option></select></label>
         </div>
         <label class="q-mature"><input type="checkbox" id="qMature" {% if mature_on %}checked{% endif %}>
             🔞 <b>Allow adult scenes</b> <small>(18+: violence, dark themes, sex when the story goes there. Change it any time in the chat: pen menu → This chat.)</small></label>
+        <details class="q-modules" id="qModules">
+            <summary>Story modules <small>(optional: switch parts of the writing style on or off)</small></summary>
+            {% for g in module_groups %}
+            <div class="q-mod-group{% if g.key == 'mature' %} q-mod-mature{% endif %}">
+                <b>{{ g.label }}</b>
+                {% if g.key == 'voice' %}
+                <select id="qVoice"><option value="">No particular voice</option>
+                    {% for m in g.modules %}<option value="{{ m.key }}" {% if m.on %}selected{% endif %}>{{ m.title|slice:"7:" }}</option>{% endfor %}</select>
+                {% else %}
+                {% for m in g.modules %}
+                <label class="q-mod{% if m.adult %} q-mod-adult{% endif %}" {% if m.adult and not mature_on %}hidden{% endif %}>
+                    <input type="checkbox" data-module="{{ m.key }}" {% if m.on %}checked{% endif %}>
+                    <span><b>{{ m.title }}</b><small>{{ m.about }}</small></span></label>
+                {% endfor %}
+                {% endif %}
+            </div>
+            {% endfor %}
+            <small class="help">Friction, No therapy talk and Busy world are on in every new writing style. 18+ modules appear once adult scenes are allowed.</small>
+        </details>
     </section>
 
     <section class="option" id="qMemory">
@@ -145,7 +175,7 @@
 {{ quick_data|json_script:"quick-data" }}
 <script>const QUICK = { url: "{% url 'quick_setup' %}", bulba: "{% url 'bulba' %}?embed=1", presets: "{% url 'presets' %}" };</script>
 <script src="{% static 'js/costs.js' %}?v=1"></script>
-<script src="{% static 'mainapp/js/quick.js' %}?v=3"></script>
+<script src="{% static 'mainapp/js/quick.js' %}?v=4"></script>
 <script>window.NA_PAGE_TOUR = {name: 'quick', auto: true};</script>
 </body>
 </html>

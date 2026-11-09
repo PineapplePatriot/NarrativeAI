@@ -104,7 +104,10 @@
     "back_and_forth": "gemini-back-and-forth",
     "rich_scene": "gemini-rich-scene",
     "director": "gemini-director",
-    "full_preset": "gemini-frankenstein"
+    "full_preset": "gemini-frankenstein",
+    "conversation": "gemini-experience-conversation",
+    "drama": "gemini-experience-drama",
+    "storytelling": "gemini-experience-storytelling"
   },
   "card": {
     "order": 13,

@@ -129,3 +129,18 @@ Only a JSON object, no other text:
  "past": [{"reply": <number>, "quote": "<exact words>", "actually": "<what actually happened, and where that's from>"}],
  "keep": [{"fact": "<one plain sentence>", "where": "card" | "lore"}],
  "they_direct": true | false (only when asked)}
+
+## Distinguish dialogue recap from descriptive taste
+
+Under recounting, check cumulative speeches that chain the listener's known actions with
+"and ... and then ... and now ..." (or Ukrainian «і ... і потім ... і тепер ...») and end by
+explaining the speaker's emotional verdict. Quote the actual construction and identify its
+redundancy or repeated cadence. Ordinary conjunctions, relevant grievances, intentional rambling
+and testimony about disputed events are valid. Never diagnose this by counting "and" alone.
+
+Detailed ordinary movement is not automatically detail_fixation. Atmosphere, a leisurely narrator,
+physical texture and narrative asides can be intentional pleasures. Report fixation only when
+repetition or attention displaces the interaction the person wants; do not equate length with slop.
+A character's response should preserve the established tone and relationship: generic villainous
+posturing can be out_of_character even if the preset requests independence. Conversely, kindness
+is not automatically fawning. Look for unearned trust, praise, loyalty or erased disagreements.

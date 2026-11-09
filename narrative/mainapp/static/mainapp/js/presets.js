@@ -563,9 +563,10 @@ $('starterList').addEventListener('click', async e => {
     const btn = e.target.closest('[data-starter]');
     if (!btn) return;
     btn.disabled = true;
-    try { await flushSave(); goTo((await act({ action: 'use_starter', starter: btn.dataset.starter })).selected); }
+    try { await flushSave(); goTo((await act({ action: 'use_starter', starter: btn.dataset.starter, control: $('experienceControl').value, extensions: [...document.querySelectorAll('[data-experience-extension]:checked')].map(e => e.dataset.experienceExtension) })).selected); }
     catch (err) { alert(err.message); btn.disabled = false; }
 });
+$('experienceControl').value = DATA.experience_control || 'dont';
 renderStarters();
 
 // ------------------------------------------------------------------ Macros

@@ -1829,7 +1829,7 @@ class GeminiArgonTests(ChatPromptTests):
     def test_argon_ready_setups_start_on_low_thinking_with_room(self):
         from mainapp import starters
         ready = starters.ready_for("gemini-4-argon")
-        self.assertEqual({r["feel"] for r in ready}, {"back_and_forth", "rich_scene", "director"})
+        self.assertEqual({r["feel"] for r in ready}, {"conversation", "drama", "storytelling"})
         for r in ready:
             s = starters.get(r["id"])["preset"]["samplers"]
             self.assertEqual(s["reasoning_effort"]["value"], "low")
@@ -1843,7 +1843,7 @@ class StarterTests(ChatPromptTests):
     def test_every_starter_is_a_sound_preset_for_its_model(self):
         from mainapp import model_profiles, presets, samplers, starters
         all_s = starters.all_starters()
-        self.assertEqual(len(all_s), 39)  # three experiences for each of the eleven models and "Any model", plus three community presets
+        self.assertEqual(len(all_s), 36)  # three original experiences for each of the eleven models and "Any model"
         for s in all_s:
             profile = model_profiles.by_id(s["model"])
             self.assertEqual(profile["starters"][s["experience"]], s["id"])
@@ -1884,7 +1884,7 @@ class StarterTests(ChatPromptTests):
         plain = model_profiles.for_style("mistralai/mistral-large")
         self.assertTrue(plain["_generic"])
         self.assertEqual([r["id"] for r in starters.ready_for(plain["id"])],
-                         ["any-back-and-forth", "any-rich-scene", "any-director"])
+                         ["any-experience-conversation", "any-experience-drama", "any-experience-storytelling"])
         self.assertNotIn("Any model", model_profiles.known_names())  # never offered as a model to pick
         self.assertIsNone(model_profiles.for_style(""))
         # the plain presets: no stock gestures, no metaphors to imitate
@@ -1892,16 +1892,57 @@ class StarterTests(ChatPromptTests):
         self.assertIn("stock gestures", text)
         self.assertNotIn("beat", text.lower())
 
+    def test_quick_setup_sets_length_and_who_writes_your_character(self):
+        from mainapp import presets
+        from mainapp.bulba import control
+        from users.models import ConnectionProfile
+        ConnectionProfile.objects.filter(user=self.user).update(model="z-ai/glm-5.3")
+        url = reverse("quick_setup")
+        self.client.post(url, json.dumps({"starter": "glm-experience-drama", "length": "short", "control": "director"}),
+                         content_type="application/json")
+        data = presets.normalize(presets.get_active(self.user).data)
+        self.assertEqual(control.mode_of(data), "director")
+        length = next(b for b in data["blocks"] if b["name"] == "Reply length")["content"]
+        self.assertIn("two to four paragraphs", length)
+        self.assertIn("## Knowledge", next(b for b in data["blocks"] if b["name"] == "Roleplay")["content"])  # rule-led
+        page = self.client.get(url)
+        self.assertEqual((page.context["basics"]["length"], page.context["basics"]["control"]), ("short", "director"))
+        # changing only who writes, on the same preset
+        self.client.post(url, json.dumps({"starter": "glm-experience-drama", "control": "write", "length": "flexible"}),
+                         content_type="application/json")
+        data = presets.normalize(presets.get_active(self.user).data)
+        self.assertEqual(control.mode_of(data), "write")
+        self.assertIn("flexible", next(b for b in data["blocks"] if b["name"] == "Reply length")["content"])
+
+    def test_quick_setup_story_modules_one_voice_and_18_plus_only_when_allowed(self):
+        from mainapp import presets
+        from users.models import ConnectionProfile
+        ConnectionProfile.objects.filter(user=self.user).update(model="z-ai/glm-5.3")
+        url = reverse("quick_setup")
+        self.client.post(url, json.dumps({"starter": "glm-experience-drama", "modules": {
+            "chekhov": True, "friction": False, "voice_camus": True, "voice_kafka": False, "dark_themes": True}}),
+            content_type="application/json")
+        on = {b["name"] for b in presets.normalize(presets.get_active(self.user).data)["blocks"] if b["enabled"]}
+        self.assertIn("Chekhov's gun", on)
+        self.assertIn("Voice: Camus (wry)", on)
+        self.assertNotIn("Friction", on)
+        self.assertNotIn("Dark themes (18+)", on)  # adult scenes aren't allowed here
+        groups = {g["key"]: g for g in self.client.get(url).context["module_groups"]}
+        self.assertTrue(next(m for m in groups["story"]["modules"] if m["key"] == "chekhov")["on"])
+        bad = self.client.post(url, json.dumps({"modules": {"voice_camus": True, "voice_kafka": True}}),
+                               content_type="application/json")
+        self.assertEqual(bad.status_code, 400)
+
     def test_quick_setup_names_what_an_unknown_model_gets(self):
         from users.models import ConnectionProfile
         ConnectionProfile.objects.filter(user=self.user).update(model="moonshotai/kimi-k2")
         page = self.client.get(reverse("quick_setup"))
         self.assertContains(page, "borrowed from Kimi K3")
-        self.assertEqual([r["id"] for r in page.context["ready"]][0], "kimi-back-and-forth")
+        self.assertEqual([r["id"] for r in page.context["ready"]][0], "kimi-experience-conversation")
         ConnectionProfile.objects.filter(user=self.user).update(model="mistralai/mistral-large")
         page = self.client.get(reverse("quick_setup"))
         self.assertContains(page, "plain presets for any model")
-        self.assertEqual(page.context["ready"][0]["id"], "any-back-and-forth")
+        self.assertEqual(page.context["ready"][0]["id"], "any-experience-conversation")
 
     def test_using_a_starter_makes_an_active_copy_with_credit(self):
         from mainapp.models import Preset
@@ -1927,7 +1968,7 @@ class StarterTests(ChatPromptTests):
         groups = self.client.get(reverse("presets")).context["preset_page"]["starters"]
         self.assertTrue(groups[0]["yours"])
         self.assertEqual(groups[0]["model_name"], "Claude Opus 5.5")
-        self.assertEqual([s["title"] for s in groups[0]["starters"]], ["Back-and-forth", "Rich scene", "Director seat"])
+        self.assertEqual([s["title"] for s in groups[0]["starters"]], ["Conversation & Chemistry", "Character Drama", "Immersive Storytelling"])
 
 
 class WelcomeTests(TestCase):
@@ -2100,7 +2141,7 @@ class BulbaTests(TestCase):
         self.assertEqual(session.target_model, "any-model")
         knowledge = agent.model_knowledge(agent.target_profile(session))
         self.assertIn("no notes for and no relative of", knowledge)
-        self.assertIn("any-rich-scene", knowledge)
+        self.assertIn("any-experience-storytelling", knowledge)
 
     def test_unknown_model_with_a_relative_borrows_its_knowledge(self):
         self.main.model = "moonshotai/kimi-k2"
@@ -2113,7 +2154,7 @@ class BulbaTests(TestCase):
         self.assertEqual(session.target_model, "kimi-k3")
         knowledge = agent.model_knowledge(agent.target_profile(session))
         self.assertIn("closest relative", knowledge)
-        self.assertIn("kimi-rich-scene", knowledge)
+        self.assertIn("kimi-experience-storytelling", knowledge)
 
     def test_bulba_runs_on_its_own_model_and_never_sees_keys(self):
         self.script = [("", [self.call("get_current_setup")]), ("You're on Opus. Voices?", [])]
@@ -2185,7 +2226,7 @@ class BulbaTests(TestCase):
         self.assertIn("Keep the teasing light.", taste["content"])
         # Their length replaces the starter's own length rule: one rule, not two
         style = next(b for b in active.data["blocks"] if b["name"] == "Style")["content"]
-        self.assertIn("Keep replies short: one to three paragraphs.", style)
+        self.assertIn("Keep replies short: two to four paragraphs.", style)
         self.assertNotIn("Usually one to three short paragraphs", style)
         self.assertNotIn("paragraphs", taste["content"])
 
@@ -2612,12 +2653,12 @@ class BulbaOnboardingRunTests(BulbaTests):
         from mainapp.bulba.agent import build_preset
         preset = build_preset({"starter": "opus-rich-scene", "taste": "Push back.", "reply_length": "medium"})
         style = next(b for b in preset["blocks"] if b["name"] == "Style")["content"]
-        self.assertIn("- Keep replies to about three to five paragraphs. End where {{user}} has something to answer.", style)
+        self.assertIn("- Keep replies to about five to eight paragraphs. End where {{user}} has something to answer.", style)
         self.assertNotIn("three to six", style)
         # A starter without a length line gets it in the taste section instead
         preset = build_preset({"starter": "mimo-rich-scene", "taste": "Push back.", "reply_length": "short"})
         taste = next(b for b in preset["blocks"] if b["name"] == "Your taste")["content"]
-        self.assertIn("one to three paragraphs", taste)
+        self.assertIn("two to four paragraphs", taste)
 
     def test_names_filled_on_cards_the_user_reads(self):
         self.script = [("Look.", [self.call(
@@ -3630,9 +3671,30 @@ class BasicsStoryKindTests(BulbaTests):
         self.assertIn("real emotional connection", told)
         self.assertNotIn("nonsense", told)
         self.assertIn("Slow burn", told)
-        self.assertIn("Ernest Hemingway", told)
+        self.assertIn("Voice: Hemingway (lean)", told)  # a module now, switched on by propose_preset
         self.assertIn("Write in the style of Terry Pratchett", told)
         self.assertEqual(len(data["state"]["preferences"]), 4)
+
+    def test_story_modules_and_dark_genres_reach_the_preset(self):
+        from mainapp.bulba import agent
+        from mainapp.models import BulbaSession
+        self.script = [("Noted.", [])]
+        self.api(action="basics", answers={"modules": ["surprise_me", "hard_mode", "bogus"],
+                                           "genres": ["dead_dove"], "voice": "camus"})
+        session = BulbaSession.objects.get(user=self.user, active=True)
+        self.assertEqual(set(agent.form_modules(session)),
+                         {"Surprise me", "Hard mode", "Dark themes (18+)", "Voice: Camus (wry)"})
+        # propose_preset switches them on by itself; a voice Bulba picks replaces the form's
+        self.script = [("Here.", [self.call("propose_preset", starter="opus-experience-drama", taste="x", why="y",
+                                            switch_on=["Voice: Kafka (absurd)"])])]
+        state = self.api(action="say", text="build it").json()["state"]
+        p = next(x for x in session.__class__.objects.get(id=session.id).proposals if x["kind"] == "preset")
+        self.assertEqual(set(p["payload"]["switch_on"]),
+                         {"Voice: Kafka (absurd)", "Surprise me", "Hard mode", "Dark themes (18+)"})
+        preset = agent.build_preset(p["payload"])
+        on = {b["name"] for b in preset["blocks"] if b["enabled"]}
+        self.assertTrue({"Surprise me", "Hard mode", "Dark themes (18+)", "Voice: Kafka (absurd)"} <= on)
+        self.assertNotIn("Voice: Camus (wry)", on)
 
 
 class ImageModelTests(SimpleTestCase):
@@ -5431,7 +5493,7 @@ class SetupRoutesTests(BulbaTests):
         self.client.get(reverse("bulba"))
         data = self.api(action="route", route="fast").json()
         routes = [c["route"] for c in data["events"][-1]["choices"]]
-        self.assertEqual(routes, ["fast:opus-back-and-forth", "fast:opus-rich-scene", "fast:opus-director"])
+        self.assertEqual(routes, ["fast:opus-experience-conversation", "fast:opus-experience-drama", "fast:opus-experience-storytelling"])
         self.assertTrue(all(c["hint"] for c in data["events"][-1]["choices"]))
         data = self.api(action="route", route="fast:opus-director").json()
         # First the chat's memory (a slider with what a message costs), then who they are
@@ -5541,7 +5603,7 @@ class WelcomeReadyPresetTests(TestCase):
 
     def test_saving_the_model_lists_its_ready_presets(self):
         data = self.post(model="mimo-v2-6-pro", skip_check=True).json()
-        self.assertEqual([r["feel"] for r in data["ready"]], ["back_and_forth", "rich_scene", "director"])
+        self.assertEqual([r["feel"] for r in data["ready"]], ["conversation", "drama", "storytelling"])
         self.assertTrue(all(r["tagline"] for r in data["ready"]))
 
     def test_a_ready_preset_is_applied_without_bulba(self):
