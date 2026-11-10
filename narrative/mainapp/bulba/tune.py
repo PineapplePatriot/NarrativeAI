@@ -287,7 +287,8 @@ def tool_offer_mood_pictures(session, args):
         return {"status": "All mood pictures are there already; pass redo to make them again."}, []
     return {"shown": missing, "note": "They press the button; each picture costs a few cents on their key."}, [
         {"type": "make_pictures", "url": reverse("character_sprite", args=[character.slug]),
-         "name": character.name, "moods": missing}]
+         "name": character.name, "moods": missing,
+         "later_url": reverse("character", kwargs={"slug": character.slug}) + "#spritesSection"}]
 
 
 # ---------------------------------------------------------------------------

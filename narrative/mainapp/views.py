@@ -3372,7 +3372,12 @@ def _bulba_api(request):
     if request.method == "GET":  # what Bulba is doing right now (the page asks while a turn runs)
         filters = {"mode": "chat", "chat_id": request.GET["chat"]} if request.GET.get("chat") else {"mode": "setup"}
         session = BulbaSession.objects.filter(user=request.user, active=True, **filters).first()
-        return JsonResponse({"activity": session.activity if session else ""})
+        from django.core.cache import cache
+        busy = cache.get(f"bulba-busy:{request.user.id}:{request.GET.get('chat') or 'setup'}") is not None
+        out = {"activity": session.activity if session else "", "busy": busy}
+        if request.GET.get("full") and session:  # the page lost the connection mid-turn: what's there now
+            out.update(events=session.events, state=_bulba_state(session))
+        return JsonResponse(out)
     if request.method != "POST":
         return JsonResponse({"error": "POST only"}, status=405)
     if request.FILES.get("card"):  # a card they already have, from the upload box

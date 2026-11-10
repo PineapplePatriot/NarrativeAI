@@ -610,6 +610,7 @@ function placeReply(data, avatarUrl) {
 // Send message to server
 // `noteOnly`: send the director's note on its own (the story goes on with no message from them)
 function sendMessage(noteOnly = false) {
+    if (messageInput.classList.contains('writing')) { showChatNotice('One moment: your message is still being written.'); return; }
     noteOnly = noteOnly === true;  // never an event object from a click handler
     const message = noteOnly ? '' : messageInput.value.trim();
     const guideInput = document.getElementById('guidanceInput');
@@ -1073,7 +1074,14 @@ async function expandInput() {
     const draft = messageInput.value;
     const btn = document.getElementById('expandBtn');
     if (btn) btn.disabled = true;
-    messageInput.value = draft ? 'Writing it out…' : 'Writing your message…';
+    // While it writes, the box is locked: a placeholder says so (nothing to erase), on one line on phones
+    const placeholder = messageInput.placeholder;
+    const narrow = window.matchMedia('(max-width: 560px)').matches;
+    messageInput.value = '';
+    messageInput.readOnly = true;
+    messageInput.classList.add('writing');
+    messageInput.placeholder = narrow ? '✍️ Writing…' : (draft ? '✍️ Writing it out…' : '✍️ Writing your message…');
+    messageInput.style.height = 'auto';
     try {
         const resp = await fetch(window.location.href, {
             method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
@@ -1087,6 +1095,9 @@ async function expandInput() {
     } catch (err) { messageInput.value = draft; showChatNotice(err.message); }
     finally {
         if (btn) btn.disabled = false;
+        messageInput.readOnly = false;
+        messageInput.classList.remove('writing');
+        messageInput.placeholder = placeholder;
         messageInput.style.height = 'auto';
         messageInput.style.height = messageInput.scrollHeight + 'px';
         messageInput.focus();

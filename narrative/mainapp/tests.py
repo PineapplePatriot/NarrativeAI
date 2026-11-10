@@ -3008,8 +3008,29 @@ class SpendingAndThinkingTests(StreamChatTests):
 class BulbaRunTwoTests(BulbaTests):
     """Fixes from Anya's first real run (5 October 2026)."""
 
+    def test_a_dropped_connection_can_fetch_the_finished_turn(self):
+        from django.core.cache import cache
+        self.script = [("Hello there.", [])]
+        self.api(action="say", text="hi")
+        key = f"bulba-busy:{self.user.id}:setup"
+        cache.set(key, 1, 30)  # a turn still running
+        self.assertTrue(self.client.get(reverse("bulba_api")).json()["busy"])
+        cache.delete(key)
+        data = self.client.get(reverse("bulba_api") + "?full=1").json()
+        self.assertFalse(data["busy"])
+        self.assertTrue(any(e.get("text") == "Hello there." for e in data["events"]))
+        self.assertIn("stage", data["state"])
+
+    def test_a_character_made_first_still_leads_to_the_persona(self):
+        from mainapp.models import BulbaSession
+        self.script = [("Here.", [self.call("propose_character", name="Corvin", description="A wizard.", greeting="Hi.")])]
+        data = self.api(action="say", text="make him first").json()
+        self.script = [("Now, who are you?", [])]
+        self.api(action="apply", id=data["state"]["proposals"][0]["id"])
+        self.assertEqual(BulbaSession.objects.get(user=self.user, mode="setup").stage, "persona")
+
     def test_activity_and_chat_link(self):
-        self.assertEqual(self.client.get(reverse("bulba_api")).json(), {"activity": ""})
+        self.assertEqual(self.client.get(reverse("bulba_api")).json(), {"activity": "", "busy": False})
         self.script = [("Here.", [self.call("propose_character", name="Corvin", description="A wizard.", greeting="Hi.")])]
         data = self.api(action="say", text="make him").json()
         self.assertIsNone(data["state"]["chat"])

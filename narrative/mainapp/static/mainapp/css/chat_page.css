@@ -2358,3 +2358,7 @@ body.skin-lab .message-text .thought { color: #3d5a78; }
 .cf-triggers { margin-top: 8px; font-size: .82rem; display: flex; flex-direction: column; gap: 3px; }
 .cf-triggers b { font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; opacity: .6; }
 .cf-triggers small { opacity: .6; }
+
+/* Write for me at work: the box is locked and says so */
+#messageInput.writing { cursor: progress; }
+#messageInput.writing::placeholder { color: var(--accent-1, #a78bfa); opacity: 1; white-space: nowrap; }

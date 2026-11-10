@@ -31,15 +31,22 @@ function getCookie(name) {
 const BESIDE_QUICK = window.parent !== window && document.body.classList.contains('embed') && INIT.state && INIT.state.mode === 'setup';
 async function api(body) {
     if (BESIDE_QUICK && !(body instanceof FormData) && body.action === 'say') body = { ...body, beside_quick: true };
-    const resp = await fetch(BULBA_API, {
-        method: 'POST',
-        headers: body instanceof FormData ? { 'X-CSRFToken': getCookie('csrftoken') }
-                                          : { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-        body: body instanceof FormData ? body : JSON.stringify(body),
-    });
+    let resp;
+    try {
+        resp = await fetch(BULBA_API, {
+            method: 'POST',
+            headers: body instanceof FormData ? { 'X-CSRFToken': getCookie('csrftoken') }
+                                              : { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: body instanceof FormData ? body : JSON.stringify(body),
+        });
+    } catch (e) {  // the connection dropped (the phone slept, they switched apps): Bulba carries on on the server
+        throw Object.assign(new Error('The connection dropped.'), { lost: true });
+    }
     const data = await resp.json().catch(() => ({}));
     if (data.stale) setTimeout(() => window.location.reload(), 400);  // an out-of-date card: show the latest
-    if (!resp.ok) throw new Error(data.error || 'Something went wrong.');
+    // No answer of ours (a gateway timeout, a restart) or "still busy": the turn may well finish anyway
+    if (!resp.ok) throw Object.assign(new Error(data.error || 'Something went wrong.'),
+                                      { lost: resp.status >= 502 || data.busy || !data.error });
     return data;
 }
 
@@ -301,7 +308,8 @@ function render() {
         }
         if (ev.type === 'make_pictures') return `<div class="make-pictures" data-url="${esc(ev.url)}" data-moods="${esc(ev.moods.join(','))}">
             <button type="button" data-make-pictures>🎨 Make ${ev.moods.length} mood picture${ev.moods.length === 1 ? '' : 's'} of ${esc(ev.name)}</button>
-            <small>A few cents each, on your key. About 15 seconds per picture.</small><div class="progress"></div></div>`;
+            <small>A few cents each, on your key. About 15 seconds per picture.${ev.later_url ? ` Later is fine too: the
+              <a href="${esc(ev.later_url)}" target="_blank" rel="noopener">character's page</a> has a “✨ Make the missing moods” button, or ask me in any chat.` : ''}</small><div class="progress"></div></div>`;
         if (ev.type === 'downloads') return `<div class="downloads">⬇ ${(ev.links || []).map(l =>
             `<a href="${esc(l.url)}" download>${esc(l.label)}</a>`).join('')}</div>`;
         if (ev.type === 'form') return basicsForm(i === types.lastIndexOf('form') && i > answeredUpTo && !busy, ev.answers);
@@ -398,6 +406,26 @@ function pollActivity() {
     }, 1200);
 }
 
+// After a dropped connection: Bulba keeps working on the server, so wait for it and show what it did
+async function recover(before) {
+    $('thinkingText').textContent = '📶 The connection dropped, but Bulba keeps working. Waiting for its answer…';
+    const sep = BULBA_API.includes('?') ? '&' : '?';
+    for (let i = 0; i < 120; i++) {  // up to six minutes: longer than any turn can take
+        await new Promise(r => setTimeout(r, 3000));
+        try {
+            const resp = await fetch(BULBA_API + sep + 'full=1', { headers: { 'Accept': 'application/json' } });
+            const data = await resp.json();
+            if (data.busy) { if (data.activity) $('thinkingText').textContent = '📶 ' + data.activity; continue; }
+            if (!data.events || data.events.length <= before) return false;  // it didn't get to finish
+            events = data.events;
+            state = data.state;
+            if (window.parent !== window) window.parent.postMessage({ quickBulba: 'changed' }, window.location.origin);
+            return true;
+        } catch (e) { /* still offline: try again */ }
+    }
+    return false;
+}
+
 async function run(body, label) {
     if (busy) return;
     busy = true;
@@ -431,7 +459,8 @@ async function run(body, label) {
             window.parent.postMessage({ quickBulba: 'done' }, window.location.origin);
     } catch (err) {
         if (body.action === 'say') events.pop();
-        events.push({ type: 'error', text: err.message });
+        if (!(err.lost && await recover(events.length)))
+            events.push({ type: 'error', text: err.lost ? "The connection dropped and Bulba didn't get to finish that one. Send it again." : err.message });
     } finally {
         busy = false;
         clearTimeout(activityTimer);

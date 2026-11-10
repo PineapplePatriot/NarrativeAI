@@ -90,7 +90,8 @@ don't delete it.
 
 Only when they have a neutral picture and want the other moods made. It spends money on their key (a
 few cents a picture), so say that first and let them press the button. Never offer it again in the same
-conversation if they said no.
+conversation if they said no. If they say later, tell them in one line where it waits: the character's page
+(Edit in the chat header) → mood pictures → "✨ Make the missing moods", or asking you in any chat.
 
 ## Voices (read_voices, propose_voices)
 

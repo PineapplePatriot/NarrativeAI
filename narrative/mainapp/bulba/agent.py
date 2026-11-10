@@ -319,11 +319,20 @@ def stage_after(p):
             "trackers": "story"}.get(p["kind"]) if applied or p["kind"] == "trackers" else None
 
 
+def _has_persona(session):
+    return bool(getattr(session.user, "persona_name", "")) or any(
+        x["kind"] == "persona" and x.get("status") == "applied" for x in session.proposals)
+
+
 def advance_stage(session, p):
     """Moves the setup's stage forward when a proposal shows they're past it (never back): Bulba doesn't
     always remember to call set_stage, and the panel and the guides it reads follow the stage.
     Returns the page event, or None."""
     target = stage_after(p) if session.mode != "chat" else None
+    # A character made before they said who they are (they asked for it first): the persona still comes next
+    if target == "character" and p["kind"] == "character" and not _has_persona(session) \
+            and STAGES.index(session.stage) < STAGES.index("persona"):
+        target = "persona"
     if target and STAGES.index(target) > STAGES.index(session.stage):
         session.stage = target
         return {"type": "stage", "stage": target}
