@@ -49,7 +49,7 @@ class AddCharacterForm(forms.ModelForm):
     class Meta:
         model = Character
         fields = [
-            'is_mult', 'name', 'description', 'scenario',
+            'is_mult', 'second_name', 'name', 'description', 'scenario',
             'initial_message', 'creator_notes', 'worldbook',
             'personality', 'example_dialogue', 'alternate_greetings', 'system_prompt',
             'post_history_instructions', 'card_creator', 'card_version',
@@ -66,6 +66,7 @@ class AddCharacterForm(forms.ModelForm):
         ]
         widgets = {
             'is_mult': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'second_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': "e.g. Pantalone"}),
             'name': forms.TextInput(attrs={'class': 'form-input'}),
             'description': forms.Textarea(attrs={'cols': 50, 'rows': 5}),
             'scenario': forms.Textarea(attrs={'cols': 50, 'rows': 5}),

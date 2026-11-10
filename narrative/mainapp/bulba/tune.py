@@ -278,16 +278,19 @@ def tool_offer_mood_pictures(session, args):
     character = target_character(session)
     if character is None:
         return {"error": "No character yet."}, []
-    if not character.photo_neutral:
+    second = bool(args.get("second")) and character.is_mult
+    prefix = "photo_second" if second else "photo"
+    if not getattr(character, f"{prefix}_neutral"):
         return {"error": "No neutral picture yet: they add one first (📎 here, or the character's page)."}, []
-    missing = [m for m in SPRITE_EMOTIONS if not getattr(character, f"photo_{m}")]
+    missing = [m for m in SPRITE_EMOTIONS if not getattr(character, f"{prefix}_{m}")]
     if args.get("redo"):
         missing = list(SPRITE_EMOTIONS)
     if not missing:
         return {"status": "All mood pictures are there already; pass redo to make them again."}, []
     return {"shown": missing, "note": "They press the button; each picture costs a few cents on their key."}, [
         {"type": "make_pictures", "url": reverse("character_sprite", args=[character.slug]),
-         "name": character.name, "moods": missing,
+         "name": (character.second_name or "the second character") if second else character.name, "moods": missing,
+         "second": second,
          "later_url": reverse("character", kwargs={"slug": character.slug}) + "#spritesSection"}]
 
 
@@ -513,7 +516,8 @@ def tool_defs(fn, STR):
             "why": STR}, ["why"]),
         fn("offer_mood_pictures", "Show a button that makes the missing mood pictures from the neutral one with an "
            "image model (a few cents each, on their key). They press it; say what it costs first.",
-           {"redo": {"type": "boolean", "description": "Make all eight again, not only the missing ones"}}),
+           {"redo": {"type": "boolean", "description": "Make all eight again, not only the missing ones"},
+            "second": {"type": "boolean", "description": "For a two-character card: the second character's pictures"}}),
     ]
 
 

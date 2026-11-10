@@ -260,9 +260,13 @@ TOOLS = [
         ["starter", "taste", "why"]),
     _fn("propose_persona", "Propose who the user is in the story.",
         {"name": STR, "description": STR, "why": STR}, ["name", "description"]),
-    _fn("propose_character", "Propose a character to chat with.",
+    _fn("propose_character", "Propose a character to chat with. For a card with two characters (a pair "
+        "who share the story, e.g. siblings or rivals), give second_name too and describe both in the description; "
+        "the chat then shows two sets of pictures and highlights whoever speaks.",
         {"name": STR, "description": STR, "scenario": STR, "greeting": STR,
-         "personality": STR, "example_dialogue": STR, "why": STR},
+         "personality": STR, "example_dialogue": STR,
+         "second_name": {"type": "string", "description": "Only for a two-character card: the second one's name"},
+         "why": STR},
         ["name", "description", "greeting"]),
     *library.tool_defs(_fn, STR),
     *lore.tool_defs(_fn, STR),
@@ -946,7 +950,9 @@ def tool_propose_character(session, args):
     from mainapp.bulba import polish
     payload = polish.clean_written(session.user, payload)  # the known AI habits out of the draft (the greeting most)
     payload["name"] = name
-    summary = ["Description:", payload["description"]]
+    payload["second_name"] = str(args.get("second_name") or "").strip()[:100]
+    summary = ([f"Two characters in one card: {name} and {payload['second_name']}"] if payload["second_name"] else []) \
+        + ["Description:", payload["description"]]
     if payload["personality"]:
         summary += ["In short:", payload["personality"]]
     if payload["scenario"]:

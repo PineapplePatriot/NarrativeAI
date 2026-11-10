@@ -3045,6 +3045,21 @@ class BulbaRunTwoTests(BulbaTests):
         self.assertTrue(any(e.get("text") == "Hello there." for e in data["events"]))
         self.assertIn("stage", data["state"])
 
+    def test_a_two_character_card(self):
+        from mainapp.models import Character
+        self.script = [("Here they are.", [self.call("propose_character", name="Lumine", second_name="Aether",
+                                                     description="Twins.", greeting="Hi.")])]
+        data = self.api(action="say", text="the twins").json()
+        self.assertIn("Two characters in one card: Lumine and Aether", data["state"]["proposals"][0]["summary"][0])
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=data["state"]["proposals"][0]["id"])
+        twins = Character.objects.get(author=self.user, name="Lumine")
+        self.assertTrue(twins.is_mult)
+        self.assertEqual(twins.second_name, "Aether")
+        page = self.client.get(reverse("chat", kwargs={"slug": twins.slug}))
+        self.assertContains(page, "window.IS_MULT = true")
+        self.assertContains(page, "No pictures for Aether yet")
+
     def test_a_character_made_first_still_leads_to_the_persona(self):
         from mainapp.models import BulbaSession
         self.script = [("Here.", [self.call("propose_character", name="Corvin", description="A wizard.", greeting="Hi.")])]

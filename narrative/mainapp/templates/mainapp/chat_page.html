@@ -8,7 +8,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Narrative AI - Chat with {{character.name}}</title>
-    <link rel="stylesheet" href="{% static 'mainapp/css/chat_page.css' %}?v=35">
+    <link rel="stylesheet" href="{% static 'mainapp/css/chat_page.css' %}?v=36">
     <link rel="stylesheet" href="{% static 'mainapp/css/chat_skins.css' %}?v=3">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=5">
@@ -406,8 +406,8 @@
             </div>
 
             <div class="character-images-wrapper">
-                <div class="character-image-container" id="char1Container"
-                    style="display: {% if char_count == 1 or char_count == 2 %}flex{% else %}none{% endif %};">
+                <div class="character-image-container{% if character.is_mult and char_count == 3 %} quiet{% endif %}" id="char1Container"
+                    style="display: {% if character.is_mult or char_count == 1 or char_count == 2 %}flex{% else %}none{% endif %};">
 
                     {% if photo_url %}
                         <img src="{{ photo_url }}" class="character-sprite">
@@ -416,13 +416,13 @@
                     {% endif %}
                 </div>
 
-                <div class="character-image-container dual" id="char2Container" 
-                    style="display: {% if char_count == 3 or char_count == 2 %}flex{% else %}none{% endif %};">
+                <div class="character-image-container dual{% if character.is_mult and char_count == 1 %} quiet{% endif %}" id="char2Container"
+                    style="display: {% if character.is_mult or char_count == 3 or char_count == 2 %}flex{% else %}none{% endif %};">
 
                     {% if photo_second %}
                         <img src="{{ photo_second }}" class="character-sprite">
                     {% else %}
-                        <div class="character-placeholder"><span>2</span><small>No sprite for the second character yet.</small></div>
+                        <div class="character-placeholder"><span>{{ character.second_name|first|upper|default:"2" }}</span><small>No pictures for {{ character.second_name|default:"the second character" }} yet. Add them on the <a href="{% url 'character' character.slug %}">Edit page</a>.</small></div>
                     {% endif %}
                 </div>
             </div>
@@ -514,6 +514,7 @@
         window.THEME_WEATHER = "{{ theme_weather|escapejs }}";
         window.INIT_PHOTO_URL = "{{ photo_url|default:'' }}";
         window.INIT_PHOTO_SECOND = "{{ photo_second|default:'' }}";
+        window.IS_MULT = {{ character.is_mult|yesno:"true,false" }};
         window.INIT_CHAR_COUNT = {{ char_count|default:1 }};
         window.CHAR_INITIAL = "{{ character.name|first|upper|escapejs }}";
         window.VOICE_ON = {% if voice_on %}true{% else %}false{% endif %};

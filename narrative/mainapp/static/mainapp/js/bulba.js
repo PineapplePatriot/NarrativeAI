@@ -336,7 +336,7 @@ function render() {
                 <input type="file" name="preset" accept=".json,application/json" ${live ? '' : 'disabled'}></label>
                 <button type="submit" ${live ? '' : 'disabled'}>Import</button></form>`;
         }
-        if (ev.type === 'make_pictures') return `<div class="make-pictures" data-url="${esc(ev.url)}" data-moods="${esc(ev.moods.join(','))}">
+        if (ev.type === 'make_pictures') return `<div class="make-pictures" data-url="${esc(ev.url)}" data-moods="${esc(ev.moods.join(','))}" ${ev.second ? 'data-second="1"' : ''}>
             <button type="button" data-make-pictures>🎨 Make ${ev.moods.length} mood picture${ev.moods.length === 1 ? '' : 's'} of ${esc(ev.name)}</button>
             <small>A few cents each, on your key. About 15 seconds per picture.${ev.later_url ? ` Later is fine too: the
               <a href="${esc(ev.later_url)}" target="_blank" rel="noopener">character's page</a> has a “✨ Make the missing moods” button, or ask me in any chat.` : ''}</small><div class="progress"></div></div>`;
@@ -711,7 +711,7 @@ $('log').addEventListener('click', async e => {
         try {
             const resp = await fetch(box.dataset.url, { method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-                body: JSON.stringify({ emotion: mood }) });
+                body: JSON.stringify({ emotion: mood, second: !!box.dataset.second }) });
             const data = await resp.json().catch(() => ({}));
             if (!resp.ok) throw new Error(data.error || 'The picture maker failed.');
             made += 1;

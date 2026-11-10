@@ -1416,12 +1416,14 @@ def chat(request, slug):
                         valid_emotions = ["neutral", "happy", "sad", "angry", "surprised", "scared", "confused", "calm", "scheming"]
 
                         # Prompt asks LLM who is speaking (1, 2, or both) and their emotions
+                        second = character.second_name or "the other character"
                         classification_system_prompt = (
-                            f"You are an analysis tool. The main character is named '{character.name}'.\n"
+                            f"You are an analysis tool. The main character is named '{character.name}'"
+                            + (f"; the second is '{second}'" if character.is_mult else "") + ".\n"
                             "Analyze the last message and determine who is speaking.\n"
                             "Rules:\n"
-                            f"1. If ONLY '{character.name}' is speaking, set 'speaking' to '1'.\n"
-                            f"2. If ONLY the other character is speaking, set 'speaking' to '2'.\n"
+                            f"1. If ONLY '{character.name}' is speaking (or acting), set 'speaking' to '1'.\n"
+                            f"2. If ONLY '{second}' is speaking (or acting), set 'speaking' to '2'.\n"
                             "3. If BOTH characters are speaking, set 'speaking' to 'both'.\n"
                             "4. Determine the emotion for the speaking character(s) from this list: "
                             f"{json.dumps(valid_emotions)}.\n"
@@ -2778,7 +2780,7 @@ def character_sprite(request, slug):
     if emotion not in SPRITE_EMOTIONS + ["neutral"]:
         return JsonResponse({"error": "Unknown mood."}, status=400)
     neutral = getattr(character, f"{prefix}_neutral")
-    who = character.name if prefix == "photo" else f"the second character of {character.name}"
+    who = character.name if prefix == "photo" else (character.second_name or f"the second character of {character.name}")
     reference, kind = None, "image/png"
     if emotion == "neutral":  # the first picture, from the card's words (no picture to start from)
         looks = "\n".join(t for t in (str(character.description or "")[:2500], str(character.personality or "")[:600],

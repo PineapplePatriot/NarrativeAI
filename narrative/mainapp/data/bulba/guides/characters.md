@@ -61,6 +61,15 @@ user**. Appearance and biography support these; they don't crowd them out.
   redemption unless that's the premise they asked for.
 - **Knowledge boundaries.** Say what they know, what they don't, and any secrets (and who knows them).
 
+### Two characters in one card
+
+When the story is about a pair who are always together (twins, a duo of rivals, a master and an apprentice),
+one card can hold both: propose_character with second_name, and describe both in the description (each
+with their own look, voice and wants). The chat shows two sets of pictures side by side and highlights
+whoever speaks. Pictures for the second one: offer_mood_pictures with second true, once its neutral picture is
+on the character's page (the "make pictures for" choice there). A larger cast is better as one character with
+the others in the lorebook.
+
 ### The opening: its own step, before the card
 
 Where the story starts (the scenario) and the first message decide the first hour of play, so settle them

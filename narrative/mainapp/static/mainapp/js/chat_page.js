@@ -41,6 +41,14 @@ function updateCharacterImages(photoUrl, photoSecond, charCount) {
     setImg(c1, photoUrl);
     setImg(c2, photoSecond);
 
+    // A two-character card: both stay on screen, whoever speaks is bright and the other dimmed
+    if (window.IS_MULT) {
+        c1.style.display = 'flex';
+        c2.style.display = 'flex';
+        c1.classList.toggle('quiet', count === 3);
+        c2.classList.toggle('quiet', count === 1);
+        return;
+    }
     // Layout Logic
     if (count === 1) {
         c1.style.display = 'flex';
