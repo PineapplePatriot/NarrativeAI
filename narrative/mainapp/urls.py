@@ -13,6 +13,7 @@ path('character_sprite/<slug:slug>', views.character_sprite, name="character_spr
 path('image_models/', views.image_model_list, name="image_models"),
 path('character_edit/<slug:slug>', views.UpdateCharacter.as_view(), name="character"),
 path('guide/', views.guide_page, name="guide"),
+    path('preset-upgrade/', views.preset_upgrade_action, name="preset_upgrade"),
     path('tomatoes/', views.tomato_pit, name="tomato_pit"),
     path('tomatoes/state/', views.tomato_state, name="tomato_state"),
 path('character_rule/<slug:slug>', views.character_rule, name="character_rule"),

@@ -3,7 +3,16 @@ const DATA = JSON.parse($('welcome-data').textContent);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 let picked = (DATA.models.find(m => m.openrouter === DATA.current_model) || {}).id || null;
 
-$('keyNote').hidden = !DATA.has_key;
+const provider = () => (document.querySelector('input[name=provider]:checked') || {}).value || 'openrouter';
+function showProvider() {
+    const p = provider();
+    document.querySelectorAll('[data-for]').forEach(el => { el.hidden = el.dataset.for !== p; });
+    $('apiKey').placeholder = p === 'nanogpt' ? 'Your NanoGPT API key' : 'sk-or-v1-...';
+    $('keyNote').hidden = !(DATA.has_key && DATA.provider === p);
+}
+if (DATA.provider === 'nanogpt') document.querySelector('input[name=provider][value=nanogpt]').checked = true;
+document.querySelectorAll('input[name=provider]').forEach(r => r.addEventListener('change', showProvider));
+showProvider();
 
 function renderModels() {
     $('models').innerHTML = DATA.models.map(m => `
@@ -33,7 +42,7 @@ async function save(skipCheck = false) {
         const resp = await fetch(WELCOME_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-            body: JSON.stringify({ api_key: $('apiKey').value, model: picked, skip_check: skipCheck }),
+            body: JSON.stringify({ api_key: $('apiKey').value, model: picked, skip_check: skipCheck, provider: provider() }),
         });
         const data = await resp.json();
         if (!resp.ok) {

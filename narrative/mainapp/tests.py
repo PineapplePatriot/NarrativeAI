@@ -4,6 +4,11 @@ import types
 from django.contrib.auth import get_user_model
 from django.test import SimpleTestCase, TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
+from django.conf import settings as _settings
+
+# Most tests here exercise the chat's mechanics on the original default preset; the default experience preset
+# for new accounts (Heartstrings) has its own tests in test_experiences.FirstPresetTests
+_settings.LEGACY_FIRST_PRESET = True
 
 from mainapp.lorebook import activate, format_for_prompt, normalize_book, to_sillytavern
 from mainapp.models import Worldbook
@@ -1481,6 +1486,14 @@ class SwipeTests(ChatPromptTests):
         self.post({"action": "delete", "index": 2})  # last message is now the user's
         self.assertFalse(self.post({"action": "swipe", "to": 0}).json()["success"])
 
+    def test_the_opening_message_cannot_be_deleted(self):
+        self.post({"action": "chat", "message": "Hi"})
+        before = self.saved_messages()
+        self.assertEqual(before[0][0], "assistant")
+        data = self.post({"action": "delete", "index": 0}).json()
+        self.assertFalse(data["success"])
+        self.assertEqual(self.saved_messages(), before)
+
 
 class SwipeStreamTests(StreamChatTests):
     def test_stopped_regenerate_keeps_both(self):
@@ -1829,7 +1842,7 @@ class GeminiArgonTests(ChatPromptTests):
     def test_argon_ready_setups_start_on_low_thinking_with_room(self):
         from mainapp import starters
         ready = starters.ready_for("gemini-4-argon")
-        self.assertEqual({r["feel"] for r in ready}, {"conversation", "drama", "storytelling"})
+        self.assertEqual({r["feel"] for r in ready}, {"conversation", "drama", "storytelling", "visual"})
         for r in ready:
             s = starters.get(r["id"])["preset"]["samplers"]
             self.assertEqual(s["reasoning_effort"]["value"], "low")
@@ -1843,7 +1856,7 @@ class StarterTests(ChatPromptTests):
     def test_every_starter_is_a_sound_preset_for_its_model(self):
         from mainapp import model_profiles, presets, samplers, starters
         all_s = starters.all_starters()
-        self.assertEqual(len(all_s), 36)  # three original experiences for each of the eleven models and "Any model"
+        self.assertEqual(len(all_s), 48)  # four original experiences for each of the eleven models and "Any model"
         for s in all_s:
             profile = model_profiles.by_id(s["model"])
             self.assertEqual(profile["starters"][s["experience"]], s["id"])
@@ -1884,7 +1897,8 @@ class StarterTests(ChatPromptTests):
         plain = model_profiles.for_style("mistralai/mistral-large")
         self.assertTrue(plain["_generic"])
         self.assertEqual([r["id"] for r in starters.ready_for(plain["id"])],
-                         ["any-experience-conversation", "any-experience-drama", "any-experience-storytelling"])
+                         ["any-experience-conversation", "any-experience-drama", "any-experience-storytelling",
+                          "any-experience-visual"])
         self.assertNotIn("Any model", model_profiles.known_names())  # never offered as a model to pick
         self.assertIsNone(model_profiles.for_style(""))
         # the plain presets: no stock gestures, no metaphors to imitate
@@ -1933,6 +1947,94 @@ class StarterTests(ChatPromptTests):
                                content_type="application/json")
         self.assertEqual(bad.status_code, 400)
 
+    def test_both_forms_write_the_same_basics_lines_and_keep_each_others(self):
+        from mainapp import basics, presets
+        from mainapp.bulba import agent
+        data = presets.normalize(presets.get_active(self.user).data)
+        basics.set_answers(data, {"pov": "third", "pacing": "slow", "genres": ["romance", "angst"],
+                                  "author": "Ursula K. Le Guin", "keep_out": "spiders"})
+        block = next(b for b in data["blocks"] if b["name"] == "Basics")
+        block["content"] += "\nMy own line."
+        self.assertEqual(basics.read(data), {"pov": "third", "pacing": "slow", "genres": ["romance", "angst"],
+                                             "author": "Ursula K. Le Guin", "keep_out": "spiders"})
+        basics.set_answers(data, {"pov": "second", "pacing": ""})  # one answer changes, one is cleared
+        self.assertEqual(basics.read(data)["pov"], "second")
+        self.assertNotIn("pacing", basics.read(data))
+        self.assertIn("My own line.", block["content"])
+        self.assertIn("Le Guin", block["content"])
+        self.assertEqual(block["content"].count(agent.BASICS["pov"][1]["second"]), 1)
+        # Quick setup offers the same questions, worded as Bulba's form
+        form = {f["key"]: f for f in basics.form() if f.get("key")}
+        page = self.client.get(reverse("quick_setup"))
+        quick = {q["key"]: q for q in page.context["questions"] + page.context["more_questions"]}
+        for key in ("pov", "tense", "length", "control", "format", "interior", "pacing", "initiative", "invention",
+                    "colors", "genres", "author", "keep_out"):
+            self.assertEqual(quick[key]["label"], form[key]["label"])
+        mods = dict(form["modules"]["multi"])  # the module list is the catalog's
+        self.assertIn("few_dashes", mods)
+        self.assertIn("html_banner", mods)
+
+    def test_quick_keeps_what_the_full_setup_chose(self):
+        from mainapp import basics, presets
+        active = presets.get_active(self.user)
+        data = presets.normalize(active.data)
+        basics.set_answers(data, {"initiative": "drive", "pov": "first"})
+        active.data = data
+        active.save()
+        url = reverse("quick_setup")
+        self.assertEqual(self.client.get(url).context["basics"]["pov"], "first")  # shows what's set
+        self.client.post(url, json.dumps({"tense": "past"}), content_type="application/json")
+        now = basics.read(presets.normalize(presets.get_active(self.user).data))
+        self.assertEqual(now, {"initiative": "drive", "pov": "first", "tense": "past"})
+
+    def test_quick_setup_offers_every_narration_voice(self):
+        from mainapp import basics, presets
+        url = reverse("quick_setup")
+        voices = [v["value"] for v in self.client.get(url).context["line_voices"]]
+        self.assertEqual(voices, ["anime", "realism", "fanfic", "webnovel"])
+        self.client.post(url, json.dumps({"voice": "anime", "modules": {"voice_camus": False}}),
+                         content_type="application/json")
+        self.assertEqual(basics.read(presets.normalize(presets.get_active(self.user).data))["voice"], "anime")
+        self.client.post(url, json.dumps({"voice": "", "modules": {"voice_camus": True}}),
+                         content_type="application/json")
+        data = presets.normalize(presets.get_active(self.user).data)
+        self.assertNotIn("voice", basics.read(data))  # one voice at a time: the author voice replaced it
+        self.assertTrue(next(b for b in data["blocks"] if b["name"] == "Voice: Camus (wry)")["enabled"])
+
+    def test_quick_setup_inner_thoughts_go_in_the_basics(self):
+        from mainapp import presets
+        url = reverse("quick_setup")
+        self.client.post(url, json.dumps({"interior": "enter"}), content_type="application/json")
+        basics = next(b for b in presets.normalize(presets.get_active(self.user).data)["blocks"] if b["name"] == "Basics")
+        self.assertIn("<thought>", basics["content"])
+        self.assertEqual(self.client.get(url).context["basics"]["interior"], "enter")
+
+    def test_quick_setup_designed_objects_with_their_own_description(self):
+        from mainapp import extras, html_objects, presets
+        from users.models import ConnectionProfile
+        ConnectionProfile.objects.filter(user=self.user).update(model="z-ai/glm-5.3")
+        url = reverse("quick_setup")
+        self.client.post(url, json.dumps({"starter": "glm-experience-drama", "modules": {
+            "html_banner": True, "html_letters": True, "html_custom": True},
+            "custom_object": "A status card: mood, health, what they want"}), content_type="application/json")
+        data = presets.normalize(presets.get_active(self.user).data)
+        on = {b["name"] for b in data["blocks"] if b["enabled"]}
+        self.assertTrue({"Scene banner (AI-designed)", "Letters and documents (AI-designed)",
+                         "My own object (AI-designed)"} <= on)
+        custom = next(b for b in data["blocks"] if b["name"] == "My own object (AI-designed)")
+        self.assertTrue(custom["content"].endswith("A status card: mood, health, what they want"))
+        self.assertEqual(html_objects.replaced_kinds(data), {"documents"})
+        groups = {g["key"]: g for g in self.client.get(url).context["module_groups"]}
+        mine = next(m for m in groups["objects"]["modules"] if m["key"] == "html_custom")
+        self.assertEqual(mine["custom"], "A status card: mood, health, what they want")
+        # a new description replaces the old one, it doesn't pile up
+        self.client.post(url, json.dumps({"modules": {"html_custom": True}, "custom_object": "A diary page"}),
+                         content_type="application/json")
+        custom = next(b for b in presets.normalize(presets.get_active(self.user).data)["blocks"]
+                      if b["name"] == "My own object (AI-designed)")
+        self.assertEqual(custom["content"].count(html_objects.CUSTOM_MARK), 1)
+        self.assertTrue(custom["content"].endswith("A diary page"))
+
     def test_quick_setup_names_what_an_unknown_model_gets(self):
         from users.models import ConnectionProfile
         ConnectionProfile.objects.filter(user=self.user).update(model="moonshotai/kimi-k2")
@@ -1968,7 +2070,7 @@ class StarterTests(ChatPromptTests):
         groups = self.client.get(reverse("presets")).context["preset_page"]["starters"]
         self.assertTrue(groups[0]["yours"])
         self.assertEqual(groups[0]["model_name"], "Claude Opus 5.5")
-        self.assertEqual([s["title"] for s in groups[0]["starters"]], ["Conversation & Chemistry", "Character Drama", "Immersive Storytelling"])
+        self.assertEqual([s["title"] for s in groups[0]["starters"]], ["Tête-à-tête", "Heartstrings", "Deep Water", "Storybook"])
 
 
 class WelcomeTests(TestCase):
@@ -3453,7 +3555,7 @@ class TranslationWorkflowTests(ChatPromptTests):
             with self.assertRaises(translation.TranslationError):
                 translation.translate_extras(None, [note, phone], "uk")  # incomplete: they stay English
 
-    def test_the_translator_knows_about_adult_content(self):
+    def test_translation_does_not_add_mature_scene_instructions_to_benign_text(self):
         from unittest import mock
         from mainapp import mature, presets, translation
         obj = presets.get_active(self.user)
@@ -3461,12 +3563,12 @@ class TranslationWorkflowTests(ChatPromptTests):
         obj.save()
         with mock.patch.object(translation.ai_client, "complete", return_value='{"text": "Привіт"}') as call:
             translation.translate(self.user, "Hello", "uk")
-        self.assertIn("fiction written for adults", call.call_args[0][2][0]["content"])
+        self.assertEqual(call.call_args[0][2][0]["content"], translation.INSTRUCTIONS)
 
     def test_a_silent_block_is_explained_not_empty(self):
         from mainapp import ai_client
         msg = ai_client.block_explanation("PROHIBITED_CONTENT")
-        self.assertIn("no setting can switch off", msg)
+        self.assertIn("does not identify the trigger", msg)
         self.assertTrue(ai_client._blocking_stop("PROHIBITED_CONTENT"))
         self.assertTrue(ai_client._blocking_stop("content_filter"))
         self.assertFalse(ai_client._blocking_stop("stop"))
@@ -4055,6 +4157,26 @@ class BulbaCardAndLoreTests(BulbaTests):
         self.assertFalse(Character.objects.filter(name="Viktor").exists())
         self.assertFalse(Worldbook.objects.filter(title="Station lore").exists())
 
+    def test_a_card_edit_for_someone_else_is_refused_and_a_new_character_becomes_the_focus(self):
+        from mainapp.bulba import lore
+        from mainapp.models import BulbaSession, Character
+        self.upload(V2_CARD)
+        aslan = ("[Identity]\nThe character is Aslan, the great lion of Narnia, King above all High Kings, son of "
+                 "the Emperor-beyond-the-Sea, who sang Narnia into being. He is no one's pet and comes and goes as "
+                 "he will. A huge lion, larger than any mortal lion, golden and warm.")
+        self.script = [("Here it is.", [self.call("propose_card_edit", description=aslan, why="new character")])]
+        self.api(action="say", text="make me Aslan")
+        session = BulbaSession.objects.get(user=self.user, active=True)
+        self.assertFalse(any(p["kind"] == "card_edit" for p in session.proposals))  # refused: Viktor stays Viktor
+        self.assertNotIn("Aslan", Character.objects.get(author=self.user, name="Viktor").description)
+        # A character Bulba makes becomes the one it works on (not the card it looked at before)
+        self.script = [("Here.", [self.call("propose_character", name="Aslan", description=aslan, greeting="He waits.")])]
+        pid = self.api(action="say", text="new character then").json()["state"]["proposals"][-1]["id"]
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=pid)
+        session.refresh_from_db()
+        self.assertEqual(lore.target_character(session).name, "Aslan")
+
     def test_lorebook_added_to_existing_and_new(self):
         from mainapp import lorebook
         from mainapp.models import Character
@@ -4605,7 +4727,7 @@ class ExtrasPlacementTests(GameTests):
         resp, events = self.stream_post({"action": "chat", "message": "Hello?"})
         self.assertEqual(events[-1]["type"], "error")
         self.assertIn("PROHIBITED_CONTENT", events[-1]["error"])
-        self.assertIn("no setting can switch off", events[-1]["error"])
+        self.assertIn("does not identify the trigger", events[-1]["error"])
 
     def test_a_fumbled_tool_call_retries_without_tools(self):
         from mainapp import extras
@@ -5153,6 +5275,28 @@ class BulbaTuningTests(BulbaCardAndLoreTests):
         self.assertIn(viktor.slug, ev["url"])
 
 
+class GreetingNameTests(ChatPromptTests):
+    def test_the_greeting_follows_the_persona_made_later(self):
+        from mainapp import chats
+        self.character.initial_message = "{{char}} looks up. \"You're late, {{user}}.\""
+        self.character.save()
+        chat = chats.create(self.character)
+        login = self.user.persona_name or self.user.name or self.user.username
+        self.assertIn(f"You're late, {login}.", chats.read(chat)["messages"][0][2])
+        self.user.persona_name = "Reza"
+        self.user.save()
+        self.client.get(self.url + f"?chat={chat.id}")
+        self.assertIn("You're late, Reza.", chats.read(chat)["messages"][0][2])
+        # an edited greeting stays as they wrote it
+        f = chats.read(chat)
+        f["messages"][0] = ["assistant", "", "My own opening, Reza.", "neutral", 1]
+        chats.write(chat, f)
+        self.user.persona_name = "Kaveh"
+        self.user.save()
+        self.client.get(self.url + f"?chat={chat.id}")
+        self.assertEqual(chats.read(chat)["messages"][0][2], "My own opening, Reza.")
+
+
 class BulbaIdeasTests(ChatPromptTests):
     def test_ideas_extra(self):
         from unittest import mock
@@ -5178,6 +5322,33 @@ class BulbaIdeasTests(ChatPromptTests):
         with mock.patch("mainapp.ai_client.complete", return_value=reply) as complete:
             self.assertEqual(self.post({"action": "ideas"}).json()["mode"], "director")
         self.assertIn("directs", complete.call_args.args[2][0]["content"])
+
+    def test_ideas_follow_the_story_point_of_view_never_i(self):
+        from unittest import mock
+        from mainapp import presets
+        active = presets.get_active(self.user)
+        data = presets.normalize(active.data)
+        data["blocks"].insert(0, presets.normalize_block({"name": "Basics", "kind": "prompt", "content":
+            "Narrate in third person (\"she steps inside\").\nWrite in past tense.\n"
+            "Put speech in double quotes and actions in *asterisks*."}))
+        active.data = data
+        active.save()
+        reply = '{"ideas": ["a", "b", "c"]}'
+        with mock.patch("mainapp.ai_client.complete", return_value=reply) as complete:
+            self.post({"action": "ideas"})
+        system = complete.call_args.args[2][0]["content"]
+        self.assertIn("third person", system)
+        self.assertIn('Never "I"', system)
+        self.assertIn("Past tense", system)
+        self.assertIn("*asterisks*", system)
+        # once they've written, the ideas copy them
+        from mainapp import chats
+        chat = self.character.chats.first()
+        f = chats.read(chat)
+        chats.write(chat, {**f, "messages": [*f["messages"], ["user", "", "I look around.", "neutral", 1]]})
+        with mock.patch("mainapp.ai_client.complete", return_value=reply) as complete:
+            self.post({"action": "ideas"})
+        self.assertIn("recent messages are written", complete.call_args.args[2][0]["content"])
 
     def test_extras_page_saves_ideas(self):
         from mainapp import extras
@@ -5493,7 +5664,8 @@ class SetupRoutesTests(BulbaTests):
         self.client.get(reverse("bulba"))
         data = self.api(action="route", route="fast").json()
         routes = [c["route"] for c in data["events"][-1]["choices"]]
-        self.assertEqual(routes, ["fast:opus-experience-conversation", "fast:opus-experience-drama", "fast:opus-experience-storytelling"])
+        self.assertEqual(routes, ["fast:opus-experience-conversation", "fast:opus-experience-drama", "fast:opus-experience-storytelling",
+                                  "fast:opus-experience-visual"])
         self.assertTrue(all(c["hint"] for c in data["events"][-1]["choices"]))
         data = self.api(action="route", route="fast:opus-director").json()
         # First the chat's memory (a slider with what a message costs), then who they are
@@ -5603,7 +5775,7 @@ class WelcomeReadyPresetTests(TestCase):
 
     def test_saving_the_model_lists_its_ready_presets(self):
         data = self.post(model="mimo-v2-6-pro", skip_check=True).json()
-        self.assertEqual([r["feel"] for r in data["ready"]], ["conversation", "drama", "storytelling"])
+        self.assertEqual([r["feel"] for r in data["ready"]], ["conversation", "drama", "storytelling", "visual"])
         self.assertTrue(all(r["tagline"] for r in data["ready"]))
 
     def test_a_ready_preset_is_applied_without_bulba(self):
@@ -6642,6 +6814,35 @@ class TasteIntoPresetTests(BulbaInChatTests):
         self.api(action="undo", id=proposal["id"])
         self.assertEqual(watch.user_data(self.user)["taste_in_preset"], [])
 
+    def test_they_correct_the_lines_before_bulba_words_them(self):
+        from mainapp.bulba import watch
+        self.make_chat()
+        data = watch.chat_data(self.chat_obj)
+        mine = watch.user_data(self.user)
+        mine["taste"] = ["Likes technical competence", "Engages with the clinical register", "Writes their character as composed"]
+        note = watch.offer_taste(data, mine)
+        watch.save_user_data(self.user, mine)
+        watch.save_chat_data(self.chat_obj, data)
+        resp = self.post({"action": "watch_taste", "id": note["id"], "lines": [
+            {"old": "Likes technical competence", "new": "Likes technical competence, shown in small details"},
+            {"old": "Engages with the clinical register", "new": ""},
+            {"old": "Writes their character as composed", "new": "Writes their character as composed"}]}).json()
+        self.assertTrue(resp["success"])
+        self.assertEqual(watch.user_data(self.user)["taste"],
+                         ["Likes technical competence, shown in small details", "Writes their character as composed"])
+        saved = next(n for n in watch.chat_data(self.chat_obj)["notices"] if n["id"] == note["id"])
+        self.assertEqual(saved["quotes"], ["Likes technical competence, shown in small details",
+                                           "Writes their character as composed"])
+        self.script = [("Here's the change.", [])]
+        self.api(action="note", id=note["id"])
+        sent = self.bulba_calls[-1]["messages"][-1]["content"]
+        self.assertIn("shown in small details", sent)
+        self.assertNotIn("clinical register", sent)
+        everything_out = self.post({"action": "watch_taste", "id": note["id"], "lines": [
+            {"old": q, "new": ""} for q in saved["quotes"]]})
+        self.assertEqual(everything_out.status_code, 400)
+        self.assertEqual(len(watch.user_data(self.user)["taste"]), 2)  # nothing was dropped
+
     def test_lines_already_in_the_preset_are_not_offered(self):
         from mainapp.bulba import watch
         self.make_chat()
@@ -7189,7 +7390,7 @@ class HelpAndToursTests(BulbaTests):
         self.assertRedirects(resp, reverse("quick_setup"), fetch_redirect_response=False)
         page = self.client.get(reverse("quick_setup"))
         self.assertContains(page, "How roleplay works here")
-        self.assertEqual(len(page.context["ready"]), 3)  # the model's tested writing styles
+        self.assertEqual(len(page.context["ready"]), 4)  # the model's tested writing styles
         self.assertContains(page, "Let Bulba do it", count=6)
         self.assertNotContains(page, ">None<")
         self.assertContains(self.client.get(reverse("bulba")), "Switch to the quick setup")  # halfway, too
@@ -7259,7 +7460,7 @@ class HelpAndToursTests(BulbaTests):
         self.main.delete()
         resp = self.explain(label="Presets")
         self.assertEqual(resp.status_code, 400)
-        self.assertIn("OpenRouter key", resp.json()["error"])
+        self.assertIn("OpenRouter or NanoGPT key", resp.json()["error"])
 
     def test_every_page_has_the_help_button_and_the_tour(self):
         for name in ("home", "presets", "bulba", "users:extras", "users:profile"):
@@ -7303,6 +7504,21 @@ class BulbaInChatKnowsTheAppTests(BulbaInChatTests):
 class BasicsAndStoryFormTests(BulbaTests):
     """The basics form's new questions (2026-10-30 rules), and the story form's tracker chips."""
 
+    def test_the_full_setup_writes_the_basics_block_like_quick_setup(self):
+        from mainapp import basics
+        from mainapp.bulba import agent
+        from mainapp.models import BulbaSession
+        self.client.get(reverse("bulba"))
+        session = BulbaSession.objects.get(user=self.user, mode="setup")
+        note = agent.apply_basics(session, {"pov": "third", "tense": "past", "interior": "enter",
+                                            "genres": ["romance"], "keep_out": "gore", "pacing": "any"})
+        self.assertIn("Basics block itself", note)
+        self.assertEqual(agent.form_basics(session), {"pov": "third", "tense": "past", "interior": "enter",
+                                                      "genres": ["romance"], "keep_out": "gore"})
+        preset = agent.build_preset({"starter": "opus-experience-drama", "taste": "",
+                                     "basics": agent.form_basics(session)})
+        self.assertEqual(basics.read(preset), agent.form_basics(session))
+
     def test_initiative_invention_and_inner_thoughts_become_preferences(self):
         from mainapp.bulba import agent
         from mainapp.models import BulbaSession
@@ -7317,6 +7533,8 @@ class BasicsAndStoryFormTests(BulbaTests):
         self.assertIn("Who moves the story:", note)
         agent.apply_basics(session, {"initiative": "any"})
         self.assertEqual(len(session.preferences), len(texts))  # "no preference" records nothing
+        agent.apply_basics(session, {"interior": "enter"})  # thoughts in their own words: marked for the chat
+        self.assertTrue(any("<thought>" in p["interpretation"] for p in session.preferences))
 
     def make_character(self):
         from mainapp.models import BulbaSession, Character
@@ -7361,6 +7579,36 @@ class BasicsAndStoryFormTests(BulbaTests):
         session = BulbaSession.objects.get(user=self.user, mode="setup")
         form = agent.tool_show_extras_form(session, {"trackers": ["world"]})[1][0]
         self.assertNotIn("trackers", form)
+
+    def test_story_form_ticks_the_ideas_button_and_leaves_app_kept_trackers_to_extras(self):
+        from mainapp import trackers
+        from mainapp.bulba import agent
+        session, character = self.make_character()
+        form = agent.tool_show_extras_form(session, {"trackers": ["world", "milestones"]})[1][0]
+        self.assertTrue(form["values"]["ideas"])  # on unless Bulba says otherwise
+        ids = [t["id"] for t in form["trackers"]]
+        self.assertNotIn("milestones", ids)  # these come with their story extras
+        self.assertNotIn("scrapbook", ids)
+        self.assertEqual(form["values"]["trackers"], ["world"])
+        self.assertFalse(agent.tool_show_extras_form(session, {"ideas": False})[1][0]["values"]["ideas"])
+        # sending the form never switches Milestones off behind their back
+        config = trackers.normalize_config(character.tracker_config)
+        config["trackers"]["milestones"]["on"] = True
+        character.tracker_config = config
+        character.save()
+        made = agent.form_trackers(session, {"trackers": ["world"]})
+        if made:
+            card = next(p for p in session.proposals if p["id"] == made[0])
+            self.assertNotIn("milestones", " ".join(card["summary"]).lower())
+
+    def test_beside_the_quick_form_bulba_keeps_it_short(self):
+        from mainapp.bulba import agent
+        from mainapp.models import BulbaSession
+        self.client.get(reverse("bulba"))
+        session = BulbaSession.objects.get(user=self.user, mode="setup")
+        self.assertNotIn("Beside the Quick setup form", agent.system_prompt(session))
+        session.beside_quick = True
+        self.assertIn("Save and start chatting", agent.system_prompt(session))
 
 
 class MemoryAndCostTests(BulbaTests):

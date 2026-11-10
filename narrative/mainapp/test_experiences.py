@@ -5,7 +5,7 @@ from mainapp.bulba import agent, control
 
 class ExperienceTests(SimpleTestCase):
     def test_catalog_has_three_original_experiences_per_model(self):
-        self.assertEqual(len(starters.all_starters()), 36)  # eleven models and "Any model"
+        self.assertEqual(len(starters.all_starters()), 48)  # four styles for eleven models and "Any model"
         for s in starters.all_starters():
             self.assertIn(s['experience'], experiences.EXPERIENCES)
             self.assertEqual(s['based_on'], [])
@@ -227,3 +227,176 @@ class AdultModuleTests(SimpleTestCase):
         self.assertNotIn('Dark themes (18+)', names)
         self.assertNotIn('Slow-burn intimacy (18+)', names)
         self.assertIn("Chekhov's gun", names)
+
+
+
+from django.test import TestCase, override_settings
+
+
+@override_settings(LEGACY_FIRST_PRESET=False)
+class FirstPresetTests(TestCase):
+    def test_a_new_account_starts_on_heartstrings_for_its_model(self):
+        from django.contrib.auth import get_user_model
+        from users.models import ConnectionProfile
+        user = get_user_model().objects.create_user(username="newbie", password="pw12345!")
+        ConnectionProfile.objects.create(user=user, name="Main", api_key="k", model="moonshotai/kimi-k3")
+        active = presets.get_active(user)
+        self.assertEqual(active.name, "Heartstrings · Kimi K3")
+        data = presets.normalize(active.data)
+        self.assertIn("## Knowledge", next(b for b in data["blocks"] if b["name"] == "Roleplay")["content"])
+        self.assertEqual(control.mode_of(data), "dont")
+        self.assertNotIn("World Reality Augments", str(data))
+        # no connection yet: the plain one
+        other = get_user_model().objects.create_user(username="nokey", password="pw12345!")
+        self.assertTrue(presets.get_active(other).name.startswith("Heartstrings · Any model"))
+
+    def test_names_and_world_modules(self):
+        titles = {s["experience"]: s["title"] for s in starters.all_starters() if s["model"] == "mimo-v2-6-pro"}
+        self.assertEqual(titles, {"conversation": "Tête-à-tête", "drama": "Heartstrings", "storytelling": "Deep Water",
+                                  "visual": "Storybook"})
+        self.assertIn("Character Drama", starters.get("mimo-experience-drama")["description"])
+        world = [m["title"] for m in experiences.catalog()["modules"].values() if m["group"] == "world"]
+        for t in ("World: Aliens", "World: Vampires", "World: Prophetic visions"):
+            self.assertIn(t, world)
+
+
+@override_settings(LEGACY_FIRST_PRESET=False)
+class PresetUpgradeTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        from users.models import ConnectionProfile
+        from mainapp.models import Preset
+        self.user = get_user_model().objects.create_user(username="oldtimer", password="pw12345!")
+        self.conn = ConnectionProfile.objects.create(user=self.user, name="Main", api_key="k", model="z-ai/glm-5.3")
+        self.Preset = Preset
+
+    def make(self, data, name):
+        obj = self.Preset.objects.create(user=self.user, name=name, data=data)
+        presets.activate(obj)
+        return obj
+
+    def test_the_pinned_note_has_a_slot_in_every_preset(self):
+        for sid in ('opus-experience-drama', 'glm-rich-scene', 'gemini-frankenstein'):
+            data = presets.normalize(starters.get(sid)['preset'])
+            self.assertIn('world_context', [b.get('marker') for b in data['blocks']], sid)
+            built = presets.assemble(data, {'chat_history': True, 'world_context': 'Pinned note: at the docks'},
+                                     [{'role': 'user', 'content': 'Hi'}], {'char': 'Rose', 'user': 'Anya'}, '')
+            self.assertIn('at the docks', str(built['messages']), sid)
+
+    def test_an_untouched_old_starter_switches_with_its_choices_and_can_be_undone(self):
+        from mainapp import mature, preset_upgrade
+        from mainapp.bulba import control
+        raw = preset_upgrade._raw_starter('glm-back-and-forth')
+        data = mature.set_on(presets.normalize(raw['preset']), True)
+        data['extras']['starter'] = {'id': 'glm-back-and-forth', 'model': 'glm-5-3'}
+        data = control.apply_to_preset(data, 'write')
+        data['blocks'].insert(1, presets.normalize_block({'name': 'Your taste', 'kind': 'prompt', 'content': 'Keep it wry.'}))
+        old = self.make(data, 'Back-and-forth · GLM 5.3')
+        hint = preset_upgrade.pending(self.user)
+        self.assertEqual(hint['kind'], 'switched')
+        active = presets.get_active(self.user)
+        self.assertEqual(active.name, 'Tête-à-tête · GLM 5.3')
+        new = presets.normalize(active.data)
+        self.assertEqual(control.mode_of(new), 'write')
+        self.assertTrue(mature.is_on(new))
+        self.assertIn('Keep it wry.', str(new['blocks']))
+        self.assertIsNone(preset_upgrade.pending(self.user))  # shown once
+        self.assertTrue(preset_upgrade.undo(self.user))
+        self.assertEqual(presets.get_active(self.user).id, old.id)
+        self.assertIsNone(preset_upgrade.pending(self.user))  # and never again by itself
+
+    def test_an_edited_old_preset_is_only_offered(self):
+        from mainapp import preset_upgrade
+        raw = preset_upgrade._raw_starter('glm-rich-scene')
+        data = presets.normalize(raw['preset'])
+        data['extras']['starter'] = {'id': 'glm-rich-scene', 'model': 'glm-5-3'}
+        next(b for b in data['blocks'] if b['name'] == 'Style')['content'] += '\n- My own rule.'
+        old = self.make(data, 'Rich scene · GLM 5.3')
+        hint = preset_upgrade.pending(self.user)
+        self.assertEqual((hint['kind'], hint['to']), ('offer_upgrade', 'Heartstrings · GLM 5.3'))
+        self.assertEqual(presets.get_active(self.user).id, old.id)  # nothing switched by itself
+        preset_upgrade.decline(self.user, 'offer_upgrade')
+        self.assertIsNone(preset_upgrade.pending(self.user))
+
+    def test_a_model_change_offers_a_rebuild_that_keeps_their_choices(self):
+        from mainapp import preset_upgrade
+        data = experiences.set_modules(experiences.configure(presets.normalize(starters.get('glm-experience-storytelling')['preset']), 'director'),
+                                       {'hard_mode': True, 'friction': False})
+        experiences.set_length(data, 'short')
+        self.make(data, 'Deep Water · GLM 5.3')
+        self.assertIsNone(preset_upgrade.pending(self.user))
+        self.conn.model = 'anthropic/claude-opus-5-5'
+        self.conn.save()
+        hint = preset_upgrade.pending(self.user)
+        self.assertEqual((hint['kind'], hint['from'], hint['to']), ('offer_rebuild', 'GLM 5.3', 'Claude Opus 5.5'))
+        obj = preset_upgrade.rebuild(self.user)
+        self.assertEqual(obj.name, 'Deep Water · Claude Opus 5.5')
+        new = presets.normalize(obj.data)
+        on = {b['name'] for b in new['blocks'] if b['enabled']}
+        self.assertIn('Hard mode', on)
+        self.assertNotIn('Friction', on)
+        self.assertEqual(control.mode_of(new), 'director')
+        self.assertIn('two to four', next(b for b in new['blocks'] if b['name'] == 'Reply length')['content'])
+        self.assertIn('# How this story is written', next(b for b in new['blocks'] if b['name'] == 'Roleplay')['content'])
+        self.assertIsNone(preset_upgrade.pending(self.user))
+        self.assertTrue(preset_upgrade.undo_rebuild(self.user))
+        self.assertEqual(presets.get_active(self.user).name, 'Deep Water · GLM 5.3')
+
+
+class DesignedObjectTests(SimpleTestCase):
+    """In-story objects the AI designs as ```html blocks (mainapp/html_objects.py)."""
+    BANNER = ("Before.\n\n```html\n<div data-label=\"Scene banner: the docks, dusk\" style=\"color:red\">"
+              "<b>THE DOCKS</b><script>blink()</script></div>\n```\n\nAfter.")
+
+    def test_labels_and_shrinking(self):
+        from mainapp import html_objects
+        self.assertTrue(html_objects.has_objects(self.BANNER))
+        self.assertEqual(html_objects.shrink(self.BANNER),
+                         "Before.\n\n[Shown to the reader as a designed object: Scene banner: the docks, dusk]\n\nAfter.")
+        self.assertEqual(html_objects.strip(self.BANNER), "Before.\n\nAfter.")
+        # without a data-label: the visible text, scripts and styles left out
+        self.assertEqual(html_objects.label("<style>b{}</style><p>WANTED: <i>the Fox</i></p><script>x()</script>"),
+                         "WANTED: the Fox")
+        self.assertEqual(html_objects.shrink("Plain prose, `code`."), "Plain prose, `code`.")
+        unclosed = "Text\n```html\n<div>cut off"
+        self.assertEqual(html_objects.shrink(unclosed), unclosed)
+
+    def test_the_ai_rereads_only_its_latest_objects_in_full(self):
+        from mainapp import views
+        messages = [("assistant", "", self.BANNER, "neutral", 1), ("user", "", "Go on", "neutral", 1),
+                    ("assistant", "", self.BANNER, "neutral", 1), ("user", "", "And?", "neutral", 1),
+                    ("assistant", "", self.BANNER, "neutral", 1)]
+        history = views._history(messages)
+        self.assertNotIn("```html", history[0]["content"])
+        self.assertIn("Scene banner: the docks, dusk", history[0]["content"])
+        self.assertIn("```html", history[2]["content"])
+        self.assertIn("```html", history[4]["content"])
+        self.assertNotIn("```html", views._summary_line(messages[4]))  # summaries read the label
+
+    def test_designed_kinds_take_over_app_drawn_extras(self):
+        from mainapp import html_objects
+        data = presets.normalize(starters.get('opus-experience-drama')['preset'])
+        self.assertEqual(html_objects.replaced_kinds(data), set())
+        data = experiences.set_modules(data, {'html_screens': True, 'html_rumours': True})
+        self.assertEqual(html_objects.replaced_kinds(data), {'messages', 'news'})
+        data = experiences.set_modules(data, {'html_objects': True})
+        self.assertEqual(html_objects.replaced_kinds(data), {'documents', 'messages', 'news'})
+
+    def test_every_object_module_asks_for_the_fenced_format(self):
+        mods = {k: m for k, m in experiences.catalog()['modules'].items() if m.get('group') == 'objects'}
+        self.assertEqual(set(mods), {'html_banner', 'html_letters', 'html_screens', 'html_rumours', 'html_objects',
+                                     'html_custom'})
+        for m in mods.values():
+            self.assertFalse(m['default'])
+            self.assertIn('```html', m['content'])
+            self.assertIn('data-label', m['content'])
+
+
+class StorybookTests(SimpleTestCase):
+    def test_storybook_is_deep_water_with_designed_objects_on(self):
+        s = starters.get('glm-experience-visual')
+        self.assertEqual(s['title'], 'Storybook')
+        on = {b.get('name') for b in s['preset']['blocks'] if b.get('enabled')}
+        self.assertTrue({'Scene banner (AI-designed)', 'Any in-story object (AI-designed)', 'Writing quality'} <= on)
+        self.assertNotIn('Scene banner (AI-designed)',
+                         {b.get('name') for b in starters.get('glm-experience-storytelling')['preset']['blocks'] if b.get('enabled')})

@@ -221,9 +221,50 @@ marked.setOptions({
 
 
 // where: an element inside the message (or {role, depth}); used by display text rules
+// In-story objects the AI designs (```html blocks, mainapp/html_objects.py): each one runs in a sealed frame.
+// No allow-same-origin, so its scripts can't reach this page, the account or cookies; the content policy keeps
+// it off the network (Google Fonts aside); no popups, forms or navigating the page.
+const HTML_FENCE = /```[ \t]*html[ \t]*\r?\n([\s\S]*?)\r?\n[ \t]*```/gi;
+const HTML_OPEN = /```[ \t]*html[ \t]*\r?\n[\s\S]*$/i;  // still being written
+const objectHeights = new Map();  // keeps the page from jumping when a message is redrawn
+function objectKey(code) { let h = 0; for (let i = 0; i < code.length; i++) h = (h * 31 + code.charCodeAt(i)) | 0; return 'o' + (h >>> 0).toString(36); }
+function objectFrame(code) {
+    const key = objectKey(code);
+    const doc = `<!doctype html><html><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data:; script-src 'unsafe-inline'">
+<meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="dark">
+<style>html,body{margin:0;padding:0;background:transparent;color:#e5e7eb;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;overflow:hidden}
+body{padding:2px}*{box-sizing:border-box;max-width:100%}</style></head><body>${code}
+<script>(function(){var last=0;function tell(){var h=Math.ceil(document.documentElement.scrollHeight);if(h!==last){last=h;parent.postMessage({naObject:${JSON.stringify(key)},h:h},'*');}}
+addEventListener('load',tell);try{new ResizeObserver(tell).observe(document.body);}catch(e){}setTimeout(tell,50);setTimeout(tell,600);})();<\/script></body></html>`;
+    const frame = document.createElement('iframe');
+    frame.className = 'html-object';
+    frame.setAttribute('sandbox', 'allow-scripts');
+    frame.setAttribute('referrerpolicy', 'no-referrer');
+    frame.setAttribute('loading', 'lazy');
+    frame.setAttribute('title', 'In-story object');
+    frame.dataset.object = key;
+    frame.style.height = (objectHeights.get(key) || 160) + 'px';
+    frame.setAttribute('srcdoc', doc);
+    return frame;
+}
+window.addEventListener('message', (e) => {
+    if (!e.data || typeof e.data.naObject !== 'string' || typeof e.data.h !== 'number') return;
+    const h = Math.max(20, Math.min(4000, e.data.h));
+    document.querySelectorAll('iframe.html-object').forEach(f => {
+        if (f.contentWindow === e.source) { f.style.height = h + 'px'; objectHeights.set(f.dataset.object, h); }
+    });
+});
+
 function renderChatMessage(rawText, where) {
     const place = messagePlace(where);
-    let shown = TextRules.any() ? TextRules.apply(rawText, place.role, place.depth) : rawText;
+    // Designed objects come out first (text rules and markdown don't touch them), back in as frames at the end
+    const objects = [];
+    let source = String(rawText ?? '').replace(HTML_FENCE, (m, code) => { objects.push(code); return `\n\n<div class="object-slot n${objects.length - 1}"></div>\n\n`; });
+    if (isGenerating) source = source.replace(HTML_OPEN, () => '\n\n<div class="object-slot drawing"></div>\n\n');  // a cut-off one stays code
+    let shown = TextRules.any() ? TextRules.apply(source, place.role, place.depth) : source;
+    // A character's direct thought ("Inner thoughts, shown apart" module): its own style
+    shown = shown.replace(/<thought>([\s\S]*?)<\/thought>/gi, (m, t) => `<span class="thought">${t.trim()}</span>`);
     // Story extras' markers ([[extra 2]]) become slots; placeExtras() puts the app's drawing there
     shown = shown.replace(/\[\[extra (\d+)\]\]/g, '\n\n<div class="extra-slot n$1"></div>\n\n');
     const pre2 = wrapQuoted(shown);
@@ -246,6 +287,11 @@ function renderChatMessage(rawText, where) {
     tmp.querySelectorAll('a').forEach(a => {
         a.setAttribute('rel', 'nofollow noopener noreferrer');
         a.setAttribute('target', '_blank');
+    });
+    tmp.querySelectorAll('.object-slot').forEach(slot => {
+        const n = (slot.className.match(/\bn(\d+)\b/) || [])[1];
+        if (n !== undefined && objects[n] !== undefined) slot.replaceWith(objectFrame(objects[n]));
+        else if (slot.classList.contains('drawing')) slot.textContent = '🎨 Drawing…';
     });
     return tmp.innerHTML;
 }
@@ -283,7 +329,18 @@ function unlockFinished() {
 }
 let currentRequest = null;
 let deleteMessageIndex = -1;
-if (window.NATomato) NATomato.watch(() => isBusy());  // 🍅 a slow reply (writing, polishing, translating)
+// Bulba's helpers in the chat (Write for me, ideas, wording a note, condensing) are waits too
+const SLOW_ACTIONS = new Set(['expand', 'ideas', 'note_ideas', 'word_note', 'condense', 'polish', 'translate']);
+let slowJobs = 0;
+const pageFetch = window.fetch.bind(window);
+window.fetch = function (url, opts) {
+    let slow = false;
+    try { slow = !!opts && typeof opts.body === 'string' && SLOW_ACTIONS.has(JSON.parse(opts.body).action); } catch (e) {}
+    if (!slow) return pageFetch(url, opts);
+    slowJobs++;
+    return pageFetch(url, opts).finally(() => { slowJobs = Math.max(0, slowJobs - 1); });
+};
+if (window.NATomato) NATomato.watch(() => isBusy() || slowJobs > 0);  // 🍅 a slow reply or a slow Bulba helper
 
 messageInput.addEventListener('input', function () {
     this.style.height = 'auto';
@@ -2255,3 +2312,20 @@ async function afterReplyText(messageEl, polishDue) {
     window.addEventListener('scroll', back, { passive: true });
     if (window.visualViewport) window.visualViewport.addEventListener('resize', () => setTimeout(back, 50));
 })();
+
+// The one-time preset note (preset_upgrade.py): moved to a new writing style, an offer to move, or a rebuild offer
+document.getElementById('presetHint')?.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-preset-hint]');
+    if (!b) return;
+    const hint = document.getElementById('presetHint');
+    const action = b.dataset.presetHint;
+    const resp = await fetch(hint.dataset.url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ action, kind: hint.dataset.kind, pair: hint.dataset.pair }) }).catch(() => null);
+    const d = resp ? await resp.json().catch(() => ({})) : {};
+    hint.remove();
+    if (d.text) showChatNotice(d.text);
+    if (['switch', 'undo', 'rebuild'].includes(action) && d.ok) {
+        if (action === 'rebuild') showChatNotice(d.text + ' Changed your mind? Ask Bulba, or pick the previous one on the Presets page.');
+        setTimeout(() => window.location.reload(), 1600);
+    }
+});

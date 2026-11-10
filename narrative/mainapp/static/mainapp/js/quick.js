@@ -78,25 +78,45 @@ document.addEventListener('click', async (e) => {
     const btn = e.target.closest('[data-ask]');
     if (!btn) return;
     await save(false);  // Bulba sees what's already filled in
-    const url = QUICK.bulba + '&draft=' + encodeURIComponent(btn.dataset.ask);
+    let ask = btn.dataset.ask;
+    if (btn.closest('#qPersona')) {  // a persona fits the character they'll talk to (step 3), so Bulba is told which
+        const picked = document.querySelector('input[name=character]:checked');
+        const name = picked && picked.closest('label').querySelector('b')?.textContent.trim();
+        if (name) ask += ` I'll be talking to ${name}.`;
+    }
+    const url = QUICK.bulba + '&draft=' + encodeURIComponent(ask);
     if (!frame.src) frame.src = url;
-    else frame.contentWindow.postMessage({ bulbaDraft: btn.dataset.ask }, window.location.origin);
+    else frame.contentWindow.postMessage({ bulbaDraft: ask }, window.location.origin);
     drawer.hidden = false;
     document.body.classList.add('with-bulba');  // the form makes room: both side by side (a sheet below on phones)
 });
 window.addEventListener('message', (e) => {
     if (e.origin !== window.location.origin || !e.data) return;
     if (e.data.quickBulba === 'changed') refresh();  // Bulba applied something: the form shows it
+    if (e.data.quickBulba === 'done') {  // Bulba says it's all set: a moment to read its last lines, then the way in
+        setTimeout(() => { closeDrawer(); showStart(); }, 2500);
+        return;
+    }
     if (e.data.quickBulba !== 'close') return;
+    closeDrawer();
+});
+function closeDrawer() {
     drawer.hidden = true;
     document.body.classList.remove('with-bulba');
     refresh();
-});
+}
+function showStart() {
+    const start = $('qStart'), note = $('qDoneNote');
+    note.hidden = false;
+    start.classList.add('q-ready');
+    start.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
 
 // What's set now, section by section (Bulba changes things beside the form)
 let personaTouched = false;
 ['personaName', 'personaDescription'].forEach(id => $(id).addEventListener('input', () => { personaTouched = true; }));
 const escQ = s => String(s ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]));
+const knownChars = new Set([...document.querySelectorAll('input[name=character]')].map(i => i.value));
 async function refresh() {
     const picked = (document.querySelector('input[name=character]:checked') || {}).value || '';
     let s;
@@ -106,7 +126,10 @@ async function refresh() {
     } catch (err) { return; }
     $('qStyleNow').textContent = s.style;
     if (!personaTouched) { $('personaName').value = s.persona_name; $('personaDescription').value = s.persona_description; }
-    const chosen = picked || s.picked;
+    // A character that wasn't there before (Bulba just made or imported it beside the form) becomes the pick
+    const fresh = s.characters.find(c => !knownChars.has(c.slug));
+    s.characters.forEach(c => knownChars.add(c.slug));
+    const chosen = (fresh && fresh.slug) || picked || s.picked;
     $('qChars').innerHTML = s.characters.map(c => `<label class="q-choice"><input type="radio" name="character" value="${escQ(c.slug)}" ${c.slug === chosen ? 'checked' : ''}>
         <span>${c.photo ? `<img src="${escQ(c.photo)}" alt="">` : `<i class="q-initial">${escQ((c.name || '?')[0].toUpperCase())}</i>`}
         <b>${escQ(c.name)}</b></span></label>`).join('');
@@ -121,14 +144,33 @@ async function refresh() {
     if (s.extras || s.look || s.worldbook) document.querySelector('.q-more').open = true;
 }
 document.addEventListener('change', (e) => { if (e.target.name === 'character') refresh(); });
+// "My own object": its description box shows while it's ticked
+document.addEventListener('change', (e) => {
+    if (e.target.dataset && e.target.dataset.module === 'html_custom' && $('qCustomObject')) {
+        $('qCustomObject').hidden = !e.target.checked;
+        if (e.target.checked) $('qCustomObject').focus();
+    }
+});
 
 // Story modules: every checkbox, and the one narration voice (picking one switches the others off)
 function modulePicks() {
     const picks = {};
     document.querySelectorAll('[data-module]').forEach(box => { if (!box.closest('[hidden]')) picks[box.dataset.module] = box.checked; });
     const voice = $('qVoice');
-    if (voice) [...voice.options].forEach(o => { if (o.value) picks[o.value] = o.value === voice.value; });
+    // an author voice is a module; Anime, Fanfic and the like are a Basics line (sent as basics' voice)
+    if (voice) [...voice.options].forEach(o => { if (o.value && !o.value.startsWith('line:')) picks[o.value] = o.value === voice.value; });
     return picks;
+}
+
+// The basics questions (the same as Bulba's form): selects, text boxes and chip groups marked data-basic
+function basicPicks() {
+    const out = {};
+    document.querySelectorAll('[data-basic]').forEach(el => {
+        if (el.dataset.multi) out[el.dataset.basic] = [...el.querySelectorAll('input:checked')].filter(i => !i.closest('[hidden]')).map(i => i.value);
+        else out[el.dataset.basic] = el.value;
+    });
+    if (!out.length) out.length = 'flexible';
+    return out;
 }
 
 async function save(go) {
@@ -138,9 +180,10 @@ async function save(go) {
         character: (document.querySelector('input[name=character]:checked') || {}).value || '',
         mature: $('qMature').checked,
         display_language: $('qLanguage').value,
-        pov: $('qPov').value, tense: $('qTense').value, format: $('qFormat').value,
-        length: $('qLength').value || 'flexible', control: $('qControl').value,
+        ...basicPicks(),
+        voice: $('qVoice') && $('qVoice').value.startsWith('line:') ? $('qVoice').value.slice(5) : '',
         modules: modulePicks(),
+        custom_object: $('qCustomObject') ? $('qCustomObject').value : undefined,
     };
     if (data.window) body.chat_context = steps[Number($('chatContext').value)];
     $('qError').hidden = true;
@@ -152,7 +195,7 @@ async function save(go) {
         const d = await resp.json();
         if (!resp.ok) throw new Error(d.error || 'Could not save.');
         if (go) {
-            if (!d.url) throw new Error('Pick, make or import a character first (step 4).');
+            if (!d.url) throw new Error('Pick, make or import a character first (step 3).');
             window.location.href = d.url;
         }
     } catch (err) { $('qError').textContent = err.message; $('qError').hidden = false; }

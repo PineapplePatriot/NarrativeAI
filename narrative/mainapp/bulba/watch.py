@@ -463,7 +463,8 @@ def model_text(message):
     still shows up here (and can be fixed at the source) instead of looking gone."""
     from mainapp import chats
     rec = chats.polish_of(message)
-    return str(rec["original"] if rec else message[2])
+    from mainapp import html_objects  # designed objects aren't prose: Watch reads their label
+    return html_objects.shrink(str(rec["original"] if rec else message[2]))
 
 
 def free_checks(data, messages, extra_leak=""):
@@ -893,6 +894,30 @@ def page_state(user, chat_obj):
             "every": EVERY, "notices": [{**{k: n.get(k) for k in ("id", "kind", "title", "text", "quotes", "index", "nofix", "count", "of")},
                                          "fixing": n.get("label") in mine["fix"]}
                                         for n in reversed(new)], "count": len(new)}
+
+
+def edit_taste_notice(user, chat_obj, notice_id, lines):
+    """The taste note as they corrected it before sending it to Bulba: `lines` is [{"old", "new"}]; an empty
+    "new" drops that line (from what Bulba learned too), a changed one rewords it everywhere."""
+    data = chat_data(chat_obj)
+    notice = next((n for n in data["notices"] if n["id"] == notice_id and n["kind"] == "taste"), None)
+    if notice is None:
+        raise ValueError("No such note.")
+    plan = [(str(i.get("old") or ""), " ".join(str(i.get("new") or "").split())[:200])
+            for i in (lines if isinstance(lines, list) else []) if isinstance(i, dict)]
+    plan = [(old, new) for old, new in plan if old in (notice.get("quotes") or [])]
+    kept = [new for _, new in plan if new]
+    if not kept:  # checked before anything changes
+        raise ValueError("Nothing left to add: keep at least one line, or press Not now.")
+    for old, new in plan:
+        if old != new and old in user_data(user)["taste"]:
+            change_memory(user, "forget" if not new else "edit", old, new)
+    notice["quotes"] = kept
+    save_chat_data(chat_obj, data)
+    mine = user_data(user)
+    mine["taste_offered"] = taste_pending(mine)
+    save_user_data(user, mine)
+    return notice
 
 
 def set_notice(user, chat_obj, notice_id, status):

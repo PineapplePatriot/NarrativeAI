@@ -106,8 +106,7 @@ JOB_DEFAULTS = {
                   "Never write {{user}}'s words, actions or thoughts. Plain words: no 'ensure', 'immersive', "
                   "'vivid', 'delve', capitals or exclamation marks.",
     "ideas_player": "Suggest three different things {{user}} could do or say next, as {{user}}. Each is one or two "
-                    "short sentences they could send as their message, written the way {{user}}'s recent messages "
-                    "are written (same person, tense and style). Make the three genuinely different: one that goes "
+                    "short sentences they could send as their message. Make the three genuinely different: one that goes "
                     "along with the scene, one that pushes it somewhere, one unexpected but in character for "
                     "{{user}}. Only {{user}}'s own words and actions; never decide what {{char}} or anyone else does "
                     "or feels. Stay true to what has happened and to the world.",
@@ -210,6 +209,18 @@ def normalize_block(raw):
     }
 
 
+def _ensure_pinned_note(blocks):
+    """The chat's pinned note needs its slot: presets made from starters (and imports) never had one, so the note
+    was silently left out. Added after the summary (or before the trackers / chat history)."""
+    markers = [b.get("marker") for b in blocks if b.get("kind") == "marker"]
+    if "chat_history" not in markers or "world_context" in markers:
+        return
+    after = next((i + 1 for i, b in enumerate(blocks) if b.get("marker") == "summary"), None)
+    if after is None:
+        after = next(i for i, b in enumerate(blocks) if b.get("marker") in ("trackers", "chat_history"))
+    blocks.insert(after, normalize_block(_marker("world_context")))
+
+
 def normalize(raw):
     raw = raw if isinstance(raw, dict) else {}
     blocks, seen = [], set()
@@ -221,6 +232,7 @@ def normalize(raw):
             block["id"] = uuid.uuid4().hex
         seen.add(block["id"])
         blocks.append(block)
+    _ensure_pinned_note(blocks)
     utility_raw = raw.get("utility") if isinstance(raw.get("utility"), dict) else {}
     utility = {k: str(utility_raw.get(k, v) or "") for k, v in UTILITY_DEFAULTS.items()}
     options_raw = raw.get("options") if isinstance(raw.get("options"), dict) else {}
@@ -878,6 +890,38 @@ def unique_name(user, name, exclude_id=None):
     return candidate
 
 
+def _has_old_settings(user):
+    """Settings from before presets existed (old Chat Settings or the Prompting Ground) that a first preset keeps."""
+    import os
+    from django.conf import settings
+    from mainapp.models import ChatSettings
+    chat_settings = ChatSettings.objects.filter(author=user).first()
+    if chat_settings and chat_settings.json_file and _read_json_file(chat_settings.json_file.path):
+        return True
+    return bool(_read_json_file(os.path.join(settings.MEDIA_ROOT, "chat_settings2", f"chat_settings2_{user.id}.json")))
+
+
+def first_preset(user):
+    """(data, name) for an account's first preset: their old settings if they had any, else the default experience
+    (Heartstrings) for their chat model, an unknown model getting its relative's or the plain one."""
+    from django.conf import settings
+    if _has_old_settings(user) or getattr(settings, "LEGACY_FIRST_PRESET", False):  # (the latter: older tests)
+        return build_default(user), DEFAULT_NAME
+    from mainapp import ai_client, experiences, model_profiles, starters
+    try:
+        _, model = ai_client.resolve(user, "chat")
+    except Exception:  # no connection yet
+        model = ""
+    profile = model_profiles.for_style(model) or model_profiles.generic()
+    starter = starters.get(profile["starters"].get(experiences.catalog()["default_experience"], ""))
+    if starter is None:
+        return build_default(user), DEFAULT_NAME
+    data = experiences.configure(normalize(copy.deepcopy(starter["preset"])), "dont")
+    data["extras"] = {**data["extras"], "starter": {"id": starter["id"], "model": starter["model"], "based_on": []}}
+    name = model_profiles.by_id(starter["model"]) or {}
+    return data, f"{starter['title']} · {name.get('name', starter['model'])}"
+
+
 def get_active(user):
     """The user's active Preset (created from their old settings the first time)."""
     from mainapp.models import Preset
@@ -886,7 +930,8 @@ def get_active(user):
         return active
     active = Preset.objects.filter(user=user).first()
     if active is None:
-        active = Preset(user=user, name=unique_name(user, DEFAULT_NAME), data=build_default(user))
+        data, name = first_preset(user)
+        active = Preset(user=user, name=unique_name(user, name), data=data)
     active.is_active = True
     active.save()
     return active

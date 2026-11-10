@@ -68,6 +68,7 @@ def import_card(session, upload):
     p["status"] = "applied"
     p["undo"] = {"created": character.id, "worldbook": character.worldbook_id}
     p["result"] = {"slug": character.slug}
+    session.focus = character  # an imported card is the one Bulba works on now
     return character, p
 
 

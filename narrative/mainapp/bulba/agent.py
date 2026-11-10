@@ -5,7 +5,7 @@ import re
 import uuid
 from pathlib import Path
 
-from mainapp import ai_client, cards, model_profiles, presets, starters, thinking, writing_quality, experiences
+from mainapp import ai_client, basics, cards, model_profiles, presets, starters, thinking, writing_quality, experiences
 from mainapp.trackers import TRACKERS as TRACKER_LIST
 from mainapp.bulba import control, doctor, library, lore, rules, tune
 
@@ -101,6 +101,15 @@ def model_knowledge(profile):
     return "\n".join(lines)
 
 
+# Shown in a side panel next to the Quick setup form (they asked about one part of it)
+BESIDE_QUICK = ("## Beside the Quick setup form\n"
+                "You're in a panel next to the Quick setup form: they asked you about one part of it. Do that part, "
+                "then stop; don't walk them through the other stages. If they say they're finished, or everything is "
+                "set, call set_stage(\"done\") and write two short lines only: what's ready, and that they press "
+                "**Save and start chatting** on the form (this panel closes by itself). No list of where to change "
+                "things: they can open 🥔 Bulba from the menu any time and this conversation will still be there.")
+
+
 def system_prompt(session):
     profile = target_profile(session)
     text = INSTRUCTIONS.read_text(encoding="utf-8").replace("{target_model}", profile["name"] if profile else "?")
@@ -116,6 +125,7 @@ def system_prompt(session):
         *guides,
         model_knowledge(profile) if profile else "",
         "## Session\n" + progress,
+        BESIDE_QUICK if getattr(session, "beside_quick", False) else "",
         "Preferences so far:\n" + "\n".join(prefs) if prefs else "",
         "Proposals so far:\n" + "\n".join(pending) if pending else "",
     ]))
@@ -164,7 +174,9 @@ TOOLS = [
     _fn("set_stage", "Move to another stage of the setup.", {"stage": {"type": "string", "enum": STAGES}}, ["stage"]),
     _fn("offer_choices", "Show quick-reply buttons under your message. A choice with a url opens that page instead.",
         {"choices": {"type": "array", "maxItems": 5, "items": {"type": "object", "properties": {
-            "label": STR, "url": {"type": "string", "description": "Optional: opens a page instead of answering. "
+            "label": {"type": "string", "description": "A finished answer of a few words, the user's side only: "
+                "a name, an option, 'Yes, go ahead'. Never your own thinking or a half sentence."},
+            "url": {"type": "string", "description": "Optional: opens a page instead of answering. "
                 "Only /users/extras/ (voices, extras), a link you were given in an [Applied: ...] note, "
                 "or https://gemini.google.com/ (Nano Banana, for character pictures)"}},
             "required": ["label"]}}}, ["choices"]),
@@ -224,7 +236,8 @@ TOOLS = [
         {"game": {"type": "string", "enum": ["off", "dice", "full"]},
          "story_extras": {"type": "array", "items": {"type": "string", "enum": ["documents", "messages", "milestones",
                                                                                  "news", "keepsakes", "choices"]}},
-         "ideas": {"type": "boolean"},
+         "ideas": {"type": "boolean", "description": "Ticked unless you send false; send false only when they "
+                                                     "said they don't want it"},
          "trackers": {"type": "array", "description": "The trackers that fit this story and character, all of them "
                       "(World is on unless you leave it out); tuning guide, 'Trackers that fit the story'",
                       "items": {"type": "string", "enum": [t["id"] for t in TRACKER_LIST if t["id"] != "custom"]}},
@@ -384,6 +397,8 @@ def build_preset(payload):
             next(b for b in preset["blocks"] if b["name"] == name)["enabled"] = True
     if payload.get("taste"):
         _add_block(preset, "Your taste", payload["taste"])
+    if payload.get("basics"):
+        basics.set_answers(preset, payload["basics"])
     if payload.get("control") in ("write", "director"):
         from mainapp.bulba import control
         preset = control.apply_to_preset(preset, payload["control"])
@@ -504,8 +519,8 @@ def tool_look_up(session, args):
     if not query:
         return {"error": "Say what to look up."}, []
     profile, _ = ai_client.resolve(session.user, "bulba")
-    if profile.provider != ConnectionProfile.PROVIDER_OPENROUTER:
-        return {"error": "Web search only works through OpenRouter. Rely on what you know, and say so."}, []
+    if profile.provider not in ConnectionProfile.HOSTED:
+        return {"error": "Web search only works through OpenRouter or NanoGPT. Rely on what you know, and say so."}, []
     _check_budget(session)
     set_activity(session, f"Looking up {query[:60]} on the web…")
     message, cost = ai_client.complete_message(
@@ -585,9 +600,15 @@ BASICS = {
                 "contradicting anything already established.",
         "any": ""}),
     "interior": ("Inner thoughts", {  # Voyage 6's "reasons left unspoken" vs. a reflective narrator
-        "observe": "Show what can be seen and heard; leave motives and feelings for the reader to infer.",
-        "infer": "Let feelings show through behaviour, with an occasional brief hint of what someone thinks.",
-        "enter": "Go inside {{char}}'s head: thoughts and feelings can be written directly, briefly.",
+        "observe": "Inner thoughts: show them only through action, speech and consequences, never state them "
+                   "(\"Their relationship came to a halt after his decision.\"); leave motives and feelings for the "
+                   "reader to infer.",
+        "infer": "Inner thoughts: the narrator may report them briefly in its own words (\"He thought he had "
+                 "messed up.\"), never as a character's inner voice. Most feeling still shows through behaviour.",
+        "enter": "Inner thoughts: write characters' thoughts directly, in their own words, wrapped in "
+                 "<thought>...</thought> so the chat shows them apart (\"<thought>I messed up.</thought> he "
+                 "thought.\"). Keep them short and selective: motives, doubts, quiet conflicts that behaviour alone "
+                 "can't show. Never {{user}}'s thoughts unless you may write {{user}}.",
         "any": ""}),
     "voice": ("Narration voice", {  # after Pura's narration voices and Celia's narrative styles
         "hemingway": "Narrate in the manner of Ernest Hemingway: short, plain, loaded sentences; feelings left under the surface.",
@@ -628,9 +649,10 @@ def apply_basics(session, answers):
             picked = [g for g in (answers.get(key) or []) if isinstance(g, str) and g in options][:6]
             if picked:
                 text = "Lean the story toward " + "; ".join(options[g] for g in picked) + "."
-                lines.append(f"{label}: {text}")
+                lines.append(f"{label}: {text}{IN_BASICS}")
                 tool_record_preference(session, {"wording": "Basics form: genres", "interpretation": text,
-                                                 "scope": "general", "strength": "firm", "status": "confirmed"})
+                                                 "scope": "general", "strength": "firm", "status": "confirmed",
+                                                 "key": "basics:genres=" + ",".join(picked)})
                 implied = [m for g, m in GENRE_MODULES.items() if g in picked]
                 if implied:
                     _record_modules(session, implied, "Basics form: genres")
@@ -648,9 +670,10 @@ def apply_basics(session, answers):
             continue
         if key == "author":
             text = f"Write in the style of {raw}: their diction, rhythm and conventions, not their plots."
-            lines.append(f"{label}: {text}")
+            lines.append(f"{label}: {text}{IN_BASICS}")
             tool_record_preference(session, {"wording": f"Basics form: write like {raw}", "interpretation": text,
-                                             "scope": "general", "strength": "flexible", "status": "confirmed"})
+                                             "scope": "general", "strength": "flexible", "status": "confirmed",
+                                             "key": f"basics:author={raw}"})
             continue
         if options is None:
             if key == "language" and raw.lower() in ("english", "en"):
@@ -701,9 +724,11 @@ def apply_basics(session, answers):
             title = experiences.catalog()["modules"][f"voice_{raw}"]["title"]
             lines.append(f"{label}: the {title} module (propose_preset switches it on itself; not taste)")
             continue
-        lines.append(f"{label}: {text}")
+        in_block = key in basics.LINE_KEYS and key != "language"
+        lines.append(f"{label}: {text}" + (IN_BASICS if in_block else ""))
         tool_record_preference(session, {"wording": f"Basics form: {label.lower()}", "interpretation": text,
-                                         "scope": scope, "strength": "firm", "status": "confirmed"})
+                                         "scope": scope, "strength": "firm", "status": "confirmed",
+                                         **({"key": f"basics:{key}={raw}"} if in_block else {})})
     return "Basics form answers (already recorded as preferences):\n" + ("\n".join(lines) if lines else "(left empty)")
 
 
@@ -715,7 +740,7 @@ def tool_record_preference(session, args):
             "status": args.get("status") if args.get("status") in ("tentative", "confirmed", "rejected") else "tentative"}
     if args.get("key") in ("control:dont", "control:write", "control:director"):  # the basics form, or said later
         pref["key"] = args["key"]
-    elif str(args.get("key") or "").startswith("modules:"):  # experience modules picked on the basics form
+    elif str(args.get("key") or "").startswith(("modules:", "basics:")):  # picked on the basics form
         pref["key"] = str(args["key"])[:400]
     replaced = next((p for p in session.preferences if p["id"] == args.get("replaces")), None)
     if replaced:
@@ -793,6 +818,22 @@ def _record_modules(session, keys, wording):
                                      "scope": "general", "strength": "firm", "status": "confirmed"})
 
 
+IN_BASICS = " (propose_preset writes this into the Basics block itself; don't repeat it in taste)"
+
+
+def form_basics(session):
+    """The basics form's answers that become Basics lines ({"pov": "third", "genres": [...]}), latest wins."""
+    out = {}
+    for p in session.preferences:
+        key = str(p.get("key") or "")
+        if p.get("status") != "confirmed" or not key.startswith("basics:") or "=" not in key:
+            continue
+        name, value = key[7:].split("=", 1)
+        if name in basics.LINE_KEYS:
+            out[name] = [g for g in value.split(",") if g] if name == "genres" else value
+    return out
+
+
 def form_modules(session):
     """Module block names the basics form asked for (modules, a voice, genres that imply one), for a new preset."""
     cat = experiences.catalog()["modules"]
@@ -866,10 +907,15 @@ def tool_propose_preset(session, args):
     summary += ["Your taste:", *[f"  {line}" for line in taste.splitlines() if line.strip()]]
     if reply_length:
         summary += ["Reply length:", f"  {LENGTHS[reply_length]}"]
+    picked = form_basics(session)  # the basics form's fixed lines, as Quick setup writes them
+    shown = [basics.line_for(k, v) for k, v in picked.items()]
+    if any(shown):
+        summary += ["Basics:", *[f"  {cards.fill_names(l, 'the character', cards.user_name(session.user))}"
+                                 for l in shown if l]]
     p = _proposal(session, "preset", f"Preset: {name}", summary,
                   {"starter": starter["id"], "name": name, "taste": taste, "rewrite": rewrite,
                    "reply_length": reply_length, "borrow": borrow, "switch_off": switch_off, "switch_on": switch_on,
-                   "control": control_mode, "extensions": extensions})
+                   "control": control_mode, "extensions": extensions, "basics": picked})
     return {"proposal": p["id"], "status": "waiting for Apply"}, [{"type": "proposal", "id": p["id"]}]
 
 
@@ -1033,6 +1079,10 @@ SETUP_FORM_KEYS = ("summary", "trackers", "sprites", "watch", "fix_model", "back
 STORY_FORM_KEYS = ("game", "story_extras", "ideas")
 
 
+# Not offered as tracker chips in the story form: Milestones and Scrapbook come with their story extras
+FORM_HIDDEN_TRACKERS = {"custom", "milestones", "scrapbook"}
+
+
 def extras_form_event(session, part, suggest=None, why=""):
     """The form's page event, filled with what's set now (or, for the story part, Bulba's suggestions)."""
     from users.views import _extras_state
@@ -1063,8 +1113,10 @@ def extras_form_event(session, part, suggest=None, why=""):
             picks = [t for t in (suggest or {}).get("trackers") or [] if t in config["trackers"] and t != "custom"]
             event["character"] = character.name
             event["trackers"] = [{"id": t["id"], "label": t["label"], "icon": t["icon"], "help": t["help"]}
-                                 for t in tracker_mod.TRACKERS if t["id"] != "custom"]
-            values["trackers"] = picks or on_now
+                                 for t in tracker_mod.TRACKERS if t["id"] not in FORM_HIDDEN_TRACKERS]
+            values["trackers"] = [t for t in picks or on_now if t not in FORM_HIDDEN_TRACKERS]
+    if part == "story" and "ideas" not in (suggest or {}):
+        values["ideas"] = True  # on unless Bulba (or they) said otherwise
     return event
 
 
@@ -1149,8 +1201,8 @@ def form_trackers(session, answers):
         return None
     from mainapp import trackers as tracker_mod
     config = tracker_mod.normalize_config(character.tracker_config)
-    picked = [t for t in picked if t in config["trackers"] and t != "custom"]
-    on_now = [t for t, c in config["trackers"].items() if c["on"] and t != "custom"]
+    picked = [t for t in picked if t in config["trackers"] and t not in FORM_HIDDEN_TRACKERS]
+    on_now = [t for t, c in config["trackers"].items() if c["on"] and t not in FORM_HIDDEN_TRACKERS]
     turn_on, turn_off = [t for t in picked if t not in on_now], [t for t in on_now if t not in picked]
     if not (turn_on or turn_off):
         return None

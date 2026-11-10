@@ -27,7 +27,10 @@ function getCookie(name) {
     return m ? decodeURIComponent(m.slice(name.length + 1)) : null;
 }
 
+// In the panel beside the Quick setup form (not the in-chat Bulba, which is framed too)
+const BESIDE_QUICK = window.parent !== window && document.body.classList.contains('embed') && INIT.state && INIT.state.mode === 'setup';
 async function api(body) {
+    if (BESIDE_QUICK && !(body instanceof FormData) && body.action === 'say') body = { ...body, beside_quick: true };
     const resp = await fetch(BULBA_API, {
         method: 'POST',
         headers: body instanceof FormData ? { 'X-CSRFToken': getCookie('csrftoken') }
@@ -112,38 +115,8 @@ function proposalCard(ev) {
 }
 
 // The basics form: plain settings in one go (see BASICS in mainapp/bulba/agent.py)
-const BASICS_FORM = [
-    { section: 'How it’s written' },
-    { key: 'language', label: 'Story language', text: 'English' },
-    { key: 'pov', label: 'Point of view', options: [['second', 'You (“you step inside”)'], ['third', 'Third person (“she steps inside”)'], ['first', 'The character’s “I”']] },
-    { key: 'tense', label: 'Tense', options: [['present', 'Present (“she turns”)'], ['past', 'Past (“she turned”)']] },
-    { key: 'length', label: 'Reply length', options: [['short', 'Short: 2–4 paragraphs'], ['medium', 'Medium: 5–8 paragraphs'], ['long', 'Long: a full sequence'], ['flexible', 'Flexible: follows the scene']] },
-    { key: 'control', label: 'Your character', hint: 'who writes what you say and do', options: [['dont', 'Only me'], ['write', 'The AI may write me too'], ['director', 'I direct from outside the story']],
-      help: 'Roleplay (the first two): you play your character and the AI plays everyone else. Director: you aren’t in the story; you say what should happen (“she finds the letter”, “a storm hits the harbour”) and the AI writes the whole scene, your character included. Not sure? Pick roleplay: Bulba can switch it in any chat when you ask.' },
-    { key: 'format', label: 'Speech and actions', options: [['quotes', '“Speech”, actions as plain text'], ['asterisks', '“Speech”, *actions*'], ['any', 'Doesn’t matter']] },
-    { key: 'colors', label: 'Coloured speech', hint: 'each character speaks in their own colour', options: [['on', 'Yes'], ['off', 'No']] },
-    { key: 'panels', label: 'In-story panels', hint: 'phone messages, notes and signs drawn as little panels', options: [['on', 'Yes'], ['off', 'No']] },
-    { section: 'What kind of story' },
-    { key: 'genres', label: 'Genres', hint: 'pick any', multi: [['fluff', 'Fluff'], ['slice_of_life', 'Slice of life'], ['comedy', 'Comedy'], ['romance', 'Romance'], ['heartwarming', 'Heartwarming'], ['melancholy', 'Melancholy'], ['healing', 'Hurt/comfort'], ['angst', 'Angst'], ['tragedy', 'Tragedy']],
-      adult: [['smut', 'Smut'], ['dead_dove', 'Dead dove']] },
-    { key: 'modules', label: 'Story modules', hint: 'optional extras, pick any',
-      multi: [['surprise_me', 'Surprise me: now and then a complication'], ['chekhov', 'Chekhov’s gun: setups pay off'], ['hard_mode', 'Hard mode: a harsh world'],
-              ['fresh_characters', 'Fresh side characters'], ['fight_scenes', 'Fight scenes'], ['varied_openings', 'Varied openings'],
-              ['no_bathos', 'No jokes in serious moments'], ['describe_once', 'Describe once'], ['card_fidelity', 'Card fidelity: the card’s voice wins'],
-              ['kindness_guard', 'Kindness guard: no needless cruelty'], ['ooc_collaborator', 'Chat with the AI as co-author (OOC)']],
-      adult: [['slow_burn', 'Slow-burn intimacy'], ['dark_themes', 'Dark themes'], ['explicit_intimacy', 'Explicit intimacy'], ['intense_explicit', 'Very explicit']],
-      adultLabel: '18+ modules' },
-    { key: 'mature', label: 'Adult scenes (18+)', hint: 'violence, dark themes, sex when the story goes there',
-      options: [['on', 'Allow them: I’m 18 or older'], ['off', 'Keep it clean']],
-      help: 'Switches your preset’s mature-content rule on, with a reminder before each reply so the model doesn’t refuse. Change it any time: pen menu → This chat.' },
-    { key: 'pacing', label: 'Pacing', options: [['quick', 'Quick: skip the dull bits'], ['slow', 'Slow burn'], ['any', 'No preference']] },
-    { key: 'initiative', label: 'Who moves the story', hint: 'apart from pacing', options: [['react', 'They react; I lead'], ['continue', 'They keep the scene going'], ['drive', 'They bring new events'], ['any', 'No preference']] },
-    { key: 'invention', label: 'Making things up', hint: 'details the card doesn’t give', options: [['canon', 'Stick to the card and canon'], ['plausible', 'Small details are fine'], ['free', 'Invent freely'], ['any', 'No preference']] },
-    { key: 'interior', label: 'Inner thoughts', options: [['observe', 'Only what can be seen'], ['infer', 'Hints through behaviour'], ['enter', 'Inside the character’s head'], ['any', 'No preference']] },
-    { key: 'voice', label: 'Narration voice', hint: 'optional', options: [['hemingway', 'Hemingway: lean'], ['mccarthy', 'McCarthy: solemn'], ['camus', 'Camus: wry'], ['kafka', 'Kafka: absurd'], ['ligotti', 'Ligotti: dread'], ['maupassant', 'Maupassant: cruel realism'], ['dickens', 'Dickens: theatrical'], ['ellis', 'Ellis: gossipy'], ['anime', 'Anime'], ['realism', 'Grounded realism'], ['fanfic', 'Fanfic'], ['webnovel', 'Web novel']] },
-    { key: 'author', label: 'Write like', text: '', placeholder: 'Optional: an author whose style you love' },
-    { key: 'keep_out', label: 'Anything to keep out?', text: '', placeholder: 'Optional, e.g. gore, spiders' },
-];
+// The questions (mainapp/data/bulba/basics_form.json via mainapp/basics.py), the same ones Quick setup asks
+const BASICS_FORM = INIT.basics_form || [];
 
 // `answers`: what they sent (kept on the event), so a sent form still shows their choices
 function basicsForm(live, answers) {
@@ -449,9 +422,13 @@ async function run(body, label) {
         if (window.parent !== window && switched) window.parent.postMessage({ watch: switched.watch }, window.location.origin);
         if (body.action === 'say') events.pop();  // the server sends it back with the rest
         events = body.action === 'restart' ? data.events : events.concat(data.events);
+        const wasDone = state.stage === 'done';
         state = data.state;
         // Beside Quick setup: the form shows what Bulba just set (a character, persona, worldbook, extras…)
         if (window.parent !== window) window.parent.postMessage({ quickBulba: 'changed' }, window.location.origin);
+        // …and when Bulba says it's all set, the panel closes so "Save and start chatting" is in view
+        if (BESIDE_QUICK && !wasDone && state.stage === 'done')
+            window.parent.postMessage({ quickBulba: 'done' }, window.location.origin);
     } catch (err) {
         if (body.action === 'say') events.pop();
         events.push({ type: 'error', text: err.message });
@@ -617,7 +594,13 @@ document.addEventListener('click', (e) => {
 // Opened from the chat's pen menu with something already typed: put it in the box, unsent.
 // Or from a Bulba Watch note: Bulba looks at it straight away.
 (function () {
-    const fill = (text) => { if (text) { $('input').value = text; $('input').focus(); } };
+    // (the box then grows to fit it, as when typing)
+    const fill = (text) => {
+        if (!text) return;
+        $('input').value = text;
+        $('input').focus();
+        setTimeout(() => $('input').dispatchEvent(new Event('input')), 0);  // after the box's resize handler exists
+    };
     const note = (id) => { if (id) run({ action: 'note', id }, 'Bulba is looking at it…'); };
     const params = new URLSearchParams(window.location.search);
     fill(params.get('draft'));
@@ -741,3 +724,7 @@ function fitInput(big) {
 }
 $('input').addEventListener('input', () => fitInput());
 $('growBtn').addEventListener('click', () => { fitInput(!$('input').closest('.composer-field').classList.contains('big')); $('input').focus(); });
+
+// Opened again from the browser's back/forward memory (phones keep pages): the conversation may have moved on
+// meanwhile (Bulba beside Quick setup, another tab), so load it fresh instead of showing an old copy
+window.addEventListener('pageshow', (e) => { if (e.persisted) window.location.reload(); });

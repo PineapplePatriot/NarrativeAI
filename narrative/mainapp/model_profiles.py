@@ -31,6 +31,7 @@ def all_profiles():
         with open(path, encoding="utf-8") as f:
             profile = json.load(f)
         profile["_match"] = [re.compile(p, re.I) for p in profile.get("match", [])]
+        _derived_starters(profile)
         profiles.append(profile)
     return profiles
 
@@ -129,7 +130,18 @@ def generic():
     with open(GENERIC_FILE, encoding="utf-8") as f:
         profile = json.load(f)
     profile["_match"] = []
+    _derived_starters(profile)
     return profile
+
+
+def _derived_starters(profile):
+    """Writing styles added after the model files were written get ids beside the drama one
+    ("opus-experience-drama" → "opus-experience-visual")."""
+    starters = profile.setdefault("starters", {})
+    drama = starters.get("drama", "")
+    if drama.endswith("-drama"):
+        for feel in ("visual",):
+            starters.setdefault(feel, drama[:-len("drama")] + feel)
 
 
 def by_id(pid):

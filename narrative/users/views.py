@@ -205,8 +205,8 @@ def _save_connections(user, data):
         new_key = (item.get("api_key") or "").strip()
         if new_key:
             profile.api_key = new_key  # blank means "keep the saved key"
-        if provider == ConnectionProfile.PROVIDER_OPENROUTER and not profile.api_key:
-            raise ConnectionsError(f'"{name}": enter your OpenRouter API key.')
+        if provider in ConnectionProfile.HOSTED and not profile.api_key:
+            raise ConnectionsError(f'"{name}": enter your {dict(ConnectionProfile.PROVIDERS)[provider]} API key.')
 
         profile.name, profile.provider, profile.base_url, profile.model = name, provider, base_url, model
         profile.save()
@@ -341,22 +341,27 @@ def welcome(request):
         choice = next((m for m in models if m["id"] == data.get("model")), None)
         if choice is None or not choice["openrouter"]:
             return JsonResponse({"error": "Pick one of the models."}, status=400)
+        provider = data.get("provider") if data.get("provider") in ConnectionProfile.HOSTED else ConnectionProfile.PROVIDER_OPENROUTER
+        label = dict(ConnectionProfile.PROVIDERS)[provider]
         api_key = (data.get("api_key") or "").strip()
-        if not api_key and current and current.provider == ConnectionProfile.PROVIDER_OPENROUTER:
+        if not api_key and current and current.provider == provider:
             api_key = current.api_key  # keep the saved key
         if not api_key:
-            return JsonResponse({"error": "Paste your OpenRouter key first."}, status=400)
+            return JsonResponse({"error": f"Paste your {label} key first."}, status=400)
         if not data.get("skip_check"):
-            ok, message = test_connection(ConnectionProfile.PROVIDER_OPENROUTER, "", api_key, choice["openrouter"])
+            ok, message = test_connection(provider, "", api_key, choice["openrouter"])
             if not ok:
                 return JsonResponse({"error": message, "can_skip": True}, status=400)
 
-        profile = current if current and current.provider == ConnectionProfile.PROVIDER_OPENROUTER else None
+        profile = current if current and current.provider == provider else None
+        if profile is None:
+            profile = ConnectionProfile.objects.filter(user=request.user, provider=provider).first()
         if profile is None:
             name = "Main"
             while ConnectionProfile.objects.filter(user=request.user, name=name).exists():
-                name = f"{name} (OpenRouter)"
-            profile = ConnectionProfile(user=request.user, name=name, provider=ConnectionProfile.PROVIDER_OPENROUTER)
+                name = f"{name} ({label})"
+            profile = ConnectionProfile(user=request.user, name=name, provider=provider)
+        # The app's model names (OpenRouter's); requests to NanoGPT are matched to its spelling (mainapp/nanogpt.py)
         profile.api_key, profile.model = api_key, choice["openrouter"]
         profile.save()
         chat = get_task_setting(request.user, "chat")
@@ -367,7 +372,8 @@ def welcome(request):
 
     return render(request, "users/welcome.html", {"welcome_data": {
         "models": models,
-        "has_key": bool(current and current.provider == ConnectionProfile.PROVIDER_OPENROUTER and current.api_key),
+        "has_key": bool(current and current.hosted and current.api_key),
+        "provider": current.provider if current and current.hosted else "openrouter",
         "current_model": current.model if current else "",
         "connected": ai_client.has_connection(request.user),
     }})
@@ -409,7 +415,7 @@ def _extras_state(user):
         "thinking": _thinking_now(user),
         "background_thinking": _background_thinking(user),
         "cheap_models": [m for m in _cheap_models() if not (main and m["openrouter"] == main.model)],
-        "openrouter": bool(main and main.provider == ConnectionProfile.PROVIDER_OPENROUTER),
+        "openrouter": bool(main and main.hosted),
     }
 
 
@@ -462,7 +468,7 @@ def apply_extras(user, data):
         choice = next((m for m in _cheap_models() if m["id"] == background), None)
         if choice is None:
             return "Pick one of the listed models."
-        if not (main and main.provider == ConnectionProfile.PROVIDER_OPENROUTER and main.api_key):
+        if not (main and main.hosted and main.api_key):
             return "A cheaper model needs your OpenRouter key; set it on the welcome page first."
 
     with transaction.atomic():
@@ -525,8 +531,8 @@ def apply_extras(user, data):
         elif choice:
             bg, _ = ConnectionProfile.objects.get_or_create(
                 user=user, name="Background (cheaper)",
-                defaults={"provider": ConnectionProfile.PROVIDER_OPENROUTER})
-            bg.provider, bg.api_key, bg.model = ConnectionProfile.PROVIDER_OPENROUTER, main.api_key, choice["openrouter"]
+                defaults={"provider": main.provider})
+            bg.provider, bg.api_key, bg.model = main.provider, main.api_key, choice["openrouter"]
             bg.save()
             for task in BACKGROUND_TASKS:
                 setting = get_task_setting(user, task)
@@ -601,7 +607,9 @@ def extras(request):
             return JsonResponse({"error": error}, status=400)
         return JsonResponse({"status": "ok", "state": _extras_page_state(request.user)})
 
-    return render(request, "users/extras.html", {"extras_data": _extras_page_state(request.user)})
+    from mainapp import html_objects, presets
+    taken = html_objects.replaced_kinds(presets.normalize(presets.get_active(request.user).data))
+    return render(request, "users/extras.html", {"extras_data": _extras_page_state(request.user), "designed_by_ai": taken})
 
 
 def _extras_page_state(user):

@@ -374,7 +374,7 @@ window.NA_HELP = {
                    'trk_save', 'help'],
         worldbook: ['intro_wb', 'wb_title', 'wb_add', 'wb_entry', 'wb_find', 'wb_test', 'wb_settings', 'wb_export', 'wb_save', 'help'],
         bulba: ['intro_bulba', 'bl_log', 'bl_composer', 'bl_stages', 'bl_skip', 'bl_spending', 'bl_prefs', 'bl_restart', 'help'],
-        quick: ['intro_quick', 'q_style', 'q_memory', 'q_persona', 'q_char', 'q_more', 'help'],
+        quick: ['intro_quick', 'q_style', 'q_memory', 'q_char', 'q_persona', 'q_more', 'help'],
         notebook: ['intro_nb', 'nb_spent', 'nb_common', 'nb_model', 'nb_own', 'nb_fix', 'nb_taste', 'help'],
         character: ['intro_character', 'ch_name', 'ch_description', 'ch_scenario', 'ch_first', 'ch_notes', 'ch_worldbook',
                     'ch_card', 'ch_sprites', 'ch_advanced', 'ch_save', 'help'],

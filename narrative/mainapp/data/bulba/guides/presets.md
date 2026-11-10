@@ -21,7 +21,9 @@ comic banter), keep the exception specific instead of removing all writing safeg
 
 ## Picking the experience
 
-Offer Conversation & Chemistry, Character Drama, or Immersive Storytelling for every selected model.
+Offer the three experiences for every selected model, by the names people see: **Tête-à-tête** (Conversation
+& Chemistry), **Heartstrings** (Character Drama, the default every new account starts on) and **Deep Water**
+(Immersive Storytelling).
 They describe what the participant wants to read, not length or authorship. Directing is a separate
 control mode: any experience supports player control, shared authorship or directing. Preserve a
 confirmed authorship choice when selecting another experience. Never infer it from reply length,
@@ -49,13 +51,28 @@ How a new preset is built (blocks in order; get_starter shows them all):
 More modules, all off until someone wants them (propose_preset `switch_on` with the exact names, or
 propose_preset_edit enable/disable later):
 - Prose: Varied openings (replies don't all start the same way), No jokes in serious moments, Describe once
-  (no re-listing the same features), Card fidelity (the card's voice and temperament win over style rules).
+  (no re-listing the same features), Card fidelity (the card's voice and temperament win over style rules), Fewer em dashes (— at most once a
+  reply), No semicolons. How thoughts show (in their own words with 💭, told by the narrator, or only through
+  actions) is the basics form's Inner thoughts answer, a Basics line, not a module.
 - Narration voice, one at a time: Voice: Hemingway (lean), McCarthy (solemn), Camus (wry), Kafka (absurd),
   Ligotti (dread), Maupassant (cruel realism), Dickens (theatrical), Ellis (gossipy). The basics form's voice
   answer maps to these; other voices (anime, fanfic...) stay in taste.
 - Story: Surprise me (now and then a plausible complication; a different scene engine each reply), Chekhov's
   gun (setups pay off later), Hard mode (a harsh, scarce world; stronger than Friction), Fresh side characters
   (setting-fitting names, no Kael/Elara/Thorne; a look, temperament and goal).
+- World (only when the setting has it, or they want it to): World: Aliens, World: Living objects & places,
+  World: School story, World: Vampires, World: Emotional auras, World: Prophetic visions ({{user}}'s character
+  has visions), World: Magic with costs, World: Ghosts & hauntings, World: Gods among us, World: After the
+  collapse, World: High-tech & surveillance, World: Court & nobility. The card and lorebook always win over these.
+- In-story objects (AI-designed, drawn in a sealed frame in the chat): Scene banner (AI-designed) (location,
+  time and atmosphere when the scene moves), Letters and documents (AI-designed), Screens and messages
+  (AI-designed), Rumour board (AI-designed), Any in-story object (AI-designed) (the broad one; Pura-style), My
+  own object (AI-designed) (they describe it: a status card, a diary page, a spell scroll; write their
+  description at the end of that block after "The object they asked for:" with propose_preset_edit). The
+  letters, screens and rumour ones take over the app-drawn story extras of the same kind while on (never both);
+  the broad one takes over all three. Trade-off to say in a line: a unique look in the story's style, but
+  more words per reply (cost and length) and a model that writes weak HTML makes weak objects; strong models
+  (Claude, Gemini, GLM, Kimi) do best. Older objects reach the AI as a one-line label, so they don't fill memory.
 - Intensity: Fight scenes; and, only with mature content on, Slow-burn intimacy (18+), Dark themes (18+),
   Explicit intimacy (18+) and Very explicit (18+), the strongest, with Explicit intimacy.
 Offer a module when what they say matches it ("the story feels static" → Surprise me or Chekhov's gun; "everyone

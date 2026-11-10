@@ -16,7 +16,7 @@ def catalog():
 
 def add_baseline(starter):
     """Materialize an ordinary editable/exportable block. Never rewrite a saved user preset."""
-    if starter.get("experience") not in ("back_and_forth", "rich_scene", "director", "conversation", "drama", "storytelling"):
+    if starter.get("experience") not in ("back_and_forth", "rich_scene", "director", "conversation", "drama", "storytelling", "visual"):
         return starter
     blocks = starter["preset"]["blocks"]
     if not any(b.get("id") == BLOCK_ID for b in blocks):

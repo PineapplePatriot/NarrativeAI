@@ -23,7 +23,7 @@ button.link { background: none; padding: 0; color: var(--accent-soft); text-deco
 .bubble p { margin: 0 0 8px; } .bubble p:last-child { margin-bottom: 0; }
 .msg.user .bubble { background: #3b2f6b; border-color: rgba(167, 139, 250, .4); white-space: pre-wrap; }
 .choices { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-.choice { background: var(--card-2); border: 1px solid rgba(167, 139, 250, .5); color: #ddd6fe; font-weight: 500; padding: 6px 12px; border-radius: 999px; text-decoration: none; font-size: .9rem; }
+.choice { background: var(--card-2); border: 1px solid rgba(167, 139, 250, .5); color: #ddd6fe; font-weight: 500; padding: 6px 12px; border-radius: 16px; text-decoration: none; font-size: .9rem; text-align: left; line-height: 1.35; }
 .choice:hover:not(:disabled) { background: #3b2f6b; }
 .action { align-self: flex-end; color: var(--muted); font-size: .8rem; font-style: italic; }
 .note { align-self: center; color: var(--ok); font-size: .85rem; }
@@ -156,6 +156,7 @@ button:disabled { opacity: .45; cursor: default; }
 .basics-form .pill input:checked + span { background: var(--accent); border-color: var(--accent); color: #fff; }
 .basics-form .pill input:focus-visible + span { outline: 2px solid var(--accent-soft); }
 .basics-form .form-actions { display: flex; gap: 12px; align-items: center; }
+.basics-form .form-actions button { white-space: nowrap; }
 @media (max-width: 640px) { .basics-form { margin-left: 0; } .basics-form .form-row { grid-template-columns: 1fr; } }
 .basics-form .pill { position: relative; }
 .basics-form .form-section { font-size: .75rem; letter-spacing: .06em; text-transform: uppercase; opacity: .7; padding-top: 4px; border-top: 1px solid var(--border); }
@@ -169,7 +170,9 @@ body.embed .bulba-layout { grid-template-columns: 1fr; flex: 1; min-height: 0; h
 body.embed .bulba-panel { display: none; }
 body.embed .log { padding: 12px 2px; }
 body.embed .msg .bubble, body.embed .proposal, body.embed .samples { font-size: .92rem; }
-body.embed .basics-form, body.embed .lookup, body.embed .done-block { margin-left: 0; padding-left: 0; }
+body.embed .basics-form, body.embed .lookup, body.embed .done-block { margin-left: 0; }
+body.embed .lookup, body.embed .done-block { padding-left: 0; }
+body.embed .basics-form { padding: 12px; }
 .embed-head { display: flex; align-items: center; gap: 6px; padding: 10px 14px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
 .embed-head .embed-sub { opacity: .7; font-size: .9rem; }
 .embed-head .embed-actions { margin-left: auto; display: flex; gap: 12px; align-items: center; font-size: .85rem; }

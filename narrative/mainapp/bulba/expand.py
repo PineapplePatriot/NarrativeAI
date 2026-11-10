@@ -1,7 +1,7 @@
 """
 🥔 Expand on the worldbook page: Bulba suggests more keywords (other names, short names, nicknames), more lore
 for an entry, and entries the book is missing. With a canon work ("Based on"), it looks it up on the web first
-(OpenRouter only); for an own world it proposes additions that fit the book, marked as invented. Nothing is saved
+(OpenRouter or NanoGPT); for an own world it proposes additions that fit the book, marked as invented. Nothing is saved
 here: the page shows the suggestions and they pick what to add.
 """
 import json
@@ -52,7 +52,7 @@ def _research(user, query):
     """Web findings about `query`, or "" when the work isn't found; None when web search isn't available."""
     from users.models import ConnectionProfile
     profile, _ = ai_client.resolve(user, "bulba")
-    if profile is None or profile.provider != ConnectionProfile.PROVIDER_OPENROUTER:
+    if profile is None or profile.provider not in ConnectionProfile.HOSTED:
         return None
     message, _cost = ai_client.complete_message(
         user, "bulba", [{"role": "system", "content": RESEARCH_PROMPT}, {"role": "user", "content": query}],
@@ -152,7 +152,7 @@ def expand(user, book, what=("keys", "lore", "new"), uid=None):
     if found:
         origin, note = "web", ""
     elif found is None and based_on and data.get("canon"):
-        origin, note = "memory", "Web search needs an OpenRouter connection, so these come from what Bulba knows: check them."
+        origin, note = "memory", "Web search needs an OpenRouter or NanoGPT connection, so these come from what Bulba knows: check them."
     else:
         origin, note = "invented", ("Not found on the web, so these are invented to fit what the book says."
                                     if found == "" else "Your own world: these are invented to fit what the book says.")

@@ -178,8 +178,11 @@ Change one section at a time.
 
 ## Theme (optional)
 
-After the card is applied, offer once, with offer_choices, to give the character a look for their
-chats: a background, music and a dialogue colour (the colour their spoken lines appear in). Background
+After the card is applied, give the character a look for their chats: a background, music and a dialogue
+colour (the colour their spoken lines appear in). Don't ask first or describe the look in words: call
+propose_theme in the same turn as your one-line intro ("Here's a look for Reza's chats:"). Its card shows
+the picture, a ▶ to hear the music and the colour on a sample line, with Apply and "Not this", so they
+judge it by seeing it. On "Not this", ask what to change and propose again. Background
 and music are each optional; "No music" is a fine answer. Pick from the app's built-in ones by name
 (the propose_theme list), matching the setting and mood: a lab for a scientist, a palace for royalty,
 something quiet for a slice-of-life story. If nothing fits, leave that one out and say so. Choose a

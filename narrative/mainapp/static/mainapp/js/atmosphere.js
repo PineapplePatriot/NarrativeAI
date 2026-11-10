@@ -16,6 +16,13 @@ window.Atmosphere = (function () {
     document.body.appendChild(front);
     let last = null;
 
+    const pick = (kind, v) => {  // the pen menu's fixed weather / time of day for this browser ('' = follow the scene)
+        try {
+            if (v === undefined) return localStorage.getItem('atmosphere-' + kind) || '';
+            if (v) localStorage.setItem('atmosphere-' + kind, v); else localStorage.removeItem('atmosphere-' + kind);
+        } catch (e) { return ''; }
+        return v;
+    };
     const store = (v) => { try { if (v === undefined) return localStorage.getItem('atmosphere'); localStorage.setItem('atmosphere', v); } catch (e) { return null; } };
     const isOn = () => store() !== 'off';
 
@@ -54,8 +61,13 @@ window.Atmosphere = (function () {
         // background's name): a rainy scene opens with rain
         // Weather it doesn't recognise ("cold, still air", "indoors") keeps the theme's; only a clear sky ends it
         const told = weather(world.weather);
-        const seen = told === 'clear' ? '' : (told || window.THEME_WEATHER || '');
-        const next = isOn() ? `${timeOfDay(world.time)}|${seen}` : '|';
+        let seen = told === 'clear' ? '' : (told || window.THEME_WEATHER || '');
+        let hour = timeOfDay(world.time);
+        // A fixed pick in the pen menu wins over the scene ('' = follow the scene)
+        const pickW = pick('weather'), pickT = pick('time');
+        if (pickW) seen = pickW === 'clear' ? '' : pickW;
+        if (pickT) hour = pickT === 'day' ? 'day' : pickT;
+        const next = isOn() ? `${hour}|${seen}` : '|';
         if (next === last) return;
         last = next;
         const [time, sky] = next.split('|');
@@ -72,6 +84,19 @@ window.Atmosphere = (function () {
         toggle.checked = isOn();
         toggle.addEventListener('change', () => { store(toggle.checked ? 'on' : 'off'); last = null; update(window.__lastWorld); });
     }
+    document.querySelectorAll('#atmoPicks [data-atmo]').forEach(row => {
+        const mark = () => row.querySelectorAll('[data-pick]').forEach(b => b.classList.toggle('on', b.dataset.pick === pick(row.dataset.atmo)));
+        mark();
+        row.addEventListener('click', (e) => {
+            const b = e.target.closest('[data-pick]');
+            if (!b) return;
+            pick(row.dataset.atmo, b.dataset.pick);
+            mark();
+            if (toggle && !toggle.checked && b.dataset.pick) { toggle.checked = true; toggle.dispatchEvent(new Event('change')); }
+            last = null;
+            update(window.__lastWorld);
+        });
+    });
     update(window.__lastWorld || {});  // the theme's weather straight away, before any tracker has run
     return { refresh() { last = null; update(window.__lastWorld || {}); }, update(world) { window.__lastWorld = world; update(world); }, timeOfDay, weather };
 })();

@@ -21,7 +21,7 @@ import json
 from functools import lru_cache
 from pathlib import Path
 
-EXPERIENCES = ('conversation', 'drama', 'storytelling')
+EXPERIENCES = ('conversation', 'drama', 'storytelling', 'visual')
 CONTRACTS = {
     'dont': "Write the other characters and world. Do not write {{user}}'s new dialogue, voluntary actions, decisions or private thoughts. Respond to actions already established and apply external consequences within the agreed scene rules. Stop where the player's next contribution is needed.",
     'write': "Write the cast and world, including {{user}} as a scene character with dialogue, actions and thoughts. Treat the participant's corrections and stated character choices as authoritative. Do not expand these shared-authorship permissions into instructions about the real participant.",
@@ -76,8 +76,9 @@ def generate(template, profile, feel):
     def prompt(name, content, **extra):
         return {'name': name, 'kind': 'prompt', 'role': 'system', 'enabled': True, 'content': content, **extra}
 
-    def module(key, m):
-        return prompt(m['title'], m.get('variants', {}).get(profile['id'], m['content']), enabled=m['default'])
+    def module(key, m):  # an experience can switch extra modules on (Storybook: the designed objects)
+        return prompt(m['title'], m.get('variants', {}).get(profile['id'], m['content']),
+                      enabled=m['default'] or key in experience.get('modules_on', ()))
 
     base = base_of(profile['id'])
     preset['blocks'] = [
@@ -93,10 +94,11 @@ def generate(template, profile, feel):
         prompt(REMINDER, data['reminders']['dont'], role='user', position='in_chat', depth=0),
         *director_note,
     ]
-    preset.setdefault('extras', {})['original_experience'] = {'id': feel, 'foundation': base}
+    preset.setdefault('extras', {})['original_experience'] = {'id': feel, 'foundation': base, 'model': profile['id']}
     starter = {'id': profile['starters'][feel], 'model': profile['id'], 'experience': feel,
-               'title': experience['title'], 'tagline': experience['description'],
-               'description': experience['description'], 'status': 'research-informed', 'based_on': [], 'preset': preset}
+               'title': experience.get('name', experience['title']), 'kind': experience['title'],
+               'tagline': f"{experience['title']}: {experience['description']}",
+               'description': f"{experience['title']}: {experience['description']}", 'status': 'research-informed', 'based_on': [], 'preset': preset}
     return writing_quality.add_baseline(starter)
 
 
@@ -127,7 +129,9 @@ def configure(preset, mode='dont', extensions=()):
 
 
 GROUP_LABELS = {'characters': 'Characters', 'world': 'World', 'story': 'Story drive', 'prose': 'Prose',
-                'collaboration': 'Talking to the AI', 'mature': 'Fights and 18+', 'voice': 'Narration voice'}
+                'collaboration': 'Talking to the AI', 'mature': 'Fights and 18+', 'voice': 'Narration voice',
+                'objects': 'In-story objects (AI-designed)'}
+CUSTOM_OBJECT = 'html_custom'  # "My own object": its block ends with what they described (html_objects.py)
 ADULT = {'slow_burn', 'dark_themes', 'explicit_intimacy', 'intense_explicit'}
 
 
@@ -140,15 +144,19 @@ def module_states(preset):
     for key, m in catalog()['modules'].items():
         block = names.get(m['title'])
         on = block['enabled'] if block else (m['default'] and experience)
-        out.append({'key': key, 'title': m['title'], 'about': m['about'], 'group': m.get('group', 'story'),
-                    'adult': key in ADULT, 'on': bool(on)})
+        item = {'key': key, 'title': m['title'], 'about': m['about'], 'group': m.get('group', 'story'),
+                'adult': key in ADULT, 'on': bool(on)}
+        if key == CUSTOM_OBJECT:
+            from mainapp import html_objects
+            item['custom'] = html_objects.custom_text(block['content']) if block else ''
+        out.append(item)
     return out
 
 
-def set_modules(preset, wanted, model_id=''):
+def set_modules(preset, wanted, model_id='', custom=None):
     """A copy with modules switched on or off ({key: bool}); missing blocks are added before the story slots.
-    One narration voice at a time."""
-    from mainapp import presets
+    One narration voice at a time. `custom`: the description for "My own object" (None keeps what's there)."""
+    from mainapp import html_objects, presets
     cat = catalog()['modules']
     wanted = {k: bool(v) for k, v in wanted.items() if k in cat}
     if sum(1 for k, v in wanted.items() if v and k.startswith('voice_')) > 1:
@@ -169,4 +177,6 @@ def set_modules(preset, wanted, model_id=''):
             at = next((i for i, b in enumerate(result['blocks']) if b.get('kind') == 'marker'), len(result['blocks']))
             result['blocks'].insert(at, block)
         block['enabled'] = on
+        if key == CUSTOM_OBJECT and custom is not None:
+            block['content'] = html_objects.with_custom(block['content'], custom)
     return result

@@ -50,7 +50,7 @@ def looker(user):
     """(model id, its name for people) that will look at the picture."""
     from users.models import ConnectionProfile
     profile, model = ai_client.resolve(user, "bulba")
-    if profile.provider != ConnectionProfile.PROVIDER_OPENROUTER:
+    if not profile.hosted:  # a custom server: its own model
         return model, model
     if "image" in _input_modalities().get(model, []):
         return model, "Bulba's own model"

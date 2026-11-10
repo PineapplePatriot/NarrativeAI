@@ -6,6 +6,7 @@ TASKS. Which connection profile and model a task uses is set per user on the
 Connections page; tasks without their own setting use the main chat connection.
 """
 import json
+import hashlib
 import logging
 import os
 import re
@@ -62,7 +63,7 @@ TASKS = {
     },
     "bulba": {
         "label": "Bulba",
-        "help": "The setup assistant. Runs on a model we pick, through your OpenRouter key.",
+        "help": "The setup assistant. Runs on a model we pick, through your OpenRouter or NanoGPT key.",
         "timeout": 120,
         "hidden": True,  # not on the Connections page: the model is ours to choose
     },
@@ -149,12 +150,31 @@ MODERATION = re.compile(r"considered high risk|rejected because it|content (?:ma
                         r"data_inspection_failed|inappropriate content|violat\w* (?:our|the) (?:content|usage) polic|"
                         r"PROHIBITED_CONTENT|blocked (?:due to|by) safety|finish_reason.{0,6}(?:SAFETY|content_filter)",
                         re.I)
-# Gemini's adjustable filters, off as far as the API allows (the core protections can't be and aren't touched);
-# sent ourselves so it doesn't depend on what OpenRouter passes by default. As SillyTavern sends them: "OFF" switches
-# a filter off entirely, where "BLOCK_NONE" still runs it (newer models still block with it now and then)
+# Requested adjustable-filter settings, matching the ST example. Acceptance and forwarding depend
+# on the model/provider; these fields do not establish that all safeguards are disabled.
 GEMINI_SAFETY = [{"category": c, "threshold": "OFF"} for c in (
     "HARM_CATEGORY_HARASSMENT", "HARM_CATEGORY_HATE_SPEECH", "HARM_CATEGORY_SEXUALLY_EXPLICIT",
     "HARM_CATEGORY_DANGEROUS_CONTENT", "HARM_CATEGORY_CIVIC_INTEGRITY")]
+
+
+def _hosted(profile):
+    """OpenRouter or NanoGPT (the app's own model names work there)."""
+    return getattr(profile, "provider", "") in ConnectionProfile.HOSTED
+
+
+def _for_provider(profile, payload):
+    """NanoGPT: the model name as NanoGPT spells it, web search as its ":online" suffix; OpenRouter-only fields
+    (cost reporting, routing, Gemini safety settings, plugins) aren't sent there."""
+    if profile.provider != ConnectionProfile.PROVIDER_NANOGPT:
+        return
+    from mainapp import nanogpt
+    payload["model"] = nanogpt.model_for(str(payload.get("model") or ""), profile)
+    # OpenRouter's web plugin is NanoGPT's ":online" model suffix (stripped again on their side before routing)
+    if any(isinstance(p, dict) and p.get("id") == "web" for p in payload.get("plugins") or []) \
+            and ":online" not in payload["model"]:
+        payload["model"] += ":online"
+    for key in ("usage", "provider", "safety_settings", "plugins"):
+        payload.pop(key, None)
 
 
 def _route(profile, payload):
@@ -185,7 +205,7 @@ def resolve(user, task):
         if profile is None:
             raise NoConnection("No AI connection is set up yet.")
         # Through OpenRouter Bulba uses our model; on a custom server (local testing) the server's own
-        return profile, (BULBA_MODEL if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER else profile.model)
+        return profile, (BULBA_MODEL if _hosted(profile) else profile.model)
     setting = get_task_setting(user, task)
     chat_setting = setting if task == "chat" else get_task_setting(user, "chat")
     profile = setting.profile or main_profile(user)
@@ -194,7 +214,7 @@ def resolve(user, task):
 
     if setting.model:
         model = setting.model
-    elif task == "translation" and setting.profile is None and profile.provider == ConnectionProfile.PROVIDER_OPENROUTER:
+    elif task == "translation" and setting.profile is None and _hosted(profile):
         model = TRANSLATION_MODEL
     elif setting.profile is None and chat_setting.model:
         model = chat_setting.model  # follows the main chat's model override
@@ -241,8 +261,8 @@ def _error_text(resp):
         return resp.text[:300] or resp.reason
 
 
-# Gemini answered 400 to a request carrying our safety settings: try again with less (the civic-integrity category
-# first, which newer models may not accept; then none). A refused request isn't billed, so a retry costs nothing.
+# Gemini explicitly rejected an invalid safety-settings field: try again with less (the civic-integrity category
+# first, which newer models may not accept; then none). Do not assume rejected requests have no cost.
 SAFETY_FALLBACKS = (
     ("without the civic-integrity filter setting",
      lambda p: {**p, "safety_settings": [s for s in GEMINI_SAFETY if s["category"] != "HARM_CATEGORY_CIVIC_INTEGRITY"]}),
@@ -250,25 +270,63 @@ SAFETY_FALLBACKS = (
 )
 
 
-def _post(profile, payload, **kwargs):
-    """POST the request; a Gemini 400 is retried with fewer safety settings (logged, so the cause shows in the logs)."""
+def _diagnostic(profile, payload, task, operation, stage, response=None, data=None):
+    """Comparable request metadata only: never prompts, output, keys, headers or raw errors."""
+    messages = payload.get("messages") or []
+    facts = {"stage": stage, "task": task, "operation": operation,
+             "model": payload.get("model"), "connection_id": getattr(profile, "pk", None),
+             "connection_type": profile.provider,
+             "stream": bool(payload.get("stream")),
+             "request_hash": hashlib.sha256(json.dumps(payload, sort_keys=True, ensure_ascii=True,
+                                                      default=str).encode()).hexdigest(),
+             "messages": [{"role": m.get("role"), "characters": len(str(m.get("content") or ""))}
+                          for m in messages if isinstance(m, dict)],
+             "parameter_names": sorted(k for k in payload if k != "messages"),
+             "safety_categories": len(payload.get("safety_settings") or []),
+             "routing_configured": bool(payload.get("provider"))}
+    if response is not None:
+        facts["http_status"] = response.status_code
+    if isinstance(data, dict):
+        error = data.get("error") if isinstance(data.get("error"), dict) else {}
+        meta = error.get("metadata") if isinstance(error.get("metadata"), dict) else {}
+        for key, value in (("provider", meta.get("provider_name") or data.get("provider")),
+                           ("request_id", data.get("id"))):
+            if isinstance(value, str):
+                facts[key] = value[:100]
+        choices = data.get("choices") or []
+        if choices and isinstance(choices[0], dict):
+            facts["finish_reason"] = choices[0].get("finish_reason")
+            facts["native_finish_reason"] = choices[0].get("native_finish_reason")
+    logging.getLogger(__name__).warning("AI request diagnostic %s", json.dumps(facts, ensure_ascii=True, default=str))
+
+
+def _invalid_safety_setting(resp):
+    reason = _error_text(resp)
+    return (resp.status_code == 400 and not MODERATION.search(reason)
+            and bool(re.search(r"safety[_ ]?settings|safetySettings", reason, re.I))
+            and bool(re.search(r"invalid|unsupported|unknown|unrecognized|not supported|not allowed", reason, re.I)))
+
+
+def _post(profile, payload, *, diagnostic_task=None, diagnostic_operation=None, **kwargs):
+    """Retry compatibility errors only when the provider names an invalid safety-setting field."""
     url = f"{profile.api_url}/chat/completions"
     resp = requests.post(url, headers=_headers(profile), json=payload, **kwargs)
     for how, change in SAFETY_FALLBACKS:
-        if not (resp.status_code == 400 and str(payload.get("model") or "").startswith("google/")
-                and "safety_settings" in payload):
+        if not (str(payload.get("model") or "").startswith("google/")
+                and "safety_settings" in payload and _invalid_safety_setting(resp)):
             break
-        reason = _error_text(resp)
-        if MODERATION.search(reason):
-            break
-        logging.getLogger(__name__).warning("%s refused the request (400: %s); trying again %s",
-                                            payload.get("model"), reason[:600], how)
+        _diagnostic(profile, payload, diagnostic_task, diagnostic_operation, "invalid_safety_setting", resp)
+        logging.getLogger(__name__).warning("Retrying invalid safety-setting request %s", how)
         resp.close()
         payload = change(payload)
         resp = requests.post(url, headers=_headers(profile), json=payload, **kwargs)
     if resp.status_code >= 400:
-        logging.getLogger(__name__).warning("%s returned %s: %s", payload.get("model"), resp.status_code,
-                                            _error_text(resp)[:800])
+        try:
+            data = resp.json()
+        except ValueError:
+            data = None
+        _diagnostic(profile, payload, diagnostic_task, diagnostic_operation, "http_error", resp, data)
+    resp._narrative_payload = payload  # retain the effective compatibility-retry request for diagnostics
     return resp
 
 
@@ -314,7 +372,7 @@ LIGHT_TASKS = ("summary", "trackers", "emotion", "voice_split", "watch", "writin
 
 
 def _light_reasoning(profile, task, payload, user=None):
-    if task not in LIGHT_TASKS or "reasoning" in payload or profile.provider != ConnectionProfile.PROVIDER_OPENROUTER:
+    if task not in LIGHT_TASKS or "reasoning" in payload or not _hosted(profile):
         return
     if user is not None:
         from mainapp import samplers
@@ -334,6 +392,7 @@ def _light_reasoning(profile, task, payload, user=None):
 def _request(user, task, messages, timeout=None, **params):
     """Sends one chat completion request and returns (profile, the parsed JSON reply)."""
     check_limit(user)
+    operation = params.pop("_diagnostic_operation", task)
     profile, model = resolve(user, task)
     if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER:
         params.setdefault("usage", {"include": True})  # OpenRouter then reports the cost
@@ -342,6 +401,7 @@ def _request(user, task, messages, timeout=None, **params):
     if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER and str(payload["model"]).startswith("google/"):
         payload.setdefault("safety_settings", GEMINI_SAFETY)
     _route(profile, payload)
+    _for_provider(profile, payload)
     from mainapp import mature
     payload["messages"] = mature.for_model(payload.get("messages") or [], payload.get("model"))
     _light_reasoning(profile, task, payload, user)
@@ -349,7 +409,7 @@ def _request(user, task, messages, timeout=None, **params):
     label = TASKS.get(task, {}).get("label", task)
 
     try:
-        resp = _post(profile, payload, timeout=timeout)
+        resp = _post(profile, payload, diagnostic_task=task, diagnostic_operation=operation, timeout=timeout)
     except requests.Timeout:
         raise AIError(f"{label}: {profile.name} did not answer within {timeout} seconds.")
     except requests.RequestException as e:
@@ -357,10 +417,11 @@ def _request(user, task, messages, timeout=None, **params):
 
     # A provider's filter refused one of Bulba's requests: this request again on the next model in the chain
     chain = [BULBA_MODEL] + BULBA_FALLBACKS
-    if (task in ("bulba", "watch", "polish") and payload["model"] in chain[:-1]
-            and profile.provider == ConnectionProfile.PROVIDER_OPENROUTER and _blocked_reply(resp)):
-        nxt = chain[chain.index(payload["model"]) + 1]
-        logging.getLogger(__name__).info("%s refused one of Bulba's requests; trying %s", payload["model"], nxt)
+    asked = str(params.get("model") or model)  # the app's name for it (NanoGPT's spelling may differ)
+    if (task in ("bulba", "watch", "polish") and asked in chain[:-1]
+            and _hosted(profile) and _blocked_reply(resp)):
+        nxt = chain[chain.index(asked) + 1]
+        logging.getLogger(__name__).info("%s refused one of Bulba's requests; trying %s", asked, nxt)
         return _request(user, task, messages, timeout, **{**params, "model": nxt})
 
     if resp.status_code >= 400:
@@ -373,9 +434,19 @@ def _request(user, task, messages, timeout=None, **params):
     except ValueError:
         raise AIError(f"{label}: {profile.name} sent a reply that is not JSON.")
     if isinstance(data, dict) and data.get("error"):  # OpenRouter can report errors with HTTP 200
+        _diagnostic(profile, payload, task, operation, "completion_error", resp, data)
         raise AIError(f"{label}: {profile.name} returned an error: {_error_text(resp)}")
     if isinstance(data, dict):
         record_cost(user, task, payload["model"], (data.get("usage") or {}).get("cost"))
+        choices = data.get("choices") or []
+        choice = choices[0] if choices and isinstance(choices[0], dict) else {}
+        native = choice.get("native_finish_reason")
+        reason = native if _blocking_stop(native) else choice.get("finish_reason")
+        if _blocking_stop(reason):
+            effective = getattr(resp, "_narrative_payload", None)
+            _diagnostic(profile, effective if isinstance(effective, dict) else payload,
+                        task, operation, "blocked_completion", resp, data)
+            raise AIError(f"{label}: {profile.name} " + block_explanation(reason))
     return profile, data
 
 
@@ -439,6 +510,19 @@ def test_connection(provider, base_url, api_key, model):
     if provider == ConnectionProfile.PROVIDER_CUSTOM and not probe.base_url:
         return False, "Enter the API base URL."
     try:
+        if provider == ConnectionProfile.PROVIDER_NANOGPT:
+            if not api_key:
+                return False, "Enter an API key."
+            from mainapp import nanogpt
+            resp = requests.get(f"{probe.api_url}/models", headers=_headers(probe), timeout=15)
+            if resp.status_code in (401, 403):
+                return False, "NanoGPT rejected this key."
+            if resp.status_code >= 400:
+                return False, f"NanoGPT error ({resp.status_code}): {_error_text(resp)}"
+            ids = nanogpt.model_ids(probe, refresh=True)
+            if model and ids and nanogpt.model_for(model, probe, ids) not in ids:
+                return False, f"NanoGPT doesn't list {model} right now. Pick another model or try again later."
+            return True, "NanoGPT accepted the key."
         if provider == ConnectionProfile.PROVIDER_OPENROUTER:
             if not api_key:
                 return False, "Enter an API key."
@@ -482,6 +566,7 @@ def stream(user, task, messages, timeout=None, **params):
     import json
 
     check_limit(user)
+    operation = params.pop("_diagnostic_operation", task)
     profile, model = resolve(user, task)
     if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER:
         params.setdefault("usage", {"include": True})  # the cost arrives with the last piece
@@ -490,6 +575,7 @@ def stream(user, task, messages, timeout=None, **params):
     if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER and str(payload["model"]).startswith("google/"):
         payload.setdefault("safety_settings", GEMINI_SAFETY)  # Gemini's adjustable filters off (see GEMINI_SAFETY)
     _route(profile, payload)
+    _for_provider(profile, payload)
     from mainapp import mature
     payload["messages"] = mature.for_model(payload.get("messages") or [], payload.get("model"))
     _light_reasoning(profile, task, payload, user)
@@ -497,7 +583,7 @@ def stream(user, task, messages, timeout=None, **params):
     label = TASKS.get(task, {}).get("label", task)
 
     try:
-        resp = _post(profile, payload, timeout=(15, read_timeout), stream=True)
+        resp = _post(profile, payload, diagnostic_task=task, diagnostic_operation=operation, timeout=(15, read_timeout), stream=True)
     except requests.Timeout:
         raise AIError(f"{label}: {profile.name} did not answer within {read_timeout} seconds.")
     except requests.RequestException as e:
@@ -524,6 +610,7 @@ def stream(user, task, messages, timeout=None, **params):
                 except ValueError:
                     continue
                 if event.get("error"):
+                    _diagnostic(profile, payload, task, operation, "stream_error", resp, event)
                     err = event["error"]
                     msg = str(err.get('message') if isinstance(err, dict) else err)
                     if "PROHIBITED_CONTENT" in msg:
@@ -557,6 +644,8 @@ def stream(user, task, messages, timeout=None, **params):
         except requests.RequestException as e:
             raise AIError(f"{label}: the connection to {profile.name} broke off ({e.__class__.__name__}).")
         if not wrote and not calls and _blocking_stop(stop):  # blocked without an error: say so, not "empty"
+            _diagnostic(profile, payload, task, operation, "blocked_stream", resp,
+                        {"choices": [{"finish_reason": stop}]})
             raise AIError(f"{label}: {profile.name} " + block_explanation(stop))
         if not wrote and not calls and stop and stop.lower() not in ("stop", "end_turn", "eos"):
             # Nothing written for another reason (Gemini: a fumbled tool call, recitation, out of room): say which
@@ -595,12 +684,12 @@ def block_explanation(reason):
     """Plain words for a provider's block (Gemini's especially), for the chat's error line."""
     r = str(reason or "").upper()
     if "PROHIBITED" in r:
-        return ("was blocked by Gemini's own filter (PROHIBITED_CONTENT), which no setting can switch off. It judges "
-                "the whole request, not just the last message: most often characters who are or read as minors in a "
-                "story where adult content is allowed. Check the characters' ages on the card, switch 🔞 Mature "
-                "content off for this story (pen menu → This chat), or use another model for it.")
-    return (f"blocked the reply with its content filter ({reason}). Press Regenerate to try again, or reword "
-            "your message.")
+        return ("was blocked by the provider (PROHIBITED_CONTENT). This code alone does not identify the "
+                "trigger. The provider can evaluate the whole request, including instructions and earlier context; "
+                "adjustable filter settings do not guarantee acceptance. Check the request context and provider "
+                "details before changing the preset or retrying.")
+    return (f"blocked the reply with its content filter ({reason}). The code alone does not identify the "
+            "trigger; inspect the submitted context and provider details before retrying.")
 
 
 def _merge_details(details):
@@ -654,6 +743,50 @@ def default_image_model(models=None):
     return (banana or models)[0]["id"]
 
 
+def _nanogpt_image(user, profile, prompt, reference, reference_type, timeout):
+    """One picture from NanoGPT's OpenAI-style image endpoint (Nano Banana: settings.NANOGPT_IMAGE_MODEL), with
+    the reference picture as a data URL for consistent moods. Returns (bytes, cost or None)."""
+    import base64
+    from django.conf import settings
+    model = getattr(settings, "NANOGPT_IMAGE_MODEL", "nano-banana-2")
+    payload = {"model": model, "prompt": prompt, "n": 1, "response_format": "b64_json"}
+    if reference:
+        url = f"data:{reference_type};base64,{base64.b64encode(reference).decode('ascii')}"
+        payload["imageDataUrl"] = url  # NanoGPT's own name for a reference picture
+        payload["image"] = [url]       # the OpenAI-style edit field, for whichever it reads
+    try:
+        resp = requests.post(f"{profile.api_url}/images/generations", headers=_headers(profile), json=payload,
+                             timeout=TEST_TIMEOUT or timeout)
+    except requests.Timeout:
+        raise AIError(f"The picture took longer than {timeout} seconds. Try again.")
+    except requests.RequestException as e:
+        raise AIError(f"Could not reach NanoGPT ({e.__class__.__name__}).")
+    if resp.status_code >= 400:
+        logging.getLogger(__name__).warning("NanoGPT image %s returned %s: %s", model, resp.status_code, _error_text(resp)[:600])
+        raise AIError(f"NanoGPT's image model returned an error ({resp.status_code}): {_error_text(resp)}")
+    try:
+        data = resp.json()
+        item = (data.get("data") or [{}])[0]
+    except (ValueError, AttributeError, IndexError, TypeError):
+        raise AIError("NanoGPT's image model sent a reply I couldn't read.")
+    cost = data.get("cost") if isinstance(data.get("cost"), (int, float)) else (data.get("usage") or {}).get("cost")
+    record_cost(user, "sprites", model, cost)
+    cost = float(cost) if isinstance(cost, (int, float)) else None
+    if item.get("b64_json"):
+        return base64.b64decode(item["b64_json"]), cost
+    url = item.get("url") or ""
+    if url.startswith("data:") and ";base64," in url:
+        return base64.b64decode(url.split(";base64,", 1)[1]), cost
+    if url.startswith("https://"):
+        try:
+            img = requests.get(url, timeout=60)
+            if img.ok and img.content:
+                return img.content, cost
+        except requests.RequestException:
+            pass
+    raise AIError("NanoGPT's image model answered without a picture.")
+
+
 def generate_image(user, prompt, reference=None, reference_type="image/png", timeout=180, model=None):
     """
     One picture from an image model on OpenRouter (Nano Banana: settings.SPRITE_IMAGE_MODEL), optionally
@@ -663,8 +796,10 @@ def generate_image(user, prompt, reference=None, reference_type="image/png", tim
     from django.conf import settings
     check_limit(user)
     profile = main_profile(user)
+    if profile is not None and profile.provider == ConnectionProfile.PROVIDER_NANOGPT and profile.api_key:
+        return _nanogpt_image(user, profile, prompt, reference, reference_type, timeout)
     if profile is None or profile.provider != ConnectionProfile.PROVIDER_OPENROUTER or not profile.api_key:
-        raise AIError("Making pictures needs an OpenRouter key (set it on the welcome page).")
+        raise AIError("Making pictures needs an OpenRouter or NanoGPT key (set it on the welcome page).")
     model = model or default_image_model()
     content = [{"type": "text", "text": prompt}]
     if reference:

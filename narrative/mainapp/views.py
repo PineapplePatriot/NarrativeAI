@@ -28,7 +28,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
-from . import extras, game, media_library, recall, story, thinking, ai_client, cards, chats, regex_rules, experiences, model_profiles, presets, samplers, starters, trackers, translation
+from . import basics as basics_mod
+from . import extras, game, html_objects, media_library, recall, story, thinking, ai_client, cards, chats, regex_rules, experiences, model_profiles, presets, samplers, starters, trackers, translation
 from .bulba import control, polish, watch
 from mainapp import mature, refusals
 
@@ -121,7 +122,7 @@ import re
 log = logging.getLogger(__name__)
 
 def _summary_line(message):
-    return f"{message[0]}: {chats.prompt_text(message)}"
+    return f"{message[0]}: {html_objects.shrink(chats.prompt_text(message))}"
 
 
 def _summarize(user, messages, existing="", room=None):
@@ -165,10 +166,14 @@ def _history(messages, note_slot=False):
     """The chat as the AI reads it. Director's notes come framed as directions; with note_slot, a note at the very
     end is left out, because the request carries it in the preset's director's note slot."""
     out = []
+    replies = [i for i, m in enumerate(messages) if m[0] == "assistant"]
+    full = set(replies[-html_objects.KEEP_FULL:])  # older designed objects become a one-line label
     for i, m in enumerate(messages):
         if m[0] not in ("user", "assistant"):
             continue
         text = extras.for_prompt(chats.prompt_text(m), chats.game_of(m))
+        if i not in full:
+            text = html_objects.shrink(text)
         if chats.is_note(m):
             if note_slot and i == len(messages) - 1:
                 continue
@@ -221,6 +226,9 @@ def chat(request, slug):
     }
     game_mode = game.mode_for(request.user, character)
     extra_kinds = extras.kinds_for(request.user)        # letters, phone screens, milestones (Extras page)
+    # ...minus the ones the preset's AI-designed objects take over (never both for the same thing)
+    taken = html_objects.replaced_kinds(presets.normalize(presets.get_active(request.user).data))
+    extra_kinds = [k for k in extra_kinds if k not in taken]
     use_tools = game_mode != "off" or bool(extra_kinds) or bool(story.of_type(story.systems_of(character), "table"))
 
     def summary_payload():
@@ -281,6 +289,13 @@ def chat(request, slug):
                             fixed_messages.append(tuple(msg[:6]) if len(msg) > 5 and isinstance(msg[5], dict)
                                                   else tuple(msg[:5]))
 
+                    # The greeting was filled with whatever name they had then (often the login, before a persona)
+                    u = request.user
+                    fixed_messages, renamed = chats.refresh_greeting(
+                        fixed_messages, character, prompt_names(u, character, chat_state["persona"])["user"],
+                        [u.username, u.name, getattr(u, "persona_name", "")])
+                    if renamed:
+                        chats.write(chat_obj, {**chats.read(chat_obj), "messages": fixed_messages})
                     return fixed_messages
                 except json.JSONDecodeError:
                     return []
@@ -510,6 +525,9 @@ def chat(request, slug):
         elif action == "delete":
             try:
                 index = int(data.get("index"))
+                if index == 0 and messages and messages[0][0] == "assistant":
+                    return JsonResponse({"success": False, "error": "The opening message stays: edit it or swipe "
+                                                                     "to another greeting instead."})
 
                 if 0 <= index < len(messages):
                     # Delete message and all subsequent messages
@@ -625,7 +643,7 @@ def chat(request, slug):
             if saved and not data.get("redo"):
                 return JsonResponse({"success": True, "url": saved["url"], "cast": saved.get("cast", {})})
             try:
-                audio, cast = voice.voice_reply(request.user, character, message[2], chat_state["voices"],
+                audio, cast = voice.voice_reply(request.user, character, html_objects.strip(message[2]), chat_state["voices"],
                                                 prompt_names(request.user, character, chat_state["persona"])["user"], key)
             except voice.VoiceError as e:
                 return JsonResponse({"success": False, "error": str(e)})
@@ -735,6 +753,12 @@ def chat(request, slug):
                 return JsonResponse({"success": False, "error": str(e)}, status=400)
             return JsonResponse({"success": True, **_appearance(request.user),
                                  "watch": watch.page_state(request.user, chat_obj)})
+        elif action == "watch_taste":  # the taste note's lines, corrected by them before Bulba words them
+            try:
+                watch.edit_taste_notice(request.user, chat_obj, str(data.get("id") or ""), data.get("lines"))
+            except ValueError as e:
+                return JsonResponse({"success": False, "error": str(e)}, status=400)
+            return JsonResponse({"success": True})
         elif action == "watch_note":  # a note: dismissed, "I don't mind this", or opened with Bulba
             if data.get("status") not in ("dismissed", "muted", "opened", "fix", "stop_fix"):
                 return JsonResponse({"success": False, "error": "Unknown choice."}, status=400)
@@ -875,7 +899,7 @@ def chat(request, slug):
                 recent = messages[min(upto, len(messages)):]
                 recent = (messages[-4:] if len(recent) < 4 else recent)[-16:]
                 user_name = request.user.name or request.user.username
-                named = [(user_name if m[0] == "user" else character.name, m[2]) for m in recent]
+                named = [(user_name if m[0] == "user" else character.name, html_objects.shrink(m[2])) for m in recent]
                 def tracker_request(named):
                     built = trackers.update_messages(config, state, named, character.name, user_name, only,
                                                      rules=presets.job_prompt(request.user, "tracker_rules",
@@ -1623,6 +1647,7 @@ def chat(request, slug):
         "bulba_url": reverse("bulba_chat", kwargs={"chat_id": chat_obj.id}),
         "watch_data": watch.page_state(request.user, chat_obj),
         "persona_hint": _persona_hint(request.user, chat_state["persona"]),
+        "preset_hint": _preset_hint(request.user),
         "forms_hint": (not _persona_hint(request.user, chat_state["persona"])) and _forms_hint(request.user, character),
         "theme_weather": theme_weather(character, chat_state.get("current_bg") or ""),
         "skin": chat_skin(character, chat_state.get("skin") or ""),
@@ -1732,7 +1757,7 @@ def scene_music(user, messages, current=""):
     if not tracks:
         return None
     options = "\n".join(f"{i + 1}. {t['name']}" for i, t in enumerate(tracks))
-    recent = "\n\n".join(str(m[2])[:1200] for m in messages[-2:])
+    recent = "\n\n".join(html_objects.shrink(str(m[2]))[:1200] for m in messages[-2:])
     answer = ai_client.complete(user, "emotion", [
         {"role": "system", "content": "You pick background music for a roleplay scene. Read the latest messages and "
                                       "answer with the number of the track that fits the mood and setting best. "
@@ -1779,7 +1804,7 @@ def note_ideas(user, character, messages, summary="", persona=None):
     recent = [m for m in messages if m[0] in ("user", "assistant")][-6:]
     if not recent:
         raise ai_client.AIError("Start the story first: there's nothing to direct yet.")
-    transcript = "\n\n".join(f"{names['user'] if m[0] == 'user' else character.name}: {m[2][:1500]}" for m in recent)
+    transcript = "\n\n".join(f"{names['user'] if m[0] == 'user' else character.name}: {html_objects.shrink(m[2])[:1500]}" for m in recent)
     text = bulba_quick(user, [
         {"role": "system", "content": NOTE_IDEAS_PROMPT.format(rules=presets.job_prompt(user, "note_ideas", names))},
         {"role": "user", "content": (f"The story so far: {summary[:2000]}\n\n" if summary else "")
@@ -1798,12 +1823,48 @@ IDEAS_STYLE = ("Plain words, no 'ensure', 'immersive', 'vivid', 'delve', no capi
                "marks. Answer with JSON only: {\"ideas\": [\"...\", \"...\", \"...\"]}")
 
 
+def story_voice(user):
+    """The point of view, tense and speech format chosen for the story (the preset's Basics block), keyed like
+    the basics form: {"pov": "third", "tense": "past", "format": "asterisks"}."""
+    from mainapp.bulba.agent import BASICS
+    block = next((b for b in presets.normalize(presets.get_active(user).data)["blocks"]
+                  if b.get("name") == "Basics" and b.get("kind") == "prompt" and b.get("enabled")), None)
+    text = (block or {}).get("content") or ""
+    return {key: value for key in ("pov", "tense", "format") for value, line in (BASICS[key][1] or {}).items()
+            if line and line in text}
+
+
+IDEAS_VOICE = {"second": "Write them in second person for {{user}} (\"You ask about the vials\").",
+               "third": "Write them in third person, with {{user}}'s name (\"{{user}} asks about the vials\").",
+               "first": "{{char}} narrates in first person, so write {{user}}'s ideas in third person, with their "
+                        "name (\"{{user}} asks about the vials\")."}
+
+
+def ideas_voice(user, messages, names):
+    """How the player ideas are written: like their own messages when they've written some, else in the story's
+    point of view; never "I" for them unless they write that way themselves."""
+    voice = story_voice(user)
+    if any(m[0] == "user" and not chats.is_note(m) for m in messages):
+        line = ("Write them the way {{user}}'s recent messages are written (same person, tense and style); if "
+                "those use \"I\", so can you, otherwise never \"I\" for {{user}}.")
+    else:
+        line = (IDEAS_VOICE.get(voice.get("pov"), IDEAS_VOICE["third"]) + " Never \"I\" for {{user}}.")
+    if voice.get("tense") == "present":
+        line += " Present tense."
+    elif voice.get("tense") == "past":
+        line += " Past tense."
+    if voice.get("format") == "asterisks":
+        line += " Actions in *asterisks*, speech in double quotes."
+    return line.replace("{{user}}", names["user"]).replace("{{char}}", names["char"])
+
+
 def bulba_ideas(user, character, messages, mode, persona=None, summary=""):
     """Three ideas for what to write next ("player") or what could happen next ("director"), on Bulba's model."""
     names = prompt_names(user, character, persona)
     recent = [m for m in messages if m[0] in ("user", "assistant")][-8:]
-    transcript = "\n\n".join(f"{names['user'] if m[0] == 'user' else character.name}: {m[2][:1500]}" for m in recent)
-    system = (IDEAS_PROMPT[mode] + " " + presets.job_prompt(user, "ideas_" + mode, names) + "\n\n" + IDEAS_STYLE)
+    transcript = "\n\n".join(f"{names['user'] if m[0] == 'user' else character.name}: {html_objects.shrink(m[2])[:1500]}" for m in recent)
+    system = (IDEAS_PROMPT[mode] + " " + presets.job_prompt(user, "ideas_" + mode, names)
+              + (" " + ideas_voice(user, messages, names) if mode == "player" else "") + "\n\n" + IDEAS_STYLE)
     about = f"{character.name}: {(character.description or '')[:1500]}"
     story = f"The story so far (summary): {summary[:2000]}\n\n" if summary else ""
     text = bulba_quick(user, [
@@ -1828,7 +1889,7 @@ def word_note(user, character, messages, wish, rewrite=False, persona=None):
         raise ai_client.AIError("Write what you'd like first, in your own words.")
     names = prompt_names(user, character, persona)
     recent = [m for m in messages if m[0] in ("user", "assistant")][-6:]
-    transcript = "\n\n".join(f"{names['user'] if m[0] == 'user' else character.name}: {m[2][:1500]}" for m in recent)
+    transcript = "\n\n".join(f"{names['user'] if m[0] == 'user' else character.name}: {html_objects.shrink(m[2])[:1500]}" for m in recent)
     what = "a new version of the last reply" if rewrite else "the next reply"
     system = WORD_NOTE_PROMPT.format(what=what, rules=presets.job_prompt(user, "director_note", names))
     text = bulba_quick(user, [
@@ -1868,6 +1929,45 @@ def theme_weather(character, background=""):
         if word in name:
             return weather
     return ""
+
+
+def _preset_hint(user):
+    """The one-time preset note for the chat page (preset_upgrade.py); never breaks the page."""
+    from mainapp import preset_upgrade
+    try:
+        return preset_upgrade.pending(user)
+    except Exception:
+        logging.getLogger(__name__).exception("Preset upgrade check failed")
+        return None
+
+
+@login_required
+def preset_upgrade_action(request):
+    """The chat page's preset note: switch, keep mine, undo, rebuild for the new model, not now."""
+    from mainapp import preset_upgrade
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only"}, status=405)
+    try:
+        data = json.loads(request.body.decode("utf-8") or "{}")
+    except (ValueError, UnicodeDecodeError):
+        return JsonResponse({"error": "Invalid request."}, status=400)
+    action, user = data.get("action"), request.user
+    if action == "switch":
+        new = preset_upgrade.switch(user, mark="chosen")
+        return JsonResponse({"ok": bool(new), "text": f"Switched to “{new.name}”. Your old preset is still in the list."
+                             if new else "Couldn't switch: check your connection first."})
+    if action == "undo":
+        return JsonResponse({"ok": preset_upgrade.undo(user), "text": "Back to your previous preset."})
+    if action == "rebuild":
+        obj = preset_upgrade.rebuild(user)
+        return JsonResponse({"ok": bool(obj), "text": f"Rebuilt for your current model: “{obj.name}”." if obj else
+                             "Couldn't rebuild: check your connection first."})
+    if action == "undo_rebuild":
+        return JsonResponse({"ok": preset_upgrade.undo_rebuild(user), "text": "Back as it was."})
+    if action in ("keep", "later"):
+        preset_upgrade.decline(user, str(data.get("kind") or ""), str(data.get("pair") or ""))
+        return JsonResponse({"ok": True})
+    return JsonResponse({"error": "Unknown action."}, status=400)
 
 
 def _persona_hint(user, chat_persona):
@@ -1958,16 +2058,21 @@ def build_chat_request(user, chat_obj, preset=None, character=None, drop_last_re
     character = character or chat_obj.character
     data = chats.read(chat_obj)
     messages = [m for m in data.get("messages") or [] if isinstance(m, (list, tuple)) and len(m) > 2]
+    guidance = ""
     if drop_last_reply and messages and messages[-1][0] == "assistant":
+        guidance = chats.directed_of(messages[-1])
         messages = messages[:-1]
+    if drop_last_reply and not tail and messages and chats.is_note(messages[-1]):
+        guidance = messages[-1][2]  # same newest-note slot as Regenerate
+
     summary = chats.summary_text(chats.summary_parts(data, len(messages)))
     worldbook_slug = character.worldbook.slug if character.worldbook and character.worldbook.author == user else None
     prompt = build_ai_request(user, character, chat=chat_obj, worldbook_slug=worldbook_slug, message=None,
-                              guidance="", persistent_guides=data.get("context_guides") or {}, summary=summary)
+                              guidance=guidance, persistent_guides=data.get("context_guides") or {}, summary=summary)
     preset = presets.normalize(preset or presets.get_active(user).data)
     persona = data.get("persona") if isinstance(data.get("persona"), dict) else {}
     names = prompt_names(user, character, persona)
-    history = _history(messages)
+    history = _history(messages, note_slot=bool(guidance) and not tail)
     history = regex_rules.run_on_history(regex_rules.for_chat(preset, character, user), history, names)
     if control.mode_of(preset) == "director" and not tail:
         history = control.frame_directions(history, names)
@@ -1976,8 +2081,12 @@ def build_chat_request(user, chat_obj, preset=None, character=None, drop_last_re
     if tail:  # an extra request at the end (impersonation): no recall, its words aren't the scene's
         return presets.assemble(preset, prompt_slots(user, character, prompt, persona), history, names, model,
                                 generation=generation)
-    return recall.assemble_with_recall(presets.assemble, preset, prompt_slots(user, character, prompt, persona),
-                                       history, names, model, generation=generation)[0]
+    built = recall.assemble_with_recall(presets.assemble, preset, prompt_slots(user, character, prompt, persona),
+                                      history, names, model, generation=generation)[0]
+    english = translation.english_note(user)
+    if english:
+        built = {**built, "messages": built["messages"] + [english]}
+    return built
 
 
 def _tracker_page_data(user, character, raw_state):
@@ -2050,8 +2159,8 @@ def preset_list(request):
             obj = Preset.objects.create(user=request.user, data=preset,
                                         name=presets.unique_name(request.user, data.get("name") or suggested))
         elif action == "new_default":
-            obj = Preset.objects.create(user=request.user, data=presets.build_default(request.user),
-                                        name=presets.unique_name(request.user, presets.DEFAULT_NAME))
+            fresh, name = presets.first_preset(request.user)
+            obj = Preset.objects.create(user=request.user, data=fresh, name=presets.unique_name(request.user, name))
         elif action == "use_starter":
             try:
                 obj = starters.apply(request.user, data.get("starter"), mode=data.get("control"), extensions=data.get("extensions") or [])
@@ -2894,6 +3003,9 @@ def _bulba_session(user, restart=False):
     if profile is None:
         return None
     session = BulbaSession.objects.filter(user=user, active=True, mode="setup").first()
+    if session and not restart and session.target_model != profile["id"]:
+        logging.getLogger(__name__).info("Setup conversation %s restarted: the chat model changed (%s -> %s)",
+                                         session.id, session.target_model, profile["id"])
     if session and (restart or session.target_model != profile["id"]):
         session.active = False
         session.save(update_fields=["active"])
@@ -2961,7 +3073,8 @@ def bulba_page(request):
                 for b in BulbaSession.objects.filter(user=request.user, active=True, mode="chat")
                 .select_related("chat__character").order_by("-time_update")[:8] if b.chat_id and len(b.events) > 1]
     return render(request, "mainapp/bulba.html", {
-        "bulba_data": {"state": _bulba_state(session), "events": session.events} if session else None,
+        "bulba_data": {"state": _bulba_state(session), "events": session.events,
+                       "basics_form": basics_mod.form()} if session else None,
         "known_models": model_profiles.known_names(),
         "in_chats": in_chats,
         "embed": request.GET.get("embed") == "1",  # beside the Quick setup form
@@ -3014,8 +3127,10 @@ def quick_setup(request):
         if isinstance(data.get("modules"), dict):  # the optional story modules (experiences.py)
             active = presets.get_active(user)
             try:
+                custom = data.get("custom_object")
                 updated = experiences.set_modules(presets.normalize(active.data), data["modules"],
-                                                  (model_profiles.for_style(chat_model) or {}).get("id", ""))
+                                                  (model_profiles.for_style(chat_model) or {}).get("id", ""),
+                                                  custom=custom if isinstance(custom, str) else None)
             except ValueError as e:
                 return JsonResponse({"error": str(e)}, status=400)
             if not mature.is_on(updated):  # 18+ modules only with adult scenes allowed
@@ -3032,7 +3147,10 @@ def quick_setup(request):
         return JsonResponse(_quick_status(request.user, picked, characters))
     return render(request, "mainapp/quick.html", {
         "status": _quick_status(request.user, picked, characters),
-        "languages": translation.LANGUAGES, "basics": _quick_basics(request.user),
+        "languages": translation.LANGUAGES, "basics": (qb := _quick_basics(request.user)),
+        "questions": _quick_questions(qb, QUICK_MAIN), "more_questions": _quick_questions(qb, QUICK_MORE),
+        "line_voices": [{"value": v, "label": l} for v, l in basics_mod.question("voice")["options"]
+                        if v != "any" and f"voice_{v}" not in experiences.catalog()["modules"]],
         "model_name": (f"{chat_model}, borrowed from {profile['name']} (its closest relative; not tested on yours)"
                        if profile.get("_borrowed") else f"{chat_model} (no notes for it yet: plain presets for any model)"
                        if profile.get("_generic") else profile.get("name") or chat_model),
@@ -3046,9 +3164,11 @@ def quick_setup(request):
 
 # Quick setup's Basics: point of view, tense, speech and actions (Bulba's own wording, agent.BASICS), kept as one
 # "Basics" block in the active preset; the story language is the profile's (translation workflow)
-QUICK_BASICS = ("pov", "tense", "format", "length", "control")
+QUICK_BASICS = ("pov", "tense", "format", "interior", "colors", "pacing", "initiative", "invention", "genres",
+                "voice", "author", "keep_out", "length", "control")
 # length goes in the preset's Reply length block, control is the Your character contract; the rest are Basics lines
-BASICS_LINES = ("pov", "tense", "format")
+BASICS_LINES = ("pov", "tense", "format", "interior", "colors", "pacing", "initiative", "invention", "genres",
+                "voice", "author", "keep_out")  # written by mainapp/basics.py, the same lines Bulba's form writes
 
 
 def _module_groups(preset):
@@ -3056,8 +3176,34 @@ def _module_groups(preset):
     groups = {}
     for m in experiences.module_states(preset):
         groups.setdefault(m["group"], []).append(m)
-    order = ["characters", "world", "story", "prose", "collaboration", "voice", "mature"]
+    order = ["characters", "world", "story", "prose", "collaboration", "voice", "objects", "mature"]
     return [{"key": g, "label": experiences.GROUP_LABELS.get(g, g), "modules": groups[g]} for g in order if g in groups]
+
+
+QUICK_MAIN = ("pov", "tense", "length", "control", "format", "interior")
+QUICK_MORE = ("pacing", "initiative", "invention", "colors", "genres", "author", "keep_out")
+
+
+def _quick_questions(current, keys):
+    """Quick setup's questions, worded exactly as Bulba's basics form asks them (mainapp/basics.py)."""
+    out = []
+    for key in keys:
+        f = basics_mod.question(key)
+        if not f:
+            continue
+        q = {"key": key, "label": f["label"], "hint": f.get("hint", ""), "help": f.get("help", ""),
+             "current": current.get(key, "") or ("flexible" if key == "length" else "")}
+        if f.get("multi"):
+            q["multi"] = [{"value": v, "label": l, "adult": False} for v, l in f["multi"]] + \
+                         [{"value": v, "label": l, "adult": True} for v, l in f.get("adult") or []]
+            q["current"] = current.get(key) or []
+        elif "options" in f:
+            q["options"] = [{"value": v, "label": l} for v, l in f["options"] if v != "any"]
+            q["empty"] = "" if key in ("length", "control") else "As the story has it"
+        else:
+            q["text"], q["placeholder"] = True, f.get("placeholder", "")
+        out.append(q)
+    return out
 
 
 def _quick_basics(user):
@@ -3065,19 +3211,36 @@ def _quick_basics(user):
     obj = ChatSettings.objects.filter(author=user).first()
     saved = ((obj.appearance or {}).get("quick_basics") if obj else None) or {}
     out = {"display_language": user.display_language or "en", **{k: saved.get(k, "") for k in QUICK_BASICS}}
+    out["genres"] = saved.get("genres") or []
+    from mainapp import basics
     from mainapp.bulba import control
-    out["control"] = control.mode_of(presets.normalize(presets.get_active(user).data))  # what the preset says now
+    data = presets.normalize(presets.get_active(user).data)
+    out.update({k: v for k, v in basics.read(data).items() if k in BASICS_LINES})  # what the preset says now,
+    out["control"] = control.mode_of(data)                                         # whichever form set it
     return out
 
 
 def _save_quick_basics(user, picks):
     from mainapp.bulba.agent import BASICS
     from mainapp.models import ChatSettings
-    picks = {k: v for k, v in picks.items() if v in (BASICS[k][1] or {})}
+    from mainapp import basics
+    sent = {k: v for k, v in picks.items() if v is not None}
+    answers = {}  # Basics lines: an answer replaces its own line; "As the story has it" ("") removes it
+    for k in BASICS_LINES:
+        if k not in sent:
+            continue
+        v = sent[k]
+        if k == "genres":
+            answers[k] = [g for g in (v if isinstance(v, list) else []) if g in BASICS[k][1]]
+        elif BASICS[k][1] is None:
+            answers[k] = str(v or "").strip()[:300]
+        else:
+            answers[k] = v if v in BASICS[k][1] else ""
+    picks = {k: v for k, v in sent.items() if k not in BASICS_LINES and isinstance(v, str) and v in (BASICS[k][1] or {})}
     obj, _ = ChatSettings.objects.get_or_create(author=user)
-    obj.appearance = {**(obj.appearance or {}), "quick_basics": {k: v for k, v in picks.items() if k != "control"}}
+    obj.appearance = {**(obj.appearance or {}), "quick_basics": {**{k: v for k, v in picks.items() if k != "control"},
+                                                                 **answers}}
     obj.save(update_fields=["appearance"])
-    lines = [BASICS[k][1][v] for k, v in picks.items() if k in BASICS_LINES and BASICS[k][1][v]]
     active = presets.get_active(user)
     data = presets.normalize(active.data)
     from mainapp.bulba import control
@@ -3086,15 +3249,10 @@ def _save_quick_basics(user, picks):
         if picks["control"] == "director":
             set_layout(user, "book")
     length_set = bool(picks.get("length")) and experiences.set_length(data, picks["length"])
-    block = next((b for b in data["blocks"] if b["name"] == "Basics" and b["kind"] == "prompt"), None)
-    if block is not None:
-        block["content"] = "\n".join(lines)
-        block["enabled"] = bool(lines)
-    elif lines:
-        new = presets.normalize_block({"name": "Basics", "kind": "prompt", "content": "\n".join(lines)})
-        at = next((i for i, b in enumerate(data["blocks"]) if b.get("marker") == "chat_history"), len(data["blocks"]))
-        data["blocks"].insert(at, new)
-    elif not (length_set or picks.get("control")):
+    if answers.get("genres") and not mature.is_on(data):  # adult genres only with adult scenes allowed
+        answers["genres"] = [g for g in answers["genres"] if g not in ("smut", "dead_dove")]
+    basics.set_answers(data, answers)
+    if not (answers or length_set or picks.get("control")):
         return
     active.data = data
     active.save(update_fields=["data"])
@@ -3152,7 +3310,7 @@ def bulba_explain(request):
     if not isinstance(data, dict):
         return JsonResponse({"error": "Invalid request."}, status=400)
     if not ai_client.has_connection(request.user):
-        return JsonResponse({"error": "Bulba needs your OpenRouter key first (the welcome page)."}, status=400)
+        return JsonResponse({"error": "Bulba needs your OpenRouter or NanoGPT key first (the welcome page)."}, status=400)
     try:
         return JsonResponse({"text": explain.explain(request.user, data)})
     except ai_client.AIError as e:
@@ -3167,7 +3325,8 @@ def bulba_chat_page(request, chat_id):
     chat_obj = get_object_or_404(Chat, id=chat_id, character__author=request.user)
     session = _bulba_chat_session(request.user, chat_obj)
     return render(request, "mainapp/bulba.html", {
-        "bulba_data": {"state": _bulba_state(session), "events": session.events} if session else None,
+        "bulba_data": {"state": _bulba_state(session), "events": session.events,
+                       "basics_form": basics_mod.form()} if session else None,
         "known_models": model_profiles.known_names(),
         "embed": True, "chat_obj": chat_obj,
     })
@@ -3231,6 +3390,7 @@ def _bulba_api(request):
     if action == "restart":
         events = session.events
     elif action == "say":
+        session.beside_quick = bool(data.get("beside_quick")) and session.mode == "setup"
         events = agent.run_turn(session, data.get("text"))
     elif action == "route":  # the opening's full setup or fast route (no AI needed)
         try:

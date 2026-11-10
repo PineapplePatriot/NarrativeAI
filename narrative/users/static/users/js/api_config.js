@@ -33,11 +33,11 @@ function renderProfiles() {
           </label>
           <label>API key
             <input data-f="api_key" type="password" autocomplete="off" value="${esc(p.api_key || '')}"
-                   placeholder="${p.has_key ? `Saved (${esc(p.key_hint)}), leave empty to keep` : (p.provider === OPENROUTER ? 'sk-or-v1-...' : 'Optional for local servers')}">
+                   placeholder="${p.has_key ? `Saved (${esc(p.key_hint)}), leave empty to keep` : (p.provider === OPENROUTER ? 'sk-or-v1-...' : p.provider === 'nanogpt' ? 'Your NanoGPT API key' : 'Optional for local servers')}">
           </label>
           <label>Model
-            <input data-f="model" value="${esc(p.model)}" ${p.provider === OPENROUTER ? 'list="openrouterModels"' : ''}
-                   placeholder="${p.provider === OPENROUTER ? 'Start typing, e.g. anthropic/' : 'Model name'}">
+            <input data-f="model" value="${esc(p.model)}" ${p.provider === OPENROUTER || p.provider === 'nanogpt' ? 'list="openrouterModels"' : ''}
+                   placeholder="${p.provider === OPENROUTER || p.provider === 'nanogpt' ? 'Start typing, e.g. anthropic/' : 'Model name'}">
           </label>
         </div>
         <div class="row">

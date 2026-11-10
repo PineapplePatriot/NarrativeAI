@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="{% static 'mainapp/css/character_form.css' %}?v={% now 'U' %}">
     <link rel="stylesheet" href="{% static 'mainapp/css/add_character.css' %}?v={% now 'U' %}">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
-    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=5">
 </head>
 <body class="na-body">
 {% include "partials/topbar.html" with active="characters" %}
@@ -88,7 +88,7 @@
                 <label class="small-check" id="spriteForWrap" hidden>For <select id="spriteFor"><option value="">{{ object.name }}</option><option value="1">The second character</option></select></label>
                 <label class="small-check">Image model <select id="spriteModel"><option value="">Default (Nano Banana 2)</option></select></label>
                 <label class="small-check"><input type="checkbox" id="remakeSprites"> also redo pictures that already exist</label>
-                <p class="section-help">Through your OpenRouter key: a few cents per picture, counted in your monthly spending.</p>
+                <p class="section-help">Through your OpenRouter or NanoGPT key: a few cents per picture, counted in your monthly spending.</p>
                 <p class="section-help" id="spriteStatus" aria-live="polite"></p>
             </div>
             {% endif %}

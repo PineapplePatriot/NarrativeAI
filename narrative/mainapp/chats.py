@@ -50,6 +50,48 @@ def greeting(character):
     return [message]
 
 
+def greeting_texts(character):
+    return [t for t in [character.initial_message, *(getattr(character, "alternate_greetings", None) or [])]
+            if isinstance(t, str) and t.strip()]
+
+
+def refresh_greeting(messages, character, name, old_names):
+    """The opening message with {{user}} filled in as `name`, when it still reads exactly as the card's greeting
+    filled with one of `old_names` (the login, say, before they made a persona). Edited greetings are left alone.
+    Returns the messages, changed or not, and whether they changed."""
+    from mainapp.cards import fill_names
+    if not messages or messages[0][0] != "assistant" or not name:
+        return messages, False
+    raws = greeting_texts(character)
+    if not raws or not any("{{user}}" in r.lower() or "<user>" in r.lower() for r in raws):
+        return messages, False
+    olds = [o for o in dict.fromkeys(old_names) if o and o != name]
+
+    def refill(text):
+        for raw in raws:
+            if any(text == fill_names(raw, character.name, old) for old in olds):
+                return fill_names(raw, character.name, name)
+        return text
+
+    first = list(messages[0])
+    changed = False
+    new_text = refill(first[2])
+    if new_text != first[2]:
+        first[2], changed = new_text, True
+    extras = _extras(messages[0])
+    if extras.get("swipes"):
+        versions = [dict(v) for v in extras["swipes"]]
+        for v in versions:
+            fixed = refill(v.get("text", ""))
+            if fixed != v.get("text"):
+                v["text"], changed = fixed, True
+        if changed:
+            first = first[:5] + [{**extras, "swipes": versions}]
+    if not changed:
+        return messages, False
+    return [tuple(first), *messages[1:]], True
+
+
 def create(character, title=None, data=None, parent=None, branch_point=None):
     count = character.chats.count()
     chat = Chat.objects.create(character=character, title=title or f"Chat {count + 1}",
