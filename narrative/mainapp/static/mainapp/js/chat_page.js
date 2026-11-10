@@ -461,6 +461,25 @@ async function requestReply(body) {
 
     const typingLabel = typingMessage.querySelector('.typing-indicator span');
     if (typingLabel) typingLabel.textContent = `${window.CHARACTER_NAME || 'The AI'} is typing`;
+    // A stream that went quiet (the phone slept, they switched apps) can wait forever: notice it and reload
+    // the chat, which shows what the server saved, instead of a reply frozen mid-sentence
+    // Silence allowed: longer before the first words (a model thinking without showing it), 90s once writing;
+    // back from another app, the stream gets 15s to show it's alive
+    let lastByte = Date.now(), started = false, stalled = false, checkAt = 0;
+    const stall = () => { if (!stalled && stream) { stalled = true; controller.abort(); } };
+    const watchdog = setInterval(() => {
+        const quiet = Date.now() - lastByte;
+        if (quiet > (started ? 90000 : 240000)) stall();
+        else if (checkAt && Date.now() > checkAt) { if (started && quiet > 15000) stall(); checkAt = 0; }
+    }, 3000);
+    const onVisible = () => { if (document.visibilityState === 'visible') checkAt = Date.now() + 15000; };
+    document.addEventListener('visibilitychange', onVisible);
+    const lost = () => {
+        if (bubble) bubble.closest('.message').classList.remove('streaming');
+        showChatNotice('📶 The connection dropped mid-reply. Showing what was saved…');
+        setTimeout(() => window.location.reload(), 1200);
+        return { stopped: true, bubble };
+    };
     try {
         const resp = await fetch(window.location.href, {
             method: 'POST',
@@ -476,6 +495,8 @@ async function requestReply(body) {
         while (true) {
             const { value, done } = await reader.read();
             if (done) break;
+            lastByte = Date.now();
+            started = true;
             buffer += decoder.decode(value, { stream: true });
             let nl;
             while ((nl = buffer.indexOf('\n')) >= 0) {
@@ -523,14 +544,18 @@ async function requestReply(body) {
                 }
             }
         }
-        return { error: 'The reply stream ended unexpectedly.' };
+        return lost();  // the stream ended without its last word
     } catch (err) {
+        if (stalled) return lost();
         if (err.name === 'AbortError') {
             if (bubble) { paint(); bubble.closest('.message').classList.remove('streaming'); }
             return { stopped: true, bubble };
         }
+        if (stream && (err instanceof TypeError)) return lost();  // the network went away mid-stream
         throw err;
     } finally {
+        clearInterval(watchdog);
+        document.removeEventListener('visibilitychange', onVisible);
         currentRequest = null;
     }
 }
