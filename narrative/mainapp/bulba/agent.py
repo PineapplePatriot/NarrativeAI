@@ -5,7 +5,7 @@ import re
 import uuid
 from pathlib import Path
 
-from mainapp import ai_client, cards, model_profiles, presets, starters, thinking, writing_quality, experiences
+from mainapp import ai_client, basics, cards, model_profiles, presets, starters, thinking, writing_quality, experiences
 from mainapp.trackers import TRACKERS as TRACKER_LIST
 from mainapp.bulba import control, doctor, library, lore, rules, tune
 
@@ -397,6 +397,8 @@ def build_preset(payload):
             next(b for b in preset["blocks"] if b["name"] == name)["enabled"] = True
     if payload.get("taste"):
         _add_block(preset, "Your taste", payload["taste"])
+    if payload.get("basics"):
+        basics.set_answers(preset, payload["basics"])
     if payload.get("control") in ("write", "director"):
         from mainapp.bulba import control
         preset = control.apply_to_preset(preset, payload["control"])
@@ -647,9 +649,10 @@ def apply_basics(session, answers):
             picked = [g for g in (answers.get(key) or []) if isinstance(g, str) and g in options][:6]
             if picked:
                 text = "Lean the story toward " + "; ".join(options[g] for g in picked) + "."
-                lines.append(f"{label}: {text}")
+                lines.append(f"{label}: {text}{IN_BASICS}")
                 tool_record_preference(session, {"wording": "Basics form: genres", "interpretation": text,
-                                                 "scope": "general", "strength": "firm", "status": "confirmed"})
+                                                 "scope": "general", "strength": "firm", "status": "confirmed",
+                                                 "key": "basics:genres=" + ",".join(picked)})
                 implied = [m for g, m in GENRE_MODULES.items() if g in picked]
                 if implied:
                     _record_modules(session, implied, "Basics form: genres")
@@ -667,9 +670,10 @@ def apply_basics(session, answers):
             continue
         if key == "author":
             text = f"Write in the style of {raw}: their diction, rhythm and conventions, not their plots."
-            lines.append(f"{label}: {text}")
+            lines.append(f"{label}: {text}{IN_BASICS}")
             tool_record_preference(session, {"wording": f"Basics form: write like {raw}", "interpretation": text,
-                                             "scope": "general", "strength": "flexible", "status": "confirmed"})
+                                             "scope": "general", "strength": "flexible", "status": "confirmed",
+                                             "key": f"basics:author={raw}"})
             continue
         if options is None:
             if key == "language" and raw.lower() in ("english", "en"):
@@ -720,9 +724,11 @@ def apply_basics(session, answers):
             title = experiences.catalog()["modules"][f"voice_{raw}"]["title"]
             lines.append(f"{label}: the {title} module (propose_preset switches it on itself; not taste)")
             continue
-        lines.append(f"{label}: {text}")
+        in_block = key in basics.LINE_KEYS and key != "language"
+        lines.append(f"{label}: {text}" + (IN_BASICS if in_block else ""))
         tool_record_preference(session, {"wording": f"Basics form: {label.lower()}", "interpretation": text,
-                                         "scope": scope, "strength": "firm", "status": "confirmed"})
+                                         "scope": scope, "strength": "firm", "status": "confirmed",
+                                         **({"key": f"basics:{key}={raw}"} if in_block else {})})
     return "Basics form answers (already recorded as preferences):\n" + ("\n".join(lines) if lines else "(left empty)")
 
 
@@ -734,7 +740,7 @@ def tool_record_preference(session, args):
             "status": args.get("status") if args.get("status") in ("tentative", "confirmed", "rejected") else "tentative"}
     if args.get("key") in ("control:dont", "control:write", "control:director"):  # the basics form, or said later
         pref["key"] = args["key"]
-    elif str(args.get("key") or "").startswith("modules:"):  # experience modules picked on the basics form
+    elif str(args.get("key") or "").startswith(("modules:", "basics:")):  # picked on the basics form
         pref["key"] = str(args["key"])[:400]
     replaced = next((p for p in session.preferences if p["id"] == args.get("replaces")), None)
     if replaced:
@@ -812,6 +818,22 @@ def _record_modules(session, keys, wording):
                                      "scope": "general", "strength": "firm", "status": "confirmed"})
 
 
+IN_BASICS = " (propose_preset writes this into the Basics block itself; don't repeat it in taste)"
+
+
+def form_basics(session):
+    """The basics form's answers that become Basics lines ({"pov": "third", "genres": [...]}), latest wins."""
+    out = {}
+    for p in session.preferences:
+        key = str(p.get("key") or "")
+        if p.get("status") != "confirmed" or not key.startswith("basics:") or "=" not in key:
+            continue
+        name, value = key[7:].split("=", 1)
+        if name in basics.LINE_KEYS:
+            out[name] = [g for g in value.split(",") if g] if name == "genres" else value
+    return out
+
+
 def form_modules(session):
     """Module block names the basics form asked for (modules, a voice, genres that imply one), for a new preset."""
     cat = experiences.catalog()["modules"]
@@ -885,10 +907,15 @@ def tool_propose_preset(session, args):
     summary += ["Your taste:", *[f"  {line}" for line in taste.splitlines() if line.strip()]]
     if reply_length:
         summary += ["Reply length:", f"  {LENGTHS[reply_length]}"]
+    picked = form_basics(session)  # the basics form's fixed lines, as Quick setup writes them
+    shown = [basics.line_for(k, v) for k, v in picked.items()]
+    if any(shown):
+        summary += ["Basics:", *[f"  {cards.fill_names(l, 'the character', cards.user_name(session.user))}"
+                                 for l in shown if l]]
     p = _proposal(session, "preset", f"Preset: {name}", summary,
                   {"starter": starter["id"], "name": name, "taste": taste, "rewrite": rewrite,
                    "reply_length": reply_length, "borrow": borrow, "switch_off": switch_off, "switch_on": switch_on,
-                   "control": control_mode, "extensions": extensions})
+                   "control": control_mode, "extensions": extensions, "basics": picked})
     return {"proposal": p["id"], "status": "waiting for Apply"}, [{"type": "proposal", "id": p["id"]}]
 
 

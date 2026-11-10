@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="{% static 'users/css/welcome.css' %}?v=5">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=5">
-    <link rel="stylesheet" href="{% static 'mainapp/css/quick.css' %}?v=7">
+    <link rel="stylesheet" href="{% static 'mainapp/css/quick.css' %}?v=8">
 </head>
 <body class="na-body">
 {% include "partials/topbar.html" with active="bulba" %}
@@ -52,37 +52,14 @@
             <label>Story language
                 <select id="qLanguage">{% for code, name in languages.items %}<option value="{{ code }}" {% if code == basics.display_language %}selected{% endif %}>{{ name }}</option>{% endfor %}</select>
                 <small>Not English: the AI writes in English and each reply is translated for you (🌐 shows the English).</small></label>
-            <label>Point of view
-                <select id="qPov"><option value="">As the story has it</option>
-                    <option value="second" {% if basics.pov == "second" %}selected{% endif %}>You (“you step inside”)</option>
-                    <option value="third" {% if basics.pov == "third" %}selected{% endif %}>Third person (“she steps inside”)</option>
-                    <option value="first" {% if basics.pov == "first" %}selected{% endif %}>The character's “I”</option></select></label>
-            <label>Tense
-                <select id="qTense"><option value="">As the story has it</option>
-                    <option value="present" {% if basics.tense == "present" %}selected{% endif %}>Present</option>
-                    <option value="past" {% if basics.tense == "past" %}selected{% endif %}>Past</option></select></label>
-            <label>Reply length
-                <select id="qLength"><option value="">Flexible (follows the scene)</option>
-                    <option value="short" {% if basics.length == "short" %}selected{% endif %}>Short: 2–4 paragraphs</option>
-                    <option value="medium" {% if basics.length == "medium" %}selected{% endif %}>Medium: 5–8 paragraphs</option>
-                    <option value="long" {% if basics.length == "long" %}selected{% endif %}>Long: a full sequence of events</option></select></label>
-            <label>Your character
-                <select id="qControl">
-                    <option value="dont" {% if basics.control == "dont" %}selected{% endif %}>Only I write my character</option>
-                    <option value="write" {% if basics.control == "write" %}selected{% endif %}>The AI may write my character too</option>
-                    <option value="director" {% if basics.control == "director" %}selected{% endif %}>I direct from outside the story</option></select>
-                <small>Directing: you say what should happen and the AI writes the whole scene, your character included (the chat reads as a book).</small></label>
-            <label>Speech and actions
-                <select id="qFormat"><option value="">As the story has it</option>
-                    <option value="quotes" {% if basics.format == "quotes" %}selected{% endif %}>“Speech” in quotes, actions as prose</option>
-                    <option value="asterisks" {% if basics.format == "asterisks" %}selected{% endif %}>“Speech”, *actions in asterisks*</option></select></label>
-            <label>Inner thoughts
-                <select id="qInterior"><option value="">As the story has it</option>
-                    <option value="enter" {% if basics.interior == "enter" %}selected{% endif %}>In their own words: 💭 I messed up, he thought</option>
-                    <option value="infer" {% if basics.interior == "infer" %}selected{% endif %}>Told by the narrator: He thought he’d messed up</option>
-                    <option value="observe" {% if basics.interior == "observe" %}selected{% endif %}>Only through actions, never stated</option></select>
-                <small>How the story shows what characters think.</small></label>
+            {% for q in questions %}{% include "mainapp/partials/quick_question.html" %}{% endfor %}
         </div>
+        <details class="q-story-more">
+            <summary>More about your story <small>(optional: the same questions Bulba's full setup asks)</small></summary>
+            <div class="q-basics">
+                {% for q in more_questions %}{% include "mainapp/partials/quick_question.html" %}{% endfor %}
+            </div>
+        </details>
         <label class="q-mature"><input type="checkbox" id="qMature" {% if mature_on %}checked{% endif %}>
             <span>🔞 <b>Allow adult scenes</b> <small>18+: violence, dark themes, sex when the story goes there. Change it any time in the chat: pen menu → This chat.</small></span></label>
         <details class="q-modules" id="qModules">
@@ -186,7 +163,7 @@
 {{ quick_data|json_script:"quick-data" }}
 <script>const QUICK = { url: "{% url 'quick_setup' %}", bulba: "{% url 'bulba' %}?embed=1", presets: "{% url 'presets' %}" };</script>
 <script src="{% static 'js/costs.js' %}?v=1"></script>
-<script src="{% static 'mainapp/js/quick.js' %}?v=9"></script>
+<script src="{% static 'mainapp/js/quick.js' %}?v=10"></script>
 <script>window.NA_PAGE_TOUR = {name: 'quick', auto: true};</script>
 </body>
 </html>

@@ -1,0 +1,14 @@
+{# One basics question on the Quick setup page, worded as Bulba's form (views._quick_questions) #}
+{% if q.multi %}
+<div class="q-multi" data-basic="{{ q.key }}" data-multi="1"><b>{{ q.label }}</b>{% if q.hint %} <small>{{ q.hint }}</small>{% endif %}
+    <div class="q-chips">{% for o in q.multi %}<label class="q-chip{% if o.adult %} q-mod-adult{% endif %}" {% if o.adult and not mature_on %}hidden{% endif %}>
+        <input type="checkbox" value="{{ o.value }}" {% if o.value in q.current %}checked{% endif %}><span>{{ o.label }}</span></label>{% endfor %}</div></div>
+{% elif q.text %}
+<label>{{ q.label }}
+    <input type="text" data-basic="{{ q.key }}" maxlength="300" value="{{ q.current }}" placeholder="{{ q.placeholder }}"></label>
+{% else %}
+<label>{{ q.label }}{% if q.hint %} <small class="q-hint">({{ q.hint }})</small>{% endif %}
+    <select data-basic="{{ q.key }}">{% if q.empty %}<option value="">{{ q.empty }}</option>{% endif %}
+        {% for o in q.options %}<option value="{{ o.value }}" {% if o.value == q.current %}selected{% endif %}>{{ o.label }}</option>{% endfor %}</select>
+    {% if q.help %}<small>{{ q.help }}</small>{% endif %}</label>
+{% endif %}

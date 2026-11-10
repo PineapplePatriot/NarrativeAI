@@ -115,42 +115,8 @@ function proposalCard(ev) {
 }
 
 // The basics form: plain settings in one go (see BASICS in mainapp/bulba/agent.py)
-const BASICS_FORM = [
-    { section: 'How it’s written' },
-    { key: 'language', label: 'Story language', text: 'English' },
-    { key: 'pov', label: 'Point of view', options: [['second', 'You (“you step inside”)'], ['third', 'Third person (“she steps inside”)'], ['first', 'The character’s “I”']] },
-    { key: 'tense', label: 'Tense', options: [['present', 'Present (“she turns”)'], ['past', 'Past (“she turned”)']] },
-    { key: 'length', label: 'Reply length', options: [['short', 'Short: 2–4 paragraphs'], ['medium', 'Medium: 5–8 paragraphs'], ['long', 'Long: a full sequence'], ['flexible', 'Flexible: follows the scene']] },
-    { key: 'control', label: 'Your character', hint: 'who writes what you say and do', options: [['dont', 'Only me'], ['write', 'The AI may write me too'], ['director', 'I direct from outside the story']],
-      help: 'Roleplay (the first two): you play your character and the AI plays everyone else. Director: you aren’t in the story; you say what should happen (“she finds the letter”, “a storm hits the harbour”) and the AI writes the whole scene, your character included. Not sure? Pick roleplay: Bulba can switch it in any chat when you ask.' },
-    { key: 'format', label: 'Speech and actions', options: [['quotes', '“Speech”, actions as plain text'], ['asterisks', '“Speech”, *actions*'], ['any', 'Doesn’t matter']] },
-    { key: 'colors', label: 'Coloured speech', hint: 'each character speaks in their own colour', options: [['on', 'Yes'], ['off', 'No']] },
-    { key: 'panels', label: 'In-story panels', hint: 'phone messages, notes and signs drawn as little panels', options: [['on', 'Yes'], ['off', 'No']] },
-    { section: 'What kind of story' },
-    { key: 'genres', label: 'Genres', hint: 'pick any', multi: [['fluff', 'Fluff'], ['slice_of_life', 'Slice of life'], ['comedy', 'Comedy'], ['romance', 'Romance'], ['heartwarming', 'Heartwarming'], ['melancholy', 'Melancholy'], ['healing', 'Hurt/comfort'], ['angst', 'Angst'], ['tragedy', 'Tragedy']],
-      adult: [['smut', 'Smut'], ['dead_dove', 'Dead dove']] },
-    { key: 'modules', label: 'Story modules', hint: 'optional extras, pick any',
-      multi: [['surprise_me', 'Surprise me: now and then a complication'], ['chekhov', 'Chekhov’s gun: setups pay off'], ['hard_mode', 'Hard mode: a harsh world'],
-              ['fresh_characters', 'Fresh side characters'], ['fight_scenes', 'Fight scenes'], ['varied_openings', 'Varied openings'],
-              ['no_bathos', 'No jokes in serious moments'], ['describe_once', 'Describe once'], ['card_fidelity', 'Card fidelity: the card’s voice wins'],
-              ['kindness_guard', 'Kindness guard: no needless cruelty'], ['ooc_collaborator', 'Chat with the AI as co-author (OOC)'],
-              ['world_aliens', 'World: aliens'], ['world_vampires', 'World: vampires'], ['world_living_places', 'World: living objects & places'],
-              ['world_school', 'World: school story'], ['world_auras', 'World: emotional auras'], ['world_visions', 'World: my character has visions'],
-              ['world_magic', 'World: magic with costs'], ['world_ghosts', 'World: ghosts'], ['world_gods', 'World: gods among us'],
-              ['world_collapse', 'World: after the collapse'], ['world_hightech', 'World: high-tech & surveillance'], ['world_court', 'World: court & nobility']],
-      adult: [['slow_burn', 'Slow-burn intimacy'], ['dark_themes', 'Dark themes'], ['explicit_intimacy', 'Explicit intimacy'], ['intense_explicit', 'Very explicit']],
-      adultLabel: '18+ modules' },
-    { key: 'mature', label: 'Adult scenes (18+)', hint: 'violence, dark themes, sex when the story goes there',
-      options: [['on', 'Allow them: I’m 18 or older'], ['off', 'Keep it clean']],
-      help: 'Switches your preset’s mature-content rule on, with a reminder before each reply so the model doesn’t refuse. Change it any time: pen menu → This chat.' },
-    { key: 'pacing', label: 'Pacing', options: [['quick', 'Quick: skip the dull bits'], ['slow', 'Slow burn'], ['any', 'No preference']] },
-    { key: 'initiative', label: 'Who moves the story', hint: 'apart from pacing', options: [['react', 'They react; I lead'], ['continue', 'They keep the scene going'], ['drive', 'They bring new events'], ['any', 'No preference']] },
-    { key: 'invention', label: 'Making things up', hint: 'details the card doesn’t give', options: [['canon', 'Stick to the card and canon'], ['plausible', 'Small details are fine'], ['free', 'Invent freely'], ['any', 'No preference']] },
-    { key: 'interior', label: 'Inner thoughts', options: [['observe', 'Only through actions'], ['infer', 'Told by the narrator: “He thought he’d messed up”'], ['enter', 'In their own words: “💭 I messed up, he thought”'], ['any', 'No preference']] },
-    { key: 'voice', label: 'Narration voice', hint: 'optional', options: [['hemingway', 'Hemingway: lean'], ['mccarthy', 'McCarthy: solemn'], ['camus', 'Camus: wry'], ['kafka', 'Kafka: absurd'], ['ligotti', 'Ligotti: dread'], ['maupassant', 'Maupassant: cruel realism'], ['dickens', 'Dickens: theatrical'], ['ellis', 'Ellis: gossipy'], ['anime', 'Anime'], ['realism', 'Grounded realism'], ['fanfic', 'Fanfic'], ['webnovel', 'Web novel']] },
-    { key: 'author', label: 'Write like', text: '', placeholder: 'Optional: an author whose style you love' },
-    { key: 'keep_out', label: 'Anything to keep out?', text: '', placeholder: 'Optional, e.g. gore, spiders' },
-];
+// The questions (mainapp/data/bulba/basics_form.json via mainapp/basics.py), the same ones Quick setup asks
+const BASICS_FORM = INIT.basics_form || [];
 
 // `answers`: what they sent (kept on the event), so a sent form still shows their choices
 function basicsForm(live, answers) {

@@ -161,6 +161,17 @@ function modulePicks() {
     return picks;
 }
 
+// The basics questions (the same as Bulba's form): selects, text boxes and chip groups marked data-basic
+function basicPicks() {
+    const out = {};
+    document.querySelectorAll('[data-basic]').forEach(el => {
+        if (el.dataset.multi) out[el.dataset.basic] = [...el.querySelectorAll('input:checked')].filter(i => !i.closest('[hidden]')).map(i => i.value);
+        else out[el.dataset.basic] = el.value;
+    });
+    if (!out.length) out.length = 'flexible';
+    return out;
+}
+
 async function save(go) {
     const body = {
         starter: (document.querySelector('input[name=starter]:checked') || {}).value || '',
@@ -168,8 +179,7 @@ async function save(go) {
         character: (document.querySelector('input[name=character]:checked') || {}).value || '',
         mature: $('qMature').checked,
         display_language: $('qLanguage').value,
-        pov: $('qPov').value, tense: $('qTense').value, format: $('qFormat').value, interior: $('qInterior').value,
-        length: $('qLength').value || 'flexible', control: $('qControl').value,
+        ...basicPicks(),
         modules: modulePicks(),
         custom_object: $('qCustomObject') ? $('qCustomObject').value : undefined,
     };

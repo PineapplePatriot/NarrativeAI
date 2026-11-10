@@ -1947,6 +1947,46 @@ class StarterTests(ChatPromptTests):
                                content_type="application/json")
         self.assertEqual(bad.status_code, 400)
 
+    def test_both_forms_write_the_same_basics_lines_and_keep_each_others(self):
+        from mainapp import basics, presets
+        from mainapp.bulba import agent
+        data = presets.normalize(presets.get_active(self.user).data)
+        basics.set_answers(data, {"pov": "third", "pacing": "slow", "genres": ["romance", "angst"],
+                                  "author": "Ursula K. Le Guin", "keep_out": "spiders"})
+        block = next(b for b in data["blocks"] if b["name"] == "Basics")
+        block["content"] += "\nMy own line."
+        self.assertEqual(basics.read(data), {"pov": "third", "pacing": "slow", "genres": ["romance", "angst"],
+                                             "author": "Ursula K. Le Guin", "keep_out": "spiders"})
+        basics.set_answers(data, {"pov": "second", "pacing": ""})  # one answer changes, one is cleared
+        self.assertEqual(basics.read(data)["pov"], "second")
+        self.assertNotIn("pacing", basics.read(data))
+        self.assertIn("My own line.", block["content"])
+        self.assertIn("Le Guin", block["content"])
+        self.assertEqual(block["content"].count(agent.BASICS["pov"][1]["second"]), 1)
+        # Quick setup offers the same questions, worded as Bulba's form
+        form = {f["key"]: f for f in basics.form() if f.get("key")}
+        page = self.client.get(reverse("quick_setup"))
+        quick = {q["key"]: q for q in page.context["questions"] + page.context["more_questions"]}
+        for key in ("pov", "tense", "length", "control", "format", "interior", "pacing", "initiative", "invention",
+                    "colors", "genres", "author", "keep_out"):
+            self.assertEqual(quick[key]["label"], form[key]["label"])
+        mods = dict(form["modules"]["multi"])  # the module list is the catalog's
+        self.assertIn("few_dashes", mods)
+        self.assertIn("html_banner", mods)
+
+    def test_quick_keeps_what_the_full_setup_chose(self):
+        from mainapp import basics, presets
+        active = presets.get_active(self.user)
+        data = presets.normalize(active.data)
+        basics.set_answers(data, {"initiative": "drive", "pov": "first"})
+        active.data = data
+        active.save()
+        url = reverse("quick_setup")
+        self.assertEqual(self.client.get(url).context["basics"]["pov"], "first")  # shows what's set
+        self.client.post(url, json.dumps({"tense": "past"}), content_type="application/json")
+        now = basics.read(presets.normalize(presets.get_active(self.user).data))
+        self.assertEqual(now, {"initiative": "drive", "pov": "first", "tense": "past"})
+
     def test_quick_setup_inner_thoughts_go_in_the_basics(self):
         from mainapp import presets
         url = reverse("quick_setup")
@@ -7420,6 +7460,21 @@ class BulbaInChatKnowsTheAppTests(BulbaInChatTests):
 
 class BasicsAndStoryFormTests(BulbaTests):
     """The basics form's new questions (2026-10-30 rules), and the story form's tracker chips."""
+
+    def test_the_full_setup_writes_the_basics_block_like_quick_setup(self):
+        from mainapp import basics
+        from mainapp.bulba import agent
+        from mainapp.models import BulbaSession
+        self.client.get(reverse("bulba"))
+        session = BulbaSession.objects.get(user=self.user, mode="setup")
+        note = agent.apply_basics(session, {"pov": "third", "tense": "past", "interior": "enter",
+                                            "genres": ["romance"], "keep_out": "gore", "pacing": "any"})
+        self.assertIn("Basics block itself", note)
+        self.assertEqual(agent.form_basics(session), {"pov": "third", "tense": "past", "interior": "enter",
+                                                      "genres": ["romance"], "keep_out": "gore"})
+        preset = agent.build_preset({"starter": "opus-experience-drama", "taste": "",
+                                     "basics": agent.form_basics(session)})
+        self.assertEqual(basics.read(preset), agent.form_basics(session))
 
     def test_initiative_invention_and_inner_thoughts_become_preferences(self):
         from mainapp.bulba import agent

@@ -76,3 +76,18 @@
 @keyframes q-ready { 50% { box-shadow: 0 0 0 6px rgba(139, 92, 246, .35); } }
 .quick .q-custom-object { grid-column: 1 / -1; width: 100%; box-sizing: border-box; background: var(--card-2, #1e2130);
     color: inherit; border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; font: inherit; font-size: .9rem; }
+
+/* More about your story: the rest of Bulba's basics questions */
+.quick .q-story-more { margin-top: 12px; border: 1px solid var(--border, rgba(255,255,255,.12)); border-radius: 12px; padding: 10px 14px; }
+.quick .q-story-more summary { cursor: pointer; font-weight: 600; }
+.quick .q-story-more summary small { font-weight: 400; color: var(--muted, #94a3b8); }
+.quick .q-basics input[type=text] { background: var(--card-2, #1e2130); color: inherit; border: 1px solid var(--border);
+    border-radius: 10px; padding: 8px 10px; font: inherit; }
+.quick .q-multi { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 6px; font-size: .9rem; }
+.quick .q-multi small, .quick .q-hint { opacity: .7; font-size: .78rem; font-weight: 400; }
+.quick .q-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.quick .q-chip { position: relative; cursor: pointer; }
+.quick .q-chip input { position: absolute; opacity: 0; pointer-events: none; }
+.quick .q-chip span { display: inline-block; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--border); font-size: .85rem; }
+.quick .q-chip input:checked + span { background: #8b5cf6; border-color: #8b5cf6; color: #fff; }
+.quick .q-chip input:focus-visible + span { outline: 2px solid #c4b5fd; }

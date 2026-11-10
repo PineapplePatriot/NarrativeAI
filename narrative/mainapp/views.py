@@ -28,6 +28,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
+from . import basics as basics_mod
 from . import extras, game, html_objects, media_library, recall, story, thinking, ai_client, cards, chats, regex_rules, experiences, model_profiles, presets, samplers, starters, trackers, translation
 from .bulba import control, polish, watch
 from mainapp import mature, refusals
@@ -3057,7 +3058,8 @@ def bulba_page(request):
                 for b in BulbaSession.objects.filter(user=request.user, active=True, mode="chat")
                 .select_related("chat__character").order_by("-time_update")[:8] if b.chat_id and len(b.events) > 1]
     return render(request, "mainapp/bulba.html", {
-        "bulba_data": {"state": _bulba_state(session), "events": session.events} if session else None,
+        "bulba_data": {"state": _bulba_state(session), "events": session.events,
+                       "basics_form": basics_mod.form()} if session else None,
         "known_models": model_profiles.known_names(),
         "in_chats": in_chats,
         "embed": request.GET.get("embed") == "1",  # beside the Quick setup form
@@ -3130,7 +3132,8 @@ def quick_setup(request):
         return JsonResponse(_quick_status(request.user, picked, characters))
     return render(request, "mainapp/quick.html", {
         "status": _quick_status(request.user, picked, characters),
-        "languages": translation.LANGUAGES, "basics": _quick_basics(request.user),
+        "languages": translation.LANGUAGES, "basics": (qb := _quick_basics(request.user)),
+        "questions": _quick_questions(qb, QUICK_MAIN), "more_questions": _quick_questions(qb, QUICK_MORE),
         "model_name": (f"{chat_model}, borrowed from {profile['name']} (its closest relative; not tested on yours)"
                        if profile.get("_borrowed") else f"{chat_model} (no notes for it yet: plain presets for any model)"
                        if profile.get("_generic") else profile.get("name") or chat_model),
@@ -3144,9 +3147,11 @@ def quick_setup(request):
 
 # Quick setup's Basics: point of view, tense, speech and actions (Bulba's own wording, agent.BASICS), kept as one
 # "Basics" block in the active preset; the story language is the profile's (translation workflow)
-QUICK_BASICS = ("pov", "tense", "format", "interior", "length", "control")
+QUICK_BASICS = ("pov", "tense", "format", "interior", "colors", "pacing", "initiative", "invention", "genres",
+                "author", "keep_out", "length", "control")
 # length goes in the preset's Reply length block, control is the Your character contract; the rest are Basics lines
-BASICS_LINES = ("pov", "tense", "format", "interior")
+BASICS_LINES = ("pov", "tense", "format", "interior", "colors", "pacing", "initiative", "invention", "genres",
+                "author", "keep_out")  # written by mainapp/basics.py, the same lines Bulba's form writes
 
 
 def _module_groups(preset):
@@ -3158,24 +3163,67 @@ def _module_groups(preset):
     return [{"key": g, "label": experiences.GROUP_LABELS.get(g, g), "modules": groups[g]} for g in order if g in groups]
 
 
+QUICK_MAIN = ("pov", "tense", "length", "control", "format", "interior")
+QUICK_MORE = ("pacing", "initiative", "invention", "colors", "genres", "author", "keep_out")
+
+
+def _quick_questions(current, keys):
+    """Quick setup's questions, worded exactly as Bulba's basics form asks them (mainapp/basics.py)."""
+    out = []
+    for key in keys:
+        f = basics_mod.question(key)
+        if not f:
+            continue
+        q = {"key": key, "label": f["label"], "hint": f.get("hint", ""), "help": f.get("help", ""),
+             "current": current.get(key, "") or ("flexible" if key == "length" else "")}
+        if f.get("multi"):
+            q["multi"] = [{"value": v, "label": l, "adult": False} for v, l in f["multi"]] + \
+                         [{"value": v, "label": l, "adult": True} for v, l in f.get("adult") or []]
+            q["current"] = current.get(key) or []
+        elif "options" in f:
+            q["options"] = [{"value": v, "label": l} for v, l in f["options"] if v != "any"]
+            q["empty"] = "" if key in ("length", "control") else "As the story has it"
+        else:
+            q["text"], q["placeholder"] = True, f.get("placeholder", "")
+        out.append(q)
+    return out
+
+
 def _quick_basics(user):
     from mainapp.models import ChatSettings
     obj = ChatSettings.objects.filter(author=user).first()
     saved = ((obj.appearance or {}).get("quick_basics") if obj else None) or {}
     out = {"display_language": user.display_language or "en", **{k: saved.get(k, "") for k in QUICK_BASICS}}
+    out["genres"] = saved.get("genres") or []
+    from mainapp import basics
     from mainapp.bulba import control
-    out["control"] = control.mode_of(presets.normalize(presets.get_active(user).data))  # what the preset says now
+    data = presets.normalize(presets.get_active(user).data)
+    out.update({k: v for k, v in basics.read(data).items() if k in BASICS_LINES})  # what the preset says now,
+    out["control"] = control.mode_of(data)                                         # whichever form set it
     return out
 
 
 def _save_quick_basics(user, picks):
     from mainapp.bulba.agent import BASICS
     from mainapp.models import ChatSettings
-    picks = {k: v for k, v in picks.items() if v in (BASICS[k][1] or {})}
+    from mainapp import basics
+    sent = {k: v for k, v in picks.items() if v is not None}
+    answers = {}  # Basics lines: an answer replaces its own line; "As the story has it" ("") removes it
+    for k in BASICS_LINES:
+        if k not in sent:
+            continue
+        v = sent[k]
+        if k == "genres":
+            answers[k] = [g for g in (v if isinstance(v, list) else []) if g in BASICS[k][1]]
+        elif BASICS[k][1] is None:
+            answers[k] = str(v or "").strip()[:300]
+        else:
+            answers[k] = v if v in BASICS[k][1] else ""
+    picks = {k: v for k, v in sent.items() if k not in BASICS_LINES and isinstance(v, str) and v in (BASICS[k][1] or {})}
     obj, _ = ChatSettings.objects.get_or_create(author=user)
-    obj.appearance = {**(obj.appearance or {}), "quick_basics": {k: v for k, v in picks.items() if k != "control"}}
+    obj.appearance = {**(obj.appearance or {}), "quick_basics": {**{k: v for k, v in picks.items() if k != "control"},
+                                                                 **answers}}
     obj.save(update_fields=["appearance"])
-    lines = [BASICS[k][1][v] for k, v in picks.items() if k in BASICS_LINES and BASICS[k][1][v]]
     active = presets.get_active(user)
     data = presets.normalize(active.data)
     from mainapp.bulba import control
@@ -3184,15 +3232,10 @@ def _save_quick_basics(user, picks):
         if picks["control"] == "director":
             set_layout(user, "book")
     length_set = bool(picks.get("length")) and experiences.set_length(data, picks["length"])
-    block = next((b for b in data["blocks"] if b["name"] == "Basics" and b["kind"] == "prompt"), None)
-    if block is not None:
-        block["content"] = "\n".join(lines)
-        block["enabled"] = bool(lines)
-    elif lines:
-        new = presets.normalize_block({"name": "Basics", "kind": "prompt", "content": "\n".join(lines)})
-        at = next((i for i, b in enumerate(data["blocks"]) if b.get("marker") == "chat_history"), len(data["blocks"]))
-        data["blocks"].insert(at, new)
-    elif not (length_set or picks.get("control")):
+    if answers.get("genres") and not mature.is_on(data):  # adult genres only with adult scenes allowed
+        answers["genres"] = [g for g in answers["genres"] if g not in ("smut", "dead_dove")]
+    basics.set_answers(data, answers)
+    if not (answers or length_set or picks.get("control")):
         return
     active.data = data
     active.save(update_fields=["data"])
@@ -3265,7 +3308,8 @@ def bulba_chat_page(request, chat_id):
     chat_obj = get_object_or_404(Chat, id=chat_id, character__author=request.user)
     session = _bulba_chat_session(request.user, chat_obj)
     return render(request, "mainapp/bulba.html", {
-        "bulba_data": {"state": _bulba_state(session), "events": session.events} if session else None,
+        "bulba_data": {"state": _bulba_state(session), "events": session.events,
+                       "basics_form": basics_mod.form()} if session else None,
         "known_models": model_profiles.known_names(),
         "embed": True, "chat_obj": chat_obj,
     })
