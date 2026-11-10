@@ -138,6 +138,17 @@ def normalize_custom_fields(raw):
                 field["max"] = field["min"] + 100
         field.update(_design(item, ftype))
         fields.append(field)
+    # Triggers name their target by key or label: resolved now that every field has its key
+    keys = {f["key"]: f for f in fields}
+    by_label = {f["label"].lower(): f["key"] for f in fields}
+    for f in fields:
+        rules = []
+        for t in f.pop("_triggers", []):
+            target = t["then"] if t["then"] in keys else by_label.get(t["then"].lower())
+            if target and target != f["key"] and keys[target]["type"] in ("number", "meter"):
+                rules.append({**t, "then": target})
+        if rules:
+            f["triggers"] = rules[:4]
     return fields
 
 
@@ -173,7 +184,66 @@ def _design(item, ftype):
                            "note": str(lv.get("note") or "").strip()[:200]})
         if levels:
             out["levels"] = sorted(levels, key=lambda lv: lv["from"])[:8]
+        rules = []
+        for t in item.get("triggers") or [] if isinstance(item.get("triggers"), list) else []:
+            if not isinstance(t, dict) or t.get("if") not in (">=", "<=") or not str(t.get("then") or "").strip():
+                continue
+            change = _num(t.get("change"), 0)
+            if not change:
+                continue
+            rules.append({"if": t["if"], "at": _num(t.get("at"), 0), "then": str(t["then"]).strip()[:60],
+                          "change": change, "repeat": bool(t.get("repeat"))})
+        if rules:
+            out["_triggers"] = rules
     return out
+
+
+TRIGGER_PASSES = 3  # a trigger can set off another, at most this deep (no loops)
+
+
+def _holds(rule, n):
+    return n >= rule["at"] if rule["if"] == ">=" else n <= rule["at"]
+
+
+def apply_triggers(fields, before, values, locks):
+    """Automatic escalation after an AI update (in place on `values`): a field reaching its threshold moves another
+    field. Fires when the threshold is newly reached, or on every update while it holds ("repeat"). Locked targets
+    don't move. Returns lines describing what fired."""
+    by_key = {f["key"]: f for f in fields}
+    fired, done = [], set()
+    previous = dict(before)
+    for _ in range(TRIGGER_PASSES):
+        moved = False
+        for f in fields:
+            for i, rule in enumerate(f.get("triggers") or []):
+                if (f["key"], i) in done:
+                    continue
+                try:
+                    now = float(values.get(f["key"]))
+                except (TypeError, ValueError):
+                    continue
+                try:
+                    was = float(previous.get(f["key"]))
+                except (TypeError, ValueError):
+                    was = None
+                newly = _holds(rule, now) and (was is None or not _holds(rule, was))
+                if not (newly or (rule["repeat"] and _holds(rule, now))):
+                    continue
+                target = by_key.get(rule["then"])
+                if not target or lock_path("custom", target["key"]) in locks:
+                    continue
+                old = values.get(target["key"], target.get("min", 0))
+                new = coerce_field(target, _num(old, 0) + rule["change"])
+                done.add((f["key"], i))
+                if new != old:
+                    previous[target["key"]] = old
+                    values[target["key"]] = new
+                    moved = True
+                    fired.append(f"{f['label']} {rule['if']} {rule['at']:g} → {target['label']} "
+                                 f"{'+' if rule['change'] > 0 else ''}{rule['change']:g}")
+        if not moved:
+            break
+    return fired
 
 
 def level_of(field, value):
@@ -363,6 +433,9 @@ def _describe(spec):
             desc += f"; goes up with: {', '.join(f['raises'])}"
         if f.get("lowers"):
             desc += f"; goes down with: {', '.join(f['lowers'])}"
+        for t in f.get("triggers") or []:
+            desc += (f"; the app adds {t['change']:g} to \"{t['then']}\" when this reaches {t['if']} {t['at']:g}"
+                     " (don't add that yourself)")
         parts.append(desc)
     shape = "object" if spec["kind"] == "object" else f'list of records, one per "{spec["key"]}"'
     return f'- "{spec["id"]}" ({spec["label"]}: {spec["help"]}) – {shape}; fields: ' + ", ".join(parts)
@@ -419,6 +492,9 @@ def apply_update(config, state, update, only=None):
             continue
         old = state["values"].get(tid, empty_value(spec))
         new = merge(spec, old, update[tid], set(state["locks"]))
+        if tid == "custom" and isinstance(new, dict):  # automatic escalation between custom fields
+            new = dict(new)
+            apply_triggers(spec["fields"], old if isinstance(old, dict) else {}, new, set(state["locks"]))
         if new != old:
             state["values"][tid] = new
             changed.append(tid)

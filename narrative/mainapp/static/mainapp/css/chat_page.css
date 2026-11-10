@@ -2355,3 +2355,6 @@ body.skin-lab .message-text .thought { color: #3d5a78; }
 .cf-levels li em { margin-left: auto; }
 .cf-range { opacity: .55; min-width: 52px; font-variant-numeric: tabular-nums; }
 .tr-custom-more { padding: 0 12px 6px; }
+.cf-triggers { margin-top: 8px; font-size: .82rem; display: flex; flex-direction: column; gap: 3px; }
+.cf-triggers b { font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; opacity: .6; }
+.cf-triggers small { opacity: .6; }

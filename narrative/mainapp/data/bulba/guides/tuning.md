@@ -114,6 +114,11 @@ a romance's trust and jealousy; days until the deadline. Ask what it should foll
 - raises and lowers: short, concrete story events that move it (the tracker AI uses them);
 - levels covering the whole scale, each with a name and a note on how the character or scene reads there
   (the story AI follows the note while the value is in that range). Concrete behaviour, not metaphors.
+- triggers, when one thing should push another automatically (escalation): "Alarm >= 80 → Guards alerted
+  +1", "Sanity <= 20 → Panic +10". The app applies them after each tracker update, once each time the
+  threshold is reached (repeat: true keeps pushing every update while it holds; use that sparingly). The target
+  must be another number or meter field in the same list. Two or three well-chosen ones; chains are allowed
+  but stop after three steps.
 Keep the fields they already have (read_settings) unless they asked to replace them; the list replaces the old
 one. A few well-made fields beat many: each one is more for the tracker AI to follow every update.
 Sexual or very dark trackers only when adult scenes are allowed (get_current_setup); otherwise say that the

@@ -116,6 +116,10 @@ def tool_propose_trackers(session, args):
             if f.get("levels"):
                 summary.append(f"  {f['label']} levels: " + ", ".join(f"{lv['from']:g}-{lv['to']:g} {lv['name']}"
                                                                        for lv in f["levels"]))
+            for t in f.get("triggers") or []:
+                target = next((x["label"] for x in fields if x["key"] == t["then"]), t["then"])
+                summary.append(f"  ⚡ {f['label']} {t['if']} {t['at']:g} → {target} {'+' if t['change'] > 0 else ''}"
+                               f"{t['change']:g}" + (" (every update while it holds)" if t["repeat"] else ""))
             if f.get("raises") or f.get("lowers"):
                 summary.append(f"  {f['label']}: up with {', '.join(f.get('raises') or ['-'])}; "
                                f"down with {', '.join(f.get('lowers') or ['-'])}")
@@ -447,7 +451,16 @@ def tool_defs(fn, STR):
                     "note": {"type": "string", "description": "How the character or scene reads while the value "
                                                               "is in this range: concrete, one or two lines"}},
                     "required": ["from", "to", "name"]},
-                    "description": "Named ranges covering the scale, e.g. 0-29 Calm, 30-59 Restless..."}},
+                    "description": "Named ranges covering the scale, e.g. 0-29 Calm, 30-59 Restless..."},
+                "triggers": {"type": "array", "maxItems": 4, "items": {"type": "object", "properties": {
+                    "if": {"type": "string", "enum": [">=", "<="]}, "at": {"type": "number"},
+                    "then": {"type": "string", "description": "The label of another number or meter field"},
+                    "change": {"type": "number", "description": "Added to it (negative to lower it)"},
+                    "repeat": {"type": "boolean", "description": "true: on every update while it holds; false "
+                                                                 "(default): once each time it's reached"}},
+                    "required": ["if", "at", "then", "change"]},
+                    "description": "Automatic escalation the app applies: when this field reaches `at`, change "
+                                   "another field, e.g. Alarm >= 80 → Guards alerted +1"}},
                 "required": ["label"]},
                 "description": "The full new list (replaces the old one); [] removes them"},
             "why": STR}, ["why"]),

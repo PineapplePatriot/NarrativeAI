@@ -442,3 +442,54 @@ class DesignedTrackerTests(SimpleTestCase):
         self.assertIn("custom", payload["on"])
         self.assertTrue(any("Patience levels: 0-29 Exhausted" in line for line in summary))
         self.assertTrue(any("up with 13 answers precisely" in line for line in summary))
+
+
+class TrackerTriggerTests(SimpleTestCase):
+    """Automatic escalation between custom fields (trackers.apply_triggers), applied after the AI's update."""
+    FIELDS = [{"label": "Alarm", "type": "meter", "min": 0, "max": 100,
+               "triggers": [{"if": ">=", "at": 80, "then": "Guards alerted", "change": 1}]},
+              {"label": "Guards alerted", "type": "number",
+               "triggers": [{"if": ">=", "at": 3, "then": "Exit time", "change": -5}]},
+              {"label": "Exit time", "type": "meter", "min": 0, "max": 30},
+              {"label": "Pressure", "type": "meter", "min": 0, "max": 100,
+               "triggers": [{"if": ">=", "at": 90, "then": "alarm", "change": 5, "repeat": True},
+                            {"if": ">=", "at": 1, "then": "Nowhere", "change": 1}]}]
+
+    def config(self):
+        from mainapp import trackers
+        return trackers.normalize_config({"trackers": {"custom": {"on": True}}, "custom_fields": self.FIELDS})
+
+    def run_update(self, config, state, update):
+        from mainapp import trackers
+        trackers.apply_update(config, state, {"custom": update})
+        return state["values"]["custom"]
+
+    def test_rules_resolve_targets_and_drop_bad_ones(self):
+        fields = {f["key"]: f for f in self.config()["custom_fields"]}
+        self.assertEqual(fields["alarm"]["triggers"][0]["then"], "guards_alerted")
+        self.assertEqual(len(fields["pressure"]["triggers"]), 1)  # "Nowhere" isn't a field
+
+    def test_fires_once_on_reaching_and_chains(self):
+        from mainapp import trackers
+        config = self.config()
+        state = trackers.normalize_state({"values": {"custom": {"alarm": 50, "guards_alerted": 2, "exit_time": 30}}}, config)
+        v = self.run_update(config, state, {"alarm": 85, "guards_alerted": 2, "exit_time": 30})
+        self.assertEqual((v["guards_alerted"], v["exit_time"]), (3, 25))  # alarm → guards → exit time
+        v = self.run_update(config, state, {"alarm": 88, "guards_alerted": 3, "exit_time": 25})
+        self.assertEqual((v["guards_alerted"], v["exit_time"]), (3, 25))  # still above: doesn't fire again
+
+    def test_repeat_pushes_every_update_and_locks_hold(self):
+        from mainapp import trackers
+        config = self.config()
+        state = trackers.normalize_state({"values": {"custom": {"pressure": 95, "alarm": 10}}}, config)
+        self.assertEqual(self.run_update(config, state, {"pressure": 95, "alarm": 10})["alarm"], 15)
+        self.assertEqual(self.run_update(config, state, {"pressure": 96, "alarm": 15})["alarm"], 20)
+        state["locks"].append("custom.alarm")
+        self.assertEqual(self.run_update(config, state, {"pressure": 97})["alarm"], 20)
+
+    def test_the_tracker_ai_is_told_not_to_double_count(self):
+        from mainapp import trackers
+        config = self.config()
+        state = trackers.normalize_state({}, config)
+        system = trackers.update_messages(config, state, [("user", "Hi")], "Guard", "Thief")[0]["content"]
+        self.assertIn('the app adds 1 to "guards_alerted" when this reaches >= 80', system)

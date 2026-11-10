@@ -232,7 +232,7 @@
     }
 
     // A custom field Bulba designed: its own look and colour, what moves it, and its levels ("You're here")
-    const designed = f => !!(f.look || f.levels || f.raises || f.lowers || f.color || f.icon);
+    const designed = f => !!(f.look || f.levels || f.raises || f.lowers || f.color || f.icon || f.triggers);
     const levelOf = (f, n) => (f.levels || []).find(l => Number(n) >= l.from && Number(n) <= l.to);
     const safeColor = c => /^#[0-9a-fA-F]{6}$/.test(c || '') ? c : '';
     function designedField(f, raw) {
@@ -261,6 +261,10 @@
               ${look === 'badge' && level ? `<span class="cf-badge">${esc(level.name)}</span>` : ''}</span></div>
             ${visual}
             ${(f.raises || f.lowers) ? `<div class="cf-moves-row">${list(f.raises, 'up', '↑')}${list(f.lowers, 'down', '↓')}</div>` : ''}
+            ${(f.triggers || []).length ? `<div class="cf-triggers"><b>Triggers</b>${f.triggers.map(t => {
+                const target = (specs.custom.fields.find(x => x.key === t.then) || {}).label || t.then;
+                return `<span>⚡ ${esc(f.label)} ${t.if === '>=' ? '≥' : '≤'} ${esc(t.at)} → ${esc(target)} ${t.change > 0 ? '+' : ''}${esc(t.change)}${t.repeat ? ' <small>(while it holds)</small>' : ''}</span>`;
+            }).join('')}</div>` : ''}
             ${levels ? `<ul class="cf-levels">${levels}</ul>` : ''}
           </div>`;
     }
