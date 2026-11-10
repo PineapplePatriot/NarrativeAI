@@ -106,11 +106,14 @@ window.Watch = (function () {
                 <button type="button" class="ghost" data-w="open" data-id="${esc(n.id)}">Tell me what's wrong</button></div>`;
             return;
         }
-        const quotes = (n.quotes || []).map(q => `<li>“${shownQuote(q)}”</li>`).join('');
+        const quotes = n.kind === 'taste'  // their taste, in their words: each line can be corrected or dropped first
+            ? (n.quotes || []).map(q => `<li class="taste-line"><textarea rows="2" data-taste-old="${esc(q)}" aria-label="What Bulba learned">${esc(q)}</textarea>
+                <button type="button" class="watch-x" data-w="taste-drop" title="Leave this one out">✕</button></li>`).join('')
+            : (n.quotes || []).map(q => `<li>“${shownQuote(q)}”</li>`).join('');
         card.innerHTML = `<div class="watch-head"><span class="potato">🥔</span><b>${['taste', 'keeper', 'continuity'].includes(n.kind) ? esc(n.title) : 'Bulba noticed something'}</b>
                 <button type="button" class="watch-x" data-w="later" title="Later">✕</button></div>
-            <p>${esc(n.text)}</p>
-            ${quotes ? `<ul class="watch-quotes">${quotes}</ul>` : ''}
+            <p>${esc(n.text)}${n.kind === 'taste' ? ' Change any line, or ✕ to leave it out.' : ''}</p>
+            ${quotes ? `<ul class="watch-quotes${n.kind === 'taste' ? ' taste-edit' : ''}">${quotes}</ul>` : ''}
             <div class="watch-actions"><button type="button" data-w="open" data-id="${esc(n.id)}">${{ pace: 'Get some help', taste: 'Put them in my preset', keeper: 'Keep them (with Bulba)' }[n.kind] || 'Look at it with Bulba'}</button>
             ${['pace', 'taste', 'keeper', 'continuity'].includes(n.kind) || n.fixing || n.nofix ? '' : `<button type="button" class="ghost" data-w="fix" data-id="${esc(n.id)}" title="From now on, new replies get a quick polish that rewrites this habit (a small cost each time)">Fix this automatically</button>`}
             ${['pace', 'taste', 'keeper', 'continuity'].includes(n.kind) ? '' : `<button type="button" class="ghost" data-w="mute" data-id="${esc(n.id)}">I don't mind this</button>`}
@@ -155,6 +158,21 @@ window.Watch = (function () {
             showChatNotice('Fixing it in the latest reply now, and in new replies from now on. See or stop it on the Extras page.');
             if (window.polishLatestNow) window.polishLatestNow();
             return;
+        }
+        if (what === 'taste-drop') {
+            const li = b.closest('li');
+            const area = li.querySelector('textarea');
+            const dropped = li.classList.toggle('dropped');
+            area.disabled = dropped;
+            b.textContent = dropped ? '↺' : '✕';
+            b.title = dropped ? 'Put it back' : 'Leave this one out';
+            return;
+        }
+        if (what === 'open' && card.querySelector('.taste-edit')) {  // save their corrections first
+            const lines = [...card.querySelectorAll('.taste-edit textarea')].map(t => ({
+                old: t.dataset.tasteOld, new: t.closest('li').classList.contains('dropped') ? '' : t.value }));
+            const d = await post({ action: 'watch_taste', id: b.dataset.id, lines });
+            if (!d.success) return showChatNotice(d.error || 'Could not save those.');
         }
         if (what === 'open') {
             card.hidden = true;

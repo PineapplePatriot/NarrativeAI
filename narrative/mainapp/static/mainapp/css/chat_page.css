@@ -2311,3 +2311,11 @@ iframe.html-object { display: block; width: 100%; border: 0; margin: 10px 0; bac
 .message-text .thought::before { content: "💭 "; font-style: normal; opacity: .8; }
 body.skin-parchment .message-text .thought { color: #6b4a2a; }
 body.skin-lab .message-text .thought { color: #3d5a78; }
+
+/* The taste note: each line can be corrected or left out before Bulba words them */
+.watch-quotes.taste-edit { list-style: none; padding-left: 0; font-style: normal; opacity: 1; display: flex; flex-direction: column; gap: 6px; }
+.watch-quotes.taste-edit li { display: flex; gap: 6px; align-items: flex-start; }
+.watch-quotes.taste-edit textarea { flex: 1; min-width: 0; resize: vertical; font: inherit; font-size: .85rem; line-height: 1.4;
+    background: rgba(255,255,255,.05); color: inherit; border: 1px solid rgba(167,139,250,.35); border-radius: 8px; padding: 6px 8px; }
+.watch-quotes.taste-edit li.dropped textarea { opacity: .4; text-decoration: line-through; }
+.watch-quotes.taste-edit .watch-x { position: static; flex: none; }

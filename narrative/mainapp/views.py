@@ -753,6 +753,12 @@ def chat(request, slug):
                 return JsonResponse({"success": False, "error": str(e)}, status=400)
             return JsonResponse({"success": True, **_appearance(request.user),
                                  "watch": watch.page_state(request.user, chat_obj)})
+        elif action == "watch_taste":  # the taste note's lines, corrected by them before Bulba words them
+            try:
+                watch.edit_taste_notice(request.user, chat_obj, str(data.get("id") or ""), data.get("lines"))
+            except ValueError as e:
+                return JsonResponse({"success": False, "error": str(e)}, status=400)
+            return JsonResponse({"success": True})
         elif action == "watch_note":  # a note: dismissed, "I don't mind this", or opened with Bulba
             if data.get("status") not in ("dismissed", "muted", "opened", "fix", "stop_fix"):
                 return JsonResponse({"success": False, "error": "Unknown choice."}, status=400)

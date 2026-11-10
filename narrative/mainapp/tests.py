@@ -6814,6 +6814,35 @@ class TasteIntoPresetTests(BulbaInChatTests):
         self.api(action="undo", id=proposal["id"])
         self.assertEqual(watch.user_data(self.user)["taste_in_preset"], [])
 
+    def test_they_correct_the_lines_before_bulba_words_them(self):
+        from mainapp.bulba import watch
+        self.make_chat()
+        data = watch.chat_data(self.chat_obj)
+        mine = watch.user_data(self.user)
+        mine["taste"] = ["Likes technical competence", "Engages with the clinical register", "Writes their character as composed"]
+        note = watch.offer_taste(data, mine)
+        watch.save_user_data(self.user, mine)
+        watch.save_chat_data(self.chat_obj, data)
+        resp = self.post({"action": "watch_taste", "id": note["id"], "lines": [
+            {"old": "Likes technical competence", "new": "Likes technical competence, shown in small details"},
+            {"old": "Engages with the clinical register", "new": ""},
+            {"old": "Writes their character as composed", "new": "Writes their character as composed"}]}).json()
+        self.assertTrue(resp["success"])
+        self.assertEqual(watch.user_data(self.user)["taste"],
+                         ["Likes technical competence, shown in small details", "Writes their character as composed"])
+        saved = next(n for n in watch.chat_data(self.chat_obj)["notices"] if n["id"] == note["id"])
+        self.assertEqual(saved["quotes"], ["Likes technical competence, shown in small details",
+                                           "Writes their character as composed"])
+        self.script = [("Here's the change.", [])]
+        self.api(action="note", id=note["id"])
+        sent = self.bulba_calls[-1]["messages"][-1]["content"]
+        self.assertIn("shown in small details", sent)
+        self.assertNotIn("clinical register", sent)
+        everything_out = self.post({"action": "watch_taste", "id": note["id"], "lines": [
+            {"old": q, "new": ""} for q in saved["quotes"]]})
+        self.assertEqual(everything_out.status_code, 400)
+        self.assertEqual(len(watch.user_data(self.user)["taste"]), 2)  # nothing was dropped
+
     def test_lines_already_in_the_preset_are_not_offered(self):
         from mainapp.bulba import watch
         self.make_chat()
