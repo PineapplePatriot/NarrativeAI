@@ -510,6 +510,9 @@ def chat(request, slug):
         elif action == "delete":
             try:
                 index = int(data.get("index"))
+                if index == 0 and messages and messages[0][0] == "assistant":
+                    return JsonResponse({"success": False, "error": "The opening message stays: edit it or swipe "
+                                                                     "to another greeting instead."})
 
                 if 0 <= index < len(messages):
                     # Delete message and all subsequent messages
@@ -3274,6 +3277,7 @@ def _bulba_api(request):
     if action == "restart":
         events = session.events
     elif action == "say":
+        session.beside_quick = bool(data.get("beside_quick")) and session.mode == "setup"
         events = agent.run_turn(session, data.get("text"))
     elif action == "route":  # the opening's full setup or fast route (no AI needed)
         try:

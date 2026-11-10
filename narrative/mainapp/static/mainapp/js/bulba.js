@@ -27,7 +27,10 @@ function getCookie(name) {
     return m ? decodeURIComponent(m.slice(name.length + 1)) : null;
 }
 
+// In the panel beside the Quick setup form (not the in-chat Bulba, which is framed too)
+const BESIDE_QUICK = window.parent !== window && document.body.classList.contains('embed') && INIT.state && INIT.state.mode === 'setup';
 async function api(body) {
+    if (BESIDE_QUICK && !(body instanceof FormData) && body.action === 'say') body = { ...body, beside_quick: true };
     const resp = await fetch(BULBA_API, {
         method: 'POST',
         headers: body instanceof FormData ? { 'X-CSRFToken': getCookie('csrftoken') }
@@ -453,9 +456,13 @@ async function run(body, label) {
         if (window.parent !== window && switched) window.parent.postMessage({ watch: switched.watch }, window.location.origin);
         if (body.action === 'say') events.pop();  // the server sends it back with the rest
         events = body.action === 'restart' ? data.events : events.concat(data.events);
+        const wasDone = state.stage === 'done';
         state = data.state;
         // Beside Quick setup: the form shows what Bulba just set (a character, persona, worldbook, extras…)
         if (window.parent !== window) window.parent.postMessage({ quickBulba: 'changed' }, window.location.origin);
+        // …and when Bulba says it's all set, the panel closes so "Save and start chatting" is in view
+        if (BESIDE_QUICK && !wasDone && state.stage === 'done')
+            window.parent.postMessage({ quickBulba: 'done' }, window.location.origin);
     } catch (err) {
         if (body.action === 'say') events.pop();
         events.push({ type: 'error', text: err.message });

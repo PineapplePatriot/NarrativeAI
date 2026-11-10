@@ -2297,3 +2297,6 @@ body.polish-on .message-btn.polish-btn { display: flex; }
 .atmo-picks { margin: 2px 0 6px 26px; }
 .atmo-picks .atmo-label { display: block; font-size: .78rem; opacity: .7; margin: 6px 0 4px; }
 .effects-sub.dim .atmo-picks { pointer-events: none; }
+
+/* The opening message can be edited or swiped, never deleted */
+.message.assistant[data-index="0"] .message-btn.delete { display: none; }

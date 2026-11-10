@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="{% static 'users/css/welcome.css' %}?v=5">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=5">
-    <link rel="stylesheet" href="{% static 'mainapp/css/quick.css' %}?v=5">
+    <link rel="stylesheet" href="{% static 'mainapp/css/quick.css' %}?v=6">
 </head>
 <body class="na-body">
 {% include "partials/topbar.html" with active="bulba" %}
@@ -164,6 +164,8 @@
 
     <div class="actions">
         <p class="error" id="qError" hidden></p>
+        <p class="q-done-note" id="qDoneNote" hidden>🥔 Bulba's done: you're ready. Your talk with Bulba stays under
+            🥔 Bulba in the menu.</p>
         <button type="button" id="qStart">Save and start chatting</button>
     </div>
 </main>
@@ -175,7 +177,7 @@
 {{ quick_data|json_script:"quick-data" }}
 <script>const QUICK = { url: "{% url 'quick_setup' %}", bulba: "{% url 'bulba' %}?embed=1", presets: "{% url 'presets' %}" };</script>
 <script src="{% static 'js/costs.js' %}?v=1"></script>
-<script src="{% static 'mainapp/js/quick.js' %}?v=6"></script>
+<script src="{% static 'mainapp/js/quick.js' %}?v=7"></script>
 <script>window.NA_PAGE_TOUR = {name: 'quick', auto: true};</script>
 </body>
 </html>

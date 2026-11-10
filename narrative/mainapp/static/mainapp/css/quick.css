@@ -69,3 +69,8 @@
 
 .quick .q-upload { border-style: dashed; }
 .quick .q-upload:hover { border-color: #8b5cf6; }
+
+/* Bulba finished beside the form: the way into the chat */
+.quick .q-done-note { color: #86efac; font-size: .9rem; margin: 0 0 8px; }
+#qStart.q-ready { animation: q-ready 1.2s ease-in-out 3; }
+@keyframes q-ready { 50% { box-shadow: 0 0 0 6px rgba(139, 92, 246, .35); } }

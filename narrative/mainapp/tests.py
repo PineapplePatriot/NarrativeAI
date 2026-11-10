@@ -1486,6 +1486,14 @@ class SwipeTests(ChatPromptTests):
         self.post({"action": "delete", "index": 2})  # last message is now the user's
         self.assertFalse(self.post({"action": "swipe", "to": 0}).json()["success"])
 
+    def test_the_opening_message_cannot_be_deleted(self):
+        self.post({"action": "chat", "message": "Hi"})
+        before = self.saved_messages()
+        self.assertEqual(before[0][0], "assistant")
+        data = self.post({"action": "delete", "index": 0}).json()
+        self.assertFalse(data["success"])
+        self.assertEqual(self.saved_messages(), before)
+
 
 class SwipeStreamTests(StreamChatTests):
     def test_stopped_regenerate_keeps_both(self):
@@ -7386,6 +7394,36 @@ class BasicsAndStoryFormTests(BulbaTests):
         session = BulbaSession.objects.get(user=self.user, mode="setup")
         form = agent.tool_show_extras_form(session, {"trackers": ["world"]})[1][0]
         self.assertNotIn("trackers", form)
+
+    def test_story_form_ticks_the_ideas_button_and_leaves_app_kept_trackers_to_extras(self):
+        from mainapp import trackers
+        from mainapp.bulba import agent
+        session, character = self.make_character()
+        form = agent.tool_show_extras_form(session, {"trackers": ["world", "milestones"]})[1][0]
+        self.assertTrue(form["values"]["ideas"])  # on unless Bulba says otherwise
+        ids = [t["id"] for t in form["trackers"]]
+        self.assertNotIn("milestones", ids)  # these come with their story extras
+        self.assertNotIn("scrapbook", ids)
+        self.assertEqual(form["values"]["trackers"], ["world"])
+        self.assertFalse(agent.tool_show_extras_form(session, {"ideas": False})[1][0]["values"]["ideas"])
+        # sending the form never switches Milestones off behind their back
+        config = trackers.normalize_config(character.tracker_config)
+        config["trackers"]["milestones"]["on"] = True
+        character.tracker_config = config
+        character.save()
+        made = agent.form_trackers(session, {"trackers": ["world"]})
+        if made:
+            card = next(p for p in session.proposals if p["id"] == made[0])
+            self.assertNotIn("milestones", " ".join(card["summary"]).lower())
+
+    def test_beside_the_quick_form_bulba_keeps_it_short(self):
+        from mainapp.bulba import agent
+        from mainapp.models import BulbaSession
+        self.client.get(reverse("bulba"))
+        session = BulbaSession.objects.get(user=self.user, mode="setup")
+        self.assertNotIn("Beside the Quick setup form", agent.system_prompt(session))
+        session.beside_quick = True
+        self.assertIn("Save and start chatting", agent.system_prompt(session))
 
 
 class MemoryAndCostTests(BulbaTests):

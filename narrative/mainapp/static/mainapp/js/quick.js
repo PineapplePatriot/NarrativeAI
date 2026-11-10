@@ -93,11 +93,24 @@ document.addEventListener('click', async (e) => {
 window.addEventListener('message', (e) => {
     if (e.origin !== window.location.origin || !e.data) return;
     if (e.data.quickBulba === 'changed') refresh();  // Bulba applied something: the form shows it
+    if (e.data.quickBulba === 'done') {  // Bulba says it's all set: a moment to read its last lines, then the way in
+        setTimeout(() => { closeDrawer(); showStart(); }, 2500);
+        return;
+    }
     if (e.data.quickBulba !== 'close') return;
+    closeDrawer();
+});
+function closeDrawer() {
     drawer.hidden = true;
     document.body.classList.remove('with-bulba');
     refresh();
-});
+}
+function showStart() {
+    const start = $('qStart'), note = $('qDoneNote');
+    note.hidden = false;
+    start.classList.add('q-ready');
+    start.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
 
 // What's set now, section by section (Bulba changes things beside the form)
 let personaTouched = false;

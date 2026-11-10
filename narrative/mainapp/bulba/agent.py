@@ -101,6 +101,15 @@ def model_knowledge(profile):
     return "\n".join(lines)
 
 
+# Shown in a side panel next to the Quick setup form (they asked about one part of it)
+BESIDE_QUICK = ("## Beside the Quick setup form\n"
+                "You're in a panel next to the Quick setup form: they asked you about one part of it. Do that part, "
+                "then stop; don't walk them through the other stages. If they say they're finished, or everything is "
+                "set, call set_stage(\"done\") and write two short lines only: what's ready, and that they press "
+                "**Save and start chatting** on the form (this panel closes by itself). No list of where to change "
+                "things: they can open 🥔 Bulba from the menu any time and this conversation will still be there.")
+
+
 def system_prompt(session):
     profile = target_profile(session)
     text = INSTRUCTIONS.read_text(encoding="utf-8").replace("{target_model}", profile["name"] if profile else "?")
@@ -116,6 +125,7 @@ def system_prompt(session):
         *guides,
         model_knowledge(profile) if profile else "",
         "## Session\n" + progress,
+        BESIDE_QUICK if getattr(session, "beside_quick", False) else "",
         "Preferences so far:\n" + "\n".join(prefs) if prefs else "",
         "Proposals so far:\n" + "\n".join(pending) if pending else "",
     ]))
@@ -164,7 +174,9 @@ TOOLS = [
     _fn("set_stage", "Move to another stage of the setup.", {"stage": {"type": "string", "enum": STAGES}}, ["stage"]),
     _fn("offer_choices", "Show quick-reply buttons under your message. A choice with a url opens that page instead.",
         {"choices": {"type": "array", "maxItems": 5, "items": {"type": "object", "properties": {
-            "label": STR, "url": {"type": "string", "description": "Optional: opens a page instead of answering. "
+            "label": {"type": "string", "description": "A finished answer of a few words, the user's side only: "
+                "a name, an option, 'Yes, go ahead'. Never your own thinking or a half sentence."},
+            "url": {"type": "string", "description": "Optional: opens a page instead of answering. "
                 "Only /users/extras/ (voices, extras), a link you were given in an [Applied: ...] note, "
                 "or https://gemini.google.com/ (Nano Banana, for character pictures)"}},
             "required": ["label"]}}}, ["choices"]),
@@ -224,7 +236,8 @@ TOOLS = [
         {"game": {"type": "string", "enum": ["off", "dice", "full"]},
          "story_extras": {"type": "array", "items": {"type": "string", "enum": ["documents", "messages", "milestones",
                                                                                  "news", "keepsakes", "choices"]}},
-         "ideas": {"type": "boolean"},
+         "ideas": {"type": "boolean", "description": "Ticked unless you send false; send false only when they "
+                                                     "said they don't want it"},
          "trackers": {"type": "array", "description": "The trackers that fit this story and character, all of them "
                       "(World is on unless you leave it out); tuning guide, 'Trackers that fit the story'",
                       "items": {"type": "string", "enum": [t["id"] for t in TRACKER_LIST if t["id"] != "custom"]}},
@@ -1033,6 +1046,10 @@ SETUP_FORM_KEYS = ("summary", "trackers", "sprites", "watch", "fix_model", "back
 STORY_FORM_KEYS = ("game", "story_extras", "ideas")
 
 
+# Not offered as tracker chips in the story form: Milestones and Scrapbook come with their story extras
+FORM_HIDDEN_TRACKERS = {"custom", "milestones", "scrapbook"}
+
+
 def extras_form_event(session, part, suggest=None, why=""):
     """The form's page event, filled with what's set now (or, for the story part, Bulba's suggestions)."""
     from users.views import _extras_state
@@ -1063,8 +1080,10 @@ def extras_form_event(session, part, suggest=None, why=""):
             picks = [t for t in (suggest or {}).get("trackers") or [] if t in config["trackers"] and t != "custom"]
             event["character"] = character.name
             event["trackers"] = [{"id": t["id"], "label": t["label"], "icon": t["icon"], "help": t["help"]}
-                                 for t in tracker_mod.TRACKERS if t["id"] != "custom"]
-            values["trackers"] = picks or on_now
+                                 for t in tracker_mod.TRACKERS if t["id"] not in FORM_HIDDEN_TRACKERS]
+            values["trackers"] = [t for t in picks or on_now if t not in FORM_HIDDEN_TRACKERS]
+    if part == "story" and "ideas" not in (suggest or {}):
+        values["ideas"] = True  # on unless Bulba (or they) said otherwise
     return event
 
 
@@ -1149,8 +1168,8 @@ def form_trackers(session, answers):
         return None
     from mainapp import trackers as tracker_mod
     config = tracker_mod.normalize_config(character.tracker_config)
-    picked = [t for t in picked if t in config["trackers"] and t != "custom"]
-    on_now = [t for t, c in config["trackers"].items() if c["on"] and t != "custom"]
+    picked = [t for t in picked if t in config["trackers"] and t not in FORM_HIDDEN_TRACKERS]
+    on_now = [t for t, c in config["trackers"].items() if c["on"] and t not in FORM_HIDDEN_TRACKERS]
     turn_on, turn_off = [t for t in picked if t not in on_now], [t for t in on_now if t not in picked]
     if not (turn_on or turn_off):
         return None
