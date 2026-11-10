@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="{% static 'mainapp/css/chat_page.css' %}?v=27">
     <link rel="stylesheet" href="{% static 'mainapp/css/chat_skins.css' %}?v=2">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
-    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=5">
 </head>
 
 <body class="{% if appearance.layout == 'book' %}layout-book{% endif %}{% if skin %} skin-{{ skin }}{% endif %}" data-dialogue="{% if appearance.dialogue_color == 'preset' %}preset{% else %}color{% endif %}" style="--dialogue-color: {% if appearance.dialogue_color == 'preset' %}inherit{% else %}{{ appearance.dialogue_color }}{% endif %}">

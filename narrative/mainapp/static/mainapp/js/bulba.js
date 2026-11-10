@@ -621,7 +621,13 @@ document.addEventListener('click', (e) => {
 // Opened from the chat's pen menu with something already typed: put it in the box, unsent.
 // Or from a Bulba Watch note: Bulba looks at it straight away.
 (function () {
-    const fill = (text) => { if (text) { $('input').value = text; $('input').focus(); } };
+    // (the box then grows to fit it, as when typing)
+    const fill = (text) => {
+        if (!text) return;
+        $('input').value = text;
+        $('input').focus();
+        setTimeout(() => $('input').dispatchEvent(new Event('input')), 0);  // after the box's resize handler exists
+    };
     const note = (id) => { if (id) run({ action: 'note', id }, 'Bulba is looking at it…'); };
     const params = new URLSearchParams(window.location.search);
     fill(params.get('draft'));

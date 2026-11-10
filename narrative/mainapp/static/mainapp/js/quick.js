@@ -78,9 +78,15 @@ document.addEventListener('click', async (e) => {
     const btn = e.target.closest('[data-ask]');
     if (!btn) return;
     await save(false);  // Bulba sees what's already filled in
-    const url = QUICK.bulba + '&draft=' + encodeURIComponent(btn.dataset.ask);
+    let ask = btn.dataset.ask;
+    if (btn.closest('#qPersona')) {  // a persona fits the character they'll talk to (step 3), so Bulba is told which
+        const picked = document.querySelector('input[name=character]:checked');
+        const name = picked && picked.closest('label').querySelector('b')?.textContent.trim();
+        if (name) ask += ` I'll be talking to ${name}.`;
+    }
+    const url = QUICK.bulba + '&draft=' + encodeURIComponent(ask);
     if (!frame.src) frame.src = url;
-    else frame.contentWindow.postMessage({ bulbaDraft: btn.dataset.ask }, window.location.origin);
+    else frame.contentWindow.postMessage({ bulbaDraft: ask }, window.location.origin);
     drawer.hidden = false;
     document.body.classList.add('with-bulba');  // the form makes room: both side by side (a sheet below on phones)
 });
@@ -156,7 +162,7 @@ async function save(go) {
         const d = await resp.json();
         if (!resp.ok) throw new Error(d.error || 'Could not save.');
         if (go) {
-            if (!d.url) throw new Error('Pick, make or import a character first (step 4).');
+            if (!d.url) throw new Error('Pick, make or import a character first (step 3).');
             window.location.href = d.url;
         }
     } catch (err) { $('qError').textContent = err.message; $('qError').hidden = false; }

@@ -8,7 +8,7 @@
     <title>Log in - Narrative AI</title>
     <link rel="stylesheet" href="{% static 'users/css/login.css' %}">
 
-    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=5">
 </head>
 <body class="na-body">
     <div class="auth-brand">✦ Narrative AI</div>
@@ -39,5 +39,6 @@
         <p class="guide-link"><a href="{% url 'users:forgot' %}">Forgot your password?</a></p>
         <p class="guide-link"><a href="{% url 'guide' %}">New here? How to try Narrative AI →</a></p>
     </div>
+<script src="{% static 'js/show_password.js' %}?v=1" defer></script>
 </body>
 </html>

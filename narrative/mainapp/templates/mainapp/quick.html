@@ -7,8 +7,8 @@
     <title>Quick setup - Narrative AI</title>
     <link rel="stylesheet" href="{% static 'users/css/welcome.css' %}?v=5">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
-    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
-    <link rel="stylesheet" href="{% static 'mainapp/css/quick.css' %}?v=4">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=5">
+    <link rel="stylesheet" href="{% static 'mainapp/css/quick.css' %}?v=5">
 </head>
 <body class="na-body">
 {% include "partials/topbar.html" with active="bulba" %}
@@ -39,14 +39,14 @@
             {% endfor %}
             <label class="q-choice"><input type="radio" name="starter" value="" {% if not active_starter %}checked{% endif %}>
                 <span><b>Keep what I have</b><small>{{ active_name }}</small></span></label>
+            <label class="q-choice q-upload"><input type="file" id="qPresetFile" accept=".json,application/json" hidden>
+                <span><b>📥 Use my own preset</b><small>A SillyTavern preset (.json), or one exported from here</small></span></label>
         </div>
         {% else %}
         <p class="help">There's no tested setup for this model yet, so your current preset stays. Bulba can build one with you.</p>
+        <div class="q-choices"><label class="q-choice q-upload"><input type="file" id="qPresetFile" accept=".json,application/json" hidden>
+                <span><b>📥 Use my own preset</b><small>A SillyTavern preset (.json), or one exported from here</small></span></label></div>
         {% endif %}
-        <div class="q-actions">
-            <label class="btn secondary">📥 Use my own preset<input type="file" id="qPresetFile" accept=".json,application/json" hidden></label>
-            <small class="help">A SillyTavern chat-completion preset (.json), or one exported from here.</small>
-        </div>
         <p class="help" id="qPresetNote" hidden></p>
         <div class="q-basics">
             <label>Story language
@@ -78,7 +78,7 @@
                     <option value="asterisks" {% if basics.format == "asterisks" %}selected{% endif %}>“Speech”, *actions in asterisks*</option></select></label>
         </div>
         <label class="q-mature"><input type="checkbox" id="qMature" {% if mature_on %}checked{% endif %}>
-            🔞 <b>Allow adult scenes</b> <small>(18+: violence, dark themes, sex when the story goes there. Change it any time in the chat: pen menu → This chat.)</small></label>
+            <span>🔞 <b>Allow adult scenes</b> <small>18+: violence, dark themes, sex when the story goes there. Change it any time in the chat: pen menu → This chat.</small></span></label>
         <details class="q-modules" id="qModules">
             <summary>Story modules <small>(optional: switch parts of the writing style on or off)</small></summary>
             {% for g in module_groups %}
@@ -111,17 +111,8 @@
         </div>
     </section>
 
-    <section class="option" id="qPersona">
-        <div class="q-head"><h2>3. You in the story</h2><button type="button" class="ghost q-bulba" data-ask="Help me make my persona: who I am in the story. Ask me two or three light questions, then propose it.">🥔 Let Bulba do it</button></div>
-        <p class="help">Who the AI talks to. A name is enough; a few words about your look and attitude make replies fit you better. You can leave it empty.</p>
-        <label for="personaName">Name</label>
-        <input type="text" id="personaName" maxlength="100" value="{{ user.persona_name|default:'' }}" placeholder="e.g. Wren">
-        <label for="personaDescription">About you <small>(optional)</small></label>
-        <textarea id="personaDescription" rows="3" maxlength="8000" placeholder="e.g. A field medic with steady hands and a habit of asking one question too many.">{{ user.persona_description|default:'' }}</textarea>
-    </section>
-
     <section class="option" id="qCharacter">
-        <div class="q-head"><h2>4. Your character</h2><button type="button" class="ghost q-bulba" data-ask="Help me make a character to talk to: ask me what kind of story I want, then propose the character.">🥔 Let Bulba do it</button></div>
+        <div class="q-head"><h2>3. Your character</h2><button type="button" class="ghost q-bulba" data-ask="Help me make a character to talk to: ask me what kind of story I want, then propose the character.">🥔 Let Bulba do it</button></div>
         <p class="help">Who you'll talk to. Make one, import a card you already have (Chub, SillyTavern…), or pick one below.</p>
         <div class="q-actions">
             <a class="btn secondary" href="{% url 'add_character' %}?next=quick">+ Make a character</a>
@@ -138,6 +129,15 @@
                     <b>{{ c.name }}</b></span></label>
             {% endfor %}
         </div>
+    </section>
+
+    <section class="option" id="qPersona">
+        <div class="q-head"><h2>4. You in the story</h2><button type="button" class="ghost q-bulba" data-ask="Help me make my persona: who I am in the story. Ask me two or three light questions, then propose it.">🥔 Let Bulba do it</button></div>
+        <p class="help">Who the AI talks to. A name is enough; a few words about your look and attitude make replies fit you better. You can leave it empty.</p>
+        <label for="personaName">Name</label>
+        <input type="text" id="personaName" maxlength="100" value="{{ user.persona_name|default:'' }}" placeholder="e.g. Wren">
+        <label for="personaDescription">About you <small>(optional)</small></label>
+        <textarea id="personaDescription" rows="3" maxlength="8000" placeholder="e.g. A field medic with steady hands and a habit of asking one question too many.">{{ user.persona_description|default:'' }}</textarea>
     </section>
 
     <details class="option q-more" {% if status.extras or status.look or status.worldbook %}open{% endif %}>
@@ -175,7 +175,7 @@
 {{ quick_data|json_script:"quick-data" }}
 <script>const QUICK = { url: "{% url 'quick_setup' %}", bulba: "{% url 'bulba' %}?embed=1", presets: "{% url 'presets' %}" };</script>
 <script src="{% static 'js/costs.js' %}?v=1"></script>
-<script src="{% static 'mainapp/js/quick.js' %}?v=5"></script>
+<script src="{% static 'mainapp/js/quick.js' %}?v=6"></script>
 <script>window.NA_PAGE_TOUR = {name: 'quick', auto: true};</script>
 </body>
 </html>
