@@ -146,7 +146,7 @@ const BASICS_FORM = [
     { key: 'pacing', label: 'Pacing', options: [['quick', 'Quick: skip the dull bits'], ['slow', 'Slow burn'], ['any', 'No preference']] },
     { key: 'initiative', label: 'Who moves the story', hint: 'apart from pacing', options: [['react', 'They react; I lead'], ['continue', 'They keep the scene going'], ['drive', 'They bring new events'], ['any', 'No preference']] },
     { key: 'invention', label: 'Making things up', hint: 'details the card doesn’t give', options: [['canon', 'Stick to the card and canon'], ['plausible', 'Small details are fine'], ['free', 'Invent freely'], ['any', 'No preference']] },
-    { key: 'interior', label: 'Inner thoughts', options: [['observe', 'Only what can be seen'], ['infer', 'Hints through behaviour'], ['enter', 'Inside the character’s head'], ['any', 'No preference']] },
+    { key: 'interior', label: 'Inner thoughts', options: [['observe', 'Only through actions'], ['infer', 'Told by the narrator: “He thought he’d messed up”'], ['enter', 'In their own words: “💭 I messed up, he thought”'], ['any', 'No preference']] },
     { key: 'voice', label: 'Narration voice', hint: 'optional', options: [['hemingway', 'Hemingway: lean'], ['mccarthy', 'McCarthy: solemn'], ['camus', 'Camus: wry'], ['kafka', 'Kafka: absurd'], ['ligotti', 'Ligotti: dread'], ['maupassant', 'Maupassant: cruel realism'], ['dickens', 'Dickens: theatrical'], ['ellis', 'Ellis: gossipy'], ['anime', 'Anime'], ['realism', 'Grounded realism'], ['fanfic', 'Fanfic'], ['webnovel', 'Web novel']] },
     { key: 'author', label: 'Write like', text: '', placeholder: 'Optional: an author whose style you love' },
     { key: 'keep_out', label: 'Anything to keep out?', text: '', placeholder: 'Optional, e.g. gore, spiders' },

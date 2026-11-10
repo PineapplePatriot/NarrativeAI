@@ -598,9 +598,15 @@ BASICS = {
                 "contradicting anything already established.",
         "any": ""}),
     "interior": ("Inner thoughts", {  # Voyage 6's "reasons left unspoken" vs. a reflective narrator
-        "observe": "Show what can be seen and heard; leave motives and feelings for the reader to infer.",
-        "infer": "Let feelings show through behaviour, with an occasional brief hint of what someone thinks.",
-        "enter": "Go inside {{char}}'s head: thoughts and feelings can be written directly, briefly.",
+        "observe": "Inner thoughts: show them only through action, speech and consequences, never state them "
+                   "(\"Their relationship came to a halt after his decision.\"); leave motives and feelings for the "
+                   "reader to infer.",
+        "infer": "Inner thoughts: the narrator may report them briefly in its own words (\"He thought he had "
+                 "messed up.\"), never as a character's inner voice. Most feeling still shows through behaviour.",
+        "enter": "Inner thoughts: write characters' thoughts directly, in their own words, wrapped in "
+                 "<thought>...</thought> so the chat shows them apart (\"<thought>I messed up.</thought> he "
+                 "thought.\"). Keep them short and selective: motives, doubts, quiet conflicts that behaviour alone "
+                 "can't show. Never {{user}}'s thoughts unless you may write {{user}}.",
         "any": ""}),
     "voice": ("Narration voice", {  # after Pura's narration voices and Celia's narrative styles
         "hemingway": "Narrate in the manner of Ernest Hemingway: short, plain, loaded sentences; feelings left under the surface.",
@@ -659,8 +665,6 @@ def apply_basics(session, answers):
         raw = str(answers.get(key) or "").strip()[:300]
         if not raw:
             continue
-        if key == "interior" and raw == "enter":  # thoughts written directly: the chat shows them apart
-            _record_modules(session, ["thoughts_shown"], "Basics form: inner thoughts")
         if key == "author":
             text = f"Write in the style of {raw}: their diction, rhythm and conventions, not their plots."
             lines.append(f"{label}: {text}")

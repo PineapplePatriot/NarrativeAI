@@ -76,6 +76,12 @@
                 <select id="qFormat"><option value="">As the story has it</option>
                     <option value="quotes" {% if basics.format == "quotes" %}selected{% endif %}>“Speech” in quotes, actions as prose</option>
                     <option value="asterisks" {% if basics.format == "asterisks" %}selected{% endif %}>“Speech”, *actions in asterisks*</option></select></label>
+            <label>Inner thoughts
+                <select id="qInterior"><option value="">As the story has it</option>
+                    <option value="enter" {% if basics.interior == "enter" %}selected{% endif %}>In their own words: 💭 I messed up, he thought</option>
+                    <option value="infer" {% if basics.interior == "infer" %}selected{% endif %}>Told by the narrator: He thought he’d messed up</option>
+                    <option value="observe" {% if basics.interior == "observe" %}selected{% endif %}>Only through actions, never stated</option></select>
+                <small>How the story shows what characters think.</small></label>
         </div>
         <label class="q-mature"><input type="checkbox" id="qMature" {% if mature_on %}checked{% endif %}>
             <span>🔞 <b>Allow adult scenes</b> <small>18+: violence, dark themes, sex when the story goes there. Change it any time in the chat: pen menu → This chat.</small></span></label>
@@ -180,7 +186,7 @@
 {{ quick_data|json_script:"quick-data" }}
 <script>const QUICK = { url: "{% url 'quick_setup' %}", bulba: "{% url 'bulba' %}?embed=1", presets: "{% url 'presets' %}" };</script>
 <script src="{% static 'js/costs.js' %}?v=1"></script>
-<script src="{% static 'mainapp/js/quick.js' %}?v=8"></script>
+<script src="{% static 'mainapp/js/quick.js' %}?v=9"></script>
 <script>window.NA_PAGE_TOUR = {name: 'quick', auto: true};</script>
 </body>
 </html>

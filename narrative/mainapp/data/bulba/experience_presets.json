@@ -409,13 +409,6 @@
       "group": "prose",
       "content": "## No semicolons\nDon't use semicolons (;) in narration or dialogue. Split the thought into two sentences, or join it with a comma and a word like and, but or so.",
       "about": "No ; at all: two sentences, or a comma with and/but/so."
-    },
-    "thoughts_shown": {
-      "title": "Inner thoughts, shown apart",
-      "default": false,
-      "group": "prose",
-      "content": "## Inner thoughts, shown apart\nWhen you write a character's direct thought (the words in their head, not the narrator describing a feeling), wrap it in <thought>...</thought>, for example: <thought>He's lying about the key.</thought> The chat shows these in their own style. Keep them short, in the narration's tense and person, and only for characters whose thoughts you may write: never {{user}}'s unless you've been told you may write {{user}}. Not every reply needs one.",
-      "about": "Direct thoughts are marked so the chat shows them in their own style (💭, italic, set apart). Comes on with the basics form's \"inside the character's head\"."
     }
   },
   "default_experience": "drama"

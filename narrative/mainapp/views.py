@@ -3144,9 +3144,9 @@ def quick_setup(request):
 
 # Quick setup's Basics: point of view, tense, speech and actions (Bulba's own wording, agent.BASICS), kept as one
 # "Basics" block in the active preset; the story language is the profile's (translation workflow)
-QUICK_BASICS = ("pov", "tense", "format", "length", "control")
+QUICK_BASICS = ("pov", "tense", "format", "interior", "length", "control")
 # length goes in the preset's Reply length block, control is the Your character contract; the rest are Basics lines
-BASICS_LINES = ("pov", "tense", "format")
+BASICS_LINES = ("pov", "tense", "format", "interior")
 
 
 def _module_groups(preset):

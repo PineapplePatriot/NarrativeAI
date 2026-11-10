@@ -1947,6 +1947,14 @@ class StarterTests(ChatPromptTests):
                                content_type="application/json")
         self.assertEqual(bad.status_code, 400)
 
+    def test_quick_setup_inner_thoughts_go_in_the_basics(self):
+        from mainapp import presets
+        url = reverse("quick_setup")
+        self.client.post(url, json.dumps({"interior": "enter"}), content_type="application/json")
+        basics = next(b for b in presets.normalize(presets.get_active(self.user).data)["blocks"] if b["name"] == "Basics")
+        self.assertIn("<thought>", basics["content"])
+        self.assertEqual(self.client.get(url).context["basics"]["interior"], "enter")
+
     def test_quick_setup_designed_objects_with_their_own_description(self):
         from mainapp import extras, html_objects, presets
         from users.models import ConnectionProfile
@@ -7427,8 +7435,8 @@ class BasicsAndStoryFormTests(BulbaTests):
         self.assertIn("Who moves the story:", note)
         agent.apply_basics(session, {"initiative": "any"})
         self.assertEqual(len(session.preferences), len(texts))  # "no preference" records nothing
-        agent.apply_basics(session, {"interior": "enter"})  # thoughts written directly: shown apart
-        self.assertIn("Inner thoughts, shown apart", agent.form_modules(session))
+        agent.apply_basics(session, {"interior": "enter"})  # thoughts in their own words: marked for the chat
+        self.assertTrue(any("<thought>" in p["interpretation"] for p in session.preferences))
 
     def make_character(self):
         from mainapp.models import BulbaSession, Character

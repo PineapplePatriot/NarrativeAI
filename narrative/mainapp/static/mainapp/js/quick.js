@@ -168,7 +168,7 @@ async function save(go) {
         character: (document.querySelector('input[name=character]:checked') || {}).value || '',
         mature: $('qMature').checked,
         display_language: $('qLanguage').value,
-        pov: $('qPov').value, tense: $('qTense').value, format: $('qFormat').value,
+        pov: $('qPov').value, tense: $('qTense').value, format: $('qFormat').value, interior: $('qInterior').value,
         length: $('qLength').value || 'flexible', control: $('qControl').value,
         modules: modulePicks(),
         custom_object: $('qCustomObject') ? $('qCustomObject').value : undefined,
