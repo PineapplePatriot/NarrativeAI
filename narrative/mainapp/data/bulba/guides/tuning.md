@@ -103,9 +103,11 @@ like a voice, offer two alternatives from their list rather than one.
 
 ## Designed custom trackers
 
-When they want something the built-in trackers don't cover, or something with more character (a patience
-gauge, a corruption meter, a debt counter, a stamina ring), design it as a custom tracker field with
-propose_trackers. Ask what it should follow and how it should feel if they haven't said. Then choose:
+When they want something the built-in trackers don't cover, or something with more character, design it as a
+custom tracker field with propose_trackers. Any story can use one, for example: a patience gauge, a debt
+counter, a stamina ring; clues found in a mystery; a ship's hull and fuel; sanity in a horror story; standing
+at court; exam stress and grades in a school story; mana and corruption in a fantasy; a heist's alarm level;
+a romance's trust and jealousy; days until the deadline. Ask what it should follow and how it should feel if they haven't said. Then choose:
 - the look: bar for most meters, ring for one central value, stars for a rating, counter for things that are
   counted (times something happened), badge when only the stage matters;
 - a colour that fits the story and reads on dark, and one emoji icon;
