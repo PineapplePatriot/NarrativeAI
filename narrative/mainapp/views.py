@@ -2052,16 +2052,21 @@ def build_chat_request(user, chat_obj, preset=None, character=None, drop_last_re
     character = character or chat_obj.character
     data = chats.read(chat_obj)
     messages = [m for m in data.get("messages") or [] if isinstance(m, (list, tuple)) and len(m) > 2]
+    guidance = ""
     if drop_last_reply and messages and messages[-1][0] == "assistant":
+        guidance = chats.directed_of(messages[-1])
         messages = messages[:-1]
+    if drop_last_reply and not tail and messages and chats.is_note(messages[-1]):
+        guidance = messages[-1][2]  # same newest-note slot as Regenerate
+
     summary = chats.summary_text(chats.summary_parts(data, len(messages)))
     worldbook_slug = character.worldbook.slug if character.worldbook and character.worldbook.author == user else None
     prompt = build_ai_request(user, character, chat=chat_obj, worldbook_slug=worldbook_slug, message=None,
-                              guidance="", persistent_guides=data.get("context_guides") or {}, summary=summary)
+                              guidance=guidance, persistent_guides=data.get("context_guides") or {}, summary=summary)
     preset = presets.normalize(preset or presets.get_active(user).data)
     persona = data.get("persona") if isinstance(data.get("persona"), dict) else {}
     names = prompt_names(user, character, persona)
-    history = _history(messages)
+    history = _history(messages, note_slot=bool(guidance) and not tail)
     history = regex_rules.run_on_history(regex_rules.for_chat(preset, character, user), history, names)
     if control.mode_of(preset) == "director" and not tail:
         history = control.frame_directions(history, names)
@@ -2070,8 +2075,12 @@ def build_chat_request(user, chat_obj, preset=None, character=None, drop_last_re
     if tail:  # an extra request at the end (impersonation): no recall, its words aren't the scene's
         return presets.assemble(preset, prompt_slots(user, character, prompt, persona), history, names, model,
                                 generation=generation)
-    return recall.assemble_with_recall(presets.assemble, preset, prompt_slots(user, character, prompt, persona),
-                                       history, names, model, generation=generation)[0]
+    built = recall.assemble_with_recall(presets.assemble, preset, prompt_slots(user, character, prompt, persona),
+                                      history, names, model, generation=generation)[0]
+    english = translation.english_note(user)
+    if english:
+        built = {**built, "messages": built["messages"] + [english]}
+    return built
 
 
 def _tracker_page_data(user, character, raw_state):
