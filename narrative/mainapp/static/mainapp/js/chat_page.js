@@ -20,9 +20,18 @@ function swapSprite(img, url) {
     ready.src = url;
 }
 
-function updateCharacterImages(photoUrl, photoSecond, charCount) {
+function updateCharacterImages(photoUrl, photoSecond, charCount, photoUser) {
     const c1 = document.getElementById('char1Container');
     const c2 = document.getElementById('char2Container');
+    // Their own picture (persona pictures on the profile), in their mood after this exchange
+    const cu = document.getElementById('userContainer');
+    if (cu && photoUser) {
+        let img = cu.querySelector('img.character-sprite:not(.sprite-incoming)');
+        if (!img) { img = document.createElement('img'); img.className = 'character-sprite'; cu.appendChild(img); }
+        swapSprite(img, photoUser);
+        cu.style.display = 'flex';
+        cu.parentElement.classList.add('with-user');
+    }
 
     // charCount = 2;
     const count = Number(charCount) || 1;
@@ -693,7 +702,7 @@ function sendMessage(noteOnly = false) {
             placeReply(data, avatarToUse);
             setDirected(lastAssistant(), data.directed);
             setSwipes(data.swipes);
-            updateCharacterImages(data.photo_url, data.photo_second, data.char_count);
+            updateCharacterImages(data.photo_url, data.photo_second, data.char_count, data.photo_user);
             renderLore(data.lore);
             if (data.summary_due) generateSummary('append', true);
             if (window.Trackers) { Trackers.setStory(data.story); Trackers.afterReply(data); }
@@ -1341,7 +1350,7 @@ function regenerateReply(guidance = '', model = '') {
             }
             if (old) old.remove();
             placeReply(d, d.photo_url); setDirected(lastAssistant(), d.directed); setSwipes(d.swipes);
-            updateCharacterImages(d.photo_url, d.photo_second, d.char_count); renderLore(d.lore);
+            updateCharacterImages(d.photo_url, d.photo_second, d.char_count, d.photo_user); renderLore(d.lore);
             if (d.summary_due) generateSummary('append', true);
             if (window.Trackers) { Trackers.setStory(d.story); Trackers.afterReply(d); }
             if (window.Watch) Watch.afterReply(d);
@@ -1403,7 +1412,7 @@ function swipe(step) {
             const avatar = last.querySelector('img.message-avatar');
             const avatarUrl = Number(d.char_count) === 3 && d.photo_second ? d.photo_second : d.photo_url;
             if (avatar && avatarUrl) avatar.src = avatarUrl;
-            updateCharacterImages(d.photo_url, d.photo_second, d.char_count);
+            updateCharacterImages(d.photo_url, d.photo_second, d.char_count, d.photo_user);
             setSwipes(d.swipes);
             setPolish(last, d.polish);
             setDirected(last, d.directed);

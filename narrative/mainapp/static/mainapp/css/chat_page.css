@@ -2366,3 +2366,8 @@ body.skin-lab .message-text .thought { color: #3d5a78; }
 /* Two characters in one card: the one not speaking steps back */
 .character-image-container { transition: filter .5s, opacity .5s, transform .5s; }
 .character-image-container.quiet { filter: brightness(.55) saturate(.7); opacity: .8; transform: scale(.96); }
+
+/* Their own picture (persona) on the left of the scene; everyone fits when there are three */
+.character-images-wrapper.with-user .character-image-container { width: min(320px, 31%); height: auto; max-height: 520px; flex: 0 1 auto; }
+.character-images-wrapper.with-user .user-sprite { transform: scale(.92); transform-origin: bottom center; opacity: .95; }
+.character-images-wrapper.with-user .user-sprite img { max-width: 100%; }

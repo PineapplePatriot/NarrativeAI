@@ -8,7 +8,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Narrative AI - Chat with {{character.name}}</title>
-    <link rel="stylesheet" href="{% static 'mainapp/css/chat_page.css' %}?v=36">
+    <link rel="stylesheet" href="{% static 'mainapp/css/chat_page.css' %}?v=37">
     <link rel="stylesheet" href="{% static 'mainapp/css/chat_skins.css' %}?v=3">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=5">
@@ -405,7 +405,11 @@
                 </div>
             </div>
 
-            <div class="character-images-wrapper">
+            <div class="character-images-wrapper{% if photo_user %} with-user{% endif %}">
+                <div class="character-image-container user-sprite" id="userContainer" {% if not photo_user %}style="display:none"{% endif %}
+                     title="{{ user_name_shown }}">
+                    {% if photo_user %}<img src="{{ photo_user }}" class="character-sprite" alt="{{ user_name_shown }}">{% endif %}
+                </div>
                 <div class="character-image-container{% if character.is_mult and char_count == 3 %} quiet{% endif %}" id="char1Container"
                     style="display: {% if character.is_mult or char_count == 1 or char_count == 2 %}flex{% else %}none{% endif %};">
 

@@ -183,6 +183,14 @@ def _history(messages, note_slot=False):
     return out
 
 
+def _user_pictured(user, chat_persona):
+    """Their persona pictures show in this chat: they have some, and the chat uses their usual persona."""
+    if not getattr(user, "persona_photo_neutral", None):
+        return False
+    own = (chat_persona or {}).get("name")
+    return not own or own == (user.persona_name or "")
+
+
 def _photo(character, prefix, emotion):
     """The sprite for an emotion, falling back to neutral."""
     image = getattr(character, f"{prefix}_{emotion}", None) or getattr(character, f"{prefix}_neutral", None)
@@ -1408,6 +1416,9 @@ def chat(request, slug):
                     char_count = 1
                     emotion_char_1 = "neutral"
                     emotion_char_2 = "neutral"
+                    emotion_user = "neutral"
+                    valid_emotions = ["neutral", *SPRITE_EMOTIONS]
+                    pictured_user = _user_pictured(request.user, chat_state["persona"])
 
                     # --- Classify emotion (optional, can be turned off on the Connections page) ---
                     try:
@@ -1427,19 +1438,24 @@ def chat(request, slug):
                             "3. If BOTH characters are speaking, set 'speaking' to 'both'.\n"
                             "4. Determine the emotion for the speaking character(s) from this list: "
                             f"{json.dumps(valid_emotions)}.\n"
-                            "Return ONLY a JSON object with this format:\n"
-                            '{ "speaking": "1" or "2" or "both", "emotion_1": "...", "emotion_2": "..." }'
+                            + (f"5. Also give 'emotion_user': how {names['user']} (the user's character) most "
+                               "likely feels right now, from their last message and this reply.\n" if pictured_user else "")
+                            + "Return ONLY a JSON object with this format:\n"
+                            '{ "speaking": "1" or "2" or "both", "emotion_1": "...", "emotion_2": "..."'
+                            + (', "emotion_user": "..."' if pictured_user else "") + ' }'
                         )
-
+                        last_user = next((m[2] for m in reversed(messages) if m[0] == "user"), "")
                         class_text = ai_client.complete(request.user, "emotion", [
                             {"role": "system", "content": classification_system_prompt},
-                            {"role": "user", "content": reply}],
+                            {"role": "user", "content": (f"{names['user']}'s last message:\n{last_user[:1500]}\n\n"
+                                                         f"The reply:\n{reply}") if pictured_user else reply}],
                             max_tokens=100, temperature=0.0, response_format={"type": "json_object"})
                         class_data = json.loads(class_text)
 
                         speaker = str(class_data.get("speaking", "1")).lower()
                         emotion_char_1 = class_data.get("emotion_1", "neutral")
                         emotion_char_2 = class_data.get("emotion_2", "neutral")
+                        emotion_user = class_data.get("emotion_user", "neutral")
 
                         # Logic: Determine layout (char_count)
                         # 1 = Main Only, 2 = Both, 3 = Second Only
@@ -1454,8 +1470,10 @@ def chat(request, slug):
                         log.info("Emotion check skipped: %s", e)  # off, or the helper model didn't answer
                         emotion_char_1 = "neutral"
 
-                    # Store emotions as "happy|sad" string
-                    final_emotion_str = f"{emotion_char_1}|{emotion_char_2}"
+                    # Store emotions as "happy|sad" string ("happy|sad|calm" with their own picture's mood)
+                    if emotion_user not in valid_emotions:
+                        emotion_user = "neutral"
+                    final_emotion_str = f"{emotion_char_1}|{emotion_char_2}" + (f"|{emotion_user}" if pictured_user else "")
                     new_message = chats.with_game(chats.with_reasoning(
                         ("assistant", datetime.now().strftime("%H:%M"), reply, final_emotion_str, char_count), reasoning),
                         [dict(op) for op in ops if op.get("type") != "notice"])
@@ -1466,6 +1484,7 @@ def chat(request, slug):
                     photo_url = _photo(character, "photo", emotion_char_1)
                     photo_second = (_photo(character, "photo_second", emotion_char_2)
                                     if (character.is_mult or char_count >= 2) else None)
+                    photo_user = _photo(request.user, "persona_photo", emotion_user) if pictured_user else None
 
                     save_messages(messages)
                     watch.on_reply_done(request.user, chat_obj, messages, character.name,  # free checks, pace clock
@@ -1494,6 +1513,7 @@ def chat(request, slug):
                         "emotion": final_emotion_str,
                         "photo_url": photo_url,
                         "photo_second": photo_second,
+                        "photo_user": photo_user,
                         "char_count": char_count,
                         "voice": bool(get_elevenlabs_key(request.user)),
                         "lore": lore_report,
@@ -1619,6 +1639,10 @@ def chat(request, slug):
         photo_second = get_valid_photo_url(character, "photo_second", emo2)
     else:
         photo_second = None
+    # Their own picture (persona), in the mood of the last exchange
+    emo_user = last_emotion_str.split("|")[2] if last_emotion_str.count("|") >= 2 else "neutral"
+    photo_user = (_photo(request.user, "persona_photo", emo_user if emo_user in SPRITE_EMOTIONS else "neutral")
+                  if _user_pictured(request.user, chat_state["persona"]) else None)
 
     user_avatar = None
     if hasattr(request.user, 'photo') and request.user.photo:
@@ -1672,6 +1696,8 @@ def chat(request, slug):
         "character": character,
         "photo_url": photo_url,
         "photo_second": photo_second,
+        "photo_user": photo_user,
+        "user_name_shown": prompt_names(request.user, character, chat_state["persona"])["user"],
         "char_count": char_count,
         "photo_neutral": photo_url,
         "summary": chat_state["summary"],
@@ -2764,29 +2790,23 @@ def image_model_list(request):
     return JsonResponse({"models": models, "default": ai_client.default_image_model(models)})
 
 
-@login_required
-def character_sprite(request, slug):
-    """Makes one mood picture from the character's neutral picture with Nano Banana (OpenRouter)."""
+def _make_sprite(request, obj, prefix, who, looks, base_name):
+    """One mood picture with the image model, saved on `obj` as f"{prefix}_{emotion}": the neutral one from the
+    words in `looks`, the others from the neutral picture. Used for characters and for their persona."""
     from django.core.files.base import ContentFile
-    character = get_object_or_404(Character, slug=slug, author=request.user)
-    if request.method != "POST":
-        return JsonResponse({"error": "POST only"}, status=405)
     try:
         data = json.loads(request.body.decode("utf-8"))
     except (ValueError, UnicodeDecodeError):
         return JsonResponse({"error": "Invalid request."}, status=400)
     emotion = data.get("emotion")
-    prefix = "photo_second" if data.get("second") else "photo"
     if emotion not in SPRITE_EMOTIONS + ["neutral"]:
         return JsonResponse({"error": "Unknown mood."}, status=400)
-    neutral = getattr(character, f"{prefix}_neutral")
-    who = character.name if prefix == "photo" else (character.second_name or f"the second character of {character.name}")
+    neutral = getattr(obj, f"{prefix}_neutral")
     reference, kind = None, "image/png"
-    if emotion == "neutral":  # the first picture, from the card's words (no picture to start from)
-        looks = "\n".join(t for t in (str(character.description or "")[:2500], str(character.personality or "")[:600],
-                                      str(data.get("hint") or "")[:600]) if t.strip())
+    if emotion == "neutral":  # the first picture, from the words (no picture to start from)
+        looks = "\n".join(t for t in (*looks, str(data.get("hint") or "")[:600]) if str(t or "").strip())
         if not looks.strip():
-            return JsonResponse({"error": "Write the character's description first (how they look helps most), "
+            return JsonResponse({"error": "Write the description first (how they look helps most), "
                                           "or upload a picture."}, status=400)
         prompt = (f"A character portrait of {who}, for a visual-novel style chat: one person, waist up, facing the "
                   f"viewer, a calm neutral expression, a simple background that suits them. Draw them as this "
@@ -2811,14 +2831,41 @@ def character_sprite(request, slug):
         image, cost = ai_client.generate_image(request.user, prompt, reference, kind, model=model)
     except ai_client.AIError as e:
         return JsonResponse({"error": str(e)}, status=502)
-    field = getattr(character, f"{prefix}_{emotion}")
+    field = getattr(obj, f"{prefix}_{emotion}")
     if field:
         field.storage.delete(field.name)
     ext = "jpg" if image[:3] == b"\xff\xd8\xff" else "webp" if image[:4] == b"RIFF" else "png"
-    field.save(f"{slugify(character.name) or 'character'}-{emotion}.{ext}", ContentFile(image), save=False)
-    character.save()
+    field.save(f"{slugify(base_name) or 'character'}-{emotion}.{ext}", ContentFile(image), save=False)
+    obj.save()
     return JsonResponse({"status": "ok", "field": f"{prefix}_{emotion}", "url": field.url, "cost": cost,
                          "spending": ai_client.spending(request.user)})
+
+
+@login_required
+def character_sprite(request, slug):
+    """Makes one mood picture from the character's neutral picture with Nano Banana (OpenRouter)."""
+    character = get_object_or_404(Character, slug=slug, author=request.user)
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only"}, status=405)
+    try:
+        second = bool(json.loads(request.body.decode("utf-8")).get("second"))
+    except (ValueError, UnicodeDecodeError, AttributeError):
+        second = False
+    prefix = "photo_second" if second else "photo"
+    who = character.name if not second else (character.second_name or f"the second character of {character.name}")
+    looks = (str(character.description or "")[:2500], str(character.personality or "")[:600])
+    return _make_sprite(request, character, prefix, who, looks, character.name)
+
+
+@login_required
+def persona_sprite(request):
+    """The same for their persona: pictures of them in stories (profile page, or Bulba after the persona)."""
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only"}, status=405)
+    user = request.user
+    who = user.persona_name or "the user's character"
+    return _make_sprite(request, user, "persona_photo", who, (str(user.persona_description or "")[:2500],),
+                        user.persona_name or user.username)
 
 
 MAX_CARD_BYTES = 20 * 1024 * 1024

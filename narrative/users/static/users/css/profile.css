@@ -163,3 +163,12 @@ textarea.form-input { width: 100%; box-sizing: border-box; resize: vertical; fon
 .language-rule input { margin-top: 3px; width: auto !important; }
 .language-rule small { opacity: .75; }
 select.form-input { width: 100%; box-sizing: border-box; }
+
+/* Pictures of their persona */
+.persona-pics { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 8px; margin: 8px 0 12px; }
+.persona-pics figure { margin: 0; text-align: center; font-size: .72rem; opacity: .9; }
+.persona-pics img, .persona-pics span { display: grid; place-items: center; width: 100%; aspect-ratio: 3 / 4; object-fit: cover;
+    border-radius: 10px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); }
+.persona-pics figure.working img, .persona-pics figure.working span { animation: personaPulse 1s ease-in-out infinite; }
+@keyframes personaPulse { 50% { opacity: .4; } }
+.persona-pic-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0 16px; }

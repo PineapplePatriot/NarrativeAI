@@ -102,7 +102,7 @@ class ProfileUserForm(forms.ModelForm):
         # The persona (who they are in stories): Bulba can make it, they can edit it here; each chat can still
         # have its own (the pen menu)
         fields = ['photo', 'first_name', 'date_birth', 'username', 'email', 'display_language',
-                  'persona_name', 'persona_description']
+                  'persona_name', 'persona_description', 'persona_photo_neutral']
         labels = {'username': "Login", 'email': "Email", 'display_language': "Story language",
                   'persona_name': "Name in stories",
                   'persona_description': "About you in stories"}
@@ -113,6 +113,7 @@ class ProfileUserForm(forms.ModelForm):
                                           "own messages in any language."}
         widgets = {
             'photo': forms.FileInput(attrs={'class': 'form-input'}),
+            'persona_photo_neutral': forms.FileInput(attrs={'class': 'form-input', 'accept': 'image/*'}),
             'first_name': forms.TextInput(attrs={'class': 'form-input'}),
             'date_birth': forms.DateInput(attrs={'type': 'date', 'class': 'form-input'}),
             'username': forms.TextInput(attrs={'class': 'form-input'}),
@@ -132,7 +133,8 @@ class ProfileUserForm(forms.ModelForm):
             help_text=self.Meta.help_texts['display_language'], widget=forms.Select(attrs={'class': 'form-input'}))
 
     def account_fields(self):
-        return [f for f in self if f.name not in ('photo', 'display_language') and f.name not in self.PERSONA]
+        return [f for f in self if f.name not in ('photo', 'display_language', 'persona_photo_neutral')
+                and f.name not in self.PERSONA]
 
     def persona_fields(self):
         return [self[n] for n in self.PERSONA]

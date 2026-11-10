@@ -503,3 +503,25 @@ class LightThinkingTests(SimpleTestCase):
             self.assertEqual(efforts[m], 'low', m)
         self.assertEqual(efforts['claude-opus-4-6'], 'off')       # off stays off
         self.assertEqual(efforts['mimo-v2-6-pro'], 'medium')      # only on/off: left on
+
+
+class PersonaPictureTests(TestCase):
+    def test_bulba_offers_persona_pictures_and_the_chat_shows_them(self):
+        from django.contrib.auth import get_user_model
+        from django.core.files.base import ContentFile
+        from mainapp.bulba import tune
+        from mainapp import views
+        user = get_user_model().objects.create_user("wren", password="x12345678!")
+        session = type("S", (), {"user": user})()
+        self.assertIn("error", tune.tool_offer_persona_pictures(session, {})[0])  # no persona yet
+        user.persona_name, user.persona_description = "Wren", "A tall courier with a scar."
+        user.save()
+        result, events = tune.tool_offer_persona_pictures(session, {})
+        self.assertEqual(events[0]["moods"][0], "neutral")  # the first picture comes from the description
+        self.assertEqual(len(events[0]["moods"]), 9)
+        self.assertFalse(views._user_pictured(user, {}))
+        user.persona_photo_neutral.save("w.png", ContentFile(b"\x89PNG fake"), save=True)
+        self.assertTrue(views._user_pictured(user, {}))
+        self.assertTrue(views._user_pictured(user, {"name": "Wren"}))
+        self.assertFalse(views._user_pictured(user, {"name": "Someone else"}))  # a chat with its own persona
+        self.assertNotIn("neutral", tune.tool_offer_persona_pictures(session, {})[1][0]["moods"])

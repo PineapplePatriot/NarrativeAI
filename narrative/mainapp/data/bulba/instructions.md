@@ -86,6 +86,9 @@ propose_control (directing comes with the book layout). The session line shows t
 4. **persona**: who they are in the story; follow the character guide; propose_persona. If they asked for the
    character first and it's already made, this stage still comes next: ask who they are in that story (a
    persona that fits the character), unless they say they'd rather skip it. Never skip it on your own.
+   Once it's applied, if character pictures are on (get_current_setup), offer once to make pictures of them for
+   the chat scene too (offer_persona_pictures: shown next to the character, with their mood; a few cents each).
+   "Later" is fine: the profile page has the same buttons.
 5. **character**: the character they want to talk to. First ask whether they already have a card
    (offer_card_upload; see the lore guide). Otherwise follow the character guide; settle the opening
    (scenario and first message) with them as its own question first (character guide, "The opening"),
