@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="{% static 'users/css/welcome.css' %}?v=5">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=5">
-    <link rel="stylesheet" href="{% static 'mainapp/css/quick.css' %}?v=6">
+    <link rel="stylesheet" href="{% static 'mainapp/css/quick.css' %}?v=7">
 </head>
 <body class="na-body">
 {% include "partials/topbar.html" with active="bulba" %}
@@ -92,6 +92,9 @@
                 <label class="q-mod{% if m.adult %} q-mod-adult{% endif %}" {% if m.adult and not mature_on %}hidden{% endif %}>
                     <input type="checkbox" data-module="{{ m.key }}" {% if m.on %}checked{% endif %}>
                     <span><b>{{ m.title }}</b><small>{{ m.about }}</small></span></label>
+                {% if m.key == 'html_custom' %}<textarea id="qCustomObject" class="q-custom-object" rows="2" maxlength="600"
+                    placeholder="e.g. A character status card after each reply: mood, health, what they want right now"
+                    {% if not m.on %}hidden{% endif %}>{{ m.custom }}</textarea>{% endif %}
                 {% endfor %}
                 {% endif %}
             </div>
@@ -177,7 +180,7 @@
 {{ quick_data|json_script:"quick-data" }}
 <script>const QUICK = { url: "{% url 'quick_setup' %}", bulba: "{% url 'bulba' %}?embed=1", presets: "{% url 'presets' %}" };</script>
 <script src="{% static 'js/costs.js' %}?v=1"></script>
-<script src="{% static 'mainapp/js/quick.js' %}?v=7"></script>
+<script src="{% static 'mainapp/js/quick.js' %}?v=8"></script>
 <script>window.NA_PAGE_TOUR = {name: 'quick', auto: true};</script>
 </body>
 </html>

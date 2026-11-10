@@ -62,6 +62,15 @@ propose_preset_edit enable/disable later):
   World: School story, World: Vampires, World: Emotional auras, World: Prophetic visions ({{user}}'s character
   has visions), World: Magic with costs, World: Ghosts & hauntings, World: Gods among us, World: After the
   collapse, World: High-tech & surveillance, World: Court & nobility. The card and lorebook always win over these.
+- In-story objects (AI-designed, drawn in a sealed frame in the chat): Scene banner (AI-designed) (location,
+  time and atmosphere when the scene moves), Letters and documents (AI-designed), Screens and messages
+  (AI-designed), Rumour board (AI-designed), Any in-story object (AI-designed) (the broad one; Pura-style), My
+  own object (AI-designed) (they describe it: a status card, a diary page, a spell scroll; write their
+  description at the end of that block after "The object they asked for:" with propose_preset_edit). The
+  letters, screens and rumour ones take over the app-drawn story extras of the same kind while on (never both);
+  the broad one takes over all three. Trade-off to say in a line: a unique look in the story's style, but
+  more words per reply (cost and length) and a model that writes weak HTML makes weak objects; strong models
+  (Claude, Gemini, GLM, Kimi) do best. Older objects reach the AI as a one-line label, so they don't fill memory.
 - Intensity: Fight scenes; and, only with mature content on, Slow-burn intimacy (18+), Dark themes (18+),
   Explicit intimacy (18+) and Very explicit (18+), the strongest, with Explicit intimacy.
 Offer a module when what they say matches it ("the story feels static" → Surprise me or Chekhov's gun; "everyone

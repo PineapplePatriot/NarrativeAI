@@ -463,7 +463,8 @@ def model_text(message):
     still shows up here (and can be fixed at the source) instead of looking gone."""
     from mainapp import chats
     rec = chats.polish_of(message)
-    return str(rec["original"] if rec else message[2])
+    from mainapp import html_objects  # designed objects aren't prose: Watch reads their label
+    return html_objects.shrink(str(rec["original"] if rec else message[2]))
 
 
 def free_checks(data, messages, extra_leak=""):

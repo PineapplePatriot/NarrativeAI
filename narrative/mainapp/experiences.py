@@ -128,7 +128,9 @@ def configure(preset, mode='dont', extensions=()):
 
 
 GROUP_LABELS = {'characters': 'Characters', 'world': 'World', 'story': 'Story drive', 'prose': 'Prose',
-                'collaboration': 'Talking to the AI', 'mature': 'Fights and 18+', 'voice': 'Narration voice'}
+                'collaboration': 'Talking to the AI', 'mature': 'Fights and 18+', 'voice': 'Narration voice',
+                'objects': 'In-story objects (AI-designed)'}
+CUSTOM_OBJECT = 'html_custom'  # "My own object": its block ends with what they described (html_objects.py)
 ADULT = {'slow_burn', 'dark_themes', 'explicit_intimacy', 'intense_explicit'}
 
 
@@ -141,15 +143,19 @@ def module_states(preset):
     for key, m in catalog()['modules'].items():
         block = names.get(m['title'])
         on = block['enabled'] if block else (m['default'] and experience)
-        out.append({'key': key, 'title': m['title'], 'about': m['about'], 'group': m.get('group', 'story'),
-                    'adult': key in ADULT, 'on': bool(on)})
+        item = {'key': key, 'title': m['title'], 'about': m['about'], 'group': m.get('group', 'story'),
+                'adult': key in ADULT, 'on': bool(on)}
+        if key == CUSTOM_OBJECT:
+            from mainapp import html_objects
+            item['custom'] = html_objects.custom_text(block['content']) if block else ''
+        out.append(item)
     return out
 
 
-def set_modules(preset, wanted, model_id=''):
+def set_modules(preset, wanted, model_id='', custom=None):
     """A copy with modules switched on or off ({key: bool}); missing blocks are added before the story slots.
-    One narration voice at a time."""
-    from mainapp import presets
+    One narration voice at a time. `custom`: the description for "My own object" (None keeps what's there)."""
+    from mainapp import html_objects, presets
     cat = catalog()['modules']
     wanted = {k: bool(v) for k, v in wanted.items() if k in cat}
     if sum(1 for k, v in wanted.items() if v and k.startswith('voice_')) > 1:
@@ -170,4 +176,6 @@ def set_modules(preset, wanted, model_id=''):
             at = next((i for i, b in enumerate(result['blocks']) if b.get('kind') == 'marker'), len(result['blocks']))
             result['blocks'].insert(at, block)
         block['enabled'] = on
+        if key == CUSTOM_OBJECT and custom is not None:
+            block['content'] = html_objects.with_custom(block['content'], custom)
     return result

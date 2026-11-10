@@ -1946,6 +1946,32 @@ class StarterTests(ChatPromptTests):
                                content_type="application/json")
         self.assertEqual(bad.status_code, 400)
 
+    def test_quick_setup_designed_objects_with_their_own_description(self):
+        from mainapp import extras, html_objects, presets
+        from users.models import ConnectionProfile
+        ConnectionProfile.objects.filter(user=self.user).update(model="z-ai/glm-5.3")
+        url = reverse("quick_setup")
+        self.client.post(url, json.dumps({"starter": "glm-experience-drama", "modules": {
+            "html_banner": True, "html_letters": True, "html_custom": True},
+            "custom_object": "A status card: mood, health, what they want"}), content_type="application/json")
+        data = presets.normalize(presets.get_active(self.user).data)
+        on = {b["name"] for b in data["blocks"] if b["enabled"]}
+        self.assertTrue({"Scene banner (AI-designed)", "Letters and documents (AI-designed)",
+                         "My own object (AI-designed)"} <= on)
+        custom = next(b for b in data["blocks"] if b["name"] == "My own object (AI-designed)")
+        self.assertTrue(custom["content"].endswith("A status card: mood, health, what they want"))
+        self.assertEqual(html_objects.replaced_kinds(data), {"documents"})
+        groups = {g["key"]: g for g in self.client.get(url).context["module_groups"]}
+        mine = next(m for m in groups["objects"]["modules"] if m["key"] == "html_custom")
+        self.assertEqual(mine["custom"], "A status card: mood, health, what they want")
+        # a new description replaces the old one, it doesn't pile up
+        self.client.post(url, json.dumps({"modules": {"html_custom": True}, "custom_object": "A diary page"}),
+                         content_type="application/json")
+        custom = next(b for b in presets.normalize(presets.get_active(self.user).data)["blocks"]
+                      if b["name"] == "My own object (AI-designed)")
+        self.assertEqual(custom["content"].count(html_objects.CUSTOM_MARK), 1)
+        self.assertTrue(custom["content"].endswith("A diary page"))
+
     def test_quick_setup_names_what_an_unknown_model_gets(self):
         from users.models import ConnectionProfile
         ConnectionProfile.objects.filter(user=self.user).update(model="moonshotai/kimi-k2")

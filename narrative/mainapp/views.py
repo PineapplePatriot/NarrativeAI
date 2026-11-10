@@ -28,7 +28,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
-from . import extras, game, media_library, recall, story, thinking, ai_client, cards, chats, regex_rules, experiences, model_profiles, presets, samplers, starters, trackers, translation
+from . import extras, game, html_objects, media_library, recall, story, thinking, ai_client, cards, chats, regex_rules, experiences, model_profiles, presets, samplers, starters, trackers, translation
 from .bulba import control, polish, watch
 from mainapp import mature, refusals
 
@@ -121,7 +121,7 @@ import re
 log = logging.getLogger(__name__)
 
 def _summary_line(message):
-    return f"{message[0]}: {chats.prompt_text(message)}"
+    return f"{message[0]}: {html_objects.shrink(chats.prompt_text(message))}"
 
 
 def _summarize(user, messages, existing="", room=None):
@@ -165,10 +165,14 @@ def _history(messages, note_slot=False):
     """The chat as the AI reads it. Director's notes come framed as directions; with note_slot, a note at the very
     end is left out, because the request carries it in the preset's director's note slot."""
     out = []
+    replies = [i for i, m in enumerate(messages) if m[0] == "assistant"]
+    full = set(replies[-html_objects.KEEP_FULL:])  # older designed objects become a one-line label
     for i, m in enumerate(messages):
         if m[0] not in ("user", "assistant"):
             continue
         text = extras.for_prompt(chats.prompt_text(m), chats.game_of(m))
+        if i not in full:
+            text = html_objects.shrink(text)
         if chats.is_note(m):
             if note_slot and i == len(messages) - 1:
                 continue
@@ -221,6 +225,9 @@ def chat(request, slug):
     }
     game_mode = game.mode_for(request.user, character)
     extra_kinds = extras.kinds_for(request.user)        # letters, phone screens, milestones (Extras page)
+    # ...minus the ones the preset's AI-designed objects take over (never both for the same thing)
+    taken = html_objects.replaced_kinds(presets.normalize(presets.get_active(request.user).data))
+    extra_kinds = [k for k in extra_kinds if k not in taken]
     use_tools = game_mode != "off" or bool(extra_kinds) or bool(story.of_type(story.systems_of(character), "table"))
 
     def summary_payload():
@@ -628,7 +635,7 @@ def chat(request, slug):
             if saved and not data.get("redo"):
                 return JsonResponse({"success": True, "url": saved["url"], "cast": saved.get("cast", {})})
             try:
-                audio, cast = voice.voice_reply(request.user, character, message[2], chat_state["voices"],
+                audio, cast = voice.voice_reply(request.user, character, html_objects.strip(message[2]), chat_state["voices"],
                                                 prompt_names(request.user, character, chat_state["persona"])["user"], key)
             except voice.VoiceError as e:
                 return JsonResponse({"success": False, "error": str(e)})
@@ -878,7 +885,7 @@ def chat(request, slug):
                 recent = messages[min(upto, len(messages)):]
                 recent = (messages[-4:] if len(recent) < 4 else recent)[-16:]
                 user_name = request.user.name or request.user.username
-                named = [(user_name if m[0] == "user" else character.name, m[2]) for m in recent]
+                named = [(user_name if m[0] == "user" else character.name, html_objects.shrink(m[2])) for m in recent]
                 def tracker_request(named):
                     built = trackers.update_messages(config, state, named, character.name, user_name, only,
                                                      rules=presets.job_prompt(request.user, "tracker_rules",
@@ -1736,7 +1743,7 @@ def scene_music(user, messages, current=""):
     if not tracks:
         return None
     options = "\n".join(f"{i + 1}. {t['name']}" for i, t in enumerate(tracks))
-    recent = "\n\n".join(str(m[2])[:1200] for m in messages[-2:])
+    recent = "\n\n".join(html_objects.shrink(str(m[2]))[:1200] for m in messages[-2:])
     answer = ai_client.complete(user, "emotion", [
         {"role": "system", "content": "You pick background music for a roleplay scene. Read the latest messages and "
                                       "answer with the number of the track that fits the mood and setting best. "
@@ -1783,7 +1790,7 @@ def note_ideas(user, character, messages, summary="", persona=None):
     recent = [m for m in messages if m[0] in ("user", "assistant")][-6:]
     if not recent:
         raise ai_client.AIError("Start the story first: there's nothing to direct yet.")
-    transcript = "\n\n".join(f"{names['user'] if m[0] == 'user' else character.name}: {m[2][:1500]}" for m in recent)
+    transcript = "\n\n".join(f"{names['user'] if m[0] == 'user' else character.name}: {html_objects.shrink(m[2])[:1500]}" for m in recent)
     text = bulba_quick(user, [
         {"role": "system", "content": NOTE_IDEAS_PROMPT.format(rules=presets.job_prompt(user, "note_ideas", names))},
         {"role": "user", "content": (f"The story so far: {summary[:2000]}\n\n" if summary else "")
@@ -1806,7 +1813,7 @@ def bulba_ideas(user, character, messages, mode, persona=None, summary=""):
     """Three ideas for what to write next ("player") or what could happen next ("director"), on Bulba's model."""
     names = prompt_names(user, character, persona)
     recent = [m for m in messages if m[0] in ("user", "assistant")][-8:]
-    transcript = "\n\n".join(f"{names['user'] if m[0] == 'user' else character.name}: {m[2][:1500]}" for m in recent)
+    transcript = "\n\n".join(f"{names['user'] if m[0] == 'user' else character.name}: {html_objects.shrink(m[2])[:1500]}" for m in recent)
     system = (IDEAS_PROMPT[mode] + " " + presets.job_prompt(user, "ideas_" + mode, names) + "\n\n" + IDEAS_STYLE)
     about = f"{character.name}: {(character.description or '')[:1500]}"
     story = f"The story so far (summary): {summary[:2000]}\n\n" if summary else ""
@@ -1832,7 +1839,7 @@ def word_note(user, character, messages, wish, rewrite=False, persona=None):
         raise ai_client.AIError("Write what you'd like first, in your own words.")
     names = prompt_names(user, character, persona)
     recent = [m for m in messages if m[0] in ("user", "assistant")][-6:]
-    transcript = "\n\n".join(f"{names['user'] if m[0] == 'user' else character.name}: {m[2][:1500]}" for m in recent)
+    transcript = "\n\n".join(f"{names['user'] if m[0] == 'user' else character.name}: {html_objects.shrink(m[2])[:1500]}" for m in recent)
     what = "a new version of the last reply" if rewrite else "the next reply"
     system = WORD_NOTE_PROMPT.format(what=what, rules=presets.job_prompt(user, "director_note", names))
     text = bulba_quick(user, [
@@ -3060,8 +3067,10 @@ def quick_setup(request):
         if isinstance(data.get("modules"), dict):  # the optional story modules (experiences.py)
             active = presets.get_active(user)
             try:
+                custom = data.get("custom_object")
                 updated = experiences.set_modules(presets.normalize(active.data), data["modules"],
-                                                  (model_profiles.for_style(chat_model) or {}).get("id", ""))
+                                                  (model_profiles.for_style(chat_model) or {}).get("id", ""),
+                                                  custom=custom if isinstance(custom, str) else None)
             except ValueError as e:
                 return JsonResponse({"error": str(e)}, status=400)
             if not mature.is_on(updated):  # 18+ modules only with adult scenes allowed
@@ -3102,7 +3111,7 @@ def _module_groups(preset):
     groups = {}
     for m in experiences.module_states(preset):
         groups.setdefault(m["group"], []).append(m)
-    order = ["characters", "world", "story", "prose", "collaboration", "voice", "mature"]
+    order = ["characters", "world", "story", "prose", "collaboration", "voice", "objects", "mature"]
     return [{"key": g, "label": experiences.GROUP_LABELS.get(g, g), "modules": groups[g]} for g in order if g in groups]
 
 

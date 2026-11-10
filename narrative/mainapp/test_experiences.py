@@ -340,3 +340,52 @@ class PresetUpgradeTests(TestCase):
         self.assertIsNone(preset_upgrade.pending(self.user))
         self.assertTrue(preset_upgrade.undo_rebuild(self.user))
         self.assertEqual(presets.get_active(self.user).name, 'Deep Water · GLM 5.3')
+
+
+class DesignedObjectTests(SimpleTestCase):
+    """In-story objects the AI designs as ```html blocks (mainapp/html_objects.py)."""
+    BANNER = ("Before.\n\n```html\n<div data-label=\"Scene banner: the docks, dusk\" style=\"color:red\">"
+              "<b>THE DOCKS</b><script>blink()</script></div>\n```\n\nAfter.")
+
+    def test_labels_and_shrinking(self):
+        from mainapp import html_objects
+        self.assertTrue(html_objects.has_objects(self.BANNER))
+        self.assertEqual(html_objects.shrink(self.BANNER),
+                         "Before.\n\n[Shown to the reader as a designed object: Scene banner: the docks, dusk]\n\nAfter.")
+        self.assertEqual(html_objects.strip(self.BANNER), "Before.\n\nAfter.")
+        # without a data-label: the visible text, scripts and styles left out
+        self.assertEqual(html_objects.label("<style>b{}</style><p>WANTED: <i>the Fox</i></p><script>x()</script>"),
+                         "WANTED: the Fox")
+        self.assertEqual(html_objects.shrink("Plain prose, `code`."), "Plain prose, `code`.")
+        unclosed = "Text\n```html\n<div>cut off"
+        self.assertEqual(html_objects.shrink(unclosed), unclosed)
+
+    def test_the_ai_rereads_only_its_latest_objects_in_full(self):
+        from mainapp import views
+        messages = [("assistant", "", self.BANNER, "neutral", 1), ("user", "", "Go on", "neutral", 1),
+                    ("assistant", "", self.BANNER, "neutral", 1), ("user", "", "And?", "neutral", 1),
+                    ("assistant", "", self.BANNER, "neutral", 1)]
+        history = views._history(messages)
+        self.assertNotIn("```html", history[0]["content"])
+        self.assertIn("Scene banner: the docks, dusk", history[0]["content"])
+        self.assertIn("```html", history[2]["content"])
+        self.assertIn("```html", history[4]["content"])
+        self.assertNotIn("```html", views._summary_line(messages[4]))  # summaries read the label
+
+    def test_designed_kinds_take_over_app_drawn_extras(self):
+        from mainapp import html_objects
+        data = presets.normalize(starters.get('opus-experience-drama')['preset'])
+        self.assertEqual(html_objects.replaced_kinds(data), set())
+        data = experiences.set_modules(data, {'html_screens': True, 'html_rumours': True})
+        self.assertEqual(html_objects.replaced_kinds(data), {'messages', 'news'})
+        data = experiences.set_modules(data, {'html_objects': True})
+        self.assertEqual(html_objects.replaced_kinds(data), {'documents', 'messages', 'news'})
+
+    def test_every_object_module_asks_for_the_fenced_format(self):
+        mods = {k: m for k, m in experiences.catalog()['modules'].items() if m.get('group') == 'objects'}
+        self.assertEqual(set(mods), {'html_banner', 'html_letters', 'html_screens', 'html_rumours', 'html_objects',
+                                     'html_custom'})
+        for m in mods.values():
+            self.assertFalse(m['default'])
+            self.assertIn('```html', m['content'])
+            self.assertIn('data-label', m['content'])

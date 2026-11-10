@@ -607,7 +607,9 @@ def extras(request):
             return JsonResponse({"error": error}, status=400)
         return JsonResponse({"status": "ok", "state": _extras_page_state(request.user)})
 
-    return render(request, "users/extras.html", {"extras_data": _extras_page_state(request.user)})
+    from mainapp import html_objects, presets
+    taken = html_objects.replaced_kinds(presets.normalize(presets.get_active(request.user).data))
+    return render(request, "users/extras.html", {"extras_data": _extras_page_state(request.user), "designed_by_ai": taken})
 
 
 def _extras_page_state(user):

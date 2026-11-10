@@ -144,6 +144,13 @@ async function refresh() {
     if (s.extras || s.look || s.worldbook) document.querySelector('.q-more').open = true;
 }
 document.addEventListener('change', (e) => { if (e.target.name === 'character') refresh(); });
+// "My own object": its description box shows while it's ticked
+document.addEventListener('change', (e) => {
+    if (e.target.dataset && e.target.dataset.module === 'html_custom' && $('qCustomObject')) {
+        $('qCustomObject').hidden = !e.target.checked;
+        if (e.target.checked) $('qCustomObject').focus();
+    }
+});
 
 // Story modules: every checkbox, and the one narration voice (picking one switches the others off)
 function modulePicks() {
@@ -164,6 +171,7 @@ async function save(go) {
         pov: $('qPov').value, tense: $('qTense').value, format: $('qFormat').value,
         length: $('qLength').value || 'flexible', control: $('qControl').value,
         modules: modulePicks(),
+        custom_object: $('qCustomObject') ? $('qCustomObject').value : undefined,
     };
     if (data.window) body.chat_context = steps[Number($('chatContext').value)];
     $('qError').hidden = true;

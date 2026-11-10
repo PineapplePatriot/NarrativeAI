@@ -221,9 +221,48 @@ marked.setOptions({
 
 
 // where: an element inside the message (or {role, depth}); used by display text rules
+// In-story objects the AI designs (```html blocks, mainapp/html_objects.py): each one runs in a sealed frame.
+// No allow-same-origin, so its scripts can't reach this page, the account or cookies; the content policy keeps
+// it off the network (Google Fonts aside); no popups, forms or navigating the page.
+const HTML_FENCE = /```[ \t]*html[ \t]*\r?\n([\s\S]*?)\r?\n[ \t]*```/gi;
+const HTML_OPEN = /```[ \t]*html[ \t]*\r?\n[\s\S]*$/i;  // still being written
+const objectHeights = new Map();  // keeps the page from jumping when a message is redrawn
+function objectKey(code) { let h = 0; for (let i = 0; i < code.length; i++) h = (h * 31 + code.charCodeAt(i)) | 0; return 'o' + (h >>> 0).toString(36); }
+function objectFrame(code) {
+    const key = objectKey(code);
+    const doc = `<!doctype html><html><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data:; script-src 'unsafe-inline'">
+<meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="dark">
+<style>html,body{margin:0;padding:0;background:transparent;color:#e5e7eb;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;overflow:hidden}
+body{padding:2px}*{box-sizing:border-box;max-width:100%}</style></head><body>${code}
+<script>(function(){var last=0;function tell(){var h=Math.ceil(document.documentElement.scrollHeight);if(h!==last){last=h;parent.postMessage({naObject:${JSON.stringify(key)},h:h},'*');}}
+addEventListener('load',tell);try{new ResizeObserver(tell).observe(document.body);}catch(e){}setTimeout(tell,50);setTimeout(tell,600);})();<\/script></body></html>`;
+    const frame = document.createElement('iframe');
+    frame.className = 'html-object';
+    frame.setAttribute('sandbox', 'allow-scripts');
+    frame.setAttribute('referrerpolicy', 'no-referrer');
+    frame.setAttribute('loading', 'lazy');
+    frame.setAttribute('title', 'In-story object');
+    frame.dataset.object = key;
+    frame.style.height = (objectHeights.get(key) || 160) + 'px';
+    frame.setAttribute('srcdoc', doc);
+    return frame;
+}
+window.addEventListener('message', (e) => {
+    if (!e.data || typeof e.data.naObject !== 'string' || typeof e.data.h !== 'number') return;
+    const h = Math.max(20, Math.min(4000, e.data.h));
+    document.querySelectorAll('iframe.html-object').forEach(f => {
+        if (f.contentWindow === e.source) { f.style.height = h + 'px'; objectHeights.set(f.dataset.object, h); }
+    });
+});
+
 function renderChatMessage(rawText, where) {
     const place = messagePlace(where);
-    let shown = TextRules.any() ? TextRules.apply(rawText, place.role, place.depth) : rawText;
+    // Designed objects come out first (text rules and markdown don't touch them), back in as frames at the end
+    const objects = [];
+    let source = String(rawText ?? '').replace(HTML_FENCE, (m, code) => { objects.push(code); return `\n\n<div class="object-slot n${objects.length - 1}"></div>\n\n`; });
+    if (isGenerating) source = source.replace(HTML_OPEN, () => '\n\n<div class="object-slot drawing"></div>\n\n');  // a cut-off one stays code
+    let shown = TextRules.any() ? TextRules.apply(source, place.role, place.depth) : source;
     // Story extras' markers ([[extra 2]]) become slots; placeExtras() puts the app's drawing there
     shown = shown.replace(/\[\[extra (\d+)\]\]/g, '\n\n<div class="extra-slot n$1"></div>\n\n');
     const pre2 = wrapQuoted(shown);
@@ -246,6 +285,11 @@ function renderChatMessage(rawText, where) {
     tmp.querySelectorAll('a').forEach(a => {
         a.setAttribute('rel', 'nofollow noopener noreferrer');
         a.setAttribute('target', '_blank');
+    });
+    tmp.querySelectorAll('.object-slot').forEach(slot => {
+        const n = (slot.className.match(/\bn(\d+)\b/) || [])[1];
+        if (n !== undefined && objects[n] !== undefined) slot.replaceWith(objectFrame(objects[n]));
+        else if (slot.classList.contains('drawing')) slot.textContent = '🎨 Drawing…';
     });
     return tmp.innerHTML;
 }
