@@ -265,3 +265,11 @@ body.embed .mini-progress { display: none !important; }  /* beside the Quick set
 .tp-skin-neon { background: #0d0f1f; color: #00f0ff; border-color: #ff2bd6 !important; border-radius: 0 !important; font-family: monospace; }
 .tp-skin-lab { background: #e8f0f8; color: #13253a; border-color: #1d6fd8 !important; border-radius: 2px !important; font-variant: small-caps; }
 .tp-skin-romance { background: #5c2c48; color: #ffd1e3; border-color: #f9a8d4 !important; }
+
+/* Copy their message; a failed turn's way forward */
+.msg.user { position: relative; }
+.msg-copy { background: transparent; border: none; padding: 2px 6px; font-size: .8rem; opacity: 0; align-self: flex-end; cursor: pointer; }
+.msg.user:hover .msg-copy, .msg-copy:focus { opacity: .7; }
+@media (hover: none) { .msg-copy { opacity: .5; } }
+.error-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.error-actions button { font-size: .85rem; padding: 5px 10px; }

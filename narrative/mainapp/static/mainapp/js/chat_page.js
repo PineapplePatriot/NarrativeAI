@@ -69,6 +69,16 @@ document.addEventListener("click", (event) => {
         case "delete":
             if (index !== null) deleteMessage(index);
             break;
+        case "copy": {  // the words as shown (the translation when they read one), without the buttons
+            const el = btn.closest('.message'), textDiv = el && el.querySelector('.message-text');
+            if (!textDiv) break;
+            const text = textDiv.innerText.trim();
+            const done = () => { btn.textContent = '✓'; setTimeout(() => { btn.textContent = '📋'; }, 1200); };
+            if (navigator.clipboard) navigator.clipboard.writeText(text).then(done).catch(() => showChatNotice('Could not copy it.'));
+            else { const t = document.createElement('textarea'); t.value = text; document.body.append(t); t.select();
+                   try { document.execCommand('copy'); done(); } catch (e) { showChatNotice('Could not copy it.'); } t.remove(); }
+            break;
+        }
         case "original": {  // 🌐 the English a translated reply was written in, and back
             const el = btn.closest('.message'), textDiv = el && el.querySelector('.message-text');
             if (!textDiv || !textDiv.dataset.original) break;
@@ -387,6 +397,7 @@ function addMessage(sender, text, specificAvatarUrl = null, note = false) {
                 <button class="message-btn condense" type="button" data-action="condense" data-index="${messageIndex}" title="Condense for the AI: it gets a short version, you still see all of it">🗜</button>
                 ${sender === 'user' ? '' : `<button class="message-btn polish-btn" type="button" data-action="polish" data-index="${messageIndex}" title="${escHtml(window.POLISH_TITLE || 'Polish this reply')}">🧹</button>`}
                 <button class="message-btn branch" type="button" data-action="branch" data-index="${messageIndex}" title="Branch: a new chat from this message"><svg class="icon" viewBox="0 0 24 24"><path d="M6 3a3 3 0 0 0-1 5.83v6.34A3 3 0 1 0 7 15.17V13.5c0-.83.67-1.5 1.5-1.5h5A3.5 3.5 0 0 0 17 8.5v-.67a3 3 0 1 0-2 0v.67c0 .83-.67 1.5-1.5 1.5h-5c-.53 0-1.03.1-1.5.28V8.83A3 3 0 0 0 6 3z"/></svg></button>
+                <button class="message-btn copy" type="button" data-action="copy" data-index="${messageIndex}" title="Copy">📋</button>
                 <button class="message-btn delete" onclick="deleteMessage(${messageIndex})">
                     <svg class="icon" viewBox="0 0 24 24"><path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/></svg>
                 </button>
@@ -610,6 +621,7 @@ function placeReply(data, avatarUrl) {
 // Send message to server
 // `noteOnly`: send the director's note on its own (the story goes on with no message from them)
 function sendMessage(noteOnly = false) {
+    if (messageInput.classList.contains('writing')) { showChatNotice('One moment: your message is still being written.'); return; }
     noteOnly = noteOnly === true;  // never an event object from a click handler
     const message = noteOnly ? '' : messageInput.value.trim();
     const guideInput = document.getElementById('guidanceInput');
@@ -1073,7 +1085,14 @@ async function expandInput() {
     const draft = messageInput.value;
     const btn = document.getElementById('expandBtn');
     if (btn) btn.disabled = true;
-    messageInput.value = draft ? 'Writing it out…' : 'Writing your message…';
+    // While it writes, the box is locked: a placeholder says so (nothing to erase), on one line on phones
+    const placeholder = messageInput.placeholder;
+    const narrow = window.matchMedia('(max-width: 560px)').matches;
+    messageInput.value = '';
+    messageInput.readOnly = true;
+    messageInput.classList.add('writing');
+    messageInput.placeholder = narrow ? '✍️ Writing…' : (draft ? '✍️ Writing it out…' : '✍️ Writing your message…');
+    messageInput.style.height = 'auto';
     try {
         const resp = await fetch(window.location.href, {
             method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
@@ -1087,6 +1106,9 @@ async function expandInput() {
     } catch (err) { messageInput.value = draft; showChatNotice(err.message); }
     finally {
         if (btn) btn.disabled = false;
+        messageInput.readOnly = false;
+        messageInput.classList.remove('writing');
+        messageInput.placeholder = placeholder;
         messageInput.style.height = 'auto';
         messageInput.style.height = messageInput.scrollHeight + 'px';
         messageInput.focus();
@@ -1577,6 +1599,9 @@ branchModal.addEventListener('click', (e) => { if (e.target === branchModal) clo
     });
     // Coming back from the setup page's list (?bulba=1): open the panel straight away
     if (new URLSearchParams(window.location.search).get('bulba') === '1') toggle(true);
+    // From another page with something to ask (?bulba_ask=...): Bulba opens with it typed, not sent
+    const askFromUrl = new URLSearchParams(window.location.search).get('bulba_ask');
+    if (askFromUrl) setTimeout(() => window.askBulba && window.askBulba(askFromUrl.slice(0, 600)), 0);
     // Open Bulba with something already typed for it (it isn't sent until they press Send)
     window.askBulba = (draft) => {
         if (!frame.src) {

@@ -125,8 +125,10 @@
                 case 'custom':
                     spec.fields.slice(0, 3).forEach(f => {
                         if (v[f.key] === undefined || v[f.key] === '') return;
-                        add(f.type === 'meter' ? gauge('custom', f.label, v[f.key], f.min, f.max, f.label)
-                                               : chip('custom', '🧩', `${esc(f.label)}: ${esc(fmt(f, v[f.key]))}`));
+                        const lv = levelOf(f, v[f.key]);
+                        add(f.type === 'meter' && f.look !== 'badge'
+                            ? gauge('custom', `${f.icon ? f.icon + ' ' : ''}${f.label}`, v[f.key], f.min, f.max, lv ? `${f.label}: ${lv.name}` : f.label)
+                            : chip('custom', esc(f.icon || '🧩'), `${esc(f.label)}: ${esc(lv ? lv.name : fmt(f, v[f.key]))}`));
                     });
                     break;
                 default:
@@ -229,11 +231,50 @@
         return `<label class="tf ${field.type}"><span class="tf-label">${esc(field.label)}</span>${input}${lockBtn}</label>`;
     }
 
+    // A custom field Bulba designed: its own look and colour, what moves it, and its levels ("You're here")
+    const designed = f => !!(f.look || f.levels || f.raises || f.lowers || f.color || f.icon || f.triggers);
+    const levelOf = (f, n) => (f.levels || []).find(l => Number(n) >= l.from && Number(n) <= l.to);
+    const safeColor = c => /^#[0-9a-fA-F]{6}$/.test(c || '') ? c : '';
+    function designedField(f, raw) {
+        const color = safeColor(f.color) || '#a78bfa';
+        const num = Number(raw);
+        const has = raw !== undefined && raw !== '' && !Number.isNaN(num);
+        const min = f.type === 'meter' ? Number(f.min) : 0;
+        const max = f.type === 'meter' ? Number(f.max) : Math.max(...(f.levels || []).map(l => l.to), num || 0, 1);
+        const p = has ? pct(num, min, max) : 0;
+        const level = has ? levelOf(f, num) : null;
+        const look = f.look || (f.type === 'meter' ? 'bar' : f.type === 'number' ? 'counter' : 'badge');
+        let visual = '';
+        if (look === 'ring') visual = `<div class="cf-ring" style="--p:${p};--c:${color}"><b>${has ? esc(raw) : '–'}</b></div>`;
+        else if (look === 'stars') { const k = Math.round(p / 20); visual = `<div class="cf-stars" style="color:${color}">${'★'.repeat(k)}<span>${'★'.repeat(5 - k)}</span></div>`; }
+        else if (look === 'counter') visual = `<div class="cf-counter" style="color:${color}">${has ? esc(raw) : '0'}</div>`;
+        else if (look === 'badge') visual = '';
+        else visual = `<div class="cf-bar"><i style="width:${p}%;background:${color}"></i></div>`;
+        const list = (items, cls, mark) => (items || []).length ? `<div class="cf-moves ${cls}"><b>${cls === 'up' ? 'Raises it' : 'Lowers it'}</b>
+            ${items.map(x => `<span><i>${mark}</i>${esc(x)}</span>`).join('')}</div>` : '';
+        const levels = (f.levels || []).map(l => `<li class="${l === level ? 'here' : ''}" ${l === level ? `style="--c:${color}"` : ''}>
+            <span class="cf-range">${esc(l.from)}${l.to !== l.from ? `–${esc(l.to)}` : ''}</span><b>${esc(l.name)}</b>
+            ${l === level ? '<em>You’re here</em>' : ''}</li>`).join('');
+        return `<div class="cf-card" style="--c:${color}">
+            <div class="cf-head"><span class="cf-ico">${esc(f.icon || '◆')}</span><b>${esc(f.label)}</b>
+              <span class="cf-val">${has ? `${esc(raw)}${f.type === 'meter' ? ` <small>/ ${esc(f.max)}</small>` : ''}` : ''}
+              ${look === 'badge' && level ? `<span class="cf-badge">${esc(level.name)}</span>` : ''}</span></div>
+            ${visual}
+            ${(f.raises || f.lowers) ? `<div class="cf-moves-row">${list(f.raises, 'up', '↑')}${list(f.lowers, 'down', '↓')}</div>` : ''}
+            ${(f.triggers || []).length ? `<div class="cf-triggers"><b>Triggers</b>${f.triggers.map(t => {
+                const target = (specs.custom.fields.find(x => x.key === t.then) || {}).label || t.then;
+                return `<span>⚡ ${esc(f.label)} ${t.if === '>=' ? '≥' : '≤'} ${esc(t.at)} → ${esc(target)} ${t.change > 0 ? '+' : ''}${esc(t.change)}${t.repeat ? ' <small>(while it holds)</small>' : ''}</span>`;
+            }).join('')}</div>` : ''}
+            ${levels ? `<ul class="cf-levels">${levels}</ul>` : ''}
+          </div>`;
+    }
+
     function trackerCard(spec) {
         const v = value(spec.id);
         let body;
         if (spec.kind === 'object') {
-            body = spec.fields.map(f => inputFor(f, v[f.key], lockPath(spec.id, f.key), `${spec.id}.${f.key}`)).join('');
+            body = spec.fields.map(f => (spec.id === 'custom' && designed(f) ? designedField(f, v[f.key]) : '')
+                + inputFor(f, v[f.key], lockPath(spec.id, f.key), `${spec.id}.${f.key}`)).join('');
         } else {
             body = v.map((item, i) => `
               <div class="t-item" data-item="${i}">
@@ -266,7 +307,7 @@
         panel.classList.toggle('left', config.layout.side === 'left');
         tint(panel, sceneMood());
         const items = railItems();
-        if (railItem && railItem !== 'add' && !items.some(i => i.id === railItem)) railItem = null;
+        if (railItem && !['add', 'custom-setup'].includes(railItem) && !items.some(i => i.id === railItem)) railItem = null;
         if (isPhone() && !railItem) railItem = (items[0] || { id: 'add' }).id;  // a sheet on phones: always one card
         const icon = i => `<button type="button" class="tr-icon ${i.id === railItem ? 'active' : ''} ${recentlyChanged.has(i.id) ? 'changed' : ''}"
             data-item="${i.id}" title="${esc(i.label)}" aria-label="${esc(i.label)}" aria-expanded="${i.id === railItem}">${i.icon}</button>`;
@@ -290,9 +331,12 @@
             <button type="button" class="icon-btn" data-act="close" title="Close">✕</button></span></header>`;
         if (id === 'story') return head('🎚', 'Story systems') + `<div class="tp-body">${storySection()}</div>`;
         if (id === 'add') return head('＋', 'Track something else') + addList();
+        if (id === 'custom-setup') return head('🧩', 'Custom tracker') + customSetup();
         const spec = specs[id];
         return head(spec.icon, spec.label, `<button type="button" class="icon-btn" data-rerun="${id}" title="Re-run only this tracker">↻</button>`)
-            + `<div class="tp-body">${trackerCard(spec)}</div>` + stopRow(spec);
+            + `<div class="tp-body">${trackerCard(spec)}</div>`
+            + (id === 'custom' ? `<div class="tr-custom-more"><button type="button" class="tr-btn ghost" data-item="custom-setup">🥔 Design another with Bulba</button></div>` : '')
+            + stopRow(spec);
     }
 
     function stopRow(spec) {
@@ -306,9 +350,25 @@
             <span class="tr-foot">${scheduleText()}</span></div>`;
     }
 
+    // The custom tracker has no fields until someone gives it some: say what to track, then Bulba (or you) makes them
+    const customEmpty = () => !(specs.custom && specs.custom.fields.length);
+    function customSetup() {
+        return `<div class="tp-body tr-custom-setup">
+            <p>Your own things to keep track of: a currency, a counter, a secret, a countdown, a bond… What should it follow?</p>
+            <textarea id="trCustomWish" rows="3" placeholder="e.g. Dottore's patience with 13 (0–100), the debt to Feofan in mora, whether the vent secret is out"></textarea>
+            <div class="tr-custom-actions">
+              <button type="button" class="tr-btn" data-act="custom-bulba">🥔 Let Bulba set it up</button>
+              <a class="tr-btn ghost" href="${DATA.setup_url}#custom">Add the fields myself</a>
+            </div>
+            <p class="tr-note">Bulba proposes the fields (numbers, bars, yes/no, text) and you press Apply. It appears here once it has fields.</p>
+          </div>`;
+    }
+
     function addList() {
-        const off = DATA.specs.filter(s => !config.trackers[s.id].on && !owned(s.id));
-        return `<div class="tr-add">${off.map(s => `<button type="button" class="tr-addrow" data-switch="${s.id}" data-on="1">
+        const off = DATA.specs.filter(s => (!config.trackers[s.id].on || (s.id === 'custom' && customEmpty())) && !owned(s.id));
+        return `<div class="tr-add">${off.map(s => s.id === 'custom' && customEmpty() ? `<button type="button" class="tr-addrow" data-item="custom-setup">
+                <span class="tr-add-ico">${s.icon}</span><span><b>${esc(s.label)}</b><small>${esc(s.help || '')}${config.trackers.custom.on ? ' (on, but no fields yet)' : ''}</small></span></button>`
+            : `<button type="button" class="tr-addrow" data-switch="${s.id}" data-on="1">
                 <span class="tr-add-ico">${s.icon}</span><span><b>${esc(s.label)}</b><small>${esc(s.help || '')}</small></span></button>`).join('')
             || '<p class="t-empty">Everything is already tracked.</p>'}
             <p class="tr-note">For this character, in every chat. Custom fields and story systems are on its
@@ -415,6 +475,15 @@
                 if (t.dataset.item === railItem && (pinned || noHover())) closeItem();
                 else openItem(t.dataset.item, true);
             } else if (t.dataset.switch) switchTracker(t.dataset.switch, t.dataset.on === '1');
+            else if (t.dataset.act === 'custom-bulba') {
+                const wish = (panel.querySelector('#trCustomWish') || {}).value || '';
+                const ask = `Set up a custom tracker for ${DATA.character_name || 'this character'}'s story`
+                    + (wish.trim() ? `: ${wish.trim()}` : ': suggest what would be worth tracking here, then propose it')
+                    + '. Design it with propose_trackers: pick its look (bar, ring, stars, counter or badge), colour and icon, '
+                    + 'what raises and lowers it, and named levels if it has stages. Keep the custom fields I already have.';
+                if (window.askBulba) window.askBulba(ask);
+                closeItem();
+            }
             else if (t.dataset.lock) {
                 const p = t.dataset.lock;
                 state.locks = isLocked(p) ? state.locks.filter(x => x !== p) : [...state.locks, p];

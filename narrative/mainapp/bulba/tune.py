@@ -110,7 +110,19 @@ def tool_propose_trackers(session, args):
     summary = ([f"On: {', '.join(labels[t] for t in turn_on)}"] if turn_on else []) + \
               ([f"Off: {', '.join(labels[t] for t in turn_off)}"] if turn_off else [])
     if fields is not None:
-        summary.append("Custom tracker: " + (", ".join(f"{f['label']} ({f['type']})" for f in fields) or "none"))
+        summary.append("Custom tracker: " + (", ".join(f"{f.get('icon', '')} {f['label']} ({f['type']})".strip()
+                                                       for f in fields) or "none"))
+        for f in fields:
+            if f.get("levels"):
+                summary.append(f"  {f['label']} levels: " + ", ".join(f"{lv['from']:g}-{lv['to']:g} {lv['name']}"
+                                                                       for lv in f["levels"]))
+            for t in f.get("triggers") or []:
+                target = next((x["label"] for x in fields if x["key"] == t["then"]), t["then"])
+                summary.append(f"  ⚡ {f['label']} {t['if']} {t['at']:g} → {target} {'+' if t['change'] > 0 else ''}"
+                               f"{t['change']:g}" + (" (every update while it holds)" if t["repeat"] else ""))
+            if f.get("raises") or f.get("lowers"):
+                summary.append(f"  {f['label']}: up with {', '.join(f.get('raises') or ['-'])}; "
+                               f"down with {', '.join(f.get('lowers') or ['-'])}")
         if fields and "custom" not in turn_on:
             turn_on.append("custom")
     return _propose(session, "trackers", f"Trackers for {character.name}", summary,
@@ -275,7 +287,8 @@ def tool_offer_mood_pictures(session, args):
         return {"status": "All mood pictures are there already; pass redo to make them again."}, []
     return {"shown": missing, "note": "They press the button; each picture costs a few cents on their key."}, [
         {"type": "make_pictures", "url": reverse("character_sprite", args=[character.slug]),
-         "name": character.name, "moods": missing}]
+         "name": character.name, "moods": missing,
+         "later_url": reverse("character", kwargs={"slug": character.slug}) + "#spritesSection"}]
 
 
 # ---------------------------------------------------------------------------
@@ -415,13 +428,41 @@ def tool_defs(fn, STR):
                "value": {"description": "number, text or list, as read_settings shows"}}, "required": ["key"]}},
             "why": STR}, ["changes", "why"]),
         fn("propose_trackers", "Switch the character's story trackers on or off, and/or set the custom tracker's "
-           "fields (meters, text, lists). Pick what the story needs, not everything.",
+           "fields (meters, text, lists). Pick what the story needs, not everything. A custom field can be designed: "
+           "its look (bar, ring, stars, counter, badge), colour and icon, what raises and lowers it, and named "
+           "levels whose note tells the story how to write while the value is there (meters and numbers). Keep "
+           "the fields they already have (read_settings) unless they asked to change them.",
            {"turn_on": {"type": "array", "items": {"type": "string", "enum": TRACKER_IDS}},
             "turn_off": {"type": "array", "items": {"type": "string", "enum": TRACKER_IDS}},
             "custom_fields": {"type": "array", "maxItems": 12, "items": {"type": "object", "properties": {
                 "label": STR, "type": {"type": "string", "enum": list(tracker_mod.FIELD_TYPES)},
                 "hint": {"type": "string", "description": "What the tracker AI should note"},
-                "min": {"type": "number"}, "max": {"type": "number"}}, "required": ["label"]},
+                "min": {"type": "number"}, "max": {"type": "number"},
+                "look": {"type": "string", "enum": list(tracker_mod.LOOKS),
+                         "description": "How the chat draws it: bar (meters), ring (a dial), stars (0-5 of the range), "
+                                        "counter (a big number, for counts), badge (only the level's name)"},
+                "color": {"type": "string", "description": "Hex like #f472b6, readable on dark"},
+                "icon": {"type": "string", "description": "One emoji"},
+                "raises": {"type": "array", "maxItems": 6, "items": STR,
+                           "description": "What in the story makes it go up (short phrases)"},
+                "lowers": {"type": "array", "maxItems": 6, "items": STR,
+                           "description": "What makes it go down"},
+                "levels": {"type": "array", "maxItems": 8, "items": {"type": "object", "properties": {
+                    "from": {"type": "number"}, "to": {"type": "number"}, "name": STR,
+                    "note": {"type": "string", "description": "How the character or scene reads while the value "
+                                                              "is in this range: concrete, one or two lines"}},
+                    "required": ["from", "to", "name"]},
+                    "description": "Named ranges covering the scale, e.g. 0-29 Calm, 30-59 Restless..."},
+                "triggers": {"type": "array", "maxItems": 4, "items": {"type": "object", "properties": {
+                    "if": {"type": "string", "enum": [">=", "<="]}, "at": {"type": "number"},
+                    "then": {"type": "string", "description": "The label of another number or meter field"},
+                    "change": {"type": "number", "description": "Added to it (negative to lower it)"},
+                    "repeat": {"type": "boolean", "description": "true: on every update while it holds; false "
+                                                                 "(default): once each time it's reached"}},
+                    "required": ["if", "at", "then", "change"]},
+                    "description": "Automatic escalation the app applies: when this field reaches `at`, change "
+                                   "another field, e.g. Alarm >= 80 → Guards alerted +1"}},
+                "required": ["label"]},
                 "description": "The full new list (replaces the old one); [] removes them"},
             "why": STR}, ["why"]),
         fn("propose_story_systems", "Set the character's story systems (rules the app keeps, the model only plays "

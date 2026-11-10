@@ -118,6 +118,7 @@ def characters_list(request):
 
 
 import re
+from urllib.parse import urlencode
 
 log = logging.getLogger(__name__)
 
@@ -2324,8 +2325,11 @@ def tracker_setup(request, slug):
         character.save(update_fields=["tracker_config"])
         return JsonResponse({"status": "ok", "config": character.tracker_config})
 
+    ask = (f"Design a custom tracker for {character.name}'s story with me: ask what it should follow, then propose "
+           "it with its look, colour, what raises and lowers it, and levels.")
     return render(request, "mainapp/tracker_setup.html", {
         "character": character,
+        "bulba_custom_url": reverse("chat", kwargs={"slug": character.slug}) + "?" + urlencode({"bulba_ask": ask}),
         "setup_data": {
             "panels": trackers.PANELS,
             "trackers": trackers.TRACKERS,
@@ -3368,7 +3372,12 @@ def _bulba_api(request):
     if request.method == "GET":  # what Bulba is doing right now (the page asks while a turn runs)
         filters = {"mode": "chat", "chat_id": request.GET["chat"]} if request.GET.get("chat") else {"mode": "setup"}
         session = BulbaSession.objects.filter(user=request.user, active=True, **filters).first()
-        return JsonResponse({"activity": session.activity if session else ""})
+        from django.core.cache import cache
+        busy = cache.get(f"bulba-busy:{request.user.id}:{request.GET.get('chat') or 'setup'}") is not None
+        out = {"activity": session.activity if session else "", "busy": busy}
+        if request.GET.get("full") and session:  # the page lost the connection mid-turn: what's there now
+            out.update(events=session.events, state=_bulba_state(session))
+        return JsonResponse(out)
     if request.method != "POST":
         return JsonResponse({"error": "POST only"}, status=405)
     if request.FILES.get("card"):  # a card they already have, from the upload box
@@ -3392,6 +3401,17 @@ def _bulba_api(request):
     elif action == "say":
         session.beside_quick = bool(data.get("beside_quick")) and session.mode == "setup"
         events = agent.run_turn(session, data.get("text"))
+    elif action in ("retry_failed", "remove_failed"):  # a message Bulba couldn't answer: again, or gone
+        try:
+            if action == "retry_failed":
+                agent.retry_failed(session)
+            else:
+                agent.remove_failed(session)
+        except ValueError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        session.activity = ""
+        session.save()
+        return JsonResponse({"events": session.events, "replace": True, "state": _bulba_state(session)})
     elif action == "route":  # the opening's full setup or fast route (no AI needed)
         try:
             events = agent.take_route(session, str(data.get("route") or ""))

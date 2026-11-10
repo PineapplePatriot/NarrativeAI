@@ -83,9 +83,13 @@ propose_control (directing comes with the book layout). The session line shows t
    "Strip *asterisks*", "Fewer em dashes", "Something else". For a pick, propose_text_rules in their own list
    (scope "mine", so it follows them to other presets) after checking the pattern; one question, don't
    insist. They can change them later on the Presets page or with you in a chat.
-4. **persona**: who they are in the story; follow the character guide; propose_persona.
+4. **persona**: who they are in the story; follow the character guide; propose_persona. If they asked for the
+   character first and it's already made, this stage still comes next: ask who they are in that story (a
+   persona that fits the character), unless they say they'd rather skip it. Never skip it on your own.
 5. **character**: the character they want to talk to. First ask whether they already have a card
-   (offer_card_upload; see the lore guide). Otherwise follow the character guide; propose_character.
+   (offer_card_upload; see the lore guide). Otherwise follow the character guide; settle the opening
+   (scenario and first message) with them as its own question first (character guide, "The opening"),
+   then propose_character.
    For a character from an existing work, look_up first. Then **always ask whether they want a
    worldbook** (offer_choices: e.g. "Yes, research it and write one", "Yes, I'll tell you about the
    world", "Not now"). In two or three lines: it holds facts about the world that enter the story only
@@ -116,6 +120,8 @@ propose_control (directing comes with the book layout). The session line shows t
    where to change it later:
    - extras (summary, trackers, pictures, dice, story extras): the Extras page, /users/extras/
      (dice and story extras per character: the chat's ▤ trackers panel)
+   - mood pictures, if the character has a neutral picture but not the other moods yet: the character's
+     page → "✨ Make the missing moods" (or ask you in a chat)
    - the preset: the Presets page (/main/presets/); the in-chat Bulba can tweak it
    - who they are: the persona on their profile; per chat, in the pen menu → This chat
    - the character, lore and theme: the character's page (Edit in the chat header) and Worldbooks

@@ -136,8 +136,123 @@ def normalize_custom_fields(raw):
             field["max"] = _num(item.get("max"), 100)
             if field["max"] <= field["min"]:
                 field["max"] = field["min"] + 100
+        field.update(_design(item, ftype))
         fields.append(field)
+    # Triggers name their target by key or label: resolved now that every field has its key
+    keys = {f["key"]: f for f in fields}
+    by_label = {f["label"].lower(): f["key"] for f in fields}
+    for f in fields:
+        rules = []
+        for t in f.pop("_triggers", []):
+            target = t["then"] if t["then"] in keys else by_label.get(t["then"].lower())
+            if target and target != f["key"] and keys[target]["type"] in ("number", "meter"):
+                rules.append({**t, "then": target})
+        if rules:
+            f["triggers"] = rules[:4]
     return fields
+
+
+LOOKS = ("bar", "ring", "stars", "counter", "badge")  # how a designed field is drawn in the chat
+COLOR = re.compile(r"^#[0-9a-fA-F]{6}$")
+
+
+def _design(item, ftype):
+    """A field Bulba designed: its look, colour and icon, what raises and lowers it, and named levels whose note
+    changes how the story is written while the value is in that range (numbers and meters)."""
+    out = {}
+    look = str(item.get("look") or "").strip().lower()
+    if look in LOOKS:
+        out["look"] = look
+    if COLOR.match(str(item.get("color") or "")):
+        out["color"] = item["color"]
+    icon = str(item.get("icon") or "").strip()
+    if icon and len(icon) <= 4:
+        out["icon"] = icon
+    if ftype in ("number", "meter"):
+        for side in ("raises", "lowers"):
+            items = [str(x).strip()[:80] for x in (item.get(side) or []) if str(x).strip()] \
+                if isinstance(item.get(side), list) else []
+            if items:
+                out[side] = items[:6]
+        levels = []
+        for lv in item.get("levels") or [] if isinstance(item.get("levels"), list) else []:
+            if not isinstance(lv, dict) or not str(lv.get("name") or "").strip():
+                continue
+            lo = _num(lv.get("from"), 0)
+            hi = _num(lv.get("to"), lo)
+            levels.append({"from": min(lo, hi), "to": max(lo, hi), "name": str(lv["name"]).strip()[:40],
+                           "note": str(lv.get("note") or "").strip()[:200]})
+        if levels:
+            out["levels"] = sorted(levels, key=lambda lv: lv["from"])[:8]
+        rules = []
+        for t in item.get("triggers") or [] if isinstance(item.get("triggers"), list) else []:
+            if not isinstance(t, dict) or t.get("if") not in (">=", "<=") or not str(t.get("then") or "").strip():
+                continue
+            change = _num(t.get("change"), 0)
+            if not change:
+                continue
+            rules.append({"if": t["if"], "at": _num(t.get("at"), 0), "then": str(t["then"]).strip()[:60],
+                          "change": change, "repeat": bool(t.get("repeat"))})
+        if rules:
+            out["_triggers"] = rules
+    return out
+
+
+TRIGGER_PASSES = 3  # a trigger can set off another, at most this deep (no loops)
+
+
+def _holds(rule, n):
+    return n >= rule["at"] if rule["if"] == ">=" else n <= rule["at"]
+
+
+def apply_triggers(fields, before, values, locks):
+    """Automatic escalation after an AI update (in place on `values`): a field reaching its threshold moves another
+    field. Fires when the threshold is newly reached, or on every update while it holds ("repeat"). Locked targets
+    don't move. Returns lines describing what fired."""
+    by_key = {f["key"]: f for f in fields}
+    fired, done = [], set()
+    previous = dict(before)
+    for _ in range(TRIGGER_PASSES):
+        moved = False
+        for f in fields:
+            for i, rule in enumerate(f.get("triggers") or []):
+                if (f["key"], i) in done:
+                    continue
+                try:
+                    now = float(values.get(f["key"]))
+                except (TypeError, ValueError):
+                    continue
+                try:
+                    was = float(previous.get(f["key"]))
+                except (TypeError, ValueError):
+                    was = None
+                newly = _holds(rule, now) and (was is None or not _holds(rule, was))
+                if not (newly or (rule["repeat"] and _holds(rule, now))):
+                    continue
+                target = by_key.get(rule["then"])
+                if not target or lock_path("custom", target["key"]) in locks:
+                    continue
+                old = values.get(target["key"], target.get("min", 0))
+                new = coerce_field(target, _num(old, 0) + rule["change"])
+                done.add((f["key"], i))
+                if new != old:
+                    previous[target["key"]] = old
+                    values[target["key"]] = new
+                    moved = True
+                    fired.append(f"{f['label']} {rule['if']} {rule['at']:g} → {target['label']} "
+                                 f"{'+' if rule['change'] > 0 else ''}{rule['change']:g}")
+        if not moved:
+            break
+    return fired
+
+
+def level_of(field, value):
+    """The named level the value is in, or None."""
+    try:
+        n = float(value)
+    except (TypeError, ValueError):
+        return None
+    return next((lv for lv in field.get("levels") or [] if lv["from"] <= n <= lv["to"]), None)
 
 
 GAME_CHOICES = ("default", "off", "dice", "full")  # see mainapp/game.py
@@ -314,6 +429,13 @@ def _describe(spec):
         desc += ")"
         if f.get("hint"):
             desc += f" – {f['hint']}"
+        if f.get("raises"):
+            desc += f"; goes up with: {', '.join(f['raises'])}"
+        if f.get("lowers"):
+            desc += f"; goes down with: {', '.join(f['lowers'])}"
+        for t in f.get("triggers") or []:
+            desc += (f"; the app adds {t['change']:g} to \"{t['then']}\" when this reaches {t['if']} {t['at']:g}"
+                     " (don't add that yourself)")
         parts.append(desc)
     shape = "object" if spec["kind"] == "object" else f'list of records, one per "{spec["key"]}"'
     return f'- "{spec["id"]}" ({spec["label"]}: {spec["help"]}) – {shape}; fields: ' + ", ".join(parts)
@@ -370,6 +492,9 @@ def apply_update(config, state, update, only=None):
             continue
         old = state["values"].get(tid, empty_value(spec))
         new = merge(spec, old, update[tid], set(state["locks"]))
+        if tid == "custom" and isinstance(new, dict):  # automatic escalation between custom fields
+            new = dict(new)
+            apply_triggers(spec["fields"], old if isinstance(old, dict) else {}, new, set(state["locks"]))
         if new != old:
             state["values"][tid] = new
             changed.append(tid)
@@ -396,10 +521,17 @@ def format_for_prompt(config, state):
         if not value:
             continue
         if spec["kind"] == "object":
-            parts = [f"{f['label']}: {_fmt_value(f, value[f['key']])}"
-                     for f in spec["fields"] if value.get(f["key"]) not in ("", [], None)]
+            parts, notes = [], []
+            for f in spec["fields"]:
+                if value.get(f["key"]) in ("", [], None):
+                    continue
+                level = level_of(f, value[f["key"]])
+                parts.append(f"{f['label']}: {_fmt_value(f, value[f['key']])}" + (f" ({level['name']})" if level else ""))
+                if level and level["note"]:
+                    notes.append(f"- {f['label']} is {level['name']}: {level['note']}")
             if parts:
-                blocks.append(f"{spec['label']}: " + "; ".join(parts))
+                blocks.append(f"{spec['label']}: " + "; ".join(parts)
+                              + ("\nWrite the scene to fit these:\n" + "\n".join(notes) if notes else ""))
         else:
             lines = []
             if spec["id"] == "memories":  # only what's still open, so the story comes back to it

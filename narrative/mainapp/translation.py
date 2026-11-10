@@ -192,11 +192,12 @@ def already_in(text, lang):
 # --- Story extras (letters, phone screens, milestones, news, keepsakes, suggested actions) ---
 # Only their words are translated; names, times, states and numbers stay as they are.
 EXTRA_FIELDS = {"document": ("label", "text", "detail"), "milestone": ("now", "because"),
-                "keepsake": ("title", "detail", "medium")}
+                "keepsake": ("title", "detail", "medium"), "news": ("medium",)}
 LIST_PROMPT = INSTRUCTIONS.replace(
     "Return only a JSON\nobject with one string field, text, containing the complete translation.",
     "The text is a JSON list of short pieces from one story; translate each one. Return only a JSON object with\n"
-    "one field, texts: the translated pieces, in the same order and the same number.")
+    "one field, texts: the translated pieces, in the same order and the same number. Translate every piece,\n"
+    "including short notes and captions: none stays in English (names stay as they are).")
 
 
 def _extra_slots(ops):
@@ -213,8 +214,9 @@ def _extra_slots(ops):
                     out.append((i, ("messages", j, "text"), m["text"]))
         if kind == "news":
             for j, item in enumerate(op.get("items") or []):
-                if isinstance(item, dict) and str(item.get("headline") or "").strip():
-                    out.append((i, ("items", j, "headline"), item["headline"]))
+                for f in ("headline", "source"):
+                    if isinstance(item, dict) and str(item.get(f) or "").strip():
+                        out.append((i, ("items", j, f), item[f]))
         if kind == "choices":
             for j, a in enumerate(op.get("actions") or []):
                 if isinstance(a, str) and a.strip():

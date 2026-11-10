@@ -319,11 +319,20 @@ def stage_after(p):
             "trackers": "story"}.get(p["kind"]) if applied or p["kind"] == "trackers" else None
 
 
+def _has_persona(session):
+    return bool(getattr(session.user, "persona_name", "")) or any(
+        x["kind"] == "persona" and x.get("status") == "applied" for x in session.proposals)
+
+
 def advance_stage(session, p):
     """Moves the setup's stage forward when a proposal shows they're past it (never back): Bulba doesn't
     always remember to call set_stage, and the panel and the guides it reads follow the stage.
     Returns the page event, or None."""
     target = stage_after(p) if session.mode != "chat" else None
+    # A character made before they said who they are (they asked for it first): the persona still comes next
+    if target == "character" and p["kind"] == "character" and not _has_persona(session) \
+            and STAGES.index(session.stage) < STAGES.index("persona"):
+        target = "persona"
     if target and STAGES.index(target) > STAGES.index(session.stage):
         session.stage = target
         return {"type": "stage", "stage": target}
@@ -1253,6 +1262,40 @@ def refused(session):
             "differently, or press **Skip this step** above and fill that part in yourself later (characters and "
             "your persona can be edited any time). Adult content in the chat itself is a switch: once you're in a "
             "chat, pen menu (✏️) → **⚙ This chat** → **🔞 Mature content**.")
+
+
+def failed_tail(session):
+    """The index of their last message when nothing but errors came after it (a turn that failed), else None."""
+    idx = next((i for i in range(len(session.events) - 1, -1, -1) if session.events[i].get("type") == "user"), None)
+    if idx is None or idx == len(session.events) - 1:
+        return None
+    return idx if all(e.get("type") == "error" for e in session.events[idx + 1:]) else None
+
+
+def _cut_to_last_user(session, keep_it):
+    """Bulba's conversation back to their last message (kept, or removed too)."""
+    i = next((i for i in range(len(session.messages) - 1, -1, -1) if session.messages[i].get("role") == "user"), None)
+    if i is not None:
+        session.messages = session.messages[:i + 1] if keep_it else session.messages[:i]
+
+
+def retry_failed(session):
+    """Their last message again, after a turn that failed (no second copy of it). Returns the new events."""
+    idx = failed_tail(session)
+    if idx is None:
+        raise ValueError("There's nothing to try again.")
+    del session.events[idx + 1:]
+    _cut_to_last_user(session, keep_it=True)
+    return run_turn(session, "")
+
+
+def remove_failed(session):
+    """Their last message and the error after it, gone (Bulba never answered it)."""
+    idx = failed_tail(session)
+    if idx is None:
+        raise ValueError("Only a message Bulba couldn't answer can be removed.")
+    del session.events[idx:]
+    _cut_to_last_user(session, keep_it=False)
 
 
 def run_turn(session, user_text, action_note=None, model_note=None):

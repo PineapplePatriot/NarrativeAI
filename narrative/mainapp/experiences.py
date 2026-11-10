@@ -95,6 +95,12 @@ def generate(template, profile, feel):
         *director_note,
     ]
     preset.setdefault('extras', {})['original_experience'] = {'id': feel, 'foundation': base, 'model': profile['id']}
+    # Thinking starts light: the lowest level the model has (off stays off); models with only on/off keep it on
+    from mainapp import samplers
+    effort = (preset.get('samplers') or {}).get('reasoning_effort')
+    light = samplers._effort_for('light', (profile.get('reasoning') or {}).get('choices') or {})
+    if isinstance(effort, dict) and effort.get('on') and effort.get('value') != 'off' and light:
+        preset['samplers']['reasoning_effort'] = {**effort, 'value': light}
     starter = {'id': profile['starters'][feel], 'model': profile['id'], 'experience': feel,
                'title': experience.get('name', experience['title']), 'kind': experience['title'],
                'tagline': f"{experience['title']}: {experience['description']}",

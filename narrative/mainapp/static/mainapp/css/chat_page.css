@@ -2319,3 +2319,46 @@ body.skin-lab .message-text .thought { color: #3d5a78; }
     background: rgba(255,255,255,.05); color: inherit; border: 1px solid rgba(167,139,250,.35); border-radius: 8px; padding: 6px 8px; }
 .watch-quotes.taste-edit li.dropped textarea { opacity: .4; text-decoration: line-through; }
 .watch-quotes.taste-edit .watch-x { position: static; flex: none; }
+
+/* The custom tracker before it has fields: say what to track, Bulba proposes them */
+.tr-custom-setup p { margin: 0 0 8px; font-size: .88rem; line-height: 1.45; }
+.tr-custom-setup textarea { width: 100%; box-sizing: border-box; resize: vertical; font: inherit; font-size: .88rem;
+    background: rgba(255,255,255,.05); color: inherit; border: 1px solid rgba(167,139,250,.35); border-radius: 8px; padding: 8px 10px; }
+.tr-custom-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.tr-custom-actions a.tr-btn { text-decoration: none; display: inline-flex; align-items: center; }
+
+/* Custom fields Bulba designed (trackers.js designedField) */
+.cf-card { border: 1px solid color-mix(in srgb, var(--c) 35%, transparent); border-radius: 14px; padding: 12px 14px; margin: 4px 0 8px;
+    background: color-mix(in srgb, var(--c) 7%, rgba(0,0,0,.25)); }
+.cf-head { display: flex; align-items: center; gap: 8px; }
+.cf-head b { font-size: 1rem; }
+.cf-ico { font-size: 1.1rem; color: var(--c); }
+.cf-val { margin-left: auto; font-weight: 700; display: flex; gap: 6px; align-items: center; }
+.cf-val small { opacity: .6; font-weight: 400; }
+.cf-badge, .cf-levels li.here em { background: var(--c); color: #111; border-radius: 999px; padding: 2px 10px; font-size: .78rem; font-weight: 700; font-style: normal; }
+.cf-bar { height: 8px; border-radius: 999px; background: rgba(255,255,255,.08); margin: 10px 0 4px; overflow: hidden; }
+.cf-bar i { display: block; height: 100%; border-radius: 999px; transition: width .6s; }
+.cf-ring { --p: 0; width: 72px; height: 72px; border-radius: 50%; margin: 10px auto 4px; display: grid; place-items: center;
+    background: radial-gradient(closest-side, #12131c 78%, transparent 80% 100%), conic-gradient(var(--c) calc(var(--p) * 1%), rgba(255,255,255,.08) 0); }
+.cf-ring b { font-size: 1.1rem; }
+.cf-stars { font-size: 1.3rem; letter-spacing: 2px; margin: 8px 0 2px; }
+.cf-stars span { opacity: .18; }
+.cf-counter { font-size: 2rem; font-weight: 800; margin: 6px 0 2px; }
+.cf-moves-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; font-size: .82rem; }
+.cf-moves b { display: block; font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; opacity: .6; margin-bottom: 4px; }
+.cf-moves span { display: flex; gap: 6px; line-height: 1.35; margin-bottom: 3px; }
+.cf-moves.up i { color: #34d399; font-style: normal; }
+.cf-moves.down i { color: #f87171; font-style: normal; }
+.cf-levels { list-style: none; margin: 10px 0 0; padding: 0; font-size: .84rem; }
+.cf-levels li { display: flex; align-items: center; gap: 10px; padding: 5px 8px; border-radius: 8px; }
+.cf-levels li.here { background: rgba(255,255,255,.06); }
+.cf-levels li em { margin-left: auto; }
+.cf-range { opacity: .55; min-width: 52px; font-variant-numeric: tabular-nums; }
+.tr-custom-more { padding: 0 12px 6px; }
+.cf-triggers { margin-top: 8px; font-size: .82rem; display: flex; flex-direction: column; gap: 3px; }
+.cf-triggers b { font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; opacity: .6; }
+.cf-triggers small { opacity: .6; }
+
+/* Write for me at work: the box is locked and says so */
+#messageInput.writing { cursor: progress; }
+#messageInput.writing::placeholder { color: var(--accent-1, #a78bfa); opacity: 1; white-space: nowrap; }
