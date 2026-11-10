@@ -69,7 +69,8 @@
                 <b>{{ g.label }}</b>
                 {% if g.key == 'voice' %}
                 <select id="qVoice"><option value="">No particular voice</option>
-                    {% for m in g.modules %}<option value="{{ m.key }}" {% if m.on %}selected{% endif %}>{{ m.title|slice:"7:" }}</option>{% endfor %}</select>
+                    {% for m in g.modules %}<option value="{{ m.key }}" {% if m.on %}selected{% endif %}>{{ m.title|slice:"7:" }}</option>{% endfor %}
+                    {% for v in line_voices %}<option value="line:{{ v.value }}" {% if v.value == basics.voice %}selected{% endif %}>{{ v.label }}</option>{% endfor %}</select>
                 {% else %}
                 {% for m in g.modules %}
                 <label class="q-mod{% if m.adult %} q-mod-adult{% endif %}" {% if m.adult and not mature_on %}hidden{% endif %}>
@@ -163,7 +164,7 @@
 {{ quick_data|json_script:"quick-data" }}
 <script>const QUICK = { url: "{% url 'quick_setup' %}", bulba: "{% url 'bulba' %}?embed=1", presets: "{% url 'presets' %}" };</script>
 <script src="{% static 'js/costs.js' %}?v=1"></script>
-<script src="{% static 'mainapp/js/quick.js' %}?v=10"></script>
+<script src="{% static 'mainapp/js/quick.js' %}?v=11"></script>
 <script>window.NA_PAGE_TOUR = {name: 'quick', auto: true};</script>
 </body>
 </html>

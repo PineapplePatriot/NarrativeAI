@@ -1987,6 +1987,20 @@ class StarterTests(ChatPromptTests):
         now = basics.read(presets.normalize(presets.get_active(self.user).data))
         self.assertEqual(now, {"initiative": "drive", "pov": "first", "tense": "past"})
 
+    def test_quick_setup_offers_every_narration_voice(self):
+        from mainapp import basics, presets
+        url = reverse("quick_setup")
+        voices = [v["value"] for v in self.client.get(url).context["line_voices"]]
+        self.assertEqual(voices, ["anime", "realism", "fanfic", "webnovel"])
+        self.client.post(url, json.dumps({"voice": "anime", "modules": {"voice_camus": False}}),
+                         content_type="application/json")
+        self.assertEqual(basics.read(presets.normalize(presets.get_active(self.user).data))["voice"], "anime")
+        self.client.post(url, json.dumps({"voice": "", "modules": {"voice_camus": True}}),
+                         content_type="application/json")
+        data = presets.normalize(presets.get_active(self.user).data)
+        self.assertNotIn("voice", basics.read(data))  # one voice at a time: the author voice replaced it
+        self.assertTrue(next(b for b in data["blocks"] if b["name"] == "Voice: Camus (wry)")["enabled"])
+
     def test_quick_setup_inner_thoughts_go_in_the_basics(self):
         from mainapp import presets
         url = reverse("quick_setup")

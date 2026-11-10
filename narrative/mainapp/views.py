@@ -3134,6 +3134,8 @@ def quick_setup(request):
         "status": _quick_status(request.user, picked, characters),
         "languages": translation.LANGUAGES, "basics": (qb := _quick_basics(request.user)),
         "questions": _quick_questions(qb, QUICK_MAIN), "more_questions": _quick_questions(qb, QUICK_MORE),
+        "line_voices": [{"value": v, "label": l} for v, l in basics_mod.question("voice")["options"]
+                        if v != "any" and f"voice_{v}" not in experiences.catalog()["modules"]],
         "model_name": (f"{chat_model}, borrowed from {profile['name']} (its closest relative; not tested on yours)"
                        if profile.get("_borrowed") else f"{chat_model} (no notes for it yet: plain presets for any model)"
                        if profile.get("_generic") else profile.get("name") or chat_model),
@@ -3148,10 +3150,10 @@ def quick_setup(request):
 # Quick setup's Basics: point of view, tense, speech and actions (Bulba's own wording, agent.BASICS), kept as one
 # "Basics" block in the active preset; the story language is the profile's (translation workflow)
 QUICK_BASICS = ("pov", "tense", "format", "interior", "colors", "pacing", "initiative", "invention", "genres",
-                "author", "keep_out", "length", "control")
+                "voice", "author", "keep_out", "length", "control")
 # length goes in the preset's Reply length block, control is the Your character contract; the rest are Basics lines
 BASICS_LINES = ("pov", "tense", "format", "interior", "colors", "pacing", "initiative", "invention", "genres",
-                "author", "keep_out")  # written by mainapp/basics.py, the same lines Bulba's form writes
+                "voice", "author", "keep_out")  # written by mainapp/basics.py, the same lines Bulba's form writes
 
 
 def _module_groups(preset):

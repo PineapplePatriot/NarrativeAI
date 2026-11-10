@@ -157,7 +157,8 @@ function modulePicks() {
     const picks = {};
     document.querySelectorAll('[data-module]').forEach(box => { if (!box.closest('[hidden]')) picks[box.dataset.module] = box.checked; });
     const voice = $('qVoice');
-    if (voice) [...voice.options].forEach(o => { if (o.value) picks[o.value] = o.value === voice.value; });
+    // an author voice is a module; Anime, Fanfic and the like are a Basics line (sent as basics' voice)
+    if (voice) [...voice.options].forEach(o => { if (o.value && !o.value.startsWith('line:')) picks[o.value] = o.value === voice.value; });
     return picks;
 }
 
@@ -180,6 +181,7 @@ async function save(go) {
         mature: $('qMature').checked,
         display_language: $('qLanguage').value,
         ...basicPicks(),
+        voice: $('qVoice') && $('qVoice').value.startsWith('line:') ? $('qVoice').value.slice(5) : '',
         modules: modulePicks(),
         custom_object: $('qCustomObject') ? $('qCustomObject').value : undefined,
     };
