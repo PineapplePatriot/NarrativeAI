@@ -504,8 +504,8 @@ def tool_look_up(session, args):
     if not query:
         return {"error": "Say what to look up."}, []
     profile, _ = ai_client.resolve(session.user, "bulba")
-    if profile.provider != ConnectionProfile.PROVIDER_OPENROUTER:
-        return {"error": "Web search only works through OpenRouter. Rely on what you know, and say so."}, []
+    if profile.provider not in ConnectionProfile.HOSTED:
+        return {"error": "Web search only works through OpenRouter or NanoGPT. Rely on what you know, and say so."}, []
     _check_budget(session)
     set_activity(session, f"Looking up {query[:60]} on the web…")
     message, cost = ai_client.complete_message(

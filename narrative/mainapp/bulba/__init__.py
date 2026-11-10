@@ -6,6 +6,6 @@ Bulba, the setup assistant: a talking potato that sets up NarrativeAI through co
 - progress.py how far the setup has come (the side panel's steps)
 - watch.py    Bulba Watch: reads a chat now and then for habits that keep repeating, and the reply pace
 
-Bulba runs on a model we choose (ai_client.BULBA_MODEL) through the user's OpenRouter key.
+Bulba runs on a model we choose (ai_client.BULBA_MODEL) through the user's OpenRouter or NanoGPT key.
 Every writing sample it shows comes from the model the user will actually chat with.
 """

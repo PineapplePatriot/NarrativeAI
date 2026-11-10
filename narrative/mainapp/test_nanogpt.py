@@ -72,3 +72,35 @@ class NanoGPTConnectionTests(TestCase):
             self.assertIn("doesn't list", msg)
         with mock.patch("mainapp.ai_client.requests.get", return_value=mock.Mock(status_code=401)):
             self.assertEqual(ai_client.test_connection("nanogpt", "", "bad", "")[1], "NanoGPT rejected this key.")
+
+    def test_web_search_becomes_the_online_suffix(self):
+        sent = []
+        reply = {"choices": [{"message": {"content": "Found it.", "annotations": []}}]}
+
+        def fake(url, headers=None, json=None, **kw):
+            sent.append(json)
+            return mock.Mock(status_code=200, json=mock.Mock(return_value=reply))
+
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=fake):
+            ai_client.complete_message(self.user, "bulba", [{"role": "user", "content": "Who is Il Dottore?"}],
+                                       plugins=[{"id": "web", "max_results": 5}])
+        self.assertEqual(sent[0]["model"], "xiaomi/mimo-v2.6-pro:online")
+        self.assertNotIn("plugins", sent[0])
+
+    def test_pictures_come_from_nanogpts_image_endpoint_with_the_reference(self):
+        import base64
+        png = b"\x89PNG fake"
+        sent = []
+
+        def fake(url, headers=None, json=None, **kw):
+            sent.append((url, json))
+            return mock.Mock(status_code=200, json=mock.Mock(return_value={
+                "data": [{"b64_json": base64.b64encode(png).decode()}], "cost": 0.04}))
+
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=fake):
+            data, cost = ai_client.generate_image(self.user, "Rose, smiling", reference=b"ref", reference_type="image/png")
+        self.assertEqual((data, cost), (png, 0.04))
+        url, payload = sent[0]
+        self.assertEqual(url, "https://nano-gpt.com/api/v1/images/generations")
+        self.assertEqual(payload["model"], "nano-banana-2")
+        self.assertTrue(payload["imageDataUrl"].startswith("data:image/png;base64,"))

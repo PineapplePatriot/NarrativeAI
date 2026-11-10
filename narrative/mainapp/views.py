@@ -3195,7 +3195,7 @@ def bulba_explain(request):
     if not isinstance(data, dict):
         return JsonResponse({"error": "Invalid request."}, status=400)
     if not ai_client.has_connection(request.user):
-        return JsonResponse({"error": "Bulba needs your OpenRouter key first (the welcome page)."}, status=400)
+        return JsonResponse({"error": "Bulba needs your OpenRouter or NanoGPT key first (the welcome page)."}, status=400)
     try:
         return JsonResponse({"text": explain.explain(request.user, data)})
     except ai_client.AIError as e:

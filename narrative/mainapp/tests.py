@@ -7284,7 +7284,7 @@ class HelpAndToursTests(BulbaTests):
         self.main.delete()
         resp = self.explain(label="Presets")
         self.assertEqual(resp.status_code, 400)
-        self.assertIn("OpenRouter key", resp.json()["error"])
+        self.assertIn("OpenRouter or NanoGPT key", resp.json()["error"])
 
     def test_every_page_has_the_help_button_and_the_tour(self):
         for name in ("home", "presets", "bulba", "users:extras", "users:profile"):

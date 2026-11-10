@@ -62,7 +62,7 @@ TASKS = {
     },
     "bulba": {
         "label": "Bulba",
-        "help": "The setup assistant. Runs on a model we pick, through your OpenRouter key.",
+        "help": "The setup assistant. Runs on a model we pick, through your OpenRouter or NanoGPT key.",
         "timeout": 120,
         "hidden": True,  # not on the Connections page: the model is ours to choose
     },
@@ -163,12 +163,16 @@ def _hosted(profile):
 
 
 def _for_provider(profile, payload):
-    """NanoGPT: the model name as NanoGPT spells it; OpenRouter-only fields (cost reporting, routing, Gemini safety
-    settings, plugins) aren't sent there."""
+    """NanoGPT: the model name as NanoGPT spells it, web search as its ":online" suffix; OpenRouter-only fields
+    (cost reporting, routing, Gemini safety settings, plugins) aren't sent there."""
     if profile.provider != ConnectionProfile.PROVIDER_NANOGPT:
         return
     from mainapp import nanogpt
     payload["model"] = nanogpt.model_for(str(payload.get("model") or ""), profile)
+    # OpenRouter's web plugin is NanoGPT's ":online" model suffix (stripped again on their side before routing)
+    if any(isinstance(p, dict) and p.get("id") == "web" for p in payload.get("plugins") or []) \
+            and ":online" not in payload["model"]:
+        payload["model"] += ":online"
     for key in ("usage", "provider", "safety_settings", "plugins"):
         payload.pop(key, None)
 
@@ -686,6 +690,50 @@ def default_image_model(models=None):
     return (banana or models)[0]["id"]
 
 
+def _nanogpt_image(user, profile, prompt, reference, reference_type, timeout):
+    """One picture from NanoGPT's OpenAI-style image endpoint (Nano Banana: settings.NANOGPT_IMAGE_MODEL), with
+    the reference picture as a data URL for consistent moods. Returns (bytes, cost or None)."""
+    import base64
+    from django.conf import settings
+    model = getattr(settings, "NANOGPT_IMAGE_MODEL", "nano-banana-2")
+    payload = {"model": model, "prompt": prompt, "n": 1, "response_format": "b64_json"}
+    if reference:
+        url = f"data:{reference_type};base64,{base64.b64encode(reference).decode('ascii')}"
+        payload["imageDataUrl"] = url  # NanoGPT's own name for a reference picture
+        payload["image"] = [url]       # the OpenAI-style edit field, for whichever it reads
+    try:
+        resp = requests.post(f"{profile.api_url}/images/generations", headers=_headers(profile), json=payload,
+                             timeout=TEST_TIMEOUT or timeout)
+    except requests.Timeout:
+        raise AIError(f"The picture took longer than {timeout} seconds. Try again.")
+    except requests.RequestException as e:
+        raise AIError(f"Could not reach NanoGPT ({e.__class__.__name__}).")
+    if resp.status_code >= 400:
+        logging.getLogger(__name__).warning("NanoGPT image %s returned %s: %s", model, resp.status_code, _error_text(resp)[:600])
+        raise AIError(f"NanoGPT's image model returned an error ({resp.status_code}): {_error_text(resp)}")
+    try:
+        data = resp.json()
+        item = (data.get("data") or [{}])[0]
+    except (ValueError, AttributeError, IndexError, TypeError):
+        raise AIError("NanoGPT's image model sent a reply I couldn't read.")
+    cost = data.get("cost") if isinstance(data.get("cost"), (int, float)) else (data.get("usage") or {}).get("cost")
+    record_cost(user, "sprites", model, cost)
+    cost = float(cost) if isinstance(cost, (int, float)) else None
+    if item.get("b64_json"):
+        return base64.b64decode(item["b64_json"]), cost
+    url = item.get("url") or ""
+    if url.startswith("data:") and ";base64," in url:
+        return base64.b64decode(url.split(";base64,", 1)[1]), cost
+    if url.startswith("https://"):
+        try:
+            img = requests.get(url, timeout=60)
+            if img.ok and img.content:
+                return img.content, cost
+        except requests.RequestException:
+            pass
+    raise AIError("NanoGPT's image model answered without a picture.")
+
+
 def generate_image(user, prompt, reference=None, reference_type="image/png", timeout=180, model=None):
     """
     One picture from an image model on OpenRouter (Nano Banana: settings.SPRITE_IMAGE_MODEL), optionally
@@ -695,8 +743,10 @@ def generate_image(user, prompt, reference=None, reference_type="image/png", tim
     from django.conf import settings
     check_limit(user)
     profile = main_profile(user)
+    if profile is not None and profile.provider == ConnectionProfile.PROVIDER_NANOGPT and profile.api_key:
+        return _nanogpt_image(user, profile, prompt, reference, reference_type, timeout)
     if profile is None or profile.provider != ConnectionProfile.PROVIDER_OPENROUTER or not profile.api_key:
-        raise AIError("Making pictures needs an OpenRouter key (set it on the welcome page).")
+        raise AIError("Making pictures needs an OpenRouter or NanoGPT key (set it on the welcome page).")
     model = model or default_image_model()
     content = [{"type": "text", "text": prompt}]
     if reference:
