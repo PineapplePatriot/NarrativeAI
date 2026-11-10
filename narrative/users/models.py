@@ -44,13 +44,18 @@ class ApiConfig(models.Model):
 class ConnectionProfile(models.Model):
     """One AI connection: where to send requests, with which key and model."""
     PROVIDER_OPENROUTER = "openrouter"
+    PROVIDER_NANOGPT = "nanogpt"
     PROVIDER_CUSTOM = "openai_compatible"
     PROVIDERS = [
         (PROVIDER_OPENROUTER, "OpenRouter"),
+        (PROVIDER_NANOGPT, "NanoGPT"),
         (PROVIDER_CUSTOM, "OpenAI-compatible (custom URL)"),
     ]
+    # Hosted catalogues where the app's own model names work (NanoGPT's are matched to its list: mainapp/nanogpt.py)
+    HOSTED = (PROVIDER_OPENROUTER, PROVIDER_NANOGPT)
     # NARRATIVE_OPENROUTER_URL points the app at a stand-in server for local testing; leave it unset normally
     OPENROUTER_URL = os.environ.get("NARRATIVE_OPENROUTER_URL") or "https://openrouter.ai/api/v1"
+    NANOGPT_URL = os.environ.get("NARRATIVE_NANOGPT_URL") or "https://nano-gpt.com/api/v1"
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="connection_profiles")
     name = models.CharField(max_length=100)
@@ -71,7 +76,14 @@ class ConnectionProfile(models.Model):
     def api_url(self):
         if self.provider == self.PROVIDER_OPENROUTER:
             return self.OPENROUTER_URL
+        if self.provider == self.PROVIDER_NANOGPT:
+            return self.NANOGPT_URL
         return self.base_url.rstrip("/")
+
+    @property
+    def hosted(self):
+        """OpenRouter or NanoGPT: the app's default models (Bulba's, the translator) are available there."""
+        return self.provider in self.HOSTED
 
     @property
     def key_hint(self):

@@ -157,6 +157,22 @@ GEMINI_SAFETY = [{"category": c, "threshold": "OFF"} for c in (
     "HARM_CATEGORY_DANGEROUS_CONTENT", "HARM_CATEGORY_CIVIC_INTEGRITY")]
 
 
+def _hosted(profile):
+    """OpenRouter or NanoGPT (the app's own model names work there)."""
+    return getattr(profile, "provider", "") in ConnectionProfile.HOSTED
+
+
+def _for_provider(profile, payload):
+    """NanoGPT: the model name as NanoGPT spells it; OpenRouter-only fields (cost reporting, routing, Gemini safety
+    settings, plugins) aren't sent there."""
+    if profile.provider != ConnectionProfile.PROVIDER_NANOGPT:
+        return
+    from mainapp import nanogpt
+    payload["model"] = nanogpt.model_for(str(payload.get("model") or ""), profile)
+    for key in ("usage", "provider", "safety_settings", "plugins"):
+        payload.pop(key, None)
+
+
 def _route(profile, payload):
     """OpenRouter provider routing from the model's profile (MiMo: only hosts whose filters don't refuse ordinary
     adult fiction). Left alone when the request already says where to go."""
@@ -185,7 +201,7 @@ def resolve(user, task):
         if profile is None:
             raise NoConnection("No AI connection is set up yet.")
         # Through OpenRouter Bulba uses our model; on a custom server (local testing) the server's own
-        return profile, (BULBA_MODEL if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER else profile.model)
+        return profile, (BULBA_MODEL if _hosted(profile) else profile.model)
     setting = get_task_setting(user, task)
     chat_setting = setting if task == "chat" else get_task_setting(user, "chat")
     profile = setting.profile or main_profile(user)
@@ -194,7 +210,7 @@ def resolve(user, task):
 
     if setting.model:
         model = setting.model
-    elif task == "translation" and setting.profile is None and profile.provider == ConnectionProfile.PROVIDER_OPENROUTER:
+    elif task == "translation" and setting.profile is None and _hosted(profile):
         model = TRANSLATION_MODEL
     elif setting.profile is None and chat_setting.model:
         model = chat_setting.model  # follows the main chat's model override
@@ -314,7 +330,7 @@ LIGHT_TASKS = ("summary", "trackers", "emotion", "voice_split", "watch", "writin
 
 
 def _light_reasoning(profile, task, payload, user=None):
-    if task not in LIGHT_TASKS or "reasoning" in payload or profile.provider != ConnectionProfile.PROVIDER_OPENROUTER:
+    if task not in LIGHT_TASKS or "reasoning" in payload or not _hosted(profile):
         return
     if user is not None:
         from mainapp import samplers
@@ -342,6 +358,7 @@ def _request(user, task, messages, timeout=None, **params):
     if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER and str(payload["model"]).startswith("google/"):
         payload.setdefault("safety_settings", GEMINI_SAFETY)
     _route(profile, payload)
+    _for_provider(profile, payload)
     from mainapp import mature
     payload["messages"] = mature.for_model(payload.get("messages") or [], payload.get("model"))
     _light_reasoning(profile, task, payload, user)
@@ -357,10 +374,11 @@ def _request(user, task, messages, timeout=None, **params):
 
     # A provider's filter refused one of Bulba's requests: this request again on the next model in the chain
     chain = [BULBA_MODEL] + BULBA_FALLBACKS
-    if (task in ("bulba", "watch", "polish") and payload["model"] in chain[:-1]
-            and profile.provider == ConnectionProfile.PROVIDER_OPENROUTER and _blocked_reply(resp)):
-        nxt = chain[chain.index(payload["model"]) + 1]
-        logging.getLogger(__name__).info("%s refused one of Bulba's requests; trying %s", payload["model"], nxt)
+    asked = str(params.get("model") or model)  # the app's name for it (NanoGPT's spelling may differ)
+    if (task in ("bulba", "watch", "polish") and asked in chain[:-1]
+            and _hosted(profile) and _blocked_reply(resp)):
+        nxt = chain[chain.index(asked) + 1]
+        logging.getLogger(__name__).info("%s refused one of Bulba's requests; trying %s", asked, nxt)
         return _request(user, task, messages, timeout, **{**params, "model": nxt})
 
     if resp.status_code >= 400:
@@ -439,6 +457,19 @@ def test_connection(provider, base_url, api_key, model):
     if provider == ConnectionProfile.PROVIDER_CUSTOM and not probe.base_url:
         return False, "Enter the API base URL."
     try:
+        if provider == ConnectionProfile.PROVIDER_NANOGPT:
+            if not api_key:
+                return False, "Enter an API key."
+            from mainapp import nanogpt
+            resp = requests.get(f"{probe.api_url}/models", headers=_headers(probe), timeout=15)
+            if resp.status_code in (401, 403):
+                return False, "NanoGPT rejected this key."
+            if resp.status_code >= 400:
+                return False, f"NanoGPT error ({resp.status_code}): {_error_text(resp)}"
+            ids = nanogpt.model_ids(probe, refresh=True)
+            if model and ids and nanogpt.model_for(model, probe, ids) not in ids:
+                return False, f"NanoGPT doesn't list {model} right now. Pick another model or try again later."
+            return True, "NanoGPT accepted the key."
         if provider == ConnectionProfile.PROVIDER_OPENROUTER:
             if not api_key:
                 return False, "Enter an API key."
@@ -490,6 +521,7 @@ def stream(user, task, messages, timeout=None, **params):
     if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER and str(payload["model"]).startswith("google/"):
         payload.setdefault("safety_settings", GEMINI_SAFETY)  # Gemini's adjustable filters off (see GEMINI_SAFETY)
     _route(profile, payload)
+    _for_provider(profile, payload)
     from mainapp import mature
     payload["messages"] = mature.for_model(payload.get("messages") or [], payload.get("model"))
     _light_reasoning(profile, task, payload, user)
