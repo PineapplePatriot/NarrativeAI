@@ -6,7 +6,7 @@ from mainapp.bulba import agent, library
 class WritingQualityTests(SimpleTestCase):
     def test_all_authored_variants_assemble_one_quality_block(self):
         authored = [s for s in starters.all_starters() if s['experience'] in starters.READY_FEELS]
-        self.assertEqual(len(authored), 36)
+        self.assertEqual(len(authored), 48)
         for starter in authored:
             with self.subTest(starter=starter['id']):
                 blocks = starter['preset']['blocks']

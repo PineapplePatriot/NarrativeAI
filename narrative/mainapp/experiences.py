@@ -21,7 +21,7 @@ import json
 from functools import lru_cache
 from pathlib import Path
 
-EXPERIENCES = ('conversation', 'drama', 'storytelling')
+EXPERIENCES = ('conversation', 'drama', 'storytelling', 'visual')
 CONTRACTS = {
     'dont': "Write the other characters and world. Do not write {{user}}'s new dialogue, voluntary actions, decisions or private thoughts. Respond to actions already established and apply external consequences within the agreed scene rules. Stop where the player's next contribution is needed.",
     'write': "Write the cast and world, including {{user}} as a scene character with dialogue, actions and thoughts. Treat the participant's corrections and stated character choices as authoritative. Do not expand these shared-authorship permissions into instructions about the real participant.",
@@ -76,8 +76,9 @@ def generate(template, profile, feel):
     def prompt(name, content, **extra):
         return {'name': name, 'kind': 'prompt', 'role': 'system', 'enabled': True, 'content': content, **extra}
 
-    def module(key, m):
-        return prompt(m['title'], m.get('variants', {}).get(profile['id'], m['content']), enabled=m['default'])
+    def module(key, m):  # an experience can switch extra modules on (Storybook: the designed objects)
+        return prompt(m['title'], m.get('variants', {}).get(profile['id'], m['content']),
+                      enabled=m['default'] or key in experience.get('modules_on', ()))
 
     base = base_of(profile['id'])
     preset['blocks'] = [

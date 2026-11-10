@@ -16,6 +16,7 @@ EXPERIENCES = {
     "conversation": {"label": "Tête-à-tête", "order": 0},  # Conversation & Chemistry
     "drama": {"label": "Heartstrings", "order": 1},  # Character Drama (the default for new accounts)
     "storytelling": {"label": "Deep Water", "order": 2},  # Immersive Storytelling
+    "visual": {"label": "Storybook", "order": 3},  # Visual Storytelling: Deep Water with designed objects on
     "back_and_forth": {"label": "Back-and-forth", "order": 0},
     "rich_scene": {"label": "Rich scene", "order": 1},
     "director": {"label": "Director seat", "order": 2},

@@ -18,6 +18,16 @@
       "content": "Write a shaped passage with a clear center of attention. Give the present scene\nroom for atmosphere, bodily presence, the chosen interiority and a sense of place.\nSelect details through the viewpoint and narrator rather than distributing equal\nattention to every feature, object or movement.\n\nLet detail be pleasurable as well as informative. A lingering gesture, sound,\ndigression or image may belong when it sustains the chosen mood and voice. Keep\nits scale proportionate to the surrounding passage. Avoid renewing the same\nappearance inventory or explaining an image immediately after it has landed.\n\nWeave dialogue into the passage without burying its purpose. Let characters'\nintentions shape the scene beneath its texture. If the narrator is opinionated,\ngive the commentary a specific perspective rather than interchangeable aphorisms.\n\nSpend additional space on the current encounter before expanding the cast,\nmoving time forward or resolving its outcome. Allow an unresolved exchange to\nhold a substantial passage. Finish where the player's response can matter.",
       "description": "Sustained attention to people, place and the chosen narrative voice.",
       "name": "Deep Water"
+    },
+    "visual": {
+      "title": "Visual Storytelling",
+      "name": "Storybook",
+      "description": "Deep Water's sustained scenes, plus a scene banner and in-story objects the AI designs in the story's style.",
+      "modules_on": [
+        "html_banner",
+        "html_objects"
+      ],
+      "content": "Write a shaped passage with a clear center of attention. Give the present scene\nroom for atmosphere, bodily presence, the chosen interiority and a sense of place.\nSelect details through the viewpoint and narrator rather than distributing equal\nattention to every feature, object or movement.\n\nLet detail be pleasurable as well as informative. A lingering gesture, sound,\ndigression or image may belong when it sustains the chosen mood and voice. Keep\nits scale proportionate to the surrounding passage. Avoid renewing the same\nappearance inventory or explaining an image immediately after it has landed.\n\nWeave dialogue into the passage without burying its purpose. Let characters'\nintentions shape the scene beneath its texture. If the narrator is opinionated,\ngive the commentary a specific perspective rather than interchangeable aphorisms.\n\nSpend additional space on the current encounter before expanding the cast,\nmoving time forward or resolving its outcome. Allow an unresolved exchange to\nhold a substantial passage. Finish where the player's response can matter.\n\nThis story is also shown, not only told: the reader sees a scene banner when the place or time changes and designed in-story objects (letters, screens, signs, notices) when the scene includes them. Keep the prose complete without them; an object adds information or texture, it doesn't replace narration."
     }
   },
   "extensions": {

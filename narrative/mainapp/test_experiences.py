@@ -5,7 +5,7 @@ from mainapp.bulba import agent, control
 
 class ExperienceTests(SimpleTestCase):
     def test_catalog_has_three_original_experiences_per_model(self):
-        self.assertEqual(len(starters.all_starters()), 36)  # eleven models and "Any model"
+        self.assertEqual(len(starters.all_starters()), 48)  # four styles for eleven models and "Any model"
         for s in starters.all_starters():
             self.assertIn(s['experience'], experiences.EXPERIENCES)
             self.assertEqual(s['based_on'], [])
@@ -252,7 +252,8 @@ class FirstPresetTests(TestCase):
 
     def test_names_and_world_modules(self):
         titles = {s["experience"]: s["title"] for s in starters.all_starters() if s["model"] == "mimo-v2-6-pro"}
-        self.assertEqual(titles, {"conversation": "Tête-à-tête", "drama": "Heartstrings", "storytelling": "Deep Water"})
+        self.assertEqual(titles, {"conversation": "Tête-à-tête", "drama": "Heartstrings", "storytelling": "Deep Water",
+                                  "visual": "Storybook"})
         self.assertIn("Character Drama", starters.get("mimo-experience-drama")["description"])
         world = [m["title"] for m in experiences.catalog()["modules"].values() if m["group"] == "world"]
         for t in ("World: Aliens", "World: Vampires", "World: Prophetic visions"):
@@ -389,3 +390,13 @@ class DesignedObjectTests(SimpleTestCase):
             self.assertFalse(m['default'])
             self.assertIn('```html', m['content'])
             self.assertIn('data-label', m['content'])
+
+
+class StorybookTests(SimpleTestCase):
+    def test_storybook_is_deep_water_with_designed_objects_on(self):
+        s = starters.get('glm-experience-visual')
+        self.assertEqual(s['title'], 'Storybook')
+        on = {b.get('name') for b in s['preset']['blocks'] if b.get('enabled')}
+        self.assertTrue({'Scene banner (AI-designed)', 'Any in-story object (AI-designed)', 'Writing quality'} <= on)
+        self.assertNotIn('Scene banner (AI-designed)',
+                         {b.get('name') for b in starters.get('glm-experience-storytelling')['preset']['blocks'] if b.get('enabled')})

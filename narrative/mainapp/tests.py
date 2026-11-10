@@ -1842,7 +1842,7 @@ class GeminiArgonTests(ChatPromptTests):
     def test_argon_ready_setups_start_on_low_thinking_with_room(self):
         from mainapp import starters
         ready = starters.ready_for("gemini-4-argon")
-        self.assertEqual({r["feel"] for r in ready}, {"conversation", "drama", "storytelling"})
+        self.assertEqual({r["feel"] for r in ready}, {"conversation", "drama", "storytelling", "visual"})
         for r in ready:
             s = starters.get(r["id"])["preset"]["samplers"]
             self.assertEqual(s["reasoning_effort"]["value"], "low")
@@ -1856,7 +1856,7 @@ class StarterTests(ChatPromptTests):
     def test_every_starter_is_a_sound_preset_for_its_model(self):
         from mainapp import model_profiles, presets, samplers, starters
         all_s = starters.all_starters()
-        self.assertEqual(len(all_s), 36)  # three original experiences for each of the eleven models and "Any model"
+        self.assertEqual(len(all_s), 48)  # four original experiences for each of the eleven models and "Any model"
         for s in all_s:
             profile = model_profiles.by_id(s["model"])
             self.assertEqual(profile["starters"][s["experience"]], s["id"])
@@ -1897,7 +1897,8 @@ class StarterTests(ChatPromptTests):
         plain = model_profiles.for_style("mistralai/mistral-large")
         self.assertTrue(plain["_generic"])
         self.assertEqual([r["id"] for r in starters.ready_for(plain["id"])],
-                         ["any-experience-conversation", "any-experience-drama", "any-experience-storytelling"])
+                         ["any-experience-conversation", "any-experience-drama", "any-experience-storytelling",
+                          "any-experience-visual"])
         self.assertNotIn("Any model", model_profiles.known_names())  # never offered as a model to pick
         self.assertIsNone(model_profiles.for_style(""))
         # the plain presets: no stock gestures, no metaphors to imitate
@@ -2007,7 +2008,7 @@ class StarterTests(ChatPromptTests):
         groups = self.client.get(reverse("presets")).context["preset_page"]["starters"]
         self.assertTrue(groups[0]["yours"])
         self.assertEqual(groups[0]["model_name"], "Claude Opus 5.5")
-        self.assertEqual([s["title"] for s in groups[0]["starters"]], ["Tête-à-tête", "Heartstrings", "Deep Water"])
+        self.assertEqual([s["title"] for s in groups[0]["starters"]], ["Tête-à-tête", "Heartstrings", "Deep Water", "Storybook"])
 
 
 class WelcomeTests(TestCase):
@@ -5552,7 +5553,8 @@ class SetupRoutesTests(BulbaTests):
         self.client.get(reverse("bulba"))
         data = self.api(action="route", route="fast").json()
         routes = [c["route"] for c in data["events"][-1]["choices"]]
-        self.assertEqual(routes, ["fast:opus-experience-conversation", "fast:opus-experience-drama", "fast:opus-experience-storytelling"])
+        self.assertEqual(routes, ["fast:opus-experience-conversation", "fast:opus-experience-drama", "fast:opus-experience-storytelling",
+                                  "fast:opus-experience-visual"])
         self.assertTrue(all(c["hint"] for c in data["events"][-1]["choices"]))
         data = self.api(action="route", route="fast:opus-director").json()
         # First the chat's memory (a slider with what a message costs), then who they are
@@ -5662,7 +5664,7 @@ class WelcomeReadyPresetTests(TestCase):
 
     def test_saving_the_model_lists_its_ready_presets(self):
         data = self.post(model="mimo-v2-6-pro", skip_check=True).json()
-        self.assertEqual([r["feel"] for r in data["ready"]], ["conversation", "drama", "storytelling"])
+        self.assertEqual([r["feel"] for r in data["ready"]], ["conversation", "drama", "storytelling", "visual"])
         self.assertTrue(all(r["tagline"] for r in data["ready"]))
 
     def test_a_ready_preset_is_applied_without_bulba(self):
@@ -7248,7 +7250,7 @@ class HelpAndToursTests(BulbaTests):
         self.assertRedirects(resp, reverse("quick_setup"), fetch_redirect_response=False)
         page = self.client.get(reverse("quick_setup"))
         self.assertContains(page, "How roleplay works here")
-        self.assertEqual(len(page.context["ready"]), 3)  # the model's tested writing styles
+        self.assertEqual(len(page.context["ready"]), 4)  # the model's tested writing styles
         self.assertContains(page, "Let Bulba do it", count=6)
         self.assertNotContains(page, ">None<")
         self.assertContains(self.client.get(reverse("bulba")), "Switch to the quick setup")  # halfway, too

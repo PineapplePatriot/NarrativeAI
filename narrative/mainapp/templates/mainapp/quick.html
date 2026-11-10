@@ -91,7 +91,7 @@
                 {% for m in g.modules %}
                 <label class="q-mod{% if m.adult %} q-mod-adult{% endif %}" {% if m.adult and not mature_on %}hidden{% endif %}>
                     <input type="checkbox" data-module="{{ m.key }}" {% if m.on %}checked{% endif %}>
-                    <span><b>{{ m.title }}</b><small>{{ m.about }}</small></span></label>
+                    <span><b>{% if g.key == 'objects' %}{{ m.title|cut:" (AI-designed)" }}{% else %}{{ m.title }}{% endif %}</b><small>{{ m.about }}</small></span></label>
                 {% if m.key == 'html_custom' %}<textarea id="qCustomObject" class="q-custom-object" rows="2" maxlength="600"
                     placeholder="e.g. A character status card after each reply: mood, health, what they want right now"
                     {% if not m.on %}hidden{% endif %}>{{ m.custom }}</textarea>{% endif %}
