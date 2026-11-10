@@ -2319,3 +2319,10 @@ body.skin-lab .message-text .thought { color: #3d5a78; }
     background: rgba(255,255,255,.05); color: inherit; border: 1px solid rgba(167,139,250,.35); border-radius: 8px; padding: 6px 8px; }
 .watch-quotes.taste-edit li.dropped textarea { opacity: .4; text-decoration: line-through; }
 .watch-quotes.taste-edit .watch-x { position: static; flex: none; }
+
+/* The custom tracker before it has fields: say what to track, Bulba proposes them */
+.tr-custom-setup p { margin: 0 0 8px; font-size: .88rem; line-height: 1.45; }
+.tr-custom-setup textarea { width: 100%; box-sizing: border-box; resize: vertical; font: inherit; font-size: .88rem;
+    background: rgba(255,255,255,.05); color: inherit; border: 1px solid rgba(167,139,250,.35); border-radius: 8px; padding: 8px 10px; }
+.tr-custom-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.tr-custom-actions a.tr-btn { text-decoration: none; display: inline-flex; align-items: center; }

@@ -266,7 +266,7 @@
         panel.classList.toggle('left', config.layout.side === 'left');
         tint(panel, sceneMood());
         const items = railItems();
-        if (railItem && railItem !== 'add' && !items.some(i => i.id === railItem)) railItem = null;
+        if (railItem && !['add', 'custom-setup'].includes(railItem) && !items.some(i => i.id === railItem)) railItem = null;
         if (isPhone() && !railItem) railItem = (items[0] || { id: 'add' }).id;  // a sheet on phones: always one card
         const icon = i => `<button type="button" class="tr-icon ${i.id === railItem ? 'active' : ''} ${recentlyChanged.has(i.id) ? 'changed' : ''}"
             data-item="${i.id}" title="${esc(i.label)}" aria-label="${esc(i.label)}" aria-expanded="${i.id === railItem}">${i.icon}</button>`;
@@ -290,6 +290,7 @@
             <button type="button" class="icon-btn" data-act="close" title="Close">✕</button></span></header>`;
         if (id === 'story') return head('🎚', 'Story systems') + `<div class="tp-body">${storySection()}</div>`;
         if (id === 'add') return head('＋', 'Track something else') + addList();
+        if (id === 'custom-setup') return head('🧩', 'Custom tracker') + customSetup();
         const spec = specs[id];
         return head(spec.icon, spec.label, `<button type="button" class="icon-btn" data-rerun="${id}" title="Re-run only this tracker">↻</button>`)
             + `<div class="tp-body">${trackerCard(spec)}</div>` + stopRow(spec);
@@ -306,9 +307,25 @@
             <span class="tr-foot">${scheduleText()}</span></div>`;
     }
 
+    // The custom tracker has no fields until someone gives it some: say what to track, then Bulba (or you) makes them
+    const customEmpty = () => !(specs.custom && specs.custom.fields.length);
+    function customSetup() {
+        return `<div class="tp-body tr-custom-setup">
+            <p>Your own things to keep track of: a currency, a counter, a secret, a countdown, a bond… What should it follow?</p>
+            <textarea id="trCustomWish" rows="3" placeholder="e.g. Dottore's patience with 13 (0–100), the debt to Feofan in mora, whether the vent secret is out"></textarea>
+            <div class="tr-custom-actions">
+              <button type="button" class="tr-btn" data-act="custom-bulba">🥔 Let Bulba set it up</button>
+              <a class="tr-btn ghost" href="${DATA.setup_url}#custom">Add the fields myself</a>
+            </div>
+            <p class="tr-note">Bulba proposes the fields (numbers, bars, yes/no, text) and you press Apply. It appears here once it has fields.</p>
+          </div>`;
+    }
+
     function addList() {
-        const off = DATA.specs.filter(s => !config.trackers[s.id].on && !owned(s.id));
-        return `<div class="tr-add">${off.map(s => `<button type="button" class="tr-addrow" data-switch="${s.id}" data-on="1">
+        const off = DATA.specs.filter(s => (!config.trackers[s.id].on || (s.id === 'custom' && customEmpty())) && !owned(s.id));
+        return `<div class="tr-add">${off.map(s => s.id === 'custom' && customEmpty() ? `<button type="button" class="tr-addrow" data-item="custom-setup">
+                <span class="tr-add-ico">${s.icon}</span><span><b>${esc(s.label)}</b><small>${esc(s.help || '')}${config.trackers.custom.on ? ' (on, but no fields yet)' : ''}</small></span></button>`
+            : `<button type="button" class="tr-addrow" data-switch="${s.id}" data-on="1">
                 <span class="tr-add-ico">${s.icon}</span><span><b>${esc(s.label)}</b><small>${esc(s.help || '')}</small></span></button>`).join('')
             || '<p class="t-empty">Everything is already tracked.</p>'}
             <p class="tr-note">For this character, in every chat. Custom fields and story systems are on its
@@ -415,6 +432,14 @@
                 if (t.dataset.item === railItem && (pinned || noHover())) closeItem();
                 else openItem(t.dataset.item, true);
             } else if (t.dataset.switch) switchTracker(t.dataset.switch, t.dataset.on === '1');
+            else if (t.dataset.act === 'custom-bulba') {
+                const wish = (panel.querySelector('#trCustomWish') || {}).value || '';
+                const ask = `Set up a custom tracker for ${DATA.character_name || 'this character'}'s story`
+                    + (wish.trim() ? `: ${wish.trim()}` : ': suggest what would be worth tracking here, then propose it')
+                    + '. Propose the fields with propose_trackers.';
+                if (window.askBulba) window.askBulba(ask);
+                closeItem();
+            }
             else if (t.dataset.lock) {
                 const p = t.dataset.lock;
                 state.locks = isLocked(p) ? state.locks.filter(x => x !== p) : [...state.locks, p];
