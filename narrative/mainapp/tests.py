@@ -3453,7 +3453,7 @@ class TranslationWorkflowTests(ChatPromptTests):
             with self.assertRaises(translation.TranslationError):
                 translation.translate_extras(None, [note, phone], "uk")  # incomplete: they stay English
 
-    def test_the_translator_knows_about_adult_content(self):
+    def test_translation_does_not_add_mature_scene_instructions_to_benign_text(self):
         from unittest import mock
         from mainapp import mature, presets, translation
         obj = presets.get_active(self.user)
@@ -3461,12 +3461,12 @@ class TranslationWorkflowTests(ChatPromptTests):
         obj.save()
         with mock.patch.object(translation.ai_client, "complete", return_value='{"text": "Привіт"}') as call:
             translation.translate(self.user, "Hello", "uk")
-        self.assertIn("fiction written for adults", call.call_args[0][2][0]["content"])
+        self.assertEqual(call.call_args[0][2][0]["content"], translation.INSTRUCTIONS)
 
     def test_a_silent_block_is_explained_not_empty(self):
         from mainapp import ai_client
         msg = ai_client.block_explanation("PROHIBITED_CONTENT")
-        self.assertIn("no setting can switch off", msg)
+        self.assertIn("does not identify the trigger", msg)
         self.assertTrue(ai_client._blocking_stop("PROHIBITED_CONTENT"))
         self.assertTrue(ai_client._blocking_stop("content_filter"))
         self.assertFalse(ai_client._blocking_stop("stop"))
@@ -4605,7 +4605,7 @@ class ExtrasPlacementTests(GameTests):
         resp, events = self.stream_post({"action": "chat", "message": "Hello?"})
         self.assertEqual(events[-1]["type"], "error")
         self.assertIn("PROHIBITED_CONTENT", events[-1]["error"])
-        self.assertIn("no setting can switch off", events[-1]["error"])
+        self.assertIn("does not identify the trigger", events[-1]["error"])
 
     def test_a_fumbled_tool_call_retries_without_tools(self):
         from mainapp import extras

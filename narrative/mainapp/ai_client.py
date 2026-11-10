@@ -6,6 +6,7 @@ TASKS. Which connection profile and model a task uses is set per user on the
 Connections page; tasks without their own setting use the main chat connection.
 """
 import json
+import hashlib
 import logging
 import os
 import re
@@ -149,9 +150,8 @@ MODERATION = re.compile(r"considered high risk|rejected because it|content (?:ma
                         r"data_inspection_failed|inappropriate content|violat\w* (?:our|the) (?:content|usage) polic|"
                         r"PROHIBITED_CONTENT|blocked (?:due to|by) safety|finish_reason.{0,6}(?:SAFETY|content_filter)",
                         re.I)
-# Gemini's adjustable filters, off as far as the API allows (the core protections can't be and aren't touched);
-# sent ourselves so it doesn't depend on what OpenRouter passes by default. As SillyTavern sends them: "OFF" switches
-# a filter off entirely, where "BLOCK_NONE" still runs it (newer models still block with it now and then)
+# Requested adjustable-filter settings, matching the ST example. Acceptance and forwarding depend
+# on the model/provider; these fields do not establish that all safeguards are disabled.
 GEMINI_SAFETY = [{"category": c, "threshold": "OFF"} for c in (
     "HARM_CATEGORY_HARASSMENT", "HARM_CATEGORY_HATE_SPEECH", "HARM_CATEGORY_SEXUALLY_EXPLICIT",
     "HARM_CATEGORY_DANGEROUS_CONTENT", "HARM_CATEGORY_CIVIC_INTEGRITY")]
@@ -241,8 +241,8 @@ def _error_text(resp):
         return resp.text[:300] or resp.reason
 
 
-# Gemini answered 400 to a request carrying our safety settings: try again with less (the civic-integrity category
-# first, which newer models may not accept; then none). A refused request isn't billed, so a retry costs nothing.
+# Gemini explicitly rejected an invalid safety-settings field: try again with less (the civic-integrity category
+# first, which newer models may not accept; then none). Do not assume rejected requests have no cost.
 SAFETY_FALLBACKS = (
     ("without the civic-integrity filter setting",
      lambda p: {**p, "safety_settings": [s for s in GEMINI_SAFETY if s["category"] != "HARM_CATEGORY_CIVIC_INTEGRITY"]}),
@@ -250,25 +250,63 @@ SAFETY_FALLBACKS = (
 )
 
 
-def _post(profile, payload, **kwargs):
-    """POST the request; a Gemini 400 is retried with fewer safety settings (logged, so the cause shows in the logs)."""
+def _diagnostic(profile, payload, task, operation, stage, response=None, data=None):
+    """Comparable request metadata only: never prompts, output, keys, headers or raw errors."""
+    messages = payload.get("messages") or []
+    facts = {"stage": stage, "task": task, "operation": operation,
+             "model": payload.get("model"), "connection_id": getattr(profile, "pk", None),
+             "connection_type": profile.provider,
+             "stream": bool(payload.get("stream")),
+             "request_hash": hashlib.sha256(json.dumps(payload, sort_keys=True, ensure_ascii=True,
+                                                      default=str).encode()).hexdigest(),
+             "messages": [{"role": m.get("role"), "characters": len(str(m.get("content") or ""))}
+                          for m in messages if isinstance(m, dict)],
+             "parameter_names": sorted(k for k in payload if k != "messages"),
+             "safety_categories": len(payload.get("safety_settings") or []),
+             "routing_configured": bool(payload.get("provider"))}
+    if response is not None:
+        facts["http_status"] = response.status_code
+    if isinstance(data, dict):
+        error = data.get("error") if isinstance(data.get("error"), dict) else {}
+        meta = error.get("metadata") if isinstance(error.get("metadata"), dict) else {}
+        for key, value in (("provider", meta.get("provider_name") or data.get("provider")),
+                           ("request_id", data.get("id"))):
+            if isinstance(value, str):
+                facts[key] = value[:100]
+        choices = data.get("choices") or []
+        if choices and isinstance(choices[0], dict):
+            facts["finish_reason"] = choices[0].get("finish_reason")
+            facts["native_finish_reason"] = choices[0].get("native_finish_reason")
+    logging.getLogger(__name__).warning("AI request diagnostic %s", json.dumps(facts, ensure_ascii=True, default=str))
+
+
+def _invalid_safety_setting(resp):
+    reason = _error_text(resp)
+    return (resp.status_code == 400 and not MODERATION.search(reason)
+            and bool(re.search(r"safety[_ ]?settings|safetySettings", reason, re.I))
+            and bool(re.search(r"invalid|unsupported|unknown|unrecognized|not supported|not allowed", reason, re.I)))
+
+
+def _post(profile, payload, *, diagnostic_task=None, diagnostic_operation=None, **kwargs):
+    """Retry compatibility errors only when the provider names an invalid safety-setting field."""
     url = f"{profile.api_url}/chat/completions"
     resp = requests.post(url, headers=_headers(profile), json=payload, **kwargs)
     for how, change in SAFETY_FALLBACKS:
-        if not (resp.status_code == 400 and str(payload.get("model") or "").startswith("google/")
-                and "safety_settings" in payload):
+        if not (str(payload.get("model") or "").startswith("google/")
+                and "safety_settings" in payload and _invalid_safety_setting(resp)):
             break
-        reason = _error_text(resp)
-        if MODERATION.search(reason):
-            break
-        logging.getLogger(__name__).warning("%s refused the request (400: %s); trying again %s",
-                                            payload.get("model"), reason[:600], how)
+        _diagnostic(profile, payload, diagnostic_task, diagnostic_operation, "invalid_safety_setting", resp)
+        logging.getLogger(__name__).warning("Retrying invalid safety-setting request %s", how)
         resp.close()
         payload = change(payload)
         resp = requests.post(url, headers=_headers(profile), json=payload, **kwargs)
     if resp.status_code >= 400:
-        logging.getLogger(__name__).warning("%s returned %s: %s", payload.get("model"), resp.status_code,
-                                            _error_text(resp)[:800])
+        try:
+            data = resp.json()
+        except ValueError:
+            data = None
+        _diagnostic(profile, payload, diagnostic_task, diagnostic_operation, "http_error", resp, data)
+    resp._narrative_payload = payload  # retain the effective compatibility-retry request for diagnostics
     return resp
 
 
@@ -334,6 +372,7 @@ def _light_reasoning(profile, task, payload, user=None):
 def _request(user, task, messages, timeout=None, **params):
     """Sends one chat completion request and returns (profile, the parsed JSON reply)."""
     check_limit(user)
+    operation = params.pop("_diagnostic_operation", task)
     profile, model = resolve(user, task)
     if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER:
         params.setdefault("usage", {"include": True})  # OpenRouter then reports the cost
@@ -349,7 +388,7 @@ def _request(user, task, messages, timeout=None, **params):
     label = TASKS.get(task, {}).get("label", task)
 
     try:
-        resp = _post(profile, payload, timeout=timeout)
+        resp = _post(profile, payload, diagnostic_task=task, diagnostic_operation=operation, timeout=timeout)
     except requests.Timeout:
         raise AIError(f"{label}: {profile.name} did not answer within {timeout} seconds.")
     except requests.RequestException as e:
@@ -373,9 +412,19 @@ def _request(user, task, messages, timeout=None, **params):
     except ValueError:
         raise AIError(f"{label}: {profile.name} sent a reply that is not JSON.")
     if isinstance(data, dict) and data.get("error"):  # OpenRouter can report errors with HTTP 200
+        _diagnostic(profile, payload, task, operation, "completion_error", resp, data)
         raise AIError(f"{label}: {profile.name} returned an error: {_error_text(resp)}")
     if isinstance(data, dict):
         record_cost(user, task, payload["model"], (data.get("usage") or {}).get("cost"))
+        choices = data.get("choices") or []
+        choice = choices[0] if choices and isinstance(choices[0], dict) else {}
+        native = choice.get("native_finish_reason")
+        reason = native if _blocking_stop(native) else choice.get("finish_reason")
+        if _blocking_stop(reason):
+            effective = getattr(resp, "_narrative_payload", None)
+            _diagnostic(profile, effective if isinstance(effective, dict) else payload,
+                        task, operation, "blocked_completion", resp, data)
+            raise AIError(f"{label}: {profile.name} " + block_explanation(reason))
     return profile, data
 
 
@@ -482,6 +531,7 @@ def stream(user, task, messages, timeout=None, **params):
     import json
 
     check_limit(user)
+    operation = params.pop("_diagnostic_operation", task)
     profile, model = resolve(user, task)
     if profile.provider == ConnectionProfile.PROVIDER_OPENROUTER:
         params.setdefault("usage", {"include": True})  # the cost arrives with the last piece
@@ -497,7 +547,7 @@ def stream(user, task, messages, timeout=None, **params):
     label = TASKS.get(task, {}).get("label", task)
 
     try:
-        resp = _post(profile, payload, timeout=(15, read_timeout), stream=True)
+        resp = _post(profile, payload, diagnostic_task=task, diagnostic_operation=operation, timeout=(15, read_timeout), stream=True)
     except requests.Timeout:
         raise AIError(f"{label}: {profile.name} did not answer within {read_timeout} seconds.")
     except requests.RequestException as e:
@@ -524,6 +574,7 @@ def stream(user, task, messages, timeout=None, **params):
                 except ValueError:
                     continue
                 if event.get("error"):
+                    _diagnostic(profile, payload, task, operation, "stream_error", resp, event)
                     err = event["error"]
                     msg = str(err.get('message') if isinstance(err, dict) else err)
                     if "PROHIBITED_CONTENT" in msg:
@@ -557,6 +608,8 @@ def stream(user, task, messages, timeout=None, **params):
         except requests.RequestException as e:
             raise AIError(f"{label}: the connection to {profile.name} broke off ({e.__class__.__name__}).")
         if not wrote and not calls and _blocking_stop(stop):  # blocked without an error: say so, not "empty"
+            _diagnostic(profile, payload, task, operation, "blocked_stream", resp,
+                        {"choices": [{"finish_reason": stop}]})
             raise AIError(f"{label}: {profile.name} " + block_explanation(stop))
         if not wrote and not calls and stop and stop.lower() not in ("stop", "end_turn", "eos"):
             # Nothing written for another reason (Gemini: a fumbled tool call, recitation, out of room): say which
@@ -595,12 +648,12 @@ def block_explanation(reason):
     """Plain words for a provider's block (Gemini's especially), for the chat's error line."""
     r = str(reason or "").upper()
     if "PROHIBITED" in r:
-        return ("was blocked by Gemini's own filter (PROHIBITED_CONTENT), which no setting can switch off. It judges "
-                "the whole request, not just the last message: most often characters who are or read as minors in a "
-                "story where adult content is allowed. Check the characters' ages on the card, switch 🔞 Mature "
-                "content off for this story (pen menu → This chat), or use another model for it.")
-    return (f"blocked the reply with its content filter ({reason}). Press Regenerate to try again, or reword "
-            "your message.")
+        return ("was blocked by the provider (PROHIBITED_CONTENT). This code alone does not identify the "
+                "trigger. The provider can evaluate the whole request, including instructions and earlier context; "
+                "adjustable filter settings do not guarantee acceptance. Check the request context and provider "
+                "details before changing the preset or retrying.")
+    return (f"blocked the reply with its content filter ({reason}). The code alone does not identify the "
+            "trigger; inspect the submitted context and provider details before retrying.")
 
 
 def _merge_details(details):

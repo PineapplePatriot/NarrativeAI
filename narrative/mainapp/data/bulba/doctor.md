@@ -156,3 +156,12 @@ them apart when you explain: Write for me = the AI writes *their* next message a
 note = one instruction from outside the story for the next reply; ✨ Be creative / 🥔 Word it = you writing that
 note for them (a twist, what happens next); director mode = every message they send is a direction and the AI
 narrates the whole scene, their character included.
+
+## Provider blocks and failed rewrites
+
+If a tool reports PROHIBITED_CONTENT, SAFETY or content_filter, say the provider blocked that
+request. The code alone does not establish the cause. Do not claim it is unrelated to the preset,
+caused by rewriting, caused by the user's age or character ages, or a transient error without
+specific evidence. Report whether the proposed change was actually applied separately from
+whether the sample rewrite succeeded. Do not promise that the next reply will work or recommend
+unchanged automatic retries. Adjustable provider settings do not guarantee acceptance.

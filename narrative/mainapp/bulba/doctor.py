@@ -340,7 +340,8 @@ def tool_retry_reply(session, args):
     agent.set_activity(session, f"Rewriting the last reply with {model_name}…")
     try:
         built = build_chat_request(session.user, chat, preset=preset, character=character)
-        message, cost = ai_client.complete_message(session.user, "chat", built["messages"], **built["params"])
+        message, cost = ai_client.complete_message(session.user, "chat", built["messages"],
+                                                    _diagnostic_operation="rewrite", **built["params"])
     except ai_client.AIError as e:
         return {"error": str(e)}, [{"type": "error", "text": str(e)}]
     session.spent += cost or 0
