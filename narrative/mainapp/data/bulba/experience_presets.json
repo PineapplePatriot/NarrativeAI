@@ -395,6 +395,27 @@
       "group": "objects",
       "content": "## A designed object of their choosing\n- They asked for the designed object described below. Show it whenever the scene matches what they described (or at the moment they named), with contents that match the current story. If they described a regular panel (a status card, stats, a diary), keep the same visual style each time and change only the contents.\nFormat: write the object as one fenced block that starts with ```html on its own line and ends with ``` on its own line. Inside: plain HTML with inline styles or one <style> block. It must read well at any width from 320px up (max-width:100%, wrapping text, no fixed widths over 320px). Give the outer element data-label=\"a few words: what it is\". No images, links or outside files except Google Fonts; draw with CSS, SVG or emoji. Scripts only for what the object itself would do (a blinking light, a countdown, scrolling text, a section that opens), kept short. Keep each object under about 60 lines. Write the scene's prose and dialogue around it, and don't repeat the object's text in the prose.",
       "about": "Describe an object you want the AI to design whenever it fits: a status panel, a stats card, a diary page, a spell scroll, a radio broadcast..."
+    },
+    "few_dashes": {
+      "title": "Fewer em dashes",
+      "default": false,
+      "group": "prose",
+      "content": "## Fewer em dashes\nUse the em dash (—) at most once per reply, and only for a real interruption or a sudden break in speech. Don't use it to join clauses, add an aside or set up a reveal: use a comma, a full stop, a colon or parentheses instead. The same goes for the en dash (–) and a spaced hyphen ( - ) used as a dash.",
+      "about": "The em dash (—) at most once a reply; commas, full stops and colons instead. A common AI habit."
+    },
+    "no_semicolons": {
+      "title": "No semicolons",
+      "default": false,
+      "group": "prose",
+      "content": "## No semicolons\nDon't use semicolons (;) in narration or dialogue. Split the thought into two sentences, or join it with a comma and a word like and, but or so.",
+      "about": "No ; at all: two sentences, or a comma with and/but/so."
+    },
+    "thoughts_shown": {
+      "title": "Inner thoughts, shown apart",
+      "default": false,
+      "group": "prose",
+      "content": "## Inner thoughts, shown apart\nWhen you write a character's direct thought (the words in their head, not the narrator describing a feeling), wrap it in <thought>...</thought>, for example: <thought>He's lying about the key.</thought> The chat shows these in their own style. Keep them short, in the narration's tense and person, and only for characters whose thoughts you may write: never {{user}}'s unless you've been told you may write {{user}}. Not every reply needs one.",
+      "about": "Direct thoughts are marked so the chat shows them in their own style (💭, italic, set apart). Comes on with the basics form's \"inside the character's head\"."
     }
   },
   "default_experience": "drama"

@@ -5213,6 +5213,28 @@ class BulbaTuningTests(BulbaCardAndLoreTests):
         self.assertIn(viktor.slug, ev["url"])
 
 
+class GreetingNameTests(ChatPromptTests):
+    def test_the_greeting_follows_the_persona_made_later(self):
+        from mainapp import chats
+        self.character.initial_message = "{{char}} looks up. \"You're late, {{user}}.\""
+        self.character.save()
+        chat = chats.create(self.character)
+        login = self.user.persona_name or self.user.name or self.user.username
+        self.assertIn(f"You're late, {login}.", chats.read(chat)["messages"][0][2])
+        self.user.persona_name = "Reza"
+        self.user.save()
+        self.client.get(self.url + f"?chat={chat.id}")
+        self.assertIn("You're late, Reza.", chats.read(chat)["messages"][0][2])
+        # an edited greeting stays as they wrote it
+        f = chats.read(chat)
+        f["messages"][0] = ["assistant", "", "My own opening, Reza.", "neutral", 1]
+        chats.write(chat, f)
+        self.user.persona_name = "Kaveh"
+        self.user.save()
+        self.client.get(self.url + f"?chat={chat.id}")
+        self.assertEqual(chats.read(chat)["messages"][0][2], "My own opening, Reza.")
+
+
 class BulbaIdeasTests(ChatPromptTests):
     def test_ideas_extra(self):
         from unittest import mock
@@ -5238,6 +5260,33 @@ class BulbaIdeasTests(ChatPromptTests):
         with mock.patch("mainapp.ai_client.complete", return_value=reply) as complete:
             self.assertEqual(self.post({"action": "ideas"}).json()["mode"], "director")
         self.assertIn("directs", complete.call_args.args[2][0]["content"])
+
+    def test_ideas_follow_the_story_point_of_view_never_i(self):
+        from unittest import mock
+        from mainapp import presets
+        active = presets.get_active(self.user)
+        data = presets.normalize(active.data)
+        data["blocks"].insert(0, presets.normalize_block({"name": "Basics", "kind": "prompt", "content":
+            "Narrate in third person (\"she steps inside\").\nWrite in past tense.\n"
+            "Put speech in double quotes and actions in *asterisks*."}))
+        active.data = data
+        active.save()
+        reply = '{"ideas": ["a", "b", "c"]}'
+        with mock.patch("mainapp.ai_client.complete", return_value=reply) as complete:
+            self.post({"action": "ideas"})
+        system = complete.call_args.args[2][0]["content"]
+        self.assertIn("third person", system)
+        self.assertIn('Never "I"', system)
+        self.assertIn("Past tense", system)
+        self.assertIn("*asterisks*", system)
+        # once they've written, the ideas copy them
+        from mainapp import chats
+        chat = self.character.chats.first()
+        f = chats.read(chat)
+        chats.write(chat, {**f, "messages": [*f["messages"], ["user", "", "I look around.", "neutral", 1]]})
+        with mock.patch("mainapp.ai_client.complete", return_value=reply) as complete:
+            self.post({"action": "ideas"})
+        self.assertIn("recent messages are written", complete.call_args.args[2][0]["content"])
 
     def test_extras_page_saves_ideas(self):
         from mainapp import extras
@@ -7378,6 +7427,8 @@ class BasicsAndStoryFormTests(BulbaTests):
         self.assertIn("Who moves the story:", note)
         agent.apply_basics(session, {"initiative": "any"})
         self.assertEqual(len(session.preferences), len(texts))  # "no preference" records nothing
+        agent.apply_basics(session, {"interior": "enter"})  # thoughts written directly: shown apart
+        self.assertIn("Inner thoughts, shown apart", agent.form_modules(session))
 
     def make_character(self):
         from mainapp.models import BulbaSession, Character

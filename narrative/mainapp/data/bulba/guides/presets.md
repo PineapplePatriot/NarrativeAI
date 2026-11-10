@@ -51,7 +51,10 @@ How a new preset is built (blocks in order; get_starter shows them all):
 More modules, all off until someone wants them (propose_preset `switch_on` with the exact names, or
 propose_preset_edit enable/disable later):
 - Prose: Varied openings (replies don't all start the same way), No jokes in serious moments, Describe once
-  (no re-listing the same features), Card fidelity (the card's voice and temperament win over style rules).
+  (no re-listing the same features), Card fidelity (the card's voice and temperament win over style rules), Fewer em dashes (— at most once a
+  reply), No semicolons, Inner thoughts, shown apart (direct thoughts marked so the chat shows them with 💭; on
+  when they pick "inside the character's head" for inner thoughts; offer it when they want to see what the
+  character thinks).
 - Narration voice, one at a time: Voice: Hemingway (lean), McCarthy (solemn), Camus (wry), Kafka (absurd),
   Ligotti (dread), Maupassant (cruel realism), Dickens (theatrical), Ellis (gossipy). The basics form's voice
   answer maps to these; other voices (anime, fanfic...) stay in taste.

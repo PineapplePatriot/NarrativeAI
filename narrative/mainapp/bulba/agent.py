@@ -659,6 +659,8 @@ def apply_basics(session, answers):
         raw = str(answers.get(key) or "").strip()[:300]
         if not raw:
             continue
+        if key == "interior" and raw == "enter":  # thoughts written directly: the chat shows them apart
+            _record_modules(session, ["thoughts_shown"], "Basics form: inner thoughts")
         if key == "author":
             text = f"Write in the style of {raw}: their diction, rhythm and conventions, not their plots."
             lines.append(f"{label}: {text}")

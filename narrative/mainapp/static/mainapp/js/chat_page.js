@@ -263,6 +263,8 @@ function renderChatMessage(rawText, where) {
     let source = String(rawText ?? '').replace(HTML_FENCE, (m, code) => { objects.push(code); return `\n\n<div class="object-slot n${objects.length - 1}"></div>\n\n`; });
     if (isGenerating) source = source.replace(HTML_OPEN, () => '\n\n<div class="object-slot drawing"></div>\n\n');  // a cut-off one stays code
     let shown = TextRules.any() ? TextRules.apply(source, place.role, place.depth) : source;
+    // A character's direct thought ("Inner thoughts, shown apart" module): its own style
+    shown = shown.replace(/<thought>([\s\S]*?)<\/thought>/gi, (m, t) => `<span class="thought">${t.trim()}</span>`);
     // Story extras' markers ([[extra 2]]) become slots; placeExtras() puts the app's drawing there
     shown = shown.replace(/\[\[extra (\d+)\]\]/g, '\n\n<div class="extra-slot n$1"></div>\n\n');
     const pre2 = wrapQuoted(shown);
@@ -327,7 +329,18 @@ function unlockFinished() {
 }
 let currentRequest = null;
 let deleteMessageIndex = -1;
-if (window.NATomato) NATomato.watch(() => isBusy());  // 🍅 a slow reply (writing, polishing, translating)
+// Bulba's helpers in the chat (Write for me, ideas, wording a note, condensing) are waits too
+const SLOW_ACTIONS = new Set(['expand', 'ideas', 'note_ideas', 'word_note', 'condense', 'polish', 'translate']);
+let slowJobs = 0;
+const pageFetch = window.fetch.bind(window);
+window.fetch = function (url, opts) {
+    let slow = false;
+    try { slow = !!opts && typeof opts.body === 'string' && SLOW_ACTIONS.has(JSON.parse(opts.body).action); } catch (e) {}
+    if (!slow) return pageFetch(url, opts);
+    slowJobs++;
+    return pageFetch(url, opts).finally(() => { slowJobs = Math.max(0, slowJobs - 1); });
+};
+if (window.NATomato) NATomato.watch(() => isBusy() || slowJobs > 0);  // 🍅 a slow reply or a slow Bulba helper
 
 messageInput.addEventListener('input', function () {
     this.style.height = 'auto';

@@ -106,8 +106,7 @@ JOB_DEFAULTS = {
                   "Never write {{user}}'s words, actions or thoughts. Plain words: no 'ensure', 'immersive', "
                   "'vivid', 'delve', capitals or exclamation marks.",
     "ideas_player": "Suggest three different things {{user}} could do or say next, as {{user}}. Each is one or two "
-                    "short sentences they could send as their message, written the way {{user}}'s recent messages "
-                    "are written (same person, tense and style). Make the three genuinely different: one that goes "
+                    "short sentences they could send as their message. Make the three genuinely different: one that goes "
                     "along with the scene, one that pushes it somewhere, one unexpected but in character for "
                     "{{user}}. Only {{user}}'s own words and actions; never decide what {{char}} or anyone else does "
                     "or feels. Stay true to what has happened and to the world.",

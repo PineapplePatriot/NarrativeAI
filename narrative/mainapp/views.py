@@ -288,6 +288,13 @@ def chat(request, slug):
                             fixed_messages.append(tuple(msg[:6]) if len(msg) > 5 and isinstance(msg[5], dict)
                                                   else tuple(msg[:5]))
 
+                    # The greeting was filled with whatever name they had then (often the login, before a persona)
+                    u = request.user
+                    fixed_messages, renamed = chats.refresh_greeting(
+                        fixed_messages, character, prompt_names(u, character, chat_state["persona"])["user"],
+                        [u.username, u.name, getattr(u, "persona_name", "")])
+                    if renamed:
+                        chats.write(chat_obj, {**chats.read(chat_obj), "messages": fixed_messages})
                     return fixed_messages
                 except json.JSONDecodeError:
                     return []
@@ -1809,12 +1816,48 @@ IDEAS_STYLE = ("Plain words, no 'ensure', 'immersive', 'vivid', 'delve', no capi
                "marks. Answer with JSON only: {\"ideas\": [\"...\", \"...\", \"...\"]}")
 
 
+def story_voice(user):
+    """The point of view, tense and speech format chosen for the story (the preset's Basics block), keyed like
+    the basics form: {"pov": "third", "tense": "past", "format": "asterisks"}."""
+    from mainapp.bulba.agent import BASICS
+    block = next((b for b in presets.normalize(presets.get_active(user).data)["blocks"]
+                  if b.get("name") == "Basics" and b.get("kind") == "prompt" and b.get("enabled")), None)
+    text = (block or {}).get("content") or ""
+    return {key: value for key in ("pov", "tense", "format") for value, line in (BASICS[key][1] or {}).items()
+            if line and line in text}
+
+
+IDEAS_VOICE = {"second": "Write them in second person for {{user}} (\"You ask about the vials\").",
+               "third": "Write them in third person, with {{user}}'s name (\"{{user}} asks about the vials\").",
+               "first": "{{char}} narrates in first person, so write {{user}}'s ideas in third person, with their "
+                        "name (\"{{user}} asks about the vials\")."}
+
+
+def ideas_voice(user, messages, names):
+    """How the player ideas are written: like their own messages when they've written some, else in the story's
+    point of view; never "I" for them unless they write that way themselves."""
+    voice = story_voice(user)
+    if any(m[0] == "user" and not chats.is_note(m) for m in messages):
+        line = ("Write them the way {{user}}'s recent messages are written (same person, tense and style); if "
+                "those use \"I\", so can you, otherwise never \"I\" for {{user}}.")
+    else:
+        line = (IDEAS_VOICE.get(voice.get("pov"), IDEAS_VOICE["third"]) + " Never \"I\" for {{user}}.")
+    if voice.get("tense") == "present":
+        line += " Present tense."
+    elif voice.get("tense") == "past":
+        line += " Past tense."
+    if voice.get("format") == "asterisks":
+        line += " Actions in *asterisks*, speech in double quotes."
+    return line.replace("{{user}}", names["user"]).replace("{{char}}", names["char"])
+
+
 def bulba_ideas(user, character, messages, mode, persona=None, summary=""):
     """Three ideas for what to write next ("player") or what could happen next ("director"), on Bulba's model."""
     names = prompt_names(user, character, persona)
     recent = [m for m in messages if m[0] in ("user", "assistant")][-8:]
     transcript = "\n\n".join(f"{names['user'] if m[0] == 'user' else character.name}: {html_objects.shrink(m[2])[:1500]}" for m in recent)
-    system = (IDEAS_PROMPT[mode] + " " + presets.job_prompt(user, "ideas_" + mode, names) + "\n\n" + IDEAS_STYLE)
+    system = (IDEAS_PROMPT[mode] + " " + presets.job_prompt(user, "ideas_" + mode, names)
+              + (" " + ideas_voice(user, messages, names) if mode == "player" else "") + "\n\n" + IDEAS_STYLE)
     about = f"{character.name}: {(character.description or '')[:1500]}"
     story = f"The story so far (summary): {summary[:2000]}\n\n" if summary else ""
     text = bulba_quick(user, [

@@ -2305,3 +2305,9 @@ body.polish-on .message-btn.polish-btn { display: flex; }
 iframe.html-object { display: block; width: 100%; border: 0; margin: 10px 0; background: transparent; }
 .object-slot.drawing { margin: 10px 0; padding: 14px; border: 1px dashed rgba(167,139,250,.45); border-radius: 12px;
     font-size: .85rem; opacity: .75; }
+
+/* A character's direct thought (<thought> in a reply) */
+.message-text .thought { font-style: italic; opacity: .82; color: var(--thought-color, #c4b5fd); }
+.message-text .thought::before { content: "💭 "; font-style: normal; opacity: .8; }
+body.skin-parchment .message-text .thought { color: #6b4a2a; }
+body.skin-lab .message-text .thought { color: #3d5a78; }
