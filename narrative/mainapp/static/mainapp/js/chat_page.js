@@ -1577,6 +1577,9 @@ branchModal.addEventListener('click', (e) => { if (e.target === branchModal) clo
     });
     // Coming back from the setup page's list (?bulba=1): open the panel straight away
     if (new URLSearchParams(window.location.search).get('bulba') === '1') toggle(true);
+    // From another page with something to ask (?bulba_ask=...): Bulba opens with it typed, not sent
+    const askFromUrl = new URLSearchParams(window.location.search).get('bulba_ask');
+    if (askFromUrl) setTimeout(() => window.askBulba && window.askBulba(askFromUrl.slice(0, 600)), 0);
     // Open Bulba with something already typed for it (it isn't sent until they press Send)
     window.askBulba = (draft) => {
         if (!frame.src) {

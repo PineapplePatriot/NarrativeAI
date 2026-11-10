@@ -118,6 +118,7 @@ def characters_list(request):
 
 
 import re
+from urllib.parse import urlencode
 
 log = logging.getLogger(__name__)
 
@@ -2324,8 +2325,11 @@ def tracker_setup(request, slug):
         character.save(update_fields=["tracker_config"])
         return JsonResponse({"status": "ok", "config": character.tracker_config})
 
+    ask = (f"Design a custom tracker for {character.name}'s story with me: ask what it should follow, then propose "
+           "it with its look, colour, what raises and lowers it, and levels.")
     return render(request, "mainapp/tracker_setup.html", {
         "character": character,
+        "bulba_custom_url": reverse("chat", kwargs={"slug": character.slug}) + "?" + urlencode({"bulba_ask": ask}),
         "setup_data": {
             "panels": trackers.PANELS,
             "trackers": trackers.TRACKERS,

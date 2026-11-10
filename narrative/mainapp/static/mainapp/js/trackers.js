@@ -125,8 +125,10 @@
                 case 'custom':
                     spec.fields.slice(0, 3).forEach(f => {
                         if (v[f.key] === undefined || v[f.key] === '') return;
-                        add(f.type === 'meter' ? gauge('custom', f.label, v[f.key], f.min, f.max, f.label)
-                                               : chip('custom', '🧩', `${esc(f.label)}: ${esc(fmt(f, v[f.key]))}`));
+                        const lv = levelOf(f, v[f.key]);
+                        add(f.type === 'meter' && f.look !== 'badge'
+                            ? gauge('custom', `${f.icon ? f.icon + ' ' : ''}${f.label}`, v[f.key], f.min, f.max, lv ? `${f.label}: ${lv.name}` : f.label)
+                            : chip('custom', esc(f.icon || '🧩'), `${esc(f.label)}: ${esc(lv ? lv.name : fmt(f, v[f.key]))}`));
                     });
                     break;
                 default:
@@ -229,11 +231,46 @@
         return `<label class="tf ${field.type}"><span class="tf-label">${esc(field.label)}</span>${input}${lockBtn}</label>`;
     }
 
+    // A custom field Bulba designed: its own look and colour, what moves it, and its levels ("You're here")
+    const designed = f => !!(f.look || f.levels || f.raises || f.lowers || f.color || f.icon);
+    const levelOf = (f, n) => (f.levels || []).find(l => Number(n) >= l.from && Number(n) <= l.to);
+    const safeColor = c => /^#[0-9a-fA-F]{6}$/.test(c || '') ? c : '';
+    function designedField(f, raw) {
+        const color = safeColor(f.color) || '#a78bfa';
+        const num = Number(raw);
+        const has = raw !== undefined && raw !== '' && !Number.isNaN(num);
+        const min = f.type === 'meter' ? Number(f.min) : 0;
+        const max = f.type === 'meter' ? Number(f.max) : Math.max(...(f.levels || []).map(l => l.to), num || 0, 1);
+        const p = has ? pct(num, min, max) : 0;
+        const level = has ? levelOf(f, num) : null;
+        const look = f.look || (f.type === 'meter' ? 'bar' : f.type === 'number' ? 'counter' : 'badge');
+        let visual = '';
+        if (look === 'ring') visual = `<div class="cf-ring" style="--p:${p};--c:${color}"><b>${has ? esc(raw) : '–'}</b></div>`;
+        else if (look === 'stars') { const k = Math.round(p / 20); visual = `<div class="cf-stars" style="color:${color}">${'★'.repeat(k)}<span>${'★'.repeat(5 - k)}</span></div>`; }
+        else if (look === 'counter') visual = `<div class="cf-counter" style="color:${color}">${has ? esc(raw) : '0'}</div>`;
+        else if (look === 'badge') visual = '';
+        else visual = `<div class="cf-bar"><i style="width:${p}%;background:${color}"></i></div>`;
+        const list = (items, cls, mark) => (items || []).length ? `<div class="cf-moves ${cls}"><b>${cls === 'up' ? 'Raises it' : 'Lowers it'}</b>
+            ${items.map(x => `<span><i>${mark}</i>${esc(x)}</span>`).join('')}</div>` : '';
+        const levels = (f.levels || []).map(l => `<li class="${l === level ? 'here' : ''}" ${l === level ? `style="--c:${color}"` : ''}>
+            <span class="cf-range">${esc(l.from)}${l.to !== l.from ? `–${esc(l.to)}` : ''}</span><b>${esc(l.name)}</b>
+            ${l === level ? '<em>You’re here</em>' : ''}</li>`).join('');
+        return `<div class="cf-card" style="--c:${color}">
+            <div class="cf-head"><span class="cf-ico">${esc(f.icon || '◆')}</span><b>${esc(f.label)}</b>
+              <span class="cf-val">${has ? `${esc(raw)}${f.type === 'meter' ? ` <small>/ ${esc(f.max)}</small>` : ''}` : ''}
+              ${look === 'badge' && level ? `<span class="cf-badge">${esc(level.name)}</span>` : ''}</span></div>
+            ${visual}
+            ${(f.raises || f.lowers) ? `<div class="cf-moves-row">${list(f.raises, 'up', '↑')}${list(f.lowers, 'down', '↓')}</div>` : ''}
+            ${levels ? `<ul class="cf-levels">${levels}</ul>` : ''}
+          </div>`;
+    }
+
     function trackerCard(spec) {
         const v = value(spec.id);
         let body;
         if (spec.kind === 'object') {
-            body = spec.fields.map(f => inputFor(f, v[f.key], lockPath(spec.id, f.key), `${spec.id}.${f.key}`)).join('');
+            body = spec.fields.map(f => (spec.id === 'custom' && designed(f) ? designedField(f, v[f.key]) : '')
+                + inputFor(f, v[f.key], lockPath(spec.id, f.key), `${spec.id}.${f.key}`)).join('');
         } else {
             body = v.map((item, i) => `
               <div class="t-item" data-item="${i}">
@@ -293,7 +330,9 @@
         if (id === 'custom-setup') return head('🧩', 'Custom tracker') + customSetup();
         const spec = specs[id];
         return head(spec.icon, spec.label, `<button type="button" class="icon-btn" data-rerun="${id}" title="Re-run only this tracker">↻</button>`)
-            + `<div class="tp-body">${trackerCard(spec)}</div>` + stopRow(spec);
+            + `<div class="tp-body">${trackerCard(spec)}</div>`
+            + (id === 'custom' ? `<div class="tr-custom-more"><button type="button" class="tr-btn ghost" data-item="custom-setup">🥔 Design another with Bulba</button></div>` : '')
+            + stopRow(spec);
     }
 
     function stopRow(spec) {
@@ -436,7 +475,8 @@
                 const wish = (panel.querySelector('#trCustomWish') || {}).value || '';
                 const ask = `Set up a custom tracker for ${DATA.character_name || 'this character'}'s story`
                     + (wish.trim() ? `: ${wish.trim()}` : ': suggest what would be worth tracking here, then propose it')
-                    + '. Propose the fields with propose_trackers.';
+                    + '. Design it with propose_trackers: pick its look (bar, ring, stars, counter or badge), colour and icon, '
+                    + 'what raises and lowers it, and named levels if it has stages. Keep the custom fields I already have.';
                 if (window.askBulba) window.askBulba(ask);
                 closeItem();
             }

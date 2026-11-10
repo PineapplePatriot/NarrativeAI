@@ -136,8 +136,53 @@ def normalize_custom_fields(raw):
             field["max"] = _num(item.get("max"), 100)
             if field["max"] <= field["min"]:
                 field["max"] = field["min"] + 100
+        field.update(_design(item, ftype))
         fields.append(field)
     return fields
+
+
+LOOKS = ("bar", "ring", "stars", "counter", "badge")  # how a designed field is drawn in the chat
+COLOR = re.compile(r"^#[0-9a-fA-F]{6}$")
+
+
+def _design(item, ftype):
+    """A field Bulba designed: its look, colour and icon, what raises and lowers it, and named levels whose note
+    changes how the story is written while the value is in that range (numbers and meters)."""
+    out = {}
+    look = str(item.get("look") or "").strip().lower()
+    if look in LOOKS:
+        out["look"] = look
+    if COLOR.match(str(item.get("color") or "")):
+        out["color"] = item["color"]
+    icon = str(item.get("icon") or "").strip()
+    if icon and len(icon) <= 4:
+        out["icon"] = icon
+    if ftype in ("number", "meter"):
+        for side in ("raises", "lowers"):
+            items = [str(x).strip()[:80] for x in (item.get(side) or []) if str(x).strip()] \
+                if isinstance(item.get(side), list) else []
+            if items:
+                out[side] = items[:6]
+        levels = []
+        for lv in item.get("levels") or [] if isinstance(item.get("levels"), list) else []:
+            if not isinstance(lv, dict) or not str(lv.get("name") or "").strip():
+                continue
+            lo = _num(lv.get("from"), 0)
+            hi = _num(lv.get("to"), lo)
+            levels.append({"from": min(lo, hi), "to": max(lo, hi), "name": str(lv["name"]).strip()[:40],
+                           "note": str(lv.get("note") or "").strip()[:200]})
+        if levels:
+            out["levels"] = sorted(levels, key=lambda lv: lv["from"])[:8]
+    return out
+
+
+def level_of(field, value):
+    """The named level the value is in, or None."""
+    try:
+        n = float(value)
+    except (TypeError, ValueError):
+        return None
+    return next((lv for lv in field.get("levels") or [] if lv["from"] <= n <= lv["to"]), None)
 
 
 GAME_CHOICES = ("default", "off", "dice", "full")  # see mainapp/game.py
@@ -314,6 +359,10 @@ def _describe(spec):
         desc += ")"
         if f.get("hint"):
             desc += f" – {f['hint']}"
+        if f.get("raises"):
+            desc += f"; goes up with: {', '.join(f['raises'])}"
+        if f.get("lowers"):
+            desc += f"; goes down with: {', '.join(f['lowers'])}"
         parts.append(desc)
     shape = "object" if spec["kind"] == "object" else f'list of records, one per "{spec["key"]}"'
     return f'- "{spec["id"]}" ({spec["label"]}: {spec["help"]}) – {shape}; fields: ' + ", ".join(parts)
@@ -396,10 +445,17 @@ def format_for_prompt(config, state):
         if not value:
             continue
         if spec["kind"] == "object":
-            parts = [f"{f['label']}: {_fmt_value(f, value[f['key']])}"
-                     for f in spec["fields"] if value.get(f["key"]) not in ("", [], None)]
+            parts, notes = [], []
+            for f in spec["fields"]:
+                if value.get(f["key"]) in ("", [], None):
+                    continue
+                level = level_of(f, value[f["key"]])
+                parts.append(f"{f['label']}: {_fmt_value(f, value[f['key']])}" + (f" ({level['name']})" if level else ""))
+                if level and level["note"]:
+                    notes.append(f"- {f['label']} is {level['name']}: {level['note']}")
             if parts:
-                blocks.append(f"{spec['label']}: " + "; ".join(parts))
+                blocks.append(f"{spec['label']}: " + "; ".join(parts)
+                              + ("\nWrite the scene to fit these:\n" + "\n".join(notes) if notes else ""))
         else:
             lines = []
             if spec["id"] == "memories":  # only what's still open, so the story comes back to it

@@ -400,3 +400,45 @@ class StorybookTests(SimpleTestCase):
         self.assertTrue({'Scene banner (AI-designed)', 'Any in-story object (AI-designed)', 'Writing quality'} <= on)
         self.assertNotIn('Scene banner (AI-designed)',
                          {b.get('name') for b in starters.get('glm-experience-storytelling')['preset']['blocks'] if b.get('enabled')})
+
+
+class DesignedTrackerTests(SimpleTestCase):
+    """Custom tracker fields Bulba designs: look, colour, what moves them, levels that steer the writing."""
+    FIELD = {"label": "Patience", "type": "meter", "min": 0, "max": 100, "look": "ring", "color": "#f472b6",
+             "icon": "⏳", "raises": ["13 answers precisely"], "lowers": ["Wasted time", "Flattery"],
+             "levels": [{"from": 60, "to": 100, "name": "Indulgent", "note": "He explains at length."},
+                        {"from": 0, "to": 29, "name": "Exhausted", "note": "One-word answers; he turns away."},
+                        {"from": 30, "to": 59, "name": "Clipped"}]}
+
+    def test_design_is_kept_and_cleaned(self):
+        from mainapp import trackers
+        f = trackers.normalize_custom_fields([{**self.FIELD, "color": "red", "look": "hologram"}])[0]
+        self.assertNotIn("color", f)  # not a hex
+        self.assertNotIn("look", f)
+        f = trackers.normalize_custom_fields([self.FIELD])[0]
+        self.assertEqual((f["look"], f["color"], f["icon"]), ("ring", "#f472b6", "⏳"))
+        self.assertEqual([lv["name"] for lv in f["levels"]], ["Exhausted", "Clipped", "Indulgent"])  # sorted
+        self.assertEqual(trackers.level_of(f, 45)["name"], "Clipped")
+
+    def test_levels_steer_the_story_and_moves_guide_the_tracker(self):
+        from mainapp import trackers
+        config = trackers.normalize_config({"trackers": {"custom": {"on": True}}, "custom_fields": [self.FIELD]})
+        state = trackers.normalize_state({"values": {"custom": {"patience": 20}}}, config)
+        text = trackers.format_for_prompt(config, state)
+        self.assertIn("Patience: 20/100 (Exhausted)", text)
+        self.assertIn("Patience is Exhausted: One-word answers; he turns away.", text)
+        system = trackers.update_messages(config, state, [("user", "Hi")], "Dottore", "13")[0]["content"]
+        self.assertIn("goes up with: 13 answers precisely", system)
+        self.assertIn("goes down with: Wasted time, Flattery", system)
+
+    def test_bulba_card_shows_the_design(self):
+        from unittest import mock
+        from mainapp.bulba import tune
+        session = type("S", (), {"proposals": []})()
+        character = type("C", (), {"id": 1, "name": "Dottore"})()
+        with mock.patch.object(tune, "target_character", return_value=character), \
+                mock.patch.object(tune, "_propose", side_effect=lambda s, k, t, summary, payload, why: (summary, payload)):
+            summary, payload = tune.tool_propose_trackers(session, {"custom_fields": [self.FIELD], "why": "x"})
+        self.assertIn("custom", payload["on"])
+        self.assertTrue(any("Patience levels: 0-29 Exhausted" in line for line in summary))
+        self.assertTrue(any("up with 13 answers precisely" in line for line in summary))
