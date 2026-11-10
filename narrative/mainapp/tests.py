@@ -3008,6 +3008,30 @@ class SpendingAndThinkingTests(StreamChatTests):
 class BulbaRunTwoTests(BulbaTests):
     """Fixes from Anya's first real run (5 October 2026)."""
 
+    def test_a_failed_message_can_be_tried_again_or_removed(self):
+        from mainapp import ai_client
+        from mainapp.models import BulbaSession
+        from unittest import mock
+        with mock.patch("mainapp.ai_client.complete_message", side_effect=ai_client.AIError("429 rate-limited")):
+            self.api(action="say", text="Make him colder")
+        session = BulbaSession.objects.get(user=self.user, mode="setup")
+        self.assertEqual([e["type"] for e in session.events[-2:]], ["user", "error"])
+        self.script = [("Colder it is.", [])]
+        data = self.api(action="retry_failed").json()
+        self.assertTrue(data["replace"])
+        types = [e["type"] for e in data["events"]]
+        self.assertEqual(types[-2:], ["user", "bulba"])
+        self.assertEqual(sum(1 for e in data["events"] if e.get("text") == "Make him colder"), 1)  # not twice
+        sent = [m for m in self.bulba_calls[-1]["messages"] if m.get("content") == "Make him colder"]
+        self.assertEqual(len(sent), 1)
+        self.assertEqual(self.api(action="retry_failed").status_code, 400)  # nothing failed now
+        with mock.patch("mainapp.ai_client.complete_message", side_effect=ai_client.AIError("boom")):
+            self.api(action="say", text="Something else")
+        data = self.api(action="remove_failed").json()
+        self.assertFalse(any(e.get("text") == "Something else" for e in data["events"]))
+        session.refresh_from_db()
+        self.assertFalse(any(m.get("content") == "Something else" for m in session.messages))
+
     def test_a_dropped_connection_can_fetch_the_finished_turn(self):
         from django.core.cache import cache
         self.script = [("Hello there.", [])]
@@ -3899,7 +3923,8 @@ class BulbaInChatTests(ChatPromptTests):
         self.assertIn("Active preset:", system)
         names = [t["function"]["name"] for t in self.bulba_calls[0]["tools"]]
         self.assertIn("propose_preset_edit", names)
-        self.assertNotIn("propose_character", names)                    # setup-only tools stay out
+        self.assertIn("propose_character", names)                       # new characters can be made from a chat
+        self.assertNotIn("set_stage", names)                            # setup-only tools stay out
         # The setup conversation is separate
         from mainapp.models import BulbaSession
         self.assertFalse(BulbaSession.objects.filter(user=self.user, mode="setup").exists())

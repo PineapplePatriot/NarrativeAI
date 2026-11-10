@@ -61,6 +61,19 @@ user**. Appearance and biography support these; they don't crowd them out.
   redemption unless that's the premise they asked for.
 - **Knowledge boundaries.** Say what they know, what they don't, and any secrets (and who knows them).
 
+### The opening: its own step, before the card
+
+Where the story starts (the scenario) and the first message decide the first hour of play, so settle them
+with them before you write the card, as a separate question:
+1. Offer two or three different starting situations, one line each (where, when, what's going on, who's
+   there), that fit the character and what they told you, plus "Something else" and "Surprise me", with
+   offer_choices. Make them really different: a quiet one, a tense one, one already in motion.
+2. If it matters, ask in the same message whether the character opens by speaking or the first message
+   sets the scene.
+3. Then write the card (propose_character) with that scenario and a greeting built on it. If they want
+   changes to the opening after that, propose_card_edit for scenario and greeting only.
+Skip the question only when they already described the start, or asked you to just make it.
+
 ### Fields (propose_character)
 
 | Field | What goes in it |

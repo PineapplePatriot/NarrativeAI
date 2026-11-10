@@ -408,7 +408,7 @@ def tools():
     from mainapp.bulba import agent
     keep = {"offer_choices", "record_preference", "get_starter", "find_practice", "read_practice", "look_up",
             "propose_lorebook", "propose_extras", "read_lorebook", "propose_lore_edit", "propose_theme",
-            "offer_downloads", "propose_persona", *tune.HANDLERS}
+            "offer_downloads", "propose_persona", "propose_character", "offer_card_upload", *tune.HANDLERS}
     base = [t for t in agent.TOOLS if t["function"]["name"] in keep]
     return base + [
         *PRESET_EDIT_TOOLS,

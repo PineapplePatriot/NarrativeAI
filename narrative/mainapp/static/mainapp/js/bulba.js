@@ -110,7 +110,7 @@ function proposalCard(ev) {
            <button type="button" class="ghost" data-act="dismiss" data-id="${p.id}" ${off}>Not this</button>`
         : p.status === 'applied' ? `<button type="button" class="ghost" data-act="undo" data-id="${p.id}" ${off}>Undo</button>` : '';
     const chatLink = p.status === 'applied' && p.result && p.result.slug
-        ? `<a class="btn" href="/main/chat/${encodeURIComponent(p.result.slug)}">Chat now →</a>` : '';
+        ? `<a class="btn" href="/main/chat/${encodeURIComponent(p.result.slug)}" ${window.parent !== window ? 'target="_top"' : ''}>Chat now →</a>` : '';
     return `<div class="proposal ${p.status}">
         <div class="proposal-head"><b>${esc(p.title)}</b> ${p.edited ? '<span class="status">edited by you</span>' : ''} ${status}</div>
         <div class="proposal-body${(p.summary || []).join('\n').length > 900 ? ' folded' : ''}">${(p.summary || []).map(l => /^[^\s].{0,40}:$/.test(l)
@@ -266,6 +266,29 @@ function doneBlock() {
       </div>`;
 }
 
+// Their last message when only errors came after it (mainapp/bulba/agent.py failed_tail)
+function failedTail() {
+    let idx = -1;
+    for (let i = events.length - 1; i >= 0; i--) if (events[i].type === 'user') { idx = i; break; }
+    if (idx < 0 || idx === events.length - 1) return null;
+    return events.slice(idx + 1).every(e => e.type === 'error') ? idx : null;
+}
+async function copyText(text, btn) {
+    try { await navigator.clipboard.writeText(text); }
+    catch (e) {  // older phones: the selection way
+        const t = document.createElement('textarea'); t.value = text; document.body.append(t); t.select();
+        try { document.execCommand('copy'); } catch (e2) {} t.remove();
+    }
+    if (btn) { const was = btn.textContent; btn.textContent = '✓ Copied'; setTimeout(() => { btn.textContent = was; }, 1200); }
+}
+document.addEventListener('click', e => {
+    const c = e.target.closest('[data-copy]');
+    if (c && events[Number(c.dataset.copy)]) { copyText(events[Number(c.dataset.copy)].text || '', c); return; }
+    const f = e.target.closest('[data-failed]');
+    if (f && !busy) run({ action: f.dataset.failed === 'retry' ? 'retry_failed' : 'remove_failed' },
+                        f.dataset.failed === 'retry' ? 'Trying again…' : 'Removing…');
+});
+
 function render() {
     const types = events.map(e => e.type);
     const lastBulba = types.lastIndexOf('bulba');
@@ -283,13 +306,20 @@ function render() {
             return `<div class="msg bulba"><span class="potato">🥔</span><div class="bubble">${fmt(ev.text)}
                     ${choices ? `<div class="choices">${choices}</div>` : ''}</div></div>`;
         }
-        if (ev.type === 'user') return `<div class="msg user"><div class="bubble">${esc(ev.text)}</div></div>`;
+        if (ev.type === 'user') return `<div class="msg user"><div class="bubble">${esc(ev.text)}</div>
+            <button type="button" class="msg-copy" data-copy="${i}" title="Copy">📋</button></div>`;
         if (ev.type === 'picture') return `<div class="msg user"><div class="bubble picture-bubble">
                 <img src="${esc(ev.src)}" alt="Your picture">${ev.text ? `<div>${esc(ev.text)}</div>` : ''}</div></div>`;
         if (ev.type === 'action') return `<div class="action">${esc(ev.text)}</div>`;
         if (ev.type === 'note') return `<div class="note">✓ ${esc(ev.text)}</div>`;
         if (ev.type === 'watch') return '';  // sent to the chat page (Bulba switched Watch)
-        if (ev.type === 'error') return `<div class="error">${esc(ev.text)}</div>`;
+        if (ev.type === 'error') {  // the last thing on the page after their message: try it again, copy it, or drop it
+            const failed = i === events.length - 1 && failedTail() !== null && !busy;
+            return `<div class="error">${esc(ev.text)}${failed ? `<div class="error-actions">
+                <button type="button" data-failed="retry">↻ Try again</button>
+                <button type="button" class="ghost" data-copy="${failedTail()}">📋 Copy my message</button>
+                <button type="button" class="ghost" data-failed="remove">🗑 Remove it</button></div>` : ''}</div>`;
+        }
         if (ev.type === 'stage') return `<div class="stage-mark">${esc(STAGE_LABELS[ev.stage] || ev.stage)}</div>`;
         if (ev.type === 'proposal') return proposalCard(ev);
         if (ev.type === 'card_upload') {
@@ -449,7 +479,7 @@ async function run(body, label) {
         const switched = (data.events || []).filter(ev => ev.type === 'watch' && ev.watch).pop();
         if (window.parent !== window && switched) window.parent.postMessage({ watch: switched.watch }, window.location.origin);
         if (body.action === 'say') events.pop();  // the server sends it back with the rest
-        events = body.action === 'restart' ? data.events : events.concat(data.events);
+        events = (body.action === 'restart' || data.replace) ? data.events : events.concat(data.events);
         const wasDone = state.stage === 'done';
         state = data.state;
         // Beside Quick setup: the form shows what Bulba just set (a character, persona, worldbook, extras…)
@@ -459,7 +489,9 @@ async function run(body, label) {
             window.parent.postMessage({ quickBulba: 'done' }, window.location.origin);
     } catch (err) {
         if (body.action === 'say') events.pop();
-        if (!(err.lost && await recover(events.length)))
+        const recovered = err.lost && await recover(events.length);
+        if (!recovered && body.action === 'say' && !$('input').value.trim()) $('input').value = body.text;  // not lost
+        if (!recovered)
             events.push({ type: 'error', text: err.lost ? "The connection dropped and Bulba didn't get to finish that one. Send it again." : err.message });
     } finally {
         busy = false;

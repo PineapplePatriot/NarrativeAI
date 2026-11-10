@@ -3401,6 +3401,17 @@ def _bulba_api(request):
     elif action == "say":
         session.beside_quick = bool(data.get("beside_quick")) and session.mode == "setup"
         events = agent.run_turn(session, data.get("text"))
+    elif action in ("retry_failed", "remove_failed"):  # a message Bulba couldn't answer: again, or gone
+        try:
+            if action == "retry_failed":
+                agent.retry_failed(session)
+            else:
+                agent.remove_failed(session)
+        except ValueError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        session.activity = ""
+        session.save()
+        return JsonResponse({"events": session.events, "replace": True, "state": _bulba_state(session)})
     elif action == "route":  # the opening's full setup or fast route (no AI needed)
         try:
             events = agent.take_route(session, str(data.get("route") or ""))

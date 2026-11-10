@@ -368,7 +368,7 @@ def spending(user):
 
 # Background jobs fill in JSON or short notes: a thinking model thinks as little as it allows there (the story reply
 # keeps the Samplers page's setting; Bulba and polishing keep the model's own default, they're writing work)
-LIGHT_TASKS = ("summary", "trackers", "emotion", "voice_split", "watch", "writing_tools")
+LIGHT_TASKS = ("summary", "trackers", "emotion", "voice_split", "watch", "writing_tools", "translation", "polish")
 
 
 def _light_reasoning(profile, task, payload, user=None):

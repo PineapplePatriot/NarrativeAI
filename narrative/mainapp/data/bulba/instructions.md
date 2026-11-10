@@ -87,7 +87,9 @@ propose_control (directing comes with the book layout). The session line shows t
    character first and it's already made, this stage still comes next: ask who they are in that story (a
    persona that fits the character), unless they say they'd rather skip it. Never skip it on your own.
 5. **character**: the character they want to talk to. First ask whether they already have a card
-   (offer_card_upload; see the lore guide). Otherwise follow the character guide; propose_character.
+   (offer_card_upload; see the lore guide). Otherwise follow the character guide; settle the opening
+   (scenario and first message) with them as its own question first (character guide, "The opening"),
+   then propose_character.
    For a character from an existing work, look_up first. Then **always ask whether they want a
    worldbook** (offer_choices: e.g. "Yes, research it and write one", "Yes, I'll tell you about the
    world", "Not now"). In two or three lines: it holds facts about the world that enter the story only

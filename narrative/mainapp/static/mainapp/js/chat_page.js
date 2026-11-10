@@ -69,6 +69,16 @@ document.addEventListener("click", (event) => {
         case "delete":
             if (index !== null) deleteMessage(index);
             break;
+        case "copy": {  // the words as shown (the translation when they read one), without the buttons
+            const el = btn.closest('.message'), textDiv = el && el.querySelector('.message-text');
+            if (!textDiv) break;
+            const text = textDiv.innerText.trim();
+            const done = () => { btn.textContent = '✓'; setTimeout(() => { btn.textContent = '📋'; }, 1200); };
+            if (navigator.clipboard) navigator.clipboard.writeText(text).then(done).catch(() => showChatNotice('Could not copy it.'));
+            else { const t = document.createElement('textarea'); t.value = text; document.body.append(t); t.select();
+                   try { document.execCommand('copy'); done(); } catch (e) { showChatNotice('Could not copy it.'); } t.remove(); }
+            break;
+        }
         case "original": {  // 🌐 the English a translated reply was written in, and back
             const el = btn.closest('.message'), textDiv = el && el.querySelector('.message-text');
             if (!textDiv || !textDiv.dataset.original) break;
@@ -387,6 +397,7 @@ function addMessage(sender, text, specificAvatarUrl = null, note = false) {
                 <button class="message-btn condense" type="button" data-action="condense" data-index="${messageIndex}" title="Condense for the AI: it gets a short version, you still see all of it">🗜</button>
                 ${sender === 'user' ? '' : `<button class="message-btn polish-btn" type="button" data-action="polish" data-index="${messageIndex}" title="${escHtml(window.POLISH_TITLE || 'Polish this reply')}">🧹</button>`}
                 <button class="message-btn branch" type="button" data-action="branch" data-index="${messageIndex}" title="Branch: a new chat from this message"><svg class="icon" viewBox="0 0 24 24"><path d="M6 3a3 3 0 0 0-1 5.83v6.34A3 3 0 1 0 7 15.17V13.5c0-.83.67-1.5 1.5-1.5h5A3.5 3.5 0 0 0 17 8.5v-.67a3 3 0 1 0-2 0v.67c0 .83-.67 1.5-1.5 1.5h-5c-.53 0-1.03.1-1.5.28V8.83A3 3 0 0 0 6 3z"/></svg></button>
+                <button class="message-btn copy" type="button" data-action="copy" data-index="${messageIndex}" title="Copy">📋</button>
                 <button class="message-btn delete" onclick="deleteMessage(${messageIndex})">
                     <svg class="icon" viewBox="0 0 24 24"><path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/></svg>
                 </button>

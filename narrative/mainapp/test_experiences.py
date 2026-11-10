@@ -493,3 +493,13 @@ class TrackerTriggerTests(SimpleTestCase):
         state = trackers.normalize_state({}, config)
         system = trackers.update_messages(config, state, [("user", "Hi")], "Guard", "Thief")[0]["content"]
         self.assertIn('the app adds 1 to "guards_alerted" when this reaches >= 80', system)
+
+
+class LightThinkingTests(SimpleTestCase):
+    def test_new_styles_start_on_the_lightest_thinking(self):
+        efforts = {s['model']: (s['preset']['samplers'].get('reasoning_effort') or {}).get('value')
+                   for s in starters.all_starters() if s['experience'] == 'drama'}
+        for m in ('glm-5-3', 'kimi-k3', 'claude-fable-5-1', 'claude-opus-5-5', 'gemini-3-8-flash'):
+            self.assertEqual(efforts[m], 'low', m)
+        self.assertEqual(efforts['claude-opus-4-6'], 'off')       # off stays off
+        self.assertEqual(efforts['mimo-v2-6-pro'], 'medium')      # only on/off: left on
