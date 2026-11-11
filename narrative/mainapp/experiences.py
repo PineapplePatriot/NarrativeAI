@@ -24,9 +24,10 @@ from pathlib import Path
 EXPERIENCES = ('conversation', 'drama', 'storytelling', 'visual')
 CONTRACTS = {
     'dont': "Write the other characters and world. Do not write {{user}}'s new dialogue, voluntary actions, decisions or private thoughts. Respond to actions already established and apply external consequences within the agreed scene rules. Stop where the player's next contribution is needed.",
-    'write': "Write the cast and world, including {{user}} as a scene character with dialogue, actions and thoughts. Treat the participant's corrections and stated character choices as authoritative. Do not expand these shared-authorship permissions into instructions about the real participant.",
+    'write': "{{user}} is the player's character, and you write {{user}} too: their dialogue, actions, decisions and thoughts, like any other character in the scene. Keep to everything the player has established about {{user}}; when the player corrects or describes {{user}}, that wins. Rules elsewhere that reserve {{user}} for the player don't apply in this story.",
     'director': "The participant directs the story from outside it. Write all characters present, including {{user}} when the scene includes that character. Treat the participant's messages as directions, not in-world dialogue. Never address the director as a character. Develop the requested scene until further direction is useful."
 }
+LEGACY_CONTRACTS = {'write': "Write the cast and world, including {{user}} as a scene character with dialogue, actions and thoughts. Treat the participant's corrections and stated character choices as authoritative. Do not expand these shared-authorship permissions into instructions about the real participant."}  # earlier wording, updated on load
 REMINDER = "Reply reminder"
 LENGTH_BLOCK = "Reply length"
 
@@ -128,7 +129,7 @@ def configure(preset, mode='dont', extensions=()):
             block['enabled'] = block['name'] in selected
     reminder = next((b for b in result['blocks'] if b.get('name') == REMINDER and b.get('position') == 'in_chat'), None)
     if reminder is not None:  # keep anything added to it (the 18+ line), swap only the contract's own line
-        known = set(catalog()['reminders'].values())
+        known = set(catalog()['reminders'].values()) | set(catalog().get('legacy_reminders', {}).values())
         lines = [l for l in reminder['content'].split('\n') if l.strip() not in known]
         reminder['content'] = '\n'.join([catalog()['reminders'][mode], *[l for l in lines if l.strip()]])
     return result
@@ -139,6 +140,21 @@ GROUP_LABELS = {'characters': 'Characters', 'world': 'World', 'story': 'Story dr
                 'objects': 'In-story objects (AI-designed)'}
 CUSTOM_OBJECT = 'html_custom'  # "My own object": its block ends with what they described (html_objects.py)
 ADULT = {'slow_burn', 'dark_themes', 'explicit_intimacy', 'intense_explicit'}
+
+
+def refresh_reminders(blocks):
+    """The reply reminder in its current wording (in place). The old one began "[Continue from where the scene
+    stands", which some models (MiMo) read as a "continue" command on top of the user's message."""
+    legacy = catalog().get('legacy_reminders') or {}
+    for b in blocks:
+        if b.get('name') == 'Your character' and isinstance(b.get('content'), str):
+            for mode, text in LEGACY_CONTRACTS.items():
+                if b['content'].strip() == text:
+                    b['content'] = CONTRACTS[mode]
+        if b.get('name') == REMINDER and b.get('position') == 'in_chat' and isinstance(b.get('content'), str):
+            for mode, text in legacy.items():
+                if text in b['content']:
+                    b['content'] = b['content'].replace(text, catalog()['reminders'][mode])
 
 
 def module_states(preset):

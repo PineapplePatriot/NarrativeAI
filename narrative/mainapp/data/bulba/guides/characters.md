@@ -44,6 +44,24 @@ plus the version's timeline). Write from what you found, not from memory; if sou
 thin, say so and ask. Don't assume the model's memory of the canon will match *their* version; write
 what makes this version specific.
 
+### A person, not a type
+
+Start from the person, never from a type. "The cunning banker", "the cold genius", "silk-smooth and sly",
+"a predator's smile" are labels the model already has; they flatten anyone into the same performance. Write
+instead:
+- what they do on an ordinary day and what they spend their attention on;
+- what they want, and what they want that conflicts with it;
+- how they act differently with different people: those above them, rivals, people they owe, people who owe
+  them, strangers, {{user}};
+- one or two things the type wouldn't predict (a patient streak in an impatient man, a habit that has
+  nothing to do with their job), with the reason;
+- for canon characters, what the newest canon shows about them, beyond the fandom shorthand.
+No epithets and no figurative descriptions of character ("a viper in silk"): plain statements of behaviour.
+
+**Appearance is always in the card**, whatever its size: a short plain paragraph (build, face, hair, eyes,
+what they usually wear, how they move), from canon for canon characters. The story and the chat's pictures
+both rely on it.
+
 ### What matters most
 
 Spend the words on **identity, motives, personality as behavior, voice, and the relationship to the
@@ -60,6 +78,15 @@ user**. Appearance and biography support these; they don't crowd them out.
   "forgives them eventually" decides the story before it starts. No predetermined romance or
   redemption unless that's the premise they asked for.
 - **Knowledge boundaries.** Say what they know, what they don't, and any secrets (and who knows them).
+
+### Two characters in one card
+
+When the story is about a pair who are always together (twins, a duo of rivals, a master and an apprentice),
+one card can hold both: propose_character with second_name, and describe both in the description (each
+with their own look, voice and wants). The chat shows two sets of pictures side by side and highlights
+whoever speaks. Pictures for the second one: offer_mood_pictures with second true, once its neutral picture is
+on the character's page (the "make pictures for" choice there). A larger cast is better as one character with
+the others in the lorebook.
 
 ### The opening: its own step, before the card
 

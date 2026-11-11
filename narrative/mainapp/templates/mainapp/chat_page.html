@@ -8,13 +8,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Narrative AI - Chat with {{character.name}}</title>
-    <link rel="stylesheet" href="{% static 'mainapp/css/chat_page.css' %}?v=35">
-    <link rel="stylesheet" href="{% static 'mainapp/css/chat_skins.css' %}?v=3">
+    <link rel="stylesheet" href="{% static 'mainapp/css/chat_page.css' %}?v=40">
+    <link rel="stylesheet" href="{% static 'mainapp/css/chat_skins.css' %}?v=4">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=5">
 </head>
 
-<body class="{% if appearance.layout == 'book' %}layout-book{% endif %}{% if skin %} skin-{{ skin }}{% endif %}" data-dialogue="{% if appearance.dialogue_color == 'preset' %}preset{% else %}color{% endif %}" style="--dialogue-color: {% if appearance.dialogue_color == 'preset' %}inherit{% else %}{{ appearance.dialogue_color }}{% endif %}">
+<body class="{% if appearance.layout == 'book' %}layout-book{% endif %}{% if skin %} skin-{{ skin }}{% endif %}{% if skin == 'parchment' or skin == 'lab' %} light-style{% endif %}{% if appearance.you_color %} has-you you-{{ appearance.you_color }}{% endif %}" data-dialogue="{{ appearance.speech_mode|default:'app' }}" style="--dialogue-color: {{ appearance.dialogue_color }};{% if appearance.dialogue_light %} --dialogue-light: {{ appearance.dialogue_light }};{% endif %}">
 {% include "partials/topbar.html" with active="characters" %}
 <div class="skin-fx" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
 <script>try { if (localStorage.getItem('chat-fx') === 'off') document.body.classList.add('fx-off'); } catch (e) { /* effects stay on */ }</script>
@@ -335,14 +335,23 @@
                             <button type="button" class="preset-btn {% if chat_skin_choice == 'none' %}on{% endif %}" data-skin="none">Plain</button>
                         </div>
                         <small class="skin-note">The first chip follows the character (Bulba sets it with their look: ask for a chat style); the others are for this chat only.</small>
-                        <span class="tool-sublabel">🎨 {{ character.name }}'s dialogue colour</span>
-                        <div class="dialogue-colors" id="dialogueColors">
-                            {% for c in "#e594f2,#7dd3fc,#86efac,#fcd34d,#fca5a5,#c4b5fd,#f1f5f9"|split:"," %}
-                                <button type="button" class="swatch {% if appearance.dialogue_color == c %}on{% endif %}" data-color="{{ c }}" style="background: {{ c }}" title="{{ c }}"></button>
-                            {% endfor %}
-                            <label class="swatch custom" title="Any colour"><input type="color" id="dialogueCustom" value="{% if appearance.dialogue_color != 'preset' %}{{ appearance.dialogue_color }}{% else %}#e594f2{% endif %}"></label>
-                            <button type="button" class="preset-btn {% if appearance.dialogue_color == 'preset' %}on{% endif %}" data-color="preset" title="No colour of its own: the preset's or the AI's colours show instead">Preset's colours</button>
+                        <span class="tool-sublabel">🎨 Speech colours</span>
+                        <div class="chip-row skin-choice" id="speechMode">
+                            <button type="button" class="preset-btn {% if speech.mode == 'story' %}on{% endif %}" data-mode="story">Story colours</button>
+                            <button type="button" class="preset-btn {% if speech.mode == 'app' %}on{% endif %}" data-mode="app">One colour</button>
                         </div>
+                        <div id="speechApp" {% if speech.mode != 'app' %}hidden{% endif %}>
+                            <small class="skin-note">All speech in this colour; the AI isn't told about colours.</small>
+                            <div class="dialogue-colors" id="dialogueColors"></div>
+                        </div>
+                        <div id="speechStory" {% if speech.mode != 'story' %}hidden{% endif %}>
+                            <small class="skin-note">The AI colours each speaker itself and keeps these; people who turn up later get a free colour. Tap a colour to change it.</small>
+                            <div class="speech-cast" id="speechCast"></div>
+                            <div class="speech-add"><input type="text" id="speechName" maxlength="60" placeholder="A name, e.g. Pantalone"><button type="button" class="preset-btn" id="speechAdd">Add</button></div>
+                            <label class="speech-tones"><input type="checkbox" id="speechTones" {% if speech.tones %}checked{% endif %}> Tone marks: whispers, shouts, trembling lines look different</label>
+                        </div>
+                        <span class="tool-sublabel">🙂 Your speech colour</span>
+                        <div class="dialogue-colors" id="youColors"></div>
                         <span class="tool-sublabel">💳 This month</span>
                         <div class="spending-line" id="spendingLine" data-spent="{{ spending.spent }}" data-limit="{{ spending.limit }}">
                             ${{ spending.spent|floatformat:2 }} of ${{ spending.limit|floatformat:2 }} used (chat, Bulba and background jobs)</div>
@@ -405,9 +414,13 @@
                 </div>
             </div>
 
-            <div class="character-images-wrapper">
-                <div class="character-image-container" id="char1Container"
-                    style="display: {% if char_count == 1 or char_count == 2 %}flex{% else %}none{% endif %};">
+            <div class="character-images-wrapper{% if photo_user %} with-user{% endif %}">
+                <div class="character-image-container user-sprite" id="userContainer" {% if not photo_user %}style="display:none"{% endif %}
+                     title="{{ user_name_shown }}">
+                    {% if photo_user %}<img src="{{ photo_user }}" class="character-sprite" alt="{{ user_name_shown }}">{% endif %}
+                </div>
+                <div class="character-image-container{% if character.is_mult and char_count == 3 %} quiet{% endif %}" id="char1Container"
+                    style="display: {% if character.is_mult or char_count == 1 or char_count == 2 %}flex{% else %}none{% endif %};">
 
                     {% if photo_url %}
                         <img src="{{ photo_url }}" class="character-sprite">
@@ -416,13 +429,13 @@
                     {% endif %}
                 </div>
 
-                <div class="character-image-container dual" id="char2Container" 
-                    style="display: {% if char_count == 3 or char_count == 2 %}flex{% else %}none{% endif %};">
+                <div class="character-image-container dual{% if character.is_mult and char_count == 1 %} quiet{% endif %}" id="char2Container"
+                    style="display: {% if character.is_mult or char_count == 3 or char_count == 2 %}flex{% else %}none{% endif %};">
 
                     {% if photo_second %}
                         <img src="{{ photo_second }}" class="character-sprite">
                     {% else %}
-                        <div class="character-placeholder"><span>2</span><small>No sprite for the second character yet.</small></div>
+                        <div class="character-placeholder"><span>{{ character.second_name|first|upper|default:"2" }}</span><small>No pictures for {{ character.second_name|default:"the second character" }} yet. Add them on the <a href="{% url 'character' character.slug %}">Edit page</a>.</small></div>
                     {% endif %}
                 </div>
             </div>
@@ -507,6 +520,9 @@
     {# Shipped with the app (pinned versions, no CDN): see mainapp/static/mainapp/vendor/ #}
     <script src="{% static 'mainapp/vendor/marked-18.0.14.umd.js' %}"></script>
     <script src="{% static 'mainapp/vendor/purify-3.4.16.min.js' %}"></script>
+    {{ speech|json_script:"speech-settings" }}
+    {{ speech_page|json_script:"speech-page" }}
+    <style>{{ speech_css|safe }}</style>
     <script>
         window.SAVED_MUSIC = JSON.parse('{{ current_music|escapejs }}');
         window.MUSIC_FOLLOW = {{ music_follow|yesno:"true,false" }};
@@ -514,6 +530,9 @@
         window.THEME_WEATHER = "{{ theme_weather|escapejs }}";
         window.INIT_PHOTO_URL = "{{ photo_url|default:'' }}";
         window.INIT_PHOTO_SECOND = "{{ photo_second|default:'' }}";
+        window.IS_MULT = {{ character.is_mult|yesno:"true,false" }};
+        window.SPEECH = JSON.parse(document.getElementById('speech-page').textContent || '{}');
+        window.SPEECH_SETTINGS = JSON.parse(document.getElementById('speech-settings').textContent || '{}');
         window.INIT_CHAR_COUNT = {{ char_count|default:1 }};
         window.CHAR_INITIAL = "{{ character.name|first|upper|escapejs }}";
         window.VOICE_ON = {% if voice_on %}true{% else %}false{% endif %};

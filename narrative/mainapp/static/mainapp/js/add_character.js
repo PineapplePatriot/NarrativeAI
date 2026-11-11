@@ -91,7 +91,14 @@ if (location.hash === '#spritesSection') {
     const unsaved = field => !!(group(field) && group(field).querySelector('input[type=file]')?.files.length);
     // A second character: choose whose pictures to make
     const mult = document.getElementById('id_is_mult'), forWrap = document.getElementById('spriteForWrap');
-    const showFor = () => { forWrap.hidden = !(mult && mult.checked); };
+    const secondName = document.getElementById('id_second_name'), nameWrap = document.getElementById('secondNameWrap');
+    const showFor = () => {
+        forWrap.hidden = !(mult && mult.checked);
+        if (nameWrap) nameWrap.hidden = !(mult && mult.checked);
+        const opt = document.querySelector('#spriteFor option[value="1"]');  // "make pictures for": their name
+        if (opt) opt.textContent = (secondName && secondName.value.trim()) || 'The second character';
+    };
+    if (secondName) secondName.addEventListener('input', showFor);
     if (mult) { mult.addEventListener('change', showFor); showFor(); }
     const prefix = () => (!forWrap.hidden && document.getElementById('spriteFor').value) ? 'photo_second' : 'photo';
 

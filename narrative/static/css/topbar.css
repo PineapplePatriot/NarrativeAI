@@ -75,3 +75,7 @@
 *::-webkit-scrollbar-track { background: transparent; }
 *::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.3); border-radius: 999px; }
 *::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.5); }
+/* Log out lives on the profile page */
+.profile-logout { float: right; font-size: .85rem; font-weight: 500; color: #fb7185; border: 1px solid rgba(251,113,133,.4);
+    border-radius: 999px; padding: 4px 12px; text-decoration: none; margin-top: 6px; }
+.profile-logout:hover { background: rgba(251,113,133,.12); }

@@ -72,7 +72,8 @@ def apply(session, pid):
             name=data["name"], slug=_unique_slug(user, data["name"]), author=user,
             description=data.get("description", ""), scenario=data.get("scenario", ""),
             initial_message=data.get("greeting", ""), personality=data.get("personality", ""),
-            example_dialogue=data.get("example_dialogue", ""))
+            example_dialogue=data.get("example_dialogue", ""),
+            second_name=data.get("second_name", ""), is_mult=bool(data.get("second_name")))
         p["undo"] = {"created": character.id}
         p["result"] = {"slug": character.slug}
         if session.mode == "setup":  # the new character is the one Bulba works on now (not one it looked at before)

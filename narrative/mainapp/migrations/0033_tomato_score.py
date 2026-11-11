@@ -8,7 +8,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("mainapp", "0031_watch"),
+        ("mainapp", "0032_second_character_name"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

@@ -6,15 +6,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profile - Narrative AI</title>
-    <link rel="stylesheet" href="{% static 'users/css/profile.css' %}?v=3">
-    <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
+    <link rel="stylesheet" href="{% static 'users/css/profile.css' %}?v=4">
+    <link rel="stylesheet" href="{% static 'css/topbar.css' %}?v=2">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=5">
 </head>
 <body class="na-body">
 {% include "partials/topbar.html" with active="profile" %}
     <div class="na-page na-narrow">
     <div class="na-head">
-        <h1 class="na-title">{{ title }}</h1>
+        <h1 class="na-title">{{ title }} <a class="profile-logout" href="{% url 'users:logout' %}">Log out</a></h1>
         <p class="na-sub">Your photo, name, login and password, and who you are in stories (your persona).</p>
     </div>
     <div class="form-container">
@@ -68,15 +68,33 @@
                 {% endif %}
             {% endfor %}
 
+            <h3 class="persona-head">🖼 Your pictures in stories</h3>
+            <p class="persona-help">Shown in the chat scene next to the character, with your mood after each exchange.
+                Upload a neutral picture of your persona, or make one from “About you in stories”; then make the other
+                moods from it (Nano Banana, a few cents each, on your key).</p>
+            <div class="persona-pics" id="personaPics" data-url="{% url 'persona_sprite' %}">
+                {% for mood, pic in persona_pictures %}
+                <figure data-mood="{{ mood }}">{% if pic %}<img src="{{ pic }}" alt="">{% else %}<span>—</span>{% endif %}<figcaption>{{ mood }}</figcaption></figure>
+                {% endfor %}
+            </div>
+            <label for="{{ form.persona_photo_neutral.id_for_label }}">Neutral picture (upload)</label>
+            {{ form.persona_photo_neutral }}
+            <div class="persona-pic-actions">
+                <button type="button" class="secondary" id="personaMakeNeutral">✨ Make it from my description</button>
+                <button type="button" class="secondary" id="personaMakeMoods">✨ Make the missing moods</button>
+                <span class="persona-help" id="personaPicNote"></span>
+            </div>
+
             <button type="submit">Save</button>
         </form>
 
         <hr>
         <p class="profile-links"><a href="{% url 'users:password_change' %}">Change password</a>
+            · <a href="{% url 'users:logout' %}">Log out</a>
             · <a class="danger-link" href="{% url 'users:delete_account' %}">Delete account</a></p>
     </div>
     </div>
 
-    <script src="{% static 'users/js/profile.js' %}"></script>
+    <script src="{% static 'users/js/profile.js' %}?v=2"></script>
 </body>
 </html>

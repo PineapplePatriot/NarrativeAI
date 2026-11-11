@@ -89,6 +89,7 @@
         addEventListener('scroll', place, true);
         document.addEventListener('keydown', onKey, true);
         show(0);
+        document.dispatchEvent(new CustomEvent('na-tour', { detail: { on: true, name } }));  // e.g. the chat holds its music
     }
 
     function show(i) {
@@ -178,8 +179,10 @@
         removeEventListener('resize', place);
         removeEventListener('scroll', place, true);
         document.removeEventListener('keydown', onKey, true);
+        const name = tour.name;
         tour = null;
         closeLinks();
+        document.dispatchEvent(new CustomEvent('na-tour', { detail: { on: false, name } }));
     }
 
     // ---------------------------------------------------------------- The ? menu in the top bar
@@ -403,7 +406,10 @@
 
     // One pop-up at a time: cards that open by themselves wait while a tour, a Bulba note or another card is up
     window.NAPopupBusy = () => !!(tour || document.querySelector('.watch-card:not([hidden]), .na-feedback-card, .na-explain'));
-    window.NATour = { start, pick, end, reset: resetTours, seen: name => store.get('na-tour-' + name) === 'seen', lang: () => lang };
+    window.NATour = { start, pick, end, reset: resetTours, seen: name => store.get('na-tour-' + name) === 'seen', lang: () => lang,
+                      active: () => !!tour,
+                      // the page's own tour is about to start by itself (first visit)
+                      pending: () => { const own = window.NA_PAGE_TOUR; return !!(own && own.auto && !tour && store.get('na-tour-' + own.name) !== 'seen'); } };
 
     // A page's own tour starts by itself the first time that page is opened
     function autoStart() {

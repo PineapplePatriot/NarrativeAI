@@ -71,3 +71,36 @@ def with_custom(block_content, description):
     head = (block_content or "").partition(CUSTOM_MARK)[0].rstrip()
     description = " ".join(str(description or "").split())[:600]
     return f"{head}\n{CUSTOM_MARK} {description}" if description else head
+
+
+# --- Keeping each kind of object's look ---------------------------------------------------------------
+# The first design of each kind in a chat (a scene banner, a letter...) is remembered and shown to the AI as
+# the one to reuse, so the look doesn't change from reply to reply. Editing an object in a message replaces it.
+MAX_DESIGNS = 6
+MAX_DESIGN_CHARS = 4000
+
+
+def kind_of(code):
+    """The kind of object, from its data-label's first part ("Scene banner: the docks" → "scene banner")."""
+    return label(code).split(":")[0].strip().lower()[:40] or "object"
+
+
+def remember(designs, text, replace=False):
+    """Note the designs in `text` (in place): new kinds always; known kinds only with replace (their edit)."""
+    changed = False
+    for m in FENCE.finditer(text or ""):
+        code = m.group(1).strip()
+        kind = kind_of(code)
+        if (kind not in designs and len(designs) < MAX_DESIGNS) or (replace and kind in designs and designs[kind] != code[:MAX_DESIGN_CHARS]):
+            designs[kind] = code[:MAX_DESIGN_CHARS]
+            changed = True
+    return changed
+
+
+def designs_for_prompt(designs):
+    if not designs:
+        return ""
+    parts = [f"- {kind}:\n```html\n{code}\n```" for kind, code in designs.items()]
+    return ("### Designed objects already used in this story\nWhen you show one of these kinds again, reuse its design "
+            "exactly (layout, colours, fonts, frame, data-label wording) and change only the contents. A new kind "
+            "gets its own design, kept the same way from then on.\n" + "\n".join(parts))

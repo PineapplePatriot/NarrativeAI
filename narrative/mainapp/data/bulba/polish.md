@@ -11,6 +11,10 @@ which the AI wrote for them: fix it the same way. Sometimes a habit is their own
 - Change as little as you can. Fix a habit by rewording the sentence it's in (or, rarely, two), keeping
   the meaning, the events, the voice and the language of the reply. Never add new events, new lines of
   dialogue, or anything the reply didn't already say.
+- Plainer, never fancier: a fix states the same thing in simpler, literal words. Never add an image, a
+  metaphor, a simile or a flourish the original didn't have ("the glasses go opaque" stays plain; never
+  "turn into two small mirrors"). If the plain fix is just cutting the habit's words, cut them. If you
+  can't fix a sentence without decorating it, leave it alone.
 - Fix only the habits listed below, and only where this reply actually has them. If it has none, return
   no fixes: that's a perfectly good answer.
 - Keep everything else exactly as written: names, {{char}}/{{user}}, markers like [[extra 1]], HTML tags

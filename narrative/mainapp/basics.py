@@ -17,7 +17,7 @@ FORM_FILE = Path(__file__).resolve().parent / "data" / "bulba" / "basics_form.js
 BLOCK = "Basics"
 # Answers written as Basics lines (the rest go elsewhere: length → Reply length, control → Your character,
 # modules and module voices → their blocks, mature → the 18+ rule, language → the profile)
-LINE_KEYS = ("pov", "tense", "format", "interior", "colors", "pacing", "initiative", "invention", "genres",
+LINE_KEYS = ("pov", "tense", "format", "interior", "pacing", "initiative", "invention", "genres",
              "voice", "author", "keep_out")
 GENRE_HEAD = "Lean the story toward "
 AUTHOR_HEAD = "Write in the style of "
@@ -45,6 +45,30 @@ def line_for(key, value):
     if key == "voice" and f"voice_{value}" in experiences.catalog()["modules"]:
         return ""  # a narration-voice module, switched on as a block
     return (options or {}).get(value, "")
+
+
+# Lines no form writes any more. "Coloured speech" left the forms: speech colours are the character's now
+# (story or app, mainapp/speaker_colors.py), so these come out of the preset (drop_retired, from presets.normalize)
+RETIRED = {"colors": (
+    "Give each character's spoken lines their own colour: wrap each quoted line in "
+    "<font color=\"#RRGGBB\">\"...\"</font>, keep one colour per character for the whole story, "
+    "and pick colours that read well on a dark background.",
+    "Give each character's spoken lines their own colour: wrap each quoted line in "
+    "<font color=\"#RRGGBB\" data-who=\"Their name\">\"...\"</font>, keep one colour per character for "
+    "the whole story (the story state lists the ones already set), and pick colours that read well on "
+    "a dark background.")}
+RETIRED_LINES = {l for lines in RETIRED.values() for l in lines}
+
+
+def drop_retired(blocks):
+    """Takes retired lines out of the Basics block (in place)."""
+    for b in blocks or []:
+        if b.get("name") == BLOCK and b.get("kind") == "prompt" and isinstance(b.get("content"), str):
+            lines = b["content"].splitlines()
+            kept = [l for l in lines if l.strip() not in RETIRED_LINES]
+            if len(kept) != len(lines):
+                b["content"] = "\n".join(kept)
+                b["enabled"] = bool(b["content"].strip()) and b.get("enabled", True)
 
 
 def _owner(line):

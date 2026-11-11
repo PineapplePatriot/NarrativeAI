@@ -278,17 +278,37 @@ def tool_offer_mood_pictures(session, args):
     character = target_character(session)
     if character is None:
         return {"error": "No character yet."}, []
-    if not character.photo_neutral:
+    second = bool(args.get("second")) and character.is_mult
+    prefix = "photo_second" if second else "photo"
+    if not getattr(character, f"{prefix}_neutral"):
         return {"error": "No neutral picture yet: they add one first (📎 here, or the character's page)."}, []
-    missing = [m for m in SPRITE_EMOTIONS if not getattr(character, f"photo_{m}")]
+    missing = [m for m in SPRITE_EMOTIONS if not getattr(character, f"{prefix}_{m}")]
     if args.get("redo"):
         missing = list(SPRITE_EMOTIONS)
     if not missing:
         return {"status": "All mood pictures are there already; pass redo to make them again."}, []
     return {"shown": missing, "note": "They press the button; each picture costs a few cents on their key."}, [
         {"type": "make_pictures", "url": reverse("character_sprite", args=[character.slug]),
-         "name": character.name, "moods": missing,
+         "name": (character.second_name or "the second character") if second else character.name, "moods": missing,
+         "second": second,
          "later_url": reverse("character", kwargs={"slug": character.slug}) + "#spritesSection"}]
+
+
+def tool_offer_persona_pictures(session, args):
+    """A button that makes pictures of their persona (the neutral one from its description if there's none yet,
+    then the moods), shown in their chats next to the character. On their key; they press it."""
+    from django.urls import reverse
+    from mainapp.views import SPRITE_EMOTIONS
+    user = session.user
+    if not (user.persona_name or user.persona_description):
+        return {"error": "They have no persona yet: make that first (propose_persona)."}, []
+    moods = ([] if user.persona_photo_neutral else ["neutral"]) + [
+        m for m in SPRITE_EMOTIONS if args.get("redo") or not getattr(user, f"persona_photo_{m}")]
+    if not moods:
+        return {"status": "Their persona already has all its pictures."}, []
+    return {"shown": moods, "note": "They press the button; each picture costs a few cents on their key."}, [
+        {"type": "make_pictures", "url": reverse("persona_sprite"), "name": user.persona_name or "you",
+         "moods": moods, "later_url": reverse("users:profile") + "#personaPics"}]
 
 
 # ---------------------------------------------------------------------------
@@ -511,16 +531,21 @@ def tool_defs(fn, STR):
                 "name": {"type": "string", "description": "As the story says it"}, "voice": STR},
                 "required": ["name", "voice"]}},
             "why": STR}, ["why"]),
+        fn("offer_persona_pictures", "Show a button that makes pictures of their persona for the chat scene (the "
+           "neutral one from the persona's description if there's none, then eight moods; a few cents each, on their "
+           "key). Offer it once, after their persona is set, if character pictures are on.",
+           {"redo": {"type": "boolean", "description": "Make the moods again"}}),
         fn("offer_mood_pictures", "Show a button that makes the missing mood pictures from the neutral one with an "
            "image model (a few cents each, on their key). They press it; say what it costs first.",
-           {"redo": {"type": "boolean", "description": "Make all eight again, not only the missing ones"}}),
+           {"redo": {"type": "boolean", "description": "Make all eight again, not only the missing ones"},
+            "second": {"type": "boolean", "description": "For a two-character card: the second character's pictures"}}),
     ]
 
 
 HANDLERS = {"read_settings": tool_read_settings, "propose_samplers": tool_propose_samplers,
             "propose_trackers": tool_propose_trackers, "propose_greetings": tool_propose_greetings,
             "propose_card_rules": tool_propose_card_rules, "propose_lore_settings": tool_propose_lore_settings,
-            "offer_mood_pictures": tool_offer_mood_pictures, "read_voices": tool_read_voices,
+            "offer_mood_pictures": tool_offer_mood_pictures, "offer_persona_pictures": tool_offer_persona_pictures, "read_voices": tool_read_voices,
             "propose_voices": tool_propose_voices, "propose_story_systems": tool_propose_story_systems}
 TURN_ENDING = {"propose_samplers", "propose_trackers", "propose_greetings", "propose_card_rules",
-               "propose_lore_settings", "offer_mood_pictures", "propose_voices", "propose_story_systems"}
+               "propose_lore_settings", "offer_mood_pictures", "offer_persona_pictures", "propose_voices", "propose_story_systems"}

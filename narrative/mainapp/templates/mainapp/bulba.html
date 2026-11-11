@@ -7,7 +7,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bulba - Narrative AI</title>
-    <link rel="stylesheet" href="{% static 'mainapp/css/bulba.css' %}?v=13">
+    <link rel="stylesheet" href="{% static 'mainapp/css/bulba.css' %}?v=16">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=5">
 </head>
@@ -34,16 +34,21 @@
         <div class="log" id="log"></div>
         <div class="thinking" id="thinking" hidden><span class="potato">🥔</span> <span id="thinkingText">Thinking…</span></div>
         <form class="picture-form" id="pictureForm" hidden>
-            <input type="file" id="pictureFile" accept="image/png,image/jpeg,image/webp,image/gif">
-            <select id="pictureAs">
+            <input type="file" id="pictureFile" accept="image/png,image/jpeg,image/webp,image/gif" multiple hidden>
+            <template id="pictureAsTpl"><select class="picture-as">
                 <option value="look">Just show Bulba (a screenshot, character art, a place…)</option>
                 <option value="neutral">The character's picture (neutral)</option>
                 {% for m in "happy,sad,angry,surprised,scared,confused,calm,scheming"|split:"," %}<option value="{{ m }}">Mood: {{ m }}</option>{% endfor %}
                 <option value="background">A background for their chats</option>
-            </select>
-            <input type="text" id="pictureText" maxlength="2000" placeholder="What should Bulba do with it? (optional)">
-            <button type="submit">Add</button>
-            <button type="button" class="ghost" id="pictureCancel">Cancel</button>
+            </select></template>
+            <div class="picture-list" id="pictureList"></div>
+            <input type="text" id="pictureText" maxlength="2000" placeholder="What should Bulba do with them? (optional)">
+            <div class="picture-actions">
+                <button type="button" class="ghost" id="pictureAdd">➕ Add pictures</button>
+                <button type="submit" id="pictureSend" disabled>Send</button>
+                <button type="button" class="ghost" id="pictureCancel">Cancel</button>
+            </div>
+            <small class="help">Add one or several, say what each one is (a mood, a background, or just to show Bulba), then Send.</small>
         </form>
         <form class="composer" id="composer">
             <button type="button" class="attach" id="attachBtn" title="Show Bulba a picture, or add one as the character's, a mood or a background">📎</button>
@@ -101,7 +106,7 @@
 <script>const BULBA_API = "{% url 'bulba_api' %}{% if embed and chat_obj %}?chat={{ chat_obj.id }}{% endif %}";
 const QUICK_URL = "{% url 'quick_setup' %}";</script>
 <script src="{% static 'js/costs.js' %}?v=1"></script>
-{% if embed %}<script src="{% static 'js/tomato.js' %}?v=8" data-pit="{% url 'tomato_pit' %}" data-state="{% url 'tomato_state' %}"></script>{% endif %}
+{% if embed %}<script src="{% static 'js/tomato.js' %}?v=9" data-pit="{% url 'tomato_pit' %}" data-state="{% url 'tomato_state' %}"></script>{% endif %}
 <script src="{% static 'mainapp/js/bulba.js' %}?v={% now 'U' %}"></script>
 <script src="{% static 'js/scrolldown.js' %}?v=1"></script>
 <script>NAScrollDown.attach(document.getElementById('log'), {above: document.getElementById('composer')});</script>

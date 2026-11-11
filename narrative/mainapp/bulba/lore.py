@@ -298,12 +298,32 @@ def tool_propose_theme(session, args):
             return {"error": "weather is rain, snow, fog, storm or clear."}, []
         theme["weather"] = weather
         summary.append(f"Weather at the start: {weather}")
+    from mainapp import speaker_colors as sc
+    names = ", ".join(sc.PALETTE)
+    way = str(args.get("speech_colors") or "").strip().lower()
+    if way and way not in sc.MODES:
+        return {"error": "speech_colors is story or app."}, []
     color = str(args.get("dialogue_color") or "").strip()
     if color:
-        if not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
-            return {"error": "dialogue_color is a hex colour like #67e8f9."}, []
-        theme["dialogue_color"] = color
-        summary.append(f"Dialogue colour: {color}")
+        if not sc.name_of(color) and not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
+            return {"error": f"dialogue_color is one of: {names}."}, []
+        theme["dialogue_color"] = sc.PALETTE[sc.name_of(color)][0] if sc.name_of(color) else color
+    for key in ("character_color", "your_color"):
+        if args.get(key) and not sc.name_of(args[key]):
+            return {"error": f"{key} is one of: {names}."}, []
+    if way == "story":
+        mine = sc.name_of(args.get("character_color")) or "plum"
+        yours = sc.name_of(args.get("your_color")) or sc.first_free({character.name: mine})
+        if yours == mine:
+            return {"error": "Give them a colour of their own, not the character's."}, []
+        theme.update({"speech": "story", "speech_cast": {character.name: mine}, "you_color": yours})
+        summary.append(f"Speech colours: story colours ({character.name}: {mine}; you: {yours}; others get "
+                       "their own as they appear)")
+    elif way == "app" or color:
+        yours = sc.name_of(args.get("your_color"))
+        theme.update({"speech": "app", **({"you_color": yours} if yours else {})})
+        summary.append("Speech colours: one app colour" + (f" ({sc.name_of(color) or color})" if color else "")
+                       + (f"; you: {yours}" if yours else ""))
     if not theme:
         return {"error": "Choose at least a background, music or colour."}, []
     summary += ["Why:", str(args.get("why") or "")[:300]]
@@ -327,6 +347,11 @@ def apply_theme(session, p):
         theme["music"] = {"url": t["music"]["url"], "name": t["music"]["name"]} if t["music"] else {}
     if t.get("dialogue_color"):
         theme["dialogue_color"] = t["dialogue_color"]
+    for key in ("speech", "speech_cast", "you_color"):
+        if key in t:
+            theme[key] = t[key]
+    if t.get("speech") == "story":  # the greeting was written before colours: its lines take the character's
+        _colour_greetings(character, (t.get("speech_cast") or {}).get(character.name))
     if t.get("weather"):
         theme["weather"] = t["weather"]
     if "skin" in t:
@@ -334,6 +359,23 @@ def apply_theme(session, p):
     character.theme = theme
     character.save(update_fields=["theme"])
     return f"{character.name}'s theme is set; chats with them open with it (unless a chat picked its own)."
+
+
+def _colour_greetings(character, color):
+    from mainapp import chats, speaker_colors
+    from mainapp.models import Chat
+    if not color:
+        return
+    character.initial_message = speaker_colors.tag_greeting(character.initial_message, color)
+    character.alternate_greetings = [speaker_colors.tag_greeting(g, color) if isinstance(g, str) else g
+                                     for g in (character.alternate_greetings or [])]
+    character.save(update_fields=["initial_message", "alternate_greetings"])
+    for chat in Chat.objects.filter(character=character):  # chats still on their greeting only
+        data = chats.read(chat)
+        msgs = data.get("messages") or []
+        if msgs and all(isinstance(m, list) and m and m[0] == "assistant" for m in msgs) and len(msgs) <= 1:
+            msgs[0] = [msgs[0][0], msgs[0][1], speaker_colors.tag_greeting(msgs[0][2], color), *msgs[0][3:]]
+            chats.write(chat, data)
 
 
 def undo_theme(session, p):
@@ -378,6 +420,11 @@ KEYS_HELP = ("Names, aliases and terms that bring it into the story, in the chat
 MAX_KEYS = 16
 
 
+def _palette():
+    from mainapp import speaker_colors
+    return speaker_colors.PALETTE
+
+
 def tool_defs(fn, STR, setup=True):
     entry = {"type": "object", "properties": {
         "title": STR,
@@ -394,10 +441,18 @@ def tool_defs(fn, STR, setup=True):
     from mainapp import media_library
     defs = [
         fn("propose_theme", "Optional: the character's look in chats, from the app's built-in backgrounds and music "
-           "(names below; \"none\" clears one) and a dialogue colour. Match them to the character and setting.",
+           "(names below; \"none\" clears one), a chat style, the opening weather and the speech colours. Match "
+           "them to the character and setting. Speech colours: \"story\" (the default for a new character: the "
+           "AI colours each speaker's lines itself, character_color for them and your_color for the user's "
+           "character, side characters get their own as they appear) or \"app\" (one dialogue_color for all "
+           "speech, the AI isn't told about colours). Pick colours that suit them and differ from each other.",
            {"background": {"type": "string", "enum": [i["name"] for i in media_library.built_in("backgrounds")] + ["none"]},
             "music": {"type": "string", "enum": [i["name"] for i in media_library.built_in("music")] + ["none"]},
-            "dialogue_color": {"type": "string", "description": "Hex, e.g. #67e8f9; readable on a dark background"},
+            "speech_colors": {"type": "string", "enum": ["story", "app"]},
+            "character_color": {"type": "string", "enum": list(_palette())},
+            "your_color": {"type": "string", "enum": list(_palette()),
+                           "description": "The user's character's speech colour (both ways)"},
+            "dialogue_color": {"type": "string", "enum": list(_palette()), "description": "App way only"},
             "chat_style": {"type": "string", "enum": ["parchment", "neon", "lab", "romance", "none"],
                            "description": "The chat's style (bubbles, buttons, a light effect): parchment for fantasy "
                                           "and historical, neon for cyberpunk and night cities, lab for sci-fi, "

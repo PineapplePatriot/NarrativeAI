@@ -25,7 +25,7 @@
         <div class="form-error">{{ form.non_field_errors }}</div>
 
         {% for f in form %}
-            {% if f.field.widget.input_type != "file" and f.field.widget.input_type != "checkbox" and not f.name|startswith:"eleven_voice_" and f.name not in form.card_fields %}
+            {% if f.field.widget.input_type != "file" and f.field.widget.input_type != "checkbox" and not f.name|startswith:"eleven_voice_" and f.name not in form.card_fields and f.name != "second_name" %}
                 <div class="form-group">
                     <label for="{{ f.id_for_label }}">{{ f.label }}</label>
                     {{ f }}
@@ -85,7 +85,7 @@
                     <li><b>The moods.</b> Every other mood is made from the neutral picture, so it's the same person:
                         <button type="button" class="btn-secondary" id="makeSprites">✨ Make the missing moods with Nano Banana</button></li>
                 </ol>
-                <label class="small-check" id="spriteForWrap" hidden>For <select id="spriteFor"><option value="">{{ object.name }}</option><option value="1">The second character</option></select></label>
+                <label class="small-check" id="spriteForWrap" hidden>For <select id="spriteFor"><option value="">{{ object.name }}</option><option value="1">{{ object.second_name|default:"The second character" }}</option></select></label>
                 <label class="small-check">Image model <select id="spriteModel"><option value="">Default (Nano Banana 2)</option></select></label>
                 <label class="small-check"><input type="checkbox" id="remakeSprites"> also redo pictures that already exist</label>
                 <p class="section-help">Through your OpenRouter or NanoGPT key: a few cents per picture, counted in your monthly spending.</p>
@@ -121,8 +121,14 @@
                     <div class="form-group custom-checkbox-wrapper">
                         {{ f }} <label for="{{ f.id_for_label }}">{{ f.label }}</label>
                     </div>
-                    <p class="section-help">For cards with two characters: adds a second set of sprites and a second voice.</p>
+                    <p class="section-help">For cards with two characters: adds a second set of sprites and a second voice.
+                        In chats both pictures show; whoever speaks in a reply is highlighted.</p>
                     <div class="form-error">{{ f.errors }}</div>
+                    <div class="form-group" id="secondNameWrap" {% if not form.is_mult.value %}hidden{% endif %}>
+                        <label for="{{ form.second_name.id_for_label }}">Second character's name</label>
+                        {{ form.second_name }}
+                        <p class="section-help">So the app can tell who is speaking. Describe both of them in the description.</p>
+                    </div>
                 {% endif %}
             {% endfor %}
 
