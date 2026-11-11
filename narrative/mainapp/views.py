@@ -415,10 +415,17 @@ def chat(request, slug):
         action = data.get("action", "chat")
         regen_from = None  # the reply being regenerated; the new one becomes its next swipe
         # --- Chats: list, new, rename, delete ---
-        if action in ("list_chats", "new_chat", "rename_chat", "delete_chat"):
+        if action in ("list_chats", "new_chat", "rename_chat", "delete_chat", "import_chat"):
             go_to = None
             if action == "new_chat":
                 go_to = chats.create(character).id
+            elif action == "import_chat":  # a chat file (this app's, the rescue snippet's or SillyTavern's): a new chat
+                try:
+                    imported = chats.clean_import(data.get("chat"))
+                except ValueError as e:
+                    return JsonResponse({"success": False, "error": str(e)}, status=400)
+                title = " ".join(str(data.get("title") or "").split())[:200] or "Imported chat"
+                go_to = chats.create(character, title=title, data={"messages": imported}).id
             elif action in ("rename_chat", "delete_chat"):
                 target = character.chats.filter(id=data.get("id")).first()
                 if target is None:

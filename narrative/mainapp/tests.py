@@ -2996,6 +2996,26 @@ class SpendingAndThinkingTests(StreamChatTests):
         self.post({"action": "chat", "message": "Hi again"})
         self.assertIn("A courier.", "\n".join(m["content"] for m in self.sent[-1]["messages"]))
 
+    def test_import_a_chat_file_as_a_new_chat(self):
+        from mainapp import chats
+        rescued = {"messages": [["assistant", "", "Hello.", "neutral", 1], ["user", "", "Hi!", "neutral", 1],
+                                ["user", "", "Make it rain.", "neutral", 1, {"note": True, "swipes": "x"}],
+                                ["system", "", "nope", "neutral", 1], ["assistant", "", "  ", "neutral", 1]]}
+        resp = self.client.post(self.url, json.dumps({"action": "import_chat", "chat": rescued, "title": "chat-rescue"}),
+                                content_type="application/json").json()
+        chat = self.character.chats.get(id=resp["go_to"])
+        self.assertEqual(chat.title, "chat-rescue")
+        msgs = chats.read(chat)["messages"]
+        self.assertEqual([m[2] for m in msgs], ["Hello.", "Hi!", "Make it rain."])
+        self.assertEqual(msgs[2][5], {"note": True})  # only the note mark comes in
+        st = [{"user_name": "A", "character_name": "B"}, {"is_user": False, "mes": "Hey."}, {"is_user": True, "mes": "Yo."},
+              {"is_system": True, "mes": "hidden"}]
+        resp = self.client.post(self.url, json.dumps({"action": "import_chat", "chat": st}), content_type="application/json").json()
+        self.assertEqual([m[:3] for m in chats.read(self.character.chats.get(id=resp["go_to"]))["messages"]],
+                         [["assistant", "", "Hey."], ["user", "", "Yo."]])
+        bad = self.client.post(self.url, json.dumps({"action": "import_chat", "chat": {"x": 1}}), content_type="application/json")
+        self.assertEqual(bad.status_code, 400)
+
     def test_a_broken_chat_file_is_never_reset_to_the_greeting(self):
         import os
         from mainapp import chats

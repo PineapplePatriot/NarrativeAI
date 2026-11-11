@@ -75,11 +75,33 @@ window.Chats = (() => {
         try { await post({ action: 'new_chat' }); } catch (err) { alert(err.message); }
     }
 
+    // A chat file becomes a new chat: this app's own (or a rescued one), or SillyTavern's .jsonl
+    function importFile() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json,.jsonl,application/json';
+        input.onchange = async () => {
+            const file = input.files[0];
+            if (!file) return;
+            try {
+                const text = await file.text();
+                let chat;
+                try { chat = JSON.parse(text); }
+                catch (e) {  // .jsonl: one JSON object per line
+                    chat = text.split('\n').filter(l => l.trim()).map(l => JSON.parse(l));
+                }
+                const title = file.name.replace(/\.(jsonl?|txt)$/i, '').slice(0, 200);
+                await post({ action: 'import_chat', chat, title });
+            } catch (err) { alert('Could not import that file: ' + err.message); }
+        };
+        input.click();
+    }
+
     // Keep the address pointing at the open chat, so reloading or bookmarking opens the same one
     const open = chats.find(c => c.current);
     if (open && new URL(window.location.href).searchParams.get('chat') !== String(open.id)) {
         history.replaceState(null, '', urlFor(open.id));
     }
 
-    return { toggle, create, render };
+    return { toggle, create, render, importFile };
 })();
