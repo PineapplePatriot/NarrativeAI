@@ -2996,6 +2996,23 @@ class SpendingAndThinkingTests(StreamChatTests):
         self.post({"action": "chat", "message": "Hi again"})
         self.assertIn("A courier.", "\n".join(m["content"] for m in self.sent[-1]["messages"]))
 
+    def test_a_broken_chat_file_is_never_reset_to_the_greeting(self):
+        import os
+        from mainapp import chats
+        self.client.get(self.url)
+        chat = self.character.chats.order_by("-id").first()
+        path = chat.log_file.path
+        for name in [path] + chats.backup_paths(path):  # no backups to fall back on either
+            if os.path.exists(name):
+                os.remove(name)
+        with open(path, "w") as f:
+            f.write('{"messages": [["user", "", "a long sto')
+        self.assertEqual(self.client.get(self.url).status_code, 503)
+        resp = self.client.post(self.url, json.dumps({"action": "chat", "message": "Hi"}), content_type="application/json")
+        self.assertEqual(resp.status_code, 503)
+        with open(path) as f:
+            self.assertEqual(f.read(), '{"messages": [["user", "", "a long sto')  # left as it was, for recovery
+
     def test_dialogue_colour(self):
         post = lambda c: self.client.post(self.url, json.dumps({"action": "appearance", "dialogue_color": c}),
                                           content_type="application/json")

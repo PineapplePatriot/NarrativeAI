@@ -415,57 +415,54 @@ def chat(request, slug):
         chat_state["summary_upto"] = chats.summary_upto(parts)
 
     def load_messages():
-        if os.path.exists(chat_file_path):
-            with open(chat_file_path, "r", encoding="utf-8") as f:
-                try:
-                    data = json.load(f)
+        # chats.load_path: a broken file falls back to its backup, and raises rather than reading as empty (an
+        # empty read used to put the greeting back and save it over the whole chat)
+        data = chats.load_path(chat_file_path)
+        if data is not None:
+            if isinstance(data, dict):
+                set_summary(chats.summary_parts(data, len(data.get("messages") or [])))
+                chat_state["trackers"] = data.get("trackers") or {}
+                chat_state["tracker_history"] = data.get("tracker_history") or []
+                chat_state["summary_paused"] = bool(data.get("summary_paused"))
+                chat_state["context_guides"] = data.get("context_guides", {})
+                chat_state["current_bg"] = data.get("current_bg", "")
+                chat_state["current_music"] = data.get("current_music", {})
+                chat_state["skin"] = data.get("skin") if data.get("skin") in (*CHAT_SKINS, "none") else ""
+                chat_state["music_follow"] = data.get("music_follow") if isinstance(data.get("music_follow"), dict) else {}
+                chat_state["last_recall"] = data.get("last_recall") if isinstance(data.get("last_recall"), list) else []
+                chat_state["persona"] = data.get("persona") if isinstance(data.get("persona"), dict) else {}
+                chat_state["game"] = data.get("game") if isinstance(data.get("game"), dict) else {}
+                chat_state["voices"] = data.get("voices") if isinstance(data.get("voices"), dict) else {}
+                chat_state["story"] = data.get("story") if isinstance(data.get("story"), dict) else {}
+                chat_state["designs"] = data.get("designs") if isinstance(data.get("designs"), dict) else {}
+                messages_list = data.get("messages", [])
+            else:
+                messages_list = data
 
-                    if isinstance(data, dict):
-                        set_summary(chats.summary_parts(data, len(data.get("messages") or [])))
-                        chat_state["trackers"] = data.get("trackers") or {}
-                        chat_state["tracker_history"] = data.get("tracker_history") or []
-                        chat_state["summary_paused"] = bool(data.get("summary_paused"))
-                        chat_state["context_guides"] = data.get("context_guides", {})
-                        chat_state["current_bg"] = data.get("current_bg", "")
-                        chat_state["current_music"] = data.get("current_music", {})
-                        chat_state["skin"] = data.get("skin") if data.get("skin") in (*CHAT_SKINS, "none") else ""
-                        chat_state["music_follow"] = data.get("music_follow") if isinstance(data.get("music_follow"), dict) else {}
-                        chat_state["last_recall"] = data.get("last_recall") if isinstance(data.get("last_recall"), list) else []
-                        chat_state["persona"] = data.get("persona") if isinstance(data.get("persona"), dict) else {}
-                        chat_state["game"] = data.get("game") if isinstance(data.get("game"), dict) else {}
-                        chat_state["voices"] = data.get("voices") if isinstance(data.get("voices"), dict) else {}
-                        chat_state["story"] = data.get("story") if isinstance(data.get("story"), dict) else {}
-                        chat_state["designs"] = data.get("designs") if isinstance(data.get("designs"), dict) else {}
-                        messages_list = data.get("messages", [])
-                    else:
-                        messages_list = data
 
+            fixed_messages = []
+            for msg in messages_list:
 
-                    fixed_messages = []
-                    for msg in messages_list:
+                if len(msg) == 3: # (role, time, text)
+                    fixed_messages.append((msg[0], msg[1], msg[2], "neutral", 1))
+                elif len(msg) == 4: # (role, time, text, emotion)
+                    fixed_messages.append((msg[0], msg[1], msg[2], msg[3], 1))
+                elif len(msg) >= 5: # New format, plus swipes (see chats.add_version)
+                    fixed_messages.append(tuple(msg[:6]) if len(msg) > 5 and isinstance(msg[5], dict)
+                                          else tuple(msg[:5]))
 
-                        if len(msg) == 3: # (role, time, text)
-                            fixed_messages.append((msg[0], msg[1], msg[2], "neutral", 1))
-                        elif len(msg) == 4: # (role, time, text, emotion)
-                            fixed_messages.append((msg[0], msg[1], msg[2], msg[3], 1))
-                        elif len(msg) >= 5: # New format, plus swipes (see chats.add_version)
-                            fixed_messages.append(tuple(msg[:6]) if len(msg) > 5 and isinstance(msg[5], dict)
-                                                  else tuple(msg[:5]))
-
-                    # The greeting was filled with whatever name they had then (often the login, before a persona)
-                    u = request.user
-                    fixed_messages, renamed = chats.refresh_greeting(
-                        fixed_messages, character, prompt_names(u, character, chat_state["persona"])["user"],
-                        [u.username, u.name, getattr(u, "persona_name", ""), "Stranger", "You"])
-                    if renamed:
-                        chats.write(chat_obj, {**chats.read(chat_obj), "messages": fixed_messages})
-                    if not chat_state["designs"]:  # a chat from before: its objects' first looks, from the history
-                        for m in fixed_messages:
-                            if m[0] == "assistant":
-                                html_objects.remember(chat_state["designs"], m[2])
-                    return fixed_messages
-                except json.JSONDecodeError:
-                    return []
+            # The greeting was filled with whatever name they had then (often the login, before a persona)
+            u = request.user
+            fixed_messages, renamed = chats.refresh_greeting(
+                fixed_messages, character, prompt_names(u, character, chat_state["persona"])["user"],
+                [u.username, u.name, getattr(u, "persona_name", ""), "Stranger", "You"])
+            if renamed:
+                chats.write(chat_obj, {**chats.read(chat_obj), "messages": fixed_messages})
+            if not chat_state["designs"]:  # a chat from before: its objects' first looks, from the history
+                for m in fixed_messages:
+                    if m[0] == "assistant":
+                        html_objects.remember(chat_state["designs"], m[2])
+            return fixed_messages
         else:
             return []
 
@@ -544,11 +541,18 @@ def chat(request, slug):
             "story": chat_state["story"],
             "designs": chat_state["designs"],
         }
-        with open(chat_file_path, "w", encoding="utf-8") as f:
-            json.dump(full_data, f, ensure_ascii=False, indent=2)
+        chats.save_path(chat_file_path, full_data)
         chat_obj.save(update_fields=["time_update"])
 
-    messages = load_messages()
+    try:
+        messages = load_messages()
+    except chats.ChatUnreadable:
+        logging.getLogger(__name__).error("Chat %s: its file and backups can't be read", chat_obj.id)
+        why = ("This chat's file couldn't be read, so nothing was changed or saved. Please don't start over: "
+               "tell the app's owner, the chat can still be recovered from its backups.")
+        if request.method == "POST":
+            return JsonResponse({"success": False, "error": why}, status=503)
+        return HttpResponse(why, status=503, content_type="text/plain; charset=utf-8")
 
     # --- Initial assistant message ---
     if not messages and character.initial_message:

@@ -54,6 +54,8 @@ def _character_files(character, skip_ids):
     for chat in character.chats.all():
         if chat.log_file:
             files.add(chat.log_file.name)
+            files.update(b[len(chat.log_file.path) - len(chat.log_file.name):]  # its backups too
+                         for b in chats.backup_paths(chat.log_file.path))
         try:
             messages = chats.read(chat).get("messages") or []
         except Exception:  # an unreadable log still goes
