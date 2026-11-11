@@ -157,6 +157,58 @@
    [
     "tragedy",
     "Tragedy"
+   ],
+   [
+    "adventure",
+    "Adventure"
+   ],
+   [
+    "mystery",
+    "Mystery"
+   ],
+   [
+    "suspense",
+    "Suspense"
+   ],
+   [
+    "horror",
+    "Horror"
+   ],
+   [
+    "drama",
+    "Drama"
+   ],
+   [
+    "action",
+    "Action"
+   ],
+   [
+    "intrigue",
+    "Intrigue"
+   ],
+   [
+    "survival",
+    "Survival"
+   ],
+   [
+    "found_family",
+    "Found family"
+   ],
+   [
+    "whimsical",
+    "Whimsical"
+   ],
+   [
+    "psychological",
+    "Psychological"
+   ],
+   [
+    "grimdark",
+    "Grimdark"
+   ],
+   [
+    "dark_romance",
+    "Dark romance"
    ]
   ],
   "adult": [
