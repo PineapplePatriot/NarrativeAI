@@ -208,3 +208,6 @@ LOGGING = {
     "handlers": {"console": {"class": "logging.StreamHandler"}},
     "root": {"handlers": ["console"], "level": "WARNING"},
 }
+
+# Imported chat files and long chats come in as one request
+DATA_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024

@@ -189,6 +189,44 @@ def create(character, title=None, data=None, parent=None, branch_point=None):
     return chat
 
 
+MAX_IMPORT_MESSAGES = 5000
+MAX_IMPORT_TEXT = 200000
+
+
+def clean_import(raw):
+    """Messages from an imported chat file, in this app's shape: its own export / the rescue snippet
+    ({"messages": [[role, time, text, emotion, char_count, {"note": true}?], ...]} or the bare list), or
+    SillyTavern's (a list of {"is_user", "mes", "send_date"}; the chats page reads .jsonl lines into one).
+    Only plain messages and the director's-note mark come in. Raises ValueError when nothing usable is there."""
+    items = raw.get("messages") if isinstance(raw, dict) else raw
+    if not isinstance(items, list):
+        raise ValueError("That file doesn't hold a chat.")
+    out = []
+    for m in items[:MAX_IMPORT_MESSAGES]:
+        if isinstance(m, (list, tuple)) and len(m) >= 3:
+            role, time, text = m[0], m[1], m[2]
+            emotion = m[3] if len(m) > 3 else "neutral"
+            count = m[4] if len(m) > 4 else 1
+            note = len(m) > 5 and isinstance(m[5], dict) and bool(m[5].get("note"))
+        elif isinstance(m, dict) and "mes" in m:  # SillyTavern
+            if m.get("is_system"):
+                continue
+            role, time, text = ("user" if m.get("is_user") else "assistant"), str(m.get("send_date") or ""), m.get("mes")
+            emotion, count, note = "neutral", 1, False
+        else:
+            continue
+        if role not in ("user", "assistant") or not isinstance(text, str) or not text.strip():
+            continue
+        msg = [role, str(time or "")[:40], text[:MAX_IMPORT_TEXT], str(emotion or "neutral")[:30],
+               count if isinstance(count, int) and 1 <= count <= 4 else 1]
+        if note and role == "user":
+            msg.append({"note": True})
+        out.append(msg)
+    if not out:
+        raise ValueError("No messages found in that file.")
+    return out
+
+
 def current(character, chat_id=None):
     """The chat to open: the one asked for (must belong to the character), else the most recent."""
     if chat_id:
