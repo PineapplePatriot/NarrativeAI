@@ -60,6 +60,14 @@
         { id: 'crystal', name: 'Crystal ball', emoji: '🔮', color: '#8e6ee6', ach: 'boo', kind: 'Weird', note: 'It predicted this.' },
         { id: 'ufo', name: 'UFO', emoji: '🛸', color: '#9fb3c8', ach: 'hundredk', kind: 'Weird' },
         { id: 'realghost', name: 'An actual ghost', emoji: '👻', color: '#eef2f7', ach: 'million', kind: 'Weird', note: 'It was always going to be this.' },
+        // 🎰 From the Sauce-o-Matic (mainapp/tomato_machine.py PRIZES): unlocked by winning them
+        { id: 'pickle', name: 'Pickle', emoji: '🥒', color: '#6a9f3a', prize: true, kind: 'Sauce-o-Matic', note: 'Briny. Aerodynamic.' },
+        { id: 'dumpling', name: 'Dumpling', emoji: '🥟', color: '#f1dcb0', prize: true, kind: 'Sauce-o-Matic', note: 'Too cute to throw. Throw it anyway.' },
+        { id: 'duckling', name: 'Rubber duckling', emoji: '🐤', color: '#ffd43b', prize: true, kind: 'Sauce-o-Matic', note: 'Squeaks on impact.' },
+        { id: 'snow', name: 'Snow tomato', emoji: '🍅', filter: 'grayscale(1) brightness(1.9) sepia(.2) hue-rotate(180deg)', color: '#dff3ff', prize: true, kind: 'Sauce-o-Matic', note: 'Winter only, in the machine.' },
+        { id: 'blossom', name: 'Blossom tomato', emoji: '🌸', color: '#f7a8c8', prize: true, kind: 'Sauce-o-Matic', note: 'Spring only, in the machine.' },
+        { id: 'sunburnt', name: 'Sunburnt tomato', emoji: '🍅', filter: 'saturate(2.2) brightness(.85) contrast(1.2)', color: '#b3140c', prize: true, kind: 'Sauce-o-Matic', note: 'Summer only, in the machine.' },
+        { id: 'jack', name: "Jack-o'-tomato", emoji: '🎃', color: '#f08a1c', prize: true, kind: 'Sauce-o-Matic', note: 'Autumn only, in the machine.' },
     ];
     // How a skin looks on this throw: most always the same, "random" ones (rainbow, unicorn) a new colour each time
     function look(s, lucky) {
@@ -130,7 +138,18 @@
     100% { opacity: 0; transform: translateY(-6px); } }
 @media (prefers-reduced-motion: reduce) { .na-tom-btn, .na-tom-pit-link { animation: none; } .na-tom-fly { transition: none; }
     .na-tom-splat { animation: naTomFade .9s linear forwards; } }
-@keyframes naTomFade { from { opacity: 1; } to { opacity: 0; } }`;
+@keyframes naTomFade { from { opacity: 1; } to { opacity: 0; } }
+.na-hatted .potato, .na-hatted #bulbaBtn .emoji-icon { position: relative; display: inline-block; }
+.na-hatted .potato::before, .na-hatted #bulbaBtn .emoji-icon::before { content: var(--na-bulba-hat); position: absolute; left: 50%;
+    top: -.5em; transform: translateX(-50%) rotate(-10deg); font-size: .62em; line-height: 1; pointer-events: none; }
+.na-tr { position: fixed; z-index: 9003; pointer-events: none; font-size: 14px; line-height: 1; margin: -7px 0 0 -7px;
+    animation: naTr 1s ease-out forwards; }
+.na-tr-ketchup { width: 7px; height: 9px; margin: -4px 0 0 -3px; background: #d4231c; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    animation-name: naTrDrip; }
+.na-tr-leaf { animation-name: naTrLeaf; }
+@keyframes naTr { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: translate(var(--dx), -18px) scale(.4) rotate(90deg); } }
+@keyframes naTrDrip { from { opacity: .95; transform: none; } to { opacity: 0; transform: translateY(26px) scaleY(1.5); } }
+@keyframes naTrLeaf { from { opacity: 1; transform: none; } to { opacity: 0; transform: translate(var(--dx), 30px) rotate(200deg); } }`;
     const style = document.createElement('style');
     style.textContent = css;
     document.head.appendChild(style);
@@ -140,7 +159,7 @@
     const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* private window */ } };
     const blank = () => ({ count: 0, wild: 0, skin: 'tomato', ach: {}, days: [], waits: 0, found: false, best10: 0 });
     let data = Object.assign(blank(), read(KEY) || {});
-    let pending = Object.assign({ add: 0, add_waits: 0, add_wild: 0 }, read(PENDING) || {});
+    let pending = Object.assign({ add: 0, add_waits: 0, add_wild: 0, add_golden: 0 }, read(PENDING) || {});
     if (STATE && !data.synced && data.count) {  // kept only in this browser before: it goes to the account once
         pending.add += data.count;
         pending.add_waits += data.waits || 0;
@@ -153,12 +172,14 @@
         data = Object.assign(blank(), server, { bySkin,
             count: (server.count || 0) + pending.add, waits: (server.waits || 0) + pending.add_waits,
             wild: (server.wild || 0) + (pending.add_wild || 0),
+            prize_skins: server.prize_skins || data.prize_skins || [], worn: server.worn || {},
             ach, days: [...new Set([...(server.days || []), ...data.days])].slice(-30),
             best10: Math.max(server.best10 || 0, data.best10 || 0), found: !!(server.found || data.found),
             skin: pending.skin || server.skin || data.skin, synced: true,
         });
         save();
         changed();
+        wear();
     }
     let syncTimer = null, syncing = false;
     function later() { clearTimeout(syncTimer); syncTimer = setTimeout(sync, 3000); }
@@ -166,9 +187,9 @@
         if (!STATE || syncing) return;
         clearTimeout(syncTimer);
         const sent = pending;
-        pending = { add: 0, add_waits: 0, add_wild: 0 };
+        pending = { add: 0, add_waits: 0, add_wild: 0, add_golden: 0 };
         save();
-        const body = { add: sent.add, add_waits: sent.add_waits, add_wild: sent.add_wild || 0, ach: data.ach, days: data.days, best10: data.best10,
+        const body = { add: sent.add, add_waits: sent.add_waits, add_wild: sent.add_wild || 0, add_golden: sent.add_golden || 0, ach: data.ach, days: data.days, best10: data.best10,
                        found: data.found, ...(sent.skin ? { skin: sent.skin } : {}) };
         syncing = true;
         try {
@@ -179,6 +200,7 @@
         } catch (e) {  // not saved: it goes with the next sync
             pending = { add: pending.add + sent.add, add_waits: pending.add_waits + sent.add_waits,
                         add_wild: (pending.add_wild || 0) + (sent.add_wild || 0),
+                        add_golden: (pending.add_golden || 0) + (sent.add_golden || 0),
                         ...(pending.skin || sent.skin ? { skin: pending.skin || sent.skin } : {}) };
             save();
         } finally { syncing = false; }
@@ -187,7 +209,7 @@
     document.addEventListener('visibilitychange', () => { if (document.hidden && (pending.add || pending.skin)) sync(true); });
 
     const skin = (id = data.skin) => SKINS.find(s => s.id === id) || SKINS[0];
-    const unlocked = s => (s.ach ? !!data.ach[s.ach] : data.count >= s.at);
+    const unlocked = s => (s.prize ? (data.prize_skins || []).includes(s.id) : s.ach ? !!data.ach[s.ach] : data.count >= s.at);
     const listeners = [];
     const changed = () => listeners.forEach(fn => { try { fn(data); } catch (e) { /* a page's own problem */ } });
 
@@ -267,6 +289,11 @@
         data.count++;
         pending.add++;
         if (wild) { data.wild = (data.wild || 0) + 1; pending.add_wild = (pending.add_wild || 0) + 1; }
+        if (wild && lucky) {  // 🌟 a golden splat at a chat or Bulba: a free spin at the Sauce-o-Matic
+            pending.add_golden = (pending.add_golden || 0) + 1;
+            toast('🌟 A golden tomato!', 'A free spin is waiting at the Sauce-o-Matic in the Tomato Pit.');
+            setTimeout(sync, 400);
+        }
         const now = Date.now();
         recent.push(now);
         while (recent.length && now - recent[0] > 10000) recent.shift();
@@ -302,7 +329,7 @@
         const after = SKINS.filter(unlocked);
         if (after.length >= 10) award('collector');
         const secret = new Set(ACHIEVEMENTS.filter(a => a.secret).map(a => a.id));
-        if (SKINS.every(x => (x.ach && secret.has(x.ach)) || unlocked(x))) award('everything');
+        if (SKINS.every(x => x.prize || (x.ach && secret.has(x.ach)) || unlocked(x))) award('everything');
         if (after.length > before) {
             const fresh = after.filter(s => !s.ach && s.at === data.count)[0];
             if (fresh) toast('New skin: ' + fresh.emoji + ' ' + fresh.name, PIT ? 'Pick it in the Tomato Pit.' : '');
@@ -385,6 +412,32 @@
     if (PIT && location.pathname === PIT) fetchState();
     else if (data.count || pending.add) setTimeout(fetchState, 1500);
 
+    // --- 🎰 What they won and wear: Bulba's hat (on every 🥔) and a cursor trail (mainapp/tomato_machine.py) ---
+    const TRAILS = { trail_sparkle: ['✨', 'na-tr-sparkle'], trail_ketchup: ['', 'na-tr-ketchup'], trail_leaves: ['🍃', 'na-tr-leaf'] };
+    let trail = null, trailAt = 0;
+    function wear() {
+        const worn = data.worn || {};
+        const root = document.documentElement;
+        if (worn.hat) root.style.setProperty('--na-bulba-hat', JSON.stringify(worn.hat)); else root.style.removeProperty('--na-bulba-hat');
+        root.classList.toggle('na-hatted', !!worn.hat);
+        trail = TRAILS[worn.trail] || null;
+    }
+    addEventListener('pointermove', (e) => {
+        if (!trail || e.pointerType === 'touch' || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        const now = Date.now();
+        if (now - trailAt < 45) return;
+        trailAt = now;
+        const d = document.createElement('span');
+        d.className = 'na-tr ' + trail[1];
+        d.textContent = trail[0];
+        d.style.left = (e.clientX + (Math.random() - .5) * 10) + 'px';
+        d.style.top = (e.clientY + (Math.random() - .5) * 10) + 'px';
+        d.style.setProperty('--dx', ((Math.random() - .5) * 40) + 'px');
+        document.body.appendChild(d);
+        setTimeout(() => d.remove(), 1000);
+    }, { passive: true });
+    wear();
+
     window.NATomato = {
         SKINS, ACHIEVEMENTS,
         watch(fn, kind = '') { watchers.push({ fn, kind }); },
@@ -396,5 +449,7 @@
         pick(id) { const s = SKINS.find(x => x.id === id); if (s && unlocked(s)) { data.skin = pending.skin = id; save(); changed(); paintButton(); sync(); } },
         found() { if (!data.found) { data.found = true; award('pit'); save(); changed(); sync(); } },
         onChange(fn) { listeners.push(fn); },
+        refresh: fetchState,  // after the machine hands out something to wear or throw
+        wear,
     };
 })();

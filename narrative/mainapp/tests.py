@@ -8409,6 +8409,154 @@ class TomatoGalleryTests(TestCase):
         self.assertEqual(self.save().status_code, 400)  # the gallery is full
 
 
+class TomatoMachineTests(TestCase):
+    """🎰 The Sauce-o-Matic: spins from chat tomatoes, fair draws with pity, Bulba's Promise, compost, perks."""
+
+    def setUp(self):
+        from mainapp.models import TomatoScore
+        self.user = get_user_model().objects.create_user(username="gambler", password="pw12345!")
+        self.client.force_login(self.user)
+        self.score = TomatoScore.objects.create(user=self.user, wild=0)
+
+    def give(self, spins):
+        from mainapp import tomato_machine as M
+        self.score.refresh_from_db()
+        self.score.wild += spins * M.SPIN_COST
+        self.score.save()
+
+    def machine(self, **body):
+        if not body:
+            return self.client.get(reverse("tomato_machine"))
+        return self.client.post(reverse("tomato_machine"), json.dumps(body), content_type="application/json")
+
+    class Rolls:  # random.Random stand-in: random() returns the given rolls in turn, choice() the first option
+        def __init__(self, *rolls):
+            self.rolls = list(rolls)
+
+        def random(self):
+            return self.rolls.pop(0) if self.rolls else 0.99
+
+        def choice(self, seq):
+            return seq[0]
+
+    def test_spins_come_from_chat_tomatoes_and_are_spent(self):
+        from mainapp import tomato_machine as M
+        state = self.machine().json()
+        self.assertEqual((state["spins"], state["toward"]), (0, 0))
+        self.assertEqual(self.machine(action="spin", n=1).status_code, 400)  # nothing to spend
+        self.score.wild = M.SPIN_COST * 2 + 120
+        self.score.save()
+        state = self.machine().json()
+        self.assertEqual((state["spins"], state["toward"]), (2, 120))
+        out = self.machine(action="spin", n=1).json()
+        self.assertEqual((len(out["results"]), out["spins"]), (1, 1))
+        self.assertEqual(self.machine(action="spin", n=10).status_code, 400)  # 1 spin left, not 10
+        self.assertEqual(self.machine(action="spin", n=3).status_code, 400)   # one or ten only
+        self.give(12)
+        out = self.machine(action="spin", n=10).json()
+        self.assertEqual((len(out["results"]), out["spins"]), (10, 3))
+        self.assertEqual(len(out["history"]), 11)
+
+    def test_pity_guarantees_a_rare_and_a_legendary(self):
+        from mainapp import tomato_machine as M
+        m = M._state(self.score)
+        tiers = [M._draw(m, self.Rolls(*[0.99] * 60), None)["tier"] for _ in range(M.LEGEND_PITY)]
+        self.assertTrue(all(t in ("rare", "legendary") for t in tiers[M.RARE_PITY - 1::M.RARE_PITY]))
+        self.assertEqual(tiers.count("common"), M.LEGEND_PITY - 1 - (M.LEGEND_PITY - 1) // M.RARE_PITY)
+        self.assertEqual(tiers[-1], "legendary")     # the 25th pull
+        self.assertEqual((m["pity_legend"], m["pity_rare"]), (0, 0))
+
+    def test_the_odds_hold_over_many_pulls(self):
+        import random
+        from mainapp import tomato_machine as M
+        m, rng = M._state(self.score), random.Random(7)
+        counts = {"common": 0, "rare": 0, "legendary": 0}
+        for _ in range(20000):
+            counts[M._draw(m, rng, None)["tier"]] += 1
+        self.assertAlmostEqual(counts["legendary"] / 20000, .05, delta=.015)  # 4% plus what pity adds
+        self.assertAlmostEqual(counts["rare"] / 20000, .23, delta=.03)
+
+    def test_bulbas_promise_is_a_coin_flip_then_a_sure_thing(self):
+        from mainapp import tomato_machine as M
+        self.assertEqual(self.machine(action="promise", id="bean").status_code, 400)  # only legendaries
+        self.assertEqual(self.machine(action="promise", id="gardener_robot").json()["promise"], "gardener_robot")
+        self.score.refresh_from_db()
+        m = M._state(self.score)
+        lost = M._draw(m, self.Rolls(0.0, 0.9), None)   # legendary roll, then the 50/50 goes wrong
+        self.assertEqual((lost["tier"], lost["promise"]), ("legendary", "lost"))
+        self.assertNotEqual(lost["id"], "gardener_robot")
+        self.assertTrue(m["promise_sure"])
+        won = M._draw(m, self.Rolls(0.0, 0.9), None)    # same bad flip, but now it's guaranteed
+        self.assertEqual((won["id"], won["promise"]), ("gardener_robot", "promise"))
+        self.assertFalse(m["promise_sure"])
+
+    def test_seasonal_skins_only_in_their_season(self):
+        import datetime
+        from mainapp import tomato_machine as M
+        ids = lambda d: {p["id"] for p in M.pool("legendary", d)}
+        self.assertIn("snow", ids(datetime.date(2026, 1, 5)))
+        self.assertNotIn("jack", ids(datetime.date(2026, 1, 5)))
+        self.assertIn("jack", ids(datetime.date(2026, 10, 31)))
+        self.assertEqual(M.season(datetime.date(2026, 12, 1)), "winter")
+        self.assertEqual(sum(1 for p in M.pool("legendary", datetime.date(2026, 7, 1)) if p.get("season")), 1)
+
+    def test_duplicates_turn_into_compost_and_compost_into_spins(self):
+        from mainapp import tomato_machine as M
+        m = M._state(self.score)
+        first = M._draw(m, self.Rolls(0.5), None)        # common: the first common in the list
+        again = M._draw(m, self.Rolls(0.5), None)
+        self.assertEqual((first["dup"], again["dup"], again["compost"]), (False, True, M.COMPOST_FOR["common"]))
+        seed = next(p for p in M.PRIZES if p["kind"] == "seed" and p["tier"] == "common")
+        m["items"][seed["id"]] = 3
+        self.assertFalse(M._draw(m, type("R", (), {"random": lambda s: .5, "choice": lambda s, q: seed})(), None)["dup"])
+        self.assertEqual(m["items"][seed["id"]], 4)        # seeds stack
+        self.score.machine = {**m, "compost": 9}
+        self.score.save()
+        self.assertEqual(self.machine(action="compost").status_code, 400)
+        self.score.machine = {**m, "compost": 12}
+        self.score.save()
+        state = self.machine(action="compost").json()
+        self.assertEqual((state["compost"], state["spins"]), (2, 1))
+
+    def test_golden_splats_give_free_spins_within_reason(self):
+        self.client.post(reverse("tomato_state"), json.dumps({"add": 50, "add_wild": 50, "add_golden": 1}),
+                         content_type="application/json")
+        self.assertEqual(self.machine().json()["spins"], 1)
+        self.client.post(reverse("tomato_state"), json.dumps({"add": 10, "add_wild": 10, "add_golden": 9}),
+                         content_type="application/json")
+        state = self.machine().json()
+        self.assertEqual((state["spins"], state["golden"]), (1, 1))   # 60 chat throws can't be 10 golden ones
+        self.client.post(reverse("tomato_state"), json.dumps({"add": 10, "add_golden": 5}),  # not at a chat: nothing
+                         content_type="application/json")
+        self.assertEqual(self.machine().json()["golden"], 1)
+
+    def test_wearing_what_you_won(self):
+        from mainapp.models import TomatoScore
+        self.assertEqual(self.machine(action="equip", slot="hat", id="hat_crown").status_code, 400)  # not won yet
+        TomatoScore.objects.filter(user=self.user).update(
+            wild=10, on_board=True, machine={"items": {"hat_crown": 1, "badge_fire": 1, "pickle": 1}})
+        self.assertEqual(self.machine(action="equip", slot="hat", id="badge_fire").status_code, 400)  # wrong slot
+        self.machine(action="equip", slot="hat", id="hat_crown")
+        self.machine(action="equip", slot="badge", id="badge_fire")
+        state = self.client.get(reverse("tomato_state")).json()
+        self.assertEqual(state["worn"], {"hat": "👑", "badge": "🔥"})
+        self.assertEqual(state["prize_skins"], ["pickle"])
+        self.assertEqual(self.client.get(reverse("tomato_board")).json()["top"][0]["badge"], "🔥")
+        self.machine(action="equip", slot="hat", id=None)
+        self.assertEqual(self.client.get(reverse("tomato_state")).json()["worn"], {"badge": "🔥"})
+
+    def test_every_prize_skin_has_a_look_in_the_browser(self):
+        from pathlib import Path
+        from django.conf import settings
+        from mainapp import tomato_machine as M
+        js = (Path(settings.BASE_DIR) / "static" / "js" / "tomato.js").read_text(encoding="utf-8")
+        for p in M.PRIZES:
+            if p["kind"] == "skin":
+                self.assertIn(f"id: '{p['id']}'", js, p["id"])
+        self.assertEqual(len({p["id"] for p in M.PRIZES}), len(M.PRIZES))
+        self.assertContains(self.client.get(reverse("tomato_pit")), "Sauce-o-Matic")
+
+
 class TomatoBoardTests(TestCase):
     """🏆 Chat + Bulba tomatoes: counted apart from the Pit's, believed only at a human pace, ranked for those who join."""
 

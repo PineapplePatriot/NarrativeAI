@@ -61,7 +61,9 @@ def board(user):
     from mainapp.models import TomatoScore
     me = score_of(user)
     joined = TomatoScore.objects.filter(on_board=True, wild__gt=0).select_related("user")
-    top = [{"name": s.user.username, "wild": s.wild, "me": s.user_id == user.id}
+    from mainapp import tomato_machine
+    top = [{"name": s.user.username, "wild": s.wild, "me": s.user_id == user.id,
+            "badge": tomato_machine.worn(s).get("badge", "")}
            for s in joined.order_by("-wild", "synced_at", "id")[:BOARD_SIZE]]
     ahead = joined.filter(wild__gt=me.wild).exclude(user=user).count()
     return {"top": top, "me": {"wild": me.wild, "on_board": me.on_board, "rank": ahead + 1 if me.wild else None,

@@ -43,7 +43,7 @@
         const kinds = [...new Set(T.SKINS.map(x => x.kind))];
         $('pitSkins').innerHTML = kinds.map(kind => `<h3>${esc(kind)}</h3><div class="pit-skins">${T.SKINS.filter(x => x.kind === kind).map(x => {
             const ok = T.unlocked(x);
-            const how = x.ach ? (T.ACHIEVEMENTS.find(a => a.id === x.ach) || {}).name : `${x.at.toLocaleString()} throws`;
+            const how = x.prize ? 'Win it from the Sauce-o-Matic' : x.ach ? (T.ACHIEVEMENTS.find(a => a.id === x.ach) || {}).name : `${x.at.toLocaleString()} throws`;
             return `<button type="button" class="pit-skin${x.id === s.id ? ' on' : ''}" data-skin="${x.id}" ${ok ? '' : 'disabled'}
                 title="${esc(ok ? (x.note || x.name) : 'Locked: ' + how)}"><span class="e" style="${x.filter ? 'filter:' + x.filter : ''}">${ok ? x.emoji : '❔'}</span>
                 ${esc(ok ? x.name : '???')}<small>${esc(ok ? (x.note ? x.note : '') : how)}</small></button>`;
