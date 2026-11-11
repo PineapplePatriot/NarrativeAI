@@ -13,12 +13,12 @@ INSTRUCTIONS = Path(__file__).resolve().parent.parent / "data" / "bulba" / "inst
 GUIDES_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba" / "guides"
 # Which guides Bulba reads at each stage (keeps the prompt, and the bill, small)
 STAGE_GUIDES = {"extras": ["extras"], "taste": ["asking", "presets", "writing", "slop"], "preset": ["presets", "writing", "slop"],
-                "persona": ["characters", "writing"], "character": ["characters", "lore", "writing"],
+                "character": ["characters", "lore", "writing"], "persona": ["characters", "writing"],
                 "story": ["extras", "tuning"], "done": ["characters", "lore", "writing", "tuning", "slop"]}
 REWRITABLE = ("Roleplay", "Style")
 TEST_CHARACTER = Path(__file__).resolve().parent.parent / "data" / "bulba" / "test-character.json"
 
-STAGES = ["extras", "taste", "preset", "persona", "character", "story", "done"]
+STAGES = ["extras", "taste", "preset", "character", "persona", "story", "done"]  # the character first: the persona fits it
 MAX_TOOL_ROUNDS = 8
 HISTORY_LIMIT = 60      # messages of conversation sent to Bulba's model
 SAMPLE_WORDS = 250
@@ -319,7 +319,7 @@ def stage_after(p):
         if keys and keys <= STORY_KEYS:
             return "story"
         return "taste" if applied else None
-    return {"preset": "persona", "persona": "character", "character": "character",
+    return {"preset": "character", "persona": "story", "character": "character",
             "trackers": "story"}.get(p["kind"]) if applied or p["kind"] == "trackers" else None
 
 
@@ -333,10 +333,11 @@ def advance_stage(session, p):
     always remember to call set_stage, and the panel and the guides it reads follow the stage.
     Returns the page event, or None."""
     target = stage_after(p) if session.mode != "chat" else None
-    # A character made before they said who they are (they asked for it first): the persona still comes next
-    if target == "character" and p["kind"] == "character" and not _has_persona(session) \
-            and STAGES.index(session.stage) < STAGES.index("persona"):
-        target = "persona"
+    # A persona made before the character (they asked for it first): the character still comes next
+    if p["kind"] == "persona" and p.get("status") == "applied" and not any(
+            x["kind"] == "character" and x.get("status") == "applied"
+            for x in session.proposals):
+        target = "character" if STAGES.index(session.stage) < STAGES.index("character") else None
     if target and STAGES.index(target) > STAGES.index(session.stage):
         session.stage = target
         return {"type": "stage", "stage": target}
@@ -1068,21 +1069,23 @@ def take_route(session, route):
                                     if p.get("key", "").startswith("control:") and p.get("status") == "confirmed"), "dont")})
     note = actions.apply(session, p["id"])
     p["status"] = "applied"
-    session.stage = "persona"
+    session.stage = "character"
     return _canned(session, f"Fast route: {starters.EXPERIENCES[feel]['label']}",
                    f"Done: {note}\n\nThree quick things and you're chatting. First, how much of the chat your model "
                    "remembers: more remembers more and costs more, and the slider shows roughly what a message costs.",
-                   extra_events=[{"type": "proposal", "id": p["id"]}, {"type": "stage", "stage": "persona"}],
+                   extra_events=[{"type": "proposal", "id": p["id"]}, {"type": "stage", "stage": "character"}],
                    after=[extras_form_event(session, "memory")])
 
 
 PERSONA_CHOICES = [{"label": "Keep me light: just a name"}, {"label": "Someone who lives in that world"},
                    {"label": "You make someone up"}, {"label": "Skip for now"}]
+CHARACTER_CHOICES = [{"label": "I have a card to import"}, {"label": "One from a game, book or show"},
+                     {"label": "Let's make someone new"}]
 
 
 def after_memory_form(session, shown):
-    """The Fast route's memory form is sent: on to who they are in the story (no AI needed)."""
-    return _canned(session, "Sent: chat memory", "Saved. Next, who are you in the story?", PERSONA_CHOICES,
+    """The Fast route's memory form is sent: on to the character (no AI needed); who they are comes after."""
+    return _canned(session, "Sent: chat memory", "Saved. Next, who do you want to talk to?", CHARACTER_CHOICES,
                    extra_events=shown)
 
 

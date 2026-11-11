@@ -3060,13 +3060,16 @@ class BulbaRunTwoTests(BulbaTests):
         self.assertContains(page, "window.IS_MULT = true")
         self.assertContains(page, "No pictures for Aether yet")
 
-    def test_a_character_made_first_still_leads_to_the_persona(self):
+    def test_the_character_comes_before_the_persona(self):
         from mainapp.models import BulbaSession
         self.script = [("Here.", [self.call("propose_character", name="Corvin", description="A wizard.", greeting="Hi.")])]
-        data = self.api(action="say", text="make him first").json()
-        self.script = [("Now, who are you?", [])]
+        data = self.api(action="say", text="make him").json()
+        self.script = [("A worldbook?", [])]
         self.api(action="apply", id=data["state"]["proposals"][0]["id"])
-        self.assertEqual(BulbaSession.objects.get(user=self.user, mode="setup").stage, "persona")
+        session = BulbaSession.objects.get(user=self.user, mode="setup")
+        self.assertEqual(session.stage, "character")  # lore, look and pictures still to come; then the persona
+        from mainapp.bulba import agent
+        self.assertLess(agent.STAGES.index("character"), agent.STAGES.index("persona"))
 
     def test_activity_and_chat_link(self):
         self.assertEqual(self.client.get(reverse("bulba_api")).json(), {"activity": "", "busy": False})
@@ -5620,7 +5623,7 @@ class StageCatchUpTests(BulbaTests):
         pid = data["state"]["proposals"][-1]["id"]
         self.script = [("Next, who do you want to talk to?", [])]
         data = self.api(action="apply", id=pid).json()
-        self.assertEqual(data["state"]["stage"], "character")
+        self.assertEqual(data["state"]["stage"], "character")  # a persona made first: the character still comes
         self.assertTrue(any(e["type"] == "stage" and e["stage"] == "character" for e in data["events"]))
         self.assertIn("lore", self.bulba_calls[-1]["messages"][0]["content"].lower())  # the character guides
         self.script = [("Letters?", [self.call("propose_extras", story_extras=["documents"], game="off", why="x")])]
@@ -5719,7 +5722,7 @@ class SetupRoutesTests(BulbaTests):
         self.assertIn("Dice: dice only", self.bulba_calls[-1]["messages"][-1]["content"])
         self.assertEqual(self.api(action="extras_form", part="setup", answers={"watch": True}).status_code, 400)
 
-    def test_fast_route_applies_a_ready_setup_then_persona_then_character(self):
+    def test_fast_route_applies_a_ready_setup_then_character_then_persona(self):
         from mainapp import presets as presets_mod
         from mainapp.views import _appearance
         self.client.get(reverse("bulba"))
@@ -5737,15 +5740,16 @@ class SetupRoutesTests(BulbaTests):
         size = samplers_mod.normalize(presets_mod.get_active(self.user).data.get("samplers"))["context_size"]
         self.assertEqual(size, {"on": True, "value": 64000})  # set on the ready setup it just made
         self.assertEqual(self.bulba_calls, [])  # all canned
-        self.assertEqual(data["state"]["stage"], "persona")
-        self.assertIn("who are you in the story", data["events"][-1]["text"])
-        self.assertIn("Skip for now", [c["label"] for c in data["events"][-1]["choices"]])
+        self.assertEqual(data["state"]["stage"], "character")  # the character first, then who they are
+        self.assertIn("who do you want to talk to", data["events"][-1]["text"])
+        self.assertIn("I have a card to import", [c["label"] for c in data["events"][-1]["choices"]])
         self.assertEqual(data["state"]["proposals"][-1]["status"], "applied")
         self.assertIn("Director", presets_mod.get_active(self.user).name)
         self.assertEqual(_appearance(self.user)["layout"], "book")  # directing comes with the book
         stages = {s["id"]: s["status"] for s in data["state"]["progress"]["stages"]}
-        self.assertEqual(stages, {"extras": "skipped", "taste": "skipped", "preset": "done", "persona": "current",
-                                  "character": "todo", "story": "todo", "done": "todo"})
+        self.assertEqual(stages, {"extras": "skipped", "taste": "skipped", "preset": "done", "character": "current",
+                                  "persona": "todo", "story": "todo", "done": "todo"})
+        self.assertEqual([s["id"] for s in data["state"]["progress"]["stages"]][3:5], ["character", "persona"])
         # Bulba knows what happened when they answer
         self.script = [("Who, then?", [])]
         self.api(action="say", text="Il Dottore")
