@@ -1,0 +1,49 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>The Garden</title>
+  <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
+  <link rel="stylesheet" href="{% static 'css/base.css' %}?v=5">
+  <link rel="stylesheet" href="{% static 'mainapp/css/tomato_pit.css' %}?v=6">
+  <link rel="stylesheet" href="{% static 'mainapp/css/tomato_garden.css' %}?v=1">
+</head>
+<body class="na-body">
+{% include "partials/topbar.html" with active="garden" %}
+<div class="container na-page pit garden" id="garden" data-state="{% url 'tomato_garden_state' %}">
+  <header class="pit-head">
+    <h1>🌻 The Garden</h1>
+    <p class="muted">Plant what the Sauce-o-Matic gives you. Plants grow over real hours, faster while you chat: every tomato
+      you throw at a chat or Bulba waters them. Harvests turn into compost for the machine.
+      <a href="{% url 'tomato_pit' %}">🎰 To the Sauce-o-Matic</a></p>
+  </header>
+
+  <div class="g-wrap">
+    <div class="g-stage">
+      <canvas id="gCanvas" width="768" height="512" aria-label="Your garden. Choose a patch to see what you can do there."></canvas>
+      <div class="g-clock" id="gClock"></div>
+    </div>
+    <aside class="g-side">
+      <section class="pit-box g-tile" id="gTile" aria-live="polite">
+        <p class="muted">Tap a patch of soil to plant something, or a plant to see how it's doing.</p>
+      </section>
+      <section class="pit-box">
+        <div class="pit-box-head"><h2>🧺 Basket</h2><span class="muted" id="gCompost"></span></div>
+        <div id="gBasket"></div>
+      </section>
+      <section class="pit-box">
+        <h2>🧑‍🌾 Gardeners</h2>
+        <div id="gGardeners"></div>
+      </section>
+      <section class="pit-box">
+        <h2>📜 Lately</h2>
+        <ol class="g-log" id="gLog"></ol>
+      </section>
+    </aside>
+  </div>
+</div>
+<script src="{% static 'mainapp/js/tomato_garden.js' %}?v=2"></script>
+</body>
+</html>

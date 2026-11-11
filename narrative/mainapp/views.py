@@ -30,7 +30,7 @@ from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
 from . import basics as basics_mod
 from . import speaker_colors
-from . import extras, game, html_objects, media_library, recall, story, thinking, ai_client, cards, chats, regex_rules, experiences, model_profiles, presets, samplers, starters, trackers, translation
+from . import extras, game, html_objects, media_library, recall, story, thinking, ai_client, cards, chats, regex_rules, experiences, model_profiles, presets, samplers, starters, tomato_garden, tomato_machine, tomatoes, trackers, translation
 from .bulba import control, polish, watch
 from mainapp import mature, refusals
 
@@ -67,7 +67,7 @@ def guide_page(request):
 @login_required
 def tomato_pit(request):
     """🍅 The secret Tomato Pit: throw as many as you like (static/js/tomato.js; progress kept on the account)."""
-    return render(request, "mainapp/tomato_pit.html")
+    return render(request, "mainapp/tomato_pit.html", {"scenes": tomatoes.scene_choices()})
 
 
 TOMATO_MAX_ADD = 3000  # throws one sync may add (it syncs every few seconds: well above any human rate)
@@ -108,7 +108,158 @@ def tomato_state(request):
             state["skin"] = sent["skin"]
         obj.appearance = {**(obj.appearance or {}), "tomatoes": state}
         obj.save(update_fields=["appearance"])
-    return JsonResponse(state)
+        wild = body.get("add_wild")
+        if isinstance(wild, int) and not isinstance(wild, bool) and wild > 0:
+            score = tomatoes.add_wild(request.user, min(wild, add))  # chat + Bulba throws are part of the same throws
+            golden = body.get("add_golden")
+            if isinstance(golden, int) and not isinstance(golden, bool) and golden > 0:
+                if tomato_machine.add_golden(score, min(golden, wild)):  # 🌟 a free spin each
+                    score.save(update_fields=["machine"])
+    score = tomatoes.score_of(request.user)
+    return JsonResponse({**state, "wild": score.wild, "on_board": score.on_board,
+                         "prize_skins": tomato_machine.owned_skins(score), "worn": tomato_machine.worn(score)})
+
+
+@login_required
+def tomato_garden_page(request):
+    """🌻 The garden: a live pixel-art plot for the machine's seeds, decorations and gardeners."""
+    return render(request, "mainapp/tomato_garden.html")
+
+
+@login_required
+def tomato_garden_state(request):
+    """GET: the garden now. POST {"action": plant|place|harvest|dig|remove, "x", "y", "id"} (mainapp/tomato_garden.py)."""
+    if request.method == "POST":
+        body = _json_body(request)
+        if body is None:
+            return JsonResponse({"error": "Invalid request."}, status=400)
+        try:
+            return JsonResponse(tomato_garden.act(request.user, body))
+        except ValueError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+    return JsonResponse(tomato_garden.visit(request.user))
+
+
+@login_required
+def tomato_machine_view(request):
+    """🎰 The Sauce-o-Matic. GET: its state. POST {"action": "spin", "n": 1|10} · {"action": "promise", "id"} ·
+    {"action": "compost"} · {"action": "equip", "slot", "id"} (mainapp/tomato_machine.py)."""
+    if request.method == "POST":
+        body = _json_body(request)
+        if body is None:
+            return JsonResponse({"error": "Invalid request."}, status=400)
+        act = body.get("action")
+        try:
+            if act == "spin":
+                results, state = tomato_machine.spin(request.user, body.get("n") if body.get("n") in (1, 10) else 0)
+                return JsonResponse({**state, "results": results})
+            if act == "promise":
+                return JsonResponse(tomato_machine.promise(request.user, body.get("id") or None))
+            if act == "compost":
+                return JsonResponse(tomato_machine.compost_spin(request.user))
+            if act == "equip":
+                return JsonResponse(tomato_machine.equip(request.user, body.get("slot"), body.get("id") or None))
+        except ValueError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"error": "Unknown action."}, status=400)
+    return JsonResponse(tomato_machine.public(tomatoes.score_of(request.user)))
+
+
+@login_required
+def tomato_board(request):
+    """🏆 The leaderboard of chat + Bulba tomatoes. POST {"on_board": true/false} joins or leaves it."""
+    if request.method == "POST":
+        try:
+            body = json.loads(request.body.decode("utf-8") or "{}")
+        except (ValueError, UnicodeDecodeError):
+            return JsonResponse({"error": "Invalid request."}, status=400)
+        if not isinstance(body, dict) or not isinstance(body.get("on_board"), bool):
+            return JsonResponse({"error": "Say on_board: true or false."}, status=400)
+        tomatoes.join(request.user, body["on_board"])
+    return JsonResponse(tomatoes.board(request.user))
+
+
+def _json_body(request):
+    try:
+        body = json.loads(request.body.decode("utf-8") or "{}")
+    except (ValueError, UnicodeDecodeError):
+        return None
+    return body if isinstance(body, dict) else None
+
+
+@login_required
+def tomato_gallery(request):
+    """🖼 The gallery: your saved splat walls, and everyone's shared ones (mainapp/tomatoes.py)."""
+    return render(request, "mainapp/tomato_gallery.html", {"scenes": tomatoes.scene_choices()})
+
+
+@login_required
+def tomato_art(request):
+    """GET: a page of pieces (?scope=mine|all, ?sort=new|liked, ?page=N). POST {title, bg, splats}: save the wall."""
+    from .models import TomatoArt
+    if request.method == "POST":
+        body = _json_body(request)
+        if body is None:
+            return JsonResponse({"error": "Invalid request."}, status=400)
+        splats = tomatoes.clean_art(body.get("splats"))
+        if not splats:
+            return JsonResponse({"error": "The wall is empty: throw something first."}, status=400)
+        if TomatoArt.objects.filter(user=request.user).count() >= tomatoes.MAX_ART:
+            return JsonResponse({"error": f"The gallery holds {tomatoes.MAX_ART} pieces. Delete one to make room."},
+                                status=400)
+        art = TomatoArt.objects.create(user=request.user, title=tomatoes.clean_title(body.get("title")),
+                                       bg=tomatoes.clean_bg(body.get("bg")), splats=splats,
+                                       shared=body.get("shared") is True)
+        return JsonResponse(tomatoes.art_item(art, request.user))
+    try:
+        page = int(request.GET.get("page") or 1)
+    except ValueError:
+        page = 1
+    scope = "all" if request.GET.get("scope") == "all" else "mine"
+    return JsonResponse(tomatoes.art_list(request.user, scope, request.GET.get("sort") or "new", page))
+
+
+@login_required
+def tomato_art_one(request, art_id):
+    """One piece with its splats (yours, or a shared one). POST {title?, shared?} edits yours; DELETE removes it."""
+    from django.db.models import Q
+    from .models import TomatoArt
+    art = get_object_or_404(TomatoArt.objects.select_related("user"),
+                            Q(user=request.user) | Q(shared=True), id=art_id)
+    mine = art.user_id == request.user.id
+    if request.method == "DELETE":
+        if not mine:
+            return JsonResponse({"error": "That isn't yours."}, status=403)
+        art.delete()
+        return JsonResponse({"deleted": art_id})
+    if request.method == "POST":
+        if not mine:
+            return JsonResponse({"error": "That isn't yours."}, status=403)
+        body = _json_body(request)
+        if body is None:
+            return JsonResponse({"error": "Invalid request."}, status=400)
+        if "title" in body:
+            art.title = tomatoes.clean_title(body["title"])
+        if isinstance(body.get("shared"), bool):
+            art.shared = body["shared"]
+        art.save()
+    return JsonResponse(tomatoes.art_item(art, request.user, full=True))
+
+
+@login_required
+def tomato_art_like(request, art_id):
+    """❤ POST toggles your like on someone else's shared piece."""
+    from .models import TomatoArt
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only."}, status=405)
+    art = get_object_or_404(TomatoArt, id=art_id, shared=True)
+    if art.user_id == request.user.id:
+        return JsonResponse({"error": "No liking your own art. Bulba checked."}, status=400)
+    if art.likes.filter(id=request.user.id).exists():
+        art.likes.remove(request.user)
+    else:
+        art.likes.add(request.user)
+    return JsonResponse({"likes": art.likes.count(), "liked": art.likes.filter(id=request.user.id).exists()})
 
 
 @login_required

@@ -7,7 +7,8 @@
   <title>The Tomato Pit</title>
   <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
   <link rel="stylesheet" href="{% static 'css/base.css' %}?v=5">
-  <link rel="stylesheet" href="{% static 'mainapp/css/tomato_pit.css' %}?v=3">
+  <link rel="stylesheet" href="{% static 'mainapp/css/tomato_pit.css' %}?v=6">
+  <link rel="stylesheet" href="{% static 'mainapp/css/tomato_machine.css' %}?v=2">
 </head>
 <body class="na-body">
 {% include "partials/topbar.html" with active="tomatoes" %}
@@ -25,24 +26,110 @@
     <span class="pit-rate" id="pitRate"></span>
   </button>
 
+  <section class="pit-box mach-box" id="machBox" data-url="{% url 'tomato_machine' %}" data-garden="{% url 'tomato_garden' %}">
+    <div class="pit-box-head"><h2>🎰 The Sauce-o-Matic</h2>
+      <button type="button" class="na-btn mach-odds-btn" id="machOddsBtn" aria-expanded="false">Odds &amp; rules</button></div>
+    <p class="muted">Runs on tomatoes thrown at chats and Bulba while you wait: every <b id="machCost">300</b> is a spin,
+      and a golden splat is a free one. No money, ever. Just your time and your dignity.</p>
+    <div class="mach-odds" id="machOdds" hidden></div>
+
+    <div class="mach-grid">
+      <div class="mach-stage" id="machStage" aria-hidden="true">
+        <div class="mach">
+          <div class="mach-sign"><span>SAUCE-O-MATIC</span><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="mach-dome"><div class="mach-balls" id="machBalls"></div><div class="mach-shine"></div></div>
+          <div class="mach-body">
+            <div class="mach-slot">🍅</div>
+            <div class="mach-chute"></div>
+          </div>
+          <div class="mach-lever" id="machLever"><div class="mach-arm"><div class="mach-knob"></div></div><div class="mach-base"></div></div>
+          <div class="mach-tray" id="machTray"></div>
+        </div>
+      </div>
+
+      <div class="mach-side">
+        <div class="mach-spins"><span class="mach-big" id="machSpins">0</span> <span id="machSpinsWord">spins</span></div>
+        <div class="mach-meter" role="progressbar" aria-label="Towards the next spin" aria-valuemin="0" id="machMeter">
+          <div class="mach-fill" id="machFill"></div></div>
+        <small class="muted" id="machToward"></small>
+        <div class="mach-buttons">
+          <button type="button" class="na-btn na-primary mach-pull" id="machPull1">Pull ×1</button>
+          <button type="button" class="na-btn mach-pull" id="machPull10">Pull ×10</button>
+        </div>
+        <div class="mach-line" id="machPity"></div>
+        <div class="mach-line mach-compost"><span id="machCompost"></span>
+          <button type="button" class="na-btn" id="machCompostBtn">♻ Make a spin</button></div>
+        <label class="mach-line mach-promise">🤝 Bulba's Promise
+          <select id="machPromise" aria-label="The legendary Bulba promises"><option value="">Nothing in particular</option></select></label>
+        <small class="muted" id="machPromiseNote"></small>
+      </div>
+    </div>
+
+    <details class="mach-more" id="machShelfBox">
+      <summary>🧺 Your winnings <span class="muted" id="machShelfCount"></span></summary>
+      <div id="machShelf"></div>
+    </details>
+    <details class="mach-more">
+      <summary>📜 Recent pulls</summary>
+      <ol class="mach-history" id="machHistory"></ol>
+    </details>
+  </section>
+
+  <div class="mach-reveal" id="machReveal" hidden role="dialog" aria-modal="true" aria-label="What the machine gave you">
+    <div class="mach-rays"></div>
+    <div class="mach-confetti" id="machConfetti"></div>
+    <div class="mach-reveal-inner" id="machRevealInner"></div>
+    <div class="mach-reveal-bar">
+      <button type="button" class="na-btn" id="machSkip">Skip ⏭</button>
+      <button type="button" class="na-btn na-primary" id="machNext">Open it</button>
+    </div>
+  </div>
+
+  <section class="pit-box" id="boardBox" data-url="{% url 'tomato_board' %}">
+    <div class="pit-box-head"><h2>🏆 Leaderboard</h2><span class="muted" id="boardPlayers"></span></div>
+    <p class="muted">Tomatoes thrown at a chat or at Bulba while waiting for a reply. Throws here in the Pit and on the
+      splat wall don't count: you have to earn these.</p>
+    <div class="board-me">
+      <div><span class="board-big" id="boardMine">0</span> <span class="muted">at chats and Bulba</span>
+        <small class="muted" id="boardRank"></small></div>
+      <label class="wall-check"><input type="checkbox" id="boardJoin"> <span>Show me on the leaderboard (as <b>{{ request.user.username }}</b>)</span></label>
+    </div>
+    <ol class="board-list" id="boardList"></ol>
+    <p class="muted board-empty" id="boardEmpty" hidden>Nobody's on it yet. Be the first to be seen throwing.</p>
+  </section>
+
   <section class="pit-box" id="wallBox">
     <div class="pit-box-head"><h2>🎨 Splat wall</h2><span class="muted" id="wallCount"></span></div>
-    <p class="muted">Tap where it should land, or drag to keep throwing. It paints with the skin you picked (every throw counts).</p>
-    <div class="wall-tools">
-      <div class="wall-chips" id="wallBg" role="group" aria-label="Wall">
-        <button type="button" data-bg="night">Night</button><button type="button" data-bg="plaster">Plaster</button>
-        <button type="button" data-bg="brick">Brick</button><button type="button" data-bg="chalk">Chalkboard</button>
-      </div>
-      <div class="wall-chips" id="wallSize" role="group" aria-label="Size">
-        <button type="button" data-size="22">S</button><button type="button" data-size="38">M</button><button type="button" data-size="62">L</button>
-      </div>
-      <label class="wall-check"><input type="checkbox" id="wallEmoji" checked> Show what was thrown</label>
+    <p class="muted wall-help">Tap where it should land, or drag to paint a line of them. Every throw counts towards your
+      total (not the leaderboard). <a href="{% url 'tomato_gallery' %}">🖼 Open the gallery</a></p>
+    <div class="wall-row">
+      <span class="wall-label">Throw</span>
+      <div class="wall-ammo" id="wallAmmo" role="group" aria-label="What to throw"></div>
     </div>
-    <canvas id="wall" width="1200" height="750" aria-label="Your splat wall"></canvas>
+    <div class="wall-tools">
+      <div class="wall-chips" id="wallShape" role="group" aria-label="Shape"></div>
+      <label class="wall-size">Size <input type="range" id="wallSize" min="12" max="110" step="2" aria-label="Size"></label>
+      <button type="button" class="na-btn wall-wipe" id="wallWipe" aria-pressed="false" title="Drag to wipe splats off">🧽 Wipe</button>
+      <label class="wall-bgpick">Wall
+        <select id="wallBg" aria-label="Wall">
+          <optgroup label="Walls" id="wallBgTextures"></optgroup>
+          <optgroup label="Story scenes">
+            {% for b in scenes %}<option value="scene:{{ b.file }}">{{ b.name }}</option>{% endfor %}
+          </optgroup>
+        </select>
+      </label>
+      <label class="wall-check"><input type="checkbox" id="wallEmoji" checked> <span>Show what was thrown</span></label>
+    </div>
+    <p class="wall-turn">📱↻ Turn your phone sideways for a bigger wall.</p>
+    <div class="wall-stage"><canvas id="wall" width="1200" height="750" aria-label="Your splat wall"></canvas></div>
     <div class="pit-share">
       <button type="button" class="na-btn" id="wallUndo">↶ Undo</button>
-      <button type="button" class="na-btn" id="wallClear">Clear the wall</button>
-      <a class="na-btn na-primary" id="wallDownload" download="splat-wall.png" href="#" style="text-decoration:none">⬇ Download the wall</a>
+      <button type="button" class="na-btn" id="wallRedo">↷ Redo</button>
+      <button type="button" class="na-btn" id="wallClear">Clear</button>
+      <button type="button" class="na-btn" id="wallFull" aria-pressed="false">⛶ Full screen</button>
+      <span class="wall-gap"></span>
+      <button type="button" class="na-btn na-primary" id="wallSave" data-url="{% url 'tomato_art' %}" data-gallery="{% url 'tomato_gallery' %}">💾 Save to gallery</button>
+      <a class="na-btn" id="wallDownload" download="splat-wall.png" href="#" style="text-decoration:none">⬇ Download</a>
     </div>
   </section>
 
@@ -66,6 +153,8 @@
     </div>
   </section>
 </div>
-<script src="{% static 'mainapp/js/tomato_pit.js' %}?v=6"></script>
+<script src="{% static 'mainapp/js/splat_art.js' %}?v=1" data-scenes="{% static 'defaults/backgrounds/' %}"></script>
+<script src="{% static 'mainapp/js/tomato_pit.js' %}?v=9"></script>
+<script src="{% static 'mainapp/js/tomato_machine.js' %}?v=2"></script>
 </body>
 </html>

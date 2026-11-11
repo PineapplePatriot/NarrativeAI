@@ -8386,3 +8386,385 @@ class TomatoPitTests(TestCase):
     def test_needs_an_account(self):
         self.client.logout()
         self.assertEqual(self.client.get(reverse("tomato_state")).status_code, 302)
+
+
+class TomatoGalleryTests(TestCase):
+    """🖼 Saved splat walls: only ever splats, private until shared, likes from others only."""
+
+    SPLAT = {"x": 100, "y": 200, "r": 30, "c": "#e0352b", "k": "🍅", "e": True, "rot": 1.2, "seed": 77, "t": "drip"}
+
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(username="painter", password="pw12345!")
+        self.other = get_user_model().objects.create_user(username="critic", password="pw12345!")
+        self.client.force_login(self.user)
+
+    def save(self, **body):
+        body = {"title": "Sunset", "bg": "brick", "splats": [self.SPLAT], **body}
+        return self.client.post(reverse("tomato_art"), json.dumps(body), content_type="application/json")
+
+    def test_pages_open(self):
+        self.assertContains(self.client.get(reverse("tomato_gallery")), "Splat Gallery")
+        page = self.client.get(reverse("tomato_pit"))
+        self.assertContains(page, "Save to gallery")
+        self.assertContains(page, 'value="scene:cyberpunk.webp"')  # the story backgrounds are offered as walls
+
+    def test_only_real_splats_are_kept(self):
+        junk = [
+            {**self.SPLAT, "c": "url(javascript:alert(1))"},       # not a colour
+            {**self.SPLAT, "k": "<img src=x>"},                     # not a thrown thing
+            {**self.SPLAT, "k": "BUY NOW"},                         # words aren't vegetables
+            {**self.SPLAT, "x": "12"},                              # not a number
+            "nonsense",
+        ]
+        out = self.save(splats=[*junk, {**self.SPLAT, "x": 99999, "t": "laser", "f": "url(x)", "s": 4}]).json()
+        art = self.client.get(reverse("tomato_art_one", args=[out["id"]])).json()
+        self.assertEqual(len(art["splats"]), 1)
+        sp = art["splats"][0]
+        self.assertEqual((sp["x"], sp["t"], sp["f"]), (1200, "splat", ""))  # clamped, known shape, filter dropped
+        self.assertNotIn("s", sp)
+        self.assertEqual(self.save(splats=junk).status_code, 400)   # nothing left: refused
+        self.assertEqual(self.save(bg="scene:../../etc/passwd").json()["bg"], "night")
+        self.assertEqual(self.save(bg="scene:desert.webp").json()["bg"], "scene:desert.webp")
+        self.assertEqual(self.save(title="  a   " + "x" * 100).json()["title"], "a " + "x" * 58)
+
+    def test_private_until_shared_and_only_the_owner_edits(self):
+        art_id = self.save().json()["id"]
+        self.client.force_login(self.other)
+        self.assertEqual(self.client.get(reverse("tomato_art_one", args=[art_id])).status_code, 404)
+        self.assertEqual(self.client.get(reverse("tomato_art") + "?scope=all").json()["items"], [])
+        self.client.force_login(self.user)
+        r = self.client.post(reverse("tomato_art_one", args=[art_id]), json.dumps({"shared": True, "title": "Dusk"}),
+                             content_type="application/json").json()
+        self.assertEqual((r["shared"], r["title"]), (True, "Dusk"))
+        self.client.force_login(self.other)
+        items = self.client.get(reverse("tomato_art") + "?scope=all").json()["items"]
+        self.assertEqual([(i["title"], i["artist"], i["mine"]) for i in items], [("Dusk", "painter", False)])
+        self.assertEqual(self.client.get(reverse("tomato_art")).json()["items"], [])  # "mine" is still empty for them
+        self.assertEqual(self.client.post(reverse("tomato_art_one", args=[art_id]), json.dumps({"title": "Mine now"}),
+                                          content_type="application/json").status_code, 403)
+        self.assertEqual(self.client.delete(reverse("tomato_art_one", args=[art_id])).status_code, 403)
+        self.client.force_login(self.user)
+        self.assertEqual(self.client.delete(reverse("tomato_art_one", args=[art_id])).status_code, 200)
+        self.assertFalse(self.client.get(reverse("tomato_art")).json()["items"])
+
+    def test_likes(self):
+        art_id = self.save(shared=True).json()["id"]
+        self.assertEqual(self.client.post(reverse("tomato_art_like", args=[art_id])).status_code, 400)  # not your own
+        self.client.force_login(self.other)
+        self.assertEqual(self.client.post(reverse("tomato_art_like", args=[art_id])).json(), {"likes": 1, "liked": True})
+        top = self.client.get(reverse("tomato_art") + "?scope=all&sort=liked").json()["items"][0]
+        self.assertEqual((top["likes"], top["liked"]), (1, True))
+        self.assertEqual(self.client.post(reverse("tomato_art_like", args=[art_id])).json(), {"likes": 0, "liked": False})
+
+    def test_paging_and_the_limit(self):
+        from mainapp import tomatoes
+        from mainapp.models import TomatoArt
+        TomatoArt.objects.bulk_create([TomatoArt(user=self.user, title=f"n{i}", splats=[self.SPLAT])
+                                       for i in range(tomatoes.MAX_ART)])
+        first = self.client.get(reverse("tomato_art")).json()
+        self.assertEqual((len(first["items"]), first["more"]), (tomatoes.PAGE, True))
+        self.assertEqual(self.save().status_code, 400)  # the gallery is full
+
+
+class TomatoMachineTests(TestCase):
+    """🎰 The Sauce-o-Matic: spins from chat tomatoes, fair draws with pity, Bulba's Promise, compost, perks."""
+
+    def setUp(self):
+        from mainapp.models import TomatoScore
+        self.user = get_user_model().objects.create_user(username="gambler", password="pw12345!")
+        self.client.force_login(self.user)
+        self.score = TomatoScore.objects.create(user=self.user, wild=0)
+
+    def give(self, spins):
+        from mainapp import tomato_machine as M
+        self.score.refresh_from_db()
+        self.score.wild += spins * M.SPIN_COST
+        self.score.save()
+
+    def machine(self, **body):
+        if not body:
+            return self.client.get(reverse("tomato_machine"))
+        return self.client.post(reverse("tomato_machine"), json.dumps(body), content_type="application/json")
+
+    class Rolls:  # random.Random stand-in: random() returns the given rolls in turn, choice() the first option
+        def __init__(self, *rolls):
+            self.rolls = list(rolls)
+
+        def random(self):
+            return self.rolls.pop(0) if self.rolls else 0.99
+
+        def choice(self, seq):
+            return seq[0]
+
+    def test_spins_come_from_chat_tomatoes_and_are_spent(self):
+        from mainapp import tomato_machine as M
+        state = self.machine().json()
+        self.assertEqual((state["spins"], state["toward"]), (1, 0))          # one on the house
+        self.assertEqual(self.machine(action="spin", n=1).json()["spins"], 0)
+        self.assertEqual(self.machine(action="spin", n=1).status_code, 400)  # nothing left to spend
+        type(self.score).objects.filter(pk=self.score.pk).update(wild=M.SPIN_COST * 2 + 120)
+        state = self.machine().json()
+        self.assertEqual((state["spins"], state["toward"]), (2, 120))
+        out = self.machine(action="spin", n=1).json()
+        self.assertEqual((len(out["results"]), out["spins"]), (1, 1))
+        self.assertEqual(self.machine(action="spin", n=10).status_code, 400)  # 1 spin left, not 10
+        self.assertEqual(self.machine(action="spin", n=3).status_code, 400)   # one or ten only
+        self.give(12)
+        out = self.machine(action="spin", n=10).json()
+        self.assertEqual((len(out["results"]), out["spins"]), (10, 3))
+        self.assertEqual(len(out["history"]), 12)  # the free pull, one, then ten
+
+    def test_pity_guarantees_a_rare_and_a_legendary(self):
+        from mainapp import tomato_machine as M
+        m = M._state(self.score)
+        tiers = [M._draw(m, self.Rolls(*[0.99] * 60), None)["tier"] for _ in range(M.LEGEND_PITY)]
+        self.assertTrue(all(t in ("rare", "legendary") for t in tiers[M.RARE_PITY - 1::M.RARE_PITY]))
+        self.assertEqual(tiers.count("common"), M.LEGEND_PITY - 1 - (M.LEGEND_PITY - 1) // M.RARE_PITY)
+        self.assertEqual(tiers[-1], "legendary")     # the 25th pull
+        self.assertEqual((m["pity_legend"], m["pity_rare"]), (0, 0))
+
+    def test_the_odds_hold_over_many_pulls(self):
+        import random
+        from mainapp import tomato_machine as M
+        m, rng = M._state(self.score), random.Random(7)
+        counts = {"common": 0, "rare": 0, "legendary": 0}
+        for _ in range(20000):
+            counts[M._draw(m, rng, None)["tier"]] += 1
+        self.assertAlmostEqual(counts["legendary"] / 20000, .05, delta=.015)  # 4% plus what pity adds
+        self.assertAlmostEqual(counts["rare"] / 20000, .23, delta=.03)
+
+    def test_bulbas_promise_is_a_coin_flip_then_a_sure_thing(self):
+        from mainapp import tomato_machine as M
+        self.assertEqual(self.machine(action="promise", id="bean").status_code, 400)  # only legendaries
+        self.assertEqual(self.machine(action="promise", id="gardener_robot").json()["promise"], "gardener_robot")
+        self.score.refresh_from_db()
+        m = M._state(self.score)
+        lost = M._draw(m, self.Rolls(0.0, 0.9), None)   # legendary roll, then the 50/50 goes wrong
+        self.assertEqual((lost["tier"], lost["promise"]), ("legendary", "lost"))
+        self.assertNotEqual(lost["id"], "gardener_robot")
+        self.assertTrue(m["promise_sure"])
+        won = M._draw(m, self.Rolls(0.0, 0.9), None)    # same bad flip, but now it's guaranteed
+        self.assertEqual((won["id"], won["promise"]), ("gardener_robot", "promise"))
+        self.assertFalse(m["promise_sure"])
+
+    def test_seasonal_skins_only_in_their_season(self):
+        import datetime
+        from mainapp import tomato_machine as M
+        ids = lambda d: {p["id"] for p in M.pool("legendary", d)}
+        self.assertIn("snow", ids(datetime.date(2026, 1, 5)))
+        self.assertNotIn("jack", ids(datetime.date(2026, 1, 5)))
+        self.assertIn("jack", ids(datetime.date(2026, 10, 31)))
+        self.assertEqual(M.season(datetime.date(2026, 12, 1)), "winter")
+        self.assertEqual(sum(1 for p in M.pool("legendary", datetime.date(2026, 7, 1)) if p.get("season")), 1)
+
+    def test_duplicates_turn_into_compost_and_compost_into_spins(self):
+        from mainapp import tomato_machine as M
+        m = M._state(self.score)
+        first = M._draw(m, self.Rolls(0.5), None)        # common: the first common in the list
+        again = M._draw(m, self.Rolls(0.5), None)
+        self.assertEqual((first["dup"], again["dup"], again["compost"]), (False, True, M.COMPOST_FOR["common"]))
+        seed = next(p for p in M.PRIZES if p["kind"] == "seed" and p["tier"] == "common")
+        m["items"][seed["id"]] = 3
+        self.assertFalse(M._draw(m, type("R", (), {"random": lambda s: .5, "choice": lambda s, q: seed})(), None)["dup"])
+        self.assertEqual(m["items"][seed["id"]], 4)        # seeds stack
+        self.score.machine = {**m, "compost": 9}
+        self.score.save()
+        self.assertEqual(self.machine(action="compost").status_code, 400)
+        self.score.machine = {**m, "compost": 12}
+        self.score.save()
+        state = self.machine(action="compost").json()
+        self.assertEqual((state["compost"], state["spins"]), (2, 2))
+
+    def test_golden_splats_give_free_spins_within_reason(self):
+        self.client.post(reverse("tomato_state"), json.dumps({"add": 50, "add_wild": 50, "add_golden": 1}),
+                         content_type="application/json")
+        self.assertEqual(self.machine().json()["spins"], 2)   # the free one and the golden one
+        self.client.post(reverse("tomato_state"), json.dumps({"add": 10, "add_wild": 10, "add_golden": 9}),
+                         content_type="application/json")
+        state = self.machine().json()
+        self.assertEqual((state["spins"], state["golden"]), (2, 1))   # 60 chat throws can't be 10 golden ones
+        self.client.post(reverse("tomato_state"), json.dumps({"add": 10, "add_golden": 5}),  # not at a chat: nothing
+                         content_type="application/json")
+        self.assertEqual(self.machine().json()["golden"], 1)
+
+    def test_wearing_what_you_won(self):
+        from mainapp.models import TomatoScore
+        self.assertEqual(self.machine(action="equip", slot="hat", id="hat_crown").status_code, 400)  # not won yet
+        TomatoScore.objects.filter(user=self.user).update(
+            wild=10, on_board=True, machine={"items": {"hat_crown": 1, "badge_fire": 1, "pickle": 1}})
+        self.assertEqual(self.machine(action="equip", slot="hat", id="badge_fire").status_code, 400)  # wrong slot
+        self.machine(action="equip", slot="hat", id="hat_crown")
+        self.machine(action="equip", slot="badge", id="badge_fire")
+        state = self.client.get(reverse("tomato_state")).json()
+        self.assertEqual(state["worn"], {"hat": "👑", "badge": "🔥"})
+        self.assertEqual(state["prize_skins"], ["pickle"])
+        self.assertEqual(self.client.get(reverse("tomato_board")).json()["top"][0]["badge"], "🔥")
+        self.machine(action="equip", slot="hat", id=None)
+        self.assertEqual(self.client.get(reverse("tomato_state")).json()["worn"], {"badge": "🔥"})
+
+    def test_every_prize_skin_has_a_look_in_the_browser(self):
+        from pathlib import Path
+        from django.conf import settings
+        from mainapp import tomato_machine as M
+        js = (Path(settings.BASE_DIR) / "static" / "js" / "tomato.js").read_text(encoding="utf-8")
+        for p in M.PRIZES:
+            if p["kind"] == "skin":
+                self.assertIn(f"id: '{p['id']}'", js, p["id"])
+        self.assertEqual(len({p["id"] for p in M.PRIZES}), len(M.PRIZES))
+        self.assertContains(self.client.get(reverse("tomato_pit")), "Sauce-o-Matic")
+
+
+class TomatoGardenTests(TestCase):
+    """🌻 The garden: seeds from the machine grow over real time, chat tomatoes water them, harvests make compost."""
+
+    def setUp(self):
+        from mainapp.models import TomatoScore
+        self.user = get_user_model().objects.create_user(username="gardener", password="pw12345!")
+        self.client.force_login(self.user)
+        self.score = TomatoScore.objects.create(user=self.user, machine={"items": {"seed_tomato": 2, "lantern": 1}})
+
+    def do(self, **body):
+        return self.client.post(reverse("tomato_garden_state"), json.dumps(body), content_type="application/json")
+
+    def items(self, **items):
+        self.score.refresh_from_db()
+        self.score.machine = {**self.score.machine, "items": {**self.score.machine.get("items", {}), **items}}
+        self.score.save()
+
+    def age(self, hours):  # move every plant's planting time back
+        self.score.refresh_from_db()
+        g = self.score.garden
+        for t in g["tiles"].values():
+            if t.get("kind") == "plant":
+                t["at"] -= int(hours * 3600)
+        self.score.garden = g
+        self.score.save()
+
+    def tile(self, state, x, y):
+        return next(t for t in state["tiles"] if (t["x"], t["y"]) == (x, y))
+
+    def test_the_page_and_planting(self):
+        self.assertContains(self.client.get(reverse("tomato_garden")), "The Garden")
+        state = self.do(action="plant", x=0, y=0, id="seed_tomato").json()
+        self.assertEqual((self.tile(state, 0, 0)["stage"], state["basket"]["seed_tomato"]), ("seed", 1))
+        self.assertEqual(self.do(action="plant", x=0, y=0, id="seed_tomato").status_code, 400)   # taken
+        self.assertEqual(self.do(action="plant", x=1, y=0, id="seed_carrot").status_code, 400)   # none of those
+        self.assertEqual(self.do(action="plant", x=8, y=0, id="seed_tomato").status_code, 400)   # off the plot
+        self.do(action="plant", x=1, y=0, id="seed_tomato")
+        self.assertNotIn("seed_tomato", self.client.get(reverse("tomato_garden_state")).json()["basket"])
+
+    def test_growing_harvesting_and_compost(self):
+        self.do(action="plant", x=2, y=1, id="seed_tomato")
+        self.age(12)
+        state = self.client.get(reverse("tomato_garden_state")).json()
+        self.assertEqual(self.tile(state, 2, 1)["stage"], "leafy")
+        self.assertEqual(self.do(action="harvest", x=2, y=1).status_code, 400)  # not ripe
+        self.age(12)
+        state = self.do(action="harvest", x=2, y=1).json()
+        self.assertEqual((state["tiles"], state["compost"], state["harvests"]), ([], 2, 1))
+        self.assertIn("harvested a tomato", state["log"][0]["text"])
+
+    def test_chat_tomatoes_water_the_garden(self):
+        from mainapp import tomato_garden as G
+        self.do(action="plant", x=0, y=0, id="seed_tomato")
+        before = self.tile(self.client.get(reverse("tomato_garden_state")).json(), 0, 0)["progress"]
+        self.client.post(reverse("tomato_state"), json.dumps({"add": 30, "add_wild": 30}), content_type="application/json")
+        after = self.tile(self.client.get(reverse("tomato_garden_state")).json(), 0, 0)["progress"]
+        self.assertAlmostEqual(after - before, 30 * G.WATER / (24 * 3600), places=3)
+        self.client.post(reverse("tomato_state"), json.dumps({"add": 30}), content_type="application/json")  # the Pit: no water
+        self.assertAlmostEqual(self.tile(self.client.get(reverse("tomato_garden_state")).json(), 0, 0)["progress"], after, places=3)
+
+    def test_decorations_go_out_and_back(self):
+        state = self.do(action="place", x=3, y=3, id="lantern").json()
+        self.assertNotIn("lantern", state["basket"])
+        self.assertEqual(self.do(action="place", x=4, y=3, id="lantern").status_code, 400)  # only had one
+        state = self.do(action="remove", x=3, y=3).json()
+        self.assertEqual((state["tiles"], state["basket"]["lantern"]), ([], 1))
+        self.do(action="plant", x=5, y=0, id="seed_tomato")
+        self.assertEqual(self.do(action="remove", x=5, y=0).status_code, 400)  # that's a plant
+        self.assertEqual(self.do(action="dig", x=5, y=0).json()["tiles"], [])
+
+    def test_gardeners_help(self):
+        self.items(gardener_farmer=1, gardener_frog=1, gardener_witch=1, seed_tomato=2)
+        self.do(action="plant", x=0, y=0, id="seed_tomato")
+        self.do(action="plant", x=1, y=0, id="seed_tomato")
+        self.age(20)  # 20 hours × 1.25 = ripe, thanks to Grandpa Pomodoro
+        state = self.client.get(reverse("tomato_garden_state")).json()
+        self.assertEqual({t["stage"] for t in state["tiles"]}, {"ripe"})
+        self.do(action="harvest", x=0, y=0)
+        state = self.do(action="harvest", x=1, y=0).json()
+        self.assertEqual(state["compost"], 6)                      # 2 + 1 (Ribbit), twice
+        self.assertEqual(state["basket"].get("seed_tomato"), 1)    # Basil: every second harvest gives the seed back
+        self.items(gardener_robot=1)
+        self.do(action="plant", x=2, y=0, id="seed_tomato")
+        self.age(30)
+        state = self.client.get(reverse("tomato_garden_state")).json()
+        self.assertEqual(state["tiles"], [])                       # Hoe-Bot harvested it
+        self.assertIn("Hoe-Bot 3000", state["log"][0]["text"])
+        self.assertEqual(len(state["gardeners"]), 4)
+
+
+class TomatoBoardTests(TestCase):
+    """🏆 Chat + Bulba tomatoes: counted apart from the Pit's, believed only at a human pace, ranked for those who join."""
+
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(username="thrower", password="pw12345!")
+        self.client.force_login(self.user)
+
+    def post(self, body):
+        return self.client.post(reverse("tomato_state"), json.dumps(body), content_type="application/json").json()
+
+    def board(self, body=None):
+        if body is None:
+            return self.client.get(reverse("tomato_board")).json()
+        return self.client.post(reverse("tomato_board"), json.dumps(body), content_type="application/json")
+
+    def test_only_chat_and_bulba_throws_count_and_never_more_than_were_thrown(self):
+        state = self.post({"add": 30, "add_wild": 10})
+        self.assertEqual((state["count"], state["wild"]), (30, 10))
+        state = self.post({"add": 5, "add_wild": 50})        # more "wild" throws than throws: only the throws
+        self.assertEqual((state["count"], state["wild"]), (35, 15))
+        state = self.post({"add": 5, "add_wild": True})      # nonsense counts nothing
+        self.assertEqual(state["wild"], 15)
+
+    def test_a_script_is_held_to_a_human_pace(self):
+        from mainapp import tomatoes
+        state = self.post({"add": 3000, "add_wild": 3000})
+        self.assertEqual(state["wild"], tomatoes.BURST * 5)  # the first sync: a few minutes' worth at most
+        state = self.post({"add": 3000, "add_wild": 3000})
+        self.assertLessEqual(state["wild"] - tomatoes.BURST * 5, tomatoes.BURST + tomatoes.RATE)
+        self.assertEqual(state["count"], 6000)               # the personal total isn't limited this way
+
+    def test_a_day_has_a_ceiling(self):
+        from django.utils import timezone
+        from mainapp import tomatoes
+        from mainapp.models import TomatoScore
+        TomatoScore.objects.create(user=self.user, wild=7000, day=timezone.now().date(),
+                                   day_wild=tomatoes.DAY_MAX - 3, synced_at=timezone.now() - timezone.timedelta(hours=1))
+        self.assertEqual(self.post({"add": 100, "add_wild": 100})["wild"], 7003)
+        TomatoScore.objects.filter(user=self.user).update(day=timezone.now().date() - timezone.timedelta(days=1),
+                                                         synced_at=timezone.now() - timezone.timedelta(hours=1))
+        self.assertEqual(self.post({"add": 100, "add_wild": 100})["wild"], 7103)  # a new day starts fresh
+
+    def test_the_board_shows_only_people_who_joined(self):
+        from mainapp.models import TomatoScore
+        other = get_user_model().objects.create_user(username="lurker", password="pw12345!")
+        champ = get_user_model().objects.create_user(username="champ", password="pw12345!")
+        TomatoScore.objects.create(user=other, wild=900)                  # didn't join: never shown
+        TomatoScore.objects.create(user=champ, wild=500, on_board=True)
+        self.post({"add": 40, "add_wild": 40})
+        b = self.board()
+        self.assertEqual([r["name"] for r in b["top"]], ["champ"])
+        self.assertEqual((b["me"]["wild"], b["me"]["on_board"], b["me"]["rank"]), (40, False, 2))  # would be #2
+        b = self.board({"on_board": True}).json()
+        self.assertEqual([(r["name"], r["me"]) for r in b["top"]], [("champ", False), ("thrower", True)])
+        self.assertEqual((b["me"]["rank"], b["players"]), (2, 2))
+        self.assertNotIn("lurker", json.dumps(b))
+        b = self.board({"on_board": False}).json()
+        self.assertEqual([r["name"] for r in b["top"]], ["champ"])
+
+    def test_bad_requests(self):
+        self.assertEqual(self.board({"on_board": "yes"}).status_code, 400)
+        self.assertEqual(self.client.post(reverse("tomato_board"), "{", content_type="application/json").status_code, 400)
+        self.client.logout()
+        self.assertEqual(self.client.get(reverse("tomato_board")).status_code, 302)
