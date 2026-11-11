@@ -347,23 +347,29 @@ body {
     font-size: 0.95rem;
 }
 
-.message-text .quoted {
-    color: var(--dialogue-color, #e594f2);
-    font-weight: 600;
-}
-
-/* Colours a preset's text rules (or the AI) put on speech win over the dialogue colour */
-.message-text [style*="color"] .quoted,
-.message-text font[color] .quoted,
-body[data-dialogue="preset"] .message-text .quoted {
-    color: inherit;
-}
+/* Speech colours (mainapp/speaker_colors.py). App colour: one colour for all speech, over any colour the AI wrote.
+   Story colours: the AI's named tags (<plum>"..."</plum> → .sc.sc-plum) colour each speaker; untagged speech
+   and older colour tags keep their own colour. Their own messages: their colour, either way. */
+body { --speech-app: var(--dialogue-color, #e594f2); }
+.message-text .quoted { color: var(--speech-app); font-weight: 600; }
+.message-text .sc { color: var(--sc); }
+body[data-dialogue="app"] .message-text .sc { color: var(--speech-app); }
+body[data-dialogue="story"] .message-text .quoted { color: inherit; }
+body.has-you .message.user .message-text .quoted,
+body.has-you .message.user .message-text .sc { color: var(--you); }
+/* Tone marks (<plum:whisper>) */
+.message-text .sc.t-whisper { font-style: italic; font-size: .93em; opacity: .85; }
+.message-text .sc.t-whisper .quoted { font-weight: 500; }
+.message-text .sc.t-shout .quoted { font-weight: 800; }
+.message-text .sc.t-shout { font-size: 1.06em; letter-spacing: .02em; }
+.message-text .sc.t-drawl { letter-spacing: .09em; }
+.message-text .sc.t-tremble { text-decoration: underline wavy; text-decoration-thickness: 1px; text-underline-offset: 4px;
+    text-decoration-color: color-mix(in srgb, currentColor 45%, transparent); }
+.message-text .sc.t-sharp .quoted { font-weight: 700; letter-spacing: -.01em; }
 
 .dialogue-colors { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .dialogue-colors .swatch { width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; padding: 0; cursor: pointer; }
 .dialogue-colors .swatch.on { border-color: #fff; }
-.dialogue-colors .swatch.custom { position: relative; overflow: hidden; background: conic-gradient(#f87171, #fbbf24, #86efac, #7dd3fc, #c4b5fd, #f87171); }
-.dialogue-colors .swatch.custom input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
 .dialogue-colors .preset-btn.on { outline: 2px solid #fff; }
 
 .message-text code {
@@ -2362,3 +2368,26 @@ body.skin-lab .message-text .thought { color: #3d5a78; }
 /* Write for me at work: the box is locked and says so */
 #messageInput.writing { cursor: progress; }
 #messageInput.writing::placeholder { color: var(--accent-1, #a78bfa); opacity: 1; white-space: nowrap; }
+
+/* Two characters in one card: the one not speaking steps back */
+.character-image-container { transition: filter .5s, opacity .5s, transform .5s; }
+.character-image-container.quiet { filter: brightness(.55) saturate(.7); opacity: .8; transform: scale(.96); }
+
+/* Their own picture (persona) on the left of the scene; everyone fits when there are three */
+.character-images-wrapper.with-user .character-image-container { width: min(320px, 31%); height: auto; max-height: 520px; flex: 0 1 auto; }
+.character-images-wrapper.with-user .user-sprite { transform: scale(.92); transform-origin: bottom center; opacity: .95; }
+.character-images-wrapper.with-user .user-sprite img { max-width: 100%; }
+
+/* Speech colour by character (pen menu) */
+.speech-cast { display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px; }
+.speech-row { display: flex; align-items: center; gap: 8px; font-size: .88rem; flex-wrap: wrap; }
+.speech-row .swatch { width: 22px; height: 22px; border-radius: 50%; border: 2px solid rgba(255,255,255,.5); padding: 0; cursor: pointer; }
+.speech-row .icon-btn { margin-left: auto; }
+.speech-row .dialogue-colors { flex-basis: 100%; padding: 4px 0 2px 30px; }
+.speech-add { display: flex; gap: 6px; align-items: center; }
+.speech-add input[type=text] { flex: 1; min-width: 0; background: rgba(255,255,255,.06); color: inherit; border: 1px solid rgba(255,255,255,.15); border-radius: 8px; padding: 5px 8px; font: inherit; font-size: .85rem; }
+.speech-tones { display: flex; gap: 8px; align-items: center; font-size: .85rem; margin: 4px 0; cursor: pointer; }
+.dialogue-colors .swatch.none { background: transparent; border: 2px dashed rgba(255,255,255,.4); color: rgba(255,255,255,.6); font-size: .7rem; line-height: 1; }
+
+/* The picked chip (chat style, speech colours) */
+.skin-choice .preset-btn.on { background: var(--accent-1); color: #fff; border-color: transparent; }

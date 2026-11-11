@@ -1968,7 +1968,7 @@ class StarterTests(ChatPromptTests):
         page = self.client.get(reverse("quick_setup"))
         quick = {q["key"]: q for q in page.context["questions"] + page.context["more_questions"]}
         for key in ("pov", "tense", "length", "control", "format", "interior", "pacing", "initiative", "invention",
-                    "colors", "genres", "author", "keep_out"):
+                    "genres", "author", "keep_out"):
             self.assertEqual(quick[key]["label"], form[key]["label"])
         mods = dict(form["modules"]["multi"])  # the module list is the catalog's
         self.assertIn("few_dashes", mods)
@@ -2611,7 +2611,7 @@ class CardImportTests(ChatPromptTests):
         card["data"]["first_mes"] = "{{char}} nods at {{User}}. <USER> nods back."
         self.upload(_card_png(card))
         viktor = Character.objects.get(name="Viktor")
-        self.assertEqual(chats.greeting(viktor)[0][2], "Viktor nods at chatter. chatter nods back.")
+        self.assertEqual(chats.greeting(viktor)[0][2], "Viktor nods at Stranger. Stranger nods back.")
         page = self.client.get(reverse("characters_list"))
         self.assertContains(page, "Viktor is a stationmaster.")
 
@@ -2769,11 +2769,11 @@ class BulbaOnboardingRunTests(BulbaTests):
             variants=[{"label": "a", "instructions": ""}])])]
         data = self.api(action="say", text="show me").json()
         samples = next(e for e in data["events"] if e["type"] == "samples")
-        self.assertEqual(samples["scenario"], "potato's spell fizzles.")
+        self.assertEqual(samples["scenario"], "Stranger's spell fizzles.")
         self.script = [("Here.", [self.call("propose_character", name="Corvin", description="{{char}} teaches {{user}}.",
                                             greeting="Hi.")])]
         data = self.api(action="say", text="make him").json()
-        self.assertIn("Corvin teaches potato.", data["state"]["proposals"][-1]["summary"])
+        self.assertIn("Corvin teaches Stranger.", data["state"]["proposals"][-1]["summary"])
         self.assertEqual(self.session().proposals[-1]["payload"]["description"], "{{char}} teaches {{user}}.")
 
 
@@ -3000,8 +3000,11 @@ class SpendingAndThinkingTests(StreamChatTests):
                                           content_type="application/json")
         self.assertEqual(post("#7dd3fc").json()["dialogue_color"], "#7dd3fc")
         self.assertContains(self.client.get(self.url), "--dialogue-color: #7dd3fc")
-        self.assertEqual(post("preset").json()["dialogue_color"], "preset")
-        self.assertContains(self.client.get(self.url), 'data-dialogue="preset"')
+        self.assertContains(self.client.get(self.url), 'data-dialogue="app"')
+        self.assertEqual(post("lagoon").json()["dialogue_light"], "#00707e")  # a palette name: its deeper shade too
+        self.assertContains(self.client.get(self.url), "--dialogue-color: #4dd0e1")
+        self.assertEqual(post("preset").json()["speech_mode"], "story")  # older pages' "preset's colours"
+        self.assertContains(self.client.get(self.url), 'data-dialogue="story"')
         self.assertEqual(post("red; position:fixed").status_code, 400)
 
 
@@ -3045,13 +3048,31 @@ class BulbaRunTwoTests(BulbaTests):
         self.assertTrue(any(e.get("text") == "Hello there." for e in data["events"]))
         self.assertIn("stage", data["state"])
 
-    def test_a_character_made_first_still_leads_to_the_persona(self):
+    def test_a_two_character_card(self):
+        from mainapp.models import Character
+        self.script = [("Here they are.", [self.call("propose_character", name="Lumine", second_name="Aether",
+                                                     description="Twins.", greeting="Hi.")])]
+        data = self.api(action="say", text="the twins").json()
+        self.assertIn("Two characters in one card: Lumine and Aether", data["state"]["proposals"][0]["summary"][0])
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=data["state"]["proposals"][0]["id"])
+        twins = Character.objects.get(author=self.user, name="Lumine")
+        self.assertTrue(twins.is_mult)
+        self.assertEqual(twins.second_name, "Aether")
+        page = self.client.get(reverse("chat", kwargs={"slug": twins.slug}))
+        self.assertContains(page, "window.IS_MULT = true")
+        self.assertContains(page, "No pictures for Aether yet")
+
+    def test_the_character_comes_before_the_persona(self):
         from mainapp.models import BulbaSession
         self.script = [("Here.", [self.call("propose_character", name="Corvin", description="A wizard.", greeting="Hi.")])]
-        data = self.api(action="say", text="make him first").json()
-        self.script = [("Now, who are you?", [])]
+        data = self.api(action="say", text="make him").json()
+        self.script = [("A worldbook?", [])]
         self.api(action="apply", id=data["state"]["proposals"][0]["id"])
-        self.assertEqual(BulbaSession.objects.get(user=self.user, mode="setup").stage, "persona")
+        session = BulbaSession.objects.get(user=self.user, mode="setup")
+        self.assertEqual(session.stage, "character")  # lore, look and pictures still to come; then the persona
+        from mainapp.bulba import agent
+        self.assertLess(agent.STAGES.index("character"), agent.STAGES.index("persona"))
 
     def test_activity_and_chat_link(self):
         self.assertEqual(self.client.get(reverse("bulba_api")).json(), {"activity": "", "busy": False})
@@ -3126,12 +3147,11 @@ class BasicsFormTests(BulbaTests):
         self.assertTrue(any(e["type"] == "form" for e in data["events"]))
         self.script = [("Got it. What do you want to play?", [])]
         data = self.api(action="basics", answers={"pov": "second", "tense": "present", "length": "long",
-                                                  "colors": "on", "format": "any", "language": "English",
+                                                  "format": "any", "language": "English",
                                                   "keep_out": "spiders", "bogus": "x", "panels": "nope"}).json()
         told = self.bulba_calls[-1]["messages"][-1]["content"]
         self.assertIn("Narrate in second person", told)
         self.assertIn("reply_length long", told)
-        self.assertIn('<font color=', told)
         self.assertNotIn("bogus", told)
         prefs = data["state"]["preferences"]
         self.assertIn("Write in present tense.", [p["interpretation"] for p in prefs])
@@ -4582,13 +4602,13 @@ class ImpersonateAndTriggerTests(ChatPromptTests):
         self.assertEqual(resp["text"], "A reply.")
         sent = json.dumps(self.sent[-1]["messages"])
         # Writing their message: the preset's rules against it are out, a frame on top says whose message it is
-        self.assertTrue(self.sent[-1]["messages"][0]["content"].startswith("[This turn is different. You are writing chatter's"))
+        self.assertTrue(self.sent[-1]["messages"][0]["content"].startswith("[This turn is different. You are writing Stranger's"))
         self.assertNotIn("Never speak or act for", sent)
         self.assertNotIn("Reply as", sent)
         self.assertIn("Stay vivid.", sent)
         self.assertIn("Keep it tense.", sent)
         self.assertIn("IMPERSONATE BLOCK", sent)
-        self.assertIn("Write as chatter now.", sent)
+        self.assertIn("Write as Stranger now.", sent)
         self.assertIn("i nod", sent)
         self.assertIn("Hello, traveller.", sent)  # the chat itself
         self.assertIn("how they say and do it", sent)  # a draft is written out, not just repeated
@@ -5062,7 +5082,7 @@ class BulbaPicturesAndThemeTests(BulbaCardAndLoreTests):
         self.addCleanup(override.disable)
         self.addCleanup(shutil.rmtree, media, ignore_errors=True)
 
-    def send_picture(self, data, as_="neutral", name="me.png", text="", seen="A tall man in a lab coat."):
+    def send_picture(self, data, as_="neutral", name="me.png", text="", seen="A tall man in a lab coat.", quiet=False):
         from unittest import mock
         from django.core.files.uploadedfile import SimpleUploadedFile
         self.looked = []
@@ -5073,7 +5093,17 @@ class BulbaPicturesAndThemeTests(BulbaCardAndLoreTests):
         with mock.patch("mainapp.ai_client.requests.post", side_effect=self.fake_post), \
                 mock.patch("mainapp.bulba.vision.describe", side_effect=describe):
             return self.client.post(reverse("bulba_api"), {"picture": SimpleUploadedFile(name, data), "as": as_,
-                                                           "text": text})
+                                                           "text": text, **({"quiet": "1"} if quiet else {})})
+
+    def test_several_pictures_bulba_answers_once(self):
+        self.script = [("Two pictures, got them.", [])]
+        calls = len(self.bulba_calls)
+        self.send_picture(self.png(), as_="look", quiet=True)
+        self.assertEqual(len(self.bulba_calls), calls)  # only noted
+        self.send_picture(self.png(), as_="look", text="what do you think?")
+        self.assertEqual(len(self.bulba_calls), calls + 1)  # one answer, about both
+        sent = self.bulba_calls[-1]["messages"]
+        self.assertTrue(any("More pictures follow" in str(m.get("content")) for m in sent))
 
     def test_just_show_bulba_a_picture(self):
         import os
@@ -5139,6 +5169,26 @@ class BulbaPicturesAndThemeTests(BulbaCardAndLoreTests):
         self.assertIn("A rainy harbour at night.", self.bulba_calls[-1]["messages"][-1]["content"])
         viktor.refresh_from_db()
         self.assertIn("/backgrounds/custom/", viktor.theme["bg"])
+
+    def test_theme_sets_story_colours_and_colours_the_greeting(self):
+        from mainapp.models import Character
+        self.upload({**V2_CARD, "data": {**V2_CARD["data"], "first_mes": 'He sighs. "Excellent planning."'}}
+                    if "data" in V2_CARD else {**V2_CARD, "first_mes": 'He sighs. "Excellent planning."'})
+        self.script = [("Here's a look.", [self.call("propose_theme", speech_colors="story", character_color="garnet",
+                                                     your_color="frost", why="him")])]
+        data = self.api(action="say", text="give him a look").json()
+        preview = data["state"]["proposals"][-1]["preview"]
+        self.assertEqual(preview["speech"], "story")
+        self.assertIn(["You", "#b3e5fc"], preview["lines"])
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=data["state"]["proposals"][-1]["id"])
+        viktor = Character.objects.get(author=self.user, name="Viktor")
+        self.assertEqual((viktor.theme["speech"], viktor.theme["speech_cast"], viktor.theme["you_color"]),
+                         ("story", {"Viktor": "garnet"}, "frost"))
+        self.assertIn('<garnet>"Excellent planning."</garnet>', viktor.initial_message)
+        self.script = [("Same colour?", [self.call("propose_theme", speech_colors="story", character_color="frost",
+                                                   your_color="frost", why="x")]), ("Fixed.", [])]
+        self.assertIn("colour of their own", json.dumps(self.api(action="say", text="again").json()) + str(self.bulba_calls[-1]))
 
     def test_theme_from_built_in_media(self):
         from unittest import mock
@@ -5327,7 +5377,7 @@ class GreetingNameTests(ChatPromptTests):
         self.character.initial_message = "{{char}} looks up. \"You're late, {{user}}.\""
         self.character.save()
         chat = chats.create(self.character)
-        login = self.user.persona_name or self.user.name or self.user.username
+        login = self.user.persona_name or self.user.name or "Stranger"  # never the login
         self.assertIn(f"You're late, {login}.", chats.read(chat)["messages"][0][2])
         self.user.persona_name = "Reza"
         self.user.save()
@@ -5605,7 +5655,7 @@ class StageCatchUpTests(BulbaTests):
         pid = data["state"]["proposals"][-1]["id"]
         self.script = [("Next, who do you want to talk to?", [])]
         data = self.api(action="apply", id=pid).json()
-        self.assertEqual(data["state"]["stage"], "character")
+        self.assertEqual(data["state"]["stage"], "character")  # a persona made first: the character still comes
         self.assertTrue(any(e["type"] == "stage" and e["stage"] == "character" for e in data["events"]))
         self.assertIn("lore", self.bulba_calls[-1]["messages"][0]["content"].lower())  # the character guides
         self.script = [("Letters?", [self.call("propose_extras", story_extras=["documents"], game="off", why="x")])]
@@ -5704,7 +5754,7 @@ class SetupRoutesTests(BulbaTests):
         self.assertIn("Dice: dice only", self.bulba_calls[-1]["messages"][-1]["content"])
         self.assertEqual(self.api(action="extras_form", part="setup", answers={"watch": True}).status_code, 400)
 
-    def test_fast_route_applies_a_ready_setup_then_persona_then_character(self):
+    def test_fast_route_applies_a_ready_setup_then_character_then_persona(self):
         from mainapp import presets as presets_mod
         from mainapp.views import _appearance
         self.client.get(reverse("bulba"))
@@ -5722,15 +5772,16 @@ class SetupRoutesTests(BulbaTests):
         size = samplers_mod.normalize(presets_mod.get_active(self.user).data.get("samplers"))["context_size"]
         self.assertEqual(size, {"on": True, "value": 64000})  # set on the ready setup it just made
         self.assertEqual(self.bulba_calls, [])  # all canned
-        self.assertEqual(data["state"]["stage"], "persona")
-        self.assertIn("who are you in the story", data["events"][-1]["text"])
-        self.assertIn("Skip for now", [c["label"] for c in data["events"][-1]["choices"]])
+        self.assertEqual(data["state"]["stage"], "character")  # the character first, then who they are
+        self.assertIn("who do you want to talk to", data["events"][-1]["text"])
+        self.assertIn("I have a card to import", [c["label"] for c in data["events"][-1]["choices"]])
         self.assertEqual(data["state"]["proposals"][-1]["status"], "applied")
         self.assertIn("Director", presets_mod.get_active(self.user).name)
         self.assertEqual(_appearance(self.user)["layout"], "book")  # directing comes with the book
         stages = {s["id"]: s["status"] for s in data["state"]["progress"]["stages"]}
-        self.assertEqual(stages, {"extras": "skipped", "taste": "skipped", "preset": "done", "persona": "current",
-                                  "character": "todo", "story": "todo", "done": "todo"})
+        self.assertEqual(stages, {"extras": "skipped", "taste": "skipped", "preset": "done", "character": "current",
+                                  "persona": "todo", "story": "todo", "done": "todo"})
+        self.assertEqual([s["id"] for s in data["state"]["progress"]["stages"]][3:5], ["character", "persona"])
         # Bulba knows what happened when they answer
         self.script = [("Who, then?", [])]
         self.api(action="say", text="Il Dottore")
@@ -6386,8 +6437,13 @@ class PolishChatTests(WatchChatTests):
         data = self.post({"action": "polish", "now": True}).json()
         self.assertTrue(data["changed"])
         self.assertEqual(data["reply"], "A reply, shorter.")
-        # asked again: it says why nothing happens instead of staying silent
-        self.assertIn("already polished", self.post({"action": "polish", "now": True}).json()["reason"])
+        # 🧹 again: another pass over the polished text, the earlier fixes and the model's original kept
+        self.polish_answer = {"fixes": [{"find": "shorter.", "replace": "short."}]}
+        data = self.post({"action": "polish", "now": True}).json()
+        self.assertEqual(data["reply"], "A reply, short.")
+        self.assertEqual((data["polish"]["count"], data["polish"]["original"]), (2, "A reply."))
+        self.polish_answer = {"fixes": []}
+        self.assertIn("nothing more to change", self.post({"action": "polish", "now": True}).json()["reason"])
         self.post({"action": "chat", "message": "More."})
         self.polish_answer = {"fixes": []}
         self.assertIn("nothing to change", self.post({"action": "polish", "now": True}).json()["reason"])

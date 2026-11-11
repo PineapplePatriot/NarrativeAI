@@ -1688,7 +1688,7 @@
    },
    "verbosity": {
     "on": false,
-    "value": "medium"
+    "value": "high"
    }
   },
   "utility": {

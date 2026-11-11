@@ -29,6 +29,7 @@ from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
 from . import basics as basics_mod
+from . import speaker_colors
 from . import extras, game, html_objects, media_library, recall, story, thinking, ai_client, cards, chats, regex_rules, experiences, model_profiles, presets, samplers, starters, trackers, translation
 from .bulba import control, polish, watch
 from mainapp import mature, refusals
@@ -183,6 +184,14 @@ def _history(messages, note_slot=False):
     return out
 
 
+def _user_pictured(user, chat_persona):
+    """Their persona pictures show in this chat: they have some, and the chat uses their usual persona."""
+    if not getattr(user, "persona_photo_neutral", None):
+        return False
+    own = (chat_persona or {}).get("name")
+    return not own or own == (user.persona_name or "")
+
+
 def _photo(character, prefix, emotion):
     """The sprite for an emotion, falling back to neutral."""
     image = getattr(character, f"{prefix}_{emotion}", None) or getattr(character, f"{prefix}_neutral", None)
@@ -224,6 +233,7 @@ def chat(request, slug):
         "game": {},             # dice and inventory: the starting inventory after manual edits (see mainapp/game.py)
         "voices": {},           # voices picked for speakers in this chat (see mainapp/voice.py), so they stay the same
         "story": {},            # story systems' values: meters, story time, events (see mainapp/story.py)
+        "designs": {},          # the look of each kind of AI-designed object, kept the same (html_objects.py)
     }
     game_mode = game.mode_for(request.user, character)
     extra_kinds = extras.kinds_for(request.user)        # letters, phone screens, milestones (Extras page)
@@ -274,6 +284,7 @@ def chat(request, slug):
                         chat_state["game"] = data.get("game") if isinstance(data.get("game"), dict) else {}
                         chat_state["voices"] = data.get("voices") if isinstance(data.get("voices"), dict) else {}
                         chat_state["story"] = data.get("story") if isinstance(data.get("story"), dict) else {}
+                        chat_state["designs"] = data.get("designs") if isinstance(data.get("designs"), dict) else {}
                         messages_list = data.get("messages", [])
                     else:
                         messages_list = data
@@ -294,9 +305,13 @@ def chat(request, slug):
                     u = request.user
                     fixed_messages, renamed = chats.refresh_greeting(
                         fixed_messages, character, prompt_names(u, character, chat_state["persona"])["user"],
-                        [u.username, u.name, getattr(u, "persona_name", "")])
+                        [u.username, u.name, getattr(u, "persona_name", ""), "Stranger", "You"])
                     if renamed:
                         chats.write(chat_obj, {**chats.read(chat_obj), "messages": fixed_messages})
+                    if not chat_state["designs"]:  # a chat from before: its objects' first looks, from the history
+                        for m in fixed_messages:
+                            if m[0] == "assistant":
+                                html_objects.remember(chat_state["designs"], m[2])
                     return fixed_messages
                 except json.JSONDecodeError:
                     return []
@@ -376,6 +391,7 @@ def chat(request, slug):
             "game": chat_state["game"],
             "voices": chat_state["voices"],
             "story": chat_state["story"],
+            "designs": chat_state["designs"],
         }
         with open(chat_file_path, "w", encoding="utf-8") as f:
             json.dump(full_data, f, ensure_ascii=False, indent=2)
@@ -450,6 +466,7 @@ def chat(request, slug):
                         if rec:  # they changed Bulba's polished version: ask what didn't work
                             watch.polish_rejected(request.user, chat_obj, index, "edited", rec, rec.get("habits"))
                     messages[index] = chats.set_text(messages[index], new_text)
+                    html_objects.remember(chat_state["designs"], new_text, replace=True)  # their edit sets the look
                     save_messages(messages)
                     return JsonResponse({"success": True, "text": new_text,
                                          "watch": watch.page_state(request.user, chat_obj)})
@@ -568,6 +585,9 @@ def chat(request, slug):
                         f"outcomes.]\n{draft}")
             names = prompt_names(request.user, character, chat_state["persona"])
             ask = ask.replace("{{user}}", names["user"]).replace("{{char}}", names["char"])
+            yours = speaker_colors.for_writing_user(speaker_colors.settings(character), names["user"])
+            if yours:  # story colours: their lines in their own colour
+                ask += "\n\n" + yours
             reading = translation.reading_language(request.user)  # read in another language: English, cleaned, translated
             english = translation.english_note(request.user)
             try:
@@ -681,14 +701,15 @@ def chat(request, slug):
                 save_messages(messages)
             if now or again:
                 reason = polish.why_not_now(request.user, chat_obj, messages, index)
-                if not reason and chats.polish_of(messages[index]):
-                    reason = "That reply is already polished (Undo fixes under it puts the original back)."
                 if reason:
                     return JsonResponse({"success": True, "changed": False, "reason": reason})
             elif index != len(messages) - 1 or not polish.due(request.user, chat_obj, messages) \
                     or chats.polish_of(messages[-1]):
                 return JsonResponse({"success": True, "changed": False})
             original = messages[index][2]
+            # 🧹 on a reply that's already polished: another pass over the polished text (each pass has its own
+            # limits), the fixes added to the earlier ones and the model's original still kept for Undo
+            earlier = chats.polish_of(messages[index]) if now and not again else None
             try:
                 new_text, fixes = polish.polish(request.user, character, chat_obj, messages, chat_state["summary"],
                                                 index)
@@ -698,10 +719,14 @@ def chat(request, slug):
             if not fixes or index >= len(messages) or messages[index][0] != "assistant" \
                     or messages[index][2] != original:
                 return JsonResponse({"success": True, "changed": False, "spending": ai_client.spending(request.user),
-                                     "reason": "Bulba found nothing to change in that reply." if not fixes
+                                     "reason": ("Bulba found nothing more to change in that reply." if earlier else
+                                                "Bulba found nothing to change in that reply.") if not fixes
                                      else "The reply changed meanwhile; nothing was replaced."})
-            messages[index] = chats.with_polish(messages[index], new_text,
-                                                polish.record(original, fixes, polish.habits_of(request.user, fixes)))
+            habits = polish.habits_of(request.user, fixes)
+            rec = (polish.record(earlier["original"], (earlier.get("fixes") or []) + fixes,
+                                 list(dict.fromkeys((earlier.get("habits") or []) + habits)))
+                   if earlier else polish.record(original, fixes, habits))
+            messages[index] = chats.with_polish(messages[index], new_text, rec)
             save_messages(messages)
             watch.recheck(request.user, chat_obj, messages)
             return JsonResponse({"success": True, "changed": True, "reply": new_text, "index": index,
@@ -899,7 +924,7 @@ def chat(request, slug):
                 upto = state["upto"] if isinstance(state["upto"], int) else 0
                 recent = messages[min(upto, len(messages)):]
                 recent = (messages[-4:] if len(recent) < 4 else recent)[-16:]
-                user_name = request.user.name or request.user.username
+                user_name = prompt_names(request.user, character, chat_state["persona"])["user"]  # the persona, never the login
                 named = [(user_name if m[0] == "user" else character.name, html_objects.shrink(m[2])) for m in recent]
                 def tracker_request(named):
                     built = trackers.update_messages(config, state, named, character.name, user_name, only,
@@ -1186,12 +1211,29 @@ def chat(request, slug):
                 watch.offer_director_for_book(request.user, chat_obj)
             return JsonResponse({"success": True, **_appearance(request.user),
                                  "watch": watch.page_state(request.user, chat_obj)})
-        elif action == "appearance":  # dialogue colour: a hex colour, or "preset" to leave it to the preset
+        elif action == "speech":  # speech colours (pen menu): the way, the cast's colours, theirs, tone marks
+            theme = dict(character.theme or {})
+            if data.get("mode") in speaker_colors.MODES:
+                theme["speech"] = data["mode"]
+            if "cast" in data:
+                theme["speech_cast"] = speaker_colors.clean(data.get("cast"))
+            if "you" in data:
+                theme["you_color"] = speaker_colors.name_of(data.get("you"))
+            if "tones" in data:
+                theme["speech_tones"] = bool(data.get("tones"))
+            character.theme = theme
+            character.save(update_fields=["theme"])
+            return JsonResponse({"success": True, "speech": speaker_colors.settings(character),
+                                 **_appearance(request.user, character)})
+        elif action == "appearance":  # the app colour (a palette name or its shade), kept on the character
             color = str(data.get("dialogue_color") or "")
-            if color != "preset" and not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
-                return JsonResponse({"success": False, "error": "Pick a colour."}, status=400)
-            # Each character has its own colour (part of its theme)
-            character.theme = {**(character.theme or {}), "dialogue_color": color}
+            if color == "preset":  # older pages: "the preset's colours" is now the story-colours way
+                character.theme = {**(character.theme or {}), "speech": "story"}
+            else:
+                name = speaker_colors.name_of(color)
+                if not name and not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
+                    return JsonResponse({"success": False, "error": "Pick a colour."}, status=400)
+                character.theme = {**(character.theme or {}), "dialogue_color": speaker_colors.PALETTE[name][0] if name else color}
             character.save(update_fields=["theme"])
             return JsonResponse({"success": True, **_appearance(request.user, character)})
         elif action == "save_theme":  # this chat's background or music becomes the character's default
@@ -1408,6 +1450,9 @@ def chat(request, slug):
                     char_count = 1
                     emotion_char_1 = "neutral"
                     emotion_char_2 = "neutral"
+                    emotion_user = "neutral"
+                    valid_emotions = ["neutral", *SPRITE_EMOTIONS]
+                    pictured_user = _user_pictured(request.user, chat_state["persona"])
 
                     # --- Classify emotion (optional, can be turned off on the Connections page) ---
                     try:
@@ -1416,28 +1461,35 @@ def chat(request, slug):
                         valid_emotions = ["neutral", "happy", "sad", "angry", "surprised", "scared", "confused", "calm", "scheming"]
 
                         # Prompt asks LLM who is speaking (1, 2, or both) and their emotions
+                        second = character.second_name or "the other character"
                         classification_system_prompt = (
-                            f"You are an analysis tool. The main character is named '{character.name}'.\n"
+                            f"You are an analysis tool. The main character is named '{character.name}'"
+                            + (f"; the second is '{second}'" if character.is_mult else "") + ".\n"
                             "Analyze the last message and determine who is speaking.\n"
                             "Rules:\n"
-                            f"1. If ONLY '{character.name}' is speaking, set 'speaking' to '1'.\n"
-                            f"2. If ONLY the other character is speaking, set 'speaking' to '2'.\n"
+                            f"1. If ONLY '{character.name}' is speaking (or acting), set 'speaking' to '1'.\n"
+                            f"2. If ONLY '{second}' is speaking (or acting), set 'speaking' to '2'.\n"
                             "3. If BOTH characters are speaking, set 'speaking' to 'both'.\n"
                             "4. Determine the emotion for the speaking character(s) from this list: "
                             f"{json.dumps(valid_emotions)}.\n"
-                            "Return ONLY a JSON object with this format:\n"
-                            '{ "speaking": "1" or "2" or "both", "emotion_1": "...", "emotion_2": "..." }'
+                            + (f"5. Also give 'emotion_user': how {names['user']} (the user's character) most "
+                               "likely feels right now, from their last message and this reply.\n" if pictured_user else "")
+                            + "Return ONLY a JSON object with this format:\n"
+                            '{ "speaking": "1" or "2" or "both", "emotion_1": "...", "emotion_2": "..."'
+                            + (', "emotion_user": "..."' if pictured_user else "") + ' }'
                         )
-
+                        last_user = next((m[2] for m in reversed(messages) if m[0] == "user"), "")
                         class_text = ai_client.complete(request.user, "emotion", [
                             {"role": "system", "content": classification_system_prompt},
-                            {"role": "user", "content": reply}],
+                            {"role": "user", "content": (f"{names['user']}'s last message:\n{last_user[:1500]}\n\n"
+                                                         f"The reply:\n{reply}") if pictured_user else reply}],
                             max_tokens=100, temperature=0.0, response_format={"type": "json_object"})
                         class_data = json.loads(class_text)
 
                         speaker = str(class_data.get("speaking", "1")).lower()
                         emotion_char_1 = class_data.get("emotion_1", "neutral")
                         emotion_char_2 = class_data.get("emotion_2", "neutral")
+                        emotion_user = class_data.get("emotion_user", "neutral")
 
                         # Logic: Determine layout (char_count)
                         # 1 = Main Only, 2 = Both, 3 = Second Only
@@ -1452,8 +1504,10 @@ def chat(request, slug):
                         log.info("Emotion check skipped: %s", e)  # off, or the helper model didn't answer
                         emotion_char_1 = "neutral"
 
-                    # Store emotions as "happy|sad" string
-                    final_emotion_str = f"{emotion_char_1}|{emotion_char_2}"
+                    # Store emotions as "happy|sad" string ("happy|sad|calm" with their own picture's mood)
+                    if emotion_user not in valid_emotions:
+                        emotion_user = "neutral"
+                    final_emotion_str = f"{emotion_char_1}|{emotion_char_2}" + (f"|{emotion_user}" if pictured_user else "")
                     new_message = chats.with_game(chats.with_reasoning(
                         ("assistant", datetime.now().strftime("%H:%M"), reply, final_emotion_str, char_count), reasoning),
                         [dict(op) for op in ops if op.get("type") != "notice"])
@@ -1464,6 +1518,8 @@ def chat(request, slug):
                     photo_url = _photo(character, "photo", emotion_char_1)
                     photo_second = (_photo(character, "photo_second", emotion_char_2)
                                     if (character.is_mult or char_count >= 2) else None)
+                    photo_user = _photo(request.user, "persona_photo", emotion_user) if pictured_user else None
+                    html_objects.remember(chat_state["designs"], reply)  # the first look of each kind of object
 
                     save_messages(messages)
                     watch.on_reply_done(request.user, chat_obj, messages, character.name,  # free checks, pace clock
@@ -1492,6 +1548,7 @@ def chat(request, slug):
                         "emotion": final_emotion_str,
                         "photo_url": photo_url,
                         "photo_second": photo_second,
+                        "photo_user": photo_user,
                         "char_count": char_count,
                         "voice": bool(get_elevenlabs_key(request.user)),
                         "lore": lore_report,
@@ -1617,6 +1674,10 @@ def chat(request, slug):
         photo_second = get_valid_photo_url(character, "photo_second", emo2)
     else:
         photo_second = None
+    # Their own picture (persona), in the mood of the last exchange
+    emo_user = last_emotion_str.split("|")[2] if last_emotion_str.count("|") >= 2 else "neutral"
+    photo_user = (_photo(request.user, "persona_photo", emo_user if emo_user in SPRITE_EMOTIONS else "neutral")
+                  if _user_pictured(request.user, chat_state["persona"]) else None)
 
     user_avatar = None
     if hasattr(request.user, 'photo') and request.user.photo:
@@ -1644,6 +1705,9 @@ def chat(request, slug):
         "swipes": chats.version_info(messages),
         "spending": ai_client.spending(request.user),
         "appearance": _appearance(request.user, character),
+        "speech": speaker_colors.settings(character),
+        "speech_page": speaker_colors.page_data(),
+        "speech_css": speaker_colors.css(),
         "bulba_ideas": extras.ideas_on(request.user),
         "bulba_url": reverse("bulba_chat", kwargs={"chat_id": chat_obj.id}),
         "watch_data": watch.page_state(request.user, chat_obj),
@@ -1670,6 +1734,8 @@ def chat(request, slug):
         "character": character,
         "photo_url": photo_url,
         "photo_second": photo_second,
+        "photo_user": photo_user,
+        "user_name_shown": prompt_names(request.user, character, chat_state["persona"])["user"],
         "char_count": char_count,
         "photo_neutral": photo_url,
         "summary": chat_state["summary"],
@@ -1700,11 +1766,15 @@ def _appearance(user, character=None):
     look = dict(settings_obj.appearance or {}) if settings_obj else {}
     color = ((character.theme or {}).get("dialogue_color") if character is not None else None) \
         or look.get("dialogue_color") or DIALOGUE_DEFAULT
-    if color != "preset" and not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
+    if not re.fullmatch(r"#[0-9a-fA-F]{6}", color):  # "preset" (older): the story-colours way, see speaker_colors
         color = DIALOGUE_DEFAULT
     # "book": replies read as chapters and the user's messages fold away (director mode); "chat": bubbles
     layout = look.get("layout") if look.get("layout") in LAYOUTS else "chat"
-    return {"dialogue_color": color, "layout": layout}
+    out = {"dialogue_color": color, "dialogue_light": speaker_colors.light_of(color), "layout": layout}
+    if character is not None:
+        s = speaker_colors.settings(character)
+        out.update({"speech_mode": s["mode"], "you_color": s["you"]})
+    return out
 
 
 LAYOUTS = ("chat", "book")
@@ -2024,7 +2094,8 @@ def _glossary(user, character, chat_state):
 def prompt_names(user, character, chat_persona=None):
     """{{char}} and {{user}}: this chat's persona name, else the usual persona name, else the account name."""
     return {"char": character.name or "Character",
-            "user": (chat_persona or {}).get("name") or getattr(user, "persona_name", None) or user.name or user.username}
+            # Who they are in the story: the chat's persona, else their usual one. Never the login (an account detail)
+            "user": (chat_persona or {}).get("name") or getattr(user, "persona_name", None) or user.name or "Stranger"}
 
 
 def prompt_slots(user, character, prompt, chat_persona=None):
@@ -2762,29 +2833,23 @@ def image_model_list(request):
     return JsonResponse({"models": models, "default": ai_client.default_image_model(models)})
 
 
-@login_required
-def character_sprite(request, slug):
-    """Makes one mood picture from the character's neutral picture with Nano Banana (OpenRouter)."""
+def _make_sprite(request, obj, prefix, who, looks, base_name):
+    """One mood picture with the image model, saved on `obj` as f"{prefix}_{emotion}": the neutral one from the
+    words in `looks`, the others from the neutral picture. Used for characters and for their persona."""
     from django.core.files.base import ContentFile
-    character = get_object_or_404(Character, slug=slug, author=request.user)
-    if request.method != "POST":
-        return JsonResponse({"error": "POST only"}, status=405)
     try:
         data = json.loads(request.body.decode("utf-8"))
     except (ValueError, UnicodeDecodeError):
         return JsonResponse({"error": "Invalid request."}, status=400)
     emotion = data.get("emotion")
-    prefix = "photo_second" if data.get("second") else "photo"
     if emotion not in SPRITE_EMOTIONS + ["neutral"]:
         return JsonResponse({"error": "Unknown mood."}, status=400)
-    neutral = getattr(character, f"{prefix}_neutral")
-    who = character.name if prefix == "photo" else f"the second character of {character.name}"
+    neutral = getattr(obj, f"{prefix}_neutral")
     reference, kind = None, "image/png"
-    if emotion == "neutral":  # the first picture, from the card's words (no picture to start from)
-        looks = "\n".join(t for t in (str(character.description or "")[:2500], str(character.personality or "")[:600],
-                                      str(data.get("hint") or "")[:600]) if t.strip())
+    if emotion == "neutral":  # the first picture, from the words (no picture to start from)
+        looks = "\n".join(t for t in (*looks, str(data.get("hint") or "")[:600]) if str(t or "").strip())
         if not looks.strip():
-            return JsonResponse({"error": "Write the character's description first (how they look helps most), "
+            return JsonResponse({"error": "Write the description first (how they look helps most), "
                                           "or upload a picture."}, status=400)
         prompt = (f"A character portrait of {who}, for a visual-novel style chat: one person, waist up, facing the "
                   f"viewer, a calm neutral expression, a simple background that suits them. Draw them as this "
@@ -2809,14 +2874,41 @@ def character_sprite(request, slug):
         image, cost = ai_client.generate_image(request.user, prompt, reference, kind, model=model)
     except ai_client.AIError as e:
         return JsonResponse({"error": str(e)}, status=502)
-    field = getattr(character, f"{prefix}_{emotion}")
+    field = getattr(obj, f"{prefix}_{emotion}")
     if field:
         field.storage.delete(field.name)
     ext = "jpg" if image[:3] == b"\xff\xd8\xff" else "webp" if image[:4] == b"RIFF" else "png"
-    field.save(f"{slugify(character.name) or 'character'}-{emotion}.{ext}", ContentFile(image), save=False)
-    character.save()
+    field.save(f"{slugify(base_name) or 'character'}-{emotion}.{ext}", ContentFile(image), save=False)
+    obj.save()
     return JsonResponse({"status": "ok", "field": f"{prefix}_{emotion}", "url": field.url, "cost": cost,
                          "spending": ai_client.spending(request.user)})
+
+
+@login_required
+def character_sprite(request, slug):
+    """Makes one mood picture from the character's neutral picture with Nano Banana (OpenRouter)."""
+    character = get_object_or_404(Character, slug=slug, author=request.user)
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only"}, status=405)
+    try:
+        second = bool(json.loads(request.body.decode("utf-8")).get("second"))
+    except (ValueError, UnicodeDecodeError, AttributeError):
+        second = False
+    prefix = "photo_second" if second else "photo"
+    who = character.name if not second else (character.second_name or f"the second character of {character.name}")
+    looks = (str(character.description or "")[:2500], str(character.personality or "")[:600])
+    return _make_sprite(request, character, prefix, who, looks, character.name)
+
+
+@login_required
+def persona_sprite(request):
+    """The same for their persona: pictures of them in stories (profile page, or Bulba after the persona)."""
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only"}, status=405)
+    user = request.user
+    who = user.persona_name or "the user's character"
+    return _make_sprite(request, user, "persona_photo", who, (str(user.persona_description or "")[:2500],),
+                        user.persona_name or user.username)
 
 
 MAX_CARD_BYTES = 20 * 1024 * 1024
@@ -2974,7 +3066,12 @@ def _theme_preview(p):
     bg, music = t.get("background") or {}, t.get("music") or {}
     return {"bg": bg.get("url", ""), "bg_name": bg.get("name", ""), "music": music.get("url", ""),
             "music_name": music.get("name", ""), "color": t.get("dialogue_color", ""), "weather": t.get("weather", ""),
-            "skin": t.get("skin", ""), "skin_name": CHAT_SKINS.get(t.get("skin", ""), "")}
+            "skin": t.get("skin", ""), "skin_name": CHAT_SKINS.get(t.get("skin", ""), ""),
+            # story colours: a sample line per speaker, in their colour
+            "speech": t.get("speech", ""),
+            "lines": [[who, speaker_colors.PALETTE[c][0]] for who, c in
+                      [*(t.get("speech_cast") or {}).items(), *([["You", t["you_color"]]] if t.get("you_color") else [])]
+                      if c in speaker_colors.PALETTE]}
 
 
 def _bulba_chat_link(session):
@@ -3168,10 +3265,10 @@ def quick_setup(request):
 
 # Quick setup's Basics: point of view, tense, speech and actions (Bulba's own wording, agent.BASICS), kept as one
 # "Basics" block in the active preset; the story language is the profile's (translation workflow)
-QUICK_BASICS = ("pov", "tense", "format", "interior", "colors", "pacing", "initiative", "invention", "genres",
+QUICK_BASICS = ("pov", "tense", "format", "interior", "pacing", "initiative", "invention", "genres",
                 "voice", "author", "keep_out", "length", "control")
 # length goes in the preset's Reply length block, control is the Your character contract; the rest are Basics lines
-BASICS_LINES = ("pov", "tense", "format", "interior", "colors", "pacing", "initiative", "invention", "genres",
+BASICS_LINES = ("pov", "tense", "format", "interior", "pacing", "initiative", "invention", "genres",
                 "voice", "author", "keep_out")  # written by mainapp/basics.py, the same lines Bulba's form writes
 
 
@@ -3185,7 +3282,7 @@ def _module_groups(preset):
 
 
 QUICK_MAIN = ("pov", "tense", "length", "control", "format", "interior")
-QUICK_MORE = ("pacing", "initiative", "invention", "colors", "genres", "author", "keep_out")
+QUICK_MORE = ("pacing", "initiative", "invention", "genres", "author", "keep_out")
 
 
 def _quick_questions(current, keys):
@@ -3198,8 +3295,13 @@ def _quick_questions(current, keys):
         q = {"key": key, "label": f["label"], "hint": f.get("hint", ""), "help": f.get("help", ""),
              "current": current.get(key, "") or ("flexible" if key == "length" else "")}
         if f.get("multi"):
-            q["multi"] = [{"value": v, "label": l, "adult": False} for v, l in f["multi"]] + \
-                         [{"value": v, "label": l, "adult": True} for v, l in f.get("adult") or []]
+            kinds, names = set(f.get("kinds") or []), dict(f.get("groups") or [])
+            group = (lambda v: "kind" if v in kinds else "mood") if names else (lambda v: "")
+            # mood chips first, then kinds of story, each under its own small heading; 18+ ones last
+            q["multi"] = sorted([{"value": v, "label": l, "adult": False, "group": group(v)} for v, l in f["multi"]],
+                                key=lambda o: o["group"] == "kind") + \
+                         [{"value": v, "label": l, "adult": True, "group": "kind" if names else ""} for v, l in f.get("adult") or []]
+            q["group_names"] = names
             q["current"] = current.get(key) or []
         elif "options" in f:
             q["options"] = [{"value": v, "label": l} for v, l in f["options"] if v != "any"]
@@ -3611,11 +3713,17 @@ def _bulba_picture_upload(request):
                 return JsonResponse({"error": f"Couldn't look at the picture: {e}"}, status=400)
             seen = ""
     words = f"\nWhat they said with it: {their_words}" if their_words else ""
+    # Several pictures sent together: all but the last are only noted, so Bulba answers once, about all of them
+    quiet = request.POST.get("quiet") == "1"
     if target == "look":
         session.events += events
-        events += agent.run_turn(session, None, action_note="You showed Bulba a picture" + (f": {their_words}" if their_words else ""),
-                                 model_note=f"They showed you a picture.{words}\n{seen}\nHelp with what they want; if "
-                                            "it isn't clear, say briefly what you see and ask.")
+        note = f"They showed you a picture.{words}\n{seen}"
+        if quiet:
+            session.messages.append({"role": "user", "content": f"[{note}\n(More pictures follow.)]"})
+        else:
+            events += agent.run_turn(session, None, action_note="You showed Bulba a picture" + (f": {their_words}" if their_words else ""),
+                                     model_note=note + "\nHelp with what they want; if it isn't clear, say briefly "
+                                                       "what you see and ask.")
         session.activity = ""
         session.save()
         return JsonResponse({"events": events, "state": _bulba_state(session)})
@@ -3638,8 +3746,11 @@ def _bulba_picture_upload(request):
     p.update(status="applied", undo=undo)
     events.append({"type": "proposal", "id": p["id"]})
     session.events += events
-    events += agent.run_turn(session, None, action_note=f"Added {what}",
-                             model_note=f"They uploaded {what}; it's set.{words}" + (f"\n{seen}" if seen else ""))
+    note = f"They uploaded {what}; it's set.{words}" + (f"\n{seen}" if seen else "")
+    if quiet:
+        session.messages.append({"role": "user", "content": f"[{note}\n(More pictures follow.)]"})
+    else:
+        events += agent.run_turn(session, None, action_note=f"Added {what}", model_note=note)
     session.activity = ""
     session.save()
     return JsonResponse({"events": events, "state": _bulba_state(session)})

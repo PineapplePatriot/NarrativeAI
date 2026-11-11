@@ -20,9 +20,18 @@ function swapSprite(img, url) {
     ready.src = url;
 }
 
-function updateCharacterImages(photoUrl, photoSecond, charCount) {
+function updateCharacterImages(photoUrl, photoSecond, charCount, photoUser) {
     const c1 = document.getElementById('char1Container');
     const c2 = document.getElementById('char2Container');
+    // Their own picture (persona pictures on the profile), in their mood after this exchange
+    const cu = document.getElementById('userContainer');
+    if (cu && photoUser) {
+        let img = cu.querySelector('img.character-sprite:not(.sprite-incoming)');
+        if (!img) { img = document.createElement('img'); img.className = 'character-sprite'; cu.appendChild(img); }
+        swapSprite(img, photoUser);
+        cu.style.display = 'flex';
+        cu.parentElement.classList.add('with-user');
+    }
 
     // charCount = 2;
     const count = Number(charCount) || 1;
@@ -41,6 +50,14 @@ function updateCharacterImages(photoUrl, photoSecond, charCount) {
     setImg(c1, photoUrl);
     setImg(c2, photoSecond);
 
+    // A two-character card: both stay on screen, whoever speaks is bright and the other dimmed
+    if (window.IS_MULT) {
+        c1.style.display = 'flex';
+        c2.style.display = 'flex';
+        c1.classList.toggle('quiet', count === 3);
+        c2.classList.toggle('quiet', count === 1);
+        return;
+    }
     // Layout Logic
     if (count === 1) {
         c1.style.display = 'flex';
@@ -199,6 +216,20 @@ function messagePlace(where) {
     return { role: msg.classList.contains('user') ? 'user' : 'assistant', depth: i < 0 ? 0 : all.length - 1 - i };
 }
 
+// Story colours (mainapp/speaker_colors.py): <plum>"..."</plum> and <plum:whisper>"..."</plum> become coloured
+// spans, the shade picked by the chat style; while a reply streams in, a half-written tag at the end stays hidden
+function speechTags(text) {
+    const sp = window.SPEECH || {};
+    const palette = sp.palette || {}, tones = sp.tones || [];
+    let out = text.replace(/<(\/?)([a-z]+)(?::([a-z]+))?>/g, (m, close, name, tone) => {
+        if (!Object.prototype.hasOwnProperty.call(palette, name)) return m;
+        if (close) return '</span>';
+        return `<span class="sc sc-${name}${tone && tones.includes(tone) ? ' t-' + tone : ''}">`;
+    });
+    if (isGenerating) out = out.replace(/<\/?[a-z]*(?::[a-z]*)?$/, '');
+    return out;
+}
+
 // Quoted speech gets a highlight; HTML tags (from text rules) and code are left alone
 function wrapQuoted(text) {
     const parts = text.split(/(<[^>]*>|`+[^`]*`+)/g);
@@ -273,6 +304,7 @@ function renderChatMessage(rawText, where) {
     let source = String(rawText ?? '').replace(HTML_FENCE, (m, code) => { objects.push(code); return `\n\n<div class="object-slot n${objects.length - 1}"></div>\n\n`; });
     if (isGenerating) source = source.replace(HTML_OPEN, () => '\n\n<div class="object-slot drawing"></div>\n\n');  // a cut-off one stays code
     let shown = TextRules.any() ? TextRules.apply(source, place.role, place.depth) : source;
+    shown = speechTags(shown);
     // A character's direct thought ("Inner thoughts, shown apart" module): its own style
     shown = shown.replace(/<thought>([\s\S]*?)<\/thought>/gi, (m, t) => `<span class="thought">${t.trim()}</span>`);
     // Story extras' markers ([[extra 2]]) become slots; placeExtras() puts the app's drawing there
@@ -461,6 +493,25 @@ async function requestReply(body) {
 
     const typingLabel = typingMessage.querySelector('.typing-indicator span');
     if (typingLabel) typingLabel.textContent = `${window.CHARACTER_NAME || 'The AI'} is typing`;
+    // A stream that went quiet (the phone slept, they switched apps) can wait forever: notice it and reload
+    // the chat, which shows what the server saved, instead of a reply frozen mid-sentence
+    // Silence allowed: longer before the first words (a model thinking without showing it), 90s once writing;
+    // back from another app, the stream gets 15s to show it's alive
+    let lastByte = Date.now(), started = false, stalled = false, checkAt = 0;
+    const stall = () => { if (!stalled && stream) { stalled = true; controller.abort(); } };
+    const watchdog = setInterval(() => {
+        const quiet = Date.now() - lastByte;
+        if (quiet > (started ? 90000 : 240000)) stall();
+        else if (checkAt && Date.now() > checkAt) { if (started && quiet > 15000) stall(); checkAt = 0; }
+    }, 3000);
+    const onVisible = () => { if (document.visibilityState === 'visible') checkAt = Date.now() + 15000; };
+    document.addEventListener('visibilitychange', onVisible);
+    const lost = () => {
+        if (bubble) bubble.closest('.message').classList.remove('streaming');
+        showChatNotice('📶 The connection dropped mid-reply. Showing what was saved…');
+        setTimeout(() => window.location.reload(), 1200);
+        return { stopped: true, bubble };
+    };
     try {
         const resp = await fetch(window.location.href, {
             method: 'POST',
@@ -476,6 +527,8 @@ async function requestReply(body) {
         while (true) {
             const { value, done } = await reader.read();
             if (done) break;
+            lastByte = Date.now();
+            started = true;
             buffer += decoder.decode(value, { stream: true });
             let nl;
             while ((nl = buffer.indexOf('\n')) >= 0) {
@@ -523,14 +576,18 @@ async function requestReply(body) {
                 }
             }
         }
-        return { error: 'The reply stream ended unexpectedly.' };
+        return lost();  // the stream ended without its last word
     } catch (err) {
+        if (stalled) return lost();
         if (err.name === 'AbortError') {
             if (bubble) { paint(); bubble.closest('.message').classList.remove('streaming'); }
             return { stopped: true, bubble };
         }
+        if (stream && (err instanceof TypeError)) return lost();  // the network went away mid-stream
         throw err;
     } finally {
+        clearInterval(watchdog);
+        document.removeEventListener('visibilitychange', onVisible);
         currentRequest = null;
     }
 }
@@ -660,7 +717,7 @@ function sendMessage(noteOnly = false) {
             placeReply(data, avatarToUse);
             setDirected(lastAssistant(), data.directed);
             setSwipes(data.swipes);
-            updateCharacterImages(data.photo_url, data.photo_second, data.char_count);
+            updateCharacterImages(data.photo_url, data.photo_second, data.char_count, data.photo_user);
             renderLore(data.lore);
             if (data.summary_due) generateSummary('append', true);
             if (window.Trackers) { Trackers.setStory(data.story); Trackers.afterReply(data); }
@@ -1173,6 +1230,18 @@ const bgMusic = document.getElementById('bgMusicPlayer');
 // The music: a ▶/❚❚ button in the header (shown when a track is set) follows what the audio actually does;
 // the picker holds the track name, the volume and "None"
 let musicHeld = false;  // they paused or stopped it themselves: don't start it again on their next click
+// While a tour walks them through the page the music waits (they can't reach its button under the tour); it
+// starts when the tour ends or they close it. A tour opened later from the ? menu pauses it the same way.
+let musicAfterTour = false;
+const tourOn = () => !!(window.NATour && (window.NATour.active() || (window.NATour.pending && window.NATour.pending())));
+document.addEventListener('na-tour', (e) => {
+    if (e.detail.on) {
+        if (!bgMusic.paused) { bgMusic.pause(); musicAfterTour = true; }
+    } else if (musicAfterTour) {
+        musicAfterTour = false;
+        if (!musicHeld && bgMusic.src) bgMusic.play().catch(() => {});  // the tour's last click counts as theirs
+    }
+});
 function loadMusic(url, name, onLoad = false) {
     bgMusic.src = url;
     bgMusic.volume = Number(document.getElementById('musicVolume')?.value || 0.3);
@@ -1181,13 +1250,23 @@ function loadMusic(url, name, onLoad = false) {
     const btn = document.getElementById('playPauseBtn');
     btn.hidden = false;
     musicHeld = false;
-    bgMusic.play().catch(() => {
-        // Browsers only allow sound after a click or key press: start on the first one
-        if (!onLoad) return;
-        const start = () => { if (!musicHeld && bgMusic.paused && bgMusic.src) bgMusic.play().catch(() => {}); };
+    // Browsers only allow sound after a click or key press: start on the first one (not a click in a tour)
+    const armFirstClick = () => {
+        const start = () => {
+            if (window.NATour && window.NATour.active()) { musicAfterTour = true; return; }
+            if (!musicHeld && bgMusic.paused && bgMusic.src) bgMusic.play().catch(() => {});
+        };
         document.addEventListener('pointerdown', start, { once: true, capture: true });
         document.addEventListener('keydown', start, { once: true, capture: true });
-    });
+    };
+    if (onLoad && tourOn()) {  // first visit: after the tour (or, if it never opens, on their first click)
+        musicAfterTour = true;
+        setTimeout(() => {
+            if (musicAfterTour && !(window.NATour && window.NATour.active())) { musicAfterTour = false; armFirstClick(); }
+        }, ((window.NA_PAGE_TOUR || {}).delay || 800) + 1500);
+        return;
+    }
+    bgMusic.play().catch(() => { if (onLoad) armFirstClick(); });
 }
 function syncMusicButton() {
     const btn = document.getElementById('playPauseBtn');
@@ -1308,7 +1387,7 @@ function regenerateReply(guidance = '', model = '') {
             }
             if (old) old.remove();
             placeReply(d, d.photo_url); setDirected(lastAssistant(), d.directed); setSwipes(d.swipes);
-            updateCharacterImages(d.photo_url, d.photo_second, d.char_count); renderLore(d.lore);
+            updateCharacterImages(d.photo_url, d.photo_second, d.char_count, d.photo_user); renderLore(d.lore);
             if (d.summary_due) generateSummary('append', true);
             if (window.Trackers) { Trackers.setStory(d.story); Trackers.afterReply(d); }
             if (window.Watch) Watch.afterReply(d);
@@ -1370,7 +1449,7 @@ function swipe(step) {
             const avatar = last.querySelector('img.message-avatar');
             const avatarUrl = Number(d.char_count) === 3 && d.photo_second ? d.photo_second : d.photo_url;
             if (avatar && avatarUrl) avatar.src = avatarUrl;
-            updateCharacterImages(d.photo_url, d.photo_second, d.char_count);
+            updateCharacterImages(d.photo_url, d.photo_second, d.char_count, d.photo_user);
             setSwipes(d.swipes);
             setPolish(last, d.polish);
             setDirected(last, d.directed);
@@ -1517,29 +1596,95 @@ document.getElementById('branchSummaryText').addEventListener('input', () => {
 });
 branchModal.addEventListener('click', (e) => { if (e.target === branchModal) closeBranchModal(); });
 
-// --- Dialogue colour (tools menu): saved on the account ---
+// --- Speech colours (tools menu): story colours or one app colour, and their own; kept on the character ---
 (function () {
-    const box = document.getElementById('dialogueColors');
-    if (!box) return;
-    const apply = color => {
-        document.body.dataset.dialogue = color === 'preset' ? 'preset' : 'color';
-        if (color !== 'preset') document.body.style.setProperty('--dialogue-color', color);
-        box.querySelectorAll('[data-color]').forEach(b => b.classList.toggle('on', b.dataset.color === color));
+    const modeRow = document.getElementById('speechMode');
+    if (!modeRow) return;
+    const palette = (window.SPEECH || {}).palette || {};
+    const names = Object.keys(palette);
+    const state = window.SPEECH_SETTINGS || { mode: 'app', cast: {}, you: '', tones: false };
+    const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c]));
+    const dot = (n, on, extra = '') => `<button type="button" class="swatch ${on ? 'on' : ''}" data-name="${n}" ${extra}
+        style="background:${palette[n][0]}" title="${n}" aria-label="${n}"></button>`;
+    const appBox = document.getElementById('dialogueColors');
+    const youBox = document.getElementById('youColors');
+    const cast = document.getElementById('speechCast');
+    let open = null;  // the cast member whose colour row is open
+
+    const appName = () => names.find(n => palette[n][0].toLowerCase() === getComputedStyle(document.body).getPropertyValue('--dialogue-color').trim().toLowerCase()) || '';
+    const draw = () => {
+        modeRow.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('on', b.dataset.mode === state.mode));
+        document.getElementById('speechApp').hidden = state.mode !== 'app';
+        document.getElementById('speechStory').hidden = state.mode !== 'story';
+        const app = appName();
+        appBox.innerHTML = names.map(n => dot(n, n === app)).join('');
+        youBox.innerHTML = names.map(n => dot(n, n === state.you)).join('')
+            + `<button type="button" class="swatch none ${state.you ? '' : 'on'}" data-name="" title="None">✕</button>`;
+        const taken = Object.values(state.cast);
+        cast.innerHTML = Object.entries(state.cast).map(([who, c]) => `<div class="speech-row" data-who="${esc(who)}">
+            ${dot(c, false, 'data-pick')}<b style="color:${palette[c] ? palette[c][0] : 'inherit'}">${esc(who)}</b>
+            <button type="button" class="icon-btn" data-remove title="Forget">✕</button>
+            ${open === who ? `<div class="dialogue-colors">${names.map(n => dot(n, n === c)).join('')}</div>` : ''}</div>`).join('')
+            || '<small class="skin-note">No one yet: Bulba sets them up with the look, or add one.</small>';
+        document.body.dataset.dialogue = state.mode;
+        document.body.className = document.body.className.replace(/\b(has-you|you-[a-z]+)\b/g, '').trim();
+        if (state.you) document.body.classList.add('has-you', 'you-' + state.you);
     };
-    const save = async color => {
-        apply(color);
+    const save = async (body) => {
+        draw();
         try {
-            await fetch(window.location.href, {
-                method: 'POST',
+            const resp = await fetch(window.location.href, { method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-                body: JSON.stringify({ action: 'appearance', dialogue_color: color }),
-            });
-        } catch (e) { showChatError('Could not save the colour.'); }
+                body: JSON.stringify(body) });
+            const d = await resp.json();
+            if (!d.success) throw new Error(d.error);
+            if (d.speech) Object.assign(state, d.speech);
+            if (d.dialogue_color) {
+                document.body.style.setProperty('--dialogue-color', d.dialogue_color);
+                if (d.dialogue_light) document.body.style.setProperty('--dialogue-light', d.dialogue_light);
+                else document.body.style.removeProperty('--dialogue-light');
+            }
+            draw();
+        } catch (e) { showChatError('Could not save the colours.'); }
     };
-    box.addEventListener('click', e => { const b = e.target.closest('[data-color]'); if (b) save(b.dataset.color); });
-    const custom = document.getElementById('dialogueCustom');
-    custom.addEventListener('input', () => apply(custom.value));
-    custom.addEventListener('change', () => save(custom.value));
+    modeRow.addEventListener('click', e => {
+        const b = e.target.closest('[data-mode]');
+        if (b && b.dataset.mode !== state.mode) { state.mode = b.dataset.mode; save({ action: 'speech', mode: state.mode }); }
+    });
+    appBox.addEventListener('click', e => {
+        const b = e.target.closest('[data-name]');
+        if (!b) return;
+        document.body.style.setProperty('--dialogue-color', palette[b.dataset.name][0]);
+        document.body.style.setProperty('--dialogue-light', palette[b.dataset.name][1]);
+        save({ action: 'appearance', dialogue_color: b.dataset.name });
+    });
+    youBox.addEventListener('click', e => {
+        const b = e.target.closest('[data-name]');
+        if (b) { state.you = b.dataset.name; save({ action: 'speech', you: state.you }); }
+    });
+    cast.addEventListener('click', e => {
+        const row = e.target.closest('.speech-row');
+        if (!row) return;
+        const who = row.dataset.who;
+        if (e.target.closest('[data-remove]')) { delete state.cast[who]; open = null; save({ action: 'speech', cast: state.cast }); return; }
+        if (e.target.closest('[data-pick]')) { open = open === who ? null : who; draw(); return; }
+        const b = e.target.closest('.dialogue-colors [data-name]');
+        if (b) { state.cast[who] = b.dataset.name; open = null; save({ action: 'speech', cast: state.cast }); }
+    });
+    document.getElementById('speechAdd').addEventListener('click', () => {
+        const input = document.getElementById('speechName');
+        const who = input.value.trim().replace(/\s+/g, ' ');
+        if (!who) return;
+        const taken = new Set([...Object.values(state.cast), state.you]);
+        state.cast = { ...state.cast, [who]: names.find(n => !taken.has(n)) || names[0] };
+        input.value = '';
+        open = who;
+        save({ action: 'speech', cast: state.cast });
+    });
+    document.getElementById('speechTones').addEventListener('change', e => {
+        state.tones = e.target.checked; save({ action: 'speech', tones: state.tones });
+    });
+    draw();
 })();
 
 // --- Who the user is in this chat (tools menu); empty = their usual persona ---
@@ -2178,8 +2323,9 @@ function handleRefusal(d) {
         });
         const d = await resp.json().catch(() => ({}));
         if (!d.success) { showChatNotice(d.error || 'Could not change the chat style.'); return; }
-        [...document.body.classList].filter(c => c.startsWith('skin-')).forEach(c => document.body.classList.remove(c));
+        [...document.body.classList].filter(c => c.startsWith('skin-') || c === 'light-style').forEach(c => document.body.classList.remove(c));
         if (d.skin) document.body.classList.add('skin-' + d.skin);
+        if (['parchment', 'lab'].includes(d.skin)) document.body.classList.add('light-style');  // deeper speech shades
         choice.querySelectorAll('[data-skin]').forEach(x => x.classList.toggle('on', x === b));
     });
     const fx = document.getElementById('skinFxToggle');

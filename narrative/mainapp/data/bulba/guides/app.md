@@ -33,10 +33,10 @@ profile, and **?** (a tour of the page, or "What's this?": click anything to hav
   their words, Bulba words them); the habits polished away automatically; what it learned about their taste
   (reword or remove); and what the whole account has spent since sign-up.
 - **🥔 Bulba**: the setup assistant. The 📎 by its message box takes a picture: just to show Bulba (a screenshot, character art, a place or moodboard; a vision model describes it for Bulba), or as the character's picture, a mood or a background. **Full setup** (about twenty minutes): asks how you like stories, shows samples
-  written by your own model, builds the preset, your persona and a character. **Fast route** (two minutes): the
-  tested ready setup for your model, then only who you are and who you talk to. Every change is a proposal with
+  written by your own model, builds the preset, a character and your persona. **Fast route** (two minutes): the
+  tested ready setup for your model, then only who you talk to and who you are. Every change is a proposal with
   Apply and Undo.
-- **Guide**: a written tour of everything. **Profile**: photo, first name, date of birth, login, email, password, and Delete account. The persona (who they are in stories) isn't there: Bulba makes it (setup, or in a chat), and each chat can use another one from the pen menu.
+- **Guide**: a written tour of everything. **Profile**: photo, first name, date of birth, login, email, password, Log out and Delete account, plus the persona (who they are in stories) and its pictures. Bulba can make the persona (setup, or in a chat), and each chat can use another one from the pen menu.
 
 **The chat page**
 - Messages: hover or tap one for edit, 🗜 condense (the AI gets a short version, you still see all of it), 🧹

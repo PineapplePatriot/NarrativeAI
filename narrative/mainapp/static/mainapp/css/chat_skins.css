@@ -124,10 +124,9 @@ body.skin-parchment .message-content .message-text, body.skin-parchment .message
     font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif; }
 
 /* Light bubbles: their own dialogue colour (theme or pen menu) still applies, darkened enough to read on paper */
-body.skin-parchment:not([data-dialogue="preset"]) .message-content .message-text .quoted {
-    color: color-mix(in srgb, var(--dialogue-color, #e594f2) 50%, #2b1408); }
-body.skin-lab:not([data-dialogue="preset"]) .message-content .message-text .quoted {
-    color: color-mix(in srgb, var(--dialogue-color, #e594f2) 50%, #0b1f3a); }
+/* (a palette colour has its own deeper shade; any other colour is darkened. Story colours: speaker_colors.css()) */
+body.skin-parchment { --speech-app: var(--dialogue-light, color-mix(in srgb, var(--dialogue-color, #e594f2) 50%, #2b1408)); }
+body.skin-lab { --speech-app: var(--dialogue-light, color-mix(in srgb, var(--dialogue-color, #e594f2) 50%, #0b1f3a)); }
 
 /* Book layout with a light style: the reply keeps its page (book mode drops bubbles, which left dark text on the
    dark background) */

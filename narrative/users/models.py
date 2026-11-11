@@ -18,6 +18,16 @@ class User(AbstractUser):
     )
     persona_name = models.CharField(max_length=256, blank=True, default=None, null=True, verbose_name="Persona name")
     persona_description = models.TextField(blank=True, default=None, null=True)
+    # Pictures of their persona for the chat scene, one per mood (like a character's sprites)
+    persona_photo_neutral = models.ImageField(upload_to="personas/%Y/%m/%d/", blank=True, null=True)
+    persona_photo_happy = models.ImageField(upload_to="personas/%Y/%m/%d/", blank=True, null=True)
+    persona_photo_sad = models.ImageField(upload_to="personas/%Y/%m/%d/", blank=True, null=True)
+    persona_photo_angry = models.ImageField(upload_to="personas/%Y/%m/%d/", blank=True, null=True)
+    persona_photo_surprised = models.ImageField(upload_to="personas/%Y/%m/%d/", blank=True, null=True)
+    persona_photo_scared = models.ImageField(upload_to="personas/%Y/%m/%d/", blank=True, null=True)
+    persona_photo_confused = models.ImageField(upload_to="personas/%Y/%m/%d/", blank=True, null=True)
+    persona_photo_calm = models.ImageField(upload_to="personas/%Y/%m/%d/", blank=True, null=True)
+    persona_photo_scheming = models.ImageField(upload_to="personas/%Y/%m/%d/", blank=True, null=True)
     # Pressed "I've filled it in" on the tester feedback form (static/js/feedback.js): no more reminders
     feedback_done = models.BooleanField(default=False)
     # Confirmed by the emailed link (users/verification.py). Sign-up sets it False while verification is on;

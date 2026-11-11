@@ -117,6 +117,10 @@ class ProfileUser(LoginRequiredMixin, UpdateView):
         from mainapp import translation
         context = super().get_context_data(**kwargs)
         context["language_rule"] = translation.language_rule_in_preset(self.request.user)
+        user = self.request.user
+        context["persona_pictures"] = [(m, getattr(user, f"persona_photo_{m}").url if getattr(user, f"persona_photo_{m}") else "")
+                                       for m in ("neutral", "happy", "sad", "angry", "surprised", "scared", "confused",
+                                                 "calm", "scheming")]
         return context
 
     def form_valid(self, form):

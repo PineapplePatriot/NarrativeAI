@@ -389,6 +389,25 @@ def _light_reasoning(profile, task, payload, user=None):
             payload["reasoning"] = {"effort": lowest}
 
 
+EFFORT_ORDER = ("minimal", "low", "medium", "high", "xhigh")
+
+
+def _fit_effort(payload):
+    """A thinking level the model doesn't take becomes the nearest one it does (MiMo takes only "high" for on: a
+    preset saved with "medium", or a "low" for a quick job, would otherwise be refused with a 400)."""
+    effort = (payload.get("reasoning") or {}).get("effort")
+    if effort not in EFFORT_ORDER:
+        return
+    from mainapp import model_profiles
+    choices = ((model_profiles.for_model(payload.get("model")) or {}).get("reasoning") or {}).get("choices") or {}
+    levels = [c for c in choices if c in EFFORT_ORDER]
+    if not levels or effort in levels:
+        return
+    rank = EFFORT_ORDER.index(effort)
+    payload["reasoning"] = {**payload["reasoning"],
+                            "effort": min(levels, key=lambda c: (abs(EFFORT_ORDER.index(c) - rank), -EFFORT_ORDER.index(c)))}
+
+
 def _request(user, task, messages, timeout=None, **params):
     """Sends one chat completion request and returns (profile, the parsed JSON reply)."""
     check_limit(user)
@@ -405,6 +424,7 @@ def _request(user, task, messages, timeout=None, **params):
     from mainapp import mature
     payload["messages"] = mature.for_model(payload.get("messages") or [], payload.get("model"))
     _light_reasoning(profile, task, payload, user)
+    _fit_effort(payload)
     timeout = TEST_TIMEOUT or timeout or TASKS.get(task, {}).get("timeout", 60)
     label = TASKS.get(task, {}).get("label", task)
 
@@ -579,6 +599,7 @@ def stream(user, task, messages, timeout=None, **params):
     from mainapp import mature
     payload["messages"] = mature.for_model(payload.get("messages") or [], payload.get("model"))
     _light_reasoning(profile, task, payload, user)
+    _fit_effort(payload)
     read_timeout = TEST_TIMEOUT or timeout or TASKS.get(task, {}).get("timeout", 60)  # max wait between two pieces
     label = TASKS.get(task, {}).get("label", task)
 

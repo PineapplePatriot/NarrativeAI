@@ -100,21 +100,6 @@
   ]
  },
  {
-  "key": "colors",
-  "label": "Coloured speech",
-  "hint": "each character speaks in their own colour",
-  "options": [
-   [
-    "on",
-    "Yes"
-   ],
-   [
-    "off",
-    "No"
-   ]
-  ]
- },
- {
   "key": "panels",
   "label": "In-story panels",
   "hint": "phone messages, notes and signs drawn as little panels",
@@ -172,6 +157,58 @@
    [
     "tragedy",
     "Tragedy"
+   ],
+   [
+    "adventure",
+    "Adventure"
+   ],
+   [
+    "mystery",
+    "Mystery"
+   ],
+   [
+    "suspense",
+    "Suspense"
+   ],
+   [
+    "horror",
+    "Horror"
+   ],
+   [
+    "drama",
+    "Drama"
+   ],
+   [
+    "action",
+    "Action"
+   ],
+   [
+    "intrigue",
+    "Intrigue"
+   ],
+   [
+    "survival",
+    "Survival"
+   ],
+   [
+    "found_family",
+    "Found family"
+   ],
+   [
+    "whimsical",
+    "Whimsical"
+   ],
+   [
+    "psychological",
+    "Psychological"
+   ],
+   [
+    "grimdark",
+    "Grimdark"
+   ],
+   [
+    "dark_romance",
+    "Dark romance"
    ]
   ],
   "adult": [
@@ -183,6 +220,31 @@
     "dead_dove",
     "Dead dove"
    ]
+  ],
+  "groups": [
+   [
+    "mood",
+    "Mood"
+   ],
+   [
+    "kind",
+    "Kind of story"
+   ]
+  ],
+  "kinds": [
+   "adventure",
+   "mystery",
+   "suspense",
+   "horror",
+   "drama",
+   "action",
+   "intrigue",
+   "survival",
+   "found_family",
+   "whimsical",
+   "psychological",
+   "grimdark",
+   "dark_romance"
   ]
  },
  {
@@ -396,8 +458,12 @@
     "Told by the narrator: “He thought he’d messed up”"
    ],
    [
+    "woven",
+    "In their own words, part of the prose: “I messed up, he thought”"
+   ],
+   [
     "enter",
-    "In their own words: “💭 I messed up, he thought”"
+    "In their own words, set apart: “💭 I messed up, he thought”"
    ],
    [
     "any",

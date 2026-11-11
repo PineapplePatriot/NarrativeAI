@@ -13,12 +13,12 @@ INSTRUCTIONS = Path(__file__).resolve().parent.parent / "data" / "bulba" / "inst
 GUIDES_DIR = Path(__file__).resolve().parent.parent / "data" / "bulba" / "guides"
 # Which guides Bulba reads at each stage (keeps the prompt, and the bill, small)
 STAGE_GUIDES = {"extras": ["extras"], "taste": ["asking", "presets", "writing", "slop"], "preset": ["presets", "writing", "slop"],
-                "persona": ["characters", "writing"], "character": ["characters", "lore", "writing"],
+                "character": ["characters", "lore", "writing"], "persona": ["characters", "writing"],
                 "story": ["extras", "tuning"], "done": ["characters", "lore", "writing", "tuning", "slop"]}
 REWRITABLE = ("Roleplay", "Style")
 TEST_CHARACTER = Path(__file__).resolve().parent.parent / "data" / "bulba" / "test-character.json"
 
-STAGES = ["extras", "taste", "preset", "persona", "character", "story", "done"]
+STAGES = ["extras", "taste", "preset", "character", "persona", "story", "done"]  # the character first: the persona fits it
 MAX_TOOL_ROUNDS = 8
 HISTORY_LIMIT = 60      # messages of conversation sent to Bulba's model
 SAMPLE_WORDS = 250
@@ -260,9 +260,13 @@ TOOLS = [
         ["starter", "taste", "why"]),
     _fn("propose_persona", "Propose who the user is in the story.",
         {"name": STR, "description": STR, "why": STR}, ["name", "description"]),
-    _fn("propose_character", "Propose a character to chat with.",
+    _fn("propose_character", "Propose a character to chat with. For a card with two characters (a pair "
+        "who share the story, e.g. siblings or rivals), give second_name too and describe both in the description; "
+        "the chat then shows two sets of pictures and highlights whoever speaks.",
         {"name": STR, "description": STR, "scenario": STR, "greeting": STR,
-         "personality": STR, "example_dialogue": STR, "why": STR},
+         "personality": STR, "example_dialogue": STR,
+         "second_name": {"type": "string", "description": "Only for a two-character card: the second one's name"},
+         "why": STR},
         ["name", "description", "greeting"]),
     *library.tool_defs(_fn, STR),
     *lore.tool_defs(_fn, STR),
@@ -315,7 +319,7 @@ def stage_after(p):
         if keys and keys <= STORY_KEYS:
             return "story"
         return "taste" if applied else None
-    return {"preset": "persona", "persona": "character", "character": "character",
+    return {"preset": "character", "persona": "story", "character": "character",
             "trackers": "story"}.get(p["kind"]) if applied or p["kind"] == "trackers" else None
 
 
@@ -329,10 +333,11 @@ def advance_stage(session, p):
     always remember to call set_stage, and the panel and the guides it reads follow the stage.
     Returns the page event, or None."""
     target = stage_after(p) if session.mode != "chat" else None
-    # A character made before they said who they are (they asked for it first): the persona still comes next
-    if target == "character" and p["kind"] == "character" and not _has_persona(session) \
-            and STAGES.index(session.stage) < STAGES.index("persona"):
-        target = "persona"
+    # A persona made before the character (they asked for it first): the character still comes next
+    if p["kind"] == "persona" and p.get("status") == "applied" and not any(
+            x["kind"] == "character" and x.get("status") == "applied"
+            for x in session.proposals):
+        target = "character" if STAGES.index(session.stage) < STAGES.index("character") else None
     if target and STAGES.index(target) > STAGES.index(session.stage):
         session.stage = target
         return {"type": "stage", "stage": target}
@@ -558,11 +563,6 @@ BASICS = {
         "quotes": "Put speech in double quotes; write actions as plain prose.",
         "asterisks": "Put speech in double quotes and actions in *asterisks*.",
         "any": ""}),
-    "colors": ("Coloured speech", {
-        "on": "Give each character's spoken lines their own colour: wrap each quoted line in "
-              "<font color=\"#RRGGBB\">\"...\"</font>, keep one colour per character for the whole story, "
-              "and pick colours that read well on a dark background.",
-        "off": ""}),
     "panels": ("In-story panels", {
         "on": "When a text message, note, letter, sign or screen appears in the story, show it as a small "
               "self-contained HTML panel with inline styles (for example a phone chat as message bubbles), "
@@ -580,6 +580,19 @@ BASICS = {
         "healing": "hurt and comfort: emotional wounds, tender support and trust slowly rebuilt",
         "angst": "emotional tension, hard decisions, heartbreak and painful realisations",
         "tragedy": "devastating turns and heart-rending scenes, delivered rawly",
+        "adventure": "journeys, discovery and danger met head-on, with momentum",
+        "mystery": "clues, secrets and questions that pay off when the truth comes out",
+        "suspense": "rising tension, threats closing in and narrow escapes",
+        "horror": "dread, the uncanny and fear that builds slowly rather than shocks",
+        "drama": "weighty conflicts between people, with consequences that last",
+        "action": "fights, chases and physical stakes written with clear, punchy movement",
+        "intrigue": "schemes, alliances and power plays where words are weapons",
+        "survival": "scarce resources, harsh conditions and hard choices to stay alive",
+        "found_family": "strangers becoming each other's people, with loyalty earned over time",
+        "whimsical": "playful wonder, odd logic and fairy-tale charm",
+        "psychological": "inner conflict, shaken perceptions and minds under pressure",
+        "grimdark": "a harsh, morally grey world where every victory costs something and nobody is clean",
+        "dark_romance": "dangerous attraction, obsession and love that isn't safe",
         "smut": "explicit sexual content when the story leads there",
         "dead_dove": "dark, cruel and taboo material, morally complex and unsettling, without softening",
     }),
@@ -614,10 +627,14 @@ BASICS = {
                    "reader to infer.",
         "infer": "Inner thoughts: the narrator may report them briefly in its own words (\"He thought he had "
                  "messed up.\"), never as a character's inner voice. Most feeling still shows through behaviour.",
+        "woven": "Inner thoughts: write characters' thoughts directly, in their own words, as an ordinary part of "
+                 "the prose (\"I messed up, he thought.\"), with no special marking or formatting. Keep them short "
+                 "and selective: motives, doubts, quiet conflicts that behaviour alone can't show. {{user}}'s "
+                 "thoughts follow the Your character rules.",
         "enter": "Inner thoughts: write characters' thoughts directly, in their own words, wrapped in "
                  "<thought>...</thought> so the chat shows them apart (\"<thought>I messed up.</thought> he "
                  "thought.\"). Keep them short and selective: motives, doubts, quiet conflicts that behaviour alone "
-                 "can't show. Never {{user}}'s thoughts unless you may write {{user}}.",
+                 "can't show. {{user}}'s thoughts follow the Your character rules.",
         "any": ""}),
     "voice": ("Narration voice", {  # after Pura's narration voices and Celia's narrative styles
         "hemingway": "Narrate in the manner of Ernest Hemingway: short, plain, loaded sentences; feelings left under the surface.",
@@ -946,7 +963,9 @@ def tool_propose_character(session, args):
     from mainapp.bulba import polish
     payload = polish.clean_written(session.user, payload)  # the known AI habits out of the draft (the greeting most)
     payload["name"] = name
-    summary = ["Description:", payload["description"]]
+    payload["second_name"] = str(args.get("second_name") or "").strip()[:100]
+    summary = ([f"Two characters in one card: {name} and {payload['second_name']}"] if payload["second_name"] else []) \
+        + ["Description:", payload["description"]]
     if payload["personality"]:
         summary += ["In short:", payload["personality"]]
     if payload["scenario"]:
@@ -1062,21 +1081,23 @@ def take_route(session, route):
                                     if p.get("key", "").startswith("control:") and p.get("status") == "confirmed"), "dont")})
     note = actions.apply(session, p["id"])
     p["status"] = "applied"
-    session.stage = "persona"
+    session.stage = "character"
     return _canned(session, f"Fast route: {starters.EXPERIENCES[feel]['label']}",
                    f"Done: {note}\n\nThree quick things and you're chatting. First, how much of the chat your model "
                    "remembers: more remembers more and costs more, and the slider shows roughly what a message costs.",
-                   extra_events=[{"type": "proposal", "id": p["id"]}, {"type": "stage", "stage": "persona"}],
+                   extra_events=[{"type": "proposal", "id": p["id"]}, {"type": "stage", "stage": "character"}],
                    after=[extras_form_event(session, "memory")])
 
 
 PERSONA_CHOICES = [{"label": "Keep me light: just a name"}, {"label": "Someone who lives in that world"},
                    {"label": "You make someone up"}, {"label": "Skip for now"}]
+CHARACTER_CHOICES = [{"label": "I have a card to import"}, {"label": "One from a game, book or show"},
+                     {"label": "Let's make someone new"}]
 
 
 def after_memory_form(session, shown):
-    """The Fast route's memory form is sent: on to who they are in the story (no AI needed)."""
-    return _canned(session, "Sent: chat memory", "Saved. Next, who are you in the story?", PERSONA_CHOICES,
+    """The Fast route's memory form is sent: on to the character (no AI needed); who they are comes after."""
+    return _canned(session, "Sent: chat memory", "Saved. Next, who do you want to talk to?", CHARACTER_CHOICES,
                    extra_events=shown)
 
 

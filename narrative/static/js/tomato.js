@@ -98,17 +98,24 @@
     ];
 
     const css = `
-.na-tom-btn { position: fixed; right: 12px; top: 42%; z-index: 9000; display: flex; align-items: center; gap: 8px;
-    background: rgba(20, 22, 34, .92); color: #f1f5f9; border: 1px solid rgba(255,255,255,.15); border-radius: 999px;
-    padding: 6px 14px 6px 6px; box-shadow: 0 8px 24px rgba(0,0,0,.4); font: inherit; font-size: .85rem; cursor: pointer;
-    animation: naTomIn .35s cubic-bezier(.2,1.6,.4,1); transition: opacity .4s; }
+.na-tom-btn { position: fixed; right: 0; top: 42%; z-index: 9000; display: flex; align-items: center; gap: 8px;
+    background: rgba(20, 22, 34, .92); color: #f1f5f9; border: 1px solid rgba(255,255,255,.15); border-right: none;
+    border-radius: 999px 0 0 999px; padding: 6px 12px 6px 6px; box-shadow: 0 8px 24px rgba(0,0,0,.4); font: inherit;
+    font-size: .85rem; cursor: pointer; animation: naTomIn .35s cubic-bezier(.2,1.6,.4,1); transition: opacity .4s; }
 .na-tom-btn .na-tom-face { font-size: 1.9rem; line-height: 1; display: inline-block; transition: transform .1s; }
 .na-tom-btn:active .na-tom-face { transform: scale(.85) rotate(-15deg); }
 .na-tom-btn small { opacity: .7; display: block; font-size: .72rem; }
 .na-tom-btn.thrown .na-tom-line { display: none; }  /* after the first throw: just the tomato and the count */
-@media (max-width: 600px) { .na-tom-btn { max-width: 58vw; } .na-tom-btn .na-tom-line { font-size: .78rem; } }
+/* On a phone it's a small tab at the edge, low and see-through, so the story stays readable */
+@media (max-width: 600px) {
+    .na-tom-btn { top: auto; bottom: 150px; padding: 4px 8px 4px 4px; gap: 4px; opacity: .85; }
+    .na-tom-btn .na-tom-line { display: none; }
+    .na-tom-btn .na-tom-face { font-size: 1.5rem; }
+    .na-tom-btn small { font-size: .66rem; }
+    .na-tom-pit-link { top: auto; bottom: 200px; }
+}
 .na-tom-btn.fading { opacity: 0; pointer-events: none; }
-.na-tom-pit-link { position: fixed; right: 12px; top: calc(42% - 54px); z-index: 9000; background: #7c3aed; color: #fff; padding: 8px 14px;
+.na-tom-pit-link { position: fixed; right: 8px; top: calc(42% - 54px); z-index: 9000; background: #7c3aed; color: #fff; padding: 8px 14px;
     border-radius: 12px; text-decoration: none; font-size: .85rem; box-shadow: 0 8px 24px rgba(0,0,0,.4); animation: naTomIn .4s ease-out; }
 .na-tom-fly { position: fixed; z-index: 9001; pointer-events: none; font-size: 2rem; line-height: 1; will-change: transform;
     transition: transform .32s cubic-bezier(.3,.1,.6,1); }

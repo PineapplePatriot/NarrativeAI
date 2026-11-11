@@ -67,6 +67,8 @@ class Character(models.Model):
     voice_cast = models.JSONField(default=dict, blank=True)
 
     is_mult = models.BooleanField(default=False, verbose_name="Multi-Character Mode")
+    # The second character of a two-character card (is_mult): who the second set of pictures shows
+    second_name = models.CharField(max_length=100, blank=True, default="", verbose_name="Second character's name")
     # Which story trackers are on for this character, custom fields and layout (see mainapp/trackers.py)
     tracker_config = models.JSONField(default=dict, blank=True)
     # The character's look: {"bg": url, "music": {"url", "name"}, "dialogue_color": "#rrggbb" or "preset"}.

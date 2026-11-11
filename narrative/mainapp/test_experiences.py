@@ -139,7 +139,8 @@ class ExperienceBuildTests(SimpleTestCase):
         text = next(b for b in directed['blocks'] if b['name'] == 'Reply reminder')['content']
         self.assertIn("director's latest direction", text)
         self.assertIn(mature.REMINDER_LINE, text)
-        self.assertEqual(text.count('[Continue'), 1)
+        self.assertEqual(text.count('[Note to the writer'), 1)
+        self.assertNotIn('[Continue', text)  # read as a "continue" command by some models
         built = presets.assemble(directed, {'chat_history': True}, [{'role': 'user', 'content': 'Hi'}],
                                  {'char': 'Rose', 'user': 'Anya'}, 'google/gemini-3.8-flash')
         self.assertEqual(built['messages'][-1]['role'], 'user')  # never an assistant prefill
@@ -502,4 +503,109 @@ class LightThinkingTests(SimpleTestCase):
         for m in ('glm-5-3', 'kimi-k3', 'claude-fable-5-1', 'claude-opus-5-5', 'gemini-3-8-flash'):
             self.assertEqual(efforts[m], 'low', m)
         self.assertEqual(efforts['claude-opus-4-6'], 'off')       # off stays off
-        self.assertEqual(efforts['mimo-v2-6-pro'], 'medium')      # only on/off: left on
+        self.assertEqual(efforts['mimo-v2-6-pro'], 'high')      # only on/off: left on
+
+
+class PersonaPictureTests(TestCase):
+    def test_bulba_offers_persona_pictures_and_the_chat_shows_them(self):
+        from django.contrib.auth import get_user_model
+        from django.core.files.base import ContentFile
+        from mainapp.bulba import tune
+        from mainapp import views
+        user = get_user_model().objects.create_user("wren", password="x12345678!")
+        session = type("S", (), {"user": user})()
+        self.assertIn("error", tune.tool_offer_persona_pictures(session, {})[0])  # no persona yet
+        user.persona_name, user.persona_description = "Wren", "A tall courier with a scar."
+        user.save()
+        result, events = tune.tool_offer_persona_pictures(session, {})
+        self.assertEqual(events[0]["moods"][0], "neutral")  # the first picture comes from the description
+        self.assertEqual(len(events[0]["moods"]), 9)
+        self.assertFalse(views._user_pictured(user, {}))
+        user.persona_photo_neutral.save("w.png", ContentFile(b"\x89PNG fake"), save=True)
+        self.assertTrue(views._user_pictured(user, {}))
+        self.assertTrue(views._user_pictured(user, {"name": "Wren"}))
+        self.assertFalse(views._user_pictured(user, {"name": "Someone else"}))  # a chat with its own persona
+        self.assertNotIn("neutral", tune.tool_offer_persona_pictures(session, {})[1][0]["moods"])
+
+
+class OldWordingRefreshTests(SimpleTestCase):
+    def test_old_reminder_and_write_rule_are_updated_on_load(self):
+        old_reminder = experiences.catalog()['legacy_reminders']['dont']
+        old_write = experiences.LEGACY_CONTRACTS['write']
+        data = presets.normalize({'blocks': [
+            {'name': 'Your character', 'kind': 'prompt', 'content': old_write},
+            {'name': 'Reply reminder', 'kind': 'prompt', 'role': 'user', 'position': 'in_chat', 'depth': 0,
+             'content': old_reminder + '\n[18+ line stays]'}]})
+        blocks = {b['name']: b['content'] for b in data['blocks']}
+        self.assertEqual(blocks['Your character'], experiences.CONTRACTS['write'])
+        self.assertNotIn('[Continue', blocks['Reply reminder'])
+        self.assertIn('[18+ line stays]', blocks['Reply reminder'])
+        self.assertEqual(control.mode_of(data), 'write')
+
+
+class DesignMemoryTests(SimpleTestCase):
+    def test_the_first_look_of_each_kind_is_kept_and_their_edit_replaces_it(self):
+        from mainapp import html_objects
+        first = '```html\n<div data-label="Scene banner: the docks" style="color:red">DOCKS</div>\n```'
+        later = '```html\n<div data-label="Scene banner: the bank" style="color:blue">BANK</div>\n```'
+        designs = {}
+        html_objects.remember(designs, "Text.\n\n" + first)
+        html_objects.remember(designs, later)  # the AI drifted: the first look stays
+        self.assertIn("color:red", designs["scene banner"])
+        html_objects.remember(designs, later, replace=True)  # they edited it: theirs wins
+        self.assertIn("color:blue", designs["scene banner"])
+        text = html_objects.designs_for_prompt(designs)
+        self.assertIn("reuse its design exactly", text)
+        self.assertIn("scene banner", text)
+
+
+class SpeakerColorTests(SimpleTestCase):
+    def test_story_colours_tell_the_model_the_cast_and_app_colour_tells_it_nothing(self):
+        from mainapp import speaker_colors as sc
+        char = type("C", (), {"theme": {"speech": "story", "speech_cast": {"Pantalone": "plum", "X": "#123456"},
+                                        "you_color": "frost", "speech_tones": True}})()
+        s = sc.settings(char)
+        self.assertEqual(s["cast"], {"Pantalone": "plum"})  # only palette names
+        prompt = sc.for_prompt(s)
+        self.assertIn("Pantalone: plum; {{user}}: frost", prompt)
+        self.assertIn('<plum>"Spoken words."</plum>', prompt)
+        self.assertIn("whisper", prompt)
+        self.assertNotIn("plum, ", prompt.split("from:")[1])  # taken colours aren't offered again
+        self.assertIn("<frost>", sc.for_writing_user(s))
+        char.theme["speech"] = "app"
+        self.assertEqual(sc.for_prompt(sc.settings(char)), "")
+        self.assertEqual(sc.for_writing_user(sc.settings(char)), "")
+        old = type("C", (), {"theme": {"dialogue_color": "#e594f2"}})()
+        self.assertEqual(sc.settings(old)["mode"], "app")  # characters from before keep the app colour
+
+    def test_greeting_tags_and_stripping(self):
+        from mainapp import speaker_colors as sc
+        text = 'He looks up. "Sit down." Then `"code"` and <i>"styled"</i> stay.'
+        tagged = sc.tag_greeting(text, "plum")
+        self.assertIn('<plum>"Sit down."</plum>', tagged)
+        self.assertIn('`"code"`', tagged)
+        self.assertEqual(sc.tag_greeting(tagged, "ember"), tagged)  # already coloured: left alone
+        self.assertEqual(sc.strip_tags('<plum:whisper>"Hi."</plum> <b>x</b>'), '"Hi." <b>x</b>')
+        self.assertEqual(sc.name_of("#C792EA"), "plum")
+        self.assertEqual(sc.light_of("#c792ea"), "#7b3f9e")
+        self.assertIn("body.light-style .sc-plum", sc.css())
+
+    def test_old_colour_lines_leave_the_preset(self):
+        from mainapp import basics, presets
+        old = basics.RETIRED["colors"][1]
+        data = presets.normalize({"blocks": [{"name": "Basics", "kind": "prompt", "content": "Write in past tense.\n" + old}]})
+        block = next(b for b in data["blocks"] if b.get("name") == "Basics")
+        self.assertNotIn("<font", block["content"])
+        self.assertIn("past tense", block["content"])
+
+
+class EffortFitTests(SimpleTestCase):
+    def test_a_level_the_model_refuses_becomes_the_nearest_it_takes(self):
+        from mainapp import ai_client
+        for asked in ('medium', 'low'):
+            payload = {'model': 'xiaomi/mimo-v2.6-pro', 'reasoning': {'effort': asked}}
+            ai_client._fit_effort(payload)
+            self.assertEqual(payload['reasoning']['effort'], 'high')
+        payload = {'model': 'xiaomi/mimo-v2.6-pro', 'reasoning': {'enabled': False}}
+        ai_client._fit_effort(payload)
+        self.assertEqual(payload['reasoning'], {'enabled': False})

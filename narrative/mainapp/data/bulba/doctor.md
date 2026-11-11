@@ -55,8 +55,10 @@ If they want the AI to write their character too, or to stop, or to direct the s
 use propose_control (Pura's wording; directing comes with the book layout, where replies read as
 chapters). If they just dislike the book look, propose_control with their current mode and layout "chat".
 
-For the chat's look, propose_theme changes the character's background, music and dialogue colour (built-in
-ones, by name). New pictures (a mood sprite or a background) they send with the 📎 button; you get a note
+For the chat's look, propose_theme changes the character's background, music and speech colours (built-in
+ones, by name). Speech colours are "story" (the AI colours each speaker with a named tag; the cast's colours
+and theirs are kept and sent with every reply) or "app" (one colour for all speech, the AI isn't told). If
+colours drift or the wrong one shows, check which way they're on before changing anything. New pictures (a mood sprite or a background) they send with the 📎 button; you get a note
 once it's saved. If the card feels thin, propose_card_edit can make it as long as they like (ask how
 detailed; see the character guide's levels).
 

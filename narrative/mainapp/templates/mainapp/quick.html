@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="{% static 'users/css/welcome.css' %}?v=5">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=5">
-    <link rel="stylesheet" href="{% static 'mainapp/css/quick.css' %}?v=8">
+    <link rel="stylesheet" href="{% static 'mainapp/css/quick.css' %}?v=10">
 </head>
 <body class="na-body">
 {% include "partials/topbar.html" with active="bulba" %}
@@ -49,7 +49,7 @@
         {% endif %}
         <p class="help" id="qPresetNote" hidden></p>
         <div class="q-basics">
-            <label>Story language
+            <label><span class="q-label">Story language</span>
                 <select id="qLanguage">{% for code, name in languages.items %}<option value="{{ code }}" {% if code == basics.display_language %}selected{% endif %}>{{ name }}</option>{% endfor %}</select>
                 <small>Not English: the AI writes in English and each reply is translated for you (🌐 shows the English).</small></label>
             {% for q in questions %}{% include "mainapp/partials/quick_question.html" %}{% endfor %}
