@@ -2094,8 +2094,10 @@ def _glossary(user, character, chat_state):
 def prompt_names(user, character, chat_persona=None):
     """{{char}} and {{user}}: this chat's persona name, else the usual persona name, else the account name."""
     return {"char": character.name or "Character",
-            # Who they are in the story: the chat's persona, else their usual one. Never the login (an account detail)
-            "user": (chat_persona or {}).get("name") or getattr(user, "persona_name", None) or user.name or "Stranger"}
+            # Who they are in the story: the chat's persona, else their usual one, else their name; the login only
+            # when there's none of those (the user's call)
+            "user": (chat_persona or {}).get("name") or getattr(user, "persona_name", None) or user.name
+                    or user.username or "Stranger"}
 
 
 def prompt_slots(user, character, prompt, chat_persona=None):
