@@ -233,6 +233,8 @@ def normalize(raw):
         seen.add(block["id"])
         blocks.append(block)
     _ensure_pinned_note(blocks)
+    from mainapp import experiences
+    experiences.refresh_reminders(blocks)
     utility_raw = raw.get("utility") if isinstance(raw.get("utility"), dict) else {}
     utility = {k: str(utility_raw.get(k, v) or "") for k, v in UTILITY_DEFAULTS.items()}
     options_raw = raw.get("options") if isinstance(raw.get("options"), dict) else {}

@@ -327,7 +327,7 @@ _NAME_MACROS = re.compile(r"\{\{\s*(char|user)\s*\}\}|<(BOT|USER)>", re.IGNORECA
 def user_name(user):
     if user is None:
         return "You"
-    return getattr(user, "persona_name", None) or getattr(user, "name", None) or user.username
+    return getattr(user, "persona_name", None) or getattr(user, "name", None) or "Stranger"  # never the login
 
 
 def fill_names(text, char_name, user_name_):

@@ -2611,7 +2611,7 @@ class CardImportTests(ChatPromptTests):
         card["data"]["first_mes"] = "{{char}} nods at {{User}}. <USER> nods back."
         self.upload(_card_png(card))
         viktor = Character.objects.get(name="Viktor")
-        self.assertEqual(chats.greeting(viktor)[0][2], "Viktor nods at chatter. chatter nods back.")
+        self.assertEqual(chats.greeting(viktor)[0][2], "Viktor nods at Stranger. Stranger nods back.")
         page = self.client.get(reverse("characters_list"))
         self.assertContains(page, "Viktor is a stationmaster.")
 
@@ -2769,11 +2769,11 @@ class BulbaOnboardingRunTests(BulbaTests):
             variants=[{"label": "a", "instructions": ""}])])]
         data = self.api(action="say", text="show me").json()
         samples = next(e for e in data["events"] if e["type"] == "samples")
-        self.assertEqual(samples["scenario"], "potato's spell fizzles.")
+        self.assertEqual(samples["scenario"], "Stranger's spell fizzles.")
         self.script = [("Here.", [self.call("propose_character", name="Corvin", description="{{char}} teaches {{user}}.",
                                             greeting="Hi.")])]
         data = self.api(action="say", text="make him").json()
-        self.assertIn("Corvin teaches potato.", data["state"]["proposals"][-1]["summary"])
+        self.assertIn("Corvin teaches Stranger.", data["state"]["proposals"][-1]["summary"])
         self.assertEqual(self.session().proposals[-1]["payload"]["description"], "{{char}} teaches {{user}}.")
 
 
@@ -4600,13 +4600,13 @@ class ImpersonateAndTriggerTests(ChatPromptTests):
         self.assertEqual(resp["text"], "A reply.")
         sent = json.dumps(self.sent[-1]["messages"])
         # Writing their message: the preset's rules against it are out, a frame on top says whose message it is
-        self.assertTrue(self.sent[-1]["messages"][0]["content"].startswith("[This turn is different. You are writing chatter's"))
+        self.assertTrue(self.sent[-1]["messages"][0]["content"].startswith("[This turn is different. You are writing Stranger's"))
         self.assertNotIn("Never speak or act for", sent)
         self.assertNotIn("Reply as", sent)
         self.assertIn("Stay vivid.", sent)
         self.assertIn("Keep it tense.", sent)
         self.assertIn("IMPERSONATE BLOCK", sent)
-        self.assertIn("Write as chatter now.", sent)
+        self.assertIn("Write as Stranger now.", sent)
         self.assertIn("i nod", sent)
         self.assertIn("Hello, traveller.", sent)  # the chat itself
         self.assertIn("how they say and do it", sent)  # a draft is written out, not just repeated
@@ -5345,7 +5345,7 @@ class GreetingNameTests(ChatPromptTests):
         self.character.initial_message = "{{char}} looks up. \"You're late, {{user}}.\""
         self.character.save()
         chat = chats.create(self.character)
-        login = self.user.persona_name or self.user.name or self.user.username
+        login = self.user.persona_name or self.user.name or "Stranger"  # never the login
         self.assertIn(f"You're late, {login}.", chats.read(chat)["messages"][0][2])
         self.user.persona_name = "Reza"
         self.user.save()

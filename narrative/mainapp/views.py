@@ -302,7 +302,7 @@ def chat(request, slug):
                     u = request.user
                     fixed_messages, renamed = chats.refresh_greeting(
                         fixed_messages, character, prompt_names(u, character, chat_state["persona"])["user"],
-                        [u.username, u.name, getattr(u, "persona_name", "")])
+                        [u.username, u.name, getattr(u, "persona_name", ""), "Stranger", "You"])
                     if renamed:
                         chats.write(chat_obj, {**chats.read(chat_obj), "messages": fixed_messages})
                     return fixed_messages
@@ -907,7 +907,7 @@ def chat(request, slug):
                 upto = state["upto"] if isinstance(state["upto"], int) else 0
                 recent = messages[min(upto, len(messages)):]
                 recent = (messages[-4:] if len(recent) < 4 else recent)[-16:]
-                user_name = request.user.name or request.user.username
+                user_name = prompt_names(request.user, character, chat_state["persona"])["user"]  # the persona, never the login
                 named = [(user_name if m[0] == "user" else character.name, html_objects.shrink(m[2])) for m in recent]
                 def tracker_request(named):
                     built = trackers.update_messages(config, state, named, character.name, user_name, only,
@@ -2052,7 +2052,8 @@ def _glossary(user, character, chat_state):
 def prompt_names(user, character, chat_persona=None):
     """{{char}} and {{user}}: this chat's persona name, else the usual persona name, else the account name."""
     return {"char": character.name or "Character",
-            "user": (chat_persona or {}).get("name") or getattr(user, "persona_name", None) or user.name or user.username}
+            # Who they are in the story: the chat's persona, else their usual one. Never the login (an account detail)
+            "user": (chat_persona or {}).get("name") or getattr(user, "persona_name", None) or user.name or "Stranger"}
 
 
 def prompt_slots(user, character, prompt, chat_persona=None):

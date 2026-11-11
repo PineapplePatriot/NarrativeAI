@@ -622,7 +622,7 @@ BASICS = {
         "enter": "Inner thoughts: write characters' thoughts directly, in their own words, wrapped in "
                  "<thought>...</thought> so the chat shows them apart (\"<thought>I messed up.</thought> he "
                  "thought.\"). Keep them short and selective: motives, doubts, quiet conflicts that behaviour alone "
-                 "can't show. Never {{user}}'s thoughts unless you may write {{user}}.",
+                 "can't show. {{user}}'s thoughts follow the Your character rules.",
         "any": ""}),
     "voice": ("Narration voice", {  # after Pura's narration voices and Celia's narrative styles
         "hemingway": "Narrate in the manner of Ernest Hemingway: short, plain, loaded sentences; feelings left under the surface.",
