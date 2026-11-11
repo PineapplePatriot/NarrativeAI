@@ -148,16 +148,34 @@ Testing batches 2–5 (from the user's live tests) were merged earlier; these ca
 - 🧹 may run again on a polished reply.
 - Setup: character before persona; the persona can belong to the story.
 
-## Open questions (asked, no answer yet)
+## Answers the user gave at the end of this session
 
-- Polish lost after a screen rotation: was it a translated chat, or a reload?
-- "Could not open the panel during onboarding": which panel, which step?
-- More mood pictures: how many and which?
-- The "Stranger" fallback name: fine, or something else?
-- DeepSeek / MiMo thinking: off or on by default? Offer light thinking for existing presets?
-- A full Ukrainian interface?
-- Should Dark romance be behind the 18+ switch?
-- Speech colours: should colours belong to the character (now) or to each chat?
+- Polish lost after rotation, and the panel during onboarding: small temporary bugs, **drop them**.
+- Name fallback: the persona name, else their name, else **the login, only then** (`prompt_names`, `cards.user_name`;
+  "Stranger" only when there isn't even a login). Done.
+- Speech colours belong to the **character**. Done (that's how it's built).
+- Thinking **on** by default: already so (DeepSeek "medium", MiMo "high" in their starters; Pico stays off on purpose).
+- Ukrainian interface: later.
+- Dark romance behind 18+: not answered.
+
+## Open: 24 moods (asked; plan proposed, not built)
+
+The user wants **24 mood pictures** instead of 8, more range (normal ones, plus e.g. "aroused" behind the 18+
+switch), shown in **a separate window** so the page stays compact. Today each mood is its own ImageField
+(`photo_<mood>`) on `Character`, again for `photo_second_*`, on the template model and `persona_photo_*` on the
+user; the list is repeated in `views.SPRITE_EMOTIONS`, `forms.py`, `seed_demo.py`, `add_character.js`, `bulba.js`
+(MOODS), the emotion-pick prompt (views ~1454) and `bulba/tune.py` (offer_mood_pictures).
+Proposed: keep the 8 fields; add the extra 16 in one JSON field per owner (`extra_moods: {mood: file path}`) with
+one helper that returns a picture for any mood (falls back to the nearest of the 8, then neutral); one list of 24 in
+one module; the emotion pick offers only moods that have a picture; making all 24 costs ~3× (Bulba asks first and
+can make just a few); a "More moods" window on the character page. Needs the user's mood list (and which are 18+).
+
+## Open: does editing a message update the summary?
+
+No. Deleting drops the summary pieces that covered the deleted messages; editing changes only the message, so a
+summary piece that covered it keeps the old version. (Each piece can be re-run by hand in the summary panel.)
+Asked the user whether editing a covered message should offer "Update the summary" (re-run that piece) or do it
+automatically.
 
 ## Next steps
 
