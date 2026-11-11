@@ -19,10 +19,10 @@
   },
   "reasoning": {
     "always_on": false,
-    "default": "medium",
+    "default": "high",
     "choices": {
       "off": "Thinking off",
-      "medium": "Thinking on"
+      "high": "Thinking on"
     },
     "note": "With thinking on, MiMo uses its own temperature and top-p. Turning thinking off is what makes them adjustable (still to be confirmed through OpenRouter)."
   },

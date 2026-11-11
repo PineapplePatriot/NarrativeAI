@@ -503,7 +503,7 @@ class LightThinkingTests(SimpleTestCase):
         for m in ('glm-5-3', 'kimi-k3', 'claude-fable-5-1', 'claude-opus-5-5', 'gemini-3-8-flash'):
             self.assertEqual(efforts[m], 'low', m)
         self.assertEqual(efforts['claude-opus-4-6'], 'off')       # off stays off
-        self.assertEqual(efforts['mimo-v2-6-pro'], 'medium')      # only on/off: left on
+        self.assertEqual(efforts['mimo-v2-6-pro'], 'high')      # only on/off: left on
 
 
 class PersonaPictureTests(TestCase):
@@ -574,3 +574,15 @@ class SpeakerColorTests(SimpleTestCase):
         self.assertIn("Dottore #6aa8ff", prompt)
         self.assertIn('data-who="Name"', prompt)
         self.assertEqual(speaker_colors.clean({"A": "#123456", "B": "red", "": "#000000"}), {"A": "#123456"})
+
+
+class EffortFitTests(SimpleTestCase):
+    def test_a_level_the_model_refuses_becomes_the_nearest_it_takes(self):
+        from mainapp import ai_client
+        for asked in ('medium', 'low'):
+            payload = {'model': 'xiaomi/mimo-v2.6-pro', 'reasoning': {'effort': asked}}
+            ai_client._fit_effort(payload)
+            self.assertEqual(payload['reasoning']['effort'], 'high')
+        payload = {'model': 'xiaomi/mimo-v2.6-pro', 'reasoning': {'enabled': False}}
+        ai_client._fit_effort(payload)
+        self.assertEqual(payload['reasoning'], {'enabled': False})
