@@ -3,7 +3,10 @@ Chats: a character can have many conversations (and, later, branches of them).
 Each chat is a JSON file: {"messages": [...], "summary": ..., "trackers": ..., ...}.
 """
 import json
+import logging
 import os
+import shutil
+import threading
 import uuid
 from datetime import datetime
 
@@ -13,23 +16,109 @@ from django.http import Http404
 from mainapp.models import Chat
 
 
+# --- Keeping chat files safe ---
+# A chat file is never written in place: the new version goes to a temporary file that then replaces the old one
+# in one step, so a crash or a restart mid-save can't leave half a file, and a request reading at the same moment
+# always sees a whole one. The last few versions are kept beside it (.bak1 newest), and a version with fewer
+# messages than the one before keeps that one as .shrunk. A file that can't be read is never taken for an empty
+# chat (that used to reset a whole chat to its greeting): the newest readable backup is used, else ChatUnreadable.
+BACKUPS = 3
+_locks = {}
+_locks_guard = threading.Lock()
+
+
+class ChatUnreadable(Exception):
+    """The chat's file and all its backups exist but can't be read: nothing may be saved over them."""
+
+
+def _lock(path):
+    with _locks_guard:
+        return _locks.setdefault(path, threading.RLock())
+
+
+def _load(path):
+    with open(path, "rb") as f:
+        data = json.loads(f.read().decode("utf-8"))
+    if not isinstance(data, (dict, list)):
+        raise ValueError("not a chat")
+    return data
+
+
+def backup_paths(path):
+    return [f"{path}.bak{i}" for i in range(1, BACKUPS + 1)] + [f"{path}.shrunk"]
+
+
+def load_path(path):
+    """The chat file's contents (a dict, or a bare list for very old files); None when there's no file at all.
+    A broken file falls back to its newest readable backup; raises ChatUnreadable when none can be read."""
+    candidates = [path] + backup_paths(path)[:BACKUPS]
+    if not any(os.path.exists(p) for p in candidates):
+        return None
+    for p in candidates:
+        if os.path.exists(p):
+            try:
+                data = _load(p)
+            except (OSError, ValueError):
+                continue
+            if p != path:
+                logging.getLogger(__name__).error("Chat file %s couldn't be read; using its backup %s", path, p)
+            return data
+    raise ChatUnreadable(path)
+
+
+def _count(data):
+    msgs = data.get("messages") if isinstance(data, dict) else data
+    return len(msgs) if isinstance(msgs, list) else 0
+
+
+def save_path(path, data):
+    """Saves a chat file safely (see above)."""
+    content = json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
+    folder = os.path.dirname(path) or "."
+    os.makedirs(folder, exist_ok=True)
+    with _lock(path):
+        tmp = f"{path}.tmp-{uuid.uuid4().hex}"
+        with open(tmp, "wb") as f:
+            f.write(content)
+            f.flush()
+            os.fsync(f.fileno())
+        if os.path.exists(path):
+            try:
+                before = _load(path)
+            except (OSError, ValueError):  # a broken file is kept aside, never rotated into the backups
+                os.replace(path, f"{path}.broken-{datetime.now():%Y%m%d-%H%M%S}")
+            else:
+                if _count(before) > _count(data):  # fewer messages than before (a deletion, or worse): keep it
+                    shutil.copyfile(path, f"{path}.shrunk")
+                baks = backup_paths(path)[:BACKUPS]
+                for older, newer in zip(reversed(baks[1:]), reversed(baks[:-1])):
+                    if os.path.exists(newer):
+                        os.replace(newer, older)
+                shutil.copyfile(path, baks[0])
+        os.replace(tmp, path)
+
+
 def read(chat):
-    """The chat file as a dict (very old files were a bare list of messages)."""
+    """The chat file as a dict (very old files were a bare list of messages). Raises ChatUnreadable rather than
+    pretending a broken chat is empty."""
+    if not chat.log_file:
+        return {"messages": []}
     try:
-        with chat.log_file.open("rb") as f:
-            data = json.loads(f.read().decode("utf-8"))
-    except (OSError, ValueError, AttributeError):
+        path = chat.log_file.path
+    except (NotImplementedError, ValueError, AttributeError):
+        return {"messages": []}
+    data = load_path(path)
+    if data is None:
         return {"messages": []}
     return data if isinstance(data, dict) else {"messages": data}
 
 
 def write(chat, data):
-    content = json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
     if chat.log_file:
-        with open(chat.log_file.path, "wb") as f:
-            f.write(content)
+        save_path(chat.log_file.path, data)
         chat.save(update_fields=["time_update"])
     else:
+        content = json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
         chat.log_file.save(f"{uuid.uuid4().hex}.json", ContentFile(content), save=True)
 
 
@@ -119,7 +208,10 @@ def current(character, chat_id=None):
 def summary_list(character, current_id=None):
     out = []
     for chat in character.chats.all():
-        messages = read(chat).get("messages", [])
+        try:
+            messages = read(chat).get("messages", [])
+        except ChatUnreadable:  # still listed (it can be recovered), just without a preview
+            messages = []
         last = next((m for m in reversed(messages) if isinstance(m, (list, tuple)) and len(m) > 2), None)
         preview = (last[2] if last else "")[:90]
         out.append({
@@ -139,6 +231,9 @@ def delete(chat):
             character.chat_log_file = None
             character.save(update_fields=["chat_log_file"])
         os.remove(chat.log_file.path)
+        for extra in backup_paths(chat.log_file.path):  # its backups go with it
+            if os.path.exists(extra):
+                os.remove(extra)
     chat.delete()
 
 

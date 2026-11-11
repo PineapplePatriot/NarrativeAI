@@ -609,3 +609,38 @@ class EffortFitTests(SimpleTestCase):
         payload = {'model': 'xiaomi/mimo-v2.6-pro', 'reasoning': {'enabled': False}}
         ai_client._fit_effort(payload)
         self.assertEqual(payload['reasoning'], {'enabled': False})
+
+
+class ChatFileSafetyTests(TestCase):
+    """A chat must never reset to its greeting because its file was half-written or read mid-save."""
+    def setUp(self):
+        import tempfile
+        self.dir = tempfile.mkdtemp()
+        self.path = self.dir + "/chat.json"
+
+    def test_saves_keep_backups_and_a_broken_file_falls_back(self):
+        from mainapp import chats
+        for n in range(1, 5):
+            chats.save_path(self.path, {"messages": [["user", "", f"m{i}"] for i in range(n)]})
+        self.assertEqual(len(chats.load_path(self.path)["messages"]), 4)
+        self.assertEqual(len(chats._load(self.path + ".bak1")["messages"]), 3)
+        with open(self.path, "w") as f:
+            f.write('{"messages": [["user", "", "half')  # cut off mid-save
+        self.assertEqual(len(chats.load_path(self.path)["messages"]), 3)  # the newest backup
+        chats.save_path(self.path, {"messages": [["user", "", "x"]]})
+        import glob
+        self.assertTrue(glob.glob(self.path + ".broken-*"))  # the broken one kept aside, not rotated in
+
+    def test_fewer_messages_keep_the_longer_version(self):
+        from mainapp import chats
+        chats.save_path(self.path, {"messages": [["user", "", "a"], ["assistant", "", "b"], ["user", "", "c"]]})
+        chats.save_path(self.path, {"messages": [["assistant", "", "greeting"]]})
+        self.assertEqual(len(chats._load(self.path + ".shrunk")["messages"]), 3)
+
+    def test_nothing_readable_raises_instead_of_reading_as_empty(self):
+        from mainapp import chats
+        with open(self.path, "w") as f:
+            f.write("")
+        with self.assertRaises(chats.ChatUnreadable):
+            chats.load_path(self.path)
+        self.assertIsNone(chats.load_path(self.dir + "/missing.json"))
