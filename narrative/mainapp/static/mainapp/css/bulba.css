@@ -273,3 +273,11 @@ body.embed .mini-progress { display: none !important; }  /* beside the Quick set
 @media (hover: none) { .msg-copy { opacity: .5; } }
 .error-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .error-actions button { font-size: .85rem; padding: 5px 10px; }
+
+/* Several pictures at once: each with what it is */
+.picture-list { display: flex; flex-direction: column; gap: 6px; }
+.picture-row { display: flex; align-items: center; gap: 8px; }
+.picture-row img { width: 44px; height: 44px; object-fit: cover; border-radius: 8px; flex: none; }
+.picture-row .picture-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .8rem; opacity: .8; }
+.picture-row select { max-width: 52%; }
+.picture-actions { display: flex; flex-wrap: wrap; gap: 6px; }

@@ -386,9 +386,12 @@ function renderStages() {
         return;
     }
     const finished = state.stage === 'done';
-    $('progressLine').textContent = finished ? 'All done. You can still change anything.'
+    $('progressLine').textContent = finished ? 'Setup finished. Ask me anything, or to change any part of it.'
         : `Step ${pr.step} of ${pr.of}` + (pr.questions_left ? ` · about ${pr.questions_left} question${pr.questions_left === 1 ? '' : 's'} left` : '');
-    $('stages').innerHTML = pr.stages.map(st => {
+    // Once it's done the steps and the quick-setup switch have served their purpose
+    $('stages').hidden = finished;
+    document.querySelectorAll('.quick-switch').forEach(a => { a.hidden = finished; });
+    $('stages').innerHTML = finished ? '' : pr.stages.map(st => {
         const mark = { done: '✓', skipped: '⤼', current: '●', todo: '' }[st.status];
         const steps = st.status === 'current' && st.steps.length > 1 ? `<ul class="steps">${st.steps.map(x =>
             `<li class="${x.done ? 'done' : ''}">${x.done ? '✓' : '◻'} ${esc(x.label)}${x.optional ? ' <i>(optional)</i>' : ''}</li>`).join('')}</ul>` : '';
@@ -673,28 +676,65 @@ document.addEventListener('click', (e) => {
     });
 })();
 
-// Pictures: just to show Bulba, or the character's (neutral or a mood) or a background, applied at once (Undo on the card)
+// Pictures: just to show Bulba, or the character's (neutral or a mood) or a background, applied at once (Undo on
+// the card). Several at a time: Add puts them in a list, each with what it is; Send uploads them, Bulba answers once
 (function () {
     const form = $('pictureForm');
     if (!form) return;
-    $('attachBtn').onclick = () => {
-        form.hidden = !form.hidden;
-        // Their character has no picture yet (Bulba usually just asked for it): a picture sent now is that one
-        if (!form.hidden && typeof state !== 'undefined' && state && state.needs_portrait) $('pictureAs').value = 'neutral';
+    let picked = [];  // [{file, as, url}]
+    const MOODS = ['neutral', 'happy', 'sad', 'angry', 'surprised', 'scared', 'confused', 'calm', 'scheming'];
+    const draw = () => {
+        const list = $('pictureList');
+        list.innerHTML = '';
+        picked.forEach((p, i) => {
+            const row = document.createElement('div');
+            row.className = 'picture-row';
+            row.innerHTML = `<img src="${p.url}" alt=""><span class="picture-name">${esc(p.file.name)}</span>`;
+            const sel = $('pictureAsTpl').content.firstElementChild.cloneNode(true);
+            sel.value = p.as;
+            sel.addEventListener('change', () => { p.as = sel.value; });
+            row.appendChild(sel);
+            const x = document.createElement('button');
+            x.type = 'button'; x.className = 'ghost'; x.textContent = '✕'; x.title = 'Leave this one out';
+            x.onclick = () => { URL.revokeObjectURL(p.url); picked.splice(i, 1); draw(); };
+            row.appendChild(x);
+            list.appendChild(row);
+        });
+        $('pictureSend').disabled = !picked.length;
     };
-    $('pictureCancel').onclick = () => { form.hidden = true; };
-    form.addEventListener('submit', (e) => {
+    // A sensible first guess for each new picture: the character's neutral one when they have none, then moods in
+    // order, else "just show Bulba"; they change it in the list
+    const guess = () => {
+        if (typeof state !== 'undefined' && state && state.needs_portrait) {
+            const used = new Set(picked.map(p => p.as));
+            return MOODS.find(m => !used.has(m)) || 'look';
+        }
+        return 'look';
+    };
+    $('attachBtn').onclick = () => { form.hidden = !form.hidden; if (!form.hidden && !picked.length) $('pictureFile').click(); };
+    $('pictureAdd').onclick = () => $('pictureFile').click();
+    $('pictureFile').addEventListener('change', () => {
+        [...$('pictureFile').files].forEach(file => picked.push({ file, as: guess(), url: URL.createObjectURL(file) }));
+        $('pictureFile').value = '';
+        draw();
+    });
+    const reset = () => { picked.forEach(p => URL.revokeObjectURL(p.url)); picked = []; $('pictureText').value = ''; draw(); };
+    $('pictureCancel').onclick = () => { form.hidden = true; reset(); };
+    form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const file = $('pictureFile').files[0];
-        if (!file) return;
-        const body = new FormData();
-        body.append('picture', file);
-        body.append('as', $('pictureAs').value);
-        body.append('text', $('pictureText').value.trim());
-        const looking = $('pictureAs').value === 'look';
+        if (!picked.length || busy) return;
+        const items = picked.slice(), text = $('pictureText').value.trim();
         form.hidden = true;
-        $('pictureFile').value = ''; $('pictureText').value = '';
-        run(body, looking ? 'Bulba is looking at the picture…' : 'Adding the picture…');
+        for (let i = 0; i < items.length; i++) {
+            const body = new FormData();
+            body.append('picture', items[i].file);
+            body.append('as', items[i].as);
+            body.append('text', i === items.length - 1 ? text : '');
+            if (i < items.length - 1) body.append('quiet', '1');  // Bulba answers after the last one, about all of them
+            await run(body, items.length > 1 ? `Adding picture ${i + 1} of ${items.length}…`
+                : items[i].as === 'look' ? 'Bulba is looking at the picture…' : 'Adding the picture…');
+        }
+        reset();
     });
 })();
 

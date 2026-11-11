@@ -5080,7 +5080,7 @@ class BulbaPicturesAndThemeTests(BulbaCardAndLoreTests):
         self.addCleanup(override.disable)
         self.addCleanup(shutil.rmtree, media, ignore_errors=True)
 
-    def send_picture(self, data, as_="neutral", name="me.png", text="", seen="A tall man in a lab coat."):
+    def send_picture(self, data, as_="neutral", name="me.png", text="", seen="A tall man in a lab coat.", quiet=False):
         from unittest import mock
         from django.core.files.uploadedfile import SimpleUploadedFile
         self.looked = []
@@ -5091,7 +5091,17 @@ class BulbaPicturesAndThemeTests(BulbaCardAndLoreTests):
         with mock.patch("mainapp.ai_client.requests.post", side_effect=self.fake_post), \
                 mock.patch("mainapp.bulba.vision.describe", side_effect=describe):
             return self.client.post(reverse("bulba_api"), {"picture": SimpleUploadedFile(name, data), "as": as_,
-                                                           "text": text})
+                                                           "text": text, **({"quiet": "1"} if quiet else {})})
+
+    def test_several_pictures_bulba_answers_once(self):
+        self.script = [("Two pictures, got them.", [])]
+        calls = len(self.bulba_calls)
+        self.send_picture(self.png(), as_="look", quiet=True)
+        self.assertEqual(len(self.bulba_calls), calls)  # only noted
+        self.send_picture(self.png(), as_="look", text="what do you think?")
+        self.assertEqual(len(self.bulba_calls), calls + 1)  # one answer, about both
+        sent = self.bulba_calls[-1]["messages"]
+        self.assertTrue(any("More pictures follow" in str(m.get("content")) for m in sent))
 
     def test_just_show_bulba_a_picture(self):
         import os

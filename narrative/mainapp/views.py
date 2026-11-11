@@ -3678,11 +3678,17 @@ def _bulba_picture_upload(request):
                 return JsonResponse({"error": f"Couldn't look at the picture: {e}"}, status=400)
             seen = ""
     words = f"\nWhat they said with it: {their_words}" if their_words else ""
+    # Several pictures sent together: all but the last are only noted, so Bulba answers once, about all of them
+    quiet = request.POST.get("quiet") == "1"
     if target == "look":
         session.events += events
-        events += agent.run_turn(session, None, action_note="You showed Bulba a picture" + (f": {their_words}" if their_words else ""),
-                                 model_note=f"They showed you a picture.{words}\n{seen}\nHelp with what they want; if "
-                                            "it isn't clear, say briefly what you see and ask.")
+        note = f"They showed you a picture.{words}\n{seen}"
+        if quiet:
+            session.messages.append({"role": "user", "content": f"[{note}\n(More pictures follow.)]"})
+        else:
+            events += agent.run_turn(session, None, action_note="You showed Bulba a picture" + (f": {their_words}" if their_words else ""),
+                                     model_note=note + "\nHelp with what they want; if it isn't clear, say briefly "
+                                                       "what you see and ask.")
         session.activity = ""
         session.save()
         return JsonResponse({"events": events, "state": _bulba_state(session)})
@@ -3705,8 +3711,11 @@ def _bulba_picture_upload(request):
     p.update(status="applied", undo=undo)
     events.append({"type": "proposal", "id": p["id"]})
     session.events += events
-    events += agent.run_turn(session, None, action_note=f"Added {what}",
-                             model_note=f"They uploaded {what}; it's set.{words}" + (f"\n{seen}" if seen else ""))
+    note = f"They uploaded {what}; it's set.{words}" + (f"\n{seen}" if seen else "")
+    if quiet:
+        session.messages.append({"role": "user", "content": f"[{note}\n(More pictures follow.)]"})
+    else:
+        events += agent.run_turn(session, None, action_note=f"Added {what}", model_note=note)
     session.activity = ""
     session.save()
     return JsonResponse({"events": events, "state": _bulba_state(session)})
