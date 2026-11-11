@@ -1,0 +1,22 @@
+/* 🌻 The garden page (tomato_garden.js) */
+.garden { max-width: 1180px; }
+.g-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .g-wrap { grid-template-columns: 1fr; } }
+.g-stage { position: relative; }
+#gCanvas { width: 100%; height: auto; display: block; border-radius: 14px; image-rendering: pixelated; cursor: pointer;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .35), inset 0 0 0 1px rgba(255, 255, 255, .08); touch-action: manipulation; }
+.g-clock { position: absolute; right: 10px; top: 8px; font-size: .78rem; padding: 3px 8px; border-radius: 999px;
+    background: rgba(0, 0, 0, .35); color: #fff; pointer-events: none; }
+.g-side .pit-box { margin-bottom: 12px; }
+.g-side h2 { font-size: 1rem; margin: 0 0 8px; }
+.g-tile h3 { margin: 0 0 6px; font-size: 1.05rem; }
+.g-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+.g-row .na-btn { padding: 6px 10px; font-size: .85rem; }
+.g-bar { height: 10px; border-radius: 999px; background: rgba(255, 255, 255, .08); overflow: hidden; margin: 8px 0 4px; }
+.g-bar i { display: block; height: 100%; background: linear-gradient(90deg, #5aa83a, #b6e36a); border-radius: inherit; }
+.g-basket { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; font-size: .85rem; }
+.g-basket div { border: 1px solid rgba(255, 255, 255, .1); border-radius: 10px; padding: 6px 8px; }
+.g-gard { display: flex; gap: 8px; align-items: flex-start; font-size: .85rem; margin: 6px 0; }
+.g-gard .e { font-size: 1.4rem; line-height: 1; }
+.g-log { margin: 0; padding-left: 18px; font-size: .82rem; display: grid; gap: 3px; }
+.g-small { font-size: .8rem; }

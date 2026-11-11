@@ -26,7 +26,7 @@
     <span class="pit-rate" id="pitRate"></span>
   </button>
 
-  <section class="pit-box mach-box" id="machBox" data-url="{% url 'tomato_machine' %}">
+  <section class="pit-box mach-box" id="machBox" data-url="{% url 'tomato_machine' %}" data-garden="{% url 'tomato_garden' %}">
     <div class="pit-box-head"><h2>🎰 The Sauce-o-Matic</h2>
       <button type="button" class="na-btn mach-odds-btn" id="machOddsBtn" aria-expanded="false">Odds &amp; rules</button></div>
     <p class="muted">Runs on tomatoes thrown at chats and Bulba while you wait: every <b id="machCost">300</b> is a spin,
@@ -155,6 +155,6 @@
 </div>
 <script src="{% static 'mainapp/js/splat_art.js' %}?v=1" data-scenes="{% static 'defaults/backgrounds/' %}"></script>
 <script src="{% static 'mainapp/js/tomato_pit.js' %}?v=9"></script>
-<script src="{% static 'mainapp/js/tomato_machine.js' %}?v=1"></script>
+<script src="{% static 'mainapp/js/tomato_machine.js' %}?v=2"></script>
 </body>
 </html>

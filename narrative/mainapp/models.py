@@ -255,6 +255,7 @@ class TomatoScore(models.Model):
     day = models.DateField(null=True, blank=True)                   # the day `day_wild` counts (UTC)
     day_wild = models.PositiveIntegerField(default=0)               # chat + Bulba throws counted that day
     machine = models.JSONField(default=dict, blank=True)            # 🎰 the Sauce-o-Matic (mainapp/tomato_machine.py)
+    garden = models.JSONField(default=dict, blank=True)             # 🌻 the garden (mainapp/tomato_garden.py)
 
     def __str__(self):
         return f"{self.user}: {self.wild} tomatoes"

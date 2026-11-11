@@ -19,7 +19,8 @@
     <a href="{% url 'bulba' %}" class="{% if active == 'bulba' %}active{% endif %}" title="Bulba, the setup potato">🥔 Bulba</a>
     <a href="{% url 'users:notebook' %}" class="{% if active == 'notebook' %}active{% endif %}" title="What Bulba watches for, what it learned about you, what you've spent">📓 Notebook</a>
     <a href="{% url 'guide' %}" class="{% if active == 'guide' %}active{% endif %}" title="How to try the app">Guide</a>
-    {% if tomato_pit_found %}<a href="{% url 'tomato_pit' %}" class="{% if active == 'tomatoes' %}active{% endif %}" title="The Tomato Pit">🍅 Pit</a>{% endif %}
+    {% if tomato_pit_found %}<a href="{% url 'tomato_pit' %}" class="{% if active == 'tomatoes' %}active{% endif %}" title="The Tomato Pit">🍅 Pit</a>
+    <a href="{% url 'tomato_garden' %}" class="{% if active == 'garden' %}active{% endif %}" title="Your garden: plant what the Sauce-o-Matic gives you">🌻 Garden</a>{% endif %}
   </nav>
   <div class="na-user">
     {% if feedback_url %}<button type="button" class="na-feedback-btn" title="Help us test: a short form about the app">📝 <span>Feedback</span></button>{% endif %}

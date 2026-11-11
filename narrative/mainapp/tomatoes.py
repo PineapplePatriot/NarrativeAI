@@ -52,6 +52,8 @@ def add_wild(user, sent):
         score.wild += add
         score.day_wild += add
         score.synced_at = now
+        from mainapp import tomato_garden
+        tomato_garden.water(score, add)  # 🌻 chat tomatoes water the garden
         score.save()
     return score
 

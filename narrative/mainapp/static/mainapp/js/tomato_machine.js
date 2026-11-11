@@ -88,7 +88,7 @@
                 let act = '';
                 if (WEAR[p.kind]) act = `<button type="button" class="na-btn${on ? ' on' : ''}" data-equip="${p.kind}" data-id="${on ? '' : p.id}">${on ? '✓ Wearing · take off' : WEAR[p.kind]}</button>`;
                 else if (p.kind === 'skin') act = `<button type="button" class="na-btn" data-throw="${p.id}">Throw it</button>`;
-                else if (p.kind === 'seed' || p.kind === 'decor' || p.kind === 'gardener') act = '<small class="muted">For your garden</small>';
+                else if (p.kind === 'seed' || p.kind === 'decor' || p.kind === 'gardener') act = `<a class="na-btn" href="${box.dataset.garden}">🌻 To the garden</a>`;
                 return `<div class="mach-item ${p.tier}" title="${esc(p.note)}"><span class="e">${p.emoji}</span><b>${esc(p.name)}${n > 1 ? ` ×${n}` : ''}</b>
                     <small class="muted">${esc(p.note)}</small>${act}</div>`;
             }).join('')}</div>`;

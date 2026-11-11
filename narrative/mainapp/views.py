@@ -29,7 +29,7 @@ from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
 from . import basics as basics_mod
-from . import extras, game, html_objects, media_library, recall, story, thinking, ai_client, cards, chats, regex_rules, experiences, model_profiles, presets, samplers, starters, tomato_machine, tomatoes, trackers, translation
+from . import extras, game, html_objects, media_library, recall, story, thinking, ai_client, cards, chats, regex_rules, experiences, model_profiles, presets, samplers, starters, tomato_garden, tomato_machine, tomatoes, trackers, translation
 from .bulba import control, polish, watch
 from mainapp import mature, refusals
 
@@ -117,6 +117,26 @@ def tomato_state(request):
     score = tomatoes.score_of(request.user)
     return JsonResponse({**state, "wild": score.wild, "on_board": score.on_board,
                          "prize_skins": tomato_machine.owned_skins(score), "worn": tomato_machine.worn(score)})
+
+
+@login_required
+def tomato_garden_page(request):
+    """🌻 The garden: a live pixel-art plot for the machine's seeds, decorations and gardeners."""
+    return render(request, "mainapp/tomato_garden.html")
+
+
+@login_required
+def tomato_garden_state(request):
+    """GET: the garden now. POST {"action": plant|place|harvest|dig|remove, "x", "y", "id"} (mainapp/tomato_garden.py)."""
+    if request.method == "POST":
+        body = _json_body(request)
+        if body is None:
+            return JsonResponse({"error": "Invalid request."}, status=400)
+        try:
+            return JsonResponse(tomato_garden.act(request.user, body))
+        except ValueError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+    return JsonResponse(tomato_garden.visit(request.user))
 
 
 @login_required

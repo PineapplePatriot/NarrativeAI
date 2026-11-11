@@ -2,7 +2,7 @@
 🎰 The Sauce-o-Matic: a prize machine in the Tomato Pit that runs on tomatoes, never money.
 
 Spins
-- One for every SPIN_COST tomatoes thrown at chats and Bulba (TomatoScore.wild, mainapp/tomatoes.py), plus:
+- One on the house (START_SPINS), then one for every SPIN_COST tomatoes thrown at chats and Bulba (TomatoScore.wild, mainapp/tomatoes.py), plus:
 - a free one for each golden splat (1 in 500) thrown at a chat or Bulba, and
 - one for every COMPOST_SPIN compost (what duplicates turn into).
 
@@ -24,6 +24,7 @@ from django.db import transaction
 from django.utils import timezone
 
 SPIN_COST = 300
+START_SPINS = 1     # everyone gets one pull on the house
 COMPOST_SPIN = 10
 ODDS = {"common": 75, "rare": 21, "legendary": 4}
 RARE_PITY = 8
@@ -135,7 +136,7 @@ def _state(score):
 
 def spins_left(score, m=None):
     m = m or _state(score)
-    return max(0, score.wild // SPIN_COST + m["bonus"] - m["used"])
+    return max(0, START_SPINS + score.wild // SPIN_COST + m["bonus"] - m["used"])
 
 
 def add_golden(score, n):

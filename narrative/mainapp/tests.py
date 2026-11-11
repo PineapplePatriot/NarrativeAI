@@ -8442,10 +8442,10 @@ class TomatoMachineTests(TestCase):
     def test_spins_come_from_chat_tomatoes_and_are_spent(self):
         from mainapp import tomato_machine as M
         state = self.machine().json()
-        self.assertEqual((state["spins"], state["toward"]), (0, 0))
-        self.assertEqual(self.machine(action="spin", n=1).status_code, 400)  # nothing to spend
-        self.score.wild = M.SPIN_COST * 2 + 120
-        self.score.save()
+        self.assertEqual((state["spins"], state["toward"]), (1, 0))          # one on the house
+        self.assertEqual(self.machine(action="spin", n=1).json()["spins"], 0)
+        self.assertEqual(self.machine(action="spin", n=1).status_code, 400)  # nothing left to spend
+        type(self.score).objects.filter(pk=self.score.pk).update(wild=M.SPIN_COST * 2 + 120)
         state = self.machine().json()
         self.assertEqual((state["spins"], state["toward"]), (2, 120))
         out = self.machine(action="spin", n=1).json()
@@ -8455,7 +8455,7 @@ class TomatoMachineTests(TestCase):
         self.give(12)
         out = self.machine(action="spin", n=10).json()
         self.assertEqual((len(out["results"]), out["spins"]), (10, 3))
-        self.assertEqual(len(out["history"]), 11)
+        self.assertEqual(len(out["history"]), 12)  # the free pull, one, then ten
 
     def test_pity_guarantees_a_rare_and_a_legendary(self):
         from mainapp import tomato_machine as M
@@ -8516,16 +8516,16 @@ class TomatoMachineTests(TestCase):
         self.score.machine = {**m, "compost": 12}
         self.score.save()
         state = self.machine(action="compost").json()
-        self.assertEqual((state["compost"], state["spins"]), (2, 1))
+        self.assertEqual((state["compost"], state["spins"]), (2, 2))
 
     def test_golden_splats_give_free_spins_within_reason(self):
         self.client.post(reverse("tomato_state"), json.dumps({"add": 50, "add_wild": 50, "add_golden": 1}),
                          content_type="application/json")
-        self.assertEqual(self.machine().json()["spins"], 1)
+        self.assertEqual(self.machine().json()["spins"], 2)   # the free one and the golden one
         self.client.post(reverse("tomato_state"), json.dumps({"add": 10, "add_wild": 10, "add_golden": 9}),
                          content_type="application/json")
         state = self.machine().json()
-        self.assertEqual((state["spins"], state["golden"]), (1, 1))   # 60 chat throws can't be 10 golden ones
+        self.assertEqual((state["spins"], state["golden"]), (2, 1))   # 60 chat throws can't be 10 golden ones
         self.client.post(reverse("tomato_state"), json.dumps({"add": 10, "add_golden": 5}),  # not at a chat: nothing
                          content_type="application/json")
         self.assertEqual(self.machine().json()["golden"], 1)
@@ -8555,6 +8555,96 @@ class TomatoMachineTests(TestCase):
                 self.assertIn(f"id: '{p['id']}'", js, p["id"])
         self.assertEqual(len({p["id"] for p in M.PRIZES}), len(M.PRIZES))
         self.assertContains(self.client.get(reverse("tomato_pit")), "Sauce-o-Matic")
+
+
+class TomatoGardenTests(TestCase):
+    """🌻 The garden: seeds from the machine grow over real time, chat tomatoes water them, harvests make compost."""
+
+    def setUp(self):
+        from mainapp.models import TomatoScore
+        self.user = get_user_model().objects.create_user(username="gardener", password="pw12345!")
+        self.client.force_login(self.user)
+        self.score = TomatoScore.objects.create(user=self.user, machine={"items": {"seed_tomato": 2, "lantern": 1}})
+
+    def do(self, **body):
+        return self.client.post(reverse("tomato_garden_state"), json.dumps(body), content_type="application/json")
+
+    def items(self, **items):
+        self.score.refresh_from_db()
+        self.score.machine = {**self.score.machine, "items": {**self.score.machine.get("items", {}), **items}}
+        self.score.save()
+
+    def age(self, hours):  # move every plant's planting time back
+        self.score.refresh_from_db()
+        g = self.score.garden
+        for t in g["tiles"].values():
+            if t.get("kind") == "plant":
+                t["at"] -= int(hours * 3600)
+        self.score.garden = g
+        self.score.save()
+
+    def tile(self, state, x, y):
+        return next(t for t in state["tiles"] if (t["x"], t["y"]) == (x, y))
+
+    def test_the_page_and_planting(self):
+        self.assertContains(self.client.get(reverse("tomato_garden")), "The Garden")
+        state = self.do(action="plant", x=0, y=0, id="seed_tomato").json()
+        self.assertEqual((self.tile(state, 0, 0)["stage"], state["basket"]["seed_tomato"]), ("seed", 1))
+        self.assertEqual(self.do(action="plant", x=0, y=0, id="seed_tomato").status_code, 400)   # taken
+        self.assertEqual(self.do(action="plant", x=1, y=0, id="seed_carrot").status_code, 400)   # none of those
+        self.assertEqual(self.do(action="plant", x=8, y=0, id="seed_tomato").status_code, 400)   # off the plot
+        self.do(action="plant", x=1, y=0, id="seed_tomato")
+        self.assertNotIn("seed_tomato", self.client.get(reverse("tomato_garden_state")).json()["basket"])
+
+    def test_growing_harvesting_and_compost(self):
+        self.do(action="plant", x=2, y=1, id="seed_tomato")
+        self.age(12)
+        state = self.client.get(reverse("tomato_garden_state")).json()
+        self.assertEqual(self.tile(state, 2, 1)["stage"], "leafy")
+        self.assertEqual(self.do(action="harvest", x=2, y=1).status_code, 400)  # not ripe
+        self.age(12)
+        state = self.do(action="harvest", x=2, y=1).json()
+        self.assertEqual((state["tiles"], state["compost"], state["harvests"]), ([], 2, 1))
+        self.assertIn("harvested a tomato", state["log"][0]["text"])
+
+    def test_chat_tomatoes_water_the_garden(self):
+        from mainapp import tomato_garden as G
+        self.do(action="plant", x=0, y=0, id="seed_tomato")
+        before = self.tile(self.client.get(reverse("tomato_garden_state")).json(), 0, 0)["progress"]
+        self.client.post(reverse("tomato_state"), json.dumps({"add": 30, "add_wild": 30}), content_type="application/json")
+        after = self.tile(self.client.get(reverse("tomato_garden_state")).json(), 0, 0)["progress"]
+        self.assertAlmostEqual(after - before, 30 * G.WATER / (24 * 3600), places=3)
+        self.client.post(reverse("tomato_state"), json.dumps({"add": 30}), content_type="application/json")  # the Pit: no water
+        self.assertAlmostEqual(self.tile(self.client.get(reverse("tomato_garden_state")).json(), 0, 0)["progress"], after, places=3)
+
+    def test_decorations_go_out_and_back(self):
+        state = self.do(action="place", x=3, y=3, id="lantern").json()
+        self.assertNotIn("lantern", state["basket"])
+        self.assertEqual(self.do(action="place", x=4, y=3, id="lantern").status_code, 400)  # only had one
+        state = self.do(action="remove", x=3, y=3).json()
+        self.assertEqual((state["tiles"], state["basket"]["lantern"]), ([], 1))
+        self.do(action="plant", x=5, y=0, id="seed_tomato")
+        self.assertEqual(self.do(action="remove", x=5, y=0).status_code, 400)  # that's a plant
+        self.assertEqual(self.do(action="dig", x=5, y=0).json()["tiles"], [])
+
+    def test_gardeners_help(self):
+        self.items(gardener_farmer=1, gardener_frog=1, gardener_witch=1, seed_tomato=2)
+        self.do(action="plant", x=0, y=0, id="seed_tomato")
+        self.do(action="plant", x=1, y=0, id="seed_tomato")
+        self.age(20)  # 20 hours × 1.25 = ripe, thanks to Grandpa Pomodoro
+        state = self.client.get(reverse("tomato_garden_state")).json()
+        self.assertEqual({t["stage"] for t in state["tiles"]}, {"ripe"})
+        self.do(action="harvest", x=0, y=0)
+        state = self.do(action="harvest", x=1, y=0).json()
+        self.assertEqual(state["compost"], 6)                      # 2 + 1 (Ribbit), twice
+        self.assertEqual(state["basket"].get("seed_tomato"), 1)    # Basil: every second harvest gives the seed back
+        self.items(gardener_robot=1)
+        self.do(action="plant", x=2, y=0, id="seed_tomato")
+        self.age(30)
+        state = self.client.get(reverse("tomato_garden_state")).json()
+        self.assertEqual(state["tiles"], [])                       # Hoe-Bot harvested it
+        self.assertIn("Hoe-Bot 3000", state["log"][0]["text"])
+        self.assertEqual(len(state["gardeners"]), 4)
 
 
 class TomatoBoardTests(TestCase):
