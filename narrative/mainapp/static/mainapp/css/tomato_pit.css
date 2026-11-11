@@ -30,14 +30,41 @@
 .pit-share { display: flex; gap: 8px; flex-wrap: wrap; }
 .pit-ach li.secret { border-style: dashed; }
 
-.wall-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 8px 0 10px; }
+.wall-help a { color: #c4b5fd; }
+.wall-row { display: flex; align-items: center; gap: 10px; margin: 8px 0 4px; min-width: 0; }
+.wall-label { font-size: .85rem; opacity: .75; flex: none; }
+.wall-ammo { display: flex; gap: 4px; overflow-x: auto; padding: 2px; scrollbar-width: thin; min-width: 0; }
+.wall-ammo button { flex: none; font-size: 1.35rem; line-height: 1; width: 40px; height: 40px; border-radius: 10px; cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, .12); background: transparent; }
+.wall-ammo button.on { border-color: #8b5cf6; background: rgba(139, 92, 246, .22); }
+.wall-tools { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin: 8px 0 10px; }
 .wall-chips { display: inline-flex; border: 1px solid rgba(255, 255, 255, .15); border-radius: 10px; overflow: hidden; }
 .wall-chips button { background: transparent; color: inherit; border: none; padding: 7px 12px; font: inherit; font-size: .85rem; cursor: pointer; }
 .wall-chips button + button { border-left: 1px solid rgba(255, 255, 255, .12); }
 .wall-chips button.on { background: rgba(139, 92, 246, .3); }
+.wall-size, .wall-bgpick { font-size: .85rem; display: inline-flex; gap: 8px; align-items: center; }
+.wall-size input { width: 120px; accent-color: #8b5cf6; }
+.wall-bgpick select { background: rgba(255, 255, 255, .06); color: inherit; border: 1px solid rgba(255, 255, 255, .15);
+    border-radius: 8px; padding: 6px 8px; font: inherit; font-size: .85rem; max-width: 170px; }
+.wall-bgpick option, .wall-bgpick optgroup { background: #1b1e2c; color: #f1f5f9; }
+.wall-wipe.on { background: rgba(139, 92, 246, .3); border-color: #8b5cf6; }
 .wall-check { font-size: .85rem; display: inline-flex; gap: 6px; align-items: center; }
+.wall-gap { flex: 1; }
+.wall-stage { display: flex; justify-content: center; }
 #wall { width: 100%; height: auto; display: block; border-radius: 12px; margin: 0 0 12px; cursor: crosshair; touch-action: none;
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1); }
+#wall.wiping { cursor: cell; }
+/* ⛶ Full screen: the wall fills the window, tools on top and bottom */
+#wallBox.wall-full { position: fixed; inset: 0; z-index: 8500; margin: 0; border-radius: 0; overflow: auto;
+    background: #0d0f18; display: flex; flex-direction: column; padding: 10px 14px; }
+#wallBox.wall-full .pit-box-head, #wallBox.wall-full .wall-help { display: none; }
+#wallBox.wall-full .wall-stage { flex: 1; min-height: 0; align-items: center; }
+#wallBox.wall-full #wall { width: auto; height: auto; max-width: 100%; max-height: 100%; margin: 0; }
+body.wall-full-open { overflow: hidden; }
+@media (max-width: 600px) {
+    .wall-size input { width: 96px; }
+    .wall-gap { display: none; }
+}
 
 /* 🏆 Leaderboard */
 .board-me { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin: 6px 0 12px; }
@@ -53,3 +80,41 @@
 .board-list .n { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .board-list .w { font-variant-numeric: tabular-nums; font-weight: 600; }
 .board-list li.me { outline: 1px solid rgba(139, 92, 246, .7); background: rgba(139, 92, 246, .14); }
+
+/* 🖼 Gallery */
+.gal-bar { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; margin: 14px 0; }
+.gal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+.gal-card { background: rgba(255, 255, 255, .04); border: 1px solid rgba(255, 255, 255, .1); border-radius: 14px; overflow: hidden;
+    display: flex; flex-direction: column; min-width: 0; }
+.gal-card canvas { width: 100%; height: auto; display: block; background: #151826; cursor: zoom-in; aspect-ratio: 1200 / 750; }
+.gal-body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 6px; }
+.gal-title { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gal-meta { font-size: .8rem; opacity: .7; }
+.gal-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.gal-actions .na-btn { padding: 5px 10px; font-size: .8rem; }
+.gal-like.on { border-color: #f43f5e; background: rgba(244, 63, 94, .16); }
+.gal-share { font-size: .8rem; display: inline-flex; gap: 6px; align-items: center; margin-right: auto; }
+.gal-more { display: flex; justify-content: center; margin: 18px 0; }
+.gal-empty { text-align: center; margin: 30px 0; }
+.gal-view { position: fixed; inset: 0; z-index: 8600; background: rgba(5, 6, 12, .9); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.gal-view[hidden] { display: none; }
+.gal-view-inner { width: min(1200px, 100%); display: flex; flex-direction: column; gap: 10px; }
+.gal-view canvas { width: 100%; height: auto; max-height: calc(100vh - 110px); object-fit: contain; border-radius: 10px; }
+.gal-view-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+#galMore[hidden], #galSort[hidden], .gal-empty[hidden] { display: none; }
+/* Full screen on a small screen: the tools shrink to scrollable rows, so the wall gets the room */
+.wall-turn { display: none; }
+@media (max-width: 700px) {
+    #wallBox.wall-full { padding: 6px 8px; gap: 4px; }
+    #wallBox.wall-full .wall-row, #wallBox.wall-full .wall-tools, #wallBox.wall-full .pit-share {
+        flex-wrap: nowrap; overflow-x: auto; margin: 0; gap: 6px; padding-bottom: 2px; scrollbar-width: none; }
+    #wallBox.wall-full .wall-tools > *, #wallBox.wall-full .pit-share > * { flex: none; }
+    #wallBox.wall-full .wall-label, #wallBox.wall-full .wall-check span { display: none; }
+    #wallBox.wall-full .na-btn { padding: 6px 10px; font-size: .8rem; }
+    #wallBox.wall-full .wall-ammo button { width: 34px; height: 34px; font-size: 1.1rem; }
+    #wallBox.wall-full .wall-chips button { padding: 6px 9px; font-size: .8rem; }
+    #wallBox.wall-full .wall-size input { width: 80px; }
+}
+@media (max-width: 700px) and (orientation: portrait) {
+    #wallBox.wall-full .wall-turn { display: block; text-align: center; font-size: .8rem; opacity: .7; margin: 2px 0; }
+}

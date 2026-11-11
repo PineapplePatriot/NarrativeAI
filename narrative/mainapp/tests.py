@@ -8331,6 +8331,84 @@ class TomatoPitTests(TestCase):
         self.assertEqual(self.client.get(reverse("tomato_state")).status_code, 302)
 
 
+class TomatoGalleryTests(TestCase):
+    """🖼 Saved splat walls: only ever splats, private until shared, likes from others only."""
+
+    SPLAT = {"x": 100, "y": 200, "r": 30, "c": "#e0352b", "k": "🍅", "e": True, "rot": 1.2, "seed": 77, "t": "drip"}
+
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(username="painter", password="pw12345!")
+        self.other = get_user_model().objects.create_user(username="critic", password="pw12345!")
+        self.client.force_login(self.user)
+
+    def save(self, **body):
+        body = {"title": "Sunset", "bg": "brick", "splats": [self.SPLAT], **body}
+        return self.client.post(reverse("tomato_art"), json.dumps(body), content_type="application/json")
+
+    def test_pages_open(self):
+        self.assertContains(self.client.get(reverse("tomato_gallery")), "Splat Gallery")
+        page = self.client.get(reverse("tomato_pit"))
+        self.assertContains(page, "Save to gallery")
+        self.assertContains(page, 'value="scene:cyberpunk.webp"')  # the story backgrounds are offered as walls
+
+    def test_only_real_splats_are_kept(self):
+        junk = [
+            {**self.SPLAT, "c": "url(javascript:alert(1))"},       # not a colour
+            {**self.SPLAT, "k": "<img src=x>"},                     # not a thrown thing
+            {**self.SPLAT, "k": "BUY NOW"},                         # words aren't vegetables
+            {**self.SPLAT, "x": "12"},                              # not a number
+            "nonsense",
+        ]
+        out = self.save(splats=[*junk, {**self.SPLAT, "x": 99999, "t": "laser", "f": "url(x)", "s": 4}]).json()
+        art = self.client.get(reverse("tomato_art_one", args=[out["id"]])).json()
+        self.assertEqual(len(art["splats"]), 1)
+        sp = art["splats"][0]
+        self.assertEqual((sp["x"], sp["t"], sp["f"]), (1200, "splat", ""))  # clamped, known shape, filter dropped
+        self.assertNotIn("s", sp)
+        self.assertEqual(self.save(splats=junk).status_code, 400)   # nothing left: refused
+        self.assertEqual(self.save(bg="scene:../../etc/passwd").json()["bg"], "night")
+        self.assertEqual(self.save(bg="scene:desert.webp").json()["bg"], "scene:desert.webp")
+        self.assertEqual(self.save(title="  a   " + "x" * 100).json()["title"], "a " + "x" * 58)
+
+    def test_private_until_shared_and_only_the_owner_edits(self):
+        art_id = self.save().json()["id"]
+        self.client.force_login(self.other)
+        self.assertEqual(self.client.get(reverse("tomato_art_one", args=[art_id])).status_code, 404)
+        self.assertEqual(self.client.get(reverse("tomato_art") + "?scope=all").json()["items"], [])
+        self.client.force_login(self.user)
+        r = self.client.post(reverse("tomato_art_one", args=[art_id]), json.dumps({"shared": True, "title": "Dusk"}),
+                             content_type="application/json").json()
+        self.assertEqual((r["shared"], r["title"]), (True, "Dusk"))
+        self.client.force_login(self.other)
+        items = self.client.get(reverse("tomato_art") + "?scope=all").json()["items"]
+        self.assertEqual([(i["title"], i["artist"], i["mine"]) for i in items], [("Dusk", "painter", False)])
+        self.assertEqual(self.client.get(reverse("tomato_art")).json()["items"], [])  # "mine" is still empty for them
+        self.assertEqual(self.client.post(reverse("tomato_art_one", args=[art_id]), json.dumps({"title": "Mine now"}),
+                                          content_type="application/json").status_code, 403)
+        self.assertEqual(self.client.delete(reverse("tomato_art_one", args=[art_id])).status_code, 403)
+        self.client.force_login(self.user)
+        self.assertEqual(self.client.delete(reverse("tomato_art_one", args=[art_id])).status_code, 200)
+        self.assertFalse(self.client.get(reverse("tomato_art")).json()["items"])
+
+    def test_likes(self):
+        art_id = self.save(shared=True).json()["id"]
+        self.assertEqual(self.client.post(reverse("tomato_art_like", args=[art_id])).status_code, 400)  # not your own
+        self.client.force_login(self.other)
+        self.assertEqual(self.client.post(reverse("tomato_art_like", args=[art_id])).json(), {"likes": 1, "liked": True})
+        top = self.client.get(reverse("tomato_art") + "?scope=all&sort=liked").json()["items"][0]
+        self.assertEqual((top["likes"], top["liked"]), (1, True))
+        self.assertEqual(self.client.post(reverse("tomato_art_like", args=[art_id])).json(), {"likes": 0, "liked": False})
+
+    def test_paging_and_the_limit(self):
+        from mainapp import tomatoes
+        from mainapp.models import TomatoArt
+        TomatoArt.objects.bulk_create([TomatoArt(user=self.user, title=f"n{i}", splats=[self.SPLAT])
+                                       for i in range(tomatoes.MAX_ART)])
+        first = self.client.get(reverse("tomato_art")).json()
+        self.assertEqual((len(first["items"]), first["more"]), (tomatoes.PAGE, True))
+        self.assertEqual(self.save().status_code, 400)  # the gallery is full
+
+
 class TomatoBoardTests(TestCase):
     """🏆 Chat + Bulba tomatoes: counted apart from the Pit's, believed only at a human pace, ranked for those who join."""
 

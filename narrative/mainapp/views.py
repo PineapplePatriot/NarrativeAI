@@ -66,7 +66,7 @@ def guide_page(request):
 @login_required
 def tomato_pit(request):
     """🍅 The secret Tomato Pit: throw as many as you like (static/js/tomato.js; progress kept on the account)."""
-    return render(request, "mainapp/tomato_pit.html")
+    return render(request, "mainapp/tomato_pit.html", {"scenes": tomatoes.scene_choices()})
 
 
 TOMATO_MAX_ADD = 3000  # throws one sync may add (it syncs every few seconds: well above any human rate)
@@ -126,6 +126,89 @@ def tomato_board(request):
             return JsonResponse({"error": "Say on_board: true or false."}, status=400)
         tomatoes.join(request.user, body["on_board"])
     return JsonResponse(tomatoes.board(request.user))
+
+
+def _json_body(request):
+    try:
+        body = json.loads(request.body.decode("utf-8") or "{}")
+    except (ValueError, UnicodeDecodeError):
+        return None
+    return body if isinstance(body, dict) else None
+
+
+@login_required
+def tomato_gallery(request):
+    """🖼 The gallery: your saved splat walls, and everyone's shared ones (mainapp/tomatoes.py)."""
+    return render(request, "mainapp/tomato_gallery.html", {"scenes": tomatoes.scene_choices()})
+
+
+@login_required
+def tomato_art(request):
+    """GET: a page of pieces (?scope=mine|all, ?sort=new|liked, ?page=N). POST {title, bg, splats}: save the wall."""
+    from .models import TomatoArt
+    if request.method == "POST":
+        body = _json_body(request)
+        if body is None:
+            return JsonResponse({"error": "Invalid request."}, status=400)
+        splats = tomatoes.clean_art(body.get("splats"))
+        if not splats:
+            return JsonResponse({"error": "The wall is empty: throw something first."}, status=400)
+        if TomatoArt.objects.filter(user=request.user).count() >= tomatoes.MAX_ART:
+            return JsonResponse({"error": f"The gallery holds {tomatoes.MAX_ART} pieces. Delete one to make room."},
+                                status=400)
+        art = TomatoArt.objects.create(user=request.user, title=tomatoes.clean_title(body.get("title")),
+                                       bg=tomatoes.clean_bg(body.get("bg")), splats=splats,
+                                       shared=body.get("shared") is True)
+        return JsonResponse(tomatoes.art_item(art, request.user))
+    try:
+        page = int(request.GET.get("page") or 1)
+    except ValueError:
+        page = 1
+    scope = "all" if request.GET.get("scope") == "all" else "mine"
+    return JsonResponse(tomatoes.art_list(request.user, scope, request.GET.get("sort") or "new", page))
+
+
+@login_required
+def tomato_art_one(request, art_id):
+    """One piece with its splats (yours, or a shared one). POST {title?, shared?} edits yours; DELETE removes it."""
+    from django.db.models import Q
+    from .models import TomatoArt
+    art = get_object_or_404(TomatoArt.objects.select_related("user"),
+                            Q(user=request.user) | Q(shared=True), id=art_id)
+    mine = art.user_id == request.user.id
+    if request.method == "DELETE":
+        if not mine:
+            return JsonResponse({"error": "That isn't yours."}, status=403)
+        art.delete()
+        return JsonResponse({"deleted": art_id})
+    if request.method == "POST":
+        if not mine:
+            return JsonResponse({"error": "That isn't yours."}, status=403)
+        body = _json_body(request)
+        if body is None:
+            return JsonResponse({"error": "Invalid request."}, status=400)
+        if "title" in body:
+            art.title = tomatoes.clean_title(body["title"])
+        if isinstance(body.get("shared"), bool):
+            art.shared = body["shared"]
+        art.save()
+    return JsonResponse(tomatoes.art_item(art, request.user, full=True))
+
+
+@login_required
+def tomato_art_like(request, art_id):
+    """❤ POST toggles your like on someone else's shared piece."""
+    from .models import TomatoArt
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only."}, status=405)
+    art = get_object_or_404(TomatoArt, id=art_id, shared=True)
+    if art.user_id == request.user.id:
+        return JsonResponse({"error": "No liking your own art. Bulba checked."}, status=400)
+    if art.likes.filter(id=request.user.id).exists():
+        art.likes.remove(request.user)
+    else:
+        art.likes.add(request.user)
+    return JsonResponse({"likes": art.likes.count(), "liked": art.likes.filter(id=request.user.id).exists()})
 
 
 @login_required

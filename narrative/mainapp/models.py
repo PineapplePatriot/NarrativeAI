@@ -257,3 +257,22 @@ class TomatoScore(models.Model):
 
     def __str__(self):
         return f"{self.user}: {self.wild} tomatoes"
+
+
+class TomatoArt(models.Model):
+    """🖼 A splat wall saved to the gallery. Kept as the splats themselves, never as an uploaded picture, so a
+    shared piece can only ever be vegetables on a wall (mainapp/tomatoes.py clean_art; drawn by splat_art.js)."""
+    user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name="tomato_art")
+    title = models.CharField(max_length=60, blank=True)
+    bg = models.CharField(max_length=60, default="night")
+    splats = models.JSONField(default=list, blank=True)
+    shared = models.BooleanField(default=False, db_index=True)   # in everyone's gallery
+    likes = models.ManyToManyField(get_user_model(), related_name="liked_tomato_art", blank=True)
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-created",)
+
+    def __str__(self):
+        return f"{self.title or 'Untitled'} by {self.user}"

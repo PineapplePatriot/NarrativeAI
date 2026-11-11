@@ -7,7 +7,7 @@
   <title>The Tomato Pit</title>
   <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
   <link rel="stylesheet" href="{% static 'css/base.css' %}?v=5">
-  <link rel="stylesheet" href="{% static 'mainapp/css/tomato_pit.css' %}?v=4">
+  <link rel="stylesheet" href="{% static 'mainapp/css/tomato_pit.css' %}?v=6">
 </head>
 <body class="na-body">
 {% include "partials/topbar.html" with active="tomatoes" %}
@@ -40,22 +40,36 @@
 
   <section class="pit-box" id="wallBox">
     <div class="pit-box-head"><h2>🎨 Splat wall</h2><span class="muted" id="wallCount"></span></div>
-    <p class="muted">Tap where it should land, or drag to keep throwing. It paints with the skin you picked (every throw counts).</p>
-    <div class="wall-tools">
-      <div class="wall-chips" id="wallBg" role="group" aria-label="Wall">
-        <button type="button" data-bg="night">Night</button><button type="button" data-bg="plaster">Plaster</button>
-        <button type="button" data-bg="brick">Brick</button><button type="button" data-bg="chalk">Chalkboard</button>
-      </div>
-      <div class="wall-chips" id="wallSize" role="group" aria-label="Size">
-        <button type="button" data-size="22">S</button><button type="button" data-size="38">M</button><button type="button" data-size="62">L</button>
-      </div>
-      <label class="wall-check"><input type="checkbox" id="wallEmoji" checked> Show what was thrown</label>
+    <p class="muted wall-help">Tap where it should land, or drag to paint a line of them. Every throw counts towards your
+      total (not the leaderboard). <a href="{% url 'tomato_gallery' %}">🖼 Open the gallery</a></p>
+    <div class="wall-row">
+      <span class="wall-label">Throw</span>
+      <div class="wall-ammo" id="wallAmmo" role="group" aria-label="What to throw"></div>
     </div>
-    <canvas id="wall" width="1200" height="750" aria-label="Your splat wall"></canvas>
+    <div class="wall-tools">
+      <div class="wall-chips" id="wallShape" role="group" aria-label="Shape"></div>
+      <label class="wall-size">Size <input type="range" id="wallSize" min="12" max="110" step="2" aria-label="Size"></label>
+      <button type="button" class="na-btn wall-wipe" id="wallWipe" aria-pressed="false" title="Drag to wipe splats off">🧽 Wipe</button>
+      <label class="wall-bgpick">Wall
+        <select id="wallBg" aria-label="Wall">
+          <optgroup label="Walls" id="wallBgTextures"></optgroup>
+          <optgroup label="Story scenes">
+            {% for b in scenes %}<option value="scene:{{ b.file }}">{{ b.name }}</option>{% endfor %}
+          </optgroup>
+        </select>
+      </label>
+      <label class="wall-check"><input type="checkbox" id="wallEmoji" checked> <span>Show what was thrown</span></label>
+    </div>
+    <p class="wall-turn">📱↻ Turn your phone sideways for a bigger wall.</p>
+    <div class="wall-stage"><canvas id="wall" width="1200" height="750" aria-label="Your splat wall"></canvas></div>
     <div class="pit-share">
       <button type="button" class="na-btn" id="wallUndo">↶ Undo</button>
-      <button type="button" class="na-btn" id="wallClear">Clear the wall</button>
-      <a class="na-btn na-primary" id="wallDownload" download="splat-wall.png" href="#" style="text-decoration:none">⬇ Download the wall</a>
+      <button type="button" class="na-btn" id="wallRedo">↷ Redo</button>
+      <button type="button" class="na-btn" id="wallClear">Clear</button>
+      <button type="button" class="na-btn" id="wallFull" aria-pressed="false">⛶ Full screen</button>
+      <span class="wall-gap"></span>
+      <button type="button" class="na-btn na-primary" id="wallSave" data-url="{% url 'tomato_art' %}" data-gallery="{% url 'tomato_gallery' %}">💾 Save to gallery</button>
+      <a class="na-btn" id="wallDownload" download="splat-wall.png" href="#" style="text-decoration:none">⬇ Download</a>
     </div>
   </section>
 
@@ -79,6 +93,7 @@
     </div>
   </section>
 </div>
-<script src="{% static 'mainapp/js/tomato_pit.js' %}?v=7"></script>
+<script src="{% static 'mainapp/js/splat_art.js' %}?v=1" data-scenes="{% static 'defaults/backgrounds/' %}"></script>
+<script src="{% static 'mainapp/js/tomato_pit.js' %}?v=8"></script>
 </body>
 </html>

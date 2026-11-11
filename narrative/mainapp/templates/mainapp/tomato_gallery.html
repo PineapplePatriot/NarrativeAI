@@ -1,0 +1,48 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>The Splat Gallery</title>
+  <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
+  <link rel="stylesheet" href="{% static 'css/base.css' %}?v=5">
+  <link rel="stylesheet" href="{% static 'mainapp/css/tomato_pit.css' %}?v=6">
+</head>
+<body class="na-body">
+{% include "partials/topbar.html" with active="tomatoes" %}
+<div class="container na-page pit gallery" id="gallery" data-list="{% url 'tomato_art' %}" data-one="{% url 'tomato_art_one' 0 %}"
+     data-like="{% url 'tomato_art_like' 0 %}" data-wall="{% url 'tomato_pit' %}#wallBox">
+  <header class="pit-head">
+    <h1>🖼 The Splat Gallery</h1>
+    <p class="muted">Walls people painted with vegetables. Yours stay private until you share them.
+      <a href="{% url 'tomato_pit' %}#wallBox">🎨 Back to the wall</a></p>
+  </header>
+
+  <div class="gal-bar">
+    <div class="wall-chips" id="galScope" role="tablist" aria-label="Whose art">
+      <button type="button" data-scope="mine" role="tab">Mine</button>
+      <button type="button" data-scope="all" role="tab">Everyone's</button>
+    </div>
+    <div class="wall-chips" id="galSort" role="group" aria-label="Order" hidden>
+      <button type="button" data-sort="new">Newest</button>
+      <button type="button" data-sort="liked">Most liked</button>
+    </div>
+  </div>
+
+  <div class="gal-grid" id="galGrid" aria-live="polite"></div>
+  <p class="muted gal-empty" id="galEmpty" hidden></p>
+  <div class="gal-more"><button type="button" class="na-btn" id="galMore" hidden>Show more</button></div>
+</div>
+
+<div class="gal-view" id="galView" hidden role="dialog" aria-modal="true" aria-label="A piece, large">
+  <div class="gal-view-inner">
+    <canvas id="galBig" width="1200" height="750"></canvas>
+    <div class="gal-view-bar"><b id="galBigTitle"></b><span class="muted" id="galBigBy"></span>
+      <span class="wall-gap"></span><button type="button" class="na-btn" id="galClose">✕ Close</button></div>
+  </div>
+</div>
+<script src="{% static 'mainapp/js/splat_art.js' %}?v=1" data-scenes="{% static 'defaults/backgrounds/' %}"></script>
+<script src="{% static 'mainapp/js/tomato_gallery.js' %}?v=1"></script>
+</body>
+</html>

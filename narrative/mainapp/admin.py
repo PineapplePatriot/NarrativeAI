@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import CharacterTemplate, Character, TomatoScore
+from .models import CharacterTemplate, Character, TomatoArt, TomatoScore
 
 @admin.register(CharacterTemplate)
 class CharacterTemplateAdmin(admin.ModelAdmin):
@@ -50,3 +50,11 @@ class TomatoScoreAdmin(admin.ModelAdmin):
     list_filter = ("on_board",)
     search_fields = ("user__username",)
     ordering = ("-wild",)
+
+
+@admin.register(TomatoArt)
+class TomatoArtAdmin(admin.ModelAdmin):
+    """🖼 Saved splat walls: owners can unshare or delete a piece from the shared gallery here."""
+    list_display = ("title", "user", "shared", "created")
+    list_filter = ("shared",)
+    search_fields = ("title", "user__username")
