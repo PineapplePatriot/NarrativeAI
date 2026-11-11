@@ -98,3 +98,4 @@
 .quick .q-chip span { display: inline-block; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--border); font-size: .85rem; }
 .quick .q-chip input:checked + span { background: #8b5cf6; border-color: #8b5cf6; color: #fff; }
 .quick .q-chip input:focus-visible + span { outline: 2px solid #c4b5fd; }
+.quick .q-chips .q-group { flex-basis: 100%; font-size: .78rem; opacity: .7; text-transform: uppercase; letter-spacing: .05em; margin-top: 4px; }

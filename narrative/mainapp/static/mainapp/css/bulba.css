@@ -283,3 +283,4 @@ body.embed .mini-progress { display: none !important; }  /* beside the Quick set
 .picture-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .tp-bg { flex-direction: column; align-items: flex-start; justify-content: flex-end; gap: 2px; }
 .tp-line.solo { display: flex; flex-direction: column; gap: 2px; }
+.basics-form .form-group { flex-basis: 100%; font-size: .75rem; opacity: .7; text-transform: uppercase; letter-spacing: .05em; margin-top: 2px; }

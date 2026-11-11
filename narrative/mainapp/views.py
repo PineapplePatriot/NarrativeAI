@@ -3290,8 +3290,13 @@ def _quick_questions(current, keys):
         q = {"key": key, "label": f["label"], "hint": f.get("hint", ""), "help": f.get("help", ""),
              "current": current.get(key, "") or ("flexible" if key == "length" else "")}
         if f.get("multi"):
-            q["multi"] = [{"value": v, "label": l, "adult": False} for v, l in f["multi"]] + \
-                         [{"value": v, "label": l, "adult": True} for v, l in f.get("adult") or []]
+            kinds, names = set(f.get("kinds") or []), dict(f.get("groups") or [])
+            group = (lambda v: "kind" if v in kinds else "mood") if names else (lambda v: "")
+            # mood chips first, then kinds of story, each under its own small heading; 18+ ones last
+            q["multi"] = sorted([{"value": v, "label": l, "adult": False, "group": group(v)} for v, l in f["multi"]],
+                                key=lambda o: o["group"] == "kind") + \
+                         [{"value": v, "label": l, "adult": True, "group": "kind" if names else ""} for v, l in f.get("adult") or []]
+            q["group_names"] = names
             q["current"] = current.get(key) or []
         elif "options" in f:
             q["options"] = [{"value": v, "label": l} for v, l in f["options"] if v != "any"]

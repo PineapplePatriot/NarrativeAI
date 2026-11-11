@@ -138,7 +138,10 @@ function basicsForm(live, answers) {
     const chips = (f, list) => list.map(([v, l]) => `<label class="pill"><input type="checkbox" name="b_${f.key}" value="${v}" ${on(f, v)} ${dis}><span>${esc(l)}</span></label>`).join('');
     const rows = BASICS_FORM.map(f => f.section ? `<div class="form-section">${esc(f.section)}</div>` : f.multi ? `<div class="form-row">
         <div class="form-label">${esc(f.label)}${f.hint ? `<small>${esc(f.hint)}</small>` : ''}</div>
-        <div class="form-field">${chips(f, f.multi)}
+        <div class="form-field">${f.groups ? f.groups.map(([g, name]) => {
+                const mine = f.multi.filter(([v]) => (f.kinds || []).includes(v) === (g === 'kind'));
+                return mine.length ? `<span class="form-group">${esc(name)}</span>${chips(f, mine)}` : '';
+            }).join('') : chips(f, f.multi)}
             ${f.adult ? `<span class="adult-chips" ${f.adult.some(([v]) => on(f, v)) ? '' : 'hidden'}>${chips(f, f.adult)}</span>
             <button type="button" class="link adult-toggle" ${dis}>Show ${esc(f.adultLabel || '18+ genres')}</button>` : ''}</div></div>` : `<div class="form-row">
         <div class="form-label">${esc(f.label)}${f.hint ? `<small>${esc(f.hint)}</small>` : ''}</div>

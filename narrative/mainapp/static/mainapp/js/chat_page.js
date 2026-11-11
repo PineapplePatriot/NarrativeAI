@@ -1230,6 +1230,18 @@ const bgMusic = document.getElementById('bgMusicPlayer');
 // The music: a ▶/❚❚ button in the header (shown when a track is set) follows what the audio actually does;
 // the picker holds the track name, the volume and "None"
 let musicHeld = false;  // they paused or stopped it themselves: don't start it again on their next click
+// While a tour walks them through the page the music waits (they can't reach its button under the tour); it
+// starts when the tour ends or they close it. A tour opened later from the ? menu pauses it the same way.
+let musicAfterTour = false;
+const tourOn = () => !!(window.NATour && (window.NATour.active() || (window.NATour.pending && window.NATour.pending())));
+document.addEventListener('na-tour', (e) => {
+    if (e.detail.on) {
+        if (!bgMusic.paused) { bgMusic.pause(); musicAfterTour = true; }
+    } else if (musicAfterTour) {
+        musicAfterTour = false;
+        if (!musicHeld && bgMusic.src) bgMusic.play().catch(() => {});  // the tour's last click counts as theirs
+    }
+});
 function loadMusic(url, name, onLoad = false) {
     bgMusic.src = url;
     bgMusic.volume = Number(document.getElementById('musicVolume')?.value || 0.3);
@@ -1238,13 +1250,23 @@ function loadMusic(url, name, onLoad = false) {
     const btn = document.getElementById('playPauseBtn');
     btn.hidden = false;
     musicHeld = false;
-    bgMusic.play().catch(() => {
-        // Browsers only allow sound after a click or key press: start on the first one
-        if (!onLoad) return;
-        const start = () => { if (!musicHeld && bgMusic.paused && bgMusic.src) bgMusic.play().catch(() => {}); };
+    // Browsers only allow sound after a click or key press: start on the first one (not a click in a tour)
+    const armFirstClick = () => {
+        const start = () => {
+            if (window.NATour && window.NATour.active()) { musicAfterTour = true; return; }
+            if (!musicHeld && bgMusic.paused && bgMusic.src) bgMusic.play().catch(() => {});
+        };
         document.addEventListener('pointerdown', start, { once: true, capture: true });
         document.addEventListener('keydown', start, { once: true, capture: true });
-    });
+    };
+    if (onLoad && tourOn()) {  // first visit: after the tour (or, if it never opens, on their first click)
+        musicAfterTour = true;
+        setTimeout(() => {
+            if (musicAfterTour && !(window.NATour && window.NATour.active())) { musicAfterTour = false; armFirstClick(); }
+        }, ((window.NA_PAGE_TOUR || {}).delay || 800) + 1500);
+        return;
+    }
+    bgMusic.play().catch(() => { if (onLoad) armFirstClick(); });
 }
 function syncMusicButton() {
     const btn = document.getElementById('playPauseBtn');

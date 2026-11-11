@@ -220,6 +220,31 @@
     "dead_dove",
     "Dead dove"
    ]
+  ],
+  "groups": [
+   [
+    "mood",
+    "Mood"
+   ],
+   [
+    "kind",
+    "Kind of story"
+   ]
+  ],
+  "kinds": [
+   "adventure",
+   "mystery",
+   "suspense",
+   "horror",
+   "drama",
+   "action",
+   "intrigue",
+   "survival",
+   "found_family",
+   "whimsical",
+   "psychological",
+   "grimdark",
+   "dark_romance"
   ]
  },
  {

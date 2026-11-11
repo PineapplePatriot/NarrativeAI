@@ -1,7 +1,7 @@
 {# One basics question on the Quick setup page, worded as Bulba's form (views._quick_questions) #}
 {% if q.multi %}
 <div class="q-multi" data-basic="{{ q.key }}" data-multi="1"><b>{{ q.label }}</b>{% if q.hint %} <small>{{ q.hint }}</small>{% endif %}
-    <div class="q-chips">{% for o in q.multi %}<label class="q-chip{% if o.adult %} q-mod-adult{% endif %}" {% if o.adult and not mature_on %}hidden{% endif %}>
+    <div class="q-chips">{% for o in q.multi %}{% ifchanged o.group %}{% if o.group %}<span class="q-group">{% for k, n in q.group_names.items %}{% if k == o.group %}{{ n }}{% endif %}{% endfor %}</span>{% endif %}{% endifchanged %}<label class="q-chip{% if o.adult %} q-mod-adult{% endif %}" {% if o.adult and not mature_on %}hidden{% endif %}>
         <input type="checkbox" value="{{ o.value }}" {% if o.value in q.current %}checked{% endif %}><span>{{ o.label }}</span></label>{% endfor %}</div></div>
 {% elif q.text %}
 <label><span class="q-label">{{ q.label }}</span>
