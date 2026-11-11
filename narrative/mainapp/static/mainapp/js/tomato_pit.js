@@ -305,3 +305,42 @@
     });
     redraw();
 })();
+
+/* 🏆 The leaderboard: chat + Bulba tomatoes of everyone who chose to be on it (mainapp/tomatoes.py). */
+(function () {
+    const box = document.getElementById('boardBox');
+    if (!box) return;
+    const URL = box.dataset.url;
+    const CSRF = () => (document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/) || [])[1] || '';
+    const $ = (id) => document.getElementById(id);
+    const fmt = (n) => Number(n || 0).toLocaleString();
+    function paint(b) {
+        if (!b || !b.me) return;
+        $('boardMine').textContent = fmt(b.me.wild);
+        $('boardJoin').checked = !!b.me.on_board;
+        $('boardRank').textContent = !b.me.wild ? 'Throw at a slow reply to get on the board.'
+            : b.me.on_board ? `You're #${b.me.rank}.` : `You'd be #${b.me.rank}.`;
+        $('boardPlayers').textContent = b.players ? `${fmt(b.players)} on the board` : '';
+        const list = $('boardList');
+        list.innerHTML = '';
+        b.top.forEach((row) => {
+            const li = document.createElement('li');
+            li.className = row.me ? 'me' : '';
+            li.innerHTML = '<span class="n"></span><span class="w"></span>';
+            li.querySelector('.n').textContent = row.name;
+            li.querySelector('.w').textContent = fmt(row.wild);
+            list.appendChild(li);
+        });
+        $('boardEmpty').hidden = b.top.length > 0;
+    }
+    async function load(body) {
+        try {
+            const resp = await fetch(URL, body ? { method: 'POST', credentials: 'same-origin', body: JSON.stringify(body),
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF() } } : { credentials: 'same-origin' });
+            if (resp.ok) paint(await resp.json());
+        } catch (e) { /* offline: try again later */ }
+    }
+    $('boardJoin').addEventListener('change', (e) => load({ on_board: e.target.checked }));
+    load();
+    setInterval(() => { if (!document.hidden) load(); }, 30000);
+})();

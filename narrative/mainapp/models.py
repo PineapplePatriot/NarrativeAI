@@ -242,3 +242,18 @@ class BulbaSession(models.Model):
 
     class Meta:
         ordering = ["-time_update"]
+
+
+class TomatoScore(models.Model):
+    """🍅 Tomatoes thrown at chats and Bulba while waiting (the Pit's own field and the splat wall don't count here).
+    This is what the leaderboard ranks and, later, what pays for spins. The rest of the tomato progress (total
+    thrown, skins, achievements) stays in ChatSettings.appearance["tomatoes"] (views.tomato_state)."""
+    user = models.OneToOneField(get_user_model(), on_delete=models.CASCADE, related_name="tomato_score")
+    wild = models.PositiveIntegerField(default=0, db_index=True)    # chat + Bulba throws, all time
+    on_board = models.BooleanField(default=False)                   # they chose to be on the leaderboard
+    synced_at = models.DateTimeField(null=True, blank=True)         # the last sync (for the throwing-speed limit)
+    day = models.DateField(null=True, blank=True)                   # the day `day_wild` counts (UTC)
+    day_wild = models.PositiveIntegerField(default=0)               # chat + Bulba throws counted that day
+
+    def __str__(self):
+        return f"{self.user}: {self.wild} tomatoes"

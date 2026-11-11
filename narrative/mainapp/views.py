@@ -29,7 +29,7 @@ from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
 from . import basics as basics_mod
-from . import extras, game, html_objects, media_library, recall, story, thinking, ai_client, cards, chats, regex_rules, experiences, model_profiles, presets, samplers, starters, trackers, translation
+from . import extras, game, html_objects, media_library, recall, story, thinking, ai_client, cards, chats, regex_rules, experiences, model_profiles, presets, samplers, starters, tomatoes, trackers, translation
 from .bulba import control, polish, watch
 from mainapp import mature, refusals
 
@@ -107,7 +107,25 @@ def tomato_state(request):
             state["skin"] = sent["skin"]
         obj.appearance = {**(obj.appearance or {}), "tomatoes": state}
         obj.save(update_fields=["appearance"])
-    return JsonResponse(state)
+        wild = body.get("add_wild")
+        if isinstance(wild, int) and not isinstance(wild, bool) and wild > 0:
+            tomatoes.add_wild(request.user, min(wild, add))  # chat + Bulba throws are part of the same throws
+    score = tomatoes.score_of(request.user)
+    return JsonResponse({**state, "wild": score.wild, "on_board": score.on_board})
+
+
+@login_required
+def tomato_board(request):
+    """🏆 The leaderboard of chat + Bulba tomatoes. POST {"on_board": true/false} joins or leaves it."""
+    if request.method == "POST":
+        try:
+            body = json.loads(request.body.decode("utf-8") or "{}")
+        except (ValueError, UnicodeDecodeError):
+            return JsonResponse({"error": "Invalid request."}, status=400)
+        if not isinstance(body, dict) or not isinstance(body.get("on_board"), bool):
+            return JsonResponse({"error": "Say on_board: true or false."}, status=400)
+        tomatoes.join(request.user, body["on_board"])
+    return JsonResponse(tomatoes.board(request.user))
 
 
 @login_required

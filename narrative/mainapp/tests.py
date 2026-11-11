@@ -8329,3 +8329,69 @@ class TomatoPitTests(TestCase):
     def test_needs_an_account(self):
         self.client.logout()
         self.assertEqual(self.client.get(reverse("tomato_state")).status_code, 302)
+
+
+class TomatoBoardTests(TestCase):
+    """🏆 Chat + Bulba tomatoes: counted apart from the Pit's, believed only at a human pace, ranked for those who join."""
+
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(username="thrower", password="pw12345!")
+        self.client.force_login(self.user)
+
+    def post(self, body):
+        return self.client.post(reverse("tomato_state"), json.dumps(body), content_type="application/json").json()
+
+    def board(self, body=None):
+        if body is None:
+            return self.client.get(reverse("tomato_board")).json()
+        return self.client.post(reverse("tomato_board"), json.dumps(body), content_type="application/json")
+
+    def test_only_chat_and_bulba_throws_count_and_never_more_than_were_thrown(self):
+        state = self.post({"add": 30, "add_wild": 10})
+        self.assertEqual((state["count"], state["wild"]), (30, 10))
+        state = self.post({"add": 5, "add_wild": 50})        # more "wild" throws than throws: only the throws
+        self.assertEqual((state["count"], state["wild"]), (35, 15))
+        state = self.post({"add": 5, "add_wild": True})      # nonsense counts nothing
+        self.assertEqual(state["wild"], 15)
+
+    def test_a_script_is_held_to_a_human_pace(self):
+        from mainapp import tomatoes
+        state = self.post({"add": 3000, "add_wild": 3000})
+        self.assertEqual(state["wild"], tomatoes.BURST * 5)  # the first sync: a few minutes' worth at most
+        state = self.post({"add": 3000, "add_wild": 3000})
+        self.assertLessEqual(state["wild"] - tomatoes.BURST * 5, tomatoes.BURST + tomatoes.RATE)
+        self.assertEqual(state["count"], 6000)               # the personal total isn't limited this way
+
+    def test_a_day_has_a_ceiling(self):
+        from django.utils import timezone
+        from mainapp import tomatoes
+        from mainapp.models import TomatoScore
+        TomatoScore.objects.create(user=self.user, wild=7000, day=timezone.now().date(),
+                                   day_wild=tomatoes.DAY_MAX - 3, synced_at=timezone.now() - timezone.timedelta(hours=1))
+        self.assertEqual(self.post({"add": 100, "add_wild": 100})["wild"], 7003)
+        TomatoScore.objects.filter(user=self.user).update(day=timezone.now().date() - timezone.timedelta(days=1),
+                                                         synced_at=timezone.now() - timezone.timedelta(hours=1))
+        self.assertEqual(self.post({"add": 100, "add_wild": 100})["wild"], 7103)  # a new day starts fresh
+
+    def test_the_board_shows_only_people_who_joined(self):
+        from mainapp.models import TomatoScore
+        other = get_user_model().objects.create_user(username="lurker", password="pw12345!")
+        champ = get_user_model().objects.create_user(username="champ", password="pw12345!")
+        TomatoScore.objects.create(user=other, wild=900)                  # didn't join: never shown
+        TomatoScore.objects.create(user=champ, wild=500, on_board=True)
+        self.post({"add": 40, "add_wild": 40})
+        b = self.board()
+        self.assertEqual([r["name"] for r in b["top"]], ["champ"])
+        self.assertEqual((b["me"]["wild"], b["me"]["on_board"], b["me"]["rank"]), (40, False, 2))  # would be #2
+        b = self.board({"on_board": True}).json()
+        self.assertEqual([(r["name"], r["me"]) for r in b["top"]], [("champ", False), ("thrower", True)])
+        self.assertEqual((b["me"]["rank"], b["players"]), (2, 2))
+        self.assertNotIn("lurker", json.dumps(b))
+        b = self.board({"on_board": False}).json()
+        self.assertEqual([r["name"] for r in b["top"]], ["champ"])
+
+    def test_bad_requests(self):
+        self.assertEqual(self.board({"on_board": "yes"}).status_code, 400)
+        self.assertEqual(self.client.post(reverse("tomato_board"), "{", content_type="application/json").status_code, 400)
+        self.client.logout()
+        self.assertEqual(self.client.get(reverse("tomato_board")).status_code, 302)

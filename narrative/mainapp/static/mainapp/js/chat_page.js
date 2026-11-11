@@ -350,7 +350,7 @@ window.fetch = function (url, opts) {
     slowJobs++;
     return pageFetch(url, opts).finally(() => { slowJobs = Math.max(0, slowJobs - 1); });
 };
-if (window.NATomato) NATomato.watch(() => isBusy() || slowJobs > 0);  // 🍅 a slow reply or a slow Bulba helper
+if (window.NATomato) NATomato.watch(() => isBusy() || slowJobs > 0, 'chat');  // 🍅 a slow reply or a slow Bulba helper
 
 messageInput.addEventListener('input', function () {
     this.style.height = 'auto';

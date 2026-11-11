@@ -3,7 +3,9 @@
    for throwing as many as you like, with achievements and skins (colours, vegetables, objects) and a share card.
    Progress is kept on the account (tomatoes/state/): this browser keeps a copy and sends what it threw since the
    last sync every few seconds, so two devices add up instead of overwriting each other.
-   Pages say when they're waiting: NATomato.watch(() => isWaiting). */
+   Pages say when they're waiting: NATomato.watch(() => isWaiting, 'chat' | 'bulba').
+   Throws from the waiting tomato on a chat or Bulba count twice over: in the total, and "in the wild" (`wild`), which
+   the leaderboard ranks (mainapp/tomatoes.py). The Pit's own field and the splat wall add to the total only. */
 (function () {
     if (window.NATomato) return;
     const PIT = (document.currentScript && document.currentScript.dataset.pit) || '';
@@ -136,9 +138,9 @@
     // --- What's kept: the account's state, a copy here, and the throws not yet sent ---
     const read = (k) => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } };
     const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* private window */ } };
-    const blank = () => ({ count: 0, skin: 'tomato', ach: {}, days: [], waits: 0, found: false, best10: 0 });
+    const blank = () => ({ count: 0, wild: 0, skin: 'tomato', ach: {}, days: [], waits: 0, found: false, best10: 0 });
     let data = Object.assign(blank(), read(KEY) || {});
-    let pending = Object.assign({ add: 0, add_waits: 0 }, read(PENDING) || {});
+    let pending = Object.assign({ add: 0, add_waits: 0, add_wild: 0 }, read(PENDING) || {});
     if (STATE && !data.synced && data.count) {  // kept only in this browser before: it goes to the account once
         pending.add += data.count;
         pending.add_waits += data.waits || 0;
@@ -150,6 +152,7 @@
         const bySkin = data.bySkin || {};  // kept in this browser (what it unlocks is on the account)
         data = Object.assign(blank(), server, { bySkin,
             count: (server.count || 0) + pending.add, waits: (server.waits || 0) + pending.add_waits,
+            wild: (server.wild || 0) + (pending.add_wild || 0),
             ach, days: [...new Set([...(server.days || []), ...data.days])].slice(-30),
             best10: Math.max(server.best10 || 0, data.best10 || 0), found: !!(server.found || data.found),
             skin: pending.skin || server.skin || data.skin, synced: true,
@@ -163,9 +166,9 @@
         if (!STATE || syncing) return;
         clearTimeout(syncTimer);
         const sent = pending;
-        pending = { add: 0, add_waits: 0 };
+        pending = { add: 0, add_waits: 0, add_wild: 0 };
         save();
-        const body = { add: sent.add, add_waits: sent.add_waits, ach: data.ach, days: data.days, best10: data.best10,
+        const body = { add: sent.add, add_waits: sent.add_waits, add_wild: sent.add_wild || 0, ach: data.ach, days: data.days, best10: data.best10,
                        found: data.found, ...(sent.skin ? { skin: sent.skin } : {}) };
         syncing = true;
         try {
@@ -175,11 +178,12 @@
             if (!leaving) merge(await resp.json());
         } catch (e) {  // not saved: it goes with the next sync
             pending = { add: pending.add + sent.add, add_waits: pending.add_waits + sent.add_waits,
+                        add_wild: (pending.add_wild || 0) + (sent.add_wild || 0),
                         ...(pending.skin || sent.skin ? { skin: pending.skin || sent.skin } : {}) };
             save();
         } finally { syncing = false; }
     }
-    addEventListener('pagehide', () => { if (pending.add || pending.add_waits || pending.skin) sync(true); });
+    addEventListener('pagehide', () => { if (pending.add || pending.add_waits || pending.add_wild || pending.skin) sync(true); });
     document.addEventListener('visibilitychange', () => { if (document.hidden && (pending.add || pending.skin)) sync(true); });
 
     const skin = (id = data.skin) => SKINS.find(s => s.id === id) || SKINS[0];
@@ -234,7 +238,7 @@
         document.body.appendChild(el);
         setTimeout(() => el.remove(), 1600);
     }
-    function throwOne(from) {
+    function throwOne(from, wild = false) {
         const s = skin();
         const to = spot();
         const lucky = Math.random() < 1 / 500;
@@ -255,13 +259,14 @@
         } else {
             splat(to.x, to.y, s, lk);
         }
-        count(lucky);
+        count(lucky, wild);
     }
 
-    function count(lucky) {
+    function count(lucky, wild = false) {
         const before = SKINS.filter(unlocked).length;
         data.count++;
         pending.add++;
+        if (wild) { data.wild = (data.wild || 0) + 1; pending.add_wild = (pending.add_wild || 0) + 1; }
         const now = Date.now();
         recent.push(now);
         while (recent.length && now - recent[0] > 10000) recent.shift();
@@ -313,6 +318,7 @@
                    'Waiting builds character. Tomatoes help.', 'Express your feedback. Visually.'];
     const watchers = [];
     let waiting = false, waited = 0, idle = 0, btn = null, pitLink = null;
+    let wildWait = false;  // this wait is a chat's or Bulba's: its throws count for the leaderboard
     function showButton() {
         if (btn) { btn.classList.remove('fading'); return; }
         btn = document.createElement('button');
@@ -324,7 +330,7 @@
         paintButton();
         btn.addEventListener('click', () => {
             const r = btn.querySelector('.na-tom-face').getBoundingClientRect();
-            throwOne({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
+            throwOne({ x: r.left + r.width / 2, y: r.top + r.height / 2 }, wildWait);
             btn.classList.add('thrown');
             paintButton();
         });
@@ -355,15 +361,16 @@
         document.body.appendChild(pitLink);
     }
     setInterval(() => {
-        const now = watchers.some(fn => { try { return !!fn(); } catch (e) { return false; } });
-        if (now) {
+        const active = watchers.filter(w => { try { return !!w.fn(); } catch (e) { return false; } });
+        if (active.length) {
             if (!waiting) { waiting = true; waited = 0; waitThrows = 0; }
+            wildWait = active.some(w => w.kind === 'chat' || w.kind === 'bulba');
             waited++;
             idle = 0;
             if (waited >= SHOW_AFTER) showButton();
         } else if (waiting || btn) {
             waiting = false;
-            if (++idle >= LINGER) hideButton();
+            if (++idle >= LINGER) { hideButton(); wildWait = false; }
         }
     }, 1000);
 
@@ -380,7 +387,7 @@
 
     window.NATomato = {
         SKINS, ACHIEVEMENTS,
-        watch(fn) { watchers.push(fn); },
+        watch(fn, kind = '') { watchers.push({ fn, kind }); },
         throwOne, toast, unlocked, look,
         // One throw that something else drew (the splat wall): counted like any other; says if it was lucky
         tally() { const lucky = Math.random() < 1 / 500; count(lucky); return lucky; },

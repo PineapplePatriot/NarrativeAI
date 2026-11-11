@@ -7,7 +7,7 @@
   <title>The Tomato Pit</title>
   <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
   <link rel="stylesheet" href="{% static 'css/base.css' %}?v=5">
-  <link rel="stylesheet" href="{% static 'mainapp/css/tomato_pit.css' %}?v=3">
+  <link rel="stylesheet" href="{% static 'mainapp/css/tomato_pit.css' %}?v=4">
 </head>
 <body class="na-body">
 {% include "partials/topbar.html" with active="tomatoes" %}
@@ -24,6 +24,19 @@
     <span class="pit-hint">Click, tap or hold Space to throw</span>
     <span class="pit-rate" id="pitRate"></span>
   </button>
+
+  <section class="pit-box" id="boardBox" data-url="{% url 'tomato_board' %}">
+    <div class="pit-box-head"><h2>🏆 Leaderboard</h2><span class="muted" id="boardPlayers"></span></div>
+    <p class="muted">Tomatoes thrown at a chat or at Bulba while waiting for a reply. Throws here in the Pit and on the
+      splat wall don't count: you have to earn these.</p>
+    <div class="board-me">
+      <div><span class="board-big" id="boardMine">0</span> <span class="muted">at chats and Bulba</span>
+        <small class="muted" id="boardRank"></small></div>
+      <label class="wall-check"><input type="checkbox" id="boardJoin"> <span>Show me on the leaderboard (as <b>{{ request.user.username }}</b>)</span></label>
+    </div>
+    <ol class="board-list" id="boardList"></ol>
+    <p class="muted board-empty" id="boardEmpty" hidden>Nobody's on it yet. Be the first to be seen throwing.</p>
+  </section>
 
   <section class="pit-box" id="wallBox">
     <div class="pit-box-head"><h2>🎨 Splat wall</h2><span class="muted" id="wallCount"></span></div>
@@ -66,6 +79,6 @@
     </div>
   </section>
 </div>
-<script src="{% static 'mainapp/js/tomato_pit.js' %}?v=6"></script>
+<script src="{% static 'mainapp/js/tomato_pit.js' %}?v=7"></script>
 </body>
 </html>
