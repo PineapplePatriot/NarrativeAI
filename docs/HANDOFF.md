@@ -31,7 +31,7 @@ gunicorn. Graders use a demo account with **Il Dottore**. Testers are Ukrainian.
 
 - Branch: **`claude/vigilant-hawking-ea4zwf`**. The user merges it to `master` through PRs themselves; **don't open
   a PR unless asked**. Push with `git push -u origin claude/vigilant-hawking-ea4zwf`.
-- At handoff the branch is **14 commits ahead of `master`** (counting this handoff) (master = `5370638`, PR #34). Everything listed under
+- At handoff the branch is **13 commits ahead of `master`** (counting this handoff) (master = `5370638`, PR #34). Everything listed under
   "Not live yet" below is only on the branch until they merge.
 - Latest migration: `0032_second_character_name`. Railway runs migrations on deploy.
 - Commits end with the attribution lines from the session's system reminder. **No model identifiers** in commits,
