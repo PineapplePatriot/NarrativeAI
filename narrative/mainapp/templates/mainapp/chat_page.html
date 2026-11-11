@@ -8,7 +8,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Narrative AI - Chat with {{character.name}}</title>
-    <link rel="stylesheet" href="{% static 'mainapp/css/chat_page.css' %}?v=37">
+    <link rel="stylesheet" href="{% static 'mainapp/css/chat_page.css' %}?v=38">
     <link rel="stylesheet" href="{% static 'mainapp/css/chat_skins.css' %}?v=3">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=5">
@@ -343,6 +343,12 @@
                             <label class="swatch custom" title="Any colour"><input type="color" id="dialogueCustom" value="{% if appearance.dialogue_color != 'preset' %}{{ appearance.dialogue_color }}{% else %}#e594f2{% endif %}"></label>
                             <button type="button" class="preset-btn {% if appearance.dialogue_color == 'preset' %}on{% endif %}" data-color="preset" title="No colour of its own: the preset's or the AI's colours show instead">Preset's colours</button>
                         </div>
+                        <small class="skin-note">For all speech. Characters with a colour of their own (below) keep theirs.</small>
+                        <span class="tool-sublabel">🗣 Speech colour by character</span>
+                        <div class="speaker-colors" id="speakerColors"></div>
+                        <div class="speaker-add"><input type="text" id="speakerName" maxlength="60" placeholder="A name, e.g. Pantalone">
+                            <input type="color" id="speakerColor" value="#7dd3fc"><button type="button" class="preset-btn" id="speakerAdd">Add</button></div>
+                        <small class="skin-note">Each one keeps its colour in every reply, old ones too. New characters get a colour the first time they speak (change it here).</small>
                         <span class="tool-sublabel">💳 This month</span>
                         <div class="spending-line" id="spendingLine" data-spent="{{ spending.spent }}" data-limit="{{ spending.limit }}">
                             ${{ spending.spent|floatformat:2 }} of ${{ spending.limit|floatformat:2 }} used (chat, Bulba and background jobs)</div>
@@ -511,6 +517,7 @@
     {# Shipped with the app (pinned versions, no CDN): see mainapp/static/mainapp/vendor/ #}
     <script src="{% static 'mainapp/vendor/marked-18.0.14.umd.js' %}"></script>
     <script src="{% static 'mainapp/vendor/purify-3.4.16.min.js' %}"></script>
+    {{ speaker_colors|json_script:"speaker-colors" }}
     <script>
         window.SAVED_MUSIC = JSON.parse('{{ current_music|escapejs }}');
         window.MUSIC_FOLLOW = {{ music_follow|yesno:"true,false" }};
@@ -519,6 +526,7 @@
         window.INIT_PHOTO_URL = "{{ photo_url|default:'' }}";
         window.INIT_PHOTO_SECOND = "{{ photo_second|default:'' }}";
         window.IS_MULT = {{ character.is_mult|yesno:"true,false" }};
+        window.SPEAKER_COLORS = JSON.parse(document.getElementById('speaker-colors').textContent || '{}');
         window.INIT_CHAR_COUNT = {{ char_count|default:1 }};
         window.CHAR_INITIAL = "{{ character.name|first|upper|escapejs }}";
         window.VOICE_ON = {% if voice_on %}true{% else %}false{% endif %};

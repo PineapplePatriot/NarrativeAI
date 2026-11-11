@@ -541,3 +541,36 @@ class OldWordingRefreshTests(SimpleTestCase):
         self.assertNotIn('[Continue', blocks['Reply reminder'])
         self.assertIn('[18+ line stays]', blocks['Reply reminder'])
         self.assertEqual(control.mode_of(data), 'write')
+
+
+class DesignMemoryTests(SimpleTestCase):
+    def test_the_first_look_of_each_kind_is_kept_and_their_edit_replaces_it(self):
+        from mainapp import html_objects
+        first = '```html\n<div data-label="Scene banner: the docks" style="color:red">DOCKS</div>\n```'
+        later = '```html\n<div data-label="Scene banner: the bank" style="color:blue">BANK</div>\n```'
+        designs = {}
+        html_objects.remember(designs, "Text.\n\n" + first)
+        html_objects.remember(designs, later)  # the AI drifted: the first look stays
+        self.assertIn("color:red", designs["scene banner"])
+        html_objects.remember(designs, later, replace=True)  # they edited it: theirs wins
+        self.assertIn("color:blue", designs["scene banner"])
+        text = html_objects.designs_for_prompt(designs)
+        self.assertIn("reuse its design exactly", text)
+        self.assertIn("scene banner", text)
+
+
+class SpeakerColorTests(SimpleTestCase):
+    def test_first_colour_is_kept_and_the_prompt_lists_them(self):
+        from mainapp import speaker_colors
+        saved = []
+        char = type("C", (), {"theme": {"speaker_colors": {"Dottore": "#6aa8ff"}},
+                              "save": lambda self, **k: saved.append(1)})()
+        text = ('<font color="#ffcc00" data-who="Dottore">"No."</font> '
+                '<font data-who="Pantalone" color="#33ddaa">"Yes."</font> <font color="#ff0000">"?"</font>')
+        colors = speaker_colors.learn(char, text)
+        self.assertEqual(colors, {"Dottore": "#6aa8ff", "Pantalone": "#33ddaa"})  # Dottore keeps his blue
+        self.assertTrue(saved)
+        prompt = speaker_colors.for_prompt(colors)
+        self.assertIn("Dottore #6aa8ff", prompt)
+        self.assertIn('data-who="Name"', prompt)
+        self.assertEqual(speaker_colors.clean({"A": "#123456", "B": "red", "": "#000000"}), {"A": "#123456"})

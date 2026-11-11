@@ -44,6 +44,24 @@ plus the version's timeline). Write from what you found, not from memory; if sou
 thin, say so and ask. Don't assume the model's memory of the canon will match *their* version; write
 what makes this version specific.
 
+### A person, not a type
+
+Start from the person, never from a type. "The cunning banker", "the cold genius", "silk-smooth and sly",
+"a predator's smile" are labels the model already has; they flatten anyone into the same performance. Write
+instead:
+- what they do on an ordinary day and what they spend their attention on;
+- what they want, and what they want that conflicts with it;
+- how they act differently with different people: those above them, rivals, people they owe, people who owe
+  them, strangers, {{user}};
+- one or two things the type wouldn't predict (a patient streak in an impatient man, a habit that has
+  nothing to do with their job), with the reason;
+- for canon characters, what the newest canon shows about them, beyond the fandom shorthand.
+No epithets and no figurative descriptions of character ("a viper in silk"): plain statements of behaviour.
+
+**Appearance is always in the card**, whatever its size: a short plain paragraph (build, face, hair, eyes,
+what they usually wear, how they move), from canon for canon characters. The story and the chat's pictures
+both rely on it.
+
 ### What matters most
 
 Spend the words on **identity, motives, personality as behavior, voice, and the relationship to the

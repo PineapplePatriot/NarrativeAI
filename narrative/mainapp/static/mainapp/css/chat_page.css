@@ -2371,3 +2371,11 @@ body.skin-lab .message-text .thought { color: #3d5a78; }
 .character-images-wrapper.with-user .character-image-container { width: min(320px, 31%); height: auto; max-height: 520px; flex: 0 1 auto; }
 .character-images-wrapper.with-user .user-sprite { transform: scale(.92); transform-origin: bottom center; opacity: .95; }
 .character-images-wrapper.with-user .user-sprite img { max-width: 100%; }
+
+/* Speech colour by character (pen menu) */
+.speaker-colors { display: flex; flex-direction: column; gap: 4px; margin-bottom: 6px; }
+.speaker-row { display: flex; align-items: center; gap: 8px; font-size: .88rem; }
+.speaker-row input[type=color], .speaker-add input[type=color] { width: 28px; height: 24px; border: none; padding: 0; background: none; cursor: pointer; }
+.speaker-row .icon-btn { margin-left: auto; }
+.speaker-add { display: flex; gap: 6px; align-items: center; }
+.speaker-add input[type=text] { flex: 1; min-width: 0; background: rgba(255,255,255,.06); color: inherit; border: 1px solid rgba(255,255,255,.15); border-radius: 8px; padding: 5px 8px; font: inherit; font-size: .85rem; }

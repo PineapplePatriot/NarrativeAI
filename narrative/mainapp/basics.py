@@ -47,8 +47,16 @@ def line_for(key, value):
     return (options or {}).get(value, "")
 
 
+LEGACY_LINES = {"colors": ("Give each character's spoken lines their own colour: wrap each quoted line in "
+                           "<font color=\"#RRGGBB\">\"...\"</font>, keep one colour per character for the whole story, "
+                           "and pick colours that read well on a dark background.",)}
+
+
 def _owner(line):
     """Which answer a line belongs to (None: a line someone wrote themselves)."""
+    for key, olds in LEGACY_LINES.items():
+        if line in olds:
+            return key
     for key in LINE_KEYS:
         if key == "genres" and line.startswith(GENRE_HEAD):
             return key
@@ -80,6 +88,8 @@ def read(preset):
             out[key] = line[len(AUTHOR_HEAD):].split(": their diction")[0]
         elif key == "keep_out":
             out[key] = line[len(KEEP_OUT_HEAD):].rstrip(".")
+        elif key in LEGACY_LINES and line in LEGACY_LINES[key]:
+            out[key] = "on"
         elif key:
             out[key] = next(v for v, t in _basics()[key][1].items() if t == line)
     return out

@@ -565,8 +565,9 @@ BASICS = {
         "any": ""}),
     "colors": ("Coloured speech", {
         "on": "Give each character's spoken lines their own colour: wrap each quoted line in "
-              "<font color=\"#RRGGBB\">\"...\"</font>, keep one colour per character for the whole story, "
-              "and pick colours that read well on a dark background.",
+              "<font color=\"#RRGGBB\" data-who=\"Their name\">\"...\"</font>, keep one colour per character for "
+              "the whole story (the story state lists the ones already set), and pick colours that read well on "
+              "a dark background.",
         "off": ""}),
     "panels": ("In-story panels", {
         "on": "When a text message, note, letter, sign or screen appears in the story, show it as a small "
@@ -619,6 +620,10 @@ BASICS = {
                    "reader to infer.",
         "infer": "Inner thoughts: the narrator may report them briefly in its own words (\"He thought he had "
                  "messed up.\"), never as a character's inner voice. Most feeling still shows through behaviour.",
+        "woven": "Inner thoughts: write characters' thoughts directly, in their own words, as an ordinary part of "
+                 "the prose (\"I messed up, he thought.\"), with no special marking or formatting. Keep them short "
+                 "and selective: motives, doubts, quiet conflicts that behaviour alone can't show. {{user}}'s "
+                 "thoughts follow the Your character rules.",
         "enter": "Inner thoughts: write characters' thoughts directly, in their own words, wrapped in "
                  "<thought>...</thought> so the chat shows them apart (\"<thought>I messed up.</thought> he "
                  "thought.\"). Keep them short and selective: motives, doubts, quiet conflicts that behaviour alone "

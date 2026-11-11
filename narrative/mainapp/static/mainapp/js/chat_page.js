@@ -290,6 +290,13 @@ function renderChatMessage(rawText, where) {
     let source = String(rawText ?? '').replace(HTML_FENCE, (m, code) => { objects.push(code); return `\n\n<div class="object-slot n${objects.length - 1}"></div>\n\n`; });
     if (isGenerating) source = source.replace(HTML_OPEN, () => '\n\n<div class="object-slot drawing"></div>\n\n');  // a cut-off one stays code
     let shown = TextRules.any() ? TextRules.apply(source, place.role, place.depth) : source;
+    // A line tagged with its speaker takes that character's colour (pen menu → speech colour by character)
+    shown = shown.replace(/<font\b([^>]*)>/gi, (tag, attrs) => {
+        const who = (attrs.match(/data-who\s*=\s*["']([^"']{1,60})["']/i) || [])[1];
+        const color = who && (window.SPEAKER_COLORS || {})[who.trim().replace(/\s+/g, ' ')];
+        if (!color) return tag;
+        return /color\s*=/i.test(attrs) ? tag.replace(/color\s*=\s*["']?#?[0-9a-z]*["']?/i, `color="${color}"`) : `<font color="${color}"${attrs}>`;
+    });
     // A character's direct thought ("Inner thoughts, shown apart" module): its own style
     shown = shown.replace(/<thought>([\s\S]*?)<\/thought>/gi, (m, t) => `<span class="thought">${t.trim()}</span>`);
     // Story extras' markers ([[extra 2]]) become slots; placeExtras() puts the app's drawing there
@@ -1582,6 +1589,49 @@ branchModal.addEventListener('click', (e) => { if (e.target === branchModal) clo
     const custom = document.getElementById('dialogueCustom');
     custom.addEventListener('input', () => apply(custom.value));
     custom.addEventListener('change', () => save(custom.value));
+})();
+
+// --- Speech colour by character (tools menu): kept on the character, redraws every reply ---
+(function () {
+    const list = document.getElementById('speakerColors');
+    if (!list) return;
+    const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c]));
+    const draw = () => {
+        const colors = window.SPEAKER_COLORS || {};
+        list.innerHTML = Object.entries(colors).map(([name, c]) => `<span class="speaker-row" data-name="${esc(name)}">
+            <input type="color" value="${esc(c)}" aria-label="${esc(name)}'s colour"><b style="color:${esc(c)}">${esc(name)}</b>
+            <button type="button" class="icon-btn" data-remove-speaker title="Forget this colour">✕</button></span>`).join('')
+            || '<small class="skin-note">None yet: they appear when the AI colours someone\'s lines, or add one.</small>';
+    };
+    const redraw = () => document.querySelectorAll('.message .message-text').forEach(t => {
+        if (t.dataset.raw) t.innerHTML = renderChatMessage(decodeURIComponent(t.dataset.raw), t);
+    });
+    const save = async () => {
+        draw(); redraw();
+        try {
+            const resp = await fetch(window.location.href, { method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify({ action: 'speaker_colors', colors: window.SPEAKER_COLORS }) });
+            const d = await resp.json();
+            if (d.success) window.SPEAKER_COLORS = d.colors;
+        } catch (e) { showChatError('Could not save the colours.'); }
+    };
+    list.addEventListener('change', e => {
+        const row = e.target.closest('.speaker-row');
+        if (row && e.target.type === 'color') { window.SPEAKER_COLORS[row.dataset.name] = e.target.value; save(); }
+    });
+    list.addEventListener('click', e => {
+        const row = e.target.closest('[data-remove-speaker]') && e.target.closest('.speaker-row');
+        if (row) { delete window.SPEAKER_COLORS[row.dataset.name]; save(); }
+    });
+    document.getElementById('speakerAdd').addEventListener('click', () => {
+        const name = document.getElementById('speakerName').value.trim();
+        if (!name) return;
+        window.SPEAKER_COLORS = { ...(window.SPEAKER_COLORS || {}), [name]: document.getElementById('speakerColor').value };
+        document.getElementById('speakerName').value = '';
+        save();
+    });
+    draw();
 })();
 
 // --- Who the user is in this chat (tools menu); empty = their usual persona ---

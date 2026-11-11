@@ -86,6 +86,13 @@ def build_ai_request(user, character: Character, chat=None, worldbook_slug=None,
         story_text = story.format_for_prompt(systems, st)
         if story_text:
             story_state = (story_state + "\n\n" if story_state else "") + story_text
+    from mainapp import html_objects, speaker_colors
+    colours = speaker_colors.for_prompt(speaker_colors.of(character))
+    if colours:
+        story_state = (story_state + "\n\n" if story_state else "") + colours
+    designs = html_objects.designs_for_prompt(chat_file_data.get("designs") or {})
+    if designs:
+        story_state = (story_state + "\n\n" if story_state else "") + designs
     if story_state:
         system_prompts["StoryState"] = story_state
 

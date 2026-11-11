@@ -29,6 +29,7 @@ from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
 from . import basics as basics_mod
+from . import speaker_colors
 from . import extras, game, html_objects, media_library, recall, story, thinking, ai_client, cards, chats, regex_rules, experiences, model_profiles, presets, samplers, starters, trackers, translation
 from .bulba import control, polish, watch
 from mainapp import mature, refusals
@@ -232,6 +233,7 @@ def chat(request, slug):
         "game": {},             # dice and inventory: the starting inventory after manual edits (see mainapp/game.py)
         "voices": {},           # voices picked for speakers in this chat (see mainapp/voice.py), so they stay the same
         "story": {},            # story systems' values: meters, story time, events (see mainapp/story.py)
+        "designs": {},          # the look of each kind of AI-designed object, kept the same (html_objects.py)
     }
     game_mode = game.mode_for(request.user, character)
     extra_kinds = extras.kinds_for(request.user)        # letters, phone screens, milestones (Extras page)
@@ -282,6 +284,7 @@ def chat(request, slug):
                         chat_state["game"] = data.get("game") if isinstance(data.get("game"), dict) else {}
                         chat_state["voices"] = data.get("voices") if isinstance(data.get("voices"), dict) else {}
                         chat_state["story"] = data.get("story") if isinstance(data.get("story"), dict) else {}
+                        chat_state["designs"] = data.get("designs") if isinstance(data.get("designs"), dict) else {}
                         messages_list = data.get("messages", [])
                     else:
                         messages_list = data
@@ -305,6 +308,10 @@ def chat(request, slug):
                         [u.username, u.name, getattr(u, "persona_name", ""), "Stranger", "You"])
                     if renamed:
                         chats.write(chat_obj, {**chats.read(chat_obj), "messages": fixed_messages})
+                    if not chat_state["designs"]:  # a chat from before: its objects' first looks, from the history
+                        for m in fixed_messages:
+                            if m[0] == "assistant":
+                                html_objects.remember(chat_state["designs"], m[2])
                     return fixed_messages
                 except json.JSONDecodeError:
                     return []
@@ -384,6 +391,7 @@ def chat(request, slug):
             "game": chat_state["game"],
             "voices": chat_state["voices"],
             "story": chat_state["story"],
+            "designs": chat_state["designs"],
         }
         with open(chat_file_path, "w", encoding="utf-8") as f:
             json.dump(full_data, f, ensure_ascii=False, indent=2)
@@ -458,6 +466,7 @@ def chat(request, slug):
                         if rec:  # they changed Bulba's polished version: ask what didn't work
                             watch.polish_rejected(request.user, chat_obj, index, "edited", rec, rec.get("habits"))
                     messages[index] = chats.set_text(messages[index], new_text)
+                    html_objects.remember(chat_state["designs"], new_text, replace=True)  # their edit sets the look
                     save_messages(messages)
                     return JsonResponse({"success": True, "text": new_text,
                                          "watch": watch.page_state(request.user, chat_obj)})
@@ -1194,6 +1203,11 @@ def chat(request, slug):
                 watch.offer_director_for_book(request.user, chat_obj)
             return JsonResponse({"success": True, **_appearance(request.user),
                                  "watch": watch.page_state(request.user, chat_obj)})
+        elif action == "speaker_colors":  # each character's speech colour (pen menu), kept on the character
+            colors = speaker_colors.clean(data.get("colors"))
+            character.theme = {**(character.theme or {}), "speaker_colors": colors}
+            character.save(update_fields=["theme"])
+            return JsonResponse({"success": True, "colors": colors})
         elif action == "appearance":  # dialogue colour: a hex colour, or "preset" to leave it to the preset
             color = str(data.get("dialogue_color") or "")
             if color != "preset" and not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
@@ -1485,6 +1499,8 @@ def chat(request, slug):
                     photo_second = (_photo(character, "photo_second", emotion_char_2)
                                     if (character.is_mult or char_count >= 2) else None)
                     photo_user = _photo(request.user, "persona_photo", emotion_user) if pictured_user else None
+                    html_objects.remember(chat_state["designs"], reply)  # the first look of each kind of object
+                    speaker_colors.learn(character, reply)  # a new speaker's first colour is kept
 
                     save_messages(messages)
                     watch.on_reply_done(request.user, chat_obj, messages, character.name,  # free checks, pace clock
@@ -1670,6 +1686,7 @@ def chat(request, slug):
         "swipes": chats.version_info(messages),
         "spending": ai_client.spending(request.user),
         "appearance": _appearance(request.user, character),
+        "speaker_colors": speaker_colors.of(character),
         "bulba_ideas": extras.ideas_on(request.user),
         "bulba_url": reverse("bulba_chat", kwargs={"chat_id": chat_obj.id}),
         "watch_data": watch.page_state(request.user, chat_obj),
