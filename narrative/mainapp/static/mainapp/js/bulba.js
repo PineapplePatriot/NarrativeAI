@@ -70,12 +70,17 @@ function proposalEditor(p) {
 // A theme card shows the look itself: the background, the music (▶ to listen), the colour on a sample line
 const WEATHER_ICON = { rain: '🌧', snow: '❄️', fog: '🌫', storm: '⛈', clear: '☀️' };
 function themePreview(v) {
-    const color = /^#[0-9a-fA-F]{6}$/.test(v.color || '') ? v.color : '';
+    const hex = c => /^#[0-9a-fA-F]{6}$/.test(c || '') ? c : '';
+    const color = v.speech === 'story' ? '' : hex(v.color);
+    // story colours: one sample line per speaker; one app colour: a line in it
+    const lines = (v.lines || []).filter(l => hex(l[1])).map(([who, c]) =>
+        `<span class="tp-line" style="color:${c}">${esc(who)}: “A line in this colour.”</span>`).join('');
+    const sample = v.speech === 'story' ? lines : color ? `<span class="tp-line" style="color:${color}">“A line in this colour.”</span>` + lines : lines;
     return `<div class="theme-preview">
         ${v.bg ? `<div class="tp-bg" style="background-image:url('${encodeURI(v.bg)}')">
             ${v.weather && WEATHER_ICON[v.weather] ? `<span class="tp-weather">${WEATHER_ICON[v.weather]} ${esc(v.weather)}</span>` : ''}
-            ${color ? `<span class="tp-line" style="color:${color}">“A line in this colour.”</span>` : ''}</div>`
-          : color ? `<div class="tp-line solo" style="color:${color}">“A line in this colour.”</div>` : ''}
+            ${sample}</div>`
+          : sample ? `<div class="tp-line solo">${sample}</div>` : ''}
         ${v.skin_name ? `<span class="tp-skin tp-skin-${esc(v.skin || '')}">Chat style: ${esc(v.skin_name)}</span>` : ''}
         ${v.music ? `<button type="button" class="ghost tp-play" data-play="${esc(v.music)}">▶ Listen: ${esc(v.music_name || 'music')}</button>` : ''}
       </div>`;

@@ -281,3 +281,5 @@ body.embed .mini-progress { display: none !important; }  /* beside the Quick set
 .picture-row .picture-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .8rem; opacity: .8; }
 .picture-row select { max-width: 52%; }
 .picture-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.tp-bg { flex-direction: column; align-items: flex-start; justify-content: flex-end; gap: 2px; }
+.tp-line.solo { display: flex; flex-direction: column; gap: 2px; }

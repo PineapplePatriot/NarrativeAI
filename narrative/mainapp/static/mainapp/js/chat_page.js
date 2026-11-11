@@ -216,6 +216,20 @@ function messagePlace(where) {
     return { role: msg.classList.contains('user') ? 'user' : 'assistant', depth: i < 0 ? 0 : all.length - 1 - i };
 }
 
+// Story colours (mainapp/speaker_colors.py): <plum>"..."</plum> and <plum:whisper>"..."</plum> become coloured
+// spans, the shade picked by the chat style; while a reply streams in, a half-written tag at the end stays hidden
+function speechTags(text) {
+    const sp = window.SPEECH || {};
+    const palette = sp.palette || {}, tones = sp.tones || [];
+    let out = text.replace(/<(\/?)([a-z]+)(?::([a-z]+))?>/g, (m, close, name, tone) => {
+        if (!Object.prototype.hasOwnProperty.call(palette, name)) return m;
+        if (close) return '</span>';
+        return `<span class="sc sc-${name}${tone && tones.includes(tone) ? ' t-' + tone : ''}">`;
+    });
+    if (isGenerating) out = out.replace(/<\/?[a-z]*(?::[a-z]*)?$/, '');
+    return out;
+}
+
 // Quoted speech gets a highlight; HTML tags (from text rules) and code are left alone
 function wrapQuoted(text) {
     const parts = text.split(/(<[^>]*>|`+[^`]*`+)/g);
@@ -290,13 +304,7 @@ function renderChatMessage(rawText, where) {
     let source = String(rawText ?? '').replace(HTML_FENCE, (m, code) => { objects.push(code); return `\n\n<div class="object-slot n${objects.length - 1}"></div>\n\n`; });
     if (isGenerating) source = source.replace(HTML_OPEN, () => '\n\n<div class="object-slot drawing"></div>\n\n');  // a cut-off one stays code
     let shown = TextRules.any() ? TextRules.apply(source, place.role, place.depth) : source;
-    // A line tagged with its speaker takes that character's colour (pen menu → speech colour by character)
-    shown = shown.replace(/<font\b([^>]*)>/gi, (tag, attrs) => {
-        const who = (attrs.match(/data-who\s*=\s*["']([^"']{1,60})["']/i) || [])[1];
-        const color = who && (window.SPEAKER_COLORS || {})[who.trim().replace(/\s+/g, ' ')];
-        if (!color) return tag;
-        return /color\s*=/i.test(attrs) ? tag.replace(/color\s*=\s*["']?#?[0-9a-z]*["']?/i, `color="${color}"`) : `<font color="${color}"${attrs}>`;
-    });
+    shown = speechTags(shown);
     // A character's direct thought ("Inner thoughts, shown apart" module): its own style
     shown = shown.replace(/<thought>([\s\S]*?)<\/thought>/gi, (m, t) => `<span class="thought">${t.trim()}</span>`);
     // Story extras' markers ([[extra 2]]) become slots; placeExtras() puts the app's drawing there
@@ -1566,70 +1574,93 @@ document.getElementById('branchSummaryText').addEventListener('input', () => {
 });
 branchModal.addEventListener('click', (e) => { if (e.target === branchModal) closeBranchModal(); });
 
-// --- Dialogue colour (tools menu): saved on the account ---
+// --- Speech colours (tools menu): story colours or one app colour, and their own; kept on the character ---
 (function () {
-    const box = document.getElementById('dialogueColors');
-    if (!box) return;
-    const apply = color => {
-        document.body.dataset.dialogue = color === 'preset' ? 'preset' : 'color';
-        if (color !== 'preset') document.body.style.setProperty('--dialogue-color', color);
-        box.querySelectorAll('[data-color]').forEach(b => b.classList.toggle('on', b.dataset.color === color));
-    };
-    const save = async color => {
-        apply(color);
-        try {
-            await fetch(window.location.href, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-                body: JSON.stringify({ action: 'appearance', dialogue_color: color }),
-            });
-        } catch (e) { showChatError('Could not save the colour.'); }
-    };
-    box.addEventListener('click', e => { const b = e.target.closest('[data-color]'); if (b) save(b.dataset.color); });
-    const custom = document.getElementById('dialogueCustom');
-    custom.addEventListener('input', () => apply(custom.value));
-    custom.addEventListener('change', () => save(custom.value));
-})();
-
-// --- Speech colour by character (tools menu): kept on the character, redraws every reply ---
-(function () {
-    const list = document.getElementById('speakerColors');
-    if (!list) return;
+    const modeRow = document.getElementById('speechMode');
+    if (!modeRow) return;
+    const palette = (window.SPEECH || {}).palette || {};
+    const names = Object.keys(palette);
+    const state = window.SPEECH_SETTINGS || { mode: 'app', cast: {}, you: '', tones: false };
     const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c]));
+    const dot = (n, on, extra = '') => `<button type="button" class="swatch ${on ? 'on' : ''}" data-name="${n}" ${extra}
+        style="background:${palette[n][0]}" title="${n}" aria-label="${n}"></button>`;
+    const appBox = document.getElementById('dialogueColors');
+    const youBox = document.getElementById('youColors');
+    const cast = document.getElementById('speechCast');
+    let open = null;  // the cast member whose colour row is open
+
+    const appName = () => names.find(n => palette[n][0].toLowerCase() === getComputedStyle(document.body).getPropertyValue('--dialogue-color').trim().toLowerCase()) || '';
     const draw = () => {
-        const colors = window.SPEAKER_COLORS || {};
-        list.innerHTML = Object.entries(colors).map(([name, c]) => `<span class="speaker-row" data-name="${esc(name)}">
-            <input type="color" value="${esc(c)}" aria-label="${esc(name)}'s colour"><b style="color:${esc(c)}">${esc(name)}</b>
-            <button type="button" class="icon-btn" data-remove-speaker title="Forget this colour">✕</button></span>`).join('')
-            || '<small class="skin-note">None yet: they appear when the AI colours someone\'s lines, or add one.</small>';
+        modeRow.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('on', b.dataset.mode === state.mode));
+        document.getElementById('speechApp').hidden = state.mode !== 'app';
+        document.getElementById('speechStory').hidden = state.mode !== 'story';
+        const app = appName();
+        appBox.innerHTML = names.map(n => dot(n, n === app)).join('');
+        youBox.innerHTML = names.map(n => dot(n, n === state.you)).join('')
+            + `<button type="button" class="swatch none ${state.you ? '' : 'on'}" data-name="" title="None">✕</button>`;
+        const taken = Object.values(state.cast);
+        cast.innerHTML = Object.entries(state.cast).map(([who, c]) => `<div class="speech-row" data-who="${esc(who)}">
+            ${dot(c, false, 'data-pick')}<b style="color:${palette[c] ? palette[c][0] : 'inherit'}">${esc(who)}</b>
+            <button type="button" class="icon-btn" data-remove title="Forget">✕</button>
+            ${open === who ? `<div class="dialogue-colors">${names.map(n => dot(n, n === c)).join('')}</div>` : ''}</div>`).join('')
+            || '<small class="skin-note">No one yet: Bulba sets them up with the look, or add one.</small>';
+        document.body.dataset.dialogue = state.mode;
+        document.body.className = document.body.className.replace(/\b(has-you|you-[a-z]+)\b/g, '').trim();
+        if (state.you) document.body.classList.add('has-you', 'you-' + state.you);
     };
-    const redraw = () => document.querySelectorAll('.message .message-text').forEach(t => {
-        if (t.dataset.raw) t.innerHTML = renderChatMessage(decodeURIComponent(t.dataset.raw), t);
-    });
-    const save = async () => {
-        draw(); redraw();
+    const save = async (body) => {
+        draw();
         try {
             const resp = await fetch(window.location.href, { method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-                body: JSON.stringify({ action: 'speaker_colors', colors: window.SPEAKER_COLORS }) });
+                body: JSON.stringify(body) });
             const d = await resp.json();
-            if (d.success) window.SPEAKER_COLORS = d.colors;
+            if (!d.success) throw new Error(d.error);
+            if (d.speech) Object.assign(state, d.speech);
+            if (d.dialogue_color) {
+                document.body.style.setProperty('--dialogue-color', d.dialogue_color);
+                if (d.dialogue_light) document.body.style.setProperty('--dialogue-light', d.dialogue_light);
+                else document.body.style.removeProperty('--dialogue-light');
+            }
+            draw();
         } catch (e) { showChatError('Could not save the colours.'); }
     };
-    list.addEventListener('change', e => {
-        const row = e.target.closest('.speaker-row');
-        if (row && e.target.type === 'color') { window.SPEAKER_COLORS[row.dataset.name] = e.target.value; save(); }
+    modeRow.addEventListener('click', e => {
+        const b = e.target.closest('[data-mode]');
+        if (b && b.dataset.mode !== state.mode) { state.mode = b.dataset.mode; save({ action: 'speech', mode: state.mode }); }
     });
-    list.addEventListener('click', e => {
-        const row = e.target.closest('[data-remove-speaker]') && e.target.closest('.speaker-row');
-        if (row) { delete window.SPEAKER_COLORS[row.dataset.name]; save(); }
+    appBox.addEventListener('click', e => {
+        const b = e.target.closest('[data-name]');
+        if (!b) return;
+        document.body.style.setProperty('--dialogue-color', palette[b.dataset.name][0]);
+        document.body.style.setProperty('--dialogue-light', palette[b.dataset.name][1]);
+        save({ action: 'appearance', dialogue_color: b.dataset.name });
     });
-    document.getElementById('speakerAdd').addEventListener('click', () => {
-        const name = document.getElementById('speakerName').value.trim();
-        if (!name) return;
-        window.SPEAKER_COLORS = { ...(window.SPEAKER_COLORS || {}), [name]: document.getElementById('speakerColor').value };
-        document.getElementById('speakerName').value = '';
-        save();
+    youBox.addEventListener('click', e => {
+        const b = e.target.closest('[data-name]');
+        if (b) { state.you = b.dataset.name; save({ action: 'speech', you: state.you }); }
+    });
+    cast.addEventListener('click', e => {
+        const row = e.target.closest('.speech-row');
+        if (!row) return;
+        const who = row.dataset.who;
+        if (e.target.closest('[data-remove]')) { delete state.cast[who]; open = null; save({ action: 'speech', cast: state.cast }); return; }
+        if (e.target.closest('[data-pick]')) { open = open === who ? null : who; draw(); return; }
+        const b = e.target.closest('.dialogue-colors [data-name]');
+        if (b) { state.cast[who] = b.dataset.name; open = null; save({ action: 'speech', cast: state.cast }); }
+    });
+    document.getElementById('speechAdd').addEventListener('click', () => {
+        const input = document.getElementById('speechName');
+        const who = input.value.trim().replace(/\s+/g, ' ');
+        if (!who) return;
+        const taken = new Set([...Object.values(state.cast), state.you]);
+        state.cast = { ...state.cast, [who]: names.find(n => !taken.has(n)) || names[0] };
+        input.value = '';
+        open = who;
+        save({ action: 'speech', cast: state.cast });
+    });
+    document.getElementById('speechTones').addEventListener('change', e => {
+        state.tones = e.target.checked; save({ action: 'speech', tones: state.tones });
     });
     draw();
 })();
@@ -2270,8 +2301,9 @@ function handleRefusal(d) {
         });
         const d = await resp.json().catch(() => ({}));
         if (!d.success) { showChatNotice(d.error || 'Could not change the chat style.'); return; }
-        [...document.body.classList].filter(c => c.startsWith('skin-')).forEach(c => document.body.classList.remove(c));
+        [...document.body.classList].filter(c => c.startsWith('skin-') || c === 'light-style').forEach(c => document.body.classList.remove(c));
         if (d.skin) document.body.classList.add('skin-' + d.skin);
+        if (['parchment', 'lab'].includes(d.skin)) document.body.classList.add('light-style');  // deeper speech shades
         choice.querySelectorAll('[data-skin]').forEach(x => x.classList.toggle('on', x === b));
     });
     const fx = document.getElementById('skinFxToggle');

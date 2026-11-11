@@ -560,20 +560,43 @@ class DesignMemoryTests(SimpleTestCase):
 
 
 class SpeakerColorTests(SimpleTestCase):
-    def test_first_colour_is_kept_and_the_prompt_lists_them(self):
-        from mainapp import speaker_colors
-        saved = []
-        char = type("C", (), {"theme": {"speaker_colors": {"Dottore": "#6aa8ff"}},
-                              "save": lambda self, **k: saved.append(1)})()
-        text = ('<font color="#ffcc00" data-who="Dottore">"No."</font> '
-                '<font data-who="Pantalone" color="#33ddaa">"Yes."</font> <font color="#ff0000">"?"</font>')
-        colors = speaker_colors.learn(char, text)
-        self.assertEqual(colors, {"Dottore": "#6aa8ff", "Pantalone": "#33ddaa"})  # Dottore keeps his blue
-        self.assertTrue(saved)
-        prompt = speaker_colors.for_prompt(colors)
-        self.assertIn("Dottore #6aa8ff", prompt)
-        self.assertIn('data-who="Name"', prompt)
-        self.assertEqual(speaker_colors.clean({"A": "#123456", "B": "red", "": "#000000"}), {"A": "#123456"})
+    def test_story_colours_tell_the_model_the_cast_and_app_colour_tells_it_nothing(self):
+        from mainapp import speaker_colors as sc
+        char = type("C", (), {"theme": {"speech": "story", "speech_cast": {"Pantalone": "plum", "X": "#123456"},
+                                        "you_color": "frost", "speech_tones": True}})()
+        s = sc.settings(char)
+        self.assertEqual(s["cast"], {"Pantalone": "plum"})  # only palette names
+        prompt = sc.for_prompt(s)
+        self.assertIn("Pantalone: plum; {{user}}: frost", prompt)
+        self.assertIn('<plum>"Spoken words."</plum>', prompt)
+        self.assertIn("whisper", prompt)
+        self.assertNotIn("plum, ", prompt.split("from:")[1])  # taken colours aren't offered again
+        self.assertIn("<frost>", sc.for_writing_user(s))
+        char.theme["speech"] = "app"
+        self.assertEqual(sc.for_prompt(sc.settings(char)), "")
+        self.assertEqual(sc.for_writing_user(sc.settings(char)), "")
+        old = type("C", (), {"theme": {"dialogue_color": "#e594f2"}})()
+        self.assertEqual(sc.settings(old)["mode"], "app")  # characters from before keep the app colour
+
+    def test_greeting_tags_and_stripping(self):
+        from mainapp import speaker_colors as sc
+        text = 'He looks up. "Sit down." Then `"code"` and <i>"styled"</i> stay.'
+        tagged = sc.tag_greeting(text, "plum")
+        self.assertIn('<plum>"Sit down."</plum>', tagged)
+        self.assertIn('`"code"`', tagged)
+        self.assertEqual(sc.tag_greeting(tagged, "ember"), tagged)  # already coloured: left alone
+        self.assertEqual(sc.strip_tags('<plum:whisper>"Hi."</plum> <b>x</b>'), '"Hi." <b>x</b>')
+        self.assertEqual(sc.name_of("#C792EA"), "plum")
+        self.assertEqual(sc.light_of("#c792ea"), "#7b3f9e")
+        self.assertIn("body.light-style .sc-plum", sc.css())
+
+    def test_old_colour_lines_leave_the_preset(self):
+        from mainapp import basics, presets
+        old = basics.RETIRED["colors"][1]
+        data = presets.normalize({"blocks": [{"name": "Basics", "kind": "prompt", "content": "Write in past tense.\n" + old}]})
+        block = next(b for b in data["blocks"] if b.get("name") == "Basics")
+        self.assertNotIn("<font", block["content"])
+        self.assertIn("past tense", block["content"])
 
 
 class EffortFitTests(SimpleTestCase):

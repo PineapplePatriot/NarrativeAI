@@ -563,12 +563,6 @@ BASICS = {
         "quotes": "Put speech in double quotes; write actions as plain prose.",
         "asterisks": "Put speech in double quotes and actions in *asterisks*.",
         "any": ""}),
-    "colors": ("Coloured speech", {
-        "on": "Give each character's spoken lines their own colour: wrap each quoted line in "
-              "<font color=\"#RRGGBB\" data-who=\"Their name\">\"...\"</font>, keep one colour per character for "
-              "the whole story (the story state lists the ones already set), and pick colours that read well on "
-              "a dark background.",
-        "off": ""}),
     "panels": ("In-story panels", {
         "on": "When a text message, note, letter, sign or screen appears in the story, show it as a small "
               "self-contained HTML panel with inline styles (for example a phone chat as message bubbles), "

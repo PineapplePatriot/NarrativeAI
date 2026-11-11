@@ -100,21 +100,6 @@
   ]
  },
  {
-  "key": "colors",
-  "label": "Coloured speech",
-  "hint": "each character speaks in their own colour",
-  "options": [
-   [
-    "on",
-    "Yes"
-   ],
-   [
-    "off",
-    "No"
-   ]
-  ]
- },
- {
   "key": "panels",
   "label": "In-story panels",
   "hint": "phone messages, notes and signs drawn as little panels",

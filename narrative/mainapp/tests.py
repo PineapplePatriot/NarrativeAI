@@ -1968,7 +1968,7 @@ class StarterTests(ChatPromptTests):
         page = self.client.get(reverse("quick_setup"))
         quick = {q["key"]: q for q in page.context["questions"] + page.context["more_questions"]}
         for key in ("pov", "tense", "length", "control", "format", "interior", "pacing", "initiative", "invention",
-                    "colors", "genres", "author", "keep_out"):
+                    "genres", "author", "keep_out"):
             self.assertEqual(quick[key]["label"], form[key]["label"])
         mods = dict(form["modules"]["multi"])  # the module list is the catalog's
         self.assertIn("few_dashes", mods)
@@ -3000,8 +3000,11 @@ class SpendingAndThinkingTests(StreamChatTests):
                                           content_type="application/json")
         self.assertEqual(post("#7dd3fc").json()["dialogue_color"], "#7dd3fc")
         self.assertContains(self.client.get(self.url), "--dialogue-color: #7dd3fc")
-        self.assertEqual(post("preset").json()["dialogue_color"], "preset")
-        self.assertContains(self.client.get(self.url), 'data-dialogue="preset"')
+        self.assertContains(self.client.get(self.url), 'data-dialogue="app"')
+        self.assertEqual(post("lagoon").json()["dialogue_light"], "#00707e")  # a palette name: its deeper shade too
+        self.assertContains(self.client.get(self.url), "--dialogue-color: #4dd0e1")
+        self.assertEqual(post("preset").json()["speech_mode"], "story")  # older pages' "preset's colours"
+        self.assertContains(self.client.get(self.url), 'data-dialogue="story"')
         self.assertEqual(post("red; position:fixed").status_code, 400)
 
 
@@ -3144,12 +3147,11 @@ class BasicsFormTests(BulbaTests):
         self.assertTrue(any(e["type"] == "form" for e in data["events"]))
         self.script = [("Got it. What do you want to play?", [])]
         data = self.api(action="basics", answers={"pov": "second", "tense": "present", "length": "long",
-                                                  "colors": "on", "format": "any", "language": "English",
+                                                  "format": "any", "language": "English",
                                                   "keep_out": "spiders", "bogus": "x", "panels": "nope"}).json()
         told = self.bulba_calls[-1]["messages"][-1]["content"]
         self.assertIn("Narrate in second person", told)
         self.assertIn("reply_length long", told)
-        self.assertIn('<font color=', told)
         self.assertNotIn("bogus", told)
         prefs = data["state"]["preferences"]
         self.assertIn("Write in present tense.", [p["interpretation"] for p in prefs])
@@ -5167,6 +5169,26 @@ class BulbaPicturesAndThemeTests(BulbaCardAndLoreTests):
         self.assertIn("A rainy harbour at night.", self.bulba_calls[-1]["messages"][-1]["content"])
         viktor.refresh_from_db()
         self.assertIn("/backgrounds/custom/", viktor.theme["bg"])
+
+    def test_theme_sets_story_colours_and_colours_the_greeting(self):
+        from mainapp.models import Character
+        self.upload({**V2_CARD, "data": {**V2_CARD["data"], "first_mes": 'He sighs. "Excellent planning."'}}
+                    if "data" in V2_CARD else {**V2_CARD, "first_mes": 'He sighs. "Excellent planning."'})
+        self.script = [("Here's a look.", [self.call("propose_theme", speech_colors="story", character_color="garnet",
+                                                     your_color="frost", why="him")])]
+        data = self.api(action="say", text="give him a look").json()
+        preview = data["state"]["proposals"][-1]["preview"]
+        self.assertEqual(preview["speech"], "story")
+        self.assertIn(["You", "#b3e5fc"], preview["lines"])
+        self.script = [("Done.", [])]
+        self.api(action="apply", id=data["state"]["proposals"][-1]["id"])
+        viktor = Character.objects.get(author=self.user, name="Viktor")
+        self.assertEqual((viktor.theme["speech"], viktor.theme["speech_cast"], viktor.theme["you_color"]),
+                         ("story", {"Viktor": "garnet"}, "frost"))
+        self.assertIn('<garnet>"Excellent planning."</garnet>', viktor.initial_message)
+        self.script = [("Same colour?", [self.call("propose_theme", speech_colors="story", character_color="frost",
+                                                   your_color="frost", why="x")]), ("Fixed.", [])]
+        self.assertIn("colour of their own", json.dumps(self.api(action="say", text="again").json()) + str(self.bulba_calls[-1]))
 
     def test_theme_from_built_in_media(self):
         from unittest import mock

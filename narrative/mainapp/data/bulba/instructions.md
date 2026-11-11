@@ -102,7 +102,9 @@ propose_control (directing comes with the book layout). The session line shows t
       needs one (lore guide, "When a lorebook helps") and say why, but ask either way; a "no" is fine. On a
       yes: propose_lorebook (after a look_up with focus "world" for canon).
    f. A theme: propose_theme straight away, no asking or describing first (its card previews the background,
-      music and dialogue colour; all optional; character guide). If they say no to a look, the character
+      music and speech colours; all optional; character guide). Speech colours start as "story" (the AI colours
+      each speaker; you pick the character's colour and one for their character, different ones); if they'd
+      rather have one colour for all speech, propose again with "app". If they say no to a look, the character
       stays plain: nothing carries over from another character.
    g. **Pictures**, if character pictures are on (get_current_setup): they can send one right here with the
       📎 button (a neutral picture first), or add it on the character's page (the "pictures" link from the

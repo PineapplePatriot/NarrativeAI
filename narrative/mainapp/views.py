@@ -585,6 +585,9 @@ def chat(request, slug):
                         f"outcomes.]\n{draft}")
             names = prompt_names(request.user, character, chat_state["persona"])
             ask = ask.replace("{{user}}", names["user"]).replace("{{char}}", names["char"])
+            yours = speaker_colors.for_writing_user(speaker_colors.settings(character), names["user"])
+            if yours:  # story colours: their lines in their own colour
+                ask += "\n\n" + yours
             reading = translation.reading_language(request.user)  # read in another language: English, cleaned, translated
             english = translation.english_note(request.user)
             try:
@@ -1203,17 +1206,29 @@ def chat(request, slug):
                 watch.offer_director_for_book(request.user, chat_obj)
             return JsonResponse({"success": True, **_appearance(request.user),
                                  "watch": watch.page_state(request.user, chat_obj)})
-        elif action == "speaker_colors":  # each character's speech colour (pen menu), kept on the character
-            colors = speaker_colors.clean(data.get("colors"))
-            character.theme = {**(character.theme or {}), "speaker_colors": colors}
+        elif action == "speech":  # speech colours (pen menu): the way, the cast's colours, theirs, tone marks
+            theme = dict(character.theme or {})
+            if data.get("mode") in speaker_colors.MODES:
+                theme["speech"] = data["mode"]
+            if "cast" in data:
+                theme["speech_cast"] = speaker_colors.clean(data.get("cast"))
+            if "you" in data:
+                theme["you_color"] = speaker_colors.name_of(data.get("you"))
+            if "tones" in data:
+                theme["speech_tones"] = bool(data.get("tones"))
+            character.theme = theme
             character.save(update_fields=["theme"])
-            return JsonResponse({"success": True, "colors": colors})
-        elif action == "appearance":  # dialogue colour: a hex colour, or "preset" to leave it to the preset
+            return JsonResponse({"success": True, "speech": speaker_colors.settings(character),
+                                 **_appearance(request.user, character)})
+        elif action == "appearance":  # the app colour (a palette name or its shade), kept on the character
             color = str(data.get("dialogue_color") or "")
-            if color != "preset" and not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
-                return JsonResponse({"success": False, "error": "Pick a colour."}, status=400)
-            # Each character has its own colour (part of its theme)
-            character.theme = {**(character.theme or {}), "dialogue_color": color}
+            if color == "preset":  # older pages: "the preset's colours" is now the story-colours way
+                character.theme = {**(character.theme or {}), "speech": "story"}
+            else:
+                name = speaker_colors.name_of(color)
+                if not name and not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
+                    return JsonResponse({"success": False, "error": "Pick a colour."}, status=400)
+                character.theme = {**(character.theme or {}), "dialogue_color": speaker_colors.PALETTE[name][0] if name else color}
             character.save(update_fields=["theme"])
             return JsonResponse({"success": True, **_appearance(request.user, character)})
         elif action == "save_theme":  # this chat's background or music becomes the character's default
@@ -1500,7 +1515,6 @@ def chat(request, slug):
                                     if (character.is_mult or char_count >= 2) else None)
                     photo_user = _photo(request.user, "persona_photo", emotion_user) if pictured_user else None
                     html_objects.remember(chat_state["designs"], reply)  # the first look of each kind of object
-                    speaker_colors.learn(character, reply)  # a new speaker's first colour is kept
 
                     save_messages(messages)
                     watch.on_reply_done(request.user, chat_obj, messages, character.name,  # free checks, pace clock
@@ -1686,7 +1700,9 @@ def chat(request, slug):
         "swipes": chats.version_info(messages),
         "spending": ai_client.spending(request.user),
         "appearance": _appearance(request.user, character),
-        "speaker_colors": speaker_colors.of(character),
+        "speech": speaker_colors.settings(character),
+        "speech_page": speaker_colors.page_data(),
+        "speech_css": speaker_colors.css(),
         "bulba_ideas": extras.ideas_on(request.user),
         "bulba_url": reverse("bulba_chat", kwargs={"chat_id": chat_obj.id}),
         "watch_data": watch.page_state(request.user, chat_obj),
@@ -1745,11 +1761,15 @@ def _appearance(user, character=None):
     look = dict(settings_obj.appearance or {}) if settings_obj else {}
     color = ((character.theme or {}).get("dialogue_color") if character is not None else None) \
         or look.get("dialogue_color") or DIALOGUE_DEFAULT
-    if color != "preset" and not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
+    if not re.fullmatch(r"#[0-9a-fA-F]{6}", color):  # "preset" (older): the story-colours way, see speaker_colors
         color = DIALOGUE_DEFAULT
     # "book": replies read as chapters and the user's messages fold away (director mode); "chat": bubbles
     layout = look.get("layout") if look.get("layout") in LAYOUTS else "chat"
-    return {"dialogue_color": color, "layout": layout}
+    out = {"dialogue_color": color, "dialogue_light": speaker_colors.light_of(color), "layout": layout}
+    if character is not None:
+        s = speaker_colors.settings(character)
+        out.update({"speech_mode": s["mode"], "you_color": s["you"]})
+    return out
 
 
 LAYOUTS = ("chat", "book")
@@ -3041,7 +3061,12 @@ def _theme_preview(p):
     bg, music = t.get("background") or {}, t.get("music") or {}
     return {"bg": bg.get("url", ""), "bg_name": bg.get("name", ""), "music": music.get("url", ""),
             "music_name": music.get("name", ""), "color": t.get("dialogue_color", ""), "weather": t.get("weather", ""),
-            "skin": t.get("skin", ""), "skin_name": CHAT_SKINS.get(t.get("skin", ""), "")}
+            "skin": t.get("skin", ""), "skin_name": CHAT_SKINS.get(t.get("skin", ""), ""),
+            # story colours: a sample line per speaker, in their colour
+            "speech": t.get("speech", ""),
+            "lines": [[who, speaker_colors.PALETTE[c][0]] for who, c in
+                      [*(t.get("speech_cast") or {}).items(), *([["You", t["you_color"]]] if t.get("you_color") else [])]
+                      if c in speaker_colors.PALETTE]}
 
 
 def _bulba_chat_link(session):
@@ -3235,10 +3260,10 @@ def quick_setup(request):
 
 # Quick setup's Basics: point of view, tense, speech and actions (Bulba's own wording, agent.BASICS), kept as one
 # "Basics" block in the active preset; the story language is the profile's (translation workflow)
-QUICK_BASICS = ("pov", "tense", "format", "interior", "colors", "pacing", "initiative", "invention", "genres",
+QUICK_BASICS = ("pov", "tense", "format", "interior", "pacing", "initiative", "invention", "genres",
                 "voice", "author", "keep_out", "length", "control")
 # length goes in the preset's Reply length block, control is the Your character contract; the rest are Basics lines
-BASICS_LINES = ("pov", "tense", "format", "interior", "colors", "pacing", "initiative", "invention", "genres",
+BASICS_LINES = ("pov", "tense", "format", "interior", "pacing", "initiative", "invention", "genres",
                 "voice", "author", "keep_out")  # written by mainapp/basics.py, the same lines Bulba's form writes
 
 
@@ -3252,7 +3277,7 @@ def _module_groups(preset):
 
 
 QUICK_MAIN = ("pov", "tense", "length", "control", "format", "interior")
-QUICK_MORE = ("pacing", "initiative", "invention", "colors", "genres", "author", "keep_out")
+QUICK_MORE = ("pacing", "initiative", "invention", "genres", "author", "keep_out")
 
 
 def _quick_questions(current, keys):

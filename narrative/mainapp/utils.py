@@ -87,7 +87,7 @@ def build_ai_request(user, character: Character, chat=None, worldbook_slug=None,
         if story_text:
             story_state = (story_state + "\n\n" if story_state else "") + story_text
     from mainapp import html_objects, speaker_colors
-    colours = speaker_colors.for_prompt(speaker_colors.of(character))
+    colours = speaker_colors.for_prompt(speaker_colors.settings(character))
     if colours:
         story_state = (story_state + "\n\n" if story_state else "") + colours
     designs = html_objects.designs_for_prompt(chat_file_data.get("designs") or {})
