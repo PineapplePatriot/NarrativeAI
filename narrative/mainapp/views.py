@@ -701,14 +701,15 @@ def chat(request, slug):
                 save_messages(messages)
             if now or again:
                 reason = polish.why_not_now(request.user, chat_obj, messages, index)
-                if not reason and chats.polish_of(messages[index]):
-                    reason = "That reply is already polished (Undo fixes under it puts the original back)."
                 if reason:
                     return JsonResponse({"success": True, "changed": False, "reason": reason})
             elif index != len(messages) - 1 or not polish.due(request.user, chat_obj, messages) \
                     or chats.polish_of(messages[-1]):
                 return JsonResponse({"success": True, "changed": False})
             original = messages[index][2]
+            # 🧹 on a reply that's already polished: another pass over the polished text (each pass has its own
+            # limits), the fixes added to the earlier ones and the model's original still kept for Undo
+            earlier = chats.polish_of(messages[index]) if now and not again else None
             try:
                 new_text, fixes = polish.polish(request.user, character, chat_obj, messages, chat_state["summary"],
                                                 index)
@@ -718,10 +719,14 @@ def chat(request, slug):
             if not fixes or index >= len(messages) or messages[index][0] != "assistant" \
                     or messages[index][2] != original:
                 return JsonResponse({"success": True, "changed": False, "spending": ai_client.spending(request.user),
-                                     "reason": "Bulba found nothing to change in that reply." if not fixes
+                                     "reason": ("Bulba found nothing more to change in that reply." if earlier else
+                                                "Bulba found nothing to change in that reply.") if not fixes
                                      else "The reply changed meanwhile; nothing was replaced."})
-            messages[index] = chats.with_polish(messages[index], new_text,
-                                                polish.record(original, fixes, polish.habits_of(request.user, fixes)))
+            habits = polish.habits_of(request.user, fixes)
+            rec = (polish.record(earlier["original"], (earlier.get("fixes") or []) + fixes,
+                                 list(dict.fromkeys((earlier.get("habits") or []) + habits)))
+                   if earlier else polish.record(original, fixes, habits))
+            messages[index] = chats.with_polish(messages[index], new_text, rec)
             save_messages(messages)
             watch.recheck(request.user, chat_obj, messages)
             return JsonResponse({"success": True, "changed": True, "reply": new_text, "index": index,

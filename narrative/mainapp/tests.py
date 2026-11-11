@@ -6437,8 +6437,13 @@ class PolishChatTests(WatchChatTests):
         data = self.post({"action": "polish", "now": True}).json()
         self.assertTrue(data["changed"])
         self.assertEqual(data["reply"], "A reply, shorter.")
-        # asked again: it says why nothing happens instead of staying silent
-        self.assertIn("already polished", self.post({"action": "polish", "now": True}).json()["reason"])
+        # 🧹 again: another pass over the polished text, the earlier fixes and the model's original kept
+        self.polish_answer = {"fixes": [{"find": "shorter.", "replace": "short."}]}
+        data = self.post({"action": "polish", "now": True}).json()
+        self.assertEqual(data["reply"], "A reply, short.")
+        self.assertEqual((data["polish"]["count"], data["polish"]["original"]), (2, "A reply."))
+        self.polish_answer = {"fixes": []}
+        self.assertIn("nothing more to change", self.post({"action": "polish", "now": True}).json()["reason"])
         self.post({"action": "chat", "message": "More."})
         self.polish_answer = {"fixes": []}
         self.assertIn("nothing to change", self.post({"action": "polish", "now": True}).json()["reason"])
