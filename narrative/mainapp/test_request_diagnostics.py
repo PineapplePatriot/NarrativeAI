@@ -108,7 +108,7 @@ class RewriteRequestParityTests(chat_tests.ChatPromptTests):
         chats.write(chat, data)
         built = build_chat_request(self.user, chat)
         text = json.dumps(built["messages"])
-        self.assertIn("Director's note for this reply: Keep the conversation gentle.", text)
+        self.assertIn("The note: Keep the conversation gentle.", text)
         self.assertEqual(text.count("Keep the conversation gentle."), 1)
 
     def test_rewrite_uses_new_note_once_in_the_director_slot(self):
@@ -116,5 +116,5 @@ class RewriteRequestParityTests(chat_tests.ChatPromptTests):
         self.post({"action": "chat", "message": "Hello.", "guidance": "Keep the conversation gentle."})
         built = build_chat_request(self.user, self.character.chats.first())
         text = json.dumps(built["messages"])
-        self.assertIn("Director's note for this reply: Keep the conversation gentle.", text)
+        self.assertIn("The note: Keep the conversation gentle.", text)
         self.assertEqual(text.count("Keep the conversation gentle."), 1)

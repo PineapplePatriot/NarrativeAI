@@ -4571,7 +4571,7 @@ class PenMenuTests(ChatPromptTests):
         sent = json.dumps(self.sent[-1]["messages"])
         self.assertIn("Pinned note from the user, for every reply:\\nIt's winter.", sent)
         self.assertNotIn("At the docks", sent)
-        self.assertIn("Director's note for this reply: She dodges the question.", sent)
+        self.assertIn("The note: She dodges the question.", sent)
 
     def test_bulba_words_the_note(self):
         from unittest import mock
@@ -6758,12 +6758,12 @@ class DirectorNoteTests(WatchChatTests):
         self.assertEqual(msgs[-2][2], "The storm reaches the harbour.")
         self.assertEqual(msgs[-1][0], "assistant")
         sent = json.dumps(self.sent[-1]["messages"])
-        self.assertIn("Director's note for this reply: The storm reaches the harbour.", sent)
+        self.assertIn("The note: The storm reaches the harbour.", sent)
         self.assertEqual(sent.count("The storm reaches the harbour."), 1)  # the slot only, not also in the history
         self.assertContains(self.client.get(self.url), 'class="message user note"')
         # Regenerate keeps the note in mind
         self.post({"action": "regenerate"})
-        self.assertIn("Director's note for this reply: The storm reaches the harbour.", json.dumps(self.sent[-1]["messages"]))
+        self.assertIn("The note: The storm reaches the harbour.", json.dumps(self.sent[-1]["messages"]))
         # Later replies still see it, framed as a direction (not words said in the story)
         self.post({"action": "chat", "message": "We wait."})
         self.assertIn("[Director's note, outside the story", json.dumps(self.sent[-1]["messages"]))
@@ -6788,7 +6788,7 @@ class DirectorNoteTests(WatchChatTests):
         data["messages"][-1] = list(chats.with_directed(tuple(data["messages"][-1]), "An old note."))
         chats.write(self.character.chats.first(), data)
         reply = self.post({"action": "regenerate"}).json()
-        self.assertIn("Director's note for this reply: An old note.", json.dumps(self.sent[-1]["messages"]))
+        self.assertIn("The note: An old note.", json.dumps(self.sent[-1]["messages"]))
         self.assertEqual(reply["directed"], "An old note.")
 
     def test_be_creative_gives_two_notes(self):
@@ -8805,3 +8805,114 @@ class TomatoBoardTests(TestCase):
         self.assertEqual(self.client.post(reverse("tomato_board"), "{", content_type="application/json").status_code, 400)
         self.client.logout()
         self.assertEqual(self.client.get(reverse("tomato_board")).status_code, 302)
+
+
+class EchoCutTests(SimpleTestCase):
+    """A reply that copies their message back: the copied sentences are cut, nothing else."""
+    THEIRS = ('"I think we should leave before the guards come back," I whisper, tugging at his sleeve and glancing '
+              'toward the door. My heart is pounding.')
+    REST = ('Dottore doesn\'t move. He turns the vial in the lamplight, watching the liquid crawl up the glass, and only '
+            'then looks at you. "Leave? We have barely started. The guards answer to me, little one, and they will not '
+            'come back until I ring for them." He sets the vial down with a soft click and reaches past you.')
+
+    def test_a_copied_opening_is_cut(self):
+        from mainapp import echo
+        reply = ('"I think we should leave before the guards come back," you whisper, tugging at his sleeve and '
+                 'glancing toward the door. Your heart is pounding.\n\n' + self.REST)
+        text, cuts = echo.cut(reply, self.THEIRS)
+        self.assertEqual(text, self.REST)
+        self.assertEqual(len(cuts), 2)
+        self.assertEqual(cuts[0]["habit"], "echoing_user")
+
+    def test_what_is_not_a_copy_stays(self):
+        from mainapp import echo
+        self.assertEqual(echo.cut(self.REST, self.THEIRS), (self.REST, []))
+        quoted = 'He snorts. "Before the guards come back," he repeats, amused. ' + self.REST  # a phrase thrown back
+        self.assertEqual(echo.cut(quoted, self.THEIRS)[1], [])
+        mostly = self.THEIRS.replace(" I ", " you ") + " He looks up."   # almost all copy: cutting would leave scraps
+        self.assertEqual(echo.cut(mostly, self.THEIRS)[1], [])
+        tagged = '<plum>"I think we should leave before the guards come back," you whisper' + "</plum> " + self.REST
+        text = echo.cut(tagged, self.THEIRS)[0]
+        self.assertEqual(text.count("<plum>"), text.count("</plum>"))  # never half a colour tag left behind
+
+
+class EchoInChatTests(ChatPromptTests):
+    """The cut in a real reply: saved without the copy, the original kept for Show original / Undo."""
+    THEIRS = EchoCutTests.THEIRS
+
+    def fake_post(self, url, headers=None, json=None, timeout=None, **kwargs):
+        resp = super().fake_post(url, headers=headers, json=json, timeout=timeout, **kwargs)
+        if "response_format" not in json and not json["messages"][0]["content"].startswith(("Existing summary", "Summarize")):
+            copy = self.THEIRS.replace(" I ", " you ").replace("My heart", "Your heart")
+            resp.json.return_value = {"choices": [{"message": {"content": copy + "\n\n" + EchoCutTests.REST}}]}
+        return resp
+
+    def test_the_copy_is_cut_and_can_be_undone(self):
+        data = self.post({"action": "chat", "message": self.THEIRS}).json()
+        self.assertEqual(data["reply"], EchoCutTests.REST)
+        self.assertEqual(data["polish"]["count"], 2)
+        saved = self.saved_messages()[-1]
+        self.assertEqual(saved[2], EchoCutTests.REST)
+        index = len(self.saved_messages()) - 1
+        self.post({"action": "polish_undo", "index": index})
+        self.assertTrue(self.saved_messages()[-1][2].startswith('"I think we should leave'))
+        data = self.post({"action": "regenerate"}).json()                    # a new swipe is cut too
+        self.assertEqual(data["reply"], EchoCutTests.REST)
+
+
+class DirectorNoteLastTests(ChatPromptTests):
+    """The director's note outranks everything: last in the request, inside their turn, saying it comes first."""
+
+    def test_the_note_is_the_last_thing_the_model_reads(self):
+        self.post({"action": "chat", "message": "I keep arguing with the guard about the toll.",
+                   "guidance": "Cut to the next morning at the harbour."})
+        last = self.sent[-1]["messages"][-1]
+        self.assertEqual(last["role"], "user")
+        self.assertTrue(last["content"].rstrip().endswith("The note: Cut to the next morning at the harbour.]"))
+        self.assertIn("It comes first", last["content"])
+        self.assertIn("make that move at the start of the reply", last["content"])
+        joined = "\n".join(m["content"] for m in self.sent[-1]["messages"])
+        self.assertLess(joined.index("arguing with the guard"), joined.index("Cut to the next morning"))
+
+    def test_wherever_the_preset_put_it(self):
+        from mainapp import presets
+        obj = presets.get_active(self.user)
+        data = presets.normalize(obj.data)
+        for b in data["blocks"]:
+            if b.get("kind") == "marker" and b.get("marker") == "director_note":
+                b.update(position="relative", role="system")
+        # moved up front, as a system message
+        data["blocks"].sort(key=lambda b: 0 if b.get("marker") == "director_note" else 1)
+        obj.data = data
+        obj.save()
+        self.post({"action": "chat", "message": "Hello there.", "guidance": "She is secretly the queen."})
+        last = self.sent[-1]["messages"][-1]
+        self.assertEqual(last["role"], "user")
+        self.assertIn("The note: She is secretly the queen.", last["content"])
+        self.assertEqual(sum("She is secretly the queen." in m["content"] for m in self.sent[-1]["messages"]), 1)
+
+    def test_reminders_forbid_repeating_their_message(self):
+        from mainapp import experiences
+        for mode in ("dont", "write"):
+            self.assertIn("never repeat, quote or retell it", experiences.catalog()["reminders"][mode])
+        for mode, texts in experiences.legacy_reminders().items():  # no older wording hides inside a new one
+            for t in texts:
+                self.assertNotIn(t, experiences.catalog()["reminders"][mode])
+
+
+# These two build on the chat test setup but run only their own tests
+for _cls in (EchoInChatTests, DirectorNoteLastTests):
+    for _name in [n for n in dir(ChatPromptTests) if n.startswith("test_")]:
+        if _name not in _cls.__dict__:
+            setattr(_cls, _name, None)
+
+
+class CounterRefreshTests(SimpleTestCase):
+    def test_an_unedited_mimo_counter_gets_the_no_repeat_line(self):
+        from mainapp import presets, writing_quality as W
+        old = W.catalog()["legacy_counters"]["mimo-v2-6-pro"][0]
+        data = presets.normalize({"blocks": [{"id": W.COUNTER_ID, "name": W.COUNTER_NAME, "kind": "prompt", "content": old}]})
+        self.assertIn("Never open a reply by repeating", data["blocks"][0]["content"])
+        mine = old + " My own line."  # edited by them: left alone
+        data = presets.normalize({"blocks": [{"id": W.COUNTER_ID, "name": W.COUNTER_NAME, "kind": "prompt", "content": mine}]})
+        self.assertEqual(data["blocks"][0]["content"], mine)

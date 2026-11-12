@@ -530,17 +530,19 @@ class PersonaPictureTests(TestCase):
 
 class OldWordingRefreshTests(SimpleTestCase):
     def test_old_reminder_and_write_rule_are_updated_on_load(self):
-        old_reminder = experiences.catalog()['legacy_reminders']['dont']
         old_write = experiences.LEGACY_CONTRACTS['write']
-        data = presets.normalize({'blocks': [
-            {'name': 'Your character', 'kind': 'prompt', 'content': old_write},
-            {'name': 'Reply reminder', 'kind': 'prompt', 'role': 'user', 'position': 'in_chat', 'depth': 0,
-             'content': old_reminder + '\n[18+ line stays]'}]})
-        blocks = {b['name']: b['content'] for b in data['blocks']}
-        self.assertEqual(blocks['Your character'], experiences.CONTRACTS['write'])
-        self.assertNotIn('[Continue', blocks['Reply reminder'])
-        self.assertIn('[18+ line stays]', blocks['Reply reminder'])
-        self.assertEqual(control.mode_of(data), 'write')
+        for old_reminder in experiences.legacy_reminders()['dont']:  # every older wording, oldest first
+            data = presets.normalize({'blocks': [
+                {'name': 'Your character', 'kind': 'prompt', 'content': old_write},
+                {'name': 'Reply reminder', 'kind': 'prompt', 'role': 'user', 'position': 'in_chat', 'depth': 0,
+                 'content': old_reminder + '\n[18+ line stays]'}]})
+            blocks = {b['name']: b['content'] for b in data['blocks']}
+            self.assertEqual(blocks['Your character'], experiences.CONTRACTS['write'])
+            self.assertNotIn('[Continue', blocks['Reply reminder'])
+            self.assertIn('never repeat, quote or retell it', blocks['Reply reminder'])
+            self.assertEqual(blocks['Reply reminder'].count('[Note to the writer'), 1)
+            self.assertIn('[18+ line stays]', blocks['Reply reminder'])
+            self.assertEqual(control.mode_of(data), 'write')
 
 
 class DesignMemoryTests(SimpleTestCase):

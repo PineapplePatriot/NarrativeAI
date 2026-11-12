@@ -35,6 +35,18 @@ def add_baseline(starter):
     return starter
 
 
+def refresh_counters(blocks):
+    """A model counter block nobody edited gets the counter's current wording (in place): an older default text,
+    word for word, is replaced; anything they changed stays theirs."""
+    data = catalog()
+    for b in blocks:
+        if b.get("id") != COUNTER_ID or not isinstance(b.get("content"), str):
+            continue
+        for model, olds in (data.get("legacy_counters") or {}).items():
+            if b["content"].strip() in olds and data.get("default_counters", {}).get(model):
+                b["content"] = data["default_counters"][model]
+
+
 def guidance(model):
     data = catalog()
     selected = set(data["models"].get(model, []))

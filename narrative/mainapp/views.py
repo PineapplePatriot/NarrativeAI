@@ -29,7 +29,7 @@ from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
 from . import basics as basics_mod
-from . import speaker_colors
+from . import echo, speaker_colors
 from . import extras, game, html_objects, media_library, recall, story, thinking, ai_client, cards, chats, regex_rules, experiences, model_profiles, presets, samplers, starters, tomato_garden, tomato_machine, tomatoes, trackers, translation
 from .bulba import control, polish, watch
 from mainapp import mature, refusals
@@ -313,6 +313,22 @@ def _summarize_pieces(user, messages, start, earlier=""):
 
 
 NOTE_FRAME = "[Director's note, outside the story (not something said or done in it): {text}]"
+
+
+def _cut_echo(before, message):
+    """`message` (a new reply) with any sentences that copy their latest message cut out (mainapp/echo.py), kept
+    like a polish so Show original / Undo work. `before`: the chat up to the reply. Returns (message, its text)."""
+    theirs = []
+    for m in reversed(before):
+        if m[0] == "assistant":
+            break
+        if m[0] == "user" and not chats.is_note(m):
+            theirs.append(m[2])
+    clean, cuts = echo.cut(message[2], "\n\n".join(reversed(theirs)))
+    if not cuts:
+        return message, message[2]
+    rec = {**polish.record(message[2], cuts, [echo.HABIT]), "echo": True}
+    return chats.with_polish(message, clean, rec), clean
 
 
 def _history(messages, note_slot=False):
@@ -860,18 +876,21 @@ def chat(request, slug):
                 index = len(messages) - 1
             if again and 0 <= index < len(messages) and chats.polish_of(messages[index]):
                 messages[index] = chats.with_polish(messages[index], chats.polish_of(messages[index])["original"], None)
+                messages[index], _ = _cut_echo(messages[:index], messages[index])  # the copy stays out
                 save_messages(messages)
             if now or again:
                 reason = polish.why_not_now(request.user, chat_obj, messages, index)
                 if reason:
                     return JsonResponse({"success": True, "changed": False, "reason": reason})
             elif index != len(messages) - 1 or not polish.due(request.user, chat_obj, messages) \
-                    or chats.polish_of(messages[-1]):
+                    or (chats.polish_of(messages[-1]) and not chats.polish_of(messages[-1]).get("echo")):
                 return JsonResponse({"success": True, "changed": False})
             original = messages[index][2]
             # 🧹 on a reply that's already polished: another pass over the polished text (each pass has its own
-            # limits), the fixes added to the earlier ones and the model's original still kept for Undo
-            earlier = chats.polish_of(messages[index]) if now and not again else None
+            # limits), the fixes added to the earlier ones and the model's original still kept for Undo. The same
+            # for the automatic pass after a cut repeat of their message.
+            rec_now = chats.polish_of(messages[index]) if 0 <= index < len(messages) else None
+            earlier = rec_now if (now and not again) or (rec_now and rec_now.get("echo")) else None
             try:
                 new_text, fixes = polish.polish(request.user, character, chat_obj, messages, chat_state["summary"],
                                                 index)
@@ -1675,6 +1694,7 @@ def chat(request, slug):
                         [dict(op) for op in ops if op.get("type") != "notice"])
                     if directed:  # shown above the reply: what steered it (a note is a message of its own instead)
                         new_message = chats.with_directed(new_message, directed[:1000])
+                    new_message, reply = _cut_echo(messages, new_message)  # their message copied back: cut it
                     messages.append(chats.add_version(regen_from, new_message) if regen_from else new_message)
 
                     photo_url = _photo(character, "photo", emotion_char_1)
@@ -1724,6 +1744,7 @@ def chat(request, slug):
                         "swipes": chats.version_info(messages),
                         "spending": ai_client.spending(request.user),
                         "directed": chats.directed_of(messages[-1]),
+                        "polish": polish.page_payload(chats.polish_of(messages[-1])),  # a cut repeat of their message
                         "story": story_payload(),
                         "story_notes": story_notes,
                     }
