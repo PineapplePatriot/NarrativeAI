@@ -235,6 +235,8 @@ def normalize(raw):
     _ensure_pinned_note(blocks)
     from mainapp import experiences
     experiences.refresh_reminders(blocks)
+    from mainapp import writing_quality
+    writing_quality.refresh_counters(blocks)
     from mainapp import basics
     basics.drop_retired(blocks)
     utility_raw = raw.get("utility") if isinstance(raw.get("utility"), dict) else {}
@@ -655,6 +657,9 @@ def fires_on(block, generation):
     return bool(kinds & set(block["triggers"]))
 
 
+NOTE_LAST = 10 ** 9  # in-chat order that puts the director's note after everything else at depth 0
+
+
 def assemble(preset, slots, history, names, model="", rng=None, generation="normal"):
     """
     generation: "normal", "regenerate", "continue", "impersonate" (blocks limited to other kinds are left out)
@@ -696,6 +701,11 @@ def assemble(preset, slots, history, names, model="", rng=None, generation="norm
         if not text.strip():
             continue
         entry = {"role": b["role"], "content": text.strip(), "sources": [b["name"]]}
+        if b["kind"] == "marker" and b["marker"] == "director_note":
+            # The director's note goes last, inside their turn, wherever the preset put it: placed earlier or sent as
+            # a system message, models (MiMo especially) let the reply reminder and the chat's momentum win
+            in_chat.append((0, NOTE_LAST, {**entry, "role": "user"}))
+            continue
         if b["position"] == "in_chat":
             in_chat.append((b["depth"], b["order"], entry))
         else:

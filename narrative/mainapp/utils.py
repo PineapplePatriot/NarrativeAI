@@ -9,6 +9,17 @@ from mainapp.trackers import (normalize_config as normalize_tracker_config,
                               format_for_prompt as format_trackers)
 
 
+# The newest director's note (or a Redo instruction). presets.assemble always sends it last, inside their turn, so it
+# outranks the reply reminder and the momentum of the chat (a message from "Write my message" pulling the old scene
+# along, many turns of plain roleplay before it).
+DIRECTOR_NOTE = (
+    "[Director's note for this reply, from the person you write with. It comes first: follow it even where it changes "
+    "the direction the last message, the scene or the chat so far were going. If it moves the story on (a time skip, a "
+    "new place, a cut to someone else), make that move at the start of the reply and write the new scene there, "
+    "carrying over only what matters from the last message in a line or two at most. Otherwise, make the reply do what "
+    "the note asks.\nThe note: {note}]")
+
+
 def build_ai_request(user, character: Character, chat=None, worldbook_slug=None, message: str = None,
                      guidance=None, persistent_guides=None, summary=None, story_values=None):
     """
@@ -105,7 +116,7 @@ def build_ai_request(user, character: Character, chat=None, worldbook_slug=None,
             system_prompts["WorldContext"] = f"Pinned note from the user, for every reply:\n{note}"
 
     if guidance:
-        system_prompts["DirectorNote"] = f"Director's note for this reply: {guidance}"
+        system_prompts["DirectorNote"] = DIRECTOR_NOTE.format(note=guidance.strip())
         try:  # director mode: the note says the scene is written in full, their own character included
             from mainapp import presets
             from mainapp.bulba import control

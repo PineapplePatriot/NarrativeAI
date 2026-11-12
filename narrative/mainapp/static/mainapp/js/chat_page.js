@@ -657,6 +657,7 @@ function placeReply(data, avatarUrl) {
         setGame(all[all.length - 1], data.game);
         setExtras(all[all.length - 1], data.extras_html);
         if (data.game_trackers && window.Trackers) Trackers.setState(data.game_trackers);
+        if (data.polish) setPolish(all[all.length - 1], data.polish);  // a repeat of their message, cut out
         return;
     }
     refreshForDepth();
@@ -668,6 +669,7 @@ function placeReply(data, avatarUrl) {
     setExtras(message, data.extras_html);
     if (data.game_trackers && window.Trackers) Trackers.setState(data.game_trackers);
     message.querySelector('.edit-textarea').value = data.reply;
+    if (data.polish) setPolish(message, data.polish);  // a repeat of their message, cut out (Show original / Undo)
     if (avatarUrl) {
         const avatar = message.querySelector('.message-avatar');
         if (avatar && avatar.tagName === 'IMG') avatar.src = avatarUrl;
@@ -1956,7 +1958,10 @@ function setPolish(messageEl, info, busy = false) {
     line._polished = decodeURIComponent(messageEl.querySelector('.message-text').getAttribute('data-raw') || '');
     const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     const list = (info.fixes || []).map(f => `<li><s>${esc(f.before)}</s>${f.after ? ` → ${esc(f.after)}` : ' (removed)'}</li>`).join('');
-    line.innerHTML = `<details><summary>🧹 Bulba fixed ${info.count} thing${info.count === 1 ? '' : 's'}</summary><ul>${list}</ul></details>
+    const echoOnly = (info.fixes || []).length && info.fixes.every(f => f.habit === 'echoing_user');
+    const title = echoOnly ? '🧹 Bulba cut your message where the reply repeated it'
+        : `🧹 Bulba fixed ${info.count} thing${info.count === 1 ? '' : 's'}`;
+    line.innerHTML = `<details><summary>${title}</summary><ul>${list}</ul></details>
         <button type="button" class="link" data-polish="toggle">Show original</button>
         <button type="button" class="link" data-polish="undo">Undo fixes</button>
         ${info.verdict ? '' : `<span class="polish-rate">Better?
@@ -1967,6 +1972,7 @@ function setPolish(messageEl, info, busy = false) {
 // now: they just pressed "Fix this automatically", so this reply is polished too and they hear why if it isn't
 function runPolish(messageEl, now = false, index = null, again = false) {
     if (!messageEl) { if (now) showChatNotice("There's no reply to polish yet; the next one will be."); return; }
+    const kept = (messageEl.querySelector('.polish-line') || {})._info || null;  // e.g. a cut repeat: stays if nothing changes
     if (window.READING_LANGUAGE) setStage(messageEl, '🧹 Revising…');  // the stage line says it (one line, not two)
     else setPolish(messageEl, null, true);
     lockWhileFinishing();
@@ -1979,7 +1985,7 @@ function runPolish(messageEl, now = false, index = null, again = false) {
         .then(d => {
             if (d.spending) updateSpending(d.spending);
             if (!d.success || !d.changed) {
-                setPolish(messageEl, null);
+                setPolish(messageEl, again ? null : kept);
                 if (d.error) showChatNotice(`Polish skipped: ${d.error}`);
                 else if (now && d.reason) showChatNotice(d.reason);
                 return;
@@ -1987,7 +1993,7 @@ function runPolish(messageEl, now = false, index = null, again = false) {
             showText(messageEl, d.reply);
             setPolish(messageEl, d.polish);
         })
-        .catch(() => setPolish(messageEl, null))
+        .catch(() => setPolish(messageEl, again ? null : kept))
         .then(() => window.READING_LANGUAGE ? translateMessage(messageEl) : null)  // polished English, then translated
         .finally(unlockFinished);
 }

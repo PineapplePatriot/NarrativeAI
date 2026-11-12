@@ -80,9 +80,9 @@
   },
   "default_length": "flexible",
   "reminders": {
-    "dont": "[Note to the writer, not part of the story: your reply answers {{user}}'s last message. Keep to the reply length, end on what the other characters do or say (never on a question to the reader about what {{user}} will do), and stop where {{user}}'s next move is theirs to make.]",
-    "write": "[Note to the writer, not part of the story: your reply answers the last message. You write {{user}} too, like any other character. Keep to the reply length and end on something happening, never on a question to the reader.]",
-    "director": "[Note to the writer, not part of the story: write the next part of the scene, following the director's latest direction. Never address the director or end on a question to them.]"
+    "dont": "[Note to the writer, not part of the story: your reply answers {{user}}'s last message. That message is already on the page: never repeat, quote or retell it, and start from what happens next. Keep to the reply length, end on what the other characters do or say (never on a question to the reader about what {{user}} will do), and stop where {{user}}'s next move is theirs to make.]",
+    "write": "[Note to the writer, not part of the story: your reply answers the last message. That message is already on the page: never repeat, quote or retell it, and start from what happens next. You write {{user}} too, like any other character. Keep to the reply length and end on something happening, never on a question to the reader.]",
+    "director": "[Note to the writer, not part of the story: write the next part of the scene, following the director's latest direction. Don't repeat or restate the direction itself; show it happening. Never address the director or end on a question to them.]"
   },
   "modules": {
     "friction": {
@@ -413,8 +413,17 @@
   },
   "default_experience": "drama",
   "legacy_reminders": {
-    "dont": "[Continue from where the scene stands. Keep to the reply length and stop where {{user}}'s next response matters.]",
-    "write": "[Continue from where the scene stands, {{user}} included as a character. Keep to the reply length.]",
-    "director": "[Continue the scene as the writer, following the director's latest direction.]"
+    "dont": [
+      "[Continue from where the scene stands. Keep to the reply length and stop where {{user}}'s next response matters.]",
+      "[Note to the writer, not part of the story: your reply answers {{user}}'s last message. Keep to the reply length, end on what the other characters do or say (never on a question to the reader about what {{user}} will do), and stop where {{user}}'s next move is theirs to make.]"
+    ],
+    "write": [
+      "[Continue from where the scene stands, {{user}} included as a character. Keep to the reply length.]",
+      "[Note to the writer, not part of the story: your reply answers the last message. You write {{user}} too, like any other character. Keep to the reply length and end on something happening, never on a question to the reader.]"
+    ],
+    "director": [
+      "[Continue the scene as the writer, following the director's latest direction.]",
+      "[Note to the writer, not part of the story: write the next part of the scene, following the director's latest direction. Never address the director or end on a question to them.]"
+    ]
   }
 }

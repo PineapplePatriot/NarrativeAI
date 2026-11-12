@@ -129,7 +129,7 @@ def configure(preset, mode='dont', extensions=()):
             block['enabled'] = block['name'] in selected
     reminder = next((b for b in result['blocks'] if b.get('name') == REMINDER and b.get('position') == 'in_chat'), None)
     if reminder is not None:  # keep anything added to it (the 18+ line), swap only the contract's own line
-        known = set(catalog()['reminders'].values()) | set(catalog().get('legacy_reminders', {}).values())
+        known = set(catalog()['reminders'].values()) | {t for texts in legacy_reminders().values() for t in texts}
         lines = [l for l in reminder['content'].split('\n') if l.strip() not in known]
         reminder['content'] = '\n'.join([catalog()['reminders'][mode], *[l for l in lines if l.strip()]])
     return result
@@ -142,19 +142,28 @@ CUSTOM_OBJECT = 'html_custom'  # "My own object": its block ends with what they 
 ADULT = {'slow_burn', 'dark_themes', 'explicit_intimacy', 'intense_explicit'}
 
 
+def legacy_reminders():
+    """Every older wording of each reply reminder (oldest first): {mode: [text, ...]}."""
+    out = {}
+    for mode, texts in (catalog().get('legacy_reminders') or {}).items():
+        out[mode] = [texts] if isinstance(texts, str) else list(texts)
+    return out
+
+
 def refresh_reminders(blocks):
     """The reply reminder in its current wording (in place). The old one began "[Continue from where the scene
     stands", which some models (MiMo) read as a "continue" command on top of the user's message."""
-    legacy = catalog().get('legacy_reminders') or {}
+    legacy = legacy_reminders()
     for b in blocks:
         if b.get('name') == 'Your character' and isinstance(b.get('content'), str):
             for mode, text in LEGACY_CONTRACTS.items():
                 if b['content'].strip() == text:
                     b['content'] = CONTRACTS[mode]
         if b.get('name') == REMINDER and b.get('position') == 'in_chat' and isinstance(b.get('content'), str):
-            for mode, text in legacy.items():
-                if text in b['content']:
-                    b['content'] = b['content'].replace(text, catalog()['reminders'][mode])
+            for mode, texts in legacy.items():
+                for text in texts:
+                    if text in b['content']:
+                        b['content'] = b['content'].replace(text, catalog()['reminders'][mode])
 
 
 def module_states(preset):
