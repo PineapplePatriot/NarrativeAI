@@ -1291,16 +1291,31 @@ class StreamChatTests(ChatPromptTests):
         self.assertIn("summary_due", done)
         self.assertEqual(self.saved_messages()[-1][2], "Once upon a time.")
 
-    def test_stop_keeps_partial_text(self):
+    def pressing_stop_after_first_words(self):
+        """The model's words, with Stop pressed (the stop_reply action) once the first ones have arrived."""
+        lines = list(self.stream_lines)
+
+        def stream():
+            yield lines[0]
+            self.client.post(self.url, json.dumps({"action": "stop_reply"}), content_type="application/json")
+            yield from lines[1:]
+        self.stream_lines = stream()
+
+    def test_leaving_the_page_keeps_writing_and_stop_keeps_partial_text(self):
         from unittest import mock
         with mock.patch("mainapp.ai_client.requests.post", side_effect=self.fake_post):
             resp = self.client.post(self.url, json.dumps({"action": "chat", "message": "Go", "stream": True}),
                                     content_type="application/json")
             stream = iter(resp.streaming_content)
             next(stream)          # the first words arrive...
-            resp.close()          # ...then the page stops reading
+            resp.close()          # ...then the page goes away: the reply is still written to the end
+        self.assertEqual(self.saved_messages()[-1][2], "Once upon a time.")
+        self.stream_lines = sse(delta("Once "), delta("upon "), delta("a time."), "[DONE]")
+        self.pressing_stop_after_first_words()
+        _, events = self.stream_post({"action": "chat", "message": "Again"})
+        self.assertEqual(events[-1]["type"], "stopped")
         saved = self.saved_messages()
-        self.assertEqual([m[0] for m in saved], ["assistant", "user", "assistant"])
+        self.assertEqual([m[0] for m in saved], ["assistant", "user", "assistant", "user", "assistant"])
         self.assertEqual(saved[-1][2], "Once")
 
     def test_error_mid_stream_keeps_partial_and_reports(self):
@@ -1497,14 +1512,9 @@ class SwipeTests(ChatPromptTests):
 
 class SwipeStreamTests(StreamChatTests):
     def test_stopped_regenerate_keeps_both(self):
-        from unittest import mock
         self.stream_post({"action": "chat", "message": "Go"})
-        with mock.patch("mainapp.ai_client.requests.post", side_effect=self.fake_post):
-            resp = self.client.post(self.url, json.dumps({"action": "regenerate", "stream": True}),
-                                    content_type="application/json")
-            stream = iter(resp.streaming_content)
-            next(stream)
-            resp.close()
+        self.pressing_stop_after_first_words()
+        self.stream_post({"action": "regenerate"})
         saved = self.saved_messages()
         self.assertEqual(saved[-1][2], "Once")
         self.assertEqual([v["text"] for v in saved[-1][5]["swipes"]], ["Once upon a time.", "Once"])
@@ -3671,7 +3681,13 @@ class TranslationWorkflowTests(ChatPromptTests):
     def test_a_silent_block_is_explained_not_empty(self):
         from mainapp import ai_client
         msg = ai_client.block_explanation("PROHIBITED_CONTENT")
-        self.assertIn("does not identify the trigger", msg)
+        self.assertIn("No setting in the app can switch that check off", msg)
+        self.assertIn("Press Regenerate", msg)
+        self.assertIn("different chat model on the Connections page", msg)
+        self.assertNotIn("teenagers", msg)                    # only Gemini gets that line
+        gemini = ai_client.block_explanation("SAFETY", "google/gemini-3.8-flash")
+        self.assertIn("(SAFETY)", gemini)
+        self.assertIn("teenagers in their original story", gemini)
         self.assertTrue(ai_client._blocking_stop("PROHIBITED_CONTENT"))
         self.assertTrue(ai_client._blocking_stop("content_filter"))
         self.assertFalse(ai_client._blocking_stop("stop"))
@@ -4831,7 +4847,7 @@ class ExtrasPlacementTests(GameTests):
         resp, events = self.stream_post({"action": "chat", "message": "Hello?"})
         self.assertEqual(events[-1]["type"], "error")
         self.assertIn("PROHIBITED_CONTENT", events[-1]["error"])
-        self.assertIn("does not identify the trigger", events[-1]["error"])
+        self.assertIn("doesn't say what set it off", events[-1]["error"])
 
     def test_a_fumbled_tool_call_retries_without_tools(self):
         from mainapp import extras
@@ -8916,3 +8932,73 @@ class CounterRefreshTests(SimpleTestCase):
         mine = old + " My own line."  # edited by them: left alone
         data = presets.normalize({"blocks": [{"id": W.COUNTER_ID, "name": W.COUNTER_NAME, "kind": "prompt", "content": mine}]})
         self.assertEqual(data["blocks"][0]["content"], mine)
+
+
+class LiveWorkTests(StreamChatTests):
+    """Leaving the page: a reply still being written can be followed again; Write my message waits in the box."""
+
+    def key(self, kind):
+        from mainapp import live
+        return live.key(self.user, self.character.chats.first(), kind)
+
+    def test_a_reply_still_being_written_is_followed_and_blocks_another(self):
+        from mainapp import live
+        self.stream_post({"action": "chat", "message": "Go"})   # makes the chat
+        job = live.start(self.key("reply"), "reply")              # a reply still going on the server
+        job.put('{"type": "delta", "text": "Half "}\n')
+        page = self.client.get(self.url)
+        self.assertContains(page, "window.LIVE_REPLY = true")
+        busy = self.post({"action": "chat", "message": "Another"})
+        self.assertEqual(busy.status_code, 409)
+        resp = self.client.post(self.url, json.dumps({"action": "follow"}), content_type="application/json")
+        stream = iter(resp.streaming_content)
+        self.assertEqual(json.loads(next(stream)), {"type": "delta", "text": "Half "})   # what was written so far
+        job.put('{"type": "delta", "text": "done."}\n')
+        job.finish()
+        self.assertEqual([json.loads(l) for l in stream if l.strip()], [{"type": "delta", "text": "done."}])
+        self.assertEqual(self.client.post(self.url, json.dumps({"action": "follow"}),
+                                          content_type="application/json").json(), {"none": True, "done": True})
+        self.assertContains(self.client.get(self.url), "window.LIVE_REPLY = false")
+
+    def test_stop_closes_the_reply(self):
+        from mainapp import live
+        job = live.Job("reply")
+        closed = []
+
+        def lines():
+            try:
+                yield "a\n"
+                job.cancel = True
+                yield "b\n"
+            finally:
+                closed.append(True)
+        live.work_inline(job, lines())
+        self.assertEqual((job.lines, closed, job.done), (["a\n", '{"type": "stopped"}\n'], [True], True))
+
+    def test_write_my_message_waits_for_them(self):
+        self.stream_post({"action": "chat", "message": "Go"})
+        self.post({"action": "expand", "text": ""})              # they left before it came back
+        self.assertContains(self.client.get(self.url), "window.LIVE_DRAFT = true")
+        d = self.post({"action": "draft", "take": True}).json()
+        self.assertEqual((d["state"], d["success"]), ("ready", True))
+        self.assertTrue(d["text"])
+        self.assertEqual(self.post({"action": "draft"}).json(), {"state": "none"})   # taken: gone
+        self.assertContains(self.client.get(self.url), "window.LIVE_DRAFT = false")
+
+
+for _name in [n for n in dir(StreamChatTests) if n.startswith("test_")]:
+    if _name not in LiveWorkTests.__dict__:
+        setattr(LiveWorkTests, _name, None)
+
+
+class PitLayoutTests(TestCase):
+    def test_numbers_on_top_then_the_leaderboard_and_folded_extras(self):
+        user = get_user_model().objects.create_user(username="layout", password="pw12345!")
+        self.client.force_login(user)
+        html = self.client.get(reverse("tomato_pit")).content.decode()
+        order = [html.index(f'id="{i}"') for i in ("sumTotal", "boardBox", "machBox", "throwBox", "wallBox", "skinsBox")]
+        self.assertEqual(order, sorted(order))
+        for i in ("sumCompost", "machCompostFill", "machCompostNote"):
+            self.assertIn(f'id="{i}"', html)
+        self.assertIn('<details class="pit-box pit-fold" id="achBox">', html)
+        self.assertIn("wall\n      throws don't count anywhere", html)

@@ -160,3 +160,13 @@ body.mach-open { overflow: hidden; }
     .mach-card, .mach-ten .slot.done { animation: machFade .3s both !important; }
 }
 @keyframes machFade { from { opacity: 0; } to { opacity: 1; } }
+
+/* Compost: how much, how much a spin takes */
+.mach-compost { display: flex; flex-direction: column; gap: 5px; padding: 10px 12px; border-radius: 12px;
+    border: 1px solid rgba(124, 201, 90, .35); background: rgba(124, 201, 90, .07); }
+.mach-compost .mach-line { justify-content: space-between; }
+.mach-compost-n { font-weight: 800; font-variant-numeric: tabular-nums; color: #a8e08a; }
+.mach-meter.small { height: 8px; }
+.mach-fill.compost { background: linear-gradient(90deg, #5aa83a, #b6e36a); }
+.mach-compost .na-btn { align-self: flex-start; padding: 5px 12px; font-size: .82rem; }
+.mach-compost .na-btn:disabled { opacity: .45; cursor: not-allowed; }

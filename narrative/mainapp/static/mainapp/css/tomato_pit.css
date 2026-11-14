@@ -118,3 +118,42 @@ body.wall-full-open { overflow: hidden; }
 @media (max-width: 700px) and (orientation: portrait) {
     #wallBox.wall-full .wall-turn { display: block; text-align: center; font-size: .8rem; opacity: .7; margin: 2px 0; }
 }
+
+/* --- The Pit, sorted: your numbers on top, a row to jump between sections, an accent colour per section --- */
+.pit { --acc-board: #f2b72c; --acc-machine: #ff6b4a; --acc-throw: #e0352b; --acc-wall: #a78bfa; --acc-compost: #7cc95a; }
+.pit [data-accent="board"] { --acc: var(--acc-board); } .pit [data-accent="machine"] { --acc: var(--acc-machine); }
+.pit [data-accent="throw"] { --acc: var(--acc-throw); } .pit [data-accent="wall"] { --acc: var(--acc-wall); }
+.pit [data-accent="compost"] { --acc: var(--acc-compost); }
+.pit-box[data-accent] { border-top: 3px solid var(--acc); background:
+    linear-gradient(180deg, color-mix(in srgb, var(--acc) 9%, transparent), rgba(255, 255, 255, .03) 140px); }
+.pit-box[data-accent] > .pit-box-head h2 { color: color-mix(in srgb, var(--acc) 55%, #fff); }
+.pit-box { scroll-margin-top: 110px; }
+
+.pit-sum { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 14px 0 10px; }
+.sum-tile { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 14px; text-decoration: none; color: inherit;
+    border: 1px solid color-mix(in srgb, var(--acc) 45%, transparent); background: color-mix(in srgb, var(--acc) 12%, rgba(255, 255, 255, .02));
+    transition: transform .12s, background .12s; min-width: 0; }
+.sum-tile:hover { transform: translateY(-2px); background: color-mix(in srgb, var(--acc) 20%, rgba(255, 255, 255, .02)); }
+.sum-n { font-size: 1.55rem; font-weight: 800; color: color-mix(in srgb, var(--acc) 60%, #fff); font-variant-numeric: tabular-nums; }
+.sum-l { font-size: .78rem; opacity: .75; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 640px) { .pit-sum { grid-template-columns: repeat(2, minmax(0, 1fr)); } .sum-n { font-size: 1.3rem; } }
+
+.pit-jump { position: sticky; top: 0; z-index: 50; display: flex; gap: 6px; overflow-x: auto; padding: 8px 2px; margin: 0 0 14px;
+    background: color-mix(in srgb, #11131d 88%, transparent); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    scrollbar-width: none; border-bottom: 1px solid rgba(255, 255, 255, .06); }
+.pit-jump a { flex: none; font-size: .82rem; padding: 6px 11px; border-radius: 999px; text-decoration: none; color: inherit;
+    border: 1px solid rgba(255, 255, 255, .12); background: rgba(255, 255, 255, .03); }
+.pit-jump a:hover { background: rgba(139, 92, 246, .2); border-color: rgba(139, 92, 246, .55); }
+
+#throwBox .pit-field { min-height: 190px; margin: 6px 0 0; }
+
+/* Folded sections: skins, achievements, sharing */
+.pit-fold > summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.pit-fold > summary::-webkit-details-marker { display: none; }
+.pit-fold > summary h2 { margin: 0; }
+.pit-fold > summary::after { content: '▾'; opacity: .6; transition: transform .2s; margin-left: 8px; }
+.pit-fold[open] > summary::after { transform: rotate(180deg); }
+.pit-fold > summary span { margin-left: auto; }
+.pit-fold[open] > summary { margin-bottom: 10px; }
+
+.board-badge { margin-right: 6px; }

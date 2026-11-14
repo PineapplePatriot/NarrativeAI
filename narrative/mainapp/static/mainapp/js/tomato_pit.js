@@ -36,6 +36,7 @@
     function paint() {
         const d = T.data(), s = T.skin();
         $('pitCount').textContent = d.count.toLocaleString();
+        if ($('sumTotal')) $('sumTotal').textContent = d.count.toLocaleString();
         $('pitAmmo').textContent = s.emoji;
         $('pitAmmo').style.filter = s.filter || '';
         const open = T.SKINS.filter(T.unlocked);
@@ -171,7 +172,7 @@
 
 /* 🎨 The splat wall: throws land where you tap and stay; dragging paints a line of them, with no gaps. Kept in
    this browser (a list of splats, drawn by splat_art.js), and saved to the gallery on request (mainapp/tomatoes.py).
-   Every throw counts towards the personal total (NATomato.tally), never towards the leaderboard. Undo and Redo
+   Painting counts nowhere: not the total, not the leaderboard (a golden splat can still show up, just for looks). Undo and Redo
    take back a whole stroke (or a whole wipe). */
 (function () {
     const T = window.NATomato, S = window.NASplat, c = document.getElementById('wall');
@@ -243,7 +244,7 @@
     const at = (e) => { const r = c.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; };
 
     function throwAt(p, stroke) {
-        const s = T.skin(), lucky = T.tally(), lk = T.look(s, lucky);
+        const s = T.skin(), lucky = Math.random() < 1 / 500, lk = T.look(s, lucky);  // paint only: counts nowhere
         const sp = { x: Math.round(p.x), y: Math.round(p.y), r: Math.round(wall.size * (.85 + Math.random() * .3)), c: lk.color,
                      f: lk.filter || '', k: s.emoji, e: wall.emoji, rot: Math.round(Math.random() * 628) / 100,
                      seed: Math.floor(Math.random() * 233280), t: wall.shape };
@@ -382,6 +383,10 @@
     function paint(b) {
         if (!b || !b.me) return;
         $('boardMine').textContent = fmt(b.me.wild);
+        if ($('sumWild')) {
+            $('sumWild').textContent = fmt(b.me.wild);
+            $('sumRank').textContent = b.me.wild ? (b.me.on_board ? `at chats · #${b.me.rank}` : `at chats · you'd be #${b.me.rank}`) : 'at chats and Bulba';
+        }
         $('boardJoin').checked = !!b.me.on_board;
         $('boardRank').textContent = !b.me.wild ? 'Throw at a slow reply to get on the board.'
             : b.me.on_board ? `You're #${b.me.rank}.` : `You'd be #${b.me.rank}.`;
@@ -393,6 +398,12 @@
             li.className = row.me ? 'me' : '';
             li.innerHTML = '<span class="n"></span><span class="w"></span>';
             li.querySelector('.n').textContent = row.name;
+            if (row.badge) {  // won at the Sauce-o-Matic, worn by the name
+                const badge = document.createElement('span');
+                badge.className = 'board-badge';
+                badge.textContent = row.badge;
+                li.querySelector('.n').prepend(badge);
+            }
             li.querySelector('.w').textContent = fmt(row.wild);
             list.appendChild(li);
         });
@@ -406,6 +417,7 @@
         } catch (e) { /* offline: try again later */ }
     }
     $('boardJoin').addEventListener('change', (e) => load({ on_board: e.target.checked }));
+    document.addEventListener('na-board-refresh', () => load());  // a badge just put on at the machine
     load();
     setInterval(() => { if (!document.hidden) load(); }, 30000);
 })();

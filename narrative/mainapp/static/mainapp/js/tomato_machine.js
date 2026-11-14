@@ -44,9 +44,17 @@
         $('machPull10').disabled = busy || s.spins < 10;
         const rare = s.pity.rare_at - s.pity.rare, legend = s.pity.legend_at - s.pity.legend;
         $('machPity').textContent = `A rare or better within ${rare} pull${rare === 1 ? '' : 's'} · a legendary within ${legend}`;
-        $('machCompost').textContent = `♻ ${s.compost} compost`;
-        $('machCompostBtn').disabled = busy || s.compost < s.compost_spin;
-        $('machCompostBtn').title = `Turn ${s.compost_spin} compost into a spin`;
+        // Compost: how much there is, how much a spin takes, where it comes from
+        const need = s.compost_spin, have = s.compost, enough = have >= need;
+        $('machCompost').textContent = `${have} / ${need}`;
+        $('machCompostFill').style.width = `${Math.min(100, Math.round(have / need * 100))}%`;
+        $('machCompostNote').textContent = enough
+            ? `Enough for ${Math.floor(have / need) === 1 ? 'a spin' : Math.floor(have / need) + ' spins'}: trade it in below.`
+            : `${need - have} more for a free spin. Compost comes from repeats in the machine and from garden harvests.`;
+        $('machCompostBtn').textContent = `♻ Trade ${need} compost for a spin`;
+        $('machCompostBtn').disabled = busy || !enough;
+        if ($('sumSpins')) $('sumSpins').textContent = s.spins.toLocaleString();
+        if ($('sumCompost')) $('sumCompost').textContent = `${have} / ${need}`;
         // Bulba's Promise
         const sel = $('machPromise');
         if (sel.options.length === 1) {
@@ -297,11 +305,18 @@
         const o = $('machOdds'); o.hidden = !o.hidden; $('machOddsBtn').setAttribute('aria-expanded', String(!o.hidden));
     });
     async function act(body) {
-        try { state = await call(body); paint(); if (T) T.refresh(); }
+        try {
+            state = await call(body); paint(); if (T) T.refresh();
+            if (body.action === 'equip') document.dispatchEvent(new Event('na-board-refresh'));  // a badge shows at once
+        }
         catch (err) { if (window.NADialog) NADialog.alert(err.message); paint(); }
     }
     $('machPromise').addEventListener('change', (e) => act({ action: 'promise', id: e.target.value || null }));
-    $('machCompostBtn').addEventListener('click', () => act({ action: 'compost' }));
+    $('machCompostBtn').addEventListener('click', async () => {
+        const before = state ? state.spins : 0;
+        await act({ action: 'compost' });
+        if (T && state && state.spins > before) T.toast('♻ A spin, made from compost', 'Pull it whenever you like.');
+    });
     $('machShelf').addEventListener('click', (e) => {
         const eq = e.target.closest('[data-equip]');
         if (eq) { act({ action: 'equip', slot: eq.dataset.equip, id: eq.dataset.id || null }); return; }

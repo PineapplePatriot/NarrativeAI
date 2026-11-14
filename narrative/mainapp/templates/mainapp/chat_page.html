@@ -538,6 +538,8 @@
         window.VOICE_ON = {% if voice_on %}true{% else %}false{% endif %};
         window.USER_AVATAR = "{{ user_avatar|default:'' }}";
         window.STREAM_REPLIES = {{ stream_replies|yesno:"true,false" }};
+        window.LIVE_REPLY = {{ live_reply|yesno:"true,false" }};  // a reply still being written since they left
+        window.LIVE_DRAFT = {{ live_draft|yesno:"true,false" }};  // a "Write my message" waiting (or still writing)
         window.CHARACTER_NAME = "{{ character.name|escapejs }}";
         window.READING_LANGUAGE = "{{ reading_language|escapejs }}";  // profile → Story language ("" = English)
         window.READING_LANGUAGE_NAME = "{{ reading_language_name|escapejs }}";

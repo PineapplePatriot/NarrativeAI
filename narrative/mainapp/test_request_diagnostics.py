@@ -65,10 +65,11 @@ class RequestDiagnosticsTests(SimpleTestCase):
         self.assertEqual(post.call_args.args[1]['safety_settings'],ai_client.GEMINI_SAFETY)
 
     def test_block_explanation_does_not_invent_ages_or_exclude_preset(self):
-        text=ai_client.block_explanation('PROHIBITED_CONTENT')
-        self.assertIn('does not identify the trigger',text)
-        self.assertNotIn('most often',text)
-        self.assertNotIn('minors',text)
+        for text in (ai_client.block_explanation('PROHIBITED_CONTENT'),
+                     ai_client.block_explanation('SAFETY', 'google/gemini-4-argon')):
+            self.assertIn("doesn't say what set it off", text)  # never claims what triggered this one
+            self.assertNotIn('most often', text)
+            self.assertNotIn('minors', text)
 
     def test_translation_prompt_does_not_inherit_account_generation_rules(self):
         from mainapp import translation

@@ -7,8 +7,8 @@
   <title>The Tomato Pit</title>
   <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
   <link rel="stylesheet" href="{% static 'css/base.css' %}?v=5">
-  <link rel="stylesheet" href="{% static 'mainapp/css/tomato_pit.css' %}?v=6">
-  <link rel="stylesheet" href="{% static 'mainapp/css/tomato_machine.css' %}?v=2">
+  <link rel="stylesheet" href="{% static 'mainapp/css/tomato_pit.css' %}?v=7">
+  <link rel="stylesheet" href="{% static 'mainapp/css/tomato_machine.css' %}?v=3">
 </head>
 <body class="na-body">
 {% include "partials/topbar.html" with active="tomatoes" %}
@@ -19,14 +19,32 @@
       Your tomatoes, skins and achievements are kept on your account.</p>
   </header>
 
-  <button type="button" class="pit-field" id="pitField" aria-label="Throw">
-    <span class="pit-ammo" id="pitAmmo">🍅</span>
-    <span class="pit-count" id="pitCount">0</span>
-    <span class="pit-hint">Click, tap or hold Space to throw</span>
-    <span class="pit-rate" id="pitRate"></span>
-  </button>
+  <nav class="pit-sum" aria-label="Your numbers">
+    <a href="#throwBox" class="sum-tile" data-accent="throw"><span class="sum-n" id="sumTotal">0</span><span class="sum-l">thrown in all</span></a>
+    <a href="#boardBox" class="sum-tile" data-accent="board"><span class="sum-n" id="sumWild">0</span><span class="sum-l" id="sumRank">at chats and Bulba</span></a>
+    <a href="#machBox" class="sum-tile" data-accent="machine"><span class="sum-n" id="sumSpins">0</span><span class="sum-l">spins waiting</span></a>
+    <a href="#machBox" class="sum-tile" data-accent="compost"><span class="sum-n" id="sumCompost">0</span><span class="sum-l">compost</span></a>
+  </nav>
+  <nav class="pit-jump" aria-label="Sections">
+    <a href="#boardBox">🏆 Leaderboard</a><a href="#machBox">🎰 Machine</a><a href="#throwBox">🍅 Throw</a><a href="#wallBox">🎨 Wall</a>
+    <a href="#skinsBox">👕 Skins</a><a href="#achBox">🏅 Achievements</a><a href="#shareBox">📤 Share</a>
+    <a href="{% url 'tomato_gallery' %}">🖼 Gallery</a><a href="{% url 'tomato_garden' %}">🌻 Garden</a>
+  </nav>
 
-  <section class="pit-box mach-box" id="machBox" data-url="{% url 'tomato_machine' %}" data-garden="{% url 'tomato_garden' %}">
+  <section class="pit-box" id="boardBox" data-accent="board" data-url="{% url 'tomato_board' %}">
+    <div class="pit-box-head"><h2>🏆 Leaderboard</h2><span class="muted" id="boardPlayers"></span></div>
+    <p class="muted">Tomatoes thrown at a chat or at Bulba while waiting for a reply. Throws here in the Pit and on the
+      splat wall don't count: you have to earn these.</p>
+    <div class="board-me">
+      <div><span class="board-big" id="boardMine">0</span> <span class="muted">at chats and Bulba</span>
+        <small class="muted" id="boardRank"></small></div>
+      <label class="wall-check"><input type="checkbox" id="boardJoin"> <span>Show me on the leaderboard (as <b>{{ request.user.username }}</b>)</span></label>
+    </div>
+    <ol class="board-list" id="boardList"></ol>
+    <p class="muted board-empty" id="boardEmpty" hidden>Nobody's on it yet. Be the first to be seen throwing.</p>
+  </section>
+
+  <section class="pit-box mach-box" data-accent="machine" id="machBox" data-url="{% url 'tomato_machine' %}" data-garden="{% url 'tomato_garden' %}">
     <div class="pit-box-head"><h2>🎰 The Sauce-o-Matic</h2>
       <button type="button" class="na-btn mach-odds-btn" id="machOddsBtn" aria-expanded="false">Odds &amp; rules</button></div>
     <p class="muted">Runs on tomatoes thrown at chats and Bulba while you wait: every <b id="machCost">300</b> is a spin,
@@ -57,8 +75,12 @@
           <button type="button" class="na-btn mach-pull" id="machPull10">Pull ×10</button>
         </div>
         <div class="mach-line" id="machPity"></div>
-        <div class="mach-line mach-compost"><span id="machCompost"></span>
-          <button type="button" class="na-btn" id="machCompostBtn">♻ Make a spin</button></div>
+        <div class="mach-compost">
+          <div class="mach-line"><b>♻ Compost</b> <span class="mach-compost-n" id="machCompost">0 / 10</span></div>
+          <div class="mach-meter small" aria-hidden="true"><div class="mach-fill compost" id="machCompostFill"></div></div>
+          <small class="muted" id="machCompostNote"></small>
+          <button type="button" class="na-btn" id="machCompostBtn">♻ Trade 10 compost for a spin</button>
+        </div>
         <label class="mach-line mach-promise">🤝 Bulba's Promise
           <select id="machPromise" aria-label="The legendary Bulba promises"><option value="">Nothing in particular</option></select></label>
         <small class="muted" id="machPromiseNote"></small>
@@ -85,23 +107,20 @@
     </div>
   </div>
 
-  <section class="pit-box" id="boardBox" data-url="{% url 'tomato_board' %}">
-    <div class="pit-box-head"><h2>🏆 Leaderboard</h2><span class="muted" id="boardPlayers"></span></div>
-    <p class="muted">Tomatoes thrown at a chat or at Bulba while waiting for a reply. Throws here in the Pit and on the
-      splat wall don't count: you have to earn these.</p>
-    <div class="board-me">
-      <div><span class="board-big" id="boardMine">0</span> <span class="muted">at chats and Bulba</span>
-        <small class="muted" id="boardRank"></small></div>
-      <label class="wall-check"><input type="checkbox" id="boardJoin"> <span>Show me on the leaderboard (as <b>{{ request.user.username }}</b>)</span></label>
-    </div>
-    <ol class="board-list" id="boardList"></ol>
-    <p class="muted board-empty" id="boardEmpty" hidden>Nobody's on it yet. Be the first to be seen throwing.</p>
+  <section class="pit-box" id="throwBox" data-accent="throw">
+    <div class="pit-box-head"><h2>🍅 Throw for fun</h2><span class="muted">counts towards your total, not the leaderboard</span></div>
+  <button type="button" class="pit-field" id="pitField" aria-label="Throw">
+    <span class="pit-ammo" id="pitAmmo">🍅</span>
+    <span class="pit-count" id="pitCount">0</span>
+    <span class="pit-hint">Click, tap or hold Space to throw</span>
+    <span class="pit-rate" id="pitRate"></span>
+  </button>
   </section>
 
-  <section class="pit-box" id="wallBox">
+  <section class="pit-box" id="wallBox" data-accent="wall">
     <div class="pit-box-head"><h2>🎨 Splat wall</h2><span class="muted" id="wallCount"></span></div>
-    <p class="muted wall-help">Tap where it should land, or drag to paint a line of them. Every throw counts towards your
-      total (not the leaderboard). <a href="{% url 'tomato_gallery' %}">🖼 Open the gallery</a></p>
+    <p class="muted wall-help">Tap where it should land, or drag to paint a line of them. Painting is just for fun: wall
+      throws don't count anywhere. <a href="{% url 'tomato_gallery' %}">🖼 Open the gallery</a></p>
     <div class="wall-row">
       <span class="wall-label">Throw</span>
       <div class="wall-ammo" id="wallAmmo" role="group" aria-label="What to throw"></div>
@@ -133,28 +152,36 @@
     </div>
   </section>
 
-  <section class="pit-box">
-    <div class="pit-box-head"><h2>Skins</h2><span class="muted" id="pitSkinCount"></span></div>
+  <details class="pit-box pit-fold" id="skinsBox">
+    <summary><h2>👕 Skins</h2><span class="muted" id="pitSkinCount"></span></summary>
     <div id="pitSkins"></div>
-  </section>
+  </details>
 
-  <section class="pit-box">
-    <div class="pit-box-head"><h2>Achievements</h2><span class="muted" id="pitAchCount"></span></div>
+  <details class="pit-box pit-fold" id="achBox">
+    <summary><h2>🏅 Achievements</h2><span class="muted" id="pitAchCount"></span></summary>
     <ul class="pit-ach" id="pitAch"></ul>
-  </section>
+  </details>
 
-  <section class="pit-box">
-    <div class="pit-box-head"><h2>Share your splatter</h2></div>
+  <details class="pit-box pit-fold" id="shareBox">
+    <summary><h2>📤 Share your splatter</h2></summary>
     <p class="muted">A picture of your count, your skin and your best achievement, ready to post.</p>
     <canvas id="pitCard" width="1200" height="630" aria-label="Your share card"></canvas>
     <div class="pit-share">
       <button type="button" class="na-btn na-primary" id="pitShare">📤 Share</button>
       <a class="na-btn" id="pitDownload" style="text-decoration:none" download="tomato-pit.png" href="#">⬇ Download the picture</a>
     </div>
-  </section>
+  </details>
+
+
+
+
+
+
+
+
 </div>
 <script src="{% static 'mainapp/js/splat_art.js' %}?v=1" data-scenes="{% static 'defaults/backgrounds/' %}"></script>
-<script src="{% static 'mainapp/js/tomato_pit.js' %}?v=9"></script>
-<script src="{% static 'mainapp/js/tomato_machine.js' %}?v=2"></script>
+<script src="{% static 'mainapp/js/tomato_pit.js' %}?v=10"></script>
+<script src="{% static 'mainapp/js/tomato_machine.js' %}?v=3"></script>
 </body>
 </html>
