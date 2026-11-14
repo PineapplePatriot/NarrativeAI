@@ -9,6 +9,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Narrative AI - Chat with {{character.name}}</title>
     <link rel="stylesheet" href="{% static 'mainapp/css/chat_page.css' %}?v=40">
+    <link rel="stylesheet" href="{% static 'mainapp/css/tracker_looks.css' %}?v=1">
     <link rel="stylesheet" href="{% static 'mainapp/css/chat_skins.css' %}?v=4">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=5">
@@ -568,6 +569,7 @@
     {{ trackers_data|json_script:"trackers-data" }}
     {{ watch_data|json_script:"watch-data" }}
     <script src="{% static 'mainapp/js/atmosphere.js' %}?v={% now 'U' %}"></script>
+    <script src="{% static 'mainapp/js/tracker_looks.js' %}?v={% now 'U' %}"></script>
     <script src="{% static 'mainapp/js/trackers.js' %}?v={% now 'U' %}"></script>
     <script src="{% static 'mainapp/js/regex_rules.js' %}?v={% now 'U' %}"></script>
     <script>window.NA_PAGE_TOUR = {name: 'chat', auto: true, delay: 1200};</script>

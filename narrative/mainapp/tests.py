@@ -9002,3 +9002,25 @@ class PitLayoutTests(TestCase):
             self.assertIn(f'id="{i}"', html)
         self.assertIn('<details class="pit-box pit-fold" id="achBox">', html)
         self.assertIn("wall\n      throws don't count anywhere", html)
+
+
+class PitSoundAndTrackerLookTests(TestCase):
+    def test_the_pit_has_its_radio_and_the_chat_its_tracker_looks(self):
+        from pathlib import Path
+        from django.conf import settings
+        user = get_user_model().objects.create_user(username="listener", password="pw12345!")
+        self.client.force_login(user)
+        pit = self.client.get(reverse("tomato_pit")).content.decode()
+        self.assertIn('id="radioBtn"', pit)
+        self.assertIn("pit_sound.js", pit)
+        js = (Path(settings.BASE_DIR) / "mainapp/static/mainapp/js/pit_sound.js").read_text(encoding="utf-8")
+        music = Path(settings.BASE_DIR) / "static/defaults/music/pit"
+        for track in ("moonlit-big-top", "moonlit-circus", "birch-moon-rite", "black-birch-sabbath",
+                      "alba-fiorita", "luce-del-mattino", "obsidian-merchant"):
+            self.assertIn(f"id: '{track}'", js)
+            self.assertTrue((music / f"{track}.mp3").exists(), track)
+        looks = (Path(settings.BASE_DIR) / "mainapp/static/mainapp/js/tracker_looks.js").read_text(encoding="utf-8")
+        from mainapp import trackers
+        for t in trackers.TRACKERS:
+            if t["id"] != "custom":  # the custom tracker already has Bulba's designed looks
+                self.assertIn(f"        {t['id']}(", looks, t["id"])

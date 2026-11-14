@@ -28,6 +28,7 @@
         if (!resp.ok) throw new Error(out.error || 'The machine coughed. Try again in a moment.');
         return out;
     }
+    const sound = (name) => { if (window.NAPitSound) NAPitSound.play(name); };
     const capsule = (tier, cls = '') => `<div class="cap ${tier} ${cls}"><div class="cap-t"></div><div class="cap-b"></div></div>`;
 
     // --- The side panel ---
@@ -134,13 +135,15 @@
         }
         const stage = $('machStage');
         stage.classList.add('pulling');
+        sound('lever');
         await wait(450);
         stage.classList.add('shaking', 'mixing');
+        sound('rattle');
         await wait(650);
         stage.classList.remove('pulling', 'shaking');
         const tray = $('machTray');
         tray.innerHTML = '';
-        for (const r of out.results.slice(0, 5)) { tray.insertAdjacentHTML('beforeend', capsule(r.tier)); await wait(90); }
+        for (const r of out.results.slice(0, 5)) { tray.insertAdjacentHTML('beforeend', capsule(r.tier)); sound('drop'); await wait(90); }
         await wait(650);
         stage.classList.remove('mixing');
         try {
@@ -238,6 +241,7 @@
         if (from) {  // the turn
             await wait(1100);
             cap.classList.remove(from); cap.classList.add(r.tier, 'hard');
+            sound('turn');
             burst(null, r.tier);
             ov.classList.add('t-' + r.tier);
         }
@@ -246,6 +250,8 @@
         advance = null;
         cap.classList.remove('wobble');
         cap.classList.add('open');
+        sound('pop');
+        setTimeout(() => sound(r.tier), 250);
         burst(null, r.tier);
         if (r.tier === 'legendary') confetti();
         await wait(380);
@@ -276,6 +282,7 @@
             const r = results[i], p = prize(r.id), slot = slots[i];
             if (!skip && r.tier === 'legendary') { slot.querySelector('.cap').classList.add('wobble'); await wait(700); }
             slot.className = `slot done ${r.tier}`;
+            if (!skip) { sound('pop'); if (r.tier !== 'common') setTimeout(() => sound(r.tier), 120); }
             slot.innerHTML = `<span class="e">${p.emoji}</span><span class="n">${esc(p.name)}</span>${r.dup ? `<span class="dup">♻ +${r.compost}</span>` : ''}`;
             slot.title = `${p.name} (${TIER[r.tier]})${r.dup ? ': already had it' : ''}`;
             if (!skip) {
@@ -284,6 +291,7 @@
                 await wait(r.tier === 'legendary' ? 700 : 260);
             }
         }
+        if (skip) sound(results.some(r => r.tier === 'legendary') ? 'legendary' : results.some(r => r.tier === 'rare') ? 'rare' : 'common');
         const count = (t) => results.filter(r => r.tier === t).length;
         const compost = results.reduce((a, r) => a + (r.compost || 0), 0);
         const promise = results.find(r => r.promise);
@@ -315,7 +323,7 @@
     $('machCompostBtn').addEventListener('click', async () => {
         const before = state ? state.spins : 0;
         await act({ action: 'compost' });
-        if (T && state && state.spins > before) T.toast('♻ A spin, made from compost', 'Pull it whenever you like.');
+        if (T && state && state.spins > before) { sound('compost'); T.toast('♻ A spin, made from compost', 'Pull it whenever you like.'); }
     });
     $('machShelf').addEventListener('click', (e) => {
         const eq = e.target.closest('[data-equip]');

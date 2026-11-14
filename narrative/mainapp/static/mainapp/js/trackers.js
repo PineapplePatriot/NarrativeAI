@@ -18,6 +18,7 @@
     let state = DATA.state;
     let story = DATA.story || null;  // story systems Bulba set up: meters, story clock, events (read-only here)
     let lockMode = false;
+    const editing = new Set();  // trackers whose edit form is open under their look (tracker_looks.js)
     let updating = false;
     let saveTimer = null;
     let railItem = null;   // the rail's open card: a tracker id, "story" or "add"
@@ -286,6 +287,14 @@
                     inputFor(f, item[f.key], lockPath(spec.id, f.key, item[spec.key]), `${spec.id}#${i}.${f.key}`)).join('')}
               </div>`).join('') || '<p class="t-empty">Nothing tracked yet.</p>';
             body += `<button class="add-btn" data-add="1">+ Add</button>`;
+        }
+        // ✨ The tracker's look on top (tracker_looks.js), the form folded under it: open in lock mode, when it's
+        // empty (to add the first one) or when they opened it
+        const look = window.TrackerLooks && TrackerLooks.has(spec.id) ? TrackerLooks.render(spec.id, v, spec) : '';
+        if (look) {
+            const isEmpty = spec.kind === 'list' ? !v.length : !Object.values(v).some(x => x !== '' && x != null && !(Array.isArray(x) && !x.length));
+            const open = lockMode || editing.has(spec.id) || isEmpty;
+            body = `${look}<details class="t-edit" data-edit="${spec.id}" ${open ? 'open' : ''}><summary>✎ Edit${lockMode ? ' · lock what the AI may not change' : ''}</summary>${body}</details>`;
         }
         return `<section class="t-card ${recentlyChanged.has(spec.id) ? 'changed' : ''}" data-tracker="${spec.id}">${body}</section>`;
     }
@@ -577,6 +586,10 @@
     const saved = storage('trackerRail');
     const open = config.layout.panel && (enabled.length || story) && (saved === '1' || (saved === null && !isPhone()));
     if (panel) panel.hidden = !open;
+    if (panel) panel.addEventListener('toggle', (e) => {  // 'toggle' doesn't bubble: caught on the way down
+        const d = e.target.closest && e.target.closest('details[data-edit]');
+        if (d) { if (d.open) editing.add(d.dataset.edit); else editing.delete(d.dataset.edit); }
+    }, true);
     renderHud();
     if (open) renderPanel();
     atmosphere();

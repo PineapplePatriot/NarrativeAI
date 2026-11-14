@@ -245,6 +245,7 @@
 
     function throwAt(p, stroke) {
         const s = T.skin(), lucky = Math.random() < 1 / 500, lk = T.look(s, lucky);  // paint only: counts nowhere
+        document.dispatchEvent(new CustomEvent('na-tomato-throw', { detail: { lucky, wall: true } }));
         const sp = { x: Math.round(p.x), y: Math.round(p.y), r: Math.round(wall.size * (.85 + Math.random() * .3)), c: lk.color,
                      f: lk.filter || '', k: s.emoji, e: wall.emoji, rot: Math.round(Math.random() * 628) / 100,
                      seed: Math.floor(Math.random() * 233280), t: wall.shape };

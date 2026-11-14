@@ -7,7 +7,7 @@
   <title>The Tomato Pit</title>
   <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
   <link rel="stylesheet" href="{% static 'css/base.css' %}?v=5">
-  <link rel="stylesheet" href="{% static 'mainapp/css/tomato_pit.css' %}?v=7">
+  <link rel="stylesheet" href="{% static 'mainapp/css/tomato_pit.css' %}?v=8">
   <link rel="stylesheet" href="{% static 'mainapp/css/tomato_machine.css' %}?v=3">
 </head>
 <body class="na-body">
@@ -29,7 +29,9 @@
     <a href="#boardBox">🏆 Leaderboard</a><a href="#machBox">🎰 Machine</a><a href="#throwBox">🍅 Throw</a><a href="#wallBox">🎨 Wall</a>
     <a href="#skinsBox">👕 Skins</a><a href="#achBox">🏅 Achievements</a><a href="#shareBox">📤 Share</a>
     <a href="{% url 'tomato_gallery' %}">🖼 Gallery</a><a href="{% url 'tomato_garden' %}">🌻 Garden</a>
+    <button type="button" class="radio-btn" id="radioBtn" aria-expanded="false" aria-controls="radioPanel">🎶 Radio</button>
   </nav>
+  <div class="radio-panel" id="radioPanel" hidden role="dialog" aria-label="Pit radio and sounds"></div>
 
   <section class="pit-box" id="boardBox" data-accent="board" data-url="{% url 'tomato_board' %}">
     <div class="pit-box-head"><h2>🏆 Leaderboard</h2><span class="muted" id="boardPlayers"></span></div>
@@ -181,7 +183,8 @@
 
 </div>
 <script src="{% static 'mainapp/js/splat_art.js' %}?v=1" data-scenes="{% static 'defaults/backgrounds/' %}"></script>
-<script src="{% static 'mainapp/js/tomato_pit.js' %}?v=10"></script>
-<script src="{% static 'mainapp/js/tomato_machine.js' %}?v=3"></script>
+<script src="{% static 'mainapp/js/pit_sound.js' %}?v=1" data-music="{% static 'defaults/music/pit/' %}"></script>
+<script src="{% static 'mainapp/js/tomato_pit.js' %}?v=11"></script>
+<script src="{% static 'mainapp/js/tomato_machine.js' %}?v=4"></script>
 </body>
 </html>
