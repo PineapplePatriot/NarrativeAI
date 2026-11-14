@@ -191,3 +191,70 @@ body.light-style .tls-redacted::before { color: #333; }
 @media (prefers-reduced-motion: reduce) {
     .tlw-orb, .tl-threads li.imminent .tlt-knot, .tls-bar.low i { animation: none; }
 }
+
+/* --- Bulba-designed custom fields: the extra looks (trackers.js designedField) --- */
+.cf-pips { display: flex; flex-wrap: wrap; gap: 3px; margin: 8px 0 4px; font-size: 1.25rem; line-height: 1; }
+.cf-pips span { filter: grayscale(1) brightness(.6); opacity: .3; transition: opacity .3s, filter .3s, transform .3s; }
+.cf-pips span.on { filter: none; opacity: 1; }
+.cf-pips span.on:last-of-type, .cf-pips span.on + span:not(.on) { }
+
+.cf-gauge { position: relative; width: 130px; height: 74px; margin: 10px auto 26px; }
+.cf-gauge-arc { position: absolute; inset: 0 0 auto 0; height: 130px; border-radius: 50%;
+    background: conic-gradient(from -90deg, var(--c), var(--c2) 180deg, transparent 180deg);
+    -webkit-mask: radial-gradient(circle, transparent 50%, #000 51%); mask: radial-gradient(circle, transparent 50%, #000 51%);
+    clip-path: inset(0 0 50% 0); opacity: .9; }
+.cf-gauge-needle { position: absolute; left: 50%; bottom: 8px; width: 3px; height: 52px; margin-left: -1.5px; border-radius: 3px; background: #fff;
+    transform-origin: 50% 100%; transform: rotate(var(--a)); transition: transform .8s cubic-bezier(.3, 1.4, .5, 1); box-shadow: 0 0 6px rgba(0, 0, 0, .5); }
+.cf-gauge b { position: absolute; left: 0; right: 0; bottom: -24px; text-align: center; font-size: 1.05rem; }
+.cf-gauge::after { content: ''; position: absolute; left: 50%; bottom: 3px; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; background: #fff; }
+
+.cf-therm { display: flex; align-items: flex-end; gap: 10px; margin: 8px 0 4px; height: 76px; position: relative; padding-left: 4px; }
+.cf-therm-tube { width: 14px; height: 64px; border-radius: 8px 8px 0 0; background: rgba(255, 255, 255, .1); position: relative; overflow: hidden;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .15); }
+.cf-therm-tube i { position: absolute; left: 3px; right: 3px; bottom: 0; border-radius: 4px; background: linear-gradient(0deg, var(--c), var(--c2)); transition: height .6s; }
+.cf-therm-bulb { position: absolute; left: -1px; bottom: -6px; width: 24px; height: 24px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 3px rgba(255, 255, 255, .12); }
+.cf-therm b { font-size: 1.3rem; color: var(--c2); }
+
+.cf-segments { display: flex; gap: 4px; margin: 10px 0 4px; }
+.cf-segments span { flex: 1; height: 14px; border-radius: 3px; background: rgba(255, 255, 255, .07); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08); }
+.cf-segments span.on { background: var(--c); box-shadow: 0 0 8px color-mix(in srgb, var(--c) 60%, transparent); }
+
+.cf-vial { display: flex; flex-direction: column; align-items: center; margin: 8px auto 2px; width: 70px; position: relative; }
+.cf-vial-neck { width: 18px; height: 12px; border: 2px solid rgba(255, 255, 255, .35); border-bottom: none; border-radius: 3px 3px 0 0; }
+.cf-vial-body { position: relative; width: 56px; height: 56px; border-radius: 50% 50% 46% 46%; border: 2px solid rgba(255, 255, 255, .35); overflow: hidden;
+    background: rgba(255, 255, 255, .05); }
+.cf-vial-body i { position: absolute; left: 0; right: 0; bottom: 0; background: linear-gradient(0deg, var(--c), var(--c2)); transition: height .6s; }
+.cf-vial-body s { position: absolute; bottom: 4px; width: 5px; height: 5px; border-radius: 50%; background: rgba(255, 255, 255, .55); animation: cfBubble 2.4s ease-in infinite; }
+.cf-vial-body s:nth-child(1) { left: 22%; } .cf-vial-body s:nth-child(2) { left: 52%; animation-delay: .8s; width: 4px; height: 4px; }
+.cf-vial-body s:nth-child(3) { left: 72%; animation-delay: 1.6s; }
+.cf-vial b { margin-top: 4px; }
+@keyframes cfBubble { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: .9; } 100% { transform: translateY(-46px); opacity: 0; } }
+
+.cf-hourglass { display: grid; grid-template-columns: 44px auto; grid-template-rows: 30px 30px; column-gap: 12px; align-items: center; margin: 8px 0 4px; }
+.cf-hg-top, .cf-hg-bottom { position: relative; width: 44px; height: 30px; background: rgba(255, 255, 255, .08); overflow: hidden; }
+.cf-hg-top { clip-path: polygon(0 0, 100% 0, 54% 100%, 46% 100%); }
+.cf-hg-bottom { clip-path: polygon(46% 0, 54% 0, 100% 100%, 0 100%); }
+.cf-hg-top i, .cf-hg-bottom i { position: absolute; left: 0; right: 0; bottom: 0; background: var(--c); transition: height .6s; }
+.cf-hourglass b { grid-column: 2; grid-row: 1 / 3; font-size: 1.3rem; color: var(--c); }
+
+.cf-tally { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 8px 0 4px; min-height: 26px; }
+.cf-tally-g { position: relative; display: inline-flex; gap: 4px; height: 24px; }
+.cf-tally-g i { width: 3px; height: 24px; border-radius: 2px; background: var(--c); }
+.cf-tally-g.five::after { content: ''; position: absolute; left: -4px; right: -4px; top: 50%; height: 3px; border-radius: 2px; background: var(--c); transform: rotate(-24deg); }
+.cf-tally em { opacity: .6; font-size: .8rem; }
+
+/* Effects */
+.cf-fx-glow .cf-bar i, .cf-fx-glow .cf-segments span.on, .cf-fx-glow .cf-vial-body i, .cf-fx-glow .cf-therm-tube i,
+.cf-fx-glow .cf-ring, .cf-fx-glow .cf-pips span.on, .cf-fx-glow .cf-gauge-arc { filter: drop-shadow(0 0 6px var(--c)); }
+.cf-fx-glow .cf-counter, .cf-fx-glow .cf-ico { text-shadow: 0 0 12px var(--c); }
+.cf-fx-pulse { animation: cfPulse 1.3s ease-in-out infinite; }
+@keyframes cfPulse { 50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--c) 35%, transparent), 0 0 18px color-mix(in srgb, var(--c) 45%, transparent); } }
+.cf-fx-shimmer .cf-bar i, .cf-fx-shimmer .cf-segments span.on, .cf-fx-shimmer .cf-vial-body i, .cf-fx-shimmer .cf-therm-tube i { position: relative; overflow: hidden; }
+.cf-fx-shimmer .cf-bar, .cf-fx-shimmer .cf-counter, .cf-fx-shimmer .cf-badge { position: relative; overflow: hidden; }
+.cf-fx-shimmer .cf-bar::after, .cf-fx-shimmer .cf-counter::after, .cf-fx-shimmer .cf-segments::after { content: ''; position: absolute; inset: 0;
+    background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, .45) 50%, transparent 70%); background-size: 250% 100%; animation: cfShimmer 2.6s linear infinite; pointer-events: none; }
+.cf-fx-shimmer .cf-segments { position: relative; overflow: hidden; }
+@keyframes cfShimmer { from { background-position: 150% 0; } to { background-position: -100% 0; } }
+@media (prefers-reduced-motion: reduce) {
+    .cf-fx-pulse, .cf-vial-body s, .cf-fx-shimmer .cf-bar::after, .cf-fx-shimmer .cf-counter::after, .cf-fx-shimmer .cf-segments::after { animation: none; }
+}

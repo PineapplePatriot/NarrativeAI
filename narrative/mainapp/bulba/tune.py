@@ -449,8 +449,9 @@ def tool_defs(fn, STR):
             "why": STR}, ["changes", "why"]),
         fn("propose_trackers", "Switch the character's story trackers on or off, and/or set the custom tracker's "
            "fields (meters, text, lists). Pick what the story needs, not everything. A custom field can be designed: "
-           "its look (bar, ring, stars, counter, badge), colour and icon, what raises and lowers it, and named "
-           "levels whose note tells the story how to write while the value is there (meters and numbers). Keep "
+           "its look (see `look`), colours, effect and icon, what raises and lowers it, and named levels (each "
+           "with its own colour and icon if you like) whose note tells the story how to write while the value is "
+           "there (meters and numbers). Match the look to what it is (the tuning guide has ideas). Keep "
            "the fields they already have (read_settings) unless they asked to change them.",
            {"turn_on": {"type": "array", "items": {"type": "string", "enum": TRACKER_IDS}},
             "turn_off": {"type": "array", "items": {"type": "string", "enum": TRACKER_IDS}},
@@ -459,9 +460,20 @@ def tool_defs(fn, STR):
                 "hint": {"type": "string", "description": "What the tracker AI should note"},
                 "min": {"type": "number"}, "max": {"type": "number"},
                 "look": {"type": "string", "enum": list(tracker_mod.LOOKS),
-                         "description": "How the chat draws it: bar (meters), ring (a dial), stars (0-5 of the range), "
-                                        "counter (a big number, for counts), badge (only the level's name)"},
+                         "description": "How the chat draws it: bar (meters), ring (one central value), stars (0-5 of "
+                                        "the range, a rating), counter (a big number), badge (only the level's name), "
+                                        "pips (the icon repeated, filled vs faded: hearts, lives, bullets), gauge (a "
+                                        "dial with a needle: speed, pressure, suspicion), thermometer (heat, anger, "
+                                        "fever), segments (a stepped bar, one cell per level: alarm, battery), vial "
+                                        "(a bubbling bottle: mana, poison, corruption, potions), hourglass (time "
+                                        "running out: countdowns, deadlines), tally (tally marks: counts, days, kills)"},
                 "color": {"type": "string", "description": "Hex like #f472b6, readable on dark"},
+                "color2": {"type": "string", "description": "Optional second hex: the look runs from color to color2 "
+                                                            "(cold blue to hot red, green to sickly purple)"},
+                "effect": {"type": "string", "enum": list(tracker_mod.EFFECTS),
+                           "description": "Optional: glow (soft light, magic, love), pulse (beats while in the top or "
+                                          "bottom level: danger, heartbeat, alarm), shimmer (a moving sheen: gold, "
+                                          "fame, favour)"},
                 "icon": {"type": "string", "description": "One emoji"},
                 "raises": {"type": "array", "maxItems": 6, "items": STR,
                            "description": "What in the story makes it go up (short phrases)"},
@@ -470,7 +482,9 @@ def tool_defs(fn, STR):
                 "levels": {"type": "array", "maxItems": 8, "items": {"type": "object", "properties": {
                     "from": {"type": "number"}, "to": {"type": "number"}, "name": STR,
                     "note": {"type": "string", "description": "How the character or scene reads while the value "
-                                                              "is in this range: concrete, one or two lines"}},
+                                                              "is in this range: concrete, one or two lines"},
+                    "color": {"type": "string", "description": "Optional hex: the look's colour while here"},
+                    "icon": {"type": "string", "description": "Optional emoji for this level (😌 → 😰 → 😱)"}},
                     "required": ["from", "to", "name"]},
                     "description": "Named ranges covering the scale, e.g. 0-29 Calm, 30-59 Restless..."},
                 "triggers": {"type": "array", "maxItems": 4, "items": {"type": "object", "properties": {

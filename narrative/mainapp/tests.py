@@ -9024,3 +9024,24 @@ class PitSoundAndTrackerLookTests(TestCase):
         for t in trackers.TRACKERS:
             if t["id"] != "custom":  # the custom tracker already has Bulba's designed looks
                 self.assertIn(f"        {t['id']}(", looks, t["id"])
+
+
+class DesignedLookTests(SimpleTestCase):
+    def test_bulba_can_use_the_new_looks_colours_and_effects(self):
+        from mainapp import trackers
+        fields = trackers.normalize_custom_fields([
+            {"label": "Thirst", "type": "meter", "min": 0, "max": 100, "look": "vial", "color": "#7f1d1d",
+             "color2": "#ef4444", "effect": "pulse", "levels": [
+                 {"from": 0, "to": 49, "name": "Sated", "color": "#22c55e", "icon": "😌"},
+                 {"from": 50, "to": 100, "name": "Starving", "color": "red", "icon": "🧛"}]},
+            {"label": "Days left", "type": "number", "look": "hourglass", "effect": "sparkles", "color2": "nope"},
+        ])
+        thirst, days = fields
+        self.assertEqual((thirst["look"], thirst["color2"], thirst["effect"]), ("vial", "#ef4444", "pulse"))
+        self.assertEqual((thirst["levels"][0]["color"], thirst["levels"][0]["icon"]), ("#22c55e", "😌"))
+        self.assertNotIn("color", thirst["levels"][1])          # not a hex colour: left out
+        self.assertEqual(days["look"], "hourglass")
+        self.assertNotIn("effect", days)                         # not one of glow / pulse / shimmer
+        self.assertNotIn("color2", days)
+        for look in ("pips", "gauge", "thermometer", "segments", "tally"):
+            self.assertEqual(trackers.normalize_custom_fields([{"label": "X", "type": "meter", "look": look}])[0]["look"], look)
