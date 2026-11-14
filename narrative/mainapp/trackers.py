@@ -152,7 +152,10 @@ def normalize_custom_fields(raw):
     return fields
 
 
-LOOKS = ("bar", "ring", "stars", "counter", "badge")  # how a designed field is drawn in the chat
+# How a designed field is drawn in the chat (trackers.js designedField)
+LOOKS = ("bar", "ring", "stars", "counter", "badge", "pips", "gauge", "thermometer", "segments", "vial", "hourglass",
+         "tally")
+EFFECTS = ("glow", "pulse", "shimmer")  # a touch of motion or light on the look
 COLOR = re.compile(r"^#[0-9a-fA-F]{6}$")
 
 
@@ -165,6 +168,10 @@ def _design(item, ftype):
         out["look"] = look
     if COLOR.match(str(item.get("color") or "")):
         out["color"] = item["color"]
+    if COLOR.match(str(item.get("color2") or "")):
+        out["color2"] = item["color2"]  # a second colour: the look runs from one to the other
+    if str(item.get("effect") or "").strip().lower() in EFFECTS:
+        out["effect"] = str(item["effect"]).strip().lower()
     icon = str(item.get("icon") or "").strip()
     if icon and len(icon) <= 4:
         out["icon"] = icon
@@ -180,8 +187,14 @@ def _design(item, ftype):
                 continue
             lo = _num(lv.get("from"), 0)
             hi = _num(lv.get("to"), lo)
-            levels.append({"from": min(lo, hi), "to": max(lo, hi), "name": str(lv["name"]).strip()[:40],
-                           "note": str(lv.get("note") or "").strip()[:200]})
+            level = {"from": min(lo, hi), "to": max(lo, hi), "name": str(lv["name"]).strip()[:40],
+                     "note": str(lv.get("note") or "").strip()[:200]}
+            if COLOR.match(str(lv.get("color") or "")):
+                level["color"] = lv["color"]  # the look takes this colour while the value is here
+            lv_icon = str(lv.get("icon") or "").strip()
+            if lv_icon and len(lv_icon) <= 4:
+                level["icon"] = lv_icon
+            levels.append(level)
         if levels:
             out["levels"] = sorted(levels, key=lambda lv: lv["from"])[:8]
         rules = []

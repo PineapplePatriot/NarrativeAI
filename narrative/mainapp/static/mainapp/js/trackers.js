@@ -18,6 +18,7 @@
     let state = DATA.state;
     let story = DATA.story || null;  // story systems Bulba set up: meters, story clock, events (read-only here)
     let lockMode = false;
+    const editing = new Set();  // trackers whose edit form is open under their look (tracker_looks.js)
     let updating = false;
     let saveTimer = null;
     let railItem = null;   // the rail's open card: a tracker id, "story" or "add"
@@ -236,27 +237,63 @@
     const levelOf = (f, n) => (f.levels || []).find(l => Number(n) >= l.from && Number(n) <= l.to);
     const safeColor = c => /^#[0-9a-fA-F]{6}$/.test(c || '') ? c : '';
     function designedField(f, raw) {
-        const color = safeColor(f.color) || '#a78bfa';
         const num = Number(raw);
         const has = raw !== undefined && raw !== '' && !Number.isNaN(num);
         const min = f.type === 'meter' ? Number(f.min) : 0;
         const max = f.type === 'meter' ? Number(f.max) : Math.max(...(f.levels || []).map(l => l.to), num || 0, 1);
         const p = has ? pct(num, min, max) : 0;
         const level = has ? levelOf(f, num) : null;
+        // The colour: the level's own while the value is there, else the field's; color2 makes it a gradient
+        const color = safeColor(level && level.color) || safeColor(f.color) || '#a78bfa';
+        const color2 = safeColor(f.color2) || color;
+        const icon = (level && level.icon) || f.icon || '';
         const look = f.look || (f.type === 'meter' ? 'bar' : f.type === 'number' ? 'counter' : 'badge');
+        const levels0 = f.levels || [];
+        const edge = level && levels0.length > 1 && (level === levels0[0] || level === levels0[levels0.length - 1]);
+        const fx = f.effect ? `cf-fx-${f.effect}${f.effect === 'pulse' && !edge ? '-off' : ''}` : '';
+        const shown = has ? esc(raw) : '–';
         let visual = '';
         if (look === 'ring') visual = `<div class="cf-ring" style="--p:${p};--c:${color}"><b>${has ? esc(raw) : '–'}</b></div>`;
         else if (look === 'stars') { const k = Math.round(p / 20); visual = `<div class="cf-stars" style="color:${color}">${'★'.repeat(k)}<span>${'★'.repeat(5 - k)}</span></div>`; }
         else if (look === 'counter') visual = `<div class="cf-counter" style="color:${color}">${has ? esc(raw) : '0'}</div>`;
         else if (look === 'badge') visual = '';
-        else visual = `<div class="cf-bar"><i style="width:${p}%;background:${color}"></i></div>`;
+        else if (look === 'pips') {  // the icon itself, filled vs faded: up to 10, the range scaled to fit
+            const span = max - min, count = span > 0 && span <= 10 && Number.isInteger(span) ? span : 10;
+            const on = has ? Math.round(p / 100 * count) : 0, mark = esc(icon || '●');
+            visual = `<div class="cf-pips">${Array.from({ length: count }, (_, i) => `<span class="${i < on ? 'on' : ''}">${mark}</span>`).join('')}</div>`;
+        } else if (look === 'gauge') {  // a half dial, the needle from -90° to 90°
+            // the dial always shows the field's own range (its colours), the needle says where it is now
+            visual = `<div class="cf-gauge" style="--c:${safeColor(f.color) || color};--c2:${color2};--a:${-90 + p * 1.8}deg"><div class="cf-gauge-arc"></div>
+                <i class="cf-gauge-needle"></i><b>${shown}</b></div>`;
+        } else if (look === 'thermometer') {
+            visual = `<div class="cf-therm" style="--c:${color};--c2:${color2}"><div class="cf-therm-tube"><i style="height:${p}%"></i></div><span class="cf-therm-bulb"></span><b>${shown}</b></div>`;
+        } else if (look === 'segments') {  // one cell per level (else ten), each lit cell in its level's colour
+            const cells = levels0.length >= 2 ? levels0 : Array.from({ length: 10 }, (_, i) => ({ from: min + (max - min) * i / 10, to: min + (max - min) * (i + 1) / 10 }));
+            visual = `<div class="cf-segments">${cells.map(c => {
+                const lit = has && num >= c.from;
+                return `<span class="${lit ? 'on' : ''}" style="--c:${safeColor(c.color) || color}" title="${esc(c.name || '')}"></span>`;
+            }).join('')}</div>`;
+        } else if (look === 'vial') {
+            visual = `<div class="cf-vial" style="--c:${color};--c2:${color2}"><div class="cf-vial-neck"></div><div class="cf-vial-body">
+                <i style="height:${p}%"><s></s><s></s><s></s></i></div><b>${shown}</b></div>`;
+        } else if (look === 'hourglass') {  // the sand still above is what's left
+            visual = `<div class="cf-hourglass" style="--c:${color}"><div class="cf-hg-top"><i style="height:${p}%"></i></div>
+                <div class="cf-hg-bottom"><i style="height:${100 - p}%"></i></div><b>${shown}</b></div>`;
+        } else if (look === 'tally') {  // groups of five, then a number
+            const n = has ? Math.max(0, Math.floor(num)) : 0, shownN = Math.min(n, 40);
+            const groups = Array.from({ length: Math.ceil(shownN / 5) }, (_, g) => {
+                const k = Math.min(5, shownN - g * 5);
+                return `<span class="cf-tally-g ${k === 5 ? 'five' : ''}">${'<i></i>'.repeat(Math.min(k, 4))}</span>`;
+            }).join('');
+            visual = `<div class="cf-tally" style="--c:${color}">${groups || '<em>none yet</em>'}${n > 40 ? `<b>+${n - 40}</b>` : ''}</div>`;
+        } else visual = `<div class="cf-bar"><i style="width:${p}%;background:linear-gradient(90deg, ${color}, ${color2})"></i></div>`;
         const list = (items, cls, mark) => (items || []).length ? `<div class="cf-moves ${cls}"><b>${cls === 'up' ? 'Raises it' : 'Lowers it'}</b>
             ${items.map(x => `<span><i>${mark}</i>${esc(x)}</span>`).join('')}</div>` : '';
         const levels = (f.levels || []).map(l => `<li class="${l === level ? 'here' : ''}" ${l === level ? `style="--c:${color}"` : ''}>
             <span class="cf-range">${esc(l.from)}${l.to !== l.from ? `–${esc(l.to)}` : ''}</span><b>${esc(l.name)}</b>
             ${l === level ? '<em>You’re here</em>' : ''}</li>`).join('');
-        return `<div class="cf-card" style="--c:${color}">
-            <div class="cf-head"><span class="cf-ico">${esc(f.icon || '◆')}</span><b>${esc(f.label)}</b>
+        return `<div class="cf-card cf-look-${look} ${fx}" style="--c:${color};--c2:${color2}">
+            <div class="cf-head"><span class="cf-ico">${esc(icon || '◆')}</span><b>${esc(f.label)}</b>
               <span class="cf-val">${has ? `${esc(raw)}${f.type === 'meter' ? ` <small>/ ${esc(f.max)}</small>` : ''}` : ''}
               ${look === 'badge' && level ? `<span class="cf-badge">${esc(level.name)}</span>` : ''}</span></div>
             ${visual}
@@ -272,6 +309,15 @@
     function trackerCard(spec) {
         const v = value(spec.id);
         let body;
+        if (spec.id === 'custom' && spec.fields.some(designed)) {
+            // Bulba's designed fields are the look; the plain inputs fold under "✎ Edit" like the other trackers
+            const looks = spec.fields.filter(designed).map(f => designedField(f, v[f.key])).join('');
+            const plain = spec.fields.filter(f => !designed(f)).map(f => inputFor(f, v[f.key], lockPath(spec.id, f.key), `${spec.id}.${f.key}`)).join('');
+            const inputs = spec.fields.filter(designed).map(f => inputFor(f, v[f.key], lockPath(spec.id, f.key), `${spec.id}.${f.key}`)).join('');
+            const open = lockMode || editing.has(spec.id);
+            body = `${looks}${plain}<details class="t-edit" data-edit="${spec.id}" ${open ? 'open' : ''}><summary>✎ Edit${lockMode ? ' · lock what the AI may not change' : ''}</summary>${inputs}</details>`;
+            return `<section class="t-card ${recentlyChanged.has(spec.id) ? 'changed' : ''}" data-tracker="${spec.id}">${body}</section>`;
+        }
         if (spec.kind === 'object') {
             body = spec.fields.map(f => (spec.id === 'custom' && designed(f) ? designedField(f, v[f.key]) : '')
                 + inputFor(f, v[f.key], lockPath(spec.id, f.key), `${spec.id}.${f.key}`)).join('');
@@ -286,6 +332,14 @@
                     inputFor(f, item[f.key], lockPath(spec.id, f.key, item[spec.key]), `${spec.id}#${i}.${f.key}`)).join('')}
               </div>`).join('') || '<p class="t-empty">Nothing tracked yet.</p>';
             body += `<button class="add-btn" data-add="1">+ Add</button>`;
+        }
+        // ✨ The tracker's look on top (tracker_looks.js), the form folded under it: open in lock mode, when it's
+        // empty (to add the first one) or when they opened it
+        const look = window.TrackerLooks && TrackerLooks.has(spec.id) ? TrackerLooks.render(spec.id, v, spec) : '';
+        if (look) {
+            const isEmpty = spec.kind === 'list' ? !v.length : !Object.values(v).some(x => x !== '' && x != null && !(Array.isArray(x) && !x.length));
+            const open = lockMode || editing.has(spec.id) || isEmpty;
+            body = `${look}<details class="t-edit" data-edit="${spec.id}" ${open ? 'open' : ''}><summary>✎ Edit${lockMode ? ' · lock what the AI may not change' : ''}</summary>${body}</details>`;
         }
         return `<section class="t-card ${recentlyChanged.has(spec.id) ? 'changed' : ''}" data-tracker="${spec.id}">${body}</section>`;
     }
@@ -577,6 +631,10 @@
     const saved = storage('trackerRail');
     const open = config.layout.panel && (enabled.length || story) && (saved === '1' || (saved === null && !isPhone()));
     if (panel) panel.hidden = !open;
+    if (panel) panel.addEventListener('toggle', (e) => {  // 'toggle' doesn't bubble: caught on the way down
+        const d = e.target.closest && e.target.closest('details[data-edit]');
+        if (d) { if (d.open) editing.add(d.dataset.edit); else editing.delete(d.dataset.edit); }
+    }, true);
     renderHud();
     if (open) renderPanel();
     atmosphere();

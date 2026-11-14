@@ -446,7 +446,7 @@ def _request(user, task, messages, timeout=None, **params):
 
     if resp.status_code >= 400:
         if "PROHIBITED_CONTENT" in _error_text(resp):
-            raise AIError(f"{label}: {profile.name} " + block_explanation("PROHIBITED_CONTENT"))
+            raise AIError(f"{label}: {profile.name} " + block_explanation("PROHIBITED_CONTENT", payload.get("model")))
         raise AIError(f"{label}: {profile.name} returned an error ({resp.status_code}): {_error_text(resp)}")
 
     try:
@@ -466,7 +466,7 @@ def _request(user, task, messages, timeout=None, **params):
             effective = getattr(resp, "_narrative_payload", None)
             _diagnostic(profile, effective if isinstance(effective, dict) else payload,
                         task, operation, "blocked_completion", resp, data)
-            raise AIError(f"{label}: {profile.name} " + block_explanation(reason))
+            raise AIError(f"{label}: {profile.name} " + block_explanation(reason, payload.get("model")))
     return profile, data
 
 
@@ -635,7 +635,7 @@ def stream(user, task, messages, timeout=None, **params):
                     err = event["error"]
                     msg = str(err.get('message') if isinstance(err, dict) else err)
                     if "PROHIBITED_CONTENT" in msg:
-                        raise AIError(f"{label}: {profile.name} " + block_explanation("PROHIBITED_CONTENT"))
+                        raise AIError(f"{label}: {profile.name} " + block_explanation("PROHIBITED_CONTENT", payload.get("model")))
                     raise AIError(f"{label}: {profile.name} stopped with an error: {msg}")
                 if isinstance(event.get("usage"), dict):
                     record_cost(user, task, model, event["usage"].get("cost"))
@@ -667,7 +667,7 @@ def stream(user, task, messages, timeout=None, **params):
         if not wrote and not calls and _blocking_stop(stop):  # blocked without an error: say so, not "empty"
             _diagnostic(profile, payload, task, operation, "blocked_stream", resp,
                         {"choices": [{"finish_reason": stop}]})
-            raise AIError(f"{label}: {profile.name} " + block_explanation(stop))
+            raise AIError(f"{label}: {profile.name} " + block_explanation(stop, payload.get("model")))
         if not wrote and not calls and stop and stop.lower() not in ("stop", "end_turn", "eos"):
             # Nothing written for another reason (Gemini: a fumbled tool call, recitation, out of room): say which
             logging.getLogger(__name__).warning("%s sent no text (stop reason %s)", model, stop)
@@ -701,16 +701,20 @@ def _blocking_stop(stop):
     return str(stop or "").lower() in BLOCK_STOPS
 
 
-def block_explanation(reason):
-    """Plain words for a provider's block (Gemini's especially), for the chat's error line."""
-    r = str(reason or "").upper()
-    if "PROHIBITED" in r:
-        return ("was blocked by the provider (PROHIBITED_CONTENT). This code alone does not identify the "
-                "trigger. The provider can evaluate the whole request, including instructions and earlier context; "
-                "adjustable filter settings do not guarantee acceptance. Check the request context and provider "
-                "details before changing the preset or retrying.")
-    return (f"blocked the reply with its content filter ({reason}). The code alone does not identify the "
-            "trigger; inspect the submitted context and provider details before retrying.")
+def block_explanation(reason, model=""):
+    """Plain words for a provider's block, for the chat's error line: what happened, that no setting turns it off,
+    and what to do (Regenerate, or another chat model). Gemini gets a line about what its own check is known for:
+    romantic or sexual scenes with characters who are teenagers in their source or in school settings, whatever
+    ages the story gives them. The app never goes around this check by itself."""
+    lines = [f"blocked this reply with its own safety check ({reason}). No setting in the app can switch that "
+             "check off, and the code doesn't say what set it off."]
+    if str(model or "").startswith("google/"):
+        lines.append("Gemini's check is known to fire on romantic or sexual scenes with characters who are "
+                     "teenagers in their original story, or in school settings, even when your story makes them "
+                     "adults. Each request is judged on its own, so it can pass one time and not the next.")
+    lines.append("Press Regenerate to try again. If it keeps happening in this scene, you can choose a different "
+                 "chat model on the Connections page.")
+    return " ".join(lines)
 
 
 def _merge_details(details):

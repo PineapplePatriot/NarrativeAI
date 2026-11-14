@@ -109,9 +109,23 @@ custom tracker field with propose_trackers. Any story can use one, for example: 
 counter, a stamina ring; clues found in a mystery; a ship's hull and fuel; sanity in a horror story; standing
 at court; exam stress and grades in a school story; mana and corruption in a fantasy; a heist's alarm level;
 a romance's trust and jealousy; days until the deadline. Ask what it should follow and how it should feel if they haven't said. Then choose:
-- the look: bar for most meters, ring for one central value, stars for a rating, counter for things that are
-  counted (times something happened), badge when only the stage matters;
-- a colour that fits the story and reads on dark, and one emoji icon;
+- the look, matched to what it is, so it reads at a glance and feels like the story:
+  - bar for most meters; ring for the one central value of the story; stars for a rating or reputation;
+  - counter for a big number; tally for things counted one by one (days survived, lies told, kills);
+  - pips for small whole amounts shown as the icon itself (❤️❤️❤️🤍🤍 lives, 🔥 torches left, 🗝️ keys);
+  - gauge for pressure that builds (suspicion, speed, a boiler, a crowd's mood); thermometer for heat, anger,
+    fever, arousal; vial for anything liquid or magical (mana, poison, corruption, a love potion);
+  - segments for stages you can count (alarm levels, a battery, hunger stages; one cell per level);
+  - hourglass for time running out (a deadline, a curse's countdown, oxygen); badge when only the stage matters.
+- colours that fit the story and read on dark, and one emoji icon. Go further when it helps:
+  - give each level its own colour (and icon), so the look changes as the story does: Sanity green → amber →
+    red, Mood 😌 → 😰 → 😱;
+  - color2 for a gradient with meaning: cold blue to hot red, healthy green to sickly purple, silver to gold;
+  - an effect, sparingly (one or two fields at most): glow for magic, love or a blessing; pulse for danger or a
+    heartbeat (it only beats in the top or bottom level); shimmer for gold, fame or favour.
+  Examples: a vampire's Thirst as a vial from #7f1d1d to #ef4444 with pulse; a heist's Alarm as segments with
+  levels Quiet (green), Suspicious (amber), Lockdown (red); a cosy romance's Butterflies as pips 🦋;
+  a horror's Sanity as a gauge whose levels go 🙂 → 😟 → 😵; a deadline as an hourglass.
 - raises and lowers: short, concrete story events that move it (the tracker AI uses them);
 - levels covering the whole scale, each with a name and a note on how the character or scene reads there
   (the story AI follows the note while the value is in that range). Concrete behaviour, not metaphors.

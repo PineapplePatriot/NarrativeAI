@@ -703,7 +703,23 @@ function sendMessage(noteOnly = false) {
     scrollToBottom();
 
     requestReply({ message: message, guidance: guidance })
-        .then(data => {
+        .then(handleReply)
+        .catch(error => {
+            console.error('Error:', error);
+            showChatError('Could not reach the app server. Check that it is still running.');
+        })
+        .finally(() => {
+            isGenerating = false;
+            sendBtn.disabled = isBusy();  // still finishing (polish, translation): stays off until it's done
+            stopContainer.style.display = 'none';
+            typingMessage.style.display = 'none';
+            scrollToBottom();
+            updateMessageIndices();
+        });
+}
+
+// A finished reply (just written, or followed after coming back to the page): on screen, then everything after it
+function handleReply(data) {
             if (data.refused) return handleRefusal(data);
             if (data.empty) { if (data.bubble) data.bubble.closest('.message')?.remove(); showChatError(data.error); return; }
             if (data.error || data.stopped) {
@@ -734,20 +750,32 @@ function sendMessage(noteOnly = false) {
             }
 
             console.log("Emotion:", data.emotion);
+}
+
+// They left the page while a reply was being written: the server kept writing (mainapp/live.py). Follow it from
+// the start (what was written so far shows at once), then live, as if they had never left.
+function followLiveReply() {
+    isGenerating = true;
+    sendBtn.disabled = true;
+    stopContainer.style.display = 'block';
+    typingMessage.style.display = 'flex';
+    scrollToBottom();
+    requestReply({ action: 'follow' })
+        .then(data => {
+            if (data.none) { if (data.done) window.location.reload(); return; }  // it finished meanwhile: it's saved
+            handleReply(data);
         })
-        .catch(error => {
-            console.error('Error:', error);
-            showChatError('Could not reach the app server. Check that it is still running.');
-        })
+        .catch(() => {})
         .finally(() => {
             isGenerating = false;
-            sendBtn.disabled = isBusy();  // still finishing (polish, translation): stays off until it's done
+            sendBtn.disabled = isBusy();
             stopContainer.style.display = 'none';
             typingMessage.style.display = 'none';
             scrollToBottom();
             updateMessageIndices();
         });
 }
+if (window.LIVE_REPLY) setTimeout(followLiveReply, 300);
 
 // Update message indices after adding/removing messages
 function updateMessageIndices() {
@@ -931,6 +959,10 @@ function confirmDelete() {
 
 // Stop generation
 function stopGeneration() {
+    fetch(window.location.href, {  // the reply is written on the server: ask it to stop (what arrived is kept)
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ action: 'stop_reply' }),
+    }).catch(() => {});
     if (currentRequest) {
         currentRequest.abort();  // the server keeps whatever text already arrived
         currentRequest = null;
@@ -1105,9 +1137,9 @@ function setDirected(messageEl, note) {
 function showChatError(text) {
     const div = document.createElement('div');
     div.className = 'chat-error';
-    div.textContent = `⚠️ ${text} — press Regenerate to try again.`;
+    div.textContent = /Regenerate/.test(text) ? `⚠️ ${text}` : `⚠️ ${text} — press Regenerate to try again.`;
     messagesContainer.insertBefore(div, typingMessage);
-    setTimeout(() => div.remove(), 15000);
+    setTimeout(() => div.remove(), text.length > 200 ? 40000 : 15000);  // a long explanation stays long enough to read
     scrollToBottom();
 }
 
@@ -1158,6 +1190,7 @@ async function expandInput() {
             body: JSON.stringify({ action: 'expand', text: draft }),
         });
         const d = await resp.json();
+        takeDraft();  // it's in the box now: the server can forget it
         messageInput.value = d.success ? d.text : draft;
         if (!d.success) showChatNotice(d.error || 'Could not write it.');
         else if (d.polished) showChatNotice(`🧹 Bulba fixed ${d.polished} thing${d.polished === 1 ? '' : 's'} in it, as you asked.`);
@@ -1173,6 +1206,40 @@ async function expandInput() {
         messageInput.focus();
     }
 }
+
+// "Write my message" is kept on the server until it's in the box (they may leave the page while it writes)
+function takeDraft() {
+    return fetch(window.location.href, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ action: 'draft', take: true }),
+    }).then(r => r.json()).catch(() => ({}));
+}
+async function resumeDraft() {
+    const placeholder = messageInput.placeholder;
+    const ask = () => fetch(window.location.href, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ action: 'draft' }),
+    }).then(r => r.json()).catch(() => ({ state: 'none' }));
+    let d = await ask();
+    if (d.state === 'running') {  // still writing: the box waits, locked, like it does while you watch
+        messageInput.readOnly = true;
+        messageInput.classList.add('writing');
+        messageInput.placeholder = '✍️ Still writing your message…';
+        while (d.state === 'running') { await new Promise(r => setTimeout(r, 2000)); d = await ask(); }
+        messageInput.readOnly = false;
+        messageInput.classList.remove('writing');
+        messageInput.placeholder = placeholder;
+    }
+    if (d.state !== 'ready') return;
+    d = await takeDraft();
+    if (d.success && d.text && !messageInput.value.trim()) {
+        messageInput.value = d.text;
+        messageInput.style.height = 'auto';
+        messageInput.style.height = messageInput.scrollHeight + 'px';
+        showChatNotice('✍️ Your written message is back in the box.');
+    } else if (d.success === false && d.error) showChatNotice(d.error);
+}
+if (window.LIVE_DRAFT) setTimeout(resumeDraft, 200);
 
 function spellcheckInput() {
     const txt = messageInput.value; if (!txt) return;

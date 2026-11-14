@@ -30,6 +30,7 @@ from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
 from . import basics as basics_mod
 from . import echo, speaker_colors
+from . import live as live_jobs  # work that outlives the page (not the local "live" lists below)
 from . import extras, game, html_objects, media_library, recall, story, thinking, ai_client, cards, chats, regex_rules, experiences, model_profiles, presets, samplers, starters, tomato_garden, tomato_machine, tomatoes, trackers, translation
 from .bulba import control, polish, watch
 from mainapp import mature, refusals
@@ -313,6 +314,64 @@ def _summarize_pieces(user, messages, start, earlier=""):
 
 
 NOTE_FRAME = "[Director's note, outside the story (not something said or done in it): {text}]"
+
+
+def _write_mine(request, data, character, chat_obj, chat_state, messages, text_rules):
+    """Write my message: the AI writes their next message, or writes out their draft. A dict for the page."""
+    draft = text_rules("saved", str(data.get("text") or "").strip(), "user") if data.get("text") else ""
+    preset = presets.normalize(presets.get_active(request.user).data)
+    ask = (preset["utility"]["impersonation"].strip() or presets.UTILITY_DEFAULTS["impersonation"])
+    preset = control.for_impersonation(preset)  # its "never write for {{user}}" rules don't apply here
+    if draft:
+        ask += ("\n\n[{{user}} sketched their next move below. Write it out as their full message, in the "
+                "story's language and style and about as long as their earlier messages: what they say, "
+                "and how they say and do it (tone, gesture, a small detail of the moment). Keep their intent "
+                "and decisions; don't add new decisions for them, other characters' reactions or "
+                f"outcomes.]\n{draft}")
+    names = prompt_names(request.user, character, chat_state["persona"])
+    ask = ask.replace("{{user}}", names["user"]).replace("{{char}}", names["char"])
+    yours = speaker_colors.for_writing_user(speaker_colors.settings(character), names["user"])
+    if yours:  # story colours: their lines in their own colour
+        ask += "\n\n" + yours
+    reading = translation.reading_language(request.user)  # read in another language: English, cleaned, translated
+    english = translation.english_note(request.user)
+    try:
+        # As a user turn, so the request ends on one: Gemini and the newest Claude refuse a conversation that
+        # ends on the model's own reply (OpenRouter moves system messages out of the conversation)
+        built = build_chat_request(request.user, chat_obj, preset=preset, drop_last_reply=False,
+                                   generation="impersonate",
+                                   tail=[{"role": "user", "content": ask + (
+                                       "\n\n" + english["content"] if english else "")}])
+        message, _ = ai_client.complete_message(request.user, "chat", built["messages"], **built["params"])
+    except ai_client.AIError as e:
+        return {"success": False, "error": str(e)}
+    thought, written = thinking.split(message.get("content") or "")
+    written = written.strip()
+    if not written:
+        why = ("The model used up the reply length thinking. Raise the reply length limit (Samplers) or "
+               "ask Bulba." if thought or message.get("reasoning") else "The model sent back nothing. Try again.")
+        return {"success": False, "error": why, "text": draft, "spending": ai_client.spending(request.user)}
+    if draft and written.strip() == draft.strip():
+        return {"success": False, "error": "The model gave your draft back unchanged. Try again, "
+                "or add a word about what you want.", "text": draft, "spending": ai_client.spending(request.user)}
+    # Bulba's polish: the habits they asked to have fixed, in their written-out message too
+    fixed = []
+    habits = polish.habits_for_draft(request.user, chat_obj, written, polish.others_before(messages, len(messages), "user"))
+    if habits:
+        try:
+            written, fixed = polish.polish_text(request.user, character, chat_obj, written,
+                                                polish.others_before(messages, len(messages), "user"),
+                                                chat_state["summary"], habits, whose="theirs")
+        except ai_client.AIError as e:
+            log.info("Polish skipped for a written message: %s", e)
+    if reading and not translation.already_in(written, reading):  # into the language they write in
+        try:
+            written = translation.translate(request.user, written, reading,
+                                            glossary=_glossary(request.user, character, chat_state))
+        except ai_client.AIError as e:
+            return {"success": False, "error": f"Written, but not translated: {e}",
+                    "text": draft, "spending": ai_client.spending(request.user)}
+    return {"success": True, "text": written, "polished": len(fixed), "spending": ai_client.spending(request.user)}
 
 
 def _cut_echo(before, message):
@@ -749,66 +808,44 @@ def chat(request, slug):
             except (ValueError, KeyError) as e:
                 return JsonResponse({"success": False, "error": "Invalid request data"})
 
+        # --- A reply still being written (they left the page and came back): follow it, or stop it ---
+        elif action == "follow":
+            job = live_jobs.get(live_jobs.key(request.user, chat_obj, "reply"))
+            if not job or job.done:
+                return JsonResponse({"none": True, "done": bool(job)})
+            response = StreamingHttpResponse(job.follow(), content_type="application/x-ndjson")
+            response["Cache-Control"] = "no-cache"
+            response["X-Accel-Buffering"] = "no"
+            return response
+        elif action == "stop_reply":
+            job = live_jobs.get(live_jobs.key(request.user, chat_obj, "reply"))
+            if job and not job.done:
+                job.cancel = True
+            return JsonResponse({"success": True})
+        # --- "Write my message" that finished while they were away: its text, once ---
+        elif action == "draft":
+            job = live_jobs.get(live_jobs.key(request.user, chat_obj, "draft"))
+            if not job:
+                return JsonResponse({"state": "none"})
+            if not job.done:
+                return JsonResponse({"state": "running"})
+            if data.get("take"):
+                live_jobs.drop(live_jobs.key(request.user, chat_obj, "draft"))
+            return JsonResponse({"state": "ready", **(job.result or {})})
+
         # --- Write my message (impersonate): the AI writes or expands the user's next message ---
         elif action == "expand":
-            draft = text_rules("saved", str(data.get("text") or "").strip(), "user") if data.get("text") else ""
-            preset = presets.normalize(presets.get_active(request.user).data)
-            ask = (preset["utility"]["impersonation"].strip() or presets.UTILITY_DEFAULTS["impersonation"])
-            preset = control.for_impersonation(preset)  # its "never write for {{user}}" rules don't apply here
-            if draft:
-                ask += ("\n\n[{{user}} sketched their next move below. Write it out as their full message, in the "
-                        "story's language and style and about as long as their earlier messages: what they say, "
-                        "and how they say and do it (tone, gesture, a small detail of the moment). Keep their intent "
-                        "and decisions; don't add new decisions for them, other characters' reactions or "
-                        f"outcomes.]\n{draft}")
-            names = prompt_names(request.user, character, chat_state["persona"])
-            ask = ask.replace("{{user}}", names["user"]).replace("{{char}}", names["char"])
-            yours = speaker_colors.for_writing_user(speaker_colors.settings(character), names["user"])
-            if yours:  # story colours: their lines in their own colour
-                ask += "\n\n" + yours
-            reading = translation.reading_language(request.user)  # read in another language: English, cleaned, translated
-            english = translation.english_note(request.user)
+            # Kept on the server too, so it lands in the box even if they left the page meanwhile (mainapp/live.py)
+            draft_key = live_jobs.key(request.user, chat_obj, "draft")
+            draft_job = live_jobs.start(draft_key, "draft")
+            if draft_job is None:
+                return JsonResponse({"success": False, "error": "Your message is already being written."})
             try:
-                # As a user turn, so the request ends on one: Gemini and the newest Claude refuse a conversation that
-                # ends on the model's own reply (OpenRouter moves system messages out of the conversation)
-                built = build_chat_request(request.user, chat_obj, preset=preset, drop_last_reply=False,
-                                           generation="impersonate",
-                                           tail=[{"role": "user", "content": ask + (
-                                               "\n\n" + english["content"] if english else "")}])
-                message, _ = ai_client.complete_message(request.user, "chat", built["messages"], **built["params"])
-            except ai_client.AIError as e:
-                return JsonResponse({"success": False, "error": str(e)})
-            thought, written = thinking.split(message.get("content") or "")
-            written = written.strip()
-            if not written:
-                why = ("The model used up the reply length thinking. Raise the reply length limit (Samplers) or "
-                       "ask Bulba." if thought or message.get("reasoning") else "The model sent back nothing. Try again.")
-                return JsonResponse({"success": False, "error": why, "text": draft,
-                                     "spending": ai_client.spending(request.user)})
-            if draft and written.strip() == draft.strip():
-                return JsonResponse({"success": False, "error": "The model gave your draft back unchanged. Try again, "
-                                     "or add a word about what you want.", "text": draft,
-                                     "spending": ai_client.spending(request.user)})
-            # Bulba's polish: the habits they asked to have fixed, in their written-out message too
-            fixed = []
-            habits = polish.habits_for_draft(request.user, chat_obj, written, polish.others_before(messages, len(messages), "user"))
-            if habits:
-                try:
-                    written, fixed = polish.polish_text(request.user, character, chat_obj, written,
-                                                        polish.others_before(messages, len(messages), "user"),
-                                                        chat_state["summary"], habits, whose="theirs")
-                except ai_client.AIError as e:
-                    log.info("Polish skipped for a written message: %s", e)
-            if reading and not translation.already_in(written, reading):  # into the language they write in
-                try:
-                    written = translation.translate(request.user, written, reading,
-                                                    glossary=_glossary(request.user, character, chat_state))
-                except ai_client.AIError as e:
-                    return JsonResponse({"success": False, "error": f"Written, but not translated: {e}",
-                                         "text": draft, "spending": ai_client.spending(request.user)})
-            return JsonResponse({"success": True, "text": written, "polished": len(fixed),
-                                 "spending": ai_client.spending(request.user)})
-
+                out = _write_mine(request, data, character, chat_obj, chat_state, messages, text_rules)
+            except Exception as e:
+                out = {"success": False, "error": f"Could not write it: {e}"}
+            draft_job.finish(out)
+            return JsonResponse(out)
         # --- 3. NEW: Spellcheck ---
         elif action == "spellcheck":
             text = data.get("text", "")
@@ -1464,6 +1501,9 @@ def chat(request, slug):
             return JsonResponse({"success": True})
         # Handle regular chat message
         if action in ["chat", "regenerate", "continue"]:
+            if action in ("chat", "regenerate") and live_jobs.running(live_jobs.key(request.user, chat_obj, "reply")):
+                return JsonResponse({"error": "The last reply is still being written. Wait for it, or press Stop."},
+                                    status=409)
             user_message = data.get("message", "").strip()
             guidance = data.get("guidance", "")
 
@@ -1806,7 +1846,14 @@ def chat(request, slug):
                             keep_partial()
                         raise
 
-                response = StreamingHttpResponse(stream_reply(), content_type="application/x-ndjson")
+                # Written in the background, so leaving the page doesn't stop it (mainapp/live.py); this page and
+                # any page opened later follow along
+                job = live_jobs.start(live_jobs.key(request.user, chat_obj, "reply"), "reply")
+                if job is None:
+                    return JsonResponse({"error": "The last reply is still being written. Wait for it, or press Stop."},
+                                        status=409)
+                live_jobs.run_in_background(job, stream_reply())
+                response = StreamingHttpResponse(job.follow(), content_type="application/x-ndjson")
                 response["Cache-Control"] = "no-cache"
                 response["X-Accel-Buffering"] = "no"  # don't let proxies hold the stream back
                 return response
@@ -1933,6 +1980,9 @@ def chat(request, slug):
         "user_avatar": user_avatar,
         "trackers_data": {**_tracker_page_data(request.user, character, _synced(chat_state)), "story": story_payload()},
         "stream_replies": presets.normalize(presets.get_active(request.user).data)["options"]["streaming"],
+        # Work still going on the server since they left (mainapp/live.py): the page picks it up
+        "live_reply": live_jobs.running(live_jobs.key(request.user, chat_obj, "reply")),
+        "live_draft": bool(live_jobs.get(live_jobs.key(request.user, chat_obj, "draft"))),
         "chat": chat_obj,
         "chat_list": chats.summary_list(character, chat_obj.id),
     }

@@ -273,6 +273,8 @@
         const lucky = Math.random() < 1 / 500;
         const lk = look(s, lucky);
         const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+        // for the Pit's sounds (pit_sound.js listens; nothing happens on other pages)
+        document.dispatchEvent(new CustomEvent('na-tomato-throw', { detail: { lucky, flight: !!from && !reduce } }));
         if (from && !reduce) {
             const fly = document.createElement('div');
             fly.className = 'na-tom-fly';

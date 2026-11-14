@@ -28,6 +28,7 @@
         if (!resp.ok) throw new Error(out.error || 'The machine coughed. Try again in a moment.');
         return out;
     }
+    const sound = (name) => { if (window.NAPitSound) NAPitSound.play(name); };
     const capsule = (tier, cls = '') => `<div class="cap ${tier} ${cls}"><div class="cap-t"></div><div class="cap-b"></div></div>`;
 
     // --- The side panel ---
@@ -44,9 +45,17 @@
         $('machPull10').disabled = busy || s.spins < 10;
         const rare = s.pity.rare_at - s.pity.rare, legend = s.pity.legend_at - s.pity.legend;
         $('machPity').textContent = `A rare or better within ${rare} pull${rare === 1 ? '' : 's'} · a legendary within ${legend}`;
-        $('machCompost').textContent = `♻ ${s.compost} compost`;
-        $('machCompostBtn').disabled = busy || s.compost < s.compost_spin;
-        $('machCompostBtn').title = `Turn ${s.compost_spin} compost into a spin`;
+        // Compost: how much there is, how much a spin takes, where it comes from
+        const need = s.compost_spin, have = s.compost, enough = have >= need;
+        $('machCompost').textContent = `${have} / ${need}`;
+        $('machCompostFill').style.width = `${Math.min(100, Math.round(have / need * 100))}%`;
+        $('machCompostNote').textContent = enough
+            ? `Enough for ${Math.floor(have / need) === 1 ? 'a spin' : Math.floor(have / need) + ' spins'}: trade it in below.`
+            : `${need - have} more for a free spin. Compost comes from repeats in the machine and from garden harvests.`;
+        $('machCompostBtn').textContent = `♻ Trade ${need} compost for a spin`;
+        $('machCompostBtn').disabled = busy || !enough;
+        if ($('sumSpins')) $('sumSpins').textContent = s.spins.toLocaleString();
+        if ($('sumCompost')) $('sumCompost').textContent = `${have} / ${need}`;
         // Bulba's Promise
         const sel = $('machPromise');
         if (sel.options.length === 1) {
@@ -126,13 +135,15 @@
         }
         const stage = $('machStage');
         stage.classList.add('pulling');
+        sound('lever');
         await wait(450);
         stage.classList.add('shaking', 'mixing');
+        sound('rattle');
         await wait(650);
         stage.classList.remove('pulling', 'shaking');
         const tray = $('machTray');
         tray.innerHTML = '';
-        for (const r of out.results.slice(0, 5)) { tray.insertAdjacentHTML('beforeend', capsule(r.tier)); await wait(90); }
+        for (const r of out.results.slice(0, 5)) { tray.insertAdjacentHTML('beforeend', capsule(r.tier)); sound('drop'); await wait(90); }
         await wait(650);
         stage.classList.remove('mixing');
         try {
@@ -230,6 +241,7 @@
         if (from) {  // the turn
             await wait(1100);
             cap.classList.remove(from); cap.classList.add(r.tier, 'hard');
+            sound('turn');
             burst(null, r.tier);
             ov.classList.add('t-' + r.tier);
         }
@@ -238,6 +250,8 @@
         advance = null;
         cap.classList.remove('wobble');
         cap.classList.add('open');
+        sound('pop');
+        setTimeout(() => sound(r.tier), 250);
         burst(null, r.tier);
         if (r.tier === 'legendary') confetti();
         await wait(380);
@@ -268,6 +282,7 @@
             const r = results[i], p = prize(r.id), slot = slots[i];
             if (!skip && r.tier === 'legendary') { slot.querySelector('.cap').classList.add('wobble'); await wait(700); }
             slot.className = `slot done ${r.tier}`;
+            if (!skip) { sound('pop'); if (r.tier !== 'common') setTimeout(() => sound(r.tier), 120); }
             slot.innerHTML = `<span class="e">${p.emoji}</span><span class="n">${esc(p.name)}</span>${r.dup ? `<span class="dup">♻ +${r.compost}</span>` : ''}`;
             slot.title = `${p.name} (${TIER[r.tier]})${r.dup ? ': already had it' : ''}`;
             if (!skip) {
@@ -276,6 +291,7 @@
                 await wait(r.tier === 'legendary' ? 700 : 260);
             }
         }
+        if (skip) sound(results.some(r => r.tier === 'legendary') ? 'legendary' : results.some(r => r.tier === 'rare') ? 'rare' : 'common');
         const count = (t) => results.filter(r => r.tier === t).length;
         const compost = results.reduce((a, r) => a + (r.compost || 0), 0);
         const promise = results.find(r => r.promise);
@@ -297,11 +313,18 @@
         const o = $('machOdds'); o.hidden = !o.hidden; $('machOddsBtn').setAttribute('aria-expanded', String(!o.hidden));
     });
     async function act(body) {
-        try { state = await call(body); paint(); if (T) T.refresh(); }
+        try {
+            state = await call(body); paint(); if (T) T.refresh();
+            if (body.action === 'equip') document.dispatchEvent(new Event('na-board-refresh'));  // a badge shows at once
+        }
         catch (err) { if (window.NADialog) NADialog.alert(err.message); paint(); }
     }
     $('machPromise').addEventListener('change', (e) => act({ action: 'promise', id: e.target.value || null }));
-    $('machCompostBtn').addEventListener('click', () => act({ action: 'compost' }));
+    $('machCompostBtn').addEventListener('click', async () => {
+        const before = state ? state.spins : 0;
+        await act({ action: 'compost' });
+        if (T && state && state.spins > before) { sound('compost'); T.toast('♻ A spin, made from compost', 'Pull it whenever you like.'); }
+    });
     $('machShelf').addEventListener('click', (e) => {
         const eq = e.target.closest('[data-equip]');
         if (eq) { act({ action: 'equip', slot: eq.dataset.equip, id: eq.dataset.id || null }); return; }
