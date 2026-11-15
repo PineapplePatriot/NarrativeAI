@@ -4,12 +4,13 @@ text rules, lorebook settings, and making mood pictures. Each change is a propos
 pictures spends money, so it's a button they press, never a proposal Bulba applies.
 """
 from mainapp.bulba import connections as connections_mod
+from mainapp.bulba import looks as looks_mod
 import copy
 
 from mainapp import presets, samplers as sampler_mod, story, trackers as tracker_mod
 from mainapp.bulba.lore import target_character
 
-KINDS = ("samplers", "trackers", "greetings", "card_rules", "lore_settings", "voices", "story_systems", "connections")
+KINDS = ("samplers", "trackers", "greetings", "card_rules", "lore_settings", "voices", "story_systems", "connections", "chat_look")
 LORE_SETTINGS = {"scan_depth": (1, 50), "token_budget": (200, 20000), "recursive_scan": None}
 # What each tracker id means, for Bulba (the panel's own help text)
 TRACKER_IDS = [t["id"] for t in tracker_mod.TRACKERS]
@@ -331,6 +332,8 @@ def apply(session, p):
     if kind == "connections":
         from mainapp.bulba import connections
         return connections.apply(session, p)
+    if kind == "chat_look":
+        return looks_mod.apply(session, p)
     if kind == "samplers":
         preset = Preset.objects.filter(user=session.user, id=data["preset_id"]).first()
         if preset is None:
@@ -405,6 +408,8 @@ def undo(session, p):
     if kind == "connections":
         from mainapp.bulba import connections
         return connections.undo(session, p)
+    if kind == "chat_look":
+        return looks_mod.undo(session, p)
     if kind == "samplers":
         preset = Preset.objects.filter(user=session.user, id=before.get("preset_id")).first()
         if preset:
@@ -561,6 +566,7 @@ def tool_defs(fn, STR):
            {"redo": {"type": "boolean", "description": "Make all eight again, not only the missing ones"},
             "second": {"type": "boolean", "description": "For a two-character card: the second character's pictures"}}),
         *connections_mod.tool_defs(fn, STR),
+        *looks_mod.tool_defs(fn, STR),
     ]
 
 
@@ -569,7 +575,7 @@ HANDLERS = {"read_settings": tool_read_settings, "propose_samplers": tool_propos
             "propose_card_rules": tool_propose_card_rules, "propose_lore_settings": tool_propose_lore_settings,
             "offer_mood_pictures": tool_offer_mood_pictures, "offer_persona_pictures": tool_offer_persona_pictures, "read_voices": tool_read_voices,
             "propose_voices": tool_propose_voices, "propose_story_systems": tool_propose_story_systems,
-            **connections_mod.HANDLERS}
+            **connections_mod.HANDLERS, **looks_mod.HANDLERS}
 TURN_ENDING = {"propose_samplers", "propose_trackers", "propose_greetings", "propose_card_rules",
                "propose_lore_settings", "offer_mood_pictures", "offer_persona_pictures", "propose_voices", "propose_story_systems",
-               *connections_mod.TURN_ENDING}
+               *connections_mod.TURN_ENDING, *looks_mod.TURN_ENDING}

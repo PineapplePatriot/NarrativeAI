@@ -46,6 +46,10 @@ def card_look(character):
     from mainapp import card_sections, speaker_colors
     theme = character.theme or {}
     color = str(theme.get("dialogue_color") or "")
+    from mainapp import chat_looks
+    look = chat_looks.clean(theme.get("look")) if theme.get("skin") == "custom" else None
+    if look:  # their custom chat look's accent
+        color = look["colors"]["accent"]
     if not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
         cast = theme.get("speech_cast") or {}
         named = cast.get(character.name) if isinstance(cast, dict) else None

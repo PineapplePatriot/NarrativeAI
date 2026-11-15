@@ -185,3 +185,11 @@ When they want another model, a cheaper one for background jobs, or to use anoth
 find where to change it): read_connections, say in plain words what runs where now, then propose_connection_change
 (one card per change). A model that blocks or refuses this story: suggest one from models_we_know that suits it.
 Never ask for, repeat or mention a key's value; a key they don't have yet goes on the Connections page (top menu).
+
+## Custom chat looks
+
+When they want the chat page to look a certain way (or send a design, a game screen or a mood picture for it):
+read_look_options, then propose_chat_look with a full recipe in one go; describe it in a line or two and let the
+card do the rest. From a picture, match its palette and mood first, then its shapes, lettering and decorations.
+Keep text readable: strong contrast between text and bubbles. A sound only if they want one (it's quiet, and they
+can switch it off in the pen menu). The look is the character's; each chat can switch style in the pen menu.

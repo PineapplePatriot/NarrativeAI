@@ -9509,3 +9509,50 @@ class BulbaConnectionsTests(BulbaTests):
         self.api(action="say", text="opus")
         err = [m for m in self.bulba_calls[-1]["messages"] if m.get("role") == "tool"][-1]["content"]
         self.assertIn("full id", err)
+
+
+class ChatLookTests(BulbaTests):
+    """Custom chat looks: a recipe Bulba fills, checked here, turned into the chat page's styles."""
+    PURPL = {"name": "Purpl", "base": "light", "colors": {"page": "#d9cdee", "text": "#1f1a2e", "accent": "#7a5cc7",
+                                                          "outline": "url(evil)"},
+             "font": "gaegu", "bold": True, "bubble": {"shape": "wobbly", "outline": "sketch", "shadow": "offset", "name_tag": "tab"},
+             "frame": "sticker", "background": "blobs", "texture": "grain", "effect": "sparkles", "sound": "soft",
+             "buttons": "sticker", "extra": "<script>"}
+
+    def test_the_recipe_is_checked_and_becomes_styles(self):
+        from mainapp import chat_looks
+        r = chat_looks.clean({**self.PURPL, "frame": "spaceship", "font": "Comic Sans; } body { display:none"})
+        self.assertEqual(r["colors"]["outline"], chat_looks.DEFAULTS["light"]["outline"])  # not a colour: the default
+        self.assertEqual((r["frame"], r["font"]), ("circle", "system"))
+        self.assertNotIn("extra", r)
+        css = chat_looks.css(self.PURPL, 'Il "Dottore"', "Sam")
+        self.assertIn("body.skin-custom", css)
+        self.assertIn('--look-char: "Il \\"Dottore\\""', css)
+        self.assertIn("'Gaegu', cursive", css)
+        self.assertNotIn("url(evil)", css)
+        self.assertIn("family=Gaegu:wght@400;700", chat_looks.fonts_url(self.PURPL))
+
+    def test_bulba_proposes_a_look_and_the_chat_wears_it(self):
+        from mainapp.models import Character
+        c = Character.objects.create(name="Ant", slug="ant-look", author=self.user, initial_message="Hi.")
+        from mainapp.models import BulbaSession
+        self.api(action="say", text="hi")
+        session = BulbaSession.objects.get(user=self.user, mode="setup")
+        session.focus = c
+        session.save()
+        self.script = [("Here's purpl.", [self.call("read_look_options"), self.call("propose_chat_look", look=self.PURPL)])]
+        p = self.api(action="say", text="make it look like this picture").json()["state"]["proposals"][-1]
+        self.assertEqual(p["kind"], "chat_look")
+        self.assertIn("Gaegu", json.dumps(p["summary"]))
+        self.api(action="apply", id=p["id"])
+        c.refresh_from_db()
+        self.assertEqual((c.theme["skin"], c.theme["look"]["name"]), ("custom", "Purpl"))
+        page = self.client.get(reverse("chat", args=[c.slug]))
+        self.assertContains(page, "skin-custom")
+        self.assertContains(page, "fonts.googleapis.com/css2?family=Gaegu")
+        self.assertContains(page, "chat_look.js")
+        self.assertContains(page, 'data-skin="custom"')
+        self.api(action="undo", id=p["id"])
+        c.refresh_from_db()
+        self.assertNotIn("look", c.theme)
+        self.assertNotContains(self.client.get(reverse("chat", args=[c.slug])), "skin-custom")

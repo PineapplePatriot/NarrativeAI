@@ -134,11 +134,18 @@ relationships in one structured answer); shown on the spending line.
   onboarding or by asking in-chat Bulba.
 - Routes as in C5.
 
-## Phase D: custom chat looks, made with Bulba
+## Phase D: custom chat looks, made with Bulba — built 16 November
 
 Inspired by Molfar.Vertep's per-chat looks, without letting an AI rewrite the app: Bulba fills a **theme recipe**
 (colours, a font from an approved list, bubble shapes, text effects, a light effect, the speech palette) per chat
 or per character; preview, apply, undo; shareable as a file. No raw code, so it can't break the page.
+
+Built: a look is a recipe Bulba fills from their words or an inspiration picture (colours, 26 approved fonts,
+bold, bubble shape/outline/shadow, name tags, picture frames, background, texture, a light effect, an optional
+sound); every value checked, turned into the chat page's styles by the app (mainapp/chat_looks.py). It's the
+character's chat style "✨ <name>", switchable per chat. Also from 16 November: personas from seven core
+elements (with a parts editor on the profile page), Bulba switching models and connections (A4), the
+Characters page cards in each character's colour, and the quick view of the card in a chat.
 
 ## Phase E: Tomato Pit and garden
 

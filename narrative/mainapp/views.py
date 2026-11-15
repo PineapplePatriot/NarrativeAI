@@ -30,6 +30,7 @@ from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
 from . import basics as basics_mod
 from . import writing_quality
+from . import chat_looks
 from . import story_memory
 from .bulba import vision as bulba_vision
 from . import echo, speaker_colors
@@ -519,7 +520,7 @@ def chat(request, slug):
                 chat_state["context_guides"] = data.get("context_guides", {})
                 chat_state["current_bg"] = data.get("current_bg", "")
                 chat_state["current_music"] = data.get("current_music", {})
-                chat_state["skin"] = data.get("skin") if data.get("skin") in (*CHAT_SKINS, "none") else ""
+                chat_state["skin"] = data.get("skin") if data.get("skin") in (*CHAT_SKINS, "none", "custom") else ""
                 chat_state["music_follow"] = data.get("music_follow") if isinstance(data.get("music_follow"), dict) else {}
                 chat_state["last_recall"] = data.get("last_recall") if isinstance(data.get("last_recall"), list) else []
                 chat_state["persona"] = data.get("persona") if isinstance(data.get("persona"), dict) else {}
@@ -1123,7 +1124,7 @@ def chat(request, slug):
             return JsonResponse({"success": True})
         elif action == "set_skin":  # the pen menu's chat style: this chat only ("" = the character's)
             skin = str(data.get("skin") or "")
-            if skin not in CHAT_SKINS and skin not in ("", "none"):
+            if skin not in CHAT_SKINS and skin not in ("", "none", "custom"):
                 return JsonResponse({"success": False, "error": "Unknown style."}, status=400)
             chat_state["skin"] = skin
             save_messages(messages)
@@ -2083,9 +2084,12 @@ def chat(request, slug):
         "chat_skin_choice": chat_state.get("skin") or "",
         "character_skin": (character.theme or {}).get("skin") if (character.theme or {}).get("skin") in CHAT_SKINS else "",
         "chat_skins": CHAT_SKINS,
+        **_look_context(request.user, character, chat_state),
         "thinking_options": samplers.thinking_options(ai_client.resolve(request.user, "chat")[1]),
         "thinking_now": samplers.thinking_now(request.user),
-        "character_skin_name": CHAT_SKINS.get((character.theme or {}).get("skin") or "", ""),
+        "character_skin_name": CHAT_SKINS.get((character.theme or {}).get("skin") or "", "")
+                               or ("✨ " + chat_looks.clean((character.theme or {}).get("look"))["name"]
+                                   if (character.theme or {}).get("skin") == "custom" and chat_looks.clean((character.theme or {}).get("look")) else ""),
         "mature_on": mature.is_on(presets.normalize(presets.get_active(request.user).data)),
         "director_on": control.mode_of(presets.normalize(presets.get_active(request.user).data)) == "director",
         "display_rules": {
@@ -2352,12 +2356,23 @@ CHAT_SKINS = {"parchment": "📜 Parchment", "neon": "🌆 Neon", "lab": "🧪 L
 
 def chat_skin(character, chat_choice=""):
     """The style a chat shows: its own pick ("none" = plain), else the character's, else plain ("")."""
+    has_look = bool(chat_looks.clean((character.theme or {}).get("look")))
     if chat_choice == "none":
         return ""
-    if chat_choice in CHAT_SKINS:
+    if chat_choice in CHAT_SKINS or (chat_choice == "custom" and has_look):
         return chat_choice
     skin = (character.theme or {}).get("skin")
-    return skin if skin in CHAT_SKINS else ""
+    return skin if skin in CHAT_SKINS or (skin == "custom" and has_look) else ""
+
+
+def _look_context(user, character, chat_state):
+    """A character's custom look (mainapp/chat_looks.py) for the chat page: its styles, fonts and moving parts."""
+    look = chat_looks.clean((character.theme or {}).get("look"))
+    if not look:
+        return {"look": None}
+    names = prompt_names(user, character, chat_state.get("persona"))
+    return {"look": look, "look_css": chat_looks.css(look, character.name, names["user"]),
+            "look_fonts": chat_looks.fonts_url(look), "look_data": chat_looks.page_data(look)}
 
 
 def theme_weather(character, background=""):

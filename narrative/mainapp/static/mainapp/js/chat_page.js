@@ -649,6 +649,7 @@ function setExtras(messageEl, htmlList, append = false) {
 
 // Put a finished reply on screen: fill the streamed bubble, or add a new message
 function placeReply(data, avatarUrl) {
+    document.dispatchEvent(new CustomEvent('na-replied'));  // a custom look's sound (chat_look.js)
     updateSpending(data.spending);
     if (!data.bubble) {
         addMessage('assistant', data.reply, avatarUrl);
@@ -693,6 +694,7 @@ function sendMessage(noteOnly = false) {
         addMessage('user', message, window.USER_AVATAR);
         messageInput.value = '';
         messageInput.style.height = 'auto';
+        document.dispatchEvent(new CustomEvent('na-sent'));  // a custom look's sound (chat_look.js)
     }
     if (guidance) addMessage('user', guidance, window.USER_AVATAR, true);  // saved as a message of its own
 
@@ -2411,6 +2413,8 @@ function handleRefusal(d) {
         });
         const d = await resp.json().catch(() => ({}));
         if (!d.success) { showChatNotice(d.error || 'Could not change the chat style.'); return; }
+        // A custom look's styles come with the page: to it or from it, the page loads again
+        if (d.skin === 'custom' || document.body.classList.contains('skin-custom')) { location.reload(); return; }
         [...document.body.classList].filter(c => c.startsWith('skin-') || c === 'light-style').forEach(c => document.body.classList.remove(c));
         if (d.skin) document.body.classList.add('skin-' + d.skin);
         if (['parchment', 'lab'].includes(d.skin)) document.body.classList.add('light-style');  // deeper speech shades
@@ -2587,4 +2591,10 @@ document.getElementById('presetHint')?.addEventListener('click', async (e) => {
         if (action === 'rebuild') showChatNotice(d.text + ' Changed your mind? Ask Bulba, or pick the previous one on the Presets page.');
         setTimeout(() => window.location.reload(), 1600);
     }
+});
+
+// "✨ Make your own look with Bulba" and other links that open in-chat Bulba with a first message
+document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-ask-bulba]');
+    if (b && window.askBulba) { e.preventDefault(); window.askBulba(b.dataset.askBulba); }
 });

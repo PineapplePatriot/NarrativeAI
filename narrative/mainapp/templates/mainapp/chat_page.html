@@ -10,7 +10,9 @@
     <title>Narrative AI - Chat with {{character.name}}</title>
     <link rel="stylesheet" href="{% static 'mainapp/css/chat_page.css' %}?v=40">
     <link rel="stylesheet" href="{% static 'mainapp/css/tracker_looks.css' %}?v=3">
-    <link rel="stylesheet" href="{% static 'mainapp/css/chat_skins.css' %}?v=4">
+    <link rel="stylesheet" href="{% static 'mainapp/css/chat_skins.css' %}?v=5">
+    {% if look %}{% if look_fonts %}<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="{{ look_fonts }}">{% endif %}
+    <style id="lookStyle">{{ look_css|safe }}</style>{% endif %}
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=5">
 </head>
@@ -333,9 +335,12 @@
                             {% for key, label in chat_skins.items %}
                             <button type="button" class="preset-btn {% if chat_skin_choice == key %}on{% endif %}" data-skin="{{ key }}">{{ label }}</button>
                             {% endfor %}
+                            {% if look %}<button type="button" class="preset-btn {% if chat_skin_choice == 'custom' %}on{% endif %}" data-skin="custom">✨ {{ look.name }}</button>{% endif %}
                             <button type="button" class="preset-btn {% if chat_skin_choice == 'none' %}on{% endif %}" data-skin="none">Plain</button>
                         </div>
-                        <small class="skin-note">The first chip follows the character (Bulba sets it with their look: ask for a chat style); the others are for this chat only.</small>
+                        <small class="skin-note">The first chip follows the character (Bulba sets it with their look: ask for a chat style); the others are for this chat only.
+                            <button type="button" class="link" data-ask-bulba="Make a custom look for this chat page. I'll describe it or send a picture for inspiration.">✨ Make your own look with Bulba</button></small>
+                        <label class="theme-check" {% if not look or look.sound == 'none' %}hidden{% endif %}><input type="checkbox" id="lookSoundToggle" checked> The look's sounds <small>(a small sound when you send and when a reply lands)</small></label>
                         <span class="tool-sublabel">🎨 Speech colours</span>
                         <div class="chip-row skin-choice" id="speechMode">
                             <button type="button" class="preset-btn {% if speech.mode == 'story' %}on{% endif %}" data-mode="story">Story colours</button>
@@ -579,6 +584,7 @@
     <script src="{% static 'mainapp/js/chats.js' %}?v={% now 'U' %}"></script>
     <script src="{% static 'mainapp/js/summary.js' %}?v={% now 'U' %}"></script>
     <script src="{% static 'mainapp/js/memory_panel.js' %}?v={% now 'U' %}"></script>
+    {% if look %}{{ look_data|json_script:"look-data" }}<script src="{% static 'mainapp/js/chat_look.js' %}?v={% now 'U' %}"></script>{% endif %}
     <script src="{% static 'mainapp/js/quick_card.js' %}?v={% now 'U' %}" data-url="{% url 'character_quick' character.slug %}?chat={{ chat.id }}"></script>
     <script src="{% static 'js/scrolldown.js' %}?v=1"></script>
     <script>NAScrollDown.attach(document.getElementById('messagesContainer'), {above: document.querySelector('.input-container')});</script>
