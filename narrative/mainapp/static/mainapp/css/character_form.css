@@ -172,3 +172,38 @@ input[type="file"] {
     width: 100%;
 }
 body { padding: 0 16px 48px; }
+
+/* 🧩 The card as sections (static/mainapp/js/card_sections.js) */
+.card-sections { margin: 0 0 18px; padding: 16px; border-radius: 12px; background: rgba(126, 58, 242, 0.08);
+                 border: 1px solid rgba(126, 58, 242, 0.3); }
+.card-sections:empty { display: none; }
+.cs-upgrade p { margin: 6px 0 10px; }
+.cs-top { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: baseline; margin-bottom: 10px; }
+.cs-kind, .cs-total { color: var(--text-secondary); font-size: .9rem; }
+.cs-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+.cs-main { margin-top: 16px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+.cs-chip { border: 1px solid rgba(148, 163, 184, 0.35); background: rgba(30, 41, 59, 0.8); color: var(--text-primary);
+           border-radius: 999px; padding: 6px 12px; font-size: .88rem; cursor: pointer; }
+.cs-chip:hover { border-color: var(--accent-1); }
+.cs-chip.danger { border-color: rgba(244, 63, 94, 0.4); color: #fecdd3; }
+.cs-chip:disabled, .card-sections button:disabled { opacity: .55; cursor: progress; }
+.cs-person { border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 10px 12px 12px; margin: 0 0 12px; min-width: 0; }
+.cs-person legend { padding: 0 6px; font-weight: 600; }
+.cs-shared { background: rgba(16, 185, 129, 0.05); }
+.cs-name, .cs-title, .cs-temper input, .cs-temper select { background: var(--ui-secondary); color: var(--text-primary);
+           border: 1px solid rgba(148, 163, 184, 0.3); border-radius: 8px; padding: 5px 8px; font-size: .9rem; max-width: 100%; }
+.cs-title { flex: 1; min-width: 0; }
+.cs-temper { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 4px 0 10px; font-size: .9rem; }
+.cs-temper input { flex: 1 1 220px; }
+.cs-sec { margin-top: 10px; }
+.cs-sec-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.cs-switch { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; margin: 0; }
+.cs-switch input { width: auto; margin: 0; }
+.cs-cost { margin-left: auto; color: var(--text-secondary); font-size: .8rem; white-space: nowrap; }
+.cs-x { background: none; border: 0; color: var(--text-secondary); cursor: pointer; font-size: .9rem; }
+.cs-sec textarea { width: 100%; resize: vertical; }
+.cs-sec.off textarea { opacity: .45; }
+.cs-status.bad { color: #fda4af; }
+textarea.cs-composed { opacity: .75; cursor: default; }
+@media (max-width: 600px) { .card-sections { padding: 12px 10px; } .cs-person { padding: 8px; } }
+.cs-temper select { width: auto; flex: 0 1 auto; }

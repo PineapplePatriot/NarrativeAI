@@ -30,6 +30,7 @@ from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
 from . import basics as basics_mod
 from . import writing_quality
+from .bulba import vision as bulba_vision
 from . import echo, speaker_colors
 from . import live as live_jobs  # work that outlives the page (not the local "live" lists below)
 from . import extras, game, html_objects, media_library, recall, story, thinking, ai_client, cards, chats, regex_rules, experiences, model_profiles, presets, samplers, starters, tomato_garden, tomato_machine, tomatoes, trackers, translation
@@ -3077,6 +3078,74 @@ def character_rule(request, slug):
     except KeyError:
         return JsonResponse({"error": "No such rule on this card."}, status=404)
     return JsonResponse({"status": "ok", "rules": regex_rules.card_rules(character)})
+
+
+@login_required
+def character_sections(request, slug):
+    """The card as sections (mainapp/card_sections.py): read, save, sort an old card into sections ("Upgrade
+    this card"), let Bulba fill the empty ones, write the appearance from the picture, or go back to one box."""
+    from mainapp import card_sections
+    character = get_object_or_404(Character, slug=slug, author=request.user)
+    if request.method == "GET":
+        data = card_sections.clean(character.sections) if character.sections else None
+        return JsonResponse({"sections": data, "costs": card_sections.costs(data) if data else None,
+                             "routes": {k: v[0] for k, v in card_sections.ROUTES.items()},
+                             "labels": {k: list(v) for k, v in card_sections.labels("simulation").items()},
+                             "description_tokens": card_sections.tokens(character.description)})
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only"}, status=405)
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return JsonResponse({"error": "Invalid request."}, status=400)
+    action = data.get("action")
+    sent = card_sections.clean(data.get("sections")) if data.get("sections") else None
+
+    def answer(record, saved=False, **more):
+        return JsonResponse({"sections": record, "costs": card_sections.costs(record), "saved": saved,
+                             "description": card_sections.compose(record), **more,
+                             "spending": ai_client.spending(request.user)})
+    try:
+        if action == "structure":  # Upgrade this card: sorted, shown, saved only when they press Save
+            return answer(card_sections.structure(request.user, character))
+        if action == "new":
+            kind = data.get("kind") if data.get("kind") in card_sections.KINDS else "character"
+            names = (character.name, character.second_name or "") if kind == "ensemble" else (character.name,)
+            return answer(card_sections.empty(kind, names if kind != "simulation" else ("",)))
+        if action == "fill" and sent:
+            return answer(card_sections.fill_empty(request.user, sent, words=int(data.get("words") or 80)))
+        if action == "picture" and sent:
+            i = int(data.get("person") or 0)
+            if not 0 <= i < len(sent["people"]):
+                return JsonResponse({"error": "No such person on this card."}, status=400)
+            photo = character.photo_second_neutral if i == 1 and character.photo_second_neutral else character.photo_neutral
+            if data.get("image"):  # a picture they chose just now (a data URL)
+                url = str(data["image"])
+                if not url.startswith("data:image/"):
+                    return JsonResponse({"error": "That isn't a picture."}, status=400)
+                import base64
+                url, _ = bulba_vision.prepare(base64.b64decode(url.split(",", 1)[1]))
+            elif photo:
+                with photo.open("rb") as f:
+                    url, _ = bulba_vision.prepare(f.read())
+            else:
+                return JsonResponse({"error": "Add a neutral picture first (Sprites below), or choose one."}, status=400)
+            text, who = card_sections.appearance_from_picture(request.user, sent["people"][i]["name"] or character.name, url)
+            sent["people"][i]["sections"]["appearance"]["text"] = text
+            return answer(sent, looked=who)
+        if action == "save" and sent:
+            card_sections.apply(character, sent)
+            character.save()
+            return answer(card_sections.clean(character.sections), saved=True)
+        if action == "plain":  # back to one text box: the composed text stays as the description
+            character.sections = {}
+            character.save(update_fields=["sections"])
+            return JsonResponse({"sections": None, "saved": True, "description": character.description})
+    except ai_client.AIError as e:
+        return JsonResponse({"error": str(e)}, status=502)
+    except ValueError as e:
+        return JsonResponse({"error": str(e) or "Bulba's answer didn't make sense. Try again."}, status=502)
+    return JsonResponse({"error": "Unknown action."}, status=400)
 
 
 SPRITE_EMOTIONS = ["happy", "sad", "angry", "surprised", "scared", "confused", "calm", "scheming"]

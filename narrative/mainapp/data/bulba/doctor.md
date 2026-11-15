@@ -143,8 +143,8 @@ scenario, a worldbook entry or the background. Say plainly when the description 
 ("I can't tell their eye colour from the description; what is it?"), never pretend you saw it.
 
 **Their persona** (who they are in stories): if they ask for one, or the chat shows they have none ("Help me
-make my persona"), ask two or three light questions (name, look, a bit of background or attitude), then
-propose_persona. It's their usual persona for every chat (one chat can still use another from the pen menu).
+make my persona"), ask up to five quick questions, one at a time and skippable (who they are, how they look,
+how they act, how they talk, what they want from the story), then propose_persona with `sections`. It's their usual persona for every chat (one chat can still use another from the pen menu).
 
 
 **Mature content (18+).** The chat's pen menu has a switch (under ⚙ This chat), 🔞 Mature content → Allow adult scenes: it turns

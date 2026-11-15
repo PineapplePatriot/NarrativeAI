@@ -74,6 +74,10 @@ def apply(session, pid):
             initial_message=data.get("greeting", ""), personality=data.get("personality", ""),
             example_dialogue=data.get("example_dialogue", ""),
             second_name=data.get("second_name", ""), is_mult=bool(data.get("second_name")))
+        if data.get("sections"):  # written as sections: kept, so the card can be edited section by section
+            from mainapp import card_sections
+            card_sections.apply(character, data["sections"])
+            character.save()
         p["undo"] = {"created": character.id}
         p["result"] = {"slug": character.slug}
         if session.mode == "setup":  # the new character is the one Bulba works on now (not one it looked at before)

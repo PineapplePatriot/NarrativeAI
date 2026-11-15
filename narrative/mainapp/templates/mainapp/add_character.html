@@ -26,6 +26,7 @@
 
         {% for f in form %}
             {% if f.field.widget.input_type != "file" and f.field.widget.input_type != "checkbox" and not f.name|startswith:"eleven_voice_" and f.name not in form.card_fields and f.name != "second_name" %}
+                {% if f.name == "description" and object %}<div id="cardSections" class="card-sections" data-url="{% url 'character_sections' object.slug %}"></div>{% endif %}
                 <div class="form-group">
                     <label for="{{ f.id_for_label }}">{{ f.label }}</label>
                     {{ f }}
@@ -174,6 +175,7 @@
 </div>
 
 <script src="{% static 'mainapp/js/add_character.js' %}?v={% now 'U' %}"></script>
+{% if object %}<script src="{% static 'mainapp/js/card_sections.js' %}?v={% now 'U' %}"></script>{% endif %}
 {% if has_eleven_key %}<script>window.ELEVEN_VOICES_URL = "{% url 'eleven_voices' %}";</script>
 <script src="{% static 'mainapp/js/voices.js' %}?v={% now 'U' %}"></script>{% endif %}
 

@@ -9161,3 +9161,119 @@ class CardCheckTests(SimpleTestCase):
         guide = (Path(settings.BASE_DIR) / "mainapp/data/bulba/guides/characters.md").read_text(encoding="utf-8")
         self.assertIn("### A compact card done well", guide)
         self.assertIn("Cut Background before you cut this", guide)
+
+
+class CardSectionsTests(BulbaTests):
+    """Structured cards (mainapp/card_sections.py): sections composed into the description, sorted from old
+    cards, written by Bulba, edited section by section."""
+    APPEAR = "Short, grey hair in a knot, ink on her cuffs, a coat two sizes too big that she never takes off."
+    LONG = " She keeps the shop open late on market days, counts the till twice and remembers every face."
+
+    def test_an_old_card_is_sorted_by_its_headings_without_losing_a_word(self):
+        from mainapp import card_sections as cs
+        text = ("Mara restores paintings at the city museum.\n[Appearance]\nTall, grey eyes.\n"
+                "[How she behaves under pressure]\nGoes quiet, then precise.\n## Her favourite foods\nPlums.\n"
+                "Speech: short sentences.")
+        data, found = cs.from_text(text, "Mara")
+        person = data["people"][0]["sections"]
+        self.assertEqual(person["identity"]["text"], "Mara restores paintings at the city museum.")
+        self.assertEqual(person["appearance"]["text"], "Tall, grey eyes.")
+        self.assertEqual(person["personality"]["text"], "Goes quiet, then precise.")
+        self.assertEqual(person["voice"]["text"], "short sentences.")
+        self.assertIn("Plums.", data["extra"][0]["text"])  # an unknown heading: in "More", word for word
+        self.assertGreater(cs.coverage(text, data), 0.9)
+        composed = cs.compose(data)
+        self.assertTrue(composed.startswith("[Who they are]\nMara restores"))
+        data["people"][0]["sections"]["voice"]["on"] = False  # switched off: costs nothing
+        self.assertNotIn("short sentences", cs.compose(data))
+        self.assertEqual(cs.costs(data)["people"][0]["voice"], 0)
+
+    def test_an_ensemble_composes_each_person_and_temperament_is_said_in_words(self):
+        from mainapp import card_sections as cs
+        data = cs.clean({"kind": "ensemble", "shared": {"setting": "A night ferry."},
+                         "people": [{"name": "Ada", "sections": {"appearance": "Tall."},
+                                     "temperament": {"pace": "slow", "route": "enemies", "start": "cold"}},
+                                    {"name": "Bo", "sections": {"appearance": "Short."}}]})
+        text = cs.compose(data)
+        self.assertIn("[Setting]\nA night ferry.", text)
+        self.assertIn("## Ada\n", text)
+        self.assertIn("## Bo\n", text)
+        self.assertIn("slow to warm up; a relationship with them leans toward enemies; their attitude to {{user}} starts as: cold", text)
+        self.assertEqual(cs.temperament_of(type("C", (), {"sections": data})(), "Ada")["route"], "enemies")
+        changed = cs.edit(data, [{"person": "Bo", "section": "voice", "text": "Mumbles."},
+                                 {"person": "Cy", "section": "appearance", "text": "Red coat."},
+                                 {"section": "between", "text": "Ada owes Bo money."}])
+        self.assertEqual([p["name"] for p in changed["people"]], ["Ada", "Bo", "Cy"])
+        self.assertIn("Ada owes Bo money.", cs.compose(changed))
+        with self.assertRaises(ValueError):
+            cs.edit(cs.empty(), [{"section": "nonsense"}])
+
+    def test_bulba_writes_a_card_as_sections_and_apply_keeps_them(self):
+        from mainapp.models import Character
+        sections = {"kind": "ensemble", "shared": {"setting": "A pawnshop by the river."},
+                    "people": [{"name": "Marta", "sections": {"identity": "A pawnbroker." + self.LONG, "appearance": self.APPEAR},
+                                "temperament": {"pace": "slow", "route": "mentor", "start": "wary"}},
+                               {"name": "Ilko", "sections": {"identity": "Her nephew.", "appearance": "Gangly, freckled."}}]}
+        self.script = [("Here they are.", [self.call("propose_character", name="Marta", greeting="*The bell rings.*",
+                                                     sections=sections)])]
+        data = self.api(action="say", text="two of them please").json()
+        proposal = data["state"]["proposals"][0]
+        self.assertIn("2 people in one card: Marta, Ilko", json.dumps(proposal))
+        self.api(action="apply", id=proposal["id"])
+        c = Character.objects.get(author=self.user, name="Marta")
+        self.assertEqual(c.sections["kind"], "ensemble")
+        self.assertEqual((c.is_mult, c.second_name), (True, "Ilko"))
+        self.assertIn("## Ilko\n[Who they are]\nHer nephew.", c.description)
+
+    def test_a_section_card_without_an_appearance_goes_back(self):
+        from mainapp.bulba import card_check as C
+        import types
+        sections = {"people": [{"name": "Marta", "sections": {"identity": {"text": "x"}, "appearance": {"text": ""}}}]}
+        found = C.problems("word " * 50, sections)
+        self.assertTrue(found and "Marta" in found[0])
+        self.assertIsNone(C.review(types.SimpleNamespace(messages=[]), "Marta", "word " * 50,
+                                   {"people": [{"name": "M", "sections": {"appearance": {"text": "Tall."}}}]}))
+
+    def test_the_page_sorts_saves_and_goes_back_to_one_box(self):
+        from mainapp.models import Character
+        from unittest import mock
+        c = Character.objects.create(name="Mara", slug="mara-cs", author=self.user,
+                                     description="Mara restores paintings.\n[Appearance]\nTall.\n[Personality]\nDry.\n[Background]\nA bindery.")
+        url = reverse("character_sections", args=[c.slug])
+        self.assertIsNone(self.client.get(url).json()["sections"])
+        post = lambda **b: self.client.post(url, json.dumps(b), content_type="application/json")
+        sorted_ = post(action="structure").json()  # its own headings did it: no AI
+        self.assertEqual(sorted_["sections"]["people"][0]["sections"]["appearance"]["text"], "Tall.")
+        c.refresh_from_db()
+        self.assertEqual(c.sections, {})  # nothing saved before Save
+        saved = post(action="save", sections=sorted_["sections"]).json()
+        self.assertTrue(saved["saved"])
+        c.refresh_from_db()
+        self.assertTrue(c.description.startswith("[Who they are]\nMara restores paintings."))
+        self.assertEqual(c.sections["people"][0]["name"], "Mara")
+        post(action="plain")
+        c.refresh_from_db()
+        self.assertEqual(c.sections, {})
+        self.assertIn("[Appearance]\nTall.", c.description)  # the composed text stays
+        # A card with no headings: Bulba sorts it; whatever it drops comes back in "More" (switched off)
+        c.description = "A long rambling card about Mara, who is tall and dry and grew up above a bindery in the old town."
+        c.save()
+        answer = json.dumps({"kind": "character", "people": [{"name": "Mara", "sections": {"appearance": "tall"}}], "more": ""})
+        with mock.patch("mainapp.ai_client.complete", return_value=answer):
+            got = post(action="structure").json()["sections"]
+        self.assertEqual(got["extra"][-1]["title"], "The card as it was")
+        self.assertFalse(got["extra"][-1]["on"])
+        other = get_user_model().objects.create_user(username="other", password="pw12345!")
+        self.client.force_login(other)
+        self.assertEqual(self.client.get(url).status_code, 404)
+
+    def test_a_persona_from_sections(self):
+        self.script = [("Here you are.", [self.call("propose_persona", name="Sam",
+                                                    sections={"identity": "A courier.", "appearance": "Wiry, scarred knuckles.",
+                                                              "wants": "To pay off the bike."})])]
+        data = self.api(action="say", text="me").json()
+        proposal = data["state"]["proposals"][0]
+        self.api(action="apply", id=proposal["id"])
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.persona_description,
+                         "[Who they are]\nA courier.\n\n[Appearance]\nWiry, scarred knuckles.\n\n[What they want here]\nTo pay off the bike.")

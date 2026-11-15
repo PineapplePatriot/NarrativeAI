@@ -1,4 +1,4 @@
-# Guide: writing characters and personas (v0.3)
+# Guide: writing characters and personas (v0.4)
 
 Used in the "persona" and "character" stages. Adapted from Anya's card-writing guide
 (`docs/bulba/research/06-character-card-guide.md`); cards follow the SillyTavern card fields so they
@@ -119,14 +119,50 @@ user**. Appearance and biography support these; they don't crowd them out.
   redemption unless that's the premise they asked for.
 - **Knowledge boundaries.** Say what they know, what they don't, and any secrets (and who knows them).
 
-### Two characters in one card
+### Cards as sections
 
-When the story is about a pair who are always together (twins, a duo of rivals, a master and an apprentice),
-one card can hold both: propose_character with second_name, and describe both in the description (each
-with their own look, voice and wants). The chat shows two sets of pictures side by side and highlights
-whoever speaks. Pictures for the second one: offer_mood_pictures with second true, once its neutral picture is
-on the character's page (the "make pictures for" choice there). A larger cast is better as one character with
-the others in the lorebook.
+Write every new card as sections (propose_character `sections`); the description the model reads is made
+from them, in this order, and they can switch any one off on the character's page:
+- **identity**: name, age, what they are and do, where they stand. Two or three lines.
+- **appearance**: never empty, never the first thing cut (see "A compact card done well").
+- **personality**: personality in action: what they do, when, to whom, at what cost.
+- **temperament**: how fast they warm up, what wounds them, what wins them over. Also set the `temperament`
+  fields: `pace` (slow, steady, fast), `route` (basic, romance, enemies, enemies_to_lovers, mentor, rivals,
+  family: the way a relationship with {{user}} most naturally goes; enemies is a full route, not a flavour)
+  and `start` (a few words: where their attitude to {{user}} starts). Story memory moves the relationship
+  from there, so don't write a fixed feeling ("is in love with {{user}}") anywhere in the card: it would hold
+  forever. Write where it starts and what moves it.
+- **goals**, **voice** (with one sample line), **background** (only what drives the present),
+  **relationships** ({{user}} first), **knowledge** (what they know that others don't; secrets).
+- Leave out a section rather than pad it. Their own extra sections go in `extra` with a title.
+
+The word budget they chose is for the whole card: spread it in the priority order of "What matters most".
+
+### Several people in one card (ensemble)
+
+When they want a group (siblings, a crew, a household, three rivals), `kind` "ensemble": one entry in
+`people` per person, as many as they asked for, each with their own sections and temperament (each gets an
+appearance), plus `shared`: `setting` (where and when, what brings them together) and `between` (how they
+relate to each other: who defers to whom, old grudges, alliances). Give each person something the others
+don't have: a different want, a different voice. The chat shows two sets of pictures (the first two people,
+second_name is the second) and highlights whoever speaks. Pictures for the second: offer_mood_pictures with
+second true. A short card for many people is fine: identity, appearance, two lines of behaviour and voice each.
+
+### A simulation card (a world that makes its own people)
+
+When they describe a setting more than a person ("a cyberpunk city where I'm a courier", "a fantasy academy
+with lots of students"), `kind` "simulation": `shared` holds `world` (what it is and how it works), `places`,
+`factions`, `tone`, `start` (where {{user}} is when it opens) and `new_people`: what kinds of people {{user}}
+meets, how each is introduced (a name, a look, what they want, in a line or two the first time), and which
+ones come back. Recurring people they already know go in `people` (each with an appearance). The narrator
+voices everyone and never {{user}}. Story memory keeps every new person (who they are, what happened with
+them), so they come back consistent: the card doesn't need to list them.
+
+### From a picture
+
+When they send a picture of the character, write the appearance from what you see (build, face, hair, eyes,
+clothes, how they carry themselves; no art-style words). On the character's page, "Appearance from the
+picture" does the same from the neutral sprite.
 
 ### The opening: its own step, before the card
 

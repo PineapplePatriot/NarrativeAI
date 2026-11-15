@@ -258,16 +258,32 @@ TOOLS = [
          "extensions": {"type": "array", "items": {"type": "string", "enum": ["adventure", "continuity"]}},
          "why": STR},
         ["starter", "taste", "why"]),
-    _fn("propose_persona", "Propose who the user is in the story.",
-        {"name": STR, "description": STR, "why": STR}, ["name", "description"]),
-    _fn("propose_character", "Propose a character to chat with. For a card with two characters (a pair "
-        "who share the story, e.g. siblings or rivals), give second_name too and describe both in the description; "
-        "the chat then shows two sets of pictures and highlights whoever speaks.",
+    _fn("propose_persona", "Propose who the user is in the story. Prefer `sections` (the description is made "
+        "from them); a plain description works too.",
+        {"name": STR, "description": STR, "why": STR,
+         "sections": {"type": "object", "description": "{key: text} with keys identity (who they are, what they "
+                      "do), appearance, personality (how they act), voice (how they talk), wants (what they want "
+                      "from this story or this world). Leave out what they didn't tell you."}},
+        ["name"]),
+    _fn("propose_character", "Propose a character to chat with. Write the card as sections (preferred: give "
+        "`sections`; the description is then made from them): kind 'character' (one person), 'ensemble' (as many "
+        "people as they asked for, each with their own sections, plus what they share) or 'simulation' (a world "
+        "that makes its own people as the story goes). Without sections, give a plain description. For a card "
+        "with several people, second_name is the second one's name (the chat shows two sets of pictures).",
         {"name": STR, "description": STR, "scenario": STR, "greeting": STR,
          "personality": STR, "example_dialogue": STR,
-         "second_name": {"type": "string", "description": "Only for a two-character card: the second one's name"},
+         "second_name": {"type": "string", "description": "Only for a card with several people: the second one's name"},
+         "sections": {"type": "object", "description": (
+             "The card as sections: {\"kind\": \"character\"|\"ensemble\"|\"simulation\", \"shared\": {key: text}, "
+             "\"people\": [{\"name\": \"...\", \"sections\": {key: text}, \"temperament\": {\"pace\": "
+             "\"slow|steady|fast\", \"route\": \"basic|romance|enemies|enemies_to_lovers|mentor|rivals|family\", "
+             "\"start\": \"where their attitude to {{user}} starts, a few words\"}}], \"extra\": [{\"title\", \"text\"}]}. "
+             "A person's keys: identity, appearance (never empty), personality, temperament, goals, voice, "
+             "background, relationships, knowledge. Shared keys: ensemble: setting, between; simulation: world, "
+             "places, factions, tone, start, new_people (how new people are made and introduced). Leave a "
+             "section out rather than pad it.")},
          "why": STR},
-        ["name", "description", "greeting"]),
+        ["name", "greeting"]),
     *library.tool_defs(_fn, STR),
     *lore.tool_defs(_fn, STR),
     *tune.tool_defs(_fn, STR),
@@ -946,30 +962,50 @@ def tool_propose_preset(session, args):
 
 
 def tool_propose_persona(session, args):
+    from mainapp import card_sections
     name = str(args.get("name", "")).strip()[:100]
-    desc = str(args.get("description", "")).strip()[:8000]
+    desc = (card_sections.compose_persona(args.get("sections")) if isinstance(args.get("sections"), dict) else "") \
+        or str(args.get("description", "")).strip()[:8000]
     if not name or not desc:
-        return {"error": "Need a name and a description."}, []
+        return {"error": "Need a name and the persona (sections, or a description)."}, []
     p = _proposal(session, "persona", f"You: {name}", [desc], {"name": name, "description": desc})
     return {"proposal": p["id"], "status": "waiting for Apply"}, [{"type": "proposal", "id": p["id"]}]
 
 
 def tool_propose_character(session, args):
+    from mainapp import card_sections
     name = str(args.get("name", "")).strip()[:100]
-    if not name or not str(args.get("description", "")).strip():
-        return {"error": "Need a name and a description."}, []
+    sections = card_sections.clean(args.get("sections")) if isinstance(args.get("sections"), dict) else None
+    if sections and sections["people"] and not sections["people"][0]["name"] and sections["kind"] != "simulation":
+        sections["people"][0]["name"] = name
+    if sections and not card_sections.compose(sections):
+        sections = None
+    if not name or not (sections or str(args.get("description", "")).strip()):
+        return {"error": "Need a name and the card (sections, or a description)."}, []
     payload = {k: str(args.get(k, "")).strip()[:40000]
                for k in ("description", "scenario", "greeting", "personality", "example_dialogue")}
+    if sections:
+        payload["description"] = card_sections.compose(sections)
     from mainapp.bulba import card_check
-    sent_back = card_check.review(session, name, payload["description"])  # no appearance, or types not a person
+    sent_back = card_check.review(session, name, payload["description"], sections)  # no appearance, or types
     if sent_back:
         return {"error": sent_back}, []
     from mainapp.bulba import polish
     payload = polish.clean_written(session.user, payload)  # the known AI habits out of the draft (the greeting most)
     payload["name"] = name
     payload["second_name"] = str(args.get("second_name") or "").strip()[:100]
-    summary = ([f"Two characters in one card: {name} and {payload['second_name']}"] if payload["second_name"] else []) \
-        + ["Description:", payload["description"]]
+    if sections:
+        payload["sections"] = sections
+        others = [p["name"] for p in sections["people"][1:] if p["name"]]
+        if sections["kind"] == "ensemble" and others and not payload["second_name"]:
+            payload["second_name"] = others[0]
+    if sections and sections["kind"] != "character":
+        who = [p["name"] for p in sections["people"] if p["name"]]
+        lead = (["A world that makes its own people as the story goes"] if sections["kind"] == "simulation"
+                else [f"{len(who)} people in one card: {', '.join(who)}"])
+    else:
+        lead = [f"Two characters in one card: {name} and {payload['second_name']}"] if payload["second_name"] else []
+    summary = lead + ["Description (made from sections):" if sections else "Description:", payload["description"]]
     if payload["personality"]:
         summary += ["In short:", payload["personality"]]
     if payload["scenario"]:

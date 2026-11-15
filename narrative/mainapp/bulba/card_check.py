@@ -28,11 +28,18 @@ EPITHET = re.compile(r"\b(" + "|".join(EPITHETS) + r")\b", re.I)
 MIN_WORDS = 40  # a real card; a one-line description they dictated goes through as it is
 
 
-def problems(description):
+def problems(description, sections=None):
     found = []
     if len(str(description or "").split()) < MIN_WORDS:
         return found
-    if not APPEARANCE.search(description or ""):
+    if sections:  # written as sections: each person needs an Appearance (a simulation's recurring people too)
+        missing = [p["name"] or "someone" for p in sections.get("people", [])
+                   if not ((p.get("sections") or {}).get("appearance") or {}).get("text")]
+        if missing:
+            found.append(f"No Appearance section for: {', '.join(missing)}. Every person gets one, whatever the "
+                         "card's size: a short plain paragraph (build, face, hair, eyes, what they usually wear, how "
+                         "they move); canon characters from canon. Trim Background before you trim Appearance.")
+    elif not APPEARANCE.search(description or ""):
         found.append("It has no Appearance part. Every card has one, whatever its size: a short plain paragraph "
                      "(build, face, hair, eyes, what they usually wear, how they move); canon characters from canon. "
                      "In a compact card, trim Background before you trim Appearance.")
@@ -54,9 +61,9 @@ def sent_back_before(session, name):
     return False
 
 
-def review(session, name, description):
+def review(session, name, description, sections=None):
     """None when it can be shown; else the error for Bulba to fix first."""
-    found = problems(description)
+    found = problems(description, sections)
     if not found or sent_back_before(session, name):
         return None
     return (f"{MARK}: {name}. Not shown yet; fix this and call propose_character again with the whole card:\n- "

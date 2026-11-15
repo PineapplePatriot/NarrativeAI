@@ -11,7 +11,7 @@ import copy
 import uuid
 from pathlib import Path
 
-from mainapp import ai_client, chats, extras, game, presets, thinking
+from mainapp import ai_client, card_sections, chats, extras, game, presets, thinking
 from mainapp.bulba import control, library, lore, memory, polish, rules, tune
 from mainapp.bulba import watch as watch_mod
 
@@ -80,7 +80,8 @@ def context(session):
         f"{game.MODE_LABELS[game.mode_for(user, character)].lower()} (Extras page; per character on its Trackers page). "
         f"Story extras: {', '.join(extras.KINDS[k].lower() for k in extras.kinds_for(user)) or 'off'}.",
         "### Character card\n" + "\n\n".join(
-            f"{f}: {_clip(getattr(character, f), 2500)}" for f in CARD_FIELDS if getattr(character, f)),
+            f"{f}: {_clip(getattr(character, f), 2500)}" for f in CARD_FIELDS if getattr(character, f))
+        + (f"\n\n{card_sections.outline(character)}" if character.sections else ""),
         "### Lorebook\n" + _lore_line(character),
         "### The user in this chat\n" + _clip(
             (persona.get("description") if persona.get("name") else getattr(user, "persona_description", "")) or
@@ -301,11 +302,25 @@ def tool_propose_card_edit(session, args):
     if fields:
         from mainapp.bulba import polish
         fields = polish.clean_written(session.user, fields)  # the known AI habits out of Bulba's own draft
-    if not fields:
-        return {"error": "Change at least one field (description, personality, scenario, example_dialogue)."}, []
     character = lore.target_character(session)
     if character is None:
         return {"error": "There's no character to change yet."}, []
+    if character.sections:  # a card kept as sections: changed section by section, the description made from them
+        from mainapp import card_sections
+        if "description" in fields and not args.get("section_edits"):
+            return {"error": f"{character.name}'s card is kept as sections: change them with section_edits "
+                             "(the description is made from them), not the description."}, []
+        fields.pop("description", None)
+        if args.get("section_edits"):
+            try:
+                changed = card_sections.edit(character.sections, args["section_edits"])
+            except ValueError as e:
+                return {"error": str(e)}, []
+            from mainapp.bulba import polish
+            fields["description"] = card_sections.compose(changed)
+            fields["sections"] = changed
+    if not fields:
+        return {"error": "Change at least one field (description, personality, scenario, example_dialogue)."}, []
     first = (character.name or "").split()[0].lower() if (character.name or "").split() else ""
     new_text = " ".join(fields.get(f, "") for f in ("description", "personality", "initial_message")).lower()
     if first and len(fields.get("description", "")) > 200 and first not in new_text and not args.get("same_character"):
@@ -314,7 +329,14 @@ def tool_propose_card_edit(session, args):
                          "For a new character use propose_character; only if they asked to turn "
                          f"{character.name} into someone else, call again with same_character true."}, []
     summary = []
+    for e in (args.get("section_edits") or []) if fields.get("sections") else []:
+        if isinstance(e, dict):
+            who = f"{e.get('person')}: " if e.get("person") else ""
+            summary += [f"{who}{str(e.get('section') or '').replace('_', ' ').capitalize()}"
+                        + (" (switched off)" if e.get("on") is False else "") + ":", str(e.get("text") or "")]
     for f, text in fields.items():
+        if f in ("sections",) or (f == "description" and fields.get("sections")):
+            continue
         summary += [f"{f.replace('_', ' ').capitalize()}:", text]
     summary += ["Why:", str(args.get("why") or "")[:400]]
     p = _proposal(session, "card_edit", f"Card change: {character.name}", summary,
@@ -375,6 +397,14 @@ def _fn(name, description, properties, required=()):
 CARD_EDIT_TOOL = _fn("propose_card_edit", "Propose changes to the card of the character you're working on (only the "
             "fields you change). Never for a new or different character: that is propose_character.",
             {"description": STR, "personality": STR, "scenario": STR, "example_dialogue": STR,
+             "section_edits": {"type": "array", "description": (
+                 "For a card kept as sections (the setup says so): the sections to change, each "
+                 "{\"person\": name (leave out for the only person, or for a shared/world section), \"section\": "
+                 "identity|appearance|personality|temperament|goals|voice|background|relationships|knowledge, a "
+                 "shared one (setting, between, world, places, factions, tone, start, new_people) or the title of "
+                 "their own section, \"text\": the section's whole new text, \"on\": false to switch it off}. "
+                 "To add a person to an ensemble, give their name and their sections."),
+                 "items": {"type": "object"}},
              "initial_message": {"type": "string", "description": "The first message (only new chats start with it)"},
              "same_character": {"type": "boolean", "description": "Only when they asked to turn this character into "
                                 "someone with another name: the edit is meant to replace who they are"},
