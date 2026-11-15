@@ -243,7 +243,8 @@ def css(recipe, char_name="", user_name=""):
   font-family: {_font(r['heading_font'])}; font-size: .85rem; font-weight: 700; line-height: 1.4; white-space: nowrap; z-index: 2; {tag} }}
 {S} .assistant .message-content::before {{ content: var(--look-char); }}
 {S} .user .message-content::before {{ content: var(--look-you); left: auto; right: 18px; background: {c['accent2'] if b['name_tag'] != 'plain' else 'none'}; }}
-{S} .note .message-content::before {{ display: none; }}""")
+{S} .note .message-content::before {{ display: none; }}
+{S} .input-container {{ position: relative; z-index: 5; }}""")
     # The character's pictures: avatars in the header and by the messages
     frame = FRAME[r["frame"]]
     pics = f"{S} .chat-header .character-avatar, {S} .message-avatar"

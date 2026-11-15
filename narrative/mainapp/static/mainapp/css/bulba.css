@@ -289,3 +289,21 @@ body.embed .mini-progress { display: none !important; }  /* beside the Quick set
 .look-preview { display: block; width: 100%; height: 400px; margin: 10px 0 4px; border: 1px solid rgba(148, 163, 184, .3);
                 border-radius: 12px; background: #11131c; }
 @media (max-width: 520px) { .look-preview { height: 300px; } }
+
+/* 📎 What each picture is: the character, the chat's look, or anything else */
+.picture-kind { display: grid; gap: 6px; flex: 1; min-width: 0; }
+.pk-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.pk-chip { font: inherit; font-size: .82rem; padding: 5px 10px; border-radius: 999px; cursor: pointer;
+    border: 1px solid rgba(148, 163, 184, .35); background: rgba(255, 255, 255, .04); color: inherit; }
+.pk-chip.on { background: #7c3aed; border-color: transparent; color: #fff; }
+.pk-more[hidden] { display: none; }
+.pk-more input, .pk-more select { width: 100%; font: inherit; font-size: .85rem; padding: 6px 8px; border-radius: 8px;
+    border: 1px solid rgba(148, 163, 184, .35); background: rgba(15, 23, 42, .6); color: inherit; }
+.picture-list .picture-row { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; grid-template-areas: "img name x" "img kind x";
+    align-items: start; gap: 4px 10px; padding: 8px 0; border-bottom: 1px solid rgba(148, 163, 184, .15); }
+.picture-row > img { grid-area: img; width: 52px; height: 52px; object-fit: cover; border-radius: 8px; }
+.picture-row > .picture-name { grid-area: name; font-size: .8rem; opacity: .75; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.picture-row > .picture-kind { grid-area: kind; }
+.picture-row > button { grid-area: x; align-self: center; }
+.pk-chips { flex-wrap: wrap; }
+.picture-row .pk-more select { max-width: 100%; }

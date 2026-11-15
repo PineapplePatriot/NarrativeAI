@@ -117,3 +117,19 @@ button.link { background: none; padding: 0; color: var(--accent-soft); text-deco
 .bg-thinking { align-items: flex-start !important; margin-top: 14px !important; line-height: 1.45; }
 .bg-thinking input { margin-top: 3px; }
 .bg-thinking small { opacity: .75; }
+
+/* Each character's trackers, on the Extras page (links to their Trackers page) */
+.tracker-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; margin-top: 8px; }
+.tracker-card { display: grid; grid-template-columns: 44px 1fr; grid-template-areas: "pic body" "pic go"; gap: 2px 12px; align-items: center;
+    padding: 12px 14px; border-radius: 14px; text-decoration: none; color: inherit; border: 1px solid rgba(56, 189, 248, .25);
+    background: linear-gradient(135deg, rgba(56, 189, 248, .1), rgba(139, 92, 246, .08)), rgba(15, 23, 42, .5);
+    transition: transform .15s, border-color .15s, box-shadow .2s; }
+.tracker-card:hover { transform: translateY(-2px); border-color: rgba(56, 189, 248, .6); box-shadow: 0 10px 24px rgba(56, 189, 248, .12); }
+.tracker-card.has-on { border-color: rgba(56, 189, 248, .45); }
+.tc-pic { grid-area: pic; width: 44px; height: 44px; border-radius: 12px; overflow: hidden; display: flex; align-items: center;
+    justify-content: center; font-weight: 700; background: linear-gradient(135deg, #7c3aed, #38bdf8); color: #fff; }
+.tc-pic img { width: 100%; height: 100%; object-fit: cover; }
+.tc-body { grid-area: body; display: grid; gap: 2px; min-width: 0; }
+.tc-on { font-size: 1rem; letter-spacing: 1px; }
+.tc-on small { font-size: .75rem; opacity: .7; letter-spacing: 0; margin-left: 2px; }
+.tc-go { grid-area: go; font-size: .8rem; color: #7dd3fc; }

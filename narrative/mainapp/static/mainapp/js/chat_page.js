@@ -610,7 +610,8 @@ function setThoughts(messageEl, text, open = false) {
     if (!box) {
         box = document.createElement('details');
         box.className = 'thoughts';
-        box.innerHTML = '<summary>Thoughts</summary><div class="thoughts-text"></div>';
+        box.innerHTML = '<summary>Thoughts</summary><div class="thoughts-text"></div><div class="thoughts-actions">'
+            + '<button type="button" data-thoughts="copy">📋 Copy</button><button type="button" data-thoughts="delete">🗑 Delete</button></div>';
         const textEl = messageEl.querySelector('.message-text');
         textEl.parentNode.insertBefore(box, textEl);
     }
@@ -2597,4 +2598,31 @@ document.getElementById('presetHint')?.addEventListener('click', async (e) => {
 document.addEventListener('click', (e) => {
     const b = e.target.closest('[data-ask-bulba]');
     if (b && window.askBulba) { e.preventDefault(); window.askBulba(b.dataset.askBulba); }
+});
+
+// 🧠 A reply's thinking block: copy it, or delete it (like SillyTavern); the reply itself stays
+document.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-thoughts]');
+    if (!b) return;
+    const box = b.closest('details.thoughts'), msg = b.closest('.message');
+    const text = box.querySelector('.thoughts-text').textContent;
+    if (b.dataset.thoughts === 'copy') {
+        try { await navigator.clipboard.writeText(text); b.textContent = '✓ Copied'; setTimeout(() => { b.textContent = '📋 Copy'; }, 1200); }
+        catch (err) { showChatNotice('Could not copy it here.'); }
+        return;
+    }
+    if (window.NADialog && !await NADialog.confirm('Delete these thoughts? The reply stays as it is.', { ok: 'Delete', danger: true })) return;
+    const resp = await fetch(window.location.href, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ action: 'delete_thoughts', index: Number(msg.dataset.index) }),
+    });
+    const d = await resp.json().catch(() => ({}));
+    if (d.success) box.remove(); else showChatNotice(d.error || 'Could not delete them.');
+});
+
+// The pen menu's groups (Look, Effects, Replies) open the way they were left, in this browser
+document.querySelectorAll('details.tool-group[data-group]').forEach(d => {
+    const key = 'na-pen-group-' + d.dataset.group;
+    try { const v = localStorage.getItem(key); if (v !== null) d.open = v === '1'; } catch (e) { /* private window */ }
+    d.addEventListener('toggle', () => { try { localStorage.setItem(key, d.open ? '1' : '0'); } catch (e) { /* this page only */ } });
 });

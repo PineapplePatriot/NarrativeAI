@@ -9710,3 +9710,35 @@ class SmallFixesSixteenthTests(StoryMemoryTests):
 for _name in [n for n in dir(StoryMemoryTests) if n.startswith("test_")]:
     if getattr(SmallFixesSixteenthTests, _name, None) is getattr(StoryMemoryTests, _name, None):
         setattr(SmallFixesSixteenthTests, _name, None)
+
+
+class BatchTwoSeventeenthTests(StoryMemoryTests):
+    def test_mimo_gets_the_thinking_leash_and_room_for_it(self):
+        from mainapp import thinking
+        self.assertTrue(thinking.needs_leash("xiaomi/mimo-v2.6-pro", "default"))
+        self.assertFalse(thinking.needs_leash("xiaomi/mimo-v2.6-pro", "off"))
+        self.assertFalse(thinking.needs_leash("anthropic/claude-opus-5.5", "full"))
+        msgs, params = thinking.leash([{"role": "user", "content": "Hi\\n\\n[Director's note for this reply: rain]"}], {"max_tokens": 1000})
+        self.assertLess(msgs[-1]["content"].index("How to think"), msgs[-1]["content"].index("Director's note"))
+        self.assertEqual(params["max_tokens"], 1000 + thinking.LEASH_ROOM)
+
+    def test_a_thinking_block_can_be_deleted(self):
+        from mainapp import chats
+        self.post({"action": "chat", "message": "Hi"})
+        chat = self.character.chats.first()
+        data = chats.read(chat)
+        data["messages"][-1] = chats.with_reasoning(data["messages"][-1], "I should greet them.")
+        chats.write(chat, data)
+        self.assertTrue(self.post({"action": "delete_thoughts", "index": len(data["messages"]) - 1}).json()["success"])
+        self.assertEqual(chats.reasoning_of(chats.read(chat)["messages"][-1]), "")
+
+    def test_the_extras_page_shows_each_characters_trackers_and_story_memory(self):
+        page = self.client.get(reverse("users:extras"))
+        self.assertContains(page, "Each character's trackers")
+        self.assertContains(page, reverse("tracker_setup", args=[self.character.slug]))
+        self.assertContains(page, 'name="memory"')
+
+
+for _name in [n for n in dir(StoryMemoryTests) if n.startswith("test_")]:
+    if getattr(BatchTwoSeventeenthTests, _name, None) is getattr(StoryMemoryTests, _name, None):
+        setattr(BatchTwoSeventeenthTests, _name, None)

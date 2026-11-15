@@ -120,7 +120,7 @@
                             {% endif %}
                         </div>
 
-                        {% if thoughts %}<details class="thoughts"><summary>Thoughts</summary><div class="thoughts-text">{{ thoughts }}</div></details>{% endif %}
+                        {% if thoughts %}<details class="thoughts"><summary>Thoughts</summary><div class="thoughts-text">{{ thoughts }}</div><div class="thoughts-actions"><button type="button" data-thoughts="copy">📋 Copy</button><button type="button" data-thoughts="delete">🗑 Delete</button></div></details>{% endif %}
                         {% if directed %}<div class="directed-line">🎬 {{ directed }}</div>{% endif %}
                         <div class="message-text markdown-output" data-raw="{{ text|urlencode }}"{% if original %} data-original="{{ original|urlencode }}"{% endif %}{% if untranslated %} data-untranslated="1"{% endif %}>
                             {{ text }}
@@ -239,8 +239,9 @@
 
                     <div class="tool-section">
                         <span class="tool-label">🧠 Story memory</span>
+                        <button class="tool-action-btn memory-open" onclick="Summary.toggle(true); document.querySelector('.mem-tab[data-tab=memory]')?.click(); toggleTools()">🧠 Story memory: what happened, who knows what, relationships</button>
                         <div class="tool-grid three">
-                            <button class="tool-action-btn" onclick="Summary.toggle(true); toggleTools()">📚 Summary</button>
+                            <button class="tool-action-btn" onclick="Summary.toggle(true); document.querySelector('.mem-tab[data-tab=manual]')?.click(); toggleTools()">📚 Summary</button>
                             <button class="tool-action-btn" onclick="window.Trackers && Trackers.open(); toggleTools()">📊 Trackers</button>
                             <a class="tool-action-btn" href="{% url 'tracker_setup' character.slug %}">⚙ Set up</a>
                         </div>
@@ -282,54 +283,8 @@
                                 <button type="button" class="tool-action-btn" id="personaMakeUsual" title="Saves it to your profile, so every chat without its own persona uses it">Make this my usual persona</button>
                             </div>
                         </form>
-                        {% if thinking_options|length > 1 %}
-                        <span class="tool-sublabel">🧠 Thinking before replies <small>(all chats with this model)</small></span>
-                        <div class="chip-row" id="thinkingChoice">
-                            {% for o in thinking_options %}
-                            <button type="button" class="preset-btn {% if o.id == thinking_now %}on{% endif %}" data-thinking="{{ o.id }}" title="{{ o.help }}">{{ o.label }}</button>
-                            {% endfor %}
-                        </div>
-                        <small class="skin-note" id="thinkingHelp">{% for o in thinking_options %}{% if o.id == thinking_now %}{{ o.label }}: {{ o.help }}.{% endif %}{% endfor %} Less thinking makes replies quicker and cheaper.</small>
-                        {% endif %}
-                        <span class="tool-sublabel">📖 Layout <small>(all chats)</small></span>
-                        <div class="chip-row" id="layoutChoice">
-                            <button type="button" class="preset-btn {% if appearance.layout != 'book' %}on{% endif %}" data-layout="chat">💬 Chat</button>
-                            <button type="button" class="preset-btn {% if appearance.layout == 'book' %}on{% endif %}" data-layout="book" title="Replies read as chapters; your messages fold into small markers you can open">📖 Book</button>
-                        </div>
-                        <span class="tool-sublabel">🥔 Bulba Watch</span>
-                        <label class="theme-check"><input type="checkbox" id="watchChatToggle" {% if watch_data.on and not watch_data.chat_off %}checked{% endif %}>
-                            On in this chat <small>(Bulba reads replies now and then for habits; all chats: the Extras page)</small></label>
-                        <a class="notebook-shortcut" href="{% url 'users:notebook' %}" target="_blank" rel="noopener">📓 What Bulba watches for and knows about you →</a>
-                        <span class="tool-sublabel">🔞 Mature content <small>(18+, all chats)</small></span>
-                        <label class="theme-check"><input type="checkbox" id="matureToggle" {% if mature_on %}checked{% endif %}>
-                            Allow adult scenes <small>(switches the preset's mature-content rule on, with a reminder before each reply so the model doesn't refuse)</small></label>
-                        <span class="tool-sublabel">✨ Effects <small>(this browser)</small></span>
-                        <label class="theme-check"><input type="checkbox" id="effectsAll" checked> <b>Effects on</b> <small>(off: no weather, no tints, no light effects)</small></label>
-                        <div class="effects-sub" id="effectsSub">
-                        <label class="theme-check"><input type="checkbox" id="atmosphereToggle" checked> Weather and time of day
-                            <small>(follows the scene from the World tracker{% if theme_weather %}; until it says otherwise, {{ character.name }}'s {{ theme_weather }}{% endif %}. Now: <span id="atmosphereNow">nothing to show yet</span>)</small></label>
-                        <div class="atmo-picks" id="atmoPicks">
-                            <span class="atmo-label">Weather</span>
-                            <div class="chip-row" data-atmo="weather">
-                                <button type="button" class="preset-btn" data-pick="">🎬 Follow the scene</button>
-                                <button type="button" class="preset-btn" data-pick="clear">☀️ Clear</button>
-                                <button type="button" class="preset-btn" data-pick="rain">🌧 Rain</button>
-                                <button type="button" class="preset-btn" data-pick="storm">⛈ Storm</button>
-                                <button type="button" class="preset-btn" data-pick="snow">❄️ Snow</button>
-                                <button type="button" class="preset-btn" data-pick="fog">🌫 Fog</button>
-                            </div>
-                            <span class="atmo-label">Time of day</span>
-                            <div class="chip-row" data-atmo="time">
-                                <button type="button" class="preset-btn" data-pick="">🎬 Follow the scene</button>
-                                <button type="button" class="preset-btn" data-pick="dawn">🌅 Dawn</button>
-                                <button type="button" class="preset-btn" data-pick="day">🏙 Day</button>
-                                <button type="button" class="preset-btn" data-pick="dusk">🌇 Dusk</button>
-                                <button type="button" class="preset-btn" data-pick="night">🌙 Night</button>
-                            </div>
-                        </div>
-                        <label class="theme-check"><input type="checkbox" id="skinFxToggle" checked> The chat style's light effect <small>(candle light, scanlines, grid, petals; off by itself if your device asks for less motion)</small></label>
-                        </div>
-                        <span class="tool-sublabel">🖼 Chat style <small>(bubbles, buttons, a light effect)</small></span>
+                        <details class="tool-group" data-group="look" open><summary>🎨 Look <small>chat style, speech colours, layout</small></summary>
+<span class="tool-sublabel">🖼 Chat style <small>(bubbles, buttons, a light effect)</small></span>
                         <div class="chip-row skin-choice" id="skinChoice">
                             <button type="button" class="preset-btn {% if not chat_skin_choice %}on{% endif %}" data-skin="">{{ character.name }}'s{% if character_skin %} ({{ character_skin_name }}){% else %} (plain){% endif %}</button>
                             {% for key, label in chat_skins.items %}
@@ -340,7 +295,7 @@
                             <button type="button" class="preset-btn {% if chat_skin_choice == 'none' %}on{% endif %}" data-skin="none">Plain</button>
                         </div>
                         <small class="skin-note">The first chip follows the character (Bulba sets it with their look: ask for a chat style); the others are for this chat only.
-                            <button type="button" class="link" data-ask-bulba="Make a custom look for this chat page. I'll describe it or send a picture for inspiration.">✨ Make your own look with Bulba</button></small>
+                            <button type="button" class="link-btn" data-ask-bulba="Make a custom look for this chat page. I'll describe it or send a picture for inspiration.">✨ Make your own look with Bulba</button></small>
                         {% if adjustable %}<details class="look-adjust" id="lookAdjust">
                             <summary>🎨 Adjust “{{ look.name }}”</summary>
                             <div class="look-adjust-grid">
@@ -379,6 +334,58 @@
                         </div>
                         <span class="tool-sublabel">🙂 Your speech colour</span>
                         <div class="dialogue-colors" id="youColors"></div>
+                        <span class="tool-sublabel">📖 Layout <small>(all chats)</small></span>
+                        <div class="chip-row" id="layoutChoice">
+                            <button type="button" class="preset-btn {% if appearance.layout != 'book' %}on{% endif %}" data-layout="chat">💬 Chat</button>
+                            <button type="button" class="preset-btn {% if appearance.layout == 'book' %}on{% endif %}" data-layout="book" title="Replies read as chapters; your messages fold into small markers you can open">📖 Book</button>
+                        </div>
+                        </details>
+                        <details class="tool-group" data-group="effects"><summary>✨ Effects <small>weather, time of day, light effects</small></summary>
+<span class="tool-sublabel">✨ Effects <small>(this browser)</small></span>
+                        <label class="theme-check"><input type="checkbox" id="effectsAll" checked> <b>Effects on</b> <small>(off: no weather, no tints, no light effects)</small></label>
+                        <div class="effects-sub" id="effectsSub">
+                        <label class="theme-check"><input type="checkbox" id="atmosphereToggle" checked> Weather and time of day
+                            <small>(follows the scene from the World tracker{% if theme_weather %}; until it says otherwise, {{ character.name }}'s {{ theme_weather }}{% endif %}. Now: <span id="atmosphereNow">nothing to show yet</span>)</small></label>
+                        <div class="atmo-picks" id="atmoPicks">
+                            <span class="atmo-label">Weather</span>
+                            <div class="chip-row" data-atmo="weather">
+                                <button type="button" class="preset-btn" data-pick="">🎬 Follow the scene</button>
+                                <button type="button" class="preset-btn" data-pick="clear">☀️ Clear</button>
+                                <button type="button" class="preset-btn" data-pick="rain">🌧 Rain</button>
+                                <button type="button" class="preset-btn" data-pick="storm">⛈ Storm</button>
+                                <button type="button" class="preset-btn" data-pick="snow">❄️ Snow</button>
+                                <button type="button" class="preset-btn" data-pick="fog">🌫 Fog</button>
+                            </div>
+                            <span class="atmo-label">Time of day</span>
+                            <div class="chip-row" data-atmo="time">
+                                <button type="button" class="preset-btn" data-pick="">🎬 Follow the scene</button>
+                                <button type="button" class="preset-btn" data-pick="dawn">🌅 Dawn</button>
+                                <button type="button" class="preset-btn" data-pick="day">🏙 Day</button>
+                                <button type="button" class="preset-btn" data-pick="dusk">🌇 Dusk</button>
+                                <button type="button" class="preset-btn" data-pick="night">🌙 Night</button>
+                            </div>
+                        </div>
+                        <label class="theme-check"><input type="checkbox" id="skinFxToggle" checked> The chat style's light effect <small>(candle light, scanlines, grid, petals; off by itself if your device asks for less motion)</small></label>
+                        </div>
+                        </details>
+                        <details class="tool-group" data-group="replies"><summary>🧠 Replies <small>thinking, Bulba Watch, mature content</small></summary>
+{% if thinking_options|length > 1 %}
+                        <span class="tool-sublabel">🧠 Thinking before replies <small>(all chats with this model)</small></span>
+                        <div class="chip-row" id="thinkingChoice">
+                            {% for o in thinking_options %}
+                            <button type="button" class="preset-btn {% if o.id == thinking_now %}on{% endif %}" data-thinking="{{ o.id }}" title="{{ o.help }}">{{ o.label }}</button>
+                            {% endfor %}
+                        </div>
+                        <small class="skin-note" id="thinkingHelp">{% for o in thinking_options %}{% if o.id == thinking_now %}{{ o.label }}: {{ o.help }}.{% endif %}{% endfor %} Less thinking makes replies quicker and cheaper.</small>
+                        {% endif %}
+                        <span class="tool-sublabel">🥔 Bulba Watch</span>
+                        <label class="theme-check"><input type="checkbox" id="watchChatToggle" {% if watch_data.on and not watch_data.chat_off %}checked{% endif %}>
+                            On in this chat <small>(Bulba reads replies now and then for habits; all chats: the Extras page)</small></label>
+                        <a class="notebook-shortcut" href="{% url 'users:notebook' %}" target="_blank" rel="noopener">📓 What Bulba watches for and knows about you →</a>
+                        <span class="tool-sublabel">🔞 Mature content <small>(18+, all chats)</small></span>
+                        <label class="theme-check"><input type="checkbox" id="matureToggle" {% if mature_on %}checked{% endif %}>
+                            Allow adult scenes <small>(switches the preset's mature-content rule on, with a reminder before each reply so the model doesn't refuse)</small></label>
+                        </details>
                         <span class="tool-sublabel">💳 This month</span>
                         <div class="spending-line" id="spendingLine" data-spent="{{ spending.spent }}" data-limit="{{ spending.limit }}">
                             ${{ spending.spent|floatformat:2 }} of ${{ spending.limit|floatformat:2 }} used (chat, Bulba and background jobs)</div>

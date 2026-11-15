@@ -7,7 +7,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bulba - Narrative AI</title>
-    <link rel="stylesheet" href="{% static 'mainapp/css/bulba.css' %}?v=17">
+    <link rel="stylesheet" href="{% static 'mainapp/css/bulba.css' %}?v=18">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=5">
 </head>
@@ -35,12 +35,22 @@
         <div class="thinking" id="thinking" hidden><span class="potato">🥔</span> <span id="thinkingText">Thinking…</span></div>
         <form class="picture-form" id="pictureForm" hidden>
             <input type="file" id="pictureFile" accept="image/png,image/jpeg,image/webp,image/gif" multiple hidden>
-            <template id="pictureAsTpl"><select class="picture-as">
-                <option value="look">Just show Bulba (a screenshot, character art, a place…)</option>
-                <option value="neutral">The character's picture (neutral)</option>
-                {% for m in "happy,sad,angry,surprised,scared,confused,calm,scheming"|split:"," %}<option value="{{ m }}">Mood: {{ m }}</option>{% endfor %}
-                <option value="background">A background for their chats</option>
-            </select></template>
+            <template id="pictureAsTpl"><div class="picture-kind">
+                <div class="pk-chips" role="radiogroup" aria-label="What is this picture?">
+                    <button type="button" class="pk-chip" data-kind="character">🧑 Character</button>
+                    <button type="button" class="pk-chip" data-kind="ui">🎨 Chat look</button>
+                    <button type="button" class="pk-chip" data-kind="other">💬 Anything else</button>
+                </div>
+                <div class="pk-more" data-for="character" hidden>
+                    <input type="text" class="pk-emotion" maxlength="40" list="pkMoods" placeholder="Emotion for a mood picture (happy, sad…); empty: for their appearance">
+                </div>
+                <div class="pk-more" data-for="ui" hidden>
+                    <select class="pk-ui"><option value="ui">Inspiration: make the chat look like this</option>
+                        <option value="ui_background">A picture behind the chat</option>
+                        <option value="background">A background for their story scenes</option></select>
+                </div>
+            </div></template>
+            <datalist id="pkMoods">{% for m in "neutral,happy,sad,angry,surprised,scared,confused,calm,scheming"|split:"," %}<option value="{{ m }}">{% endfor %}</datalist>
             <div class="picture-list" id="pictureList"></div>
             <input type="text" id="pictureText" maxlength="2000" placeholder="What should Bulba do with them? (optional)">
             <div class="picture-actions">
@@ -48,7 +58,7 @@
                 <button type="submit" id="pictureSend" disabled>Send</button>
                 <button type="button" class="ghost" id="pictureCancel">Cancel</button>
             </div>
-            <small class="help">Add one or several, say what each one is (a mood, a background, or just to show Bulba), then Send.</small>
+            <small class="help">Add one or several and say what each one is: the character (a mood picture, or just for how they look), something for your chat's look, or anything else. Then Send.</small>
         </form>
         <form class="composer" id="composer">
             <button type="button" class="attach" id="attachBtn" title="Show Bulba a picture, or add one as the character's, a mood or a background">📎</button>

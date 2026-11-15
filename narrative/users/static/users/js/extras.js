@@ -9,6 +9,9 @@ function fill() {
         document.querySelector(`input[name=${task}][value=${state[task].mode}]`).checked = true;
         $(`${task}Every`).value = state[task].interval;
     }
+    const mem = state.memory || { on: true, interval: 4 };
+    document.querySelector(`input[name=memory][value=${mem.on === false ? 'off' : 'on'}]`).checked = true;
+    $('memoryEvery').value = mem.interval || 4;
     $('sprites').checked = state.sprites;
     $('ideas').checked = !!state.ideas;
     $('watch').checked = !!state.watch;
@@ -58,6 +61,7 @@ $('saveBtn').onclick = async () => {
     const body = {
         summary: { mode: document.querySelector('input[name=summary]:checked').value, interval: Number($('summaryEvery').value) },
         trackers: { mode: document.querySelector('input[name=trackers]:checked').value, interval: Number($('trackersEvery').value) },
+        memory: { on: document.querySelector('input[name=memory]:checked').value === 'on', interval: Number($('memoryEvery').value) || 4 },
         sprites: $('sprites').checked,
         ideas: $('ideas').checked,
         watch: $('watch').checked,

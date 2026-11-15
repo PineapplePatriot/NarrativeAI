@@ -697,8 +697,18 @@ document.addEventListener('click', (e) => {
 (function () {
     const form = $('pictureForm');
     if (!form) return;
-    let picked = [];  // [{file, as, url}]
+    let picked = [];  // [{file, kind: character|ui|other, emotion, ui, url}]
     const MOODS = ['neutral', 'happy', 'sad', 'angry', 'surprised', 'scared', 'confused', 'calm', 'scheming'];
+    // What the server is told: a mood picture, the character's appearance, the chat look's inspiration or
+    // background, a scene background, or just to look at
+    const target = (p) => {
+        if (p.kind === 'character') {
+            const e = (p.emotion || '').trim().toLowerCase();
+            return MOODS.includes(e) ? e : 'appearance';
+        }
+        if (p.kind === 'ui') return p.ui || 'ui';
+        return 'look';
+    };
     const draw = () => {
         const list = $('pictureList');
         list.innerHTML = '';
@@ -706,10 +716,20 @@ document.addEventListener('click', (e) => {
             const row = document.createElement('div');
             row.className = 'picture-row';
             row.innerHTML = `<img src="${p.url}" alt=""><span class="picture-name">${esc(p.file.name)}</span>`;
-            const sel = $('pictureAsTpl').content.firstElementChild.cloneNode(true);
-            sel.value = p.as;
-            sel.addEventListener('change', () => { p.as = sel.value; });
-            row.appendChild(sel);
+            const box = $('pictureAsTpl').content.firstElementChild.cloneNode(true);
+            const paint = () => {
+                box.querySelectorAll('.pk-chip').forEach(c => { c.classList.toggle('on', c.dataset.kind === p.kind); c.setAttribute('aria-pressed', String(c.dataset.kind === p.kind)); });
+                box.querySelectorAll('.pk-more').forEach(m => { m.hidden = m.dataset.for !== p.kind; });
+            };
+            box.querySelectorAll('.pk-chip').forEach(c => c.addEventListener('click', () => { p.kind = c.dataset.kind; paint(); }));
+            const em = box.querySelector('.pk-emotion');
+            em.value = p.emotion || '';
+            em.addEventListener('input', () => { p.emotion = em.value; });
+            const ui = box.querySelector('.pk-ui');
+            ui.value = p.ui || 'ui';
+            ui.addEventListener('change', () => { p.ui = ui.value; });
+            paint();
+            row.appendChild(box);
             const x = document.createElement('button');
             x.type = 'button'; x.className = 'ghost'; x.textContent = '✕'; x.title = 'Leave this one out';
             x.onclick = () => { URL.revokeObjectURL(p.url); picked.splice(i, 1); draw(); };
@@ -718,19 +738,20 @@ document.addEventListener('click', (e) => {
         });
         $('pictureSend').disabled = !picked.length;
     };
-    // A sensible first guess for each new picture: the character's neutral one when they have none, then moods in
-    // order, else "just show Bulba"; they change it in the list
+    // A first guess for each new picture: the character's neutral one when they have none, then moods in order,
+    // else "anything else"; they change it in the list
     const guess = () => {
         if (typeof state !== 'undefined' && state && state.needs_portrait) {
-            const used = new Set(picked.map(p => p.as));
-            return MOODS.find(m => !used.has(m)) || 'look';
+            const used = new Set(picked.filter(p => p.kind === 'character').map(p => p.emotion));
+            const mood = MOODS.find(m => !used.has(m));
+            if (mood) return { kind: 'character', emotion: mood };
         }
-        return 'look';
+        return { kind: 'other' };
     };
     $('attachBtn').onclick = () => { form.hidden = !form.hidden; if (!form.hidden && !picked.length) $('pictureFile').click(); };
     $('pictureAdd').onclick = () => $('pictureFile').click();
     $('pictureFile').addEventListener('change', () => {
-        [...$('pictureFile').files].forEach(file => picked.push({ file, as: guess(), url: URL.createObjectURL(file) }));
+        [...$('pictureFile').files].forEach(file => picked.push({ file, ...guess(), url: URL.createObjectURL(file) }));
         $('pictureFile').value = '';
         draw();
     });
@@ -744,11 +765,12 @@ document.addEventListener('click', (e) => {
         for (let i = 0; i < items.length; i++) {
             const body = new FormData();
             body.append('picture', items[i].file);
-            body.append('as', items[i].as);
+            body.append('as', target(items[i]));
+            if (items[i].kind === 'character' && items[i].emotion) body.append('emotion', items[i].emotion.trim());
             body.append('text', i === items.length - 1 ? text : '');
             if (i < items.length - 1) body.append('quiet', '1');  // Bulba answers after the last one, about all of them
             await run(body, items.length > 1 ? `Adding picture ${i + 1} of ${items.length}…`
-                : items[i].as === 'look' ? 'Bulba is looking at the picture…' : 'Adding the picture…');
+                : ['look', 'appearance', 'ui', 'ui_background'].includes(target(items[i])) ? 'Bulba is looking at the picture…' : 'Adding the picture…');
         }
         reset();
     });

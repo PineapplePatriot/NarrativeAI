@@ -621,7 +621,19 @@ def extras(request):
 
     from mainapp import html_objects, presets
     taken = html_objects.replaced_kinds(presets.normalize(presets.get_active(request.user).data))
-    return render(request, "users/extras.html", {"extras_data": _extras_page_state(request.user), "designed_by_ai": taken})
+    from django.urls import reverse
+    from mainapp import trackers as tracker_mod
+    from mainapp.models import Character
+    icons = {t["id"]: t for t in tracker_mod.TRACKERS}
+    cards = []
+    for c in Character.objects.filter(author=request.user).order_by("name"):
+        config = tracker_mod.normalize_config(c.tracker_config)
+        on = [{"icon": icons[t]["icon"], "label": icons[t]["label"]} for t, v in config["trackers"].items()
+              if v.get("on") and t in icons]
+        cards.append({"name": c.name, "url": reverse("tracker_setup", args=[c.slug]), "on": on,
+                      "photo": c.photo_neutral.url if c.photo_neutral else ""})
+    return render(request, "users/extras.html", {"extras_data": _extras_page_state(request.user), "designed_by_ai": taken,
+                                                 "tracker_characters": cards})
 
 
 def _extras_page_state(user):

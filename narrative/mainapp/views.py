@@ -1131,6 +1131,15 @@ def chat(request, slug):
             chat_state["skin"] = skin
             save_messages(messages)
             return JsonResponse({"success": True, "skin": chat_skin(character, skin)})
+        elif action == "delete_thoughts":  # a reply's thinking block, gone (the reply stays)
+            try:
+                index = int(data.get("index"))
+                message = messages[index]
+            except (TypeError, ValueError, IndexError):
+                return JsonResponse({"success": False, "error": "No such message."})
+            messages[index] = chats.with_reasoning(message, "")
+            save_messages(messages)
+            return JsonResponse({"success": True})
         elif action == "look_adjust":  # the pen menu's "Adjust the look": a few colours, the background
             look = chat_looks.clean((character.theme or {}).get("look"))
             if not look or not isinstance(data.get("changes"), dict):
@@ -1746,6 +1755,9 @@ def chat(request, slug):
                         built = {**built, "messages": built["messages"] + [english]}
                     if speaker_colors.settings(character)["mode"] == "story":  # near the end, where MiMo listens
                         built = {**built, "messages": speaker_colors.remind(built["messages"])}
+                    if thinking.needs_leash(chat_model, samplers.thinking_now(request.user)):  # MiMo: think briefly, then write
+                        leashed, leash_params = thinking.leash(built["messages"], built["params"])
+                        built = {**built, "messages": leashed, "params": leash_params}
                     game_ops = []
                     # Stream when the page asks for it and the preset allows it
                     streaming = bool(data.get("stream")) and preset["options"].get("streaming", True)
@@ -4237,8 +4249,35 @@ def _bulba_picture_upload(request):
         return JsonResponse({"error": "Bulba isn't available."}, status=400)
     upload, target = request.FILES["picture"], request.POST.get("as", "look")
     their_words = str(request.POST.get("text") or "").strip()[:2000]
-    if target not in SPRITE_EMOTIONS + ["neutral", "background", "look"]:
+    emotion = str(request.POST.get("emotion") or "").strip()[:40]
+    # The three kinds on the page: the character (a mood picture, or a reference for their appearance), the chat
+    # look (inspiration, or a picture behind the chat), anything else ("look")
+    hints = {
+        "appearance": "It's the character" + (f" ({emotion})" if emotion else "") + ", for their appearance: "
+                      "write or update the card's Appearance from it (propose_card_edit section_edits appearance on a "
+                      "card kept as sections; for a card you're still making, use it there).",
+        "ui": "It's inspiration for how their chat page should look: read_look_options, then propose_chat_look "
+              "(match its palette and mood first, then shapes, lettering, decorations).",
+        "ui_background": "They want it behind the chat in their custom look: propose_chat_look with changes "
+                         "{\"background\": \"picture\", \"picture\": the URL below, \"veil\": about 40} (or a whole "
+                         "look around it if they have none yet).",
+    }
+    if target not in SPRITE_EMOTIONS + ["neutral", "background", "look", *hints]:
         return JsonResponse({"error": "Unknown kind of picture."}, status=400)
+    hint = hints.get(target, "")
+    saved_url = ""
+    if target == "ui_background":  # kept in their pictures, so the look can point at it
+        ext0 = os.path.splitext(upload.name)[1].lower() or ".png"
+        folder, url = user_media_dir(request.user, "backgrounds")
+        name = unique_upload_name("look", ext0)
+        with open(os.path.join(folder, name), "wb") as f:
+            for chunk in upload.chunks():
+                f.write(chunk)
+        upload.seek(0)
+        saved_url = url + name
+        hint += f" URL: {saved_url}"
+    if hint:
+        target = "look"
     if upload.size > 15 * 1024 * 1024:
         return JsonResponse({"error": "That picture is over 15 MB."}, status=400)
     raw = upload.read()
@@ -4268,7 +4307,7 @@ def _bulba_picture_upload(request):
     quiet = request.POST.get("quiet") == "1"
     if target == "look":
         session.events += events
-        note = f"They showed you a picture.{words}\n{seen}"
+        note = f"They showed you a picture.{words}" + (f"\n{hint}" if hint else "") + f"\n{seen}"
         if quiet:
             session.messages.append({"role": "user", "content": f"[{note}\n(More pictures follow.)]"})
         else:
