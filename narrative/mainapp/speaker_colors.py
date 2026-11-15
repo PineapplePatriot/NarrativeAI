@@ -81,6 +81,36 @@ def clean(raw):
     return out
 
 
+def with_characters(theme, character):
+    """Story colours switched on: the character (and the second one on a two-character card) join the cast if they
+    aren't in it yet, the main one in its app colour when that's a palette colour. Returns the new cast."""
+    cast = clean(theme.get("speech_cast"))
+    you = name_of(theme.get("you_color"))
+    names = [getattr(character, "name", ""), getattr(character, "second_name", "") if getattr(character, "is_mult", False) else ""]
+    for i, who in enumerate(n for n in names if n and n.strip()):
+        if who in cast:
+            continue
+        own = name_of(theme.get("dialogue_color")) if i == 0 else ""
+        cast[who] = own if own and own not in cast.values() and own != you else first_free(cast, you)
+    return cast
+
+
+REMINDER = "[Speech colours: every spoken line goes in its speaker's colour tag, as in the cast list above.]"
+
+
+def remind(messages):
+    """The request with REMINDER in its last turn: just before a director's note (which stays the very last
+    thing), else at the end. A request that doesn't end on their turn gets it as a turn of its own."""
+    messages = [dict(m) for m in messages]
+    last = messages[-1] if messages else None
+    if not last or last.get("role") != "user" or not isinstance(last.get("content"), str):
+        return messages + [{"role": "user", "content": REMINDER}]
+    text = last["content"]
+    at = text.rfind("[Director's note for this reply")
+    last["content"] = (text[:at] + REMINDER + "\n\n" + text[at:]) if at >= 0 else (text.rstrip() + "\n\n" + REMINDER)
+    return messages
+
+
 def first_free(cast, you=""):
     taken = set(cast.values()) | {you}
     return next((n for n in PALETTE if n not in taken), "plum")

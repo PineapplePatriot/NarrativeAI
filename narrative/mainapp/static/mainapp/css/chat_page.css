@@ -354,7 +354,12 @@ body { --speech-app: var(--dialogue-color, #e594f2); }
 .message-text .quoted { color: var(--speech-app); font-weight: 600; }
 .message-text .sc { color: var(--sc); }
 body[data-dialogue="app"] .message-text .sc { color: var(--speech-app); }
-body[data-dialogue="story"] .message-text .quoted { color: inherit; }
+/* Story colours, but the AI left a line untagged (MiMo forgets): the character's colour, never plain white;
+   lines inside a colour tag, or inside an older preset's own coloured markup, keep that colour */
+body[data-dialogue="story"] .message-text .quoted { color: var(--speech-app); }
+body[data-dialogue="story"] .message-text .sc .quoted,
+body[data-dialogue="story"] .message-text font .quoted,
+body[data-dialogue="story"] .message-text [style*="color"] .quoted { color: inherit; }
 body.has-you .message.user .message-text .quoted,
 body.has-you .message.user .message-text .sc { color: var(--you); }
 /* Tone marks (<plum:whisper>) */

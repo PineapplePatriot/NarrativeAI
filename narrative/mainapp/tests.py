@@ -9045,3 +9045,69 @@ class DesignedLookTests(SimpleTestCase):
         self.assertNotIn("color2", days)
         for look in ("pips", "gauge", "thermometer", "segments", "tally"):
             self.assertEqual(trackers.normalize_custom_fields([{"label": "X", "type": "meter", "look": look}])[0]["look"], look)
+
+
+class UnwatchedReplyTests(SimpleTestCase):
+    """A reply they left mid-way is finished on the server, then polished there (the page isn't there to ask)."""
+
+    def test_after_they_leave_the_server_does_what_the_page_would_have(self):
+        import threading
+        from django.test import override_settings
+        from mainapp import live
+        go_on, done, calls = threading.Event(), threading.Event(), []
+
+        def lines():
+            yield "a\n"
+            go_on.wait(5)
+            yield "b\n"
+        job = live.Job("reply")
+        with override_settings(LIVE_INLINE=False):
+            live.run_in_background(job, lines(), unwatched=lambda: (calls.append(1), done.set()))
+        page = job.follow()
+        self.assertEqual(next(page), "a\n")     # the page watches...
+        page.close()                            # ...and leaves
+        go_on.set()
+        self.assertTrue(done.wait(5))
+        self.assertEqual((calls, job.lines, job.done), ([1], ["a\n", "b\n"], True))
+
+    def test_nothing_extra_while_they_watch_or_when_nobody_ever_did(self):
+        from mainapp import live
+        calls = []
+        job = live.Job("reply")
+        live.work_inline(job, iter(["a\n"]))     # finished before any page looked: the page will ask itself
+        self.assertFalse(job.watched)
+        job2 = live.Job("reply")
+        live.run_in_background(job2, iter(["a\n"]), unwatched=lambda: calls.append(1))
+        self.assertEqual(calls, [])
+
+
+class SmallFixesNovemberTests(SimpleTestCase):
+    def test_a_marker_the_model_typed_itself_is_removed(self):
+        from mainapp import extras
+        text = '"Send it."\n[[extra: Message screen — Dottore and Pantalone]]\nHe read it.\n\n[[extra 1]]\n\n[[extra 7]]\nEnd.'
+        out = extras.place(text, [{"type": "messages", "n": 1, "owner": "x", "messages": []}])
+        self.assertNotIn("[[extra:", out)
+        self.assertNotIn("[[extra 7]]", out)       # no tool gave that one out
+        self.assertIn("[[extra 1]]", out)
+        self.assertIn("never type a marker", extras.PLACING)
+
+    def test_story_colours_start_with_the_characters_and_remind_before_the_note(self):
+        import types
+        from mainapp import speaker_colors as S
+        two = types.SimpleNamespace(name="Il Dottore", second_name="Pantalone", is_mult=True)
+        self.assertEqual(S.with_characters({"dialogue_color": "#82aaff", "you_color": "plum"}, two),
+                         {"Il Dottore": "cobalt", "Pantalone": "ember"})
+        kept = S.with_characters({"speech_cast": {"Il Dottore": "jade"}}, two)
+        self.assertEqual(kept["Il Dottore"], "jade")    # a colour already chosen stays
+        last = S.remind([{"role": "user", "content": "Hi\n\n[Director's note for this reply, x]"}])[-1]["content"]
+        self.assertLess(last.index(S.REMINDER), last.index("[Director's note"))
+        self.assertTrue(S.remind([{"role": "user", "content": "Hi"}])[-1]["content"].endswith(S.REMINDER))
+
+    def test_the_radio_is_one_list_for_the_pit_and_the_chat(self):
+        from mainapp import media_library
+        sets = media_library.radio()
+        self.assertEqual([g["set"] for g in sets], ["Circus", "Witchy woods", "Mornings", "Luxury"])
+        picker = media_library.radio_for_picker()
+        self.assertEqual(len(picker), 7)
+        self.assertTrue(all(p["name"].startswith("🎶 ") and p["url"].endswith(".mp3") for p in picker))
+        self.assertNotIn("🔮🎭💫", [t["name"] for t in media_library.built_in("music")])  # not for Bulba's picks

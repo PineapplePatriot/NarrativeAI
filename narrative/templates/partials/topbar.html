@@ -36,6 +36,16 @@
 <script>window.NA_HELP_CFG = {explain: "{% url 'bulba_explain' %}", bulba: "{% url 'bulba' %}", csrf: "{{ csrf_token }}",
     bug: "{{ bug_form_url|escapejs }}", login: "{{ request.user.username|escapejs }}"};</script>
 <script src="{% static 'js/dialog.js' %}?v=1"></script>
+<script>
+// The phone menu closes when you pick a link, tap outside it, press Escape, or come back with the Back button
+(function () {
+  var bar = document.querySelector('.na-topbar'); if (!bar) return;
+  var close = function () { bar.classList.remove('open'); var b = bar.querySelector('.na-menu-btn'); if (b) b.setAttribute('aria-expanded', 'false'); };
+  document.addEventListener('click', function (e) { if (bar.classList.contains('open') && (!bar.contains(e.target) || e.target.closest('.na-links a'))) close(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+  window.addEventListener('pageshow', close);
+})();
+</script>
 <script src="{% static 'js/tomato.js' %}?v=10" data-pit="{% url 'tomato_pit' %}" data-state="{% url 'tomato_state' %}"></script>
 <script src="{% static 'js/help_text.js' %}?v=15" defer></script>
 <script src="{% static 'js/tour.js' %}?v=6" defer></script>

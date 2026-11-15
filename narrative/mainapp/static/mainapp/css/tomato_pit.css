@@ -138,7 +138,7 @@ body.wall-full-open { overflow: hidden; }
 .sum-l { font-size: .78rem; opacity: .75; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 640px) { .pit-sum { grid-template-columns: repeat(2, minmax(0, 1fr)); } .sum-n { font-size: 1.3rem; } }
 
-.pit-jump { position: sticky; top: 0; z-index: 50; display: flex; gap: 6px; overflow-x: auto; padding: 8px 2px; margin: 0 0 14px;
+.pit-jump { position: sticky; top: 0; z-index: 30; display: flex; gap: 6px; overflow-x: auto; padding: 8px 2px; margin: 0 0 14px;
     background: color-mix(in srgb, #11131d 88%, transparent); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
     scrollbar-width: none; border-bottom: 1px solid rgba(255, 255, 255, .06); }
 .pit-jump a { flex: none; font-size: .82rem; padding: 6px 11px; border-radius: 999px; text-decoration: none; color: inherit;
@@ -158,23 +158,38 @@ body.wall-full-open { overflow: hidden; }
 
 .board-badge { margin-right: 6px; }
 
-/* 🎶 The Pit radio: a button at the end of the jump row, a small panel under it */
-.radio-btn { flex: none; margin-left: auto; font: inherit; font-size: .82rem; padding: 6px 12px; border-radius: 999px; cursor: pointer;
+/* 🎶 The Pit radio: a button in the jump row, a panel under it */
+.radio-btn { flex: none; font: inherit; font-size: .82rem; padding: 6px 12px; border-radius: 999px; cursor: pointer;
     color: inherit; border: 1px solid rgba(255, 107, 74, .45); background: rgba(255, 107, 74, .12); }
 .radio-btn.on { background: rgba(255, 107, 74, .3); animation: radioBeat 1s ease-in-out infinite alternate; }
 @keyframes radioBeat { to { box-shadow: 0 0 0 4px rgba(255, 107, 74, .15); } }
-.radio-panel { position: sticky; top: 52px; z-index: 60; margin: -8px 0 14px auto; width: min(340px, 100%); padding: 12px;
-    border-radius: 14px; background: #1a1d2b; border: 1px solid rgba(255, 255, 255, .14); box-shadow: 0 14px 40px rgba(0, 0, 0, .5);
-    display: flex; flex-direction: column; gap: 8px; }
+.radio-panel { position: sticky; top: 96px; z-index: 35; margin: -6px 0 14px; padding: 14px; border-radius: 16px;
+    background: linear-gradient(160deg, #22192c, #1a1d2b 60%); border: 1px solid rgba(255, 107, 74, .3);
+    box-shadow: 0 14px 40px rgba(0, 0, 0, .5); display: flex; flex-direction: column; gap: 12px; }
 .radio-panel[hidden] { display: none; }
-.radio-top { display: flex; align-items: center; gap: 10px; }
-.radio-play { width: 44px; height: 44px; border-radius: 50%; padding: 0; font-size: 1.1rem; }
-.radio-now { font-size: 1.4rem; letter-spacing: .1em; }
-.radio-set small { display: block; margin-bottom: 3px; }
-.radio-tracks { display: flex; gap: 6px; flex-wrap: wrap; }
-.radio-track { font-size: 1.15rem; padding: 6px 10px; border-radius: 10px; cursor: pointer; letter-spacing: .08em;
-    border: 1px solid rgba(255, 255, 255, .12); background: rgba(255, 255, 255, .03); }
-.radio-track.on { border-color: #ff6b4a; background: rgba(255, 107, 74, .2); }
+.radio-top { display: flex; align-items: center; gap: 12px; }
+.radio-play { width: 48px; height: 48px; border-radius: 50%; padding: 0; font-size: 1.15rem; flex: none; }
+.radio-now-box { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.radio-now { font-size: 1.6rem; letter-spacing: .12em; }
+.radio-loop { flex: none; font-size: 1.2rem; width: 42px; height: 42px; border-radius: 12px; cursor: pointer; opacity: .55;
+    border: 1px solid rgba(255, 255, 255, .15); background: transparent; }
+.radio-loop.on { opacity: 1; border-color: #ff6b4a; background: rgba(255, 107, 74, .22); }
+.radio-sets { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.radio-set { display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: 12px; background: rgba(255, 255, 255, .03);
+    border: 1px solid rgba(255, 255, 255, .07); }
+.radio-set small { font-size: .7rem; letter-spacing: .12em; text-transform: uppercase; }
+.radio-track { font-size: 1.35rem; padding: 8px 10px; border-radius: 10px; cursor: pointer; letter-spacing: .1em; text-align: center;
+    border: 1px solid rgba(255, 255, 255, .12); background: rgba(255, 255, 255, .04); transition: transform .12s; }
+.radio-track:hover { transform: translateY(-1px); }
+.radio-track.on { border-color: #ff6b4a; background: rgba(255, 107, 74, .22); box-shadow: 0 0 14px rgba(255, 107, 74, .25); }
+.radio-vols { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: center; }
 .radio-vol { display: flex; align-items: center; gap: 8px; font-size: .85rem; }
-.radio-vol input[type=range] { flex: 1; accent-color: #ff6b4a; }
+.radio-vol input[type=range] { flex: 1; min-width: 0; accent-color: #ff6b4a; }
+.radio-fx { display: inline-flex; gap: 6px; align-items: center; font-size: .82rem; }
+.radio-note { font-size: .75rem; }
+@media (max-width: 600px) { .radio-vols { grid-template-columns: 1fr; } .radio-panel { top: 0; position: relative; } }
 @media (prefers-reduced-motion: reduce) { .radio-btn.on { animation: none; } }
+
+/* The jump row wraps (Radio and Garden always in sight); sticky only on wide screens, where it's one line */
+.pit-jump { flex-wrap: wrap; overflow: visible; }
+@media (max-width: 760px) { .pit-jump { position: static; } }

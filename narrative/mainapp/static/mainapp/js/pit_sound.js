@@ -8,15 +8,18 @@
 (function () {
     if (window.NAPitSound) return;
     const BASE = (document.currentScript && document.currentScript.dataset.music) || '/static/defaults/music/pit/';
-    const SETS = [
-        { name: 'Circus', tracks: [{ id: 'moonlit-big-top', title: '🔮🎭💫' }, { id: 'moonlit-circus', title: '🎠🎪👻' }] },
-        { name: 'Witchy woods', tracks: [{ id: 'birch-moon-rite', title: '🌿🪈🧙‍♂️' }, { id: 'black-birch-sabbath', title: '💃🕯🪄' }] },
-        { name: 'Mornings', tracks: [{ id: 'alba-fiorita', title: '😇💐💫' }, { id: 'luce-del-mattino', title: '💅👸🌹' }] },
-        { name: 'Merchant', tracks: [{ id: 'obsidian-merchant', title: '🤵‍♀️💳💸' }] },
-    ];
+    // The sets come from the music catalog (static/defaults/catalog.json "radio"), which the chat's music picker
+    // shares; the list below is only a fallback for a page without it
+    const fromPage = (() => { try { return JSON.parse(document.getElementById('radioData').textContent); } catch (e) { return null; } })();
+    const SETS = (fromPage && fromPage.length ? fromPage : [
+        { set: 'Circus', tracks: [{ id: 'moonlit-big-top', name: '🔮🎭💫' }, { id: 'moonlit-circus', name: '🎠🎪👻' }] },
+        { set: 'Witchy woods', tracks: [{ id: 'birch-moon-rite', name: '🌿🪈🧙‍♂️' }, { id: 'black-birch-sabbath', name: '💃🕯🪄' }] },
+        { set: 'Mornings', tracks: [{ id: 'alba-fiorita', name: '😇💐💫' }, { id: 'luce-del-mattino', name: '💅👸🌹' }] },
+        { set: 'Luxury', tracks: [{ id: 'obsidian-merchant', name: '🤵‍♀️💳💸' }] },
+    ]).map(g => ({ name: g.set, tracks: g.tracks.map(t => ({ id: t.id, title: t.name, url: t.url || BASE + t.id + '.mp3' })) }));
     const KEY = 'na-pit-sound';
     const read = () => { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { return {}; } };
-    const prefs = Object.assign({ sfx: true, sfxVol: 0.5, musicVol: 0.45, track: 'moonlit-big-top' }, read());
+    const prefs = Object.assign({ sfx: true, sfxVol: 0.5, musicVol: 0.45, track: 'moonlit-big-top', loop: false }, read());
     const save = () => { try { localStorage.setItem(KEY, JSON.stringify(prefs)); } catch (e) { /* private window */ } };
 
     // --- Effects ---
@@ -113,12 +116,13 @@
     function load(track) {
         current = track;
         prefs.track = track.id; save();
-        player.src = BASE + track.id + '.mp3';
+        player.src = track.url;
         player.volume = prefs.musicVol;
     }
-    player.addEventListener('ended', () => {  // the next track from the same set (a set of one loops)
-        const list = current.set.tracks;
-        load(find(list[(list.findIndex(t => t.id === current.id) + 1) % list.length].id));
+    player.addEventListener('ended', () => {
+        // 🔁 on: the next track of the same set, round and round. Off: the next track in the whole list (set after set)
+        const list = prefs.loop ? current.set.tracks : all;
+        load(find(list[(list.findIndex(t => t.id === current.id) + 1) % list.length].id));  // find: with its set
         player.play().catch(() => {});
     });
     const listeners = [];
@@ -134,6 +138,7 @@
         playing: () => !player.paused,
         current: () => current,
         pick(id) { load(find(id)); player.play().catch(() => {}); changed(); },
+        setLoop(on) { prefs.loop = !!on; save(); changed(); },
         toggle() {
             if (!player.src) load(current);
             if (player.paused) player.play().catch(() => {}); else player.pause();
@@ -149,18 +154,23 @@
     const S = window.NAPitSound, btn = document.getElementById('radioBtn'), panel = document.getElementById('radioPanel');
     if (!S || !btn || !panel) return;
     const p = S.prefs();
-    panel.innerHTML = `<div class="radio-top"><button type="button" class="na-btn radio-play" id="radioPlay">▶</button>
-        <span class="radio-now" id="radioNow"></span></div>
-        ${S.SETS.map(set => `<div class="radio-set"><small class="muted">${set.name}</small><div class="radio-tracks">${set.tracks.map(t =>
-            `<button type="button" class="radio-track" data-track="${t.id}" title="${set.name}">${t.title}</button>`).join('')}</div></div>`).join('')}
-        <label class="radio-vol">🎶 <input type="range" id="radioMusicVol" min="0" max="1" step="0.05" value="${p.musicVol}" aria-label="Music volume"></label>
-        <label class="radio-vol">💥 <input type="range" id="radioSfxVol" min="0" max="1" step="0.05" value="${p.sfxVol}" aria-label="Sound effects volume">
-          <input type="checkbox" id="radioSfx" ${p.sfx ? 'checked' : ''}> <span>Sound effects</span></label>`;
+    panel.innerHTML = `<div class="radio-top"><button type="button" class="na-btn radio-play" id="radioPlay" aria-label="Play or pause">▶</button>
+        <div class="radio-now-box"><small class="muted" id="radioSet"></small><span class="radio-now" id="radioNow"></span></div>
+        <button type="button" class="radio-loop" id="radioLoop" aria-pressed="false" title="Loop this set">🔁</button></div>
+        <div class="radio-sets">${S.SETS.map(set => `<div class="radio-set"><small class="muted">${set.name}</small>${set.tracks.map(t =>
+            `<button type="button" class="radio-track" data-track="${t.id}" title="${set.name}">${t.title}</button>`).join('')}</div>`).join('')}</div>
+        <div class="radio-vols"><label class="radio-vol">🎶 <input type="range" id="radioMusicVol" min="0" max="1" step="0.05" value="${p.musicVol}" aria-label="Music volume"></label>
+        <label class="radio-vol">💥 <input type="range" id="radioSfxVol" min="0" max="1" step="0.05" value="${p.sfxVol}" aria-label="Sound effects volume"></label>
+        <label class="radio-fx"><input type="checkbox" id="radioSfx" ${p.sfx ? 'checked' : ''}> <span>Sound effects</span></label></div>
+        <small class="muted radio-note">Also in any chat: 🎵 Music → the 🎶 tracks.</small>`;
     const $ = (id) => document.getElementById(id);
     function paint() {
         const playing = S.playing(), cur = S.current();
         $('radioPlay').textContent = playing ? '❚❚' : '▶';
         $('radioNow').textContent = cur.title;
+        $('radioSet').textContent = cur.set.name + (S.prefs().loop ? ' · on repeat' : ' · then the next set');
+        $('radioLoop').classList.toggle('on', !!S.prefs().loop);
+        $('radioLoop').setAttribute('aria-pressed', String(!!S.prefs().loop));
         btn.textContent = playing ? `🎶 ${cur.title}` : '🎶 Radio';
         btn.classList.toggle('on', playing);
         panel.querySelectorAll('[data-track]').forEach(b => b.classList.toggle('on', b.dataset.track === cur.id));
@@ -169,6 +179,7 @@
     btn.addEventListener('click', () => { panel.hidden = !panel.hidden; btn.setAttribute('aria-expanded', String(!panel.hidden)); });
     document.addEventListener('click', (e) => { if (!panel.hidden && !panel.contains(e.target) && e.target !== btn) panel.hidden = true; });
     $('radioPlay').addEventListener('click', () => S.toggle());
+    $('radioLoop').addEventListener('click', () => S.setLoop(!S.prefs().loop));
     panel.addEventListener('click', (e) => { const b = e.target.closest('[data-track]'); if (b) S.pick(b.dataset.track); });
     $('radioMusicVol').addEventListener('input', (e) => S.setMusicVolume(Number(e.target.value)));
     $('radioSfxVol').addEventListener('input', (e) => S.setSfxVolume(Number(e.target.value)));

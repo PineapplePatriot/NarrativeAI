@@ -182,5 +182,55 @@
    "name": "Winter Walk: Whispers in the Snow",
    "scene": "Winter Walk"
   }
+ ],
+ "radio": [
+  {
+   "set": "Circus",
+   "tracks": [
+    {
+     "file": "pit/moonlit-big-top.mp3",
+     "name": "🔮🎭💫"
+    },
+    {
+     "file": "pit/moonlit-circus.mp3",
+     "name": "🎠🎪👻"
+    }
+   ]
+  },
+  {
+   "set": "Witchy woods",
+   "tracks": [
+    {
+     "file": "pit/birch-moon-rite.mp3",
+     "name": "🌿🪈🧙‍♂️"
+    },
+    {
+     "file": "pit/black-birch-sabbath.mp3",
+     "name": "💃🕯🪄"
+    }
+   ]
+  },
+  {
+   "set": "Mornings",
+   "tracks": [
+    {
+     "file": "pit/alba-fiorita.mp3",
+     "name": "😇💐💫"
+    },
+    {
+     "file": "pit/luce-del-mattino.mp3",
+     "name": "💅👸🌹"
+    }
+   ]
+  },
+  {
+   "set": "Luxury",
+   "tracks": [
+    {
+     "file": "pit/obsidian-merchant.mp3",
+     "name": "🤵‍♀️💳💸"
+    }
+   ]
+  }
  ]
 }

@@ -68,7 +68,8 @@ def guide_page(request):
 @login_required
 def tomato_pit(request):
     """🍅 The secret Tomato Pit: throw as many as you like (static/js/tomato.js; progress kept on the account)."""
-    return render(request, "mainapp/tomato_pit.html", {"scenes": tomatoes.scene_choices()})
+    return render(request, "mainapp/tomato_pit.html", {"scenes": tomatoes.scene_choices(),
+                                                       "radio": media_library.radio()})
 
 
 TOMATO_MAX_ADD = 3000  # throws one sync may add (it syncs every few seconds: well above any human rate)
@@ -618,6 +619,31 @@ def chat(request, slug):
         }
         chats.save_path(chat_file_path, full_data)
         chat_obj.save(update_fields=["time_update"])
+
+    def polish_unwatched():
+        """A reply finished with nobody watching (they left the page): the automatic polish the page would have
+        asked for, done here, so they come back to the polished reply (mainapp/live.py calls it)."""
+        msgs = load_messages()
+        if not msgs or msgs[-1][0] != "assistant" or not polish.due(request.user, chat_obj, msgs):
+            return
+        rec_now = chats.polish_of(msgs[-1])
+        if rec_now and not rec_now.get("echo"):
+            return
+        original = msgs[-1][2]
+        try:
+            new_text, fixes = polish.polish(request.user, character, chat_obj, msgs, chat_state["summary"], len(msgs) - 1)
+        except ai_client.AIError as e:
+            log.info("Polish skipped for a reply nobody was watching: %s", e)
+            return
+        msgs = load_messages()  # read again: they may have come back meanwhile
+        if not fixes or msgs[-1][0] != "assistant" or msgs[-1][2] != original:
+            return
+        habits = polish.habits_of(request.user, fixes)
+        rec = (polish.record(rec_now["original"], (rec_now.get("fixes") or []) + fixes,
+                             list(dict.fromkeys((rec_now.get("habits") or []) + habits)))
+               if rec_now else polish.record(original, fixes, habits))
+        msgs[-1] = chats.with_polish(msgs[-1], new_text, rec)
+        save_messages(msgs)
 
     try:
         messages = load_messages()
@@ -1433,6 +1459,8 @@ def chat(request, slug):
             theme = dict(character.theme or {})
             if data.get("mode") in speaker_colors.MODES:
                 theme["speech"] = data["mode"]
+                if data["mode"] == "story" and "cast" not in data:  # the character is in its own cast from the start
+                    theme["speech_cast"] = speaker_colors.with_characters(theme, character)
             if "cast" in data:
                 theme["speech_cast"] = speaker_colors.clean(data.get("cast"))
             if "you" in data:
@@ -1604,6 +1632,8 @@ def chat(request, slug):
                     english = translation.english_note(request.user)  # read in another language: written in English
                     if english:
                         built = {**built, "messages": built["messages"] + [english]}
+                    if speaker_colors.settings(character)["mode"] == "story":  # near the end, where MiMo listens
+                        built = {**built, "messages": speaker_colors.remind(built["messages"])}
                     game_ops = []
                     # Stream when the page asks for it and the preset allows it
                     streaming = bool(data.get("stream")) and preset["options"].get("streaming", True)
@@ -1852,7 +1882,7 @@ def chat(request, slug):
                 if job is None:
                     return JsonResponse({"error": "The last reply is still being written. Wait for it, or press Stop."},
                                         status=409)
-                live_jobs.run_in_background(job, stream_reply())
+                live_jobs.run_in_background(job, stream_reply(), unwatched=polish_unwatched)
                 response = StreamingHttpResponse(job.follow(), content_type="application/x-ndjson")
                 response["Cache-Control"] = "no-cache"
                 response["X-Accel-Buffering"] = "no"  # don't let proxies hold the stream back
@@ -3266,7 +3296,7 @@ def get_media_resources(request):
     return JsonResponse({
         # Built-in ones ship with the app (static/defaults/), so every install has them
         "backgrounds": media_library.built_in("backgrounds") + get_files("backgrounds"),
-        "music": media_library.built_in("music") + get_files("music")
+        "music": media_library.built_in("music") + media_library.radio_for_picker() + get_files("music")
     })
 
 
