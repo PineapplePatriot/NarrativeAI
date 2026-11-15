@@ -15,42 +15,71 @@ from urllib.parse import quote
 
 HEX = re.compile(r"^#[0-9a-fA-F]{6}$")
 
-# Google Fonts the page may load: {key: (family, css fallback, weights, what it feels like)}
+# Google Fonts the page may load: {key: (family, css fallback, weights, what it feels like)}.
+# CYRILLIC: the ones with Cyrillic letters (checked on Google Fonts, 16 November 2026). The others get a partner
+# with Cyrillic that looks alike (PARTNER), placed right after them in the font list: Ukrainian or Russian text
+# shows in the partner, everything else in the font they chose.
 FONTS = {
     "gaegu": ("Gaegu", "cursive", "400;700", "chunky handwriting, cute, a diary or a cosy game"),
+    "pangolin": ("Pangolin", "cursive", "400", "chunky rounded handwriting, cosy game (has Cyrillic)"),
     "patrick_hand": ("Patrick Hand", "cursive", "400", "neat handwriting, friendly"),
+    "neucha": ("Neucha", "cursive", "400", "neat felt-pen handwriting (has Cyrillic)"),
     "caveat": ("Caveat", "cursive", "400;700", "quick pen handwriting, notes in a margin"),
     "shantell": ("Shantell Sans", "cursive", "400;700", "bouncy marker handwriting, playful"),
+    "balsamiq": ("Balsamiq Sans", "cursive", "400;700", "sketchy wireframe handwriting, friendly"),
     "gochi": ("Gochi Hand", "cursive", "400", "marker on a whiteboard, casual"),
     "kalam": ("Kalam", "cursive", "400;700", "soft pencil handwriting"),
+    "bad_script": ("Bad Script", "cursive", "400", "slanted ink handwriting, a letter"),
+    "marck_script": ("Marck Script", "cursive", "400", "flowing calligraphy, romantic notes"),
+    "amatic": ("Amatic SC", "cursive", "400;700", "tall narrow hand-lettering, posters"),
     "nunito": ("Nunito", "sans-serif", "400;700", "round and soft, clean"),
     "quicksand": ("Quicksand", "sans-serif", "400;700", "light, airy, rounded"),
+    "comfortaa": ("Comfortaa", "sans-serif", "400;700", "geometric, rounded, calm"),
     "fredoka": ("Fredoka", "sans-serif", "400;600", "chunky, bubbly, toy-like"),
     "dynapuff": ("DynaPuff", "cursive", "400;700", "puffy cartoon letters"),
-    "comfortaa": ("Comfortaa", "sans-serif", "400;700", "geometric, rounded, calm"),
+    "rubik": ("Rubik", "sans-serif", "400;700", "soft, sturdy, modern"),
     "outfit": ("Outfit", "sans-serif", "400;700", "modern, neutral, sleek"),
+    "sofia": ("Sofia Sans", "sans-serif", "400;700", "clean, modern (has Cyrillic)"),
     "josefin": ("Josefin Sans", "sans-serif", "400;700", "elegant, art deco"),
+    "montserrat_alt": ("Montserrat Alternates", "sans-serif", "400;700", "stylish geometric, art deco-ish"),
     "lora": ("Lora", "serif", "400;700", "a book: warm serif"),
     "garamond": ("EB Garamond", "serif", "400;700", "an old novel, literary"),
     "cormorant": ("Cormorant Garamond", "serif", "500;700", "delicate, aristocratic, romantic"),
     "playfair": ("Playfair Display", "serif", "400;700", "fashion magazine, dramatic"),
-    "cinzel": ("Cinzel", "serif", "400;700", "carved capitals: epic fantasy, temples"),
+    "yeseva": ("Yeseva One", "serif", "400", "elegant high-contrast display, romance titles"),
+    "kurale": ("Kurale", "serif", "400", "storybook serif, fairy tales"),
+    "pt_serif": ("PT Serif", "serif", "400;700", "a printed page, plain and readable"),
     "crimson": ("Crimson Pro", "serif", "400;700", "a printed page, scholarly"),
+    "cinzel": ("Cinzel", "serif", "400;700", "carved capitals: epic fantasy, temples"),
+    "forum": ("Forum", "serif", "400", "roman capitals and inscriptions"),
     "space_mono": ("Space Mono", "monospace", "400;700", "terminal, sci-fi"),
     "plex_mono": ("IBM Plex Mono", "monospace", "400;700", "lab reports, technical"),
+    "jetbrains": ("JetBrains Mono", "monospace", "400;700", "code editor, hacker"),
     "vt323": ("VT323", "monospace", "400", "an old CRT screen"),
+    "pixelify": ("Pixelify Sans", "sans-serif", "400;700", "pixel game, readable"),
     "press_start": ("Press Start 2P", "monospace", "400", "8-bit game (small and loud: names only)"),
     "silkscreen": ("Silkscreen", "monospace", "400", "pixel font"),
     "pirata": ("Pirata One", "serif", "400", "gothic blackletter, pirates, old seals"),
+    "ruslan": ("Ruslan Display", "serif", "400", "old Slavonic display lettering"),
     "uncial": ("Uncial Antiqua", "serif", "400", "celtic manuscript, druids"),
+    "lobster": ("Lobster", "cursive", "400", "retro script, diners and signs"),
     "system": ("", "system-ui, sans-serif", "", "the app's own font"),
 }
+CYRILLIC = {"pangolin", "neucha", "caveat", "shantell", "balsamiq", "bad_script", "marck_script", "amatic", "nunito",
+            "comfortaa", "rubik", "sofia", "montserrat_alt", "lora", "garamond", "cormorant", "playfair", "yeseva",
+            "kurale", "pt_serif", "forum", "plex_mono", "jetbrains", "pixelify", "press_start", "ruslan", "lobster",
+            "system"}
+PARTNER = {"gaegu": "pangolin", "patrick_hand": "neucha", "gochi": "pangolin", "kalam": "neucha", "quicksand": "comfortaa",
+           "fredoka": "rubik", "dynapuff": "rubik", "outfit": "sofia", "josefin": "montserrat_alt", "crimson": "pt_serif",
+           "cinzel": "forum", "space_mono": "jetbrains", "vt323": "pixelify", "silkscreen": "pixelify", "pirata": "ruslan",
+           "uncial": "kurale"}
 SHAPES = ("rounded", "pill", "square", "wobbly", "cut", "cloud", "scroll")
 OUTLINES = ("none", "thin", "thick", "double", "dashed", "sketch")
 SHADOWS = ("none", "soft", "offset", "glow")
 NAME_TAGS = ("none", "tab", "ribbon", "plain")
 FRAMES = ("circle", "rounded", "square", "hexagon", "arch", "diamond", "polaroid", "sticker")
-BACKGROUNDS = ("solid", "gradient", "blobs", "dots", "grid", "stripes", "checker")
+BACKGROUNDS = ("solid", "gradient", "blobs", "dots", "grid", "stripes", "checker", "picture")
+PICTURE = re.compile(r"^/(static|media)/[\w./%-]+\.(webp|png|jpe?g|gif|avif)$", re.I)
 TEXTURES = ("none", "grain", "paper", "scanlines", "halftone")
 EFFECTS = ("none", "sparkles", "stars", "petals", "hearts", "bubbles", "snow", "fireflies", "embers", "leaves", "glitter")
 BUTTONS = ("rounded", "pill", "square", "sticker")
@@ -80,7 +109,7 @@ def clean(recipe):
               for k in COLOR_KEYS}
     bubble = recipe.get("bubble") if isinstance(recipe.get("bubble"), dict) else {}
     font = pick(recipe.get("font"), FONTS, "system")
-    return {
+    out = {
         "name": re.sub(r"[^\w '&.,!?-]", "", str(recipe.get("name") or "Custom look"), flags=re.U).strip()[:40] or "Custom look",
         "base": base,
         "colors": colors,
@@ -95,11 +124,16 @@ def clean(recipe):
                    "wide": bool(bubble.get("wide"))},
         "frame": pick(recipe.get("frame"), FRAMES, "circle"),
         "background": pick(recipe.get("background"), BACKGROUNDS, "gradient"),
+        "picture": (str(recipe.get("picture") or "") if PICTURE.match(str(recipe.get("picture") or "")) else ""),
+        "veil": max(0, min(90, int(recipe.get("veil") or 0))) if str(recipe.get("veil") or "0").lstrip("-").isdigit() else 0,
         "texture": pick(recipe.get("texture"), TEXTURES, "none"),
         "effect": pick(recipe.get("effect"), EFFECTS, "none"),
         "buttons": pick(recipe.get("buttons"), BUTTONS, "rounded"),
         "sound": pick(recipe.get("sound"), SOUNDS, "none"),
     }
+    if out["background"] == "picture" and not out["picture"]:
+        out["background"] = "gradient"  # no usable picture: the colours instead
+    return out
 
 
 def fonts_url(recipe):
@@ -108,7 +142,8 @@ def fonts_url(recipe):
     if not recipe:
         return ""
     families = []
-    for key in dict.fromkeys((recipe["font"], recipe["heading_font"])):
+    keys = [k for f in (recipe["font"], recipe["heading_font"]) for k in (f, PARTNER.get(f)) if k]
+    for key in dict.fromkeys(keys):
         family, _, weights, _ = FONTS[key]
         if family:
             families.append(f"family={quote(family)}" + (f":wght@{weights}" if ";" in weights or weights != "400" else ""))
@@ -117,7 +152,8 @@ def fonts_url(recipe):
 
 def _font(key):
     family, fallback, _, _ = FONTS[key]
-    return f"'{family}', {fallback}" if family else fallback
+    partner = FONTS[PARTNER[key]][0] if key in PARTNER else ""
+    return (f"'{family}', " + (f"'{partner}', " if partner else "") + fallback) if family else fallback
 
 
 def _css_string(text):
@@ -164,9 +200,12 @@ def css(recipe, char_name="", user_name=""):
                  f"linear-gradient(90deg, {c['page2']}66 1px, transparent 1px) 0 0 / 26px 26px, {c['page']}"),
         "stripes": f"repeating-linear-gradient(135deg, {c['page']} 0 18px, {c['page2']} 18px 36px)",
         "checker": f"repeating-conic-gradient({c['page']} 0 25%, {c['page2']} 0 50%) 0 0 / 44px 44px",
+        # a picture, under a veil of the page colour so the bubbles stay readable
+        "picture": (f"linear-gradient({c['page']}{round(r['veil'] * 2.55):02x}, {c['page']}{round(r['veil'] * 2.55):02x}), "
+                    f"url('{r['picture']}') center / cover no-repeat, {c['page']}"),
     }[r["background"]]
     out.append(f"{S}, {S} .chat-container, {S} .messages-container, {S} .character-panel {{ background: {pattern}; background-attachment: fixed; }}")
-    out.append(f"{S} .messages-container {{ background: transparent; }}")
+    out.append(f"{S} .messages-container, {S} .chat-panel {{ background: transparent; }}")
     # Header, input, panels
     edge = f"2px solid {c['outline']}" if b["outline"] != "none" else f"1px solid {c['outline']}33"
     out.append(f"{S} .chat-header, {S} .input-container {{ background: {c['surface']}e6; border-color: {c['outline']}55; color: {c['text']}; }}")
@@ -240,6 +279,20 @@ def css(recipe, char_name="", user_name=""):
     if texture:
         out.append(f"{S}::after {{ content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 900; {texture} }}")
     out.append(f"{S} .look-fx {{ color: {c['effect']}; }}")
+    # The tracker strip under the header: the look's surface and colours instead of the app's dark glass
+    strip_text = c["text"]
+    out.append(f"""{S} .tracker-hud {{ --tint-a: {c['accent']}22; --tint-b: transparent;
+  background: linear-gradient(100deg, var(--tint-a), var(--tint-b) 75%), {c['surface']}{'f2' if light else 'e6'};
+  border-bottom: {('2px dashed ' if b['outline'] == 'sketch' else '1.5px solid ') + c['outline']}{'' if b['outline'] != 'none' else '33'}; }}
+{S} .tracker-hud .hud-pill {{ color: {strip_text}; text-shadow: none; font-family: {_font(r['font'])}; }}
+{S} .tracker-hud .hud-pill:hover {{ background: {c['accent']}1f; }}
+{S} .hud-clock .hp-text, {S} .hp-num {{ color: {c['accent'] if light else c['text']}; }}
+{S} .hud-meter .hp-text {{ color: {c['muted']}; }}
+{S} .hud-items > .hud-pill + .hud-pill::before {{ background: {c['outline']}88; }}
+{S} .hp-gauge {{ background: {c['outline']}26; {'border: 1px solid ' + c['outline'] + '55;' if b['outline'] != 'none' else ''} }}
+{S} .hp-gauge i {{ background: linear-gradient(90deg, {c['accent']}, {c['accent2']}); box-shadow: none; }}
+{S} .tracker-hud .hud-btn {{ background: {c['bubble_ai']}; color: {c['text']}; border: 1px solid {c['outline']}55; }}
+{S} .hud-sky {{ opacity: .25 !important; }}""")
     return "\n".join(out)
 
 
@@ -258,14 +311,44 @@ def summary(recipe):
             f"Font: {FONTS[r['font']][0] or 'the app’s'}" + (f", names in {FONTS[r['heading_font']][0]}" if r['heading_font'] != r['font'] else ""),
             f"Bubbles: {r['bubble']['shape']}, {r['bubble']['outline']} outline, {r['bubble']['shadow']} shadow"
             + (f", name tags ({r['bubble']['name_tag']})" if r['bubble']['name_tag'] != "none" else ""),
-            f"Pictures: {r['frame']} frame · Background: {r['background']}" + (f" · Texture: {r['texture']}" if r['texture'] != "none" else ""),
+            f"Pictures: {r['frame']} frame · Background: {r['background']}"
+            + (f" ({r['picture'].rsplit('/', 1)[-1]}, veil {r['veil']}%)" if r['background'] == 'picture' else "")
+            + (f" · Texture: {r['texture']}" if r['texture'] != "none" else ""),
             f"Effect: {r['effect']} · Sound: {r['sound']}"]
+
+
+def changes(old, new):
+    """What differs between two looks, in words (for a card that changes a few things)."""
+    a, b = clean(old) or {}, clean(new)
+    lines = []
+    for key, value in b.items():
+        if key in ("colors", "bubble"):
+            for k, v in value.items():
+                if (a.get(key) or {}).get(k) != v:
+                    lines.append(f"{'Colour' if key == 'colors' else 'Bubbles'} {k.replace('_', ' ')}: {(a.get(key) or {}).get(k, '–')} → {v}")
+        elif a.get(key) != value:
+            lines.append(f"{key.replace('_', ' ').capitalize()}: {a.get(key, '–') or '–'} → {value or '–'}")
+    return lines or ["(nothing changes)"]
+
+
+def merge(old, partial):
+    """A look with a few things changed (the colours and bubbles merged key by key)."""
+    base = dict(clean(old) or {})
+    for key, value in (partial or {}).items():
+        if key in ("colors", "bubble") and isinstance(value, dict):
+            base[key] = {**(base.get(key) or {}), **value}
+        else:
+            base[key] = value
+    return clean(base)
 
 
 def guide():
     """For Bulba: the recipe's choices in a few lines."""
-    fonts = "; ".join(f"{k} ({v[3]})" for k, v in FONTS.items())
+    fonts = "; ".join(f"{k} ({v[3]}; " + ("Cyrillic" if k in CYRILLIC else f"no Cyrillic: Cyrillic letters show in {FONTS[PARTNER[k]][0]}")
+                      + ")" for k, v in FONTS.items())
     return (f"fonts: {fonts}. shapes: {', '.join(SHAPES)}. outlines: {', '.join(OUTLINES)}. shadows: {', '.join(SHADOWS)}. "
             f"name tags: {', '.join(NAME_TAGS)}. frames: {', '.join(FRAMES)}. backgrounds: {', '.join(BACKGROUNDS)}. "
             f"textures: {', '.join(TEXTURES)}. effects: {', '.join(EFFECTS)}. buttons: {', '.join(BUTTONS)}. "
-            f"sounds: {', '.join(SOUNDS)}. sizes: {', '.join(SIZES)}. bold: true for chunky handwriting or a heavy look.")
+            f"sounds: {', '.join(SOUNDS)}. sizes: {', '.join(SIZES)}. bold: true for chunky handwriting or a heavy look. "
+            "background 'picture': give picture (a URL from the backgrounds list) and veil (0-90, how much of the "
+            "page colour lies over it so the bubbles stay readable; 30-55 usually).")

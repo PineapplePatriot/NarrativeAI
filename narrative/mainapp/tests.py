@@ -9528,9 +9528,9 @@ class ChatLookTests(BulbaTests):
         css = chat_looks.css(self.PURPL, 'Il "Dottore"', "Sam")
         self.assertIn("body.skin-custom", css)
         self.assertIn('--look-char: "Il \\"Dottore\\""', css)
-        self.assertIn("'Gaegu', cursive", css)
+        self.assertIn("'Gaegu', 'Pangolin', cursive", css)  # Cyrillic letters in a look-alike
         self.assertNotIn("url(evil)", css)
-        self.assertIn("family=Gaegu:wght@400;700", chat_looks.fonts_url(self.PURPL))
+        self.assertIn("family=Gaegu:wght@400;700&family=Pangolin", chat_looks.fonts_url(self.PURPL))
 
     def test_bulba_proposes_a_look_and_the_chat_wears_it(self):
         from mainapp.models import Character
@@ -9556,3 +9556,38 @@ class ChatLookTests(BulbaTests):
         c.refresh_from_db()
         self.assertNotIn("look", c.theme)
         self.assertNotContains(self.client.get(reverse("chat", args=[c.slug])), "skin-custom")
+
+
+class ChatLookChangeTests(ChatLookTests):
+    def test_small_changes_by_bulba_or_by_hand_and_only_safe_pictures(self):
+        from mainapp import chat_looks
+        from mainapp.models import BulbaSession, Character
+        r = chat_looks.clean({"background": "picture", "picture": "https://evil.example/x.png"})
+        self.assertEqual((r["background"], r["picture"]), ("gradient", ""))  # not one of the app's pictures
+        r = chat_looks.clean({"background": "picture", "picture": "/static/defaults/backgrounds/desert.webp", "veil": 140})
+        self.assertEqual((r["picture"], r["veil"]), ("/static/defaults/backgrounds/desert.webp", 90))
+        self.assertIn("url('/static/defaults/backgrounds/desert.webp')", chat_looks.css(r))
+        c = Character.objects.create(name="Ant", slug="ant-change", author=self.user, initial_message="Hi.",
+                                     theme={"skin": "custom", "look": chat_looks.clean(self.PURPL)})
+        self.api(action="say", text="hi")
+        session = BulbaSession.objects.get(user=self.user, mode="setup")
+        session.focus = c
+        session.save()
+        self.script = [("Darker.", [self.call("propose_chat_look", changes={"colors": {"page": "#2a2140"}})])]
+        p = self.api(action="say", text="the background is a weird shade").json()["state"]["proposals"][-1]
+        self.assertIn("Colour page: #d9cdee → #2a2140", p["summary"])
+        self.api(action="apply", id=p["id"])
+        c.refresh_from_db()
+        self.assertEqual((c.theme["look"]["colors"]["page"], c.theme["look"]["font"]), ("#2a2140", "gaegu"))  # the rest stays
+        # By hand, in the pen menu: only colours and the background
+        resp = self.client.post(reverse("chat", args=[c.slug]), json.dumps({"action": "look_adjust", "changes": {
+            "background": "picture", "picture": "/static/defaults/backgrounds/desert.webp", "veil": 40, "font": "vt323"}}),
+            content_type="application/json").json()
+        self.assertTrue(resp["success"])
+        c.refresh_from_db()
+        self.assertEqual((c.theme["look"]["background"], c.theme["look"]["font"]), ("picture", "gaegu"))
+
+
+for _name in [n for n in dir(ChatLookTests) if n.startswith("test_")]:
+    if getattr(ChatLookChangeTests, _name, None) is getattr(ChatLookTests, _name, None):
+        setattr(ChatLookChangeTests, _name, None)

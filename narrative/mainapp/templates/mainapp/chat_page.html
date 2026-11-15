@@ -340,6 +340,26 @@
                         </div>
                         <small class="skin-note">The first chip follows the character (Bulba sets it with their look: ask for a chat style); the others are for this chat only.
                             <button type="button" class="link" data-ask-bulba="Make a custom look for this chat page. I'll describe it or send a picture for inspiration.">✨ Make your own look with Bulba</button></small>
+                        {% if look %}<details class="look-adjust" id="lookAdjust">
+                            <summary>🎨 Adjust “{{ look.name }}”</summary>
+                            <div class="look-adjust-grid">
+                                <label>Background <input type="color" data-color="page" value="{{ look.colors.page }}"></label>
+                                <label>Its second colour <input type="color" data-color="page2" value="{{ look.colors.page2 }}"></label>
+                                <label>Bubbles <input type="color" data-color="bubble_ai" value="{{ look.colors.bubble_ai }}"></label>
+                                <label>Your bubbles <input type="color" data-color="bubble_user" value="{{ look.colors.bubble_user }}"></label>
+                                <label>Text <input type="color" data-color="text" value="{{ look.colors.text }}"></label>
+                                <label>Accent <input type="color" data-color="accent" value="{{ look.colors.accent }}"></label>
+                                <label>Lines <input type="color" data-color="outline" value="{{ look.colors.outline }}"></label>
+                                <label>Header and input <input type="color" data-color="surface" value="{{ look.colors.surface }}"></label>
+                            </div>
+                            <label class="look-adjust-row">Behind the chat
+                                <select id="lookBackground">{% for b in look_backgrounds %}<option value="{{ b }}" {% if look.background == b %}selected{% endif %}>{{ b }}</option>{% endfor %}</select></label>
+                            <label class="look-adjust-row" id="lookPictureRow" {% if look.background != 'picture' %}hidden{% endif %}>Picture
+                                <select id="lookPicture">{% for p in look_pictures %}<option value="{{ p.url }}" {% if look.picture == p.url %}selected{% endif %}>{{ p.name }}</option>{% endfor %}</select></label>
+                            <label class="look-adjust-row" id="lookVeilRow" {% if look.background != 'picture' %}hidden{% endif %}>Veil over it <input type="range" id="lookVeil" min="0" max="90" step="5" value="{{ look.veil|default:40 }}"></label>
+                            <div class="look-adjust-row"><button type="button" class="tool-action-btn" id="lookAdjustSave">Save</button>
+                                <small class="skin-note">Or ask Bulba for anything else (“a darker background”, “use this picture”).</small></div>
+                        </details>{% endif %}
                         <label class="theme-check" {% if not look or look.sound == 'none' %}hidden{% endif %}><input type="checkbox" id="lookSoundToggle" checked> The look's sounds <small>(a small sound when you send and when a reply lands)</small></label>
                         <span class="tool-sublabel">🎨 Speech colours</span>
                         <div class="chip-row skin-choice" id="speechMode">

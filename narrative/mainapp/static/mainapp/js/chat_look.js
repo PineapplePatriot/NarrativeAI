@@ -74,4 +74,30 @@
         });
     }
     window.NALook = { play };
+
+    // 🎨 Adjust the look (pen menu): a few colours and the background, saved for the character, then the page
+    // shows them (its styles come with the page)
+    const adjust = document.getElementById('lookAdjust');
+    if (adjust) {
+        const bg = document.getElementById('lookBackground');
+        const sync = () => ['lookPictureRow', 'lookVeilRow'].forEach(id => { document.getElementById(id).hidden = bg.value !== 'picture'; });
+        bg.addEventListener('change', sync);
+        document.getElementById('lookAdjustSave').addEventListener('click', async (e) => {
+            const colors = {};
+            adjust.querySelectorAll('[data-color]').forEach(i => { colors[i.dataset.color] = i.value; });
+            const changes = { colors, background: bg.value };
+            if (bg.value === 'picture') {
+                changes.picture = document.getElementById('lookPicture').value;
+                changes.veil = Number(document.getElementById('lookVeil').value);
+            }
+            e.target.disabled = true;
+            const resp = await fetch(window.location.href, {
+                method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify({ action: 'look_adjust', changes }),
+            });
+            const d = await resp.json().catch(() => ({}));
+            if (d.success) location.reload();
+            else { e.target.disabled = false; if (window.showChatNotice) showChatNotice(d.error || 'Could not save it.'); }
+        });
+    }
 })();

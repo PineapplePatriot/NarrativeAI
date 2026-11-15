@@ -158,3 +158,13 @@ body.fx-off .look-fx { display: none; }
 @keyframes look-wander { 0%, 100% { transform: translate(0, 0); opacity: .2; } 25% { transform: translate(30px, -20px); opacity: .9; }
                           50% { transform: translate(-10px, -45px); opacity: .4; } 75% { transform: translate(-35px, -10px); opacity: .9; } }
 @media (prefers-reduced-motion: reduce) { .look-fx { display: none; } }
+
+/* 🎨 Adjust the look (pen menu) */
+.look-adjust { margin: 6px 0 10px; font-size: .85rem; }
+.look-adjust summary { cursor: pointer; padding: 4px 0; }
+.look-adjust-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px 10px; margin: 6px 0; }
+.look-adjust-grid label { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.look-adjust input[type=color] { width: 38px; height: 26px; padding: 0; border: 1px solid var(--border-color); border-radius: 6px; background: none; cursor: pointer; }
+.look-adjust-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; flex-wrap: wrap; }
+.look-adjust-row[hidden] { display: none; }
+.look-adjust-row select { flex: 1; min-width: 0; }

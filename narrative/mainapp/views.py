@@ -1129,6 +1129,15 @@ def chat(request, slug):
             chat_state["skin"] = skin
             save_messages(messages)
             return JsonResponse({"success": True, "skin": chat_skin(character, skin)})
+        elif action == "look_adjust":  # the pen menu's "Adjust the look": a few colours, the background
+            look = chat_looks.clean((character.theme or {}).get("look"))
+            if not look or not isinstance(data.get("changes"), dict):
+                return JsonResponse({"success": False, "error": "This character has no custom look yet."}, status=400)
+            allowed = {"colors", "background", "picture", "veil"}
+            changes = {k: v for k, v in data["changes"].items() if k in allowed}
+            character.theme = {**(character.theme or {}), "look": chat_looks.merge(look, changes)}
+            character.save(update_fields=["theme"])
+            return JsonResponse({"success": True, "look": character.theme["look"]})
         elif action == "persona_hint_seen":  # "Who are you in the story?" is asked once per account
             settings_obj, _ = ChatSettings.objects.get_or_create(author=request.user)
             settings_obj.appearance = {**(settings_obj.appearance or {}), "persona_hint_seen": True}
@@ -2371,8 +2380,12 @@ def _look_context(user, character, chat_state):
     if not look:
         return {"look": None}
     names = prompt_names(user, character, chat_state.get("persona"))
+    pictures = media_library.built_in("backgrounds")
+    if (character.theme or {}).get("bg"):
+        pictures = [{"name": f"{character.name}'s own background", "url": character.theme["bg"]}] + pictures
     return {"look": look, "look_css": chat_looks.css(look, character.name, names["user"]),
-            "look_fonts": chat_looks.fonts_url(look), "look_data": chat_looks.page_data(look)}
+            "look_fonts": chat_looks.fonts_url(look), "look_data": chat_looks.page_data(look),
+            "look_pictures": pictures, "look_backgrounds": chat_looks.BACKGROUNDS}
 
 
 def theme_weather(character, background=""):
