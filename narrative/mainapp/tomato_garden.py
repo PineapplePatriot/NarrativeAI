@@ -12,6 +12,7 @@
     Ribbit            +1 compost on every harvest (he carries the basket)
     Hoe-Bot 3000      harvests ripe plants by himself
     Basil             every second harvest gives the seed back
+    Mr. Death         every third harvest brings 3 extra compost (Lantern Night banner)
 Everything is kept in TomatoScore.garden (JSON); the time is always the server's.
 """
 from django.db import transaction
@@ -27,6 +28,7 @@ CROPS = {  # seed id → what grows
     "seed_carrot": {"name": "Carrot", "hours": 18, "compost": 2},
     "seed_sunflower": {"name": "Sunflower", "hours": 30, "compost": 3},
     "seed_pumpkin": {"name": "Pumpkin", "hours": 48, "compost": 6},
+    "seed_monster": {"name": "Monstrous flower", "hours": 40, "compost": 8},
 }
 STAGES = ((0.15, "seed"), (0.4, "sprout"), (0.7, "leafy"), (1.0, "bloom"))
 DECOR = ("gnome", "bench", "scarecrow", "pond", "lantern")
@@ -35,6 +37,7 @@ GARDENERS = {
     "gardener_frog": "+1 compost on every harvest: he carries the basket.",
     "gardener_robot": "Harvests ripe plants by himself, on schedule.",
     "gardener_witch": "Every second harvest gives the seed back. Nobody knows the song.",
+    "gardener_death": "Every third harvest brings three extra compost: he collects his dues, very politely.",
 }
 
 
@@ -83,12 +86,16 @@ def _harvest(g, m, key, by=""):
     tile = g["tiles"].pop(key)
     crop = CROPS[tile["seed"]]
     got = crop["compost"] + (1 if _has(m, "gardener_frog") else 0)
-    m["compost"] += got
     g["harvests"] += 1
+    dues = _has(m, "gardener_death") and g["harvests"] % 3 == 0
+    if dues:
+        got += 3
+    m["compost"] += got
     back = _has(m, "gardener_witch") and g["harvests"] % 2 == 0
     if back:
         m["items"][tile["seed"]] = m["items"].get(tile["seed"], 0) + 1
-    _log(g, f"{by or 'You'} harvested a {crop['name'].lower()}: ♻ +{got} compost" + (" and Basil hummed the seed back" if back else "") + ".")
+    _log(g, f"{by or 'You'} harvested a {crop['name'].lower()}: ♻ +{got} compost" + (" and Basil hummed the seed back" if back else "")
+         + (" (Mr. Death collected his dues: +3)" if dues else "") + ".")
     return got
 
 

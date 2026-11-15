@@ -147,10 +147,16 @@ character's chat style "✨ <name>", switchable per chat. Also from 16 November:
 elements (with a parts editor on the profile page), Bulba switching models and connections (A4), the
 Characters page cards in each character's colour, and the quick view of the card in a chat.
 
-## Phase E: Tomato Pit and garden
+## Phase E: Tomato Pit and garden — banners built 16 November
 
 Featured **banners** on the Sauce-o-Matic (a rate-up legendary for a week, with its own look and countdown), new
 prizes; garden weather and seasons, rare plant mutations, visiting critters, small orders from the gardeners.
+
+Built: banners over the Sauce-o-Matic (tabs). 🏮 Lantern Night (September to November): Lantern tomato and Mr. Death
+(gardener: every third harvest +3 compost) as featured legendaries, Monstrous flower seeds, a will-o'-wisp cursor
+trail and a corner lantern companion as featured rares; 50% rate-up with a guarantee after a miss, its own pity,
+Bulba's Promise picks the featured legendary. Everything else is the standard banner. Next: a winter banner
+(December to February) and the rest of Phase E (garden weather and seasons, mutations, critters, orders).
 
 ## Phase F: messenger mode
 

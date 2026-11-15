@@ -157,10 +157,12 @@ def tomato_machine_view(request):
         act = body.get("action")
         try:
             if act == "spin":
-                results, state = tomato_machine.spin(request.user, body.get("n") if body.get("n") in (1, 10) else 0)
+                results, state = tomato_machine.spin(request.user, body.get("n") if body.get("n") in (1, 10) else 0,
+                                                     banner=str(body.get("banner") or "standard"))
                 return JsonResponse({**state, "results": results})
             if act == "promise":
-                return JsonResponse(tomato_machine.promise(request.user, body.get("id") or None))
+                return JsonResponse(tomato_machine.promise(request.user, body.get("id") or None,
+                                                           banner=str(body.get("banner") or "standard")))
             if act == "compost":
                 return JsonResponse(tomato_machine.compost_spin(request.user))
             if act == "equip":

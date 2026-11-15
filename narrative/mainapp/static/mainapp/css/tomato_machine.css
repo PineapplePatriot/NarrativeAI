@@ -170,3 +170,74 @@ body.mach-open { overflow: hidden; }
 .mach-fill.compost { background: linear-gradient(90deg, #5aa83a, #b6e36a); }
 .mach-compost .na-btn { align-self: flex-start; padding: 5px 12px; font-size: .82rem; }
 .mach-compost .na-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ---------- 🏮 Banners over the machine (tomato_machine.js paintBanner) ---------- */
+.mach-banners { margin: 12px 0 16px; }
+.mb-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: -1px; position: relative; z-index: 1; }
+.mb-tab { border: 1px solid rgba(148, 163, 184, .3); border-bottom: 0; background: rgba(15, 23, 42, .6); color: #cbd5e1;
+          padding: 8px 14px; border-radius: 12px 12px 0 0; font: inherit; font-weight: 600; cursor: pointer; }
+.mb-tab small { font-weight: 500; opacity: .8; margin-left: 4px; }
+.mb-tab.on { background: #1d1336; color: #fff; border-color: rgba(255, 170, 80, .55); }
+.mb-tab.mb-standard.on { background: #3b1414; border-color: rgba(255, 120, 100, .5); }
+.mb-card { border-radius: 0 16px 16px 16px; overflow: hidden; border: 1px solid rgba(255, 170, 80, .45); }
+.mb-art { position: relative; isolation: isolate; padding: 22px 20px 16px; min-height: 230px; overflow: hidden; color: #fff; }
+.mb-art-lantern { background: radial-gradient(120% 90% at 80% 0%, #4a2a5e 0%, #24143d 45%, #120b22 100%); }
+.mb-art-lantern::before { content: ''; position: absolute; inset: 0; z-index: -1; opacity: .7;
+    background-image: radial-gradient(1px 1px at 12% 20%, #fff 99%, transparent), radial-gradient(1px 1px at 32% 8%, #fff 99%, transparent),
+        radial-gradient(1.5px 1.5px at 55% 30%, #ffe9c2 99%, transparent), radial-gradient(1px 1px at 72% 12%, #fff 99%, transparent),
+        radial-gradient(1px 1px at 90% 40%, #fff 99%, transparent), radial-gradient(1px 1px at 22% 48%, #fff 99%, transparent); }
+.mb-art-lantern::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 70px; z-index: -1;
+    background: linear-gradient(180deg, transparent, rgba(255, 120, 40, .18)); }
+.mb-art-standard { background: radial-gradient(120% 90% at 80% 0%, #6b1f1a 0%, #3b1414 55%, #1d0b0b 100%); min-height: 0; }
+.mb-card:has(.mb-art-standard) { border-color: rgba(255, 120, 100, .45); }
+.mb-moon { position: absolute; top: 18px; right: 26px; width: 54px; height: 54px; border-radius: 50%; z-index: -1;
+    background: radial-gradient(circle at 35% 35%, #fff7de, #f3d79a 60%, #d8b46b); box-shadow: 0 0 40px 10px rgba(255, 220, 150, .25); }
+.mb-lanterns { position: absolute; left: 0; right: 90px; top: 0; height: 70px; z-index: -1; }
+.mb-lanterns i { position: absolute; top: 0; width: 18px; height: 22px; margin-top: var(--h, 16px); border-radius: 40% 40% 45% 45%;
+    background: radial-gradient(circle at 50% 55%, #ffd36b, #ff8a2a 45%, #c8321c 90%); box-shadow: 0 0 14px 3px rgba(255, 150, 60, .5);
+    transform-origin: 50% calc(-1 * var(--h, 16px)); animation: mbSway 4s ease-in-out infinite; opacity: .9; }
+.mb-lanterns i::before { content: ''; position: absolute; left: 50%; bottom: 100%; width: 1px; height: var(--h, 16px); background: rgba(255, 220, 180, .5); }
+.mb-lanterns i:nth-child(1) { left: 6%; --h: 10px; } .mb-lanterns i:nth-child(2) { left: 18%; --h: 26px; animation-delay: -1s; }
+.mb-lanterns i:nth-child(3) { left: 31%; --h: 14px; animation-delay: -2s; } .mb-lanterns i:nth-child(4) { left: 45%; --h: 30px; animation-delay: -.5s; }
+.mb-lanterns i:nth-child(5) { left: 58%; --h: 12px; animation-delay: -3s; } .mb-lanterns i:nth-child(6) { left: 71%; --h: 24px; animation-delay: -1.5s; }
+.mb-lanterns i:nth-child(7) { left: 84%; --h: 8px; animation-delay: -2.5s; }
+@keyframes mbSway { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
+.mb-title { position: relative; margin-top: 46px; max-width: 520px; }
+.mb-art-standard .mb-title { margin-top: 0; }
+.mb-title small { text-transform: uppercase; letter-spacing: .12em; font-size: .7rem; color: #ffd9a8; }
+.mb-title h3 { margin: 2px 0 4px; font-size: 1.8rem; font-family: Georgia, "Palatino Linotype", serif; letter-spacing: .02em;
+    text-shadow: 0 0 18px rgba(255, 160, 70, .6), 0 2px 0 rgba(0, 0, 0, .4); color: #fff4e0; -webkit-text-fill-color: #fff4e0; background: none; }
+.mb-title p { margin: 0; color: #f1e4ff; font-style: italic; font-size: .92rem; }
+.mb-show { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+.mb-feat { position: relative; display: grid; gap: 2px; align-content: start; padding: 12px 14px; border-radius: 14px;
+    background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .14); backdrop-filter: blur(4px); }
+.mb-feat .e { font-size: 2.4rem; line-height: 1.1; filter: drop-shadow(0 0 10px rgba(255, 190, 90, .55)); }
+.mb-feat b { font-size: .95rem; }
+.mb-feat small { color: #e6dcf5; font-size: .78rem; line-height: 1.35; }
+.mb-feat.legendary { flex: 1 1 210px; border-color: rgba(255, 197, 49, .7);
+    background: linear-gradient(160deg, rgba(255, 197, 49, .18), rgba(255, 120, 40, .06) 60%, rgba(255, 255, 255, .03));
+    box-shadow: 0 0 22px rgba(255, 197, 49, .18), inset 0 1px 0 rgba(255, 255, 255, .15); }
+.mb-feat.legendary.small { flex: 0 1 auto; grid-auto-flow: column; align-items: center; gap: 8px; padding: 8px 12px; }
+.mb-feat.legendary.small .e { font-size: 1.5rem; }
+.mb-up { position: absolute; top: -9px; right: 10px; font-size: .66rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em;
+    background: linear-gradient(90deg, #ffc531, #ff8a2a); color: #3a1600; padding: 3px 8px; border-radius: 999px; }
+.mb-got { position: absolute; top: 8px; right: 10px; font-size: .72rem; color: #86efac; font-weight: 700; }
+.mb-feat.legendary .mb-got { top: auto; bottom: 8px; }
+.mb-rares { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.mb-feat.rare { grid-auto-flow: column; align-items: center; gap: 8px; padding: 6px 12px; border-color: rgba(78, 168, 255, .6);
+    background: rgba(78, 168, 255, .12); }
+.mb-feat.rare .e { font-size: 1.3rem; filter: drop-shadow(0 0 6px rgba(120, 200, 255, .6)); }
+.mb-feat.rare b { font-size: .82rem; }
+.mb-feat.rare .mb-got { position: static; }
+.mb-rule { margin: 12px 0 0; font-size: .78rem; color: #d9cfee; }
+/* The machine wears the banner: lanterns on the sign, warmer capsules */
+.mach-box[data-banner="lantern"] .mach-sign { background: linear-gradient(180deg, #5a2a6e, #2c1540); box-shadow: 0 0 18px rgba(255, 150, 60, .35); }
+.mach-box[data-banner="lantern"] .mach-sign i { background: #ffb347; box-shadow: 0 0 8px #ff8a2a; }
+.mach-box[data-banner="lantern"] { --legendary: #ffb347; }
+@media (max-width: 560px) {
+    .mb-art { padding: 16px 14px 14px; }
+    .mb-title h3 { font-size: 1.45rem; }
+    .mb-moon { width: 40px; height: 40px; right: 14px; }
+    .mb-feat.legendary { flex-basis: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .mb-lanterns i { animation: none; } }

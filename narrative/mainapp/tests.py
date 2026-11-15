@@ -9624,3 +9624,65 @@ class LookPreviewAndOnboardingTests(ChatLookTests):
 for _name in [n for n in dir(ChatLookTests) if n.startswith("test_")]:
     if getattr(LookPreviewAndOnboardingTests, _name, None) is getattr(ChatLookTests, _name, None):
         setattr(LookPreviewAndOnboardingTests, _name, None)
+
+
+class TomatoBannerTests(TomatoMachineTests):
+    """🏮 Banners on the Sauce-o-Matic: a seasonal one with rate-ups and guarantees, the standard one for the rest."""
+    from datetime import date
+    NOV, JAN = date(2026, 11, 16), date(2027, 1, 10)
+
+    def test_the_seasonal_banner_runs_in_its_months_and_holds_its_own_things(self):
+        from mainapp import tomato_machine as M
+        self.assertTrue(M.banner_open("lantern", self.NOV))
+        self.assertFalse(M.banner_open("lantern", self.JAN))
+        self.assertEqual(M.banner_ends("lantern", self.NOV).isoformat(), "2026-11-30")
+        standard = {p["id"] for t in ("common", "rare", "legendary") for p in M.pool(t, self.NOV)}
+        self.assertFalse(standard & {"lantern_tomato", "gardener_death", "seed_monster", "trail_wisp", "companion_lantern"})
+        self.give(1)
+        with self.assertRaises(ValueError):
+            M.spin(self.user, 1, today=self.JAN, banner="lantern")
+        public = M.public(self.score, self.NOV)
+        self.assertEqual([b["id"] for b in public["banners"]], ["lantern", "standard"])
+        self.assertEqual([b["id"] for b in M.public(self.score, self.JAN)["banners"]], ["standard"])
+
+    def test_rate_up_guarantee_after_a_miss_and_its_own_pity(self):
+        from mainapp import tomato_machine as M
+        self.give(5)
+        # A legendary (roll .01 < 4%), then the 50/50 lost (.9): a standard legendary, and the next one is featured
+        out, state = M.spin(self.user, 1, rng=self.Rolls(.01, .9), today=self.NOV, banner="lantern")
+        self.assertEqual((out[0]["tier"], out[0]["promise"]), ("legendary", "lost"))
+        self.assertNotIn(out[0]["id"], ("lantern_tomato", "gardener_death"))
+        lantern = next(b for b in state["banners"] if b["id"] == "lantern")
+        self.assertTrue(lantern["sure"])
+        self.assertEqual(state["pity"]["legend"], 0)  # the standard banner's pity is its own
+        # With the promise on Mr. Death, the guaranteed one is him
+        M.promise(self.user, "gardener_death", banner="lantern")
+        out, state = M.spin(self.user, 1, rng=self.Rolls(.01, .9), today=self.NOV, banner="lantern")
+        self.assertEqual((out[0]["id"], out[0]["promise"]), ("gardener_death", "promise"))
+        # A rare (roll .1): featured half the time
+        out, _ = M.spin(self.user, 1, rng=self.Rolls(.1, .2), today=self.NOV, banner="lantern")
+        self.assertEqual((out[0]["tier"], out[0]["id"]), ("rare", "seed_monster"))
+        with self.assertRaises(ValueError):
+            M.promise(self.user, "gardener_frog", banner="lantern")  # not featured there
+        with self.assertRaises(ValueError):
+            M.promise(self.user, "gardener_death")  # only on its banner
+
+    def test_the_corner_lantern_is_worn_and_mr_death_collects_his_dues(self):
+        from mainapp import tomato_machine as M, tomato_garden as G
+        self.score.machine = {"items": {"companion_lantern": 1, "gardener_death": 1}}
+        self.score.save()
+        M.equip(self.user, "companion", "companion_lantern")
+        self.score.refresh_from_db()
+        self.assertEqual(M.worn(self.score)["companion"], "companion_lantern")
+        m = M._state(self.score)
+        g = G._state(self.score)
+        got = []
+        for i in range(3):
+            g["tiles"][f"{i},0"] = {"kind": "plant", "seed": "seed_monster", "at": 0, "boost": 0}
+            got.append(G._harvest(g, m, f"{i},0"))
+        self.assertEqual(got, [8, 8, 11])  # every third harvest: +3
+
+
+for _name in [n for n in dir(TomatoMachineTests) if n.startswith("test_")]:
+    if getattr(TomatoBannerTests, _name, None) is getattr(TomatoMachineTests, _name, None):
+        setattr(TomatoBannerTests, _name, None)

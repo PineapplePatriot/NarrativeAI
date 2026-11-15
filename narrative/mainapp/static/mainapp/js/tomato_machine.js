@@ -15,10 +15,13 @@
     const wait = (ms) => new Promise(r => setTimeout(r, calm() ? Math.min(ms, 60) : ms));
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const TIER = { common: 'Common', rare: 'Rare', legendary: 'Legendary' };
-    const KINDS = { gardener: 'Gardeners', skin: 'Things to throw', hat: "Bulba's hats", trail: 'Cursor trails', badge: 'Badges',
-                    decor: 'Garden decorations', seed: 'Seeds', oddity: 'Oddities' };
-    const WEAR = { hat: 'Put it on Bulba', trail: 'Use it', badge: 'Wear it' };
+    const KINDS = { gardener: 'Gardeners', skin: 'Things to throw', hat: "Bulba's hats", trail: 'Cursor trails', companion: 'Companions',
+                    badge: 'Badges', decor: 'Garden decorations', seed: 'Seeds', oddity: 'Oddities' };
+    const WEAR = { hat: 'Put it on Bulba', trail: 'Use it', badge: 'Wear it', companion: 'Hang it up' };
     let state = null, busy = false;
+    // 🏮 Banners: the seasonal one (while it runs) and the standard one; the one you look at is the one you pull on
+    let bannerId = (() => { try { return localStorage.getItem('na-mach-banner') || ''; } catch (e) { return ''; } })();
+    const banner = () => (state.banners || []).find(b => b.id === bannerId) || (state.banners || [])[0] || { id: 'standard' };
     const prize = (id) => (state && state.prizes.find(p => p.id === id)) || { id, emoji: '❔', name: id, tier: 'common' };
 
     async function call(body) {
@@ -43,8 +46,15 @@
         $('machToward').textContent = `${s.toward} of ${s.cost} tomatoes towards the next spin`;
         $('machPull1').disabled = busy || s.spins < 1;
         $('machPull10').disabled = busy || s.spins < 10;
-        const rare = s.pity.rare_at - s.pity.rare, legend = s.pity.legend_at - s.pity.legend;
-        $('machPity').textContent = `A rare or better within ${rare} pull${rare === 1 ? '' : 's'} · a legendary within ${legend}`;
+        const B = banner(), seasonal = B.id !== 'standard';
+        const pr = seasonal ? B.pity_rare : s.pity.rare, pl = seasonal ? B.pity_legend : s.pity.legend;
+        const rare = s.pity.rare_at - pr, legend = s.pity.legend_at - pl;
+        $('machPity').textContent = `A rare or better within ${rare} pull${rare === 1 ? '' : 's'} · a legendary within ${legend}`
+            + (seasonal ? ` (on ${B.name})` : '');
+        box.dataset.banner = B.id;
+        $('machPull1').textContent = `Pull ×1${seasonal ? ' · ' + B.emoji : ''}`;
+        $('machPull10').textContent = `Pull ×10${seasonal ? ' · ' + B.emoji : ''}`;
+        paintBanner();
         // Compost: how much there is, how much a spin takes, where it comes from
         const need = s.compost_spin, have = s.compost, enough = have >= need;
         $('machCompost').textContent = `${have} / ${need}`;
@@ -56,10 +66,13 @@
         $('machCompostBtn').disabled = busy || !enough;
         if ($('sumSpins')) $('sumSpins').textContent = s.spins.toLocaleString();
         if ($('sumCompost')) $('sumCompost').textContent = `${have} / ${need}`;
-        // Bulba's Promise
+        // Bulba's Promise: on the standard banner any legendary; on a seasonal one, which featured legendary
         const sel = $('machPromise');
-        if (sel.options.length === 1) {
-            s.prizes.filter(p => p.tier === 'legendary').forEach(p => {
+        if (sel.dataset.banner !== B.id) {
+            sel.dataset.banner = B.id;
+            sel.innerHTML = `<option value="">${seasonal ? 'Either featured one' : 'Nothing in particular'}</option>`;
+            const list = seasonal ? (B.featured.legendary || []).map(prize) : s.prizes.filter(p => p.tier === 'legendary' && !p.banner);
+            list.forEach(p => {
                 const o = document.createElement('option');
                 o.value = p.id;
                 o.textContent = `${p.emoji} ${p.name}${p.now ? '' : ' (out of season)'}`;
@@ -67,15 +80,63 @@
                 sel.appendChild(o);
             });
         }
-        sel.value = s.promise || '';
-        const promised = s.promise && prize(s.promise);
-        $('machPromiseNote').textContent = !promised ? 'Pick a legendary and Bulba promises you get it: a coin flip on your next legendary, and a sure thing on the one after if the flip goes wrong.'
-            : s.promise_sure ? `Your next legendary is guaranteed to be ${promised.emoji} ${promised.name}.`
-            : `Your next legendary is a 50/50 for ${promised.emoji} ${promised.name}. If it isn't, the one after is.`;
+        if (seasonal) {
+            sel.value = B.promise || '';
+            const want = B.promise && prize(B.promise);
+            $('machPromiseNote').textContent = (B.sure ? 'Your next legendary here is guaranteed to be featured' : 'Your next legendary here is a 50/50 for a featured one; if it misses, the one after is')
+                + (want ? `, and it will be ${want.emoji} ${want.name}.` : '.') + (B.sure_rare ? ' Your next rare is a featured one too.' : '');
+        } else {
+            sel.value = s.promise || '';
+            const promised = s.promise && prize(s.promise);
+            $('machPromiseNote').textContent = !promised ? 'Pick a legendary and Bulba promises you get it: a coin flip on your next legendary, and a sure thing on the one after if the flip goes wrong.'
+                : s.promise_sure ? `Your next legendary is guaranteed to be ${promised.emoji} ${promised.name}.`
+                : `Your next legendary is a 50/50 for ${promised.emoji} ${promised.name}. If it isn't, the one after is.`;
+        }
         paintOdds();
         paintShelf();
         paintHistory();
     }
+    // --- The banner over the machine: tabs to switch, the featured things, how long it runs ---
+    function daysLeft(iso) {
+        if (!iso) return '';
+        const end = new Date(iso + 'T23:59:59'), d = Math.max(0, Math.ceil((end - Date.now()) / 86400000));
+        return d === 0 ? 'last day' : d === 1 ? '1 day left' : `${d} days left`;
+    }
+    function paintBanner() {
+        const s = state, B = banner();
+        $('machBannerTabs').innerHTML = (s.banners || []).map(b => `<button type="button" role="tab" class="mb-tab mb-${b.id}${b.id === B.id ? ' on' : ''}"
+            aria-selected="${b.id === B.id}" data-banner="${b.id}">${b.emoji} ${esc(b.name)}${b.ends ? ` <small>${daysLeft(b.ends)}</small>` : ''}</button>`).join('');
+        let body;
+        if (B.id === 'standard') {
+            const legends = s.prizes.filter(p => p.tier === 'legendary' && !p.banner && p.now);
+            body = `<div class="mb-art mb-art-standard"><div class="mb-title"><small>The Sauce-o-Matic</small><h3>🎰 Standard</h3>
+                <p>${esc(B.tagline)} Bulba's Promise picks the legendary you're after.</p></div>
+                <div class="mb-show">${legends.map(p => `<div class="mb-feat legendary small" title="${esc(p.note)}"><span class="e">${p.emoji}</span><b>${esc(p.name)}</b></div>`).join('')}</div></div>`;
+        } else {
+            const L = (B.featured.legendary || []).map(prize), R = (B.featured.rare || []).map(prize);
+            const end = B.ends ? new Date(B.ends + 'T12:00:00').toLocaleDateString([], { day: 'numeric', month: 'long' }) : '';
+            body = `<div class="mb-art mb-art-${B.id}">
+                <div class="mb-lanterns" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="mb-moon" aria-hidden="true"></div>
+                <div class="mb-title"><small>Seasonal banner · until ${esc(end)} (${daysLeft(B.ends)})</small><h3>${B.emoji} ${esc(B.name)}</h3>
+                    <p>${esc(B.tagline)}</p></div>
+                <div class="mb-show">${L.map(p => `<div class="mb-feat legendary" title="${esc(p.note)}"><span class="mb-up">Rate up</span>
+                    <span class="e">${p.emoji}</span><b>${esc(p.name)}</b><small>${esc(p.note)}</small>${s.items[p.id] ? '<span class="mb-got">✓ yours</span>' : ''}</div>`).join('')}</div>
+                <div class="mb-rares">${R.map(p => `<div class="mb-feat rare" title="${esc(p.note)}"><span class="e">${p.emoji}</span><b>${esc(p.name)}</b>${s.items[p.id] ? '<span class="mb-got">✓</span>' : ''}</div>`).join('')}</div>
+                <p class="mb-rule">A legendary here is featured half the time, and surely the next time after a miss; rares too. Only on this banner, only until it ends.</p>
+              </div>`;
+        }
+        $('machBannerCard').innerHTML = body;
+    }
+    $('machBannerTabs').addEventListener('click', (e) => {
+        const t = e.target.closest('[data-banner]');
+        if (!t || busy) return;
+        bannerId = t.dataset.banner;
+        try { localStorage.setItem('na-mach-banner', bannerId); } catch (err) { /* this page only */ }
+        sound('click');
+        paint();
+    });
+
     function paintOdds() {
         const s = state, season = s.prizes.find(p => p.season === s.season);
         $('machOdds').innerHTML = `<table>${Object.entries(s.odds).map(([t, n]) => `<tr><td><b>${TIER[t]}</b></td><td>${n}%</td>
@@ -84,6 +145,9 @@
             <li><b>Bulba's Promise</b>: choose a legendary. Each legendary is it half the time, and if it isn't, the next one is.</li>
             <li>Getting something you keep only one of again turns it into compost (♻ ${s.compost_spin} compost = 1 spin). Seeds and garden things stack.</li>
             <li>A golden splat (1 in 500) thrown at a chat or Bulba is a free spin.</li>
+            <li><b>Banners</b>: a seasonal banner runs for a few months with its own featured things (a legendary there is featured half the
+              time, surely after a miss; rares too) and its own pity count. Its things are only on it, only while it runs. Everything
+              else is on the standard banner. Spins work on either.</li>
             <li>Seasonal: ${season ? `${season.emoji} ${esc(season.name)} is in the machine this ${s.season}` : 'nothing this season'}. The others wait for their season.</li></ul>`;
     }
     function paintShelf() {
@@ -128,7 +192,7 @@
         paint();
         let out;
         try {
-            out = await call({ action: 'spin', n });
+            out = await call({ action: 'spin', n, banner: banner().id });
         } catch (err) {
             busy = false; paint();
             if (window.NADialog) NADialog.alert(err.message, { title: 'The machine says no' }); return;
@@ -319,7 +383,7 @@
         }
         catch (err) { if (window.NADialog) NADialog.alert(err.message); paint(); }
     }
-    $('machPromise').addEventListener('change', (e) => act({ action: 'promise', id: e.target.value || null }));
+    $('machPromise').addEventListener('change', (e) => act({ action: 'promise', id: e.target.value || null, banner: banner().id }));
     $('machCompostBtn').addEventListener('click', async () => {
         const before = state ? state.spins : 0;
         await act({ action: 'compost' });
@@ -333,7 +397,11 @@
     });
 
     fillDome();
-    call().then(s => { state = s; paint(); }).catch(() => { $('machToward').textContent = 'The machine is resting. Reload the page.'; });
+    call().then(s => {
+        state = s;
+        if (!(s.banners || []).some(b => b.id === bannerId)) bannerId = ((s.banners || []).find(b => b.id !== 'standard') || { id: 'standard' }).id;
+        paint();
+    }).catch(() => { $('machToward').textContent = 'The machine is resting. Reload the page.'; });
     // Spins earned in another tab (or a golden splat) show up when you come back
     document.addEventListener('visibilitychange', () => { if (!document.hidden && !busy) call().then(s => { state = s; paint(); }).catch(() => {}); });
 })();
