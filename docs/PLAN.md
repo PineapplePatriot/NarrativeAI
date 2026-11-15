@@ -158,6 +158,13 @@ trail and a corner lantern companion as featured rares; 50% rate-up with a guara
 Bulba's Promise picks the featured legendary. Everything else is the standard banner. Next: a winter banner
 (December to February) and the rest of Phase E (garden weather and seasons, mutations, critters, orders).
 
+## Next: story systems with story memory (from the 17 November list)
+
+Story systems (slow meters, story clocks, events, random tables) predate story memory. Idea: let them read and
+drive it: a slow meter tied to a relationship's trust or tension (it moves when the relationship does); an event
+that fires when a fact becomes known to someone; a story clock that counts milestones instead of messages; limits
+the story can't rush (a stage that needs N scenes). To shape with Anya before building.
+
 ## Phase F: messenger mode
 
 A separate page imitating Telegram/Discord: casual one-on-one chats with the characters, voice messages

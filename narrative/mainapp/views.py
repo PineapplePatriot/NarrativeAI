@@ -30,6 +30,7 @@ from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
 from . import basics as basics_mod
 from . import writing_quality
+from . import sprites as sprite_mod
 from . import chat_looks
 from . import story_memory
 from .bulba import vision as bulba_vision
@@ -435,8 +436,13 @@ def _user_pictured(user, chat_persona):
 
 
 def _photo(character, prefix, emotion):
-    """The sprite for an emotion, falling back to neutral."""
-    image = getattr(character, f"{prefix}_{emotion}", None) or getattr(character, f"{prefix}_neutral", None)
+    """The sprite for an emotion (one of the nine, or one of the character's extra moods), falling back to neutral."""
+    image = getattr(character, f"{prefix}_{emotion}", None) if emotion in sprite_mod.BUILT_IN else None
+    if not image and prefix in ("photo", "photo_second") and emotion not in sprite_mod.BUILT_IN:
+        extra = sprite_mod.url_of(character, prefix, emotion)
+        if extra:
+            return extra
+    image = image or getattr(character, f"{prefix}_neutral", None)
     return image.url if image else None
 
 
@@ -1833,7 +1839,7 @@ def chat(request, slug):
                     try:
                         if not ai_client.is_enabled(request.user, "emotion"):
                             raise ai_client.AIError("emotion detection is turned off")
-                        valid_emotions = ["neutral", "happy", "sad", "angry", "surprised", "scared", "confused", "calm", "scheming"]
+                        valid_emotions = sprite_mod.emotions(character)  # the nine, and this character's own moods
 
                         # Prompt asks LLM who is speaking (1, 2, or both) and their emotions
                         second = character.second_name or "the other character"
@@ -3383,8 +3389,12 @@ def _make_sprite(request, obj, prefix, who, looks, base_name):
     except (ValueError, UnicodeDecodeError):
         return JsonResponse({"error": "Invalid request."}, status=400)
     emotion = data.get("emotion")
+    extra = False
     if emotion not in SPRITE_EMOTIONS + ["neutral"]:
-        return JsonResponse({"error": "Unknown mood."}, status=400)
+        emotion = sprite_mod.clean_name(emotion)
+        if not emotion or prefix not in ("photo", "photo_second"):  # an extra mood: characters only
+            return JsonResponse({"error": "Unknown mood."}, status=400)
+        extra = True
     neutral = getattr(obj, f"{prefix}_neutral")
     reference, kind = None, "image/png"
     if emotion == "neutral":  # the first picture, from the words (no picture to start from)
@@ -3415,14 +3425,44 @@ def _make_sprite(request, obj, prefix, who, looks, base_name):
         image, cost = ai_client.generate_image(request.user, prompt, reference, kind, model=model)
     except ai_client.AIError as e:
         return JsonResponse({"error": str(e)}, status=502)
+    ext = "jpg" if image[:3] == b"\xff\xd8\xff" else "webp" if image[:4] == b"RIFF" else "png"
+    if extra:  # one of the character's own moods
+        try:
+            url = sprite_mod.save(obj, emotion, image, ext, second=prefix == "photo_second")
+        except ValueError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"status": "ok", "emotion": emotion, "url": url, "cost": cost,
+                             "spending": ai_client.spending(request.user)})
     field = getattr(obj, f"{prefix}_{emotion}")
     if field:
         field.storage.delete(field.name)
-    ext = "jpg" if image[:3] == b"\xff\xd8\xff" else "webp" if image[:4] == b"RIFF" else "png"
     field.save(f"{slugify(base_name) or 'character'}-{emotion}.{ext}", ContentFile(image), save=False)
     obj.save()
     return JsonResponse({"status": "ok", "field": f"{prefix}_{emotion}", "url": field.url, "cost": cost,
                          "spending": ai_client.spending(request.user)})
+
+
+@login_required
+def character_moods(request, slug):
+    """The character's extra moods (mainapp/sprites.py). GET: what there is. POST (multipart): emotion + picture
+    [+ second] to add one; JSON {"remove": emotion[, "second"]} to take one away."""
+    character = get_object_or_404(Character, slug=slug, author=request.user)
+    if request.method == "POST":
+        if request.FILES.get("picture"):
+            upload = request.FILES["picture"]
+            if upload.size > 15 * 1024 * 1024:
+                return JsonResponse({"error": "That picture is over 15 MB."}, status=400)
+            ext = (os.path.splitext(upload.name)[1].lower().lstrip(".") or "png")[:5]
+            try:
+                sprite_mod.save(character, request.POST.get("emotion"), upload.read(), ext,
+                                second=request.POST.get("second") == "1")
+            except ValueError as e:
+                return JsonResponse({"error": str(e)}, status=400)
+        else:
+            body = _json_body(request) or {}
+            sprite_mod.remove(character, body.get("remove"), second=bool(body.get("second")))
+    return JsonResponse({"first": sprite_mod.extras(character), "second": sprite_mod.extras(character, True),
+                         "suggested": sprite_mod.SUGGESTED, "max": sprite_mod.MAX_EXTRA})
 
 
 @login_required
@@ -4276,6 +4316,29 @@ def _bulba_picture_upload(request):
         upload.seek(0)
         saved_url = url + name
         hint += f" URL: {saved_url}"
+    if target == "appearance" and sprite_mod.clean_name(emotion) and sprite_mod.clean_name(emotion) not in sprite_mod.BUILT_IN:
+        # The character with an emotion of their own ("smug", "battle-ready"): one of their extra mood pictures
+        character = lore.target_character(session)
+        if character is None:
+            return JsonResponse({"error": "Make or pick a character first, then add their pictures."}, status=400)
+        ext0 = (os.path.splitext(upload.name)[1].lower().lstrip(".") or "png")[:5]
+        try:
+            sprite_mod.save(character, emotion, upload.read(), ext0)
+        except ValueError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        mood = sprite_mod.clean_name(emotion)
+        upload.seek(0)
+        thumb = vision.prepare(upload.read())[1]
+        events = [{"type": "picture", "src": thumb, "text": their_words}]
+        session.events += events
+        note = f"They added a mood picture of {character.name}: “{mood}” (their own mood; the chat shows it when the reply fits)."
+        if request.POST.get("quiet") == "1":
+            session.messages.append({"role": "user", "content": f"[{note}\n(More pictures follow.)]"})
+        else:
+            events += agent.run_turn(session, None, action_note=f"Added {character.name}'s “{mood}” picture", model_note=note)
+        session.activity = ""
+        session.save()
+        return JsonResponse({"events": events, "state": _bulba_state(session)})
     if hint:
         target = "look"
     if upload.size > 15 * 1024 * 1024:

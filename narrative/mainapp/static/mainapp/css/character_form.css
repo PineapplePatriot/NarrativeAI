@@ -207,3 +207,18 @@ body { padding: 0 16px 48px; }
 textarea.cs-composed { opacity: .75; cursor: default; }
 @media (max-width: 600px) { .card-sections { padding: 12px 10px; } .cs-person { padding: 8px; } }
 .cs-temper select { width: auto; flex: 0 1 auto; }
+
+/* 🎭 More moods */
+.more-moods { margin: 14px 0 6px; padding: 12px; border-radius: 12px; border: 1px dashed rgba(126, 58, 242, .45); }
+.more-moods h4 { margin: 0 0 8px; font-size: 1rem; }
+.more-moods h4 small { color: var(--text-secondary); font-weight: 400; }
+.mm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; margin-bottom: 10px; }
+.mm-item { position: relative; margin: 0; text-align: center; }
+.mm-item img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; border: 1px solid rgba(255, 255, 255, .1); }
+.mm-item figcaption { font-size: .8rem; color: var(--text-secondary); }
+.mm-x { position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 50%; border: 0; cursor: pointer;
+    background: rgba(0, 0, 0, .6); color: #fff; font-size: .75rem; padding: 0; }
+.mm-add { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.mm-add input[type=text] { flex: 1 1 200px; }
+.mm-upload { cursor: pointer; }
+#mmStatus.bad { color: #fda4af; }

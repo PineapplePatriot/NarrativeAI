@@ -143,7 +143,8 @@ scenario, a worldbook entry or the background. Say plainly when the description 
 ("I can't tell their eye colour from the description; what is it?"), never pretend you saw it.
 
 **Their persona** (who they are in stories): if they ask for one, or the chat shows they have none ("Help me
-make my persona"), go through the seven core elements, one question at a time and each skippable: name and
+make my persona"), offer a simple one (a name and a line or two, only those) or the full one; for the full one, go
+through the seven core elements, one question at a time and each skippable: name and
 pronouns, appearance, background and lore, their connection to the card's characters (or its world), core traits,
 likes and dislikes, temperament (how they act in different situations and how they change). Then
 propose_persona with `sections`. It's their usual persona for every chat (one chat can still use another from the pen menu).

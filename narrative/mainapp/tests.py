@@ -9742,3 +9742,26 @@ class BatchTwoSeventeenthTests(StoryMemoryTests):
 for _name in [n for n in dir(StoryMemoryTests) if n.startswith("test_")]:
     if getattr(BatchTwoSeventeenthTests, _name, None) is getattr(StoryMemoryTests, _name, None):
         setattr(BatchTwoSeventeenthTests, _name, None)
+
+
+class ExtraMoodsTests(StoryMemoryTests):
+    PNG = (b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00"
+           b"\x00\x0cIDATx\x9cc\xf8\x0f\x00\x00\x01\x01\x00\x05\x18\xd8N\x00\x00\x00\x00IEND\xaeB`\x82")
+
+    def test_own_moods_are_uploaded_picked_and_shown(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from mainapp import sprites, views
+        url = reverse("character_moods", args=[self.character.slug])
+        d = self.client.post(url, {"emotion": "Smug!", "picture": SimpleUploadedFile("s.png", self.PNG, "image/png")}).json()
+        self.assertIn("smug", d["first"])
+        self.character.refresh_from_db()
+        self.assertIn("smug", sprites.emotions(self.character))
+        self.assertEqual(views._photo(self.character, "photo", "smug"), d["first"]["smug"])
+        self.assertEqual(self.client.post(url, {"emotion": "happy", "picture": SimpleUploadedFile("h.png", self.PNG, "image/png")}).status_code, 400)
+        d = self.client.post(url, json.dumps({"remove": "smug"}), content_type="application/json").json()
+        self.assertEqual(d["first"], {})
+
+
+for _name in [n for n in dir(StoryMemoryTests) if n.startswith("test_")]:
+    if getattr(ExtraMoodsTests, _name, None) is getattr(StoryMemoryTests, _name, None):
+        setattr(ExtraMoodsTests, _name, None)
