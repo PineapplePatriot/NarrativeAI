@@ -377,3 +377,59 @@ READY = {
               "sound": "soft"},
 }
 READY_LABELS = {"purpl": "💜 Purpl"}
+
+
+# --- The shelf: every look they made (with Bulba, or adjusted by hand), kept on their account
+#     (ChatSettings.appearance["looks"]), to wear in any chat or give to another character ---
+SHELF_MAX = 30
+
+
+def _settings(user):
+    from mainapp.models import ChatSettings
+    obj, _ = ChatSettings.objects.get_or_create(author=user)
+    return obj
+
+
+def shelf(user):
+    """[{"id", "look"}] newest first."""
+    items = (_settings(user).appearance or {}).get("looks") or []
+    out = []
+    for item in items:
+        look = clean(item.get("look")) if isinstance(item, dict) else None
+        if look and isinstance(item.get("id"), str):
+            out.append({"id": item["id"], "look": look})
+    return out
+
+
+def _same(a, b):
+    return a["name"] == b["name"] and a["colors"] == b["colors"] and a["font"] == b["font"]
+
+
+def keep(user, look):
+    """Put a look on the shelf (a look already there by the same name is replaced, so adjusting it doesn't pile up
+    copies). Returns its shelf id."""
+    import uuid
+    look = clean(look)
+    if not look:
+        return None
+    obj = _settings(user)
+    data = dict(obj.appearance or {})
+    items = [i for i in shelf(user) if i["look"]["name"] != look["name"]]
+    same = next((i for i in shelf(user) if i["look"]["name"] == look["name"]), None)
+    item = {"id": same["id"] if same else uuid.uuid4().hex[:8], "look": look}
+    data["looks"] = ([item] + items)[:SHELF_MAX]
+    obj.appearance = data
+    obj.save(update_fields=["appearance"])
+    return item["id"]
+
+
+def from_shelf(user, shelf_id):
+    return next((i["look"] for i in shelf(user) if i["id"] == shelf_id), None)
+
+
+def drop(user, shelf_id):
+    obj = _settings(user)
+    data = dict(obj.appearance or {})
+    data["looks"] = [i for i in shelf(user) if i["id"] != shelf_id]
+    obj.appearance = data
+    obj.save(update_fields=["appearance"])

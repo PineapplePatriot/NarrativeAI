@@ -26,6 +26,9 @@ def tool_read_look_options(session, args):
     return {"options": chat_looks.guide(), "color_keys": list(chat_looks.COLOR_KEYS),
             "current_look": current, "character": character.name if character else None,
             "backgrounds": pictures,
+            "their_shelf": [{"name": i["look"]["name"], "look": i["look"]} for i in chat_looks.shelf(session.user)][:10],
+            "shelf_note": ("Their shelf holds every look they've made; any chat can wear one (pen menu → Your looks). "
+                           "To give this character one of them, propose_chat_look with that look."),
             "reading_language": reading or "English",
             "cyrillic": ("They read the story in a language with Cyrillic letters: prefer fonts that have them. If the "
                          "look they want needs one that doesn't (the options say which), say so in one line and offer "
@@ -73,6 +76,7 @@ def apply(session, p):
     theme["look"], theme["skin"] = chat_looks.clean(data["look"]), "custom"
     character.theme = theme
     character.save(update_fields=["theme"])
+    chat_looks.keep(session.user, theme["look"])  # and on their shelf, to wear in any chat
     return f"{character.name}'s chats now wear “{theme['look']['name']}” (pen menu → Chat style to switch)."
 
 

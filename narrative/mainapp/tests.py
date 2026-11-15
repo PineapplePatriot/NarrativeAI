@@ -9832,3 +9832,37 @@ class GardenCrewTests(TomatoMachineTests):
 for _name in [n for n in dir(TomatoMachineTests) if n.startswith("test_")]:
     if getattr(GardenCrewTests, _name, None) is getattr(TomatoMachineTests, _name, None):
         setattr(GardenCrewTests, _name, None)
+
+
+class LookShelfTests(ChatLookTests):
+    def test_looks_go_on_the_shelf_and_any_chat_can_wear_them(self):
+        from mainapp import chat_looks
+        from mainapp.models import BulbaSession, Character
+        c = Character.objects.create(name="Ant", slug="ant-shelf", author=self.user, initial_message="Hi.")
+        other = Character.objects.create(name="Bo", slug="bo-shelf", author=self.user, initial_message="Hi.")
+        self.api(action="say", text="hi")
+        session = BulbaSession.objects.get(user=self.user, mode="setup")
+        session.focus = c
+        session.save()
+        self.script = [("Here.", [self.call("propose_chat_look", look=self.PURPL)])]
+        p = self.api(action="say", text="purple").json()["state"]["proposals"][-1]
+        self.api(action="apply", id=p["id"])
+        shelf = chat_looks.shelf(self.user)
+        self.assertEqual([i["look"]["name"] for i in shelf], ["Purpl"])
+        sid = shelf[0]["id"]
+        url = reverse("chat", args=[other.slug])
+        page = self.client.get(url)
+        self.assertContains(page, f'data-skin="shelf:{sid}"')
+        post = lambda body: self.client.post(url, json.dumps(body), content_type="application/json").json()
+        self.assertTrue(post({"action": "set_skin", "skin": f"shelf:{sid}"})["success"])
+        self.assertContains(self.client.get(url), "skin-custom")
+        post({"action": "shelf", "do": "give", "id": sid})
+        other.refresh_from_db()
+        self.assertEqual((other.theme["skin"], other.theme["look"]["name"]), ("custom", "Purpl"))
+        post({"action": "shelf", "do": "remove", "id": sid})
+        self.assertEqual(chat_looks.shelf(self.user), [])
+
+
+for _name in [n for n in dir(ChatLookTests) if n.startswith("test_")]:
+    if getattr(LookShelfTests, _name, None) is getattr(ChatLookTests, _name, None):
+        setattr(LookShelfTests, _name, None)

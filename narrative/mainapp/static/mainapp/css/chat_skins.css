@@ -168,3 +168,11 @@ body.fx-off .look-fx { display: none; }
 .look-adjust-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; flex-wrap: wrap; }
 .look-adjust-row[hidden] { display: none; }
 .look-adjust-row select { flex: 1; min-width: 0; }
+
+/* 🗂 Your looks (the shelf) */
+.shelf-chip { display: inline-flex; align-items: center; gap: 6px; }
+.shelf-chip i { width: 12px; height: 12px; border-radius: 50%; border: 2px solid; flex: none; }
+.shelf-manage { margin: 4px 0 10px; font-size: .8rem; }
+.shelf-manage summary { cursor: pointer; opacity: .8; }
+.shelf-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 4px 0; }
+.shelf-row span { flex: 1 1 120px; font-weight: 600; }

@@ -528,7 +528,8 @@ def chat(request, slug):
                 chat_state["context_guides"] = data.get("context_guides", {})
                 chat_state["current_bg"] = data.get("current_bg", "")
                 chat_state["current_music"] = data.get("current_music", {})
-                chat_state["skin"] = data.get("skin") if data.get("skin") in (*CHAT_SKINS, *chat_looks.READY, "none", "custom") else ""
+                chat_state["skin"] = data.get("skin") if data.get("skin") in (*CHAT_SKINS, *chat_looks.READY, "none", "custom") \
+                    or str(data.get("skin") or "").startswith("shelf:") else ""
                 chat_state["music_follow"] = data.get("music_follow") if isinstance(data.get("music_follow"), dict) else {}
                 chat_state["last_recall"] = data.get("last_recall") if isinstance(data.get("last_recall"), list) else []
                 chat_state["persona"] = data.get("persona") if isinstance(data.get("persona"), dict) else {}
@@ -1132,11 +1133,28 @@ def chat(request, slug):
             return JsonResponse({"success": True})
         elif action == "set_skin":  # the pen menu's chat style: this chat only ("" = the character's)
             skin = str(data.get("skin") or "")
-            if skin not in CHAT_SKINS and skin not in chat_looks.READY and skin not in ("", "none", "custom"):
+            if skin not in CHAT_SKINS and skin not in chat_looks.READY and skin not in ("", "none", "custom") \
+                    and not (skin.startswith("shelf:") and chat_looks.from_shelf(request.user, skin[6:])):
                 return JsonResponse({"success": False, "error": "Unknown style."}, status=400)
             chat_state["skin"] = skin
             save_messages(messages)
             return JsonResponse({"success": True, "skin": chat_skin(character, skin)})
+        elif action == "shelf":  # the pen menu's "Your looks": give one to this character, or take it off the shelf
+            shelf_id = str(data.get("id") or "")
+            found = chat_looks.from_shelf(request.user, shelf_id)
+            if not found:
+                return JsonResponse({"success": False, "error": "That look isn't on your shelf any more."}, status=400)
+            if data.get("do") == "remove":
+                chat_looks.drop(request.user, shelf_id)
+                if chat_state.get("skin") == f"shelf:{shelf_id}":
+                    chat_state["skin"] = ""
+                    save_messages(messages)
+            elif data.get("do") == "give":  # this character's own look from now on
+                character.theme = {**(character.theme or {}), "look": found, "skin": "custom"}
+                character.save(update_fields=["theme"])
+                chat_state["skin"] = ""
+                save_messages(messages)
+            return JsonResponse({"success": True})
         elif action == "delete_thoughts":  # a reply's thinking block, gone (the reply stays)
             try:
                 index = int(data.get("index"))
@@ -1154,6 +1172,7 @@ def chat(request, slug):
             changes = {k: v for k, v in data["changes"].items() if k in allowed}
             character.theme = {**(character.theme or {}), "look": chat_looks.merge(look, changes)}
             character.save(update_fields=["theme"])
+            chat_looks.keep(request.user, character.theme["look"])  # the shelf keeps the newest version
             return JsonResponse({"success": True, "look": character.theme["look"]})
         elif action == "persona_hint_seen":  # "Who are you in the story?" is asked once per account
             settings_obj, _ = ChatSettings.objects.get_or_create(author=request.user)
@@ -2385,10 +2404,13 @@ CHAT_SKINS = {"parchment": "📜 Parchment", "neon": "🌆 Neon", "lab": "🧪 L
 
 
 def chat_skin(character, chat_choice=""):
-    """The style a chat shows: its own pick ("none" = plain), else the character's, else plain ("")."""
+    """The style a chat shows: its own pick ("none" = plain), else the character's, else plain (""). A look from
+    their shelf is "shelf:<id>"."""
     has_look = bool(chat_looks.clean((character.theme or {}).get("look")))
     if chat_choice == "none":
         return ""
+    if str(chat_choice).startswith("shelf:") and character.author and chat_looks.from_shelf(character.author, chat_choice[6:]):
+        return chat_choice
     if chat_choice in CHAT_SKINS or chat_choice in chat_looks.READY or (chat_choice == "custom" and has_look):
         return chat_choice
     skin = (character.theme or {}).get("skin")
@@ -2399,10 +2421,18 @@ def _look_context(user, character, chat_state):
     """The chat page's custom look (mainapp/chat_looks.py), when one is on: the character's own ("custom") or a ready
     one (Purpl...). Its styles, fonts and moving parts; `own_look` for the pen menu's chip and Adjust box."""
     own = chat_looks.clean((character.theme or {}).get("look"))
+    if own and not any(chat_looks._same(i["look"], own) for i in chat_looks.shelf(user)):
+        chat_looks.keep(user, own)  # a look made before the shelf existed goes on it
     skin = chat_skin(character, chat_state.get("skin") or "")
-    look = chat_looks.clean(chat_looks.READY[skin]) if skin in chat_looks.READY else own if skin == "custom" else None
+    if skin in chat_looks.READY:
+        look = chat_looks.clean(chat_looks.READY[skin])
+    elif skin.startswith("shelf:"):
+        look = chat_looks.from_shelf(user, skin[6:])
+    else:
+        look = own if skin == "custom" else None
     out = {"own_look": own, "ready_looks": chat_looks.READY_LABELS, "look": look, "adjustable": skin == "custom",
-           "skin_class": "custom" if look else skin}
+           "skin_class": "custom" if look else skin,
+           "shelf": [i for i in chat_looks.shelf(user) if not (own and chat_looks._same(i["look"], own))]}
     if not look:
         return out
     names = prompt_names(user, character, chat_state.get("persona"))

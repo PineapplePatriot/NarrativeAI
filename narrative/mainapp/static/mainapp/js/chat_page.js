@@ -2420,7 +2420,20 @@ function handleRefusal(d) {
 // 🖼 Chat style: the character's, one of the four for this chat, or plain; the effects switch is per browser
 (function () {
     const choice = document.getElementById('skinChoice');
-    if (choice) choice.addEventListener('click', async (e) => {
+    // "Your looks" (the shelf) pick a style the same way; Manage gives one to the character or removes it
+    const shelfRow = document.getElementById('shelfChoice');
+    document.addEventListener('click', async (e) => {
+        const b = e.target.closest('[data-shelf]');
+        if (!b) return;
+        if (b.dataset.shelf === 'remove' && window.NADialog && !await NADialog.confirm('Take this look off your shelf?', { ok: 'Remove' })) return;
+        const resp = await fetch(window.location.href, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ action: 'shelf', do: b.dataset.shelf, id: b.dataset.id }),
+        });
+        const d = await resp.json().catch(() => ({}));
+        if (d.success) location.reload(); else showChatNotice(d.error || 'Could not do that.');
+    });
+    if (choice) [choice, shelfRow].filter(Boolean).forEach(row => row.addEventListener('click', async (e) => {
         const b = e.target.closest('[data-skin]');
         if (!b) return;
         const resp = await fetch(window.location.href, {
@@ -2434,8 +2447,8 @@ function handleRefusal(d) {
         [...document.body.classList].filter(c => c.startsWith('skin-') || c === 'light-style').forEach(c => document.body.classList.remove(c));
         if (d.skin) document.body.classList.add('skin-' + d.skin);
         if (['parchment', 'lab'].includes(d.skin)) document.body.classList.add('light-style');  // deeper speech shades
-        choice.querySelectorAll('[data-skin]').forEach(x => x.classList.toggle('on', x === b));
-    });
+        [choice, shelfRow].filter(Boolean).forEach(r => r.querySelectorAll('[data-skin]').forEach(x => x.classList.toggle('on', x === b)));
+    }));
     const fx = document.getElementById('skinFxToggle');
     if (fx) {
         fx.checked = !document.body.classList.contains('fx-off');
