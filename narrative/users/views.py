@@ -419,6 +419,7 @@ def _extras_state(user):
         "watch_memory": _watch_memory(user),
         "fix_model": _watch_memory(user)["fix_model"],  # who rewrites habits they approved (bulba/polish.py)
         "background": cheap["id"] if cheap else "chat",
+        "jobs_context": get_task_setting(user, "summary").context or 0,  # 0: they follow the chat's context
         "chat_context_restore": _chat_context_now(user),  # for Undo of Bulba's form
         "thinking": _thinking_now(user),
         "background_thinking": _background_thinking(user),
@@ -509,6 +510,17 @@ def apply_extras(user, data):
         if data.get("game") in ("off", "dice", "full"):
             from mainapp import game
             game.set_user_default(user, data["game"])
+        if data.get("jobs_context") is not None:  # how much summaries, story memory and trackers read at most
+            try:
+                limit = int(data["jobs_context"])
+            except (TypeError, ValueError):
+                limit = None
+            if limit is not None:  # 0: back to following the chat's context
+                limit = max(4096, min(2_000_000, limit)) if limit > 0 else None
+                for task in ("summary", "memory", "trackers"):
+                    setting = get_task_setting(user, task)
+                    setting.context = limit
+                    setting.save()
         if data.get("chat_context"):
             set_chat_context(user, max(4096, min(2_000_000, int(data["chat_context"]))))
         elif isinstance(data.get("chat_context_restore"), dict):
@@ -639,8 +651,14 @@ def extras(request):
 def _extras_page_state(user):
     """The Extras page: its switches, plus the chat memory slider and the prices its estimates use."""
     from mainapp.bulba.agent import memory_and_prices
+    from mainapp.ai_client import get_task_setting
     state = _extras_state(user)
-    return {**state, **memory_and_prices(user, state)}
+    out = {**state, **memory_and_prices(user, state)}
+    # The page's slider is the background jobs' reading limit (summary, story memory, trackers): theirs if set,
+    # else they follow the chat's context
+    own = get_task_setting(user, "summary").context
+    out["jobs_window"] = {"value": own or out["window"]["value"], "max": out["window"]["max"], "own": bool(own)}
+    return out
 
 
 @login_required

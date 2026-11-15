@@ -34,3 +34,6 @@
 .g-bitem .e { font-size: 1.3rem; }
 .g-bitem span:not(.e) { flex: 1; min-width: 0; }
 .g-bitem.armed { border-color: #facc15; background: rgba(250, 204, 21, .18); box-shadow: 0 0 0 2px rgba(250, 204, 21, .35); }
+.g-gard.resting { opacity: .7; }
+.g-gard .g-crew { margin-top: 6px; font-size: .78rem; padding: 4px 10px; }
+.g-shed-head { margin: 10px 0 4px; }

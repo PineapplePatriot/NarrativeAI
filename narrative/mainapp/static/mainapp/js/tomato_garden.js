@@ -365,6 +365,15 @@
         if (id && st && st.basket[id]) putDown(id, cell(at(e)));
     });
 
+    // Gardeners: three at work, the others in the shed
+    $('gGardeners').addEventListener('click', async (e) => {
+        const b = e.target.closest('[data-crew]');
+        if (!b) return;
+        b.disabled = true;
+        try { take(await call({ action: 'crew', id: b.dataset.crew, on: !!b.dataset.on })); paintSide(); }
+        catch (err) { if (window.NADialog) NADialog.alert(err.message); b.disabled = false; }
+    });
+
     // --- The side panel ---
     const prizeOf = (id) => (st.prizes[id] || { name: id, emoji: '❔' });
     let tileKey = '';
@@ -425,7 +434,14 @@
                 <span class="e">${prizeOf(k).emoji}</span><span>${esc(st.crops[k] ? st.crops[k].name + ' seeds' : prizeOf(k).name)}</span><b>×${n}</b></button>`).join('')}</div>`
             : '<p class="muted g-small">Empty. Seeds and decorations come from the Sauce-o-Matic.</p>';
         $('gBasket').insertAdjacentHTML('beforeend', `<p class="muted g-small">${items.length ? (armed ? `Now tap a free patch for the ${esc(prizeOf(armed).name.toLowerCase())}. ` : 'Drag a seed or a decoration onto a patch, or tap it and then a patch. ') : ''}Each tomato you throw at a chat or Bulba waters every plant: ${Math.round(st.water / 60)} minutes of growth.</p>`);
-        $('gGardeners').innerHTML = st.gardeners.length ? st.gardeners.map(x => `<div class="g-gard"><span class="e">${prizeOf(x.id).emoji}</span><div><b>${esc(prizeOf(x.id).name)}</b><br><span class="muted">${esc(x.about)}</span></div></div>`).join('')
+        const gard = (x, on) => `<div class="g-gard${on ? '' : ' resting'}"><span class="e">${prizeOf(x.id).emoji}</span><div><b>${esc(prizeOf(x.id).name)}</b><br>
+            <span class="muted">${esc(x.about)}</span><br><button type="button" class="na-btn g-crew" data-crew="${x.id}" data-on="${on ? '' : '1'}">
+            ${on ? '🛖 Send to the shed' : `🌱 Bring to work${st.gardeners.length >= st.crew_max ? ' (send one to the shed first)' : ''}`}</button></div></div>`;
+        const shed = st.shed || [];
+        $('gGardeners').innerHTML = st.gardeners.length || shed.length
+            ? `<p class="muted g-small">${st.crew_max} at work at a time; the rest rest in the shed.</p>`
+              + st.gardeners.map(x => gard(x, true)).join('')
+              + (shed.length ? `<div class="g-small muted g-shed-head">🛖 In the shed</div>` + shed.map(x => gard(x, false)).join('') : '')
             : '<p class="muted g-small">None yet. Gardeners are the Sauce-o-Matic\'s legendaries: each one moves in and helps.</p>';
         $('gLog').innerHTML = st.log.length ? st.log.map(l => `<li>${esc(l.text)} <span class="muted">${new Date(l.at * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></li>`).join('')
             : '<li class="muted">Nothing yet.</li>';

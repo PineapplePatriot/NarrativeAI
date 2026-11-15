@@ -8774,7 +8774,8 @@ class TomatoGardenTests(TestCase):
         state = self.client.get(reverse("tomato_garden_state")).json()
         self.assertEqual(state["tiles"], [])                       # Hoe-Bot harvested it
         self.assertIn("Hoe-Bot 3000", state["log"][0]["text"])
-        self.assertEqual(len(state["gardeners"]), 4)
+        self.assertEqual(len(state["gardeners"]), 3)               # three at work at a time
+        self.assertEqual(len(state["shed"]), 1)
 
 
 class TomatoBoardTests(TestCase):
@@ -9786,3 +9787,48 @@ class RewriteLineTests(BulbaTests):
 for _name in [n for n in dir(BulbaTests) if n.startswith("test_")]:
     if getattr(RewriteLineTests, _name, None) is getattr(BulbaTests, _name, None):
         setattr(RewriteLineTests, _name, None)
+
+
+class JobsContextTests(BulbaTests):
+    def test_bulba_and_the_extras_page_limit_what_background_jobs_read(self):
+        from mainapp import ai_client
+        self.script = [("Done.", [self.call("propose_extras", jobs_context=24000)])]
+        p = self.api(action="say", text="my summaries cost too much").json()["state"]["proposals"][-1]
+        self.assertIn("24,000", json.dumps(p["summary"]))
+        self.api(action="apply", id=p["id"])
+        for task in ("summary", "memory", "trackers"):
+            self.assertEqual(ai_client.get_task_setting(self.user, task).context, 24000)
+        self.api(action="undo", id=p["id"])
+        self.assertIsNone(ai_client.get_task_setting(self.user, "summary").context)
+        self.client.post(reverse("users:extras"), json.dumps({"jobs_context": 16384}), content_type="application/json")
+        self.assertEqual(ai_client.get_task_setting(self.user, "memory").context, 16384)
+
+
+for _name in [n for n in dir(BulbaTests) if n.startswith("test_")]:
+    if getattr(JobsContextTests, _name, None) is getattr(BulbaTests, _name, None):
+        setattr(JobsContextTests, _name, None)
+
+
+class GardenCrewTests(TomatoMachineTests):
+    def test_three_gardeners_at_work_the_rest_in_the_shed(self):
+        from mainapp import tomato_garden as G
+        self.score.machine = {"items": {"gardener_farmer": 1, "gardener_frog": 1, "gardener_robot": 1, "gardener_witch": 1}}
+        self.score.save()
+        self.score.refresh_from_db()
+        state = G.public(self.score)
+        self.assertEqual(len(state["gardeners"]), 3)
+        self.assertEqual([x["id"] for x in state["shed"]], ["gardener_witch"])
+        with self.assertRaises(ValueError):
+            G.act(self.user, {"action": "crew", "id": "gardener_witch", "on": True})
+        G.act(self.user, {"action": "crew", "id": "gardener_frog", "on": False})
+        G.act(self.user, {"action": "crew", "id": "gardener_witch", "on": True})
+        from mainapp import tomato_machine as M
+        self.score.refresh_from_db()
+        m = M._state(self.score)
+        self.assertTrue(G._has(m, "gardener_witch"))
+        self.assertFalse(G._has(m, "gardener_frog"))  # resting: no extra compost from him
+
+
+for _name in [n for n in dir(TomatoMachineTests) if n.startswith("test_")]:
+    if getattr(GardenCrewTests, _name, None) is getattr(TomatoMachineTests, _name, None):
+        setattr(GardenCrewTests, _name, None)

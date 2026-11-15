@@ -17,9 +17,9 @@ SAMPLERS = [
      "help": "Upper limit for one reply. Too low cuts replies off mid-sentence."},
     {"key": "context_size", "label": "Context size (tokens)", "kind": "int", "default": 32000,
      "min": 1024, "max": 2000000, "step": 1024,
-     "help": "How much of the chat the model rereads for each reply (the same as Chat memory on the Extras page, "
-             "which sets it here and for presets you make later). The oldest messages are dropped to fit; story "
-             "memory, the summary and trackers keep the story. This one is per preset. Off = send the whole chat."},
+     "help": "How much of the chat the model rereads for each reply, for this preset. The oldest messages are "
+             "dropped to fit; story memory, the summary and trackers keep the story. Off = send the whole chat. "
+             "(The slider on the Extras page is different: it limits what the background jobs read.)"},
     {"key": "temperature", "label": "Temperature", "kind": "float", "default": 1.0,
      "min": 0, "max": 2, "step": 0.01, "help": "Higher = more surprising word choices, lower = more predictable."},
     {"key": "top_p", "label": "Top-p", "kind": "float", "default": 1.0, "min": 0, "max": 1, "step": 0.01,
