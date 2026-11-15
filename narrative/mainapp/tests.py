@@ -4283,7 +4283,7 @@ class BulbaCardAndLoreTests(BulbaTests):
         self.upload(V2_CARD)
         aslan = ("[Identity]\nThe character is Aslan, the great lion of Narnia, King above all High Kings, son of "
                  "the Emperor-beyond-the-Sea, who sang Narnia into being. He is no one's pet and comes and goes as "
-                 "he will. A huge lion, larger than any mortal lion, golden and warm.")
+                 "he will.\n[Appearance]\nA huge lion, larger than any mortal lion, golden and warm.")
         self.script = [("Here it is.", [self.call("propose_card_edit", description=aslan, why="new character")])]
         self.api(action="say", text="make me Aslan")
         session = BulbaSession.objects.get(user=self.user, active=True)
@@ -5299,7 +5299,7 @@ class BulbaPicturesAndThemeTests(BulbaCardAndLoreTests):
 
     def test_long_cards_are_kept_whole(self):
         from mainapp.models import Character
-        long_text = "Habits:\n" + ("He checks the locks twice before sleeping. " * 600)  # ~25k characters
+        long_text = "Appearance:\nTall, grey at the temples.\n\nHabits:\n" + ("He checks the locks twice before sleeping. " * 600)  # ~25k characters
         self.script = [("", [self.call("propose_character", name="Corvin", description=long_text,
                                        greeting="The door creaks.")])]
         pid = self.api(action="say", text="go all out").json()["state"]["proposals"][-1]["id"]
@@ -9111,3 +9111,36 @@ class SmallFixesNovemberTests(SimpleTestCase):
         self.assertEqual(len(picker), 7)
         self.assertTrue(all(p["name"].startswith("🎶 ") and p["url"].endswith(".mp3") for p in picker))
         self.assertNotIn("🔮🎭💫", [t["name"] for t in media_library.built_in("music")])  # not for Bulba's picks
+
+
+class CardCheckTests(SimpleTestCase):
+    FILL = " She keeps the shop open late on market days and closes it early when it rains, counts the till twice," \
+           " and remembers every face that ever sold her something they regretted selling, and every price."
+    GOOD = ("Identity:\n{{char}} is a pawnbroker.\n\nAppearance:\nShort, grey hair in a knot.\n\n"
+            "Behavior:\nHaggles hard with strangers, overpays old friends and denies it." + FILL)
+
+    def session(self, messages=()):
+        import types
+        return types.SimpleNamespace(messages=list(messages))
+
+    def test_a_card_without_appearance_or_with_stock_labels_goes_back_once(self):
+        from mainapp.bulba import card_check as C
+        self.assertIsNone(C.review(self.session(), "Marta", self.GOOD))
+        no_look = "Identity:\n{{char}} is a pawnbroker.\n\nBehavior:\nHaggles." + self.FILL
+        self.assertIsNone(C.review(self.session(), "Marta", "A restorer."))   # one line they dictated: as it is
+        err = C.review(self.session(), "Marta", no_look)
+        self.assertIn("no Appearance part", err)
+        typed = self.GOOD + "\nA cold genius with a predator's smile and a piercing gaze."
+        err = C.review(self.session(), "Marta", typed)
+        self.assertIn("“cold genius”", err)
+        self.assertIn("“predator's smile”", err)
+        # already sent back once in this conversation: through it goes, no loop
+        self.assertIsNone(C.review(self.session([{"role": "tool", "content": '{"error": "' + err + '"}'}]), "Marta", typed))
+        self.assertIsNone(C.review(self.session(), "Ira", "Зовнішність:\nВисока.\n\nПоведінка: тиха." + self.FILL))  # Ukrainian
+
+    def test_the_guide_shows_a_compact_card_done_well(self):
+        from pathlib import Path
+        from django.conf import settings
+        guide = (Path(settings.BASE_DIR) / "mainapp/data/bulba/guides/characters.md").read_text(encoding="utf-8")
+        self.assertIn("### A compact card done well", guide)
+        self.assertIn("Cut Background before you cut this", guide)

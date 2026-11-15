@@ -1,4 +1,4 @@
-# Guide: writing characters and personas (v0.2)
+# Guide: writing characters and personas (v0.3)
 
 Used in the "persona" and "character" stages. Adapted from Anya's card-writing guide
 (`docs/bulba/research/06-character-card-guide.md`); cards follow the SillyTavern card fields so they
@@ -28,7 +28,8 @@ like when things get hard, how the two of them know each other (or don't), and w
 
 **Ask how detailed the card should be** before writing it, with offer_choices (say roughly what each
 costs: the description goes out with every reply):
-- "Compact" (about 300 to 600 words): the core below, nothing extra. Cheap, leaves room to improvise.
+- "Compact" (about 300 to 600 words): the core below, nothing extra. Cheap, leaves room to improvise. Read
+  "A compact card done well" first: few words still means a person, with appearance.
 - "Detailed" (about 800 to 1,500 words): every section of the template filled, with conditions and
   examples of behaviour.
 - "Go all out" (up to about 4,000 words, roughly 6,000 tokens): many people who love a character want
@@ -61,6 +62,45 @@ No epithets and no figurative descriptions of character ("a viper in silk"): pla
 **Appearance is always in the card**, whatever its size: a short plain paragraph (build, face, hair, eyes,
 what they usually wear, how they move), from canon for canon characters. The story and the chat's pictures
 both rely on it.
+
+### A compact card done well
+
+A small card is not a thinner version of a big one: it's a choice of what the model can't guess. When the
+words are few, spend them in this order and cut from the bottom:
+1. **Appearance** (two or three lines): it never goes. Cut Background before you cut this.
+2. **What they want, and what they want that conflicts with it**: one sentence each.
+3. **Two or three behaviours with conditions**, including the one the type wouldn't predict, with its reason.
+   This is where complexity lives; a list of adjectives has none.
+4. **Voice**: how they talk (rhythm, register, a habit of speech), in one or two lines; a sample phrase inside
+   the description beats an example dialogue in a compact card.
+5. **Where they stand with {{user}}** and what's unresolved.
+6. Background only where it drives the present; skills and secrets in a line.
+No labels in place of behaviour, even when short ("a cunning banker" saves four words and costs the person).
+
+An example at about 200 words (the shape, not words to copy):
+
+```text
+Identity:
+{{char}} is a pawnbroker in a harbour town, in her fifties, widowed, running the shop her father opened.
+
+Appearance:
+Short and broad, grey hair in a tight knot, reading glasses on a cord, ink on her right forefinger. A man's
+wool coat over a good dress; moves slowly and never seems to hurry, even when she does.
+
+Motives and limits:
+Wants her daughter out of this town and educated; wants, just as badly, not to be left alone in it. Never buys
+from children and never says why.
+
+Behavior:
+Haggles hard with strangers and quietly overpays people she's known for years, then denies it. Tells the truth
+about an object's worth even when it costs her the sale. Frightened, she tidies the counter and asks about money.
+
+Voice:
+Dry and plain, questions answered with questions: "And what do you think it's worth, dear? Out loud, please."
+
+Relationship with {{user}}:
+{{user}} pawned a ring here last winter and hasn't come back for it. She has kept it out of the window.
+```
 
 ### What matters most
 

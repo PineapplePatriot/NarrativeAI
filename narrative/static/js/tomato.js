@@ -355,6 +355,7 @@
     const watchers = [];
     let waiting = false, waited = 0, idle = 0, btn = null, pitLink = null;
     let wildWait = false;  // this wait is a chat's or Bulba's: its throws count for the leaderboard
+    let resumed = false;   // they came back to a wait that had been going on (resume()): no 10 seconds again
     function showButton() {
         if (btn) { btn.classList.remove('fading'); return; }
         btn = document.createElement('button');
@@ -399,7 +400,7 @@
     setInterval(() => {
         const active = watchers.filter(w => { try { return !!w.fn(); } catch (e) { return false; } });
         if (active.length) {
-            if (!waiting) { waiting = true; waited = 0; waitThrows = 0; }
+            if (!waiting) { waiting = true; waited = resumed ? SHOW_AFTER : 0; waitThrows = 0; resumed = false; }
             wildWait = active.some(w => w.kind === 'chat' || w.kind === 'bulba');
             waited++;
             idle = 0;
@@ -459,6 +460,7 @@
         found() { if (!data.found) { data.found = true; award('pit'); save(); changed(); sync(); } },
         onChange(fn) { listeners.push(fn); },
         refresh: fetchState,  // after the machine hands out something to wear or throw
+        resume() { resumed = true; if (waiting) waited = Math.max(waited, SHOW_AFTER); },  // back to an old wait
         wear,
     };
 })();

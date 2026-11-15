@@ -960,6 +960,10 @@ def tool_propose_character(session, args):
         return {"error": "Need a name and a description."}, []
     payload = {k: str(args.get(k, "")).strip()[:40000]
                for k in ("description", "scenario", "greeting", "personality", "example_dialogue")}
+    from mainapp.bulba import card_check
+    sent_back = card_check.review(session, name, payload["description"])  # no appearance, or types not a person
+    if sent_back:
+        return {"error": sent_back}, []
     from mainapp.bulba import polish
     payload = polish.clean_written(session.user, payload)  # the known AI habits out of the draft (the greeting most)
     payload["name"] = name

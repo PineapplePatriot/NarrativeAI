@@ -382,7 +382,7 @@ window.fetch = function (url, opts) {
     slowJobs++;
     return pageFetch(url, opts).finally(() => { slowJobs = Math.max(0, slowJobs - 1); });
 };
-if (window.NATomato) NATomato.watch(() => isBusy() || slowJobs > 0, 'chat');  // 🍅 a slow reply or a slow Bulba helper
+if (window.NATomato) NATomato.watch(() => isBusy() || slowJobs > 0 || messageInput.classList.contains('writing'), 'chat');  // 🍅 a slow reply, a slow helper, Write for me
 
 messageInput.addEventListener('input', function () {
     this.style.height = 'auto';
@@ -755,6 +755,7 @@ function handleReply(data) {
 // They left the page while a reply was being written: the server kept writing (mainapp/live.py). Follow it from
 // the start (what was written so far shows at once), then live, as if they had never left.
 function followLiveReply() {
+    if (window.NATomato) NATomato.resume();  // the wait began before they left: the tomato comes back at once
     isGenerating = true;
     sendBtn.disabled = true;
     stopContainer.style.display = 'block';
@@ -1222,6 +1223,7 @@ async function resumeDraft() {
     }).then(r => r.json()).catch(() => ({ state: 'none' }));
     let d = await ask();
     if (d.state === 'running') {  // still writing: the box waits, locked, like it does while you watch
+        if (window.NATomato) NATomato.resume();
         messageInput.readOnly = true;
         messageInput.classList.add('writing');
         messageInput.placeholder = '✍️ Still writing your message…';

@@ -1821,6 +1821,13 @@ body:has(#toolsMenu.show) .watch-card { display: none; }  /* the pen menu wins w
 .atmosphere.time-night { background: radial-gradient(ellipse at 50% 20%, rgba(30, 41, 90, .25), rgba(5, 8, 25, .55)); }
 .atmosphere.time-dusk { background: linear-gradient(180deg, rgba(251, 146, 60, .18), rgba(126, 34, 206, .22)); }
 .atmosphere.time-dawn { background: linear-gradient(180deg, rgba(253, 186, 116, .14), rgba(244, 114, 182, .08)); }
+/* Day and a clear sky used to show nothing: a faint warm light, and slow sunbeams */
+.atmosphere.time-day { background: linear-gradient(180deg, rgba(255, 236, 179, .08), transparent 60%); }
+.atmosphere.sky-clear .sky { inset: -20% -20% 0 -20%; opacity: .55;
+    background: repeating-linear-gradient(105deg, transparent 0 60px, rgba(255, 244, 214, .12) 60px 120px, transparent 120px 220px);
+    animation: atmo-beams 18s ease-in-out infinite alternate; }
+.atmosphere.time-night.sky-clear .sky { opacity: 0; }
+@keyframes atmo-beams { from { transform: translateX(-6%); opacity: .35; } to { transform: translateX(6%); opacity: .6; } }
 .atmosphere .sky { position: absolute; inset: -50% 0 0 0; }
 .atmosphere.sky-rain .sky, .atmosphere.sky-storm .sky {
     background-image: repeating-linear-gradient(105deg, transparent 0 18px, rgba(180, 200, 255, .22) 18px 19px, transparent 19px 46px);
@@ -1849,6 +1856,7 @@ body:has(#toolsMenu.show) .watch-card { display: none; }  /* the pen menu wins w
         linear-gradient(180deg, transparent 150px, #000 230px, #000 calc(100% - 200px), transparent calc(100% - 130px));
     mask-composite: intersect; }
 .atmosphere.atmo-front.sky-fog { opacity: .85; }
+.atmosphere.atmo-front.sky-clear { display: none; }  /* sunbeams only behind the chat, never over the text */
 .atmosphere .flash { position: absolute; inset: 0; background: rgba(230, 235, 255, .55); opacity: 0; animation: atmo-flash 9s infinite; }
 @keyframes atmo-rain { to { background-position: -30px 120px; } }
 @keyframes atmo-snow { to { background-position: 30px 712px, 85px 813px, 40px 517px; } }
@@ -2307,6 +2315,9 @@ body.polish-on .message-btn.polish-btn { display: flex; }
 .effects-sub.dim { opacity: .55; }
 .atmo-picks { margin: 2px 0 6px 26px; }
 .atmo-picks .atmo-label { display: block; font-size: .78rem; opacity: .7; margin: 6px 0 4px; }
+/* The chosen weather and time stay marked (before, only the last tap looked chosen: a touch screen's hover) */
+.atmo-picks .preset-btn.on { background: var(--accent-1, #7c3aed); color: #fff; border-color: transparent;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, .18) inset; }
 .effects-sub.dim .atmo-picks { pointer-events: none; }
 
 /* The opening message can be edited or swiped, never deleted */

@@ -61,11 +61,11 @@ window.Atmosphere = (function () {
         // background's name): a rainy scene opens with rain
         // Weather it doesn't recognise ("cold, still air", "indoors") keeps the theme's; only a clear sky ends it
         const told = weather(world.weather);
-        let seen = told === 'clear' ? '' : (told || window.THEME_WEATHER || '');
+        let seen = told || window.THEME_WEATHER || '';  // a clear sky shows too now (soft sunbeams)
         let hour = timeOfDay(world.time);
         // A fixed pick in the pen menu wins over the scene ('' = follow the scene)
         const pickW = pick('weather'), pickT = pick('time');
-        if (pickW) seen = pickW === 'clear' ? '' : pickW;
+        if (pickW) seen = pickW;
         if (pickT) hour = pickT === 'day' ? 'day' : pickT;
         const next = isOn() ? `${hour}|${seen}` : '|';
         if (next === last) return;
