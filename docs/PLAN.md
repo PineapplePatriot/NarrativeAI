@@ -1,7 +1,7 @@
 # Plan for the next chapter (15 November 2026)
 
-Everything still open, in the order we'd build it. Nothing here is decided until Anya says so; open questions are
-marked **Decide**. Research behind phases B and C: `docs/research/memory-cards-research-2026-11-15.md`.
+Everything still open, in the order we'd build it. Anya's answers (15 November, second round) are under
+**Decided** in each phase. Research behind phases B and C: `docs/research/memory-cards-research-2026-11-15.md`.
 `docs/ROADMAP.md` keeps the older list; this file is the working plan.
 
 ## Done since 11 November (for context)
@@ -12,6 +12,16 @@ priority; Gemini block message in plain words; tracker looks and Bulba's designe
 fixed (fallback colour, cast from the start, reminder); typed `[[extra: …]]` markers removed; card check
 (appearance, no stock labels) and "A compact card done well" in Bulba's guide.
 
+## Bugs from 15 November (done first)
+
+- **Try again on every red error** (a busy or rate-limited provider): in a chat and with Bulba, even when the error
+  came after a proposal or an Apply.
+- **Menu**: Guide moved up with the plain entries; the emoji ones (Bulba, Notebook, Pit, Garden) together below.
+- **Music on every page**: the Pit radio or a chat's music keeps playing on the other pages (▶ 🎶 in the top bar);
+  a chat with its own music plays that; the Pit picks a radio track back up.
+- **Question: can Bulba change connections?** Not yet: Bulba knows the chat model but can't switch it, pick another
+  connection or make one. Proposed below (A4).
+
 ## Phase A: small, grounded (no blockers)
 
 1. **Every story-writing helper follows their writing direction.** Write my message already uses the preset and the
@@ -21,6 +31,9 @@ fixed (fallback colour, cast from the start, reminder); typed `[[extra: …]]` m
    ideas); check setup Bulba can too. A user-made extra background prompt: parked (no need seen yet).
 3. **Gemini blocks** (that user is on OpenRouter): no app-side difference found; the source-teen check remains the
    likely cause. Optional: compare their setup with Anya's.
+4. **Bulba switches models and connections** (proposed): in-chat and setup Bulba can show the connections, switch the
+   chat model (on the current connection or another), and make a new connection from an existing one's key. Every
+   change is a proposal card they apply; Bulba never sees or asks for a key.
 
 ## Phase B: structured cards and personas (the foundation)
 
@@ -49,8 +62,14 @@ by the story memory's people register (C4), so they stay consistent; {{user}} is
 not adjectives); the word budget they chose is spread over the sections by the priority in "A compact card done
 well"; ensembles and simulations get their own guide sections.
 
-**Decide:** the section list (anything missing or unwanted?); whether Simulation shows its growing cast to the user
-as an editable "Cast" list (suggested: yes, folded).
+**Decided:**
+- Our own take, not a copy: our section names and wording, our composition, our editor.
+- **Temperament works together with relationship progression** (C5): it sets where each relationship starts, how
+  fast it moves, and which route it leans to.
+- Everything editable. Old cards and SillyTavern uploads get an **Upgrade this card** button (Structure it).
+- **Describe from a picture**: Bulba writes a character from an image (appearance first), and offers it during
+  onboarding.
+- Simulation's cast is visible and editable (folded).
 
 ## Phase C: story memory, on by default
 
@@ -85,7 +104,8 @@ kept up to date from the milestones; the same identity everywhere (memory, track
 draw their recurring people from here.
 
 **C5. Relationship progression.** One record per ordered pair (how A sees B; B's view is its own): a named stage
-(stranger → acquaintance → friend → close…; a romance ladder when the story is one; custom stages from the card),
+on a **route**: the basic one (stranger → acquaintance → friend → close), romance, and others such as **enemies /
+rivals** (the most important one), mentor and student, and custom routes from the card; a pair can change route,
 two or three dimensions (trust, warmth, tension), and a short history of what changed it. It moves only with kept
 scenes, at most a step per milestone (the story systems' rules), from the card's Temperament starting point. The
 stage's note steers how they behave ("guarded, tests promises", not "is in love").
@@ -105,10 +125,14 @@ saw" shows them; Bulba can read and fix them.
 **C9. Cost.** About one small call per scene on the background model (milestone + facts + register +
 relationships in one structured answer); shown on the spending line.
 
-**Decide:** milestones replace the running summary in the prompt for new chats, or both are sent (suggested:
-milestones replace it, the summary button stays for those who want it); do the Secrets and Relationships trackers
-become views of memory (suggested: yes, their pictures stay); scene length default (suggested: every 12–16 messages
-or a place/time change).
+**Decided:**
+- **Two summary modes** on the Summary panel: **Manual** (what we have: summaries of a few messages each, or one
+  general summary; it must add to what's there, never replace it) and **Story memory** (milestones, knowledge,
+  relationships), switched by its own button.
+- Trackers stay as they are: simple pictures for the user, separate from memory.
+- A milestone every **4 messages** by default (and when the place or time changes); they set their own number in
+  onboarding or by asking in-chat Bulba.
+- Routes as in C5.
 
 ## Phase D: custom chat looks, made with Bulba
 

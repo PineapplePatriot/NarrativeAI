@@ -721,11 +721,11 @@ function sendMessage(noteOnly = false) {
 // A finished reply (just written, or followed after coming back to the page): on screen, then everything after it
 function handleReply(data) {
             if (data.refused) return handleRefusal(data);
-            if (data.empty) { if (data.bubble) data.bubble.closest('.message')?.remove(); showChatError(data.error); return; }
+            if (data.empty) { if (data.bubble) data.bubble.closest('.message')?.remove(); showChatError(data.error, true); return; }
             if (data.error || data.stopped) {
                 if (data.bubble) setSwipes({ count: 1, current: 0 });  // the partial reply was kept
                 if (data.bubble && window.READING_LANGUAGE) translateMessage(data.bubble.closest('.message'));
-                if (data.error) showChatError(data.error);
+                if (data.error) showChatError(data.error, true);
                 return;
             }
             let avatarToUse = data.photo_url;
@@ -1135,12 +1135,21 @@ function setDirected(messageEl, note) {
 
 // Toggle Tools
 // Shows a failed generation in the chat; the user's message is kept, so Regenerate retries it
-function showChatError(text) {
+function showChatError(text, retry = false) {
     const div = document.createElement('div');
     div.className = 'chat-error';
-    div.textContent = /Regenerate/.test(text) ? `⚠️ ${text}` : `⚠️ ${text} — press Regenerate to try again.`;
+    const msg = document.createElement('span');
+    msg.textContent = retry ? `⚠️ ${text}` : (/Regenerate/.test(text) ? `⚠️ ${text}` : `⚠️ ${text} — press Regenerate to try again.`);
+    div.append(msg);
+    if (retry) {  // a reply that failed (a busy provider, a rate limit): one press tries it again; it stays until then
+        document.querySelectorAll('.chat-error.can-retry').forEach(e => e.remove());
+        div.classList.add('can-retry');
+        const btn = document.createElement('button');
+        btn.type = 'button'; btn.className = 'chat-error-retry'; btn.textContent = '↻ Try again';
+        btn.onclick = () => { div.remove(); regenerateReply(); };
+        div.append(btn);
+    } else setTimeout(() => div.remove(), text.length > 200 ? 40000 : 15000);  // a long explanation stays long enough to read
     messagesContainer.insertBefore(div, typingMessage);
-    setTimeout(() => div.remove(), text.length > 200 ? 40000 : 15000);  // a long explanation stays long enough to read
     scrollToBottom();
 }
 
@@ -1444,7 +1453,7 @@ function regenerateReply(guidance = '', model = '') {
     requestReply(model ? { action: 'regenerate', guidance: guidance, model } : { action: 'regenerate', guidance: guidance })
         .then(d => {
             if (d.refused) { restore(); return handleRefusal(d); }  // the server kept the old reply
-            if (d.empty) { if (d.bubble) d.bubble.closest('.message')?.remove(); restore(); showChatError(d.error); return; }
+            if (d.empty) { if (d.bubble) d.bubble.closest('.message')?.remove(); restore(); showChatError(d.error, true); return; }
             if (d.error || d.stopped) {
                 // The server keeps any text that arrived as a new version; with none, the old reply stays
                 if (!d.bubble) restore();
@@ -1453,7 +1462,7 @@ function regenerateReply(guidance = '', model = '') {
                     setSwipes(before ? { count: before.count + 1, current: before.count } : { count: 1, current: 0 });
                     if (window.READING_LANGUAGE) translateMessage(d.bubble.closest('.message'));
                 }
-                if (d.error) showChatError(d.error);
+                if (d.error) showChatError(d.error, true);
                 return;
             }
             if (old) old.remove();

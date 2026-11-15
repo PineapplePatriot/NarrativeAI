@@ -29,6 +29,7 @@ from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
 from . import basics as basics_mod
+from . import writing_quality
 from . import echo, speaker_colors
 from . import live as live_jobs  # work that outlives the page (not the local "live" lists below)
 from . import extras, game, html_objects, media_library, recall, story, thinking, ai_client, cards, chats, regex_rules, experiences, model_profiles, presets, samplers, starters, tomato_garden, tomato_machine, tomatoes, trackers, translation
@@ -2140,7 +2141,8 @@ def note_ideas(user, character, messages, summary="", persona=None):
         raise ai_client.AIError("Start the story first: there's nothing to direct yet.")
     transcript = "\n\n".join(f"{names['user'] if m[0] == 'user' else character.name}: {html_objects.shrink(m[2])[:1500]}" for m in recent)
     text = bulba_quick(user, [
-        {"role": "system", "content": NOTE_IDEAS_PROMPT.format(rules=presets.job_prompt(user, "note_ideas", names))},
+        {"role": "system", "content": NOTE_IDEAS_PROMPT.format(rules=presets.job_prompt(user, "note_ideas", names))
+                                      + "\n\n" + writing_quality.helper_taste(user)},
         {"role": "user", "content": (f"The story so far: {summary[:2000]}\n\n" if summary else "")
                                     + f"The latest messages (latest last):\n\n{transcript}"}],
         temperature=0.8, response_format={"type": "json_object"})
@@ -2198,7 +2200,8 @@ def bulba_ideas(user, character, messages, mode, persona=None, summary=""):
     recent = [m for m in messages if m[0] in ("user", "assistant")][-8:]
     transcript = "\n\n".join(f"{names['user'] if m[0] == 'user' else character.name}: {html_objects.shrink(m[2])[:1500]}" for m in recent)
     system = (IDEAS_PROMPT[mode] + " " + presets.job_prompt(user, "ideas_" + mode, names)
-              + (" " + ideas_voice(user, messages, names) if mode == "player" else "") + "\n\n" + IDEAS_STYLE)
+              + (" " + ideas_voice(user, messages, names) if mode == "player" else "") + "\n\n"
+              + writing_quality.helper_taste(user) + "\n\n" + IDEAS_STYLE)
     about = f"{character.name}: {(character.description or '')[:1500]}"
     story = f"The story so far (summary): {summary[:2000]}\n\n" if summary else ""
     text = bulba_quick(user, [
@@ -2225,7 +2228,8 @@ def word_note(user, character, messages, wish, rewrite=False, persona=None):
     recent = [m for m in messages if m[0] in ("user", "assistant")][-6:]
     transcript = "\n\n".join(f"{names['user'] if m[0] == 'user' else character.name}: {html_objects.shrink(m[2])[:1500]}" for m in recent)
     what = "a new version of the last reply" if rewrite else "the next reply"
-    system = WORD_NOTE_PROMPT.format(what=what, rules=presets.job_prompt(user, "director_note", names))
+    system = (WORD_NOTE_PROMPT.format(what=what, rules=presets.job_prompt(user, "director_note", names))
+              + "\n\n" + writing_quality.helper_taste(user))
     text = bulba_quick(user, [
         {"role": "system", "content": system},
         {"role": "user", "content": f"The chat so far (latest last):\n\n{transcript}\n\nTheir wish: {wish}"}],

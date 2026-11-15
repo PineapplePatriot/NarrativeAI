@@ -162,7 +162,7 @@
         <div class="radio-vols"><label class="radio-vol">🎶 <input type="range" id="radioMusicVol" min="0" max="1" step="0.05" value="${p.musicVol}" aria-label="Music volume"></label>
         <label class="radio-vol">💥 <input type="range" id="radioSfxVol" min="0" max="1" step="0.05" value="${p.sfxVol}" aria-label="Sound effects volume"></label>
         <label class="radio-fx"><input type="checkbox" id="radioSfx" ${p.sfx ? 'checked' : ''}> <span>Sound effects</span></label></div>
-        <small class="muted radio-note">Also in any chat: 🎵 Music → the 🎶 tracks.</small>`;
+        <small class="muted radio-note">Keeps playing on the other pages (▶ 🎶 in the top bar). Also in any chat: 🎵 Music → the 🎶 tracks.</small>`;
     const $ = (id) => document.getElementById(id);
     function paint() {
         const playing = S.playing(), cur = S.current();

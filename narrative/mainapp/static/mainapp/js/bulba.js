@@ -322,11 +322,14 @@ function render() {
         if (ev.type === 'note') return `<div class="note">✓ ${esc(ev.text)}</div>`;
         if (ev.type === 'watch') return '';  // sent to the chat page (Bulba switched Watch)
         if (ev.type === 'error') {  // the last thing on the page after their message: try it again, copy it, or drop it
-            const failed = i === events.length - 1 && failedTail() !== null && !busy;
-            return `<div class="error">${esc(ev.text)}${failed ? `<div class="error-actions">
+            // any error that ended the turn can be tried again (a rate limit after a proposal too); copy and
+            // remove only when their message never got an answer
+            const last = i === events.length - 1 && !busy;
+            const failed = last && failedTail() !== null;
+            return `<div class="error">${esc(ev.text)}${last ? `<div class="error-actions">
                 <button type="button" data-failed="retry">↻ Try again</button>
-                <button type="button" class="ghost" data-copy="${failedTail()}">📋 Copy my message</button>
-                <button type="button" class="ghost" data-failed="remove">🗑 Remove it</button></div>` : ''}</div>`;
+                ${failed ? `<button type="button" class="ghost" data-copy="${failedTail()}">📋 Copy my message</button>
+                <button type="button" class="ghost" data-failed="remove">🗑 Remove it</button>` : ''}</div>` : ''}</div>`;
         }
         if (ev.type === 'stage') return `<div class="stage-mark">${esc(STAGE_LABELS[ev.stage] || ev.stage)}</div>`;
         if (ev.type === 'proposal') return proposalCard(ev);

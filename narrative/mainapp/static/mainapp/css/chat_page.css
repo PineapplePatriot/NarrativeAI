@@ -1290,6 +1290,17 @@ body.has-you .message.user .message-text .sc { color: var(--you); }
 .lore-row { padding: 4px 0; border-bottom: 1px solid rgba(255, 255, 255, .06); }
 .lore-row:last-child { border-bottom: none; }
 
+.chat-error-retry {
+    display: block;
+    margin-top: 8px;
+    padding: 6px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(254, 205, 211, .5);
+    background: rgba(244, 63, 94, .25);
+    color: #fff;
+    font: inherit;
+    cursor: pointer;
+}
 .chat-error {
     margin: 8px auto;
     max-width: 80%;

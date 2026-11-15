@@ -1297,6 +1297,7 @@ def failed_tail(session):
     return idx if all(e.get("type") == "error" for e in session.events[idx + 1:]) else None
 
 
+
 def _cut_to_last_user(session, keep_it):
     """Bulba's conversation back to their last message (kept, or removed too)."""
     i = next((i for i in range(len(session.messages) - 1, -1, -1) if session.messages[i].get("role") == "user"), None)
@@ -1304,13 +1305,29 @@ def _cut_to_last_user(session, keep_it):
         session.messages = session.messages[:i + 1] if keep_it else session.messages[:i]
 
 
+def stopped_on_error(session):
+    """The turn ended on an error (a rate limit, a dropped provider), whatever came before it in that turn."""
+    return bool(session.events) and session.events[-1].get("type") == "error"
+
+
+CARRY_ON = "[The last request failed on the provider's side (not your fault). Carry on from where you stopped.]"
+
+
 def retry_failed(session):
-    """Their last message again, after a turn that failed (no second copy of it). Returns the new events."""
+    """Their last message again, after a turn that failed (no second copy of it); or, when the turn failed midway
+    (after a proposal, a tool, an Apply), Bulba carries on from there. Returns the new events."""
     idx = failed_tail(session)
-    if idx is None:
+    if idx is not None:
+        del session.events[idx + 1:]
+        _cut_to_last_user(session, keep_it=True)
+        return run_turn(session, "")
+    if not stopped_on_error(session):
         raise ValueError("There's nothing to try again.")
-    del session.events[idx + 1:]
-    _cut_to_last_user(session, keep_it=True)
+    while session.events and session.events[-1].get("type") == "error":
+        session.events.pop()
+    last = session.messages[-1] if session.messages else None
+    if last and last.get("role") == "assistant" and not last.get("tool_calls"):
+        session.messages.append({"role": "user", "content": CARRY_ON})  # never end on Bulba's own words
     return run_turn(session, "")
 
 

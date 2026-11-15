@@ -3083,6 +3083,23 @@ class BulbaRunTwoTests(BulbaTests):
         session.refresh_from_db()
         self.assertFalse(any(m.get("content") == "Something else" for m in session.messages))
 
+    def test_an_error_midway_through_a_turn_can_be_tried_again(self):
+        """A rate limit after a proposal or a note (screenshot, 15 November): Try again carries on from there."""
+        from mainapp.bulba import agent
+        from mainapp.models import BulbaSession
+        self.script = [("Hello there.", [])]
+        self.api(action="say", text="hi")
+        session = BulbaSession.objects.get(user=self.user, mode="setup")
+        session.events += [{"type": "action", "text": "Bulba Watch: Worth keeping?"},
+                           {"type": "error", "text": "Main returned an error (429): rate-limited upstream."}]
+        session.save()
+        self.script = [("Carrying on.", [])]
+        data = self.api(action="retry_failed").json()
+        self.assertEqual([e["type"] for e in data["events"]][-2:], ["action", "bulba"])
+        self.assertNotIn("error", [e["type"] for e in data["events"]])
+        self.assertEqual(self.bulba_calls[-1]["messages"][-1]["content"], agent.CARRY_ON)  # never ends on Bulba's words
+        self.assertEqual(self.api(action="retry_failed").status_code, 400)
+
     def test_a_dropped_connection_can_fetch_the_finished_turn(self):
         from django.core.cache import cache
         self.script = [("Hello there.", [])]
