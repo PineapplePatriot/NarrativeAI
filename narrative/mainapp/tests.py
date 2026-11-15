@@ -9765,3 +9765,24 @@ class ExtraMoodsTests(StoryMemoryTests):
 for _name in [n for n in dir(StoryMemoryTests) if n.startswith("test_")]:
     if getattr(ExtraMoodsTests, _name, None) is getattr(StoryMemoryTests, _name, None):
         setattr(ExtraMoodsTests, _name, None)
+
+
+class RewriteLineTests(BulbaTests):
+    def test_a_silent_rewrite_gets_a_line_from_bulba(self):
+        from unittest import mock
+        from mainapp.bulba import agent
+        from mainapp.models import BulbaSession
+        self.api(action="say", text="hi")
+        session = BulbaSession.objects.get(user=self.user, mode="setup")
+        fake = ({"rewritten_reply": "x"}, [{"type": "samples", "samples": [{"label": "Again", "text": "x"}], "retry_id": "r1"}])
+        self.script = [("", [self.call("write_samples")])]
+        with mock.patch.dict(agent.HANDLERS, {"write_samples": lambda s, a: fake}), \
+                mock.patch("mainapp.ai_client.requests.post", side_effect=self.fake_post):
+            events = agent.run_turn(session, "rewrite it")
+        self.assertEqual(events[-1]["type"], "bulba")
+        self.assertIn("Use this in the chat", events[-1]["text"])
+
+
+for _name in [n for n in dir(BulbaTests) if n.startswith("test_")]:
+    if getattr(RewriteLineTests, _name, None) is getattr(BulbaTests, _name, None):
+        setattr(RewriteLineTests, _name, None)

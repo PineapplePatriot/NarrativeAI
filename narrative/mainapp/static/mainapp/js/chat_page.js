@@ -80,6 +80,9 @@ document.addEventListener("click", (event) => {
     const index = btn.dataset.index !== undefined ? Number(btn.dataset.index) : null;
 
     switch (action) {
+        case "regen":  // ↻ on the last reply: a new version of it (the old one stays as a swipe)
+            regenerateReply();
+            break;
         case "edit":
             if (index !== null) editMessage(index);
             break;
@@ -801,6 +804,18 @@ function updateMessageIndices() {
         if (cancelBtn) cancelBtn.setAttribute('onclick', `cancelEdit(${index})`);
         message.querySelectorAll('[data-index]').forEach(el => el.dataset.index = index);
     });
+    // ↻ Regenerate sits on the last reply only (the pen menu's Redo still takes an instruction)
+    document.querySelectorAll('.message-btn.regen').forEach(b => b.remove());
+    const last = messages[messages.length - 1];
+    if (last && last.classList.contains('assistant') && !last.classList.contains('note')) {
+        const actions = last.querySelector('.message-actions');
+        if (actions) {
+            const b = document.createElement('button');
+            b.type = 'button'; b.className = 'message-btn regen'; b.dataset.action = 'regen';
+            b.title = 'Regenerate: a new version of this reply (the old one stays, ‹ › to flip)'; b.textContent = '↻';
+            actions.prepend(b);
+        }
+    }
     if (window.Summary) Summary.messagesChanged(messages.length);
 }
 

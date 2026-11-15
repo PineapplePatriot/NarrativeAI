@@ -1484,6 +1484,15 @@ def run_turn(session, user_text, action_note=None, model_note=None):
     except ai_client.AIError as e:
         new_events.append({"type": "error", "text": str(e)})
 
+    # A rewrite of the last reply that arrived without a word from Bulba (it called the tool straight away, and
+    # the turn ends on the sample): a short line, so it never looks like Bulba went quiet
+    if any(e.get("type") == "samples" and e.get("retry_id") for e in new_events) \
+            and not any(e.get("type") == "bulba" and e.get("text") for e in new_events):
+        line = ("Here's the rewrite. If you like it, “Use this in the chat” adds it as a new version of the last "
+                "reply; if something's still off, tell me what.")
+        new_events.append({"type": "bulba", "text": line})
+        session.messages.append({"role": "assistant", "content": line})
+
     if pending_choices:
         last = next((ev for ev in reversed(new_events) if ev["type"] == "bulba"), None)
         if last is None:
