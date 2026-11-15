@@ -122,6 +122,7 @@ function proposalCard(ev) {
             ? `<div class="proposal-label">${esc(l.slice(0, -1))}</div>` : `<div>${esc(l)}</div>`).join('')}</div>
         ${(p.summary || []).join('\n').length > 900 ? '<button type="button" class="link unfold">Show all</button>' : ''}
         ${p.preview ? themePreview(p.preview) : ''}
+        ${p.kind === 'chat_look' ? `<iframe class="look-preview" src="/main/bulba/look_preview/${encodeURIComponent(p.id)}/" loading="lazy" title="Preview of the look" tabindex="-1"></iframe>` : ''}
         <div class="proposal-actions">${actions}${chatLink}</div>
       </div>`;
 }
@@ -193,7 +194,7 @@ function extrasForm(ev, live) {
         name="x_${name}" value="${val}" ${current === val ? 'checked' : ''} ${dis}><span>${esc(label)}</span></label>`).join('');
     const check = (name, label, on) => `<label class="pill"><input type="checkbox" name="x_${name}" ${on ? 'checked' : ''} ${dis}><span>${esc(label)}</span></label>`;
     const every = (name, item) => `<label class="every">every <input type="number" name="x_${name}_every" min="1" max="200"
-        value="${esc((item || {}).interval || (name === 'summary' ? 10 : 2))}" ${dis}> messages</label>`;
+        value="${esc((item || {}).interval || ({ summary: 10, memory: 4 }[name] || 2))}" ${dis}> messages</label>`;
     const row = (label, field, hint) => `<div class="form-row"><div class="form-label">${esc(label)}${hint ? `<small>${esc(hint)}</small>` : ''}</div>
         <div class="form-field">${field}</div></div>`;
     let rows;
@@ -211,7 +212,9 @@ function extrasForm(ev, live) {
         rows = memoryRow()
             + row('Voices', ev.has_voice_key ? '<span class="help">On: your ElevenLabs key is saved.</span>'
                 : '<a class="choice" href="/users/extras/" target="_blank" rel="noopener">Add an ElevenLabs key ↗</a> <span class="help">optional; never paste keys in this chat</span>')
-            + row('Story summary', radio('summary', [['auto', 'Automatic'], ['manual', 'Only when I ask']], (v.summary || {}).mode) + every('summary', v.summary) + cost('summary'), 'keeps long chats on track')
+            + row('Story memory', radio('memory', [['on', 'On for new chats'], ['off', 'Off: the summary instead']], (v.memory || {}).on === false ? 'off' : 'on') + every('memory', v.memory),
+                  'what happened, who knows what, who everyone is and how relationships move, kept every few messages (more for many short messages, fewer for long ones)')
+            + row('Story summary', radio('summary', [['auto', 'Automatic'], ['manual', 'Only when I ask']], (v.summary || {}).mode) + every('summary', v.summary) + cost('summary'), 'the simpler "story so far" note, for chats without story memory')
             + row('Story trackers', radio('trackers', [['auto', 'Automatic'], ['manual', 'Only when I ask']], (v.trackers || {}).mode) + every('trackers', v.trackers) + cost('trackers'), 'keeps long, plot-heavy stories consistent: where, when, who, how they feel, what you carry')
             + row('Character pictures', check('sprites', 'Change with the mood', v.sprites), 'one small call per reply')
             + row('Bulba Watch', check('watch', 'On', v.watch), 'reads replies now and then for habits that repeat')
@@ -248,6 +251,7 @@ $('log').addEventListener('submit', e => {
         for (const t of ['summary', 'trackers']) {
             if (picked(t)) answers[t] = { mode: picked(t), interval: Number(get(`${t}_every`).value) || undefined };
         }
+        if (picked('memory')) answers.memory = { on: picked('memory') === 'on', interval: Number(get('memory_every').value) || 4 };
         if (get('background')) answers.background = get('background').value;
     }
     if (part === 'setup' || part === 'memory') {

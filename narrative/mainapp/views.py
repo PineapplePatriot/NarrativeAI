@@ -3925,6 +3925,28 @@ def _quick_status(user, picked, characters):
 
 
 @login_required
+def bulba_look_preview(request, pid):
+    """A small mock chat in a proposed custom look, shown inside Bulba's card before they press Apply."""
+    from mainapp.models import BulbaSession
+    proposal = None
+    for session in BulbaSession.objects.filter(user=request.user).order_by("-id")[:20]:
+        proposal = next((p for p in session.proposals or [] if p.get("id") == pid and p.get("kind") == "chat_look"), None)
+        if proposal:
+            break
+    if proposal is None:
+        raise Http404("No such look.")
+    look = chat_looks.clean(proposal["payload"].get("look"))
+    character = Character.objects.filter(author=request.user, id=proposal["payload"].get("character_id")).first()
+    name = character.name if character else "Character"
+    you = prompt_names(request.user, character, None)["user"] if character else "You"
+    return render(request, "mainapp/look_preview.html", {
+        "look": look, "look_css": chat_looks.css(look, name, you), "look_fonts": chat_looks.fonts_url(look),
+        "look_data": chat_looks.page_data(look), "name": name, "you": you,
+        "photo": character.photo_neutral.url if character and character.photo_neutral else "",
+    })
+
+
+@login_required
 def bulba_explain(request):
     """What's this? Bulba explains one thing they clicked (or asked about) on a page."""
     from .bulba import explain

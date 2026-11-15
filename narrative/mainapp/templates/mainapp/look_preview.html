@@ -1,0 +1,75 @@
+{% load static %}<!DOCTYPE html>
+{# A proposed custom chat look on a small mock chat (Bulba's card shows it before Apply: views.bulba_look_preview) #}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Look preview</title>
+    <link rel="stylesheet" href="{% static 'mainapp/css/chat_page.css' %}?v=40">
+    <link rel="stylesheet" href="{% static 'mainapp/css/chat_skins.css' %}?v=5">
+    {% if look_fonts %}<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="{{ look_fonts }}">{% endif %}
+    <style>{{ look_css|safe }}</style>
+    <style>
+        html, body { height: 100%; margin: 0; overflow: hidden; }
+        body { pointer-events: none; user-select: none; }
+        .pv { display: flex; height: 100%; }
+        .pv .chat-container { flex: 1; display: flex; flex-direction: column; min-width: 0; position: relative; height: 100vh; }
+        .pv .messages-container { min-height: 0; }
+        .pv .chat-header { padding: 10px 14px; }
+        .pv .character-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+        .pv .header-actions { display: flex; gap: 6px; }
+        .pv .header-btn { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--border-color); background: none; color: inherit; font-size: .9rem; }
+        .pv .tracker-hud { display: flex; padding: 5px 14px; }
+        .pv .messages-container { flex: 1; overflow: hidden; padding: 18px 14px 6px; display: flex; flex-direction: column; gap: 16px; }
+        body.skin-custom { font-size: 14px; }
+        .pv .message-content { font-size: .92em; }
+        .pv .message { display: flex; gap: 10px; align-items: flex-start; }
+        .pv .message.user { flex-direction: row-reverse; }
+        .pv .message-content { padding: 10px 14px; }
+        .pv .message-text { line-height: 1.5; }
+        .pv .input-container { padding: 10px 14px; }
+        .pv .input-wrapper { display: flex; gap: 8px; align-items: center; }
+        .pv .input-field { flex: 1; min-height: 38px; display: flex; align-items: center; color: var(--text-muted); }
+        .pv .send-btn, .pv .tools-btn { width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; font-size: 1rem; color: #fff; }
+        .pv .tr-icons { position: absolute; right: 8px; top: 92px; padding: 6px 5px; gap: 5px; display: flex; flex-direction: column; }
+        .pv .tr-icon { width: 30px; height: 30px; font-size: .9rem; }
+        .pv .message.has-rail .message-content { margin-right: 46px; max-width: 78%; }
+    </style>
+</head>
+<body class="skin-custom">
+<div class="pv">
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="character-info">
+                <div class="character-avatar">{% if photo %}<img src="{{ photo }}" alt="">{% else %}{{ name|first|upper }}{% endif %}</div>
+                <div class="character-details"><h3>{{ name }}</h3><p>Chat 1</p></div>
+            </div>
+            <div class="header-actions"><span class="header-btn">💬</span><span class="header-btn">🎵</span><span class="header-btn">✏️</span></div>
+        </div>
+        <div class="tracker-hud">
+            <div class="hud-items">
+                <span class="hud-pill hud-clock"><span class="hp-ico">🌙</span><span class="hp-text">23:40, the third night</span></span>
+                <span class="hud-pill"><span class="hp-ico">📍</span><span class="hp-text">The old greenhouse</span></span>
+                <span class="hud-pill hud-meter"><span class="hp-ico">❤️</span><span class="hp-text">{{ name }}</span><span class="hp-gauge"><i style="width:62%"></i></span><span class="hp-num">62</span></span>
+            </div>
+        </div>
+        <div class="messages-container">
+            <div class="message assistant has-rail">
+                {% if photo %}<img src="{{ photo }}" alt="" class="message-avatar">{% else %}<div class="message-avatar">{{ name|first|upper }}</div>{% endif %}
+                <div class="message-content"><div class="message-text"><em>{{ name }} sets the lantern down between you.</em> <span class="quoted">"You came back. I wasn't sure you would."</span></div></div>
+            </div>
+            <div class="message user has-rail">
+                <div class="message-avatar">{{ you|first|upper }}</div>
+                <div class="message-content"><div class="message-text">"I said I would. Did you keep my seat?"</div></div>
+            </div>
+        </div>
+        <div class="input-container">
+            <div class="input-wrapper"><span class="tools-btn">✏️</span><span class="input-field">Your turn…</span><span class="send-btn">➤</span></div>
+        </div>
+        <div class="tr-icons"><span class="tr-icon active">📍</span><span class="tr-icon">❤️</span><span class="tr-icon">🎒</span></div>
+    </div>
+</div>
+{{ look_data|json_script:"look-data" }}
+<script src="{% static 'mainapp/js/chat_look.js' %}?v=2"></script>
+</body>
+</html>

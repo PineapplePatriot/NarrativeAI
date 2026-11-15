@@ -284,3 +284,8 @@ body.embed .mini-progress { display: none !important; }  /* beside the Quick set
 .tp-bg { flex-direction: column; align-items: flex-start; justify-content: flex-end; gap: 2px; }
 .tp-line.solo { display: flex; flex-direction: column; gap: 2px; }
 .basics-form .form-group { flex-basis: 100%; font-size: .75rem; opacity: .7; text-transform: uppercase; letter-spacing: .05em; margin-top: 2px; }
+
+/* A proposed custom chat look, on a small mock chat (templates/mainapp/look_preview.html) */
+.look-preview { display: block; width: 100%; height: 400px; margin: 10px 0 4px; border: 1px solid rgba(148, 163, 184, .3);
+                border-radius: 12px; background: #11131c; }
+@media (max-width: 520px) { .look-preview { height: 300px; } }

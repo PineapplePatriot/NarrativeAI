@@ -293,6 +293,16 @@ def css(recipe, char_name="", user_name=""):
 {S} .hp-gauge i {{ background: linear-gradient(90deg, {c['accent']}, {c['accent2']}); box-shadow: none; }}
 {S} .tracker-hud .hud-btn {{ background: {c['bubble_ai']}; color: {c['text']}; border: 1px solid {c['outline']}55; }}
 {S} .hud-sky {{ opacity: .25 !important; }}""")
+    # The side strip of tracker icons: the look's surface, lines and accent (the cards that open from it keep theirs)
+    rail_edge = f"2px solid {c['outline']}" if b["outline"] in ("thick", "sketch", "double") else f"1.5px solid {c['outline']}88"
+    out.append(f"""{S} .tr-icons {{ background: {c['surface']}{'eb' if light else 'd9'}; border: {rail_edge};
+  box-shadow: {('3px 4px 0 ' + c['outline']) if b['shadow'] == 'offset' else '0 12px 30px rgba(0,0,0,.25)'}; }}
+{S} .tr-icon {{ background: {c['bubble_ai']}; color: {c['text']}; border: 1px solid {c['outline']}33; border-radius: {'50%' if r['buttons'] == 'pill' else '12px'}; }}
+{S} .tr-icon:hover {{ background: {c['accent']}26; }}
+{S} .tr-icon.active {{ background: {c['accent']}; border-color: {c['outline']}; box-shadow: {('2px 3px 0 ' + c['outline']) if r['buttons'] == 'sticker' else '0 0 14px ' + c['accent'] + '88'}; }}
+{S} .tr-icon.small {{ background: none; }}
+{S} .tr-icon[data-item="add"] {{ color: {c['accent']}; border-color: {c['accent']}88; }}
+{S} .tr-gap {{ background: {c['outline']}44; }}""")
     return "\n".join(out)
 
 

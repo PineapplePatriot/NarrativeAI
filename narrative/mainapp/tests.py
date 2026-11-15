@@ -9591,3 +9591,36 @@ class ChatLookChangeTests(ChatLookTests):
 for _name in [n for n in dir(ChatLookTests) if n.startswith("test_")]:
     if getattr(ChatLookChangeTests, _name, None) is getattr(ChatLookTests, _name, None):
         setattr(ChatLookChangeTests, _name, None)
+
+
+class LookPreviewAndOnboardingTests(ChatLookTests):
+    def test_the_card_previews_the_look_and_the_form_sets_story_memory(self):
+        from mainapp.bulba import agent
+        from mainapp.models import BulbaSession, Character
+        from mainapp import ai_client
+        c = Character.objects.create(name="Ant", slug="ant-preview", author=self.user, initial_message="Hi.")
+        self.api(action="say", text="hi")
+        session = BulbaSession.objects.get(user=self.user, mode="setup")
+        session.focus = c
+        session.save()
+        self.script = [("Here.", [self.call("propose_chat_look", look=self.PURPL)])]
+        p = self.api(action="say", text="purple please").json()["state"]["proposals"][-1]
+        page = self.client.get(reverse("bulba_look_preview", args=[p["id"]]))
+        self.assertContains(page, "skin-custom")
+        self.assertContains(page, "Ant")
+        self.assertContains(page, "family=Gaegu")
+        self.assertEqual(self.client.get(reverse("bulba_look_preview", args=["nope"])).status_code, 404)
+        # The extras form's story memory row
+        self.assertIn("memory", agent.extras_form_event(session, "setup")["values"])
+        payload, summary = agent.form_payload("setup", {"memory": {"on": True, "interval": 6}})
+        self.assertEqual(payload["memory"], {"on": True, "interval": 6})
+        from users.views import apply_extras
+        apply_extras(self.user, payload)
+        self.assertEqual(ai_client.get_task_setting(self.user, "memory").interval, 6)
+        apply_extras(self.user, {"memory": {"on": False}})
+        self.assertFalse(ai_client.get_task_setting(self.user, "memory").enabled)
+
+
+for _name in [n for n in dir(ChatLookTests) if n.startswith("test_")]:
+    if getattr(LookPreviewAndOnboardingTests, _name, None) is getattr(ChatLookTests, _name, None):
+        setattr(LookPreviewAndOnboardingTests, _name, None)

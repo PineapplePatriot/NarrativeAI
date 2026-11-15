@@ -1161,7 +1161,7 @@ def after_memory_form(session, shown):
 # The extras in one form (setup: the app's extras; story: dice, story extras, ideas)
 # ---------------------------------------------------------------------------
 
-SETUP_FORM_KEYS = ("summary", "trackers", "sprites", "watch", "fix_model", "background")
+SETUP_FORM_KEYS = ("memory", "summary", "trackers", "sprites", "watch", "fix_model", "background")
 STORY_FORM_KEYS = ("game", "story_extras", "ideas")
 
 
@@ -1253,6 +1253,15 @@ def form_payload(part, answers):
                     every = 10 if task == "summary" else 2
                 payload[task] = {"mode": item["mode"], "interval": every}
                 summary.append(f"{label}: " + (f"every {every} messages" if item["mode"] == "auto" else "only when you ask"))
+        item = answers.get("memory") if isinstance(answers.get("memory"), dict) else {}
+        if isinstance(item.get("on"), bool):
+            try:
+                every = max(1, min(100, int(item.get("interval") or 4)))
+            except (TypeError, ValueError):
+                every = 4
+            payload["memory"] = {"on": item["on"], "interval": every}
+            summary.append("Story memory: " + (f"on for new chats, updated every {every} messages" if item["on"]
+                                               else "off (new chats use the story summary)"))
         for key, label in (("sprites", "Character pictures that change with the mood"), ("watch", "Bulba Watch")):
             if isinstance(answers.get(key), bool):
                 payload[key] = answers[key]
