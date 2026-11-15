@@ -207,6 +207,11 @@ TOOLS = [
         ["wording", "interpretation", "scope", "status"]),
     _fn("propose_extras", "Propose the extras settings (they press Apply).",
         {"summary": {"type": "string", "enum": ["auto", "manual"]}, "summary_every": {"type": "integer"},
+         "memory": {"type": "boolean", "description": "Story memory (on by default): new chats keep milestones per "
+                    "scene, who knows what, who everyone is and relationship progression. false: new chats use "
+                    "the manual summary instead"},
+         "memory_every": {"type": "integer", "description": "How many messages between story memory updates "
+                          "(default 4; more for many short messages, fewer for long ones)"},
          "trackers": {"type": "string", "enum": ["auto", "manual"]}, "trackers_every": {"type": "integer"},
          "sprites": {"type": "boolean"},
          "story_extras": {"type": "array", "items": {"type": "string", "enum": ["documents", "messages", "milestones",
@@ -315,7 +320,7 @@ def tool_get_current_setup(session, args):
     active = presets.get_active(user)
     return {
         "chat_model": extras["chat_model"],
-        "extras": {k: extras[k] for k in ("has_eleven_key", "summary", "trackers", "sprites", "background")},
+        "extras": {k: extras[k] for k in ("has_eleven_key", "summary", "memory", "trackers", "sprites", "background")},
         "active_preset": active.name,
         "presets": [p.name for p in Preset.objects.filter(user=user)][:20],
         "persona": {"name": getattr(user, "persona_name", "") or "", "description": getattr(user, "persona_description", "") or ""},
@@ -794,6 +799,15 @@ def tool_record_preference(session, args):
 def tool_propose_extras(session, args):
     from users.views import _cheap_models
     payload, summary = {}, []
+    if isinstance(args.get("memory"), bool) or args.get("memory_every"):
+        item = {}
+        if isinstance(args.get("memory"), bool):
+            item["on"] = args["memory"]
+        if args.get("memory_every"):
+            item["interval"] = max(1, min(100, int(args["memory_every"])))
+        payload["memory"] = item
+        summary.append("Story memory: " + ("off (new chats use the manual summary)" if item.get("on") is False else
+                       "on" + (f", updated every {item['interval']} messages" if item.get("interval") else "")))
     if args.get("summary") in ("auto", "manual"):
         every = max(1, min(200, int(args.get("summary_every") or 10)))
         payload["summary"] = {"mode": args["summary"], "interval": every}

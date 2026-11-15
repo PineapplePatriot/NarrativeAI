@@ -27,7 +27,12 @@ def what_the_ai_saw(chat):
     report = built.get("LoreReport") or {}
     fired = [r for r in report.get("report") or [] if isinstance(r, dict) and r.get("status") == "included"]
     persona = data.get("persona") if isinstance(data.get("persona"), dict) else {}
+    from mainapp import story_memory
+    using_memory = story_memory.chat_mode(user, data, len(messages)) == "memory"
     return {
+        "mode": "memory" if using_memory else "manual",
+        "memory": story_memory.prompt_text(data.get("memory")) if using_memory else "",
+        "secrets": story_memory.knowledge_for_watch(data.get("memory")) if using_memory else "",
         "summary": [{"piece": i, "from": p["from"], "to": p["to"], "text": p["text"]} for i, p in enumerate(parts)],
         "pinned_note": pinned_note(data.get("context_guides") or {}),
         "trackers": built["SystemPrompts"].get("StoryState", ""),
@@ -49,7 +54,10 @@ def context_section(chat):
     except Exception:  # never let a broken lorebook or tracker stop Bulba
         return ""
     summary = "\n\n".join(p["text"] for p in saw["summary"])
-    lines = ["### What the AI saw for the last reply (besides the preset and the messages)",
+    memory_line = ("This chat uses story memory (Summary panel → Story memory; they edit it there): "
+                   + (_clip(saw["memory"], 2500) if saw.get("memory") else "nothing yet (it updates every few messages)")
+                   if saw.get("mode") == "memory" else "This chat uses the manual summary (Summary panel).")
+    lines = ["### What the AI saw for the last reply (besides the preset and the messages)", memory_line,
              f"Story summary ({len(saw['summary'])} piece{'s' if len(saw['summary']) != 1 else ''}; read_memory for all "
              "of it with piece numbers): " + (_clip(summary, SUMMARY_IN_CONTEXT) if summary else "none yet"),
              "Pinned note: " + (_clip(saw["pinned_note"], 800) if saw["pinned_note"] else "none"),

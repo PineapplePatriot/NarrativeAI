@@ -30,6 +30,7 @@ from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
 from . import basics as basics_mod
 from . import writing_quality
+from . import story_memory
 from .bulba import vision as bulba_vision
 from . import echo, speaker_colors
 from . import live as live_jobs  # work that outlives the page (not the local "live" lists below)
@@ -286,7 +287,9 @@ def _summarize(user, messages, existing="", room=None):
     """One summary piece for `messages`, continuing `existing` when there is one. With `room` (tokens), a single
     message longer than that is cut to fit (its end kept)."""
     if existing:  # the instructions are the preset's utility prompts (Presets page → Utility prompts)
-        sys_prompt = f"Existing summary: {existing}\n\nTask: {presets.job_prompt(user, 'summary_continue')}"
+        sys_prompt = (f"Existing summary: {existing}\n\nTask: {presets.job_prompt(user, 'summary_continue')}\n\n"
+                      "(Write only what happens in the messages below. Your text is added after the existing "
+                      "summary, which stays as it is: don't repeat or rewrite it.)")
     else:
         sys_prompt = presets.job_prompt(user, "summary_new")
     lines = [_summary_line(m) for m in messages]
@@ -314,6 +317,13 @@ def _summarize_pieces(user, messages, start, earlier=""):
         pieces.append({"text": _summarize(user, messages[i:j], existing, room), "from": start + i, "to": start + j})
         i = j
     return pieces
+
+
+def _story_text(user, chat_state, count):
+    """What the model reads as the story so far: story memory or the manual summary (the chat's mode)."""
+    return story_memory.story_text(user, {"summary_mode": chat_state.get("summary_mode"), "memory": chat_state.get("memory"),
+                                          "summary_parts": chat_state.get("summary_parts"), "summary": chat_state.get("summary")},
+                                   chat_state.get("summary") or "", count)
 
 
 NOTE_FRAME = "[Director's note, outside the story (not something said or done in it): {text}]"
@@ -364,7 +374,7 @@ def _write_mine(request, data, character, chat_obj, chat_state, messages, text_r
         try:
             written, fixed = polish.polish_text(request.user, character, chat_obj, written,
                                                 polish.others_before(messages, len(messages), "user"),
-                                                chat_state["summary"], habits, whose="theirs")
+                                                _story_text(request.user, chat_state, len(messages)), habits, whose="theirs")
         except ai_client.AIError as e:
             log.info("Polish skipped for a written message: %s", e)
     if reading and not translation.already_in(written, reading):  # into the language they write in
@@ -452,6 +462,8 @@ def chat(request, slug):
         "trackers": {},         # tracker values, locks and "upto" (see mainapp/trackers.py)
         "tracker_history": [],  # snapshots of the trackers by message count (for deletes and branches)
         "summary_paused": False,  # automatic summaries are paused for this chat
+        "memory": {},  # story memory (mainapp/story_memory.py)
+        "summary_mode": "",  # "memory" or "manual" once chosen ("" = not yet: story_memory.chat_mode decides)
         "context_guides": {},
         "current_bg": "",
         "current_music": {},
@@ -502,6 +514,8 @@ def chat(request, slug):
                 chat_state["trackers"] = data.get("trackers") or {}
                 chat_state["tracker_history"] = data.get("tracker_history") or []
                 chat_state["summary_paused"] = bool(data.get("summary_paused"))
+                chat_state["memory"] = data.get("memory") if isinstance(data.get("memory"), dict) else {}
+                chat_state["summary_mode"] = data.get("summary_mode") if data.get("summary_mode") in ("memory", "manual") else ""
                 chat_state["context_guides"] = data.get("context_guides", {})
                 chat_state["current_bg"] = data.get("current_bg", "")
                 chat_state["current_music"] = data.get("current_music", {})
@@ -597,14 +611,27 @@ def chat(request, slug):
         if "keepsakes" in extra_kinds:
             values["scrapbook"] = extras.keepsakes(messages)
 
+    def chat_mode():
+        """This chat's summary mode: story memory or the manual summary (story_memory.chat_mode)."""
+        return story_memory.chat_mode(request.user, {"summary_mode": chat_state["summary_mode"],
+                                                     "summary_parts": chat_state["summary_parts"],
+                                                     "summary": chat_state["summary"]}, len(messages))
+
     def save_messages(messages):
         sync_game_trackers(messages)
+        if not chat_state["summary_mode"]:  # decided once (a new chat: memory), so it doesn't change as it grows
+            chat_state["summary_mode"] = story_memory.chat_mode(request.user, {"summary_parts": chat_state["summary_parts"],
+                                                                               "summary": chat_state["summary"]}, len(messages))
+        if chat_state["memory"]:  # deleted messages take what memory knew of them along
+            chat_state["memory"] = story_memory.trim_to(chat_state["memory"], len(messages))
         full_data = {
             "messages": messages,
             "summary": chat_state["summary"],
             "summary_upto": chat_state["summary_upto"],
             "summary_parts": chat_state["summary_parts"],
             "summary_paused": chat_state["summary_paused"],
+            "memory": chat_state["memory"],
+            "summary_mode": chat_state["summary_mode"],
             "trackers": chat_state["trackers"],
             "tracker_history": chat_state["tracker_history"],
             "context_guides": chat_state["context_guides"],
@@ -633,7 +660,7 @@ def chat(request, slug):
             return
         original = msgs[-1][2]
         try:
-            new_text, fixes = polish.polish(request.user, character, chat_obj, msgs, chat_state["summary"], len(msgs) - 1)
+            new_text, fixes = polish.polish(request.user, character, chat_obj, msgs, _story_text(request.user, chat_state, len(msgs)), len(msgs) - 1)
         except ai_client.AIError as e:
             log.info("Polish skipped for a reply nobody was watching: %s", e)
             return
@@ -646,6 +673,30 @@ def chat(request, slug):
                if rec_now else polish.record(original, fixes, habits))
         msgs[-1] = chats.with_polish(msgs[-1], new_text, rec)
         save_messages(msgs)
+
+    def after_unwatched():
+        """Everything the page would have asked for after a reply nobody watched: the polish, then story memory."""
+        try:
+            polish_unwatched()
+        finally:
+            msgs = load_messages()
+            if not msgs or chat_mode() != "memory" or not story_memory.due(request.user, chat_state["memory"], len(msgs)):
+                return
+            try:
+                memory = story_memory.update(request.user, character, chat_state["memory"], msgs,
+                                             prompt_names(request.user, character, chat_state["persona"]))
+                chat_state["memory"] = story_memory.roll_arcs(request.user, memory)
+            except ai_client.AIError as e:
+                log.info("Story memory skipped for a reply nobody was watching: %s", e)
+                return
+            save_messages(load_messages_keep_memory(msgs))
+
+    def load_messages_keep_memory(fallback):
+        """The messages as saved now, keeping the memory just written (loading would put the saved one back)."""
+        memory = chat_state["memory"]
+        msgs = load_messages() or fallback
+        chat_state["memory"] = memory
+        return msgs
 
     try:
         messages = load_messages()
@@ -705,6 +756,8 @@ def chat(request, slug):
                     return JsonResponse({"success": False, "error": "Message cannot be empty"})
 
                 if 0 <= index < len(messages):
+                    if chat_state["memory"]:  # what memory wrote about this message is looked at again
+                        chat_state["memory"] = story_memory.mark_stale(chat_state["memory"], index)
                     # Update the message text, keep other fields
                     new_text = text_rules("saved", new_text, messages[index][0], edits_only=True)
                     reading = translation.reading_language(request.user)
@@ -957,7 +1010,7 @@ def chat(request, slug):
             rec_now = chats.polish_of(messages[index]) if 0 <= index < len(messages) else None
             earlier = rec_now if (now and not again) or (rec_now and rec_now.get("echo")) else None
             try:
-                new_text, fixes = polish.polish(request.user, character, chat_obj, messages, chat_state["summary"],
+                new_text, fixes = polish.polish(request.user, character, chat_obj, messages, _story_text(request.user, chat_state, len(messages)),
                                                 index)
             except ai_client.AIError as e:
                 return JsonResponse({"success": False, "error": str(e)})
@@ -1123,7 +1176,7 @@ def chat(request, slug):
             return JsonResponse({"success": True, **memory.what_the_ai_saw(chat_obj)})
         elif action == "note_ideas":  # "Be creative": Bulba writes two director's notes, a logical one and a bold one
             try:
-                ideas = note_ideas(request.user, character, messages, chat_state["summary"], chat_state["persona"])
+                ideas = note_ideas(request.user, character, messages, _story_text(request.user, chat_state, len(messages)), chat_state["persona"])
             except ai_client.AIError as e:
                 return JsonResponse({"success": False, "error": str(e)})
             return JsonResponse({"success": True, **ideas, "spending": ai_client.spending(request.user)})
@@ -1223,6 +1276,49 @@ def chat(request, slug):
                                  "story": story_payload()})
 
         # --- Summary: pieces that each cover a range of messages ---
+        elif action in ("memory", "memory_mode", "memory_run", "memory_edit", "memory_redo", "memory_settings"):
+            # Story memory (mainapp/story_memory.py): the Summary panel's Story memory tab
+            names = prompt_names(request.user, character, chat_state["persona"])
+            try:
+                if action == "memory_mode":
+                    if data.get("mode") not in ("memory", "manual"):
+                        raise ValueError("Pick memory or manual.")
+                    chat_state["summary_mode"] = data["mode"]
+                elif action == "memory_settings":
+                    task = ai_client.get_task_setting(request.user, "memory")
+                    if data.get("every"):
+                        task.interval = max(1, min(100, int(data["every"])))
+                    if isinstance(data.get("automatic"), bool):
+                        task.mode = task.MODE_AUTO if data["automatic"] else task.MODE_MANUAL
+                    task.save()
+                elif action == "memory_run":  # an update: the new messages, or a chunk of an older chat (catch-up)
+                    chunk = story_memory.CATCH_UP_CHUNK if data.get("catch_up") else None
+                    if data.get("quiet") and not story_memory.due(request.user, chat_state["memory"], len(messages)):
+                        return JsonResponse({"success": True, "skipped": True,
+                                             **story_memory.page_payload(chat_state["memory"], request.user, chat_mode())})
+                    try:
+                        memory = story_memory.update(request.user, character, chat_state["memory"], messages, names,
+                                                     chunk=chunk)
+                        memory = story_memory.roll_arcs(request.user, memory)
+                    except ai_client.AIError as e:
+                        raise ValueError(str(e))
+                    chat_state["memory"] = memory
+                elif action == "memory_edit":
+                    chat_state["memory"] = story_memory.edit(chat_state["memory"], data)
+                elif action == "memory_redo":
+                    try:
+                        chat_state["memory"] = story_memory.redo_milestone(request.user, chat_state["memory"], messages,
+                                                                           names, str(data.get("id") or ""))
+                    except ai_client.AIError as e:
+                        raise ValueError(str(e))
+            except (ValueError, TypeError) as e:
+                return JsonResponse({"success": False, "error": str(e) or "That didn't work."})
+            if action != "memory":
+                save_messages(messages)
+            payload = story_memory.page_payload(chat_state["memory"], request.user, chat_mode())
+            return JsonResponse({"success": True, **payload, "total": len(messages),
+                                 "left": max(0, len(messages) - story_memory.clean(chat_state["memory"])["upto"]),
+                                 "spending": ai_client.spending(request.user)})
         elif action in ("summarize", "summary_edit", "summary_delete", "summary_rerun", "summary_pause"):
             parts = list(chat_state["summary_parts"])
             total = len(messages)
@@ -1341,6 +1437,8 @@ def chat(request, slug):
                 messages[-1] = chats.choose_version(messages[-1], int(data.get("to")))
             except (TypeError, ValueError, IndexError):
                 return JsonResponse({"success": False, "error": "No such version."})
+            if chat_state["memory"]:
+                chat_state["memory"] = story_memory.mark_stale(chat_state["memory"], len(messages) - 1)
             save_messages(messages)
             _, _, text, emotion, char_count = messages[-1][:5]
             emo1, _, emo2 = (emotion or "neutral").partition("|")
@@ -1374,7 +1472,7 @@ def chat(request, slug):
                 prompt = build_ai_request(request.user, character, chat=chat_obj, worldbook_slug=worldbook_slug,
                                           message=None, guidance="",
                                           persistent_guides=chat_state["context_guides"],
-                                          summary=chat_state["summary"])
+                                          summary=_story_text(request.user, chat_state, len(messages)))
                 preset = presets.normalize(presets.get_active(request.user).data)
                 _, chat_model = ai_client.resolve(request.user, "chat")
                 names = prompt_names(request.user, character, chat_state["persona"])
@@ -1407,7 +1505,7 @@ def chat(request, slug):
                 try:
                     new_chunk, _fixed = polish.polish_text(request.user, character, chat_obj, new_chunk,
                                                            polish.others_before(messages, len(messages)),
-                                                           chat_state["summary"], habits)
+                                                           _story_text(request.user, chat_state, len(messages)), habits)
                 except ai_client.AIError as e:
                     log.info("Polish skipped for a continuation: %s", e)
             if new_chunk and not new_chunk[0].isspace() and new_chunk[0] not in ".,;:!?)…'\"" and not last_text.endswith((" ", "\n")):
@@ -1600,7 +1698,7 @@ def chat(request, slug):
                         message=(user_message or None) if action == "chat" else None,
                         guidance=guidance,                             # <--- INJECTION 1
                         persistent_guides=chat_state["context_guides"],# <--- INJECTION 2
-                        summary=chat_state["summary"],
+                        summary=_story_text(request.user, chat_state, len(messages)),
                         story_values=story_state() if systems else None)
                     lore_report = prompt.get("LoreReport")
 
@@ -1782,8 +1880,11 @@ def chat(request, slug):
                     # Automatic summary: tell the page to run one in the background
                     summary_task = ai_client.get_task_setting(request.user, "summary")
                     summarized = chat_state["summary_upto"] or 0
-                    summary_due = (summary_task.mode == summary_task.MODE_AUTO and not chat_state["summary_paused"]
-                                   and len(messages) - summarized >= summary_task.interval)
+                    using_memory = chat_mode() == "memory"
+                    summary_due = (not using_memory and summary_task.mode == summary_task.MODE_AUTO
+                                   and not chat_state["summary_paused"] and len(messages) - summarized >= summary_task.interval)
+                    # Story memory: the page asks for the update in the background (mainapp/story_memory.py)
+                    memory_due = using_memory and story_memory.due(request.user, chat_state["memory"], len(messages))
 
                     # Trackers: same idea, if any tracker is on for this character
                     tracker_task = ai_client.get_task_setting(request.user, "trackers")
@@ -1807,6 +1908,7 @@ def chat(request, slug):
                         "voice": bool(get_elevenlabs_key(request.user)),
                         "lore": lore_report,
                         "summary_due": summary_due,
+                        "memory_due": memory_due,
                         "trackers_due": trackers_due,
                         "music_due": music_due(),  # the music follows the scene: the page asks for a pick
                         "watch_due": watch.due(request.user, chat_obj, messages),  # Bulba Watch reads, in the background
@@ -1884,7 +1986,7 @@ def chat(request, slug):
                 if job is None:
                     return JsonResponse({"error": "The last reply is still being written. Wait for it, or press Stop."},
                                         status=409)
-                live_jobs.run_in_background(job, stream_reply(), unwatched=polish_unwatched)
+                live_jobs.run_in_background(job, stream_reply(), unwatched=after_unwatched)
                 response = StreamingHttpResponse(job.follow(), content_type="application/x-ndjson")
                 response["Cache-Control"] = "no-cache"
                 response["X-Accel-Buffering"] = "no"  # don't let proxies hold the stream back
@@ -2003,6 +2105,8 @@ def chat(request, slug):
         "summary": chat_state["summary"],
         "summary_upto": chat_state["summary_upto"],
         "summary_data": summary_payload(),
+        "memory_data": {**story_memory.page_payload(chat_state["memory"], request.user, chat_mode()), "total": len(messages),
+                        "left": max(0, len(messages) - story_memory.clean(chat_state["memory"])["upto"])},
         "context_guides": json.dumps(chat_state["context_guides"]),
         "pinned_note_json": json.dumps(pinned_note(chat_state["context_guides"])),
         # The chat's own background and music, else the character's theme
@@ -2407,7 +2511,7 @@ def build_chat_request(user, chat_obj, preset=None, character=None, drop_last_re
     if drop_last_reply and not tail and messages and chats.is_note(messages[-1]):
         guidance = messages[-1][2]  # same newest-note slot as Regenerate
 
-    summary = chats.summary_text(chats.summary_parts(data, len(messages)))
+    summary = story_memory.story_text(user, data, chats.summary_text(chats.summary_parts(data, len(messages))), len(messages))
     worldbook_slug = character.worldbook.slug if character.worldbook and character.worldbook.author == user else None
     prompt = build_ai_request(user, character, chat=chat_obj, worldbook_slug=worldbook_slug, message=None,
                               guidance=guidance, persistent_guides=data.get("context_guides") or {}, summary=summary)

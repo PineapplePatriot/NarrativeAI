@@ -2418,3 +2418,34 @@ body.skin-lab .message-text .thought { color: #3d5a78; }
 
 /* The picked chip (chat style, speech colours) */
 .skin-choice .preset-btn.on { background: var(--accent-1); color: #fff; border-color: transparent; }
+
+/* ---------- Story memory, in the Summary panel (static/mainapp/js/memory_panel.js) ---------- */
+.mem-tabs { display: flex; gap: 4px; padding: 6px 10px 0; border-bottom: 1px solid var(--border-color); }
+.mem-tab { flex: 1; background: none; border: 0; border-bottom: 2px solid transparent; color: var(--text-secondary);
+           padding: 8px 6px; font: inherit; font-size: 0.85rem; cursor: pointer; }
+.mem-tab.on { color: var(--text-primary); border-bottom-color: var(--accent-1); }
+.mem-tab small { display: inline-block; font-size: 0.68rem; color: var(--accent-2, #10b981); margin-left: 2px; }
+.mem-h { margin: 14px 2px 6px; font-size: 0.78rem; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); }
+.mem-ms.open { border-color: var(--accent-1); }
+.mem-ms.stale { border-color: #f59e0b; }
+.mem-title, .mem-name, .mem-line, .mem-rel select { background: var(--ui-tertiary); border: 1px solid transparent; color: var(--text-primary);
+           border-radius: 6px; padding: 4px 6px; font: inherit; font-size: 0.85rem; min-width: 0; }
+.mem-title { flex: 1; font-weight: 600; }
+.mem-title:focus, .mem-name:focus, .mem-line:focus { outline: none; border-color: var(--accent-1); }
+.t-card header .mem-title { margin-right: 6px; }
+.mem-row { display: flex; gap: 6px; align-items: center; margin: 4px 0; }
+.mem-row small { color: var(--text-muted); white-space: nowrap; }
+.mem-name { flex: 0 0 34%; font-weight: 600; }
+.mem-line { flex: 1; }
+.mem-rel-row { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0; }
+.mem-ladder { display: flex; flex-wrap: wrap; gap: 3px; margin: 6px 0; }
+.mem-ladder span { font-size: 0.7rem; padding: 2px 7px; border-radius: 999px; background: var(--ui-tertiary); color: var(--text-muted); }
+.mem-ladder span.on { background: var(--accent-1); color: #fff; }
+.mem-dims { display: grid; grid-template-columns: 1fr; gap: 2px; font-size: 0.78rem; color: var(--text-secondary); }
+.mem-dims label { display: grid; grid-template-columns: 56px 1fr 18px; align-items: center; gap: 6px; text-transform: capitalize; }
+.mem-dims input { width: 100%; accent-color: var(--accent-1); }
+.mem-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.mem-every { font-size: 0.78rem; color: var(--text-secondary); display: inline-flex; align-items: center; gap: 4px; }
+.mem-every input { width: 48px; background: var(--ui-tertiary); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; padding: 2px 4px; }
+.mem-note { background: rgba(126, 58, 242, 0.08); }
+.summary-panel [hidden] { display: none !important; }

@@ -40,6 +40,17 @@ TASKS = {
         "schedulable": True,
         "default_mode": TaskSetting.MODE_MANUAL,
     },
+    "memory": {
+        "label": "Story memory",
+        "help": "Keeps what happened (a milestone per scene), who knows what, who everyone is and where each "
+                "relationship stands, every few messages (4 by default). A chat uses it or the manual summary "
+                "(Summary panel). One small call each time, so a cheap fast model works well.",
+        "timeout": 180,
+        "schedulable": True,
+        "toggleable": True,
+        "default_mode": TaskSetting.MODE_AUTO,
+        "default_interval": 4,
+    },
     "trackers": {
         "label": "Story trackers",
         "help": "Updates the trackers you turned on for a character (world, relationships, stats...). "
@@ -368,7 +379,7 @@ def spending(user):
 
 # Background jobs fill in JSON or short notes: a thinking model thinks as little as it allows there (the story reply
 # keeps the Samplers page's setting; Bulba and polishing keep the model's own default, they're writing work)
-LIGHT_TASKS = ("summary", "trackers", "emotion", "voice_split", "watch", "writing_tools", "translation", "polish")
+LIGHT_TASKS = ("summary", "memory", "trackers", "emotion", "voice_split", "watch", "writing_tools", "translation", "polish")
 
 
 def _light_reasoning(profile, task, payload, user=None):

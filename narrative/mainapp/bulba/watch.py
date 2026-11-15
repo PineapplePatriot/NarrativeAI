@@ -570,7 +570,11 @@ def _established(chat_obj, character):
         return []
     out = []
     summary = "\n".join(p["text"] for p in saw["summary"])
-    if summary:
+    if saw.get("memory"):  # story memory: what happened, who is who, and who must not know what
+        out += ["## Story memory", saw["memory"][-4000:]]
+        if saw.get("secrets"):
+            out += ["## Secrets (a character acting on one they can't know is out_of_character: quote it)", saw["secrets"]]
+    elif summary:
         out += ["## The story so far (summary)", summary[-2500:]]
     if saw["pinned_note"]:
         out += ["## Pinned note", saw["pinned_note"][:800]]

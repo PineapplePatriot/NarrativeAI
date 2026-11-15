@@ -39,7 +39,7 @@ def apply(session, pid):
         error = apply_extras(user, data)
         if error:
             raise ProposalError(error)
-        p["undo"] = {"summary": before["summary"], "trackers": before["trackers"],
+        p["undo"] = {"summary": before["summary"], "trackers": before["trackers"], "memory": before["memory"],
                      "sprites": before["sprites"], "background": before["background"], "game": before["game"],
                      "story_extras": before["story_extras"], "ideas": before["ideas"], "watch": before["watch"],
                      "fix_model": before["fix_model"], "chat_context_restore": before["chat_context_restore"],

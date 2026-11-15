@@ -589,6 +589,7 @@ class ChatPromptTests(TestCase):
     def test_automatic_summary_is_flagged_when_due(self):
         from users.models import TaskSetting
         TaskSetting.objects.create(user=self.user, task="summary", mode="auto", interval=4)
+        TaskSetting.objects.create(user=self.user, task="memory", enabled=False)  # new chats: the manual summary
         first = self.post({"action": "chat", "message": "One"}).json()  # greeting + 2 = 3 messages
         self.assertFalse(first["summary_due"])
         second = self.post({"action": "chat", "message": "Two"}).json()  # 5 messages
@@ -1727,6 +1728,7 @@ class SummaryPanelTests(SummaryPartsAndBranchTests):
     def test_pause_stops_automatic_summaries(self):
         from users.models import TaskSetting
         TaskSetting.objects.create(user=self.user, task="summary", mode=TaskSetting.MODE_AUTO, interval=2)
+        TaskSetting.objects.create(user=self.user, task="memory", enabled=False)  # new chats: the manual summary
         self.assertTrue(self.post({"action": "chat", "message": "One"}).json()["summary_due"])
         d = self.post({"action": "summary_pause", "paused": True}).json()
         self.assertTrue(d["paused"] and d["auto"])
@@ -9277,3 +9279,135 @@ class CardSectionsTests(BulbaTests):
         self.user.refresh_from_db()
         self.assertEqual(self.user.persona_description,
                          "[Who they are]\nA courier.\n\n[Appearance]\nWiry, scarred knuckles.\n\n[What they want here]\nTo pay off the bike.")
+
+
+class StoryMemoryTests(ChatPromptTests):
+    """Story memory (mainapp/story_memory.py): milestones per scene, facts and who knows them, who is who,
+    relationship routes from the card's temperament, the Summary panel's tab, and what the model reads."""
+
+    ANSWER = {"continues": False, "title": "The third sublevel", "where": "Dottore's lab, third sublevel", "when": "night",
+              "who": ["Rose", "Ivan"],
+              "summary": "Rose met Ivan, Dottore's new guard on the third sublevel, who let her pass for a vial of ink.",
+              "facts": [{"fact": "Rose carries a forged pass.", "known_by": ["Rose"], "hidden_from": ["Ivan"]}],
+              "people": [{"name": "Ivan", "kind": "person", "identity": "Dottore's new guard on the third sublevel"}],
+              "relationships": [{"from": "Rose", "to": "Ivan", "step": 1, "trust": 1, "why": "He let her pass."}]}
+
+    def test_a_new_chat_uses_memory_and_flags_the_update_every_four_messages(self):
+        first = self.post({"action": "chat", "message": "One"}).json()  # greeting + 2 = 3
+        self.assertFalse(first["memory_due"])
+        self.assertFalse(first["summary_due"])
+        second = self.post({"action": "chat", "message": "Two"}).json()  # 5
+        self.assertTrue(second["memory_due"])
+        from mainapp import chats
+        self.assertEqual(chats.read(self.character.chats.first())["summary_mode"], "memory")
+
+    def test_an_update_writes_a_milestone_the_model_then_reads(self):
+        from unittest import mock
+        self.post({"action": "chat", "message": "I show the guard my pass."})
+        self.post({"action": "chat", "message": "I walk on."})
+        with mock.patch("mainapp.story_memory.ai_client.complete", return_value=json.dumps(self.ANSWER)) as call:
+            d = self.post({"action": "memory_run"}).json()
+        self.assertTrue(d["success"])
+        self.assertIn("they meet Ivan, Dottore's new guard", call.call_args[0][2][0]["content"])  # the prompt's rule
+        m = d["memory"]["milestones"][0]
+        self.assertEqual((m["title"], m["open"], m["from"], m["to"]), ("The third sublevel", True, 0, 5))
+        self.assertEqual(d["memory"]["people"][0]["identity"], "Dottore's new guard on the third sublevel")
+        self.assertEqual(d["left"], 0)
+        self.post({"action": "chat", "message": "And then?"})
+        system = "\n".join(x["content"] for x in self.sent[-1]["messages"] if x["role"] == "system")
+        self.assertIn("[Story memory]", system)
+        self.assertIn("Rose met Ivan, Dottore's new guard", system)
+        self.assertIn("NOT known to Ivan", system)
+        # The panel switches this chat to the manual summary: memory isn't sent any more
+        self.post({"action": "memory_mode", "mode": "manual"})
+        self.post({"action": "chat", "message": "Later."})
+        system = "\n".join(x["content"] for x in self.sent[-1]["messages"] if x["role"] == "system")
+        self.assertNotIn("[Story memory]", system)
+
+    def test_a_chat_from_before_stays_on_the_manual_summary(self):
+        from mainapp import story_memory
+        self.assertEqual(story_memory.mode_of({"messages": [1, 2, 3, 4, 5]}), "manual")
+        self.assertEqual(story_memory.mode_of({"summary_parts": [{"text": "x"}], "messages": [1]}), "manual")
+        self.assertEqual(story_memory.mode_of({"messages": [1]}), "memory")
+        from users.models import TaskSetting
+        TaskSetting.objects.create(user=self.user, task="memory", enabled=False)
+        self.assertEqual(story_memory.chat_mode(self.user, {"messages": [1]}), "manual")
+
+    def test_scenes_continue_close_and_never_grow_forever(self):
+        from mainapp import story_memory as M
+        mem = M.fold(M.empty(), {"continues": False, "title": "A", "summary": "First."}, 0, 4)
+        mem = M.fold(mem, {"continues": True, "title": "A", "summary": "First, then more."}, 4, 8)
+        self.assertEqual(len(mem["milestones"]), 1)
+        self.assertEqual((mem["milestones"][0]["to"], mem["milestones"][0]["summary"]), (8, "First, then more."))
+        mem = M.fold(mem, {"continues": False, "close_with": "They left.", "title": "B", "summary": "Second."}, 8, 12)
+        self.assertEqual([(m["title"], m["open"]) for m in mem["milestones"]], [("A", False), ("B", True)])
+        self.assertTrue(mem["milestones"][0]["summary"].endswith("They left."))
+        long = M.fold(M.empty(), {"title": "Long", "summary": "x"}, 0, 4)
+        long = M.fold(long, {"continues": True, "summary": "y"}, 4, 40)  # past MAX_SCENE: a new one starts
+        self.assertEqual(len(long["milestones"]), 2)
+        # Messages deleted: what memory knew of them goes
+        trimmed = M.trim_to(mem, 6)
+        self.assertEqual([m["title"] for m in trimmed["milestones"]], ["A"])
+        self.assertTrue(trimmed["milestones"][0]["stale"])
+
+    def test_relationships_start_from_the_temperament_and_move_a_step_at_a_time(self):
+        from mainapp import card_sections, story_memory as M
+        self.character.sections = card_sections.clean({"people": [{"name": "Rose", "sections": {"appearance": "Tall."},
+                                                                    "temperament": {"pace": "slow", "route": "enemies"}}]})
+        change = lambda: {"relationships": [{"from": "Rose", "to": "Sam", "step": 1, "tension": 2, "why": "A fight."}], "summary": "x"}
+        mem = M.fold(M.empty(), change(), 0, 4, self.character)
+        r = mem["relationships"][0]
+        self.assertEqual((r["route"], r["stage"], r["pace"]), ("enemies", "stranger", "slow"))
+        mem = M.fold(mem, {**change(), "continues": True}, 4, 8, self.character)  # 2 points, slow needs 3
+        self.assertEqual(mem["relationships"][0]["stage"], "stranger")
+        mem = M.fold(mem, {**change(), "continues": True}, 8, 12, self.character)
+        self.assertEqual(mem["relationships"][0]["stage"], "wary")
+        for i in range(3):  # the same milestone again: never a second step in it
+            mem = M.fold(mem, {**change(), "continues": True}, 12 + i, 13 + i, self.character)
+        self.assertEqual(mem["relationships"][0]["stage"], "wary")
+        mem = M.fold(mem, {"continues": False, "summary": "y", "relationships": [{"from": "Rose", "to": "Sam", "route": "enemies_to_lovers", "why": "A truce."}]}, 16, 20, self.character)
+        self.assertEqual((mem["relationships"][0]["route"], mem["relationships"][0]["stage"]), ("enemies_to_lovers", "grudging respect"))
+        text = M.prompt_text(mem)
+        self.assertIn("Rose toward Sam: grudging respect (route: enemies to lovers; trust", text)
+
+    def test_the_panel_edits_and_old_chats_build_in_chunks(self):
+        from unittest import mock
+        from mainapp import chats
+        for i in range(10):
+            self.post({"action": "chat", "message": f"Message {i}"})
+        chat = self.character.chats.first()
+        chats.write(chat, {**chats.read(chat), "summary_mode": "manual", "memory": {}})
+        self.post({"action": "memory_mode", "mode": "memory"})
+        with mock.patch("mainapp.story_memory.ai_client.complete", return_value=json.dumps(self.ANSWER)):
+            d = self.post({"action": "memory_run", "catch_up": True}).json()
+            self.assertEqual(d["left"], 21 - 16)
+            d = self.post({"action": "memory_run", "catch_up": True}).json()
+        self.assertEqual(d["left"], 0)
+        mid = d["memory"]["milestones"][-1]["id"]
+        d = self.post({"action": "memory_edit", "kind": "milestone", "id": mid, "title": "Mine", "summary": "My words."}).json()
+        self.assertEqual(d["memory"]["milestones"][-1]["summary"], "My words.")
+        d = self.post({"action": "memory_edit", "kind": "relationship", "id": "0", "stage": "friend"}).json()
+        self.assertEqual(d["memory"]["relationships"][0]["stage"], "friend")
+        fid = d["memory"]["facts"][0]["id"]
+        d = self.post({"action": "memory_edit", "kind": "fact", "id": fid, "hidden_from": "Ivan, Sam"}).json()
+        self.assertEqual(d["memory"]["facts"][0]["hidden_from"], ["Ivan", "Sam"])
+        self.post({"action": "edit", "index": 3, "text": "Changed."})
+        self.assertTrue(any(m.get("stale") for m in chats.read(chat)["memory"]["milestones"]))
+        d = self.post({"action": "memory_settings", "every": 6}).json()
+        self.assertEqual(d["every"], 6)
+
+    def test_bulba_watch_sees_the_secrets(self):
+        from mainapp import chats, story_memory
+        from mainapp.bulba import memory
+        self.post({"action": "chat", "message": "Hi"})
+        chat = self.character.chats.first()
+        mem = story_memory.fold(story_memory.empty(), self.ANSWER, 0, 3)
+        chats.write(chat, {**chats.read(chat), "memory": mem, "summary_mode": "memory"})
+        saw = memory.what_the_ai_saw(chat)
+        self.assertEqual(saw["mode"], "memory")
+        self.assertIn("Rose carries a forged pass. (NOT known to Ivan)", saw["secrets"])
+
+
+for _name in [n for n in dir(ChatPromptTests) if n.startswith("test_")]:
+    if not hasattr(StoryMemoryTests, _name) or getattr(StoryMemoryTests, _name) is getattr(ChatPromptTests, _name):
+        setattr(StoryMemoryTests, _name, None)  # the chat tests run once, in their own class

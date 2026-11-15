@@ -385,7 +385,7 @@ def welcome(request):
 
 # --- Extras: the feature switches in plain words (for people who skip Bulba) --------------
 
-BACKGROUND_TASKS = ("summary", "trackers", "emotion", "voice_split")
+BACKGROUND_TASKS = ("summary", "memory", "trackers", "emotion", "voice_split")
 
 
 def _cheap_models():
@@ -407,6 +407,8 @@ def _extras_state(user):
         "has_eleven_key": bool(eleven and eleven.eleven_key),
         "summary": {"mode": settings_["summary"].mode, "interval": settings_["summary"].interval},
         "trackers": {"mode": settings_["trackers"].mode, "interval": settings_["trackers"].interval},
+        "memory": {"mode": get_task_setting(user, "memory").mode, "interval": get_task_setting(user, "memory").interval,
+                   "on": get_task_setting(user, "memory").enabled},
         "sprites": settings_["emotion"].enabled,
         "game": game_default(user),
         "story_extras": story_extras(user),
@@ -476,11 +478,15 @@ def apply_extras(user, data):
             return "A cheaper model needs your OpenRouter key; set it on the welcome page first."
 
     with transaction.atomic():
-        for task in ("summary", "trackers"):
+        for task in ("summary", "trackers", "memory"):
             item = data.get(task) if isinstance(data.get(task), dict) else {}
+            if task == "memory" and not item:
+                continue
             setting = get_task_setting(user, task)
             if item.get("mode") in (TaskSetting.MODE_AUTO, TaskSetting.MODE_MANUAL):
                 setting.mode = item["mode"]
+            if isinstance(item.get("on"), bool):  # story memory: on for new chats, or off (manual summary)
+                setting.enabled = item["on"]
             try:
                 setting.interval = max(1, min(200, int(item.get("interval", setting.interval))))
             except (TypeError, ValueError):

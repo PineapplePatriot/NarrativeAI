@@ -22,7 +22,7 @@ fixed (fallback colour, cast from the start, reminder); typed `[[extra: …]]` m
 - **Question: can Bulba change connections?** Not yet: Bulba knows the chat model but can't switch it, pick another
   connection or make one. Proposed below (A4).
 
-## Phase A: small, grounded (no blockers)
+## Phase A: small, grounded (no blockers) — done 15 November (A4 waits for a yes)
 
 1. **Every story-writing helper follows their writing direction.** Write my message already uses the preset and the
    polish. Redo, 🥔 Word it for me, ✨ Be creative and the ideas button get the writing-quality baseline and the
@@ -35,7 +35,7 @@ fixed (fallback colour, cast from the start, reminder); typed `[[extra: …]]` m
    chat model (on the current connection or another), and make a new connection from an existing one's key. Every
    change is a proposal card they apply; Bulba never sees or asks for a key.
 
-## Phase B: structured cards and personas (the foundation)
+## Phase B: structured cards and personas (the foundation) — built 15 November
 
 **B1. Sections instead of one text box.** A card is stored as sections; the description text the model reads is
 composed from them, with headings, so SillyTavern import/export and every prompt path keep working.
@@ -71,7 +71,7 @@ well"; ensembles and simulations get their own guide sections.
   onboarding.
 - Simulation's cast is visible and editable (folded).
 
-## Phase C: story memory, on by default
+## Phase C: story memory, on by default — built 15 November
 
 **C1. Milestones** (not "chapters"): one per scene, written after it on the background model.
 - A scene ends: every N messages, or when the place or time changes (World tracker, story clock), or when they mark
@@ -157,6 +157,21 @@ A separate page imitating Telegram/Discord: casual one-on-one chats with the cha
 - Editable in-story attachments (a phone handed over, notes the character writes in), building on designed objects.
 - Group chats of separate characters (parked: B2 covers several characters in one card).
 - User-made background prompts (parked).
+
+## What was built on 15 November, and what's still open
+
+- **B**: sections, three kinds of card, temperament with routes, Upgrade this card (headings first, Bulba for the
+  rest, nothing lost), Fill empty, Appearance from the picture, back to one box; Bulba writes and edits cards as
+  sections and offers to start from a picture; personas from five quick questions (as sections in the text; the
+  profile page still has one box for them).
+- **C**: milestones per scene (updated every 4 messages, or their own number), arcs, facts with who knows them,
+  who is who, relationships per pair with routes and stages that start from the card's temperament and move a
+  step at a time; the Summary panel's Story memory tab (switch, edit everything, redo a milestone, build memory
+  for an older chat); it also runs when they've left the page; Bulba Watch and in-chat Bulba see it; the
+  `memory_check` command for the cold-reader check.
+- Still open from B and C: a sectioned persona editor on the profile page; relationships for a simulation's new
+  people shown on the card page; a cold-reader test set from real chats (needs Anya's chats or permission to use
+  one); tuning the milestone prompt on real chats.
 
 ## Suggested order
 
