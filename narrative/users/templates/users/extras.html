@@ -18,7 +18,9 @@
     <section class="option" id="memorySection" hidden>
         <h2>🧠 Chat memory</h2>
         <p class="help">How much of the chat <b id="memoryModel"></b> rereads for each reply. More remembers more and costs
-            more; older events beyond it are kept by the story summary and trackers.</p>
+            more; older events beyond it are kept by story memory (or the summary) and trackers.
+            <br><small>The same setting as “Context size” on the Samplers page, in plain words: this slider sets it on your active
+            preset and on presets you make later; Samplers shows it, and changes it, per preset.</small></p>
         <div class="memory">
             <input type="range" id="chatContext" min="0" step="1">
             <b id="memoryValue"></b>

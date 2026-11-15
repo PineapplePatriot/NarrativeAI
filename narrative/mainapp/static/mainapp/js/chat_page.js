@@ -2414,7 +2414,7 @@ function handleRefusal(d) {
         const d = await resp.json().catch(() => ({}));
         if (!d.success) { showChatNotice(d.error || 'Could not change the chat style.'); return; }
         // A custom look's styles come with the page: to it or from it, the page loads again
-        if (d.skin === 'custom' || document.body.classList.contains('skin-custom')) { location.reload(); return; }
+        if (!['', 'parchment', 'neon', 'lab', 'romance'].includes(d.skin) || document.body.classList.contains('skin-custom')) { location.reload(); return; }
         [...document.body.classList].filter(c => c.startsWith('skin-') || c === 'light-style').forEach(c => document.body.classList.remove(c));
         if (d.skin) document.body.classList.add('skin-' + d.skin);
         if (['parchment', 'lab'].includes(d.skin)) document.body.classList.add('light-style');  // deeper speech shades

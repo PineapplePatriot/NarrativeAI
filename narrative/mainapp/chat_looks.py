@@ -362,3 +362,17 @@ def guide():
             f"sounds: {', '.join(SOUNDS)}. sizes: {', '.join(SIZES)}. bold: true for chunky handwriting or a heavy look. "
             "background 'picture': give picture (a URL from the backgrounds list) and veil (0-90, how much of the "
             "page colour lies over it so the bubbles stay readable; 30-55 usually).")
+
+
+# Ready-made looks anyone can pick in the pen menu (Chat style), like the four CSS styles
+READY = {
+    "purpl": {"name": "Purpl", "base": "light",
+              "colors": {"page": "#d9cdee", "page2": "#b8a5e0", "page3": "#efe6f6", "surface": "#efe8f8",
+                         "bubble_ai": "#f6f1fc", "bubble_user": "#ece2f8", "text": "#1f1a2e", "muted": "#5c5279",
+                         "accent": "#7a5cc7", "accent2": "#e48aaf", "outline": "#2f2945", "effect": "#ffffff"},
+              "font": "gaegu", "heading_font": "gaegu", "size": "large", "bold": True,
+              "bubble": {"shape": "wobbly", "outline": "sketch", "shadow": "offset", "name_tag": "tab", "wide": True},
+              "frame": "sticker", "background": "blobs", "texture": "grain", "effect": "sparkles", "buttons": "sticker",
+              "sound": "soft"},
+}
+READY_LABELS = {"purpl": "💜 Purpl"}

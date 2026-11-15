@@ -122,7 +122,8 @@
                     <p>${esc(B.tagline)}</p></div>
                 <div class="mb-show">${L.map(p => `<div class="mb-feat legendary" title="${esc(p.note)}"><span class="mb-up">Rate up</span>
                     <span class="e">${p.emoji}</span><b>${esc(p.name)}</b><small>${esc(p.note)}</small>${s.items[p.id] ? '<span class="mb-got">✓ yours</span>' : ''}</div>`).join('')}</div>
-                <div class="mb-rares">${R.map(p => `<div class="mb-feat rare" title="${esc(p.note)}"><span class="e">${p.emoji}</span><b>${esc(p.name)}</b>${s.items[p.id] ? '<span class="mb-got">✓</span>' : ''}</div>`).join('')}</div>
+                <div class="mb-rares-head">Featured rares</div>
+                <div class="mb-rares">${R.map(p => `<div class="mb-feat rare" title="${esc(p.note)}"><span class="mb-tier">Rare</span><span class="e">${p.emoji}</span><b>${esc(p.name)}</b>${s.items[p.id] ? '<span class="mb-got">✓ yours</span>' : ''}</div>`).join('')}</div>
                 <p class="mb-rule">A legendary here is featured half the time, and surely the next time after a miss; rares too. Only on this banner, only until it ends.</p>
               </div>`;
         }

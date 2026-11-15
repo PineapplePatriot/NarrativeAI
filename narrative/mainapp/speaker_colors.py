@@ -95,6 +95,23 @@ def with_characters(theme, character):
     return cast
 
 
+def fill_cast(character):
+    """Story colours on but nobody coloured yet (a chat already going, a theme set before colours): the character
+    (and the second one) get their colours and the user a free one of their own, saved on the card, so the model
+    and Write for me know them from the next reply. Returns True when something changed."""
+    theme = dict(getattr(character, "theme", None) or {})
+    if settings(character)["mode"] != "story":
+        return False
+    cast = with_characters(theme, character)
+    you = name_of(theme.get("you_color")) or first_free(cast)
+    if cast == clean(theme.get("speech_cast")) and you == name_of(theme.get("you_color")):
+        return False
+    theme["speech_cast"], theme["you_color"] = cast, you
+    character.theme = theme
+    character.save(update_fields=["theme"])
+    return True
+
+
 REMINDER = "[Speech colours: every spoken line goes in its speaker's colour tag, as in the cast list above.]"
 
 
@@ -143,8 +160,8 @@ def for_writing_user(s, user_name="{{user}}"):
     """What Write for me (and the director) hear about the user's own colour in story mode."""
     if s["mode"] != "story" or not s["you"]:
         return ""
-    return (f"{user_name}'s spoken lines are coloured with <{s['you']}>\"...\"</{s['you']}>; "
-            "anyone else who speaks keeps their own colour tag.")
+    return (f"Speech colours: every line {user_name} says goes in their colour tag, <{s['you']}>\"...\"</{s['you']}>, "
+            "every time, with only the quoted words inside; anyone else who speaks keeps their own colour tag.")
 
 
 def tag_greeting(text, color):

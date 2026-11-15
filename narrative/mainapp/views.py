@@ -522,7 +522,7 @@ def chat(request, slug):
                 chat_state["context_guides"] = data.get("context_guides", {})
                 chat_state["current_bg"] = data.get("current_bg", "")
                 chat_state["current_music"] = data.get("current_music", {})
-                chat_state["skin"] = data.get("skin") if data.get("skin") in (*CHAT_SKINS, "none", "custom") else ""
+                chat_state["skin"] = data.get("skin") if data.get("skin") in (*CHAT_SKINS, *chat_looks.READY, "none", "custom") else ""
                 chat_state["music_follow"] = data.get("music_follow") if isinstance(data.get("music_follow"), dict) else {}
                 chat_state["last_recall"] = data.get("last_recall") if isinstance(data.get("last_recall"), list) else []
                 chat_state["persona"] = data.get("persona") if isinstance(data.get("persona"), dict) else {}
@@ -1126,7 +1126,7 @@ def chat(request, slug):
             return JsonResponse({"success": True})
         elif action == "set_skin":  # the pen menu's chat style: this chat only ("" = the character's)
             skin = str(data.get("skin") or "")
-            if skin not in CHAT_SKINS and skin not in ("", "none", "custom"):
+            if skin not in CHAT_SKINS and skin not in chat_looks.READY and skin not in ("", "none", "custom"):
                 return JsonResponse({"success": False, "error": "Unknown style."}, status=400)
             chat_state["skin"] = skin
             save_messages(messages)
@@ -2081,7 +2081,7 @@ def chat(request, slug):
         "swipes": chats.version_info(messages),
         "spending": ai_client.spending(request.user),
         "appearance": _appearance(request.user, character),
-        "speech": speaker_colors.settings(character),
+        "speech": (speaker_colors.fill_cast(character) or True) and speaker_colors.settings(character),
         "speech_page": speaker_colors.page_data(),
         "speech_css": speaker_colors.css(),
         "bulba_ideas": extras.ideas_on(request.user),
@@ -2093,12 +2093,13 @@ def chat(request, slug):
         "theme_weather": theme_weather(character, chat_state.get("current_bg") or ""),
         "skin": chat_skin(character, chat_state.get("skin") or ""),
         "chat_skin_choice": chat_state.get("skin") or "",
-        "character_skin": (character.theme or {}).get("skin") if (character.theme or {}).get("skin") in CHAT_SKINS else "",
+        "character_skin": (character.theme or {}).get("skin") if (character.theme or {}).get("skin") in (*CHAT_SKINS, *chat_looks.READY, "custom") else "",
         "chat_skins": CHAT_SKINS,
         **_look_context(request.user, character, chat_state),
         "thinking_options": samplers.thinking_options(ai_client.resolve(request.user, "chat")[1]),
         "thinking_now": samplers.thinking_now(request.user),
         "character_skin_name": CHAT_SKINS.get((character.theme or {}).get("skin") or "", "")
+                               or chat_looks.READY_LABELS.get((character.theme or {}).get("skin") or "", "")
                                or ("✨ " + chat_looks.clean((character.theme or {}).get("look"))["name"]
                                    if (character.theme or {}).get("skin") == "custom" and chat_looks.clean((character.theme or {}).get("look")) else ""),
         "mature_on": mature.is_on(presets.normalize(presets.get_active(request.user).data)),
@@ -2370,22 +2371,27 @@ def chat_skin(character, chat_choice=""):
     has_look = bool(chat_looks.clean((character.theme or {}).get("look")))
     if chat_choice == "none":
         return ""
-    if chat_choice in CHAT_SKINS or (chat_choice == "custom" and has_look):
+    if chat_choice in CHAT_SKINS or chat_choice in chat_looks.READY or (chat_choice == "custom" and has_look):
         return chat_choice
     skin = (character.theme or {}).get("skin")
-    return skin if skin in CHAT_SKINS or (skin == "custom" and has_look) else ""
+    return skin if skin in CHAT_SKINS or skin in chat_looks.READY or (skin == "custom" and has_look) else ""
 
 
 def _look_context(user, character, chat_state):
-    """A character's custom look (mainapp/chat_looks.py) for the chat page: its styles, fonts and moving parts."""
-    look = chat_looks.clean((character.theme or {}).get("look"))
+    """The chat page's custom look (mainapp/chat_looks.py), when one is on: the character's own ("custom") or a ready
+    one (Purpl...). Its styles, fonts and moving parts; `own_look` for the pen menu's chip and Adjust box."""
+    own = chat_looks.clean((character.theme or {}).get("look"))
+    skin = chat_skin(character, chat_state.get("skin") or "")
+    look = chat_looks.clean(chat_looks.READY[skin]) if skin in chat_looks.READY else own if skin == "custom" else None
+    out = {"own_look": own, "ready_looks": chat_looks.READY_LABELS, "look": look, "adjustable": skin == "custom",
+           "skin_class": "custom" if look else skin}
     if not look:
-        return {"look": None}
+        return out
     names = prompt_names(user, character, chat_state.get("persona"))
     pictures = media_library.built_in("backgrounds")
     if (character.theme or {}).get("bg"):
         pictures = [{"name": f"{character.name}'s own background", "url": character.theme["bg"]}] + pictures
-    return {"look": look, "look_css": chat_looks.css(look, character.name, names["user"]),
+    return {**out, "look_css": chat_looks.css(look, character.name, names["user"]),
             "look_fonts": chat_looks.fonts_url(look), "look_data": chat_looks.page_data(look),
             "look_pictures": pictures, "look_backgrounds": chat_looks.BACKGROUNDS}
 

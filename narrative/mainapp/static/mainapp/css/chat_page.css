@@ -2521,3 +2521,12 @@ body.skin-lab .message-text .thought { color: #3d5a78; }
     .qc-portrait { height: 170px; }
 }
 @media (prefers-reduced-motion: reduce) { .qc-card, .qc-shade { transition: none; } }
+
+/* Every chip row in the pen menu shows what's chosen (it stays highlighted when the menu closes and opens again).
+   On touch screens a tapped chip keeps a hover look: only the chosen one should look chosen. */
+.preset-btn.on { background: var(--accent-1, #7c3aed); color: #fff; border-color: transparent;
+                 box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-1, #7c3aed) 35%, transparent); }
+.preset-btn.on:hover { background: var(--accent-1, #7c3aed); color: #fff; }
+@media (hover: none) {
+    .preset-btn:not(.on):hover { background: rgba(255, 255, 255, 0.05); color: var(--text-secondary); }
+}

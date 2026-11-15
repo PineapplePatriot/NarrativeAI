@@ -20,6 +20,11 @@
       <a href="{% url 'tomato_pit' %}">🎰 To the Sauce-o-Matic</a></p>
   </header>
 
+  <section class="pit-box g-basket-top" aria-label="Your basket">
+    <div class="pit-box-head"><h2>🧺 Basket</h2><span class="muted" id="gCompost"></span></div>
+    <div id="gBasket"></div>
+  </section>
+
   <div class="g-wrap">
     <div class="g-stage">
       <canvas id="gCanvas" width="768" height="512" aria-label="Your garden. Choose a patch to see what you can do there."></canvas>
@@ -28,10 +33,6 @@
     <aside class="g-side">
       <section class="pit-box g-tile" id="gTile" aria-live="polite">
         <p class="muted">Tap a patch of soil to plant something, or a plant to see how it's doing.</p>
-      </section>
-      <section class="pit-box">
-        <div class="pit-box-head"><h2>🧺 Basket</h2><span class="muted" id="gCompost"></span></div>
-        <div id="gBasket"></div>
       </section>
       <section class="pit-box">
         <h2>🧑‍🌾 Gardeners</h2>
@@ -44,6 +45,6 @@
     </aside>
   </div>
 </div>
-<script src="{% static 'mainapp/js/tomato_garden.js' %}?v=3"></script>
+<script src="{% static 'mainapp/js/tomato_garden.js' %}?v=4"></script>
 </body>
 </html>

@@ -6979,7 +6979,8 @@ class TasteIntoPresetTests(BulbaInChatTests):
                                            "content": "Keep room descriptions to a line. Keep the banter."}],
             from_taste=["Cuts long descriptions of rooms", "Keeps the banter", "Not a learned line"], why="Their taste")])]
         data = self.api(action="note", id=note["id"]).json()
-        self.assertIn("Bulba Watch learned these about their taste", self.bulba_calls[-1]["messages"][-1]["content"])
+        self.assertIn("Bulba Watch learned these", self.bulba_calls[-1]["messages"][-1]["content"])
+        self.assertIn("their persona, never the preset", self.bulba_calls[-1]["messages"][-1]["content"])
         proposal = data["state"]["proposals"][-1]
         self.script = [("Done.", [])]
         self.api(action="apply", id=proposal["id"])
@@ -9686,3 +9687,26 @@ class TomatoBannerTests(TomatoMachineTests):
 for _name in [n for n in dir(TomatoMachineTests) if n.startswith("test_")]:
     if getattr(TomatoBannerTests, _name, None) is getattr(TomatoMachineTests, _name, None):
         setattr(TomatoBannerTests, _name, None)
+
+
+class SmallFixesSixteenthTests(StoryMemoryTests):
+    def test_story_colours_fill_themselves_and_purpl_is_a_ready_style(self):
+        from mainapp import speaker_colors
+        self.character.theme = {"speech": "story"}
+        self.character.save()
+        page = self.client.get(self.url)
+        self.character.refresh_from_db()
+        self.assertIn("Rose", self.character.theme["speech_cast"])
+        self.assertTrue(self.character.theme["you_color"])
+        self.assertIn(self.character.theme["you_color"], speaker_colors.for_writing_user(speaker_colors.settings(self.character), "Sam"))
+        self.assertContains(page, 'data-skin="purpl"')
+        self.post({"action": "set_skin", "skin": "purpl"})
+        page = self.client.get(self.url)
+        self.assertContains(page, "skin-custom")
+        self.assertContains(page, "light-style")  # deeper speech shades on its light bubbles
+        self.assertNotContains(page, 'id="lookAdjust"')  # a ready look isn't theirs to adjust
+
+
+for _name in [n for n in dir(StoryMemoryTests) if n.startswith("test_")]:
+    if getattr(SmallFixesSixteenthTests, _name, None) is getattr(StoryMemoryTests, _name, None):
+        setattr(SmallFixesSixteenthTests, _name, None)

@@ -333,7 +333,36 @@
         const w = [...walkers.values()].find(w => Math.abs(w.x - p.x) < 7 && p.y < w.y + 2 && p.y > w.y - 26);
         if (w) { w.say = LINES[w.id][Math.floor(Math.random() * LINES[w.id].length)]; w.sayFor = 3.2; return; }
         sel = cell(p);
+        if (armed && sel && !tileAt(sel.x, sel.y) && st.basket[armed]) { putDown(armed, sel); return; }
         paintTile();
+    });
+
+    // --- From the basket to the soil: drag an item onto a patch, or tap it (armed) and then a patch ---
+    let armed = null;
+    async function putDown(id, c) {
+        if (!c || tileAt(c.x, c.y)) { if (window.NADialog && c) NADialog.alert('Something is already there. Pick a free patch.'); return; }
+        try {
+            take(await call({ action: st.crops[id] ? 'plant' : 'place', x: c.x, y: c.y, id }));
+            sel = c; armed = null; burstAt(c); paintSide(); paintTile();
+        } catch (err) { if (window.NADialog) NADialog.alert(err.message); }
+    }
+    $('gBasket').addEventListener('click', (e) => {
+        const b = e.target.closest('[data-item]');
+        if (!b) return;
+        armed = armed === b.dataset.item ? null : b.dataset.item;
+        paintSide();
+    });
+    $('gBasket').addEventListener('dragstart', (e) => {
+        const b = e.target.closest('[data-item]');
+        if (!b) return;
+        e.dataTransfer.setData('text/plain', b.dataset.item);
+        e.dataTransfer.effectAllowed = 'move';
+    });
+    cv.addEventListener('dragover', (e) => { e.preventDefault(); hover = cell(at(e)); });
+    cv.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const id = e.dataTransfer.getData('text/plain');
+        if (id && st && st.basket[id]) putDown(id, cell(at(e)));
     });
 
     // --- The side panel ---
@@ -391,9 +420,11 @@
     function paintSide() {
         $('gCompost').textContent = `♻ ${st.compost} compost`;
         const items = Object.entries(st.basket);
-        $('gBasket').innerHTML = items.length ? `<div class="g-basket">${items.map(([k, n]) => `<div>${prizeOf(k).emoji} ${esc(st.crops[k] ? st.crops[k].name + ' seeds' : prizeOf(k).name)} <b>×${n}</b></div>`).join('')}</div>`
+        $('gBasket').innerHTML = items.length ? `<div class="g-basket">${items.map(([k, n]) => `<button type="button" class="g-bitem${armed === k ? ' armed' : ''}"
+                draggable="true" data-item="${k}" title="Drag it onto a patch, or tap it and then a patch">
+                <span class="e">${prizeOf(k).emoji}</span><span>${esc(st.crops[k] ? st.crops[k].name + ' seeds' : prizeOf(k).name)}</span><b>×${n}</b></button>`).join('')}</div>`
             : '<p class="muted g-small">Empty. Seeds and decorations come from the Sauce-o-Matic.</p>';
-        $('gBasket').insertAdjacentHTML('beforeend', `<p class="muted g-small">Each tomato you throw at a chat or Bulba waters every plant: ${Math.round(st.water / 60)} minutes of growth.</p>`);
+        $('gBasket').insertAdjacentHTML('beforeend', `<p class="muted g-small">${items.length ? (armed ? `Now tap a free patch for the ${esc(prizeOf(armed).name.toLowerCase())}. ` : 'Drag a seed or a decoration onto a patch, or tap it and then a patch. ') : ''}Each tomato you throw at a chat or Bulba waters every plant: ${Math.round(st.water / 60)} minutes of growth.</p>`);
         $('gGardeners').innerHTML = st.gardeners.length ? st.gardeners.map(x => `<div class="g-gard"><span class="e">${prizeOf(x.id).emoji}</span><div><b>${esc(prizeOf(x.id).name)}</b><br><span class="muted">${esc(x.about)}</span></div></div>`).join('')
             : '<p class="muted g-small">None yet. Gardeners are the Sauce-o-Matic\'s legendaries: each one moves in and helps.</p>';
         $('gLog').innerHTML = st.log.length ? st.log.map(l => `<li>${esc(l.text)} <span class="muted">${new Date(l.at * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></li>`).join('')

@@ -88,6 +88,11 @@ replies they edited (before and after). From those, and from how they write, not
 concrete things about their taste that you're fairly sure of ("cuts long descriptions of rooms",
 "keeps the banter, removes the speeches"). Nothing you'd have to guess.
 
+Taste is about how the replies are written (length, pace, tone, what to describe or skip). Something about
+who a person is goes in with a prefix instead, so it lands in the right place: "persona: knows chemistry well,
+corrects formulas" for their own character (it goes into their persona), "character: never raises his voice
+when angry" for the AI's character (it goes into the card). Never write facts about a person as taste.
+
 ## Getting the past wrong
 
 Also check the numbered replies against what's established: the card, the story so far (summary), the
