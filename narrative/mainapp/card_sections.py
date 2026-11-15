@@ -514,18 +514,47 @@ def outline(character):
     return "\n".join(lines)
 
 
-# A persona (who they are in the story): the same idea, lighter
-PERSONA = [("identity", "Who they are"), ("appearance", "Appearance"), ("personality", "Personality in action"),
-           ("voice", "Voice"), ("wants", "What they want here")]
-PERSONA_QUESTIONS = ["Who are you in this story: name, age, what you do?", "How do you look?",
-                     "How do you act around people (shy, blunt, charming, guarded)?", "How do you talk?",
-                     "What do you want from this story, or in this world?"]
+# A persona (who they are in the story): seven core elements, a fully fledged character
+PERSONA = [("pronouns", "Name & pronouns"), ("appearance", "Appearance"), ("background", "Background & lore"),
+           ("connection", "Connection to the story"), ("traits", "Core traits"), ("likes", "Likes & dislikes"),
+           ("temperament", "Temperament")]
+PERSONA_HINTS = {
+    "pronouns": "Their name, and how others refer to them (she/he/they...).",
+    "appearance": "Build, face, hair, eyes, what they usually wear, how they move.",
+    "background": "Where they come from and what shaped them, in this story's world.",
+    "connection": "How they're tied to the card's characters (or to its world): history, debts, roles.",
+    "traits": "How they behave: what they do, not adjectives.",
+    "likes": "What draws them in and what they can't stand.",
+    "temperament": "How they act in different situations (danger, flirting, being lied to) and how they change.",
+}
+PERSONA_QUESTIONS = ["What's your name, and your pronouns?", "How do you look?",
+                     "Where do you come from, and what shaped you?",
+                     "How are you connected to the character(s), or to this world?",
+                     "How do you act around people?", "What do you like, and what can't you stand?",
+                     "How do you react when things get tense, flirty or dangerous, and do you change over time?"]
+OLD_PERSONA = {"identity": "pronouns", "personality": "traits", "wants": "connection"}  # the five-question keys
+
+
+def split_persona(text):
+    """({key: text}, leftover) from a persona written in our parts ("[Appearance]" headings); anything else is
+    the leftover, word for word."""
+    titles = {t.lower(): k for k, t in PERSONA} | {"who they are": "pronouns", "personality in action": "traits",
+                                                   "voice": "traits", "what they want here": "connection"}
+    found, leftover, current = {}, [], None
+    for line in (text or "").splitlines():
+        m = re.match(r"^\s*\[([^\]\n]{2,40})\]\s*$", line)
+        if m and m.group(1).strip().lower() in titles:
+            current = titles[m.group(1).strip().lower()]
+            continue
+        (found.setdefault(current, []) if current else leftover).append(line)
+    return {k: "\n".join(v).strip() for k, v in found.items() if "\n".join(v).strip()}, "\n".join(leftover).strip()
 
 
 def compose_persona(sections):
     """The persona's description from its sections ({key: text}), the same plain labelled way as a card."""
     if not isinstance(sections, dict):
         return ""
+    sections = {OLD_PERSONA.get(k, k): v for k, v in sections.items()}
     parts = [f"[{title}]\n{str(sections.get(key) or '').strip()[:3000]}" for key, title in PERSONA
              if str(sections.get(key) or "").strip()]
     return "\n\n".join(parts)

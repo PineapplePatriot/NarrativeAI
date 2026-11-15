@@ -59,7 +59,7 @@
                 than English it would fight the English the AI now writes; the rest of the preset stays)</small></label>
             {% endif %}
             <p class="persona-help">Who the AI talks to in every chat, unless a chat has its own (pen menu → This chat).
-                Leave it empty if you'd rather not, or <a href="{% url 'bulba' %}?draft={{ 'Help me make my persona: who I am in the story. Ask me five quick questions (who I am, how I look, how I act, how I talk, what I want from the story), one at a time, then propose it as sections.'|urlencode }}">let 🥔 Bulba make one</a>.</p>
+                Leave it empty if you'd rather not, or <a href="{% url 'bulba' %}?draft={{ 'Help me make my persona: who I am in the story. Go through the seven core elements with me one at a time (name and pronouns, appearance, background and lore, my connection to the characters or the world, core traits, likes and dislikes, temperament), then propose it as sections.'|urlencode }}">let 🥔 Bulba make one</a>.</p>
             {% for field in form.persona_fields %}
                 <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                 {{ field }}
@@ -95,6 +95,8 @@
     </div>
     </div>
 
+    {{ persona_parts|json_script:"persona-parts" }}
     <script src="{% static 'users/js/profile.js' %}?v=2"></script>
+    <script src="{% static 'users/js/persona_parts.js' %}?v=1"></script>
 </body>
 </html>

@@ -266,9 +266,11 @@ TOOLS = [
     _fn("propose_persona", "Propose who the user is in the story. Prefer `sections` (the description is made "
         "from them); a plain description works too.",
         {"name": STR, "description": STR, "why": STR,
-         "sections": {"type": "object", "description": "{key: text} with keys identity (who they are, what they "
-                      "do), appearance, personality (how they act), voice (how they talk), wants (what they want "
-                      "from this story or this world). Leave out what they didn't tell you."}},
+         "sections": {"type": "object", "description": "{key: text}, the seven core elements: pronouns (name & "
+                      "pronouns), appearance, background (background & lore), connection (how they're tied to the "
+                      "card's characters or its world), traits (core traits, as behaviour), likes (likes & dislikes), "
+                      "temperament (how they act in different situations, and how they change). Leave out what "
+                      "they didn't tell you or want you to invent."}},
         ["name"]),
     _fn("propose_character", "Propose a character to chat with. Write the card as sections (preferred: give "
         "`sections`; the description is then made from them): kind 'character' (one person), 'ensemble' (as many "

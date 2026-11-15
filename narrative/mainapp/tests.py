@@ -9278,7 +9278,11 @@ class CardSectionsTests(BulbaTests):
         self.api(action="apply", id=proposal["id"])
         self.user.refresh_from_db()
         self.assertEqual(self.user.persona_description,
-                         "[Who they are]\nA courier.\n\n[Appearance]\nWiry, scarred knuckles.\n\n[What they want here]\nTo pay off the bike.")
+                         "[Name & pronouns]\nA courier.\n\n[Appearance]\nWiry, scarred knuckles.\n\n[Connection to the story]\nTo pay off the bike.")
+        from mainapp import card_sections
+        found, rest = card_sections.split_persona(self.user.persona_description + "\n\nLoves plums.")
+        self.assertEqual(found["appearance"], "Wiry, scarred knuckles.")
+        self.assertEqual(found["connection"], "To pay off the bike.\n\nLoves plums.")  # after a part: in that part
 
 
 class StoryMemoryTests(ChatPromptTests):
@@ -9470,3 +9474,38 @@ class CardLookAndQuickViewTests(StoryMemoryTests):
 for _name in [n for n in dir(StoryMemoryTests) if n.startswith("test_")]:
     if getattr(CardLookAndQuickViewTests, _name, None) is getattr(StoryMemoryTests, _name, None):
         setattr(CardLookAndQuickViewTests, _name, None)
+
+
+class BulbaConnectionsTests(BulbaTests):
+    """Bulba switches models and connections as cards they Apply, and never sees a key."""
+
+    def test_read_shows_no_key_and_use_new_model_apply_and_undo(self):
+        from mainapp import ai_client
+        from users.models import ConnectionProfile
+        self.script = [("Here's what runs where.", [self.call("read_connections")])]
+        self.api(action="say", text="what model am I on?")
+        read = [m for m in self.bulba_calls[-1]["messages"] if m.get("role") == "tool"][-1]["content"]
+        self.assertIn("anthropic/claude-opus-5.5", read)
+        self.assertNotIn("sk-or-secret", read)
+        # A new connection with the same key and a cheaper model, used for story memory at once
+        self.script = [("Here.", [self.call("propose_connection_change", action="new", name="Cheap", copy_key_from="Main",
+                                            model="google/gemini-3.8-flash", job="memory")])]
+        p = self.api(action="say", text="cheaper memory please").json()["state"]["proposals"][-1]
+        self.assertEqual(p["kind"], "connections")
+        self.api(action="apply", id=p["id"])
+        cheap = ConnectionProfile.objects.get(user=self.user, name="Cheap")
+        self.assertEqual((cheap.api_key, cheap.model), ("sk-or-secret", "google/gemini-3.8-flash"))
+        self.assertEqual(ai_client.resolve(self.user, "memory")[0].name, "Cheap")
+        self.api(action="undo", id=p["id"])
+        self.assertFalse(ConnectionProfile.objects.filter(user=self.user, name="Cheap").exists())
+        self.assertEqual(ai_client.resolve(self.user, "memory")[0].name, "Main")
+        # The chat on another model
+        self.script = [("Done.", [self.call("propose_connection_change", action="use", connection="Main", model="deepseek/deepseek-v4-pro")])]
+        p = self.api(action="say", text="switch").json()["state"]["proposals"][-1]
+        self.api(action="apply", id=p["id"])
+        self.assertEqual(ai_client.resolve(self.user, "chat")[1], "deepseek/deepseek-v4-pro")
+        # A bare name isn't a model id
+        self.script = [("Hm.", [self.call("propose_connection_change", action="model", connection="Main", model="opus")])]
+        self.api(action="say", text="opus")
+        err = [m for m in self.bulba_calls[-1]["messages"] if m.get("role") == "tool"][-1]["content"]
+        self.assertIn("full id", err)

@@ -121,6 +121,8 @@ class ProfileUser(LoginRequiredMixin, UpdateView):
         context["persona_pictures"] = [(m, getattr(user, f"persona_photo_{m}").url if getattr(user, f"persona_photo_{m}") else "")
                                        for m in ("neutral", "happy", "sad", "angry", "surprised", "scared", "confused",
                                                  "calm", "scheming")]
+        from mainapp import card_sections
+        context["persona_parts"] = [{"key": k, "title": t, "hint": card_sections.PERSONA_HINTS[k]} for k, t in card_sections.PERSONA]
         return context
 
     def form_valid(self, form):
