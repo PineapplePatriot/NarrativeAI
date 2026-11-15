@@ -9425,3 +9425,48 @@ class MemoryModelTests(TestCase):
         self.assertEqual(ai_client.resolve(user, "memory")[1], "small/model")
         TaskSetting.objects.create(user=user, task="memory", profile=main, model="own/model")
         self.assertEqual(ai_client.resolve(user, "memory")[1], "own/model")
+
+
+class CardLookAndQuickViewTests(StoryMemoryTests):
+    """The Characters page dresses each card in the character's colour; the chat's quick view shows the card and,
+    from story memory, where the relationship stands."""
+
+    def test_the_list_card_carries_the_characters_colour_kind_and_route(self):
+        from mainapp import card_sections
+        from mainapp.templatetags.custom_filters import card_look
+        self.character.theme = {"dialogue_color": "#4dd0e1", "bg": "/static/x.webp"}
+        self.character.sections = card_sections.clean({"kind": "ensemble", "people": [
+            {"name": "Rose", "sections": {"appearance": "Tall."}, "temperament": {"route": "enemies"}}, {"name": "Bo"}]})
+        self.character.save()
+        look = card_look(self.character)
+        self.assertEqual((look["color"], look["bg"], look["badge"], look["route"]), ("#4dd0e1", "/static/x.webp", "👥 2", "⚔️ Enemies"))
+        page = self.client.get(reverse("characters_list"))
+        self.assertContains(page, "--card-accent: #4dd0e1;")
+        self.assertContains(page, "⚔️ Enemies")
+
+    def test_the_quick_view_shows_the_card_and_the_relationship_in_this_chat(self):
+        from mainapp import card_sections, chats, story_memory
+        self.character.sections = card_sections.clean({"people": [{"name": "Rose", "sections": {
+            "identity": "A courier for {{user}}'s guild.", "appearance": "Short, red coat."},
+            "temperament": {"pace": "slow", "route": "rivals", "start": "wary"}}]})
+        self.character.save()
+        self.post({"action": "chat", "message": "Hi"})
+        chat = self.character.chats.first()
+        mem = story_memory.fold(story_memory.empty(), self.ANSWER, 0, 3, self.character)
+        chats.write(chat, {**chats.read(chat), "memory": mem, "summary_mode": "memory"})
+        d = self.client.get(reverse("character_quick", args=[self.character.slug]) + f"?chat={chat.id}").json()
+        self.assertEqual(d["people"][0]["appearance"], "Short, red coat.")
+        self.assertNotIn("{{user}}", d["people"][0]["identity"])
+        self.assertEqual(d["people"][0]["route"], "Rivals")
+        self.assertEqual(d["relationships"][0]["from"], "Rose")
+        self.assertEqual(d["met"][0]["name"], "Ivan")
+        self.assertTrue(d["memory_on"])
+        self.assertContains(self.client.get(self.url), "quick_card.js")
+        other = get_user_model().objects.create_user(username="nosy", password="pw12345!")
+        self.client.force_login(other)
+        self.assertEqual(self.client.get(reverse("character_quick", args=[self.character.slug])).status_code, 404)
+
+
+for _name in [n for n in dir(StoryMemoryTests) if n.startswith("test_")]:
+    if getattr(CardLookAndQuickViewTests, _name, None) is getattr(StoryMemoryTests, _name, None):
+        setattr(CardLookAndQuickViewTests, _name, None)

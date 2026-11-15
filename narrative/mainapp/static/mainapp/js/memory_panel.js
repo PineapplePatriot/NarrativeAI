@@ -33,6 +33,7 @@ window.NAMemory = (() => {
             const d = await resp.json().catch(() => ({}));
             if (!d.success) throw new Error(d.error || 'Something went wrong.');
             data = d;
+            if (window.NAQuickCard) NAQuickCard.forget();
             if (d.spending && typeof updateSpending === 'function') updateSpending(d.spending);
             return d;
         } finally { busy = false; paint(); }

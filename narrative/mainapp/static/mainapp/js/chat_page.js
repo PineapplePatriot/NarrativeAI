@@ -739,6 +739,7 @@ function handleReply(data) {
             renderLore(data.lore);
             if (data.summary_due) generateSummary('append', true);
             if (window.NAMemory) NAMemory.afterReply(data);
+            if (window.NAQuickCard) NAQuickCard.forget();
             if (window.Trackers) { Trackers.setStory(data.story); Trackers.afterReply(data); }
             if (window.Watch) Watch.afterReply(data);
             afterReplyText(lastAssistant(), data.polish_due);
@@ -1471,6 +1472,7 @@ function regenerateReply(guidance = '', model = '') {
             updateCharacterImages(d.photo_url, d.photo_second, d.char_count, d.photo_user); renderLore(d.lore);
             if (d.summary_due) generateSummary('append', true);
             if (window.NAMemory) NAMemory.afterReply(d);
+            if (window.NAQuickCard) NAQuickCard.forget();
             if (window.Trackers) { Trackers.setStory(d.story); Trackers.afterReply(d); }
             if (window.Watch) Watch.afterReply(d);
             afterReplyText(lastAssistant(), d.polish_due);

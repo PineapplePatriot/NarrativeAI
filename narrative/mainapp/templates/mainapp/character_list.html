@@ -7,7 +7,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Narrative AI - Character Selection</title>
-    <link rel="stylesheet" href="{% static 'mainapp/css/character_list.css' %}?v=2">
+    <link rel="stylesheet" href="{% static 'mainapp/css/character_list.css' %}?v=3">
 
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=5">
@@ -56,16 +56,24 @@
 
         <div class="characters-grid" id="charactersGrid">
             {% for character in characters %}
-            <div class="character-card" data-tags="{% for tag in character.tags.all %}{{ tag.tag|lower }}|{% endfor %}">
+            {% with look=character|card_look %}
+            <div class="character-card fancy" data-tags="{% for tag in character.tags.all %}{{ tag.tag|lower }}|{% endfor %}"
+                 style="--card-accent: {{ look.color }};">
+                <a class="card-portrait" href="{% url 'chat' character.slug %}" tabindex="-1" aria-hidden="true">
+                    {% if look.bg %}<span class="card-scene" style="background-image: url('{{ look.bg }}');"></span>{% endif %}
+                    {% if character.photo_neutral %}
+                        <img class="card-pic" src="{{ character.photo_neutral.url }}" alt="" loading="lazy">
+                        {% if look.hover %}<img class="card-pic card-pic-alt" src="{{ look.hover }}" alt="" loading="lazy">{% endif %}
+                    {% else %}
+                        <span class="card-initial">{{ character.name|first|upper }}</span>
+                    {% endif %}
+                    <span class="card-shine"></span>
+                    <span class="card-badges">
+                        {% if look.badge %}<span class="card-badge">{{ look.badge }}</span>{% endif %}
+                        {% if look.route %}<span class="card-badge">{{ look.route }}</span>{% endif %}
+                    </span>
+                </a>
                 <div class="character-header">
-                    <div class="character-avatar">
-                        {% if character.photo_neutral %}
-                            <img src="{{ character.photo_neutral.url }}" alt="{{ character.name }}"
-                                style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
-                        {% else %}
-                            {{ character.name|first }}
-                        {% endif %}
-                    </div>
                     <div class="character-info">
                         <h3>{{ character.name }}</h3>
                         <div class="character-tags">
@@ -96,6 +104,7 @@
                             data-chats="{{ character.chat_count }}" aria-label="Delete {{ character.name }}">🗑</button>
                 </div>
             </div>
+            {% endwith %}
             {% empty %}
             <div class="empty-state">
                 <h3>No characters found</h3>

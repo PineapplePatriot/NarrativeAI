@@ -2449,3 +2449,75 @@ body.skin-lab .message-text .thought { color: #3d5a78; }
 .mem-every input { width: 48px; background: var(--ui-tertiary); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; padding: 2px 4px; }
 .mem-note { background: rgba(126, 58, 242, 0.08); }
 .summary-panel [hidden] { display: none !important; }
+
+/* ---------- 📇 The quick view of the character's card (static/mainapp/js/quick_card.js) ---------- */
+.qc-hit { cursor: pointer; }
+.chat-header .character-details h3.qc-hit:hover, .character-info-panel .character-name.qc-hit:hover { text-decoration: underline dotted; text-underline-offset: 4px; }
+.chat-header .character-avatar.qc-hit:hover { box-shadow: 0 0 0 2px var(--accent-1); }
+.qc-shade { position: fixed; inset: 0; z-index: 1200; background: rgba(5, 6, 14, 0); display: flex; align-items: center;
+    justify-content: center; padding: 16px; transition: background .2s ease; }
+.qc-shade.open { background: rgba(5, 6, 14, .6); }
+.qc-card { --card-accent: #8b5cf6; width: min(420px, 100%); max-height: min(86vh, 760px); display: flex; flex-direction: column;
+    border-radius: 18px; overflow: hidden; color: var(--text-primary);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--card-accent) 16%, #1a1d2e), #151726 60%);
+    border: 1px solid color-mix(in srgb, var(--card-accent) 40%, transparent);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .55), 0 0 0 1px rgba(255, 255, 255, .03);
+    transform: translateY(14px) scale(.98); opacity: 0; transition: transform .22s ease, opacity .22s ease; }
+.qc-shade.open .qc-card { transform: none; opacity: 1; }
+.qc-loading { padding: 40px; text-align: center; color: var(--text-secondary); }
+.qc-portrait { position: relative; height: 200px; flex: 0 0 auto; overflow: hidden;
+    background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--card-accent) 45%, #1b1730), #11121c 75%); }
+.qc-scene { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: .5; }
+.qc-pic { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 18%; }
+.qc-pic2 { left: 50%; width: 50%; }
+.qc-pic2 ~ .qc-title { z-index: 2; }
+.qc-portrait:has(.qc-pic2) .qc-pic:first-of-type { width: 50%; }
+.qc-portrait::after { content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(180deg, rgba(0, 0, 0, .15), transparent 35%, color-mix(in srgb, var(--card-accent) 12%, #1a1d2e) 100%); }
+.qc-initial { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 4.5rem;
+    font-weight: 700; color: color-mix(in srgb, var(--card-accent) 70%, #fff); }
+.qc-badges { position: absolute; top: 10px; left: 12px; z-index: 2; display: flex; gap: 6px; }
+.qc-badges span { font-size: .72rem; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: rgba(10, 10, 20, .6);
+    border: 1px solid color-mix(in srgb, var(--card-accent) 55%, transparent); }
+.qc-x { position: absolute; top: 8px; right: 8px; z-index: 3; width: 34px; height: 34px; border-radius: 50%; border: 0;
+    background: rgba(10, 10, 20, .6); color: #fff; font-size: 1rem; cursor: pointer; }
+.qc-title { position: absolute; left: 16px; right: 16px; bottom: 10px; z-index: 2; }
+.qc-title h3 { margin: 0; font-size: 1.5rem; text-shadow: 0 2px 12px rgba(0, 0, 0, .8); }
+.qc-title p { margin: 2px 0 0; font-size: .85rem; color: #e2e8f0; text-shadow: 0 1px 8px rgba(0, 0, 0, .9);
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.qc-tabs { display: flex; gap: 4px; padding: 6px 12px 0; border-bottom: 1px solid rgba(255, 255, 255, .08); }
+.qc-tabs button { flex: 1; background: none; border: 0; border-bottom: 2px solid transparent; color: var(--text-secondary);
+    padding: 8px 4px; font: inherit; font-size: .88rem; cursor: pointer; }
+.qc-tabs button.on { color: var(--text-primary); border-bottom-color: var(--card-accent); }
+.qc-body { padding: 12px 16px; overflow-y: auto; font-size: .88rem; line-height: 1.5; }
+.qc-body[hidden] { display: none; }
+.qc-sec { margin-bottom: 10px; }
+.qc-sec h5 { margin: 0 0 3px; font-size: .7rem; text-transform: uppercase; letter-spacing: .07em; color: color-mix(in srgb, var(--card-accent) 65%, #cbd5e1); }
+.qc-sec p { margin: 0; white-space: pre-line; color: #dbe1ea; }
+.qc-sec ul { margin: 0; padding-left: 18px; color: #dbe1ea; }
+.qc-person { margin: 12px 0 6px; font-size: 1rem; }
+.qc-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.qc-chips span { font-size: .75rem; padding: 3px 9px; border-radius: 999px; background: color-mix(in srgb, var(--card-accent) 18%, transparent);
+    color: color-mix(in srgb, var(--card-accent) 70%, #fff); }
+.qc-more summary { cursor: pointer; color: var(--text-secondary); font-size: .82rem; margin: 2px 0 8px; }
+.qc-rel { padding: 10px; border-radius: 12px; background: rgba(255, 255, 255, .04); margin-bottom: 10px; }
+.qc-rel-head small { color: var(--text-muted); margin-left: 4px; }
+.qc-ladder { display: flex; flex-wrap: wrap; gap: 3px; margin: 8px 0; }
+.qc-ladder span { font-size: .7rem; padding: 2px 8px; border-radius: 999px; background: rgba(255, 255, 255, .06); color: var(--text-muted); }
+.qc-ladder span.on { background: var(--card-accent); color: #fff; font-weight: 600; }
+.qc-bar { display: grid; grid-template-columns: 60px 1fr 22px; align-items: center; gap: 8px; font-size: .75rem; color: var(--text-secondary); }
+.qc-bar i { height: 6px; border-radius: 999px; background: rgba(255, 255, 255, .08); overflow: hidden; }
+.qc-bar b { display: block; height: 100%; border-radius: inherit; background: var(--card-accent); }
+.qc-bar em { font-style: normal; text-align: right; }
+.qc-last { margin: 6px 0 0; font-size: .78rem; color: var(--text-secondary); }
+.qc-empty { color: var(--text-secondary); font-size: .85rem; }
+.qc-foot { display: flex; gap: 8px; padding: 10px 16px 14px; border-top: 1px solid rgba(255, 255, 255, .06); }
+.qc-btn { flex: 1; text-align: center; padding: 8px 10px; border-radius: 10px; font: inherit; font-size: .85rem; cursor: pointer;
+    background: color-mix(in srgb, var(--card-accent) 22%, #1e2235); border: 1px solid color-mix(in srgb, var(--card-accent) 40%, transparent);
+    color: var(--text-primary); text-decoration: none; }
+@media (max-width: 560px) {
+    .qc-shade { align-items: flex-end; padding: 0; }
+    .qc-card { width: 100%; max-height: 88vh; border-radius: 18px 18px 0 0; }
+    .qc-portrait { height: 170px; }
+}
+@media (prefers-reduced-motion: reduce) { .qc-card, .qc-shade { transition: none; } }

@@ -3252,6 +3252,57 @@ def character_sections(request, slug):
     return JsonResponse({"error": "Unknown action."}, status=400)
 
 
+@login_required
+def character_quick(request, slug):
+    """The quick view in a chat: the character's card at a glance (picture, who they are, how they look, their
+    temperament) and, from this chat's story memory, where the relationship stands and who they've met."""
+    from mainapp import card_sections
+    from mainapp.models import Chat
+    from mainapp.templatetags.custom_filters import blurb, card_look
+    character = get_object_or_404(Character, slug=slug, author=request.user)
+    chat_obj = Chat.objects.filter(id=request.GET.get("chat") or 0, character=character).first()
+    data = chats.read(chat_obj) if chat_obj else {}
+    persona = data.get("persona") if isinstance(data.get("persona"), dict) else {}
+    names = prompt_names(request.user, character, persona)
+    fill = lambda t: (t or "").replace("{{char}}", character.name).replace("{{user}}", names["user"])
+    look = card_look(character)
+    sections = card_sections.clean(character.sections) if character.sections else None
+    people = []
+    if sections:
+        for p in sections["people"]:
+            sec = p["sections"]
+            text = lambda k: fill(sec[k]["text"]) if sec[k]["on"] else ""
+            route = card_sections.ROUTES[p["temperament"]["route"]]
+            people.append({"name": p["name"] or character.name, "identity": text("identity"), "appearance": text("appearance"),
+                           "personality": text("personality"), "voice": text("voice"), "goals": text("goals"),
+                           "temperament": text("temperament"), "pace": card_sections.PACES[p["temperament"]["pace"]],
+                           "route": route[0], "start": p["temperament"]["start"]})
+    shared = {card_sections.labels(sections["kind"])[k][0]: fill(v["text"]) for k, v in sections["shared"].items()
+              if v["on"] and v["text"]} if sections else {}
+    memory = story_memory.clean(data.get("memory")) if chat_obj else story_memory.empty()
+    who = {character.name.lower(), *(p["name"].lower() for p in people)}
+    rels = [{**{k: r.get(k) for k in ("from", "to", "stage", "trust", "warmth", "tension")},
+             "route": card_sections.ROUTES.get(r.get("route"), card_sections.ROUTES["basic"])[0],
+             "ladder": card_sections.ROUTES.get(r.get("route"), card_sections.ROUTES["basic"])[1],
+             "last": (r.get("history") or [{}])[-1].get("why", "")}
+            for r in memory["relationships"] if r["from"].lower() in who or r["to"].lower() in who]
+    rels.sort(key=lambda r: (names["user"].lower() not in (r["from"].lower(), r["to"].lower())))
+    last = next((m for m in reversed(memory["milestones"]) if m.get("summary")), None)
+    return JsonResponse({
+        "name": character.name, "tagline": fill(blurb(character)), "look": look,
+        "photo": character.photo_neutral.url if character.photo_neutral else "",
+        "second_photo": character.photo_second_neutral.url if character.photo_second_neutral else "",
+        "kind": look["kind"], "people": people, "shared": shared,
+        "about": "" if sections else fill(character.description)[:900],
+        "relationships": rels[:4], "user": names["user"],
+        "met": [{"name": p["name"], "identity": p.get("identity", "")} for p in memory["people"]
+                if p.get("kind", "person") == "person" and p["name"].lower() not in who][-8:],
+        "now": {"title": last.get("title", ""), "where": last.get("where", ""), "summary": last.get("summary", "")[:400]} if last else None,
+        "memory_on": bool(chat_obj) and story_memory.chat_mode(request.user, data, len(data.get("messages") or [])) == "memory",
+        "edit_url": reverse("character", args=[character.slug]),
+    })
+
+
 SPRITE_EMOTIONS = ["happy", "sad", "angry", "surprised", "scared", "confused", "calm", "scheming"]
 
 
