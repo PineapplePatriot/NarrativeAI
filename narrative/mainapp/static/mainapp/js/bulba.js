@@ -122,6 +122,7 @@ function proposalCard(ev) {
             ? `<div class="proposal-label">${esc(l.slice(0, -1))}</div>` : `<div>${esc(l)}</div>`).join('')}</div>
         ${(p.summary || []).join('\n').length > 900 ? '<button type="button" class="link unfold">Show all</button>' : ''}
         ${p.preview ? themePreview(p.preview) : ''}
+        ${p.kind === 'chat_look' ? `<iframe class="look-preview" src="/main/bulba/look_preview/${encodeURIComponent(p.id)}/" loading="lazy" title="Preview of the look" tabindex="-1"></iframe>` : ''}
         <div class="proposal-actions">${actions}${chatLink}</div>
       </div>`;
 }
@@ -193,7 +194,7 @@ function extrasForm(ev, live) {
         name="x_${name}" value="${val}" ${current === val ? 'checked' : ''} ${dis}><span>${esc(label)}</span></label>`).join('');
     const check = (name, label, on) => `<label class="pill"><input type="checkbox" name="x_${name}" ${on ? 'checked' : ''} ${dis}><span>${esc(label)}</span></label>`;
     const every = (name, item) => `<label class="every">every <input type="number" name="x_${name}_every" min="1" max="200"
-        value="${esc((item || {}).interval || (name === 'summary' ? 10 : 2))}" ${dis}> messages</label>`;
+        value="${esc((item || {}).interval || ({ summary: 10, memory: 4 }[name] || 2))}" ${dis}> messages</label>`;
     const row = (label, field, hint) => `<div class="form-row"><div class="form-label">${esc(label)}${hint ? `<small>${esc(hint)}</small>` : ''}</div>
         <div class="form-field">${field}</div></div>`;
     let rows;
@@ -211,7 +212,9 @@ function extrasForm(ev, live) {
         rows = memoryRow()
             + row('Voices', ev.has_voice_key ? '<span class="help">On: your ElevenLabs key is saved.</span>'
                 : '<a class="choice" href="/users/extras/" target="_blank" rel="noopener">Add an ElevenLabs key ↗</a> <span class="help">optional; never paste keys in this chat</span>')
-            + row('Story summary', radio('summary', [['auto', 'Automatic'], ['manual', 'Only when I ask']], (v.summary || {}).mode) + every('summary', v.summary) + cost('summary'), 'keeps long chats on track')
+            + row('Story memory', radio('memory', [['on', 'On for new chats'], ['off', 'Off: the summary instead']], (v.memory || {}).on === false ? 'off' : 'on') + every('memory', v.memory),
+                  'what happened, who knows what, who everyone is and how relationships move, kept every few messages (more for many short messages, fewer for long ones)')
+            + row('Story summary', radio('summary', [['auto', 'Automatic'], ['manual', 'Only when I ask']], (v.summary || {}).mode) + every('summary', v.summary) + cost('summary'), 'the simpler "story so far" note, for chats without story memory')
             + row('Story trackers', radio('trackers', [['auto', 'Automatic'], ['manual', 'Only when I ask']], (v.trackers || {}).mode) + every('trackers', v.trackers) + cost('trackers'), 'keeps long, plot-heavy stories consistent: where, when, who, how they feel, what you carry')
             + row('Character pictures', check('sprites', 'Change with the mood', v.sprites), 'one small call per reply')
             + row('Bulba Watch', check('watch', 'On', v.watch), 'reads replies now and then for habits that repeat')
@@ -248,6 +251,7 @@ $('log').addEventListener('submit', e => {
         for (const t of ['summary', 'trackers']) {
             if (picked(t)) answers[t] = { mode: picked(t), interval: Number(get(`${t}_every`).value) || undefined };
         }
+        if (picked('memory')) answers.memory = { on: picked('memory') === 'on', interval: Number(get('memory_every').value) || 4 };
         if (get('background')) answers.background = get('background').value;
     }
     if (part === 'setup' || part === 'memory') {
@@ -322,11 +326,14 @@ function render() {
         if (ev.type === 'note') return `<div class="note">✓ ${esc(ev.text)}</div>`;
         if (ev.type === 'watch') return '';  // sent to the chat page (Bulba switched Watch)
         if (ev.type === 'error') {  // the last thing on the page after their message: try it again, copy it, or drop it
-            const failed = i === events.length - 1 && failedTail() !== null && !busy;
-            return `<div class="error">${esc(ev.text)}${failed ? `<div class="error-actions">
+            // any error that ended the turn can be tried again (a rate limit after a proposal too); copy and
+            // remove only when their message never got an answer
+            const last = i === events.length - 1 && !busy;
+            const failed = last && failedTail() !== null;
+            return `<div class="error">${esc(ev.text)}${last ? `<div class="error-actions">
                 <button type="button" data-failed="retry">↻ Try again</button>
-                <button type="button" class="ghost" data-copy="${failedTail()}">📋 Copy my message</button>
-                <button type="button" class="ghost" data-failed="remove">🗑 Remove it</button></div>` : ''}</div>`;
+                ${failed ? `<button type="button" class="ghost" data-copy="${failedTail()}">📋 Copy my message</button>
+                <button type="button" class="ghost" data-failed="remove">🗑 Remove it</button>` : ''}</div>` : ''}</div>`;
         }
         if (ev.type === 'stage') return `<div class="stage-mark">${esc(STAGE_LABELS[ev.stage] || ev.stage)}</div>`;
         if (ev.type === 'proposal') return proposalCard(ev);
@@ -482,7 +489,8 @@ async function run(body, label) {
         if (window.parent !== window && ['apply', 'undo'].includes(body.action)) {
             const changed = (data.state.proposals || []).find(x => x.id === body.id);
             // A fixed message changes what the chat shows: the page reloads with Bulba still open
-            window.parent.postMessage({ bulba: changed && changed.kind === 'message_fix' ? 'reply' : body.action },
+            // (a new chat look too: its styles come with the page)
+            window.parent.postMessage({ bulba: changed && ['message_fix', 'chat_look'].includes(changed.kind) ? 'reply' : body.action },
                                       window.location.origin);
         }
         if (window.parent !== window && data.watch) window.parent.postMessage({ watch: data.watch }, window.location.origin);

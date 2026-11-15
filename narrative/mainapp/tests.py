@@ -589,6 +589,7 @@ class ChatPromptTests(TestCase):
     def test_automatic_summary_is_flagged_when_due(self):
         from users.models import TaskSetting
         TaskSetting.objects.create(user=self.user, task="summary", mode="auto", interval=4)
+        TaskSetting.objects.create(user=self.user, task="memory", enabled=False)  # new chats: the manual summary
         first = self.post({"action": "chat", "message": "One"}).json()  # greeting + 2 = 3 messages
         self.assertFalse(first["summary_due"])
         second = self.post({"action": "chat", "message": "Two"}).json()  # 5 messages
@@ -1727,6 +1728,7 @@ class SummaryPanelTests(SummaryPartsAndBranchTests):
     def test_pause_stops_automatic_summaries(self):
         from users.models import TaskSetting
         TaskSetting.objects.create(user=self.user, task="summary", mode=TaskSetting.MODE_AUTO, interval=2)
+        TaskSetting.objects.create(user=self.user, task="memory", enabled=False)  # new chats: the manual summary
         self.assertTrue(self.post({"action": "chat", "message": "One"}).json()["summary_due"])
         d = self.post({"action": "summary_pause", "paused": True}).json()
         self.assertTrue(d["paused"] and d["auto"])
@@ -3083,6 +3085,23 @@ class BulbaRunTwoTests(BulbaTests):
         session.refresh_from_db()
         self.assertFalse(any(m.get("content") == "Something else" for m in session.messages))
 
+    def test_an_error_midway_through_a_turn_can_be_tried_again(self):
+        """A rate limit after a proposal or a note (screenshot, 15 November): Try again carries on from there."""
+        from mainapp.bulba import agent
+        from mainapp.models import BulbaSession
+        self.script = [("Hello there.", [])]
+        self.api(action="say", text="hi")
+        session = BulbaSession.objects.get(user=self.user, mode="setup")
+        session.events += [{"type": "action", "text": "Bulba Watch: Worth keeping?"},
+                           {"type": "error", "text": "Main returned an error (429): rate-limited upstream."}]
+        session.save()
+        self.script = [("Carrying on.", [])]
+        data = self.api(action="retry_failed").json()
+        self.assertEqual([e["type"] for e in data["events"]][-2:], ["action", "bulba"])
+        self.assertNotIn("error", [e["type"] for e in data["events"]])
+        self.assertEqual(self.bulba_calls[-1]["messages"][-1]["content"], agent.CARRY_ON)  # never ends on Bulba's words
+        self.assertEqual(self.api(action="retry_failed").status_code, 400)
+
     def test_a_dropped_connection_can_fetch_the_finished_turn(self):
         from django.core.cache import cache
         self.script = [("Hello there.", [])]
@@ -4283,7 +4302,7 @@ class BulbaCardAndLoreTests(BulbaTests):
         self.upload(V2_CARD)
         aslan = ("[Identity]\nThe character is Aslan, the great lion of Narnia, King above all High Kings, son of "
                  "the Emperor-beyond-the-Sea, who sang Narnia into being. He is no one's pet and comes and goes as "
-                 "he will. A huge lion, larger than any mortal lion, golden and warm.")
+                 "he will.\n[Appearance]\nA huge lion, larger than any mortal lion, golden and warm.")
         self.script = [("Here it is.", [self.call("propose_card_edit", description=aslan, why="new character")])]
         self.api(action="say", text="make me Aslan")
         session = BulbaSession.objects.get(user=self.user, active=True)
@@ -5299,7 +5318,7 @@ class BulbaPicturesAndThemeTests(BulbaCardAndLoreTests):
 
     def test_long_cards_are_kept_whole(self):
         from mainapp.models import Character
-        long_text = "Habits:\n" + ("He checks the locks twice before sleeping. " * 600)  # ~25k characters
+        long_text = "Appearance:\nTall, grey at the temples.\n\nHabits:\n" + ("He checks the locks twice before sleeping. " * 600)  # ~25k characters
         self.script = [("", [self.call("propose_character", name="Corvin", description=long_text,
                                        greeting="The door creaks.")])]
         pid = self.api(action="say", text="go all out").json()["state"]["proposals"][-1]["id"]
@@ -9045,3 +9064,625 @@ class DesignedLookTests(SimpleTestCase):
         self.assertNotIn("color2", days)
         for look in ("pips", "gauge", "thermometer", "segments", "tally"):
             self.assertEqual(trackers.normalize_custom_fields([{"label": "X", "type": "meter", "look": look}])[0]["look"], look)
+
+
+class UnwatchedReplyTests(SimpleTestCase):
+    """A reply they left mid-way is finished on the server, then polished there (the page isn't there to ask)."""
+
+    def test_after_they_leave_the_server_does_what_the_page_would_have(self):
+        import threading
+        from django.test import override_settings
+        from mainapp import live
+        go_on, done, calls = threading.Event(), threading.Event(), []
+
+        def lines():
+            yield "a\n"
+            go_on.wait(5)
+            yield "b\n"
+        job = live.Job("reply")
+        with override_settings(LIVE_INLINE=False):
+            live.run_in_background(job, lines(), unwatched=lambda: (calls.append(1), done.set()))
+        page = job.follow()
+        self.assertEqual(next(page), "a\n")     # the page watches...
+        page.close()                            # ...and leaves
+        go_on.set()
+        self.assertTrue(done.wait(5))
+        self.assertEqual((calls, job.lines, job.done), ([1], ["a\n", "b\n"], True))
+
+    def test_nothing_extra_while_they_watch_or_when_nobody_ever_did(self):
+        from mainapp import live
+        calls = []
+        job = live.Job("reply")
+        live.work_inline(job, iter(["a\n"]))     # finished before any page looked: the page will ask itself
+        self.assertFalse(job.watched)
+        job2 = live.Job("reply")
+        live.run_in_background(job2, iter(["a\n"]), unwatched=lambda: calls.append(1))
+        self.assertEqual(calls, [])
+
+
+class SmallFixesNovemberTests(SimpleTestCase):
+    def test_a_marker_the_model_typed_itself_is_removed(self):
+        from mainapp import extras
+        text = '"Send it."\n[[extra: Message screen — Dottore and Pantalone]]\nHe read it.\n\n[[extra 1]]\n\n[[extra 7]]\nEnd.'
+        out = extras.place(text, [{"type": "messages", "n": 1, "owner": "x", "messages": []}])
+        self.assertNotIn("[[extra:", out)
+        self.assertNotIn("[[extra 7]]", out)       # no tool gave that one out
+        self.assertIn("[[extra 1]]", out)
+        self.assertIn("never type a marker", extras.PLACING)
+
+    def test_story_colours_start_with_the_characters_and_remind_before_the_note(self):
+        import types
+        from mainapp import speaker_colors as S
+        two = types.SimpleNamespace(name="Il Dottore", second_name="Pantalone", is_mult=True)
+        self.assertEqual(S.with_characters({"dialogue_color": "#82aaff", "you_color": "plum"}, two),
+                         {"Il Dottore": "cobalt", "Pantalone": "ember"})
+        kept = S.with_characters({"speech_cast": {"Il Dottore": "jade"}}, two)
+        self.assertEqual(kept["Il Dottore"], "jade")    # a colour already chosen stays
+        last = S.remind([{"role": "user", "content": "Hi\n\n[Director's note for this reply, x]"}])[-1]["content"]
+        self.assertLess(last.index(S.REMINDER), last.index("[Director's note"))
+        self.assertTrue(S.remind([{"role": "user", "content": "Hi"}])[-1]["content"].endswith(S.REMINDER))
+
+    def test_the_radio_is_one_list_for_the_pit_and_the_chat(self):
+        from mainapp import media_library
+        sets = media_library.radio()
+        self.assertEqual([g["set"] for g in sets], ["Circus", "Witchy woods", "Mornings", "Luxury"])
+        picker = media_library.radio_for_picker()
+        self.assertEqual(len(picker), 7)
+        self.assertTrue(all(p["name"].startswith("🎶 ") and p["url"].endswith(".mp3") for p in picker))
+        self.assertNotIn("🔮🎭💫", [t["name"] for t in media_library.built_in("music")])  # not for Bulba's picks
+
+
+class CardCheckTests(SimpleTestCase):
+    FILL = " She keeps the shop open late on market days and closes it early when it rains, counts the till twice," \
+           " and remembers every face that ever sold her something they regretted selling, and every price."
+    GOOD = ("Identity:\n{{char}} is a pawnbroker.\n\nAppearance:\nShort, grey hair in a knot.\n\n"
+            "Behavior:\nHaggles hard with strangers, overpays old friends and denies it." + FILL)
+
+    def session(self, messages=()):
+        import types
+        return types.SimpleNamespace(messages=list(messages))
+
+    def test_a_card_without_appearance_or_with_stock_labels_goes_back_once(self):
+        from mainapp.bulba import card_check as C
+        self.assertIsNone(C.review(self.session(), "Marta", self.GOOD))
+        no_look = "Identity:\n{{char}} is a pawnbroker.\n\nBehavior:\nHaggles." + self.FILL
+        self.assertIsNone(C.review(self.session(), "Marta", "A restorer."))   # one line they dictated: as it is
+        err = C.review(self.session(), "Marta", no_look)
+        self.assertIn("no Appearance part", err)
+        typed = self.GOOD + "\nA cold genius with a predator's smile and a piercing gaze."
+        err = C.review(self.session(), "Marta", typed)
+        self.assertIn("“cold genius”", err)
+        self.assertIn("“predator's smile”", err)
+        # already sent back once in this conversation: through it goes, no loop
+        self.assertIsNone(C.review(self.session([{"role": "tool", "content": '{"error": "' + err + '"}'}]), "Marta", typed))
+        self.assertIsNone(C.review(self.session(), "Ira", "Зовнішність:\nВисока.\n\nПоведінка: тиха." + self.FILL))  # Ukrainian
+
+    def test_the_guide_shows_a_compact_card_done_well(self):
+        from pathlib import Path
+        from django.conf import settings
+        guide = (Path(settings.BASE_DIR) / "mainapp/data/bulba/guides/characters.md").read_text(encoding="utf-8")
+        self.assertIn("### A compact card done well", guide)
+        self.assertIn("Cut Background before you cut this", guide)
+
+
+class CardSectionsTests(BulbaTests):
+    """Structured cards (mainapp/card_sections.py): sections composed into the description, sorted from old
+    cards, written by Bulba, edited section by section."""
+    APPEAR = "Short, grey hair in a knot, ink on her cuffs, a coat two sizes too big that she never takes off."
+    LONG = " She keeps the shop open late on market days, counts the till twice and remembers every face."
+
+    def test_an_old_card_is_sorted_by_its_headings_without_losing_a_word(self):
+        from mainapp import card_sections as cs
+        text = ("Mara restores paintings at the city museum.\n[Appearance]\nTall, grey eyes.\n"
+                "[How she behaves under pressure]\nGoes quiet, then precise.\n## Her favourite foods\nPlums.\n"
+                "Speech: short sentences.")
+        data, found = cs.from_text(text, "Mara")
+        person = data["people"][0]["sections"]
+        self.assertEqual(person["identity"]["text"], "Mara restores paintings at the city museum.")
+        self.assertEqual(person["appearance"]["text"], "Tall, grey eyes.")
+        self.assertEqual(person["personality"]["text"], "Goes quiet, then precise.")
+        self.assertEqual(person["voice"]["text"], "short sentences.")
+        self.assertIn("Plums.", data["extra"][0]["text"])  # an unknown heading: in "More", word for word
+        self.assertGreater(cs.coverage(text, data), 0.9)
+        composed = cs.compose(data)
+        self.assertTrue(composed.startswith("[Who they are]\nMara restores"))
+        data["people"][0]["sections"]["voice"]["on"] = False  # switched off: costs nothing
+        self.assertNotIn("short sentences", cs.compose(data))
+        self.assertEqual(cs.costs(data)["people"][0]["voice"], 0)
+
+    def test_an_ensemble_composes_each_person_and_temperament_is_said_in_words(self):
+        from mainapp import card_sections as cs
+        data = cs.clean({"kind": "ensemble", "shared": {"setting": "A night ferry."},
+                         "people": [{"name": "Ada", "sections": {"appearance": "Tall."},
+                                     "temperament": {"pace": "slow", "route": "enemies", "start": "cold"}},
+                                    {"name": "Bo", "sections": {"appearance": "Short."}}]})
+        text = cs.compose(data)
+        self.assertIn("[Setting]\nA night ferry.", text)
+        self.assertIn("## Ada\n", text)
+        self.assertIn("## Bo\n", text)
+        self.assertIn("slow to warm up; a relationship with them leans toward enemies; their attitude to {{user}} starts as: cold", text)
+        self.assertEqual(cs.temperament_of(type("C", (), {"sections": data})(), "Ada")["route"], "enemies")
+        changed = cs.edit(data, [{"person": "Bo", "section": "voice", "text": "Mumbles."},
+                                 {"person": "Cy", "section": "appearance", "text": "Red coat."},
+                                 {"section": "between", "text": "Ada owes Bo money."}])
+        self.assertEqual([p["name"] for p in changed["people"]], ["Ada", "Bo", "Cy"])
+        self.assertIn("Ada owes Bo money.", cs.compose(changed))
+        with self.assertRaises(ValueError):
+            cs.edit(cs.empty(), [{"section": "nonsense"}])
+
+    def test_bulba_writes_a_card_as_sections_and_apply_keeps_them(self):
+        from mainapp.models import Character
+        sections = {"kind": "ensemble", "shared": {"setting": "A pawnshop by the river."},
+                    "people": [{"name": "Marta", "sections": {"identity": "A pawnbroker." + self.LONG, "appearance": self.APPEAR},
+                                "temperament": {"pace": "slow", "route": "mentor", "start": "wary"}},
+                               {"name": "Ilko", "sections": {"identity": "Her nephew.", "appearance": "Gangly, freckled."}}]}
+        self.script = [("Here they are.", [self.call("propose_character", name="Marta", greeting="*The bell rings.*",
+                                                     sections=sections)])]
+        data = self.api(action="say", text="two of them please").json()
+        proposal = data["state"]["proposals"][0]
+        self.assertIn("2 people in one card: Marta, Ilko", json.dumps(proposal))
+        self.api(action="apply", id=proposal["id"])
+        c = Character.objects.get(author=self.user, name="Marta")
+        self.assertEqual(c.sections["kind"], "ensemble")
+        self.assertEqual((c.is_mult, c.second_name), (True, "Ilko"))
+        self.assertIn("## Ilko\n[Who they are]\nHer nephew.", c.description)
+
+    def test_a_section_card_without_an_appearance_goes_back(self):
+        from mainapp.bulba import card_check as C
+        import types
+        sections = {"people": [{"name": "Marta", "sections": {"identity": {"text": "x"}, "appearance": {"text": ""}}}]}
+        found = C.problems("word " * 50, sections)
+        self.assertTrue(found and "Marta" in found[0])
+        self.assertIsNone(C.review(types.SimpleNamespace(messages=[]), "Marta", "word " * 50,
+                                   {"people": [{"name": "M", "sections": {"appearance": {"text": "Tall."}}}]}))
+
+    def test_the_page_sorts_saves_and_goes_back_to_one_box(self):
+        from mainapp.models import Character
+        from unittest import mock
+        c = Character.objects.create(name="Mara", slug="mara-cs", author=self.user,
+                                     description="Mara restores paintings.\n[Appearance]\nTall.\n[Personality]\nDry.\n[Background]\nA bindery.")
+        url = reverse("character_sections", args=[c.slug])
+        self.assertIsNone(self.client.get(url).json()["sections"])
+        post = lambda **b: self.client.post(url, json.dumps(b), content_type="application/json")
+        sorted_ = post(action="structure").json()  # its own headings did it: no AI
+        self.assertEqual(sorted_["sections"]["people"][0]["sections"]["appearance"]["text"], "Tall.")
+        c.refresh_from_db()
+        self.assertEqual(c.sections, {})  # nothing saved before Save
+        saved = post(action="save", sections=sorted_["sections"]).json()
+        self.assertTrue(saved["saved"])
+        c.refresh_from_db()
+        self.assertTrue(c.description.startswith("[Who they are]\nMara restores paintings."))
+        self.assertEqual(c.sections["people"][0]["name"], "Mara")
+        post(action="plain")
+        c.refresh_from_db()
+        self.assertEqual(c.sections, {})
+        self.assertIn("[Appearance]\nTall.", c.description)  # the composed text stays
+        # A card with no headings: Bulba sorts it; whatever it drops comes back in "More" (switched off)
+        c.description = "A long rambling card about Mara, who is tall and dry and grew up above a bindery in the old town."
+        c.save()
+        answer = json.dumps({"kind": "character", "people": [{"name": "Mara", "sections": {"appearance": "tall"}}], "more": ""})
+        with mock.patch("mainapp.ai_client.complete", return_value=answer):
+            got = post(action="structure").json()["sections"]
+        self.assertEqual(got["extra"][-1]["title"], "The card as it was")
+        self.assertFalse(got["extra"][-1]["on"])
+        other = get_user_model().objects.create_user(username="other", password="pw12345!")
+        self.client.force_login(other)
+        self.assertEqual(self.client.get(url).status_code, 404)
+
+    def test_a_persona_from_sections(self):
+        self.script = [("Here you are.", [self.call("propose_persona", name="Sam",
+                                                    sections={"identity": "A courier.", "appearance": "Wiry, scarred knuckles.",
+                                                              "wants": "To pay off the bike."})])]
+        data = self.api(action="say", text="me").json()
+        proposal = data["state"]["proposals"][0]
+        self.api(action="apply", id=proposal["id"])
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.persona_description,
+                         "[Name & pronouns]\nA courier.\n\n[Appearance]\nWiry, scarred knuckles.\n\n[Connection to the story]\nTo pay off the bike.")
+        from mainapp import card_sections
+        found, rest = card_sections.split_persona(self.user.persona_description + "\n\nLoves plums.")
+        self.assertEqual(found["appearance"], "Wiry, scarred knuckles.")
+        self.assertEqual(found["connection"], "To pay off the bike.\n\nLoves plums.")  # after a part: in that part
+
+
+class StoryMemoryTests(ChatPromptTests):
+    """Story memory (mainapp/story_memory.py): milestones per scene, facts and who knows them, who is who,
+    relationship routes from the card's temperament, the Summary panel's tab, and what the model reads."""
+
+    ANSWER = {"continues": False, "title": "The third sublevel", "where": "Dottore's lab, third sublevel", "when": "night",
+              "who": ["Rose", "Ivan"],
+              "summary": "Rose met Ivan, Dottore's new guard on the third sublevel, who let her pass for a vial of ink.",
+              "facts": [{"fact": "Rose carries a forged pass.", "known_by": ["Rose"], "hidden_from": ["Ivan"]}],
+              "people": [{"name": "Ivan", "kind": "person", "identity": "Dottore's new guard on the third sublevel"}],
+              "relationships": [{"from": "Rose", "to": "Ivan", "step": 1, "trust": 1, "why": "He let her pass."}]}
+
+    def test_a_new_chat_uses_memory_and_flags_the_update_every_four_messages(self):
+        first = self.post({"action": "chat", "message": "One"}).json()  # greeting + 2 = 3
+        self.assertFalse(first["memory_due"])
+        self.assertFalse(first["summary_due"])
+        second = self.post({"action": "chat", "message": "Two"}).json()  # 5
+        self.assertTrue(second["memory_due"])
+        from mainapp import chats
+        self.assertEqual(chats.read(self.character.chats.first())["summary_mode"], "memory")
+
+    def test_an_update_writes_a_milestone_the_model_then_reads(self):
+        from unittest import mock
+        self.post({"action": "chat", "message": "I show the guard my pass."})
+        self.post({"action": "chat", "message": "I walk on."})
+        with mock.patch("mainapp.story_memory.ai_client.complete", return_value=json.dumps(self.ANSWER)) as call:
+            d = self.post({"action": "memory_run"}).json()
+        self.assertTrue(d["success"])
+        self.assertIn("they meet Ivan, Dottore's new guard", call.call_args[0][2][0]["content"])  # the prompt's rule
+        m = d["memory"]["milestones"][0]
+        self.assertEqual((m["title"], m["open"], m["from"], m["to"]), ("The third sublevel", True, 0, 5))
+        self.assertEqual(d["memory"]["people"][0]["identity"], "Dottore's new guard on the third sublevel")
+        self.assertEqual(d["left"], 0)
+        self.post({"action": "chat", "message": "And then?"})
+        system = "\n".join(x["content"] for x in self.sent[-1]["messages"] if x["role"] == "system")
+        self.assertIn("[Story memory]", system)
+        self.assertIn("Rose met Ivan, Dottore's new guard", system)
+        self.assertIn("NOT known to Ivan", system)
+        # The panel switches this chat to the manual summary: memory isn't sent any more
+        self.post({"action": "memory_mode", "mode": "manual"})
+        self.post({"action": "chat", "message": "Later."})
+        system = "\n".join(x["content"] for x in self.sent[-1]["messages"] if x["role"] == "system")
+        self.assertNotIn("[Story memory]", system)
+
+    def test_a_chat_from_before_stays_on_the_manual_summary(self):
+        from mainapp import story_memory
+        self.assertEqual(story_memory.mode_of({"messages": [1, 2, 3, 4, 5]}), "manual")
+        self.assertEqual(story_memory.mode_of({"summary_parts": [{"text": "x"}], "messages": [1]}), "manual")
+        self.assertEqual(story_memory.mode_of({"messages": [1]}), "memory")
+        from users.models import TaskSetting
+        TaskSetting.objects.create(user=self.user, task="memory", enabled=False)
+        self.assertEqual(story_memory.chat_mode(self.user, {"messages": [1]}), "manual")
+
+    def test_scenes_continue_close_and_never_grow_forever(self):
+        from mainapp import story_memory as M
+        mem = M.fold(M.empty(), {"continues": False, "title": "A", "summary": "First."}, 0, 4)
+        mem = M.fold(mem, {"continues": True, "title": "A", "summary": "First, then more."}, 4, 8)
+        self.assertEqual(len(mem["milestones"]), 1)
+        self.assertEqual((mem["milestones"][0]["to"], mem["milestones"][0]["summary"]), (8, "First, then more."))
+        mem = M.fold(mem, {"continues": False, "close_with": "They left.", "title": "B", "summary": "Second."}, 8, 12)
+        self.assertEqual([(m["title"], m["open"]) for m in mem["milestones"]], [("A", False), ("B", True)])
+        self.assertTrue(mem["milestones"][0]["summary"].endswith("They left."))
+        long = M.fold(M.empty(), {"title": "Long", "summary": "x"}, 0, 4)
+        long = M.fold(long, {"continues": True, "summary": "y"}, 4, 40)  # past MAX_SCENE: a new one starts
+        self.assertEqual(len(long["milestones"]), 2)
+        # Messages deleted: what memory knew of them goes
+        trimmed = M.trim_to(mem, 6)
+        self.assertEqual([m["title"] for m in trimmed["milestones"]], ["A"])
+        self.assertTrue(trimmed["milestones"][0]["stale"])
+
+    def test_relationships_start_from_the_temperament_and_move_a_step_at_a_time(self):
+        from mainapp import card_sections, story_memory as M
+        self.character.sections = card_sections.clean({"people": [{"name": "Rose", "sections": {"appearance": "Tall."},
+                                                                    "temperament": {"pace": "slow", "route": "enemies"}}]})
+        change = lambda: {"relationships": [{"from": "Rose", "to": "Sam", "step": 1, "tension": 2, "why": "A fight."}], "summary": "x"}
+        mem = M.fold(M.empty(), change(), 0, 4, self.character)
+        r = mem["relationships"][0]
+        self.assertEqual((r["route"], r["stage"], r["pace"]), ("enemies", "stranger", "slow"))
+        mem = M.fold(mem, {**change(), "continues": True}, 4, 8, self.character)  # 2 points, slow needs 3
+        self.assertEqual(mem["relationships"][0]["stage"], "stranger")
+        mem = M.fold(mem, {**change(), "continues": True}, 8, 12, self.character)
+        self.assertEqual(mem["relationships"][0]["stage"], "wary")
+        for i in range(3):  # the same milestone again: never a second step in it
+            mem = M.fold(mem, {**change(), "continues": True}, 12 + i, 13 + i, self.character)
+        self.assertEqual(mem["relationships"][0]["stage"], "wary")
+        mem = M.fold(mem, {"continues": False, "summary": "y", "relationships": [{"from": "Rose", "to": "Sam", "route": "enemies_to_lovers", "why": "A truce."}]}, 16, 20, self.character)
+        self.assertEqual((mem["relationships"][0]["route"], mem["relationships"][0]["stage"]), ("enemies_to_lovers", "grudging respect"))
+        text = M.prompt_text(mem)
+        self.assertIn("Rose toward Sam: grudging respect (route: enemies to lovers; trust", text)
+
+    def test_the_panel_edits_and_old_chats_build_in_chunks(self):
+        from unittest import mock
+        from mainapp import chats
+        for i in range(10):
+            self.post({"action": "chat", "message": f"Message {i}"})
+        chat = self.character.chats.first()
+        chats.write(chat, {**chats.read(chat), "summary_mode": "manual", "memory": {}})
+        self.post({"action": "memory_mode", "mode": "memory"})
+        with mock.patch("mainapp.story_memory.ai_client.complete", return_value=json.dumps(self.ANSWER)):
+            d = self.post({"action": "memory_run", "catch_up": True}).json()
+            self.assertEqual(d["left"], 21 - 16)
+            d = self.post({"action": "memory_run", "catch_up": True}).json()
+        self.assertEqual(d["left"], 0)
+        mid = d["memory"]["milestones"][-1]["id"]
+        d = self.post({"action": "memory_edit", "kind": "milestone", "id": mid, "title": "Mine", "summary": "My words."}).json()
+        self.assertEqual(d["memory"]["milestones"][-1]["summary"], "My words.")
+        d = self.post({"action": "memory_edit", "kind": "relationship", "id": "0", "stage": "friend"}).json()
+        self.assertEqual(d["memory"]["relationships"][0]["stage"], "friend")
+        fid = d["memory"]["facts"][0]["id"]
+        d = self.post({"action": "memory_edit", "kind": "fact", "id": fid, "hidden_from": "Ivan, Sam"}).json()
+        self.assertEqual(d["memory"]["facts"][0]["hidden_from"], ["Ivan", "Sam"])
+        self.post({"action": "edit", "index": 3, "text": "Changed."})
+        self.assertTrue(any(m.get("stale") for m in chats.read(chat)["memory"]["milestones"]))
+        d = self.post({"action": "memory_settings", "every": 6}).json()
+        self.assertEqual(d["every"], 6)
+
+    def test_bulba_watch_sees_the_secrets(self):
+        from mainapp import chats, story_memory
+        from mainapp.bulba import memory
+        self.post({"action": "chat", "message": "Hi"})
+        chat = self.character.chats.first()
+        mem = story_memory.fold(story_memory.empty(), self.ANSWER, 0, 3)
+        chats.write(chat, {**chats.read(chat), "memory": mem, "summary_mode": "memory"})
+        saw = memory.what_the_ai_saw(chat)
+        self.assertEqual(saw["mode"], "memory")
+        self.assertIn("Rose carries a forged pass. (NOT known to Ivan)", saw["secrets"])
+
+
+for _name in [n for n in dir(ChatPromptTests) if n.startswith("test_")]:
+    if not hasattr(StoryMemoryTests, _name) or getattr(StoryMemoryTests, _name) is getattr(ChatPromptTests, _name):
+        setattr(StoryMemoryTests, _name, None)  # the chat tests run once, in their own class
+
+
+class MemoryModelTests(TestCase):
+    def test_story_memory_runs_where_the_summary_does_unless_it_has_its_own(self):
+        from mainapp import ai_client
+        from users.models import ConnectionProfile, TaskSetting
+        user = get_user_model().objects.create_user(username="mm", password="pw12345!")
+        main = ConnectionProfile.objects.create(user=user, name="Main", api_key="k", model="big/model")
+        cheap = ConnectionProfile.objects.create(user=user, name="Cheap", api_key="k", model="small/model")
+        self.assertEqual(ai_client.resolve(user, "memory")[1], "big/model")
+        TaskSetting.objects.create(user=user, task="summary", profile=cheap)
+        self.assertEqual(ai_client.resolve(user, "memory")[1], "small/model")
+        TaskSetting.objects.create(user=user, task="memory", profile=main, model="own/model")
+        self.assertEqual(ai_client.resolve(user, "memory")[1], "own/model")
+
+
+class CardLookAndQuickViewTests(StoryMemoryTests):
+    """The Characters page dresses each card in the character's colour; the chat's quick view shows the card and,
+    from story memory, where the relationship stands."""
+
+    def test_the_list_card_carries_the_characters_colour_kind_and_route(self):
+        from mainapp import card_sections
+        from mainapp.templatetags.custom_filters import card_look
+        self.character.theme = {"dialogue_color": "#4dd0e1", "bg": "/static/x.webp"}
+        self.character.sections = card_sections.clean({"kind": "ensemble", "people": [
+            {"name": "Rose", "sections": {"appearance": "Tall."}, "temperament": {"route": "enemies"}}, {"name": "Bo"}]})
+        self.character.save()
+        look = card_look(self.character)
+        self.assertEqual((look["color"], look["bg"], look["badge"], look["route"]), ("#4dd0e1", "/static/x.webp", "👥 2", "⚔️ Enemies"))
+        page = self.client.get(reverse("characters_list"))
+        self.assertContains(page, "--card-accent: #4dd0e1;")
+        self.assertContains(page, "⚔️ Enemies")
+
+    def test_the_quick_view_shows_the_card_and_the_relationship_in_this_chat(self):
+        from mainapp import card_sections, chats, story_memory
+        self.character.sections = card_sections.clean({"people": [{"name": "Rose", "sections": {
+            "identity": "A courier for {{user}}'s guild.", "appearance": "Short, red coat."},
+            "temperament": {"pace": "slow", "route": "rivals", "start": "wary"}}]})
+        self.character.save()
+        self.post({"action": "chat", "message": "Hi"})
+        chat = self.character.chats.first()
+        mem = story_memory.fold(story_memory.empty(), self.ANSWER, 0, 3, self.character)
+        chats.write(chat, {**chats.read(chat), "memory": mem, "summary_mode": "memory"})
+        d = self.client.get(reverse("character_quick", args=[self.character.slug]) + f"?chat={chat.id}").json()
+        self.assertEqual(d["people"][0]["appearance"], "Short, red coat.")
+        self.assertNotIn("{{user}}", d["people"][0]["identity"])
+        self.assertEqual(d["people"][0]["route"], "Rivals")
+        self.assertEqual(d["relationships"][0]["from"], "Rose")
+        self.assertEqual(d["met"][0]["name"], "Ivan")
+        self.assertTrue(d["memory_on"])
+        self.assertContains(self.client.get(self.url), "quick_card.js")
+        other = get_user_model().objects.create_user(username="nosy", password="pw12345!")
+        self.client.force_login(other)
+        self.assertEqual(self.client.get(reverse("character_quick", args=[self.character.slug])).status_code, 404)
+
+
+for _name in [n for n in dir(StoryMemoryTests) if n.startswith("test_")]:
+    if getattr(CardLookAndQuickViewTests, _name, None) is getattr(StoryMemoryTests, _name, None):
+        setattr(CardLookAndQuickViewTests, _name, None)
+
+
+class BulbaConnectionsTests(BulbaTests):
+    """Bulba switches models and connections as cards they Apply, and never sees a key."""
+
+    def test_read_shows_no_key_and_use_new_model_apply_and_undo(self):
+        from mainapp import ai_client
+        from users.models import ConnectionProfile
+        self.script = [("Here's what runs where.", [self.call("read_connections")])]
+        self.api(action="say", text="what model am I on?")
+        read = [m for m in self.bulba_calls[-1]["messages"] if m.get("role") == "tool"][-1]["content"]
+        self.assertIn("anthropic/claude-opus-5.5", read)
+        self.assertNotIn("sk-or-secret", read)
+        # A new connection with the same key and a cheaper model, used for story memory at once
+        self.script = [("Here.", [self.call("propose_connection_change", action="new", name="Cheap", copy_key_from="Main",
+                                            model="google/gemini-3.8-flash", job="memory")])]
+        p = self.api(action="say", text="cheaper memory please").json()["state"]["proposals"][-1]
+        self.assertEqual(p["kind"], "connections")
+        self.api(action="apply", id=p["id"])
+        cheap = ConnectionProfile.objects.get(user=self.user, name="Cheap")
+        self.assertEqual((cheap.api_key, cheap.model), ("sk-or-secret", "google/gemini-3.8-flash"))
+        self.assertEqual(ai_client.resolve(self.user, "memory")[0].name, "Cheap")
+        self.api(action="undo", id=p["id"])
+        self.assertFalse(ConnectionProfile.objects.filter(user=self.user, name="Cheap").exists())
+        self.assertEqual(ai_client.resolve(self.user, "memory")[0].name, "Main")
+        # The chat on another model
+        self.script = [("Done.", [self.call("propose_connection_change", action="use", connection="Main", model="deepseek/deepseek-v4-pro")])]
+        p = self.api(action="say", text="switch").json()["state"]["proposals"][-1]
+        self.api(action="apply", id=p["id"])
+        self.assertEqual(ai_client.resolve(self.user, "chat")[1], "deepseek/deepseek-v4-pro")
+        # A bare name isn't a model id
+        self.script = [("Hm.", [self.call("propose_connection_change", action="model", connection="Main", model="opus")])]
+        self.api(action="say", text="opus")
+        err = [m for m in self.bulba_calls[-1]["messages"] if m.get("role") == "tool"][-1]["content"]
+        self.assertIn("full id", err)
+
+
+class ChatLookTests(BulbaTests):
+    """Custom chat looks: a recipe Bulba fills, checked here, turned into the chat page's styles."""
+    PURPL = {"name": "Purpl", "base": "light", "colors": {"page": "#d9cdee", "text": "#1f1a2e", "accent": "#7a5cc7",
+                                                          "outline": "url(evil)"},
+             "font": "gaegu", "bold": True, "bubble": {"shape": "wobbly", "outline": "sketch", "shadow": "offset", "name_tag": "tab"},
+             "frame": "sticker", "background": "blobs", "texture": "grain", "effect": "sparkles", "sound": "soft",
+             "buttons": "sticker", "extra": "<script>"}
+
+    def test_the_recipe_is_checked_and_becomes_styles(self):
+        from mainapp import chat_looks
+        r = chat_looks.clean({**self.PURPL, "frame": "spaceship", "font": "Comic Sans; } body { display:none"})
+        self.assertEqual(r["colors"]["outline"], chat_looks.DEFAULTS["light"]["outline"])  # not a colour: the default
+        self.assertEqual((r["frame"], r["font"]), ("circle", "system"))
+        self.assertNotIn("extra", r)
+        css = chat_looks.css(self.PURPL, 'Il "Dottore"', "Sam")
+        self.assertIn("body.skin-custom", css)
+        self.assertIn('--look-char: "Il \\"Dottore\\""', css)
+        self.assertIn("'Gaegu', 'Pangolin', cursive", css)  # Cyrillic letters in a look-alike
+        self.assertNotIn("url(evil)", css)
+        self.assertIn("family=Gaegu:wght@400;700&family=Pangolin", chat_looks.fonts_url(self.PURPL))
+
+    def test_bulba_proposes_a_look_and_the_chat_wears_it(self):
+        from mainapp.models import Character
+        c = Character.objects.create(name="Ant", slug="ant-look", author=self.user, initial_message="Hi.")
+        from mainapp.models import BulbaSession
+        self.api(action="say", text="hi")
+        session = BulbaSession.objects.get(user=self.user, mode="setup")
+        session.focus = c
+        session.save()
+        self.script = [("Here's purpl.", [self.call("read_look_options"), self.call("propose_chat_look", look=self.PURPL)])]
+        p = self.api(action="say", text="make it look like this picture").json()["state"]["proposals"][-1]
+        self.assertEqual(p["kind"], "chat_look")
+        self.assertIn("Gaegu", json.dumps(p["summary"]))
+        self.api(action="apply", id=p["id"])
+        c.refresh_from_db()
+        self.assertEqual((c.theme["skin"], c.theme["look"]["name"]), ("custom", "Purpl"))
+        page = self.client.get(reverse("chat", args=[c.slug]))
+        self.assertContains(page, "skin-custom")
+        self.assertContains(page, "fonts.googleapis.com/css2?family=Gaegu")
+        self.assertContains(page, "chat_look.js")
+        self.assertContains(page, 'data-skin="custom"')
+        self.api(action="undo", id=p["id"])
+        c.refresh_from_db()
+        self.assertNotIn("look", c.theme)
+        self.assertNotContains(self.client.get(reverse("chat", args=[c.slug])), "skin-custom")
+
+
+class ChatLookChangeTests(ChatLookTests):
+    def test_small_changes_by_bulba_or_by_hand_and_only_safe_pictures(self):
+        from mainapp import chat_looks
+        from mainapp.models import BulbaSession, Character
+        r = chat_looks.clean({"background": "picture", "picture": "https://evil.example/x.png"})
+        self.assertEqual((r["background"], r["picture"]), ("gradient", ""))  # not one of the app's pictures
+        r = chat_looks.clean({"background": "picture", "picture": "/static/defaults/backgrounds/desert.webp", "veil": 140})
+        self.assertEqual((r["picture"], r["veil"]), ("/static/defaults/backgrounds/desert.webp", 90))
+        self.assertIn("url('/static/defaults/backgrounds/desert.webp')", chat_looks.css(r))
+        c = Character.objects.create(name="Ant", slug="ant-change", author=self.user, initial_message="Hi.",
+                                     theme={"skin": "custom", "look": chat_looks.clean(self.PURPL)})
+        self.api(action="say", text="hi")
+        session = BulbaSession.objects.get(user=self.user, mode="setup")
+        session.focus = c
+        session.save()
+        self.script = [("Darker.", [self.call("propose_chat_look", changes={"colors": {"page": "#2a2140"}})])]
+        p = self.api(action="say", text="the background is a weird shade").json()["state"]["proposals"][-1]
+        self.assertIn("Colour page: #d9cdee → #2a2140", p["summary"])
+        self.api(action="apply", id=p["id"])
+        c.refresh_from_db()
+        self.assertEqual((c.theme["look"]["colors"]["page"], c.theme["look"]["font"]), ("#2a2140", "gaegu"))  # the rest stays
+        # By hand, in the pen menu: only colours and the background
+        resp = self.client.post(reverse("chat", args=[c.slug]), json.dumps({"action": "look_adjust", "changes": {
+            "background": "picture", "picture": "/static/defaults/backgrounds/desert.webp", "veil": 40, "font": "vt323"}}),
+            content_type="application/json").json()
+        self.assertTrue(resp["success"])
+        c.refresh_from_db()
+        self.assertEqual((c.theme["look"]["background"], c.theme["look"]["font"]), ("picture", "gaegu"))
+
+
+for _name in [n for n in dir(ChatLookTests) if n.startswith("test_")]:
+    if getattr(ChatLookChangeTests, _name, None) is getattr(ChatLookTests, _name, None):
+        setattr(ChatLookChangeTests, _name, None)
+
+
+class LookPreviewAndOnboardingTests(ChatLookTests):
+    def test_the_card_previews_the_look_and_the_form_sets_story_memory(self):
+        from mainapp.bulba import agent
+        from mainapp.models import BulbaSession, Character
+        from mainapp import ai_client
+        c = Character.objects.create(name="Ant", slug="ant-preview", author=self.user, initial_message="Hi.")
+        self.api(action="say", text="hi")
+        session = BulbaSession.objects.get(user=self.user, mode="setup")
+        session.focus = c
+        session.save()
+        self.script = [("Here.", [self.call("propose_chat_look", look=self.PURPL)])]
+        p = self.api(action="say", text="purple please").json()["state"]["proposals"][-1]
+        page = self.client.get(reverse("bulba_look_preview", args=[p["id"]]))
+        self.assertContains(page, "skin-custom")
+        self.assertContains(page, "Ant")
+        self.assertContains(page, "family=Gaegu")
+        self.assertEqual(self.client.get(reverse("bulba_look_preview", args=["nope"])).status_code, 404)
+        # The extras form's story memory row
+        self.assertIn("memory", agent.extras_form_event(session, "setup")["values"])
+        payload, summary = agent.form_payload("setup", {"memory": {"on": True, "interval": 6}})
+        self.assertEqual(payload["memory"], {"on": True, "interval": 6})
+        from users.views import apply_extras
+        apply_extras(self.user, payload)
+        self.assertEqual(ai_client.get_task_setting(self.user, "memory").interval, 6)
+        apply_extras(self.user, {"memory": {"on": False}})
+        self.assertFalse(ai_client.get_task_setting(self.user, "memory").enabled)
+
+
+for _name in [n for n in dir(ChatLookTests) if n.startswith("test_")]:
+    if getattr(LookPreviewAndOnboardingTests, _name, None) is getattr(ChatLookTests, _name, None):
+        setattr(LookPreviewAndOnboardingTests, _name, None)
+
+
+class TomatoBannerTests(TomatoMachineTests):
+    """🏮 Banners on the Sauce-o-Matic: a seasonal one with rate-ups and guarantees, the standard one for the rest."""
+    from datetime import date
+    NOV, JAN = date(2026, 11, 16), date(2027, 1, 10)
+
+    def test_the_seasonal_banner_runs_in_its_months_and_holds_its_own_things(self):
+        from mainapp import tomato_machine as M
+        self.assertTrue(M.banner_open("lantern", self.NOV))
+        self.assertFalse(M.banner_open("lantern", self.JAN))
+        self.assertEqual(M.banner_ends("lantern", self.NOV).isoformat(), "2026-11-30")
+        standard = {p["id"] for t in ("common", "rare", "legendary") for p in M.pool(t, self.NOV)}
+        self.assertFalse(standard & {"lantern_tomato", "gardener_death", "seed_monster", "trail_wisp", "companion_lantern"})
+        self.give(1)
+        with self.assertRaises(ValueError):
+            M.spin(self.user, 1, today=self.JAN, banner="lantern")
+        public = M.public(self.score, self.NOV)
+        self.assertEqual([b["id"] for b in public["banners"]], ["lantern", "standard"])
+        self.assertEqual([b["id"] for b in M.public(self.score, self.JAN)["banners"]], ["standard"])
+
+    def test_rate_up_guarantee_after_a_miss_and_its_own_pity(self):
+        from mainapp import tomato_machine as M
+        self.give(5)
+        # A legendary (roll .01 < 4%), then the 50/50 lost (.9): a standard legendary, and the next one is featured
+        out, state = M.spin(self.user, 1, rng=self.Rolls(.01, .9), today=self.NOV, banner="lantern")
+        self.assertEqual((out[0]["tier"], out[0]["promise"]), ("legendary", "lost"))
+        self.assertNotIn(out[0]["id"], ("lantern_tomato", "gardener_death"))
+        lantern = next(b for b in state["banners"] if b["id"] == "lantern")
+        self.assertTrue(lantern["sure"])
+        self.assertEqual(state["pity"]["legend"], 0)  # the standard banner's pity is its own
+        # With the promise on Mr. Death, the guaranteed one is him
+        M.promise(self.user, "gardener_death", banner="lantern")
+        out, state = M.spin(self.user, 1, rng=self.Rolls(.01, .9), today=self.NOV, banner="lantern")
+        self.assertEqual((out[0]["id"], out[0]["promise"]), ("gardener_death", "promise"))
+        # A rare (roll .1): featured half the time
+        out, _ = M.spin(self.user, 1, rng=self.Rolls(.1, .2), today=self.NOV, banner="lantern")
+        self.assertEqual((out[0]["tier"], out[0]["id"]), ("rare", "seed_monster"))
+        with self.assertRaises(ValueError):
+            M.promise(self.user, "gardener_frog", banner="lantern")  # not featured there
+        with self.assertRaises(ValueError):
+            M.promise(self.user, "gardener_death")  # only on its banner
+
+    def test_the_corner_lantern_is_worn_and_mr_death_collects_his_dues(self):
+        from mainapp import tomato_machine as M, tomato_garden as G
+        self.score.machine = {"items": {"companion_lantern": 1, "gardener_death": 1}}
+        self.score.save()
+        M.equip(self.user, "companion", "companion_lantern")
+        self.score.refresh_from_db()
+        self.assertEqual(M.worn(self.score)["companion"], "companion_lantern")
+        m = M._state(self.score)
+        g = G._state(self.score)
+        got = []
+        for i in range(3):
+            g["tiles"][f"{i},0"] = {"kind": "plant", "seed": "seed_monster", "at": 0, "boost": 0}
+            got.append(G._harvest(g, m, f"{i},0"))
+        self.assertEqual(got, [8, 8, 11])  # every third harvest: +3
+
+
+for _name in [n for n in dir(TomatoMachineTests) if n.startswith("test_")]:
+    if getattr(TomatoBannerTests, _name, None) is getattr(TomatoMachineTests, _name, None):
+        setattr(TomatoBannerTests, _name, None)

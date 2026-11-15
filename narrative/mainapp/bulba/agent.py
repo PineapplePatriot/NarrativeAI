@@ -207,6 +207,11 @@ TOOLS = [
         ["wording", "interpretation", "scope", "status"]),
     _fn("propose_extras", "Propose the extras settings (they press Apply).",
         {"summary": {"type": "string", "enum": ["auto", "manual"]}, "summary_every": {"type": "integer"},
+         "memory": {"type": "boolean", "description": "Story memory (on by default): new chats keep milestones per "
+                    "scene, who knows what, who everyone is and relationship progression. false: new chats use "
+                    "the manual summary instead"},
+         "memory_every": {"type": "integer", "description": "How many messages between story memory updates "
+                          "(default 4; more for many short messages, fewer for long ones)"},
          "trackers": {"type": "string", "enum": ["auto", "manual"]}, "trackers_every": {"type": "integer"},
          "sprites": {"type": "boolean"},
          "story_extras": {"type": "array", "items": {"type": "string", "enum": ["documents", "messages", "milestones",
@@ -258,16 +263,34 @@ TOOLS = [
          "extensions": {"type": "array", "items": {"type": "string", "enum": ["adventure", "continuity"]}},
          "why": STR},
         ["starter", "taste", "why"]),
-    _fn("propose_persona", "Propose who the user is in the story.",
-        {"name": STR, "description": STR, "why": STR}, ["name", "description"]),
-    _fn("propose_character", "Propose a character to chat with. For a card with two characters (a pair "
-        "who share the story, e.g. siblings or rivals), give second_name too and describe both in the description; "
-        "the chat then shows two sets of pictures and highlights whoever speaks.",
+    _fn("propose_persona", "Propose who the user is in the story. Prefer `sections` (the description is made "
+        "from them); a plain description works too.",
+        {"name": STR, "description": STR, "why": STR,
+         "sections": {"type": "object", "description": "{key: text}, the seven core elements: pronouns (name & "
+                      "pronouns), appearance, background (background & lore), connection (how they're tied to the "
+                      "card's characters or its world), traits (core traits, as behaviour), likes (likes & dislikes), "
+                      "temperament (how they act in different situations, and how they change). Leave out what "
+                      "they didn't tell you or want you to invent."}},
+        ["name"]),
+    _fn("propose_character", "Propose a character to chat with. Write the card as sections (preferred: give "
+        "`sections`; the description is then made from them): kind 'character' (one person), 'ensemble' (as many "
+        "people as they asked for, each with their own sections, plus what they share) or 'simulation' (a world "
+        "that makes its own people as the story goes). Without sections, give a plain description. For a card "
+        "with several people, second_name is the second one's name (the chat shows two sets of pictures).",
         {"name": STR, "description": STR, "scenario": STR, "greeting": STR,
          "personality": STR, "example_dialogue": STR,
-         "second_name": {"type": "string", "description": "Only for a two-character card: the second one's name"},
+         "second_name": {"type": "string", "description": "Only for a card with several people: the second one's name"},
+         "sections": {"type": "object", "description": (
+             "The card as sections: {\"kind\": \"character\"|\"ensemble\"|\"simulation\", \"shared\": {key: text}, "
+             "\"people\": [{\"name\": \"...\", \"sections\": {key: text}, \"temperament\": {\"pace\": "
+             "\"slow|steady|fast\", \"route\": \"basic|romance|enemies|enemies_to_lovers|mentor|rivals|family\", "
+             "\"start\": \"where their attitude to {{user}} starts, a few words\"}}], \"extra\": [{\"title\", \"text\"}]}. "
+             "A person's keys: identity, appearance (never empty), personality, temperament, goals, voice, "
+             "background, relationships, knowledge. Shared keys: ensemble: setting, between; simulation: world, "
+             "places, factions, tone, start, new_people (how new people are made and introduced). Leave a "
+             "section out rather than pad it.")},
          "why": STR},
-        ["name", "description", "greeting"]),
+        ["name", "greeting"]),
     *library.tool_defs(_fn, STR),
     *lore.tool_defs(_fn, STR),
     *tune.tool_defs(_fn, STR),
@@ -299,7 +322,7 @@ def tool_get_current_setup(session, args):
     active = presets.get_active(user)
     return {
         "chat_model": extras["chat_model"],
-        "extras": {k: extras[k] for k in ("has_eleven_key", "summary", "trackers", "sprites", "background")},
+        "extras": {k: extras[k] for k in ("has_eleven_key", "summary", "memory", "trackers", "sprites", "background")},
         "active_preset": active.name,
         "presets": [p.name for p in Preset.objects.filter(user=user)][:20],
         "persona": {"name": getattr(user, "persona_name", "") or "", "description": getattr(user, "persona_description", "") or ""},
@@ -778,6 +801,15 @@ def tool_record_preference(session, args):
 def tool_propose_extras(session, args):
     from users.views import _cheap_models
     payload, summary = {}, []
+    if isinstance(args.get("memory"), bool) or args.get("memory_every"):
+        item = {}
+        if isinstance(args.get("memory"), bool):
+            item["on"] = args["memory"]
+        if args.get("memory_every"):
+            item["interval"] = max(1, min(100, int(args["memory_every"])))
+        payload["memory"] = item
+        summary.append("Story memory: " + ("off (new chats use the manual summary)" if item.get("on") is False else
+                       "on" + (f", updated every {item['interval']} messages" if item.get("interval") else "")))
     if args.get("summary") in ("auto", "manual"):
         every = max(1, min(200, int(args.get("summary_every") or 10)))
         payload["summary"] = {"mode": args["summary"], "interval": every}
@@ -946,26 +978,50 @@ def tool_propose_preset(session, args):
 
 
 def tool_propose_persona(session, args):
+    from mainapp import card_sections
     name = str(args.get("name", "")).strip()[:100]
-    desc = str(args.get("description", "")).strip()[:8000]
+    desc = (card_sections.compose_persona(args.get("sections")) if isinstance(args.get("sections"), dict) else "") \
+        or str(args.get("description", "")).strip()[:8000]
     if not name or not desc:
-        return {"error": "Need a name and a description."}, []
+        return {"error": "Need a name and the persona (sections, or a description)."}, []
     p = _proposal(session, "persona", f"You: {name}", [desc], {"name": name, "description": desc})
     return {"proposal": p["id"], "status": "waiting for Apply"}, [{"type": "proposal", "id": p["id"]}]
 
 
 def tool_propose_character(session, args):
+    from mainapp import card_sections
     name = str(args.get("name", "")).strip()[:100]
-    if not name or not str(args.get("description", "")).strip():
-        return {"error": "Need a name and a description."}, []
+    sections = card_sections.clean(args.get("sections")) if isinstance(args.get("sections"), dict) else None
+    if sections and sections["people"] and not sections["people"][0]["name"] and sections["kind"] != "simulation":
+        sections["people"][0]["name"] = name
+    if sections and not card_sections.compose(sections):
+        sections = None
+    if not name or not (sections or str(args.get("description", "")).strip()):
+        return {"error": "Need a name and the card (sections, or a description)."}, []
     payload = {k: str(args.get(k, "")).strip()[:40000]
                for k in ("description", "scenario", "greeting", "personality", "example_dialogue")}
+    if sections:
+        payload["description"] = card_sections.compose(sections)
+    from mainapp.bulba import card_check
+    sent_back = card_check.review(session, name, payload["description"], sections)  # no appearance, or types
+    if sent_back:
+        return {"error": sent_back}, []
     from mainapp.bulba import polish
     payload = polish.clean_written(session.user, payload)  # the known AI habits out of the draft (the greeting most)
     payload["name"] = name
     payload["second_name"] = str(args.get("second_name") or "").strip()[:100]
-    summary = ([f"Two characters in one card: {name} and {payload['second_name']}"] if payload["second_name"] else []) \
-        + ["Description:", payload["description"]]
+    if sections:
+        payload["sections"] = sections
+        others = [p["name"] for p in sections["people"][1:] if p["name"]]
+        if sections["kind"] == "ensemble" and others and not payload["second_name"]:
+            payload["second_name"] = others[0]
+    if sections and sections["kind"] != "character":
+        who = [p["name"] for p in sections["people"] if p["name"]]
+        lead = (["A world that makes its own people as the story goes"] if sections["kind"] == "simulation"
+                else [f"{len(who)} people in one card: {', '.join(who)}"])
+    else:
+        lead = [f"Two characters in one card: {name} and {payload['second_name']}"] if payload["second_name"] else []
+    summary = lead + ["Description (made from sections):" if sections else "Description:", payload["description"]]
     if payload["personality"]:
         summary += ["In short:", payload["personality"]]
     if payload["scenario"]:
@@ -1105,7 +1161,7 @@ def after_memory_form(session, shown):
 # The extras in one form (setup: the app's extras; story: dice, story extras, ideas)
 # ---------------------------------------------------------------------------
 
-SETUP_FORM_KEYS = ("summary", "trackers", "sprites", "watch", "fix_model", "background")
+SETUP_FORM_KEYS = ("memory", "summary", "trackers", "sprites", "watch", "fix_model", "background")
 STORY_FORM_KEYS = ("game", "story_extras", "ideas")
 
 
@@ -1197,6 +1253,15 @@ def form_payload(part, answers):
                     every = 10 if task == "summary" else 2
                 payload[task] = {"mode": item["mode"], "interval": every}
                 summary.append(f"{label}: " + (f"every {every} messages" if item["mode"] == "auto" else "only when you ask"))
+        item = answers.get("memory") if isinstance(answers.get("memory"), dict) else {}
+        if isinstance(item.get("on"), bool):
+            try:
+                every = max(1, min(100, int(item.get("interval") or 4)))
+            except (TypeError, ValueError):
+                every = 4
+            payload["memory"] = {"on": item["on"], "interval": every}
+            summary.append("Story memory: " + (f"on for new chats, updated every {every} messages" if item["on"]
+                                               else "off (new chats use the story summary)"))
         for key, label in (("sprites", "Character pictures that change with the mood"), ("watch", "Bulba Watch")):
             if isinstance(answers.get(key), bool):
                 payload[key] = answers[key]
@@ -1293,6 +1358,7 @@ def failed_tail(session):
     return idx if all(e.get("type") == "error" for e in session.events[idx + 1:]) else None
 
 
+
 def _cut_to_last_user(session, keep_it):
     """Bulba's conversation back to their last message (kept, or removed too)."""
     i = next((i for i in range(len(session.messages) - 1, -1, -1) if session.messages[i].get("role") == "user"), None)
@@ -1300,13 +1366,29 @@ def _cut_to_last_user(session, keep_it):
         session.messages = session.messages[:i + 1] if keep_it else session.messages[:i]
 
 
+def stopped_on_error(session):
+    """The turn ended on an error (a rate limit, a dropped provider), whatever came before it in that turn."""
+    return bool(session.events) and session.events[-1].get("type") == "error"
+
+
+CARRY_ON = "[The last request failed on the provider's side (not your fault). Carry on from where you stopped.]"
+
+
 def retry_failed(session):
-    """Their last message again, after a turn that failed (no second copy of it). Returns the new events."""
+    """Their last message again, after a turn that failed (no second copy of it); or, when the turn failed midway
+    (after a proposal, a tool, an Apply), Bulba carries on from there. Returns the new events."""
     idx = failed_tail(session)
-    if idx is None:
+    if idx is not None:
+        del session.events[idx + 1:]
+        _cut_to_last_user(session, keep_it=True)
+        return run_turn(session, "")
+    if not stopped_on_error(session):
         raise ValueError("There's nothing to try again.")
-    del session.events[idx + 1:]
-    _cut_to_last_user(session, keep_it=True)
+    while session.events and session.events[-1].get("type") == "error":
+        session.events.pop()
+    last = session.messages[-1] if session.messages else None
+    if last and last.get("role") == "assistant" and not last.get("tool_calls"):
+        session.messages.append({"role": "user", "content": CARRY_ON})  # never end on Bulba's own words
     return run_turn(session, "")
 
 

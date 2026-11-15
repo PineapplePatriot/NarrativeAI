@@ -69,6 +69,9 @@ class Character(models.Model):
     is_mult = models.BooleanField(default=False, verbose_name="Multi-Character Mode")
     # The second character of a two-character card (is_mult): who the second set of pictures shows
     second_name = models.CharField(max_length=100, blank=True, default="", verbose_name="Second character's name")
+    # The card kept as sections (mainapp/card_sections.py); the description is composed from them. Empty: an
+    # old-style card, one text box (an "Upgrade this card" button sorts it)
+    sections = models.JSONField(default=dict, blank=True)
     # Which story trackers are on for this character, custom fields and layout (see mainapp/trackers.py)
     tracker_config = models.JSONField(default=dict, blank=True)
     # The character's look: {"bg": url, "music": {"url", "name"}, "dialogue_color": "#rrggbb" or "preset"}.

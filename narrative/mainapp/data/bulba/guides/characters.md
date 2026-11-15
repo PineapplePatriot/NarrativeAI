@@ -1,4 +1,4 @@
-# Guide: writing characters and personas (v0.2)
+# Guide: writing characters and personas (v0.4)
 
 Used in the "persona" and "character" stages. Adapted from Anya's card-writing guide
 (`docs/bulba/research/06-character-card-guide.md`); cards follow the SillyTavern card fields so they
@@ -28,7 +28,8 @@ like when things get hard, how the two of them know each other (or don't), and w
 
 **Ask how detailed the card should be** before writing it, with offer_choices (say roughly what each
 costs: the description goes out with every reply):
-- "Compact" (about 300 to 600 words): the core below, nothing extra. Cheap, leaves room to improvise.
+- "Compact" (about 300 to 600 words): the core below, nothing extra. Cheap, leaves room to improvise. Read
+  "A compact card done well" first: few words still means a person, with appearance.
 - "Detailed" (about 800 to 1,500 words): every section of the template filled, with conditions and
   examples of behaviour.
 - "Go all out" (up to about 4,000 words, roughly 6,000 tokens): many people who love a character want
@@ -62,6 +63,45 @@ No epithets and no figurative descriptions of character ("a viper in silk"): pla
 what they usually wear, how they move), from canon for canon characters. The story and the chat's pictures
 both rely on it.
 
+### A compact card done well
+
+A small card is not a thinner version of a big one: it's a choice of what the model can't guess. When the
+words are few, spend them in this order and cut from the bottom:
+1. **Appearance** (two or three lines): it never goes. Cut Background before you cut this.
+2. **What they want, and what they want that conflicts with it**: one sentence each.
+3. **Two or three behaviours with conditions**, including the one the type wouldn't predict, with its reason.
+   This is where complexity lives; a list of adjectives has none.
+4. **Voice**: how they talk (rhythm, register, a habit of speech), in one or two lines; a sample phrase inside
+   the description beats an example dialogue in a compact card.
+5. **Where they stand with {{user}}** and what's unresolved.
+6. Background only where it drives the present; skills and secrets in a line.
+No labels in place of behaviour, even when short ("a cunning banker" saves four words and costs the person).
+
+An example at about 200 words (the shape, not words to copy):
+
+```text
+Identity:
+{{char}} is a pawnbroker in a harbour town, in her fifties, widowed, running the shop her father opened.
+
+Appearance:
+Short and broad, grey hair in a tight knot, reading glasses on a cord, ink on her right forefinger. A man's
+wool coat over a good dress; moves slowly and never seems to hurry, even when she does.
+
+Motives and limits:
+Wants her daughter out of this town and educated; wants, just as badly, not to be left alone in it. Never buys
+from children and never says why.
+
+Behavior:
+Haggles hard with strangers and quietly overpays people she's known for years, then denies it. Tells the truth
+about an object's worth even when it costs her the sale. Frightened, she tidies the counter and asks about money.
+
+Voice:
+Dry and plain, questions answered with questions: "And what do you think it's worth, dear? Out loud, please."
+
+Relationship with {{user}}:
+{{user}} pawned a ring here last winter and hasn't come back for it. She has kept it out of the window.
+```
+
 ### What matters most
 
 Spend the words on **identity, motives, personality as behavior, voice, and the relationship to the
@@ -79,14 +119,50 @@ user**. Appearance and biography support these; they don't crowd them out.
   redemption unless that's the premise they asked for.
 - **Knowledge boundaries.** Say what they know, what they don't, and any secrets (and who knows them).
 
-### Two characters in one card
+### Cards as sections
 
-When the story is about a pair who are always together (twins, a duo of rivals, a master and an apprentice),
-one card can hold both: propose_character with second_name, and describe both in the description (each
-with their own look, voice and wants). The chat shows two sets of pictures side by side and highlights
-whoever speaks. Pictures for the second one: offer_mood_pictures with second true, once its neutral picture is
-on the character's page (the "make pictures for" choice there). A larger cast is better as one character with
-the others in the lorebook.
+Write every new card as sections (propose_character `sections`); the description the model reads is made
+from them, in this order, and they can switch any one off on the character's page:
+- **identity**: name, age, what they are and do, where they stand. Two or three lines.
+- **appearance**: never empty, never the first thing cut (see "A compact card done well").
+- **personality**: personality in action: what they do, when, to whom, at what cost.
+- **temperament**: how fast they warm up, what wounds them, what wins them over. Also set the `temperament`
+  fields: `pace` (slow, steady, fast), `route` (basic, romance, enemies, enemies_to_lovers, mentor, rivals,
+  family: the way a relationship with {{user}} most naturally goes; enemies is a full route, not a flavour)
+  and `start` (a few words: where their attitude to {{user}} starts). Story memory moves the relationship
+  from there, so don't write a fixed feeling ("is in love with {{user}}") anywhere in the card: it would hold
+  forever. Write where it starts and what moves it.
+- **goals**, **voice** (with one sample line), **background** (only what drives the present),
+  **relationships** ({{user}} first), **knowledge** (what they know that others don't; secrets).
+- Leave out a section rather than pad it. Their own extra sections go in `extra` with a title.
+
+The word budget they chose is for the whole card: spread it in the priority order of "What matters most".
+
+### Several people in one card (ensemble)
+
+When they want a group (siblings, a crew, a household, three rivals), `kind` "ensemble": one entry in
+`people` per person, as many as they asked for, each with their own sections and temperament (each gets an
+appearance), plus `shared`: `setting` (where and when, what brings them together) and `between` (how they
+relate to each other: who defers to whom, old grudges, alliances). Give each person something the others
+don't have: a different want, a different voice. The chat shows two sets of pictures (the first two people,
+second_name is the second) and highlights whoever speaks. Pictures for the second: offer_mood_pictures with
+second true. A short card for many people is fine: identity, appearance, two lines of behaviour and voice each.
+
+### A simulation card (a world that makes its own people)
+
+When they describe a setting more than a person ("a cyberpunk city where I'm a courier", "a fantasy academy
+with lots of students"), `kind` "simulation": `shared` holds `world` (what it is and how it works), `places`,
+`factions`, `tone`, `start` (where {{user}} is when it opens) and `new_people`: what kinds of people {{user}}
+meets, how each is introduced (a name, a look, what they want, in a line or two the first time), and which
+ones come back. Recurring people they already know go in `people` (each with an appearance). The narrator
+voices everyone and never {{user}}. Story memory keeps every new person (who they are, what happened with
+them), so they come back consistent: the card doesn't need to list them.
+
+### From a picture
+
+When they send a picture of the character, write the appearance from what you see (build, face, hair, eyes,
+clothes, how they carry themselves; no art-style words). On the character's page, "Appearance from the
+picture" does the same from the neutral sprite.
 
 ### The opening: its own step, before the card
 

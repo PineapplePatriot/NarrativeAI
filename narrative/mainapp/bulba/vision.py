@@ -22,14 +22,18 @@ _INPUTS = {"at": 0.0, "models": {}}    # OpenRouter model id -> its input modali
 PROMPT = (
     "Someone using a roleplay app (Narrative AI) showed this picture to its setup assistant, Bulba, who can't see "
     "it. Describe it for Bulba, in plain English, so Bulba can help. First say in one line what it is: a "
-    "screenshot, character art, a place or scene, a moodboard, or something else.\n"
+    "screenshot, character art, a place or scene, a moodboard, a design or style to copy, or something else.\n"
     "- A screenshot: copy out the text that matters exactly (a reply they dislike, a setting, an error), and say "
     "which page or app it looks like.\n"
     "- Character art: describe how the character looks, concretely enough to write a card from it: apparent age, "
     "build, face, hair, eyes, skin, outfit and colours, notable details, expression and pose, the art style. "
     "Don't guess a name unless it's written in the picture.\n"
     "- A place, scene or moodboard: the setting, light, colours, period or genre, and the mood it gives.\n"
-    "Only what you can see; say so when something is unclear. At most 300 words. No preamble.")
+    "- A design, an app or game screen, or a style they like (inspiration for how their chat should look): its "
+    "colours as #rrggbb guesses (background, panels, text, accents, outlines), the lettering (handwritten, rounded, "
+    "serif, pixel...; bold or light), the shapes (hand-drawn wobbly lines, sharp corners, pills, sticker outlines, "
+    "offset shadows), textures (grain, paper), decorations (sparkles, flowers, stars) and the overall mood.\n"
+    "Only what you can see; say so when something is unclear. At most 350 words. No preamble.")
 
 
 def _input_modalities():

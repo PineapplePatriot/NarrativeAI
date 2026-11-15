@@ -29,6 +29,10 @@ from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
 from . import basics as basics_mod
+from . import writing_quality
+from . import chat_looks
+from . import story_memory
+from .bulba import vision as bulba_vision
 from . import echo, speaker_colors
 from . import live as live_jobs  # work that outlives the page (not the local "live" lists below)
 from . import extras, game, html_objects, media_library, recall, story, thinking, ai_client, cards, chats, regex_rules, experiences, model_profiles, presets, samplers, starters, tomato_garden, tomato_machine, tomatoes, trackers, translation
@@ -68,7 +72,8 @@ def guide_page(request):
 @login_required
 def tomato_pit(request):
     """🍅 The secret Tomato Pit: throw as many as you like (static/js/tomato.js; progress kept on the account)."""
-    return render(request, "mainapp/tomato_pit.html", {"scenes": tomatoes.scene_choices()})
+    return render(request, "mainapp/tomato_pit.html", {"scenes": tomatoes.scene_choices(),
+                                                       "radio": media_library.radio()})
 
 
 TOMATO_MAX_ADD = 3000  # throws one sync may add (it syncs every few seconds: well above any human rate)
@@ -152,10 +157,12 @@ def tomato_machine_view(request):
         act = body.get("action")
         try:
             if act == "spin":
-                results, state = tomato_machine.spin(request.user, body.get("n") if body.get("n") in (1, 10) else 0)
+                results, state = tomato_machine.spin(request.user, body.get("n") if body.get("n") in (1, 10) else 0,
+                                                     banner=str(body.get("banner") or "standard"))
                 return JsonResponse({**state, "results": results})
             if act == "promise":
-                return JsonResponse(tomato_machine.promise(request.user, body.get("id") or None))
+                return JsonResponse(tomato_machine.promise(request.user, body.get("id") or None,
+                                                           banner=str(body.get("banner") or "standard")))
             if act == "compost":
                 return JsonResponse(tomato_machine.compost_spin(request.user))
             if act == "equip":
@@ -283,7 +290,9 @@ def _summarize(user, messages, existing="", room=None):
     """One summary piece for `messages`, continuing `existing` when there is one. With `room` (tokens), a single
     message longer than that is cut to fit (its end kept)."""
     if existing:  # the instructions are the preset's utility prompts (Presets page → Utility prompts)
-        sys_prompt = f"Existing summary: {existing}\n\nTask: {presets.job_prompt(user, 'summary_continue')}"
+        sys_prompt = (f"Existing summary: {existing}\n\nTask: {presets.job_prompt(user, 'summary_continue')}\n\n"
+                      "(Write only what happens in the messages below. Your text is added after the existing "
+                      "summary, which stays as it is: don't repeat or rewrite it.)")
     else:
         sys_prompt = presets.job_prompt(user, "summary_new")
     lines = [_summary_line(m) for m in messages]
@@ -311,6 +320,13 @@ def _summarize_pieces(user, messages, start, earlier=""):
         pieces.append({"text": _summarize(user, messages[i:j], existing, room), "from": start + i, "to": start + j})
         i = j
     return pieces
+
+
+def _story_text(user, chat_state, count):
+    """What the model reads as the story so far: story memory or the manual summary (the chat's mode)."""
+    return story_memory.story_text(user, {"summary_mode": chat_state.get("summary_mode"), "memory": chat_state.get("memory"),
+                                          "summary_parts": chat_state.get("summary_parts"), "summary": chat_state.get("summary")},
+                                   chat_state.get("summary") or "", count)
 
 
 NOTE_FRAME = "[Director's note, outside the story (not something said or done in it): {text}]"
@@ -361,7 +377,7 @@ def _write_mine(request, data, character, chat_obj, chat_state, messages, text_r
         try:
             written, fixed = polish.polish_text(request.user, character, chat_obj, written,
                                                 polish.others_before(messages, len(messages), "user"),
-                                                chat_state["summary"], habits, whose="theirs")
+                                                _story_text(request.user, chat_state, len(messages)), habits, whose="theirs")
         except ai_client.AIError as e:
             log.info("Polish skipped for a written message: %s", e)
     if reading and not translation.already_in(written, reading):  # into the language they write in
@@ -449,6 +465,8 @@ def chat(request, slug):
         "trackers": {},         # tracker values, locks and "upto" (see mainapp/trackers.py)
         "tracker_history": [],  # snapshots of the trackers by message count (for deletes and branches)
         "summary_paused": False,  # automatic summaries are paused for this chat
+        "memory": {},  # story memory (mainapp/story_memory.py)
+        "summary_mode": "",  # "memory" or "manual" once chosen ("" = not yet: story_memory.chat_mode decides)
         "context_guides": {},
         "current_bg": "",
         "current_music": {},
@@ -499,10 +517,12 @@ def chat(request, slug):
                 chat_state["trackers"] = data.get("trackers") or {}
                 chat_state["tracker_history"] = data.get("tracker_history") or []
                 chat_state["summary_paused"] = bool(data.get("summary_paused"))
+                chat_state["memory"] = data.get("memory") if isinstance(data.get("memory"), dict) else {}
+                chat_state["summary_mode"] = data.get("summary_mode") if data.get("summary_mode") in ("memory", "manual") else ""
                 chat_state["context_guides"] = data.get("context_guides", {})
                 chat_state["current_bg"] = data.get("current_bg", "")
                 chat_state["current_music"] = data.get("current_music", {})
-                chat_state["skin"] = data.get("skin") if data.get("skin") in (*CHAT_SKINS, "none") else ""
+                chat_state["skin"] = data.get("skin") if data.get("skin") in (*CHAT_SKINS, "none", "custom") else ""
                 chat_state["music_follow"] = data.get("music_follow") if isinstance(data.get("music_follow"), dict) else {}
                 chat_state["last_recall"] = data.get("last_recall") if isinstance(data.get("last_recall"), list) else []
                 chat_state["persona"] = data.get("persona") if isinstance(data.get("persona"), dict) else {}
@@ -594,14 +614,27 @@ def chat(request, slug):
         if "keepsakes" in extra_kinds:
             values["scrapbook"] = extras.keepsakes(messages)
 
+    def chat_mode():
+        """This chat's summary mode: story memory or the manual summary (story_memory.chat_mode)."""
+        return story_memory.chat_mode(request.user, {"summary_mode": chat_state["summary_mode"],
+                                                     "summary_parts": chat_state["summary_parts"],
+                                                     "summary": chat_state["summary"]}, len(messages))
+
     def save_messages(messages):
         sync_game_trackers(messages)
+        if not chat_state["summary_mode"]:  # decided once (a new chat: memory), so it doesn't change as it grows
+            chat_state["summary_mode"] = story_memory.chat_mode(request.user, {"summary_parts": chat_state["summary_parts"],
+                                                                               "summary": chat_state["summary"]}, len(messages))
+        if chat_state["memory"]:  # deleted messages take what memory knew of them along
+            chat_state["memory"] = story_memory.trim_to(chat_state["memory"], len(messages))
         full_data = {
             "messages": messages,
             "summary": chat_state["summary"],
             "summary_upto": chat_state["summary_upto"],
             "summary_parts": chat_state["summary_parts"],
             "summary_paused": chat_state["summary_paused"],
+            "memory": chat_state["memory"],
+            "summary_mode": chat_state["summary_mode"],
             "trackers": chat_state["trackers"],
             "tracker_history": chat_state["tracker_history"],
             "context_guides": chat_state["context_guides"],
@@ -618,6 +651,55 @@ def chat(request, slug):
         }
         chats.save_path(chat_file_path, full_data)
         chat_obj.save(update_fields=["time_update"])
+
+    def polish_unwatched():
+        """A reply finished with nobody watching (they left the page): the automatic polish the page would have
+        asked for, done here, so they come back to the polished reply (mainapp/live.py calls it)."""
+        msgs = load_messages()
+        if not msgs or msgs[-1][0] != "assistant" or not polish.due(request.user, chat_obj, msgs):
+            return
+        rec_now = chats.polish_of(msgs[-1])
+        if rec_now and not rec_now.get("echo"):
+            return
+        original = msgs[-1][2]
+        try:
+            new_text, fixes = polish.polish(request.user, character, chat_obj, msgs, _story_text(request.user, chat_state, len(msgs)), len(msgs) - 1)
+        except ai_client.AIError as e:
+            log.info("Polish skipped for a reply nobody was watching: %s", e)
+            return
+        msgs = load_messages()  # read again: they may have come back meanwhile
+        if not fixes or msgs[-1][0] != "assistant" or msgs[-1][2] != original:
+            return
+        habits = polish.habits_of(request.user, fixes)
+        rec = (polish.record(rec_now["original"], (rec_now.get("fixes") or []) + fixes,
+                             list(dict.fromkeys((rec_now.get("habits") or []) + habits)))
+               if rec_now else polish.record(original, fixes, habits))
+        msgs[-1] = chats.with_polish(msgs[-1], new_text, rec)
+        save_messages(msgs)
+
+    def after_unwatched():
+        """Everything the page would have asked for after a reply nobody watched: the polish, then story memory."""
+        try:
+            polish_unwatched()
+        finally:
+            msgs = load_messages()
+            if not msgs or chat_mode() != "memory" or not story_memory.due(request.user, chat_state["memory"], len(msgs)):
+                return
+            try:
+                memory = story_memory.update(request.user, character, chat_state["memory"], msgs,
+                                             prompt_names(request.user, character, chat_state["persona"]))
+                chat_state["memory"] = story_memory.roll_arcs(request.user, memory)
+            except ai_client.AIError as e:
+                log.info("Story memory skipped for a reply nobody was watching: %s", e)
+                return
+            save_messages(load_messages_keep_memory(msgs))
+
+    def load_messages_keep_memory(fallback):
+        """The messages as saved now, keeping the memory just written (loading would put the saved one back)."""
+        memory = chat_state["memory"]
+        msgs = load_messages() or fallback
+        chat_state["memory"] = memory
+        return msgs
 
     try:
         messages = load_messages()
@@ -677,6 +759,8 @@ def chat(request, slug):
                     return JsonResponse({"success": False, "error": "Message cannot be empty"})
 
                 if 0 <= index < len(messages):
+                    if chat_state["memory"]:  # what memory wrote about this message is looked at again
+                        chat_state["memory"] = story_memory.mark_stale(chat_state["memory"], index)
                     # Update the message text, keep other fields
                     new_text = text_rules("saved", new_text, messages[index][0], edits_only=True)
                     reading = translation.reading_language(request.user)
@@ -929,7 +1013,7 @@ def chat(request, slug):
             rec_now = chats.polish_of(messages[index]) if 0 <= index < len(messages) else None
             earlier = rec_now if (now and not again) or (rec_now and rec_now.get("echo")) else None
             try:
-                new_text, fixes = polish.polish(request.user, character, chat_obj, messages, chat_state["summary"],
+                new_text, fixes = polish.polish(request.user, character, chat_obj, messages, _story_text(request.user, chat_state, len(messages)),
                                                 index)
             except ai_client.AIError as e:
                 return JsonResponse({"success": False, "error": str(e)})
@@ -1042,11 +1126,20 @@ def chat(request, slug):
             return JsonResponse({"success": True})
         elif action == "set_skin":  # the pen menu's chat style: this chat only ("" = the character's)
             skin = str(data.get("skin") or "")
-            if skin not in CHAT_SKINS and skin not in ("", "none"):
+            if skin not in CHAT_SKINS and skin not in ("", "none", "custom"):
                 return JsonResponse({"success": False, "error": "Unknown style."}, status=400)
             chat_state["skin"] = skin
             save_messages(messages)
             return JsonResponse({"success": True, "skin": chat_skin(character, skin)})
+        elif action == "look_adjust":  # the pen menu's "Adjust the look": a few colours, the background
+            look = chat_looks.clean((character.theme or {}).get("look"))
+            if not look or not isinstance(data.get("changes"), dict):
+                return JsonResponse({"success": False, "error": "This character has no custom look yet."}, status=400)
+            allowed = {"colors", "background", "picture", "veil"}
+            changes = {k: v for k, v in data["changes"].items() if k in allowed}
+            character.theme = {**(character.theme or {}), "look": chat_looks.merge(look, changes)}
+            character.save(update_fields=["theme"])
+            return JsonResponse({"success": True, "look": character.theme["look"]})
         elif action == "persona_hint_seen":  # "Who are you in the story?" is asked once per account
             settings_obj, _ = ChatSettings.objects.get_or_create(author=request.user)
             settings_obj.appearance = {**(settings_obj.appearance or {}), "persona_hint_seen": True}
@@ -1095,7 +1188,7 @@ def chat(request, slug):
             return JsonResponse({"success": True, **memory.what_the_ai_saw(chat_obj)})
         elif action == "note_ideas":  # "Be creative": Bulba writes two director's notes, a logical one and a bold one
             try:
-                ideas = note_ideas(request.user, character, messages, chat_state["summary"], chat_state["persona"])
+                ideas = note_ideas(request.user, character, messages, _story_text(request.user, chat_state, len(messages)), chat_state["persona"])
             except ai_client.AIError as e:
                 return JsonResponse({"success": False, "error": str(e)})
             return JsonResponse({"success": True, **ideas, "spending": ai_client.spending(request.user)})
@@ -1195,6 +1288,49 @@ def chat(request, slug):
                                  "story": story_payload()})
 
         # --- Summary: pieces that each cover a range of messages ---
+        elif action in ("memory", "memory_mode", "memory_run", "memory_edit", "memory_redo", "memory_settings"):
+            # Story memory (mainapp/story_memory.py): the Summary panel's Story memory tab
+            names = prompt_names(request.user, character, chat_state["persona"])
+            try:
+                if action == "memory_mode":
+                    if data.get("mode") not in ("memory", "manual"):
+                        raise ValueError("Pick memory or manual.")
+                    chat_state["summary_mode"] = data["mode"]
+                elif action == "memory_settings":
+                    task = ai_client.get_task_setting(request.user, "memory")
+                    if data.get("every"):
+                        task.interval = max(1, min(100, int(data["every"])))
+                    if isinstance(data.get("automatic"), bool):
+                        task.mode = task.MODE_AUTO if data["automatic"] else task.MODE_MANUAL
+                    task.save()
+                elif action == "memory_run":  # an update: the new messages, or a chunk of an older chat (catch-up)
+                    chunk = story_memory.CATCH_UP_CHUNK if data.get("catch_up") else None
+                    if data.get("quiet") and not story_memory.due(request.user, chat_state["memory"], len(messages)):
+                        return JsonResponse({"success": True, "skipped": True,
+                                             **story_memory.page_payload(chat_state["memory"], request.user, chat_mode())})
+                    try:
+                        memory = story_memory.update(request.user, character, chat_state["memory"], messages, names,
+                                                     chunk=chunk)
+                        memory = story_memory.roll_arcs(request.user, memory)
+                    except ai_client.AIError as e:
+                        raise ValueError(str(e))
+                    chat_state["memory"] = memory
+                elif action == "memory_edit":
+                    chat_state["memory"] = story_memory.edit(chat_state["memory"], data)
+                elif action == "memory_redo":
+                    try:
+                        chat_state["memory"] = story_memory.redo_milestone(request.user, chat_state["memory"], messages,
+                                                                           names, str(data.get("id") or ""))
+                    except ai_client.AIError as e:
+                        raise ValueError(str(e))
+            except (ValueError, TypeError) as e:
+                return JsonResponse({"success": False, "error": str(e) or "That didn't work."})
+            if action != "memory":
+                save_messages(messages)
+            payload = story_memory.page_payload(chat_state["memory"], request.user, chat_mode())
+            return JsonResponse({"success": True, **payload, "total": len(messages),
+                                 "left": max(0, len(messages) - story_memory.clean(chat_state["memory"])["upto"]),
+                                 "spending": ai_client.spending(request.user)})
         elif action in ("summarize", "summary_edit", "summary_delete", "summary_rerun", "summary_pause"):
             parts = list(chat_state["summary_parts"])
             total = len(messages)
@@ -1313,6 +1449,8 @@ def chat(request, slug):
                 messages[-1] = chats.choose_version(messages[-1], int(data.get("to")))
             except (TypeError, ValueError, IndexError):
                 return JsonResponse({"success": False, "error": "No such version."})
+            if chat_state["memory"]:
+                chat_state["memory"] = story_memory.mark_stale(chat_state["memory"], len(messages) - 1)
             save_messages(messages)
             _, _, text, emotion, char_count = messages[-1][:5]
             emo1, _, emo2 = (emotion or "neutral").partition("|")
@@ -1346,7 +1484,7 @@ def chat(request, slug):
                 prompt = build_ai_request(request.user, character, chat=chat_obj, worldbook_slug=worldbook_slug,
                                           message=None, guidance="",
                                           persistent_guides=chat_state["context_guides"],
-                                          summary=chat_state["summary"])
+                                          summary=_story_text(request.user, chat_state, len(messages)))
                 preset = presets.normalize(presets.get_active(request.user).data)
                 _, chat_model = ai_client.resolve(request.user, "chat")
                 names = prompt_names(request.user, character, chat_state["persona"])
@@ -1379,7 +1517,7 @@ def chat(request, slug):
                 try:
                     new_chunk, _fixed = polish.polish_text(request.user, character, chat_obj, new_chunk,
                                                            polish.others_before(messages, len(messages)),
-                                                           chat_state["summary"], habits)
+                                                           _story_text(request.user, chat_state, len(messages)), habits)
                 except ai_client.AIError as e:
                     log.info("Polish skipped for a continuation: %s", e)
             if new_chunk and not new_chunk[0].isspace() and new_chunk[0] not in ".,;:!?)…'\"" and not last_text.endswith((" ", "\n")):
@@ -1433,6 +1571,8 @@ def chat(request, slug):
             theme = dict(character.theme or {})
             if data.get("mode") in speaker_colors.MODES:
                 theme["speech"] = data["mode"]
+                if data["mode"] == "story" and "cast" not in data:  # the character is in its own cast from the start
+                    theme["speech_cast"] = speaker_colors.with_characters(theme, character)
             if "cast" in data:
                 theme["speech_cast"] = speaker_colors.clean(data.get("cast"))
             if "you" in data:
@@ -1570,7 +1710,7 @@ def chat(request, slug):
                         message=(user_message or None) if action == "chat" else None,
                         guidance=guidance,                             # <--- INJECTION 1
                         persistent_guides=chat_state["context_guides"],# <--- INJECTION 2
-                        summary=chat_state["summary"],
+                        summary=_story_text(request.user, chat_state, len(messages)),
                         story_values=story_state() if systems else None)
                     lore_report = prompt.get("LoreReport")
 
@@ -1604,6 +1744,8 @@ def chat(request, slug):
                     english = translation.english_note(request.user)  # read in another language: written in English
                     if english:
                         built = {**built, "messages": built["messages"] + [english]}
+                    if speaker_colors.settings(character)["mode"] == "story":  # near the end, where MiMo listens
+                        built = {**built, "messages": speaker_colors.remind(built["messages"])}
                     game_ops = []
                     # Stream when the page asks for it and the preset allows it
                     streaming = bool(data.get("stream")) and preset["options"].get("streaming", True)
@@ -1750,8 +1892,11 @@ def chat(request, slug):
                     # Automatic summary: tell the page to run one in the background
                     summary_task = ai_client.get_task_setting(request.user, "summary")
                     summarized = chat_state["summary_upto"] or 0
-                    summary_due = (summary_task.mode == summary_task.MODE_AUTO and not chat_state["summary_paused"]
-                                   and len(messages) - summarized >= summary_task.interval)
+                    using_memory = chat_mode() == "memory"
+                    summary_due = (not using_memory and summary_task.mode == summary_task.MODE_AUTO
+                                   and not chat_state["summary_paused"] and len(messages) - summarized >= summary_task.interval)
+                    # Story memory: the page asks for the update in the background (mainapp/story_memory.py)
+                    memory_due = using_memory and story_memory.due(request.user, chat_state["memory"], len(messages))
 
                     # Trackers: same idea, if any tracker is on for this character
                     tracker_task = ai_client.get_task_setting(request.user, "trackers")
@@ -1775,6 +1920,7 @@ def chat(request, slug):
                         "voice": bool(get_elevenlabs_key(request.user)),
                         "lore": lore_report,
                         "summary_due": summary_due,
+                        "memory_due": memory_due,
                         "trackers_due": trackers_due,
                         "music_due": music_due(),  # the music follows the scene: the page asks for a pick
                         "watch_due": watch.due(request.user, chat_obj, messages),  # Bulba Watch reads, in the background
@@ -1852,7 +1998,7 @@ def chat(request, slug):
                 if job is None:
                     return JsonResponse({"error": "The last reply is still being written. Wait for it, or press Stop."},
                                         status=409)
-                live_jobs.run_in_background(job, stream_reply())
+                live_jobs.run_in_background(job, stream_reply(), unwatched=after_unwatched)
                 response = StreamingHttpResponse(job.follow(), content_type="application/x-ndjson")
                 response["Cache-Control"] = "no-cache"
                 response["X-Accel-Buffering"] = "no"  # don't let proxies hold the stream back
@@ -1949,9 +2095,12 @@ def chat(request, slug):
         "chat_skin_choice": chat_state.get("skin") or "",
         "character_skin": (character.theme or {}).get("skin") if (character.theme or {}).get("skin") in CHAT_SKINS else "",
         "chat_skins": CHAT_SKINS,
+        **_look_context(request.user, character, chat_state),
         "thinking_options": samplers.thinking_options(ai_client.resolve(request.user, "chat")[1]),
         "thinking_now": samplers.thinking_now(request.user),
-        "character_skin_name": CHAT_SKINS.get((character.theme or {}).get("skin") or "", ""),
+        "character_skin_name": CHAT_SKINS.get((character.theme or {}).get("skin") or "", "")
+                               or ("✨ " + chat_looks.clean((character.theme or {}).get("look"))["name"]
+                                   if (character.theme or {}).get("skin") == "custom" and chat_looks.clean((character.theme or {}).get("look")) else ""),
         "mature_on": mature.is_on(presets.normalize(presets.get_active(request.user).data)),
         "director_on": control.mode_of(presets.normalize(presets.get_active(request.user).data)) == "director",
         "display_rules": {
@@ -1971,6 +2120,8 @@ def chat(request, slug):
         "summary": chat_state["summary"],
         "summary_upto": chat_state["summary_upto"],
         "summary_data": summary_payload(),
+        "memory_data": {**story_memory.page_payload(chat_state["memory"], request.user, chat_mode()), "total": len(messages),
+                        "left": max(0, len(messages) - story_memory.clean(chat_state["memory"])["upto"])},
         "context_guides": json.dumps(chat_state["context_guides"]),
         "pinned_note_json": json.dumps(pinned_note(chat_state["context_guides"])),
         # The chat's own background and music, else the character's theme
@@ -2110,7 +2261,8 @@ def note_ideas(user, character, messages, summary="", persona=None):
         raise ai_client.AIError("Start the story first: there's nothing to direct yet.")
     transcript = "\n\n".join(f"{names['user'] if m[0] == 'user' else character.name}: {html_objects.shrink(m[2])[:1500]}" for m in recent)
     text = bulba_quick(user, [
-        {"role": "system", "content": NOTE_IDEAS_PROMPT.format(rules=presets.job_prompt(user, "note_ideas", names))},
+        {"role": "system", "content": NOTE_IDEAS_PROMPT.format(rules=presets.job_prompt(user, "note_ideas", names))
+                                      + "\n\n" + writing_quality.helper_taste(user)},
         {"role": "user", "content": (f"The story so far: {summary[:2000]}\n\n" if summary else "")
                                     + f"The latest messages (latest last):\n\n{transcript}"}],
         temperature=0.8, response_format={"type": "json_object"})
@@ -2168,7 +2320,8 @@ def bulba_ideas(user, character, messages, mode, persona=None, summary=""):
     recent = [m for m in messages if m[0] in ("user", "assistant")][-8:]
     transcript = "\n\n".join(f"{names['user'] if m[0] == 'user' else character.name}: {html_objects.shrink(m[2])[:1500]}" for m in recent)
     system = (IDEAS_PROMPT[mode] + " " + presets.job_prompt(user, "ideas_" + mode, names)
-              + (" " + ideas_voice(user, messages, names) if mode == "player" else "") + "\n\n" + IDEAS_STYLE)
+              + (" " + ideas_voice(user, messages, names) if mode == "player" else "") + "\n\n"
+              + writing_quality.helper_taste(user) + "\n\n" + IDEAS_STYLE)
     about = f"{character.name}: {(character.description or '')[:1500]}"
     story = f"The story so far (summary): {summary[:2000]}\n\n" if summary else ""
     text = bulba_quick(user, [
@@ -2195,7 +2348,8 @@ def word_note(user, character, messages, wish, rewrite=False, persona=None):
     recent = [m for m in messages if m[0] in ("user", "assistant")][-6:]
     transcript = "\n\n".join(f"{names['user'] if m[0] == 'user' else character.name}: {html_objects.shrink(m[2])[:1500]}" for m in recent)
     what = "a new version of the last reply" if rewrite else "the next reply"
-    system = WORD_NOTE_PROMPT.format(what=what, rules=presets.job_prompt(user, "director_note", names))
+    system = (WORD_NOTE_PROMPT.format(what=what, rules=presets.job_prompt(user, "director_note", names))
+              + "\n\n" + writing_quality.helper_taste(user))
     text = bulba_quick(user, [
         {"role": "system", "content": system},
         {"role": "user", "content": f"The chat so far (latest last):\n\n{transcript}\n\nTheir wish: {wish}"}],
@@ -2213,12 +2367,27 @@ CHAT_SKINS = {"parchment": "📜 Parchment", "neon": "🌆 Neon", "lab": "🧪 L
 
 def chat_skin(character, chat_choice=""):
     """The style a chat shows: its own pick ("none" = plain), else the character's, else plain ("")."""
+    has_look = bool(chat_looks.clean((character.theme or {}).get("look")))
     if chat_choice == "none":
         return ""
-    if chat_choice in CHAT_SKINS:
+    if chat_choice in CHAT_SKINS or (chat_choice == "custom" and has_look):
         return chat_choice
     skin = (character.theme or {}).get("skin")
-    return skin if skin in CHAT_SKINS else ""
+    return skin if skin in CHAT_SKINS or (skin == "custom" and has_look) else ""
+
+
+def _look_context(user, character, chat_state):
+    """A character's custom look (mainapp/chat_looks.py) for the chat page: its styles, fonts and moving parts."""
+    look = chat_looks.clean((character.theme or {}).get("look"))
+    if not look:
+        return {"look": None}
+    names = prompt_names(user, character, chat_state.get("persona"))
+    pictures = media_library.built_in("backgrounds")
+    if (character.theme or {}).get("bg"):
+        pictures = [{"name": f"{character.name}'s own background", "url": character.theme["bg"]}] + pictures
+    return {"look": look, "look_css": chat_looks.css(look, character.name, names["user"]),
+            "look_fonts": chat_looks.fonts_url(look), "look_data": chat_looks.page_data(look),
+            "look_pictures": pictures, "look_backgrounds": chat_looks.BACKGROUNDS}
 
 
 def theme_weather(character, background=""):
@@ -2372,7 +2541,7 @@ def build_chat_request(user, chat_obj, preset=None, character=None, drop_last_re
     if drop_last_reply and not tail and messages and chats.is_note(messages[-1]):
         guidance = messages[-1][2]  # same newest-note slot as Regenerate
 
-    summary = chats.summary_text(chats.summary_parts(data, len(messages)))
+    summary = story_memory.story_text(user, data, chats.summary_text(chats.summary_parts(data, len(messages))), len(messages))
     worldbook_slug = character.worldbook.slug if character.worldbook and character.worldbook.author == user else None
     prompt = build_ai_request(user, character, chat=chat_obj, worldbook_slug=worldbook_slug, message=None,
                               guidance=guidance, persistent_guides=data.get("context_guides") or {}, summary=summary)
@@ -3045,6 +3214,125 @@ def character_rule(request, slug):
     return JsonResponse({"status": "ok", "rules": regex_rules.card_rules(character)})
 
 
+@login_required
+def character_sections(request, slug):
+    """The card as sections (mainapp/card_sections.py): read, save, sort an old card into sections ("Upgrade
+    this card"), let Bulba fill the empty ones, write the appearance from the picture, or go back to one box."""
+    from mainapp import card_sections
+    character = get_object_or_404(Character, slug=slug, author=request.user)
+    if request.method == "GET":
+        data = card_sections.clean(character.sections) if character.sections else None
+        return JsonResponse({"sections": data, "costs": card_sections.costs(data) if data else None,
+                             "routes": {k: v[0] for k, v in card_sections.ROUTES.items()},
+                             "labels": {k: list(v) for k, v in card_sections.labels("simulation").items()},
+                             "description_tokens": card_sections.tokens(character.description)})
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only"}, status=405)
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return JsonResponse({"error": "Invalid request."}, status=400)
+    action = data.get("action")
+    sent = card_sections.clean(data.get("sections")) if data.get("sections") else None
+
+    def answer(record, saved=False, **more):
+        return JsonResponse({"sections": record, "costs": card_sections.costs(record), "saved": saved,
+                             "description": card_sections.compose(record), **more,
+                             "spending": ai_client.spending(request.user)})
+    try:
+        if action == "structure":  # Upgrade this card: sorted, shown, saved only when they press Save
+            return answer(card_sections.structure(request.user, character))
+        if action == "new":
+            kind = data.get("kind") if data.get("kind") in card_sections.KINDS else "character"
+            names = (character.name, character.second_name or "") if kind == "ensemble" else (character.name,)
+            return answer(card_sections.empty(kind, names if kind != "simulation" else ("",)))
+        if action == "fill" and sent:
+            return answer(card_sections.fill_empty(request.user, sent, words=int(data.get("words") or 80)))
+        if action == "picture" and sent:
+            i = int(data.get("person") or 0)
+            if not 0 <= i < len(sent["people"]):
+                return JsonResponse({"error": "No such person on this card."}, status=400)
+            photo = character.photo_second_neutral if i == 1 and character.photo_second_neutral else character.photo_neutral
+            if data.get("image"):  # a picture they chose just now (a data URL)
+                url = str(data["image"])
+                if not url.startswith("data:image/"):
+                    return JsonResponse({"error": "That isn't a picture."}, status=400)
+                import base64
+                url, _ = bulba_vision.prepare(base64.b64decode(url.split(",", 1)[1]))
+            elif photo:
+                with photo.open("rb") as f:
+                    url, _ = bulba_vision.prepare(f.read())
+            else:
+                return JsonResponse({"error": "Add a neutral picture first (Sprites below), or choose one."}, status=400)
+            text, who = card_sections.appearance_from_picture(request.user, sent["people"][i]["name"] or character.name, url)
+            sent["people"][i]["sections"]["appearance"]["text"] = text
+            return answer(sent, looked=who)
+        if action == "save" and sent:
+            card_sections.apply(character, sent)
+            character.save()
+            return answer(card_sections.clean(character.sections), saved=True)
+        if action == "plain":  # back to one text box: the composed text stays as the description
+            character.sections = {}
+            character.save(update_fields=["sections"])
+            return JsonResponse({"sections": None, "saved": True, "description": character.description})
+    except ai_client.AIError as e:
+        return JsonResponse({"error": str(e)}, status=502)
+    except ValueError as e:
+        return JsonResponse({"error": str(e) or "Bulba's answer didn't make sense. Try again."}, status=502)
+    return JsonResponse({"error": "Unknown action."}, status=400)
+
+
+@login_required
+def character_quick(request, slug):
+    """The quick view in a chat: the character's card at a glance (picture, who they are, how they look, their
+    temperament) and, from this chat's story memory, where the relationship stands and who they've met."""
+    from mainapp import card_sections
+    from mainapp.models import Chat
+    from mainapp.templatetags.custom_filters import blurb, card_look
+    character = get_object_or_404(Character, slug=slug, author=request.user)
+    chat_obj = Chat.objects.filter(id=request.GET.get("chat") or 0, character=character).first()
+    data = chats.read(chat_obj) if chat_obj else {}
+    persona = data.get("persona") if isinstance(data.get("persona"), dict) else {}
+    names = prompt_names(request.user, character, persona)
+    fill = lambda t: (t or "").replace("{{char}}", character.name).replace("{{user}}", names["user"])
+    look = card_look(character)
+    sections = card_sections.clean(character.sections) if character.sections else None
+    people = []
+    if sections:
+        for p in sections["people"]:
+            sec = p["sections"]
+            text = lambda k: fill(sec[k]["text"]) if sec[k]["on"] else ""
+            route = card_sections.ROUTES[p["temperament"]["route"]]
+            people.append({"name": p["name"] or character.name, "identity": text("identity"), "appearance": text("appearance"),
+                           "personality": text("personality"), "voice": text("voice"), "goals": text("goals"),
+                           "temperament": text("temperament"), "pace": card_sections.PACES[p["temperament"]["pace"]],
+                           "route": route[0], "start": p["temperament"]["start"]})
+    shared = {card_sections.labels(sections["kind"])[k][0]: fill(v["text"]) for k, v in sections["shared"].items()
+              if v["on"] and v["text"]} if sections else {}
+    memory = story_memory.clean(data.get("memory")) if chat_obj else story_memory.empty()
+    who = {character.name.lower(), *(p["name"].lower() for p in people)}
+    rels = [{**{k: r.get(k) for k in ("from", "to", "stage", "trust", "warmth", "tension")},
+             "route": card_sections.ROUTES.get(r.get("route"), card_sections.ROUTES["basic"])[0],
+             "ladder": card_sections.ROUTES.get(r.get("route"), card_sections.ROUTES["basic"])[1],
+             "last": (r.get("history") or [{}])[-1].get("why", "")}
+            for r in memory["relationships"] if r["from"].lower() in who or r["to"].lower() in who]
+    rels.sort(key=lambda r: (names["user"].lower() not in (r["from"].lower(), r["to"].lower())))
+    last = next((m for m in reversed(memory["milestones"]) if m.get("summary")), None)
+    return JsonResponse({
+        "name": character.name, "tagline": fill(blurb(character)), "look": look,
+        "photo": character.photo_neutral.url if character.photo_neutral else "",
+        "second_photo": character.photo_second_neutral.url if character.photo_second_neutral else "",
+        "kind": look["kind"], "people": people, "shared": shared,
+        "about": "" if sections else fill(character.description)[:900],
+        "relationships": rels[:4], "user": names["user"],
+        "met": [{"name": p["name"], "identity": p.get("identity", "")} for p in memory["people"]
+                if p.get("kind", "person") == "person" and p["name"].lower() not in who][-8:],
+        "now": {"title": last.get("title", ""), "where": last.get("where", ""), "summary": last.get("summary", "")[:400]} if last else None,
+        "memory_on": bool(chat_obj) and story_memory.chat_mode(request.user, data, len(data.get("messages") or [])) == "memory",
+        "edit_url": reverse("character", args=[character.slug]),
+    })
+
+
 SPRITE_EMOTIONS = ["happy", "sad", "angry", "surprised", "scared", "confused", "calm", "scheming"]
 
 
@@ -3266,7 +3554,7 @@ def get_media_resources(request):
     return JsonResponse({
         # Built-in ones ship with the app (static/defaults/), so every install has them
         "backgrounds": media_library.built_in("backgrounds") + get_files("backgrounds"),
-        "music": media_library.built_in("music") + get_files("music")
+        "music": media_library.built_in("music") + media_library.radio_for_picker() + get_files("music")
     })
 
 
@@ -3636,6 +3924,28 @@ def _quick_status(user, picked, characters):
         "worldbook": (f"“{wb.title}” ({len(load_worldbook(wb)['entries'])} entries)" if wb else ""),
         "worldbook_url": reverse("worldbook_detail", args=[wb.slug]) if wb else "",
     }
+
+
+@login_required
+def bulba_look_preview(request, pid):
+    """A small mock chat in a proposed custom look, shown inside Bulba's card before they press Apply."""
+    from mainapp.models import BulbaSession
+    proposal = None
+    for session in BulbaSession.objects.filter(user=request.user).order_by("-id")[:20]:
+        proposal = next((p for p in session.proposals or [] if p.get("id") == pid and p.get("kind") == "chat_look"), None)
+        if proposal:
+            break
+    if proposal is None:
+        raise Http404("No such look.")
+    look = chat_looks.clean(proposal["payload"].get("look"))
+    character = Character.objects.filter(author=request.user, id=proposal["payload"].get("character_id")).first()
+    name = character.name if character else "Character"
+    you = prompt_names(request.user, character, None)["user"] if character else "You"
+    return render(request, "mainapp/look_preview.html", {
+        "look": look, "look_css": chat_looks.css(look, name, you), "look_fonts": chat_looks.fonts_url(look),
+        "look_data": chat_looks.page_data(look), "name": name, "you": you,
+        "photo": character.photo_neutral.url if character and character.photo_neutral else "",
+    })
 
 
 @login_required

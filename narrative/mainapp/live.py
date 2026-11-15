@@ -31,6 +31,8 @@ class Job:
         self.cancel = False      # Stop was pressed
         self.started = time.time()
         self.ended = None
+        self.watchers = 0        # pages following it right now
+        self.watched = False     # a page followed it at some point (so "nobody now" means they left)
         self._cond = threading.Condition()
 
     def put(self, line):
@@ -48,6 +50,16 @@ class Job:
     def follow(self, start=0):
         """Every line from `start` on, as they come, then the end (blank keep-alive lines while it's quiet)."""
         i = start
+        with self._cond:
+            self.watchers += 1
+            self.watched = True
+        try:
+            yield from self._follow(i)
+        finally:
+            with self._cond:
+                self.watchers -= 1
+
+    def _follow(self, i):
         while True:
             with self._cond:
                 if i >= len(self.lines) and not self.done:
@@ -97,9 +109,10 @@ def drop(k):
         _jobs.pop(k, None)
 
 
-def run_in_background(job, lines):
+def run_in_background(job, lines, unwatched=None):
     """Pull `lines` (a generator) in a thread of its own, into `job`. Stop closes the generator, which keeps what
-    arrived (its own GeneratorExit handling)."""
+    arrived (its own GeneratorExit handling). `unwatched`: run after a finished reply nobody is following any more
+    (they left the page), for what the page would have asked for next (the polish)."""
     def work():
         from django.db import close_old_connections, connection
         close_old_connections()
@@ -117,10 +130,18 @@ def run_in_background(job, lines):
             job.put(json.dumps({"type": "error", "error": f"Something went wrong while writing: {e}"}) + "\n")
         finally:
             job.finish()
+            if unwatched and not job.cancel and job.watched and job.watchers == 0:  # they left before the end
+                try:
+                    unwatched()
+                except Exception:
+                    import logging
+                    logging.getLogger(__name__).exception("After an unwatched reply")
             connection.close()
     from django.conf import settings
     if getattr(settings, "LIVE_INLINE", False):
         work_inline(job, lines)
+        if unwatched and not job.cancel and job.watched and job.watchers == 0:
+            unwatched()
         return
     threading.Thread(target=work, daemon=True).start()
 

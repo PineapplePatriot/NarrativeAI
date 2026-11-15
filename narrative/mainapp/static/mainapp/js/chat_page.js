@@ -382,7 +382,7 @@ window.fetch = function (url, opts) {
     slowJobs++;
     return pageFetch(url, opts).finally(() => { slowJobs = Math.max(0, slowJobs - 1); });
 };
-if (window.NATomato) NATomato.watch(() => isBusy() || slowJobs > 0, 'chat');  // 🍅 a slow reply or a slow Bulba helper
+if (window.NATomato) NATomato.watch(() => isBusy() || slowJobs > 0 || messageInput.classList.contains('writing'), 'chat');  // 🍅 a slow reply, a slow helper, Write for me
 
 messageInput.addEventListener('input', function () {
     this.style.height = 'auto';
@@ -649,6 +649,7 @@ function setExtras(messageEl, htmlList, append = false) {
 
 // Put a finished reply on screen: fill the streamed bubble, or add a new message
 function placeReply(data, avatarUrl) {
+    document.dispatchEvent(new CustomEvent('na-replied'));  // a custom look's sound (chat_look.js)
     updateSpending(data.spending);
     if (!data.bubble) {
         addMessage('assistant', data.reply, avatarUrl);
@@ -693,6 +694,7 @@ function sendMessage(noteOnly = false) {
         addMessage('user', message, window.USER_AVATAR);
         messageInput.value = '';
         messageInput.style.height = 'auto';
+        document.dispatchEvent(new CustomEvent('na-sent'));  // a custom look's sound (chat_look.js)
     }
     if (guidance) addMessage('user', guidance, window.USER_AVATAR, true);  // saved as a message of its own
 
@@ -721,11 +723,11 @@ function sendMessage(noteOnly = false) {
 // A finished reply (just written, or followed after coming back to the page): on screen, then everything after it
 function handleReply(data) {
             if (data.refused) return handleRefusal(data);
-            if (data.empty) { if (data.bubble) data.bubble.closest('.message')?.remove(); showChatError(data.error); return; }
+            if (data.empty) { if (data.bubble) data.bubble.closest('.message')?.remove(); showChatError(data.error, true); return; }
             if (data.error || data.stopped) {
                 if (data.bubble) setSwipes({ count: 1, current: 0 });  // the partial reply was kept
                 if (data.bubble && window.READING_LANGUAGE) translateMessage(data.bubble.closest('.message'));
-                if (data.error) showChatError(data.error);
+                if (data.error) showChatError(data.error, true);
                 return;
             }
             let avatarToUse = data.photo_url;
@@ -738,6 +740,8 @@ function handleReply(data) {
             updateCharacterImages(data.photo_url, data.photo_second, data.char_count, data.photo_user);
             renderLore(data.lore);
             if (data.summary_due) generateSummary('append', true);
+            if (window.NAMemory) NAMemory.afterReply(data);
+            if (window.NAQuickCard) NAQuickCard.forget();
             if (window.Trackers) { Trackers.setStory(data.story); Trackers.afterReply(data); }
             if (window.Watch) Watch.afterReply(data);
             afterReplyText(lastAssistant(), data.polish_due);
@@ -755,6 +759,7 @@ function handleReply(data) {
 // They left the page while a reply was being written: the server kept writing (mainapp/live.py). Follow it from
 // the start (what was written so far shows at once), then live, as if they had never left.
 function followLiveReply() {
+    if (window.NATomato) NATomato.resume();  // the wait began before they left: the tomato comes back at once
     isGenerating = true;
     sendBtn.disabled = true;
     stopContainer.style.display = 'block';
@@ -1134,12 +1139,21 @@ function setDirected(messageEl, note) {
 
 // Toggle Tools
 // Shows a failed generation in the chat; the user's message is kept, so Regenerate retries it
-function showChatError(text) {
+function showChatError(text, retry = false) {
     const div = document.createElement('div');
     div.className = 'chat-error';
-    div.textContent = /Regenerate/.test(text) ? `⚠️ ${text}` : `⚠️ ${text} — press Regenerate to try again.`;
+    const msg = document.createElement('span');
+    msg.textContent = retry ? `⚠️ ${text}` : (/Regenerate/.test(text) ? `⚠️ ${text}` : `⚠️ ${text} — press Regenerate to try again.`);
+    div.append(msg);
+    if (retry) {  // a reply that failed (a busy provider, a rate limit): one press tries it again; it stays until then
+        document.querySelectorAll('.chat-error.can-retry').forEach(e => e.remove());
+        div.classList.add('can-retry');
+        const btn = document.createElement('button');
+        btn.type = 'button'; btn.className = 'chat-error-retry'; btn.textContent = '↻ Try again';
+        btn.onclick = () => { div.remove(); regenerateReply(); };
+        div.append(btn);
+    } else setTimeout(() => div.remove(), text.length > 200 ? 40000 : 15000);  // a long explanation stays long enough to read
     messagesContainer.insertBefore(div, typingMessage);
-    setTimeout(() => div.remove(), text.length > 200 ? 40000 : 15000);  // a long explanation stays long enough to read
     scrollToBottom();
 }
 
@@ -1222,6 +1236,7 @@ async function resumeDraft() {
     }).then(r => r.json()).catch(() => ({ state: 'none' }));
     let d = await ask();
     if (d.state === 'running') {  // still writing: the box waits, locked, like it does while you watch
+        if (window.NATomato) NATomato.resume();
         messageInput.readOnly = true;
         messageInput.classList.add('writing');
         messageInput.placeholder = '✍️ Still writing your message…';
@@ -1442,7 +1457,7 @@ function regenerateReply(guidance = '', model = '') {
     requestReply(model ? { action: 'regenerate', guidance: guidance, model } : { action: 'regenerate', guidance: guidance })
         .then(d => {
             if (d.refused) { restore(); return handleRefusal(d); }  // the server kept the old reply
-            if (d.empty) { if (d.bubble) d.bubble.closest('.message')?.remove(); restore(); showChatError(d.error); return; }
+            if (d.empty) { if (d.bubble) d.bubble.closest('.message')?.remove(); restore(); showChatError(d.error, true); return; }
             if (d.error || d.stopped) {
                 // The server keeps any text that arrived as a new version; with none, the old reply stays
                 if (!d.bubble) restore();
@@ -1451,13 +1466,15 @@ function regenerateReply(guidance = '', model = '') {
                     setSwipes(before ? { count: before.count + 1, current: before.count } : { count: 1, current: 0 });
                     if (window.READING_LANGUAGE) translateMessage(d.bubble.closest('.message'));
                 }
-                if (d.error) showChatError(d.error);
+                if (d.error) showChatError(d.error, true);
                 return;
             }
             if (old) old.remove();
             placeReply(d, d.photo_url); setDirected(lastAssistant(), d.directed); setSwipes(d.swipes);
             updateCharacterImages(d.photo_url, d.photo_second, d.char_count, d.photo_user); renderLore(d.lore);
             if (d.summary_due) generateSummary('append', true);
+            if (window.NAMemory) NAMemory.afterReply(d);
+            if (window.NAQuickCard) NAQuickCard.forget();
             if (window.Trackers) { Trackers.setStory(d.story); Trackers.afterReply(d); }
             if (window.Watch) Watch.afterReply(d);
             afterReplyText(lastAssistant(), d.polish_due);
@@ -2396,6 +2413,8 @@ function handleRefusal(d) {
         });
         const d = await resp.json().catch(() => ({}));
         if (!d.success) { showChatNotice(d.error || 'Could not change the chat style.'); return; }
+        // A custom look's styles come with the page: to it or from it, the page loads again
+        if (d.skin === 'custom' || document.body.classList.contains('skin-custom')) { location.reload(); return; }
         [...document.body.classList].filter(c => c.startsWith('skin-') || c === 'light-style').forEach(c => document.body.classList.remove(c));
         if (d.skin) document.body.classList.add('skin-' + d.skin);
         if (['parchment', 'lab'].includes(d.skin)) document.body.classList.add('light-style');  // deeper speech shades
@@ -2572,4 +2591,10 @@ document.getElementById('presetHint')?.addEventListener('click', async (e) => {
         if (action === 'rebuild') showChatNotice(d.text + ' Changed your mind? Ask Bulba, or pick the previous one on the Presets page.');
         setTimeout(() => window.location.reload(), 1600);
     }
+});
+
+// "✨ Make your own look with Bulba" and other links that open in-chat Bulba with a first message
+document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-ask-bulba]');
+    if (b && window.askBulba) { e.preventDefault(); window.askBulba(b.dataset.askBulba); }
 });

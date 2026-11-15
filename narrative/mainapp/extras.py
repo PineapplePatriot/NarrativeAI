@@ -133,7 +133,12 @@ def tools_for(kinds):
 
 
 PLACING = ("Each of these tools answers with a marker like [[extra 1]]: put it on its own line in your reply where "
-           "the object appears in the story, and write the scene around it as usual.")
+           "the object appears in the story, and write the scene around it as usual. Only a tool call makes an object "
+           "appear: never type a marker or a placeholder such as [[extra: ...]] yourself; if the object belongs in "
+           "the scene, call its tool.")
+# A marker the model typed itself ("[[extra: Message screen — ...]]", or a number no tool gave out): nothing to
+# draw, so it comes out of the reply (place)
+ANY_MARKER = re.compile(r"[ \t]*\[\[\s*extra\b[^\]]*\]\][ \t]*\n?", re.I)
 
 
 def rules_for(kinds):
@@ -202,7 +207,13 @@ def marker(n):
 
 def place(text, ops):
     """Make sure each extra has its marker in the reply: where the model put it, else after the paragraph it
-    was shown in (if the model had already written some), else at the end. The page puts the drawing there."""
+    was shown in (if the model had already written some), else at the end. The page puts the drawing there.
+    Markers no tool gave out (MiMo sometimes types "[[extra: ...]]" instead of calling the tool) are removed."""
+    given = {o.get("n") for o in ops if is_extra(o) and o.get("n")}
+    text = ANY_MARKER.sub(lambda m: m.group(0) if (MARKER.fullmatch(m.group(0).strip())
+                                                   and int(MARKER.fullmatch(m.group(0).strip()).group(1)) in given) else "",
+                          text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
     have = {int(n) for n in MARKER.findall(text)}
     for op in sorted((o for o in ops if is_extra(o) and o.get("type") not in UNPLACED
                       and o.get("n") not in have and o.get("n")),

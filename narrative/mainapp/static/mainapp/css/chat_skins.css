@@ -140,3 +140,31 @@ body.layout-book.skin-lab .message.assistant .message-content {
     body.layout-book.skin-parchment .message.assistant .message-content,
     body.layout-book.skin-lab .message.assistant .message-content { padding: 14px 14px; }
 }
+
+/* ---------- ✨ A custom look's light effect (static/mainapp/js/chat_look.js; the styles: mainapp/chat_looks.py) ---------- */
+.look-fx { position: fixed; inset: 0; pointer-events: none; z-index: 5; overflow: hidden; }
+body.fx-off .look-fx { display: none; }
+.look-fx i { position: absolute; font-style: normal; line-height: 1; opacity: 0; animation: look-drift linear infinite;
+             text-shadow: 0 0 6px currentColor; }
+.look-fx-sparkles i, .look-fx-stars i, .look-fx-glitter i { animation-name: look-twinkle; }
+.look-fx-petals i { width: 11px; height: 8px; border-radius: 12px 1px 12px 1px; background: currentColor; opacity: .6; animation-name: look-fall; text-shadow: none; }
+.look-fx-snow i, .look-fx-hearts i, .look-fx-leaves i { animation-name: look-fall; }
+.look-fx-bubbles i { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid currentColor; animation-name: look-rise; text-shadow: none; }
+.look-fx-fireflies i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; box-shadow: 0 0 10px 3px currentColor; animation-name: look-wander; }
+.look-fx-embers i { width: 4px; height: 4px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px 2px currentColor; animation-name: look-rise; }
+@keyframes look-twinkle { 0%, 100% { opacity: 0; transform: scale(.5) rotate(0); } 50% { opacity: .85; transform: scale(1) rotate(25deg); } }
+@keyframes look-fall { 0% { transform: translate(0, -20vh) rotate(0); opacity: 0; } 10% { opacity: .8; } 100% { transform: translate(40px, 110vh) rotate(300deg); opacity: 0; } }
+@keyframes look-rise { 0% { transform: translate(0, 20vh); opacity: 0; } 15% { opacity: .7; } 100% { transform: translate(-30px, -90vh); opacity: 0; } }
+@keyframes look-wander { 0%, 100% { transform: translate(0, 0); opacity: .2; } 25% { transform: translate(30px, -20px); opacity: .9; }
+                          50% { transform: translate(-10px, -45px); opacity: .4; } 75% { transform: translate(-35px, -10px); opacity: .9; } }
+@media (prefers-reduced-motion: reduce) { .look-fx { display: none; } }
+
+/* 🎨 Adjust the look (pen menu) */
+.look-adjust { margin: 6px 0 10px; font-size: .85rem; }
+.look-adjust summary { cursor: pointer; padding: 4px 0; }
+.look-adjust-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px 10px; margin: 6px 0; }
+.look-adjust-grid label { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.look-adjust input[type=color] { width: 38px; height: 26px; padding: 0; border: 1px solid var(--border-color); border-radius: 6px; background: none; cursor: pointer; }
+.look-adjust-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; flex-wrap: wrap; }
+.look-adjust-row[hidden] { display: none; }
+.look-adjust-row select { flex: 1; min-width: 0; }

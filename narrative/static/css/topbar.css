@@ -79,3 +79,13 @@
 .profile-logout { float: right; font-size: .85rem; font-weight: 500; color: #fb7185; border: 1px solid rgba(251,113,133,.4);
     border-radius: 999px; padding: 4px 12px; text-decoration: none; margin-top: 6px; }
 .profile-logout:hover { background: rgba(251,113,133,.12); }
+/* The emoji entries (Bulba, Notebook, Pit, Garden) sit together after the plain ones, set apart by a thin line */
+.na-links a.na-emoji-first { margin-left: 6px; position: relative; }
+@media (max-width: 1100px) {
+    .na-links a.na-emoji-first { margin: 6px 0 0; border-top: 1px solid rgba(148, 163, 184, 0.14); border-radius: 0 0 8px 8px; padding-top: 14px; }
+}
+/* The music carried over from the Pit radio or a chat (static/js/radio_carry.js) */
+.na-radio-btn { border: 1px solid rgba(139, 92, 246, 0.35); background: rgba(139, 92, 246, 0.12); color: #e9e5ff;
+                border-radius: 999px; padding: 5px 10px; font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap; }
+.na-radio-btn.playing { background: rgba(139, 92, 246, 0.28); box-shadow: 0 0 10px rgba(139, 92, 246, 0.35); }
+.na-radio-btn[hidden] { display: none; }

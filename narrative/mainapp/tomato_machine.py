@@ -106,10 +106,33 @@ PRIZES = [
      "note": "Only in the machine in summer. Wear sunscreen."},
     {"id": "jack", "tier": "legendary", "kind": "skin", "emoji": "🎃", "name": "Jack-o'-tomato", "season": "autumn",
      "note": "Only in the machine in autumn. Spooky and juicy."},
+    # --- 🏮 Lantern Night (the autumn banner): only from its banner, while it runs ---
+    {"id": "lantern_tomato", "tier": "legendary", "kind": "skin", "emoji": "🏮", "name": "Lantern tomato", "banner": "lantern",
+     "note": "Glows from the inside. Lights your way to the slow replies."},
+    {"id": "gardener_death", "tier": "legendary", "kind": "gardener", "emoji": "💀", "name": "Mr. Death", "banner": "lantern",
+     "note": "Very polite. Collects his dues: every third harvest brings three extra compost."},
+    {"id": "seed_monster", "tier": "rare", "kind": "seed", "emoji": "🌺", "name": "Monstrous flower seeds", "banner": "lantern",
+     "note": "Grows big, grows teeth. Don't feed it after midnight. Do feed it before."},
+    {"id": "trail_wisp", "tier": "rare", "kind": "trail", "emoji": "🔥", "name": "Cursor trail: will-o'-wisps", "banner": "lantern",
+     "note": "Little blue flames follow your cursor. Don't follow them back."},
+    {"id": "companion_lantern", "tier": "rare", "kind": "companion", "emoji": "🏮", "name": "Corner lantern", "banner": "lantern",
+     "note": "A small paper lantern hangs in the corner of every page and sways. Tap it."},
 ]
 BY_ID = {p["id"]: p for p in PRIZES}
 STACKS = ("seed", "decor")          # you can own many
-EQUIP = ("badge", "trail", "hat")   # one of each worn at a time
+EQUIP = ("badge", "trail", "hat", "companion")   # one of each worn at a time
+
+# Banners: the standard one holds everything that isn't a banner's own; a seasonal banner runs during its
+# months, with its featured things at a rate-up: a legendary from it is a featured one half the time (and surely
+# the next time, after a miss); a rare is a featured one half the time too (surely after a miss). Bulba's Promise
+# there picks which featured legendary.
+BANNERS = {
+    "standard": {"name": "Standard", "emoji": "🎰", "tagline": "Everything the machine always has.", "months": None},
+    "lantern": {"name": "Lantern Night", "emoji": "🏮", "months": (9, 10, 11),
+                "tagline": "When the lanterns are lit, something tall and polite comes to tend the garden.",
+                "featured": {"legendary": ["lantern_tomato", "gardener_death"],
+                             "rare": ["seed_monster", "trail_wisp", "companion_lantern"]}},
+}
 
 
 def season(today=None):
@@ -118,8 +141,28 @@ def season(today=None):
 
 
 def pool(tier, today=None):
+    """The standard banner's things of a tier (seasonal skins in their season; no banner's own)."""
     now = season(today)
-    return [p for p in PRIZES if p["tier"] == tier and p.get("season") in (None, now)]
+    return [p for p in PRIZES if p["tier"] == tier and p.get("season") in (None, now) and not p.get("banner")]
+
+
+def banner_open(bid, today=None):
+    b = BANNERS.get(bid)
+    if not b:
+        return False
+    return b["months"] is None or (today or timezone.now().date()).month in b["months"]
+
+
+def banner_ends(bid, today=None):
+    """The last day a seasonal banner runs (this year's last month of it), or None."""
+    import calendar
+    from datetime import date
+    b = BANNERS.get(bid) or {}
+    if not b.get("months") or not banner_open(bid, today):
+        return None
+    d = today or timezone.now().date()
+    last = max(b["months"])
+    return date(d.year, last, calendar.monthrange(d.year, last)[1])
 
 
 def _state(score):
@@ -131,6 +174,17 @@ def _state(score):
     m["history"] = list(m.get("history") or [])
     m["promise"] = m.get("promise") if m.get("promise") in BY_ID else None
     m["promise_sure"] = bool(m.get("promise_sure"))
+    banners = dict(m.get("banners") or {})  # each seasonal banner's own pity, guarantees and promise
+    for bid in BANNERS:
+        if bid == "standard":
+            continue
+        b = dict(banners.get(bid) or {})
+        for k in ("pity_rare", "pity_legend"):
+            b[k] = int(b.get(k) or 0)
+        b["sure"], b["sure_rare"] = bool(b.get("sure")), bool(b.get("sure_rare"))
+        b["promise"] = b.get("promise") if b.get("promise") in BANNERS[bid]["featured"]["legendary"] else None
+        banners[bid] = b
+    m["banners"] = banners
     return m
 
 
@@ -175,7 +229,35 @@ def _legendary(m, rng, today):
     return rng.choice(choices), ""
 
 
-def _draw(m, rng, today):
+def _featured_draw(b, banner, tier, rng, today):
+    """On a seasonal banner: (prize, how) for a legendary or rare, with its rate-up and guarantee."""
+    featured = [BY_ID[i] for i in banner["featured"].get(tier, [])]
+    key = "sure" if tier == "legendary" else "sure_rare"
+    if featured and (b[key] or rng.random() < .5):
+        b[key] = False
+        if tier == "legendary" and b["promise"]:
+            return BY_ID[b["promise"]], "promise"
+        return rng.choice(featured), "featured"
+    b[key] = True  # missed the rate-up: the next one of this tier is featured
+    return rng.choice(pool(tier, today)), "lost" if tier == "legendary" else ""
+
+
+def _draw(m, rng, today, bid="standard"):
+    if bid != "standard":  # a seasonal banner: its own pity and guarantees
+        b, banner = m["banners"][bid], BANNERS[bid]
+        tier = _tier(b, rng)
+        if tier == "common":
+            prize, how = rng.choice(pool("common", today)), ""
+            b["pity_legend"] += 1
+            b["pity_rare"] += 1
+        else:
+            prize, how = _featured_draw(b, banner, tier, rng, today)
+            if tier == "legendary":
+                b["pity_legend"], b["pity_rare"] = 0, 0
+            else:
+                b["pity_legend"] += 1
+                b["pity_rare"] = 0
+        return _keep(m, prize, tier, how, bid)
     tier = _tier(m, rng)
     how = ""
     if tier == "legendary":
@@ -185,6 +267,10 @@ def _draw(m, rng, today):
         prize = rng.choice(pool(tier, today))
         m["pity_legend"] += 1
         m["pity_rare"] = 0 if tier == "rare" else m["pity_rare"] + 1
+    return _keep(m, prize, tier, how, bid)
+
+
+def _keep(m, prize, tier, how, bid):
     had = m["items"].get(prize["id"], 0)
     dup = had > 0 and prize["kind"] not in STACKS
     compost = COMPOST_FOR[tier] if dup else 0
@@ -192,15 +278,18 @@ def _draw(m, rng, today):
         m["compost"] += compost
     else:
         m["items"][prize["id"]] = had + 1
-    return {"id": prize["id"], "tier": tier, "dup": dup, "compost": compost, "promise": how}
+    return {"id": prize["id"], "tier": tier, "dup": dup, "compost": compost, "promise": how, "banner": bid}
 
 
-def spin(user, n=1, rng=None, today=None):
-    """Spend `n` spins (1 or 10). Returns (results, state) or raises ValueError with a message for the person."""
+def spin(user, n=1, rng=None, today=None, banner="standard"):
+    """Spend `n` spins (1 or 10) on a banner. Returns (results, state) or raises ValueError with a message for
+    the person."""
     from mainapp import tomatoes
     from mainapp.models import TomatoScore
     if n not in (1, 10):
         raise ValueError("One spin or ten.")
+    if not banner_open(banner, today):
+        raise ValueError("That banner isn't running right now.")
     rng = rng or random.SystemRandom()
     with transaction.atomic():
         tomatoes.score_of(user)
@@ -213,7 +302,7 @@ def spin(user, n=1, rng=None, today=None):
         results = []
         for _ in range(n):
             m["used"] += 1
-            results.append(_draw(m, rng, today))
+            results.append(_draw(m, rng, today, banner))
         when = timezone.now().isoformat(timespec="seconds")
         m["history"] = ([{**r, "at": when} for r in reversed(results)] + m["history"])[:HISTORY]
         score.machine = m
@@ -234,10 +323,21 @@ def _change(user, fn):
     return public(score)
 
 
-def promise(user, prize_id):
-    """Pick (or, with None, drop) the legendary Bulba promises."""
+def promise(user, prize_id, banner="standard"):
+    """Pick (or, with None, drop) the legendary Bulba promises (on a seasonal banner: one of its featured ones)."""
     if prize_id is not None and (BY_ID.get(prize_id) or {}).get("tier") != "legendary":
         raise ValueError("Bulba only promises legendaries.")
+    if banner != "standard":
+        if banner not in BANNERS:
+            raise ValueError("No such banner.")
+        if prize_id is not None and prize_id not in BANNERS[banner]["featured"]["legendary"]:
+            raise ValueError("On this banner Bulba promises one of its featured legendaries.")
+
+        def pick(m):
+            m["banners"][banner]["promise"] = prize_id
+        return _change(user, pick)
+    if prize_id is not None and BY_ID[prize_id].get("banner"):
+        raise ValueError("That one is only on its own banner.")
 
     def go(m):
         if m["promise"] != prize_id:
@@ -276,7 +376,7 @@ def worn(score):
     for slot, pid in m["equipped"].items():
         p = BY_ID.get(pid)
         if p and slot in EQUIP and m["items"].get(pid):
-            out[slot] = pid if slot == "trail" else p["emoji"]
+            out[slot] = pid if slot in ("trail", "companion") else p["emoji"]
     return out
 
 
@@ -296,5 +396,13 @@ def public(score, today=None):
         "promise": m["promise"], "promise_sure": m["promise_sure"],
         "items": m["items"], "equipped": m["equipped"], "history": m["history"][:20],
         "odds": ODDS, "season": now,
-        "prizes": [{**p, "now": p.get("season") in (None, now)} for p in PRIZES],
+        "prizes": [{**p, "now": p.get("season") in (None, now) and (not p.get("banner") or banner_open(p["banner"], today))}
+                   for p in PRIZES],
+        "banners": [{"id": bid, "name": b["name"], "emoji": b["emoji"], "tagline": b["tagline"],
+                     "featured": b.get("featured") or {}, "open": banner_open(bid, today),
+                     "ends": (banner_ends(bid, today).isoformat() if banner_ends(bid, today) else None),
+                     **({k: m["banners"][bid][k] for k in ("pity_rare", "pity_legend", "sure", "sure_rare", "promise")}
+                        if bid != "standard" else {})}
+                    for bid, b in sorted(BANNERS.items(), key=lambda kv: kv[0] == "standard")  # the seasonal one first
+                    if bid == "standard" or banner_open(bid, today)],
     }

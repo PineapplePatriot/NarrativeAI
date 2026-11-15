@@ -172,3 +172,10 @@ select.form-input { width: 100%; box-sizing: border-box; }
 .persona-pics figure.working img, .persona-pics figure.working span { animation: personaPulse 1s ease-in-out infinite; }
 @keyframes personaPulse { 50% { opacity: .4; } }
 .persona-pic-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0 16px; }
+
+/* 🧩 The persona in parts (static/users/js/persona_parts.js) */
+.persona-parts-toggle { margin: 4px 0 10px; }
+.persona-parts { display: grid; gap: 12px; margin-bottom: 12px; }
+.persona-part { display: grid; gap: 3px; margin: 0; }
+.persona-part small { color: #94a3b8; font-size: .8rem; font-weight: 400; }
+.persona-part textarea { width: 100%; resize: vertical; }

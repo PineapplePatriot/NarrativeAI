@@ -36,6 +36,10 @@ def card_report(character):
     from mainapp import regex_rules
     lines = [f"Name: {character.name}",
              f"Description ({len(character.description)} characters):\n{_clip(character.description, 4000)}"]
+    from mainapp import card_sections
+    shape = card_sections.outline(character)
+    if shape:
+        lines.append(shape)
     for label, value, n in (("Personality", character.personality, 800), ("Scenario", character.scenario, 1200),
                             ("First message", character.initial_message, 2000),
                             ("Example dialogue", character.example_dialogue, 1500)):

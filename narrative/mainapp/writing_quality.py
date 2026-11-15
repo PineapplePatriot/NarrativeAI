@@ -66,3 +66,40 @@ def guidance(model):
                       f"  Preserve: {item['exception']} Test: {item['test']}",
                       f"  Illustration (not a rewrite): {item['examples']['problem']} / {item['examples']['alternative']}"]
     return "\n".join(lines)
+
+
+# What the helpers (Be creative, Word it for me, the ideas button, Write my message) are told about the writing
+# they want, so a note or an idea doesn't steer the story into what the preset and Watch keep out of it
+HELPER_RULES = (
+    "What happens next should follow from these people, what they want and what has happened: not stock twists "
+    "(a sudden attack or kidnapping, a stranger bursting in, a convenient storm or power cut, a confession or kiss "
+    "out of nowhere, an old enemy reappearing) unless the story set it up. Keep the characters as written; no "
+    "softening a hard character or hardening a gentle one to make a moment. Plain, specific words: no 'ensure', "
+    "'immersive', 'vivid', 'delve', 'tension rises', no stock reactions (jaw clenching, breath catching, eyes "
+    "darkening) and no therapy-speak."
+)
+
+
+def helper_taste(user, habits=True):
+    """A short paragraph for the helpers: the general rules above, their own 'Your taste' block, and the habits
+    they asked Watch to keep out (by name)."""
+    from mainapp import presets
+    parts = [HELPER_RULES]
+    try:
+        blocks = presets.normalize(presets.get_active(user).data)["blocks"]
+    except Exception:
+        blocks = []
+    taste = next((b.get("content") or "" for b in blocks
+                  if b.get("name") == "Your taste" and b.get("enabled") and b.get("kind") == "prompt"), "")
+    if taste.strip():
+        parts.append("They asked for this in their writing (follow it in what you suggest):\n" + taste.strip()[:1500])
+    if habits:
+        try:
+            from mainapp.bulba import polish, watch
+            names = [watch.title_of(h, "the character") for h in polish.approved(user)][:12]
+        except Exception:
+            names = []
+        if names:
+            parts.append("They had these kept out of replies; don't write them into notes or ideas either: "
+                         + "; ".join(names) + ".")
+    return "\n\n".join(parts)

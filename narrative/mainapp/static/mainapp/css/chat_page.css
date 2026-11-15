@@ -354,7 +354,12 @@ body { --speech-app: var(--dialogue-color, #e594f2); }
 .message-text .quoted { color: var(--speech-app); font-weight: 600; }
 .message-text .sc { color: var(--sc); }
 body[data-dialogue="app"] .message-text .sc { color: var(--speech-app); }
-body[data-dialogue="story"] .message-text .quoted { color: inherit; }
+/* Story colours, but the AI left a line untagged (MiMo forgets): the character's colour, never plain white;
+   lines inside a colour tag, or inside an older preset's own coloured markup, keep that colour */
+body[data-dialogue="story"] .message-text .quoted { color: var(--speech-app); }
+body[data-dialogue="story"] .message-text .sc .quoted,
+body[data-dialogue="story"] .message-text font .quoted,
+body[data-dialogue="story"] .message-text [style*="color"] .quoted { color: inherit; }
 body.has-you .message.user .message-text .quoted,
 body.has-you .message.user .message-text .sc { color: var(--you); }
 /* Tone marks (<plum:whisper>) */
@@ -1285,6 +1290,17 @@ body.has-you .message.user .message-text .sc { color: var(--you); }
 .lore-row { padding: 4px 0; border-bottom: 1px solid rgba(255, 255, 255, .06); }
 .lore-row:last-child { border-bottom: none; }
 
+.chat-error-retry {
+    display: block;
+    margin-top: 8px;
+    padding: 6px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(254, 205, 211, .5);
+    background: rgba(244, 63, 94, .25);
+    color: #fff;
+    font: inherit;
+    cursor: pointer;
+}
 .chat-error {
     margin: 8px auto;
     max-width: 80%;
@@ -1816,6 +1832,13 @@ body:has(#toolsMenu.show) .watch-card { display: none; }  /* the pen menu wins w
 .atmosphere.time-night { background: radial-gradient(ellipse at 50% 20%, rgba(30, 41, 90, .25), rgba(5, 8, 25, .55)); }
 .atmosphere.time-dusk { background: linear-gradient(180deg, rgba(251, 146, 60, .18), rgba(126, 34, 206, .22)); }
 .atmosphere.time-dawn { background: linear-gradient(180deg, rgba(253, 186, 116, .14), rgba(244, 114, 182, .08)); }
+/* Day and a clear sky used to show nothing: a faint warm light, and slow sunbeams */
+.atmosphere.time-day { background: linear-gradient(180deg, rgba(255, 236, 179, .08), transparent 60%); }
+.atmosphere.sky-clear .sky { inset: -20% -20% 0 -20%; opacity: .55;
+    background: repeating-linear-gradient(105deg, transparent 0 60px, rgba(255, 244, 214, .12) 60px 120px, transparent 120px 220px);
+    animation: atmo-beams 18s ease-in-out infinite alternate; }
+.atmosphere.time-night.sky-clear .sky { opacity: 0; }
+@keyframes atmo-beams { from { transform: translateX(-6%); opacity: .35; } to { transform: translateX(6%); opacity: .6; } }
 .atmosphere .sky { position: absolute; inset: -50% 0 0 0; }
 .atmosphere.sky-rain .sky, .atmosphere.sky-storm .sky {
     background-image: repeating-linear-gradient(105deg, transparent 0 18px, rgba(180, 200, 255, .22) 18px 19px, transparent 19px 46px);
@@ -1844,6 +1867,7 @@ body:has(#toolsMenu.show) .watch-card { display: none; }  /* the pen menu wins w
         linear-gradient(180deg, transparent 150px, #000 230px, #000 calc(100% - 200px), transparent calc(100% - 130px));
     mask-composite: intersect; }
 .atmosphere.atmo-front.sky-fog { opacity: .85; }
+.atmosphere.atmo-front.sky-clear { display: none; }  /* sunbeams only behind the chat, never over the text */
 .atmosphere .flash { position: absolute; inset: 0; background: rgba(230, 235, 255, .55); opacity: 0; animation: atmo-flash 9s infinite; }
 @keyframes atmo-rain { to { background-position: -30px 120px; } }
 @keyframes atmo-snow { to { background-position: 30px 712px, 85px 813px, 40px 517px; } }
@@ -2302,6 +2326,9 @@ body.polish-on .message-btn.polish-btn { display: flex; }
 .effects-sub.dim { opacity: .55; }
 .atmo-picks { margin: 2px 0 6px 26px; }
 .atmo-picks .atmo-label { display: block; font-size: .78rem; opacity: .7; margin: 6px 0 4px; }
+/* The chosen weather and time stay marked (before, only the last tap looked chosen: a touch screen's hover) */
+.atmo-picks .preset-btn.on { background: var(--accent-1, #7c3aed); color: #fff; border-color: transparent;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, .18) inset; }
 .effects-sub.dim .atmo-picks { pointer-events: none; }
 
 /* The opening message can be edited or swiped, never deleted */
@@ -2391,3 +2418,106 @@ body.skin-lab .message-text .thought { color: #3d5a78; }
 
 /* The picked chip (chat style, speech colours) */
 .skin-choice .preset-btn.on { background: var(--accent-1); color: #fff; border-color: transparent; }
+
+/* ---------- Story memory, in the Summary panel (static/mainapp/js/memory_panel.js) ---------- */
+.mem-tabs { display: flex; gap: 4px; padding: 6px 10px 0; border-bottom: 1px solid var(--border-color); }
+.mem-tab { flex: 1; background: none; border: 0; border-bottom: 2px solid transparent; color: var(--text-secondary);
+           padding: 8px 6px; font: inherit; font-size: 0.85rem; cursor: pointer; }
+.mem-tab.on { color: var(--text-primary); border-bottom-color: var(--accent-1); }
+.mem-tab small { display: inline-block; font-size: 0.68rem; color: var(--accent-2, #10b981); margin-left: 2px; }
+.mem-h { margin: 14px 2px 6px; font-size: 0.78rem; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); }
+.mem-ms.open { border-color: var(--accent-1); }
+.mem-ms.stale { border-color: #f59e0b; }
+.mem-title, .mem-name, .mem-line, .mem-rel select { background: var(--ui-tertiary); border: 1px solid transparent; color: var(--text-primary);
+           border-radius: 6px; padding: 4px 6px; font: inherit; font-size: 0.85rem; min-width: 0; }
+.mem-title { flex: 1; font-weight: 600; }
+.mem-title:focus, .mem-name:focus, .mem-line:focus { outline: none; border-color: var(--accent-1); }
+.t-card header .mem-title { margin-right: 6px; }
+.mem-row { display: flex; gap: 6px; align-items: center; margin: 4px 0; }
+.mem-row small { color: var(--text-muted); white-space: nowrap; }
+.mem-name { flex: 0 0 34%; font-weight: 600; }
+.mem-line { flex: 1; }
+.mem-rel-row { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0; }
+.mem-ladder { display: flex; flex-wrap: wrap; gap: 3px; margin: 6px 0; }
+.mem-ladder span { font-size: 0.7rem; padding: 2px 7px; border-radius: 999px; background: var(--ui-tertiary); color: var(--text-muted); }
+.mem-ladder span.on { background: var(--accent-1); color: #fff; }
+.mem-dims { display: grid; grid-template-columns: 1fr; gap: 2px; font-size: 0.78rem; color: var(--text-secondary); }
+.mem-dims label { display: grid; grid-template-columns: 56px 1fr 18px; align-items: center; gap: 6px; text-transform: capitalize; }
+.mem-dims input { width: 100%; accent-color: var(--accent-1); }
+.mem-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.mem-every { font-size: 0.78rem; color: var(--text-secondary); display: inline-flex; align-items: center; gap: 4px; }
+.mem-every input { width: 48px; background: var(--ui-tertiary); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; padding: 2px 4px; }
+.mem-note { background: rgba(126, 58, 242, 0.08); }
+.summary-panel [hidden] { display: none !important; }
+
+/* ---------- 📇 The quick view of the character's card (static/mainapp/js/quick_card.js) ---------- */
+.qc-hit { cursor: pointer; }
+.chat-header .character-details h3.qc-hit:hover, .character-info-panel .character-name.qc-hit:hover { text-decoration: underline dotted; text-underline-offset: 4px; }
+.chat-header .character-avatar.qc-hit:hover { box-shadow: 0 0 0 2px var(--accent-1); }
+.qc-shade { position: fixed; inset: 0; z-index: 1200; background: rgba(5, 6, 14, 0); display: flex; align-items: center;
+    justify-content: center; padding: 16px; transition: background .2s ease; }
+.qc-shade.open { background: rgba(5, 6, 14, .6); }
+.qc-card { --card-accent: #8b5cf6; width: min(420px, 100%); max-height: min(86vh, 760px); display: flex; flex-direction: column;
+    border-radius: 18px; overflow: hidden; color: var(--text-primary);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--card-accent) 16%, #1a1d2e), #151726 60%);
+    border: 1px solid color-mix(in srgb, var(--card-accent) 40%, transparent);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .55), 0 0 0 1px rgba(255, 255, 255, .03);
+    transform: translateY(14px) scale(.98); opacity: 0; transition: transform .22s ease, opacity .22s ease; }
+.qc-shade.open .qc-card { transform: none; opacity: 1; }
+.qc-loading { padding: 40px; text-align: center; color: var(--text-secondary); }
+.qc-portrait { position: relative; height: 200px; flex: 0 0 auto; overflow: hidden;
+    background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--card-accent) 45%, #1b1730), #11121c 75%); }
+.qc-scene { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: .5; }
+.qc-pic { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 18%; }
+.qc-pic2 { left: 50%; width: 50%; }
+.qc-pic2 ~ .qc-title { z-index: 2; }
+.qc-portrait:has(.qc-pic2) .qc-pic:first-of-type { width: 50%; }
+.qc-portrait::after { content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(180deg, rgba(0, 0, 0, .15), transparent 35%, color-mix(in srgb, var(--card-accent) 12%, #1a1d2e) 100%); }
+.qc-initial { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 4.5rem;
+    font-weight: 700; color: color-mix(in srgb, var(--card-accent) 70%, #fff); }
+.qc-badges { position: absolute; top: 10px; left: 12px; z-index: 2; display: flex; gap: 6px; }
+.qc-badges span { font-size: .72rem; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: rgba(10, 10, 20, .6);
+    border: 1px solid color-mix(in srgb, var(--card-accent) 55%, transparent); }
+.qc-x { position: absolute; top: 8px; right: 8px; z-index: 3; width: 34px; height: 34px; border-radius: 50%; border: 0;
+    background: rgba(10, 10, 20, .6); color: #fff; font-size: 1rem; cursor: pointer; }
+.qc-title { position: absolute; left: 16px; right: 16px; bottom: 10px; z-index: 2; }
+.qc-title h3 { margin: 0; font-size: 1.5rem; text-shadow: 0 2px 12px rgba(0, 0, 0, .8); }
+.qc-title p { margin: 2px 0 0; font-size: .85rem; color: #e2e8f0; text-shadow: 0 1px 8px rgba(0, 0, 0, .9);
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.qc-tabs { display: flex; gap: 4px; padding: 6px 12px 0; border-bottom: 1px solid rgba(255, 255, 255, .08); }
+.qc-tabs button { flex: 1; background: none; border: 0; border-bottom: 2px solid transparent; color: var(--text-secondary);
+    padding: 8px 4px; font: inherit; font-size: .88rem; cursor: pointer; }
+.qc-tabs button.on { color: var(--text-primary); border-bottom-color: var(--card-accent); }
+.qc-body { padding: 12px 16px; overflow-y: auto; font-size: .88rem; line-height: 1.5; }
+.qc-body[hidden] { display: none; }
+.qc-sec { margin-bottom: 10px; }
+.qc-sec h5 { margin: 0 0 3px; font-size: .7rem; text-transform: uppercase; letter-spacing: .07em; color: color-mix(in srgb, var(--card-accent) 65%, #cbd5e1); }
+.qc-sec p { margin: 0; white-space: pre-line; color: #dbe1ea; }
+.qc-sec ul { margin: 0; padding-left: 18px; color: #dbe1ea; }
+.qc-person { margin: 12px 0 6px; font-size: 1rem; }
+.qc-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.qc-chips span { font-size: .75rem; padding: 3px 9px; border-radius: 999px; background: color-mix(in srgb, var(--card-accent) 18%, transparent);
+    color: color-mix(in srgb, var(--card-accent) 70%, #fff); }
+.qc-more summary { cursor: pointer; color: var(--text-secondary); font-size: .82rem; margin: 2px 0 8px; }
+.qc-rel { padding: 10px; border-radius: 12px; background: rgba(255, 255, 255, .04); margin-bottom: 10px; }
+.qc-rel-head small { color: var(--text-muted); margin-left: 4px; }
+.qc-ladder { display: flex; flex-wrap: wrap; gap: 3px; margin: 8px 0; }
+.qc-ladder span { font-size: .7rem; padding: 2px 8px; border-radius: 999px; background: rgba(255, 255, 255, .06); color: var(--text-muted); }
+.qc-ladder span.on { background: var(--card-accent); color: #fff; font-weight: 600; }
+.qc-bar { display: grid; grid-template-columns: 60px 1fr 22px; align-items: center; gap: 8px; font-size: .75rem; color: var(--text-secondary); }
+.qc-bar i { height: 6px; border-radius: 999px; background: rgba(255, 255, 255, .08); overflow: hidden; }
+.qc-bar b { display: block; height: 100%; border-radius: inherit; background: var(--card-accent); }
+.qc-bar em { font-style: normal; text-align: right; }
+.qc-last { margin: 6px 0 0; font-size: .78rem; color: var(--text-secondary); }
+.qc-empty { color: var(--text-secondary); font-size: .85rem; }
+.qc-foot { display: flex; gap: 8px; padding: 10px 16px 14px; border-top: 1px solid rgba(255, 255, 255, .06); }
+.qc-btn { flex: 1; text-align: center; padding: 8px 10px; border-radius: 10px; font: inherit; font-size: .85rem; cursor: pointer;
+    background: color-mix(in srgb, var(--card-accent) 22%, #1e2235); border: 1px solid color-mix(in srgb, var(--card-accent) 40%, transparent);
+    color: var(--text-primary); text-decoration: none; }
+@media (max-width: 560px) {
+    .qc-shade { align-items: flex-end; padding: 0; }
+    .qc-card { width: 100%; max-height: 88vh; border-radius: 18px 18px 0 0; }
+    .qc-portrait { height: 170px; }
+}
+@media (prefers-reduced-motion: reduce) { .qc-card, .qc-shade { transition: none; } }

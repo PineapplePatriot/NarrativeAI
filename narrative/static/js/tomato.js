@@ -68,6 +68,7 @@
         { id: 'blossom', name: 'Blossom tomato', emoji: '🌸', color: '#f7a8c8', prize: true, kind: 'Sauce-o-Matic', note: 'Spring only, in the machine.' },
         { id: 'sunburnt', name: 'Sunburnt tomato', emoji: '🍅', filter: 'saturate(2.2) brightness(.85) contrast(1.2)', color: '#b3140c', prize: true, kind: 'Sauce-o-Matic', note: 'Summer only, in the machine.' },
         { id: 'jack', name: "Jack-o'-tomato", emoji: '🎃', color: '#f08a1c', prize: true, kind: 'Sauce-o-Matic', note: 'Autumn only, in the machine.' },
+        { id: 'lantern_tomato', name: 'Lantern tomato', emoji: '🍅', filter: 'sepia(.35) saturate(1.7) brightness(1.18) drop-shadow(0 0 7px #ffb347) drop-shadow(0 0 14px #ff7b1c)', color: '#ff9a3c', prize: true, kind: 'Sauce-o-Matic', note: 'Lantern Night banner. Glows from the inside.' },
     ];
     // How a skin looks on this throw: most always the same, "random" ones (rainbow, unicorn) a new colour each time
     function look(s, lucky) {
@@ -156,7 +157,28 @@
 .na-tr-leaf { animation-name: naTrLeaf; }
 @keyframes naTr { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: translate(var(--dx), -18px) scale(.4) rotate(90deg); } }
 @keyframes naTrDrip { from { opacity: .95; transform: none; } to { opacity: 0; transform: translateY(26px) scaleY(1.5); } }
-@keyframes naTrLeaf { from { opacity: 1; transform: none; } to { opacity: 0; transform: translate(var(--dx), 30px) rotate(200deg); } }`;
+@keyframes naTrLeaf { from { opacity: 1; transform: none; } to { opacity: 0; transform: translate(var(--dx), 30px) rotate(200deg); } }
+.na-tr-wisp { width: 11px; height: 15px; margin: -8px 0 0 -5px; border-radius: 50% 50% 45% 45% / 65% 65% 35% 35%;
+    background: radial-gradient(circle at 50% 68%, #ffffff 0 22%, #9ff8ef 40%, #3fc6ff 70%, rgba(62, 120, 255, .3) 90%);
+    box-shadow: 0 0 12px 5px rgba(98, 220, 255, .75), 0 0 26px 8px rgba(62, 140, 255, .35); animation-name: naTrWisp; animation-duration: 1.3s; }
+@keyframes naTrWisp { from { opacity: .95; transform: scale(1); } 50% { opacity: .8; transform: translate(calc(var(--dx) * .4), -14px) scale(.9) skewX(8deg); }
+    to { opacity: 0; transform: translate(var(--dx), -34px) scale(.3) skewX(-10deg); } }
+.na-companion { position: fixed; left: 14px; bottom: 0; z-index: 9002; width: 34px; height: 76px; padding: 0; border: 0; background: none;
+    cursor: pointer; transform-origin: 50% 0; animation: naClSway 4.5s ease-in-out infinite; }
+.na-companion i { position: absolute; left: 50%; transform: translateX(-50%); display: block; }
+.na-cl-string { top: 0; width: 2px; height: 26px; background: #6b4a2a; }
+.na-cl-body { top: 24px; width: 30px; height: 34px; border-radius: 40% 40% 42% 42%; background:
+    repeating-linear-gradient(90deg, rgba(120, 20, 10, .35) 0 2px, transparent 2px 8px), radial-gradient(circle at 50% 55%, #ffd36b, #ff8a2a 45%, #c8321c 85%);
+    box-shadow: 0 0 18px 4px rgba(255, 150, 60, .45), inset 0 -3px 0 rgba(90, 20, 10, .35); }
+.na-cl-body::before, .na-cl-body::after { content: ''; position: absolute; left: 3px; right: 3px; height: 4px; background: #3d2414; border-radius: 2px; }
+.na-cl-body::before { top: -2px; } .na-cl-body::after { bottom: -2px; }
+.na-cl-tassel { top: 60px; width: 6px; height: 12px; background: linear-gradient(#c8321c, #ffb347); border-radius: 0 0 3px 3px; }
+.na-companion.flicker .na-cl-body { animation: naClFlicker .9s ease-out; }
+@keyframes naClSway { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+@keyframes naClFlicker { 0%, 100% { filter: none; } 15% { filter: brightness(.55); } 30% { filter: brightness(1.6); } 45% { filter: brightness(.8); } 60% { filter: brightness(1.35); } }
+@media (prefers-reduced-motion: reduce) { .na-companion { animation: none; } .na-companion.flicker .na-cl-body { animation: none; } }
+@media (max-width: 760px) { .na-companion { transform: scale(.8); left: 6px; } }
+@media print { .na-companion { display: none; } }`;
     const style = document.createElement('style');
     style.textContent = css;
     document.head.appendChild(style);
@@ -355,6 +377,7 @@
     const watchers = [];
     let waiting = false, waited = 0, idle = 0, btn = null, pitLink = null;
     let wildWait = false;  // this wait is a chat's or Bulba's: its throws count for the leaderboard
+    let resumed = false;   // they came back to a wait that had been going on (resume()): no 10 seconds again
     function showButton() {
         if (btn) { btn.classList.remove('fading'); return; }
         btn = document.createElement('button');
@@ -399,7 +422,7 @@
     setInterval(() => {
         const active = watchers.filter(w => { try { return !!w.fn(); } catch (e) { return false; } });
         if (active.length) {
-            if (!waiting) { waiting = true; waited = 0; waitThrows = 0; }
+            if (!waiting) { waiting = true; waited = resumed ? SHOW_AFTER : 0; waitThrows = 0; resumed = false; }
             wildWait = active.some(w => w.kind === 'chat' || w.kind === 'bulba');
             waited++;
             idle = 0;
@@ -422,7 +445,30 @@
     else if (data.count || pending.add) setTimeout(fetchState, 1500);
 
     // --- 🎰 What they won and wear: Bulba's hat (on every 🥔) and a cursor trail (mainapp/tomato_machine.py) ---
-    const TRAILS = { trail_sparkle: ['✨', 'na-tr-sparkle'], trail_ketchup: ['', 'na-tr-ketchup'], trail_leaves: ['🍃', 'na-tr-leaf'] };
+    const TRAILS = { trail_sparkle: ['✨', 'na-tr-sparkle'], trail_ketchup: ['', 'na-tr-ketchup'], trail_leaves: ['🍃', 'na-tr-leaf'],
+                     trail_wisp: ['', 'na-tr-wisp'] };
+    // 🏮 A companion hangs in the corner of every page (the corner lantern from Lantern Night)
+    const COMPANIONS = { companion_lantern: { lines: ['🏮 *flickers politely*', '🏮 The slow replies are that way.', '🏮 Mr. Death says hello.',
+                                                      '🏮 Still lit. Still here.', '🏮 Throw something. It helps.'] } };
+    let companionEl = null;
+    function companion(id) {
+        const c = window.parent === window ? COMPANIONS[id] : null;  // not inside an embedded frame (in-chat Bulba)
+        if (!c) { if (companionEl) { companionEl.remove(); companionEl = null; } return; }
+        if (companionEl && companionEl.dataset.id === id) return;
+        if (companionEl) companionEl.remove();
+        companionEl = document.createElement('button');
+        companionEl.type = 'button';
+        companionEl.className = 'na-companion na-companion-lantern';
+        companionEl.dataset.id = id;
+        companionEl.title = 'Your corner lantern';
+        companionEl.setAttribute('aria-label', 'Your corner lantern');
+        companionEl.innerHTML = '<i class="na-cl-string"></i><i class="na-cl-body"><b></b></i><i class="na-cl-tassel"></i>';
+        companionEl.addEventListener('click', () => {
+            companionEl.classList.remove('flicker'); void companionEl.offsetWidth; companionEl.classList.add('flicker');
+            toast(c.lines[Math.floor(Math.random() * c.lines.length)]);
+        });
+        document.body.appendChild(companionEl);
+    }
     let trail = null, trailAt = 0;
     function wear() {
         const worn = data.worn || {};
@@ -430,6 +476,7 @@
         if (worn.hat) root.style.setProperty('--na-bulba-hat', JSON.stringify(worn.hat)); else root.style.removeProperty('--na-bulba-hat');
         root.classList.toggle('na-hatted', !!worn.hat);
         trail = TRAILS[worn.trail] || null;
+        if (document.body) companion(worn.companion); else addEventListener('DOMContentLoaded', () => companion(worn.companion));
     }
     addEventListener('pointermove', (e) => {
         if (!trail || e.pointerType === 'touch' || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -459,6 +506,7 @@
         found() { if (!data.found) { data.found = true; award('pit'); save(); changed(); sync(); } },
         onChange(fn) { listeners.push(fn); },
         refresh: fetchState,  // after the machine hands out something to wear or throw
+        resume() { resumed = true; if (waiting) waited = Math.max(waited, SHOW_AFTER); },  // back to an old wait
         wear,
     };
 })();
