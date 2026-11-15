@@ -9411,3 +9411,17 @@ class StoryMemoryTests(ChatPromptTests):
 for _name in [n for n in dir(ChatPromptTests) if n.startswith("test_")]:
     if not hasattr(StoryMemoryTests, _name) or getattr(StoryMemoryTests, _name) is getattr(ChatPromptTests, _name):
         setattr(StoryMemoryTests, _name, None)  # the chat tests run once, in their own class
+
+
+class MemoryModelTests(TestCase):
+    def test_story_memory_runs_where_the_summary_does_unless_it_has_its_own(self):
+        from mainapp import ai_client
+        from users.models import ConnectionProfile, TaskSetting
+        user = get_user_model().objects.create_user(username="mm", password="pw12345!")
+        main = ConnectionProfile.objects.create(user=user, name="Main", api_key="k", model="big/model")
+        cheap = ConnectionProfile.objects.create(user=user, name="Cheap", api_key="k", model="small/model")
+        self.assertEqual(ai_client.resolve(user, "memory")[1], "big/model")
+        TaskSetting.objects.create(user=user, task="summary", profile=cheap)
+        self.assertEqual(ai_client.resolve(user, "memory")[1], "small/model")
+        TaskSetting.objects.create(user=user, task="memory", profile=main, model="own/model")
+        self.assertEqual(ai_client.resolve(user, "memory")[1], "own/model")

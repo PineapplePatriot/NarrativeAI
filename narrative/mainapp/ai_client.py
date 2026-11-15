@@ -218,6 +218,12 @@ def resolve(user, task):
         # Through OpenRouter Bulba uses our model; on a custom server (local testing) the server's own
         return profile, (BULBA_MODEL if _hosted(profile) else profile.model)
     setting = get_task_setting(user, task)
+    if task == "memory" and setting.profile_id is None and not setting.model:
+        # Story memory without a model of its own runs where the summary does (a cheaper background model
+        # they chose for the summary, rather than their chat model)
+        summary = get_task_setting(user, "summary")
+        if summary.profile_id or summary.model:
+            return resolve(user, "summary")
     chat_setting = setting if task == "chat" else get_task_setting(user, "chat")
     profile = setting.profile or main_profile(user)
     if profile is None:
