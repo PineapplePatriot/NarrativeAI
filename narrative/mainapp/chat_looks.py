@@ -243,7 +243,8 @@ def css(recipe, char_name="", user_name=""):
   font-family: {_font(r['heading_font'])}; font-size: .85rem; font-weight: 700; line-height: 1.4; white-space: nowrap; z-index: 2; {tag} }}
 {S} .assistant .message-content::before {{ content: var(--look-char); }}
 {S} .user .message-content::before {{ content: var(--look-you); left: auto; right: 18px; background: {c['accent2'] if b['name_tag'] != 'plain' else 'none'}; }}
-{S} .note .message-content::before {{ display: none; }}""")
+{S} .note .message-content::before {{ display: none; }}
+{S} .input-container {{ position: relative; z-index: 5; }}""")
     # The character's pictures: avatars in the header and by the messages
     frame = FRAME[r["frame"]]
     pics = f"{S} .chat-header .character-avatar, {S} .message-avatar"
@@ -362,3 +363,73 @@ def guide():
             f"sounds: {', '.join(SOUNDS)}. sizes: {', '.join(SIZES)}. bold: true for chunky handwriting or a heavy look. "
             "background 'picture': give picture (a URL from the backgrounds list) and veil (0-90, how much of the "
             "page colour lies over it so the bubbles stay readable; 30-55 usually).")
+
+
+# Ready-made looks anyone can pick in the pen menu (Chat style), like the four CSS styles
+READY = {
+    "purpl": {"name": "Purpl", "base": "light",
+              "colors": {"page": "#d9cdee", "page2": "#b8a5e0", "page3": "#efe6f6", "surface": "#efe8f8",
+                         "bubble_ai": "#f6f1fc", "bubble_user": "#ece2f8", "text": "#1f1a2e", "muted": "#5c5279",
+                         "accent": "#7a5cc7", "accent2": "#e48aaf", "outline": "#2f2945", "effect": "#ffffff"},
+              "font": "gaegu", "heading_font": "gaegu", "size": "large", "bold": True,
+              "bubble": {"shape": "wobbly", "outline": "sketch", "shadow": "offset", "name_tag": "tab", "wide": True},
+              "frame": "sticker", "background": "blobs", "texture": "grain", "effect": "sparkles", "buttons": "sticker",
+              "sound": "soft"},
+}
+READY_LABELS = {"purpl": "💜 Purpl"}
+
+
+# --- The shelf: every look they made (with Bulba, or adjusted by hand), kept on their account
+#     (ChatSettings.appearance["looks"]), to wear in any chat or give to another character ---
+SHELF_MAX = 30
+
+
+def _settings(user):
+    from mainapp.models import ChatSettings
+    obj, _ = ChatSettings.objects.get_or_create(author=user)
+    return obj
+
+
+def shelf(user):
+    """[{"id", "look"}] newest first."""
+    items = (_settings(user).appearance or {}).get("looks") or []
+    out = []
+    for item in items:
+        look = clean(item.get("look")) if isinstance(item, dict) else None
+        if look and isinstance(item.get("id"), str):
+            out.append({"id": item["id"], "look": look})
+    return out
+
+
+def _same(a, b):
+    return a["name"] == b["name"] and a["colors"] == b["colors"] and a["font"] == b["font"]
+
+
+def keep(user, look):
+    """Put a look on the shelf (a look already there by the same name is replaced, so adjusting it doesn't pile up
+    copies). Returns its shelf id."""
+    import uuid
+    look = clean(look)
+    if not look:
+        return None
+    obj = _settings(user)
+    data = dict(obj.appearance or {})
+    items = [i for i in shelf(user) if i["look"]["name"] != look["name"]]
+    same = next((i for i in shelf(user) if i["look"]["name"] == look["name"]), None)
+    item = {"id": same["id"] if same else uuid.uuid4().hex[:8], "look": look}
+    data["looks"] = ([item] + items)[:SHELF_MAX]
+    obj.appearance = data
+    obj.save(update_fields=["appearance"])
+    return item["id"]
+
+
+def from_shelf(user, shelf_id):
+    return next((i["look"] for i in shelf(user) if i["id"] == shelf_id), None)
+
+
+def drop(user, shelf_id):
+    obj = _settings(user)
+    data = dict(obj.appearance or {})
+    data["looks"] = [i for i in shelf(user) if i["id"] != shelf_id]
+    obj.appearance = data
+    obj.save(update_fields=["appearance"])

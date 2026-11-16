@@ -71,3 +71,38 @@ class Splitter:
         if not rest:
             return []
         return [("thinking" if self.state == "inside" else "text", rest)]
+
+
+# MiMo (Xiaomi) thinks in one of two bad ways unless told how: not at all, or an essay that spends the whole
+# reply budget and leaves no story. With its thinking on, every story request ends with this short leash (our own
+# wording, after the idea in Realistic Frankenstein 2.2.1's MiMo 2.6 "thinking leash"), and the reply budget gets
+# room for the thinking on top.
+LEASH = ("[How to think before this reply: one short forward pass, then write. Plan in at most eight numbered "
+         "fragments, one line each: what just happened and what each person present wants now; what they do next; "
+         "anything to keep straight (names, places, who knows what, promises, the time); the reply's beats in order. "
+         "Fragments only: no sentences of the reply, no re-reading, no 'wait' or 'let me reconsider', no second pass. "
+         "After the last fragment, stop thinking and write the whole reply. A turn with thinking and no reply is a "
+         "failure.]")
+LEASH_ROOM = 3000  # tokens of thinking on top of the reply length
+
+
+def needs_leash(model, level):
+    """MiMo with its thinking on (its default)."""
+    return bool(model) and ("mimo" in model.lower() or "xiaomi" in model.lower()) and level != "off"
+
+
+def leash(messages, params):
+    """The request with LEASH at the end of its last turn (before a director's note, which stays last) and the
+    reply budget raised so the thinking can't eat the story."""
+    messages = [dict(m) for m in messages]
+    last = messages[-1] if messages else None
+    if last and last.get("role") == "user" and isinstance(last.get("content"), str):
+        text = last["content"]
+        at = text.rfind("[Director's note for this reply")
+        last["content"] = (text[:at] + LEASH + "\n\n" + text[at:]) if at >= 0 else (text.rstrip() + "\n\n" + LEASH)
+    else:
+        messages.append({"role": "user", "content": LEASH})
+    params = dict(params or {})
+    if params.get("max_tokens"):
+        params["max_tokens"] = int(params["max_tokens"]) + LEASH_ROOM
+    return messages, params

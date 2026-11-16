@@ -158,6 +158,37 @@ trail and a corner lantern companion as featured rares; 50% rate-up with a guara
 Bulba's Promise picks the featured legendary. Everything else is the standard banner. Next: a winter banner
 (December to February) and the rest of Phase E (garden weather and seasons, mutations, critters, orders).
 
+## Next: story systems with story memory (ideas, 18 November, to choose from)
+
+1. **One trust, not two.** A slow meter can be tied to a relationship in story memory (Rose → Sam, trust): the
+   meter is then a view of it, moved by the same rules (a step per scene at most, the card's temperament pace).
+2. **Gates: what the story can't rush.** "Not past *rival* before 4 scenes", "not *together* before she knows
+   the secret". The relationship (or a meter) stops at the gate until it opens; the model is told it can't cross
+   yet.
+3. **Knowledge triggers.** An event that fires when a fact reaches someone ("when Rose learns the pass is forged,
+   she confronts Sam") or when a secret has been kept too long ("someone starts asking questions").
+4. **Scene clocks.** Countdowns in scenes instead of minutes ("3 scenes until the ship leaves"), ticked when a
+   milestone closes; shown in the tracker strip.
+5. **Promises come due.** A promise memory recorded gets a due time; when it's overdue, an event nudges the story.
+6. **Familiar faces.** A random table that draws from memory's people ("someone you haven't seen in a while"), so
+   people come back consistent.
+7. **In the chat:** a small chapter card when a scene closes ("Scene 5: The third sublevel") and a banner when a
+   relationship changes stage ("Dottore → Sam: wary → rival"), with an Undo for the user.
+
+## Phase E ideas: the garden (18 November, to choose from)
+
+1. **Orders from the crew:** each gardener at work posts small orders ("3 carrots by Sunday"); rewards: compost,
+   spins, decorations only orders give. Makes picking the three meaningful.
+2. **Weather and seasons:** the garden's season follows the real one, the weather changes daily (rain waters,
+   sun speeds blooms, frost slows); seasonal crops grow faster in their season.
+3. **Mutations:** a small chance on harvest of a rare variant (golden tomato: a spin; giant pumpkin: triple
+   compost; a glowing monstrous flower), collected in an almanac; their seeds can be replanted.
+4. **Critters:** decorations bring visitors (pond: frogs; lantern: night moths; scarecrow keeps crows off the
+   sprouts); tap one for a small bonus.
+5. **Crew pairs:** two gardeners who work well together get a small extra (Basil + Mr. Death: the night shift).
+6. **A bigger plot** after enough harvests.
+7. **The winter banner** (December to February) before Lantern Night ends on 30 November.
+
 ## Phase F: messenger mode
 
 A separate page imitating Telegram/Discord: casual one-on-one chats with the characters, voice messages

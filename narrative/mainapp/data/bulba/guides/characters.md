@@ -126,7 +126,13 @@ from them, in this order, and they can switch any one off on the character's pag
 - **identity**: name, age, what they are and do, where they stand. Two or three lines.
 - **appearance**: never empty, never the first thing cut (see "A compact card done well").
 - **personality**: personality in action: what they do, when, to whom, at what cost.
-- **temperament**: how fast they warm up, what wounds them, what wins them over. Also set the `temperament`
+- **temperament**: how fast they warm up, what wounds them, what wins them over. In a full or very detailed
+  card, write it as situations, a line each, so the model sees how they act rather than a description:
+  "Cornered or threatened: goes very calm and very polite, then hits first." "Complimented: suspicious, asks what
+  you want." "Lied to and finds out: says nothing, remembers forever, brings it up at the worst moment." "As
+  trust grows: starts finishing your sentences, still never says thank you." "At a low point: works through the
+  night, snaps at kindness." Pick the four to six situations this story will actually put them in. A short card
+  keeps one or two lines. Also set the `temperament`
   fields: `pace` (slow, steady, fast), `route` (basic, romance, enemies, enemies_to_lovers, mentor, rivals,
   family: the way a relationship with {{user}} most naturally goes; enemies is a full route, not a flavour)
   and `start` (a few words: where their attitude to {{user}} starts). Story memory moves the relationship

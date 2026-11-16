@@ -117,3 +117,55 @@ button.link { background: none; padding: 0; color: var(--accent-soft); text-deco
 .bg-thinking { align-items: flex-start !important; margin-top: 14px !important; line-height: 1.45; }
 .bg-thinking input { margin-top: 3px; }
 .bg-thinking small { opacity: .75; }
+
+/* Each character's trackers, on the Extras page (links to their Trackers page) */
+.tracker-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; margin-top: 8px; }
+.tracker-card { display: grid; grid-template-columns: 44px 1fr; grid-template-areas: "pic body" "pic go"; gap: 2px 12px; align-items: center;
+    padding: 12px 14px; border-radius: 14px; text-decoration: none; color: inherit; border: 1px solid rgba(56, 189, 248, .25);
+    background: linear-gradient(135deg, rgba(56, 189, 248, .1), rgba(139, 92, 246, .08)), rgba(15, 23, 42, .5);
+    transition: transform .15s, border-color .15s, box-shadow .2s; }
+.tracker-card:hover { transform: translateY(-2px); border-color: rgba(56, 189, 248, .6); box-shadow: 0 10px 24px rgba(56, 189, 248, .12); }
+.tracker-card.has-on { border-color: rgba(56, 189, 248, .45); }
+.tc-pic { grid-area: pic; width: 44px; height: 44px; border-radius: 12px; overflow: hidden; display: flex; align-items: center;
+    justify-content: center; font-weight: 700; background: linear-gradient(135deg, #7c3aed, #38bdf8); color: #fff; }
+.tc-pic img { width: 100%; height: 100%; object-fit: cover; }
+.tc-body { grid-area: body; display: grid; gap: 2px; min-width: 0; }
+.tc-on { font-size: 1rem; letter-spacing: 1px; }
+.tc-on small { font-size: .75rem; opacity: .7; letter-spacing: 0; margin-left: 2px; }
+.tc-go { grid-area: go; font-size: .8rem; color: #7dd3fc; }
+
+/* The Extras page in the trackers page's colours: each section its own tone, choices that light up when picked,
+   switches instead of plain boxes (as on a character's Trackers page) */
+.extras .option[data-tone] { --g: #a78bfa; border-color: color-mix(in srgb, var(--g) 26%, transparent);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--g) 11%, transparent), transparent 170px), rgba(30, 35, 58, 0.6);
+    box-shadow: 0 14px 34px -24px color-mix(in srgb, var(--g) 70%, transparent); }
+.extras .option[data-tone="pink"] { --g: #f472b6; } .extras .option[data-tone="sky"] { --g: #38bdf8; }
+.extras .option[data-tone="blue"] { --g: #60a5fa; } .extras .option[data-tone="cyan"] { --g: #22d3ee; }
+.extras .option[data-tone="rose"] { --g: #fb7185; } .extras .option[data-tone="amber"] { --g: #f59e0b; }
+.extras .option[data-tone="gold"] { --g: #fbbf24; } .extras .option[data-tone="green"] { --g: #4ade80; }
+.extras .option[data-tone="purple"] { --g: #c084fc; } .extras .option[data-tone="slate"] { --g: #94a3b8; }
+.extras .option[data-tone] > h2 { display: flex; align-items: center; gap: 8px; }
+.extras .option[data-tone] > h2::after { content: ''; flex: 1; height: 1px; margin-left: 6px;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--g) 45%, transparent), transparent); }
+.extras .option[data-tone] .help.cost, .extras .option[data-tone] h3.sub { color: color-mix(in srgb, var(--g) 70%, #fff); }
+/* A choice is a soft tile; the picked one glows in the section's colour */
+.extras .option[data-tone] label.choice { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0; padding: 10px 12px;
+    border-radius: 12px; background: rgba(13, 18, 33, 0.5); border: 1px solid rgba(148, 163, 184, 0.12); cursor: pointer;
+    transition: border-color .2s, background .2s, box-shadow .2s; }
+.extras .option[data-tone] label.choice:hover { border-color: rgba(148, 163, 184, 0.3); }
+.extras .option[data-tone] label.choice:has(input:checked) { border-color: color-mix(in srgb, var(--g) 55%, transparent);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--g) 15%, transparent), rgba(13, 18, 33, 0.5) 70%);
+    box-shadow: 0 8px 22px -16px color-mix(in srgb, var(--g) 80%, transparent); }
+.extras .option[data-tone] input[type=radio] { accent-color: var(--g); }
+.extras .option[data-tone] input.num { border-color: color-mix(in srgb, var(--g) 35%, transparent); }
+/* Checkboxes as switches */
+.extras .option[data-tone] input[type=checkbox] { appearance: none; -webkit-appearance: none; flex: 0 0 auto; width: 40px; height: 22px;
+    margin: 0 6px 0 0; padding: 0; border: 0; border-radius: 999px; background: rgba(148, 163, 184, 0.28); position: relative;
+    cursor: pointer; vertical-align: middle; transition: background .25s, box-shadow .25s; }
+.extras .option[data-tone] input[type=checkbox]::before { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px;
+    border-radius: 50%; background: #e2e8f0; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4); transition: transform .25s cubic-bezier(.3, 1.4, .5, 1); }
+.extras .option[data-tone] input[type=checkbox]:checked { background: linear-gradient(135deg, color-mix(in srgb, var(--g) 80%, #000), var(--g));
+    box-shadow: 0 0 12px color-mix(in srgb, var(--g) 55%, transparent); }
+.extras .option[data-tone] input[type=checkbox]:checked::before { transform: translateX(18px); background: #fff; }
+.extras .option[data-tone] input[type=range] { accent-color: var(--g); }
+@media (prefers-reduced-motion: reduce) { .extras .option[data-tone] input[type=checkbox]::before { transition: none; } }

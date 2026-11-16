@@ -26,6 +26,9 @@ def tool_read_look_options(session, args):
     return {"options": chat_looks.guide(), "color_keys": list(chat_looks.COLOR_KEYS),
             "current_look": current, "character": character.name if character else None,
             "backgrounds": pictures,
+            "their_shelf": [{"name": i["look"]["name"], "look": i["look"]} for i in chat_looks.shelf(session.user)][:10],
+            "shelf_note": ("Their shelf holds every look they've made; any chat can wear one (pen menu → Your looks). "
+                           "To give this character one of them, propose_chat_look with that look."),
             "reading_language": reading or "English",
             "cyrillic": ("They read the story in a language with Cyrillic letters: prefer fonts that have them. If the "
                          "look they want needs one that doesn't (the options say which), say so in one line and offer "
@@ -73,6 +76,7 @@ def apply(session, p):
     theme["look"], theme["skin"] = chat_looks.clean(data["look"]), "custom"
     character.theme = theme
     character.save(update_fields=["theme"])
+    chat_looks.keep(session.user, theme["look"])  # and on their shelf, to wear in any chat
     return f"{character.name}'s chats now wear “{theme['look']['name']}” (pen menu → Chat style to switch)."
 
 
@@ -92,6 +96,25 @@ def undo(session, p):
     character.save(update_fields=["theme"])
 
 
+_enum = lambda values, about="": {"type": "string", "enum": list(values), **({"description": about} if about else {})}
+_hex = {"type": "string", "description": "#rrggbb"}
+# Every choice spelled out, so the model picks from the lists (fonts by key: read_look_options says what each feels like
+# and which have Cyrillic letters)
+RECIPE_SCHEMA = {
+    "name": {"type": "string"}, "base": _enum(("light", "dark")),
+    "colors": {"type": "object", "properties": {k: _hex for k in chat_looks.COLOR_KEYS}},
+    "font": _enum(chat_looks.FONTS, "the font key for the text"), "heading_font": _enum(chat_looks.FONTS, "for names and titles"),
+    "size": _enum(chat_looks.SIZES), "bold": {"type": "boolean"},
+    "bubble": {"type": "object", "properties": {"shape": _enum(chat_looks.SHAPES), "outline": _enum(chat_looks.OUTLINES),
+                                                "shadow": _enum(chat_looks.SHADOWS), "name_tag": _enum(chat_looks.NAME_TAGS),
+                                                "wide": {"type": "boolean"}}},
+    "frame": _enum(chat_looks.FRAMES), "background": _enum(chat_looks.BACKGROUNDS), "texture": _enum(chat_looks.TEXTURES),
+    "effect": _enum(chat_looks.EFFECTS), "buttons": _enum(chat_looks.BUTTONS), "sound": _enum(chat_looks.SOUNDS),
+    "picture": {"type": "string", "description": "for background 'picture': a URL from read_look_options backgrounds"},
+    "veil": {"type": "integer", "description": "0-90"},
+}
+
+
 def tool_defs(fn, STR):
     return [
         fn("read_look_options", "Every choice a custom chat look has (fonts, bubble shapes, outlines, name tags, "
@@ -102,12 +125,12 @@ def tool_defs(fn, STR):
            "character's chat style. For a small change to the look they have (another background colour, a picture "
            "behind the chat, a different font), give only `changes`: the keys that change, e.g. "
            "{\"colors\": {\"page\": \"#2a2140\"}} or {\"background\": \"picture\", \"picture\": url, \"veil\": 40}.",
-           {"look": {"type": "object", "description": (
+           {"look": {"type": "object", "properties": RECIPE_SCHEMA, "description": (
                "{name, base: light|dark, colors: {page, page2, page3, surface, bubble_ai, bubble_user, text, muted, "
                "accent, accent2, outline, effect} as #rrggbb, font, heading_font, size: small|normal|large, bold, "
                "bubble: {shape, outline, shadow, name_tag, wide}, frame, background, texture, effect, buttons, "
                "sound, picture, veil}: values from read_look_options")},
-            "changes": {"type": "object", "description": "Only what changes in their current look (same keys)"},
+            "changes": {"type": "object", "properties": RECIPE_SCHEMA, "description": "Only what changes in their current look (same keys)"},
             "why": STR}, []),
     ]
 

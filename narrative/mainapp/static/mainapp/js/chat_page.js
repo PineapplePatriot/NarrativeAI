@@ -80,6 +80,9 @@ document.addEventListener("click", (event) => {
     const index = btn.dataset.index !== undefined ? Number(btn.dataset.index) : null;
 
     switch (action) {
+        case "regen":  // ↻ on the last reply: a new version of it (the old one stays as a swipe)
+            regenerateReply();
+            break;
         case "edit":
             if (index !== null) editMessage(index);
             break;
@@ -610,7 +613,8 @@ function setThoughts(messageEl, text, open = false) {
     if (!box) {
         box = document.createElement('details');
         box.className = 'thoughts';
-        box.innerHTML = '<summary>Thoughts</summary><div class="thoughts-text"></div>';
+        box.innerHTML = '<summary>Thoughts</summary><div class="thoughts-text"></div><div class="thoughts-actions">'
+            + '<button type="button" data-thoughts="copy">📋 Copy</button><button type="button" data-thoughts="delete">🗑 Delete</button></div>';
         const textEl = messageEl.querySelector('.message-text');
         textEl.parentNode.insertBefore(box, textEl);
     }
@@ -800,6 +804,18 @@ function updateMessageIndices() {
         if (cancelBtn) cancelBtn.setAttribute('onclick', `cancelEdit(${index})`);
         message.querySelectorAll('[data-index]').forEach(el => el.dataset.index = index);
     });
+    // ↻ Regenerate sits on the last reply only (the pen menu's Redo still takes an instruction)
+    document.querySelectorAll('.message-btn.regen').forEach(b => b.remove());
+    const last = messages[messages.length - 1];
+    if (last && last.classList.contains('assistant') && !last.classList.contains('note')) {
+        const actions = last.querySelector('.message-actions');
+        if (actions) {
+            const b = document.createElement('button');
+            b.type = 'button'; b.className = 'message-btn regen'; b.dataset.action = 'regen';
+            b.title = 'Regenerate: a new version of this reply (the old one stays, ‹ › to flip)'; b.textContent = '↻';
+            actions.prepend(b);
+        }
+    }
     if (window.Summary) Summary.messagesChanged(messages.length);
 }
 
@@ -2404,7 +2420,20 @@ function handleRefusal(d) {
 // 🖼 Chat style: the character's, one of the four for this chat, or plain; the effects switch is per browser
 (function () {
     const choice = document.getElementById('skinChoice');
-    if (choice) choice.addEventListener('click', async (e) => {
+    // "Your looks" (the shelf) pick a style the same way; Manage gives one to the character or removes it
+    const shelfRow = document.getElementById('shelfChoice');
+    document.addEventListener('click', async (e) => {
+        const b = e.target.closest('[data-shelf]');
+        if (!b) return;
+        if (b.dataset.shelf === 'remove' && window.NADialog && !await NADialog.confirm('Take this look off your shelf?', { ok: 'Remove' })) return;
+        const resp = await fetch(window.location.href, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ action: 'shelf', do: b.dataset.shelf, id: b.dataset.id }),
+        });
+        const d = await resp.json().catch(() => ({}));
+        if (d.success) location.reload(); else showChatNotice(d.error || 'Could not do that.');
+    });
+    if (choice) [choice, shelfRow].filter(Boolean).forEach(row => row.addEventListener('click', async (e) => {
         const b = e.target.closest('[data-skin]');
         if (!b) return;
         const resp = await fetch(window.location.href, {
@@ -2414,12 +2443,12 @@ function handleRefusal(d) {
         const d = await resp.json().catch(() => ({}));
         if (!d.success) { showChatNotice(d.error || 'Could not change the chat style.'); return; }
         // A custom look's styles come with the page: to it or from it, the page loads again
-        if (d.skin === 'custom' || document.body.classList.contains('skin-custom')) { location.reload(); return; }
+        if (!['', 'parchment', 'neon', 'lab', 'romance'].includes(d.skin) || document.body.classList.contains('skin-custom')) { location.reload(); return; }
         [...document.body.classList].filter(c => c.startsWith('skin-') || c === 'light-style').forEach(c => document.body.classList.remove(c));
         if (d.skin) document.body.classList.add('skin-' + d.skin);
         if (['parchment', 'lab'].includes(d.skin)) document.body.classList.add('light-style');  // deeper speech shades
-        choice.querySelectorAll('[data-skin]').forEach(x => x.classList.toggle('on', x === b));
-    });
+        [choice, shelfRow].filter(Boolean).forEach(r => r.querySelectorAll('[data-skin]').forEach(x => x.classList.toggle('on', x === b)));
+    }));
     const fx = document.getElementById('skinFxToggle');
     if (fx) {
         fx.checked = !document.body.classList.contains('fx-off');
@@ -2597,4 +2626,31 @@ document.getElementById('presetHint')?.addEventListener('click', async (e) => {
 document.addEventListener('click', (e) => {
     const b = e.target.closest('[data-ask-bulba]');
     if (b && window.askBulba) { e.preventDefault(); window.askBulba(b.dataset.askBulba); }
+});
+
+// 🧠 A reply's thinking block: copy it, or delete it (like SillyTavern); the reply itself stays
+document.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-thoughts]');
+    if (!b) return;
+    const box = b.closest('details.thoughts'), msg = b.closest('.message');
+    const text = box.querySelector('.thoughts-text').textContent;
+    if (b.dataset.thoughts === 'copy') {
+        try { await navigator.clipboard.writeText(text); b.textContent = '✓ Copied'; setTimeout(() => { b.textContent = '📋 Copy'; }, 1200); }
+        catch (err) { showChatNotice('Could not copy it here.'); }
+        return;
+    }
+    if (window.NADialog && !await NADialog.confirm('Delete these thoughts? The reply stays as it is.', { ok: 'Delete', danger: true })) return;
+    const resp = await fetch(window.location.href, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ action: 'delete_thoughts', index: Number(msg.dataset.index) }),
+    });
+    const d = await resp.json().catch(() => ({}));
+    if (d.success) box.remove(); else showChatNotice(d.error || 'Could not delete them.');
+});
+
+// The pen menu's groups (Look, Effects, Replies) open the way they were left, in this browser
+document.querySelectorAll('details.tool-group[data-group]').forEach(d => {
+    const key = 'na-pen-group-' + d.dataset.group;
+    try { const v = localStorage.getItem(key); if (v !== null) d.open = v === '1'; } catch (e) { /* private window */ }
+    d.addEventListener('toggle', () => { try { localStorage.setItem(key, d.open ? '1' : '0'); } catch (e) { /* this page only */ } });
 });

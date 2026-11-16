@@ -28,7 +28,7 @@ PERSON = [
     ("identity", "Who they are", "Name, age, what they are and do, where they stand in this world. Two or three lines."),
     ("appearance", "Appearance", "Build, face, hair, eyes, what they usually wear, how they move. Never cut it: the story and the pictures rely on it."),
     ("personality", "Personality in action", "How they behave, shown as what they do: when, to whom, at what cost. Not a list of adjectives."),
-    ("temperament", "Temperament", "How fast they warm up to someone, what hurts them, what wins them over, where their attitude to {{user}} starts."),
+    ("temperament", "Temperament", "How they act in situations, a line each: cornered, complimented, lied to, as trust grows, at a low point. How fast they warm up and what wins them over."),
     ("goals", "Wants and conflicts", "What they want now, what stands in the way, what they'd never do."),
     ("voice", "Voice", "How they talk: rhythm, words they use or avoid, one sample line in their voice."),
     ("background", "Background", "Only the past that drives the present."),
@@ -525,7 +525,7 @@ PERSONA_HINTS = {
     "connection": "How they're tied to the card's characters (or to its world): history, debts, roles.",
     "traits": "How they behave: what they do, not adjectives.",
     "likes": "What draws them in and what they can't stand.",
-    "temperament": "How they act in different situations (danger, flirting, being lied to) and how they change.",
+    "temperament": "A line per situation: in danger, when flirted with, when lied to, as trust grows, at a low point; and how they change.",
 }
 PERSONA_QUESTIONS = ["What's your name, and your pronouns?", "How do you look?",
                      "Where do you come from, and what shaped you?",

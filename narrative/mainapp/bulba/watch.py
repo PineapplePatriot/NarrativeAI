@@ -817,9 +817,10 @@ def offer_taste(data, mine):
     if any(n["kind"] == "taste" and n["status"] in ("new", "opened") for n in data["notices"]):
         return None
     mine["taste_offered"] = pending
-    notice = {"id": uuid.uuid4().hex[:10], "kind": "taste", "label": "taste", "title": "Your taste, in your preset?",
-              "text": "I've learned a few things about what you like. Want them in your preset, so every reply "
-                      "follows them? Bulba words them as instructions; you see the change before it's applied.",
+    notice = {"id": uuid.uuid4().hex[:10], "kind": "taste", "label": "taste", "title": "What I've learned: put it to use?",
+              "text": "I've learned a few things about what you like and who's who. Want them where they belong? How "
+                      "replies read goes into your preset; who your character is goes into your persona; who "
+                      "the character is goes into the card. You see each change before it's applied.",
               "quotes": pending[-5:], "status": "new", "time": time.time()}
     data["notices"].append(notice)
     return notice
@@ -1227,12 +1228,19 @@ def for_bulba(notice):
                 "really a contradiction (a lie, a change of mind), say so in a line.]")
     if notice["kind"] == "taste":
         lines = "\n".join(f"- {q}" for q in notice.get("quotes") or [])
-        return (f"[Bulba Watch learned these about their taste (they checked them on the Extras page):\n{lines}\n"
-                "They want them in their preset. Read the preset outline (and its 'Your taste' block if there is "
-                "one, with read_block). Then propose_preset_edit: turn each line into a plain instruction to the "
-                "model (append to 'Your taste', or add that block), borrowing tested library wording first "
-                "(find_practice), skipping what the preset already says and anything that contradicts it (say "
-                "which). Pass from_taste with the exact lines you covered. One short message, then the proposal.]")
+        return (f"[Bulba Watch learned these (they checked them on the Extras page):\n{lines}\n"
+                "They want them put to use. Sort each line first, by what it's about:\n"
+                "- How replies are written (length, pace, tone, what to describe): the preset. Read the preset "
+                "outline (and its 'Your taste' block, with read_block), then propose_preset_edit: each line as a plain "
+                "instruction (append to 'Your taste', or add that block), borrowing tested library wording "
+                "(find_practice), skipping what the preset already says. Pass from_taste with the lines you covered.\n"
+                "- Who THEIR character is (a 'persona:' line, or any skill, habit, history or trait of theirs, e.g. "
+                "'competent at chemistry'): their persona, never the preset. propose_persona with their name and "
+                "sections: keep what their persona already says (the context shows it) and add this to the right "
+                "part (traits, background...).\n"
+                "- Who the AI's character is (a 'character:' line): the card, propose_card_edit (section_edits on a "
+                "card kept as sections).\n"
+                "One short message saying where each goes, then the proposals.]")
     if notice["kind"] == "pace":
         return (f"[Bulba Watch noticed: {notice['title']}. {notice['text']} They opened the note. Ask lightly how "
                 "it's going (no lecture, they may just be busy) and offer concrete help with offer_choices: ideas "

@@ -129,8 +129,10 @@ propose_control (directing comes with the book layout). The session line shows t
       call offer_mood_pictures in that same turn: the eight moods are made from it (a few cents each, on
       their key). "Later" is fine: say where the button waits. Pictures never go on the Extras page.
 5. **persona**: who they are in this story, now that you know the character: offer to make a persona that
-   belongs to this story (someone in that world, with a place relative to the character) or a lighter one
-   (just a name), with offer_choices. For one that belongs to the story, the seven core elements, one question at a
+   belongs to this story (someone in that world, with a place relative to the character) or a simple one,
+   with offer_choices: "Full: the seven parts", "Simple: a name and a line or two", "Skip for now". A simple
+   persona is a name (and pronouns) plus one or two lines on who they are here: propose_persona with
+   `sections` {pronouns, background} only, no questions beyond those two. For one that belongs to the story, the seven core elements, one question at a
    time, each skippable (name and pronouns, appearance, background and lore, their connection to the character(s)
    or the world, core traits, likes and dislikes, temperament), then
    propose_persona with `sections` (it becomes their usual persona; each chat can still

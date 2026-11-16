@@ -30,6 +30,7 @@ from .forms import AddCharacterForm, UploadFileForm
 from .models import Character, Worldbook, ChatSettings
 from . import basics as basics_mod
 from . import writing_quality
+from . import sprites as sprite_mod
 from . import chat_looks
 from . import story_memory
 from .bulba import vision as bulba_vision
@@ -435,8 +436,13 @@ def _user_pictured(user, chat_persona):
 
 
 def _photo(character, prefix, emotion):
-    """The sprite for an emotion, falling back to neutral."""
-    image = getattr(character, f"{prefix}_{emotion}", None) or getattr(character, f"{prefix}_neutral", None)
+    """The sprite for an emotion (one of the nine, or one of the character's extra moods), falling back to neutral."""
+    image = getattr(character, f"{prefix}_{emotion}", None) if emotion in sprite_mod.BUILT_IN else None
+    if not image and prefix in ("photo", "photo_second") and emotion not in sprite_mod.BUILT_IN:
+        extra = sprite_mod.url_of(character, prefix, emotion)
+        if extra:
+            return extra
+    image = image or getattr(character, f"{prefix}_neutral", None)
     return image.url if image else None
 
 
@@ -522,7 +528,8 @@ def chat(request, slug):
                 chat_state["context_guides"] = data.get("context_guides", {})
                 chat_state["current_bg"] = data.get("current_bg", "")
                 chat_state["current_music"] = data.get("current_music", {})
-                chat_state["skin"] = data.get("skin") if data.get("skin") in (*CHAT_SKINS, "none", "custom") else ""
+                chat_state["skin"] = data.get("skin") if data.get("skin") in (*CHAT_SKINS, *chat_looks.READY, "none", "custom") \
+                    or str(data.get("skin") or "").startswith("shelf:") else ""
                 chat_state["music_follow"] = data.get("music_follow") if isinstance(data.get("music_follow"), dict) else {}
                 chat_state["last_recall"] = data.get("last_recall") if isinstance(data.get("last_recall"), list) else []
                 chat_state["persona"] = data.get("persona") if isinstance(data.get("persona"), dict) else {}
@@ -1126,11 +1133,37 @@ def chat(request, slug):
             return JsonResponse({"success": True})
         elif action == "set_skin":  # the pen menu's chat style: this chat only ("" = the character's)
             skin = str(data.get("skin") or "")
-            if skin not in CHAT_SKINS and skin not in ("", "none", "custom"):
+            if skin not in CHAT_SKINS and skin not in chat_looks.READY and skin not in ("", "none", "custom") \
+                    and not (skin.startswith("shelf:") and chat_looks.from_shelf(request.user, skin[6:])):
                 return JsonResponse({"success": False, "error": "Unknown style."}, status=400)
             chat_state["skin"] = skin
             save_messages(messages)
             return JsonResponse({"success": True, "skin": chat_skin(character, skin)})
+        elif action == "shelf":  # the pen menu's "Your looks": give one to this character, or take it off the shelf
+            shelf_id = str(data.get("id") or "")
+            found = chat_looks.from_shelf(request.user, shelf_id)
+            if not found:
+                return JsonResponse({"success": False, "error": "That look isn't on your shelf any more."}, status=400)
+            if data.get("do") == "remove":
+                chat_looks.drop(request.user, shelf_id)
+                if chat_state.get("skin") == f"shelf:{shelf_id}":
+                    chat_state["skin"] = ""
+                    save_messages(messages)
+            elif data.get("do") == "give":  # this character's own look from now on
+                character.theme = {**(character.theme or {}), "look": found, "skin": "custom"}
+                character.save(update_fields=["theme"])
+                chat_state["skin"] = ""
+                save_messages(messages)
+            return JsonResponse({"success": True})
+        elif action == "delete_thoughts":  # a reply's thinking block, gone (the reply stays)
+            try:
+                index = int(data.get("index"))
+                message = messages[index]
+            except (TypeError, ValueError, IndexError):
+                return JsonResponse({"success": False, "error": "No such message."})
+            messages[index] = chats.with_reasoning(message, "")
+            save_messages(messages)
+            return JsonResponse({"success": True})
         elif action == "look_adjust":  # the pen menu's "Adjust the look": a few colours, the background
             look = chat_looks.clean((character.theme or {}).get("look"))
             if not look or not isinstance(data.get("changes"), dict):
@@ -1139,6 +1172,7 @@ def chat(request, slug):
             changes = {k: v for k, v in data["changes"].items() if k in allowed}
             character.theme = {**(character.theme or {}), "look": chat_looks.merge(look, changes)}
             character.save(update_fields=["theme"])
+            chat_looks.keep(request.user, character.theme["look"])  # the shelf keeps the newest version
             return JsonResponse({"success": True, "look": character.theme["look"]})
         elif action == "persona_hint_seen":  # "Who are you in the story?" is asked once per account
             settings_obj, _ = ChatSettings.objects.get_or_create(author=request.user)
@@ -1746,6 +1780,9 @@ def chat(request, slug):
                         built = {**built, "messages": built["messages"] + [english]}
                     if speaker_colors.settings(character)["mode"] == "story":  # near the end, where MiMo listens
                         built = {**built, "messages": speaker_colors.remind(built["messages"])}
+                    if thinking.needs_leash(chat_model, samplers.thinking_now(request.user)):  # MiMo: think briefly, then write
+                        leashed, leash_params = thinking.leash(built["messages"], built["params"])
+                        built = {**built, "messages": leashed, "params": leash_params}
                     game_ops = []
                     # Stream when the page asks for it and the preset allows it
                     streaming = bool(data.get("stream")) and preset["options"].get("streaming", True)
@@ -1821,7 +1858,7 @@ def chat(request, slug):
                     try:
                         if not ai_client.is_enabled(request.user, "emotion"):
                             raise ai_client.AIError("emotion detection is turned off")
-                        valid_emotions = ["neutral", "happy", "sad", "angry", "surprised", "scared", "confused", "calm", "scheming"]
+                        valid_emotions = sprite_mod.emotions(character)  # the nine, and this character's own moods
 
                         # Prompt asks LLM who is speaking (1, 2, or both) and their emotions
                         second = character.second_name or "the other character"
@@ -2081,7 +2118,7 @@ def chat(request, slug):
         "swipes": chats.version_info(messages),
         "spending": ai_client.spending(request.user),
         "appearance": _appearance(request.user, character),
-        "speech": speaker_colors.settings(character),
+        "speech": (speaker_colors.fill_cast(character) or True) and speaker_colors.settings(character),
         "speech_page": speaker_colors.page_data(),
         "speech_css": speaker_colors.css(),
         "bulba_ideas": extras.ideas_on(request.user),
@@ -2093,12 +2130,13 @@ def chat(request, slug):
         "theme_weather": theme_weather(character, chat_state.get("current_bg") or ""),
         "skin": chat_skin(character, chat_state.get("skin") or ""),
         "chat_skin_choice": chat_state.get("skin") or "",
-        "character_skin": (character.theme or {}).get("skin") if (character.theme or {}).get("skin") in CHAT_SKINS else "",
+        "character_skin": (character.theme or {}).get("skin") if (character.theme or {}).get("skin") in (*CHAT_SKINS, *chat_looks.READY, "custom") else "",
         "chat_skins": CHAT_SKINS,
         **_look_context(request.user, character, chat_state),
         "thinking_options": samplers.thinking_options(ai_client.resolve(request.user, "chat")[1]),
         "thinking_now": samplers.thinking_now(request.user),
         "character_skin_name": CHAT_SKINS.get((character.theme or {}).get("skin") or "", "")
+                               or chat_looks.READY_LABELS.get((character.theme or {}).get("skin") or "", "")
                                or ("✨ " + chat_looks.clean((character.theme or {}).get("look"))["name"]
                                    if (character.theme or {}).get("skin") == "custom" and chat_looks.clean((character.theme or {}).get("look")) else ""),
         "mature_on": mature.is_on(presets.normalize(presets.get_active(request.user).data)),
@@ -2366,26 +2404,42 @@ CHAT_SKINS = {"parchment": "📜 Parchment", "neon": "🌆 Neon", "lab": "🧪 L
 
 
 def chat_skin(character, chat_choice=""):
-    """The style a chat shows: its own pick ("none" = plain), else the character's, else plain ("")."""
+    """The style a chat shows: its own pick ("none" = plain), else the character's, else plain (""). A look from
+    their shelf is "shelf:<id>"."""
     has_look = bool(chat_looks.clean((character.theme or {}).get("look")))
     if chat_choice == "none":
         return ""
-    if chat_choice in CHAT_SKINS or (chat_choice == "custom" and has_look):
+    if str(chat_choice).startswith("shelf:") and character.author and chat_looks.from_shelf(character.author, chat_choice[6:]):
+        return chat_choice
+    if chat_choice in CHAT_SKINS or chat_choice in chat_looks.READY or (chat_choice == "custom" and has_look):
         return chat_choice
     skin = (character.theme or {}).get("skin")
-    return skin if skin in CHAT_SKINS or (skin == "custom" and has_look) else ""
+    return skin if skin in CHAT_SKINS or skin in chat_looks.READY or (skin == "custom" and has_look) else ""
 
 
 def _look_context(user, character, chat_state):
-    """A character's custom look (mainapp/chat_looks.py) for the chat page: its styles, fonts and moving parts."""
-    look = chat_looks.clean((character.theme or {}).get("look"))
+    """The chat page's custom look (mainapp/chat_looks.py), when one is on: the character's own ("custom") or a ready
+    one (Purpl...). Its styles, fonts and moving parts; `own_look` for the pen menu's chip and Adjust box."""
+    own = chat_looks.clean((character.theme or {}).get("look"))
+    if own and not any(chat_looks._same(i["look"], own) for i in chat_looks.shelf(user)):
+        chat_looks.keep(user, own)  # a look made before the shelf existed goes on it
+    skin = chat_skin(character, chat_state.get("skin") or "")
+    if skin in chat_looks.READY:
+        look = chat_looks.clean(chat_looks.READY[skin])
+    elif skin.startswith("shelf:"):
+        look = chat_looks.from_shelf(user, skin[6:])
+    else:
+        look = own if skin == "custom" else None
+    out = {"own_look": own, "ready_looks": chat_looks.READY_LABELS, "look": look, "adjustable": skin == "custom",
+           "skin_class": "custom" if look else skin,
+           "shelf": [i for i in chat_looks.shelf(user) if not (own and chat_looks._same(i["look"], own))]}
     if not look:
-        return {"look": None}
+        return out
     names = prompt_names(user, character, chat_state.get("persona"))
     pictures = media_library.built_in("backgrounds")
     if (character.theme or {}).get("bg"):
         pictures = [{"name": f"{character.name}'s own background", "url": character.theme["bg"]}] + pictures
-    return {"look": look, "look_css": chat_looks.css(look, character.name, names["user"]),
+    return {**out, "look_css": chat_looks.css(look, character.name, names["user"]),
             "look_fonts": chat_looks.fonts_url(look), "look_data": chat_looks.page_data(look),
             "look_pictures": pictures, "look_backgrounds": chat_looks.BACKGROUNDS}
 
@@ -3365,8 +3419,12 @@ def _make_sprite(request, obj, prefix, who, looks, base_name):
     except (ValueError, UnicodeDecodeError):
         return JsonResponse({"error": "Invalid request."}, status=400)
     emotion = data.get("emotion")
+    extra = False
     if emotion not in SPRITE_EMOTIONS + ["neutral"]:
-        return JsonResponse({"error": "Unknown mood."}, status=400)
+        emotion = sprite_mod.clean_name(emotion)
+        if not emotion or prefix not in ("photo", "photo_second"):  # an extra mood: characters only
+            return JsonResponse({"error": "Unknown mood."}, status=400)
+        extra = True
     neutral = getattr(obj, f"{prefix}_neutral")
     reference, kind = None, "image/png"
     if emotion == "neutral":  # the first picture, from the words (no picture to start from)
@@ -3397,14 +3455,44 @@ def _make_sprite(request, obj, prefix, who, looks, base_name):
         image, cost = ai_client.generate_image(request.user, prompt, reference, kind, model=model)
     except ai_client.AIError as e:
         return JsonResponse({"error": str(e)}, status=502)
+    ext = "jpg" if image[:3] == b"\xff\xd8\xff" else "webp" if image[:4] == b"RIFF" else "png"
+    if extra:  # one of the character's own moods
+        try:
+            url = sprite_mod.save(obj, emotion, image, ext, second=prefix == "photo_second")
+        except ValueError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"status": "ok", "emotion": emotion, "url": url, "cost": cost,
+                             "spending": ai_client.spending(request.user)})
     field = getattr(obj, f"{prefix}_{emotion}")
     if field:
         field.storage.delete(field.name)
-    ext = "jpg" if image[:3] == b"\xff\xd8\xff" else "webp" if image[:4] == b"RIFF" else "png"
     field.save(f"{slugify(base_name) or 'character'}-{emotion}.{ext}", ContentFile(image), save=False)
     obj.save()
     return JsonResponse({"status": "ok", "field": f"{prefix}_{emotion}", "url": field.url, "cost": cost,
                          "spending": ai_client.spending(request.user)})
+
+
+@login_required
+def character_moods(request, slug):
+    """The character's extra moods (mainapp/sprites.py). GET: what there is. POST (multipart): emotion + picture
+    [+ second] to add one; JSON {"remove": emotion[, "second"]} to take one away."""
+    character = get_object_or_404(Character, slug=slug, author=request.user)
+    if request.method == "POST":
+        if request.FILES.get("picture"):
+            upload = request.FILES["picture"]
+            if upload.size > 15 * 1024 * 1024:
+                return JsonResponse({"error": "That picture is over 15 MB."}, status=400)
+            ext = (os.path.splitext(upload.name)[1].lower().lstrip(".") or "png")[:5]
+            try:
+                sprite_mod.save(character, request.POST.get("emotion"), upload.read(), ext,
+                                second=request.POST.get("second") == "1")
+            except ValueError as e:
+                return JsonResponse({"error": str(e)}, status=400)
+        else:
+            body = _json_body(request) or {}
+            sprite_mod.remove(character, body.get("remove"), second=bool(body.get("second")))
+    return JsonResponse({"first": sprite_mod.extras(character), "second": sprite_mod.extras(character, True),
+                         "suggested": sprite_mod.SUGGESTED, "max": sprite_mod.MAX_EXTRA})
 
 
 @login_required
@@ -4231,8 +4319,58 @@ def _bulba_picture_upload(request):
         return JsonResponse({"error": "Bulba isn't available."}, status=400)
     upload, target = request.FILES["picture"], request.POST.get("as", "look")
     their_words = str(request.POST.get("text") or "").strip()[:2000]
-    if target not in SPRITE_EMOTIONS + ["neutral", "background", "look"]:
+    emotion = str(request.POST.get("emotion") or "").strip()[:40]
+    # The three kinds on the page: the character (a mood picture, or a reference for their appearance), the chat
+    # look (inspiration, or a picture behind the chat), anything else ("look")
+    hints = {
+        "appearance": "It's the character" + (f" ({emotion})" if emotion else "") + ", for their appearance: "
+                      "write or update the card's Appearance from it (propose_card_edit section_edits appearance on a "
+                      "card kept as sections; for a card you're still making, use it there).",
+        "ui": "It's inspiration for how their chat page should look: read_look_options, then propose_chat_look "
+              "(match its palette and mood first, then shapes, lettering, decorations).",
+        "ui_background": "They want it behind the chat in their custom look: propose_chat_look with changes "
+                         "{\"background\": \"picture\", \"picture\": the URL below, \"veil\": about 40} (or a whole "
+                         "look around it if they have none yet).",
+    }
+    if target not in SPRITE_EMOTIONS + ["neutral", "background", "look", *hints]:
         return JsonResponse({"error": "Unknown kind of picture."}, status=400)
+    hint = hints.get(target, "")
+    saved_url = ""
+    if target == "ui_background":  # kept in their pictures, so the look can point at it
+        ext0 = os.path.splitext(upload.name)[1].lower() or ".png"
+        folder, url = user_media_dir(request.user, "backgrounds")
+        name = unique_upload_name("look", ext0)
+        with open(os.path.join(folder, name), "wb") as f:
+            for chunk in upload.chunks():
+                f.write(chunk)
+        upload.seek(0)
+        saved_url = url + name
+        hint += f" URL: {saved_url}"
+    if target == "appearance" and sprite_mod.clean_name(emotion) and sprite_mod.clean_name(emotion) not in sprite_mod.BUILT_IN:
+        # The character with an emotion of their own ("smug", "battle-ready"): one of their extra mood pictures
+        character = lore.target_character(session)
+        if character is None:
+            return JsonResponse({"error": "Make or pick a character first, then add their pictures."}, status=400)
+        ext0 = (os.path.splitext(upload.name)[1].lower().lstrip(".") or "png")[:5]
+        try:
+            sprite_mod.save(character, emotion, upload.read(), ext0)
+        except ValueError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        mood = sprite_mod.clean_name(emotion)
+        upload.seek(0)
+        thumb = vision.prepare(upload.read())[1]
+        events = [{"type": "picture", "src": thumb, "text": their_words}]
+        session.events += events
+        note = f"They added a mood picture of {character.name}: “{mood}” (their own mood; the chat shows it when the reply fits)."
+        if request.POST.get("quiet") == "1":
+            session.messages.append({"role": "user", "content": f"[{note}\n(More pictures follow.)]"})
+        else:
+            events += agent.run_turn(session, None, action_note=f"Added {character.name}'s “{mood}” picture", model_note=note)
+        session.activity = ""
+        session.save()
+        return JsonResponse({"events": events, "state": _bulba_state(session)})
+    if hint:
+        target = "look"
     if upload.size > 15 * 1024 * 1024:
         return JsonResponse({"error": "That picture is over 15 MB."}, status=400)
     raw = upload.read()
@@ -4262,7 +4400,7 @@ def _bulba_picture_upload(request):
     quiet = request.POST.get("quiet") == "1"
     if target == "look":
         session.events += events
-        note = f"They showed you a picture.{words}\n{seen}"
+        note = f"They showed you a picture.{words}" + (f"\n{hint}" if hint else "") + f"\n{seen}"
         if quiet:
             session.messages.append({"role": "user", "content": f"[{note}\n(More pictures follow.)]"})
         else:

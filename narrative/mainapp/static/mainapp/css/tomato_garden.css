@@ -20,3 +20,20 @@
 .g-gard .e { font-size: 1.4rem; line-height: 1; }
 .g-log { margin: 0; padding-left: 18px; font-size: .82rem; display: grid; gap: 3px; }
 .g-small { font-size: .8rem; }
+
+/* 🧺 The basket over the garden: what you can plant or place, picked up by dragging or tapping */
+.g-basket-top { margin-bottom: 14px; border: 1px solid rgba(250, 204, 21, .45);
+    background: linear-gradient(135deg, rgba(250, 204, 21, .1), rgba(74, 222, 128, .06)), rgba(15, 23, 42, .6);
+    box-shadow: 0 0 22px rgba(250, 204, 21, .12); }
+.g-basket-top .g-basket { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.g-bitem { display: flex; align-items: center; gap: 8px; text-align: left; font: inherit; font-size: .85rem; color: inherit;
+    border: 1px solid rgba(255, 255, 255, .14); border-radius: 12px; padding: 8px 10px; background: rgba(255, 255, 255, .05);
+    cursor: grab; transition: transform .12s, border-color .15s, background .15s; }
+.g-bitem:hover { border-color: rgba(250, 204, 21, .7); transform: translateY(-1px); }
+.g-bitem:active { cursor: grabbing; }
+.g-bitem .e { font-size: 1.3rem; }
+.g-bitem span:not(.e) { flex: 1; min-width: 0; }
+.g-bitem.armed { border-color: #facc15; background: rgba(250, 204, 21, .18); box-shadow: 0 0 0 2px rgba(250, 204, 21, .35); }
+.g-gard.resting { opacity: .7; }
+.g-gard .g-crew { margin-top: 6px; font-size: .78rem; padding: 4px 10px; }
+.g-shed-head { margin: 10px 0 4px; }

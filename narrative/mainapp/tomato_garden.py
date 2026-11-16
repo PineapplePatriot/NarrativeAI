@@ -7,7 +7,8 @@
   (mainapp/tomatoes.add_wild calls water()).
 - A ripe plant is harvested for compost (the machine's: 10 compost = a spin). Planting uses up the seed.
 - Decorations are placed from the basket and can go back into it (owned stays owned; placed ones are counted).
-- Gardeners live in the garden once won, and each helps:
+- Gardeners live in the garden once won, three at a time (CREW: they pick which; the rest rest in the shed), and
+  each one at work helps:
     Grandpa Pomodoro  plants grow 25% faster
     Ribbit            +1 compost on every harvest (he carries the basket)
     Hoe-Bot 3000      harvests ripe plants by himself
@@ -60,7 +61,21 @@ def _key(x, y):
     return f"{x},{y}"
 
 
+CREW = 3  # gardeners working at once: they pick which, the others rest in the shed (no stacking every bonus)
+
+
+def crew(m):
+    """The gardeners at work: the ones they picked (still owned), else the first CREW they own."""
+    owned = [pid for pid in GARDENERS if m["items"].get(pid)]
+    picked = m.get("crew")
+    if isinstance(picked, list):
+        return [pid for pid in picked if pid in owned][:CREW]
+    return owned[:CREW]
+
+
 def _has(m, pid):
+    if pid in GARDENERS:  # a gardener helps only while at work
+        return pid in crew(m)
     return bool(m["items"].get(pid))
 
 
@@ -142,8 +157,24 @@ def placed(g, pid):
 def act(user, body):
     """One thing done in the garden: plant, place, harvest, dig, remove. Raises ValueError for the person."""
     action = body.get("action")
-    key = _key(body.get("x"), body.get("y"))
     pid = body.get("id")
+    if action == "crew":  # a gardener to work, or to the shed
+        def shift(g, m):
+            if pid not in GARDENERS or not m["items"].get(pid):
+                raise ValueError("You don't have that gardener.")
+            now = crew(m)
+            if body.get("on"):
+                if pid in now:
+                    return
+                if len(now) >= CREW:
+                    raise ValueError(f"{CREW} gardeners at a time: send one to the shed first.")
+                m["crew"] = now + [pid]
+                _log(g, f"{M.BY_ID[pid]['name']} came out to work.")
+            else:
+                m["crew"] = [x for x in now if x != pid]
+                _log(g, f"{M.BY_ID[pid]['name']} went to rest in the shed.")
+        return _locked(user, shift)
+    key = _key(body.get("x"), body.get("y"))
 
     def go(g, m):
         tile = g["tiles"].get(key)
@@ -206,6 +237,8 @@ def public(score):
     basket.update({pid: m["items"][pid] - placed(g, pid) for pid in DECOR if m["items"].get(pid, 0) - placed(g, pid) > 0})
     return {"cols": COLS, "rows": ROWS, "tiles": tiles, "basket": basket, "compost": m["compost"],
             "gardeners": [{"id": pid, "about": about} for pid, about in GARDENERS.items() if _has(m, pid)],
+            "shed": [{"id": pid, "about": about} for pid, about in GARDENERS.items()
+                     if m["items"].get(pid) and not _has(m, pid)], "crew_max": CREW,
             "hat": M.worn(score).get("hat", ""), "log": g["log"][:12], "harvests": g["harvests"],
             "water": WATER, "crops": CROPS, "now": int(now),
             "prizes": {p["id"]: {"name": p["name"], "emoji": p["emoji"]} for p in M.PRIZES

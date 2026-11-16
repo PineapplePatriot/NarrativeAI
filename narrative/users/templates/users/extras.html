@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Extras - Narrative AI</title>
-    <link rel="stylesheet" href="{% static 'users/css/welcome.css' %}?v=6">
+    <link rel="stylesheet" href="{% static 'users/css/welcome.css' %}?v=7">
     <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=5">
 </head>
@@ -15,10 +15,13 @@
     <h1 class="na-title">Extras</h1>
     <p class="lead na-sub">The optional bits around the chat. Change them any time; nothing here is required.</p>
 
-    <section class="option" id="memorySection" hidden>
-        <h2>🧠 Chat memory</h2>
-        <p class="help">How much of the chat <b id="memoryModel"></b> rereads for each reply. More remembers more and costs
-            more; older events beyond it are kept by the story summary and trackers.</p>
+    <section class="option" data-tone="violet" id="memorySection" hidden>
+        <h2>📏 How much background jobs read</h2>
+        <p class="help">The most the story summary, story memory and trackers send in one request. Long chats would
+            otherwise make these requests grow with the chat; a limit keeps each one small and cheap (the newest part of the
+            chat is what they read).
+            <br><small>How much of the chat <b id="memoryModel"></b> itself rereads for each reply is “Context size” on the
+            Samplers page, per preset.</small></p>
         <div class="memory">
             <input type="range" id="chatContext" min="0" step="1">
             <b id="memoryValue"></b>
@@ -26,7 +29,7 @@
         </div>
     </section>
 
-    <section class="option">
+    <section class="option" data-tone="pink">
         <h2>🔊 Voices</h2>
         <p class="help">Replies can be read aloud through <a href="https://elevenlabs.io" target="_blank" rel="noopener">ElevenLabs</a>
             (a separate account and key): press 🔊 on a reply and the narration is read by a narrator, every speaker in their
@@ -37,26 +40,50 @@
         <label class="check" id="removeEleven" hidden><input type="checkbox" id="removeElevenBox"> Remove the saved key (turn voices off)</label>
     </section>
 
-    <section class="option">
+    <section class="option" data-tone="sky">
+        <h2>🧠 Story memory</h2>
+        <p class="help">What happened, scene by scene, written so the AI understands it without the old messages; who knows
+            which secrets; who everyone is; and how each relationship moves along its route (friends, rivals, enemies, romance…).
+            New chats use it; each chat can switch to the simpler summary on its 📚 Summary panel, where all of it can be read and edited.</p>
+        <label class="choice"><input type="radio" name="memory" value="on"> On for new chats, updated every
+            <input type="number" class="num" id="memoryEvery" min="1" max="100"> messages <small class="help">(more for many short messages, fewer for long ones)</small></label>
+        <label class="choice"><input type="radio" name="memory" value="off"> Off: new chats use the story summary below</label>
+    </section>
+
+    <section class="option" data-tone="blue">
         <h2>📚 Story summary</h2>
-        <p class="help">Long chats get summarized so the AI remembers older events without rereading everything.</p>
+        <p class="help">The simpler way: long chats get summarized so the AI remembers older events without rereading
+            everything. For chats that don't use story memory.</p>
         <label class="choice"><input type="radio" name="summary" value="auto"> Automatically, every
             <input type="number" class="num" id="summaryEvery" min="1" max="200"> messages</label>
         <label class="choice"><input type="radio" name="summary" value="manual"> Only when I press Summarize in the chat</label>
         <span class="help cost" id="summaryCost"></span>
     </section>
 
-    <section class="option">
+    <section class="option" data-tone="cyan">
         <h2>📊 Story trackers</h2>
         <p class="help">In a long, plot-heavy story the AI starts forgetting details: where you are, who's hurt, what you carry, what was promised. Trackers keep a running record of them and remind the AI before every reply, so the story stays consistent even hundreds of messages in. Which trackers each character uses
-            is picked on that character's Trackers page (from the chat's menu); none are on until you choose.</p>
+            is picked on that character's Trackers page (below, or from the chat's pen menu); none are on until you choose.</p>
         <label class="choice"><input type="radio" name="trackers" value="auto"> Automatically, every
             <input type="number" class="num" id="trackersEvery" min="1" max="200"> messages</label>
         <label class="choice"><input type="radio" name="trackers" value="manual"> Only when I press Update</label>
         <span class="help cost" id="trackersCost"></span>
+        {% if tracker_characters %}
+        <h3 class="sub">Each character's trackers</h3>
+        <div class="tracker-cards">
+            {% for c in tracker_characters %}
+            <a class="tracker-card{% if c.on %} has-on{% endif %}" href="{{ c.url }}">
+                <span class="tc-pic">{% if c.photo %}<img src="{{ c.photo }}" alt="">{% else %}{{ c.name|first|upper }}{% endif %}</span>
+                <span class="tc-body"><b>{{ c.name }}</b>
+                    <span class="tc-on">{% if c.on %}{% for t in c.on %}<span title="{{ t.label }}">{{ t.icon }}</span>{% endfor %} <small>{{ c.on|length }} on</small>{% else %}<small>None on yet</small>{% endif %}</span></span>
+                <span class="tc-go">Set up →</span>
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
     </section>
 
-    <section class="option">
+    <section class="option" data-tone="rose">
         <h2>✉️ Story extras</h2>
         <p class="help">When the story calls for it, the app draws the object itself: a letter someone finds, the phone screen a
             character checks, a note when a relationship changes. The AI only supplies the words, so the look never breaks.
@@ -69,7 +96,7 @@
         <label class="check"><input type="checkbox" name="story_extras" value="choices"> Suggested actions under each reply (buttons that fill your message box)</label>
     </section>
 
-    <section class="option">
+    <section class="option" data-tone="amber">
         <h2>🥔 Bulba's ideas</h2>
         <p class="help">A potato button next to the message box, for when you're stuck. Bulba reads the last few messages
             and suggests three ways to go on: what you could say or do (pick one to send, or have it written out in your
@@ -77,7 +104,7 @@
         <label class="check"><input type="checkbox" id="ideas"> Show the ideas button in chats</label>
     </section>
 
-    <section class="option">
+    <section class="option" data-tone="gold">
         <h2>🥔 Bulba Watch</h2>
         <p class="help">Every few replies, Bulba quietly reads the latest ones for habits that keep repeating (the same
             sentence shapes, over-explaining, acting out of character…) and learns what you like from the replies you
@@ -89,7 +116,7 @@
             for (switch habits off, add your own), what it learned about your taste, and what your account has spent.</p>
     </section>
 
-    <section class="option">
+    <section class="option" data-tone="green">
         <h2>🎲 Dice and inventory</h2>
         <p class="help">For game-like stories: the AI asks the app to roll dice when an outcome is uncertain, and the app
             keeps your inventory and conditions, so nothing is made up. Off means no chance in the story at all.
@@ -99,7 +126,7 @@
         <label class="choice"><input type="radio" name="game" value="full"> Dice, inventory and conditions</label>
     </section>
 
-    <section class="option">
+    <section class="option" data-tone="purple">
         <h2>🎭 Character sprites</h2>
         <p class="help">If a character has pictures for different emotions, the chat shows the one that matches each reply.
             That takes one small extra call per reply. Pictures can be made with
@@ -107,7 +134,7 @@
         <label class="check"><input type="checkbox" id="sprites"> Pick sprites to match each reply</label>
     </section>
 
-    <section class="option" id="backgroundSection">
+    <section class="option" data-tone="slate" id="backgroundSection">
         <h2>💸 Background jobs</h2>
         <p class="help">Summaries, trackers and sprites run alongside your chat with <b id="chatModel"></b>. A cheaper model does them just as well
             and can save a lot on expensive chat models. It uses the same key as your chat.</p>

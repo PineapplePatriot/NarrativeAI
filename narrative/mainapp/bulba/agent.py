@@ -212,6 +212,10 @@ TOOLS = [
                     "the manual summary instead"},
          "memory_every": {"type": "integer", "description": "How many messages between story memory updates "
                           "(default 4; more for many short messages, fewer for long ones)"},
+         "jobs_context": {"type": "integer", "description": "Tokens the background jobs (story summary, story "
+                          "memory, trackers) read at most per request, so long chats don't make them expensive "
+                          "(e.g. 16000-32000). 0 = follow the chat's own context size. Not the chat's context: "
+                          "that's propose_samplers context_size"},
          "trackers": {"type": "string", "enum": ["auto", "manual"]}, "trackers_every": {"type": "integer"},
          "sprites": {"type": "boolean"},
          "story_extras": {"type": "array", "items": {"type": "string", "enum": ["documents", "messages", "milestones",
@@ -322,7 +326,7 @@ def tool_get_current_setup(session, args):
     active = presets.get_active(user)
     return {
         "chat_model": extras["chat_model"],
-        "extras": {k: extras[k] for k in ("has_eleven_key", "summary", "memory", "trackers", "sprites", "background")},
+        "extras": {k: extras[k] for k in ("has_eleven_key", "summary", "memory", "trackers", "sprites", "background", "jobs_context")},
         "active_preset": active.name,
         "presets": [p.name for p in Preset.objects.filter(user=user)][:20],
         "persona": {"name": getattr(user, "persona_name", "") or "", "description": getattr(user, "persona_description", "") or ""},
@@ -810,6 +814,15 @@ def tool_propose_extras(session, args):
         payload["memory"] = item
         summary.append("Story memory: " + ("off (new chats use the manual summary)" if item.get("on") is False else
                        "on" + (f", updated every {item['interval']} messages" if item.get("interval") else "")))
+    if args.get("jobs_context") is not None:
+        try:
+            jobs = int(args["jobs_context"])
+        except (TypeError, ValueError):
+            jobs = None
+        if jobs is not None:
+            payload["jobs_context"] = 0 if jobs <= 0 else max(4096, min(2_000_000, jobs))
+            summary.append("Background jobs read: " + (f"at most about {payload['jobs_context']:,} tokens per request"
+                                                       if payload["jobs_context"] else "as much as the chat's context"))
     if args.get("summary") in ("auto", "manual"):
         every = max(1, min(200, int(args.get("summary_every") or 10)))
         payload["summary"] = {"mode": args["summary"], "interval": every}
@@ -1483,6 +1496,15 @@ def run_turn(session, user_text, action_note=None, model_note=None):
         new_events.append({"type": "error", "text": f"{e} Raise it in the panel if you want to continue."})
     except ai_client.AIError as e:
         new_events.append({"type": "error", "text": str(e)})
+
+    # A rewrite of the last reply that arrived without a word from Bulba (it called the tool straight away, and
+    # the turn ends on the sample): a short line, so it never looks like Bulba went quiet
+    if any(e.get("type") == "samples" and e.get("retry_id") for e in new_events) \
+            and not any(e.get("type") == "bulba" and e.get("text") for e in new_events):
+        line = ("Here's the rewrite. If you like it, “Use this in the chat” adds it as a new version of the last "
+                "reply; if something's still off, tell me what.")
+        new_events.append({"type": "bulba", "text": line})
+        session.messages.append({"role": "assistant", "content": line})
 
     if pending_choices:
         last = next((ev for ev in reversed(new_events) if ev["type"] == "bulba"), None)

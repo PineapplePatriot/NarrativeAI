@@ -378,7 +378,7 @@ def spent_total(user):
 def spending(user):
     """{"spent", "limit", "left"} for this calendar month, in dollars."""
     from django.conf import settings
-    limit = float(getattr(settings, "SUBSCRIPTION_MONTHLY_LIMIT", 25.0))
+    limit = float(getattr(settings, "SUBSCRIPTION_MONTHLY_LIMIT", 100.0))
     spent = spent_this_month(user)
     return {"spent": spent, "limit": limit, "left": round(max(0.0, limit - spent), 4)}
 

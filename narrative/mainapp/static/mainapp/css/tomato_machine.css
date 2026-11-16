@@ -241,3 +241,12 @@ body.mach-open { overflow: hidden; }
     .mb-feat.legendary { flex-basis: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { .mb-lanterns i { animation: none; } }
+/* The featured rares: small display tiles (not pills, so they don't read as buttons) */
+.mb-rares-head { margin: 14px 0 6px; font-size: .7rem; text-transform: uppercase; letter-spacing: .12em; color: #a9d4ff; }
+.mb-rares { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-top: 0; }
+.mb-feat.rare { grid-auto-flow: row; justify-items: start; gap: 2px; padding: 10px 12px 8px; border-radius: 10px; cursor: default;
+    border: 1px dashed rgba(78, 168, 255, .55); background: linear-gradient(160deg, rgba(78, 168, 255, .14), rgba(78, 168, 255, .03)); }
+.mb-feat.rare .e { font-size: 1.5rem; }
+.mb-feat.rare b { font-size: .8rem; font-weight: 600; color: #e6f2ff; }
+.mb-tier { font-size: .62rem; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: #7cc3ff; }
+.mb-feat.rare .mb-got { position: static; font-size: .7rem; }

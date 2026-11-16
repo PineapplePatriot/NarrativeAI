@@ -9,6 +9,9 @@ function fill() {
         document.querySelector(`input[name=${task}][value=${state[task].mode}]`).checked = true;
         $(`${task}Every`).value = state[task].interval;
     }
+    const mem = state.memory || { on: true, interval: 4 };
+    document.querySelector(`input[name=memory][value=${mem.on === false ? 'off' : 'on'}]`).checked = true;
+    $('memoryEvery').value = mem.interval || 4;
     $('sprites').checked = state.sprites;
     $('ideas').checked = !!state.ideas;
     $('watch').checked = !!state.watch;
@@ -25,7 +28,7 @@ function fill() {
         $('memoryModel').textContent = state.window.model || 'your chat model';
         const steps = NACosts.steps(state.window.max);
         $('chatContext').max = steps.length - 1;
-        $('chatContext').value = NACosts.nearest(steps, state.window.value);
+        $('chatContext').value = NACosts.nearest(steps, (state.jobs_window || state.window).value);
     }
     costs();
 }
@@ -37,8 +40,8 @@ function costs() {
     const size = steps[Number($('chatContext').value)] || steps[0];
     const prices = state.prices || {};
     const bg = ($('background').value !== 'chat' ? (prices.bg || {})[$('background').value] : prices.chat) || null;
-    $('memoryValue').textContent = NACosts.memory(size);
-    $('memoryCost').textContent = NACosts.chat(prices.chat, size);
+    $('memoryValue').textContent = `${Math.round(size / 1000)}k tokens at most per summary, memory or tracker update`;
+    $('memoryCost').textContent = '';
     for (const task of ['summary', 'trackers']) {
         const mode = (document.querySelector(`input[name=${task}]:checked`) || {}).value;
         $(`${task}Cost`).textContent = NACosts.job(task, bg, size, mode, Number($(`${task}Every`).value) || 1);
@@ -58,6 +61,7 @@ $('saveBtn').onclick = async () => {
     const body = {
         summary: { mode: document.querySelector('input[name=summary]:checked').value, interval: Number($('summaryEvery').value) },
         trackers: { mode: document.querySelector('input[name=trackers]:checked').value, interval: Number($('trackersEvery').value) },
+        memory: { on: document.querySelector('input[name=memory]:checked').value === 'on', interval: Number($('memoryEvery').value) || 4 },
         sprites: $('sprites').checked,
         ideas: $('ideas').checked,
         watch: $('watch').checked,
@@ -68,7 +72,7 @@ $('saveBtn').onclick = async () => {
         background_thinking: $('bgThinking').checked ? 'light' : 'model',
     };
     if (state.openrouter) body.background = $('background').value;
-    if (state.window) body.chat_context = NACosts.steps(state.window.max)[Number($('chatContext').value)];
+    if (state.window) body.jobs_context = NACosts.steps(state.window.max)[Number($('chatContext').value)];
     try {
         const resp = await fetch(EXTRAS_URL, {
             method: 'POST',

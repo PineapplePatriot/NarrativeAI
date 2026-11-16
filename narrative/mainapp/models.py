@@ -72,6 +72,8 @@ class Character(models.Model):
     # The card kept as sections (mainapp/card_sections.py); the description is composed from them. Empty: an
     # old-style card, one text box (an "Upgrade this card" button sorts it)
     sections = models.JSONField(default=dict, blank=True)
+    # More mood pictures than the nine fields above (mainapp/sprites.py): {"first": {emotion: path}, "second": {...}}
+    extra_sprites = models.JSONField(default=dict, blank=True)
     # Which story trackers are on for this character, custom fields and layout (see mainapp/trackers.py)
     tracker_config = models.JSONField(default=dict, blank=True)
     # The character's look: {"bg": url, "music": {"url", "name"}, "dialogue_color": "#rrggbb" or "preset"}.

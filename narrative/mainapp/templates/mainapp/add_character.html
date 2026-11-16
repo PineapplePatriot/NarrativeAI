@@ -92,6 +92,17 @@
                 <p class="section-help">Through your OpenRouter or NanoGPT key: a few cents per picture, counted in your monthly spending.</p>
                 <p class="section-help" id="spriteStatus" aria-live="polite"></p>
             </div>
+            <div class="more-moods" id="moreMoods" data-url="{% url 'character_moods' object.slug %}" data-make="{% url 'character_sprite' object.slug %}">
+                <h4>🎭 More moods <small>(up to 24 of your own, beyond the nine above)</small></h4>
+                <div class="mm-grid" id="mmGrid"></div>
+                <div class="mm-add">
+                    <input type="text" id="mmName" maxlength="24" list="mmSuggest" placeholder="A mood: flustered, smug, battle-ready…">
+                    <datalist id="mmSuggest"></datalist>
+                    <label class="btn-secondary mm-upload">📤 Upload<input type="file" id="mmFile" accept="image/png,image/jpeg,image/webp" hidden></label>
+                    <button type="button" class="btn-secondary" id="mmMake">✨ Make it from the neutral picture</button>
+                </div>
+                <p class="section-help" id="mmStatus" aria-live="polite">The chat picks these too when a reply fits them. You can also send one to Bulba with 📎 → Character, with its mood.</p>
+            </div>
             {% endif %}
             <div class="file-grid">
                 {% for f in form %}
@@ -175,7 +186,8 @@
 </div>
 
 <script src="{% static 'mainapp/js/add_character.js' %}?v={% now 'U' %}"></script>
-{% if object %}<script src="{% static 'mainapp/js/card_sections.js' %}?v={% now 'U' %}"></script>{% endif %}
+{% if object %}<script src="{% static 'mainapp/js/card_sections.js' %}?v={% now 'U' %}"></script>
+<script src="{% static 'mainapp/js/character_moods.js' %}?v={% now 'U' %}"></script>{% endif %}
 {% if has_eleven_key %}<script>window.ELEVEN_VOICES_URL = "{% url 'eleven_voices' %}";</script>
 <script src="{% static 'mainapp/js/voices.js' %}?v={% now 'U' %}"></script>{% endif %}
 

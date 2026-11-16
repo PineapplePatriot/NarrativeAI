@@ -2963,7 +2963,7 @@ class SpendingAndThinkingTests(StreamChatTests):
         self.assertEqual(self.sent[-1]["usage"], {"include": True})
         self.assertAlmostEqual(ai_client.spent_this_month(self.user), 0.012)
         self.assertAlmostEqual(events[-1]["spending"]["spent"], 0.012)
-        self.assertEqual(events[-1]["spending"]["limit"], 25.0)
+        self.assertEqual(events[-1]["spending"]["limit"], 100.0)
 
     def test_non_streamed_costs_are_recorded(self):
         from unittest import mock
@@ -2972,7 +2972,7 @@ class SpendingAndThinkingTests(StreamChatTests):
         resp.json.return_value = {"choices": [{"message": {"content": "x"}}], "usage": {"cost": 0.5}}
         with mock.patch("mainapp.ai_client.requests.post", return_value=resp):
             ai_client.complete(self.user, "chat", [{"role": "user", "content": "hi"}])
-        self.assertEqual(ai_client.spending(self.user), {"spent": 0.5, "limit": 25.0, "left": 24.5})
+        self.assertEqual(ai_client.spending(self.user), {"spent": 0.5, "limit": 100.0, "left": 99.5})
 
     def test_continue_goes_through_the_preset(self):
         from unittest import mock
@@ -3195,7 +3195,7 @@ class MonthLimitTests(ChatPromptTests):
     def test_limit_stops_chat_and_bulba(self):
         from users.models import UsageRecord
         from mainapp import ai_client
-        UsageRecord.objects.create(user=self.user, task="chat", cost=25.0)
+        UsageRecord.objects.create(user=self.user, task="chat", cost=100.0)
         resp = self.post({"action": "chat", "message": "Hello"})
         self.assertEqual(resp.status_code, 502)
         self.assertIn("used up", resp.json()["error"])
@@ -6979,7 +6979,8 @@ class TasteIntoPresetTests(BulbaInChatTests):
                                            "content": "Keep room descriptions to a line. Keep the banter."}],
             from_taste=["Cuts long descriptions of rooms", "Keeps the banter", "Not a learned line"], why="Their taste")])]
         data = self.api(action="note", id=note["id"]).json()
-        self.assertIn("Bulba Watch learned these about their taste", self.bulba_calls[-1]["messages"][-1]["content"])
+        self.assertIn("Bulba Watch learned these", self.bulba_calls[-1]["messages"][-1]["content"])
+        self.assertIn("their persona, never the preset", self.bulba_calls[-1]["messages"][-1]["content"])
         proposal = data["state"]["proposals"][-1]
         self.script = [("Done.", [])]
         self.api(action="apply", id=proposal["id"])
@@ -8773,7 +8774,8 @@ class TomatoGardenTests(TestCase):
         state = self.client.get(reverse("tomato_garden_state")).json()
         self.assertEqual(state["tiles"], [])                       # Hoe-Bot harvested it
         self.assertIn("Hoe-Bot 3000", state["log"][0]["text"])
-        self.assertEqual(len(state["gardeners"]), 4)
+        self.assertEqual(len(state["gardeners"]), 3)               # three at work at a time
+        self.assertEqual(len(state["shed"]), 1)
 
 
 class TomatoBoardTests(TestCase):
@@ -9686,3 +9688,181 @@ class TomatoBannerTests(TomatoMachineTests):
 for _name in [n for n in dir(TomatoMachineTests) if n.startswith("test_")]:
     if getattr(TomatoBannerTests, _name, None) is getattr(TomatoMachineTests, _name, None):
         setattr(TomatoBannerTests, _name, None)
+
+
+class SmallFixesSixteenthTests(StoryMemoryTests):
+    def test_story_colours_fill_themselves_and_purpl_is_a_ready_style(self):
+        from mainapp import speaker_colors
+        self.character.theme = {"speech": "story"}
+        self.character.save()
+        page = self.client.get(self.url)
+        self.character.refresh_from_db()
+        self.assertIn("Rose", self.character.theme["speech_cast"])
+        self.assertTrue(self.character.theme["you_color"])
+        self.assertIn(self.character.theme["you_color"], speaker_colors.for_writing_user(speaker_colors.settings(self.character), "Sam"))
+        self.assertContains(page, 'data-skin="purpl"')
+        self.post({"action": "set_skin", "skin": "purpl"})
+        page = self.client.get(self.url)
+        self.assertContains(page, "skin-custom")
+        self.assertContains(page, "light-style")  # deeper speech shades on its light bubbles
+        self.assertNotContains(page, 'id="lookAdjust"')  # a ready look isn't theirs to adjust
+
+
+for _name in [n for n in dir(StoryMemoryTests) if n.startswith("test_")]:
+    if getattr(SmallFixesSixteenthTests, _name, None) is getattr(StoryMemoryTests, _name, None):
+        setattr(SmallFixesSixteenthTests, _name, None)
+
+
+class BatchTwoSeventeenthTests(StoryMemoryTests):
+    def test_mimo_gets_the_thinking_leash_and_room_for_it(self):
+        from mainapp import thinking
+        self.assertTrue(thinking.needs_leash("xiaomi/mimo-v2.6-pro", "default"))
+        self.assertFalse(thinking.needs_leash("xiaomi/mimo-v2.6-pro", "off"))
+        self.assertFalse(thinking.needs_leash("anthropic/claude-opus-5.5", "full"))
+        msgs, params = thinking.leash([{"role": "user", "content": "Hi\\n\\n[Director's note for this reply: rain]"}], {"max_tokens": 1000})
+        self.assertLess(msgs[-1]["content"].index("How to think"), msgs[-1]["content"].index("Director's note"))
+        self.assertEqual(params["max_tokens"], 1000 + thinking.LEASH_ROOM)
+
+    def test_a_thinking_block_can_be_deleted(self):
+        from mainapp import chats
+        self.post({"action": "chat", "message": "Hi"})
+        chat = self.character.chats.first()
+        data = chats.read(chat)
+        data["messages"][-1] = chats.with_reasoning(data["messages"][-1], "I should greet them.")
+        chats.write(chat, data)
+        self.assertTrue(self.post({"action": "delete_thoughts", "index": len(data["messages"]) - 1}).json()["success"])
+        self.assertEqual(chats.reasoning_of(chats.read(chat)["messages"][-1]), "")
+
+    def test_the_extras_page_shows_each_characters_trackers_and_story_memory(self):
+        page = self.client.get(reverse("users:extras"))
+        self.assertContains(page, "Each character's trackers")
+        self.assertContains(page, reverse("tracker_setup", args=[self.character.slug]))
+        self.assertContains(page, 'name="memory"')
+
+
+for _name in [n for n in dir(StoryMemoryTests) if n.startswith("test_")]:
+    if getattr(BatchTwoSeventeenthTests, _name, None) is getattr(StoryMemoryTests, _name, None):
+        setattr(BatchTwoSeventeenthTests, _name, None)
+
+
+class ExtraMoodsTests(StoryMemoryTests):
+    PNG = (b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00"
+           b"\x00\x0cIDATx\x9cc\xf8\x0f\x00\x00\x01\x01\x00\x05\x18\xd8N\x00\x00\x00\x00IEND\xaeB`\x82")
+
+    def test_own_moods_are_uploaded_picked_and_shown(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from mainapp import sprites, views
+        url = reverse("character_moods", args=[self.character.slug])
+        d = self.client.post(url, {"emotion": "Smug!", "picture": SimpleUploadedFile("s.png", self.PNG, "image/png")}).json()
+        self.assertIn("smug", d["first"])
+        self.character.refresh_from_db()
+        self.assertIn("smug", sprites.emotions(self.character))
+        self.assertEqual(views._photo(self.character, "photo", "smug"), d["first"]["smug"])
+        self.assertEqual(self.client.post(url, {"emotion": "happy", "picture": SimpleUploadedFile("h.png", self.PNG, "image/png")}).status_code, 400)
+        d = self.client.post(url, json.dumps({"remove": "smug"}), content_type="application/json").json()
+        self.assertEqual(d["first"], {})
+
+
+for _name in [n for n in dir(StoryMemoryTests) if n.startswith("test_")]:
+    if getattr(ExtraMoodsTests, _name, None) is getattr(StoryMemoryTests, _name, None):
+        setattr(ExtraMoodsTests, _name, None)
+
+
+class RewriteLineTests(BulbaTests):
+    def test_a_silent_rewrite_gets_a_line_from_bulba(self):
+        from unittest import mock
+        from mainapp.bulba import agent
+        from mainapp.models import BulbaSession
+        self.api(action="say", text="hi")
+        session = BulbaSession.objects.get(user=self.user, mode="setup")
+        fake = ({"rewritten_reply": "x"}, [{"type": "samples", "samples": [{"label": "Again", "text": "x"}], "retry_id": "r1"}])
+        self.script = [("", [self.call("write_samples")])]
+        with mock.patch.dict(agent.HANDLERS, {"write_samples": lambda s, a: fake}), \
+                mock.patch("mainapp.ai_client.requests.post", side_effect=self.fake_post):
+            events = agent.run_turn(session, "rewrite it")
+        self.assertEqual(events[-1]["type"], "bulba")
+        self.assertIn("Use this in the chat", events[-1]["text"])
+
+
+for _name in [n for n in dir(BulbaTests) if n.startswith("test_")]:
+    if getattr(RewriteLineTests, _name, None) is getattr(BulbaTests, _name, None):
+        setattr(RewriteLineTests, _name, None)
+
+
+class JobsContextTests(BulbaTests):
+    def test_bulba_and_the_extras_page_limit_what_background_jobs_read(self):
+        from mainapp import ai_client
+        self.script = [("Done.", [self.call("propose_extras", jobs_context=24000)])]
+        p = self.api(action="say", text="my summaries cost too much").json()["state"]["proposals"][-1]
+        self.assertIn("24,000", json.dumps(p["summary"]))
+        self.api(action="apply", id=p["id"])
+        for task in ("summary", "memory", "trackers"):
+            self.assertEqual(ai_client.get_task_setting(self.user, task).context, 24000)
+        self.api(action="undo", id=p["id"])
+        self.assertIsNone(ai_client.get_task_setting(self.user, "summary").context)
+        self.client.post(reverse("users:extras"), json.dumps({"jobs_context": 16384}), content_type="application/json")
+        self.assertEqual(ai_client.get_task_setting(self.user, "memory").context, 16384)
+
+
+for _name in [n for n in dir(BulbaTests) if n.startswith("test_")]:
+    if getattr(JobsContextTests, _name, None) is getattr(BulbaTests, _name, None):
+        setattr(JobsContextTests, _name, None)
+
+
+class GardenCrewTests(TomatoMachineTests):
+    def test_three_gardeners_at_work_the_rest_in_the_shed(self):
+        from mainapp import tomato_garden as G
+        self.score.machine = {"items": {"gardener_farmer": 1, "gardener_frog": 1, "gardener_robot": 1, "gardener_witch": 1}}
+        self.score.save()
+        self.score.refresh_from_db()
+        state = G.public(self.score)
+        self.assertEqual(len(state["gardeners"]), 3)
+        self.assertEqual([x["id"] for x in state["shed"]], ["gardener_witch"])
+        with self.assertRaises(ValueError):
+            G.act(self.user, {"action": "crew", "id": "gardener_witch", "on": True})
+        G.act(self.user, {"action": "crew", "id": "gardener_frog", "on": False})
+        G.act(self.user, {"action": "crew", "id": "gardener_witch", "on": True})
+        from mainapp import tomato_machine as M
+        self.score.refresh_from_db()
+        m = M._state(self.score)
+        self.assertTrue(G._has(m, "gardener_witch"))
+        self.assertFalse(G._has(m, "gardener_frog"))  # resting: no extra compost from him
+
+
+for _name in [n for n in dir(TomatoMachineTests) if n.startswith("test_")]:
+    if getattr(GardenCrewTests, _name, None) is getattr(TomatoMachineTests, _name, None):
+        setattr(GardenCrewTests, _name, None)
+
+
+class LookShelfTests(ChatLookTests):
+    def test_looks_go_on_the_shelf_and_any_chat_can_wear_them(self):
+        from mainapp import chat_looks
+        from mainapp.models import BulbaSession, Character
+        c = Character.objects.create(name="Ant", slug="ant-shelf", author=self.user, initial_message="Hi.")
+        other = Character.objects.create(name="Bo", slug="bo-shelf", author=self.user, initial_message="Hi.")
+        self.api(action="say", text="hi")
+        session = BulbaSession.objects.get(user=self.user, mode="setup")
+        session.focus = c
+        session.save()
+        self.script = [("Here.", [self.call("propose_chat_look", look=self.PURPL)])]
+        p = self.api(action="say", text="purple").json()["state"]["proposals"][-1]
+        self.api(action="apply", id=p["id"])
+        shelf = chat_looks.shelf(self.user)
+        self.assertEqual([i["look"]["name"] for i in shelf], ["Purpl"])
+        sid = shelf[0]["id"]
+        url = reverse("chat", args=[other.slug])
+        page = self.client.get(url)
+        self.assertContains(page, f'data-skin="shelf:{sid}"')
+        post = lambda body: self.client.post(url, json.dumps(body), content_type="application/json").json()
+        self.assertTrue(post({"action": "set_skin", "skin": f"shelf:{sid}"})["success"])
+        self.assertContains(self.client.get(url), "skin-custom")
+        post({"action": "shelf", "do": "give", "id": sid})
+        other.refresh_from_db()
+        self.assertEqual((other.theme["skin"], other.theme["look"]["name"]), ("custom", "Purpl"))
+        post({"action": "shelf", "do": "remove", "id": sid})
+        self.assertEqual(chat_looks.shelf(self.user), [])
+
+
+for _name in [n for n in dir(ChatLookTests) if n.startswith("test_")]:
+    if getattr(LookShelfTests, _name, None) is getattr(ChatLookTests, _name, None):
+        setattr(LookShelfTests, _name, None)
