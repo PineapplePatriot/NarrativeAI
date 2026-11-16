@@ -3195,7 +3195,7 @@ class MonthLimitTests(ChatPromptTests):
     def test_limit_stops_chat_and_bulba(self):
         from users.models import UsageRecord
         from mainapp import ai_client
-        UsageRecord.objects.create(user=self.user, task="chat", cost=25.0)
+        UsageRecord.objects.create(user=self.user, task="chat", cost=100.0)
         resp = self.post({"action": "chat", "message": "Hello"})
         self.assertEqual(resp.status_code, 502)
         self.assertIn("used up", resp.json()["error"])
