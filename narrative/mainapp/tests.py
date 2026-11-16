@@ -2963,7 +2963,7 @@ class SpendingAndThinkingTests(StreamChatTests):
         self.assertEqual(self.sent[-1]["usage"], {"include": True})
         self.assertAlmostEqual(ai_client.spent_this_month(self.user), 0.012)
         self.assertAlmostEqual(events[-1]["spending"]["spent"], 0.012)
-        self.assertEqual(events[-1]["spending"]["limit"], 25.0)
+        self.assertEqual(events[-1]["spending"]["limit"], 100.0)
 
     def test_non_streamed_costs_are_recorded(self):
         from unittest import mock
@@ -2972,7 +2972,7 @@ class SpendingAndThinkingTests(StreamChatTests):
         resp.json.return_value = {"choices": [{"message": {"content": "x"}}], "usage": {"cost": 0.5}}
         with mock.patch("mainapp.ai_client.requests.post", return_value=resp):
             ai_client.complete(self.user, "chat", [{"role": "user", "content": "hi"}])
-        self.assertEqual(ai_client.spending(self.user), {"spent": 0.5, "limit": 25.0, "left": 24.5})
+        self.assertEqual(ai_client.spending(self.user), {"spent": 0.5, "limit": 100.0, "left": 99.5})
 
     def test_continue_goes_through_the_preset(self):
         from unittest import mock

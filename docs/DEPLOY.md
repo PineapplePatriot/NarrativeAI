@@ -46,7 +46,7 @@ Type these into Railway only, never into a chat (including with Bulba or with me
 
 **The demo key.** Without it, graders log in and are asked for their own OpenRouter key. With it, they can
 chat straight away on your money, so make a **separate key** at <https://openrouter.ai/keys> and give it a
-**credit limit** there (for example $10). The app's own monthly limit ($25) also applies, and it's shared
+**credit limit** there (for example $10). The app's own monthly limit ($100) also applies, and it's shared
 by everyone using the demo account.
 
 ## 5. The link

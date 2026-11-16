@@ -193,7 +193,7 @@ DEFAULT_USER_IMAGE = MEDIA_URL + "users/ava.png"
 # What one subscription covers per calendar month, in US dollars (chat, Bulba and background jobs together).
 # At the limit, chatting, Bulba and background jobs stop until the 1st (until our own endpoint and wallet
 # exist, this guards the user's OpenRouter key). Set SUBSCRIPTION_LIMIT_ENFORCED = False to only show the meter.
-SUBSCRIPTION_MONTHLY_LIMIT = 25.0
+SUBSCRIPTION_MONTHLY_LIMIT = 100.0
 SUBSCRIPTION_LIMIT_ENFORCED = True
 
 # The default image model for character pictures (Nano Banana 2, through OpenRouter). The character page
