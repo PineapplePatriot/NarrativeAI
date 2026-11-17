@@ -149,6 +149,7 @@
             <li><b>Bulba's Promise</b>: choose a legendary. Each legendary is it half the time, and if it isn't, the next one is.</li>
             <li>Getting something you keep only one of again turns it into compost (♻ ${s.compost_spin} compost = 1 spin). Seeds and garden things stack.</li>
             <li>A golden splat (1 in 500) thrown at a chat or Bulba is a free spin.</li>
+            <li>The garden helps too: filled orders pay tomatoes toward your next spin, and a rare mutation is a free spin.</li>
             <li><b>Banners</b>: a seasonal banner runs for a few months with its own featured things (a legendary there is featured half the
               time, surely after a miss; rares too) and its own pity count. Its things are only on it, only while it runs. Everything
               else is on the standard banner. Spins work on either.</li>

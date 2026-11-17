@@ -37,3 +37,22 @@
 .g-gard.resting { opacity: .7; }
 .g-gard .g-crew { margin-top: 6px; font-size: .78rem; padding: 4px 10px; }
 .g-shed-head { margin: 10px 0 4px; }
+
+/* 📋 Order board and 🧬 almanac, under the garden */
+.g-more { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 16px; }
+@media (max-width: 900px) { .g-more { grid-template-columns: 1fr; } }
+.g-more h2 { font-size: 1rem; margin: 0; }
+.g-orders { display: grid; gap: 10px; margin-top: 8px; }
+.g-order { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; padding: 10px 12px;
+    border-radius: 12px; background: rgba(255, 255, 255, .04); border: 1px solid rgba(255, 255, 255, .1); }
+.g-order .e { font-size: 1.6rem; grid-row: span 2; }
+.g-order .g-bar { grid-column: 2 / 4; margin: 2px 0 0; height: 8px; }
+.g-order .pay { font-weight: 700; color: #ffb4a8; white-space: nowrap; }
+.g-order small { color: var(--muted, #94a3b8); }
+.g-almanac { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-top: 8px; }
+.g-mut { display: flex; gap: 8px; align-items: center; padding: 6px 10px; border-radius: 10px; font-size: .85rem;
+    background: rgba(255, 255, 255, .04); border: 1px solid rgba(255, 255, 255, .08); }
+.g-mut .e { font-size: 1.3rem; }
+.g-mut.rare { border-color: rgba(255, 197, 49, .55); background: rgba(255, 197, 49, .08); }
+.g-mut.unknown { opacity: .5; }
+.g-mut small { display: block; color: var(--muted, #94a3b8); font-size: .72rem; }

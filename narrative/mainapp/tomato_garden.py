@@ -15,6 +15,11 @@
     Basil             every second harvest gives the seed back
     Mr. Death         every third harvest brings 3 extra compost (Lantern Night banner)
     Babbo Natale      once a day leaves a present in the shed: a packet of seeds (First Snow banner)
+- The order board: neighbours post orders for crops ("3 carrots"). A new one each day, at most ORDERS_OPEN open, each
+  open for ORDER_DAYS days. Harvests count toward the oldest open order for that crop (and still give compost);
+  a filled order pays 100-300 tomatoes, which count toward spins (not the leaderboard: TomatoScore.machine "earned").
+- Mutations: 1 in MUTATION_ODDS harvests is a strange variant (MUTATIONS), kept in the almanac. The common ones
+  give triple compost; the rare one of each crop gives a free spin.
 Everything is kept in TomatoScore.garden (JSON); the time is always the server's.
 """
 from django.db import transaction
@@ -42,6 +47,27 @@ GARDENERS = {
     "gardener_death": "Every third harvest brings three extra compost: he collects his dues, very politely.",
     "gardener_babbo": "Once a day he leaves a present in the shed: a packet of seeds, wrapped badly, with love.",
 }
+ORDERS_OPEN = 3
+ORDER_DAYS = 3
+NEIGHBOURS = ("Signora Rosa", "the bakery", "Old Man Pepper", "the pizzeria", "Bulba (suspicious)", "the soup kitchen",
+              "a very polite crow", "the village fair")
+MUTATION_ODDS = 20
+# crop → its strange variants: (id, emoji, name, rare). A rare one gives a spin; the others triple the compost.
+MUTATIONS = {
+    "seed_tomato": [("heart_tomato", "❤️", "Heart-shaped tomato", False), ("stripy_tomato", "🦓", "Stripy tomato", False),
+                    ("golden_tomato", "🌟", "Golden tomato", True)],
+    "seed_carrot": [("twin_carrot", "🥕", "Twin carrots, holding hands", False), ("purple_carrot", "🟣", "Purple carrot", False),
+                    ("legs_carrot", "🦵", "A carrot with legs", True)],
+    "seed_sunflower": [("giant_sunflower", "🌻", "Giant sunflower", False), ("night_sunflower", "🌙", "Moonflower (it faces the moon)", False),
+                       ("winking_sunflower", "😉", "A sunflower that winks", True)],
+    "seed_pumpkin": [("giant_pumpkin", "🎃", "Giant pumpkin", False), ("smiling_pumpkin", "😊", "A pumpkin that smiles back", False),
+                     ("glass_pumpkin", "🔮", "Glass pumpkin", True)],
+    "seed_monster": [("glowing_monster", "✨", "Glowing monstrous flower", False), ("sleepy_monster", "😴", "Sleepy monstrous flower", False),
+                     ("polite_monster", "🎩", "A very polite monstrous flower", True)],
+}
+MUTANT = {mid: {"id": mid, "crop": crop, "emoji": e, "name": n, "rare": r} for crop, ms in MUTATIONS.items() for mid, e, n, r in ms}
+
+
 # Babbo Natale's presents: mostly everyday seeds, now and then a pumpkin
 GIFTS = (("seed_tomato", 3), ("seed_carrot", 3), ("seed_sunflower", 2), ("seed_pumpkin", 1))
 
@@ -54,8 +80,10 @@ def _state(score):
     g = dict(score.garden or {})
     g["tiles"] = {k: dict(v) for k, v in (g.get("tiles") or {}).items() if isinstance(v, dict)}
     g["log"] = list(g.get("log") or [])
-    for k in ("harvests", "watered"):
+    for k in ("harvests", "watered", "filled", "order_seq"):
         g[k] = int(g.get(k) or 0)
+    g["orders"] = [dict(o) for o in (g.get("orders") or []) if isinstance(o, dict) and o.get("seed") in CROPS]
+    g["almanac"] = {k: int(v) for k, v in (g.get("almanac") or {}).items() if k in MUTANT}
     return g
 
 
@@ -101,10 +129,45 @@ def _log(g, text):
     g["log"] = ([{"at": int(_now()), "text": text}] + g["log"])[:LOG]
 
 
-def _harvest(g, m, key, by=""):
+def _mutate(g, m, seed, rng=None):
+    """1 in MUTATION_ODDS harvests: a strange variant (a rare one a quarter of the time). Returns it or None."""
+    import random
+    rng = rng or random.SystemRandom()
+    variants = MUTATIONS.get(seed)
+    if not variants or rng.random() >= 1 / MUTATION_ODDS:
+        return None
+    common = [v for v in variants if not v[3]]
+    rare = [v for v in variants if v[3]]
+    mid = (rng.choice(rare) if rare and rng.random() < .25 else rng.choice(common or rare))[0]
+    g["almanac"][mid] = g["almanac"].get(mid, 0) + 1
+    g["mutation"] = {"id": mid, "at": int(_now())}  # the page shows it once
+    if MUTANT[mid]["rare"]:
+        m["bonus"] += 1
+    return MUTANT[mid]
+
+
+def _deliver(g, m, seed, by=""):
+    """A harvest counts toward the oldest open order for that crop; a filled one pays its tomatoes."""
+    order = next((o for o in g["orders"] if o["seed"] == seed and o["got"] < o["n"]), None)
+    if not order:
+        return None
+    order["got"] += 1
+    if order["got"] >= order["n"]:
+        g["orders"].remove(order)
+        m["earned"] = int(m.get("earned") or 0) + order["reward"]
+        g["filled"] += 1
+        _log(g, f"📋 Order filled for {order['from']}: {order['n']} {CROPS[seed]['name'].lower()}"
+                f"{'s' if order['n'] > 1 else ''}. 🍅 +{order['reward']} tomatoes toward your next spin.")
+    return order
+
+
+def _harvest(g, m, key, by="", rng=None):
     tile = g["tiles"].pop(key)
     crop = CROPS[tile["seed"]]
     got = crop["compost"] + (1 if _has(m, "gardener_frog") else 0)
+    odd = _mutate(g, m, tile["seed"], rng)
+    if odd and not odd["rare"]:
+        got *= 3
     g["harvests"] += 1
     dues = _has(m, "gardener_death") and g["harvests"] % 3 == 0
     if dues:
@@ -115,6 +178,10 @@ def _harvest(g, m, key, by=""):
         m["items"][tile["seed"]] = m["items"].get(tile["seed"], 0) + 1
     _log(g, f"{by or 'You'} harvested a {crop['name'].lower()}: ♻ +{got} compost" + (" and Basil hummed the seed back" if back else "")
          + (" (Mr. Death collected his dues: +3)" if dues else "") + ".")
+    if odd:
+        _log(g, f"🧬 A mutation! {odd['emoji']} {odd['name']}: " + ("a free spin at the Sauce-o-Matic." if odd["rare"]
+                                                                     else "triple compost.") + " Into the almanac.")
+    _deliver(g, m, tile["seed"])
     return got
 
 
@@ -142,6 +209,32 @@ def _babbo(g, m, rng=None, today=None):
     return seed
 
 
+def _orders(g, m, rng=None, today=None):
+    """The order board: expired orders come down; a new one goes up once a day while there's room."""
+    import random
+    rng = rng or random.SystemRandom()
+    now = _now()
+    for o in [o for o in g["orders"] if o["due"] <= now]:
+        g["orders"].remove(o)
+        _log(g, f"📋 {o['from'].capitalize()} gave up waiting for {o['n']} {CROPS[o['seed']]['name'].lower()}"
+                f"{'s' if o['n'] > 1 else ''}.")
+    day = (today or timezone.localdate()).isoformat()
+    if g.get("order_day") == day or len(g["orders"]) >= ORDERS_OPEN:
+        return None
+    # Crops they can grow: everyday ones always, the rarer ones once they've had their seeds
+    crops = ["seed_tomato", "seed_carrot", "seed_sunflower"] + [c for c in ("seed_pumpkin", "seed_monster") if c in m["items"]]
+    seed = rng.choice(crops)
+    n = rng.choice((1, 2, 2, 3)) if CROPS[seed]["hours"] <= 30 else 1
+    reward = max(100, min(300, int(round(CROPS[seed]["hours"] * n * 3.4 / 10)) * 10))
+    g["order_seq"] += 1
+    order = {"id": g["order_seq"], "seed": seed, "n": n, "got": 0, "reward": reward, "from": rng.choice(NEIGHBOURS),
+             "posted": int(now), "due": int(now + ORDER_DAYS * 86400)}
+    g["orders"].append(order)
+    g["order_day"] = day
+    _log(g, f"📋 New order from {order['from']}: {n} {CROPS[seed]['name'].lower()}{'s' if n > 1 else ''} for 🍅 {reward}.")
+    return order
+
+
 def _locked(user, fn):
     from mainapp import tomatoes
     from mainapp.models import TomatoScore
@@ -150,6 +243,7 @@ def _locked(user, fn):
         score = TomatoScore.objects.select_for_update().get(user=user)
         m, g = M._state(score), _state(score)
         fn(g, m)
+        _orders(g, m)
         _babbo(g, m)
         _robot(g, m)
         score.machine, score.garden = m, g
@@ -262,5 +356,8 @@ def public(score):
                      if m["items"].get(pid) and not _has(m, pid)], "crew_max": CREW,
             "hat": M.worn(score).get("hat", ""), "log": g["log"][:12], "harvests": g["harvests"],
             "water": WATER, "crops": CROPS, "now": int(now),
+            "orders": [{**o, "name": CROPS[o["seed"]]["name"], "left": max(0, o["due"] - int(now))} for o in g["orders"]],
+            "orders_max": ORDERS_OPEN, "filled": g["filled"], "mutation": g.get("mutation"), "mutation_odds": MUTATION_ODDS,
+            "almanac": [{**v, "got": g["almanac"].get(mid, 0)} for mid, v in MUTANT.items()],
             "prizes": {p["id"]: {"name": p["name"], "emoji": p["emoji"]} for p in M.PRIZES
                        if p["kind"] in ("seed", "decor", "gardener")}}

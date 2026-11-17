@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
   <link rel="stylesheet" href="{% static 'css/base.css' %}?v=5">
   <link rel="stylesheet" href="{% static 'mainapp/css/tomato_pit.css' %}?v=6">
-  <link rel="stylesheet" href="{% static 'mainapp/css/tomato_garden.css' %}?v=1">
+  <link rel="stylesheet" href="{% static 'mainapp/css/tomato_garden.css' %}?v=2">
 </head>
 <body class="na-body">
 {% include "partials/topbar.html" with active="garden" %}
@@ -44,7 +44,18 @@
       </section>
     </aside>
   </div>
+
+  <div class="g-more">
+    <section class="pit-box" aria-label="Order board">
+      <div class="pit-box-head"><h2>📋 Order board</h2><span class="muted" id="gFilled"></span></div>
+      <div id="gOrders"></div>
+    </section>
+    <section class="pit-box" aria-label="Almanac of mutations">
+      <div class="pit-box-head"><h2>🧬 Almanac</h2><span class="muted" id="gAlmanacCount"></span></div>
+      <div id="gAlmanac"></div>
+    </section>
+  </div>
 </div>
-<script src="{% static 'mainapp/js/tomato_garden.js' %}?v=6"></script>
+<script src="{% static 'mainapp/js/tomato_garden.js' %}?v=7"></script>
 </body>
 </html>

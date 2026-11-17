@@ -4015,6 +4015,7 @@ def _quick_status(user, picked, characters):
 
 
 @login_required
+@xframe_options_sameorigin  # shown inside Bulba's card (an iframe); without this the browser refuses it
 def bulba_look_preview(request, pid):
     """A small mock chat in a proposed custom look, shown inside Bulba's card before they press Apply."""
     from mainapp.models import BulbaSession

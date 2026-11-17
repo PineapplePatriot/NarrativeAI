@@ -454,7 +454,36 @@
             : '<p class="muted g-small">None yet. Gardeners are the Sauce-o-Matic\'s legendaries: each one moves in and helps.</p>';
         $('gLog').innerHTML = st.log.length ? st.log.map(l => `<li>${esc(l.text)} <span class="muted">${new Date(l.at * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></li>`).join('')
             : '<li class="muted">Nothing yet.</li>';
+        paintBoard();
         if (sel) paintTile();
+    }
+    // 📋 The order board and 🧬 the almanac
+    function paintBoard() {
+        const orders = st.orders || [], days = (s) => s >= 86400 ? `${Math.ceil(s / 86400)} days left` : `${Math.max(1, Math.round(s / 3600))} h left`;
+        $('gFilled').textContent = st.filled ? `${st.filled} filled` : '';
+        $('gOrders').innerHTML = (orders.length ? `<div class="g-orders">${orders.map(o => `<div class="g-order">
+                <span class="e">${o.seed === 'seed_tomato' ? '🍅' : prizeOf(o.seed).emoji}</span>
+                <div><b>${o.n} × ${esc(o.name.toLowerCase())}</b> <small>for ${esc(o.from)} · ${days(o.left)}</small></div>
+                <span class="pay">🍅 ${o.reward}</span>
+                <div class="g-bar"><i style="width:${Math.round(o.got / o.n * 100)}%"></i></div></div>`).join('')}</div>`
+            : '<p class="muted g-small">No orders right now. A new one goes up each day.</p>')
+            + `<p class="muted g-small">Up to ${st.orders_max} at a time, a new one each day. Harvests count toward them by themselves (and still make compost). Tomatoes from orders count toward your next spin.</p>`;
+        const al = st.almanac || [], found = al.filter(a => a.got);
+        $('gAlmanacCount').textContent = `${found.length} of ${al.length}`;
+        $('gAlmanac').innerHTML = `<p class="muted g-small">About 1 harvest in ${st.mutation_odds} comes out strange. Most give triple compost; the gold-edged ones give a free spin.</p>
+            <div class="g-almanac">${al.map(a => a.got ? `<div class="g-mut${a.rare ? ' rare' : ''}" title="${a.rare ? 'A free spin' : 'Triple compost'}"><span class="e">${a.emoji}</span>
+                <div>${esc(a.name)}<small>${a.rare ? 'rare · a spin' : 'triple compost'}${a.got > 1 ? ` · ×${a.got}` : ''}</small></div></div>`
+                : `<div class="g-mut unknown${a.rare ? ' rare' : ''}"><span class="e">❔</span><div>???<small>${esc(prizeOf(a.crop).name.replace(/ seeds$/, ''))}${a.rare ? ' · rare' : ''}</small></div></div>`).join('')}</div>`;
+        // A new mutation since they last looked: say so once
+        const m = st.mutation;
+        let seen = null;
+        try { seen = localStorage.getItem('na-garden-mutation'); } catch (e) { /* private window */ }
+        if (seen === null) { try { localStorage.setItem('na-garden-mutation', m ? m.at : 1); } catch (e) { /* no memory here */ } }
+        else if (m && m.at > +seen) {
+            try { localStorage.setItem('na-garden-mutation', m.at); } catch (e) { /* this page only */ }
+            const a = al.find(x => x.id === m.id);
+            if (a && window.NATomato) NATomato.toast(`🧬 A mutation! ${a.emoji} ${a.name}`, a.rare ? 'A free spin is waiting at the Sauce-o-Matic.' : 'Triple compost. It went into the almanac.');
+        }
     }
 
     load();

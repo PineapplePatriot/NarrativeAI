@@ -4,7 +4,9 @@
 Spins
 - One on the house (START_SPINS), then one for every SPIN_COST tomatoes thrown at chats and Bulba (TomatoScore.wild, mainapp/tomatoes.py), plus:
 - a free one for each golden splat (1 in 500) thrown at a chat or Bulba, and
-- one for every COMPOST_SPIN compost (what duplicates turn into).
+- one for every COMPOST_SPIN compost (what duplicates turn into), and
+- the garden's tomatoes: filled orders pay tomatoes ("earned", counted with the thrown ones toward spins, not on the
+  leaderboard), and a rare mutation is a free spin (mainapp/tomato_garden.py).
 
 A draw (all on the server, so nobody can rig it from the browser)
 - Tiers: common 75%, rare 21%, legendary 4% (ODDS).
@@ -183,7 +185,7 @@ def banner_ends(bid, today=None):
 
 def _state(score):
     m = dict(score.machine or {})
-    for k in ("used", "bonus", "golden", "compost", "pity_rare", "pity_legend"):
+    for k in ("used", "bonus", "golden", "compost", "pity_rare", "pity_legend", "earned"):
         m[k] = int(m.get(k) or 0)
     m["items"] = dict(m.get("items") or {})
     m["equipped"] = dict(m.get("equipped") or {})
@@ -206,7 +208,7 @@ def _state(score):
 
 def spins_left(score, m=None):
     m = m or _state(score)
-    return max(0, START_SPINS + score.wild // SPIN_COST + m["bonus"] - m["used"])
+    return max(0, START_SPINS + (score.wild + m["earned"]) // SPIN_COST + m["bonus"] - m["used"])
 
 
 def add_golden(score, n):
@@ -406,7 +408,7 @@ def public(score, today=None):
     m = _state(score)
     now = season(today)
     return {
-        "spins": spins_left(score, m), "cost": SPIN_COST, "toward": score.wild % SPIN_COST,
+        "spins": spins_left(score, m), "cost": SPIN_COST, "toward": (score.wild + m["earned"]) % SPIN_COST, "earned": m["earned"],
         "compost": m["compost"], "compost_spin": COMPOST_SPIN, "golden": m["golden"],
         "pity": {"rare": m["pity_rare"], "rare_at": RARE_PITY, "legend": m["pity_legend"], "legend_at": LEGEND_PITY},
         "promise": m["promise"], "promise_sure": m["promise_sure"],

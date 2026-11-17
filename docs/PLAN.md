@@ -162,8 +162,10 @@ Built 17 November: ❄️ **First Snow** (December): the Snow globe tomato (the 
 static/img/tomato/snow_globe.png, also the banner's art) and Babbo Natale (gardener: once a day a present of seeds
 in the shed) as featured legendaries; the Snowman (garden decoration), a snowflake cursor trail and a corner snow
 globe (tap it: it snows over the page) as featured rares.
-Next in Phase E: **orders** (they pay tomatoes) and **mutations** (rare ones give spins), then maybe the house
-quest (below).
+Built 17 November: the **order board** (neighbours post one order a day, at most 3 open, each for 3 days; harvests
+count toward them by themselves and still make compost; a filled order pays 100-300 tomatoes toward spins, not the
+leaderboard) and **mutations** (1 harvest in 20; most triple the compost, the rare one of each crop is a free spin;
+all collected in the garden's almanac). Maybe next: the house quest (below), mutation seeds to replant.
 
 ## Next: story systems with story memory (ideas, 18 November, to choose from)
 
