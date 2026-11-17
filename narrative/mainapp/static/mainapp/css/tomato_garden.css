@@ -56,3 +56,23 @@
 .g-mut.rare { border-color: rgba(255, 197, 49, .55); background: rgba(255, 197, 49, .08); }
 .g-mut.unknown { opacity: .5; }
 .g-mut small { display: block; color: var(--muted, #94a3b8); font-size: .72rem; }
+
+/* 🏡 The cottage panel: the five stages, the builder's order, the last scene */
+.g-cottage-box { grid-column: 1 / -1; }
+.g-steps { display: flex; gap: 6px; flex-wrap: wrap; list-style: none; padding: 0; margin: 10px 0 12px; }
+.g-steps li { display: flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; font-size: .82rem;
+    background: rgba(255, 255, 255, .04); border: 1px solid rgba(255, 255, 255, .1); opacity: .6; }
+.g-steps li.done { opacity: 1; border-color: rgba(134, 239, 172, .5); background: rgba(134, 239, 172, .08); }
+.g-steps li.done::after { content: '✓'; color: #86efac; font-weight: 700; }
+.g-steps li.now { opacity: 1; border-color: rgba(255, 197, 49, .7); background: rgba(255, 197, 49, .1); }
+.g-needs { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px 16px; margin: 8px 0 10px; }
+.g-need { display: grid; grid-template-columns: 1fr auto; align-items: center; font-size: .88rem; }
+.g-need .g-bar { grid-column: 1 / -1; margin: 4px 0 0; height: 8px; }
+.g-cottage-box .g-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.g-scene { margin-top: 12px; border-radius: 12px; background: rgba(143, 227, 220, .06); border: 1px solid rgba(143, 227, 220, .25); padding: 8px 12px; }
+.g-scene summary { cursor: pointer; font-weight: 600; }
+.g-scene p { margin: 6px 0; line-height: 1.45; }
+.g-scene .who { font-weight: 700; color: #8fe3dc; margin-right: 4px; }
+.g-scene p:has(.who:first-child) .who { white-space: nowrap; }
+.g-order.dish { border-color: rgba(255, 180, 120, .45); background: rgba(255, 160, 90, .07); }
+.g-parts { display: block; margin-top: 2px; }

@@ -198,10 +198,13 @@ all collected in the garden's almanac). Each mutation gives its seed: planted, i
 5. **Crew pairs:** two gardeners who work well together get a small extra (Basil + Mr. Death: the night shift).
 6. **A bigger plot** after enough harvests.
 7. ~~The winter banner~~ built: First Snow (December).
-8. **A house by the garden** (musing, 17 November): a quest line to build a cottage in stages (foundation, walls,
-   roof, chimney, porch), each paid in crops and order tomatoes, each unlocking something (a bigger plot, shed
-   space, a kitchen that turns crops into dishes, a mailbox where orders arrive). Mechanics only, our own design.
-   Undecided; after orders and mutations.
+8. ~~A house by the garden~~ built 17 November: **the cottage quest** (mainapp/tomato_house.py). Il Dattore (a
+   scientist who over-engineers everything) builds it with Pantaleone's money (a banker who reads every receipt),
+   a cameo nod in small pixel art. Five stages, each a pinned builder's order (its seeds bought for you; harvests go
+   to it first) plus compost, then some hours of building: foundation → mailbox (4 orders), walls → a 6th row,
+   roof → rain barrel (+25% watering), chimney and kitchen → dish orders (several crops, paid double), porch (3
+   different mutations) → the cottage dresses for the seasons. Under budget (3 days): Pantaleone tips 100 tomatoes.
+   A short scene between the two after each stage. Later, maybe: a second building (a mill), house paint colours.
 
 ## Phase F: messenger mode
 

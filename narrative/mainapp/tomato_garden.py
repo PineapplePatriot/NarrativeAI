@@ -51,6 +51,14 @@ GARDENERS = {
 }
 ORDERS_OPEN = 3
 ORDER_DAYS = 3
+# 🍲 Dishes the cottage kitchen can make (orders for several crops at once, paid double)
+DISHES = (
+    {"name": "Tomato soup", "emoji": "🍲", "needs": {"seed_tomato": 3, "seed_carrot": 1}},
+    {"name": "Sunflower bread", "emoji": "🍞", "needs": {"seed_sunflower": 2, "seed_tomato": 1}},
+    {"name": "Carrot cake", "emoji": "🍰", "needs": {"seed_carrot": 3, "seed_sunflower": 1}},
+    {"name": "Pumpkin risotto", "emoji": "🍚", "needs": {"seed_pumpkin": 1, "seed_tomato": 2}},
+    {"name": "Monstrous salad (it bites back)", "emoji": "🥗", "needs": {"seed_monster": 1, "seed_carrot": 2}},
+)
 NEIGHBOURS = ("Signora Rosa", "the bakery", "Old Man Pepper", "the pizzeria", "Bulba (suspicious)", "the soup kitchen",
               "a very polite crow", "the village fair")
 MUTATION_ODDS = 20
@@ -96,13 +104,26 @@ def _state(score):
     g["log"] = list(g.get("log") or [])
     for k in ("harvests", "watered", "filled", "order_seq"):
         g[k] = int(g.get(k) or 0)
-    g["orders"] = [dict(o) for o in (g.get("orders") or []) if isinstance(o, dict) and o.get("seed") in CROPS]
+    orders = []
+    for o in g.get("orders") or []:
+        if not isinstance(o, dict):
+            continue
+        o = dict(o)
+        if "needs" not in o and o.get("seed"):  # an order from before dishes: one crop
+            o["needs"], o["have"] = {o["seed"]: int(o.get("n") or 1)}, {o["seed"]: int(o.get("got") or 0)}
+        o["needs"] = {k: int(v) for k, v in (o.get("needs") or {}).items() if k in CROPS and int(v) > 0}
+        o["have"] = {k: min(int((o.get("have") or {}).get(k) or 0), n) for k, n in o["needs"].items()}
+        for k in ("seed", "n", "got"):
+            o.pop(k, None)
+        if o["needs"]:
+            orders.append(o)
+    g["orders"] = orders
     g["almanac"] = {k: int(v) for k, v in (g.get("almanac") or {}).items() if k in MUTANT}
     return g
 
 
-def _key(x, y):
-    if not (isinstance(x, int) and isinstance(y, int) and 0 <= x < COLS and 0 <= y < ROWS):
+def _key(x, y, n_rows=ROWS):
+    if not (isinstance(x, int) and isinstance(y, int) and 0 <= x < COLS and 0 <= y < n_rows):
         raise ValueError("That's outside the garden.")
     return f"{x},{y}"
 
@@ -166,18 +187,31 @@ def _mutate(g, m, seed, rng=None):
     return MUTANT[mid]
 
 
+def describe(needs):
+    """{"seed_carrot": 2, "seed_tomato": 1} → "2 carrots and 1 tomato"."""
+    def name(k, n):
+        word = CROPS[k]["name"].lower()
+        return word if n == 1 else word + ("es" if word.endswith("o") else "s")
+    parts = [f"{n} {name(k, n)}" for k, n in needs.items()]
+    return " and ".join(parts) if len(parts) < 3 else ", ".join(parts[:-1]) + " and " + parts[-1]
+
+
 def _deliver(g, m, seed, by=""):
-    """A harvest counts toward the oldest open order for that crop; a filled one pays its tomatoes."""
-    order = next((o for o in g["orders"] if o["seed"] == seed and o["got"] < o["n"]), None)
+    """A harvest goes to the cottage first (the builder's order, mainapp/tomato_house.py), else toward the oldest open
+    order that needs that crop; a filled order pays its tomatoes."""
+    from mainapp import tomato_house as H
+    if H.deliver(g, seed):
+        return "house"
+    order = next((o for o in g["orders"] if o["have"].get(seed, 0) < o["needs"].get(seed, 0)), None)
     if not order:
         return None
-    order["got"] += 1
-    if order["got"] >= order["n"]:
+    order["have"][seed] += 1
+    if all(order["have"][k] >= n for k, n in order["needs"].items()):
         g["orders"].remove(order)
         m["earned"] = int(m.get("earned") or 0) + order["reward"]
         g["filled"] += 1
-        _log(g, f"📋 Order filled for {order['from']}: {order['n']} {CROPS[seed]['name'].lower()}"
-                f"{'s' if order['n'] > 1 else ''}. 🍅 +{order['reward']} tomatoes toward your next spin.")
+        what = order.get("dish") or describe(order["needs"])
+        _log(g, f"📋 Order filled for {order['from']}: {what}. 🍅 +{order['reward']} tomatoes toward your next spin.")
     return order
 
 
@@ -236,23 +270,45 @@ def _orders(g, m, rng=None, today=None):
     now = _now()
     for o in [o for o in g["orders"] if o["due"] <= now]:
         g["orders"].remove(o)
-        _log(g, f"📋 {o['from'].capitalize()} gave up waiting for {o['n']} {CROPS[o['seed']]['name'].lower()}"
-                f"{'s' if o['n'] > 1 else ''}.")
+        _log(g, f"📋 {o['from'].capitalize()} gave up waiting for {o.get('dish') or describe(o['needs'])}.")
     day = (today or timezone.localdate()).isoformat()
-    if g.get("order_day") == day or len(g["orders"]) >= ORDERS_OPEN:
+    from mainapp import tomato_house as H
+    if g.get("order_day") == day or len(g["orders"]) >= order_slots(g):
         return None
     # Crops they can grow: everyday ones always, the rarer ones once they've had their seeds
     crops = ["seed_tomato", "seed_carrot", "seed_sunflower"] + [c for c in ("seed_pumpkin", "seed_monster") if c in m["items"]]
-    seed = rng.choice(crops)
-    n = rng.choice((1, 2, 2, 3)) if CROPS[seed]["hours"] <= 30 else 1
-    reward = max(100, min(300, int(round(CROPS[seed]["hours"] * n * 3.4 / 10)) * 10))
+    dish = None
+    if H.has(g, "kitchen") and rng.random() < .5:  # 🍲 with the kitchen: half the new orders are dishes, paid double
+        dishes = [d for d in DISHES if all(k in crops for k in d["needs"])]
+        dish = rng.choice(dishes) if dishes else None
+    if dish:
+        needs = dict(dish["needs"])
+        hours = sum(CROPS[k]["hours"] * n for k, n in needs.items())
+        reward = max(200, min(600, int(round(hours * 3.4 / 10)) * 20))
+    else:
+        seed = rng.choice(crops)
+        n = rng.choice((1, 2, 2, 3)) if CROPS[seed]["hours"] <= 30 else 1
+        needs = {seed: n}
+        reward = max(100, min(300, int(round(CROPS[seed]["hours"] * n * 3.4 / 10)) * 10))
     g["order_seq"] += 1
-    order = {"id": g["order_seq"], "seed": seed, "n": n, "got": 0, "reward": reward, "from": rng.choice(NEIGHBOURS),
-             "posted": int(now), "due": int(now + ORDER_DAYS * 86400)}
+    order = {"id": g["order_seq"], "needs": needs, "have": {k: 0 for k in needs}, "reward": reward,
+             "from": rng.choice(NEIGHBOURS), "posted": int(now), "due": int(now + ORDER_DAYS * 86400),
+             **({"dish": dish["name"], "emoji": dish["emoji"]} if dish else {})}
     g["orders"].append(order)
     g["order_day"] = day
-    _log(g, f"📋 New order from {order['from']}: {n} {CROPS[seed]['name'].lower()}{'s' if n > 1 else ''} for 🍅 {reward}.")
+    _log(g, f"📋 New order from {order['from']}: " + (f"{dish['emoji']} {dish['name']} ({describe(needs)})" if dish
+                                                      else describe(needs)) + f" for 🍅 {reward}.")
     return order
+
+
+def order_slots(g):
+    from mainapp import tomato_house as H
+    return ORDERS_OPEN + (1 if H.has(g, "mailbox") else 0)
+
+
+def rows(g):
+    from mainapp import tomato_house as H
+    return ROWS + (1 if H.has(g, "plot") else 0)
 
 
 def _locked(user, fn):
@@ -262,7 +318,10 @@ def _locked(user, fn):
         tomatoes.score_of(user)
         score = TomatoScore.objects.select_for_update().get(user=user)
         m, g = M._state(score), _state(score)
+        from mainapp import tomato_house as H
+        H.tick(g, m)
         fn(g, m)
+        H.tick(g, m)
         _orders(g, m)
         _babbo(g, m)
         _robot(g, m)
@@ -279,8 +338,10 @@ def water(score, n):
     plants = [t for t in g["tiles"].values() if t.get("kind") == "plant"]
     if not plants:
         return
+    from mainapp import tomato_house as H
+    each = WATER * (1.25 if H.has(g, "barrel") else 1)  # 🛢️ the cottage's rain barrel
     for t in plants:
-        t["boost"] = t.get("boost", 0) + n * WATER
+        t["boost"] = t.get("boost", 0) + n * each
     g["watered"] += n
     score.garden = g
 
@@ -309,9 +370,12 @@ def act(user, body):
                 m["crew"] = [x for x in now if x != pid]
                 _log(g, f"{M.BY_ID[pid]['name']} went to rest in the shed.")
         return _locked(user, shift)
-    key = _key(body.get("x"), body.get("y"))
+    if action == "build":  # 🏡 pay the compost and let Il Dattore build the next stage of the cottage
+        from mainapp import tomato_house as H
+        return _locked(user, lambda g, m: H.build(g, m))
 
     def go(g, m):
+        key = _key(body.get("x"), body.get("y"), rows(g))
         tile = g["tiles"].get(key)
         if action == "plant":
             if tile:
@@ -370,14 +434,15 @@ def public(score):
         tiles.append(item)
     basket = {pid: n for pid, n in m["items"].items() if pid in CROPS and n > 0}
     basket.update({pid: m["items"][pid] - placed(g, pid) for pid in DECOR if m["items"].get(pid, 0) - placed(g, pid) > 0})
-    return {"cols": COLS, "rows": ROWS, "tiles": tiles, "basket": basket, "compost": m["compost"],
+    from mainapp import tomato_house as H
+    return {"cols": COLS, "rows": rows(g), "tiles": tiles, "house": H.public(g, m), "basket": basket, "compost": m["compost"],
             "gardeners": [{"id": pid, "about": about} for pid, about in GARDENERS.items() if _has(m, pid)],
             "shed": [{"id": pid, "about": about} for pid, about in GARDENERS.items()
                      if m["items"].get(pid) and not _has(m, pid)], "crew_max": CREW,
             "hat": M.worn(score).get("hat", ""), "log": g["log"][:12], "harvests": g["harvests"],
-            "water": WATER, "crops": CROPS, "now": int(now),
-            "orders": [{**o, "name": CROPS[o["seed"]]["name"], "left": max(0, o["due"] - int(now))} for o in g["orders"]],
-            "orders_max": ORDERS_OPEN, "filled": g["filled"], "mutation": g.get("mutation"), "mutation_odds": MUTATION_ODDS,
+            "water": int(WATER * (1.25 if H.has(g, "barrel") else 1)), "crops": CROPS, "now": int(now),
+            "orders": [{**o, "what": describe(o["needs"]), "left": max(0, o["due"] - int(now))} for o in g["orders"]],
+            "orders_max": order_slots(g), "filled": g["filled"], "mutation": g.get("mutation"), "mutation_odds": MUTATION_ODDS,
             "almanac": [{**v, "got": g["almanac"].get(mid, 0)} for mid, v in MUTANT.items()],
             "prizes": {**{p["id"]: {"name": p["name"], "emoji": p["emoji"]} for p in M.PRIZES
                           if p["kind"] in ("seed", "decor", "gardener")},

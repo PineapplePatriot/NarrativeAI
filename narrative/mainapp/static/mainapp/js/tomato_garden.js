@@ -12,14 +12,14 @@
     const CSRF = () => (document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/) || [])[1] || '';
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const calm = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const W = 192, H = 128, S = 4, T = 16, GX = 32, GY = 40;
+    const W = 256, H = 144, S = 4, T = 16, GX = 32, GY = 40;  // the plot on the left, the cottage on the right
     const g = cv.getContext('2d');
     g.imageSmoothingEnabled = false;
 
     // --- Pixel art: rows of letters, one letter per pixel (palette below), '.' is see-through ---
     const PAL = { k: '#1d1b26', g: '#3f9b3a', G: '#2b6b27', l: '#86cf5e', b: '#7a5232', B: '#4f341f', r: '#e0352b', R: '#9e1f17',
         o: '#f07b1d', O: '#b4550f', y: '#f5cf3a', Y: '#c9971a', w: '#ffffff', c: '#efe9dc', s: '#f1c27d', S: '#c98e5a', u: '#4aa8e8',
-        U: '#2a6aa3', n: '#a3acb8', N: '#646d7a', p: '#8e3fb8', P: '#5a2577', t: '#c49155', T: '#8f6331', h: '#e8d28a', H: '#b89a4a', m: '#ff7aa8' };
+        q: '#8fe3dc', Q: '#3f9fa6', U: '#2a6aa3', n: '#a3acb8', N: '#646d7a', p: '#8e3fb8', P: '#5a2577', t: '#c49155', T: '#8f6331', h: '#e8d28a', H: '#b89a4a', m: '#ff7aa8' };
     const cache = new Map();
     function sprite(name, rows, swap = {}) {
         const key = name + JSON.stringify(swap);
@@ -76,6 +76,13 @@
                 '..rrrrrrrr..', '....wwwwRr..', '.b.wwwwwwwb.', '..bwwkwwwb..', '..wwwwwwww..', '..wwwkwwww..', '...wwwwww...'],
         gardener_babbo: ['.......w..', '....rrrr..', '...rrrrr..', '..rrrrrr..', '.wwwwwwww.', '..ssssss..', '..skssks..', '.wwssssww.',
                 '.wwwwwwww.', '..wwwwww..', '.rrwwwwrr.', 'srrrrrrrrs', '.kkkyykkk.', '.rrrrrrrr.'],
+        // 🏡 The cottage's visitors: Il Dattore (pale teal hair, a dark mask across the eyes, a long white coat with dark
+        // feathers at the collar) and Pantaleone (black hair with a violet streak, little glasses, a fur collar, a
+        // black coat lined in violet, a gold coin pin)
+        visitor_dattore: ['...qqqq...', '..qqqqqq..', '.qqQqqqQq.', '.qkkrrkkq.', '.qssssssq.', '..ssssss..', '.kkUUUUkk.',
+                'kwwwUUwwwk', '.wwwyywww.', 'swwwUUwwws', '.wwwwwwww.', '.wwkwwkww.'],
+        visitor_pantaleone: ['...kkkk...', '..kkkkkk..', '.kkpkkkkk.', '.kssssssk.', '.knnssnnk.', '..ssssss..', '.NNNNNNNN.',
+                'kPpkkkkpPk', 'kPpkyykpPk', 'sPpkkkkpPs', '.Ppkkkkpp.', '.PP.kk.PP.'],
         ripe_seed_monster: ['..p.....p.......', '.pPp...pPp......', 'pPmPp.pPmPp.....', '.pPPPpPPPp......', '..pPwkwkPp......',
                 '..pPkkkkPp......', '..pPwkwkPp......', '...pPPPPp.......', '....g..g........', '..lgg..gg.l.....', '.lgl..g..lgl....',
                 '..l...g...l.....', '......g.........', '.....bgb........'],
@@ -94,6 +101,8 @@
         gardener_witch: [['..pp..pp..', '..kk..kk..'], ['...pp.pp..', '...kk.kk..']],
         gardener_death: [['.n.k..k...', '.n.k..k...'], ['.n..k.k...', '.n..k.k...']],
         gardener_babbo: [['..rr..rr..', '..kk..kk..'], ['...rr.rr..', '...kk.kk..']],
+        visitor_dattore: [['..kk..kk..', '..kk..kk..'], ['...kk.kk..', '...kk.kk..']],
+        visitor_pantaleone: [['..kk..kk..', '..PP..PP..'], ['...kk.kk..', '...PP.PP..']],
     };
     const FLOWER = { seed_tomato: 'y', seed_carrot: 'w', seed_sunflower: 'y', seed_pumpkin: 'y', seed_monster: 'm' };
     const HATS = { '👑': 'hat_crown', '👒': 'hat_straw', '🎩': 'hat_top' };
@@ -106,6 +115,11 @@
                          'I collect only what is due. Compost, mostly.'],
         gardener_babbo: ['Ho ho... no. Buon Natale!', 'Not that one. The other one. The better-dressed one.',
                          'A present for the shed. Do not shake it.', 'Mamma mia, this soil is frozen.', 'Panettone after the harvest, sì?'],
+        visitor_dattore: ['Hm. This wall would be improved by a small reactor.', 'Do not touch the lightning rod. It bites.',
+                          'Measure twice, cut once, electrify thrice.', 'Pantaleone calls it “a cottage”. I call it “phase one”.',
+                          'Hand me the screwdriver. No, the other screwdriver. The one that hums.'],
+        visitor_pantaleone: ['Every brick has a receipt. Every receipt has a brick.', 'Is that… a second lightning rod?',
+                             'Lovely. Expensive, but lovely.', 'I am not here. I am auditing.', 'Bulba, stop eating the invoices.'],
         bulba: ["I'm not a gardener. I'm a vegetable with opinions.", 'Plant something. I’m bored.', 'Those are my cousins. Be nice.',
                 'The pumpkin is judging you. So am I.', 'Throw tomatoes at slow replies. It waters this place.'],
     };
@@ -135,26 +149,31 @@
     const STAGES = [[0.15, 'seed'], [0.4, 'sprout'], [0.7, 'leafy'], [1, 'bloom']];
     const stageOf = (p) => (STAGES.find(([lim]) => p < lim) || [0, 'ripe'])[1];
     const STAGE_WORD = { seed: 'Just planted', sprout: 'Sprouting', leafy: 'Growing', bloom: 'Blooming', ripe: 'Ripe!' };
-    const dur = (s) => { s = Math.max(0, Math.round(s)); const h = Math.floor(s / 3600), m = Math.ceil((s % 3600) / 60);
-        return h ? `${h} h ${m} min` : `${m} min`; };
+    const dur = (s) => { const all = Math.max(1, Math.ceil(Math.max(0, s) / 60)), h = Math.floor(all / 60), m = all % 60;
+        return h ? (m ? `${h} h ${m} min` : `${h} h`) : `${m} min`; };
 
     // --- Gardeners and critters ---
     const walkers = new Map();
     function syncGardeners() {
-        const ids = new Set(st.gardeners.map(x => x.id));
-        st.gardeners.forEach((x, i) => { if (!walkers.has(x.id)) walkers.set(x.id, { id: x.id, x: 40 + i * 30, y: 100, tx: 0, ty: 0, wait: 1 + i, frame: 0, flip: false, say: '', sayFor: 0, act: 0 }); });
+        // the cottage's visitors: Il Dattore while he's building it (and on the porch after); Pantaleone for a day after a scene
+        const hs = st.house || {}, recent = hs.scene && hs.scene.at && (Date.now() / 1000 - hs.scene.at) < 86400;
+        const people = [...st.gardeners, ...(hs.stage !== undefined ? [{ id: 'visitor_dattore', visitor: true }] : []),
+                        ...(recent ? [{ id: 'visitor_pantaleone', visitor: true }] : [])];
+        const ids = new Set(people.map(x => x.id));
+        people.forEach((x, i) => { if (!walkers.has(x.id)) walkers.set(x.id, { id: x.id, visitor: !!x.visitor, x: x.visitor ? 200 + i * 6 : 40 + i * 30, y: x.visitor ? 118 : 100, tx: 0, ty: 0, wait: 1 + i, frame: 0, flip: false, say: '', sayFor: 0, act: 0 }); });
         [...walkers.keys()].forEach(k => { if (!ids.has(k)) walkers.delete(k); });
     }
     function pickTarget(w) {
+        if (w.visitor) { w.tx = 176 + Math.random() * 72; w.ty = 112 + Math.random() * 24; w.goal = Math.random() < .4 ? 'tend' : 'stroll'; return; }
         const plants = st.tiles.filter(t => t.kind === 'plant');
         if (plants.length && Math.random() < .55) {
             const t = plants[Math.floor(Math.random() * plants.length)];
             w.tx = GX + t.x * T + 8 + (Math.random() < .5 ? -9 : 9); w.ty = GY + t.y * T + 15; w.goal = 'tend';
-        } else { w.tx = 10 + Math.random() * 172; w.ty = 36 + Math.random() * 86; w.goal = 'stroll'; }
+        } else { w.tx = 10 + Math.random() * (W - 20); w.ty = 36 + Math.random() * (H - 42); w.goal = 'stroll'; }
     }
     const bits = [];  // droplets, notes, sparks
     function act(w) {
-        const n = { gardener_farmer: 5, gardener_witch: 2, gardener_robot: 3, gardener_frog: 0, gardener_death: 2, gardener_babbo: 4 }[w.id] || 0;
+        const n = { gardener_farmer: 5, gardener_witch: 2, gardener_robot: 3, gardener_frog: 0, gardener_death: 2, gardener_babbo: 4, visitor_dattore: 3 }[w.id] || 0;
         for (let i = 0; i < n; i++) bits.push({ x: w.x + (w.flip ? -6 : 6), y: w.y - 10, vx: (Math.random() - .5) * 8 + (w.flip ? -8 : 8),
             vy: -10 - Math.random() * 8, life: 1, kind: w.id === 'gardener_farmer' ? 'drop' : w.id === 'gardener_witch' ? 'note' : w.id === 'gardener_death' ? 'wisp' : w.id === 'gardener_babbo' ? 'snow' : 'spark' });
         if (w.id === 'gardener_frog') w.hop = 1;
@@ -174,7 +193,7 @@
     const butterflies = Array.from({ length: 3 }, (_, i) => ({ x: 30 + i * 60, y: 50 + i * 15, ph: i * 2 }));
     const flies = Array.from({ length: 10 }, (_, i) => ({ x: Math.random() * W, y: 40 + Math.random() * 80, ph: i }));
     const STARS = Array.from({ length: 24 }, (_, i) => ({ x: (i * 53) % W, y: 2 + (i * 29) % 22, ph: i }));
-    const bulba = { x: 6, y: 104, blink: 0, say: '', sayFor: 0 };
+    const bulba = { x: 6, y: H - 24, blink: 0, say: '', sayFor: 0 };
 
     // --- Time of day ---
     function sky(h) {
@@ -185,8 +204,9 @@
     }
     let bg = null, bgHour = -1;
     function background(h) {  // sky, fence, lawn and soil, redrawn when the hour changes
-        if (bg && bgHour === h) return bg;
-        bgHour = h;
+        const key = h + '|' + (st ? st.rows : 5);  // (the plot grows a row with the cottage's walls)
+        if (bg && bgHour === key) return bg;
+        bgHour = key;
         bg = document.createElement('canvas'); bg.width = W; bg.height = H;
         const b = bg.getContext('2d'), [top, low] = sky(h);
         const grad = b.createLinearGradient(0, 0, 0, 30); grad.addColorStop(0, top); grad.addColorStop(1, low);
@@ -208,7 +228,7 @@
     }
     function sunMoon(h, m) {
         const day = h >= 6 && h < 20, t = day ? ((h - 6) + m / 60) / 14 : (((h + 4) % 24) + m / 60) / 10;
-        const x = 8 + t * 176, y = 18 - Math.sin(t * Math.PI) * 13;
+        const x = 8 + t * (W - 16), y = 18 - Math.sin(t * Math.PI) * 13;
         g.fillStyle = day ? '#ffe680' : '#eef2ff';
         g.beginPath(); g.arc(x, y, day ? 5 : 4, 0, Math.PI * 2); g.fill();
         if (!day) { g.fillStyle = sky(h)[0]; g.beginPath(); g.arc(x + 2, y - 1, 3.4, 0, Math.PI * 2); g.fill(); }
@@ -222,6 +242,59 @@
         if (stg === 'ripe') return sprite('ripe_' + kind, ART['ripe_' + kind]);
         if (stg === 'bloom') return sprite('bloom', ART.bloom, { F: FLOWER[kind] || 'y' });
         return sprite(stg, ART[stg]);
+    }
+    // 🏡 The cottage, drawn in the stages built so far (mainapp/tomato_house.py); scaffolding while one is being built
+    function cottage(sec, h, moving, night) {
+        const hs = st.house;
+        if (!hs) return;
+        const n = hs.stage, X = 182, F = 104, R = (x, y, w, hh, c) => { g.fillStyle = c; g.fillRect(x, y, w, hh); };
+        const month = new Date().getMonth();
+        if (n < 1) {  // a sign on a stake: something is coming
+            R(206, F - 22, 2, 22, '#7a5232'); R(197, F - 26, 20, 10, '#c49155'); R(197, F - 26, 20, 1, '#8f6331');
+            R(201, F - 23, 12, 1, '#4f341f'); R(203, F - 20, 8, 1, '#4f341f');
+        }
+        if (n >= 1) {  // foundation, and the mailbox beside it
+            R(X - 4, F - 6, 64, 6, '#8e939c'); for (let x = X - 2; x < X + 58; x += 8) R(x, F - 6, 1, 6, '#6d727b'); R(X - 4, F - 6, 64, 1, '#b5bac2');
+            R(X - 12, F - 18, 2, 18, '#7a5232'); R(X - 16, F - 24, 10, 7, '#2a6aa3'); R(X - 16, F - 24, 10, 1, '#4aa8e8'); R(X - 7, F - 27, 1, 4, '#e0352b');
+        }
+        if (n >= 2) {  // walls with a door and two windows (warm light at night)
+            R(X, F - 34, 56, 28, '#efe9dc'); R(X, F - 34, 56, 2, '#c49155'); R(X, F - 22, 56, 1, '#c49155'); R(X, F - 34, 2, 28, '#8f6331'); R(X + 54, F - 34, 2, 28, '#8f6331');
+            R(X + 23, F - 22, 10, 16, '#7a5232'); R(X + 30, F - 15, 1, 2, '#f5cf3a');
+            const lit = night > .1 ? '#ffd36b' : '#9fd3ff';
+            [[X + 7, F - 30], [X + 40, F - 30]].forEach(([x, y]) => { R(x, y, 9, 8, '#7a5232'); R(x + 1, y + 1, 7, 6, lit); R(x + 4, y + 1, 1, 6, '#7a5232'); R(x + 1, y + 4, 7, 1, '#7a5232'); });
+            if (n >= 5) {  // window boxes on the finished cottage
+                [[X + 6, F - 22], [X + 39, F - 22]].forEach(([x, y]) => { R(x, y, 11, 2, '#8f6331'); R(x + 1, y - 1, 2, 1, '#ff7aa8'); R(x + 5, y - 1, 2, 1, '#f5cf3a'); R(x + 8, y - 1, 2, 1, '#ff7aa8'); });
+            }
+        }
+        if (n >= 3) {  // a red roof, the lightning rod Pantaleone didn't approve, and the rain barrel
+            for (let i = 0; i < 16; i++) R(X - 4 + i * 2, F - 35 - i, 64 - i * 4, 1, i % 4 === 0 ? '#9e1f17' : '#e0352b');
+            R(X + 27, F - 58, 1, 8, '#646d7a'); if (moving && Math.sin(sec * 2.3) > .9) R(X + 26, F - 60, 3, 2, '#fff7a8'); else R(X + 27, F - 59, 1, 1, '#f5cf3a');
+            R(X + 60, F - 14, 9, 14, '#6d5a44'); R(X + 60, F - 12, 9, 1, '#3d3a3a'); R(X + 60, F - 5, 9, 1, '#3d3a3a'); R(X + 61, F - 14, 7, 1, '#4aa8e8');
+        }
+        if (n >= 4) {  // the chimney, and smoke from the kitchen
+            R(X + 42, F - 54, 7, 14, '#a8442c'); R(X + 41, F - 55, 9, 2, '#7a2f1f');
+            if (moving) for (let i = 0; i < 4; i++) {
+                const k = (sec * .5 + i / 4) % 1;
+                g.fillStyle = `rgba(230, 230, 235, ${.6 * (1 - k)})`;
+                g.beginPath(); g.arc(X + 45 + Math.sin(k * 6 + i) * 3 + k * 6, F - 58 - k * 22, 1.5 + k * 3, 0, Math.PI * 2); g.fill();
+            }
+        }
+        if (n >= 5) {  // the porch, a rocking chair that rocks by itself, and the season on the door
+            R(X - 4, F - 3, 64, 3, '#c49155'); R(X - 4, F - 3, 64, 1, '#e8d28a'); R(X + 2, F - 20, 2, 17, '#8f6331'); R(X + 52, F - 20, 2, 17, '#8f6331');
+            const rock = moving ? Math.round(Math.sin(sec * 1.6) * 1) : 0;
+            R(X + 8 + rock, F - 13, 2, 9, '#7a5232'); R(X + 8 + rock, F - 7, 8, 2, '#7a5232'); R(X + 7, F - 4, 10, 1, '#4f341f');
+            if (month === 11 || month === 0) { R(X + 25, F - 20, 6, 6, '#2b6b27'); R(X + 26, F - 19, 4, 4, '#7a5232'); R(X + 27, F - 21, 2, 2, '#e0352b'); }  // a wreath
+            else if (month >= 8) { R(X + 35, F - 8, 6, 5, '#f07b1d'); R(X + 37, F - 9, 2, 1, '#2b6b27'); }  // a pumpkin
+            else if (month >= 5) { R(X + 36, F - 12, 1, 8, '#3f9b3a'); R(X + 34, F - 15, 5, 4, '#f5cf3a'); R(X + 36, F - 14, 1, 2, '#4f341f'); }  // a sunflower
+            else { R(X + 35, F - 7, 2, 2, '#ff7aa8'); R(X + 38, F - 6, 2, 2, '#f7a8c8'); R(X + 36, F - 5, 3, 1, '#3f9b3a'); }  // spring flowers
+        }
+        if (hs.building) {  // scaffolding over what's going up
+            const top = [F - 12, F - 38, F - 54, F - 60, F - 24][Math.min(n, 4)];
+            g.fillStyle = '#b07a3e';
+            for (let x = X - 6; x <= X + 60; x += 22) g.fillRect(x, top, 2, F - top);
+            for (let y = top + 4; y < F; y += 10) g.fillRect(X - 6, y, 68, 1);
+            if (moving && Math.sin(sec * 5) > .8) bits.push({ x: X + Math.random() * 56, y: top + Math.random() * 10, vx: (Math.random() - .5) * 10, vy: -8, life: .6, kind: 'spark' });
+        }
     }
     function draw(time) {
         const now = new Date(), h = now.getHours(), mi = now.getMinutes(), sec = time / 1000;
@@ -262,6 +335,7 @@
                 g.restore();
             } });
         });
+        things.push({ y: 104, f: () => cottage(sec, h, moving, sky(h)[2]) });  // the cottage sorts with the walkers
         things.sort((a, b) => a.y - b.y).forEach(t => t.f());
         // Bulba in the corner, in their hat
         const blink = moving && (sec % 4.2) < .15;
@@ -457,17 +531,58 @@
         $('gLog').innerHTML = st.log.length ? st.log.map(l => `<li>${esc(l.text)} <span class="muted">${new Date(l.at * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></li>`).join('')
             : '<li class="muted">Nothing yet.</li>';
         paintBoard();
+        paintCottage();
         if (sel) paintTile();
     }
+    // 🏡 The cottage: the stage being built, its builder's order, the last scene between Il Dattore and Pantaleone
+    const WHO = { 'Il Dattore': '🔬', 'Pantaleone': '💰' };
+    function paintCottage() {
+        const hs = st.house, box = $('gCottage');
+        if (!hs || !box) return;
+        const steps = hs.stages.map((s, i) => `<li class="${i < hs.stage ? 'done' : i === hs.stage ? 'now' : ''}" title="${esc(s.about)}">${s.emoji}<span>${esc(s.name)}</span></li>`).join('');
+        let body = '';
+        const c = hs.current;
+        if (!c) body = `<p><b>The cottage is finished.</b> ${esc(hs.builder)} is already sketching a mill. ${esc(hs.banker)} is already sketching an audit.</p>`;
+        else if (hs.building) body = `<p><b>${c.emoji} ${esc(c.name)}</b>: ${esc(hs.builder)} is building. Ready in about ${dur(hs.building)}.</p>
+            <p class="muted g-small">Then: ${esc(c.about)}</p>`;
+        else {
+            const needs = c.needs.map(x => `<div class="g-need"><span>${x.seed === 'seed_tomato' ? '🍅' : prizeOf(x.seed).emoji} ${esc(x.name)}</span><b>${x.have} / ${x.n}</b>
+                <div class="g-bar"><i style="width:${Math.round(x.have / x.n * 100)}%"></i></div></div>`).join('')
+                + (c.mutations ? `<div class="g-need"><span>🧬 Different mutations found</span><b>${Math.min(c.found, c.mutations)} / ${c.mutations}</b>
+                <div class="g-bar"><i style="width:${Math.round(Math.min(c.found, c.mutations) / c.mutations * 100)}%"></i></div></div>` : '');
+            body = `<p><b>${c.emoji} ${esc(c.name)}</b>: the builder's order. Harvests go here first.</p><div class="g-needs">${needs}</div>
+                <div class="g-row"><button type="button" class="na-btn${hs.ready ? ' na-primary' : ''}" data-build ${hs.ready ? '' : 'disabled'}>🔨 Build it: ♻ ${c.compost} compost</button>
+                <span class="muted g-small">${esc(hs.ready ? `${hs.builder} needs about ${c.hours} hours.` : hs.why)}</span></div>
+                <p class="muted g-small">Unlocks: ${esc(c.about)}${c.budget_left ? ` · 💰 In within ${dur(c.budget_left)} and ${esc(hs.banker)} tips 🍅 100.` : ''}</p>`;
+        }
+        const sc = hs.scene || {}, lines = sc.lines || [];
+        let seen = null;
+        try { seen = localStorage.getItem('na-cottage-scene'); } catch (e) { /* private window */ }
+        const fresh = lines.length && String(sc.at) !== seen;
+        box.innerHTML = `<ol class="g-steps">${steps}</ol>${body}
+            ${lines.length ? `<details class="g-scene"${fresh ? ' open' : ''}><summary>${fresh ? '✨ ' : ''}${esc(hs.builder)} and ${esc(hs.banker)}${fresh ? ' have something to say' : ': the last word'}</summary>
+                <div>${lines.map(l => `<p><span class="who">${WHO[l.who] || '🗨️'} ${esc(l.who)}</span> ${esc(l.text)}</p>`).join('')}</div></details>` : ''}`;
+        const d = box.querySelector('.g-scene');
+        if (d) d.addEventListener('toggle', () => { try { localStorage.setItem('na-cottage-scene', String(sc.at)); } catch (e) { /* this page only */ } });
+    }
+    $('gCottage') && $('gCottage').addEventListener('click', async (e) => {
+        const b = e.target.closest('[data-build]');
+        if (!b) return;
+        b.disabled = true;
+        try { take(await call({ action: 'build' })); } catch (err) { if (window.NADialog) NADialog.alert(err.message); b.disabled = false; }
+    });
     // 📋 The order board and 🧬 the almanac
     function paintBoard() {
         const orders = st.orders || [], days = (s) => s >= 86400 ? `${Math.ceil(s / 86400)} days left` : `${Math.max(1, Math.round(s / 3600))} h left`;
         $('gFilled').textContent = st.filled ? `${st.filled} filled` : '';
-        $('gOrders').innerHTML = (orders.length ? `<div class="g-orders">${orders.map(o => `<div class="g-order">
-                <span class="e">${o.seed === 'seed_tomato' ? '🍅' : prizeOf(o.seed).emoji}</span>
-                <div><b>${o.n} × ${esc(o.name.toLowerCase())}</b> <small>for ${esc(o.from)} · ${days(o.left)}</small></div>
+        const icon = (seed) => seed === 'seed_tomato' ? '🍅' : prizeOf(seed).emoji;
+        const total = (o) => Object.values(o.needs).reduce((a, b) => a + b, 0), have = (o) => Object.values(o.have).reduce((a, b) => a + b, 0);
+        $('gOrders').innerHTML = (orders.length ? `<div class="g-orders">${orders.map(o => `<div class="g-order${o.dish ? ' dish' : ''}">
+                <span class="e">${o.dish ? o.emoji : icon(Object.keys(o.needs)[0])}</span>
+                <div><b>${o.dish ? esc(o.dish) : esc(o.what)}</b> <small>for ${esc(o.from)} · ${days(o.left)}</small>
+                ${o.dish || Object.keys(o.needs).length > 1 ? `<small class="g-parts">${Object.entries(o.needs).map(([k, n]) => `${icon(k)} ${o.have[k] || 0}/${n}`).join(' · ')}</small>` : ''}</div>
                 <span class="pay">🍅 ${o.reward}</span>
-                <div class="g-bar"><i style="width:${Math.round(o.got / o.n * 100)}%"></i></div></div>`).join('')}</div>`
+                <div class="g-bar"><i style="width:${Math.round(have(o) / total(o) * 100)}%"></i></div></div>`).join('')}</div>`
             : '<p class="muted g-small">No orders right now. A new one goes up each day.</p>')
             + `<p class="muted g-small">Up to ${st.orders_max} at a time, a new one each day. Harvests count toward them by themselves (and still make compost). Tomatoes from orders count toward your next spin.</p>`;
         const al = st.almanac || [], found = al.filter(a => a.got);
