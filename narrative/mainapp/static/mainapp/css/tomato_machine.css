@@ -234,13 +234,51 @@ body.mach-open { overflow: hidden; }
 .mach-box[data-banner="lantern"] .mach-sign { background: linear-gradient(180deg, #5a2a6e, #2c1540); box-shadow: 0 0 18px rgba(255, 150, 60, .35); }
 .mach-box[data-banner="lantern"] .mach-sign i { background: #ffb347; box-shadow: 0 0 8px #ff8a2a; }
 .mach-box[data-banner="lantern"] { --legendary: #ffb347; }
+/* ❄️ First Snow: a cold blue night, snow falling, the snow globe on the right; the machine wears frost */
+.pe-img { display: inline-block; width: 1.15em; height: 1.15em; object-fit: contain; vertical-align: -.2em; }
+.mb-tab.mb-winter.on { background: #12304f; border-color: rgba(170, 220, 255, .6); }
+.mb-card:has(.mb-art-winter) { border-color: rgba(170, 220, 255, .5); }
+.mb-art-winter { background: radial-gradient(120% 90% at 85% 0%, #2f5f8f 0%, #163458 45%, #0a1a30 100%); }
+.mb-art-winter::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 60px; z-index: -1;
+    background: linear-gradient(180deg, transparent, rgba(235, 245, 255, .22)); }
+.mb-art-winter .mb-title { margin-top: 18px; max-width: calc(100% - 170px); }
+.mb-art-winter .mb-title small { color: #cfe8ff; }
+.mb-art-winter .mb-title h3 { text-shadow: 0 0 18px rgba(150, 210, 255, .7), 0 2px 0 rgba(0, 0, 0, .4); color: #f4fbff; -webkit-text-fill-color: #f4fbff; }
+.mb-art-winter .mb-title p { color: #e3f1ff; }
+.mb-art-winter .mb-feat .e { filter: drop-shadow(0 0 10px rgba(170, 220, 255, .6)); }
+.mb-art-winter .mb-feat.legendary { border-color: rgba(190, 230, 255, .75);
+    background: linear-gradient(160deg, rgba(190, 230, 255, .2), rgba(120, 170, 255, .06) 60%, rgba(255, 255, 255, .03));
+    box-shadow: 0 0 22px rgba(170, 220, 255, .2), inset 0 1px 0 rgba(255, 255, 255, .2); }
+.mb-art-winter .mb-up { background: linear-gradient(90deg, #e8f6ff, #8fd0ff); color: #0b2742; }
+.mb-art-winter .mb-feat small, .mb-art-winter .mb-rule { color: #dbeaf8; }
+.mb-hero { position: absolute; top: 10px; right: 14px; width: 150px; height: 150px; object-fit: contain; z-index: -1;
+    filter: drop-shadow(0 8px 18px rgba(0, 0, 0, .45)); animation: mbGlobe 6s ease-in-out infinite; transform-origin: 50% 90%; }
+@keyframes mbGlobe { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg) translateY(-3px); } }
+.mb-flakes { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.mb-flakes i { position: absolute; top: -16px; font-style: normal; color: #fff; opacity: .8; font-size: 12px;
+    text-shadow: 0 0 4px rgba(160, 210, 255, .9); animation: mbSnow 9s linear infinite; }
+.mb-flakes i:nth-child(odd) { font-size: 9px; animation-duration: 12s; }
+.mb-flakes i:nth-child(3n) { font-size: 15px; animation-duration: 7.5s; }
+.mb-flakes i:nth-child(1) { left: 4%; animation-delay: -1s; } .mb-flakes i:nth-child(2) { left: 11%; animation-delay: -6s; }
+.mb-flakes i:nth-child(3) { left: 19%; animation-delay: -3s; } .mb-flakes i:nth-child(4) { left: 26%; animation-delay: -8s; }
+.mb-flakes i:nth-child(5) { left: 33%; animation-delay: -4.5s; } .mb-flakes i:nth-child(6) { left: 41%; animation-delay: -2s; }
+.mb-flakes i:nth-child(7) { left: 48%; animation-delay: -10s; } .mb-flakes i:nth-child(8) { left: 56%; animation-delay: -5s; }
+.mb-flakes i:nth-child(9) { left: 63%; animation-delay: -7s; } .mb-flakes i:nth-child(10) { left: 70%; animation-delay: -.5s; }
+.mb-flakes i:nth-child(11) { left: 77%; animation-delay: -9s; } .mb-flakes i:nth-child(12) { left: 84%; animation-delay: -3.5s; }
+.mb-flakes i:nth-child(13) { left: 91%; animation-delay: -6.5s; } .mb-flakes i:nth-child(14) { left: 97%; animation-delay: -2.5s; }
+@keyframes mbSnow { from { transform: translate(0, 0) rotate(0); } 50% { transform: translate(14px, 160px) rotate(180deg); }
+    to { transform: translate(-6px, 340px) rotate(360deg); } }
+.mach-box[data-banner="winter"] .mach-sign { background: linear-gradient(180deg, #2c5c8c, #12304f); box-shadow: 0 0 18px rgba(150, 210, 255, .35); }
+.mach-box[data-banner="winter"] .mach-sign i { background: #dff3ff; box-shadow: 0 0 8px #8fd0ff; }
+.mach-box[data-banner="winter"] { --legendary: #bfe6ff; }
 @media (max-width: 560px) {
-    .mb-art { padding: 16px 14px 14px; }
+    .mb-hero { width: 92px; height: 92px; top: 8px; right: 8px; }
+    .mb-art-winter .mb-title { margin-top: 70px; max-width: none; }
     .mb-title h3 { font-size: 1.45rem; }
     .mb-moon { width: 40px; height: 40px; right: 14px; }
     .mb-feat.legendary { flex-basis: 100%; }
 }
-@media (prefers-reduced-motion: reduce) { .mb-lanterns i { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .mb-lanterns i, .mb-hero { animation: none; } .mb-flakes { display: none; } }
 /* The featured rares: small display tiles (not pills, so they don't read as buttons) */
 .mb-rares-head { margin: 14px 0 6px; font-size: .7rem; text-transform: uppercase; letter-spacing: .12em; color: #a9d4ff; }
 .mb-rares { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-top: 0; }

@@ -111,6 +111,17 @@
         }
     }
 
+    // Pictures (skins drawn from an image), loaded once; pages redraw on 'na-picture-ready'
+    const PICS = {};
+    function picture(src) {
+        if (!PICS[src]) {
+            const im = new Image();
+            im.onload = () => document.dispatchEvent(new CustomEvent('na-picture-ready', { detail: src }));
+            im.src = src;
+            PICS[src] = im;
+        }
+        return PICS[src];
+    }
     function draw(g, sp) {
         const rnd = rng(sp.seed || 1), r = sp.r, t = sp.t || 'splat';
         g.save();
@@ -141,7 +152,10 @@
             g.textAlign = 'center';
             g.textBaseline = 'middle';
             if (sp.f) g.filter = sp.f;
-            g.fillText(sp.k, 0, 0);
+            if (String(sp.k).startsWith('/static/')) {  // a skin drawn from a picture (the snow globe)
+                const pic = picture(sp.k), size = Math.round(r * (t === 'stamp' ? 1.8 : 1.2));
+                if (pic.complete && pic.naturalWidth) g.drawImage(pic, -size / 2, -size / 2, size, size);
+            } else g.fillText(sp.k, 0, 0);
         }
         g.restore();
     }
@@ -166,5 +180,5 @@
         o.fillText('painted with vegetables · the Tomato Pit · Narrative AI', out.width - 18 * k, out.height - 16 * k);
         return out;
     }
-    window.NASplat = { W, H, TEXTURES, SHAPES, background, draw, paint, signed, light };
+    window.NASplat = { W, H, TEXTURES, SHAPES, background, draw, paint, signed, light, picture };
 })();

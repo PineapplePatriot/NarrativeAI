@@ -22,6 +22,8 @@
     // 🏮 Banners: the seasonal one (while it runs) and the standard one; the one you look at is the one you pull on
     let bannerId = (() => { try { return localStorage.getItem('na-mach-banner') || ''; } catch (e) { return ''; } })();
     const banner = () => (state.banners || []).find(b => b.id === bannerId) || (state.banners || [])[0] || { id: 'standard' };
+    // A prize's face: its picture when it has one (the snow globe), else its emoji
+    const pe = (p) => p.img ? `<img class="pe-img" src="${esc(p.img)}" alt="">` : p.emoji;
     const prize = (id) => (state && state.prizes.find(p => p.id === id)) || { id, emoji: '❔', name: id, tier: 'common' };
 
     async function call(body) {
@@ -111,19 +113,20 @@
             const legends = s.prizes.filter(p => p.tier === 'legendary' && !p.banner && p.now);
             body = `<div class="mb-art mb-art-standard"><div class="mb-title"><small>The Sauce-o-Matic</small><h3>🎰 Standard</h3>
                 <p>${esc(B.tagline)} Bulba's Promise picks the legendary you're after.</p></div>
-                <div class="mb-show">${legends.map(p => `<div class="mb-feat legendary small" title="${esc(p.note)}"><span class="e">${p.emoji}</span><b>${esc(p.name)}</b></div>`).join('')}</div></div>`;
+                <div class="mb-show">${legends.map(p => `<div class="mb-feat legendary small" title="${esc(p.note)}"><span class="e">${pe(p)}</span><b>${esc(p.name)}</b></div>`).join('')}</div></div>`;
         } else {
             const L = (B.featured.legendary || []).map(prize), R = (B.featured.rare || []).map(prize);
             const end = B.ends ? new Date(B.ends + 'T12:00:00').toLocaleDateString([], { day: 'numeric', month: 'long' }) : '';
             body = `<div class="mb-art mb-art-${B.id}">
-                <div class="mb-lanterns" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-                <div class="mb-moon" aria-hidden="true"></div>
+                ${B.id === 'lantern' ? '<div class="mb-lanterns" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="mb-moon" aria-hidden="true"></div>' : ''}
+                ${B.id === 'winter' ? '<div class="mb-flakes" aria-hidden="true">' + '<i>❄</i>'.repeat(14) + '</div>' : ''}
+                ${B.art ? `<img class="mb-hero" src="${esc(B.art)}" alt="" aria-hidden="true">` : ''}
                 <div class="mb-title"><small>Seasonal banner · until ${esc(end)} (${daysLeft(B.ends)})</small><h3>${B.emoji} ${esc(B.name)}</h3>
                     <p>${esc(B.tagline)}</p></div>
                 <div class="mb-show">${L.map(p => `<div class="mb-feat legendary" title="${esc(p.note)}"><span class="mb-up">Rate up</span>
-                    <span class="e">${p.emoji}</span><b>${esc(p.name)}</b><small>${esc(p.note)}</small>${s.items[p.id] ? '<span class="mb-got">✓ yours</span>' : ''}</div>`).join('')}</div>
+                    <span class="e">${pe(p)}</span><b>${esc(p.name)}</b><small>${esc(p.note)}</small>${s.items[p.id] ? '<span class="mb-got">✓ yours</span>' : ''}</div>`).join('')}</div>
                 <div class="mb-rares-head">Featured rares</div>
-                <div class="mb-rares">${R.map(p => `<div class="mb-feat rare" title="${esc(p.note)}"><span class="mb-tier">Rare</span><span class="e">${p.emoji}</span><b>${esc(p.name)}</b>${s.items[p.id] ? '<span class="mb-got">✓ yours</span>' : ''}</div>`).join('')}</div>
+                <div class="mb-rares">${R.map(p => `<div class="mb-feat rare" title="${esc(p.note)}"><span class="mb-tier">Rare</span><span class="e">${pe(p)}</span><b>${esc(p.name)}</b>${s.items[p.id] ? '<span class="mb-got">✓ yours</span>' : ''}</div>`).join('')}</div>
                 <p class="mb-rule">A legendary here is featured half the time, and surely the next time after a miss; rares too. Only on this banner, only until it ends.</p>
               </div>`;
         }
@@ -163,7 +166,7 @@
                 if (WEAR[p.kind]) act = `<button type="button" class="na-btn${on ? ' on' : ''}" data-equip="${p.kind}" data-id="${on ? '' : p.id}">${on ? '✓ Wearing · take off' : WEAR[p.kind]}</button>`;
                 else if (p.kind === 'skin') act = `<button type="button" class="na-btn" data-throw="${p.id}">Throw it</button>`;
                 else if (p.kind === 'seed' || p.kind === 'decor' || p.kind === 'gardener') act = `<a class="na-btn" href="${box.dataset.garden}">🌻 To the garden</a>`;
-                return `<div class="mach-item ${p.tier}" title="${esc(p.note)}"><span class="e">${p.emoji}</span><b>${esc(p.name)}${n > 1 ? ` ×${n}` : ''}</b>
+                return `<div class="mach-item ${p.tier}" title="${esc(p.note)}"><span class="e">${pe(p)}</span><b>${esc(p.name)}${n > 1 ? ` ×${n}` : ''}</b>
                     <small class="muted">${esc(p.note)}</small>${act}</div>`;
             }).join('')}</div>`;
         }).join('');
@@ -173,7 +176,7 @@
         const h = state.history || [];
         $('machHistory').innerHTML = h.length ? h.map(r => {
             const p = prize(r.id);
-            return `<li class="${r.tier}">${p.emoji} <b>${esc(p.name)}</b> <span class="muted">· ${TIER[r.tier]}${r.dup ? ` · ♻ +${r.compost}` : ''} ·
+            return `<li class="${r.tier}">${pe(p)} <b>${esc(p.name)}</b> <span class="muted">· ${TIER[r.tier]}${r.dup ? ` · ♻ +${r.compost}` : ''} ·
                 ${new Date(r.at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</span></li>`;
         }).join('') : '<li class="muted">No pulls yet.</li>';
     }
@@ -290,7 +293,7 @@
     }
     function card(r) {
         const p = prize(r.id);
-        return `<div class="mach-card"><div class="e">${p.emoji}</div><div class="tier">${TIER[r.tier]}</div>
+        return `<div class="mach-card"><div class="e">${pe(p)}</div><div class="tier">${TIER[r.tier]}</div>
             <h3>${esc(p.name)}</h3><p>${esc(p.note)}</p>${extra(r)}</div>`;
     }
     // Sometimes a capsule starts a tier lower and turns while it wobbles
@@ -348,7 +351,7 @@
             if (!skip && r.tier === 'legendary') { slot.querySelector('.cap').classList.add('wobble'); await wait(700); }
             slot.className = `slot done ${r.tier}`;
             if (!skip) { sound('pop'); if (r.tier !== 'common') setTimeout(() => sound(r.tier), 120); }
-            slot.innerHTML = `<span class="e">${p.emoji}</span><span class="n">${esc(p.name)}</span>${r.dup ? `<span class="dup">♻ +${r.compost}</span>` : ''}`;
+            slot.innerHTML = `<span class="e">${pe(p)}</span><span class="n">${esc(p.name)}</span>${r.dup ? `<span class="dup">♻ +${r.compost}</span>` : ''}`;
             slot.title = `${p.name} (${TIER[r.tier]})${r.dup ? ': already had it' : ''}`;
             if (!skip) {
                 if (r.tier !== 'common') burst(slot, r.tier);

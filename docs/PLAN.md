@@ -155,8 +155,15 @@ prizes; garden weather and seasons, rare plant mutations, visiting critters, sma
 Built: banners over the Sauce-o-Matic (tabs). 🏮 Lantern Night (September to November): Lantern tomato and Mr. Death
 (gardener: every third harvest +3 compost) as featured legendaries, Monstrous flower seeds, a will-o'-wisp cursor
 trail and a corner lantern companion as featured rares; 50% rate-up with a guarantee after a miss, its own pity,
-Bulba's Promise picks the featured legendary. Everything else is the standard banner. Next: a winter banner
-(December to February) and the rest of Phase E (garden weather and seasons, mutations, critters, orders).
+Bulba's Promise picks the featured legendary. Everything else is the standard banner.
+
+Decided 17 November: each seasonal banner lasts one month (Lantern Night is now November only).
+Built 17 November: ❄️ **First Snow** (December): the Snow globe tomato (the first skin drawn from a picture,
+static/img/tomato/snow_globe.png, also the banner's art) and Babbo Natale (gardener: once a day a present of seeds
+in the shed) as featured legendaries; the Snowman (garden decoration), a snowflake cursor trail and a corner snow
+globe (tap it: it snows over the page) as featured rares.
+Next in Phase E: **orders** (they pay tomatoes) and **mutations** (rare ones give spins), then maybe the house
+quest (below).
 
 ## Next: story systems with story memory (ideas, 18 November, to choose from)
 
@@ -187,7 +194,11 @@ Bulba's Promise picks the featured legendary. Everything else is the standard ba
    sprouts); tap one for a small bonus.
 5. **Crew pairs:** two gardeners who work well together get a small extra (Basil + Mr. Death: the night shift).
 6. **A bigger plot** after enough harvests.
-7. **The winter banner** (December to February) before Lantern Night ends on 30 November.
+7. ~~The winter banner~~ built: First Snow (December).
+8. **A house by the garden** (musing, 17 November): a quest line to build a cottage in stages (foundation, walls,
+   roof, chimney, porch), each paid in crops and order tomatoes, each unlocking something (a bigger plot, shed
+   space, a kitchen that turns crops into dishes, a mailbox where orders arrive). Mechanics only, our own design.
+   Undecided; after orders and mutations.
 
 ## Phase F: messenger mode
 

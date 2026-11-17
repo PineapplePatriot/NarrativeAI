@@ -70,6 +70,12 @@
         // Mr. Death (Lantern Night): a black hood, a polite skull, a little lantern; the scythe leans on his shoulder
         gardener_death: ['.n.kkkkk..', 'nnkkkkkkk.', '.nkkcccck.', '.nkckcckk.', '.nkccccck.', '.nkkcwcck.', 'n.kkkkkkk.',
                 'n.kkkkkkkk', 'nkkkkkkkky', 'n.kkkkkkk.', 'n.kkkkkkk.'],
+        // First Snow: a snowman (coal smile, carrot nose, a red scarf) and Babbo Natale (red cap with a white bobble,
+        // a big white beard, a red coat and a black belt)
+        snowman: ['....kkkk....', '....kkkk....', '...kkkkkk...', '....wwww....', '...wkwwkw...', '...wwwoow...', '...wkkkkw...',
+                '..rrrrrrrr..', '....wwwwRr..', '.b.wwwwwwwb.', '..bwwkwwwb..', '..wwwwwwww..', '..wwwkwwww..', '...wwwwww...'],
+        gardener_babbo: ['.......w..', '....rrrr..', '...rrrrr..', '..rrrrrr..', '.wwwwwwww.', '..ssssss..', '..skssks..', '.wwssssww.',
+                '.wwwwwwww.', '..wwwwww..', '.rrwwwwrr.', 'srrrrrrrrs', '.kkkyykkk.', '.rrrrrrrr.'],
         ripe_seed_monster: ['..p.....p.......', '.pPp...pPp......', 'pPmPp.pPmPp.....', '.pPPPpPPPp......', '..pPwkwkPp......',
                 '..pPkkkkPp......', '..pPwkwkPp......', '...pPPPPp.......', '....g..g........', '..lgg..gg.l.....', '.lgl..g..lgl....',
                 '..l...g...l.....', '......g.........', '.....bgb........'],
@@ -87,6 +93,7 @@
         gardener_robot: [['...n..n...', '..NN..NN..'], ['...n.n....', '..NN.NN...']],
         gardener_witch: [['..pp..pp..', '..kk..kk..'], ['...pp.pp..', '...kk.kk..']],
         gardener_death: [['.n.k..k...', '.n.k..k...'], ['.n..k.k...', '.n..k.k...']],
+        gardener_babbo: [['..rr..rr..', '..kk..kk..'], ['...rr.rr..', '...kk.kk..']],
     };
     const FLOWER = { seed_tomato: 'y', seed_carrot: 'w', seed_sunflower: 'y', seed_pumpkin: 'y', seed_monster: 'm' };
     const HATS = { '👑': 'hat_crown', '👒': 'hat_straw', '🎩': 'hat_top' };
@@ -97,6 +104,8 @@
         gardener_witch: ['♪ hmm hmm hmmm ♪', 'Sunflowers gossip, you know.', 'Grow, little one.'],
         gardener_death: ['Everything ripens in its time. I simply wait.', 'Lovely evening for it.', 'No, the flower bites. That is normal.',
                          'I collect only what is due. Compost, mostly.'],
+        gardener_babbo: ['Ho ho... no. Buon Natale!', 'Not that one. The other one. The better-dressed one.',
+                         'A present for the shed. Do not shake it.', 'Mamma mia, this soil is frozen.', 'Panettone after the harvest, sì?'],
         bulba: ["I'm not a gardener. I'm a vegetable with opinions.", 'Plant something. I’m bored.', 'Those are my cousins. Be nice.',
                 'The pumpkin is judging you. So am I.', 'Throw tomatoes at slow replies. It waters this place.'],
     };
@@ -145,9 +154,9 @@
     }
     const bits = [];  // droplets, notes, sparks
     function act(w) {
-        const n = { gardener_farmer: 5, gardener_witch: 2, gardener_robot: 3, gardener_frog: 0, gardener_death: 2 }[w.id] || 0;
+        const n = { gardener_farmer: 5, gardener_witch: 2, gardener_robot: 3, gardener_frog: 0, gardener_death: 2, gardener_babbo: 4 }[w.id] || 0;
         for (let i = 0; i < n; i++) bits.push({ x: w.x + (w.flip ? -6 : 6), y: w.y - 10, vx: (Math.random() - .5) * 8 + (w.flip ? -8 : 8),
-            vy: -10 - Math.random() * 8, life: 1, kind: w.id === 'gardener_farmer' ? 'drop' : w.id === 'gardener_witch' ? 'note' : w.id === 'gardener_death' ? 'wisp' : 'spark' });
+            vy: -10 - Math.random() * 8, life: 1, kind: w.id === 'gardener_farmer' ? 'drop' : w.id === 'gardener_witch' ? 'note' : w.id === 'gardener_death' ? 'wisp' : w.id === 'gardener_babbo' ? 'snow' : 'spark' });
         if (w.id === 'gardener_frog') w.hop = 1;
         if (Math.random() < .3) { w.say = LINES[w.id][Math.floor(Math.random() * LINES[w.id].length)]; w.sayFor = 3.2; }
     }
@@ -284,7 +293,7 @@
             g.globalCompositeOperation = 'source-over';
         }
         bits.forEach(b => {
-            g.fillStyle = b.kind === 'drop' ? '#7cc0ff' : b.kind === 'note' ? '#d7b4ff' : b.kind === 'wisp' ? '#7ef0e6' : '#ffe066';
+            g.fillStyle = b.kind === 'drop' ? '#7cc0ff' : b.kind === 'note' ? '#d7b4ff' : b.kind === 'wisp' ? '#7ef0e6' : b.kind === 'snow' ? '#ffffff' : '#ffe066';
             if (b.kind === 'note') { g.fillRect(b.x, b.y, 1, 3); g.fillRect(b.x - 1, b.y + 2, 1, 1); } else g.fillRect(b.x, b.y, 1, b.kind === 'drop' ? 2 : 1);
         });
         // speech bubbles, in normal-size text

@@ -14,6 +14,7 @@
     Hoe-Bot 3000      harvests ripe plants by himself
     Basil             every second harvest gives the seed back
     Mr. Death         every third harvest brings 3 extra compost (Lantern Night banner)
+    Babbo Natale      once a day leaves a present in the shed: a packet of seeds (First Snow banner)
 Everything is kept in TomatoScore.garden (JSON); the time is always the server's.
 """
 from django.db import transaction
@@ -32,14 +33,17 @@ CROPS = {  # seed id → what grows
     "seed_monster": {"name": "Monstrous flower", "hours": 40, "compost": 8},
 }
 STAGES = ((0.15, "seed"), (0.4, "sprout"), (0.7, "leafy"), (1.0, "bloom"))
-DECOR = ("gnome", "bench", "scarecrow", "pond", "lantern")
+DECOR = ("gnome", "bench", "scarecrow", "pond", "lantern", "snowman")
 GARDENERS = {
     "gardener_farmer": "Plants grow 25% faster: he waters everything, including things that aren't plants.",
     "gardener_frog": "+1 compost on every harvest: he carries the basket.",
     "gardener_robot": "Harvests ripe plants by himself, on schedule.",
     "gardener_witch": "Every second harvest gives the seed back. Nobody knows the song.",
     "gardener_death": "Every third harvest brings three extra compost: he collects his dues, very politely.",
+    "gardener_babbo": "Once a day he leaves a present in the shed: a packet of seeds, wrapped badly, with love.",
 }
+# Babbo Natale's presents: mostly everyday seeds, now and then a pumpkin
+GIFTS = (("seed_tomato", 3), ("seed_carrot", 3), ("seed_sunflower", 2), ("seed_pumpkin", 1))
 
 
 def _now():
@@ -122,6 +126,22 @@ def _robot(g, m, now=None):
     return sum(_harvest(g, m, k, by="Hoe-Bot 3000") for k in ripe)
 
 
+def _babbo(g, m, rng=None, today=None):
+    """Babbo Natale's present: one a day while he's at work (the server's date)."""
+    if not _has(m, "gardener_babbo"):
+        return None
+    day = (today or timezone.localdate()).isoformat()
+    if g.get("gift_day") == day:
+        return None
+    import random
+    rng = rng or random.SystemRandom()
+    seed = rng.choices([k for k, _ in GIFTS], weights=[w for _, w in GIFTS])[0]
+    g["gift_day"] = day
+    m["items"][seed] = m["items"].get(seed, 0) + 1
+    _log(g, f"Babbo Natale left a present in the shed: 🎁 {CROPS[seed]['name'].lower()} seeds. The wrapping is a disaster.")
+    return seed
+
+
 def _locked(user, fn):
     from mainapp import tomatoes
     from mainapp.models import TomatoScore
@@ -130,6 +150,7 @@ def _locked(user, fn):
         score = TomatoScore.objects.select_for_update().get(user=user)
         m, g = M._state(score), _state(score)
         fn(g, m)
+        _babbo(g, m)
         _robot(g, m)
         score.machine, score.garden = m, g
         score.save(update_fields=["machine", "garden"])

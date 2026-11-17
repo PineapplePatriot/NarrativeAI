@@ -9834,6 +9834,49 @@ for _name in [n for n in dir(TomatoMachineTests) if n.startswith("test_")]:
         setattr(GardenCrewTests, _name, None)
 
 
+class FirstSnowBannerTests(TomatoMachineTests):
+    """❄️ First Snow, the December banner: the snow globe tomato, Babbo Natale, the snowman, snow trail and globe."""
+    from datetime import date
+    NOV, DEC, JAN = date(2026, 11, 20), date(2026, 12, 5), date(2027, 1, 10)
+
+    def test_each_banner_runs_for_its_month(self):
+        from mainapp import tomato_machine as M
+        self.assertEqual([b["id"] for b in M.public(self.score, self.NOV)["banners"]], ["lantern", "standard"])
+        self.assertEqual([b["id"] for b in M.public(self.score, self.DEC)["banners"]], ["winter", "standard"])
+        self.assertEqual([b["id"] for b in M.public(self.score, self.JAN)["banners"]], ["standard"])
+        self.assertEqual(M.banner_ends("winter", self.DEC).isoformat(), "2026-12-31")
+        winter = next(b for b in M.public(self.score, self.DEC)["banners"] if b["id"] == "winter")
+        self.assertTrue(winter["art"].endswith("snow_globe.png"))
+        standard = {p["id"] for t in ("common", "rare", "legendary") for p in M.pool(t, self.DEC)}
+        self.assertFalse(standard & {"globe_tomato", "gardener_babbo", "snowman", "trail_snow", "companion_globe"})
+        self.give(1)
+        out, _ = M.spin(self.user, 1, rng=self.Rolls(.01, .1), today=self.DEC, banner="winter")
+        self.assertIn(out[0]["id"], ("globe_tomato", "gardener_babbo"))
+
+    def test_babbo_natale_leaves_one_present_a_day_and_the_snowman_stands_in_the_garden(self):
+        from datetime import date
+        from mainapp import tomato_machine as M, tomato_garden as G
+        self.score.machine = {"items": {"gardener_babbo": 1, "snowman": 1}}
+        self.score.save()
+        m, g = M._state(self.score), G._state(self.score)
+        seed = G._babbo(g, m, today=date(2026, 12, 5))
+        self.assertIn(seed, G.CROPS)
+        self.assertEqual(m["items"][seed], 1)
+        self.assertIsNone(G._babbo(g, m, today=date(2026, 12, 5)))  # one a day
+        self.assertIsNotNone(G._babbo(g, m, today=date(2026, 12, 6)))
+        self.assertIn("Babbo Natale", g["log"][0]["text"])
+        state = G.act(self.user, {"action": "place", "x": 1, "y": 1, "id": "snowman"})
+        self.assertEqual([t["id"] for t in state["tiles"] if t["kind"] == "decor"], ["snowman"])
+        self.assertTrue(any(x["id"] == "gardener_babbo" for x in state["gardeners"]))
+        m["crew"] = []  # resting in the shed: no presents
+        self.assertIsNone(G._babbo(g, m, today=date(2026, 12, 7)))
+
+
+for _name in [n for n in dir(TomatoMachineTests) if n.startswith("test_")]:
+    if getattr(FirstSnowBannerTests, _name, None) is getattr(TomatoMachineTests, _name, None):
+        setattr(FirstSnowBannerTests, _name, None)
+
+
 class LookShelfTests(ChatLookTests):
     def test_looks_go_on_the_shelf_and_any_chat_can_wear_them(self):
         from mainapp import chat_looks
