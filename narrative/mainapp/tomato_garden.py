@@ -19,7 +19,9 @@
   open for ORDER_DAYS days. Harvests count toward the oldest open order for that crop (and still give compost);
   a filled order pays 100-300 tomatoes, which count toward spins (not the leaderboard: TomatoScore.machine "earned").
 - Mutations: 1 in MUTATION_ODDS harvests is a strange variant (MUTATIONS), kept in the almanac. The common ones
-  give triple compost; the rare one of each crop gives a free spin.
+  give triple compost; the rare one of each crop gives a free spin. A mutation also gives one of its seeds
+  (VARIANT_SEEDS): planted, it grows like its crop and comes out as the variant again KEEP of the time (with
+  its seed back, so a line can go on); otherwise it's an ordinary harvest of that crop.
 Everything is kept in TomatoScore.garden (JSON); the time is always the server's.
 """
 from django.db import transaction
@@ -66,6 +68,18 @@ MUTATIONS = {
                      ("polite_monster", "🎩", "A very polite monstrous flower", True)],
 }
 MUTANT = {mid: {"id": mid, "crop": crop, "emoji": e, "name": n, "rare": r} for crop, ms in MUTATIONS.items() for mid, e, n, r in ms}
+# Seeds of the variants: they grow like their crop (seed id "seed_<mutation id>")
+KEEP = {False: .5, True: .25}  # how often a planted variant comes out as itself (common / rare)
+VARIANT_SEEDS = {f"seed_{mid}": mid for mid in MUTANT}
+for _sid, _mid in VARIANT_SEEDS.items():
+    _base = CROPS[MUTANT[_mid]["crop"]]
+    CROPS[_sid] = {"name": MUTANT[_mid]["name"], "hours": _base["hours"], "compost": _base["compost"],
+                   "base": MUTANT[_mid]["crop"], "variant": _mid}
+
+
+def base(seed):
+    """The ordinary crop a seed belongs to (a variant's crop, or itself)."""
+    return CROPS.get(seed, {}).get("base") or seed
 
 
 # Babbo Natale's presents: mostly everyday seeds, now and then a pumpkin
@@ -130,16 +144,22 @@ def _log(g, text):
 
 
 def _mutate(g, m, seed, rng=None):
-    """1 in MUTATION_ODDS harvests: a strange variant (a rare one a quarter of the time). Returns it or None."""
+    """1 in MUTATION_ODDS harvests: a strange variant (a rare one a quarter of the time); a planted variant comes
+    out as itself KEEP of the time. Each one gives a seed of itself. Returns it or None."""
     import random
     rng = rng or random.SystemRandom()
-    variants = MUTATIONS.get(seed)
-    if not variants or rng.random() >= 1 / MUTATION_ODDS:
-        return None
-    common = [v for v in variants if not v[3]]
-    rare = [v for v in variants if v[3]]
-    mid = (rng.choice(rare) if rare and rng.random() < .25 else rng.choice(common or rare))[0]
+    planted = CROPS.get(seed, {}).get("variant")
+    if planted and rng.random() < KEEP[MUTANT[planted]["rare"]]:
+        mid = planted
+    else:
+        variants = MUTATIONS.get(base(seed))
+        if not variants or rng.random() >= 1 / MUTATION_ODDS:
+            return None
+        common = [v for v in variants if not v[3]]
+        rare = [v for v in variants if v[3]]
+        mid = (rng.choice(rare) if rare and rng.random() < .25 else rng.choice(common or rare))[0]
     g["almanac"][mid] = g["almanac"].get(mid, 0) + 1
+    m["items"][f"seed_{mid}"] = m["items"].get(f"seed_{mid}", 0) + 1
     g["mutation"] = {"id": mid, "at": int(_now())}  # the page shows it once
     if MUTANT[mid]["rare"]:
         m["bonus"] += 1
@@ -174,14 +194,14 @@ def _harvest(g, m, key, by="", rng=None):
         got += 3
     m["compost"] += got
     back = _has(m, "gardener_witch") and g["harvests"] % 2 == 0
-    if back:
-        m["items"][tile["seed"]] = m["items"].get(tile["seed"], 0) + 1
+    if back:  # (an ordinary seed: a variant's own seed only comes back when it comes out as itself)
+        m["items"][base(tile["seed"])] = m["items"].get(base(tile["seed"]), 0) + 1
     _log(g, f"{by or 'You'} harvested a {crop['name'].lower()}: ♻ +{got} compost" + (" and Basil hummed the seed back" if back else "")
          + (" (Mr. Death collected his dues: +3)" if dues else "") + ".")
     if odd:
         _log(g, f"🧬 A mutation! {odd['emoji']} {odd['name']}: " + ("a free spin at the Sauce-o-Matic." if odd["rare"]
-                                                                     else "triple compost.") + " Into the almanac.")
-    _deliver(g, m, tile["seed"])
+                                                                     else "triple compost.") + " Into the almanac, and its seed into the basket.")
+    _deliver(g, m, base(tile["seed"]))
     return got
 
 
@@ -343,7 +363,7 @@ def public(score):
             p = progress(t, m, now)
             crop = CROPS[t["seed"]]
             speed = 1.25 if _has(m, "gardener_farmer") else 1.0
-            item.update(seed=t["seed"], name=crop["name"], progress=round(p, 4), stage=stage(p),
+            item.update(seed=t["seed"], look=base(t["seed"]), variant=crop.get("variant", ""), name=crop["name"], progress=round(p, 4), stage=stage(p),
                         left=int(max(0, (1 - p) * crop["hours"] * 3600 / speed)), rate=speed / (crop["hours"] * 3600))
         else:
             item["id"] = t.get("id")
@@ -359,5 +379,7 @@ def public(score):
             "orders": [{**o, "name": CROPS[o["seed"]]["name"], "left": max(0, o["due"] - int(now))} for o in g["orders"]],
             "orders_max": ORDERS_OPEN, "filled": g["filled"], "mutation": g.get("mutation"), "mutation_odds": MUTATION_ODDS,
             "almanac": [{**v, "got": g["almanac"].get(mid, 0)} for mid, v in MUTANT.items()],
-            "prizes": {p["id"]: {"name": p["name"], "emoji": p["emoji"]} for p in M.PRIZES
-                       if p["kind"] in ("seed", "decor", "gardener")}}
+            "prizes": {**{p["id"]: {"name": p["name"], "emoji": p["emoji"]} for p in M.PRIZES
+                          if p["kind"] in ("seed", "decor", "gardener")},
+                       **{sid: {"name": f"{MUTANT[mid]['name']} seeds", "emoji": MUTANT[mid]["emoji"]} for sid, mid in VARIANT_SEEDS.items()}},
+            "keep": {"common": KEEP[False], "rare": KEEP[True]}}

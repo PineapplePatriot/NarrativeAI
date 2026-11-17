@@ -9959,6 +9959,31 @@ class OrderBoardTests(TestCase):
         self.assertEqual(sum(1 for a in state["almanac"] if a["got"]), 2)
         self.assertEqual(state["mutation_odds"], 20)
 
+    def test_a_mutation_gives_its_seed_and_a_planted_one_can_come_out_as_itself(self):
+        from mainapp import tomato_machine as M, tomato_garden as G
+        m, g = M._state(self.score), G._state(self.score)
+        g["tiles"]["0,0"] = {"kind": "plant", "seed": "seed_tomato", "at": 0, "boost": 0}
+        G._harvest(g, m, "0,0", rng=self.Rolls(.01, .1))  # a golden tomato
+        self.assertEqual(m["items"]["seed_golden_tomato"], 1)
+        self.score.machine, self.score.garden = m, g
+        self.score.save()
+        state = G.act(self.user, {"action": "plant", "x": 1, "y": 1, "id": "seed_golden_tomato"})
+        tile = state["tiles"][0]
+        self.assertEqual((tile["look"], tile["variant"]), ("seed_tomato", "golden_tomato"))
+        self.assertIn("seed_golden_tomato", state["prizes"])
+        self.score.refresh_from_db()
+        m, g = M._state(self.score), G._state(self.score)
+        g["orders"] = [{"id": 1, "seed": "seed_tomato", "n": 1, "got": 0, "reward": 100, "from": "the bakery",
+                        "posted": 0, "due": G._now() + 3600}]
+        spins = m["bonus"]
+        G._harvest(g, m, "1,1", rng=self.Rolls(.2))  # kept (rare: 25%): golden again, a spin and its seed back
+        self.assertEqual((m["bonus"], m["items"]["seed_golden_tomato"], g["almanac"]["golden_tomato"]), (spins + 1, 1, 2))
+        self.assertEqual(m["earned"], 100)  # it still counts as a tomato for orders
+        g["tiles"]["1,1"] = {"kind": "plant", "seed": "seed_golden_tomato", "at": 0, "boost": 0}
+        m["items"]["seed_golden_tomato"] = 0
+        self.assertEqual(G._harvest(g, m, "1,1", rng=self.Rolls(.5, .9)), 2)  # not kept, no new mutation: a plain one
+        self.assertEqual((m["bonus"], m["items"]["seed_golden_tomato"]), (spins + 1, 0))
+
 
 class LookShelfTests(ChatLookTests):
     def test_looks_go_on_the_shelf_and_any_chat_can_wear_them(self):

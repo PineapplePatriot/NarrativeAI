@@ -218,8 +218,9 @@
     const put = (img, x, y) => g.drawImage(img, Math.round(x), Math.round(y));
     function plantSprite(t, p) {
         const stg = stageOf(p);
-        if (stg === 'ripe') return sprite('ripe_' + t.seed, ART['ripe_' + t.seed]);
-        if (stg === 'bloom') return sprite('bloom', ART.bloom, { F: FLOWER[t.seed] || 'y' });
+        const kind = t.look || t.seed;  // a mutation's seed grows like its crop
+        if (stg === 'ripe') return sprite('ripe_' + kind, ART['ripe_' + kind]);
+        if (stg === 'bloom') return sprite('bloom', ART.bloom, { F: FLOWER[kind] || 'y' });
         return sprite(stg, ART[stg]);
     }
     function draw(time) {
@@ -405,7 +406,8 @@
                 <button type="button" class="na-btn" data-do="remove">Back to the basket</button></div>`;
             return;
         }
-        box.innerHTML = `<h3>${prizeOf(t.seed).emoji} ${esc(t.name)}</h3><div id="gLive"></div>`;
+        box.innerHTML = `<h3>${prizeOf(t.seed).emoji} ${esc(t.name)}</h3>${t.variant ? `<p class="muted g-small">A mutation's seed: it comes out as itself
+            ${Math.round(st.keep[st.almanac.find(a => a.id === t.variant)?.rare ? 'rare' : 'common'] * 100)}% of the time (with its seed back), otherwise as an ordinary ${esc(prizeOf(st.crops[t.seed].base).name.replace(/ seeds$/, '').toLowerCase())}.</p>` : ''}<div id="gLive"></div>`;
         paintTileLive();
     }
     function paintTileLive() {
@@ -470,7 +472,7 @@
             + `<p class="muted g-small">Up to ${st.orders_max} at a time, a new one each day. Harvests count toward them by themselves (and still make compost). Tomatoes from orders count toward your next spin.</p>`;
         const al = st.almanac || [], found = al.filter(a => a.got);
         $('gAlmanacCount').textContent = `${found.length} of ${al.length}`;
-        $('gAlmanac').innerHTML = `<p class="muted g-small">About 1 harvest in ${st.mutation_odds} comes out strange. Most give triple compost; the gold-edged ones give a free spin.</p>
+        $('gAlmanac').innerHTML = `<p class="muted g-small">About 1 harvest in ${st.mutation_odds} comes out strange. Most give triple compost; the gold-edged ones give a free spin. Each one also gives its seed: plant it to try for another.</p>
             <div class="g-almanac">${al.map(a => a.got ? `<div class="g-mut${a.rare ? ' rare' : ''}" title="${a.rare ? 'A free spin' : 'Triple compost'}"><span class="e">${a.emoji}</span>
                 <div>${esc(a.name)}<small>${a.rare ? 'rare · a spin' : 'triple compost'}${a.got > 1 ? ` · ×${a.got}` : ''}</small></div></div>`
                 : `<div class="g-mut unknown${a.rare ? ' rare' : ''}"><span class="e">❔</span><div>???<small>${esc(prizeOf(a.crop).name.replace(/ seeds$/, ''))}${a.rare ? ' · rare' : ''}</small></div></div>`).join('')}</div>`;

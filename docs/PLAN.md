@@ -165,7 +165,8 @@ globe (tap it: it snows over the page) as featured rares.
 Built 17 November: the **order board** (neighbours post one order a day, at most 3 open, each for 3 days; harvests
 count toward them by themselves and still make compost; a filled order pays 100-300 tomatoes toward spins, not the
 leaderboard) and **mutations** (1 harvest in 20; most triple the compost, the rare one of each crop is a free spin;
-all collected in the garden's almanac). Maybe next: the house quest (below), mutation seeds to replant.
+all collected in the garden's almanac). Each mutation gives its seed: planted, it comes out as itself half the time
+(a rare one a quarter of the time) with its seed back, otherwise as an ordinary harvest. Next: the house quest (below).
 
 ## Next: story systems with story memory (ideas, 18 November, to choose from)
 

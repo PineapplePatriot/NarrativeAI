@@ -156,7 +156,7 @@
             <li>Seasonal: ${season ? `${season.emoji} ${esc(season.name)} is in the machine this ${s.season}` : 'nothing this season'}. The others wait for their season.</li></ul>`;
     }
     function paintShelf() {
-        const s = state, mine = Object.keys(s.items).filter(k => s.items[k] > 0);
+        const s = state, mine = s.prizes.filter(p => s.items[p.id] > 0);  // (garden-only seeds aren't prizes)
         $('machShelfCount').textContent = `${mine.length} of ${s.prizes.length} found`;
         const groups = Object.keys(KINDS).map(kind => {
             const got = s.prizes.filter(p => p.kind === kind && s.items[p.id]);
