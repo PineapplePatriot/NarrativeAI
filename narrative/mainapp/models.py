@@ -79,6 +79,8 @@ class Character(models.Model):
     # The character's look: {"bg": url, "music": {"url", "name"}, "dialogue_color": "#rrggbb" or "preset"}.
     # A chat opens with these unless it picked its own background or music.
     theme = models.JSONField(default=dict, blank=True)
+    # Messenger (Telegram-style app) profile: Modern AU or texting scenario, @handle, bio, texting habits, stories
+    messenger_profile = models.JSONField(default=dict, blank=True)
 
     photo_second_neutral = models.ImageField(upload_to="photos/%Y/%m/%d/", default=None, blank=True, null=True)
     photo_second_happy = models.ImageField(upload_to="photos/%Y/%m/%d/", default=None, blank=True, null=True)
@@ -285,3 +287,21 @@ class TomatoArt(models.Model):
 
     def __str__(self):
         return f"{self.title or 'Untitled'} by {self.user}"
+
+
+class MessengerThread(models.Model):
+    """One 1-on-1 or group chat inside the Screen Hub's Telegram Messenger (see mainapp/messenger.py)."""
+    user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name="messenger_threads")
+    title = models.CharField(max_length=200, blank=True)
+    is_group = models.BooleanField(default=False)
+    characters = models.ManyToManyField("Character", related_name="messenger_threads", blank=True)
+    data = models.JSONField(default=dict, blank=True)
+    pinned = models.BooleanField(default=False)
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-pinned", "-updated")
+
+    def __str__(self):
+        return self.title or f"Messenger #{self.pk}"

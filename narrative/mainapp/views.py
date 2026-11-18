@@ -11,6 +11,7 @@ from datetime import datetime
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 from django.http import Http404, HttpResponse, JsonResponse, HttpResponseNotFound, StreamingHttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
@@ -36,7 +37,7 @@ from . import story_memory
 from .bulba import vision as bulba_vision
 from . import echo, speaker_colors
 from . import live as live_jobs  # work that outlives the page (not the local "live" lists below)
-from . import extras, game, html_objects, media_library, recall, story, thinking, ai_client, cards, chats, regex_rules, experiences, model_profiles, presets, samplers, starters, tomato_garden, tomato_machine, tomatoes, trackers, translation
+from . import extras, game, html_objects, media_library, recall, story, thinking, ai_client, cards, chats, regex_rules, experiences, model_profiles, presets, samplers, starters, tomato_garden, tomato_machine, tomatoes, trackers, translation, voice
 from .bulba import control, polish, watch
 from mainapp import mature, refusals
 
@@ -4523,3 +4524,690 @@ def bulba_transcript(request):
     response = HttpResponse(json.dumps(data, ensure_ascii=False, indent=2), content_type="application/json")
     response["Content-Disposition"] = f'attachment; filename="bulba-{session.id}-{datetime.now():%Y%m%d-%H%M}.json"'
     return response
+
+
+# ---------------------------------------------------------------------------
+# Digital Screen Hub & Telegram Messenger (Phase F)
+# ---------------------------------------------------------------------------
+
+def _user_characters(user):
+    from django.db.models import Q
+    return list(Character.objects.filter(Q(author=user) | Q(is_default=True)).distinct().order_by("-time_create"))
+
+
+@login_required
+def screen_hub(request):
+    """The Digital Screen Hub: launches with Telegram Messenger as the main app, plus Moments & Notes."""
+    from . import messenger
+    from .models import MessengerThread
+
+    chars = _user_characters(request.user)
+    char_by_slug = {c.slug: c for c in chars}
+
+    wanted_slug = request.GET.get("char") or ""
+    wanted_thread_id = request.GET.get("thread") or ""
+    active_thread = None
+
+    if wanted_thread_id and str(wanted_thread_id).isdigit():
+        active_thread = MessengerThread.objects.filter(user=request.user, id=int(wanted_thread_id)).first()
+    if active_thread is None and wanted_slug and wanted_slug in char_by_slug:
+        active_thread = messenger.ensure_thread_for_character(request.user, char_by_slug[wanted_slug])
+
+    threads = list(MessengerThread.objects.filter(user=request.user).prefetch_related("characters"))
+    if not threads and chars:
+        first_thread = messenger.ensure_thread_for_character(request.user, chars[0])
+        threads = [first_thread]
+    if active_thread is None and threads:
+        active_thread = threads[0]
+
+    if active_thread is not None:
+        t_data = messenger.thread_data(active_thread)
+        if t_data.get("unread"):
+            t_data["unread"] = 0
+            messenger.save_thread_data(active_thread, t_data)
+
+    serialized_threads = [messenger.serialize_thread_summary(t) for t in threads]
+    serialized_active = messenger.serialize_thread_full(active_thread, request.user) if active_thread else None
+
+    char_catalog = []
+    for c in chars:
+        prof = messenger.char_profile(c)
+        char_catalog.append({
+            "slug": c.slug,
+            "name": c.name,
+            "edit_url": reverse("character", kwargs={"slug": c.slug}),
+            "chat_url": reverse("chat", kwargs={"slug": c.slug}),
+            **prof,
+        })
+
+    initial_state = {
+        "threads": serialized_threads,
+        "active_thread": serialized_active,
+        "characters": char_catalog,
+        "user_profile": messenger.user_profile(request.user),
+        "wallpapers": messenger.WALLPAPERS,
+        "reactions": messenger.REACTIONS,
+        "built_in_stickers": messenger.BUILT_IN_STICKERS,
+        "voices": voice.list_voices_for_user(request.user),
+        "tts_models": list(voice.OPENROUTER_TTS_MODELS),
+        "active_model": messenger.active_model_texting_rules(request.user),
+    }
+    return render(request, "mainapp/messenger.html", {
+        "initial_json": json.dumps(initial_state, ensure_ascii=False),
+        "has_characters": bool(chars),
+    })
+
+
+@login_required
+def messenger_api(request):
+    """JSON & multipart endpoint for the Digital Screen Hub and Telegram Messenger."""
+    import time
+    from django.utils import timezone
+    from . import messenger
+    from .models import MessengerThread
+
+    if request.method == "GET":
+        action = request.GET.get("action") or "poll"
+        if action == "poll":
+            u_prof = messenger.user_profile(request.user)
+            threads = list(MessengerThread.objects.filter(user=request.user).prefetch_related("characters"))
+            # Optional spontaneous check-in when enabled and user is on another page
+            spawned = None
+            if u_prof.get("spontaneous_texts") and threads and request.GET.get("allow_spontaneous") == "1":
+                now_ts = time.time()
+                cooldown_sec = max(120, int(u_prof.get("spontaneous_minutes") or 15) * 60)
+                for t in threads:
+                    td = messenger.thread_data(t)
+                    msgs = td.get("messages") or []
+                    last_ts = msgs[-1].get("ts") if msgs else 0
+                    last_auto = td.get("last_auto_at") or 0
+                    if last_ts and (now_ts - float(last_ts) >= cooldown_sec) and (now_ts - float(last_auto) >= cooldown_sec):
+                        try:
+                            res = messenger.generate_turn(request.user, t, auto_check_in=True)
+                            if res.get("bubbles"):
+                                b = res["bubbles"][-1]
+                                spawned = {
+                                    "thread_id": t.id,
+                                    "sender_name": b.get("sender_name") or t.title,
+                                    "text": (b.get("text") or "Sent a message")[:140],
+                                    "id": b.get("id"),
+                                }
+                        except Exception:
+                            pass
+                        break
+
+            total_unread = 0
+            latest_unread = spawned
+            for t in threads:
+                td = messenger.thread_data(t)
+                u_cnt = int(td.get("unread") or 0)
+                total_unread += u_cnt
+                if u_cnt > 0 and latest_unread is None and td.get("messages"):
+                    last_m = td["messages"][-1]
+                    latest_unread = {
+                        "thread_id": t.id,
+                        "sender_name": last_m.get("sender_name") or t.title,
+                        "text": (last_m.get("text") or "New message")[:140],
+                        "id": last_m.get("id"),
+                    }
+            return JsonResponse({
+                "total_unread": total_unread,
+                "latest_unread": latest_unread,
+                "in_app_toasts": u_prof.get("in_app_toasts", True),
+                "browser_notifications": u_prof.get("browser_notifications", False),
+                "active_model": messenger.active_model_texting_rules(request.user),
+            })
+        return JsonResponse({"error": "Unknown GET action."}, status=400)
+
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required."}, status=405)
+
+    # Multipart media upload (image, file, voice recording, custom sticker, neutral ref, or extra ref)
+    if request.content_type and request.content_type.startswith("multipart/form-data"):
+        kind = request.POST.get("kind") or "image"
+        upload = request.FILES.get("file")
+        if not upload:
+            return JsonResponse({"error": "No file attached."}, status=400)
+        if upload.size > 15 * 1024 * 1024:
+            return JsonResponse({"error": "File is over 15 MB."}, status=400)
+        ext = "." + upload.name.rsplit(".", 1)[-1].lower()[:8] if "." in upload.name else ".bin"
+        ext = re.sub(r"[^.a-z0-9]", "", ext) or ".bin"
+        raw_bytes = upload.read()
+        rel_path = f"messenger/uploads/{request.user.id}-{uuid.uuid4().hex[:10]}{ext}"
+        saved = default_storage.save(rel_path, ContentFile(raw_bytes))
+        url = default_storage.url(saved)
+
+        if kind == "sticker":
+            u_prof = messenger.user_profile(request.user)
+            stickers = list(u_prof.get("custom_stickers") or [])
+            st_item = {
+                "id": f"custom_{uuid.uuid4().hex[:8]}",
+                "pack": "My Stickers",
+                "name": (request.POST.get("name") or upload.name.rsplit(".", 1)[0] or "Sticker")[:40],
+                "url": url,
+            }
+            stickers.append(st_item)
+            messenger.save_user_profile(request.user, {"custom_stickers": stickers})
+            return JsonResponse({"sticker": st_item, "url": url})
+
+        if kind in ("char_neutral", "char_extra_ref"):
+            slug = request.POST.get("char_slug") or ""
+            chars = _user_characters(request.user)
+            c_obj = next((c for c in chars if c.slug == slug), None)
+            if not c_obj:
+                return JsonResponse({"error": "Character not found."}, status=404)
+            c_prof = messenger.char_profile(c_obj)
+            if kind == "char_neutral":
+                updates = {"neutral_url": url}
+                if not c_prof.get("avatar_url"):
+                    updates["avatar_url"] = url
+                if not getattr(c_obj, "photo_neutral", None) or not c_obj.photo_neutral:
+                    c_obj.photo_neutral.name = saved
+                    c_obj.save(update_fields=["photo_neutral"])
+                updated = messenger.save_char_profile(c_obj, updates)
+            else:
+                extra = list(c_prof.get("extra_refs") or [])
+                slot = request.POST.get("slot")
+                if slot is not None and str(slot).isdigit() and int(slot) < len(extra):
+                    extra[int(slot)] = url
+                elif len(extra) < 4:
+                    extra.append(url)
+                else:
+                    extra[-1] = url
+                updated = messenger.save_char_profile(c_obj, {"extra_refs": extra[:4]})
+            return JsonResponse({"url": url, "profile": updated, "char_slug": c_obj.slug})
+
+        text_preview = ""
+        if kind == "file":
+            try:
+                text_preview = raw_bytes.decode("utf-8", errors="replace")[:4000]
+            except Exception:
+                text_preview = ""
+        return JsonResponse({
+            "url": url,
+            "name": upload.name[:80],
+            "size": f"{max(1, len(raw_bytes) // 1024)} KB" if len(raw_bytes) >= 1024 else f"{len(raw_bytes)} B",
+            "content": text_preview,
+        })
+
+    try:
+        body = json.loads(request.body.decode("utf-8") or "{}")
+    except ValueError:
+        return JsonResponse({"error": "Invalid JSON."}, status=400)
+
+    action = body.get("action") or ""
+    chars = _user_characters(request.user)
+    char_by_slug = {c.slug: c for c in chars}
+
+    if action == "load_thread":
+        tid = body.get("thread_id")
+        thread = MessengerThread.objects.filter(user=request.user, id=tid).prefetch_related("characters").first()
+        if not thread:
+            return JsonResponse({"error": "Chat not found."}, status=404)
+        td = messenger.thread_data(thread)
+        if td.get("unread"):
+            td["unread"] = 0
+            messenger.save_thread_data(thread, td)
+        return JsonResponse({"thread": messenger.serialize_thread_full(thread, request.user)})
+
+    if action == "create_thread":
+        slugs = body.get("character_slugs") or []
+        if isinstance(slugs, str):
+            slugs = [slugs]
+        picked = [char_by_slug[s] for s in slugs if s in char_by_slug]
+        if not picked:
+            return JsonResponse({"error": "Pick at least one character."}, status=400)
+        is_group = bool(body.get("is_group")) or len(picked) > 1
+        if not is_group and len(picked) == 1 and not body.get("force_new"):
+            thread = messenger.ensure_thread_for_character(request.user, picked[0])
+        else:
+            thread = messenger.create_thread(
+                request.user,
+                picked,
+                title=str(body.get("title") or "").strip(),
+                is_group=is_group,
+                scenario_override=str(body.get("scenario_override") or "").strip(),
+            )
+        all_threads = [
+            messenger.serialize_thread_summary(t)
+            for t in MessengerThread.objects.filter(user=request.user).prefetch_related("characters")
+        ]
+        return JsonResponse({
+            "thread": messenger.serialize_thread_full(thread, request.user),
+            "threads": all_threads,
+        })
+
+    if action == "create_char_bulba":
+        idea = str(body.get("idea") or "").strip()
+        name = str(body.get("name") or "").strip()
+        mode = body.get("mode") if body.get("mode") in ("canon", "modern_au") else "modern_au"
+        gen_pics = bool(body.get("generate_pics", False))
+        try:
+            new_char = messenger.create_messenger_character_with_bulba(
+                request.user,
+                idea=idea,
+                name=name,
+                mode=mode,
+                generate_pics=gen_pics,
+            )
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        thread = messenger.ensure_thread_for_character(request.user, new_char)
+        c_prof = messenger.char_profile(new_char)
+        new_char_entry = {
+            "slug": new_char.slug,
+            "name": new_char.name,
+            "edit_url": reverse("character", kwargs={"slug": new_char.slug}),
+            "chat_url": reverse("chat", kwargs={"slug": new_char.slug}),
+            **c_prof,
+        }
+        all_threads = [
+            messenger.serialize_thread_summary(t)
+            for t in MessengerThread.objects.filter(user=request.user).prefetch_related("characters")
+        ]
+        return JsonResponse({
+            "character": new_char_entry,
+            "thread": messenger.serialize_thread_full(thread, request.user),
+            "threads": all_threads,
+        })
+
+    if action == "generate_char_refs":
+        slug = body.get("char_slug") or ""
+        c_obj = char_by_slug.get(slug)
+        if not c_obj:
+            return JsonResponse({"error": "Character not found."}, status=404)
+        # Save any unsaved appearance/art_style notes passed along with the request first
+        if isinstance(body.get("profile"), dict):
+            messenger.save_char_profile(c_obj, body["profile"])
+        count = max(1, min(5, int(body.get("count") or 2)))
+        try:
+            updated_prof, cost = messenger.generate_character_references_from_description(request.user, c_obj, count=count)
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"profile": updated_prof, "char_slug": c_obj.slug, "cost": cost})
+
+    if action == "preview_voice":
+        vid = str(body.get("voice_id") or "sarah").strip()
+        v_model = str(body.get("voice_model") or "").strip() or None
+        sample = str(body.get("text") or "").strip()
+        # Check if the voice already has a direct static preview URL from ElevenLabs
+        all_v = voice.list_voices_for_user(request.user)
+        matched = next((v for v in all_v if v["id"].lower() == vid.lower() and v.get("preview")), None)
+        if matched and matched.get("preview") and not sample:
+            return JsonResponse({"audio_url": matched["preview"], "cached": True})
+        try:
+            audio_url = messenger.preview_voice(request.user, voice_id=vid, sample_text=sample, model=v_model)
+        except voice.VoiceError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"audio_url": audio_url})
+
+    if action == "delete_thread":
+        tid = body.get("thread_id")
+        MessengerThread.objects.filter(user=request.user, id=tid).delete()
+        remaining = list(MessengerThread.objects.filter(user=request.user).prefetch_related("characters"))
+        return JsonResponse({
+            "threads": [messenger.serialize_thread_summary(t) for t in remaining],
+            "active_thread": messenger.serialize_thread_full(remaining[0], request.user) if remaining else None,
+        })
+
+    if action == "pin_thread":
+        tid = body.get("thread_id")
+        thread = MessengerThread.objects.filter(user=request.user, id=tid).first()
+        if not thread:
+            return JsonResponse({"error": "Chat not found."}, status=404)
+        thread.pinned = not thread.pinned
+        thread.save(update_fields=["pinned", "updated"])
+        all_threads = [
+            messenger.serialize_thread_summary(t)
+            for t in MessengerThread.objects.filter(user=request.user).prefetch_related("characters")
+        ]
+        return JsonResponse({"pinned": thread.pinned, "threads": all_threads})
+
+    if action == "send_user_message":
+        tid = body.get("thread_id")
+        thread = MessengerThread.objects.filter(user=request.user, id=tid).prefetch_related("characters").first()
+        if not thread:
+            return JsonResponse({"error": "Chat not found."}, status=404)
+        td = messenger.thread_data(thread)
+        u_prof = messenger.user_profile(request.user)
+        text = str(body.get("text") or "").strip()[:4000]
+        sticker = body.get("sticker") if isinstance(body.get("sticker"), dict) else None
+        file_obj = body.get("file") if isinstance(body.get("file"), dict) else None
+        photo_obj = body.get("photo") if isinstance(body.get("photo"), dict) else None
+        voice_obj = body.get("voice") if isinstance(body.get("voice"), dict) else None
+        if not (text or sticker or file_obj or photo_obj or voice_obj):
+            return JsonResponse({"error": "Write a message or attach something first."}, status=400)
+
+        now_hm = timezone.localtime(timezone.now()).strftime("%H:%M")
+        msg = {
+            "id": uuid.uuid4().hex[:10],
+            "role": "user",
+            "sender_name": u_prof["display_name"],
+            "text": text,
+            "time": now_hm,
+            "ts": time.time(),
+            "reactions": {},
+        }
+        reply_to_id = body.get("reply_to_id")
+        if reply_to_id:
+            target_m = next((m for m in td["messages"] if m.get("id") == reply_to_id), None)
+            if target_m:
+                msg["reply_to_id"] = reply_to_id
+                msg["reply_to_sender"] = target_m.get("sender_name") or "Message"
+                msg["reply_to_text"] = (target_m.get("text") or "Media")[:120]
+        if sticker:
+            msg["sticker"] = sticker
+        if file_obj:
+            msg["file"] = file_obj
+        if photo_obj:
+            msg["photo"] = photo_obj
+        if voice_obj:
+            msg["voice"] = voice_obj
+
+        td["messages"].append(msg)
+        td["unread"] = 0
+        messenger.save_thread_data(thread, td)
+
+        if body.get("generate"):
+            try:
+                turn = messenger.generate_turn(request.user, thread, extra_instruction=str(body.get("instruction") or ""))
+            except ai_client.AIError as e:
+                return JsonResponse({"user_message": msg, "error": str(e)}, status=400)
+            return JsonResponse({
+                "user_message": msg,
+                "turn": turn,
+                "thread": messenger.serialize_thread_full(thread, request.user),
+            })
+        return JsonResponse({"user_message": msg, "thread": messenger.serialize_thread_full(thread, request.user)})
+
+    if action == "generate_reply":
+        tid = body.get("thread_id")
+        thread = MessengerThread.objects.filter(user=request.user, id=tid).prefetch_related("characters").first()
+        if not thread:
+            return JsonResponse({"error": "Chat not found."}, status=404)
+        try:
+            turn = messenger.generate_turn(request.user, thread, extra_instruction=str(body.get("instruction") or ""))
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        all_threads = [
+            messenger.serialize_thread_summary(t)
+            for t in MessengerThread.objects.filter(user=request.user).prefetch_related("characters")
+        ]
+        return JsonResponse({
+            "turn": turn,
+            "thread": messenger.serialize_thread_full(thread, request.user),
+            "threads": all_threads,
+        })
+
+    if action == "react":
+        tid = body.get("thread_id")
+        mid = body.get("message_id")
+        emoji = str(body.get("emoji") or "❤️").strip()[:8]
+        thread = MessengerThread.objects.filter(user=request.user, id=tid).first()
+        if not thread:
+            return JsonResponse({"error": "Chat not found."}, status=404)
+        td = messenger.thread_data(thread)
+        target_m = next((m for m in td["messages"] if m.get("id") == mid), None)
+        if not target_m:
+            return JsonResponse({"error": "Message not found."}, status=404)
+        reacts = dict(target_m.get("reactions") or {})
+        who = list(reacts.get(emoji) or [])
+        if "You" in who:
+            who.remove("You")
+        else:
+            who.append("You")
+        if who:
+            reacts[emoji] = who
+        else:
+            reacts.pop(emoji, None)
+        target_m["reactions"] = reacts
+        messenger.save_thread_data(thread, td)
+        return JsonResponse({"message_id": mid, "reactions": reacts})
+
+    if action == "edit_message":
+        tid = body.get("thread_id")
+        mid = body.get("message_id")
+        new_text = str(body.get("text") or "").strip()[:4000]
+        thread = MessengerThread.objects.filter(user=request.user, id=tid).first()
+        if not thread or not new_text:
+            return JsonResponse({"error": "Invalid edit."}, status=400)
+        td = messenger.thread_data(thread)
+        target_m = next((m for m in td["messages"] if m.get("id") == mid), None)
+        if not target_m:
+            return JsonResponse({"error": "Message not found."}, status=404)
+        target_m["text"] = new_text
+        target_m["edited"] = True
+        if target_m.get("voice"):
+            target_m["voice"]["transcript"] = new_text
+        messenger.save_thread_data(thread, td)
+        return JsonResponse({"message": target_m})
+
+    if action == "delete_message":
+        tid = body.get("thread_id")
+        mid = body.get("message_id")
+        thread = MessengerThread.objects.filter(user=request.user, id=tid).first()
+        if not thread:
+            return JsonResponse({"error": "Chat not found."}, status=404)
+        td = messenger.thread_data(thread)
+        td["messages"] = [m for m in td["messages"] if m.get("id") != mid]
+        if td.get("pinned_id") == mid:
+            td["pinned_id"] = None
+        messenger.save_thread_data(thread, td)
+        return JsonResponse({"deleted": mid, "pinned_id": td["pinned_id"]})
+
+    if action == "pin_message":
+        tid = body.get("thread_id")
+        mid = body.get("message_id")
+        thread = MessengerThread.objects.filter(user=request.user, id=tid).first()
+        if not thread:
+            return JsonResponse({"error": "Chat not found."}, status=404)
+        td = messenger.thread_data(thread)
+        td["pinned_id"] = None if td.get("pinned_id") == mid else mid
+        messenger.save_thread_data(thread, td)
+        return JsonResponse({"pinned_id": td["pinned_id"]})
+
+    if action == "thread_settings":
+        tid = body.get("thread_id")
+        thread = MessengerThread.objects.filter(user=request.user, id=tid).prefetch_related("characters").first()
+        if not thread:
+            return JsonResponse({"error": "Chat not found."}, status=404)
+        td = messenger.thread_data(thread)
+        if "bg" in body and body["bg"] in messenger.WALLPAPERS:
+            td["bg"] = body["bg"]
+        if "custom_bg_url" in body:
+            td["custom_bg_url"] = str(body.get("custom_bg_url") or "").strip()[:500]
+        if "scenario_override" in body:
+            td["scenario_override"] = str(body.get("scenario_override") or "").strip()[:3000]
+        if "share_memory" in body:
+            td["share_memory"] = bool(body["share_memory"])
+        if isinstance(body.get("events"), list):
+            td["events"] = [e for e in body["events"] if isinstance(e, dict)][:30]
+        if "title" in body and str(body["title"]).strip():
+            thread.title = str(body["title"]).strip()[:200]
+            thread.save(update_fields=["title"])
+        if isinstance(body.get("character_slugs"), list):
+            picked = [char_by_slug[s] for s in body["character_slugs"] if s in char_by_slug]
+            if picked:
+                thread.characters.set(picked)
+                thread.is_group = len(picked) > 1 or thread.is_group
+                thread.save(update_fields=["is_group"])
+        messenger.save_thread_data(thread, td)
+        return JsonResponse({"thread": messenger.serialize_thread_full(thread, request.user)})
+
+    if action == "char_profile":
+        slug = body.get("char_slug") or ""
+        c_obj = char_by_slug.get(slug)
+        if not c_obj:
+            return JsonResponse({"error": "Character not found."}, status=404)
+        old_prof = messenger.char_profile(c_obj)
+        saved = messenger.save_char_profile(c_obj, body.get("profile") or {})
+        # If bio changed and a thread_id was provided, add a system notice in chat
+        tid = body.get("thread_id")
+        if tid and saved.get("bio") != old_prof.get("bio") and saved.get("bio"):
+            thread = MessengerThread.objects.filter(user=request.user, id=tid).first()
+            if thread:
+                td = messenger.thread_data(thread)
+                td["messages"].append({
+                    "id": uuid.uuid4().hex[:10],
+                    "role": "system",
+                    "text": f"{saved['display_name']} updated their bio: \"{saved['bio']}\"",
+                    "time": timezone.localtime(timezone.now()).strftime("%H:%M"),
+                    "ts": time.time(),
+                })
+                messenger.save_thread_data(thread, td)
+        return JsonResponse({"profile": saved, "char_slug": c_obj.slug})
+
+    if action == "modernize_bulba":
+        slug = body.get("char_slug") or ""
+        c_obj = char_by_slug.get(slug)
+        if not c_obj:
+            return JsonResponse({"error": "Character not found."}, status=404)
+        mode = body.get("mode") if body.get("mode") in ("canon", "modern_au") else "modern_au"
+        hint = str(body.get("hint") or "").strip()
+        save_now = body.get("save", True) is not False
+        try:
+            draft = messenger.modernize_with_bulba(request.user, c_obj, mode=mode, hint=hint, save=save_now)
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"profile": draft, "char_slug": c_obj.slug})
+
+    if action == "user_profile":
+        old_u = messenger.user_profile(request.user)
+        saved_u = messenger.save_user_profile(request.user, body.get("profile") or {})
+        tid = body.get("thread_id")
+        if tid and saved_u.get("bio") != old_u.get("bio") and saved_u.get("bio"):
+            thread = MessengerThread.objects.filter(user=request.user, id=tid).first()
+            if thread:
+                td = messenger.thread_data(thread)
+                td["messages"].append({
+                    "id": uuid.uuid4().hex[:10],
+                    "role": "system",
+                    "text": f"{saved_u['display_name']} updated their bio: \"{saved_u['bio']}\"",
+                    "time": timezone.localtime(timezone.now()).strftime("%H:%M"),
+                    "ts": time.time(),
+                })
+                messenger.save_thread_data(thread, td)
+        return JsonResponse({"user_profile": saved_u})
+
+    if action == "post_story":
+        owner = body.get("owner") or "user"
+        text = str(body.get("text") or "").strip()[:280]
+        emoji = str(body.get("emoji") or "✨").strip()[:12]
+        image_url = str(body.get("image_url") or "").strip()[:500]
+        if not text and not image_url:
+            return JsonResponse({"error": "Write a status update first."}, status=400)
+        story_item = {
+            "id": uuid.uuid4().hex[:8],
+            "emoji": emoji,
+            "text": text,
+            "image_url": image_url,
+            "at": timezone.localtime(timezone.now()).strftime("%H:%M"),
+            "ts": time.time(),
+        }
+        if owner == "user":
+            u_prof = messenger.user_profile(request.user)
+            stories = [story_item, *(u_prof.get("stories") or [])][:30]
+            saved_u = messenger.save_user_profile(request.user, {"stories": stories, "status_emoji": emoji})
+            return JsonResponse({"story": story_item, "user_profile": saved_u})
+        c_obj = char_by_slug.get(owner)
+        if not c_obj:
+            return JsonResponse({"error": "Character not found."}, status=404)
+        c_prof = messenger.char_profile(c_obj)
+        stories = [story_item, *(c_prof.get("stories") or [])][:30]
+        saved_c = messenger.save_char_profile(c_obj, {"stories": stories, "status_emoji": emoji})
+        return JsonResponse({"story": story_item, "profile": saved_c, "char_slug": c_obj.slug})
+
+    if action == "voice_bubble":
+        tid = body.get("thread_id")
+        mid = body.get("message_id")
+        thread = MessengerThread.objects.filter(user=request.user, id=tid).prefetch_related("characters").first()
+        if not thread:
+            return JsonResponse({"error": "Chat not found."}, status=404)
+        td = messenger.thread_data(thread)
+        target_m = next((m for m in td["messages"] if m.get("id") == mid), None)
+        if not target_m:
+            return JsonResponse({"error": "Message not found."}, status=404)
+        c_obj = char_by_slug.get(target_m.get("sender_slug")) or thread.characters.first()
+        if not c_obj:
+            return JsonResponse({"error": "Character not found."}, status=404)
+        transcript = (target_m.get("voice") or {}).get("transcript") or target_m.get("text") or ""
+        try:
+            audio_url = messenger.synthesize_voice_bubble(request.user, c_obj, transcript)
+        except voice.VoiceError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        voice_dict = dict(target_m.get("voice") or {})
+        voice_dict.update({
+            "transcript": transcript,
+            "audio_url": audio_url,
+            "duration": voice_dict.get("duration") or max(2, min(45, len(transcript.split()) // 2)),
+        })
+        target_m["voice"] = voice_dict
+        messenger.save_thread_data(thread, td)
+        return JsonResponse({"message": target_m, "audio_url": audio_url})
+
+    if action == "photo_bubble":
+        tid = body.get("thread_id")
+        mid = body.get("message_id")
+        kind = "tease" if body.get("kind") == "tease" else "casual"
+        prompt_desc = str(body.get("prompt") or "").strip()
+        thread = MessengerThread.objects.filter(user=request.user, id=tid).prefetch_related("characters").first()
+        if not thread:
+            return JsonResponse({"error": "Chat not found."}, status=404)
+        td = messenger.thread_data(thread)
+        target_m = next((m for m in td["messages"] if m.get("id") == mid), None) if mid else None
+        slug = body.get("char_slug") or (target_m.get("sender_slug") if target_m else "")
+        c_obj = char_by_slug.get(slug) or thread.characters.first()
+        if not c_obj:
+            return JsonResponse({"error": "Character not found."}, status=404)
+        if target_m and not prompt_desc:
+            prompt_desc = (target_m.get("photo") or {}).get("prompt") or target_m.get("text") or ""
+
+        extracted_caption = ""
+        if not prompt_desc:
+            scene = messenger.describe_photo_scene(request.user, thread, c_obj, kind=kind)
+            prompt_desc = scene["visual_prompt"]
+            extracted_caption = scene.get("caption") or ""
+            shot_type = scene.get("shot_type")
+            camera_angle = scene.get("camera_angle") or ""
+        else:
+            shot_type = None
+            camera_angle = ""
+
+        try:
+            img_url, cost = messenger.generate_messenger_photo(
+                request.user,
+                c_obj,
+                prompt_desc,
+                kind=kind,
+                thread=thread,
+                shot_type=shot_type,
+                camera_angle=camera_angle,
+            )
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+
+        if target_m:
+            p_dict = dict(target_m.get("photo") or {})
+            p_dict.update({"kind": kind, "prompt": prompt_desc, "url": img_url})
+            target_m["photo"] = p_dict
+            messenger.save_thread_data(thread, td)
+            return JsonResponse({"message": target_m, "url": img_url, "cost": cost})
+        else:
+            c_prof = messenger.char_profile(c_obj)
+            cap = str(body.get("caption") or extracted_caption or "").strip()
+            new_m = {
+                "id": uuid.uuid4().hex[:10],
+                "role": "assistant",
+                "sender_slug": c_obj.slug,
+                "sender_name": c_prof["display_name"],
+                "text": cap,
+                "photo": {"kind": kind, "prompt": prompt_desc, "caption": cap, "url": img_url},
+                "time": timezone.localtime(timezone.now()).strftime("%H:%M"),
+                "ts": time.time(),
+                "reactions": {},
+            }
+            td["messages"].append(new_m)
+            messenger.save_thread_data(thread, td)
+            return JsonResponse({"message": new_m, "url": img_url, "cost": cost})
+
+    return JsonResponse({"error": f"Unknown action '{action}'."}, status=400)

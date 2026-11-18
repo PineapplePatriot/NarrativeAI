@@ -50,5 +50,7 @@ path('worldbook_forms/<slug:slug>', views.worldbook_forms, name='worldbook_forms
 path('worldbook_expand/<slug:slug>', views.worldbook_expand, name='worldbook_expand'),
 path('worldbook_export/<slug:slug>', views.worldbook_export, name='worldbook_export'),
 path('worldbook_delete/<slug:slug>', views.worldbook_delete, name='worldbook_delete'),
+    path('screen/', views.screen_hub, name='screen_hub'),
+    path('screen/api/', views.messenger_api, name='messenger_api'),
     ]
 #handler404 = page_not_found
