@@ -40,6 +40,7 @@ class MessengerActionTests(TestCase):
         self.url = reverse("messenger_api")
         patches = [
             mock.patch("mainapp.ai_client.complete", side_effect=self.fake_complete),
+            mock.patch("mainapp.ai_client.resolve", return_value=(None, "test/model")),
             mock.patch("mainapp.ai_client.generate_image", return_value=(png("blue", (64, 64)), None)),
             mock.patch("mainapp.voice.synthesize_single", return_value=b"ID3fake-mp3"),
             mock.patch("mainapp.voice.synthesize_openrouter", return_value=b"ID3fake-mp3"),
@@ -161,3 +162,24 @@ class RegenerateAndSetupTests(MessengerActionTests):
         self.assertIn("Outfit in this setup: a green apron over a black hoodie", prof["appearance_notes"])
         self.rose.refresh_from_db()
         self.assertFalse(self.rose.photo_neutral)  # the roleplay card's own pictures are left alone
+
+
+class BulbaJsonTests(TestCase):
+    """Bulba's answers for the messenger: thinking, fences and cut-off answers still give a profile."""
+    def test_reading_lenient_json(self):
+        from mainapp.messenger import _read_json
+        self.assertEqual(_read_json('<think>hmm {not this}</think>```json\n{"bio": "hi", "n": 1}\n```'), {"bio": "hi", "n": 1})
+        cut = '{"handle": "@shinso", "bio": "Не питай.", "modern_persona": "Студент, що мовчить", "texting_style": "коротко'
+        self.assertEqual(_read_json(cut), {"handle": "@shinso", "bio": "Не питай.", "modern_persona": "Студент, що мовчить"})
+        self.assertEqual(_read_json("no json here"), {})
+
+    def test_a_second_try_when_the_first_answer_is_cut_off(self):
+        from mainapp import messenger
+        user = get_user_model().objects.create_user(username="jsoner", password="pw12345!")
+        answers = ['{"bio": "short', '{"bio": "ok", "modern_persona": "a student", "texting_style": "terse"}']
+        with mock.patch("mainapp.ai_client.resolve", return_value=(None, "xiaomi/mimo-v2.6-pro")), \
+             mock.patch("mainapp.ai_client.complete", side_effect=answers) as complete:
+            data = messenger.ask_json(user, "make a profile", need=("bio", "modern_persona", "texting_style"))
+        self.assertEqual(data["texting_style"], "terse")
+        self.assertGreaterEqual(complete.call_args_list[0].kwargs["max_tokens"], 1600 + 3000)  # room to think
+        self.assertIn("JSON object only", complete.call_args_list[1].args[2][0]["content"])

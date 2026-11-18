@@ -216,6 +216,54 @@ def char_profile(character):
     }
 
 
+def _read_json(text):
+    """The JSON object in a model's answer: thinking (<think>...</think>) and ``` fences removed. An answer cut off
+    halfway still gives the fields that came through whole. {} when there's nothing usable."""
+    from mainapp import thinking
+    _, text = thinking.split(text or "")
+    text = re.sub(r"```(?:json)?", "", text or "")
+    start = text.find("{")
+    if start < 0:
+        return {}
+    try:
+        obj, _ = json.JSONDecoder().raw_decode(text[start:])
+        return obj if isinstance(obj, dict) else {}
+    except ValueError:
+        pass
+    pairs = re.findall(r'"([A-Za-z_]+)"\s*:\s*"((?:[^"\\]|\\.)*)"', text[start:], re.S)  # the whole "key": "value"s
+    out = {}
+    for key, raw in pairs:
+        try:
+            out[key] = json.loads('"' + raw + '"')
+        except ValueError:
+            out[key] = raw
+    return out
+
+
+def ask_json(user, prompt, need, max_tokens=1600, task="bulba", temperature=0.6):
+    """One JSON answer from Bulba (or another task's model) for the messenger. Thinking models (Bulba runs on MiMo)
+    get room to think on top of the answer; the answer is read leniently (_read_json); if it still lacks the `need`
+    fields, one more try asks for the JSON alone, kept short. Raises AIError in plain words."""
+    from mainapp import thinking
+    _, model = ai_client.resolve(user, task)
+    thinks = thinking.needs_leash(model, "default")
+    last = ""
+    for attempt in range(2):
+        text = prompt if attempt == 0 else (
+            prompt + "\n\nIMPORTANT: answer with the JSON object only: no thinking out loud, no notes before or after it. "
+                     "Keep every field brief so the whole object fits.")
+        raw = ai_client.complete(user, task, [{"role": "user", "content": text}],
+                                 max_tokens=max_tokens + (thinking.LEASH_ROOM if thinks else 0) + (800 if attempt else 0),
+                                 temperature=temperature)
+        last = raw or ""
+        data = _read_json(last)
+        if all(str(data.get(k) or "").strip() for k in need):
+            return data
+    log.warning("messenger: no usable JSON from %s (%s chars): %r", task, len(last), last[:300])
+    raise ai_client.AIError("Bulba's answer came back cut off or empty twice. Try again in a moment; if it keeps "
+                            "happening, the model may be busy.")
+
+
 def is_set_up(character):
     """Whether the character has been adapted for texting (Bulba's modernize, or written by hand): a texting persona
     or texting style of their own. If not, the chat offers Bulba's setup."""
@@ -437,14 +485,7 @@ def modernize_with_bulba(user, character, mode="modern_au", hint="", save=True):
         card_text=card_text[:6000] or character.name,
         scenario=(character.scenario or "None specified")[:2000],
     )
-    raw_reply = ai_client.complete(user, "bulba", [{"role": "user", "content": prompt}], max_tokens=1600, temperature=0.6)
-    match = re.search(r"\{.*\}", raw_reply or "", re.S)
-    if not match:
-        raise ai_client.AIError("Bulba didn't return a valid profile JSON. Try again.")
-    try:
-        parsed = json.loads(match.group(0))
-    except ValueError:
-        raise ai_client.AIError("Bulba's draft couldn't be parsed as JSON. Try again.")
+    parsed = ask_json(user, prompt, need=("bio", "modern_persona", "texting_style"), max_tokens=2600)
     picked_voice = str(parsed.get("voice_id") or "").strip().lower()
     if picked_voice not in voice.OPENROUTER_VOICE_NAMES:
         picked_voice = character.eleven_voice_char_id or "sarah"
@@ -489,14 +530,7 @@ def create_messenger_character_with_bulba(user, idea, name="", mode="modern_au",
         user=u_name,
         idea=(idea_text or name_hint)[:3000],
     )
-    raw_reply = ai_client.complete(user, "bulba", [{"role": "user", "content": prompt}], max_tokens=1800, temperature=0.7)
-    match = re.search(r"\{.*\}", raw_reply or "", re.S)
-    if not match:
-        raise ai_client.AIError("Bulba didn't return a valid character JSON. Try again.")
-    try:
-        parsed = json.loads(match.group(0))
-    except ValueError:
-        raise ai_client.AIError("Bulba's character draft couldn't be parsed as JSON. Try again.")
+    parsed = ask_json(user, prompt, need=("name", "modern_persona", "texting_style"), max_tokens=3000, temperature=0.7)
 
     char_name = str(parsed.get("name") or name_hint or "New Contact").strip()[:100]
     base_slug = slugify(char_name) or "contact"
@@ -1440,11 +1474,9 @@ def describe_photo_scene(user, thread, character, kind="casual", hint=""):
         recent_chat=recent_chat,
     )
     try:
-        raw = ai_client.complete(user, "summary", [{"role": "user", "content": prompt}], max_tokens=500, temperature=0.7)
-        match = re.search(r"\{.*\}", raw or "", re.S)
-        if match:
-            parsed = json.loads(match.group(0))
-            if isinstance(parsed, dict) and parsed.get("visual_prompt"):
+        parsed = ask_json(user, prompt, need=("visual_prompt",), max_tokens=700, task="summary", temperature=0.7)
+        if parsed:
+            if parsed.get("visual_prompt"):
                 return {
                     "shot_type": parsed.get("shot_type") if parsed.get("shot_type") in ("selfie", "pov_object", "candid_medium") else "selfie",
                     "camera_angle": str(parsed.get("camera_angle") or "").strip()[:240],
@@ -1582,7 +1614,15 @@ def generate_turn(user, thread, extra_instruction="", auto_check_in=False):
         )
 
     prompt_messages = build_messenger_prompt(user, thread, extra_instruction=extra_instruction)
-    raw_reply = ai_client.complete(user, "chat", prompt_messages, max_tokens=1200, temperature=0.85)
+    from mainapp import samplers, thinking
+    params = {"max_tokens": 1200, "temperature": 0.85}
+    _, chat_model = ai_client.resolve(user, "chat")
+    if thinking.needs_leash(chat_model, samplers.thinking_now(user)):  # MiMo: think briefly, then text (as in the chat)
+        prompt_messages, params = thinking.leash(prompt_messages, params)
+    raw_reply = ai_client.complete(user, "chat", prompt_messages, **params)
+    _, raw_reply = thinking.split(raw_reply or "")  # thinking written inside the reply isn't a text message
+    if not raw_reply.strip():
+        raise ai_client.AIError("The model used its whole answer thinking and sent no text. Press ↻ Try again.")
     parsed = parse_ai_reply(raw_reply, chars, is_group=thread.is_group)
 
     # Apply reactions to the latest user message
