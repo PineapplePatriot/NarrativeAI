@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Screen Hub · Messenger — Narrative AI</title>
   <link rel="stylesheet" href="{% static 'css/topbar.css' %}?v=7">
-  <link rel="stylesheet" href="{% static 'mainapp/css/messenger.css' %}?v=1">
+  <link rel="stylesheet" href="{% static 'mainapp/css/messenger.css' %}?v=3">
 </head>
 <body class="tg-screen-body">
   {% include "partials/topbar.html" with active="screen" %}
@@ -60,7 +60,7 @@
       </aside>
 
       <!-- Main Chat Column -->
-      <main class="tg-main" id="tgMain">
+      <main class="tg-main mobile-hidden" id="tgMain">
         <header class="tg-chat-header" id="tgChatHeader">
           <div class="tg-header-left" onclick="TG.openDrawer('char')">
             <button type="button" class="tg-mobile-back" onclick="event.stopPropagation(); TG.showMobileSidebar()" aria-label="Back to chat list">←</button>
@@ -320,6 +320,6 @@
       csrf: "{{ csrf_token }}"
     };
   </script>
-  <script src="{% static 'mainapp/js/messenger.js' %}?v=2"></script>
+  <script src="{% static 'mainapp/js/messenger.js' %}?v=3"></script>
 </body>
 </html>

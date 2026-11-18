@@ -119,3 +119,45 @@ class MessengerActionTests(TestCase):
         self.post(action="generate_char_refs", char_slug=self.rose.slug, count=1)
         self.post(action="create_char_bulba", idea="a grumpy barista", name="Vex", mode="modern_au")
         self.post(action="delete_thread", thread_id=tid)
+
+
+class RegenerateAndSetupTests(MessengerActionTests):
+    """↻ Try again with a note, and 🥔 Bulba's setup for characters not yet adapted for texting."""
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_try_again_replaces_the_last_reply_and_passes_the_note(self):
+        tid = self.thread()
+        self.post(action="send_user_message", thread_id=tid, text="hi", generate=True)
+        before = MessengerThread.objects.get(id=tid).data["messages"]
+        self.assertEqual(before[-1]["role"], "assistant")
+        from mainapp import ai_client
+        ai_client.complete.reset_mock()
+        out = self.post(action="regenerate", thread_id=tid, note="Say it as a voice note.")
+        self.assertEqual(out.status_code, 200, out.content[:300])
+        sent = json.dumps(ai_client.complete.call_args.args[2])
+        self.assertIn("Say it as a voice note.", sent)
+        data = MessengerThread.objects.get(id=tid).data
+        self.assertEqual([m["role"] for m in data["messages"]].count("user"), 1)
+        self.assertTrue(data["regen_prev"])  # the old take, kept for now
+        self.post(action="delete_message", thread_id=tid, message_id=data["messages"][-1]["id"])
+
+    def test_nothing_to_try_again_before_a_reply(self):
+        tid = self.thread()
+        self.assertEqual(self.post(action="regenerate", thread_id=tid).status_code, 400)
+
+    def test_setup_flag_modernize_and_a_new_look(self):
+        from mainapp import messenger
+        tid = self.thread()
+        member = self.post(action="load_thread", thread_id=tid).json()["thread"]["members"][0]
+        self.assertFalse(member["set_up"])  # the chat offers Bulba's setup
+        self.post(action="modernize_bulba", char_slug=self.rose.slug, mode="modern_au", hint="she runs a night florist")
+        self.rose.refresh_from_db()
+        self.assertTrue(messenger.is_set_up(self.rose))
+        out = self.post(action="setup_look", char_slug=self.rose.slug, outfit="a green apron over a black hoodie").json()
+        prof = out["profile"]
+        self.assertTrue(prof["neutral_url"] and prof["avatar_url"] == prof["neutral_url"])
+        self.assertEqual(len(prof["extra_refs"]), 1)
+        self.assertIn("Outfit in this setup: a green apron over a black hoodie", prof["appearance_notes"])
+        self.rose.refresh_from_db()
+        self.assertFalse(self.rose.photo_neutral)  # the roleplay card's own pictures are left alone

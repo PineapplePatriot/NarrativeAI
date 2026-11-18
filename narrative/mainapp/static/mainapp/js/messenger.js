@@ -93,7 +93,7 @@
     html.push(
       '<div class="tg-story-item" onclick="TG.openStoryModal(\'user\')" title="Your Status / Story">' +
         '<div class="tg-story-ring ' + (uStories.length ? "" : "empty") + '">' +
-          (u.avatar_url ? '<img src="' + esc(u.avatar_url) + '" alt="">' : '<div class="tg-avatar-fallback" style="display:flex;align-items:center;justify-content:center;background:#2b5278;color:#fff;font-weight:700;">+</div>') +
+          (u.avatar_url ? '<img src="' + esc(u.avatar_url) + '" alt="">' : '<div class="tg-avatar-fallback" style="display:flex;align-items:center;justify-content:center;background:#4b2a86;color:#fff;font-weight:700;">+</div>') +
           '<span class="tg-story-emoji-badge">' + esc(u.status_emoji || "✨") + "</span>" +
         "</div>" +
         '<span class="tg-story-label">My Status</span>' +
@@ -107,7 +107,7 @@
           '<div class="tg-story-ring ' + (hasStories ? "" : "empty") + '">' +
             (c.avatar_url
               ? '<img src="' + esc(c.avatar_url) + '" alt="">'
-              : '<div class="tg-avatar-fallback" style="display:flex;align-items:center;justify-content:center;background:#242f3d;color:#fff;font-weight:700;">' + esc((c.display_name || "?")[0]) + "</div>") +
+              : '<div class="tg-avatar-fallback" style="display:flex;align-items:center;justify-content:center;background:#2a2f4a;color:#fff;font-weight:700;">' + esc((c.display_name || "?")[0]) + "</div>") +
             '<span class="tg-story-emoji-badge">' + esc(c.status_emoji || "💬") + "</span>" +
           "</div>" +
           '<span class="tg-story-label">' + esc(c.display_name) + "</span>" +
@@ -285,6 +285,9 @@
     var rtClock = (t.real_time && t.real_time.clock) ? t.real_time.clock : "Today";
     out.push('<div class="tg-sys-pill">🕒 ' + esc(rtClock) + "</div>");
 
+    var setupCard = bulbaSetupCard(t);
+    if (setupCard) out.push(setupCard);
+
     if (!msgs.length) {
       out.push(
         '<div class="tg-sys-pill">No messages yet. Say hi, send a sticker, or click <b>🎲 Let them text</b> below!</div>'
@@ -300,7 +303,7 @@
       var mem = mMap[m.sender_slug] || (t.members && t.members[0]) || {};
       var avUrl = isUser ? (STATE.user_profile.avatar_url || "") : (mem.avatar_url || t.avatar_url || "");
       var senderName = m.sender_name || (isUser ? STATE.user_profile.display_name : mem.display_name || t.title);
-      var senderColor = isUser ? "#38bdf8" : (mem.color || "#60a5fa");
+      var senderColor = isUser ? "#a78bfa" : (mem.color || "#f0abfc");
 
       var inner = [];
       if (!isUser && (t.is_group || (t.members && t.members.length > 1))) {
@@ -432,7 +435,7 @@
         '<div class="tg-bubble-meta">' +
           (m.edited ? "<span>edited</span>" : "") +
           "<span>" + esc(m.time || "") + "</span>" +
-          (isUser ? '<span style="color:#38bdf8;font-weight:700;">✓✓</span>' : "") +
+          (isUser ? '<span style="color:#a78bfa;font-weight:700;">✓✓</span>' : "") +
         "</div>"
       );
 
@@ -464,6 +467,27 @@
         "</div>"
       );
     });
+
+    // ↻ Under the characters' latest reply: try again, with an optional note ("as a voice note", "send a selfie")
+    var lastUser = -1;
+    msgs.forEach(function (m, i) { if (m.role === "user") lastUser = i; });
+    if (msgs.slice(lastUser + 1).some(function (m) { return m.role === "assistant"; })) {
+      var picks = [["🎤 As a voice note", "Say it as a voice note."], ["📸 With a photo", "Send a photo with it."],
+                   ["✂️ Shorter", "Keep it shorter."], ["🔥 More feeling", "Let more feeling show."]];
+      out.push(
+        '<div class="tg-regen" id="tgRegen">' +
+          '<button type="button" class="tg-regen-open" onclick="TG.toggleRegen()">↻ Try again…</button>' +
+          '<div class="tg-regen-box" hidden>' +
+            '<div class="tg-regen-picks">' + picks.map(function (p) {
+              return '<button type="button" onclick="TG.regenPick(this)" data-note="' + esc(p[1]) + '">' + esc(p[0]) + "</button>";
+            }).join("") + "</div>" +
+            '<div class="tg-regen-row"><input type="text" id="tgRegenNote" maxlength="600" placeholder="A note for this take (optional): what should be different?" ' +
+              'onkeydown="if (event.key === \'Enter\') { event.preventDefault(); TG.regenerate(); }">' +
+            '<button type="button" class="tg-regen-go" onclick="TG.regenerate()">↻ Again</button></div>' +
+          "</div>" +
+        "</div>"
+      );
+    }
 
     vp.innerHTML = out.join("");
     vp.scrollTop = vp.scrollHeight;
@@ -899,6 +923,54 @@
     box.innerHTML = html.join("");
   }
 
+  // --- 🥔 Bulba's setup: a character who isn't set up for texting yet gets an offer at the top of the chat ---
+  var setupState = {};  // slug → {step: offer|busy|review|look|drawing|done, mode, hint, outfit, error}
+  function setupSkipped(slug) { try { return localStorage.getItem("na-tg-setup-skip-" + slug) === "1"; } catch (e) { return false; } }
+  function bulbaSetupCard(t) {
+    var m = (t.members || []).find(function (x) { return !x.set_up && !setupSkipped(x.slug); }) ||
+            (t.members || []).find(function (x) { return setupState[x.slug] && setupState[x.slug].step !== "done"; });
+    if (!m) return "";
+    var st = setupState[m.slug] || (setupState[m.slug] = { step: "offer", mode: "modern_au", hint: "", outfit: "" });
+    var n = esc(m.name), slug = esc(m.slug), body = "";
+    var err = st.error ? '<p class="tg-setup-err">' + esc(st.error) + "</p>" : "";
+    if (st.step === "offer") {
+      body = "<p><b>" + n + "</b> isn't set up for texting yet. Want me to bring them onto a phone? I'll write their @handle, bio, " +
+        "how they text, and why you two have each other's number. Their roleplay card stays exactly as it is.</p>" +
+        '<div class="tg-setup-modes">' +
+          '<button type="button" class="' + (st.mode === "modern_au" ? "on" : "") + '" onclick="TG.setupMode(\'' + slug + '\', \'modern_au\')">🌆 Modern AU<small>today\'s world, a modern job</small></button>' +
+          '<button type="button" class="' + (st.mode === "canon" ? "on" : "") + '" onclick="TG.setupMode(\'' + slug + '\', \'canon\')">🏰 Keep their world<small>a phone or communicator there</small></button>' +
+        "</div>" +
+        '<textarea id="tgSetupHint" rows="2" oninput="TG.setupType(\'' + slug + '\', \'hint\', this.value)" placeholder="Steer it (optional): a scenario, their job now, how you two know each other… Leave it empty and I\'ll suggest one.">' + esc(st.hint) + "</textarea>" +
+        '<div class="tg-setup-row"><button type="button" class="tg-setup-go" onclick="TG.setupRun(\'' + slug + '\')">🥔 Set them up</button>' +
+        '<button type="button" class="tg-setup-ghost" onclick="TG.setupSkip(\'' + slug + '\')">Not now</button></div>';
+    } else if (st.step === "busy") {
+      body = "<p>Thinking about who " + n + " is on a phone… 🥔</p>";
+    } else if (st.step === "review") {
+      body = "<p>Here's " + n + " for texting:</p><dl class=\"tg-setup-draft\">" +
+        "<dt>Handle & bio</dt><dd>" + esc(m.handle || "") + " · " + esc(m.bio || "") + "</dd>" +
+        "<dt>Why you text</dt><dd>" + esc(m.scenario || "") + "</dd>" +
+        "<dt>Who they are here</dt><dd>" + esc(m.modern_persona || "") + "</dd>" +
+        "<dt>How they text</dt><dd>" + esc(m.texting_style || "") + "</dd></dl>" +
+        '<div class="tg-setup-row"><button type="button" class="tg-setup-go" onclick="TG.setupKeep(\'' + slug + '\')">👍 Keep it</button>' +
+        '<button type="button" class="tg-setup-ghost" onclick="TG.setupRun(\'' + slug + '\')">↻ Another take</button>' +
+        '<button type="button" class="tg-setup-ghost" onclick="TG.openDrawer(\'char\')">✏️ Adjust by hand</button></div>';
+    } else if (st.step === "look") {
+      body = (m.neutral_url
+        ? "<p>Now their pictures: the ones they have show their old look. Want me to draw " + n + " for this setup? I'll keep their face from the pictures they have.</p>"
+        : "<p>Now their pictures: " + n + " doesn't have any for texting yet. Want me to draw them for this setup, from their description?</p>") +
+        '<textarea id="tgSetupOutfit" rows="2" oninput="TG.setupType(\'' + slug + '\', \'outfit\', this.value)" placeholder="Their outfit now (optional), e.g. black turtleneck, a lab coat over it, silver rings">' + esc(st.outfit) + "</textarea>" +
+        '<div class="tg-setup-row"><button type="button" class="tg-setup-go" onclick="TG.setupDraw(\'' + slug + '\')">🍌 Draw them (2 pictures)</button>' +
+        '<button type="button" class="tg-setup-ghost" onclick="TG.setupDone(\'' + slug + '\')">Keep the old pictures</button></div>';
+    } else if (st.step === "drawing") {
+      body = "<p>Drawing " + n + " in their new look… this takes a minute. 🍌</p>";
+    } else if (st.step === "done") {
+      body = "<p>All set! " + (m.neutral_url ? '<img class="tg-setup-pic" src="' + esc(m.neutral_url) + '" alt="">' : "") +
+        "Say hi, or press 🎲 <b>Let them text</b> and " + n + " goes first.</p>" +
+        '<div class="tg-setup-row"><button type="button" class="tg-setup-ghost" onclick="TG.setupClose(\'' + slug + '\')">Close</button></div>';
+    }
+    return '<div class="tg-setup" id="tgSetup"><div class="tg-setup-head">🥔 <b>Bulba</b></div>' + body + err + "</div>";
+  }
+
   function syncCharCatalog(charSlug, updatedProf) {
     STATE.characters = (STATE.characters || []).map(function (c) {
       return c.slug === charSlug ? Object.assign({}, c, updatedProf) : c;
@@ -1044,6 +1116,83 @@
           return TG.triggerAiTurn();
         })
         .catch(function (err) {
+          alert(err.message);
+        });
+    },
+
+    setupMode: function (slug, mode) {
+      var st = setupState[slug]; if (!st) return;
+      var h = document.getElementById("tgSetupHint"); if (h) st.hint = h.value;
+      st.mode = mode; renderActiveThread();
+    },
+    setupType: function (slug, key, value) { if (setupState[slug]) setupState[slug][key] = value; },
+    setupSkip: function (slug) {
+      try { localStorage.setItem("na-tg-setup-skip-" + slug, "1"); } catch (e) { /* this visit only */ }
+      delete setupState[slug]; renderActiveThread();
+    },
+    setupRun: function (slug) {
+      var st = setupState[slug]; if (!st) return;
+      var h = document.getElementById("tgSetupHint"); if (h) st.hint = h.value;
+      st.step = "busy"; st.error = ""; renderActiveThread();
+      apiPost({ action: "modernize_bulba", char_slug: slug, mode: st.mode, hint: st.hint })
+        .then(function (res) {
+          if (res.error) throw new Error(res.error);
+          syncCharCatalog(res.char_slug, Object.assign({}, res.profile, { set_up: true }));
+          st.step = "review"; renderSidebar(); renderActiveThread();
+        })
+        .catch(function (e) { st.step = "offer"; st.error = e.message; renderActiveThread(); });
+    },
+    setupKeep: function (slug) { var st = setupState[slug]; if (st) { st.step = "look"; renderActiveThread(); } },
+    setupDraw: function (slug) {
+      var st = setupState[slug]; if (!st) return;
+      var o = document.getElementById("tgSetupOutfit"); if (o) st.outfit = o.value;
+      st.step = "drawing"; st.error = ""; renderActiveThread();
+      apiPost({ action: "setup_look", char_slug: slug, outfit: st.outfit })
+        .then(function (res) {
+          if (res.error) throw new Error(res.error);
+          syncCharCatalog(res.char_slug, res.profile);
+          st.step = "done"; renderSidebar(); renderActiveThread();
+        })
+        .catch(function (e) { st.step = "look"; st.error = e.message; renderActiveThread(); });
+    },
+    setupDone: function (slug) { var st = setupState[slug]; if (st) { st.step = "done"; renderActiveThread(); } },
+    setupClose: function (slug) { delete setupState[slug]; renderActiveThread(); },
+
+    toggleRegen: function () {
+      var box = document.querySelector("#tgRegen .tg-regen-box");
+      if (!box) return;
+      box.hidden = !box.hidden;
+      if (!box.hidden) { var inp = document.getElementById("tgRegenNote"); if (inp) inp.focus(); }
+      box.scrollIntoView({ block: "nearest" });
+    },
+
+    regenPick: function (btn) {
+      var inp = document.getElementById("tgRegenNote");
+      if (!inp) return;
+      var add = btn.getAttribute("data-note");
+      inp.value = inp.value.trim() ? inp.value.trim() + " " + add : add;
+      inp.focus();
+    },
+
+    regenerate: function () {
+      var t = STATE.active_thread;
+      if (!t) return;
+      var inp = document.getElementById("tgRegenNote"), note = inp ? inp.value.trim() : "";
+      var typRow = document.getElementById("tgTypingRow"), typTxt = document.getElementById("tgTypingText");
+      if (typRow) { typTxt.textContent = t.title + " is typing again…"; typRow.classList.add("visible"); }
+      var box = document.getElementById("tgRegen");
+      if (box) box.classList.add("busy");
+      return apiPost({ action: "regenerate", thread_id: t.id, note: note })
+        .then(function (res) {
+          if (typRow) typRow.classList.remove("visible");
+          STATE.active_thread = res.thread;
+          if (res.threads) STATE.threads = res.threads;
+          renderSidebar();
+          renderActiveThread();
+        })
+        .catch(function (err) {
+          if (typRow) typRow.classList.remove("visible");
+          if (box) box.classList.remove("busy");
           alert(err.message);
         });
     },

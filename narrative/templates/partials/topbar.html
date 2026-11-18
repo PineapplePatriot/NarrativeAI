@@ -17,7 +17,7 @@
     <a href="{% url 'users:api_config' %}" class="{% if active == 'connections' %}active{% endif %}">Connections</a>
     <a href="{% url 'users:extras' %}" class="{% if active == 'extras' %}active{% endif %}" title="Summaries, trackers, pictures, voices, Bulba Watch">Extras</a>
     <a href="{% url 'guide' %}" class="{% if active == 'guide' %}active{% endif %}" title="How to try the app">Guide</a>
-    <a href="{% url 'screen_hub' %}" class="na-emoji-first{% if active == 'screen' %} active{% endif %}" title="Digital Screen Hub: Telegram Messenger, Group Chats, Moments & Files">📱 Screen <span id="naScreenUnreadBadge" style="display:none;background:#38bdf8;color:#090d16;border-radius:99px;padding:0 5px;font-size:10px;font-weight:700;margin-left:3px;">0</span></a>
+    <a href="{% url 'screen_hub' %}" class="na-emoji-first{% if active == 'screen' %} active{% endif %}" title="Digital Screen Hub: Telegram Messenger, Group Chats, Moments & Files">📱 Screen <span id="naScreenUnreadBadge" style="display:none;background:#a78bfa;color:#0d1019;border-radius:99px;padding:0 5px;font-size:10px;font-weight:700;margin-left:3px;">0</span></a>
     <a href="{% url 'bulba' %}" class="{% if active == 'bulba' %}active{% endif %}" title="Bulba, the setup potato">🥔 Bulba</a>
     <a href="{% url 'users:notebook' %}" class="{% if active == 'notebook' %}active{% endif %}" title="What Bulba watches for, what it learned about you, what you've spent">📓 Notebook</a>
     {% if tomato_pit_found %}<a href="{% url 'tomato_pit' %}" class="{% if active == 'tomatoes' %}active{% endif %}" title="The Tomato Pit">🍅 Pit</a>
@@ -51,6 +51,6 @@
 <script src="{% static 'js/help_text.js' %}?v=15" defer></script>
 <script src="{% static 'js/tour.js' %}?v=6" defer></script>
 <script src="{% static 'js/radio_carry.js' %}?v=1" defer></script>
-<script src="{% static 'js/messenger_notify.js' %}?v=1" data-poll="{% url 'messenger_api' %}?action=poll" data-screen="{% url 'screen_hub' %}" defer></script>
+<script src="{% static 'js/messenger_notify.js' %}?v=2" data-poll="{% url 'messenger_api' %}?action=poll" data-screen="{% url 'screen_hub' %}" defer></script>
 {% if feedback_url %}<script>window.NA_FEEDBACK = {url: "{{ feedback_url|escapejs }}", done: "{% url 'users:feedback_done' %}", csrf: "{{ csrf_token }}"};</script>
 <script src="{% static 'js/feedback.js' %}?v=1" defer></script>{% endif %}

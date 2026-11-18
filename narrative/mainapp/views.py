@@ -4939,6 +4939,21 @@ def messenger_api(request):
             "threads": all_threads,
         })
 
+    if action == "regenerate":  # ↻ the characters' last reply again, with an optional note from the user
+        thread = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id")).prefetch_related("characters").first()
+        if not thread:
+            return JsonResponse({"error": "Chat not found."}, status=404)
+        try:
+            turn = messenger.regenerate_turn(request.user, thread, note=str(body.get("note") or ""))
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({
+            "turn": turn,
+            "thread": messenger.serialize_thread_full(thread, request.user),
+            "threads": [messenger.serialize_thread_summary(t)
+                        for t in MessengerThread.objects.filter(user=request.user).prefetch_related("characters")],
+        })
+
     if action == "react":
         tid = body.get("thread_id")
         mid = body.get("message_id")
@@ -5056,6 +5071,16 @@ def messenger_api(request):
                 })
                 messenger.save_thread_data(thread, td)
         return JsonResponse({"profile": saved, "char_slug": c_obj.slug})
+
+    if action == "setup_look":  # 🥔 Bulba's setup, step two: draw them again for this texting setup
+        c_obj = char_by_slug.get(body.get("char_slug") or "")
+        if not c_obj:
+            return JsonResponse({"error": "Character not found."}, status=404)
+        try:
+            prof, cost = messenger.redraw_setup_look(request.user, c_obj, outfit=str(body.get("outfit") or ""))
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"profile": prof, "char_slug": c_obj.slug, "cost": cost})
 
     if action == "modernize_bulba":
         slug = body.get("char_slug") or ""
