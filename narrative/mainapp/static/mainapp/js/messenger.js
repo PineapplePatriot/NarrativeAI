@@ -954,6 +954,7 @@
         '<textarea id="tgSetupFix" rows="2" oninput="TG.setupType(\'' + slug + '\', \'fix\', this.value)" placeholder="What\'s off? Tell me and I\'ll fix it, e.g. we met at a night pharmacy, not at work">' + esc(st.fix || "") + "</textarea>" +
         '<div class="tg-setup-row"><button type="button" class="tg-setup-go" onclick="TG.setupKeep(\'' + slug + '\')">👍 Keep it</button>' +
         '<button type="button" class="tg-setup-ghost" onclick="TG.setupFix(\'' + slug + '\')">↻ Fix what I said / another take</button>' +
+        '<button type="button" class="tg-setup-ghost" onclick="TG.openBulba()">🥔 Talk it through</button>' +
         '<button type="button" class="tg-setup-ghost" onclick="TG.openDrawer(\'char\')">✏️ Adjust by hand</button></div>';
     } else if (st.step === "look") {
       body = (m.neutral_url
@@ -1125,6 +1126,20 @@
       var st = setupState[slug]; if (!st) return;
       var h = document.getElementById("tgSetupHint"); if (h) st.hint = h.value;
       st.mode = mode; renderActiveThread();
+    },
+    // 🥔 Bulba for this chat, in a side panel (mainapp/bulba/texting.py); what's applied there shows here at once
+    openBulba: function () {
+      var t = STATE.active_thread;
+      if (!t) return;
+      var panel = document.getElementById("tgBulbaPanel"), frame = document.getElementById("tgBulbaFrame");
+      var url = window.TG_CFG.bulba.replace(/\/0\/$/, "/" + t.id + "/");
+      if (frame.getAttribute("data-thread") !== String(t.id)) { frame.src = url; frame.setAttribute("data-thread", String(t.id)); }
+      panel.hidden = false;
+      document.body.classList.add("tg-bulba-open");
+    },
+    closeBulba: function () {
+      document.getElementById("tgBulbaPanel").hidden = true;
+      document.body.classList.remove("tg-bulba-open");
     },
     setupType: function (slug, key, value) { if (setupState[slug]) setupState[slug][key] = value; },
     setupSkip: function (slug) {
@@ -2012,4 +2027,11 @@
 
   renderSidebar();
   renderActiveThread();
+
+  // Bulba's panel tells us when something changed (a card applied, a reply retried): reload this chat
+  window.addEventListener("message", function (e) {
+    if (e.origin !== window.location.origin || !e.data) return;
+    if (e.data.quickBulba === "close") { TG.closeBulba(); return; }
+    if ((e.data.bulba || e.data.quickBulba === "changed") && STATE.active_thread) TG.selectThread(STATE.active_thread.id);
+  });
 })();

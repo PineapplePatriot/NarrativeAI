@@ -1466,3 +1466,19 @@ body.tg-screen-body {
   #hdrModelBadge { display: none; }
   .tg-header-actions .tg-hdr-btn { padding: 6px 8px; font-size: 15px; }
 }
+
+/* 🥔 Bulba's side panel for this chat */
+.tg-bulba-panel { position: absolute; top: 0; right: 0; bottom: 0; width: min(440px, 100%); z-index: 40; background: var(--tg-panel);
+  border-left: 1px solid rgba(167, 139, 250, .35); box-shadow: -12px 0 30px rgba(0, 0, 0, .35); display: flex; }
+.tg-bulba-panel[hidden] { display: none; }
+.tg-bulba-panel iframe { flex: 1; border: 0; width: 100%; height: 100%; background: var(--tg-panel); }
+.tg-bulba-close { position: absolute; top: 8px; right: 10px; z-index: 2; background: rgba(0, 0, 0, .3); color: var(--tg-text); border: 1px solid var(--tg-border);
+  border-radius: 99px; width: 30px; height: 30px; cursor: pointer; }
+.tg-hdr-bulba { border-color: rgba(167, 139, 250, .5); background: rgba(126, 58, 242, .18); }
+@media (min-width: 1200px) { body.tg-bulba-open .tg-main { margin-right: 440px; } }
+/* With Bulba open beside the chat, the header keeps the name: icon-only buttons */
+body.tg-bulba-open .tg-header-left { flex: 1; min-width: 0; }
+body.tg-bulba-open .tg-header-info { min-width: 0; }
+body.tg-bulba-open .tg-header-title, body.tg-bulba-open .tg-header-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body.tg-bulba-open .tg-header-actions { flex-shrink: 0; }
+body.tg-bulba-open .tg-header-actions .tg-hdr-btn > span, body.tg-bulba-open #hdrModelBadge { display: none; }
