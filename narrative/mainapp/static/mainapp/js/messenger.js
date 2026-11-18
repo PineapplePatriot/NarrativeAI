@@ -12,6 +12,7 @@
   var replyToMsg = null;
   var currentDrawerTab = "char";
   var selectedDrawerCharSlug = "";
+  window.selectedDrawerCharSlugSet = function (slug) { selectedDrawerCharSlug = slug; };  // (the card's Edit button)
   var activeAudio = null;
   var activeAudioMsgId = null;
 
@@ -93,7 +94,7 @@
     html.push(
       '<div class="tg-story-item" onclick="TG.openStoryModal(\'user\')" title="Your Status / Story">' +
         '<div class="tg-story-ring ' + (uStories.length ? "" : "empty") + '">' +
-          (u.avatar_url ? '<img src="' + esc(u.avatar_url) + '" alt="">' : '<div class="tg-avatar-fallback" style="display:flex;align-items:center;justify-content:center;background:#2b5278;color:#fff;font-weight:700;">+</div>') +
+          (u.avatar_url ? '<img src="' + esc(u.avatar_url) + '" alt="">' : '<div class="tg-avatar-fallback" style="display:flex;align-items:center;justify-content:center;background:#4b2a86;color:#fff;font-weight:700;">+</div>') +
           '<span class="tg-story-emoji-badge">' + esc(u.status_emoji || "✨") + "</span>" +
         "</div>" +
         '<span class="tg-story-label">My Status</span>' +
@@ -107,7 +108,7 @@
           '<div class="tg-story-ring ' + (hasStories ? "" : "empty") + '">' +
             (c.avatar_url
               ? '<img src="' + esc(c.avatar_url) + '" alt="">'
-              : '<div class="tg-avatar-fallback" style="display:flex;align-items:center;justify-content:center;background:#242f3d;color:#fff;font-weight:700;">' + esc((c.display_name || "?")[0]) + "</div>") +
+              : '<div class="tg-avatar-fallback" style="display:flex;align-items:center;justify-content:center;background:#2a2f4a;color:#fff;font-weight:700;">' + esc((c.display_name || "?")[0]) + "</div>") +
             '<span class="tg-story-emoji-badge">' + esc(c.status_emoji || "💬") + "</span>" +
           "</div>" +
           '<span class="tg-story-label">' + esc(c.display_name) + "</span>" +
@@ -285,12 +286,17 @@
     var rtClock = (t.real_time && t.real_time.clock) ? t.real_time.clock : "Today";
     out.push('<div class="tg-sys-pill">🕒 ' + esc(rtClock) + "</div>");
 
+    var setupCard = bulbaSetupCard(t);
+    if (setupCard) out.push(setupCard);
+
     if (!msgs.length) {
       out.push(
         '<div class="tg-sys-pill">No messages yet. Say hi, send a sticker, or click <b>🎲 Let them text</b> below!</div>'
       );
     }
 
+    var lastUserId = null;
+    msgs.forEach(function (m) { if (m.role === "user") lastUserId = m.id; });
     msgs.forEach(function (m) {
       if (m.role === "system") {
         out.push('<div class="tg-sys-pill" id="msg-' + esc(m.id) + '">' + esc(m.text) + "</div>");
@@ -300,7 +306,7 @@
       var mem = mMap[m.sender_slug] || (t.members && t.members[0]) || {};
       var avUrl = isUser ? (STATE.user_profile.avatar_url || "") : (mem.avatar_url || t.avatar_url || "");
       var senderName = m.sender_name || (isUser ? STATE.user_profile.display_name : mem.display_name || t.title);
-      var senderColor = isUser ? "#38bdf8" : (mem.color || "#60a5fa");
+      var senderColor = isUser ? "#a78bfa" : (mem.color || "#f0abfc");
 
       var inner = [];
       if (!isUser && (t.is_group || (t.members && t.members.length > 1))) {
@@ -345,7 +351,7 @@
         if (ph.url) {
           inner.push(
             '<div class="tg-photo-card">' +
-              '<img src="' + esc(ph.url) + '" alt="Photo" onclick="window.open(this.src, \'_blank\')">' +
+              '<img src="' + esc(ph.url) + '" alt="Photo" onclick="TG.viewImage(this.src)">' +
               (ph.caption ? '<div class="tg-bubble-text">' + formatMessageHtml(ph.caption) + "</div>" : "") +
             "</div>"
           );
@@ -432,7 +438,8 @@
         '<div class="tg-bubble-meta">' +
           (m.edited ? "<span>edited</span>" : "") +
           "<span>" + esc(m.time || "") + "</span>" +
-          (isUser ? '<span style="color:#38bdf8;font-weight:700;">✓✓</span>' : "") +
+          (isUser ? '<span style="color:#a78bfa;font-weight:700;">✓✓</span>' : "") +
+          (isUser && t.waiting && m.id === lastUserId ? '<span class="tg-seen">Seen</span>' : "") +
         "</div>"
       );
 
@@ -448,6 +455,7 @@
           quickEmojis +
           '<button type="button" class="tg-act-btn" onclick="TG.setReplyTo(\'' + esc(m.id) + '\')" title="Reply">↩</button>' +
           (!isUser ? '<button type="button" class="tg-act-btn" onclick="TG.playVoiceBubble(\'' + esc(m.id) + '\', this)" title="Voice with ElevenLabs">🔊</button>' : "") +
+          (!isUser ? '<button type="button" class="tg-act-btn" onclick="TG.openRedo(\'' + esc(m.id) + '\')" title="Try this message again (a note optional)">↻</button>' : "") +
           '<button type="button" class="tg-act-btn" onclick="TG.pinMessage(\'' + esc(m.id) + '\')" title="Pin">📌</button>' +
           '<button type="button" class="tg-act-btn" onclick="TG.editMessagePrompt(\'' + esc(m.id) + '\')" title="Edit">✏️</button>' +
           '<button type="button" class="tg-act-btn" onclick="TG.deleteMessage(\'' + esc(m.id) + '\')" title="Delete">🗑</button>' +
@@ -456,14 +464,37 @@
       var stickerOnly = m.sticker && !m.text && !m.voice && !m.photo && !m.file;
       out.push(
         '<div class="tg-msg-row ' + (isUser ? "user" : "assistant") + '" id="msg-' + esc(m.id) + '">' +
-          avatarHtml(avUrl, senderName, "tg-msg-avatar") +
+          (isUser ? avatarHtml(avUrl, senderName, "tg-msg-avatar")
+                  : '<span class="tg-card-tap" onclick="TG.openCard(\'' + esc(m.sender_slug || "") + '\')" title="Their card">' + avatarHtml(avUrl, senderName, "tg-msg-avatar") + "</span>") +
           '<div class="tg-bubble ' + (stickerOnly ? "sticker-only" : "") + '">' +
             actionsToolbar +
             inner.join("") +
           "</div>" +
         "</div>"
       );
+      if (redoFor === m.id && !isUser) out.push(redoBox(m));
     });
+
+    // ↻ Under the characters' latest reply: try again, with an optional note ("as a voice note", "send a selfie")
+    var lastUser = -1;
+    msgs.forEach(function (m, i) { if (m.role === "user") lastUser = i; });
+    if (msgs.slice(lastUser + 1).some(function (m) { return m.role === "assistant"; })) {
+      var picks = [["🎤 As a voice note", "Say it as a voice note."], ["📸 With a photo", "Send a photo with it."],
+                   ["✂️ Shorter", "Keep it shorter."], ["🔥 More feeling", "Let more feeling show."]];
+      out.push(
+        '<div class="tg-regen" id="tgRegen">' +
+          '<button type="button" class="tg-regen-open" onclick="TG.toggleRegen()">↻ Try again…</button>' +
+          '<div class="tg-regen-box" hidden>' +
+            '<div class="tg-regen-picks">' + picks.map(function (p) {
+              return '<button type="button" onclick="TG.regenPick(this)" data-note="' + esc(p[1]) + '">' + esc(p[0]) + "</button>";
+            }).join("") + "</div>" +
+            '<div class="tg-regen-row"><input type="text" id="tgRegenNote" maxlength="600" placeholder="A note for this take (optional): what should be different?" ' +
+              'onkeydown="if (event.key === \'Enter\') { event.preventDefault(); TG.regenerate(); }">' +
+            '<button type="button" class="tg-regen-go" onclick="TG.regenerate()">↻ Again</button></div>' +
+          "</div>" +
+        "</div>"
+      );
+    }
 
     vp.innerHTML = out.join("");
     vp.scrollTop = vp.scrollHeight;
@@ -496,7 +527,12 @@
   }
 
   // Drawer rendering
-  function renderDrawer() {
+  function renderDrawer() {  // redrawn in place: the drawer keeps where they had scrolled to
+    var drw = document.getElementById("tgDrawer"), keep = drw ? drw.scrollTop : 0;
+    renderDrawerNow();
+    if (drw) drw.scrollTop = keep;
+  }
+  function renderDrawerNow() {
     var body = document.getElementById("tgDrawerBody");
     if (!body) return;
     var t = STATE.active_thread;
@@ -555,8 +591,8 @@
         '<div style="border:1px solid var(--tg-border);border-radius:10px;padding:8px;display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(255,255,255,0.03);">' +
           '<div style="font-size:11px;font-weight:700;color:#93c5fd;">1. Neutral Ref</div>' +
           (neutralUrl
-            ? '<img src="' + esc(neutralUrl) + '" alt="Neutral" style="width:68px;height:68px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.14);">'
-            : '<div style="width:68px;height:68px;border-radius:8px;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:20px;">👤</div>') +
+            ? '<img class="tg-ref-img" src="' + esc(neutralUrl) + '" alt="Neutral" title="Tap to see it big" onclick="TG.viewImage(this.src)">'
+            : '<div class="tg-ref-empty" style="background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:20px;">👤</div>') +
           '<button type="button" class="tg-fmt-btn" style="font-size:10.5px;padding:3px 7px;" onclick="TG.triggerRefUpload(\'char_neutral\', -1)">Upload</button>' +
         "</div>"
       );
@@ -567,8 +603,8 @@
           '<div style="border:1px solid var(--tg-border);border-radius:10px;padding:8px;display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(255,255,255,0.02);">' +
             '<div style="font-size:11px;color:var(--tg-muted);">Ref #' + (rIdx + 2) + "</div>" +
             (rUrl
-              ? '<img src="' + esc(rUrl) + '" alt="Ref" style="width:68px;height:68px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.14);">'
-              : '<div style="width:68px;height:68px;border-radius:8px;background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--tg-muted);">+</div>') +
+              ? '<img class="tg-ref-img" src="' + esc(rUrl) + '" alt="Ref" title="Tap to see it big" onclick="TG.viewImage(this.src)">'
+              : '<div class="tg-ref-empty" style="background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--tg-muted);">+</div>') +
             '<div style="display:flex;gap:3px;">' +
               '<button type="button" class="tg-fmt-btn" style="font-size:10.5px;padding:3px 6px;" onclick="TG.triggerRefUpload(\'char_extra_ref\', ' + rIdx + ')">' + (rUrl ? "Swap" : "Add") + "</button>" +
               (rUrl ? '<button type="button" class="tg-fmt-btn" style="font-size:10.5px;padding:3px 5px;color:#f87171;" onclick="TG.removeExtraRef(' + rIdx + ')">✕</button>' : "") +
@@ -594,7 +630,7 @@
         '<div class="tg-bulba-box" style="background:rgba(56,189,248,0.06);border-color:rgba(56,189,248,0.25);">' +
           '<div style="font-weight:700;font-size:13px;">🖼️ 1 Neutral + Up to 4 Reference Pictures</div>' +
           '<div style="font-size:11.5px;color:#cbd5e1;">Nano Banana uses these to lock face, outfit & art style across varied-angle selfies, food shots, and scenery. For OCs without art yet, generate them from description below!</div>' +
-          '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;">' + refSlotsHtml.join("") + "</div>" +
+          '<div class="tg-ref-grid">' + refSlotsHtml.join("") + "</div>" +
           '<input type="file" id="drwRefUploadInput" accept="image/*" style="display:none" onchange="TG.handleRefUploadFile(this)">' +
           '<div class="tg-field-group" style="margin-top:4px;">' +
             "<label>Appearance Description (used for photos & OC reference generation)</label>" +
@@ -617,6 +653,7 @@
           '<div style="display:grid;grid-template-columns:1fr auto;gap:6px;align-items:end;">' +
             '<div class="tg-field-group">' +
               "<label>Active Voice Name or Custom 20-char ElevenLabs Voice ID</label>" +
+              '<small style="display:block;color:var(--tg-muted);font-size:11.5px;margin:-2px 0 4px;">Through OpenRouter only the 21 voices in the list above work. Your own ElevenLabs voice ids need your ElevenLabs key (Extras → Voices).</small>' +
               '<input type="text" class="tg-input" id="drwCharVoiceCustom" value="' + esc(curVoice || (voices[0] ? voices[0].id : "sarah")) + '" placeholder="e.g. george, sarah, or JBFqnCBsd6RMkjVDRZzb">' +
             "</div>" +
             '<button type="button" class="tg-fmt-btn" style="height:36px;padding:0 12px;" onclick="TG.previewSelectedVoice(this)">🔊 Preview</button>' +
@@ -666,8 +703,8 @@
           '<input type="checkbox" id="drwCharMemory" ' + (cur.share_memory !== false ? "checked" : "") + ">" +
           "Share Story Memory with their main roleplay chats" +
         "</label>" +
-        '<div style="display:flex;gap:8px;margin-top:4px;">' +
-          '<button type="button" class="tg-send-btn" style="flex:1;justify-content:center;" onclick="TG.saveCharProfile()">💾 Save Character Setup</button>' +
+        '<div class="tg-save-bar">' +
+          '<button type="button" class="tg-send-btn" style="flex:1;justify-content:center;" onclick="TG.saving(this, TG.saveCharProfile)">💾 Save Character Setup</button>' +
           '<button type="button" class="tg-fmt-btn" onclick="TG.openStoryModal(\'' + esc(cur.slug) + '\')">+ Post Status</button>' +
         "</div>";
       return;
@@ -724,8 +761,15 @@
           "<label>This Chat's Scenario Override (optional)</label>" +
           '<textarea class="tg-textarea" id="drwThreadScenario">' + esc(t.scenario_override || "") + "</textarea>" +
         "</div>" +
-        '<div style="display:flex;gap:8px;">' +
-          '<button type="button" class="tg-send-btn" style="flex:1;justify-content:center;" onclick="TG.saveThreadSettings()">💾 Save Chat & Look</button>' +
+        '<div class="tg-field-group">' +
+          '<label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;cursor:pointer;">' +
+            '<input type="checkbox" id="drwThreadLeaveOnRead" ' + (t.leave_on_read ? "checked" : "") + ' style="margin-top:3px">' +
+            "<span>🙈 <b>They can leave me on read</b><br><small style=\"color:var(--tg-muted)\">Now and then, when it fits (they were busy, " +
+            "or teasing, annoyed, petty), they answer up to 5 real minutes later. Your message shows as Seen meanwhile.</small></span>" +
+          "</label>" +
+        "</div>" +
+        '<div class="tg-save-bar">' +
+          '<button type="button" class="tg-send-btn" style="flex:1;justify-content:center;" onclick="TG.saving(this, TG.saveThreadSettings)">💾 Save Chat & Look</button>' +
           '<button type="button" class="tg-fmt-btn" onclick="TG.pinCurrentThread()">📌 Pin Chat</button>' +
           '<button type="button" class="tg-fmt-btn" style="color:#f87171;" onclick="TG.deleteCurrentThread()">🗑</button>' +
         "</div>";
@@ -779,7 +823,15 @@
         '<input type="checkbox" id="drwMeAutoVoice" ' + (u.auto_voice ? "checked" : "") + ">" +
         "Automatically synthesize ElevenLabs audio when characters send [VOICE]" +
       "</label>" +
-      '<button type="button" class="tg-send-btn" style="justify-content:center;margin-top:6px;" onclick="TG.saveUserProfile()">💾 Save My Profile & Alerts</button>';
+      '<div class="tg-field-group"><label>🖼️ Picture model (photos, selfies and reference pictures in the messenger)</label>' +
+        '<select class="tg-select" id="drwMeImageModel">' +
+          [["", "Nano Banana (Google): the app's default"],
+           ["microsoft/mai-image-2.7", "MAI-Image-2.7 (Microsoft): precise, consistent"],
+           ["microsoft/mai-image-2.7-flash", "MAI-Image-2.7 Flash (Microsoft): faster, cheaper"]].map(function (o) {
+            return '<option value="' + o[0] + '"' + ((u.image_model || "") === o[0] ? " selected" : "") + ">" + esc(o[1]) + "</option>";
+          }).join("") +
+        "</select><small style=\"color:var(--tg-muted);font-size:11.5px;\">All three keep faces from the reference pictures. Through your OpenRouter key.</small></div>" +
+      '<div class="tg-save-bar"><button type="button" class="tg-send-btn" style="flex:1;justify-content:center;" onclick="TG.saving(this, TG.saveUserProfile)">💾 Save My Profile & Alerts</button></div>';
   }
 
   function renderMomentsFeed() {
@@ -899,6 +951,72 @@
     box.innerHTML = html.join("");
   }
 
+  // --- ↻ One message again: its text (or a voice note's words) rewritten, or its photo redrawn, with a note ---
+  var redoFor = null;
+  function redoBox(m) {
+    var hasText = !!((m.voice && m.voice.transcript) || m.text), hasPhoto = !!m.photo;
+    var picks = hasPhoto && !hasText ? [["🎨 Other angle", "A different camera angle."], ["😏 Cheekier", "More playful."], ["🌙 Moodier light", "Moodier lighting."]]
+      : [["✂️ Shorter", "Shorter."], ["🔥 More feeling", "Let more feeling show."], ["😏 Teasing", "More teasing."], ["🧊 Colder", "Colder, more distant."]];
+    return '<div class="tg-regen tg-redo" id="tgRedo"><div class="tg-regen-box">' +
+      '<div class="tg-regen-picks">' + picks.map(function (p) {
+        return '<button type="button" onclick="TG.redoPick(this)" data-note="' + esc(p[1]) + '">' + esc(p[0]) + "</button>";
+      }).join("") + "</div>" +
+      '<div class="tg-regen-row"><input type="text" id="tgRedoNote" maxlength="600" placeholder="What should be different? (optional)">' +
+      (hasText ? '<button type="button" class="tg-regen-go" onclick="TG.redoMessage(\'' + esc(m.id) + '\')">↻ ' + (m.voice ? "New words" : "Rewrite") + "</button>" : "") +
+      (hasPhoto ? '<button type="button" class="tg-regen-go" onclick="TG.redoPhoto(\'' + esc(m.id) + '\')">🖼️ New picture</button>' : "") +
+      '<button type="button" class="tg-regen-x" onclick="TG.openRedo(null)" aria-label="Close">✕</button></div></div></div>';
+  }
+
+  // --- 🥔 Bulba's setup: a character who isn't set up for texting yet gets an offer at the top of the chat ---
+  var setupState = {};  // slug → {step: offer|busy|review|look|drawing|done, mode, hint, outfit, error}
+  function setupSkipped(slug) { try { return localStorage.getItem("na-tg-setup-skip-" + slug) === "1"; } catch (e) { return false; } }
+  function bulbaSetupCard(t) {
+    var m = (t.members || []).find(function (x) { return !x.set_up && !setupSkipped(x.slug); }) ||
+            (t.members || []).find(function (x) { return setupState[x.slug] && setupState[x.slug].step !== "done"; });
+    if (!m) return "";
+    var st = setupState[m.slug] || (setupState[m.slug] = { step: "offer", mode: "modern_au", hint: "", outfit: "" });
+    var n = esc(m.name), slug = esc(m.slug), body = "";
+    var err = st.error ? '<p class="tg-setup-err">' + esc(st.error) + "</p>" : "";
+    if (st.step === "offer") {
+      body = "<p><b>" + n + "</b> isn't set up for texting yet. Want me to bring them onto a phone? I'll write their @handle, bio, " +
+        "how they text, and why you two have each other's number. Their roleplay card stays exactly as it is.</p>" +
+        '<div class="tg-setup-modes">' +
+          '<button type="button" class="' + (st.mode === "modern_au" ? "on" : "") + '" onclick="TG.setupMode(\'' + slug + '\', \'modern_au\')">🌆 Modern AU<small>today\'s world, a modern job</small></button>' +
+          '<button type="button" class="' + (st.mode === "canon" ? "on" : "") + '" onclick="TG.setupMode(\'' + slug + '\', \'canon\')">🏰 Keep their world<small>a phone or communicator there</small></button>' +
+        "</div>" +
+        '<textarea id="tgSetupHint" rows="2" oninput="TG.setupType(\'' + slug + '\', \'hint\', this.value)" placeholder="Steer it (optional): a scenario, their job now, how you two know each other… Leave it empty and I\'ll suggest one.">' + esc(st.hint) + "</textarea>" +
+        '<div class="tg-setup-row"><button type="button" class="tg-setup-go" onclick="TG.setupRun(\'' + slug + '\')">🥔 Set them up</button>' +
+        '<button type="button" class="tg-setup-ghost" onclick="TG.setupSkip(\'' + slug + '\')">Not now</button></div>';
+    } else if (st.step === "busy") {
+      body = "<p>Thinking about who " + n + " is on a phone… 🥔</p>";
+    } else if (st.step === "review") {
+      body = "<p>Here's " + n + " for texting:</p><dl class=\"tg-setup-draft\">" +
+        "<dt>Handle & bio</dt><dd>" + esc(m.handle || "") + " · " + esc(m.bio || "") + "</dd>" +
+        "<dt>Why you text</dt><dd>" + esc(m.scenario || "") + "</dd>" +
+        "<dt>Who they are here</dt><dd>" + esc(m.modern_persona || "") + "</dd>" +
+        "<dt>How they text</dt><dd>" + esc(m.texting_style || "") + "</dd></dl>" +
+        '<textarea id="tgSetupFix" rows="2" oninput="TG.setupType(\'' + slug + '\', \'fix\', this.value)" placeholder="What\'s off? Tell me and I\'ll fix it, e.g. we met at a night pharmacy, not at work">' + esc(st.fix || "") + "</textarea>" +
+        '<div class="tg-setup-row"><button type="button" class="tg-setup-go" onclick="TG.setupKeep(\'' + slug + '\')">👍 Keep it</button>' +
+        '<button type="button" class="tg-setup-ghost" onclick="TG.setupFix(\'' + slug + '\')">↻ Fix what I said / another take</button>' +
+        '<button type="button" class="tg-setup-ghost" onclick="TG.openBulba()">🥔 Talk it through</button>' +
+        '<button type="button" class="tg-setup-ghost" onclick="TG.openDrawer(\'char\')">✏️ Adjust by hand</button></div>';
+    } else if (st.step === "look") {
+      body = (m.neutral_url
+        ? "<p>Now their pictures: the ones they have show their old look. Want me to draw " + n + " for this setup? I'll keep their face from the pictures they have.</p>"
+        : "<p>Now their pictures: " + n + " doesn't have any for texting yet. Want me to draw them for this setup, from their description?</p>") +
+        '<textarea id="tgSetupOutfit" rows="2" oninput="TG.setupType(\'' + slug + '\', \'outfit\', this.value)" placeholder="Their outfit now (optional), e.g. black turtleneck, a lab coat over it, silver rings">' + esc(st.outfit) + "</textarea>" +
+        '<div class="tg-setup-row"><button type="button" class="tg-setup-go" onclick="TG.setupDraw(\'' + slug + '\')">🍌 Draw them (2 pictures)</button>' +
+        '<button type="button" class="tg-setup-ghost" onclick="TG.setupDone(\'' + slug + '\')">Keep the old pictures</button></div>';
+    } else if (st.step === "drawing") {
+      body = "<p>Drawing " + n + " in their new look… this takes a minute. 🍌</p>";
+    } else if (st.step === "done") {
+      body = "<p>All set! " + (m.neutral_url ? '<img class="tg-setup-pic" src="' + esc(m.neutral_url) + '" alt="">' : "") +
+        "Say hi, or press 🎲 <b>Let them text</b> and " + n + " goes first.</p>" +
+        '<div class="tg-setup-row"><button type="button" class="tg-setup-ghost" onclick="TG.setupClose(\'' + slug + '\')">Close</button></div>';
+    }
+    return '<div class="tg-setup" id="tgSetup"><div class="tg-setup-head">🥔 <b>Bulba</b></div>' + body + err + "</div>";
+  }
+
   function syncCharCatalog(charSlug, updatedProf) {
     STATE.characters = (STATE.characters || []).map(function (c) {
       return c.slug === charSlug ? Object.assign({}, c, updatedProf) : c;
@@ -942,6 +1060,7 @@
         }
         document.getElementById("tgSidebar").classList.add("mobile-hidden");
         document.getElementById("tgMain").classList.remove("mobile-hidden");
+        if (res.thread.waiting) TG.showTurn(res, (res.thread.messages || []).map(function (m) { return m.id; }));  // 🙈 a late reply on its way
       });
     },
 
@@ -955,8 +1074,10 @@
       document.querySelectorAll(".tg-drawer-tab").forEach(function (b) {
         b.classList.toggle("active", b.getAttribute("data-tab") === currentDrawerTab);
       });
+      TG.closeBulba();  // one side panel at a time: both squeezed the chat into a sliver
       document.getElementById("tgDrawer").classList.add("open");
-      renderDrawer();
+      renderDrawerNow();
+      document.getElementById("tgDrawer").scrollTop = 0;  // a tab opens at its top
     },
 
     closeDrawer: function () {
@@ -1048,6 +1169,262 @@
         });
     },
 
+    setupMode: function (slug, mode) {
+      var st = setupState[slug]; if (!st) return;
+      var h = document.getElementById("tgSetupHint"); if (h) st.hint = h.value;
+      st.mode = mode; renderActiveThread();
+    },
+    // 🥔 Bulba for this chat, in a side panel (mainapp/bulba/texting.py); what's applied there shows here at once
+    openBulba: function () {
+      var t = STATE.active_thread;
+      if (!t) return;
+      var panel = document.getElementById("tgBulbaPanel"), frame = document.getElementById("tgBulbaFrame");
+      var url = window.TG_CFG.bulba.replace(/\/0\/$/, "/" + t.id + "/");
+      if (frame.getAttribute("data-thread") !== String(t.id)) { frame.src = url; frame.setAttribute("data-thread", String(t.id)); }
+      TG.closeDrawer();  // one side panel at a time
+      panel.hidden = false;
+      document.body.classList.add("tg-bulba-open");
+    },
+    closeBulba: function () {
+      document.getElementById("tgBulbaPanel").hidden = true;
+      document.body.classList.remove("tg-bulba-open");
+    },
+    // 💾 A save button says how it went: Saving… → ✓ Saved (or the error), and stays where it is
+    saving: function (btn, save) {
+      var label = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = "Saving…";
+      var done = function (ok, msg) {
+        var b = document.querySelector('[onclick="' + btn.getAttribute("onclick") + '"]') || btn;  // (the drawer may have redrawn)
+        b.disabled = false;
+        b.innerHTML = ok ? "✓ Saved" : label;
+        b.classList.toggle("tg-saved", ok);
+        if (ok) setTimeout(function () { b.innerHTML = label; b.classList.remove("tg-saved"); }, 1800);
+        else alert(msg || "That didn't save. Try again.");
+      };
+      var p;
+      try { p = save(); } catch (e) { done(false, e.message); return; }
+      if (p && p.then) p.then(function (res) {
+        if (res && res.error) done(false, res.error); else done(true);
+      }, function (e) { done(false, e && e.message); });
+      else done(true);
+    },
+    // 🔍 Any picture, big: tap (or Esc) to close
+    viewImage: function (src) {
+      if (!src) return;
+      var box = document.getElementById("tgLightbox");
+      if (!box) {
+        box = document.createElement("div");
+        box.id = "tgLightbox";
+        box.className = "tg-lightbox";
+        box.setAttribute("role", "dialog");
+        box.setAttribute("aria-label", "Picture");
+        box.innerHTML = '<img alt=""><button type="button" aria-label="Close">✕</button>';
+        box.addEventListener("click", function () { box.classList.remove("open"); });
+        document.addEventListener("keydown", function (e) { if (e.key === "Escape") box.classList.remove("open"); });
+        document.body.appendChild(box);
+      }
+      box.querySelector("img").src = src;
+      box.classList.add("open");
+    },
+    // 📇 Their card: the texting profile on top, the roleplay card at a glance below (character_quick)
+    openCard: function (slug) {
+      var t = STATE.active_thread; if (!t) return;
+      var m = (t.members || []).find(function (x) { return x.slug === slug; }) || (t.members || [])[0];
+      if (!m) return;
+      var box = document.getElementById("tgCard");
+      if (!box) {
+        box = document.createElement("div");
+        box.id = "tgCard"; box.className = "tg-card-shade";
+        box.addEventListener("click", function (e) { if (e.target === box) box.classList.remove("open"); });
+        document.addEventListener("keydown", function (e) { if (e.key === "Escape") box.classList.remove("open"); });
+        document.body.appendChild(box);
+      }
+      var you = (STATE.user_profile && STATE.user_profile.display_name) || "you";
+      var fill = function (x) { return String(x || "").replace(/\{\{user\}\}/gi, you).replace(/\{\{char\}\}/gi, m.name); };
+      var row = function (label, text) { return text ? "<dt>" + esc(label) + "</dt><dd>" + esc(fill(text)) + "</dd>" : ""; };
+      var pics = [m.neutral_url].concat(m.extra_refs || []).filter(Boolean);
+      box.innerHTML = '<div class="tg-card" role="dialog" aria-label="' + esc(m.name) + '">' +
+        '<button type="button" class="tg-card-x" onclick="document.getElementById(\'tgCard\').classList.remove(\'open\')" aria-label="Close">✕</button>' +
+        '<div class="tg-card-top">' + (m.avatar_url || m.neutral_url ? '<img src="' + esc(m.avatar_url || m.neutral_url) + '" alt="" onclick="TG.viewImage(this.src)">' : '<div class="tg-card-noimg">' + esc((m.name || "?")[0]) + "</div>") +
+          '<div><h3>' + esc(m.display_name || m.name) + " " + esc(m.status_emoji || "") + "</h3>" +
+          '<div class="tg-card-handle">' + esc(m.handle || "") + ' · <span class="tg-card-mode">' + (m.mode === "modern_au" ? "🌆 Modern AU" : "🏰 Their own world") + "</span>" +
+          (m.set_up ? "" : ' · <span class="tg-card-warn">not set up for texting yet</span>') + "</div>" +
+          (m.bio ? '<p class="tg-card-bio">' + esc(m.bio) + "</p>" : "") + "</div></div>" +
+        '<h4>📱 On the phone</h4><dl class="tg-card-dl">' +
+          row("Why you text", m.scenario) + row("Who they are here", m.modern_persona) + row("How they text", m.texting_style) +
+          row("How they look", m.appearance_notes) + row("Voice", m.voice_id) + "</dl>" +
+        (pics.length ? '<div class="tg-card-pics">' + pics.map(function (u) { return '<img src="' + esc(u) + '" alt="" onclick="TG.viewImage(this.src)">'; }).join("") + "</div>" : "") +
+        '<h4>📖 Their roleplay card</h4><div id="tgCardRp" class="tg-card-rp">Loading…</div>' +
+        '<div class="tg-card-actions"><button type="button" class="tg-setup-go" onclick="document.getElementById(\'tgCard\').classList.remove(\'open\'); selectedDrawerCharSlugSet(\'' + esc(m.slug) + '\'); TG.openDrawer(\'char\')">⚙️ Edit texting setup</button>' +
+        '<button type="button" class="tg-setup-ghost" onclick="document.getElementById(\'tgCard\').classList.remove(\'open\'); TG.openBulba()">🥔 Ask Bulba</button></div>' +
+        "</div>";
+      box.classList.add("open");
+      fetch(window.TG_CFG.quick.replace("__slug__", encodeURIComponent(m.slug)), { credentials: "same-origin" })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (q) {
+          var el = document.getElementById("tgCardRp"); if (!el) return;
+          if (!q) { el.textContent = "Couldn't load the card."; return; }
+          var people = (q.people || []).map(function (p) {
+            return "<p><b>" + esc(p.name) + "</b>" + (p.identity ? ": " + esc(p.identity) : "") + "</p>" + (p.temperament ? '<p class="tg-card-small">' + esc(p.temperament) + "</p>" : "");
+          }).join("");
+          el.innerHTML = (q.tagline ? '<p class="tg-card-bio">' + esc(q.tagline) + "</p>" : "") + people +
+            (q.about ? "<p>" + esc(q.about) + "</p>" : "") +
+            '<a class="tg-card-link" href="' + esc(q.edit_url) + '" target="_blank" rel="noopener">Open the full card ↗</a>';
+        })
+        .catch(function () { var el = document.getElementById("tgCardRp"); if (el) el.textContent = "Couldn't load the card."; });
+    },
+
+    setupType: function (slug, key, value) { if (setupState[slug]) setupState[slug][key] = value; },
+    setupSkip: function (slug) {
+      try { localStorage.setItem("na-tg-setup-skip-" + slug, "1"); } catch (e) { /* this visit only */ }
+      delete setupState[slug]; renderActiveThread();
+    },
+    setupRun: function (slug) {
+      var st = setupState[slug]; if (!st) return;
+      var h = document.getElementById("tgSetupHint"); if (h) st.hint = h.value;
+      st.step = "busy"; st.error = ""; renderActiveThread();
+      apiPost({ action: "modernize_bulba", char_slug: slug, mode: st.mode, hint: st.hint })
+        .then(function (res) {
+          if (res.error) throw new Error(res.error);
+          syncCharCatalog(res.char_slug, Object.assign({}, res.profile, { set_up: true }));
+          st.step = "review"; renderSidebar(); renderActiveThread();
+        })
+        .catch(function (e) { st.step = "offer"; st.error = e.message; renderActiveThread(); });
+    },
+    setupFix: function (slug) {  // what they said is off joins their directions, then Bulba writes it again
+      var st = setupState[slug]; if (!st) return;
+      var f = document.getElementById("tgSetupFix"), fix = (f ? f.value : st.fix || "").trim();
+      if (fix) st.hint = (st.hint ? st.hint + "\n" : "") + "Correction to the last draft: " + fix;
+      st.fix = "";
+      TG.setupRun(slug);
+    },
+    setupKeep: function (slug) { var st = setupState[slug]; if (st) { st.step = "look"; renderActiveThread(); } },
+    setupDraw: function (slug) {
+      var st = setupState[slug]; if (!st) return;
+      var o = document.getElementById("tgSetupOutfit"); if (o) st.outfit = o.value;
+      st.step = "drawing"; st.error = ""; renderActiveThread();
+      apiPost({ action: "setup_look", char_slug: slug, outfit: st.outfit })
+        .then(function (res) {
+          if (res.error) throw new Error(res.error);
+          syncCharCatalog(res.char_slug, res.profile);
+          st.step = "done"; renderSidebar(); renderActiveThread();
+        })
+        .catch(function (e) { st.step = "look"; st.error = e.message; renderActiveThread(); });
+    },
+    setupDone: function (slug) { var st = setupState[slug]; if (st) { st.step = "done"; renderActiveThread(); } },
+    setupClose: function (slug) { delete setupState[slug]; renderActiveThread(); },
+
+    openRedo: function (msgId) {
+      redoFor = redoFor === msgId ? null : msgId;
+      renderActiveThread();
+      var box = document.getElementById("tgRedo");
+      if (box) { box.scrollIntoView({ block: "nearest" }); var i = document.getElementById("tgRedoNote"); if (i) i.focus(); }
+    },
+    redoPick: function (btn) {
+      var inp = document.getElementById("tgRedoNote");
+      if (inp) { inp.value = inp.value.trim() ? inp.value.trim() + " " + btn.getAttribute("data-note") : btn.getAttribute("data-note"); inp.focus(); }
+    },
+    redoMessage: function (msgId) {
+      var t = STATE.active_thread; if (!t) return;
+      var inp = document.getElementById("tgRedoNote"), box = document.getElementById("tgRedo");
+      if (box) box.classList.add("busy");
+      apiPost({ action: "redo_message", thread_id: t.id, message_id: msgId, note: inp ? inp.value.trim() : "" })
+        .then(function (res) { redoFor = null; STATE.active_thread = res.thread; renderActiveThread(); })
+        .catch(function (e) { if (box) box.classList.remove("busy"); alert(e.message); });
+    },
+    redoPhoto: function (msgId) {
+      var t = STATE.active_thread; if (!t) return;
+      var m = (t.messages || []).find(function (x) { return x.id === msgId; }); if (!m || !m.photo) return;
+      var inp = document.getElementById("tgRedoNote"), note = inp ? inp.value.trim() : "", box = document.getElementById("tgRedo");
+      if (box) box.classList.add("busy");
+      var prompt = (m.photo.prompt || "") + (note ? " " + note : "");
+      apiPost({ action: "photo_bubble", thread_id: t.id, message_id: msgId, kind: m.photo.kind || "casual", prompt: prompt })
+        .then(function (res) {
+          var idx = t.messages.findIndex(function (x) { return x.id === msgId; });
+          if (idx !== -1 && res.message) t.messages[idx] = res.message;
+          redoFor = null; renderActiveThread();
+        })
+        .catch(function (e) { if (box) box.classList.remove("busy"); alert(e.message); });
+    },
+
+    toggleRegen: function () {
+      var box = document.querySelector("#tgRegen .tg-regen-box");
+      if (!box) return;
+      box.hidden = !box.hidden;
+      if (!box.hidden) { var inp = document.getElementById("tgRegenNote"); if (inp) inp.focus(); }
+      box.scrollIntoView({ block: "nearest" });
+    },
+
+    regenPick: function (btn) {
+      var inp = document.getElementById("tgRegenNote");
+      if (!inp) return;
+      var add = btn.getAttribute("data-note");
+      inp.value = inp.value.trim() ? inp.value.trim() + " " + add : add;
+      inp.focus();
+    },
+
+    regenerate: function () {
+      var t = STATE.active_thread;
+      if (!t) return;
+      var inp = document.getElementById("tgRegenNote"), note = inp ? inp.value.trim() : "";
+      var typRow = document.getElementById("tgTypingRow"), typTxt = document.getElementById("tgTypingText");
+      if (typRow) { typTxt.textContent = t.title + " is typing again…"; typRow.classList.add("visible"); }
+      var box = document.getElementById("tgRegen");
+      if (box) box.classList.add("busy");
+      var keep = (t.messages || []).map(function (m) { return m.id; });
+      return apiPost({ action: "regenerate", thread_id: t.id, note: note })
+        .then(function (res) {
+          if (typRow) typRow.classList.remove("visible");
+          return TG.showTurn(res, keep);
+        })
+        .catch(function (err) {
+          if (typRow) typRow.classList.remove("visible");
+          if (box) box.classList.remove("busy");
+          alert(err.message);
+        });
+    },
+
+    // 💬 A turn's new messages arrive one by one (typing… → message → a pause), and a reply left on read later
+    showTurn: function (res, oldIds) {
+      var full = res.thread, fresh = (full.messages || []).filter(function (m) { return m.role !== "user" && oldIds.indexOf(m.id) === -1; });
+      if (res.threads) STATE.threads = res.threads;
+      clearTimeout(TG._waitTimer);
+      if (full.waiting) {  // 🙈 left on read: their reply arrives on its own (we look again when it's due)
+        var tid = full.id;
+        TG._waitTimer = setTimeout(function () {
+          if (!STATE.active_thread || STATE.active_thread.id !== tid) return;
+          var before = (STATE.active_thread.messages || []).map(function (m) { return m.id; });
+          apiPost({ action: "load_thread", thread_id: tid }).then(function (r) { TG.showTurn(r, before); });
+        }, full.waiting * 1000 + 500);
+      }
+      var calm = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (fresh.length < 2 || calm) {
+        STATE.active_thread = full; renderSidebar(); renderActiveThread(); return Promise.resolve();
+      }
+      var shown = (full.messages || []).filter(function (m) { return fresh.indexOf(m) === -1; });
+      STATE.active_thread = Object.assign({}, full, { messages: shown.slice() });
+      renderSidebar(); renderActiveThread();
+      var typRow = document.getElementById("tgTypingRow"), typTxt = document.getElementById("tgTypingText");
+      var i = 0;
+      return new Promise(function (done) {
+        (function next() {
+          if (!STATE.active_thread || STATE.active_thread.id !== full.id) return done();
+          if (i >= fresh.length) { if (typRow) typRow.classList.remove("visible"); STATE.active_thread = full; renderActiveThread(); return done(); }
+          var m = fresh[i], len = ((m.voice && m.voice.transcript) || m.text || "").length;
+          var typing = i === 0 ? 250 : Math.min(3200, 600 + len * 32);
+          if (typRow && i > 0) { typTxt.textContent = (m.voice ? "🎤 recording a voice note…" : m.photo ? "📷 sending a photo…" : (m.sender_name || full.title) + " is typing…"); typRow.classList.add("visible"); }
+          setTimeout(function () {
+            if (typRow) typRow.classList.remove("visible");
+            STATE.active_thread.messages.push(m);
+            renderActiveThread();
+            i += 1;
+            setTimeout(next, 350 + Math.random() * 500);  // a breath before the next one
+          }, typing);
+        })();
+      });
+    },
+
     triggerAiTurn: function (instruction) {
       var t = STATE.active_thread;
       if (!t) return;
@@ -1057,6 +1434,7 @@
         typTxt.textContent = t.title + " is typing…";
         typRow.classList.add("visible");
       }
+      var oldIds = (t.messages || []).map(function (m) { return m.id; });
       return apiPost({
         action: "generate_reply",
         thread_id: t.id,
@@ -1064,10 +1442,7 @@
       })
         .then(function (res) {
           if (typRow) typRow.classList.remove("visible");
-          STATE.active_thread = res.thread;
-          if (res.threads) STATE.threads = res.threads;
-          renderSidebar();
-          renderActiveThread();
+          return TG.showTurn(res, oldIds);
         })
         .catch(function (err) {
           if (typRow) typRow.classList.remove("visible");
@@ -1147,6 +1522,41 @@
           }
         })
         .catch(function (e) { alert(e.message); });
+    },
+
+    // 🎤 A real voice note: tap to record, tap again to send. It's turned into words (Scribe) so the character
+    // can read it; the recording plays in the chat. No microphone (blocked, or none): typed instead.
+    toggleRecording: function () {
+      var btn = document.getElementById("tgMicBtn");
+      if (TG._rec && TG._rec.state === "recording") { TG._rec.stop(); return; }
+      if (!navigator.mediaDevices || !window.MediaRecorder) return TG.sendVoiceNotePrompt();
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+        var chunks = [], started = Date.now(), rec = new MediaRecorder(stream);
+        TG._rec = rec;
+        rec.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
+        rec.onstop = function () {
+          stream.getTracks().forEach(function (tr) { tr.stop(); });
+          btn.classList.remove("recording"); btn.textContent = "🎤";
+          var secs = Math.round((Date.now() - started) / 1000);
+          if (secs < 1 || !chunks.length) return;
+          var type = rec.mimeType || "audio/webm", ext = type.indexOf("mp4") !== -1 ? "m4a" : type.indexOf("ogg") !== -1 ? "ogg" : "webm";
+          var fd = new FormData();
+          fd.append("kind", "voice_rec");
+          fd.append("file", new Blob(chunks, { type: type }), "voice." + ext);
+          btn.disabled = true; btn.textContent = "⏳";
+          fetch(window.TG_CFG.api, { method: "POST", headers: { "X-CSRFToken": window.TG_CFG.csrf }, body: fd })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+              btn.disabled = false; btn.textContent = "🎤";
+              if (res.error) throw new Error(res.error);
+              TG.sendUserMessage({ text: res.transcript, voice: { transcript: res.transcript, audio_url: res.url, duration: Math.max(1, secs) } });
+            })
+            .catch(function (e) { btn.disabled = false; btn.textContent = "🎤"; alert(e.message); });
+        };
+        rec.start();
+        btn.classList.add("recording"); btn.textContent = "⏹";
+        btn.title = "Recording… tap to send";
+      }).catch(function () { TG.sendVoiceNotePrompt(); });
     },
 
     sendVoiceNotePrompt: function () {
@@ -1330,7 +1740,7 @@
         });
     },
 
-    saveCharProfile: function () {
+    saveCharProfile: function () {  // (returns the request: saving() shows how it went)
       var slug = selectedDrawerCharSlug;
       if (!slug) return;
       var voiceInp = document.getElementById("drwCharVoiceCustom");
@@ -1351,7 +1761,7 @@
         voice_model: (document.getElementById("drwCharVoiceModel") || {}).value || "elevenlabs/eleven-v4-turbo",
         share_memory: document.getElementById("drwCharMemory").checked,
       };
-      apiPost({
+      return apiPost({
         action: "char_profile",
         char_slug: slug,
         thread_id: STATE.active_thread ? STATE.active_thread.id : null,
@@ -1535,16 +1945,17 @@
         });
     },
 
-    saveThreadSettings: function () {
+    saveThreadSettings: function () {  // (returns the request: saving() shows how it went)
       var t = STATE.active_thread;
       if (!t) return;
-      apiPost({
+      return apiPost({
         action: "thread_settings",
         thread_id: t.id,
         bg: document.getElementById("drwThreadBg").value,
         custom_bg_url: document.getElementById("drwThreadCustomBg").value,
         title: document.getElementById("drwThreadTitle").value,
         scenario_override: document.getElementById("drwThreadScenario").value,
+        leave_on_read: !!(document.getElementById("drwThreadLeaveOnRead") || {}).checked,
         events: t.events || [],
       }).then(function (res) {
         STATE.active_thread = res.thread;
@@ -1605,7 +2016,7 @@
       }
     },
 
-    saveUserProfile: function () {
+    saveUserProfile: function () {  // (returns the request: saving() shows how it went)
       var profile = {
         display_name: document.getElementById("drwMeName").value,
         status_emoji: document.getElementById("drwMeEmoji").value,
@@ -1617,8 +2028,9 @@
         spontaneous_minutes: parseInt(document.getElementById("drwMeSpontMins").value || "15", 10),
         auto_photos: document.getElementById("drwMeAutoPhoto").checked,
         auto_voice: document.getElementById("drwMeAutoVoice").checked,
+        image_model: (document.getElementById("drwMeImageModel") || {}).value || "",
       };
-      apiPost({
+      return apiPost({
         action: "user_profile",
         thread_id: STATE.active_thread ? STATE.active_thread.id : null,
         profile: profile,
@@ -1855,4 +2267,20 @@
 
   renderSidebar();
   renderActiveThread();
+
+  // Touch screens have no hover: tapping a message shows its actions (reply, ↻, pin, edit, delete); tap again hides
+  var vpEl = document.getElementById("tgMessagesViewport");
+  if (vpEl) vpEl.addEventListener("click", function (e) {
+    if (e.target.closest("button, a, input, textarea, img, .tg-regen, .tg-setup, .tg-spoiler")) return;
+    var row = e.target.closest(".tg-msg-row");
+    vpEl.querySelectorAll(".tg-msg-row.show-actions").forEach(function (r) { if (r !== row) r.classList.remove("show-actions"); });
+    if (row) row.classList.toggle("show-actions");
+  });
+
+  // Bulba's panel tells us when something changed (a card applied, a reply retried): reload this chat
+  window.addEventListener("message", function (e) {
+    if (e.origin !== window.location.origin || !e.data) return;
+    if (e.data.quickBulba === "close") { TG.closeBulba(); return; }
+    if ((e.data.bulba || e.data.quickBulba === "changed") && STATE.active_thread) TG.selectThread(STATE.active_thread.id);
+  });
 })();

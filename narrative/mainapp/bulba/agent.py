@@ -1342,7 +1342,8 @@ def skip_stage(session):
 TURN_ENDING = {"offer_choices", "write_samples", "show_basics_form", "show_extras_form", "retry_reply",
                "propose_preset_edit", "propose_card_edit", "propose_lorebook", "propose_lore_edit", "propose_theme", "propose_control", "offer_card_upload", "propose_extras", "propose_preset", "propose_persona", "propose_character",
                "polish_message", "fix_automatically", "propose_memory_edit", "propose_text_rules",
-               *tune.TURN_ENDING}
+               *tune.TURN_ENDING, "propose_texting_profile", "propose_texting_chat", "propose_texting_look",
+               "retry_texting_reply"}
 
 
 # What a provider's content filter sends back instead of Bulba's answer. The app first retries on a backup model
@@ -1433,13 +1434,14 @@ def run_turn(session, user_text, action_note=None, model_note=None):
         for _ in range(MAX_TOOL_ROUNDS):
             _check_budget(session)
             set_activity(session, "Bulba is thinking…")
-            in_chat = session.mode == "chat"
-            if in_chat:
-                from mainapp.bulba import doctor
-            request = ([{"role": "system", "content": doctor.system_prompt(session) if in_chat else system_prompt(session)}]
+            in_chat = session.mode in ("chat", "texting")
+            if in_chat:  # Bulba in a chat (the doctor) or in a messenger chat (texting): their own prompt and tools
+                from mainapp.bulba import doctor, texting
+                helper = texting if session.mode == "texting" else doctor
+            request = ([{"role": "system", "content": helper.system_prompt(session) if in_chat else system_prompt(session)}]
                        + _trimmed(session.messages))
             message, cost = ai_client.complete_message(session.user, "bulba", request,
-                                                       tools=doctor.tools() if in_chat else TOOLS,
+                                                       tools=helper.tools() if in_chat else TOOLS,
                                                        tool_choice="auto", max_tokens=16000)
             session.spent += cost or 0
             calls = message.get("tool_calls") or []
@@ -1464,7 +1466,7 @@ def run_turn(session, user_text, action_note=None, model_note=None):
                     args = json.loads(fn.get("arguments") or "{}")
                 except ValueError:
                     args = None
-                handlers = {**HANDLERS, **doctor.HANDLERS} if in_chat else HANDLERS
+                handlers = {**HANDLERS, **helper.HANDLERS} if in_chat else HANDLERS
                 if name not in handlers or not isinstance(args, dict):
                     result, events = {"error": f"Unknown tool or bad arguments: {name}"}, []
                 else:

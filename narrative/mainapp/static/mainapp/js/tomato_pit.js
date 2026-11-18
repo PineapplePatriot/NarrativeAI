@@ -37,7 +37,7 @@
         const d = T.data(), s = T.skin();
         $('pitCount').textContent = d.count.toLocaleString();
         if ($('sumTotal')) $('sumTotal').textContent = d.count.toLocaleString();
-        $('pitAmmo').textContent = s.emoji;
+        $('pitAmmo').innerHTML = T.face(s);
         $('pitAmmo').style.filter = s.filter || '';
         const open = T.SKINS.filter(T.unlocked);
         $('pitSkinCount').textContent = `${open.length} of ${T.SKINS.length}`;
@@ -46,7 +46,7 @@
             const ok = T.unlocked(x);
             const how = x.prize ? 'Win it from the Sauce-o-Matic' : x.ach ? (T.ACHIEVEMENTS.find(a => a.id === x.ach) || {}).name : `${x.at.toLocaleString()} throws`;
             return `<button type="button" class="pit-skin${x.id === s.id ? ' on' : ''}" data-skin="${x.id}" ${ok ? '' : 'disabled'}
-                title="${esc(ok ? (x.note || x.name) : 'Locked: ' + how)}"><span class="e" style="${x.filter ? 'filter:' + x.filter : ''}">${ok ? x.emoji : '❔'}</span>
+                title="${esc(ok ? (x.note || x.name) : 'Locked: ' + how)}"><span class="e" style="${x.filter ? 'filter:' + x.filter : ''}">${ok ? T.face(x) : '❔'}</span>
                 ${esc(ok ? x.name : '???')}<small>${esc(ok ? (x.note ? x.note : '') : how)}</small></button>`;
         }).join('')}</div>`).join('');
         const got = T.ACHIEVEMENTS.filter(a => d.ach[a.id]);
@@ -116,7 +116,9 @@
         g.textAlign = 'center';
         g.font = `210px ${EMOJI}`;
         g.filter = s.filter || 'none';
-        g.fillText(s.emoji, 215, 300);
+        const pic = s.img && window.NASplat && window.NASplat.picture(s.img);
+        if (pic && pic.complete && pic.naturalWidth) g.drawImage(pic, 215 - 115, 300 - 115, 230, 230);
+        else g.fillText(s.emoji, 215, 300);
         g.filter = 'none';
         g.textAlign = 'left';
         g.textBaseline = 'alphabetic';
@@ -167,6 +169,7 @@
     });
 
     T.onChange(paint);
+    document.addEventListener('na-picture-ready', () => card());
     paint();
 })();
 
@@ -204,7 +207,7 @@
         box.innerHTML = '';
         open.forEach(sk => {
             const b = document.createElement('button');
-            b.type = 'button'; b.title = sk.name; b.textContent = sk.emoji;
+            b.type = 'button'; b.title = sk.name; b.innerHTML = T.face(sk);
             if (sk.filter) b.style.filter = sk.filter;
             b.classList.toggle('on', sk.id === T.data().skin);
             b.addEventListener('click', () => T.pick(sk.id));
@@ -212,6 +215,7 @@
         });
     }
     T.onChange(paintAmmo);
+    document.addEventListener('na-picture-ready', () => redraw());
     function paintControls() {
         $('wallBg').value = wall.bg;
         if ($('wallBg').value !== wall.bg) { wall.bg = 'night'; $('wallBg').value = 'night'; }
@@ -247,7 +251,7 @@
         const s = T.skin(), lucky = Math.random() < 1 / 500, lk = T.look(s, lucky);  // paint only: counts nowhere
         document.dispatchEvent(new CustomEvent('na-tomato-throw', { detail: { lucky, wall: true } }));
         const sp = { x: Math.round(p.x), y: Math.round(p.y), r: Math.round(wall.size * (.85 + Math.random() * .3)), c: lk.color,
-                     f: lk.filter || '', k: s.emoji, e: wall.emoji, rot: Math.round(Math.random() * 628) / 100,
+                     f: lk.filter || '', k: s.img || s.emoji, e: wall.emoji, rot: Math.round(Math.random() * 628) / 100,
                      seed: Math.floor(Math.random() * 233280), t: wall.shape };
         wall.splats.push(sp);
         stroke.push(sp);

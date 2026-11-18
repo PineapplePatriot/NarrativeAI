@@ -19,14 +19,14 @@
     toast.id = "naMessengerToast";
     toast.href = screenUrl + "?thread=" + encodeURIComponent(item.thread_id || "");
     toast.style.cssText =
-      "position:fixed;bottom:20px;right:20px;z-index:9999;background:#17212b;color:#f1f5f9;" +
+      "position:fixed;bottom:20px;right:20px;z-index:9999;background:#1c2032;color:#f1f5f9;" +
       "border:1px solid rgba(56,189,248,0.5);border-radius:14px;padding:12px 16px;max-width:320px;" +
       "box-shadow:0 12px 32px rgba(0,0,0,0.55);text-decoration:none;display:flex;gap:12px;align-items:center;" +
       "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;transition: opacity 0.25s ease;";
     toast.innerHTML =
-      '<div style="width:38px;height:38px;border-radius:50%;background:#0284c7;color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">💬</div>' +
+      '<div style="width:38px;height:38px;border-radius:50%;background:#7e3af2;color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">💬</div>' +
       '<div style="min-width:0;flex:1;">' +
-        '<div style="font-size:13px;font-weight:700;color:#38bdf8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' +
+        '<div style="font-size:13px;font-weight:700;color:#a78bfa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' +
           (item.sender_name || "Messenger") +
         "</div>" +
         '<div style="font-size:12.5px;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' +
@@ -54,7 +54,8 @@
   }
 
   function poll(allowSpontaneous) {
-    var url = pollUrl + (allowSpontaneous && !onScreenPage ? "&allow_spontaneous=1" : "");
+    // characters may text first while they're elsewhere: another page, or the Screen page in a hidden tab
+    var url = pollUrl + (allowSpontaneous && (!onScreenPage || document.hidden) ? "&allow_spontaneous=1" : "");
     fetch(url, { credentials: "same-origin" })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (data) {

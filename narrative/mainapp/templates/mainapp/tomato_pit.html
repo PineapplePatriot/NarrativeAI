@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="{% static 'css/topbar.css' %}">
   <link rel="stylesheet" href="{% static 'css/base.css' %}?v=5">
   <link rel="stylesheet" href="{% static 'mainapp/css/tomato_pit.css' %}?v=9">
-  <link rel="stylesheet" href="{% static 'mainapp/css/tomato_machine.css' %}?v=4">
+  <link rel="stylesheet" href="{% static 'mainapp/css/tomato_machine.css' %}?v=5">
 </head>
 <body class="na-body">
 {% include "partials/topbar.html" with active="tomatoes" %}
@@ -187,10 +187,10 @@
 
 
 </div>
-<script src="{% static 'mainapp/js/splat_art.js' %}?v=1" data-scenes="{% static 'defaults/backgrounds/' %}"></script>
+<script src="{% static 'mainapp/js/splat_art.js' %}?v=2" data-scenes="{% static 'defaults/backgrounds/' %}"></script>
 {{ radio|json_script:"radioData" }}
 <script src="{% static 'mainapp/js/pit_sound.js' %}?v=2" data-music="{% static 'defaults/music/pit/' %}"></script>
-<script src="{% static 'mainapp/js/tomato_pit.js' %}?v=11"></script>
-<script src="{% static 'mainapp/js/tomato_machine.js' %}?v=5"></script>
+<script src="{% static 'mainapp/js/tomato_pit.js' %}?v=12"></script>
+<script src="{% static 'mainapp/js/tomato_machine.js' %}?v=8"></script>
 </body>
 </html>

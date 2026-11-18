@@ -28,7 +28,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 # --- Local imports ---
 from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
-from .models import Character, Worldbook, ChatSettings
+from .models import Character, Worldbook, ChatSettings, MessengerThread
 from . import basics as basics_mod
 from . import writing_quality
 from . import sprites as sprite_mod
@@ -3751,9 +3751,37 @@ def _bulba_chat_session(user, chat_obj, restart=False):
     return session
 
 
+def _bulba_texting_session(user, thread, restart=False):
+    """Bulba's conversation about one messenger chat (opened from its header in the Screen Hub)."""
+    from .bulba import texting
+    from .models import BulbaSession
+    session = BulbaSession.objects.filter(user=user, active=True, mode="texting", thread=thread).first()
+    if session and restart:
+        session.active = False
+        session.save(update_fields=["active"])
+        session = None
+    if session is None:
+        try:
+            _, chat_model = ai_client.resolve(user, "chat")
+        except ai_client.NoConnection:
+            return None
+        profile = model_profiles.for_style(chat_model)
+        session = BulbaSession(user=user, target_model=profile["id"] if profile else "", mode="texting", thread=thread,
+                               focus=thread.characters.first())
+        texting.opening(session)
+        session.save()
+    return session
+
+
 def _bulba_for_request(request, restart=False):
-    """The setup conversation, or the one about a chat when the page passes ?chat=<id>."""
+    """The setup conversation, or the one about a chat when the page passes ?chat=<id> (?thread=<id>: a
+    messenger chat)."""
     from .models import Chat
+    if request.GET.get("thread"):
+        thread = MessengerThread.objects.filter(id=request.GET.get("thread"), user=request.user).first()
+        if thread is None:
+            raise Http404("No such chat.")
+        return _bulba_texting_session(request.user, thread, restart)
     chat_id = request.GET.get("chat")
     if chat_id:
         chat_obj = Chat.objects.filter(id=chat_id, character__author=request.user).first()
@@ -4016,6 +4044,7 @@ def _quick_status(user, picked, characters):
 
 
 @login_required
+@xframe_options_sameorigin  # shown inside Bulba's card (an iframe); without this the browser refuses it
 def bulba_look_preview(request, pid):
     """A small mock chat in a proposed custom look, shown inside Bulba's card before they press Apply."""
     from mainapp.models import BulbaSession
@@ -4073,13 +4102,27 @@ def bulba_chat_page(request, chat_id):
 
 
 @login_required
+@xframe_options_sameorigin
+def bulba_texting_page(request, thread_id):
+    """Bulba about one messenger chat, shown in a side panel in the Screen Hub."""
+    thread = get_object_or_404(MessengerThread, id=thread_id, user=request.user)
+    session = _bulba_texting_session(request.user, thread)
+    return render(request, "mainapp/bulba.html", {
+        "bulba_data": {"state": _bulba_state(session), "events": session.events,
+                       "basics_form": basics_mod.form()} if session else None,
+        "known_models": model_profiles.known_names(),
+        "embed": True, "thread_obj": thread,
+    })
+
+
+@login_required
 def bulba_api(request):
     """One Bulba action at a time per conversation: a phone that lost the connection mid-turn and sent again
     would otherwise run two turns on the same conversation, and the one saved last would erase the other's cards."""
     from django.core.cache import cache
     if request.method != "POST":
         return _bulba_api(request)
-    key = f"bulba-busy:{request.user.id}:{request.GET.get('chat') or 'setup'}"
+    key = f"bulba-busy:{request.user.id}:{request.GET.get('chat') or ('t' + request.GET['thread'] if request.GET.get('thread') else 'setup')}"
     if not cache.add(key, 1, BULBA_TURN_SECONDS):
         return JsonResponse({"error": "Bulba is still working on your last message. Give it a moment, then try "
                                       "again (the page shows the answer when it's ready).", "busy": True}, status=409)
@@ -4623,6 +4666,11 @@ def messenger_api(request):
                     msgs = td.get("messages") or []
                     last_ts = msgs[-1].get("ts") if msgs else 0
                     last_auto = td.get("last_auto_at") or 0
+                    # one check-in per silence: not again until the user has answered the last one
+                    unanswered = msgs and msgs[-1].get("role") != "user" and last_auto and float(last_auto) >= float(
+                        next((m.get("ts") or 0 for m in reversed(msgs) if m.get("role") == "user"), 0) or 0)
+                    if unanswered or messenger.waiting_reply(td):
+                        continue
                     if last_ts and (now_ts - float(last_ts) >= cooldown_sec) and (now_ts - float(last_auto) >= cooldown_sec):
                         try:
                             res = messenger.generate_turn(request.user, t, auto_check_in=True)
@@ -4718,6 +4766,15 @@ def messenger_api(request):
                     extra[-1] = url
                 updated = messenger.save_char_profile(c_obj, {"extra_refs": extra[:4]})
             return JsonResponse({"url": url, "profile": updated, "char_slug": c_obj.slug})
+
+        if kind == "voice_rec":  # 🎤 a recorded voice note: its words, for the character to read
+            fmt = "m4a" if ("mp4" in (upload.content_type or "") or ext in (".m4a", ".mp4")) else \
+                  "ogg" if ext == ".ogg" else "mp3" if ext == ".mp3" else "wav" if ext == ".wav" else "webm"
+            try:
+                words = voice.transcribe(request.user, raw_bytes, fmt)
+            except voice.VoiceError as e:
+                return JsonResponse({"error": str(e), "url": url}, status=400)
+            return JsonResponse({"url": url, "transcript": words})
 
         text_preview = ""
         if kind == "file":
@@ -4902,6 +4959,9 @@ def messenger_api(request):
         if file_obj:
             msg["file"] = file_obj
         if photo_obj:
+            photo_obj = dict(photo_obj)
+            if photo_obj.get("kind") == "upload" and photo_obj.get("url") and not photo_obj.get("seen"):
+                photo_obj["seen"] = messenger.see_photo(request.user, photo_obj["url"], photo_obj.get("caption") or "")
             msg["photo"] = photo_obj
         if voice_obj:
             msg["voice"] = voice_obj
@@ -4939,6 +4999,31 @@ def messenger_api(request):
             "turn": turn,
             "thread": messenger.serialize_thread_full(thread, request.user),
             "threads": all_threads,
+        })
+
+    if action == "redo_message":  # ↻ one of their messages again (text or voice note), with an optional note
+        thread = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id")).prefetch_related("characters").first()
+        if not thread:
+            return JsonResponse({"error": "Chat not found."}, status=404)
+        try:
+            message = messenger.redo_message(request.user, thread, body.get("message_id"), note=str(body.get("note") or ""))
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"message": message, "thread": messenger.serialize_thread_full(thread, request.user)})
+
+    if action == "regenerate":  # ↻ the characters' last reply again, with an optional note from the user
+        thread = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id")).prefetch_related("characters").first()
+        if not thread:
+            return JsonResponse({"error": "Chat not found."}, status=404)
+        try:
+            turn = messenger.regenerate_turn(request.user, thread, note=str(body.get("note") or ""))
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({
+            "turn": turn,
+            "thread": messenger.serialize_thread_full(thread, request.user),
+            "threads": [messenger.serialize_thread_summary(t)
+                        for t in MessengerThread.objects.filter(user=request.user).prefetch_related("characters")],
         })
 
     if action == "react":
@@ -5022,6 +5107,8 @@ def messenger_api(request):
             td["scenario_override"] = str(body.get("scenario_override") or "").strip()[:3000]
         if "share_memory" in body:
             td["share_memory"] = bool(body["share_memory"])
+        if "leave_on_read" in body:  # 🙈 per chat: they may answer up to 5 minutes later, when it fits
+            td["leave_on_read"] = bool(body["leave_on_read"])
         if isinstance(body.get("events"), list):
             td["events"] = [e for e in body["events"] if isinstance(e, dict)][:30]
         if "title" in body and str(body["title"]).strip():
@@ -5058,6 +5145,16 @@ def messenger_api(request):
                 })
                 messenger.save_thread_data(thread, td)
         return JsonResponse({"profile": saved, "char_slug": c_obj.slug})
+
+    if action == "setup_look":  # 🥔 Bulba's setup, step two: draw them again for this texting setup
+        c_obj = char_by_slug.get(body.get("char_slug") or "")
+        if not c_obj:
+            return JsonResponse({"error": "Character not found."}, status=404)
+        try:
+            prof, cost = messenger.redraw_setup_look(request.user, c_obj, outfit=str(body.get("outfit") or ""))
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"profile": prof, "char_slug": c_obj.slug, "cost": cost})
 
     if action == "modernize_bulba":
         slug = body.get("char_slug") or ""

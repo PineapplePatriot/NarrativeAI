@@ -136,7 +136,7 @@ def synthesize_openrouter(user, text, voice_id="sarah", model=None):
     Accepts any of the 21 premade voice names (e.g. 'george', 'sarah') OR a custom 20-char ElevenLabs Voice ID.
     Supports inline audio delivery tags (`[whispering]`, `[laughing]`, `[sighs]`, `[curious]`) on v4, v4-turbo, and v3.
     """
-    from mainapp.models import ConnectionProfile
+    from users.models import ConnectionProfile
     raw = str(text or "").strip()
     if not raw:
         raise VoiceError("Nothing to read aloud.")
@@ -185,7 +185,7 @@ def synthesize_single(user, text, voice_id="sarah", model=None):
     2. If the user has a direct ElevenLabs API key and `voice_id` is a custom ElevenLabs Voice ID (or OpenRouter fails),
        uses direct ElevenLabs synthesis (`synthesize`).
     """
-    from mainapp.models import ConnectionProfile
+    from users.models import ConnectionProfile
     from mainapp.utils import get_elevenlabs_key
     raw = str(text or "").strip()
     if not raw:
@@ -464,3 +464,33 @@ def voice_reply(user, character, text, chat_voices, user_name, key):
     names = {v["id"]: v["name"] for v in voices}
     cast = {("Narrator" if k == NARRATOR else k): names.get(v, v) for k, v in voice_of.items()}
     return synthesize(key, inputs), cast
+
+
+STT_MODEL = "elevenlabs/scribe-v2"
+
+
+def transcribe(user, raw, fmt="webm"):
+    """🎤 A recorded voice note in words: ElevenLabs Scribe v2 through the user's OpenRouter key. Raises VoiceError."""
+    import base64
+    from users.models import ConnectionProfile
+    if not raw:
+        raise VoiceError("The recording is empty.")
+    ai_client.check_limit(user)
+    profile = ai_client.main_profile(user)
+    if profile is None or profile.provider != ConnectionProfile.PROVIDER_OPENROUTER or not profile.api_key:
+        raise VoiceError("Turning a recording into words needs an OpenRouter connection key.")
+    payload = {"model": STT_MODEL, "input_audio": {"data": base64.b64encode(raw).decode("ascii"), "format": fmt}}
+    try:
+        resp = requests.post(f"{profile.api_url}/audio/transcriptions", headers=ai_client._headers(profile),
+                             json=payload, timeout=90)
+    except requests.RequestException as e:
+        raise VoiceError(f"Could not reach OpenRouter ({type(e).__name__}).")
+    if resp.status_code >= 400:
+        raise VoiceError(f"The recording couldn't be turned into words ({resp.status_code}): {(resp.text or '')[:200]}")
+    try:
+        text = (resp.json().get("text") or "").strip()
+    except ValueError:
+        text = ""
+    if not text:
+        raise VoiceError("No words were heard in that recording.")
+    return text

@@ -155,8 +155,18 @@ prizes; garden weather and seasons, rare plant mutations, visiting critters, sma
 Built: banners over the Sauce-o-Matic (tabs). 🏮 Lantern Night (September to November): Lantern tomato and Mr. Death
 (gardener: every third harvest +3 compost) as featured legendaries, Monstrous flower seeds, a will-o'-wisp cursor
 trail and a corner lantern companion as featured rares; 50% rate-up with a guarantee after a miss, its own pity,
-Bulba's Promise picks the featured legendary. Everything else is the standard banner. Next: a winter banner
-(December to February) and the rest of Phase E (garden weather and seasons, mutations, critters, orders).
+Bulba's Promise picks the featured legendary. Everything else is the standard banner.
+
+Decided 17 November: each seasonal banner lasts one month (Lantern Night is now November only).
+Built 17 November: ❄️ **First Snow** (December): the Snow globe tomato (the first skin drawn from a picture,
+static/img/tomato/snow_globe.png, also the banner's art) and Babbo Natale (gardener: once a day a present of seeds
+in the shed) as featured legendaries; the Snowman (garden decoration), a snowflake cursor trail and a corner snow
+globe (tap it: it snows over the page) as featured rares.
+Built 17 November: the **order board** (neighbours post one order a day, at most 3 open, each for 3 days; harvests
+count toward them by themselves and still make compost; a filled order pays 100-300 tomatoes toward spins, not the
+leaderboard) and **mutations** (1 harvest in 20; most triple the compost, the rare one of each crop is a free spin;
+all collected in the garden's almanac). Each mutation gives its seed: planted, it comes out as itself half the time
+(a rare one a quarter of the time) with its seed back, otherwise as an ordinary harvest. Next: the house quest (below).
 
 ## Next: story systems with story memory (ideas, 18 November, to choose from)
 
@@ -187,13 +197,76 @@ Bulba's Promise picks the featured legendary. Everything else is the standard ba
    sprouts); tap one for a small bonus.
 5. **Crew pairs:** two gardeners who work well together get a small extra (Basil + Mr. Death: the night shift).
 6. **A bigger plot** after enough harvests.
-7. **The winter banner** (December to February) before Lantern Night ends on 30 November.
+7. ~~The winter banner~~ built: First Snow (December).
+8. ~~A house by the garden~~ built 17 November: **the cottage quest** (mainapp/tomato_house.py). Il Dattore (a
+   scientist who over-engineers everything) builds it with Pantaleone's money (a banker who reads every receipt),
+   a cameo nod in small pixel art. Five stages, each a pinned builder's order (its seeds bought for you; harvests go
+   to it first) plus compost, then some hours of building: foundation → mailbox (4 orders), walls → a 6th row,
+   roof → rain barrel (+25% watering), chimney and kitchen → dish orders (several crops, paid double), porch (3
+   different mutations) → the cottage dresses for the seasons. Under budget (3 days): Pantaleone tips 100 tomatoes.
+   A short scene between the two after each stage. Later, maybe: a second building (a mill), house paint colours.
 
-## Phase F: messenger mode
+## Phase F: messenger mode (the Screen Hub's TeleChat), in progress
 
-A separate page imitating Telegram/Discord: casual one-on-one chats with the characters, voice messages
-(ElevenLabs), the occasional picture (Nano Banana); shares the character and the story memory. Group chats
-(several separate characters) come with it, if wanted.
+First built elsewhere (feature/digital-screen-telechat), merged 18 November and made to work: uploads and voice
+preview crashes fixed, purple, phones (one panel at a time), ↻ Try again with a note, Bulba's setup card for
+characters not yet set up for texting (Modern AU or their own world, the user's directions binding, "What's off?"
+corrections, new pictures in the texting look), Bulba's answers surviving thinking models, MiMo's leash for
+replies, 🥔 Bulba in a side panel per chat (cards for the texting profile, the chat's scenario and events, new
+pictures, retries), drawer fixes (save feedback, pictures that fit, a big view of any picture).
+
+### The user's iteration-2 list (18 November), in batches
+
+Done 18 November:
+- (1) Voice notes cut at ~2 seconds: `[VOICE: [sighs] ...]` was read up to the first `]` (only "[sighs]" was
+  voiced). Tags are now read with nested brackets; photos the same.
+- (4) Old pictures after new ones: the new look now replaces the old reference pictures (stickers are still the
+  roleplay moods: with the sticker packs, below).
+- (5) Bulba's panel and the setup drawer squeezed the chat: one side panel at a time.
+- (16) Bulba didn't know the Tomato Pit, Garden or Screen: in its app guide now, and the messenger's Bulba reads it.
+
+Batch A, the chat itself: done 18 November (one by one arrival, typos at speed, leave-on-read per chat, ↻ on any
+message or photo, photos seen and real voice notes heard, one check-in per silence, the card preview). Still open
+from it: characters texting first while the browser is closed (a scheduled job on Railway + push notifications).
+
+Batch A as planned:
+- (11) Try again on any of the characters' new messages (each of a burst of 4), photos included (regenerate one
+  picture).
+- (7) Texting rhythm: a burst arrives as typing → bubble → pause → typing, not all at once; typos only when they
+  text fast (bursts); a per-chat switch "they can leave you on read": up to 5 real minutes, only when it fits (they
+  were busy doing something, or for emotional reasons: teasing, angry, petty), decided 18 November.
+- (20) The model reads what the user sends: pictures (a vision description) and voice notes (transcribed).
+- (22) Check: characters texting first while the user is on another page or away.
+- (23) Card preview: tap the name or picture → the texting profile on top, the roleplay card below.
+
+Batch B, setup and profiles:
+- (6) Two strictly separate profiles: Bulba's setup also proposes the look for this setup (a modern Dottore
+  without the mask) and asks before changing lore; it says what it changed.
+- (7.2) Right away in a new chat: share memory with the roleplay chats (now on by default and hidden: ask), and
+  the leave-on-read switch.
+- (15) A chat-specific persona, offered at the start.
+- (13) Cards with several people: offered a split into separate characters + a group chat.
+- (14) Group chats: every member set up (Bulba walks through each), then a shared scenario.
+- ~~(2) Custom voice ids~~ checked 18 November: OpenRouter's ElevenLabs models take only the 21 premade voices
+  (their `supported_voices`); custom ids need the user's own ElevenLabs key (Extras → Voices). The drawer says so.
+  Later, maybe: OpenRouter's voice cloning from a short recording (HeyGen Voice and others), no ElevenLabs account.
+
+Batch C, pictures:
+- (21) The user sends generated pictures: a small window (prompt, up to 5 references, regenerate) for "proof" or
+  what's going on in their life; more variety in the characters' photos.
+- ~~(3) Image model choice~~ done 18 November: MAI-Image-2.7 and 2.7 Flash take reference pictures
+  (text+image → image); a picture model choice in the messenger's profile tab (Nano Banana stays the default);
+  image-only models are asked for an image only.
+- (9) Main app too: generate or regenerate one emotion (not all at once); uploading beyond neutral is broken.
+- (8) Stickers: Telegram/Discord-style packs; generated custom packs (a character's texting look, one style);
+  real Telegram packs by link through a bot token in a Railway variable (decided 18 November).
+
+Batch D, memory and the rest:
+- (12) Context window and story memory for messenger chats (the chat page's panel, per chat).
+- (10) Bulba Watch in short chats.
+- (18) Characters post their own statuses now and then; the user's button posts only theirs.
+- (19) A few ready chat themes (no custom ones yet).
+- (17) Trackers: not in the messenger (relationship and mood live in memory); the user checks with a few users.
 
 ## Later / parked
 

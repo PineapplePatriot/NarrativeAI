@@ -69,7 +69,10 @@
         { id: 'sunburnt', name: 'Sunburnt tomato', emoji: '🍅', filter: 'saturate(2.2) brightness(.85) contrast(1.2)', color: '#b3140c', prize: true, kind: 'Sauce-o-Matic', note: 'Summer only, in the machine.' },
         { id: 'jack', name: "Jack-o'-tomato", emoji: '🎃', color: '#f08a1c', prize: true, kind: 'Sauce-o-Matic', note: 'Autumn only, in the machine.' },
         { id: 'lantern_tomato', name: 'Lantern tomato', emoji: '🍅', filter: 'sepia(.35) saturate(1.7) brightness(1.18) drop-shadow(0 0 7px #ffb347) drop-shadow(0 0 14px #ff7b1c)', color: '#ff9a3c', prize: true, kind: 'Sauce-o-Matic', note: 'Lantern Night banner. Glows from the inside.' },
+        { id: 'globe_tomato', name: 'Snow globe tomato', emoji: '🔮', img: '/static/img/tomato/snow_globe.png', color: '#e9f4ff', prize: true, kind: 'Sauce-o-Matic', note: 'First Snow banner. A whole winter inside a tomato.' },
     ];
+    // A skin drawn from a picture (img) instead of an emoji, as HTML; canvases draw the picture themselves
+    const face = (s) => s.img ? `<img class="na-tom-img" src="${s.img}" alt="">` : s.emoji;
     // How a skin looks on this throw: most always the same, "random" ones (rainbow, unicorn) a new colour each time
     function look(s, lucky) {
         if (lucky) return { color: '#ffd23f', filter: 'hue-rotate(38deg) saturate(1.8) brightness(1.2)' };
@@ -158,6 +161,20 @@
 @keyframes naTr { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: translate(var(--dx), -18px) scale(.4) rotate(90deg); } }
 @keyframes naTrDrip { from { opacity: .95; transform: none; } to { opacity: 0; transform: translateY(26px) scaleY(1.5); } }
 @keyframes naTrLeaf { from { opacity: 1; transform: none; } to { opacity: 0; transform: translate(var(--dx), 30px) rotate(200deg); } }
+.na-tom-img { display: inline-block; width: 1.2em; height: 1.2em; object-fit: contain; vertical-align: -.25em; }
+.na-tr-snow { color: #ffffff; text-shadow: 0 0 4px rgba(120, 180, 255, .9); font-size: 13px; animation-name: naTrSnow; animation-duration: 1.6s; }
+@keyframes naTrSnow { from { opacity: 1; transform: none; } to { opacity: 0; transform: translate(var(--dx), 38px) rotate(180deg); } }
+.na-companion-globe { width: 46px; height: 56px; animation: naGlBob 5s ease-in-out infinite; transform-origin: 50% 100%; bottom: 6px; }
+.na-companion-globe img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 3px 6px rgba(0, 0, 0, .35)); }
+.na-companion-globe.shake { animation: naGlShake .7s ease-in-out; }
+@keyframes naGlBob { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg) translateY(-2px); } }
+@keyframes naGlShake { 0%, 100% { transform: none; } 15% { transform: rotate(-16deg) translateX(-4px); } 35% { transform: rotate(14deg) translateX(4px); }
+    55% { transform: rotate(-10deg); } 75% { transform: rotate(6deg); } }
+.na-snowfall { position: fixed; top: -20px; z-index: 9001; pointer-events: none; color: #fff; text-shadow: 0 0 5px rgba(110, 170, 255, .9);
+    animation: naSnowfall linear forwards; }
+@keyframes naSnowfall { from { transform: translate(0, 0) rotate(0); opacity: 0; } 8% { opacity: 1; } 85% { opacity: .9; }
+    to { transform: translate(var(--dx), 105vh) rotate(var(--r)); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .na-companion-globe, .na-companion-globe.shake { animation: none; } }
 .na-tr-wisp { width: 11px; height: 15px; margin: -8px 0 0 -5px; border-radius: 50% 50% 45% 45% / 65% 65% 35% 35%;
     background: radial-gradient(circle at 50% 68%, #ffffff 0 22%, #9ff8ef 40%, #3fc6ff 70%, rgba(62, 120, 255, .3) 90%);
     box-shadow: 0 0 12px 5px rgba(98, 220, 255, .75), 0 0 26px 8px rgba(62, 140, 255, .35); animation-name: naTrWisp; animation-duration: 1.3s; }
@@ -177,7 +194,7 @@
 @keyframes naClSway { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
 @keyframes naClFlicker { 0%, 100% { filter: none; } 15% { filter: brightness(.55); } 30% { filter: brightness(1.6); } 45% { filter: brightness(.8); } 60% { filter: brightness(1.35); } }
 @media (prefers-reduced-motion: reduce) { .na-companion { animation: none; } .na-companion.flicker .na-cl-body { animation: none; } }
-@media (max-width: 760px) { .na-companion { transform: scale(.8); left: 6px; } }
+@media (max-width: 760px) { .na-companion { transform: scale(.8); left: 6px; } .na-companion-globe { transform: none; width: 38px; height: 46px; } }
 @media print { .na-companion { display: none; } }`;
     const style = document.createElement('style');
     style.textContent = css;
@@ -285,7 +302,7 @@
         }).join(' ');
         el.innerHTML = `<svg viewBox="0 0 120 120" width="120" height="120" aria-hidden="true"><g fill="${color}" opacity=".9">
             <polygon points="${blob}" stroke="${color}" stroke-width="10" stroke-linejoin="round"/>${drops}</g></svg>
-            <span class="na-tom-bit" style="--r:${Math.round(Math.random() * 360)}deg;${lk.filter ? 'filter:' + lk.filter : ''}">${s.emoji}</span>`;
+            <span class="na-tom-bit" style="--r:${Math.round(Math.random() * 360)}deg;${lk.filter ? 'filter:' + lk.filter : ''}">${face(s)}</span>`;
         document.body.appendChild(el);
         setTimeout(() => el.remove(), 1600);
     }
@@ -300,7 +317,7 @@
         if (from && !reduce) {
             const fly = document.createElement('div');
             fly.className = 'na-tom-fly';
-            fly.textContent = s.emoji;
+            fly.innerHTML = face(s);
             if (lk.filter) fly.style.filter = lk.filter;
             fly.style.left = (from.x - 16) + 'px';
             fly.style.top = (from.y - 16) + 'px';
@@ -363,7 +380,7 @@
         if (SKINS.every(x => x.prize || (x.ach && secret.has(x.ach)) || unlocked(x))) award('everything');
         if (after.length > before) {
             const fresh = after.filter(s => !s.ach && s.at === data.count)[0];
-            if (fresh) toast('New skin: ' + fresh.emoji + ' ' + fresh.name, PIT ? 'Pick it in the Tomato Pit.' : '');
+            if (fresh) toast('New skin: ' + (fresh.img ? '' : fresh.emoji + ' ') + fresh.name, PIT ? 'Pick it in the Tomato Pit.' : '');
         }
         if (!data.found && PIT && data.count >= 10) showPitLink();
         save();
@@ -397,9 +414,9 @@
     }
     function paintButton() {
         if (!btn) return;
-        const s = skin(), face = btn.querySelector('.na-tom-face');
-        face.textContent = s.emoji;
-        face.style.filter = s.filter || '';
+        const s = skin(), el = btn.querySelector('.na-tom-face');
+        el.innerHTML = face(s);
+        el.style.filter = s.filter || '';
         btn.querySelector('small').textContent = data.count ? `${data.count.toLocaleString()} thrown` : 'Click to throw';
     }
     function hideButton() {
@@ -446,10 +463,36 @@
 
     // --- 🎰 What they won and wear: Bulba's hat (on every 🥔) and a cursor trail (mainapp/tomato_machine.py) ---
     const TRAILS = { trail_sparkle: ['✨', 'na-tr-sparkle'], trail_ketchup: ['', 'na-tr-ketchup'], trail_leaves: ['🍃', 'na-tr-leaf'],
-                     trail_wisp: ['', 'na-tr-wisp'] };
+                     trail_wisp: ['', 'na-tr-wisp'], trail_snow: ['❄', 'na-tr-snow'] };
     // 🏮 A companion hangs in the corner of every page (the corner lantern from Lantern Night)
-    const COMPANIONS = { companion_lantern: { lines: ['🏮 *flickers politely*', '🏮 The slow replies are that way.', '🏮 Mr. Death says hello.',
-                                                      '🏮 Still lit. Still here.', '🏮 Throw something. It helps.'] } };
+    // ❄️ ...or a little snow globe sits there (First Snow): tap it and it snows over the page
+    const COMPANIONS = {
+        companion_lantern: { cls: 'na-companion-lantern', title: 'Your corner lantern', anim: 'flicker',
+                             html: '<i class="na-cl-string"></i><i class="na-cl-body"><b></b></i><i class="na-cl-tassel"></i>',
+                             lines: ['🏮 *flickers politely*', '🏮 The slow replies are that way.', '🏮 Mr. Death says hello.',
+                                     '🏮 Still lit. Still here.', '🏮 Throw something. It helps.'] },
+        companion_globe: { cls: 'na-companion-globe', title: 'Your corner snow globe', anim: 'shake', snow: true,
+                           html: '<img src="/static/img/tomato/snow_globe.png" alt="">',
+                           lines: ['❄️ *swirl swirl*', '❄️ Babbo Natale says buon Natale.', '❄️ It’s snowing on the slow replies.',
+                                   '❄️ Shaken, not stirred.', '❄️ The little tomato inside is fine. Probably.'] },
+    };
+    function snowfall() {
+        if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        for (let i = 0; i < 46; i++) {
+            const f = document.createElement('span');
+            f.className = 'na-snowfall';
+            f.textContent = Math.random() < .3 ? '❅' : '❄';
+            f.style.left = (Math.random() * 100) + 'vw';
+            f.style.fontSize = (9 + Math.random() * 13) + 'px';
+            f.style.setProperty('--dx', ((Math.random() - .5) * 120) + 'px');
+            f.style.setProperty('--r', ((Math.random() - .5) * 540) + 'deg');
+            const t = 3.2 + Math.random() * 2.6, wait = Math.random() * 1.6;
+            f.style.animationDuration = t + 's';
+            f.style.animationDelay = wait + 's';
+            document.body.appendChild(f);
+            setTimeout(() => f.remove(), (t + wait) * 1000 + 100);
+        }
+    }
     let companionEl = null;
     function companion(id) {
         const c = window.parent === window ? COMPANIONS[id] : null;  // not inside an embedded frame (in-chat Bulba)
@@ -458,13 +501,14 @@
         if (companionEl) companionEl.remove();
         companionEl = document.createElement('button');
         companionEl.type = 'button';
-        companionEl.className = 'na-companion na-companion-lantern';
+        companionEl.className = 'na-companion ' + c.cls;
         companionEl.dataset.id = id;
-        companionEl.title = 'Your corner lantern';
-        companionEl.setAttribute('aria-label', 'Your corner lantern');
-        companionEl.innerHTML = '<i class="na-cl-string"></i><i class="na-cl-body"><b></b></i><i class="na-cl-tassel"></i>';
+        companionEl.title = c.title;
+        companionEl.setAttribute('aria-label', c.title);
+        companionEl.innerHTML = c.html;
         companionEl.addEventListener('click', () => {
-            companionEl.classList.remove('flicker'); void companionEl.offsetWidth; companionEl.classList.add('flicker');
+            companionEl.classList.remove(c.anim); void companionEl.offsetWidth; companionEl.classList.add(c.anim);
+            if (c.snow) snowfall();
             toast(c.lines[Math.floor(Math.random() * c.lines.length)]);
         });
         document.body.appendChild(companionEl);
@@ -497,7 +541,7 @@
     window.NATomato = {
         SKINS, ACHIEVEMENTS,
         watch(fn, kind = '') { watchers.push({ fn, kind }); },
-        throwOne, toast, unlocked, look,
+        throwOne, toast, unlocked, look, face,
         // One throw that something else drew (the splat wall): counted like any other; says if it was lucky
         tally() { const lucky = Math.random() < 1 / 500; count(lucky); return lucky; },
         data: () => data,

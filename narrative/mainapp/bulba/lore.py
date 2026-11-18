@@ -12,6 +12,10 @@ def target_character(session):
     from mainapp.models import Character
     if session.chat_id:
         return session.chat.character
+    if getattr(session, "thread_id", None):  # a messenger chat: its (first) character
+        first = session.thread.characters.first()
+        if first is not None:
+            return first
     if session.focus_id and session.focus.author_id == session.user_id:
         return session.focus
     for p in reversed(session.proposals):

@@ -6,13 +6,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Screen Hub · Messenger — Narrative AI</title>
   <link rel="stylesheet" href="{% static 'css/topbar.css' %}?v=7">
-  <link rel="stylesheet" href="{% static 'mainapp/css/messenger.css' %}?v=1">
+  <link rel="stylesheet" href="{% static 'mainapp/css/messenger.css' %}?v=13">
   <link rel="stylesheet" href="{% static 'mainapp/css/subtext.css' %}?v=1">
 </head>
 <body class="tg-screen-body">
   {% include "partials/topbar.html" with active="screen" %}
 
   <div class="screen-hub-shell">
+    <aside class="tg-bulba-panel" id="tgBulbaPanel" hidden aria-label="Bulba">
+      <iframe id="tgBulbaFrame" title="Bulba" src="about:blank"></iframe>
+    </aside>
     <!-- Left Digital Screen App Dock -->
     <aside class="screen-dock" aria-label="Digital Screen Apps">
       <button type="button" class="dock-app-btn active" data-app="messenger" onclick="TG.switchApp('messenger')" title="Telegram Messenger (1-on-1 & Group Chats)">
@@ -65,9 +68,9 @@
       </aside>
 
       <!-- Main Chat Column -->
-      <main class="tg-main" id="tgMain">
+      <main class="tg-main mobile-hidden" id="tgMain">
         <header class="tg-chat-header" id="tgChatHeader">
-          <div class="tg-header-left" onclick="TG.openDrawer('char')">
+          <div class="tg-header-left" onclick="TG.openCard()" title="Their card">
             <button type="button" class="tg-mobile-back" onclick="event.stopPropagation(); TG.showMobileSidebar()" aria-label="Back to chat list">←</button>
             <div class="tg-avatar" id="hdrAvatar">💬</div>
             <div class="tg-header-info">
@@ -79,8 +82,11 @@
             <span class="tg-hdr-btn" id="hdrModelBadge" title="Active chat model — per-model texting rules & anti-slop counters adapt automatically when you switch models" style="cursor:default; opacity:0.88; font-size:11.5px;">
               🧠 <span id="hdrModelLabel">Auto Rules</span>
             </span>
+            <button type="button" class="tg-hdr-btn tg-hdr-bulba" onclick="TG.openBulba()" title="Bulba, for this chat: how you met, how they text, their look, their voice">
+              🥔 <span>Bulba</span>
+            </button>
             <button type="button" class="tg-hdr-btn" onclick="TG.openDrawer('char')" title="Modernize Character (Modern AU), edit references, voice, texting style or scenario">
-              🥔 <span>Card / Refs / Voice</span>
+              ⚙️ <span>Card / Refs / Voice</span>
             </button>
             <button type="button" class="tg-hdr-btn" onclick="TG.openPhotoModal()" title="Ask character for a Nano Banana casual selfie, food/scenery POV, or tease photo">
               📸 <span>Photo</span>
@@ -148,7 +154,7 @@
             <input type="file" id="tgMediaUpload" style="display:none" onchange="TG.handleMediaUpload(this)">
             <button type="button" class="tg-icon-btn" onclick="TG.toggleStickerTray()" title="Stickers & Character Moods">🎭</button>
             <textarea class="tg-composer-input" id="tgMessageInput" rows="1" placeholder="Write a message… (||spoiler||, **bold**, Enter to send)" onkeydown="TG.onInputKey(event)"></textarea>
-            <button type="button" class="tg-icon-btn" onclick="TG.sendVoiceNotePrompt()" title="Send a Voice Message">🎤</button>
+            <button type="button" class="tg-icon-btn" id="tgMicBtn" onclick="TG.toggleRecording()" title="Record a voice message (tap again to send)">🎤</button>
             <button type="button" class="tg-send-btn" id="tgSendBtn" onclick="TG.sendUserMessage()">Send ➤</button>
           </div>
         </div>
@@ -390,10 +396,12 @@
     window.TG_CFG = {
       api: "{% url 'messenger_api' %}",
       subtext_api: "{% url 'subtext_api' %}",
+      bulba: "{% url 'bulba_texting' 0 %}",
+      quick: "{% url 'character_quick' '__slug__' %}",
       csrf: "{{ csrf_token }}"
     };
   </script>
-  <script src="{% static 'mainapp/js/messenger.js' %}?v=2"></script>
+  <script src="{% static 'mainapp/js/messenger.js' %}?v=11"></script>
   <script src="{% static 'mainapp/js/subtext.js' %}?v=1"></script>
 </body>
 </html>

@@ -44,6 +44,24 @@ WALLPAPERS = {
     "tg-light": {"name": "Daylight Sky", "bg": "linear-gradient(135deg, #dbeafe 0%, #eff6ff 50%, #e0e7ff 100%)", "light": True},
 }
 
+# 🖼️ The picture model for the messenger's photos and references ("" = the app's default, Nano Banana); all take
+# reference pictures. A model OpenRouter stops listing falls back to the default.
+PICTURE_MODELS = {
+    "microsoft/mai-image-2.7": "MAI-Image-2.7 (Microsoft): precise, consistent",
+    "microsoft/mai-image-2.7-flash": "MAI-Image-2.7 Flash (Microsoft): faster, cheaper",
+}
+
+
+def make_picture(user, prompt, references=None):
+    """One picture for the messenger, on the user's chosen picture model (their profile tab)."""
+    model = user_profile(user).get("image_model") or None
+    if model:
+        listed = [m["id"] for m in ai_client.image_models()]
+        if listed and model not in listed:
+            model = None
+    return ai_client.generate_image(user, prompt, references=references, model=model)
+
+
 REACTIONS = ["❤️", "🔥", "👍", "😂", "😮", "😢", "👀", "🎉", "😡", "🤔"]
 
 BUILT_IN_STICKERS = [
@@ -104,6 +122,7 @@ def user_profile(user):
         "auto_photos": bool(raw.get("auto_photos", False)),
         "auto_voice": bool(raw.get("auto_voice", False)),
         "default_bg": raw.get("default_bg") if raw.get("default_bg") in WALLPAPERS else "tg-night",
+        "image_model": raw.get("image_model") if raw.get("image_model") in PICTURE_MODELS else "",
     }
 
 
@@ -126,6 +145,8 @@ def save_user_profile(user, updates):
             current["spontaneous_minutes"] = max(2, min(1440, int(updates["spontaneous_minutes"])))
         except (TypeError, ValueError):
             pass
+    if "image_model" in updates and (updates["image_model"] in PICTURE_MODELS or not updates["image_model"]):
+        current["image_model"] = updates["image_model"] or ""
     if "default_bg" in updates and updates["default_bg"] in WALLPAPERS:
         current["default_bg"] = updates["default_bg"]
     for list_key in ("stories", "custom_stickers", "notes"):
@@ -214,6 +235,93 @@ def char_profile(character):
         "avatar_url": char_avatar(character),
         "stories": [s for s in (raw.get("stories") or []) if isinstance(s, dict)][:30],
     }
+
+
+def _read_json(text):
+    """The JSON object in a model's answer: thinking (<think>...</think>) and ``` fences removed. An answer cut off
+    halfway still gives the fields that came through whole. {} when there's nothing usable."""
+    from mainapp import thinking
+    _, text = thinking.split(text or "")
+    text = re.sub(r"```(?:json)?", "", text or "")
+    start = text.find("{")
+    if start < 0:
+        return {}
+    try:
+        obj, _ = json.JSONDecoder().raw_decode(text[start:])
+        return obj if isinstance(obj, dict) else {}
+    except ValueError:
+        pass
+    pairs = re.findall(r'"([A-Za-z_]+)"\s*:\s*"((?:[^"\\]|\\.)*)"', text[start:], re.S)  # the whole "key": "value"s
+    out = {}
+    for key, raw in pairs:
+        try:
+            out[key] = json.loads('"' + raw + '"')
+        except ValueError:
+            out[key] = raw
+    return out
+
+
+def ask_json(user, prompt, need, max_tokens=1600, task="bulba", temperature=0.6):
+    """One JSON answer from Bulba (or another task's model) for the messenger. Thinking models (Bulba runs on MiMo)
+    get room to think on top of the answer; the answer is read leniently (_read_json); if it still lacks the `need`
+    fields, one more try asks for the JSON alone, kept short. Raises AIError in plain words."""
+    from mainapp import thinking
+    _, model = ai_client.resolve(user, task)
+    thinks = thinking.needs_leash(model, "default")
+    last = ""
+    for attempt in range(2):
+        text = prompt if attempt == 0 else (
+            prompt + "\n\nIMPORTANT: answer with the JSON object only: no thinking out loud, no notes before or after it. "
+                     "Keep every field brief so the whole object fits.")
+        raw = ai_client.complete(user, task, [{"role": "user", "content": text}],
+                                 max_tokens=max_tokens + (thinking.LEASH_ROOM if thinks else 0) + (800 if attempt else 0),
+                                 temperature=temperature)
+        last = raw or ""
+        data = _read_json(last)
+        if all(str(data.get(k) or "").strip() for k in need):
+            return data
+    log.warning("messenger: no usable JSON from %s (%s chars): %r", task, len(last), last[:300])
+    raise ai_client.AIError("Bulba's answer came back cut off or empty twice. Try again in a moment; if it keeps "
+                            "happening, the model may be busy.")
+
+
+def is_set_up(character):
+    """Whether the character has been adapted for texting (Bulba's modernize, or written by hand): a texting persona
+    or texting style of their own. If not, the chat offers Bulba's setup."""
+    raw = character.messenger_profile if isinstance(getattr(character, "messenger_profile", None), dict) else {}
+    return bool(str(raw.get("modern_persona") or "").strip() or str(raw.get("texting_style") or "").strip())
+
+
+def redraw_setup_look(user, character, outfit=""):
+    """🥔 Bulba's second setup step: the character drawn again for this texting setup (modern clothes, say), from
+    their current pictures so the face stays theirs. The new portrait becomes their messenger picture (neutral and
+    avatar) with one waist-up reference of the outfit; the main roleplay card's pictures are left alone.
+    Returns (profile, cost)."""
+    prof = char_profile(character)
+    outfit = str(outfit or "").strip()[:600]
+    if outfit:  # their outfit for this setup goes into the notes every later photo reads
+        base = re.sub(r"\n?Outfit in this setup:.*$", "", prof.get("appearance_notes") or "", flags=re.S).strip()
+        prof = save_char_profile(character, {"appearance_notes": (base + "\nOutfit in this setup: " + outfit).strip()})
+    refs = load_character_references(character)
+    style = prof.get("art_style_notes") or "expressive digital character illustration, clean lines, rich atmospheric lighting"
+    setting = "a modern-day setting" if prof.get("mode") == "modern_au" else "their own world"
+    look = (prof.get("appearance_notes") or character.description or "")[:1200]
+    same = ("Keep them the SAME person as in the reference pictures: same face, hair, eyes, skin and build. "
+            if refs else "")
+    cost, out = 0.0, {}
+    for key, shot in (("neutral", "a clean chest-up three-quarter portrait, calm in-character expression"),
+                      ("outfit", "a relaxed waist-up candid shot that shows the whole outfit and their posture")):
+        prompt = (f"{same}Draw {character.name} as they are in {setting}, dressed for it. {shot.capitalize()}.\n"
+                  f"How they look now: {look}\nArt style: {style}.")
+        img, c = make_picture(user, prompt, references=refs)
+        cost += float(c or 0)
+        saved = default_storage.save(f"messenger/refs/{character.slug}-{key}-{uuid.uuid4().hex[:8]}.png", ContentFile(img))
+        out[key] = default_storage.url(saved)
+        if key == "neutral":
+            refs = [(img, "image/png")] + refs[:3]  # the outfit shot follows the new portrait
+    # the new look replaces the old references: kept, they'd pull every later photo back to the old outfit (a mask...)
+    prof = save_char_profile(character, {"neutral_url": out["neutral"], "avatar_url": out["neutral"], "extra_refs": [out["outfit"]]})
+    return prof, round(cost, 4)
 
 
 def save_char_profile(character, updates):
@@ -319,14 +427,13 @@ Rules:
   Neutral: river (calm/gender-neutral)
   Male: george (warm British rasp), adam (deep/steady), bill (seasoned/crisp), brian (deep/comforting), callum (gravelly/edgy), charlie (casual Australian), chris (down-to-earth), daniel (authoritative British), eric (smooth/grounded), harry (fierce/dramatic), liam (youthful/energetic), roger (laid-back/confident), will (friendly/relaxed)
 - Write a realistic `first_text` (1-2 sentences, pure text message, NO *asterisks* or narration) they would send to open a chat.
-{hint_line}
 
 Original card of {char}:
 {card_text}
 
-Original scenario:
+Their original roleplay scenario (background only: it describes the roleplay, not this texting setup{scenario_rule}):
 {scenario}
-
+{hint_block}
 Answer with JSON only:
 {{
   "handle": "@username_in_lowercase",
@@ -389,23 +496,24 @@ def modernize_with_bulba(user, character, mode="modern_au", hint="", save=True):
     mode = "modern_au" if mode == "modern_au" else "canon"
     mode_desc = ("Modern AU: translate their world and role into a modern-day setting"
                  if mode == "modern_au" else "Canon world with a texting scenario")
-    hint_line = f"\nUser's direction for this setup: {hint.strip()[:600]}" if str(hint or "").strip() else ""
+    hint = str(hint or "").strip()[:1500]
+    hint_block = (f"\n=== {u_name}'S DIRECTIONS FOR THIS SETUP (binding) ===\n{hint}\n"
+                  f"These are decisions {u_name} already made. Follow every one of them exactly: how they met, who they "
+                  f"are to each other, jobs, places and anything else named here go into `scenario`, `modern_persona` "
+                  f"and `first_text` as given. Do not replace them with circumstances from the original card or "
+                  f"scenario, and do not invent different ones; only fill in what they left open.\n"
+                  ) if hint else ""
+    scenario_rule = "; where it disagrees with the directions below, the directions win" if hint else ""
     prompt = MODERNIZE_PROMPT.format(
         char=character.name,
         user=u_name,
         mode_desc=mode_desc,
-        hint_line=hint_line,
+        hint_block=hint_block,
+        scenario_rule=scenario_rule,
         card_text=card_text[:6000] or character.name,
         scenario=(character.scenario or "None specified")[:2000],
     )
-    raw_reply = ai_client.complete(user, "bulba", [{"role": "user", "content": prompt}], max_tokens=1600, temperature=0.6)
-    match = re.search(r"\{.*\}", raw_reply or "", re.S)
-    if not match:
-        raise ai_client.AIError("Bulba didn't return a valid profile JSON. Try again.")
-    try:
-        parsed = json.loads(match.group(0))
-    except ValueError:
-        raise ai_client.AIError("Bulba's draft couldn't be parsed as JSON. Try again.")
+    parsed = ask_json(user, prompt, need=("bio", "modern_persona", "texting_style"), max_tokens=2600)
     picked_voice = str(parsed.get("voice_id") or "").strip().lower()
     if picked_voice not in voice.OPENROUTER_VOICE_NAMES:
         picked_voice = character.eleven_voice_char_id or "sarah"
@@ -450,14 +558,7 @@ def create_messenger_character_with_bulba(user, idea, name="", mode="modern_au",
         user=u_name,
         idea=(idea_text or name_hint)[:3000],
     )
-    raw_reply = ai_client.complete(user, "bulba", [{"role": "user", "content": prompt}], max_tokens=1800, temperature=0.7)
-    match = re.search(r"\{.*\}", raw_reply or "", re.S)
-    if not match:
-        raise ai_client.AIError("Bulba didn't return a valid character JSON. Try again.")
-    try:
-        parsed = json.loads(match.group(0))
-    except ValueError:
-        raise ai_client.AIError("Bulba's character draft couldn't be parsed as JSON. Try again.")
+    parsed = ask_json(user, prompt, need=("name", "modern_persona", "texting_style"), max_tokens=3000, temperature=0.7)
 
     char_name = str(parsed.get("name") or name_hint or "New Contact").strip()[:100]
     base_slug = slugify(char_name) or "contact"
@@ -542,6 +643,8 @@ def thread_data(thread):
         "scenario_override": str(raw.get("scenario_override") or "").strip()[:3000],
         "share_memory": raw.get("share_memory", True) is not False,
         "last_auto_at": raw.get("last_auto_at"),
+        "leave_on_read": bool(raw.get("leave_on_read", False)),  # 🙈 per chat: they may answer up to 5 minutes later
+        "regen_prev": [m for m in (raw.get("regen_prev") or []) if isinstance(m, dict)][:20],  # ↻ the take before
     }
 
 
@@ -691,6 +794,7 @@ TEXTING_SAFEGUARDS = """MESSENGER MEDIUM & FRANKENSTEIN DIALOGUE SAFEGUARDS:
    - Match each character's vocabulary, rhythm, punctuation, capitalization, and temperament from their profile.
    - Real people rarely send essays in a chat app. Send 1 to 4 short bubbles separated by `|||BUBBLE|||` when a character sends multiple quick texts in a row, OR a single concise bubble when they are dry/busy.
    - Do not give every character the same witty banter voice. A curt character sends terse texts; a formal character uses full punctuation; an impulsive character double-texts.
+   - TYPOS ONLY AT SPEED: when a character fires off several quick texts in a row (excited, rattled, angry, rushing), a small natural typo now and then is fine: a swapped, doubled or missing letter, autocorrect gone wrong; sometimes they fix it in the next bubble ("*tomorrow"). Never in slow, careful or formal messages, never more than one per burst, and never in names.
 
 4. ANTI-SLOP & BEHAVIOURAL CONTINUITY (FRANKENSTEIN RULES):
    - NO THERAPY VOICE: Do not diagnose feelings, validate emotions ("That's valid", "I hear you", "hold space", "boundaries"), or sound like a counselor unless the character is literally a therapist.
@@ -858,6 +962,12 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
     )
     if data.get("scenario_override"):
         time_block += f"\n- Thread scenario / topic: {data['scenario_override']}"
+    if data.get("leave_on_read"):  # 🙈 the user allowed it for this chat
+        time_block += ("\n- LEAVING ON READ IS ALLOWED in this chat: a character may decide not to answer right away, when "
+                       "it truly fits: they were busy doing something, or for an emotional reason (teasing, annoyed, "
+                       "petty, needing a minute). Then still write their reply now, as they'll send it when they get "
+                       "back to the phone, and put `[LATER: N]` at its very start, N = minutes before they answer (1 to "
+                       "5). Most replies come at once; don't use it twice in a row.")
 
     if thread.is_group or len(chars) > 1:
         names_list = ", ".join(f"{c.name} (slug: {c.slug})" for c in chars)
@@ -894,7 +1004,12 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
         if m.get("voice"):
             parts.append(f"[Voice message: \"{m['voice'].get('transcript') or m.get('text') or ''}\"]")
         if m.get("photo"):
-            parts.append(f"[Sent photo: {m['photo'].get('prompt') or m['photo'].get('caption') or 'image'}]")
+            ph = m["photo"]
+            if role == "user":  # what the picture shows (looked at once when sent), and what they wrote with it
+                seen = ph.get("seen") or "a picture (couldn't be looked at)"
+                parts.append(f"[Sent a photo. It shows: {seen}" + (f" | caption: {ph['caption']}" if ph.get("caption") else "") + "]")
+            else:
+                parts.append(f"[Sent photo: {ph.get('prompt') or ph.get('caption') or 'image'}]")
         if m.get("file"):
             parts.append(f"[Sent file {m['file'].get('name', 'file.txt')}: {(m['file'].get('content') or '')[:300]}]")
         if m.get("text") and not m.get("voice"):
@@ -923,6 +1038,20 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
 
 RE_REACT = re.compile(r"\[\s*REACT\s*:\s*([^\]]+?)\s*\]", re.I)
 RE_STICKER = re.compile(r"\[\s*STICKER\s*:\s*([^\]]+?)\s*\]", re.I)
+def take_tag(text, names):
+    """The first [NAME: ...] tag in text, brackets inside it counted ("[VOICE: [sighs] fine, come over]" keeps the
+    whole line, not just "[sighs"). Returns (name, content, text without the tag), or (None, "", text)."""
+    m = re.search(r"\[\s*(" + "|".join(names) + r")\s*:", text or "", re.I)
+    if not m:
+        return None, "", text
+    depth, i = 1, m.end()
+    while i < len(text) and depth:
+        depth += {"[": 1, "]": -1}.get(text[i], 0)
+        i += 1
+    end = i - 1 if depth == 0 else len(text)  # an unclosed tag runs to the end
+    return m.group(1).upper(), text[m.end():end].strip(), (text[:m.start()] + text[end + 1:]).strip()
+
+
 RE_VOICE = re.compile(r"\[\s*VOICE\s*:\s*(.+?)\s*\]", re.I | re.S)
 RE_PHOTO = re.compile(r"\[\s*(PHOTO|TEASE|SELFIE|IMAGE)\s*:\s*(.+?)\s*\]", re.I | re.S)
 RE_FILE = re.compile(r"\[\s*FILE\s*:\s*([^|\]]+?)\s*\|\s*(.+?)\s*\]", re.I | re.S)
@@ -1059,29 +1188,27 @@ def parse_ai_reply(raw_text, chars, is_group=False):
 
         # Extract voice message
         voice_data = None
-        v_match = RE_VOICE.search(chunk)
-        if v_match:
-            transcript = v_match.group(1).strip()
+        v_name, transcript, rest = take_tag(chunk, ("VOICE",))
+        if v_name and transcript:
             voice_data = {
                 "transcript": transcript,
                 "audio_url": "",
                 "duration": max(2, min(45, len(transcript.split()) // 2)),
             }
-            chunk = RE_VOICE.sub("", chunk)
+            chunk = rest
 
         # Extract photo
         photo_data = None
-        p_match = RE_PHOTO.search(chunk)
-        if p_match:
-            kind_tag = p_match.group(1).upper()
-            p_desc = p_match.group(2).strip()[:500]
+        kind_tag, p_desc, rest = take_tag(chunk, ("PHOTO", "TEASE", "SELFIE", "IMAGE"))
+        if kind_tag and p_desc:
+            p_desc = p_desc[:500]
             photo_data = {
                 "kind": "tease" if kind_tag == "TEASE" else "casual",
                 "prompt": p_desc,
                 "caption": "",
                 "url": "",
             }
-            chunk = RE_PHOTO.sub("", chunk)
+            chunk = rest
 
         # Extract file
         file_data = None
@@ -1275,7 +1402,7 @@ def generate_character_references_from_description(user, character, count=2):
             f"Appearance details: {app_text[:900]}\n"
             f"Composition: clean chest-up 3/4 portrait, neutral-characteristic expression, clear facial features, hair, and eyes."
         )
-        img_bytes, cost = ai_client.generate_image(user, neutral_prompt)
+        img_bytes, cost = make_picture(user, neutral_prompt)
         total_cost += float(cost or 0.0)
         rel_path = f"messenger/refs/{character.slug}-neutral-{uuid.uuid4().hex[:8]}.png"
         saved_path = default_storage.save(rel_path, ContentFile(img_bytes))
@@ -1305,7 +1432,7 @@ def generate_character_references_from_description(user, character, count=2):
             f"Appearance details: {app_text[:800]}\n"
             f"Pose & angle: {variant_desc}."
         )
-        img_bytes, cost = ai_client.generate_image(user, ref_prompt, references=[neutral_item] if neutral_item else None)
+        img_bytes, cost = make_picture(user, ref_prompt, references=[neutral_item] if neutral_item else None)
         total_cost += float(cost or 0.0)
         rel_path = f"messenger/refs/{character.slug}-ref{len(extra_refs)+1}-{uuid.uuid4().hex[:8]}.png"
         saved_path = default_storage.save(rel_path, ContentFile(img_bytes))
@@ -1400,11 +1527,9 @@ def describe_photo_scene(user, thread, character, kind="casual", hint=""):
         recent_chat=recent_chat,
     )
     try:
-        raw = ai_client.complete(user, "summary", [{"role": "user", "content": prompt}], max_tokens=500, temperature=0.7)
-        match = re.search(r"\{.*\}", raw or "", re.S)
-        if match:
-            parsed = json.loads(match.group(0))
-            if isinstance(parsed, dict) and parsed.get("visual_prompt"):
+        parsed = ask_json(user, prompt, need=("visual_prompt",), max_tokens=700, task="summary", temperature=0.7)
+        if parsed:
+            if parsed.get("visual_prompt"):
                 return {
                     "shot_type": parsed.get("shot_type") if parsed.get("shot_type") in ("selfie", "pov_object", "candid_medium") else "selfie",
                     "camera_angle": str(parsed.get("camera_angle") or "").strip()[:240],
@@ -1492,7 +1617,7 @@ def generate_messenger_photo(user, character, description="", kind="casual", thr
             f"Photo scene & moment: {desc_clean[:600]}"
         )
 
-    img_bytes, cost = ai_client.generate_image(user, prompt, references=refs)
+    img_bytes, cost = make_picture(user, prompt, references=refs)
     rel_path = f"messenger/photos/{character.slug}-{uuid.uuid4().hex[:8]}.png"
     saved_path = default_storage.save(rel_path, ContentFile(img_bytes))
     return default_storage.url(saved_path), cost
@@ -1501,6 +1626,100 @@ def generate_messenger_photo(user, character, description="", kind="casual", thr
 # ---------------------------------------------------------------------------
 # Generating a Turn in a MessengerThread
 # ---------------------------------------------------------------------------
+
+def regenerate_turn(user, thread, note=""):
+    """↻ A different take on the characters' last reply: it comes off (everything after the user's last message;
+    kept in data["regen_prev"] for now), and the turn is written again, with the user's note if they gave one
+    ("send a voice note this time", "a selfie, please", "be meaner")."""
+    raw = thread.data if isinstance(thread.data, dict) else {}
+    msgs = [m for m in (raw.get("messages") or []) if isinstance(m, dict)]
+    last_user = max((i for i, m in enumerate(msgs) if m.get("role") == "user"), default=-1)
+    tail = msgs[last_user + 1:]
+    if not any(m.get("role") == "assistant" for m in tail):
+        raise ai_client.AIError("There's no reply after your last message to try again.")
+    data = dict(raw)
+    data["messages"], data["regen_prev"] = msgs[:last_user + 1], tail
+    thread.data = data
+    thread.save(update_fields=["data"])
+    note = str(note or "").strip()[:600]
+    instruction = ("Write your reply to the user's last message again, differently from before."
+                   + (f" The user's note for this take (follow it, in character): {note}" if note else ""))
+    return generate_turn(user, thread, extra_instruction=instruction)
+
+
+def redo_message(user, thread, message_id, note=""):
+    """↻ One of the characters' messages written again (any of a burst), with the user's note: the model sees the
+    chat up to that message, the old version and the note, and answers with that one message. A voice note keeps
+    being a voice note (new words, the audio made again on play). Returns the changed message."""
+    from mainapp import samplers, thinking
+    data = thread_data(thread)
+    idx = next((i for i, m in enumerate(data["messages"]) if m.get("id") == message_id), None)
+    if idx is None or data["messages"][idx].get("role") != "assistant":
+        raise ai_client.AIError("That message isn't one of theirs.")
+    target = data["messages"][idx]
+    old = (target.get("voice") or {}).get("transcript") or target.get("text") or ""
+    if not old.strip():
+        raise ai_client.AIError("There's no text in that message to write again (for a photo, redo the picture).")
+    sender = target.get("sender_name") or "the character"
+    note = str(note or "").strip()[:600]
+    instruction = (f"Rewrite only {sender}'s next text message, the one that comes right here. The old version was: "
+                   f"\"{old[:1500]}\". Write a different take of that one message, in {sender}'s voice and texting style"
+                   + (f", following the user's note: {note}" if note else "")
+                   + ". Answer with that one message only: no name in front, no other messages, no tags"
+                   + (", spoken words for a voice note (delivery tags like [sighs] allowed)" if target.get("voice") else "") + ".")
+    saved = thread.data
+    thread.data = {**(saved or {}), "messages": data["messages"][:idx]}  # the chat as it was before that message
+    try:
+        prompt_messages = build_messenger_prompt(user, thread, extra_instruction=instruction)
+    finally:
+        thread.data = saved
+    params = {"max_tokens": 600, "temperature": 0.9}
+    _, chat_model = ai_client.resolve(user, "chat")
+    if thinking.needs_leash(chat_model, samplers.thinking_now(user)):
+        prompt_messages, params = thinking.leash(prompt_messages, params)
+    raw = ai_client.complete(user, "chat", prompt_messages, **params)
+    _, text = thinking.split(raw or "")
+    text = strip_stage_directions(re.sub(r"^\s*" + re.escape(sender) + r"\s*:\s*", "", text.strip(), flags=re.I)).strip()
+    if not text:
+        raise ai_client.AIError("The model sent nothing back. Try again.")
+    if target.get("voice"):
+        target["voice"] = {**target["voice"], "transcript": text, "audio_url": "",
+                           "duration": max(2, min(45, len(text.split()) // 2))}
+    else:
+        target["text"] = text
+    target["edited_by_redo"] = True
+    save_thread_data(thread, data)
+    return target
+
+
+def see_photo(user, url, their_words=""):
+    """👁️ What a picture the user sent shows, in words (the vision model looks once), so the character can see it.
+    "" when it can't be looked at (the character then only knows a photo came)."""
+    from mainapp.bulba import vision
+    item = _read_storage_image(url)
+    if not item:
+        return ""
+    try:
+        data_url, _ = vision.prepare(item[0])
+        text, _ = vision.describe(user, data_url, their_words)
+    except (ValueError, ai_client.AIError) as e:
+        log.info("messenger: couldn't look at a sent photo: %s", e)
+        return ""
+    return text.strip()[:1200]
+
+
+def delivered(messages, now=None):
+    """The messages the user can see: a reply left on read (deliver_at) shows only once its time has come."""
+    now = now or time.time()
+    return [m for m in messages if not m.get("deliver_at") or m["deliver_at"] <= now]
+
+
+def waiting_reply(data, now=None):
+    """Seconds until a reply left on read arrives (0: nothing waiting)."""
+    now = now or time.time()
+    due = [m["deliver_at"] for m in data["messages"] if m.get("deliver_at") and m["deliver_at"] > now]
+    return int(max(due) - now) + 1 if due else 0
+
 
 def generate_turn(user, thread, extra_instruction="", auto_check_in=False):
     """
@@ -1512,6 +1731,10 @@ def generate_turn(user, thread, extra_instruction="", auto_check_in=False):
         raise ai_client.AIError("Add at least one character to this chat first.")
     u_prof = user_profile(user)
     data = thread_data(thread)
+    wait = waiting_reply(data)
+    if wait:  # 🙈 they left it on read: their reply comes when it comes, not a second one now
+        return {"later": wait, "bubbles": [], "system_notices": [], "reactions": [], "events": data["events"],
+                "warnings": [], "active_model": active_model_texting_rules(user)}
 
     if auto_check_in:
         rt = real_time_context(thread)
@@ -1522,7 +1745,21 @@ def generate_turn(user, thread, extra_instruction="", auto_check_in=False):
         )
 
     prompt_messages = build_messenger_prompt(user, thread, extra_instruction=extra_instruction)
-    raw_reply = ai_client.complete(user, "chat", prompt_messages, max_tokens=1200, temperature=0.85)
+    from mainapp import samplers, thinking
+    params = {"max_tokens": 1200, "temperature": 0.85}
+    _, chat_model = ai_client.resolve(user, "chat")
+    if thinking.needs_leash(chat_model, samplers.thinking_now(user)):  # MiMo: think briefly, then text (as in the chat)
+        prompt_messages, params = thinking.leash(prompt_messages, params)
+    raw_reply = ai_client.complete(user, "chat", prompt_messages, **params)
+    _, raw_reply = thinking.split(raw_reply or "")  # thinking written inside the reply isn't a text message
+    if not raw_reply.strip():
+        raise ai_client.AIError("The model used its whole answer thinking and sent no text. Press ↻ Try again.")
+    later = 0
+    if data.get("leave_on_read"):  # 🙈 [LATER: N] at the start: the reply waits N real minutes (1-5)
+        m_later = re.match(r"\s*\[\s*LATER\s*:\s*(\d+)[^\]]*\]", raw_reply, re.I)
+        if m_later:
+            later = max(1, min(5, int(m_later.group(1)))) * 60
+    raw_reply = re.sub(r"\[\s*LATER\s*:[^\]]*\]", "", raw_reply, flags=re.I)
     parsed = parse_ai_reply(raw_reply, chars, is_group=thread.is_group)
 
     # Apply reactions to the latest user message
@@ -1611,6 +1848,11 @@ def generate_turn(user, thread, extra_instruction="", auto_check_in=False):
         }
         parsed["bubbles"].append(fallback)
 
+    if later:  # kept now, shown when they "get back to the phone" (delivered() hides them until then)
+        at = time.time() + later
+        for i, b in enumerate(parsed["bubbles"]):
+            b["deliver_at"] = b["ts"] = at + i * 2
+            b["time"] = timezone.localtime(timezone.now() + timezone.timedelta(seconds=later)).strftime("%H:%M")
     data["messages"].extend(parsed["bubbles"])
     if auto_check_in:
         data["unread"] = data.get("unread", 0) + len(parsed["bubbles"])
@@ -1622,7 +1864,8 @@ def generate_turn(user, thread, extra_instruction="", auto_check_in=False):
         slop_warnings.extend(check_texting_slop(b.get("text") or ""))
 
     return {
-        "bubbles": parsed["bubbles"],
+        "later": later,
+        "bubbles": [] if later else parsed["bubbles"],
         "system_notices": system_notices,
         "reactions": applied_reactions,
         "events": data["events"],
@@ -1635,7 +1878,7 @@ def serialize_thread_summary(thread):
     """Compact summary for the left sidebar chat list."""
     chars = list(thread.characters.all())
     data = thread_data(thread)
-    msgs = data["messages"]
+    msgs = delivered(data["messages"])
     last = msgs[-1] if msgs else None
     preview = "No messages yet"
     last_time = ""
@@ -1710,6 +1953,7 @@ def serialize_thread_full(thread, user):
             "name": c.name,
             "color": NAME_COLORS[idx % len(NAME_COLORS)],
             "has_voice": bool(prof.get("voice_id") or c.eleven_voice_char_id),
+            "set_up": is_set_up(c),
             **prof,
         })
         stickers.extend(character_stickers(c))
@@ -1717,7 +1961,9 @@ def serialize_thread_full(thread, user):
     stickers.extend(u_prof.get("custom_stickers") or [])
     return {
         **serialize_thread_summary(thread),
-        "messages": data["messages"],
+        "messages": delivered(data["messages"]),
+        "waiting": waiting_reply(data),  # 🙈 seconds until a reply left on read arrives
+        "leave_on_read": data["leave_on_read"],
         "bg": data["bg"],
         "custom_bg_url": data["custom_bg_url"],
         "pinned_id": data["pinned_id"],
