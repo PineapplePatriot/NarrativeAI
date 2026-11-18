@@ -183,3 +183,19 @@ class BulbaJsonTests(TestCase):
         self.assertEqual(data["texting_style"], "terse")
         self.assertGreaterEqual(complete.call_args_list[0].kwargs["max_tokens"], 1600 + 3000)  # room to think
         self.assertIn("JSON object only", complete.call_args_list[1].args[2][0]["content"])
+
+
+class SetupDirectionsTests(TestCase):
+    def test_their_directions_come_last_and_win(self):
+        from mainapp import messenger
+        user = get_user_model().objects.create_user(username="director", password="pw12345!")
+        c = Character.objects.create(name="Shinso", slug="shinso-dir", author=user, initial_message="...",
+                                     scenario="They meet in a hero school sparring match.")
+        reply = json.dumps({"bio": "b", "modern_persona": "p", "texting_style": "t", "scenario": "s"})
+        with mock.patch("mainapp.ai_client.resolve", return_value=(None, "test/model")), \
+             mock.patch("mainapp.ai_client.complete", return_value=reply) as complete:
+            messenger.modernize_with_bulba(user, c, hint="We met at a 24-hour laundromat at 3am.")
+        prompt = complete.call_args.args[2][0]["content"]
+        self.assertGreater(prompt.index("24-hour laundromat"), prompt.index("hero school sparring"))
+        self.assertIn("the directions win", prompt)
+        self.assertIn("binding", prompt)

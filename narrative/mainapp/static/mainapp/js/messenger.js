@@ -951,8 +951,9 @@
         "<dt>Why you text</dt><dd>" + esc(m.scenario || "") + "</dd>" +
         "<dt>Who they are here</dt><dd>" + esc(m.modern_persona || "") + "</dd>" +
         "<dt>How they text</dt><dd>" + esc(m.texting_style || "") + "</dd></dl>" +
+        '<textarea id="tgSetupFix" rows="2" oninput="TG.setupType(\'' + slug + '\', \'fix\', this.value)" placeholder="What\'s off? Tell me and I\'ll fix it, e.g. we met at a night pharmacy, not at work">' + esc(st.fix || "") + "</textarea>" +
         '<div class="tg-setup-row"><button type="button" class="tg-setup-go" onclick="TG.setupKeep(\'' + slug + '\')">👍 Keep it</button>' +
-        '<button type="button" class="tg-setup-ghost" onclick="TG.setupRun(\'' + slug + '\')">↻ Another take</button>' +
+        '<button type="button" class="tg-setup-ghost" onclick="TG.setupFix(\'' + slug + '\')">↻ Fix what I said / another take</button>' +
         '<button type="button" class="tg-setup-ghost" onclick="TG.openDrawer(\'char\')">✏️ Adjust by hand</button></div>';
     } else if (st.step === "look") {
       body = (m.neutral_url
@@ -1141,6 +1142,13 @@
           st.step = "review"; renderSidebar(); renderActiveThread();
         })
         .catch(function (e) { st.step = "offer"; st.error = e.message; renderActiveThread(); });
+    },
+    setupFix: function (slug) {  // what they said is off joins their directions, then Bulba writes it again
+      var st = setupState[slug]; if (!st) return;
+      var f = document.getElementById("tgSetupFix"), fix = (f ? f.value : st.fix || "").trim();
+      if (fix) st.hint = (st.hint ? st.hint + "\n" : "") + "Correction to the last draft: " + fix;
+      st.fix = "";
+      TG.setupRun(slug);
     },
     setupKeep: function (slug) { var st = setupState[slug]; if (st) { st.step = "look"; renderActiveThread(); } },
     setupDraw: function (slug) {
