@@ -1513,3 +1513,5 @@ body.tg-bulba-open .tg-header-actions .tg-hdr-btn > span, body.tg-bulba-open #hd
   .tg-header-actions { flex-shrink: 0; }
   .tg-header-actions .tg-hdr-btn > span, #hdrModelBadge { display: none; }
 }
+#tgMicBtn.recording { background: #e11d48; color: #fff; animation: tgRecPulse 1s ease-in-out infinite; }
+@keyframes tgRecPulse { 50% { box-shadow: 0 0 0 6px rgba(225, 29, 72, .25); } }

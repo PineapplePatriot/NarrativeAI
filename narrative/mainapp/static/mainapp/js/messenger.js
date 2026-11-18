@@ -1474,6 +1474,41 @@
         .catch(function (e) { alert(e.message); });
     },
 
+    // 🎤 A real voice note: tap to record, tap again to send. It's turned into words (Scribe) so the character
+    // can read it; the recording plays in the chat. No microphone (blocked, or none): typed instead.
+    toggleRecording: function () {
+      var btn = document.getElementById("tgMicBtn");
+      if (TG._rec && TG._rec.state === "recording") { TG._rec.stop(); return; }
+      if (!navigator.mediaDevices || !window.MediaRecorder) return TG.sendVoiceNotePrompt();
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+        var chunks = [], started = Date.now(), rec = new MediaRecorder(stream);
+        TG._rec = rec;
+        rec.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
+        rec.onstop = function () {
+          stream.getTracks().forEach(function (tr) { tr.stop(); });
+          btn.classList.remove("recording"); btn.textContent = "🎤";
+          var secs = Math.round((Date.now() - started) / 1000);
+          if (secs < 1 || !chunks.length) return;
+          var type = rec.mimeType || "audio/webm", ext = type.indexOf("mp4") !== -1 ? "m4a" : type.indexOf("ogg") !== -1 ? "ogg" : "webm";
+          var fd = new FormData();
+          fd.append("kind", "voice_rec");
+          fd.append("file", new Blob(chunks, { type: type }), "voice." + ext);
+          btn.disabled = true; btn.textContent = "⏳";
+          fetch(window.TG_CFG.api, { method: "POST", headers: { "X-CSRFToken": window.TG_CFG.csrf }, body: fd })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+              btn.disabled = false; btn.textContent = "🎤";
+              if (res.error) throw new Error(res.error);
+              TG.sendUserMessage({ text: res.transcript, voice: { transcript: res.transcript, audio_url: res.url, duration: Math.max(1, secs) } });
+            })
+            .catch(function (e) { btn.disabled = false; btn.textContent = "🎤"; alert(e.message); });
+        };
+        rec.start();
+        btn.classList.add("recording"); btn.textContent = "⏹";
+        btn.title = "Recording… tap to send";
+      }).catch(function () { TG.sendVoiceNotePrompt(); });
+    },
+
     sendVoiceNotePrompt: function () {
       var transcript = prompt("Speak / type your voice message transcript:");
       if (!transcript || !transcript.trim()) return;

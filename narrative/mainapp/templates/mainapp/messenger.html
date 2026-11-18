@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Screen Hub · Messenger — Narrative AI</title>
   <link rel="stylesheet" href="{% static 'css/topbar.css' %}?v=7">
-  <link rel="stylesheet" href="{% static 'mainapp/css/messenger.css' %}?v=11">
+  <link rel="stylesheet" href="{% static 'mainapp/css/messenger.css' %}?v=12">
 </head>
 <body class="tg-screen-body">
   {% include "partials/topbar.html" with active="screen" %}
@@ -149,7 +149,7 @@
             <input type="file" id="tgMediaUpload" style="display:none" onchange="TG.handleMediaUpload(this)">
             <button type="button" class="tg-icon-btn" onclick="TG.toggleStickerTray()" title="Stickers & Character Moods">🎭</button>
             <textarea class="tg-composer-input" id="tgMessageInput" rows="1" placeholder="Write a message… (||spoiler||, **bold**, Enter to send)" onkeydown="TG.onInputKey(event)"></textarea>
-            <button type="button" class="tg-icon-btn" onclick="TG.sendVoiceNotePrompt()" title="Send a Voice Message">🎤</button>
+            <button type="button" class="tg-icon-btn" id="tgMicBtn" onclick="TG.toggleRecording()" title="Record a voice message (tap again to send)">🎤</button>
             <button type="button" class="tg-send-btn" id="tgSendBtn" onclick="TG.sendUserMessage()">Send ➤</button>
           </div>
         </div>
@@ -327,6 +327,6 @@
       csrf: "{{ csrf_token }}"
     };
   </script>
-  <script src="{% static 'mainapp/js/messenger.js' %}?v=9"></script>
+  <script src="{% static 'mainapp/js/messenger.js' %}?v=10"></script>
 </body>
 </html>

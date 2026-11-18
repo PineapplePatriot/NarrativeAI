@@ -306,3 +306,32 @@ class LeaveOnReadTests(MessengerActionTests):
         out = self.post(action="generate_reply", thread_id=tid).json()
         self.assertEqual(out["thread"]["waiting"], 0)
         self.assertEqual(out["thread"]["messages"][-1]["text"], "hey")
+
+
+class SeeingAndHearingTests(MessengerActionTests):
+    """👁️🎤 The character reads what the user sends: a photo's description, a recorded voice note's words."""
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_a_recorded_voice_note_is_turned_into_words(self):
+        with mock.patch("mainapp.voice.transcribe", return_value="I'm outside your lab.") as tr:
+            out = self.files(kind="voice_rec", file=upload("voice.webm", b"\x1aE\xdf\xa3fake-webm")).json()
+        self.assertEqual(out["transcript"], "I'm outside your lab.")
+        self.assertEqual(tr.call_args.args[2], "webm")
+        self.assertTrue(out["url"].endswith(".webm"))
+
+    def test_a_sent_photo_is_looked_at_once_and_the_character_reads_what_it_shows(self):
+        from mainapp import ai_client
+        tid = self.thread()
+        url = self.files(kind="image", file=upload()).json()["url"]
+        with mock.patch("mainapp.bulba.vision.describe", return_value=("A rainy window with a mug of tea.", "x")) as d:
+            msg = self.post(action="send_user_message", thread_id=tid, text="", photo={"kind": "upload", "url": url,
+                                                                                   "caption": "my view"}).json()
+        self.assertEqual(d.call_count, 1)
+        self.assertEqual(MessengerThread.objects.get(id=tid).data["messages"][-1]["photo"]["seen"],
+                         "A rainy window with a mug of tea.")
+        self.post(action="generate_reply", thread_id=tid)
+        prompt = json.dumps(ai_client.complete.call_args.args[2])
+        self.assertIn("It shows: A rainy window with a mug of tea.", prompt)
+        self.assertIn("my view", prompt)
+        self.assertTrue(msg)

@@ -1004,7 +1004,12 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
         if m.get("voice"):
             parts.append(f"[Voice message: \"{m['voice'].get('transcript') or m.get('text') or ''}\"]")
         if m.get("photo"):
-            parts.append(f"[Sent photo: {m['photo'].get('prompt') or m['photo'].get('caption') or 'image'}]")
+            ph = m["photo"]
+            if role == "user":  # what the picture shows (looked at once when sent), and what they wrote with it
+                seen = ph.get("seen") or "a picture (couldn't be looked at)"
+                parts.append(f"[Sent a photo. It shows: {seen}" + (f" | caption: {ph['caption']}" if ph.get("caption") else "") + "]")
+            else:
+                parts.append(f"[Sent photo: {ph.get('prompt') or ph.get('caption') or 'image'}]")
         if m.get("file"):
             parts.append(f"[Sent file {m['file'].get('name', 'file.txt')}: {(m['file'].get('content') or '')[:300]}]")
         if m.get("text") and not m.get("voice"):
@@ -1685,6 +1690,22 @@ def redo_message(user, thread, message_id, note=""):
     target["edited_by_redo"] = True
     save_thread_data(thread, data)
     return target
+
+
+def see_photo(user, url, their_words=""):
+    """👁️ What a picture the user sent shows, in words (the vision model looks once), so the character can see it.
+    "" when it can't be looked at (the character then only knows a photo came)."""
+    from mainapp.bulba import vision
+    item = _read_storage_image(url)
+    if not item:
+        return ""
+    try:
+        data_url, _ = vision.prepare(item[0])
+        text, _ = vision.describe(user, data_url, their_words)
+    except (ValueError, ai_client.AIError) as e:
+        log.info("messenger: couldn't look at a sent photo: %s", e)
+        return ""
+    return text.strip()[:1200]
 
 
 def delivered(messages, now=None):

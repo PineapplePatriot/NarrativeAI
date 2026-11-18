@@ -4759,6 +4759,15 @@ def messenger_api(request):
                 updated = messenger.save_char_profile(c_obj, {"extra_refs": extra[:4]})
             return JsonResponse({"url": url, "profile": updated, "char_slug": c_obj.slug})
 
+        if kind == "voice_rec":  # 🎤 a recorded voice note: its words, for the character to read
+            fmt = "m4a" if ("mp4" in (upload.content_type or "") or ext in (".m4a", ".mp4")) else \
+                  "ogg" if ext == ".ogg" else "mp3" if ext == ".mp3" else "wav" if ext == ".wav" else "webm"
+            try:
+                words = voice.transcribe(request.user, raw_bytes, fmt)
+            except voice.VoiceError as e:
+                return JsonResponse({"error": str(e), "url": url}, status=400)
+            return JsonResponse({"url": url, "transcript": words})
+
         text_preview = ""
         if kind == "file":
             try:
@@ -4942,6 +4951,9 @@ def messenger_api(request):
         if file_obj:
             msg["file"] = file_obj
         if photo_obj:
+            photo_obj = dict(photo_obj)
+            if photo_obj.get("kind") == "upload" and photo_obj.get("url") and not photo_obj.get("seen"):
+                photo_obj["seen"] = messenger.see_photo(request.user, photo_obj["url"], photo_obj.get("caption") or "")
             msg["photo"] = photo_obj
         if voice_obj:
             msg["voice"] = voice_obj
