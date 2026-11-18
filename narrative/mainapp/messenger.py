@@ -713,6 +713,38 @@ def real_time_context(thread, now=None):
     }
 
 
+def new_chat_like(user, thread):
+    """💬 A fresh chat with the same character(s) (their first text again), named so it can be told apart."""
+    chars = list(thread.characters.all())
+    if not chars:
+        raise ValueError("That chat has no characters.")
+    from mainapp.models import MessengerThread
+    same = [t for t in MessengerThread.objects.filter(user=user).prefetch_related("characters")
+            if {c.id for c in t.characters.all()} == {c.id for c in chars}]
+    base = ", ".join(c.name for c in chars[:4]) if thread.is_group else chars[0].name
+    return create_thread(user, chars, title=f"{base} · chat {len(same) + 1}", is_group=thread.is_group,
+                         scenario_override=thread_data(thread)["scenario_override"])
+
+
+def branch_chat(user, thread, message_id):
+    """⑂ A new chat that starts as this one up to (and with) one message; the original stays as it is."""
+    from mainapp.models import MessengerThread
+    data = thread_data(thread)
+    idx = next((i for i, m in enumerate(data["messages"]) if m.get("id") == message_id), None)
+    if idx is None:
+        raise ValueError("That message isn't in this chat.")
+    raw = dict(thread.data or {})
+    kept = [dict(m) for m in delivered(data["messages"][:idx + 1])]
+    for m in kept:
+        m.pop("deliver_at", None)
+    raw.update({"messages": kept, "unread": 0, "regen_prev": [], "last_auto_at": None,
+                "pinned_id": data["pinned_id"] if any(m.get("id") == data["pinned_id"] for m in kept) else None,
+                "branch_of": {"thread_id": thread.id, "message_id": message_id, "title": thread.title}})
+    branch = MessengerThread.objects.create(user=user, title=f"{thread.title or 'Chat'} · branch", is_group=thread.is_group, data=raw)
+    branch.characters.set(list(thread.characters.all()))
+    return branch
+
+
 def ensure_thread_for_character(user, character):
     """Get or create the primary 1-on-1 MessengerThread for a character."""
     existing = (
@@ -1936,6 +1968,11 @@ def serialize_thread_summary(thread):
         "last_time": last_time,
         "member_slugs": [c.slug for c in chars],
         "member_names": [c.name for c in chars],
+        # 💬 chat files: this chat's own name (several chats with one character), a branch, when it was last used
+        "chat_name": thread.title or "",
+        "branch": bool((thread.data or {}).get("branch_of")),
+        "updated": timezone.localtime(thread.updated).strftime("%d %b, %H:%M") if thread.updated else "",
+        "count": len(msgs),
     }
 
 

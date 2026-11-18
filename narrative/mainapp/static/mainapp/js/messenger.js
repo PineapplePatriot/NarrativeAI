@@ -168,8 +168,9 @@
             '<div class="tg-thread-meta">' +
               '<div class="tg-thread-row1">' +
                 '<div class="tg-thread-name">' +
-                  (t.pinned ? "📌 " : "") +
+                  (t.pinned ? "📌 " : "") + (t.branch ? "⑂ " : "") +
                   esc(t.title) + " " + modeBadge +
+                  (!t.is_group && t.chat_name && t.chat_name !== t.title ? '<small class="tg-chat-name">' + esc(t.chat_name) + "</small>" : "") +
                 "</div>" +
                 '<span class="tg-thread-time">' + esc(t.last_time || "") + "</span>" +
               "</div>" +
@@ -456,6 +457,7 @@
           '<button type="button" class="tg-act-btn" onclick="TG.setReplyTo(\'' + esc(m.id) + '\')" title="Reply">↩</button>' +
           (!isUser ? '<button type="button" class="tg-act-btn" onclick="TG.playVoiceBubble(\'' + esc(m.id) + '\', this)" title="Voice with ElevenLabs">🔊</button>' : "") +
           (!isUser ? '<button type="button" class="tg-act-btn" onclick="TG.openRedo(\'' + esc(m.id) + '\')" title="Try this message again (a note optional)">↻</button>' : "") +
+          '<button type="button" class="tg-act-btn" onclick="TG.branchFrom(\'' + esc(m.id) + '\')" title="Branch: a new chat from here (this one stays as it is)">⑂</button>' +
           '<button type="button" class="tg-act-btn" onclick="TG.pinMessage(\'' + esc(m.id) + '\')" title="Pin">📌</button>' +
           '<button type="button" class="tg-act-btn" onclick="TG.editMessagePrompt(\'' + esc(m.id) + '\')" title="Edit">✏️</button>' +
           '<button type="button" class="tg-act-btn" onclick="TG.deleteMessage(\'' + esc(m.id) + '\')" title="Delete">🗑</button>' +
@@ -1275,6 +1277,58 @@
         .catch(function () { var el = document.getElementById("tgCardRp"); if (el) el.textContent = "Couldn't load the card."; });
     },
 
+    // 💬 Chat files: every chat with the same character(s), a new one, branches, rename, delete
+    openChats: function () {
+      var t = STATE.active_thread; if (!t) return;
+      var key = (t.members || []).map(function (m) { return m.slug; }).sort().join("|");
+      var same = (STATE.threads || []).filter(function (x) { return (x.member_slugs || []).slice().sort().join("|") === key; });
+      var box = document.getElementById("tgChats");
+      if (!box) {
+        box = document.createElement("div");
+        box.id = "tgChats"; box.className = "tg-card-shade";
+        box.addEventListener("click", function (e) { if (e.target === box) box.classList.remove("open"); });
+        document.body.appendChild(box);
+      }
+      box.innerHTML = '<div class="tg-card tg-chats" role="dialog" aria-label="Chats">' +
+        '<button type="button" class="tg-card-x" onclick="document.getElementById(\'tgChats\').classList.remove(\'open\')" aria-label="Close">✕</button>' +
+        "<h3>💬 Chats with " + esc(t.is_group ? t.title : (t.members && t.members[0] ? t.members[0].name : t.title)) + "</h3>" +
+        '<button type="button" class="tg-setup-go" onclick="TG.newChat()">+ New chat</button>' +
+        '<p class="tg-card-small">A new chat starts fresh (their first text again). ⑂ on any message makes a branch: a new chat from that point; the old one stays as it is.</p>' +
+        '<div class="tg-chat-files">' + same.map(function (x) {
+          return '<div class="tg-chat-file' + (x.id === t.id ? " on" : "") + '">' +
+            '<div class="tg-chat-file-main" onclick="document.getElementById(\'tgChats\').classList.remove(\'open\'); TG.selectThread(' + x.id + ')">' +
+              "<b>" + (x.branch ? "⑂ " : "") + esc(x.chat_name || x.title) + "</b>" + (x.id === t.id ? ' <span class="tg-card-mode">· open now</span>' : "") +
+              "<small>" + esc(x.preview || "") + "</small>" +
+              '<small class="tg-card-small">' + esc(x.updated || "") + " · " + (x.count || 0) + " messages</small></div>" +
+            '<button type="button" class="tg-fmt-btn" onclick="TG.renameChat(' + x.id + ')" title="Rename">✏️</button>' +
+            '<button type="button" class="tg-fmt-btn" style="color:#f87171" onclick="TG.deleteChat(' + x.id + ')" title="Delete">🗑</button></div>';
+        }).join("") + "</div></div>";
+      box.classList.add("open");
+    },
+    newChat: function () {
+      var t = STATE.active_thread; if (!t) return;
+      apiPost({ action: "new_chat", thread_id: t.id }).then(function (res) {
+        var box = document.getElementById("tgChats"); if (box) box.classList.remove("open");
+        STATE.threads = res.threads; STATE.active_thread = res.thread; renderSidebar(); renderActiveThread();
+      }).catch(function (e) { alert(e.message); });
+    },
+    branchFrom: function (msgId) {
+      var t = STATE.active_thread; if (!t) return;
+      apiPost({ action: "branch_chat", thread_id: t.id, message_id: msgId }).then(function (res) {
+        STATE.threads = res.threads; STATE.active_thread = res.thread; renderSidebar(); renderActiveThread();
+      }).catch(function (e) { alert(e.message); });
+    },
+    renameChat: function (id) {
+      var x = (STATE.threads || []).find(function (y) { return y.id === id; }); if (!x) return;
+      var name = prompt("A name for this chat:", x.chat_name || x.title);
+      if (!name || !name.trim()) return;
+      apiPost({ action: "rename_chat", thread_id: id, title: name.trim() }).then(function (res) {
+        STATE.threads = res.threads;
+        if (STATE.active_thread && STATE.active_thread.id === id) STATE.active_thread = res.thread;
+        renderSidebar(); renderActiveThread(); TG.openChats();
+      }).catch(function (e) { alert(e.message); });
+    },
+
     setupType: function (slug, key, value) { if (setupState[slug]) setupState[slug][key] = value; },
     setupSkip: function (slug) {
       try { localStorage.setItem("na-tg-setup-skip-" + slug, "1"); } catch (e) { /* this visit only */ }
@@ -2000,8 +2054,13 @@
 
     deleteCurrentThread: function () {
       var t = STATE.active_thread;
-      if (!t || !confirm("Delete this chat thread?")) return;
-      apiPost({ action: "delete_thread", thread_id: t.id }).then(function (res) {
+      if (t) TG.deleteChat(t.id);
+    },
+    deleteChat: function (id) {
+      var t = (STATE.threads || []).find(function (x) { return x.id === id; }) || STATE.active_thread;
+      if (!t || !confirm("Delete “" + (t.chat_name || t.title) + "”? Its messages are gone for good (branches made from it stay).")) return;
+      apiPost({ action: "delete_thread", thread_id: id }).then(function (res) {
+        var box = document.getElementById("tgChats"); if (box) box.classList.remove("open");
         STATE.threads = res.threads || [];
         STATE.active_thread = res.active_thread || null;
         TG.closeDrawer();

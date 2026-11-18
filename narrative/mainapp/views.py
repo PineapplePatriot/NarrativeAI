@@ -4998,6 +4998,26 @@ def messenger_api(request):
             "threads": all_threads,
         })
 
+    if action in ("new_chat", "branch_chat", "rename_chat"):  # 💬 chat files
+        thread = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id")).prefetch_related("characters").first()
+        if not thread:
+            return JsonResponse({"error": "Chat not found."}, status=404)
+        try:
+            if action == "new_chat":
+                thread = messenger.new_chat_like(request.user, thread)
+            elif action == "branch_chat":
+                thread = messenger.branch_chat(request.user, thread, body.get("message_id"))
+            else:
+                thread.title = str(body.get("title") or "").strip()[:200] or thread.title
+                thread.save(update_fields=["title", "updated"])
+        except ValueError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({
+            "thread": messenger.serialize_thread_full(thread, request.user),
+            "threads": [messenger.serialize_thread_summary(t)
+                        for t in MessengerThread.objects.filter(user=request.user).prefetch_related("characters")],
+        })
+
     if action == "redo_message":  # ↻ one of their messages again (text or voice note), with an optional note
         thread = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id")).prefetch_related("characters").first()
         if not thread:

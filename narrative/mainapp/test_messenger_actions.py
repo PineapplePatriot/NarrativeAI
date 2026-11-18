@@ -356,3 +356,31 @@ class CheckInTests(MessengerActionTests):
         with mock.patch("time.time", return_value=later):
             poll()
         self.assertEqual(ai_client.complete.call_count, 1)  # no second check-in until they answer
+
+
+class ChatFilesTests(MessengerActionTests):
+    """💬 New chat, branch, rename, delete."""
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_new_chat_branch_rename_and_delete(self):
+        tid = self.thread()
+        t = MessengerThread.objects.get(id=tid)
+        t.data = {"messages": [{"id": f"m{i}", "role": "user" if i % 2 == 0 else "assistant", "text": f"text {i}",
+                                **({} if i % 2 == 0 else {"sender_slug": self.rose.slug})} for i in range(6)],
+                  "scenario_override": "At the market."}
+        t.save()
+        fresh = self.post(action="new_chat", thread_id=tid).json()["thread"]
+        self.assertNotEqual(fresh["id"], tid)
+        self.assertEqual(fresh["chat_name"], "Rose · chat 2")
+        self.assertEqual(fresh["scenario_override"], "At the market.")
+        branch = self.post(action="branch_chat", thread_id=tid, message_id="m3").json()["thread"]
+        self.assertEqual([m["id"] for m in branch["messages"]], ["m0", "m1", "m2", "m3"])
+        self.assertTrue(branch["branch"])
+        self.assertEqual(len(MessengerThread.objects.get(id=tid).data["messages"]), 6)  # the original stays
+        out = self.post(action="rename_chat", thread_id=branch["id"], title="What if I'd said yes").json()
+        self.assertEqual(out["thread"]["chat_name"], "What if I'd said yes")
+        self.assertEqual(len(out["threads"]), 3)
+        self.post(action="delete_thread", thread_id=branch["id"])
+        self.assertFalse(MessengerThread.objects.filter(id=branch["id"]).exists())
+        self.assertEqual(self.post(action="branch_chat", thread_id=tid, message_id="nope").status_code, 400)
