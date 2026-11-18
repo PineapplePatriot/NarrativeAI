@@ -4981,6 +4981,16 @@ def messenger_api(request):
             "threads": all_threads,
         })
 
+    if action == "redo_message":  # ↻ one of their messages again (text or voice note), with an optional note
+        thread = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id")).prefetch_related("characters").first()
+        if not thread:
+            return JsonResponse({"error": "Chat not found."}, status=404)
+        try:
+            message = messenger.redo_message(request.user, thread, body.get("message_id"), note=str(body.get("note") or ""))
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"message": message, "thread": messenger.serialize_thread_full(thread, request.user)})
+
     if action == "regenerate":  # ↻ the characters' last reply again, with an optional note from the user
         thread = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id")).prefetch_related("characters").first()
         if not thread:

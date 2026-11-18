@@ -239,3 +239,34 @@ class PictureModelTests(TestCase):
             messenger.make_picture(user, "a selfie", references=[(png(), "image/png")])
         self.assertEqual((sent["model"], sent["modalities"]), ("microsoft/mai-image-2.7", ["image"]))
         self.assertEqual(sent["messages"][0]["content"][1]["type"], "image_url")  # the reference went along
+
+
+class RedoOneMessageTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_any_of_their_messages_again_with_a_note_and_the_chat_before_it(self):
+        tid = self.thread()
+        t = MessengerThread.objects.get(id=tid)
+        t.data = {"messages": [
+            {"id": "u1", "role": "user", "text": "are you up?"},
+            {"id": "a1", "role": "assistant", "sender_slug": self.rose.slug, "sender_name": "Rose", "text": "obviously"},
+            {"id": "a2", "role": "assistant", "sender_slug": self.rose.slug, "sender_name": "Rose", "text": "go to sleep"},
+            {"id": "a3", "role": "assistant", "sender_slug": self.rose.slug, "sender_name": "Rose",
+             "voice": {"transcript": "[sighs] fine", "audio_url": "/x.mp3"}, "text": ""},
+        ]}
+        t.save()
+        from mainapp import ai_client
+        ai_client.complete.reset_mock()
+        ai_client.complete.side_effect = lambda *a, **k: "Rose: never. come over"
+        out = self.post(action="redo_message", thread_id=tid, message_id="a1", note="warmer").json()
+        self.assertEqual(out["message"]["text"], "never. come over")  # the name in front comes off
+        sent = json.dumps(ai_client.complete.call_args.args[2])
+        self.assertIn("obviously", sent)  # the old version, in the instruction
+        self.assertIn("warmer", sent)
+        self.assertNotIn("go to sleep", sent)  # the chat as it was before that message
+        msgs = MessengerThread.objects.get(id=tid).data["messages"]
+        self.assertEqual([m.get("text") for m in msgs[:3]], ["are you up?", "never. come over", "go to sleep"])
+        voice = self.post(action="redo_message", thread_id=tid, message_id="a3").json()["message"]["voice"]
+        self.assertEqual((voice["transcript"], voice["audio_url"]), ("never. come over", ""))  # made again on play
+        self.assertEqual(self.post(action="redo_message", thread_id=tid, message_id="u1").status_code, 400)

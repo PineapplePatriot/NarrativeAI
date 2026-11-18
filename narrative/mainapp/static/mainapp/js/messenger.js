@@ -451,6 +451,7 @@
           quickEmojis +
           '<button type="button" class="tg-act-btn" onclick="TG.setReplyTo(\'' + esc(m.id) + '\')" title="Reply">↩</button>' +
           (!isUser ? '<button type="button" class="tg-act-btn" onclick="TG.playVoiceBubble(\'' + esc(m.id) + '\', this)" title="Voice with ElevenLabs">🔊</button>' : "") +
+          (!isUser ? '<button type="button" class="tg-act-btn" onclick="TG.openRedo(\'' + esc(m.id) + '\')" title="Try this message again (a note optional)">↻</button>' : "") +
           '<button type="button" class="tg-act-btn" onclick="TG.pinMessage(\'' + esc(m.id) + '\')" title="Pin">📌</button>' +
           '<button type="button" class="tg-act-btn" onclick="TG.editMessagePrompt(\'' + esc(m.id) + '\')" title="Edit">✏️</button>' +
           '<button type="button" class="tg-act-btn" onclick="TG.deleteMessage(\'' + esc(m.id) + '\')" title="Delete">🗑</button>' +
@@ -466,6 +467,7 @@
           "</div>" +
         "</div>"
       );
+      if (redoFor === m.id && !isUser) out.push(redoBox(m));
     });
 
     // ↻ Under the characters' latest reply: try again, with an optional note ("as a voice note", "send a selfie")
@@ -937,6 +939,22 @@
     box.innerHTML = html.join("");
   }
 
+  // --- ↻ One message again: its text (or a voice note's words) rewritten, or its photo redrawn, with a note ---
+  var redoFor = null;
+  function redoBox(m) {
+    var hasText = !!((m.voice && m.voice.transcript) || m.text), hasPhoto = !!m.photo;
+    var picks = hasPhoto && !hasText ? [["🎨 Other angle", "A different camera angle."], ["😏 Cheekier", "More playful."], ["🌙 Moodier light", "Moodier lighting."]]
+      : [["✂️ Shorter", "Shorter."], ["🔥 More feeling", "Let more feeling show."], ["😏 Teasing", "More teasing."], ["🧊 Colder", "Colder, more distant."]];
+    return '<div class="tg-regen tg-redo" id="tgRedo"><div class="tg-regen-box">' +
+      '<div class="tg-regen-picks">' + picks.map(function (p) {
+        return '<button type="button" onclick="TG.redoPick(this)" data-note="' + esc(p[1]) + '">' + esc(p[0]) + "</button>";
+      }).join("") + "</div>" +
+      '<div class="tg-regen-row"><input type="text" id="tgRedoNote" maxlength="600" placeholder="What should be different? (optional)">' +
+      (hasText ? '<button type="button" class="tg-regen-go" onclick="TG.redoMessage(\'' + esc(m.id) + '\')">↻ ' + (m.voice ? "New words" : "Rewrite") + "</button>" : "") +
+      (hasPhoto ? '<button type="button" class="tg-regen-go" onclick="TG.redoPhoto(\'' + esc(m.id) + '\')">🖼️ New picture</button>' : "") +
+      '<button type="button" class="tg-regen-x" onclick="TG.openRedo(null)" aria-label="Close">✕</button></div></div></div>';
+  }
+
   // --- 🥔 Bulba's setup: a character who isn't set up for texting yet gets an offer at the top of the chat ---
   var setupState = {};  // slug → {step: offer|busy|review|look|drawing|done, mode, hint, outfit, error}
   function setupSkipped(slug) { try { return localStorage.getItem("na-tg-setup-skip-" + slug) === "1"; } catch (e) { return false; } }
@@ -1235,6 +1253,39 @@
     },
     setupDone: function (slug) { var st = setupState[slug]; if (st) { st.step = "done"; renderActiveThread(); } },
     setupClose: function (slug) { delete setupState[slug]; renderActiveThread(); },
+
+    openRedo: function (msgId) {
+      redoFor = redoFor === msgId ? null : msgId;
+      renderActiveThread();
+      var box = document.getElementById("tgRedo");
+      if (box) { box.scrollIntoView({ block: "nearest" }); var i = document.getElementById("tgRedoNote"); if (i) i.focus(); }
+    },
+    redoPick: function (btn) {
+      var inp = document.getElementById("tgRedoNote");
+      if (inp) { inp.value = inp.value.trim() ? inp.value.trim() + " " + btn.getAttribute("data-note") : btn.getAttribute("data-note"); inp.focus(); }
+    },
+    redoMessage: function (msgId) {
+      var t = STATE.active_thread; if (!t) return;
+      var inp = document.getElementById("tgRedoNote"), box = document.getElementById("tgRedo");
+      if (box) box.classList.add("busy");
+      apiPost({ action: "redo_message", thread_id: t.id, message_id: msgId, note: inp ? inp.value.trim() : "" })
+        .then(function (res) { redoFor = null; STATE.active_thread = res.thread; renderActiveThread(); })
+        .catch(function (e) { if (box) box.classList.remove("busy"); alert(e.message); });
+    },
+    redoPhoto: function (msgId) {
+      var t = STATE.active_thread; if (!t) return;
+      var m = (t.messages || []).find(function (x) { return x.id === msgId; }); if (!m || !m.photo) return;
+      var inp = document.getElementById("tgRedoNote"), note = inp ? inp.value.trim() : "", box = document.getElementById("tgRedo");
+      if (box) box.classList.add("busy");
+      var prompt = (m.photo.prompt || "") + (note ? " " + note : "");
+      apiPost({ action: "photo_bubble", thread_id: t.id, message_id: msgId, kind: m.photo.kind || "casual", prompt: prompt })
+        .then(function (res) {
+          var idx = t.messages.findIndex(function (x) { return x.id === msgId; });
+          if (idx !== -1 && res.message) t.messages[idx] = res.message;
+          redoFor = null; renderActiveThread();
+        })
+        .catch(function (e) { if (box) box.classList.remove("busy"); alert(e.message); });
+    },
 
     toggleRegen: function () {
       var box = document.querySelector("#tgRegen .tg-regen-box");
@@ -2083,6 +2134,15 @@
 
   renderSidebar();
   renderActiveThread();
+
+  // Touch screens have no hover: tapping a message shows its actions (reply, ↻, pin, edit, delete); tap again hides
+  var vpEl = document.getElementById("tgMessagesViewport");
+  if (vpEl) vpEl.addEventListener("click", function (e) {
+    if (e.target.closest("button, a, input, textarea, img, .tg-regen, .tg-setup, .tg-spoiler")) return;
+    var row = e.target.closest(".tg-msg-row");
+    vpEl.querySelectorAll(".tg-msg-row.show-actions").forEach(function (r) { if (r !== row) r.classList.remove("show-actions"); });
+    if (row) row.classList.toggle("show-actions");
+  });
 
   // Bulba's panel tells us when something changed (a card applied, a reply retried): reload this chat
   window.addEventListener("message", function (e) {

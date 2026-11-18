@@ -1634,6 +1634,51 @@ def regenerate_turn(user, thread, note=""):
     return generate_turn(user, thread, extra_instruction=instruction)
 
 
+def redo_message(user, thread, message_id, note=""):
+    """↻ One of the characters' messages written again (any of a burst), with the user's note: the model sees the
+    chat up to that message, the old version and the note, and answers with that one message. A voice note keeps
+    being a voice note (new words, the audio made again on play). Returns the changed message."""
+    from mainapp import samplers, thinking
+    data = thread_data(thread)
+    idx = next((i for i, m in enumerate(data["messages"]) if m.get("id") == message_id), None)
+    if idx is None or data["messages"][idx].get("role") != "assistant":
+        raise ai_client.AIError("That message isn't one of theirs.")
+    target = data["messages"][idx]
+    old = (target.get("voice") or {}).get("transcript") or target.get("text") or ""
+    if not old.strip():
+        raise ai_client.AIError("There's no text in that message to write again (for a photo, redo the picture).")
+    sender = target.get("sender_name") or "the character"
+    note = str(note or "").strip()[:600]
+    instruction = (f"Rewrite only {sender}'s next text message, the one that comes right here. The old version was: "
+                   f"\"{old[:1500]}\". Write a different take of that one message, in {sender}'s voice and texting style"
+                   + (f", following the user's note: {note}" if note else "")
+                   + ". Answer with that one message only: no name in front, no other messages, no tags"
+                   + (", spoken words for a voice note (delivery tags like [sighs] allowed)" if target.get("voice") else "") + ".")
+    saved = thread.data
+    thread.data = {**(saved or {}), "messages": data["messages"][:idx]}  # the chat as it was before that message
+    try:
+        prompt_messages = build_messenger_prompt(user, thread, extra_instruction=instruction)
+    finally:
+        thread.data = saved
+    params = {"max_tokens": 600, "temperature": 0.9}
+    _, chat_model = ai_client.resolve(user, "chat")
+    if thinking.needs_leash(chat_model, samplers.thinking_now(user)):
+        prompt_messages, params = thinking.leash(prompt_messages, params)
+    raw = ai_client.complete(user, "chat", prompt_messages, **params)
+    _, text = thinking.split(raw or "")
+    text = strip_stage_directions(re.sub(r"^\s*" + re.escape(sender) + r"\s*:\s*", "", text.strip(), flags=re.I)).strip()
+    if not text:
+        raise ai_client.AIError("The model sent nothing back. Try again.")
+    if target.get("voice"):
+        target["voice"] = {**target["voice"], "transcript": text, "audio_url": "",
+                           "duration": max(2, min(45, len(text.split()) // 2))}
+    else:
+        target["text"] = text
+    target["edited_by_redo"] = True
+    save_thread_data(thread, data)
+    return target
+
+
 def generate_turn(user, thread, extra_instruction="", auto_check_in=False):
     """
     Call the user's chat model to produce the next Messenger turn (1..N bubbles, reactions, profile updates, etc.),
