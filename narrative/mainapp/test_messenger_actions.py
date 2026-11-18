@@ -212,3 +212,30 @@ class TagReadingTests(TestCase):
         self.assertEqual(voice["transcript"], "[sighs] fine. [laughs] come over, I'll put the kettle on")
         self.assertEqual(messenger.take_tag("look [PHOTO: me at the [old] desk] ok", ("PHOTO",)),
                          ("PHOTO", "me at the [old] desk", "look  ok"))
+
+
+class PictureModelTests(TestCase):
+    def test_the_chosen_picture_model_and_image_only_requests(self):
+        from mainapp import ai_client, messenger
+        from users.models import ConnectionProfile
+        user = get_user_model().objects.create_user(username="painter", password="pw12345!")
+        ConnectionProfile.objects.create(user=user, name="Main", api_key="sk-or-x", model="x/y")
+        messenger.save_user_profile(user, {"image_model": "microsoft/mai-image-2.7"})
+        self.assertEqual(messenger.user_profile(user)["image_model"], "microsoft/mai-image-2.7")
+        messenger.save_user_profile(user, {"image_model": "some/unknown"})  # not on the list: ignored
+        self.assertEqual(messenger.user_profile(user)["image_model"], "microsoft/mai-image-2.7")
+        import base64
+        sent = {}
+
+        def fake_post(url, headers=None, json=None, timeout=None, **kw):
+            sent.update(json)
+            resp = mock.Mock(status_code=200)
+            data = "data:image/png;base64," + base64.b64encode(png()).decode()
+            resp.json.return_value = {"choices": [{"message": {"images": [{"image_url": {"url": data}}]}}], "usage": {}}
+            return resp
+        listed = [{"id": "microsoft/mai-image-2.7", "name": "MAI", "text_out": False, "takes_pictures": True}]
+        with mock.patch("mainapp.ai_client.image_models", return_value=listed), \
+             mock.patch("mainapp.ai_client.requests.post", side_effect=fake_post):
+            messenger.make_picture(user, "a selfie", references=[(png(), "image/png")])
+        self.assertEqual((sent["model"], sent["modalities"]), ("microsoft/mai-image-2.7", ["image"]))
+        self.assertEqual(sent["messages"][0]["content"][1]["type"], "image_url")  # the reference went along

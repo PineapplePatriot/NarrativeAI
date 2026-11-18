@@ -229,7 +229,8 @@ Batch A, the chat itself (next):
 - (11) Try again on any of the characters' new messages (each of a burst of 4), photos included (regenerate one
   picture).
 - (7) Texting rhythm: a burst arrives as typing → bubble → pause → typing, not all at once; typos only when they
-  text fast (bursts); opt-in "they can leave you on read" for up to 5 real minutes.
+  text fast (bursts); a per-chat switch "they can leave you on read": up to 5 real minutes, only when it fits (they
+  were busy doing something, or for emotional reasons: teasing, angry, petty), decided 18 November.
 - (20) The model reads what the user sends: pictures (a vision description) and voice notes (transcribed).
 - (22) Check: characters texting first while the user is on another page or away.
 - (23) Card preview: tap the name or picture → the texting profile on top, the roleplay card below.
@@ -242,24 +243,26 @@ Batch B, setup and profiles:
 - (15) A chat-specific persona, offered at the start.
 - (13) Cards with several people: offered a split into separate characters + a group chat.
 - (14) Group chats: every member set up (Bulba walks through each), then a shared scenario.
-- (2) Custom voice ids: the field exists (lower in the drawer); check whether OpenRouter takes custom ElevenLabs
-  ids, else they need a direct ElevenLabs key; say so in the drawer.
+- ~~(2) Custom voice ids~~ checked 18 November: OpenRouter's ElevenLabs models take only the 21 premade voices
+  (their `supported_voices`); custom ids need the user's own ElevenLabs key (Extras → Voices). The drawer says so.
+  Later, maybe: OpenRouter's voice cloning from a short recording (HeyGen Voice and others), no ElevenLabs account.
 
 Batch C, pictures:
 - (21) The user sends generated pictures: a small window (prompt, up to 5 references, regenerate) for "proof" or
   what's going on in their life; more variety in the characters' photos.
-- (3) Image model choice: MAI-Image-2.7 (and 2.7-flash) are on OpenRouter; offer it beside Nano Banana if it
-  takes reference pictures.
+- ~~(3) Image model choice~~ done 18 November: MAI-Image-2.7 and 2.7 Flash take reference pictures
+  (text+image → image); a picture model choice in the messenger's profile tab (Nano Banana stays the default);
+  image-only models are asked for an image only.
 - (9) Main app too: generate or regenerate one emotion (not all at once); uploading beyond neutral is broken.
 - (8) Stickers: Telegram/Discord-style packs; generated custom packs (a character's texting look, one style);
-  importing real packs needs a decision (a Telegram bot token, or uploading the files).
+  real Telegram packs by link through a bot token in a Railway variable (decided 18 November).
 
 Batch D, memory and the rest:
 - (12) Context window and story memory for messenger chats (the chat page's panel, per chat).
 - (10) Bulba Watch in short chats.
 - (18) Characters post their own statuses now and then; the user's button posts only theirs.
 - (19) A few ready chat themes (no custom ones yet).
-- (17) Trackers: probably not (relationship and mood live in memory); to decide.
+- (17) Trackers: not in the messenger (relationship and mood live in memory); the user checks with a few users.
 
 ## Later / parked
 

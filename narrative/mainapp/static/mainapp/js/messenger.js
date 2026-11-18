@@ -646,6 +646,7 @@
           '<div style="display:grid;grid-template-columns:1fr auto;gap:6px;align-items:end;">' +
             '<div class="tg-field-group">' +
               "<label>Active Voice Name or Custom 20-char ElevenLabs Voice ID</label>" +
+              '<small style="display:block;color:var(--tg-muted);font-size:11.5px;margin:-2px 0 4px;">Through OpenRouter only the 21 voices in the list above work. Your own ElevenLabs voice ids need your ElevenLabs key (Extras → Voices).</small>' +
               '<input type="text" class="tg-input" id="drwCharVoiceCustom" value="' + esc(curVoice || (voices[0] ? voices[0].id : "sarah")) + '" placeholder="e.g. george, sarah, or JBFqnCBsd6RMkjVDRZzb">' +
             "</div>" +
             '<button type="button" class="tg-fmt-btn" style="height:36px;padding:0 12px;" onclick="TG.previewSelectedVoice(this)">🔊 Preview</button>' +
@@ -808,6 +809,14 @@
         '<input type="checkbox" id="drwMeAutoVoice" ' + (u.auto_voice ? "checked" : "") + ">" +
         "Automatically synthesize ElevenLabs audio when characters send [VOICE]" +
       "</label>" +
+      '<div class="tg-field-group"><label>🖼️ Picture model (photos, selfies and reference pictures in the messenger)</label>' +
+        '<select class="tg-select" id="drwMeImageModel">' +
+          [["", "Nano Banana (Google): the app's default"],
+           ["microsoft/mai-image-2.7", "MAI-Image-2.7 (Microsoft): precise, consistent"],
+           ["microsoft/mai-image-2.7-flash", "MAI-Image-2.7 Flash (Microsoft): faster, cheaper"]].map(function (o) {
+            return '<option value="' + o[0] + '"' + ((u.image_model || "") === o[0] ? " selected" : "") + ">" + esc(o[1]) + "</option>";
+          }).join("") +
+        "</select><small style=\"color:var(--tg-muted);font-size:11.5px;\">All three keep faces from the reference pictures. Through your OpenRouter key.</small></div>" +
       '<div class="tg-save-bar"><button type="button" class="tg-send-btn" style="flex:1;justify-content:center;" onclick="TG.saving(this, TG.saveUserProfile)">💾 Save My Profile & Alerts</button></div>';
   }
 
@@ -1835,6 +1844,7 @@
         spontaneous_minutes: parseInt(document.getElementById("drwMeSpontMins").value || "15", 10),
         auto_photos: document.getElementById("drwMeAutoPhoto").checked,
         auto_voice: document.getElementById("drwMeAutoVoice").checked,
+        image_model: (document.getElementById("drwMeImageModel") || {}).value || "",
       };
       return apiPost({
         action: "user_profile",

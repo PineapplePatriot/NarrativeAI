@@ -767,7 +767,10 @@ def image_models():
     found = []
     for m in data:
         if "image" in ((m.get("architecture") or {}).get("output_modalities") or []):
-            found.append({"id": m.get("id", ""), "name": m.get("name") or m.get("id", "")})
+            arch = m.get("architecture") or {}
+            found.append({"id": m.get("id", ""), "name": m.get("name") or m.get("id", ""),
+                          "text_out": "text" in (arch.get("output_modalities") or []),
+                          "takes_pictures": "image" in (arch.get("input_modalities") or [])})
     if found:
         _IMAGE_MODELS.update(at=time.time(), list=sorted(found, key=lambda m: m["name"]))
     return found or _IMAGE_MODELS["list"]
@@ -863,8 +866,11 @@ def generate_image(user, prompt, reference=None, reference_type="image/png", tim
     for raw, mime in _normalize_references(reference, reference_type, references):
         url = f"data:{mime};base64,{base64.b64encode(raw).decode('ascii')}"
         content.append({"type": "image_url", "image_url": {"url": url}})
+    # image-only models (MAI-Image) refuse a request that asks for text too; Nano Banana answers with both
+    listed = next((m for m in _IMAGE_MODELS["list"] or [] if m["id"] == model), None)
+    image_only = (listed is not None and listed.get("text_out") is False) or model.startswith("microsoft/mai-image")
     payload = {"model": model, "messages": [{"role": "user", "content": content}],
-               "modalities": ["image", "text"], "usage": {"include": True}}
+               "modalities": ["image"] if image_only else ["image", "text"], "usage": {"include": True}}
     try:
         resp = requests.post(f"{profile.api_url}/chat/completions", headers=_headers(profile), json=payload,
                              timeout=TEST_TIMEOUT or timeout)

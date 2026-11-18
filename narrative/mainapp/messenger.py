@@ -44,6 +44,24 @@ WALLPAPERS = {
     "tg-light": {"name": "Daylight Sky", "bg": "linear-gradient(135deg, #dbeafe 0%, #eff6ff 50%, #e0e7ff 100%)", "light": True},
 }
 
+# 🖼️ The picture model for the messenger's photos and references ("" = the app's default, Nano Banana); all take
+# reference pictures. A model OpenRouter stops listing falls back to the default.
+PICTURE_MODELS = {
+    "microsoft/mai-image-2.7": "MAI-Image-2.7 (Microsoft): precise, consistent",
+    "microsoft/mai-image-2.7-flash": "MAI-Image-2.7 Flash (Microsoft): faster, cheaper",
+}
+
+
+def make_picture(user, prompt, references=None):
+    """One picture for the messenger, on the user's chosen picture model (their profile tab)."""
+    model = user_profile(user).get("image_model") or None
+    if model:
+        listed = [m["id"] for m in ai_client.image_models()]
+        if listed and model not in listed:
+            model = None
+    return ai_client.generate_image(user, prompt, references=references, model=model)
+
+
 REACTIONS = ["❤️", "🔥", "👍", "😂", "😮", "😢", "👀", "🎉", "😡", "🤔"]
 
 BUILT_IN_STICKERS = [
@@ -104,6 +122,7 @@ def user_profile(user):
         "auto_photos": bool(raw.get("auto_photos", False)),
         "auto_voice": bool(raw.get("auto_voice", False)),
         "default_bg": raw.get("default_bg") if raw.get("default_bg") in WALLPAPERS else "tg-night",
+        "image_model": raw.get("image_model") if raw.get("image_model") in PICTURE_MODELS else "",
     }
 
 
@@ -126,6 +145,8 @@ def save_user_profile(user, updates):
             current["spontaneous_minutes"] = max(2, min(1440, int(updates["spontaneous_minutes"])))
         except (TypeError, ValueError):
             pass
+    if "image_model" in updates and (updates["image_model"] in PICTURE_MODELS or not updates["image_model"]):
+        current["image_model"] = updates["image_model"] or ""
     if "default_bg" in updates and updates["default_bg"] in WALLPAPERS:
         current["default_bg"] = updates["default_bg"]
     for list_key in ("stories", "custom_stickers", "notes"):
@@ -292,7 +313,7 @@ def redraw_setup_look(user, character, outfit=""):
                       ("outfit", "a relaxed waist-up candid shot that shows the whole outfit and their posture")):
         prompt = (f"{same}Draw {character.name} as they are in {setting}, dressed for it. {shot.capitalize()}.\n"
                   f"How they look now: {look}\nArt style: {style}.")
-        img, c = ai_client.generate_image(user, prompt, references=refs)
+        img, c = make_picture(user, prompt, references=refs)
         cost += float(c or 0)
         saved = default_storage.save(f"messenger/refs/{character.slug}-{key}-{uuid.uuid4().hex[:8]}.png", ContentFile(img))
         out[key] = default_storage.url(saved)
@@ -1368,7 +1389,7 @@ def generate_character_references_from_description(user, character, count=2):
             f"Appearance details: {app_text[:900]}\n"
             f"Composition: clean chest-up 3/4 portrait, neutral-characteristic expression, clear facial features, hair, and eyes."
         )
-        img_bytes, cost = ai_client.generate_image(user, neutral_prompt)
+        img_bytes, cost = make_picture(user, neutral_prompt)
         total_cost += float(cost or 0.0)
         rel_path = f"messenger/refs/{character.slug}-neutral-{uuid.uuid4().hex[:8]}.png"
         saved_path = default_storage.save(rel_path, ContentFile(img_bytes))
@@ -1398,7 +1419,7 @@ def generate_character_references_from_description(user, character, count=2):
             f"Appearance details: {app_text[:800]}\n"
             f"Pose & angle: {variant_desc}."
         )
-        img_bytes, cost = ai_client.generate_image(user, ref_prompt, references=[neutral_item] if neutral_item else None)
+        img_bytes, cost = make_picture(user, ref_prompt, references=[neutral_item] if neutral_item else None)
         total_cost += float(cost or 0.0)
         rel_path = f"messenger/refs/{character.slug}-ref{len(extra_refs)+1}-{uuid.uuid4().hex[:8]}.png"
         saved_path = default_storage.save(rel_path, ContentFile(img_bytes))
@@ -1583,7 +1604,7 @@ def generate_messenger_photo(user, character, description="", kind="casual", thr
             f"Photo scene & moment: {desc_clean[:600]}"
         )
 
-    img_bytes, cost = ai_client.generate_image(user, prompt, references=refs)
+    img_bytes, cost = make_picture(user, prompt, references=refs)
     rel_path = f"messenger/photos/{character.slug}-{uuid.uuid4().hex[:8]}.png"
     saved_path = default_storage.save(rel_path, ContentFile(img_bytes))
     return default_storage.url(saved_path), cost
