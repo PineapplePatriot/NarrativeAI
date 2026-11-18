@@ -356,4 +356,88 @@ class MessengerHubTests(TestCase):
         self.assertEqual(res_img.status_code, 200)
         self.assertTrue(res_img.json()["url"].endswith(".jpg"))
 
+    def test_subtext_feed_burner_aita_and_forward_to_telechat(self):
+        url = reverse("subtext_api")
+        fake_wave = json.dumps({
+            "posts": [
+                {
+                    "author_slug": self.char1.slug,
+                    "visibility": "burner",
+                    "title": "",
+                    "text": "If one more banker asks me to itemize centrifuge coolant I am locking the vault from the outside.",
+                    "subtweet_note": "Locked 2 AM rant",
+                    "photo_prompt": "Messy late-night lab desk with cold espresso",
+                    "comments": [
+                        {
+                            "author_slug": self.char2.slug,
+                            "is_burner": False,
+                            "verdict": "",
+                            "text": "You forgot to remove me from your close friends list, Doctor.",
+                        }
+                    ],
+                },
+                {
+                    "author_slug": self.char2.slug,
+                    "visibility": "aita",
+                    "title": "AITA for freezing a colleague's discretionary card at midnight?",
+                    "text": "He spent 4.2 million on quartz tubes without a receipt.",
+                    "subtweet_note": "Anonymous AITA thread",
+                    "photo_prompt": "",
+                    "comments": [
+                        {
+                            "author_slug": self.char1.slug,
+                            "is_burner": True,
+                            "verdict": "YTA",
+                            "text": "They were precision resonators.",
+                        }
+                    ],
+                },
+            ]
+        })
+        with patch("mainapp.ai_client.complete", return_value=fake_wave):
+            res = self.client.post(
+                url,
+                data=json.dumps({
+                    "action": "generate_wave",
+                    "mode": "mix",
+                    "character_slugs": [self.char1.slug, self.char2.slug],
+                }),
+                content_type="application/json",
+            )
+        self.assertEqual(res.status_code, 200)
+        new_posts = res.json()["new_posts"]
+        self.assertEqual(len(new_posts), 2)
+        burner_post = new_posts[0]
+        aita_post = new_posts[1]
+        self.assertEqual(burner_post["visibility"], "burner")
+        self.assertTrue(burner_post["handle"].endswith("_priv"))
+        self.assertEqual(len(burner_post["comments"]), 1)
+        self.assertEqual(aita_post["aita_votes"]["yta"], 1)
+
+        # User votes NTA on the AITA thread
+        vote_res = self.client.post(
+            url,
+            data=json.dumps({"action": "vote_aita", "post_id": aita_post["id"], "verdict": "NTA"}),
+            content_type="application/json",
+        )
+        self.assertEqual(vote_res.status_code, 200)
+        self.assertEqual(vote_res.json()["aita_votes"]["nta"], 1)
+
+        # User forwards Dottore's locked burner post straight into his TeleChat DM
+        with patch("mainapp.ai_client.complete", return_value="Who gave you access to that account?"):
+            fwd_res = self.client.post(
+                url,
+                data=json.dumps({
+                    "action": "forward_to_telechat",
+                    "post_id": burner_post["id"],
+                    "comment": "Saw your locked burner post.",
+                }),
+                content_type="application/json",
+            )
+        self.assertEqual(fwd_res.status_code, 200)
+        fwd_data = fwd_res.json()
+        self.assertIn("Locked Burner Post", fwd_data["user_message"]["text"])
+        self.assertEqual(fwd_data["turn"]["bubbles"][0]["text"], "Who gave you access to that account?")
+
+
 

@@ -52,5 +52,6 @@ path('worldbook_export/<slug:slug>', views.worldbook_export, name='worldbook_exp
 path('worldbook_delete/<slug:slug>', views.worldbook_delete, name='worldbook_delete'),
     path('screen/', views.screen_hub, name='screen_hub'),
     path('screen/api/', views.messenger_api, name='messenger_api'),
+    path('screen/subtext/api/', views.subtext_api, name='subtext_api'),
     ]
 #handler404 = page_not_found

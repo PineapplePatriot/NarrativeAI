@@ -7,6 +7,7 @@
   <title>Screen Hub · Messenger — Narrative AI</title>
   <link rel="stylesheet" href="{% static 'css/topbar.css' %}?v=7">
   <link rel="stylesheet" href="{% static 'mainapp/css/messenger.css' %}?v=1">
+  <link rel="stylesheet" href="{% static 'mainapp/css/subtext.css' %}?v=1">
 </head>
 <body class="tg-screen-body">
   {% include "partials/topbar.html" with active="screen" %}
@@ -18,6 +19,10 @@
         <span class="dock-ico">💬</span>
         <span>Chats</span>
         <span class="dock-badge" id="dockUnreadBadge" style="display:none">0</span>
+      </button>
+      <button type="button" class="dock-app-btn" data-app="subtext" onclick="TG.switchApp('subtext')" title="Subtext — Public Posts, Locked Burner Accounts & AITA Threads">
+        <span class="dock-ico">🌐</span>
+        <span>Subtext</span>
       </button>
       <button type="button" class="dock-app-btn" data-app="moments" onclick="TG.switchApp('moments')" title="Moments & Profile Status Updates">
         <span class="dock-ico">✨</span>
@@ -164,7 +169,74 @@
       </aside>
     </section>
 
-    <!-- APP 2: MOMENTS / PROFILE STATUS UPDATES FEED -->
+    <!-- APP 2: SUBTEXT / CHIRP (PUBLIC TIMELINE, LOCKED BURNERS & AITA THREADS) -->
+    <section class="screen-app-view" id="app-subtext">
+      <div class="subtext-layout">
+        <div class="subtext-main-col">
+          <div class="subtext-header-bar">
+            <div>
+              <h2 style="margin:0 0 3px; font-size:19px;">🌐 Subtext · Micro-Feed & Locked Burners</h2>
+              <p style="margin:0; color:var(--tg-muted); font-size:12.5px;">Public posts, 2 AM locked burner subtweets (`_priv`), and anonymous AITA threads where characters collide.</p>
+            </div>
+            <div class="subtext-tabs">
+              <button type="button" class="subtext-tab-btn active" data-st-tab="all" onclick="SUBTEXT.switchTab('all')">🌐 All Feed</button>
+              <button type="button" class="subtext-tab-btn" data-st-tab="burner" onclick="SUBTEXT.switchTab('burner')">🔒 Locked Burners</button>
+              <button type="button" class="subtext-tab-btn" data-st-tab="aita" onclick="SUBTEXT.switchTab('aita')">⚖️ AITA & Drama</button>
+              <button type="button" class="subtext-tab-btn" data-st-tab="public" onclick="SUBTEXT.switchTab('public')">📢 Public Main</button>
+            </div>
+          </div>
+
+          <!-- User Post Composer -->
+          <div class="subtext-composer-card">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+              <strong style="font-size:13.5px;">✍️ Post to Subtext</strong>
+              <select class="tg-select" id="stUserPostVis" style="width:auto; padding:5px 10px; font-size:12.5px;" onchange="SUBTEXT.onVisChange(this)">
+                <option value="public">🌐 Post on My Public Main</option>
+                <option value="burner">🔒 Post on My Locked Burner (_priv)</option>
+                <option value="aita">⚖️ Post Anonymous "AITA for..." Thread</option>
+              </select>
+            </div>
+            <div id="stUserPostTitleWrap" style="display:none;">
+              <input type="text" class="tg-input" id="stUserPostTitle" placeholder="AITA for leaving their text on read for 4 hours while ordering takeout?">
+            </div>
+            <textarea class="tg-textarea" id="stUserPostText" style="min-height:66px;" placeholder="Drop a post, a subtle subtweet, or a 2 AM thought… (supports **bold**, ||spoiler||, @handles)"></textarea>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+              <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:#cbd5e1; cursor:pointer;">
+                <input type="checkbox" id="stUserPostAskReplies" checked>
+                <span>Have characters jump into my replies right away</span>
+              </label>
+              <button type="button" class="tg-send-btn" onclick="SUBTEXT.submitUserPost(this)">Post to Subtext ➤</button>
+            </div>
+          </div>
+
+          <!-- Timeline Feed List -->
+          <div id="subtextFeedList" style="display:flex; flex-direction:column; gap:14px;"></div>
+        </div>
+
+        <!-- Right Sidebar: Wave Generator & Burner Roster -->
+        <aside class="subtext-side-col">
+          <div class="subtext-side-card">
+            <div style="font-weight:700; font-size:14px;">🎲 Generate New Feed Wave</div>
+            <p style="margin:0; font-size:12px; color:var(--tg-muted);">Characters read your recent TeleChat messages + real-time clock and post or subtweet each other.</p>
+            <input type="text" class="tg-input" id="stWaveTopicInput" placeholder="Optional situation / topic hint…" style="font-size:12.5px;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:7px;">
+              <button type="button" class="tg-bulba-btn" style="font-size:12px; padding:8px;" onclick="SUBTEXT.generateWave('mix', this)">🌐 Mix Feed Wave</button>
+              <button type="button" class="tg-bulba-btn" style="font-size:12px; padding:8px; background:linear-gradient(135deg,#7c3aed,#4f46e5);" onclick="SUBTEXT.generateWave('burner', this)">🔒 Locked Burners</button>
+              <button type="button" class="tg-bulba-btn" style="font-size:12px; padding:8px; background:linear-gradient(135deg,#ea580c,#d97706);" onclick="SUBTEXT.generateWave('aita', this)">⚖️ AITA Thread</button>
+              <button type="button" class="tg-bulba-btn" style="font-size:12px; padding:8px; background:linear-gradient(135deg,#0284c7,#2563eb);" onclick="SUBTEXT.generateWave('subtweet', this)">🔥 Subtweet Chat</button>
+            </div>
+          </div>
+
+          <div class="subtext-side-card">
+            <div style="font-weight:700; font-size:13.5px;">👥 Active Characters & Burners</div>
+            <p style="margin:0; font-size:11.5px; color:var(--tg-muted);">Tick who is online to post and jump into comment sections:</p>
+            <div id="subtextCharRoster" style="display:flex; flex-direction:column; gap:7px; max-height:360px; overflow-y:auto;"></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- APP 3: MOMENTS / PROFILE STATUS UPDATES FEED -->
     <section class="screen-app-view" id="app-moments">
       <div class="hub-secondary-pane">
         <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
@@ -180,7 +252,7 @@
       </div>
     </section>
 
-    <!-- APP 3: SHARED FILES & PERSONAL NOTES -->
+    <!-- APP 4: SHARED FILES & PERSONAL NOTES -->
     <section class="screen-app-view" id="app-files">
       <div class="hub-secondary-pane">
         <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
@@ -317,9 +389,11 @@
   <script>
     window.TG_CFG = {
       api: "{% url 'messenger_api' %}",
+      subtext_api: "{% url 'subtext_api' %}",
       csrf: "{{ csrf_token }}"
     };
   </script>
   <script src="{% static 'mainapp/js/messenger.js' %}?v=2"></script>
+  <script src="{% static 'mainapp/js/subtext.js' %}?v=1"></script>
 </body>
 </html>
