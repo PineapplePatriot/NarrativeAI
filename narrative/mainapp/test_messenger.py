@@ -314,3 +314,46 @@ class MessengerHubTests(TestCase):
         self.assertEqual(poll_res.status_code, 200)
         self.assertIn("total_unread", poll_res.json())
 
+    def test_multipart_photo_and_reference_uploads(self):
+        url = reverse("messenger_api")
+        fake_png = SimpleUploadedFile("neutral.png", b"\x89PNG\r\n\x1a\nfake", content_type="image/png")
+        res_neutral = self.client.post(
+            url,
+            data={
+                "kind": "char_neutral",
+                "char_slug": self.char1.slug,
+                "file": fake_png,
+            },
+        )
+        self.assertEqual(res_neutral.status_code, 200)
+        n_data = res_neutral.json()
+        self.assertTrue(n_data["url"].endswith(".png"))
+        self.assertEqual(n_data["profile"]["neutral_url"], n_data["url"])
+
+        fake_ref = SimpleUploadedFile("extra1.png", b"\x89PNG\r\n\x1a\nfake2", content_type="image/png")
+        res_extra = self.client.post(
+            url,
+            data={
+                "kind": "char_extra_ref",
+                "char_slug": self.char1.slug,
+                "slot": "0",
+                "file": fake_ref,
+            },
+        )
+        self.assertEqual(res_extra.status_code, 200)
+        e_data = res_extra.json()
+        self.assertEqual(len(e_data["profile"]["extra_refs"]), 1)
+        self.assertEqual(e_data["profile"]["extra_refs"][0], e_data["url"])
+
+        fake_chat_img = SimpleUploadedFile("chat_snap.jpg", b"\xff\xd8\xff\xe0fakejpg", content_type="image/jpeg")
+        res_img = self.client.post(
+            url,
+            data={
+                "kind": "image",
+                "file": fake_chat_img,
+            },
+        )
+        self.assertEqual(res_img.status_code, 200)
+        self.assertTrue(res_img.json()["url"].endswith(".jpg"))
+
+
