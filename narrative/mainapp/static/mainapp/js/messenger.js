@@ -12,6 +12,7 @@
   var replyToMsg = null;
   var currentDrawerTab = "char";
   var selectedDrawerCharSlug = "";
+  window.selectedDrawerCharSlugSet = function (slug) { selectedDrawerCharSlug = slug; };  // (the card's Edit button)
   var activeAudio = null;
   var activeAudioMsgId = null;
 
@@ -463,7 +464,8 @@
       var stickerOnly = m.sticker && !m.text && !m.voice && !m.photo && !m.file;
       out.push(
         '<div class="tg-msg-row ' + (isUser ? "user" : "assistant") + '" id="msg-' + esc(m.id) + '">' +
-          avatarHtml(avUrl, senderName, "tg-msg-avatar") +
+          (isUser ? avatarHtml(avUrl, senderName, "tg-msg-avatar")
+                  : '<span class="tg-card-tap" onclick="TG.openCard(\'' + esc(m.sender_slug || "") + '\')" title="Their card">' + avatarHtml(avUrl, senderName, "tg-msg-avatar") + "</span>") +
           '<div class="tg-bubble ' + (stickerOnly ? "sticker-only" : "") + '">' +
             actionsToolbar +
             inner.join("") +
@@ -1225,6 +1227,54 @@
       box.querySelector("img").src = src;
       box.classList.add("open");
     },
+    // 📇 Their card: the texting profile on top, the roleplay card at a glance below (character_quick)
+    openCard: function (slug) {
+      var t = STATE.active_thread; if (!t) return;
+      var m = (t.members || []).find(function (x) { return x.slug === slug; }) || (t.members || [])[0];
+      if (!m) return;
+      var box = document.getElementById("tgCard");
+      if (!box) {
+        box = document.createElement("div");
+        box.id = "tgCard"; box.className = "tg-card-shade";
+        box.addEventListener("click", function (e) { if (e.target === box) box.classList.remove("open"); });
+        document.addEventListener("keydown", function (e) { if (e.key === "Escape") box.classList.remove("open"); });
+        document.body.appendChild(box);
+      }
+      var you = (STATE.user_profile && STATE.user_profile.display_name) || "you";
+      var fill = function (x) { return String(x || "").replace(/\{\{user\}\}/gi, you).replace(/\{\{char\}\}/gi, m.name); };
+      var row = function (label, text) { return text ? "<dt>" + esc(label) + "</dt><dd>" + esc(fill(text)) + "</dd>" : ""; };
+      var pics = [m.neutral_url].concat(m.extra_refs || []).filter(Boolean);
+      box.innerHTML = '<div class="tg-card" role="dialog" aria-label="' + esc(m.name) + '">' +
+        '<button type="button" class="tg-card-x" onclick="document.getElementById(\'tgCard\').classList.remove(\'open\')" aria-label="Close">✕</button>' +
+        '<div class="tg-card-top">' + (m.avatar_url || m.neutral_url ? '<img src="' + esc(m.avatar_url || m.neutral_url) + '" alt="" onclick="TG.viewImage(this.src)">' : '<div class="tg-card-noimg">' + esc((m.name || "?")[0]) + "</div>") +
+          '<div><h3>' + esc(m.display_name || m.name) + " " + esc(m.status_emoji || "") + "</h3>" +
+          '<div class="tg-card-handle">' + esc(m.handle || "") + ' · <span class="tg-card-mode">' + (m.mode === "modern_au" ? "🌆 Modern AU" : "🏰 Their own world") + "</span>" +
+          (m.set_up ? "" : ' · <span class="tg-card-warn">not set up for texting yet</span>') + "</div>" +
+          (m.bio ? '<p class="tg-card-bio">' + esc(m.bio) + "</p>" : "") + "</div></div>" +
+        '<h4>📱 On the phone</h4><dl class="tg-card-dl">' +
+          row("Why you text", m.scenario) + row("Who they are here", m.modern_persona) + row("How they text", m.texting_style) +
+          row("How they look", m.appearance_notes) + row("Voice", m.voice_id) + "</dl>" +
+        (pics.length ? '<div class="tg-card-pics">' + pics.map(function (u) { return '<img src="' + esc(u) + '" alt="" onclick="TG.viewImage(this.src)">'; }).join("") + "</div>" : "") +
+        '<h4>📖 Their roleplay card</h4><div id="tgCardRp" class="tg-card-rp">Loading…</div>' +
+        '<div class="tg-card-actions"><button type="button" class="tg-setup-go" onclick="document.getElementById(\'tgCard\').classList.remove(\'open\'); selectedDrawerCharSlugSet(\'' + esc(m.slug) + '\'); TG.openDrawer(\'char\')">⚙️ Edit texting setup</button>' +
+        '<button type="button" class="tg-setup-ghost" onclick="document.getElementById(\'tgCard\').classList.remove(\'open\'); TG.openBulba()">🥔 Ask Bulba</button></div>' +
+        "</div>";
+      box.classList.add("open");
+      fetch(window.TG_CFG.quick.replace("__slug__", encodeURIComponent(m.slug)), { credentials: "same-origin" })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (q) {
+          var el = document.getElementById("tgCardRp"); if (!el) return;
+          if (!q) { el.textContent = "Couldn't load the card."; return; }
+          var people = (q.people || []).map(function (p) {
+            return "<p><b>" + esc(p.name) + "</b>" + (p.identity ? ": " + esc(p.identity) : "") + "</p>" + (p.temperament ? '<p class="tg-card-small">' + esc(p.temperament) + "</p>" : "");
+          }).join("");
+          el.innerHTML = (q.tagline ? '<p class="tg-card-bio">' + esc(q.tagline) + "</p>" : "") + people +
+            (q.about ? "<p>" + esc(q.about) + "</p>" : "") +
+            '<a class="tg-card-link" href="' + esc(q.edit_url) + '" target="_blank" rel="noopener">Open the full card ↗</a>';
+        })
+        .catch(function () { var el = document.getElementById("tgCardRp"); if (el) el.textContent = "Couldn't load the card."; });
+    },
+
     setupType: function (slug, key, value) { if (setupState[slug]) setupState[slug][key] = value; },
     setupSkip: function (slug) {
       try { localStorage.setItem("na-tg-setup-skip-" + slug, "1"); } catch (e) { /* this visit only */ }

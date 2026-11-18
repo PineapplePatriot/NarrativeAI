@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Screen Hub · Messenger — Narrative AI</title>
   <link rel="stylesheet" href="{% static 'css/topbar.css' %}?v=7">
-  <link rel="stylesheet" href="{% static 'mainapp/css/messenger.css' %}?v=12">
+  <link rel="stylesheet" href="{% static 'mainapp/css/messenger.css' %}?v=13">
 </head>
 <body class="tg-screen-body">
   {% include "partials/topbar.html" with active="screen" %}
@@ -65,7 +65,7 @@
       <!-- Main Chat Column -->
       <main class="tg-main mobile-hidden" id="tgMain">
         <header class="tg-chat-header" id="tgChatHeader">
-          <div class="tg-header-left" onclick="TG.openDrawer('char')">
+          <div class="tg-header-left" onclick="TG.openCard()" title="Their card">
             <button type="button" class="tg-mobile-back" onclick="event.stopPropagation(); TG.showMobileSidebar()" aria-label="Back to chat list">←</button>
             <div class="tg-avatar" id="hdrAvatar">💬</div>
             <div class="tg-header-info">
@@ -324,9 +324,10 @@
     window.TG_CFG = {
       api: "{% url 'messenger_api' %}",
       bulba: "{% url 'bulba_texting' 0 %}",
+      quick: "{% url 'character_quick' '__slug__' %}",
       csrf: "{{ csrf_token }}"
     };
   </script>
-  <script src="{% static 'mainapp/js/messenger.js' %}?v=10"></script>
+  <script src="{% static 'mainapp/js/messenger.js' %}?v=11"></script>
 </body>
 </html>

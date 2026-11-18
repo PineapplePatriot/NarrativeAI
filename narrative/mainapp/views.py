@@ -4663,6 +4663,11 @@ def messenger_api(request):
                     msgs = td.get("messages") or []
                     last_ts = msgs[-1].get("ts") if msgs else 0
                     last_auto = td.get("last_auto_at") or 0
+                    # one check-in per silence: not again until the user has answered the last one
+                    unanswered = msgs and msgs[-1].get("role") != "user" and last_auto and float(last_auto) >= float(
+                        next((m.get("ts") or 0 for m in reversed(msgs) if m.get("role") == "user"), 0) or 0)
+                    if unanswered or messenger.waiting_reply(td):
+                        continue
                     if last_ts and (now_ts - float(last_ts) >= cooldown_sec) and (now_ts - float(last_auto) >= cooldown_sec):
                         try:
                             res = messenger.generate_turn(request.user, t, auto_check_in=True)

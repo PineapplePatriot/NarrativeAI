@@ -335,3 +335,24 @@ class SeeingAndHearingTests(MessengerActionTests):
         self.assertIn("It shows: A rainy window with a mug of tea.", prompt)
         self.assertIn("my view", prompt)
         self.assertTrue(msg)
+
+
+class CheckInTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_one_check_in_per_silence(self):
+        import time as _time
+        from mainapp import ai_client, messenger
+        messenger.save_user_profile(self.user, {"spontaneous_texts": True, "spontaneous_minutes": 15})
+        tid = self.thread()
+        t = MessengerThread.objects.get(id=tid)
+        t.data = {"messages": [{"id": "u1", "role": "user", "text": "night", "ts": _time.time() - 3600}]}
+        t.save()
+        poll = lambda: self.client.get(self.url + "?action=poll&allow_spontaneous=1").json()
+        self.assertTrue(poll()["latest_unread"])
+        self.assertEqual(ai_client.complete.call_count, 1)
+        later = _time.time() + 3 * 3600
+        with mock.patch("time.time", return_value=later):
+            poll()
+        self.assertEqual(ai_client.complete.call_count, 1)  # no second check-in until they answer

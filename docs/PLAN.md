@@ -225,7 +225,11 @@ Done 18 November:
 - (5) Bulba's panel and the setup drawer squeezed the chat: one side panel at a time.
 - (16) Bulba didn't know the Tomato Pit, Garden or Screen: in its app guide now, and the messenger's Bulba reads it.
 
-Batch A, the chat itself (next):
+Batch A, the chat itself: done 18 November (one by one arrival, typos at speed, leave-on-read per chat, ↻ on any
+message or photo, photos seen and real voice notes heard, one check-in per silence, the card preview). Still open
+from it: characters texting first while the browser is closed (a scheduled job on Railway + push notifications).
+
+Batch A as planned:
 - (11) Try again on any of the characters' new messages (each of a burst of 4), photos included (regenerate one
   picture).
 - (7) Texting rhythm: a burst arrives as typing → bubble → pause → typing, not all at once; typos only when they

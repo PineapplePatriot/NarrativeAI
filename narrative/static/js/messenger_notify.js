@@ -54,7 +54,8 @@
   }
 
   function poll(allowSpontaneous) {
-    var url = pollUrl + (allowSpontaneous && !onScreenPage ? "&allow_spontaneous=1" : "");
+    // characters may text first while they're elsewhere: another page, or the Screen page in a hidden tab
+    var url = pollUrl + (allowSpontaneous && (!onScreenPage || document.hidden) ? "&allow_spontaneous=1" : "");
     fetch(url, { credentials: "same-origin" })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (data) {
