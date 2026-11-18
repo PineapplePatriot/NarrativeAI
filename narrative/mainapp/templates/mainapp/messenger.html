@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Screen Hub · Messenger — Narrative AI</title>
   <link rel="stylesheet" href="{% static 'css/topbar.css' %}?v=7">
-  <link rel="stylesheet" href="{% static 'mainapp/css/messenger.css' %}?v=5">
+  <link rel="stylesheet" href="{% static 'mainapp/css/messenger.css' %}?v=7">
 </head>
 <body class="tg-screen-body">
   {% include "partials/topbar.html" with active="screen" %}
@@ -327,6 +327,6 @@
       csrf: "{{ csrf_token }}"
     };
   </script>
-  <script src="{% static 'mainapp/js/messenger.js' %}?v=5"></script>
+  <script src="{% static 'mainapp/js/messenger.js' %}?v=6"></script>
 </body>
 </html>
