@@ -40,6 +40,43 @@ class VoiceError(Exception):
 
 _voice_cache = {}
 
+# Built-in 21 ElevenLabs premade voices served directly on OpenRouter's /api/v1/audio/speech endpoint
+# (works with any OpenRouter API key, no separate ElevenLabs subscription required).
+OPENROUTER_VOICES = [
+    {"id": "sarah", "name": "Sarah", "gender": "female", "age": "young", "accent": "American", "description": "Soft, warm, conversational", "use": "conversational", "preview": ""},
+    {"id": "alice", "name": "Alice", "gender": "female", "age": "middle_aged", "accent": "British", "description": "Confident, clear, articulate", "use": "narration", "preview": ""},
+    {"id": "bella", "name": "Bella", "gender": "female", "age": "young", "accent": "American", "description": "Expressive, gentle, intimate", "use": "characters", "preview": ""},
+    {"id": "jessica", "name": "Jessica", "gender": "female", "age": "young", "accent": "American", "description": "Playful, bright, expressive", "use": "conversational", "preview": ""},
+    {"id": "laura", "name": "Laura", "gender": "female", "age": "young", "accent": "American", "description": "Upbeat, sassy, lively", "use": "characters", "preview": ""},
+    {"id": "lily", "name": "Lily", "gender": "female", "age": "middle_aged", "accent": "British", "description": "Velvety, theatrical, raspy", "use": "characters", "preview": ""},
+    {"id": "matilda", "name": "Matilda", "gender": "female", "age": "middle_aged", "accent": "American", "description": "Warm, friendly, composed", "use": "narration", "preview": ""},
+    {"id": "river", "name": "River", "gender": "neutral", "age": "young", "accent": "American", "description": "Calm, relaxed, gender-neutral", "use": "conversational", "preview": ""},
+    {"id": "george", "name": "George", "gender": "male", "age": "middle_aged", "accent": "British", "description": "Warm, resonant, rasp", "use": "narration", "preview": ""},
+    {"id": "adam", "name": "Adam", "gender": "male", "age": "middle_aged", "accent": "American", "description": "Deep, steady, confident", "use": "narration", "preview": ""},
+    {"id": "bill", "name": "Bill", "gender": "male", "age": "old", "accent": "American", "description": "Trustworthy, crisp, seasoned", "use": "narration", "preview": ""},
+    {"id": "brian", "name": "Brian", "gender": "male", "age": "middle_aged", "accent": "American", "description": "Deep, resonant, comforting", "use": "narration", "preview": ""},
+    {"id": "callum", "name": "Callum", "gender": "male", "age": "middle_aged", "accent": "Transatlantic", "description": "Gravelly, intense, edgy", "use": "characters", "preview": ""},
+    {"id": "charlie", "name": "Charlie", "gender": "male", "age": "young", "accent": "Australian", "description": "Casual, natural, energetic", "use": "conversational", "preview": ""},
+    {"id": "chris", "name": "Chris", "gender": "male", "age": "middle_aged", "accent": "American", "description": "Casual, down-to-earth", "use": "conversational", "preview": ""},
+    {"id": "daniel", "name": "Daniel", "gender": "male", "age": "middle_aged", "accent": "British", "description": "Authoritative, composed", "use": "narration", "preview": ""},
+    {"id": "eric", "name": "Eric", "gender": "male", "age": "middle_aged", "accent": "American", "description": "Friendly, smooth, grounded", "use": "conversational", "preview": ""},
+    {"id": "harry", "name": "Harry", "gender": "male", "age": "young", "accent": "American", "description": "Fierce, dramatic, intense", "use": "characters", "preview": ""},
+    {"id": "liam", "name": "Liam", "gender": "male", "age": "young", "accent": "American", "description": "Energetic, youthful, warm", "use": "conversational", "preview": ""},
+    {"id": "roger", "name": "Roger", "gender": "male", "age": "middle_aged", "accent": "American", "description": "Laid-back, confident, smooth", "use": "conversational", "preview": ""},
+    {"id": "will", "name": "Will", "gender": "male", "age": "young", "accent": "American", "description": "Friendly, optimistic, relaxed", "use": "conversational", "preview": ""},
+]
+
+OPENROUTER_VOICE_NAMES = {v["id"]: v for v in OPENROUTER_VOICES}
+OPENROUTER_TTS_MODEL_DEFAULT = "elevenlabs/eleven-v4-turbo"
+OPENROUTER_TTS_MODELS = (
+    "elevenlabs/eleven-v4-turbo",
+    "elevenlabs/eleven-v4",
+    "elevenlabs/eleven-v3-conversational",
+    "elevenlabs/eleven-v3",
+    "elevenlabs/eleven-multilingual-v2",
+    "elevenlabs/eleven-flash-v2.5",
+)
+
 
 def list_voices(key):
     """[{"id", "name", "gender", "age", "accent", "description", "preview"}], cached for ten minutes."""
@@ -64,6 +101,133 @@ def list_voices(key):
     voices = [v for v in voices if v["id"]]
     _voice_cache[key] = (time.time(), voices)
     return voices
+
+
+def list_voices_for_user(user):
+    """
+    Return the combined catalog of voices available to `user`:
+    - Always includes the 21 built-in OpenRouter ElevenLabs voices (`OPENROUTER_VOICES`).
+    - If the user also has a direct ElevenLabs API key configured, appends their account's voices (with preview URLs).
+    """
+    from mainapp.utils import get_elevenlabs_key
+    catalog = [dict(v, source="openrouter") for v in OPENROUTER_VOICES]
+    seen_names = {v["name"].lower(): i for i, v in enumerate(catalog)}
+    key = get_elevenlabs_key(user)
+    if key:
+        try:
+            direct = list_voices(key)
+            for dv in direct:
+                low_name = (dv.get("name") or "").strip().lower()
+                if low_name in seen_names:
+                    idx = seen_names[low_name]
+                    if dv.get("preview") and not catalog[idx].get("preview"):
+                        catalog[idx]["preview"] = dv["preview"]
+                    catalog[idx]["eleven_id"] = dv["id"]
+                else:
+                    catalog.append(dict(dv, source="elevenlabs"))
+        except VoiceError:
+            pass
+    return catalog
+
+
+def synthesize_openrouter(user, text, voice_id="sarah", model=None):
+    """
+    Synthesize MP3 speech using ElevenLabs on OpenRouter (`POST /api/v1/audio/speech`).
+    Accepts any of the 21 premade voice names (e.g. 'george', 'sarah') OR a custom 20-char ElevenLabs Voice ID.
+    Supports inline audio delivery tags (`[whispering]`, `[laughing]`, `[sighs]`, `[curious]`) on v4, v4-turbo, and v3.
+    """
+    from mainapp.models import ConnectionProfile
+    raw = str(text or "").strip()
+    if not raw:
+        raise VoiceError("Nothing to read aloud.")
+    ai_client.check_limit(user)
+    profile = ai_client.main_profile(user)
+    if profile is None or profile.provider != ConnectionProfile.PROVIDER_OPENROUTER or not profile.api_key:
+        raise VoiceError("OpenRouter voice synthesis needs an active OpenRouter connection key.")
+    chosen_model = model if model in OPENROUTER_TTS_MODELS else OPENROUTER_TTS_MODEL_DEFAULT
+    v_str = str(voice_id or "sarah").strip() or "sarah"
+    # Normalize known premade names to lowercase as OpenRouter's llms.txt specifies
+    if v_str.lower() in OPENROUTER_VOICE_NAMES:
+        v_str = v_str.lower()
+    payload = {
+        "model": chosen_model,
+        "input": raw[:4500],
+        "voice": v_str,
+        "response_format": "mp3",
+    }
+    try:
+        resp = requests.post(
+            f"{profile.api_url}/audio/speech",
+            headers=ai_client._headers(profile),
+            json=payload,
+            timeout=120,
+        )
+    except requests.RequestException as e:
+        raise VoiceError(f"Could not reach OpenRouter audio endpoint ({type(e).__name__}).")
+    if resp.status_code >= 400:
+        err_msg = ""
+        try:
+            err_data = resp.json()
+            err_msg = (err_data.get("error") or {}).get("message") or str(err_data)[:200]
+        except Exception:
+            err_msg = (resp.text or "")[:200]
+        raise VoiceError(f"OpenRouter voice synthesis returned {resp.status_code}: {err_msg}")
+    if not resp.content:
+        raise VoiceError("OpenRouter returned an empty audio stream.")
+    return resp.content
+
+
+def synthesize_single(user, text, voice_id="sarah", model=None):
+    """
+    Synthesize a single speaker's MP3 audio clip:
+    1. If the user has an OpenRouter connection and `voice_id` is one of the 21 premade names (or no direct ElevenLabs key is set),
+       uses OpenRouter's `/api/v1/audio/speech` (`elevenlabs/eleven-v4-turbo` by default).
+    2. If the user has a direct ElevenLabs API key and `voice_id` is a custom ElevenLabs Voice ID (or OpenRouter fails),
+       uses direct ElevenLabs synthesis (`synthesize`).
+    """
+    from mainapp.models import ConnectionProfile
+    from mainapp.utils import get_elevenlabs_key
+    raw = str(text or "").strip()
+    if not raw:
+        raise VoiceError("Nothing to read aloud.")
+    v_str = str(voice_id or "sarah").strip() or "sarah"
+    el_key = get_elevenlabs_key(user)
+    profile = ai_client.main_profile(user)
+    has_or = bool(profile and profile.provider == ConnectionProfile.PROVIDER_OPENROUTER and profile.api_key)
+
+    # If the user picked a custom 20-char ElevenLabs ID and has a direct ElevenLabs key, try direct first, else OpenRouter
+    is_premade_name = v_str.lower() in OPENROUTER_VOICE_NAMES
+    if el_key and not is_premade_name:
+        try:
+            return synthesize(el_key, [{"text": raw[:2500], "voice_id": v_str}])
+        except VoiceError:
+            if has_or:
+                return synthesize_openrouter(user, raw, voice_id=v_str, model=model)
+            raise
+
+    if has_or:
+        try:
+            return synthesize_openrouter(user, raw, voice_id=v_str, model=model)
+        except VoiceError:
+            if el_key:
+                # Resolve premade name to an ID on their ElevenLabs account if needed
+                target_vid = v_str
+                if is_premade_name:
+                    voices_list = list_voices(el_key)
+                    matched = next((v["id"] for v in voices_list if v["name"].lower() == v_str.lower()), None)
+                    target_vid = matched or (voices_list[0]["id"] if voices_list else v_str)
+                return synthesize(el_key, [{"text": raw[:2500], "voice_id": target_vid}])
+            raise
+
+    if el_key:
+        target_vid = v_str
+        if is_premade_name:
+            voices_list = list_voices(el_key)
+            matched = next((v["id"] for v in voices_list if v["name"].lower() == v_str.lower()), None)
+            target_vid = matched or (voices_list[0]["id"] if voices_list else v_str)
+        return synthesize(el_key, [{"text": raw[:2500], "voice_id": target_vid}])
+
+    raise VoiceError("Connect OpenRouter (or add an ElevenLabs API key on Extras) to generate voice notes.")
 
 
 # ---------------------------------------------------------------------------
