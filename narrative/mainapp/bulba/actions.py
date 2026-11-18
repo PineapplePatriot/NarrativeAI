@@ -119,6 +119,12 @@ def apply(session, pid):
             note = doctor.apply(session, p)
         except ValueError as e:
             raise ProposalError(str(e))
+    elif p["kind"] in ("texting_profile", "texting_chat", "texting_look"):  # from Bulba inside the messenger
+        from mainapp.bulba import texting
+        try:
+            note = texting.apply(session, p)
+        except ValueError as e:
+            raise ProposalError(str(e))
     elif p["kind"] == "text_rules":  # the preset's or their own text rules
         from mainapp.bulba import rules
         try:
@@ -197,6 +203,9 @@ def undo(session, pid):
     elif p["kind"] in ("preset_edit", "card_edit"):
         from mainapp.bulba import doctor
         doctor.undo(session, p)
+    elif p["kind"] in ("texting_profile", "texting_chat", "texting_look"):
+        from mainapp.bulba import texting
+        texting.undo(session, p)
     elif p["kind"] in ("message_fix", "auto_fix"):
         from mainapp.bulba import polish
         polish.undo(session, p)

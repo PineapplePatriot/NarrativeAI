@@ -406,14 +406,13 @@ Rules:
   Neutral: river (calm/gender-neutral)
   Male: george (warm British rasp), adam (deep/steady), bill (seasoned/crisp), brian (deep/comforting), callum (gravelly/edgy), charlie (casual Australian), chris (down-to-earth), daniel (authoritative British), eric (smooth/grounded), harry (fierce/dramatic), liam (youthful/energetic), roger (laid-back/confident), will (friendly/relaxed)
 - Write a realistic `first_text` (1-2 sentences, pure text message, NO *asterisks* or narration) they would send to open a chat.
-{hint_line}
 
 Original card of {char}:
 {card_text}
 
-Original scenario:
+Their original roleplay scenario (background only: it describes the roleplay, not this texting setup{scenario_rule}):
 {scenario}
-
+{hint_block}
 Answer with JSON only:
 {{
   "handle": "@username_in_lowercase",
@@ -476,12 +475,20 @@ def modernize_with_bulba(user, character, mode="modern_au", hint="", save=True):
     mode = "modern_au" if mode == "modern_au" else "canon"
     mode_desc = ("Modern AU: translate their world and role into a modern-day setting"
                  if mode == "modern_au" else "Canon world with a texting scenario")
-    hint_line = f"\nUser's direction for this setup: {hint.strip()[:600]}" if str(hint or "").strip() else ""
+    hint = str(hint or "").strip()[:1500]
+    hint_block = (f"\n=== {u_name}'S DIRECTIONS FOR THIS SETUP (binding) ===\n{hint}\n"
+                  f"These are decisions {u_name} already made. Follow every one of them exactly: how they met, who they "
+                  f"are to each other, jobs, places and anything else named here go into `scenario`, `modern_persona` "
+                  f"and `first_text` as given. Do not replace them with circumstances from the original card or "
+                  f"scenario, and do not invent different ones; only fill in what they left open.\n"
+                  ) if hint else ""
+    scenario_rule = "; where it disagrees with the directions below, the directions win" if hint else ""
     prompt = MODERNIZE_PROMPT.format(
         char=character.name,
         user=u_name,
         mode_desc=mode_desc,
-        hint_line=hint_line,
+        hint_block=hint_block,
+        scenario_rule=scenario_rule,
         card_text=card_text[:6000] or character.name,
         scenario=(character.scenario or "None specified")[:2000],
     )

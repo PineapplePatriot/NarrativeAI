@@ -28,7 +28,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 # --- Local imports ---
 from mainapp.models import Character, Worldbook, ChatSettings
 from .forms import AddCharacterForm, UploadFileForm
-from .models import Character, Worldbook, ChatSettings
+from .models import Character, Worldbook, ChatSettings, MessengerThread
 from . import basics as basics_mod
 from . import writing_quality
 from . import sprites as sprite_mod
@@ -3751,9 +3751,37 @@ def _bulba_chat_session(user, chat_obj, restart=False):
     return session
 
 
+def _bulba_texting_session(user, thread, restart=False):
+    """Bulba's conversation about one messenger chat (opened from its header in the Screen Hub)."""
+    from .bulba import texting
+    from .models import BulbaSession
+    session = BulbaSession.objects.filter(user=user, active=True, mode="texting", thread=thread).first()
+    if session and restart:
+        session.active = False
+        session.save(update_fields=["active"])
+        session = None
+    if session is None:
+        try:
+            _, chat_model = ai_client.resolve(user, "chat")
+        except ai_client.NoConnection:
+            return None
+        profile = model_profiles.for_style(chat_model)
+        session = BulbaSession(user=user, target_model=profile["id"] if profile else "", mode="texting", thread=thread,
+                               focus=thread.characters.first())
+        texting.opening(session)
+        session.save()
+    return session
+
+
 def _bulba_for_request(request, restart=False):
-    """The setup conversation, or the one about a chat when the page passes ?chat=<id>."""
+    """The setup conversation, or the one about a chat when the page passes ?chat=<id> (?thread=<id>: a
+    messenger chat)."""
     from .models import Chat
+    if request.GET.get("thread"):
+        thread = MessengerThread.objects.filter(id=request.GET.get("thread"), user=request.user).first()
+        if thread is None:
+            raise Http404("No such chat.")
+        return _bulba_texting_session(request.user, thread, restart)
     chat_id = request.GET.get("chat")
     if chat_id:
         chat_obj = Chat.objects.filter(id=chat_id, character__author=request.user).first()
@@ -4074,13 +4102,27 @@ def bulba_chat_page(request, chat_id):
 
 
 @login_required
+@xframe_options_sameorigin
+def bulba_texting_page(request, thread_id):
+    """Bulba about one messenger chat, shown in a side panel in the Screen Hub."""
+    thread = get_object_or_404(MessengerThread, id=thread_id, user=request.user)
+    session = _bulba_texting_session(request.user, thread)
+    return render(request, "mainapp/bulba.html", {
+        "bulba_data": {"state": _bulba_state(session), "events": session.events,
+                       "basics_form": basics_mod.form()} if session else None,
+        "known_models": model_profiles.known_names(),
+        "embed": True, "thread_obj": thread,
+    })
+
+
+@login_required
 def bulba_api(request):
     """One Bulba action at a time per conversation: a phone that lost the connection mid-turn and sent again
     would otherwise run two turns on the same conversation, and the one saved last would erase the other's cards."""
     from django.core.cache import cache
     if request.method != "POST":
         return _bulba_api(request)
-    key = f"bulba-busy:{request.user.id}:{request.GET.get('chat') or 'setup'}"
+    key = f"bulba-busy:{request.user.id}:{request.GET.get('chat') or ('t' + request.GET['thread'] if request.GET.get('thread') else 'setup')}"
     if not cache.add(key, 1, BULBA_TURN_SECONDS):
         return JsonResponse({"error": "Bulba is still working on your last message. Give it a moment, then try "
                                       "again (the page shows the answer when it's ready).", "busy": True}, status=409)

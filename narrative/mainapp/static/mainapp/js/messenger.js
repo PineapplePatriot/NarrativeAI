@@ -348,7 +348,7 @@
         if (ph.url) {
           inner.push(
             '<div class="tg-photo-card">' +
-              '<img src="' + esc(ph.url) + '" alt="Photo" onclick="window.open(this.src, \'_blank\')">' +
+              '<img src="' + esc(ph.url) + '" alt="Photo" onclick="TG.viewImage(this.src)">' +
               (ph.caption ? '<div class="tg-bubble-text">' + formatMessageHtml(ph.caption) + "</div>" : "") +
             "</div>"
           );
@@ -520,7 +520,12 @@
   }
 
   // Drawer rendering
-  function renderDrawer() {
+  function renderDrawer() {  // redrawn in place: the drawer keeps where they had scrolled to
+    var drw = document.getElementById("tgDrawer"), keep = drw ? drw.scrollTop : 0;
+    renderDrawerNow();
+    if (drw) drw.scrollTop = keep;
+  }
+  function renderDrawerNow() {
     var body = document.getElementById("tgDrawerBody");
     if (!body) return;
     var t = STATE.active_thread;
@@ -579,8 +584,8 @@
         '<div style="border:1px solid var(--tg-border);border-radius:10px;padding:8px;display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(255,255,255,0.03);">' +
           '<div style="font-size:11px;font-weight:700;color:#93c5fd;">1. Neutral Ref</div>' +
           (neutralUrl
-            ? '<img src="' + esc(neutralUrl) + '" alt="Neutral" style="width:68px;height:68px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.14);">'
-            : '<div style="width:68px;height:68px;border-radius:8px;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:20px;">👤</div>') +
+            ? '<img class="tg-ref-img" src="' + esc(neutralUrl) + '" alt="Neutral" title="Tap to see it big" onclick="TG.viewImage(this.src)">'
+            : '<div class="tg-ref-empty" style="background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:20px;">👤</div>') +
           '<button type="button" class="tg-fmt-btn" style="font-size:10.5px;padding:3px 7px;" onclick="TG.triggerRefUpload(\'char_neutral\', -1)">Upload</button>' +
         "</div>"
       );
@@ -591,8 +596,8 @@
           '<div style="border:1px solid var(--tg-border);border-radius:10px;padding:8px;display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(255,255,255,0.02);">' +
             '<div style="font-size:11px;color:var(--tg-muted);">Ref #' + (rIdx + 2) + "</div>" +
             (rUrl
-              ? '<img src="' + esc(rUrl) + '" alt="Ref" style="width:68px;height:68px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.14);">'
-              : '<div style="width:68px;height:68px;border-radius:8px;background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--tg-muted);">+</div>') +
+              ? '<img class="tg-ref-img" src="' + esc(rUrl) + '" alt="Ref" title="Tap to see it big" onclick="TG.viewImage(this.src)">'
+              : '<div class="tg-ref-empty" style="background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--tg-muted);">+</div>') +
             '<div style="display:flex;gap:3px;">' +
               '<button type="button" class="tg-fmt-btn" style="font-size:10.5px;padding:3px 6px;" onclick="TG.triggerRefUpload(\'char_extra_ref\', ' + rIdx + ')">' + (rUrl ? "Swap" : "Add") + "</button>" +
               (rUrl ? '<button type="button" class="tg-fmt-btn" style="font-size:10.5px;padding:3px 5px;color:#f87171;" onclick="TG.removeExtraRef(' + rIdx + ')">✕</button>' : "") +
@@ -618,7 +623,7 @@
         '<div class="tg-bulba-box" style="background:rgba(56,189,248,0.06);border-color:rgba(56,189,248,0.25);">' +
           '<div style="font-weight:700;font-size:13px;">🖼️ 1 Neutral + Up to 4 Reference Pictures</div>' +
           '<div style="font-size:11.5px;color:#cbd5e1;">Nano Banana uses these to lock face, outfit & art style across varied-angle selfies, food shots, and scenery. For OCs without art yet, generate them from description below!</div>' +
-          '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;">' + refSlotsHtml.join("") + "</div>" +
+          '<div class="tg-ref-grid">' + refSlotsHtml.join("") + "</div>" +
           '<input type="file" id="drwRefUploadInput" accept="image/*" style="display:none" onchange="TG.handleRefUploadFile(this)">' +
           '<div class="tg-field-group" style="margin-top:4px;">' +
             "<label>Appearance Description (used for photos & OC reference generation)</label>" +
@@ -690,8 +695,8 @@
           '<input type="checkbox" id="drwCharMemory" ' + (cur.share_memory !== false ? "checked" : "") + ">" +
           "Share Story Memory with their main roleplay chats" +
         "</label>" +
-        '<div style="display:flex;gap:8px;margin-top:4px;">' +
-          '<button type="button" class="tg-send-btn" style="flex:1;justify-content:center;" onclick="TG.saveCharProfile()">💾 Save Character Setup</button>' +
+        '<div class="tg-save-bar">' +
+          '<button type="button" class="tg-send-btn" style="flex:1;justify-content:center;" onclick="TG.saving(this, TG.saveCharProfile)">💾 Save Character Setup</button>' +
           '<button type="button" class="tg-fmt-btn" onclick="TG.openStoryModal(\'' + esc(cur.slug) + '\')">+ Post Status</button>' +
         "</div>";
       return;
@@ -748,8 +753,8 @@
           "<label>This Chat's Scenario Override (optional)</label>" +
           '<textarea class="tg-textarea" id="drwThreadScenario">' + esc(t.scenario_override || "") + "</textarea>" +
         "</div>" +
-        '<div style="display:flex;gap:8px;">' +
-          '<button type="button" class="tg-send-btn" style="flex:1;justify-content:center;" onclick="TG.saveThreadSettings()">💾 Save Chat & Look</button>' +
+        '<div class="tg-save-bar">' +
+          '<button type="button" class="tg-send-btn" style="flex:1;justify-content:center;" onclick="TG.saving(this, TG.saveThreadSettings)">💾 Save Chat & Look</button>' +
           '<button type="button" class="tg-fmt-btn" onclick="TG.pinCurrentThread()">📌 Pin Chat</button>' +
           '<button type="button" class="tg-fmt-btn" style="color:#f87171;" onclick="TG.deleteCurrentThread()">🗑</button>' +
         "</div>";
@@ -803,7 +808,7 @@
         '<input type="checkbox" id="drwMeAutoVoice" ' + (u.auto_voice ? "checked" : "") + ">" +
         "Automatically synthesize ElevenLabs audio when characters send [VOICE]" +
       "</label>" +
-      '<button type="button" class="tg-send-btn" style="justify-content:center;margin-top:6px;" onclick="TG.saveUserProfile()">💾 Save My Profile & Alerts</button>';
+      '<div class="tg-save-bar"><button type="button" class="tg-send-btn" style="flex:1;justify-content:center;" onclick="TG.saving(this, TG.saveUserProfile)">💾 Save My Profile & Alerts</button></div>';
   }
 
   function renderMomentsFeed() {
@@ -951,8 +956,10 @@
         "<dt>Why you text</dt><dd>" + esc(m.scenario || "") + "</dd>" +
         "<dt>Who they are here</dt><dd>" + esc(m.modern_persona || "") + "</dd>" +
         "<dt>How they text</dt><dd>" + esc(m.texting_style || "") + "</dd></dl>" +
+        '<textarea id="tgSetupFix" rows="2" oninput="TG.setupType(\'' + slug + '\', \'fix\', this.value)" placeholder="What\'s off? Tell me and I\'ll fix it, e.g. we met at a night pharmacy, not at work">' + esc(st.fix || "") + "</textarea>" +
         '<div class="tg-setup-row"><button type="button" class="tg-setup-go" onclick="TG.setupKeep(\'' + slug + '\')">👍 Keep it</button>' +
-        '<button type="button" class="tg-setup-ghost" onclick="TG.setupRun(\'' + slug + '\')">↻ Another take</button>' +
+        '<button type="button" class="tg-setup-ghost" onclick="TG.setupFix(\'' + slug + '\')">↻ Fix what I said / another take</button>' +
+        '<button type="button" class="tg-setup-ghost" onclick="TG.openBulba()">🥔 Talk it through</button>' +
         '<button type="button" class="tg-setup-ghost" onclick="TG.openDrawer(\'char\')">✏️ Adjust by hand</button></div>';
     } else if (st.step === "look") {
       body = (m.neutral_url
@@ -1028,7 +1035,8 @@
         b.classList.toggle("active", b.getAttribute("data-tab") === currentDrawerTab);
       });
       document.getElementById("tgDrawer").classList.add("open");
-      renderDrawer();
+      renderDrawerNow();
+      document.getElementById("tgDrawer").scrollTop = 0;  // a tab opens at its top
     },
 
     closeDrawer: function () {
@@ -1125,6 +1133,58 @@
       var h = document.getElementById("tgSetupHint"); if (h) st.hint = h.value;
       st.mode = mode; renderActiveThread();
     },
+    // 🥔 Bulba for this chat, in a side panel (mainapp/bulba/texting.py); what's applied there shows here at once
+    openBulba: function () {
+      var t = STATE.active_thread;
+      if (!t) return;
+      var panel = document.getElementById("tgBulbaPanel"), frame = document.getElementById("tgBulbaFrame");
+      var url = window.TG_CFG.bulba.replace(/\/0\/$/, "/" + t.id + "/");
+      if (frame.getAttribute("data-thread") !== String(t.id)) { frame.src = url; frame.setAttribute("data-thread", String(t.id)); }
+      panel.hidden = false;
+      document.body.classList.add("tg-bulba-open");
+    },
+    closeBulba: function () {
+      document.getElementById("tgBulbaPanel").hidden = true;
+      document.body.classList.remove("tg-bulba-open");
+    },
+    // 💾 A save button says how it went: Saving… → ✓ Saved (or the error), and stays where it is
+    saving: function (btn, save) {
+      var label = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = "Saving…";
+      var done = function (ok, msg) {
+        var b = document.querySelector('[onclick="' + btn.getAttribute("onclick") + '"]') || btn;  // (the drawer may have redrawn)
+        b.disabled = false;
+        b.innerHTML = ok ? "✓ Saved" : label;
+        b.classList.toggle("tg-saved", ok);
+        if (ok) setTimeout(function () { b.innerHTML = label; b.classList.remove("tg-saved"); }, 1800);
+        else alert(msg || "That didn't save. Try again.");
+      };
+      var p;
+      try { p = save(); } catch (e) { done(false, e.message); return; }
+      if (p && p.then) p.then(function (res) {
+        if (res && res.error) done(false, res.error); else done(true);
+      }, function (e) { done(false, e && e.message); });
+      else done(true);
+    },
+    // 🔍 Any picture, big: tap (or Esc) to close
+    viewImage: function (src) {
+      if (!src) return;
+      var box = document.getElementById("tgLightbox");
+      if (!box) {
+        box = document.createElement("div");
+        box.id = "tgLightbox";
+        box.className = "tg-lightbox";
+        box.setAttribute("role", "dialog");
+        box.setAttribute("aria-label", "Picture");
+        box.innerHTML = '<img alt=""><button type="button" aria-label="Close">✕</button>';
+        box.addEventListener("click", function () { box.classList.remove("open"); });
+        document.addEventListener("keydown", function (e) { if (e.key === "Escape") box.classList.remove("open"); });
+        document.body.appendChild(box);
+      }
+      box.querySelector("img").src = src;
+      box.classList.add("open");
+    },
     setupType: function (slug, key, value) { if (setupState[slug]) setupState[slug][key] = value; },
     setupSkip: function (slug) {
       try { localStorage.setItem("na-tg-setup-skip-" + slug, "1"); } catch (e) { /* this visit only */ }
@@ -1141,6 +1201,13 @@
           st.step = "review"; renderSidebar(); renderActiveThread();
         })
         .catch(function (e) { st.step = "offer"; st.error = e.message; renderActiveThread(); });
+    },
+    setupFix: function (slug) {  // what they said is off joins their directions, then Bulba writes it again
+      var st = setupState[slug]; if (!st) return;
+      var f = document.getElementById("tgSetupFix"), fix = (f ? f.value : st.fix || "").trim();
+      if (fix) st.hint = (st.hint ? st.hint + "\n" : "") + "Correction to the last draft: " + fix;
+      st.fix = "";
+      TG.setupRun(slug);
     },
     setupKeep: function (slug) { var st = setupState[slug]; if (st) { st.step = "look"; renderActiveThread(); } },
     setupDraw: function (slug) {
@@ -1479,7 +1546,7 @@
         });
     },
 
-    saveCharProfile: function () {
+    saveCharProfile: function () {  // (returns the request: saving() shows how it went)
       var slug = selectedDrawerCharSlug;
       if (!slug) return;
       var voiceInp = document.getElementById("drwCharVoiceCustom");
@@ -1500,7 +1567,7 @@
         voice_model: (document.getElementById("drwCharVoiceModel") || {}).value || "elevenlabs/eleven-v4-turbo",
         share_memory: document.getElementById("drwCharMemory").checked,
       };
-      apiPost({
+      return apiPost({
         action: "char_profile",
         char_slug: slug,
         thread_id: STATE.active_thread ? STATE.active_thread.id : null,
@@ -1684,10 +1751,10 @@
         });
     },
 
-    saveThreadSettings: function () {
+    saveThreadSettings: function () {  // (returns the request: saving() shows how it went)
       var t = STATE.active_thread;
       if (!t) return;
-      apiPost({
+      return apiPost({
         action: "thread_settings",
         thread_id: t.id,
         bg: document.getElementById("drwThreadBg").value,
@@ -1754,7 +1821,7 @@
       }
     },
 
-    saveUserProfile: function () {
+    saveUserProfile: function () {  // (returns the request: saving() shows how it went)
       var profile = {
         display_name: document.getElementById("drwMeName").value,
         status_emoji: document.getElementById("drwMeEmoji").value,
@@ -1767,7 +1834,7 @@
         auto_photos: document.getElementById("drwMeAutoPhoto").checked,
         auto_voice: document.getElementById("drwMeAutoVoice").checked,
       };
-      apiPost({
+      return apiPost({
         action: "user_profile",
         thread_id: STATE.active_thread ? STATE.active_thread.id : null,
         profile: profile,
@@ -2004,4 +2071,11 @@
 
   renderSidebar();
   renderActiveThread();
+
+  // Bulba's panel tells us when something changed (a card applied, a reply retried): reload this chat
+  window.addEventListener("message", function (e) {
+    if (e.origin !== window.location.origin || !e.data) return;
+    if (e.data.quickBulba === "close") { TG.closeBulba(); return; }
+    if ((e.data.bulba || e.data.quickBulba === "changed") && STATE.active_thread) TG.selectThread(STATE.active_thread.id);
+  });
 })();

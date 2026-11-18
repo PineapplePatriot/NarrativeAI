@@ -10113,3 +10113,64 @@ class LookShelfTests(ChatLookTests):
 for _name in [n for n in dir(ChatLookTests) if n.startswith("test_")]:
     if getattr(LookShelfTests, _name, None) is getattr(ChatLookTests, _name, None):
         setattr(LookShelfTests, _name, None)
+
+
+class BulbaTextingTests(BulbaTests):
+    """🥔📱 Bulba inside the messenger: one conversation per messenger chat, cards for the texting profile."""
+    def setUp(self):
+        super().setUp()
+        from mainapp.models import Character, MessengerThread
+        self.char = Character.objects.create(name="Shinso", slug="shinso-txt", author=self.user, initial_message="...",
+                                             scenario="A hero school sparring match.")
+        self.thread = MessengerThread.objects.create(user=self.user, title="Shinso")
+        self.thread.characters.add(self.char)
+
+    def tapi(self, **body):
+        from unittest import mock
+        with mock.patch("mainapp.ai_client.requests.post", side_effect=self.fake_post):
+            return self.client.post(reverse("bulba_api") + f"?thread={self.thread.id}", json.dumps(body),
+                                    content_type="application/json")
+
+    def test_the_panel_reads_the_chat_and_its_cards_change_the_texting_profile_only(self):
+        from mainapp import messenger
+        page = self.client.get(reverse("bulba_texting", args=[self.thread.id]))
+        self.assertEqual(page.status_code, 200)
+        self.assertEqual(page["X-Frame-Options"], "SAMEORIGIN")
+        self.assertContains(page, f"?thread={self.thread.id}")
+        self.script = [("Let me look.", [self.call("read_texting_chat")]),
+                       ("Here.", [self.call("propose_texting_profile", changes={
+                           "scenario": "They met at a 24-hour laundromat at 3am."}, why="As you said.")])]
+        data = self.tapi(action="say", text="We met at a laundromat at 3am, not at school").json()
+        system = self.bulba_calls[0]["messages"][0]["content"]
+        self.assertIn("The rule above all", system)
+        names = {t["function"]["name"] for t in self.bulba_calls[0]["tools"]}
+        self.assertTrue({"read_texting_chat", "propose_texting_profile", "retry_texting_reply"} <= names)
+        self.assertNotIn("propose_card_edit", names)  # the roleplay card isn't changed from here
+        read = next(m for m in self.bulba_calls[1]["messages"] if m.get("role") == "tool")
+        self.assertIn("Shinso", read["content"])
+        p = data["state"]["proposals"][-1]
+        self.assertEqual(p["kind"], "texting_profile")
+        self.tapi(action="apply", id=p["id"])
+        self.char.refresh_from_db()
+        self.assertEqual(messenger.char_profile(self.char)["scenario"], "They met at a 24-hour laundromat at 3am.")
+        self.assertEqual(self.char.scenario, "A hero school sparring match.")  # the roleplay card stays
+        self.tapi(action="undo", id=p["id"])
+        self.char.refresh_from_db()
+        self.assertEqual(messenger.char_profile(self.char)["scenario"], "A hero school sparring match.")
+
+    def test_the_chat_scenario_card(self):
+        self.client.get(reverse("bulba_texting", args=[self.thread.id]))
+        self.script = [("Here.", [self.call("propose_texting_chat", scenario_override="Stuck at the airport.",
+                                            events=[{"text": "Flight leaves", "when": "Friday 9am"}])])]
+        p = self.tapi(action="say", text="we're stuck at the airport").json()["state"]["proposals"][-1]
+        self.tapi(action="apply", id=p["id"])
+        self.thread.refresh_from_db()
+        self.assertEqual(self.thread.data["scenario_override"], "Stuck at the airport.")
+        self.tapi(action="undo", id=p["id"])
+        self.thread.refresh_from_db()
+        self.assertNotIn("scenario_override", self.thread.data)
+
+
+for _name in [n for n in dir(BulbaTests) if n.startswith("test_")]:
+    if getattr(BulbaTextingTests, _name, None) is getattr(BulbaTests, _name, None):
+        setattr(BulbaTextingTests, _name, None)

@@ -1277,8 +1277,8 @@ body.tg-screen-body {
 }
 
 .tg-bulba-box {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.14), rgba(167, 139, 250, 0.1));
-  border: 1px solid rgba(245, 158, 11, 0.35);
+  background: linear-gradient(135deg, rgba(126, 58, 242, 0.14), rgba(167, 139, 250, 0.06));
+  border: 1px solid rgba(167, 139, 250, 0.35);
   border-radius: 12px;
   padding: 12px;
   display: flex;
@@ -1287,7 +1287,7 @@ body.tg-screen-body {
 }
 
 .tg-bulba-btn {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
+  background: linear-gradient(135deg, #7e3af2, #9863ff);
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -1466,3 +1466,36 @@ body.tg-screen-body {
   #hdrModelBadge { display: none; }
   .tg-header-actions .tg-hdr-btn { padding: 6px 8px; font-size: 15px; }
 }
+
+/* 🥔 Bulba's side panel for this chat */
+.tg-bulba-panel { position: absolute; top: 0; right: 0; bottom: 0; width: min(440px, 100%); z-index: 40; background: var(--tg-panel);
+  border-left: 1px solid rgba(167, 139, 250, .35); box-shadow: -12px 0 30px rgba(0, 0, 0, .35); display: flex; }
+.tg-bulba-panel[hidden] { display: none; }
+.tg-bulba-panel iframe { flex: 1; border: 0; width: 100%; height: 100%; background: var(--tg-panel); }
+.tg-bulba-close { position: absolute; top: 8px; right: 10px; z-index: 2; background: rgba(0, 0, 0, .3); color: var(--tg-text); border: 1px solid var(--tg-border);
+  border-radius: 99px; width: 30px; height: 30px; cursor: pointer; }
+.tg-hdr-bulba { border-color: rgba(167, 139, 250, .5); background: rgba(126, 58, 242, .18); }
+@media (min-width: 1200px) { body.tg-bulba-open .tg-main { margin-right: 440px; } }
+/* With Bulba open beside the chat, the header keeps the name: icon-only buttons */
+body.tg-bulba-open .tg-header-left { flex: 1; min-width: 0; }
+body.tg-bulba-open .tg-header-info { min-width: 0; }
+body.tg-bulba-open .tg-header-title, body.tg-bulba-open .tg-header-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body.tg-bulba-open .tg-header-actions { flex-shrink: 0; }
+body.tg-bulba-open .tg-header-actions .tg-hdr-btn > span, body.tg-bulba-open #hdrModelBadge { display: none; }
+
+/* ⚙️ Setup drawer: pictures that fit, a save bar that stays in reach, a big view of any picture */
+.tg-ref-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
+.tg-ref-grid > div { min-width: 0; }
+.tg-ref-img, .tg-ref-empty { width: 100%; aspect-ratio: 1; height: auto; border-radius: 8px; object-fit: cover; }
+.tg-ref-img { border: 1px solid rgba(255, 255, 255, .14); cursor: zoom-in; transition: transform .15s; }
+.tg-ref-img:hover { transform: scale(1.04); }
+.tg-save-bar { position: sticky; bottom: -14px; z-index: 3; display: flex; gap: 8px; margin: 4px -16px -14px; padding: 10px 16px 14px;
+  background: linear-gradient(180deg, rgba(28, 32, 50, 0), var(--tg-panel) 30%); }
+.tg-send-btn.tg-saved { background: linear-gradient(135deg, #10b981, #34d399); }
+.tg-photo-card img { cursor: zoom-in; }
+.tg-lightbox { position: fixed; inset: 0; z-index: 9500; display: none; align-items: center; justify-content: center; padding: 24px;
+  background: rgba(5, 7, 14, .88); cursor: zoom-out; }
+.tg-lightbox.open { display: flex; }
+.tg-lightbox img { max-width: 100%; max-height: 100%; border-radius: 12px; box-shadow: 0 20px 60px rgba(0, 0, 0, .6); object-fit: contain; }
+.tg-lightbox button { position: absolute; top: 14px; right: 16px; width: 38px; height: 38px; border-radius: 99px; border: 1px solid rgba(255, 255, 255, .2);
+  background: rgba(0, 0, 0, .4); color: #fff; font-size: 16px; cursor: pointer; }
