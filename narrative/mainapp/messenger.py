@@ -1739,7 +1739,7 @@ def generate_messenger_photo(user, character, description="", kind="casual", thr
             f"at most a hand holding something, if that's natural.\n"
             + (f"The attached picture is a STYLE REFERENCE ONLY: copy its art style, rendering, lighting and colours, and "
                f"never the person in it.\n" if refs else "")
-            + f"Art style: {art_style}. Do NOT switch to stock photorealism if the style is illustrated/anime, and vice versa.\n"
+            + f"CRITICAL STYLE LOCK: art style: {art_style}. Do NOT switch to stock photorealism if the style is illustrated/anime, and vice versa.\n"
             f"Camera angle & framing: {camera_angle}.\n"
             f"Photo subject & scene: {subject[:600]}"
         )
