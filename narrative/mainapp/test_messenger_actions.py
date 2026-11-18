@@ -199,3 +199,16 @@ class SetupDirectionsTests(TestCase):
         self.assertGreater(prompt.index("24-hour laundromat"), prompt.index("hero school sparring"))
         self.assertIn("the directions win", prompt)
         self.assertIn("binding", prompt)
+
+
+class TagReadingTests(TestCase):
+    def test_a_voice_note_keeps_its_whole_line_with_delivery_tags_inside(self):
+        from mainapp import messenger
+        user = get_user_model().objects.create_user(username="voicer", password="pw12345!")
+        c = Character.objects.create(name="Rose", slug="rose-voice", author=user, initial_message="Hi.")
+        parsed = messenger.parse_ai_reply("[VOICE: [sighs] fine. [laughs] come over, I'll put the kettle on]", [c])
+        bubbles = parsed["bubbles"] if isinstance(parsed, dict) else parsed
+        voice = next(b["voice"] for b in bubbles if b.get("voice"))
+        self.assertEqual(voice["transcript"], "[sighs] fine. [laughs] come over, I'll put the kettle on")
+        self.assertEqual(messenger.take_tag("look [PHOTO: me at the [old] desk] ok", ("PHOTO",)),
+                         ("PHOTO", "me at the [old] desk", "look  ok"))

@@ -36,6 +36,20 @@ profile, and **?** (a tour of the page, or "What's this?": click anything to hav
   written by your own model, builds the preset, a character and your persona. **Fast route** (two minutes): the
   tested ready setup for your model, then only who you talk to and who you are. Every change is a proposal with
   Apply and Undo.
+- **📱 Screen** (the Screen Hub): a phone inside the app. **TeleChat** is a messenger: 1-on-1 and group texts with
+  characters (short messages, voice notes, photos, stickers, reactions, ↻ Try again with a note under their last
+  reply), separate from the roleplay chats. Each character has a **texting profile** apart from their roleplay
+  card (how you met, who they are here, how they text, their look, their voice): Bulba sets it up the first time
+  (Modern AU or their own world), and the chat header's 🥔 Bulba helps with that chat. Also **Moments** (status
+  posts) and **Files** (notes and files sent in chats).
+- **🍅 Tomato Pit** (in the menu once found): throw tomatoes at slow replies, here or while waiting in a chat. The
+  tomatoes thrown at chats and Bulba count on a leaderboard and buy spins on the **Sauce-o-Matic**, a prize machine
+  (skins for the thrown thing, cursor trails, badges, Bulba's hats, seeds, garden decorations, gardeners; a
+  seasonal banner each month with its own featured prizes; Bulba's Promise picks the legendary you're after). A
+  **splat wall** to paint on with tomatoes, and a gallery.
+- **🌻 Garden**: plant the machine's seeds; plants grow over real hours (faster while you chat); harvests make
+  compost (10 = a spin). Gardeners help (three at work); an order board pays tomatoes toward spins; 1 harvest in 20
+  mutates (an almanac to fill); a cottage gets built in stages by Il Dattore with Pantaleone's money.
 - **Guide**: a written tour of everything. **Profile**: photo, first name, date of birth, login, email, password, Log out and Delete account, plus the persona (who they are in stories) and its pictures. Bulba can make the persona (setup, or in a chat), and each chat can use another one from the pen menu.
 
 **The chat page**

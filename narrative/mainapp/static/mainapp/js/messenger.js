@@ -1034,6 +1034,7 @@
       document.querySelectorAll(".tg-drawer-tab").forEach(function (b) {
         b.classList.toggle("active", b.getAttribute("data-tab") === currentDrawerTab);
       });
+      TG.closeBulba();  // one side panel at a time: both squeezed the chat into a sliver
       document.getElementById("tgDrawer").classList.add("open");
       renderDrawerNow();
       document.getElementById("tgDrawer").scrollTop = 0;  // a tab opens at its top
@@ -1140,6 +1141,7 @@
       var panel = document.getElementById("tgBulbaPanel"), frame = document.getElementById("tgBulbaFrame");
       var url = window.TG_CFG.bulba.replace(/\/0\/$/, "/" + t.id + "/");
       if (frame.getAttribute("data-thread") !== String(t.id)) { frame.src = url; frame.setAttribute("data-thread", String(t.id)); }
+      TG.closeDrawer();  // one side panel at a time
       panel.hidden = false;
       document.body.classList.add("tg-bulba-open");
     },

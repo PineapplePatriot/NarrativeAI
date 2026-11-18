@@ -95,8 +95,10 @@ def context(session):
 def system_prompt(session):
     fields = "\n".join(f"- {k}: {v}" for k, v in PROFILE_FIELDS.items())
     pending = [f"- {p['id']} {p['kind']}: {p['title']} ({p['status']})" for p in session.proposals]
+    from mainapp.bulba.doctor import DATA_DIR
+    app = (DATA_DIR / "guides" / "app.md").read_text(encoding="utf-8")  # the app, page by page
     return "\n\n".join(filter(None, [
-        INSTRUCTIONS.replace("{fields}", fields),
+        INSTRUCTIONS.replace("{fields}", fields), app,
         context(session),
         f"## Session\nBudget: ${session.spent:.2f} of ${session.budget:.2f} spent.",
         "Proposals so far:\n" + "\n".join(pending) if pending else "",

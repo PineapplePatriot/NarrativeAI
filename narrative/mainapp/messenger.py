@@ -298,8 +298,8 @@ def redraw_setup_look(user, character, outfit=""):
         out[key] = default_storage.url(saved)
         if key == "neutral":
             refs = [(img, "image/png")] + refs[:3]  # the outfit shot follows the new portrait
-    extra = [out["outfit"]] + [u for u in prof.get("extra_refs") or [] if u != out["outfit"]]
-    prof = save_char_profile(character, {"neutral_url": out["neutral"], "avatar_url": out["neutral"], "extra_refs": extra[:4]})
+    # the new look replaces the old references: kept, they'd pull every later photo back to the old outfit (a mask...)
+    prof = save_char_profile(character, {"neutral_url": out["neutral"], "avatar_url": out["neutral"], "extra_refs": [out["outfit"]]})
     return prof, round(cost, 4)
 
 
@@ -1004,6 +1004,20 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
 
 RE_REACT = re.compile(r"\[\s*REACT\s*:\s*([^\]]+?)\s*\]", re.I)
 RE_STICKER = re.compile(r"\[\s*STICKER\s*:\s*([^\]]+?)\s*\]", re.I)
+def take_tag(text, names):
+    """The first [NAME: ...] tag in text, brackets inside it counted ("[VOICE: [sighs] fine, come over]" keeps the
+    whole line, not just "[sighs"). Returns (name, content, text without the tag), or (None, "", text)."""
+    m = re.search(r"\[\s*(" + "|".join(names) + r")\s*:", text or "", re.I)
+    if not m:
+        return None, "", text
+    depth, i = 1, m.end()
+    while i < len(text) and depth:
+        depth += {"[": 1, "]": -1}.get(text[i], 0)
+        i += 1
+    end = i - 1 if depth == 0 else len(text)  # an unclosed tag runs to the end
+    return m.group(1).upper(), text[m.end():end].strip(), (text[:m.start()] + text[end + 1:]).strip()
+
+
 RE_VOICE = re.compile(r"\[\s*VOICE\s*:\s*(.+?)\s*\]", re.I | re.S)
 RE_PHOTO = re.compile(r"\[\s*(PHOTO|TEASE|SELFIE|IMAGE)\s*:\s*(.+?)\s*\]", re.I | re.S)
 RE_FILE = re.compile(r"\[\s*FILE\s*:\s*([^|\]]+?)\s*\|\s*(.+?)\s*\]", re.I | re.S)
@@ -1140,29 +1154,27 @@ def parse_ai_reply(raw_text, chars, is_group=False):
 
         # Extract voice message
         voice_data = None
-        v_match = RE_VOICE.search(chunk)
-        if v_match:
-            transcript = v_match.group(1).strip()
+        v_name, transcript, rest = take_tag(chunk, ("VOICE",))
+        if v_name and transcript:
             voice_data = {
                 "transcript": transcript,
                 "audio_url": "",
                 "duration": max(2, min(45, len(transcript.split()) // 2)),
             }
-            chunk = RE_VOICE.sub("", chunk)
+            chunk = rest
 
         # Extract photo
         photo_data = None
-        p_match = RE_PHOTO.search(chunk)
-        if p_match:
-            kind_tag = p_match.group(1).upper()
-            p_desc = p_match.group(2).strip()[:500]
+        kind_tag, p_desc, rest = take_tag(chunk, ("PHOTO", "TEASE", "SELFIE", "IMAGE"))
+        if kind_tag and p_desc:
+            p_desc = p_desc[:500]
             photo_data = {
                 "kind": "tease" if kind_tag == "TEASE" else "casual",
                 "prompt": p_desc,
                 "caption": "",
                 "url": "",
             }
-            chunk = RE_PHOTO.sub("", chunk)
+            chunk = rest
 
         # Extract file
         file_data = None
