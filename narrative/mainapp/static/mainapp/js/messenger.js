@@ -294,6 +294,8 @@
       );
     }
 
+    var lastUserId = null;
+    msgs.forEach(function (m) { if (m.role === "user") lastUserId = m.id; });
     msgs.forEach(function (m) {
       if (m.role === "system") {
         out.push('<div class="tg-sys-pill" id="msg-' + esc(m.id) + '">' + esc(m.text) + "</div>");
@@ -436,6 +438,7 @@
           (m.edited ? "<span>edited</span>" : "") +
           "<span>" + esc(m.time || "") + "</span>" +
           (isUser ? '<span style="color:#a78bfa;font-weight:700;">✓✓</span>' : "") +
+          (isUser && t.waiting && m.id === lastUserId ? '<span class="tg-seen">Seen</span>' : "") +
         "</div>"
       );
 
@@ -756,6 +759,13 @@
           "<label>This Chat's Scenario Override (optional)</label>" +
           '<textarea class="tg-textarea" id="drwThreadScenario">' + esc(t.scenario_override || "") + "</textarea>" +
         "</div>" +
+        '<div class="tg-field-group">' +
+          '<label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;cursor:pointer;">' +
+            '<input type="checkbox" id="drwThreadLeaveOnRead" ' + (t.leave_on_read ? "checked" : "") + ' style="margin-top:3px">' +
+            "<span>🙈 <b>They can leave me on read</b><br><small style=\"color:var(--tg-muted)\">Now and then, when it fits (they were busy, " +
+            "or teasing, annoyed, petty), they answer up to 5 real minutes later. Your message shows as Seen meanwhile.</small></span>" +
+          "</label>" +
+        "</div>" +
         '<div class="tg-save-bar">' +
           '<button type="button" class="tg-send-btn" style="flex:1;justify-content:center;" onclick="TG.saving(this, TG.saveThreadSettings)">💾 Save Chat & Look</button>' +
           '<button type="button" class="tg-fmt-btn" onclick="TG.pinCurrentThread()">📌 Pin Chat</button>' +
@@ -1048,6 +1058,7 @@
         }
         document.getElementById("tgSidebar").classList.add("mobile-hidden");
         document.getElementById("tgMain").classList.remove("mobile-hidden");
+        if (res.thread.waiting) TG.showTurn(res, (res.thread.messages || []).map(function (m) { return m.id; }));  // 🙈 a late reply on its way
       });
     },
 
@@ -1311,19 +1322,57 @@
       if (typRow) { typTxt.textContent = t.title + " is typing again…"; typRow.classList.add("visible"); }
       var box = document.getElementById("tgRegen");
       if (box) box.classList.add("busy");
+      var keep = (t.messages || []).map(function (m) { return m.id; });
       return apiPost({ action: "regenerate", thread_id: t.id, note: note })
         .then(function (res) {
           if (typRow) typRow.classList.remove("visible");
-          STATE.active_thread = res.thread;
-          if (res.threads) STATE.threads = res.threads;
-          renderSidebar();
-          renderActiveThread();
+          return TG.showTurn(res, keep);
         })
         .catch(function (err) {
           if (typRow) typRow.classList.remove("visible");
           if (box) box.classList.remove("busy");
           alert(err.message);
         });
+    },
+
+    // 💬 A turn's new messages arrive one by one (typing… → message → a pause), and a reply left on read later
+    showTurn: function (res, oldIds) {
+      var full = res.thread, fresh = (full.messages || []).filter(function (m) { return m.role !== "user" && oldIds.indexOf(m.id) === -1; });
+      if (res.threads) STATE.threads = res.threads;
+      clearTimeout(TG._waitTimer);
+      if (full.waiting) {  // 🙈 left on read: their reply arrives on its own (we look again when it's due)
+        var tid = full.id;
+        TG._waitTimer = setTimeout(function () {
+          if (!STATE.active_thread || STATE.active_thread.id !== tid) return;
+          var before = (STATE.active_thread.messages || []).map(function (m) { return m.id; });
+          apiPost({ action: "load_thread", thread_id: tid }).then(function (r) { TG.showTurn(r, before); });
+        }, full.waiting * 1000 + 500);
+      }
+      var calm = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (fresh.length < 2 || calm) {
+        STATE.active_thread = full; renderSidebar(); renderActiveThread(); return Promise.resolve();
+      }
+      var shown = (full.messages || []).filter(function (m) { return fresh.indexOf(m) === -1; });
+      STATE.active_thread = Object.assign({}, full, { messages: shown.slice() });
+      renderSidebar(); renderActiveThread();
+      var typRow = document.getElementById("tgTypingRow"), typTxt = document.getElementById("tgTypingText");
+      var i = 0;
+      return new Promise(function (done) {
+        (function next() {
+          if (!STATE.active_thread || STATE.active_thread.id !== full.id) return done();
+          if (i >= fresh.length) { if (typRow) typRow.classList.remove("visible"); STATE.active_thread = full; renderActiveThread(); return done(); }
+          var m = fresh[i], len = ((m.voice && m.voice.transcript) || m.text || "").length;
+          var typing = i === 0 ? 250 : Math.min(3200, 600 + len * 32);
+          if (typRow && i > 0) { typTxt.textContent = (m.voice ? "🎤 recording a voice note…" : m.photo ? "📷 sending a photo…" : (m.sender_name || full.title) + " is typing…"); typRow.classList.add("visible"); }
+          setTimeout(function () {
+            if (typRow) typRow.classList.remove("visible");
+            STATE.active_thread.messages.push(m);
+            renderActiveThread();
+            i += 1;
+            setTimeout(next, 350 + Math.random() * 500);  // a breath before the next one
+          }, typing);
+        })();
+      });
     },
 
     triggerAiTurn: function (instruction) {
@@ -1335,6 +1384,7 @@
         typTxt.textContent = t.title + " is typing…";
         typRow.classList.add("visible");
       }
+      var oldIds = (t.messages || []).map(function (m) { return m.id; });
       return apiPost({
         action: "generate_reply",
         thread_id: t.id,
@@ -1342,10 +1392,7 @@
       })
         .then(function (res) {
           if (typRow) typRow.classList.remove("visible");
-          STATE.active_thread = res.thread;
-          if (res.threads) STATE.threads = res.threads;
-          renderSidebar();
-          renderActiveThread();
+          return TG.showTurn(res, oldIds);
         })
         .catch(function (err) {
           if (typRow) typRow.classList.remove("visible");
@@ -1823,6 +1870,7 @@
         custom_bg_url: document.getElementById("drwThreadCustomBg").value,
         title: document.getElementById("drwThreadTitle").value,
         scenario_override: document.getElementById("drwThreadScenario").value,
+        leave_on_read: !!(document.getElementById("drwThreadLeaveOnRead") || {}).checked,
         events: t.events || [],
       }).then(function (res) {
         STATE.active_thread = res.thread;

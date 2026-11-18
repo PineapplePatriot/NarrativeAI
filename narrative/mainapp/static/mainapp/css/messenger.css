@@ -1504,3 +1504,12 @@ body.tg-bulba-open .tg-header-actions .tg-hdr-btn > span, body.tg-bulba-open #hd
 .tg-msg-row.show-actions .tg-msg-actions { display: inline-flex; }
 @media (max-width: 860px) { .tg-msg-actions { flex-wrap: wrap; max-width: calc(100vw - 70px); } }
 @media (max-width: 860px) { .tg-msg-actions { top: calc(100% + 4px); z-index: 6; } }
+.tg-seen { margin-left: 6px; font-size: 11px; color: var(--tg-muted); font-style: italic; }
+/* Medium screens: the header keeps the name (icon-only buttons), as with Bulba open */
+@media (max-width: 1180px) {
+  .tg-header-left { flex: 1; min-width: 0; }
+  .tg-header-info { min-width: 0; }
+  .tg-header-title, .tg-header-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tg-header-actions { flex-shrink: 0; }
+  .tg-header-actions .tg-hdr-btn > span, #hdrModelBadge { display: none; }
+}

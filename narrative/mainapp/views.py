@@ -5087,6 +5087,8 @@ def messenger_api(request):
             td["scenario_override"] = str(body.get("scenario_override") or "").strip()[:3000]
         if "share_memory" in body:
             td["share_memory"] = bool(body["share_memory"])
+        if "leave_on_read" in body:  # 🙈 per chat: they may answer up to 5 minutes later, when it fits
+            td["leave_on_read"] = bool(body["leave_on_read"])
         if isinstance(body.get("events"), list):
             td["events"] = [e for e in body["events"] if isinstance(e, dict)][:30]
         if "title" in body and str(body["title"]).strip():

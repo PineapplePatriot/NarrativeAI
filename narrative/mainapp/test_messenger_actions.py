@@ -270,3 +270,39 @@ class RedoOneMessageTests(MessengerActionTests):
         voice = self.post(action="redo_message", thread_id=tid, message_id="a3").json()["message"]["voice"]
         self.assertEqual((voice["transcript"], voice["audio_url"]), ("never. come over", ""))  # made again on play
         self.assertEqual(self.post(action="redo_message", thread_id=tid, message_id="u1").status_code, 400)
+
+
+class LeaveOnReadTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_a_late_reply_waits_hidden_and_no_second_reply_meanwhile(self):
+        import time as _time
+        from mainapp import ai_client, messenger
+        tid = self.thread()
+        self.post(action="thread_settings", thread_id=tid, leave_on_read=True)
+        ai_client.complete.side_effect = lambda *a, **k: "[LATER: 3] ugh. fine. |||BUBBLE||| what"
+        self.post(action="send_user_message", thread_id=tid, text="you there?")
+        out = self.post(action="generate_reply", thread_id=tid).json()
+        self.assertGreater(out["thread"]["waiting"], 170)
+        self.assertEqual([m["role"] for m in out["thread"]["messages"]], ["user"])  # hidden for now
+        prompt = json.dumps(ai_client.complete.call_args.args[2])
+        self.assertIn("LEAVING ON READ IS ALLOWED", prompt)
+        ai_client.complete.reset_mock()
+        self.post(action="send_user_message", thread_id=tid, text="hello??")
+        self.assertGreater(self.post(action="generate_reply", thread_id=tid).json()["thread"]["waiting"], 0)
+        ai_client.complete.assert_not_called()  # they're away: no second reply on top
+        later = _time.time() + 4 * 60
+        with mock.patch("mainapp.messenger.time.time", return_value=later):
+            shown = messenger.serialize_thread_full(MessengerThread.objects.get(id=tid), self.user)
+        self.assertEqual([m.get("text") for m in shown["messages"] if m["role"] == "assistant"], ["ugh. fine.", "what"])
+        self.assertNotIn("LATER", json.dumps(shown["messages"]))
+
+    def test_without_the_switch_the_tag_is_ignored(self):
+        from mainapp import ai_client
+        tid = self.thread()
+        ai_client.complete.side_effect = lambda *a, **k: "[LATER: 3] hey"
+        self.post(action="send_user_message", thread_id=tid, text="hi")
+        out = self.post(action="generate_reply", thread_id=tid).json()
+        self.assertEqual(out["thread"]["waiting"], 0)
+        self.assertEqual(out["thread"]["messages"][-1]["text"], "hey")

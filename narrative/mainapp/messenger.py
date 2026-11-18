@@ -643,6 +643,7 @@ def thread_data(thread):
         "scenario_override": str(raw.get("scenario_override") or "").strip()[:3000],
         "share_memory": raw.get("share_memory", True) is not False,
         "last_auto_at": raw.get("last_auto_at"),
+        "leave_on_read": bool(raw.get("leave_on_read", False)),  # 🙈 per chat: they may answer up to 5 minutes later
         "regen_prev": [m for m in (raw.get("regen_prev") or []) if isinstance(m, dict)][:20],  # ↻ the take before
     }
 
@@ -793,6 +794,7 @@ TEXTING_SAFEGUARDS = """MESSENGER MEDIUM & FRANKENSTEIN DIALOGUE SAFEGUARDS:
    - Match each character's vocabulary, rhythm, punctuation, capitalization, and temperament from their profile.
    - Real people rarely send essays in a chat app. Send 1 to 4 short bubbles separated by `|||BUBBLE|||` when a character sends multiple quick texts in a row, OR a single concise bubble when they are dry/busy.
    - Do not give every character the same witty banter voice. A curt character sends terse texts; a formal character uses full punctuation; an impulsive character double-texts.
+   - TYPOS ONLY AT SPEED: when a character fires off several quick texts in a row (excited, rattled, angry, rushing), a small natural typo now and then is fine: a swapped, doubled or missing letter, autocorrect gone wrong; sometimes they fix it in the next bubble ("*tomorrow"). Never in slow, careful or formal messages, never more than one per burst, and never in names.
 
 4. ANTI-SLOP & BEHAVIOURAL CONTINUITY (FRANKENSTEIN RULES):
    - NO THERAPY VOICE: Do not diagnose feelings, validate emotions ("That's valid", "I hear you", "hold space", "boundaries"), or sound like a counselor unless the character is literally a therapist.
@@ -960,6 +962,12 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
     )
     if data.get("scenario_override"):
         time_block += f"\n- Thread scenario / topic: {data['scenario_override']}"
+    if data.get("leave_on_read"):  # 🙈 the user allowed it for this chat
+        time_block += ("\n- LEAVING ON READ IS ALLOWED in this chat: a character may decide not to answer right away, when "
+                       "it truly fits: they were busy doing something, or for an emotional reason (teasing, annoyed, "
+                       "petty, needing a minute). Then still write their reply now, as they'll send it when they get "
+                       "back to the phone, and put `[LATER: N]` at its very start, N = minutes before they answer (1 to "
+                       "5). Most replies come at once; don't use it twice in a row.")
 
     if thread.is_group or len(chars) > 1:
         names_list = ", ".join(f"{c.name} (slug: {c.slug})" for c in chars)
@@ -1679,6 +1687,19 @@ def redo_message(user, thread, message_id, note=""):
     return target
 
 
+def delivered(messages, now=None):
+    """The messages the user can see: a reply left on read (deliver_at) shows only once its time has come."""
+    now = now or time.time()
+    return [m for m in messages if not m.get("deliver_at") or m["deliver_at"] <= now]
+
+
+def waiting_reply(data, now=None):
+    """Seconds until a reply left on read arrives (0: nothing waiting)."""
+    now = now or time.time()
+    due = [m["deliver_at"] for m in data["messages"] if m.get("deliver_at") and m["deliver_at"] > now]
+    return int(max(due) - now) + 1 if due else 0
+
+
 def generate_turn(user, thread, extra_instruction="", auto_check_in=False):
     """
     Call the user's chat model to produce the next Messenger turn (1..N bubbles, reactions, profile updates, etc.),
@@ -1689,6 +1710,10 @@ def generate_turn(user, thread, extra_instruction="", auto_check_in=False):
         raise ai_client.AIError("Add at least one character to this chat first.")
     u_prof = user_profile(user)
     data = thread_data(thread)
+    wait = waiting_reply(data)
+    if wait:  # 🙈 they left it on read: their reply comes when it comes, not a second one now
+        return {"later": wait, "bubbles": [], "system_notices": [], "reactions": [], "events": data["events"],
+                "warnings": [], "active_model": active_model_texting_rules(user)}
 
     if auto_check_in:
         rt = real_time_context(thread)
@@ -1708,6 +1733,12 @@ def generate_turn(user, thread, extra_instruction="", auto_check_in=False):
     _, raw_reply = thinking.split(raw_reply or "")  # thinking written inside the reply isn't a text message
     if not raw_reply.strip():
         raise ai_client.AIError("The model used its whole answer thinking and sent no text. Press ↻ Try again.")
+    later = 0
+    if data.get("leave_on_read"):  # 🙈 [LATER: N] at the start: the reply waits N real minutes (1-5)
+        m_later = re.match(r"\s*\[\s*LATER\s*:\s*(\d+)[^\]]*\]", raw_reply, re.I)
+        if m_later:
+            later = max(1, min(5, int(m_later.group(1)))) * 60
+    raw_reply = re.sub(r"\[\s*LATER\s*:[^\]]*\]", "", raw_reply, flags=re.I)
     parsed = parse_ai_reply(raw_reply, chars, is_group=thread.is_group)
 
     # Apply reactions to the latest user message
@@ -1796,6 +1827,11 @@ def generate_turn(user, thread, extra_instruction="", auto_check_in=False):
         }
         parsed["bubbles"].append(fallback)
 
+    if later:  # kept now, shown when they "get back to the phone" (delivered() hides them until then)
+        at = time.time() + later
+        for i, b in enumerate(parsed["bubbles"]):
+            b["deliver_at"] = b["ts"] = at + i * 2
+            b["time"] = timezone.localtime(timezone.now() + timezone.timedelta(seconds=later)).strftime("%H:%M")
     data["messages"].extend(parsed["bubbles"])
     if auto_check_in:
         data["unread"] = data.get("unread", 0) + len(parsed["bubbles"])
@@ -1807,7 +1843,8 @@ def generate_turn(user, thread, extra_instruction="", auto_check_in=False):
         slop_warnings.extend(check_texting_slop(b.get("text") or ""))
 
     return {
-        "bubbles": parsed["bubbles"],
+        "later": later,
+        "bubbles": [] if later else parsed["bubbles"],
         "system_notices": system_notices,
         "reactions": applied_reactions,
         "events": data["events"],
@@ -1820,7 +1857,7 @@ def serialize_thread_summary(thread):
     """Compact summary for the left sidebar chat list."""
     chars = list(thread.characters.all())
     data = thread_data(thread)
-    msgs = data["messages"]
+    msgs = delivered(data["messages"])
     last = msgs[-1] if msgs else None
     preview = "No messages yet"
     last_time = ""
@@ -1903,7 +1940,9 @@ def serialize_thread_full(thread, user):
     stickers.extend(u_prof.get("custom_stickers") or [])
     return {
         **serialize_thread_summary(thread),
-        "messages": data["messages"],
+        "messages": delivered(data["messages"]),
+        "waiting": waiting_reply(data),  # 🙈 seconds until a reply left on read arrives
+        "leave_on_read": data["leave_on_read"],
         "bg": data["bg"],
         "custom_bg_url": data["custom_bg_url"],
         "pinned_id": data["pinned_id"],
