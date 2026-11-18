@@ -199,3 +199,160 @@ class SetupDirectionsTests(TestCase):
         self.assertGreater(prompt.index("24-hour laundromat"), prompt.index("hero school sparring"))
         self.assertIn("the directions win", prompt)
         self.assertIn("binding", prompt)
+
+
+class TagReadingTests(TestCase):
+    def test_a_voice_note_keeps_its_whole_line_with_delivery_tags_inside(self):
+        from mainapp import messenger
+        user = get_user_model().objects.create_user(username="voicer", password="pw12345!")
+        c = Character.objects.create(name="Rose", slug="rose-voice", author=user, initial_message="Hi.")
+        parsed = messenger.parse_ai_reply("[VOICE: [sighs] fine. [laughs] come over, I'll put the kettle on]", [c])
+        bubbles = parsed["bubbles"] if isinstance(parsed, dict) else parsed
+        voice = next(b["voice"] for b in bubbles if b.get("voice"))
+        self.assertEqual(voice["transcript"], "[sighs] fine. [laughs] come over, I'll put the kettle on")
+        self.assertEqual(messenger.take_tag("look [PHOTO: me at the [old] desk] ok", ("PHOTO",)),
+                         ("PHOTO", "me at the [old] desk", "look  ok"))
+
+
+class PictureModelTests(TestCase):
+    def test_the_chosen_picture_model_and_image_only_requests(self):
+        from mainapp import ai_client, messenger
+        from users.models import ConnectionProfile
+        user = get_user_model().objects.create_user(username="painter", password="pw12345!")
+        ConnectionProfile.objects.create(user=user, name="Main", api_key="sk-or-x", model="x/y")
+        messenger.save_user_profile(user, {"image_model": "microsoft/mai-image-2.7"})
+        self.assertEqual(messenger.user_profile(user)["image_model"], "microsoft/mai-image-2.7")
+        messenger.save_user_profile(user, {"image_model": "some/unknown"})  # not on the list: ignored
+        self.assertEqual(messenger.user_profile(user)["image_model"], "microsoft/mai-image-2.7")
+        import base64
+        sent = {}
+
+        def fake_post(url, headers=None, json=None, timeout=None, **kw):
+            sent.update(json)
+            resp = mock.Mock(status_code=200)
+            data = "data:image/png;base64," + base64.b64encode(png()).decode()
+            resp.json.return_value = {"choices": [{"message": {"images": [{"image_url": {"url": data}}]}}], "usage": {}}
+            return resp
+        listed = [{"id": "microsoft/mai-image-2.7", "name": "MAI", "text_out": False, "takes_pictures": True}]
+        with mock.patch("mainapp.ai_client.image_models", return_value=listed), \
+             mock.patch("mainapp.ai_client.requests.post", side_effect=fake_post):
+            messenger.make_picture(user, "a selfie", references=[(png(), "image/png")])
+        self.assertEqual((sent["model"], sent["modalities"]), ("microsoft/mai-image-2.7", ["image"]))
+        self.assertEqual(sent["messages"][0]["content"][1]["type"], "image_url")  # the reference went along
+
+
+class RedoOneMessageTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_any_of_their_messages_again_with_a_note_and_the_chat_before_it(self):
+        tid = self.thread()
+        t = MessengerThread.objects.get(id=tid)
+        t.data = {"messages": [
+            {"id": "u1", "role": "user", "text": "are you up?"},
+            {"id": "a1", "role": "assistant", "sender_slug": self.rose.slug, "sender_name": "Rose", "text": "obviously"},
+            {"id": "a2", "role": "assistant", "sender_slug": self.rose.slug, "sender_name": "Rose", "text": "go to sleep"},
+            {"id": "a3", "role": "assistant", "sender_slug": self.rose.slug, "sender_name": "Rose",
+             "voice": {"transcript": "[sighs] fine", "audio_url": "/x.mp3"}, "text": ""},
+        ]}
+        t.save()
+        from mainapp import ai_client
+        ai_client.complete.reset_mock()
+        ai_client.complete.side_effect = lambda *a, **k: "Rose: never. come over"
+        out = self.post(action="redo_message", thread_id=tid, message_id="a1", note="warmer").json()
+        self.assertEqual(out["message"]["text"], "never. come over")  # the name in front comes off
+        sent = json.dumps(ai_client.complete.call_args.args[2])
+        self.assertIn("obviously", sent)  # the old version, in the instruction
+        self.assertIn("warmer", sent)
+        self.assertNotIn("go to sleep", sent)  # the chat as it was before that message
+        msgs = MessengerThread.objects.get(id=tid).data["messages"]
+        self.assertEqual([m.get("text") for m in msgs[:3]], ["are you up?", "never. come over", "go to sleep"])
+        voice = self.post(action="redo_message", thread_id=tid, message_id="a3").json()["message"]["voice"]
+        self.assertEqual((voice["transcript"], voice["audio_url"]), ("never. come over", ""))  # made again on play
+        self.assertEqual(self.post(action="redo_message", thread_id=tid, message_id="u1").status_code, 400)
+
+
+class LeaveOnReadTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_a_late_reply_waits_hidden_and_no_second_reply_meanwhile(self):
+        import time as _time
+        from mainapp import ai_client, messenger
+        tid = self.thread()
+        self.post(action="thread_settings", thread_id=tid, leave_on_read=True)
+        ai_client.complete.side_effect = lambda *a, **k: "[LATER: 3] ugh. fine. |||BUBBLE||| what"
+        self.post(action="send_user_message", thread_id=tid, text="you there?")
+        out = self.post(action="generate_reply", thread_id=tid).json()
+        self.assertGreater(out["thread"]["waiting"], 170)
+        self.assertEqual([m["role"] for m in out["thread"]["messages"]], ["user"])  # hidden for now
+        prompt = json.dumps(ai_client.complete.call_args.args[2])
+        self.assertIn("LEAVING ON READ IS ALLOWED", prompt)
+        ai_client.complete.reset_mock()
+        self.post(action="send_user_message", thread_id=tid, text="hello??")
+        self.assertGreater(self.post(action="generate_reply", thread_id=tid).json()["thread"]["waiting"], 0)
+        ai_client.complete.assert_not_called()  # they're away: no second reply on top
+        later = _time.time() + 4 * 60
+        with mock.patch("mainapp.messenger.time.time", return_value=later):
+            shown = messenger.serialize_thread_full(MessengerThread.objects.get(id=tid), self.user)
+        self.assertEqual([m.get("text") for m in shown["messages"] if m["role"] == "assistant"], ["ugh. fine.", "what"])
+        self.assertNotIn("LATER", json.dumps(shown["messages"]))
+
+    def test_without_the_switch_the_tag_is_ignored(self):
+        from mainapp import ai_client
+        tid = self.thread()
+        ai_client.complete.side_effect = lambda *a, **k: "[LATER: 3] hey"
+        self.post(action="send_user_message", thread_id=tid, text="hi")
+        out = self.post(action="generate_reply", thread_id=tid).json()
+        self.assertEqual(out["thread"]["waiting"], 0)
+        self.assertEqual(out["thread"]["messages"][-1]["text"], "hey")
+
+
+class SeeingAndHearingTests(MessengerActionTests):
+    """👁️🎤 The character reads what the user sends: a photo's description, a recorded voice note's words."""
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_a_recorded_voice_note_is_turned_into_words(self):
+        with mock.patch("mainapp.voice.transcribe", return_value="I'm outside your lab.") as tr:
+            out = self.files(kind="voice_rec", file=upload("voice.webm", b"\x1aE\xdf\xa3fake-webm")).json()
+        self.assertEqual(out["transcript"], "I'm outside your lab.")
+        self.assertEqual(tr.call_args.args[2], "webm")
+        self.assertTrue(out["url"].endswith(".webm"))
+
+    def test_a_sent_photo_is_looked_at_once_and_the_character_reads_what_it_shows(self):
+        from mainapp import ai_client
+        tid = self.thread()
+        url = self.files(kind="image", file=upload()).json()["url"]
+        with mock.patch("mainapp.bulba.vision.describe", return_value=("A rainy window with a mug of tea.", "x")) as d:
+            msg = self.post(action="send_user_message", thread_id=tid, text="", photo={"kind": "upload", "url": url,
+                                                                                   "caption": "my view"}).json()
+        self.assertEqual(d.call_count, 1)
+        self.assertEqual(MessengerThread.objects.get(id=tid).data["messages"][-1]["photo"]["seen"],
+                         "A rainy window with a mug of tea.")
+        self.post(action="generate_reply", thread_id=tid)
+        prompt = json.dumps(ai_client.complete.call_args.args[2])
+        self.assertIn("It shows: A rainy window with a mug of tea.", prompt)
+        self.assertIn("my view", prompt)
+        self.assertTrue(msg)
+
+
+class CheckInTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_one_check_in_per_silence(self):
+        import time as _time
+        from mainapp import ai_client, messenger
+        messenger.save_user_profile(self.user, {"spontaneous_texts": True, "spontaneous_minutes": 15})
+        tid = self.thread()
+        t = MessengerThread.objects.get(id=tid)
+        t.data = {"messages": [{"id": "u1", "role": "user", "text": "night", "ts": _time.time() - 3600}]}
+        t.save()
+        poll = lambda: self.client.get(self.url + "?action=poll&allow_spontaneous=1").json()
+        self.assertTrue(poll()["latest_unread"])
+        self.assertEqual(ai_client.complete.call_count, 1)
+        later = _time.time() + 3 * 3600
+        with mock.patch("time.time", return_value=later):
+            poll()
+        self.assertEqual(ai_client.complete.call_count, 1)  # no second check-in until they answer

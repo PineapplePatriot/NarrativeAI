@@ -4663,6 +4663,11 @@ def messenger_api(request):
                     msgs = td.get("messages") or []
                     last_ts = msgs[-1].get("ts") if msgs else 0
                     last_auto = td.get("last_auto_at") or 0
+                    # one check-in per silence: not again until the user has answered the last one
+                    unanswered = msgs and msgs[-1].get("role") != "user" and last_auto and float(last_auto) >= float(
+                        next((m.get("ts") or 0 for m in reversed(msgs) if m.get("role") == "user"), 0) or 0)
+                    if unanswered or messenger.waiting_reply(td):
+                        continue
                     if last_ts and (now_ts - float(last_ts) >= cooldown_sec) and (now_ts - float(last_auto) >= cooldown_sec):
                         try:
                             res = messenger.generate_turn(request.user, t, auto_check_in=True)
@@ -4758,6 +4763,15 @@ def messenger_api(request):
                     extra[-1] = url
                 updated = messenger.save_char_profile(c_obj, {"extra_refs": extra[:4]})
             return JsonResponse({"url": url, "profile": updated, "char_slug": c_obj.slug})
+
+        if kind == "voice_rec":  # 🎤 a recorded voice note: its words, for the character to read
+            fmt = "m4a" if ("mp4" in (upload.content_type or "") or ext in (".m4a", ".mp4")) else \
+                  "ogg" if ext == ".ogg" else "mp3" if ext == ".mp3" else "wav" if ext == ".wav" else "webm"
+            try:
+                words = voice.transcribe(request.user, raw_bytes, fmt)
+            except voice.VoiceError as e:
+                return JsonResponse({"error": str(e), "url": url}, status=400)
+            return JsonResponse({"url": url, "transcript": words})
 
         text_preview = ""
         if kind == "file":
@@ -4942,6 +4956,9 @@ def messenger_api(request):
         if file_obj:
             msg["file"] = file_obj
         if photo_obj:
+            photo_obj = dict(photo_obj)
+            if photo_obj.get("kind") == "upload" and photo_obj.get("url") and not photo_obj.get("seen"):
+                photo_obj["seen"] = messenger.see_photo(request.user, photo_obj["url"], photo_obj.get("caption") or "")
             msg["photo"] = photo_obj
         if voice_obj:
             msg["voice"] = voice_obj
@@ -4980,6 +4997,16 @@ def messenger_api(request):
             "thread": messenger.serialize_thread_full(thread, request.user),
             "threads": all_threads,
         })
+
+    if action == "redo_message":  # ↻ one of their messages again (text or voice note), with an optional note
+        thread = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id")).prefetch_related("characters").first()
+        if not thread:
+            return JsonResponse({"error": "Chat not found."}, status=404)
+        try:
+            message = messenger.redo_message(request.user, thread, body.get("message_id"), note=str(body.get("note") or ""))
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"message": message, "thread": messenger.serialize_thread_full(thread, request.user)})
 
     if action == "regenerate":  # ↻ the characters' last reply again, with an optional note from the user
         thread = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id")).prefetch_related("characters").first()
@@ -5077,6 +5104,8 @@ def messenger_api(request):
             td["scenario_override"] = str(body.get("scenario_override") or "").strip()[:3000]
         if "share_memory" in body:
             td["share_memory"] = bool(body["share_memory"])
+        if "leave_on_read" in body:  # 🙈 per chat: they may answer up to 5 minutes later, when it fits
+            td["leave_on_read"] = bool(body["leave_on_read"])
         if isinstance(body.get("events"), list):
             td["events"] = [e for e in body["events"] if isinstance(e, dict)][:30]
         if "title" in body and str(body["title"]).strip():

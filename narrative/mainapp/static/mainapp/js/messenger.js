@@ -12,6 +12,7 @@
   var replyToMsg = null;
   var currentDrawerTab = "char";
   var selectedDrawerCharSlug = "";
+  window.selectedDrawerCharSlugSet = function (slug) { selectedDrawerCharSlug = slug; };  // (the card's Edit button)
   var activeAudio = null;
   var activeAudioMsgId = null;
 
@@ -294,6 +295,8 @@
       );
     }
 
+    var lastUserId = null;
+    msgs.forEach(function (m) { if (m.role === "user") lastUserId = m.id; });
     msgs.forEach(function (m) {
       if (m.role === "system") {
         out.push('<div class="tg-sys-pill" id="msg-' + esc(m.id) + '">' + esc(m.text) + "</div>");
@@ -436,6 +439,7 @@
           (m.edited ? "<span>edited</span>" : "") +
           "<span>" + esc(m.time || "") + "</span>" +
           (isUser ? '<span style="color:#a78bfa;font-weight:700;">✓✓</span>' : "") +
+          (isUser && t.waiting && m.id === lastUserId ? '<span class="tg-seen">Seen</span>' : "") +
         "</div>"
       );
 
@@ -451,6 +455,7 @@
           quickEmojis +
           '<button type="button" class="tg-act-btn" onclick="TG.setReplyTo(\'' + esc(m.id) + '\')" title="Reply">↩</button>' +
           (!isUser ? '<button type="button" class="tg-act-btn" onclick="TG.playVoiceBubble(\'' + esc(m.id) + '\', this)" title="Voice with ElevenLabs">🔊</button>' : "") +
+          (!isUser ? '<button type="button" class="tg-act-btn" onclick="TG.openRedo(\'' + esc(m.id) + '\')" title="Try this message again (a note optional)">↻</button>' : "") +
           '<button type="button" class="tg-act-btn" onclick="TG.pinMessage(\'' + esc(m.id) + '\')" title="Pin">📌</button>' +
           '<button type="button" class="tg-act-btn" onclick="TG.editMessagePrompt(\'' + esc(m.id) + '\')" title="Edit">✏️</button>' +
           '<button type="button" class="tg-act-btn" onclick="TG.deleteMessage(\'' + esc(m.id) + '\')" title="Delete">🗑</button>' +
@@ -459,13 +464,15 @@
       var stickerOnly = m.sticker && !m.text && !m.voice && !m.photo && !m.file;
       out.push(
         '<div class="tg-msg-row ' + (isUser ? "user" : "assistant") + '" id="msg-' + esc(m.id) + '">' +
-          avatarHtml(avUrl, senderName, "tg-msg-avatar") +
+          (isUser ? avatarHtml(avUrl, senderName, "tg-msg-avatar")
+                  : '<span class="tg-card-tap" onclick="TG.openCard(\'' + esc(m.sender_slug || "") + '\')" title="Their card">' + avatarHtml(avUrl, senderName, "tg-msg-avatar") + "</span>") +
           '<div class="tg-bubble ' + (stickerOnly ? "sticker-only" : "") + '">' +
             actionsToolbar +
             inner.join("") +
           "</div>" +
         "</div>"
       );
+      if (redoFor === m.id && !isUser) out.push(redoBox(m));
     });
 
     // ↻ Under the characters' latest reply: try again, with an optional note ("as a voice note", "send a selfie")
@@ -646,6 +653,7 @@
           '<div style="display:grid;grid-template-columns:1fr auto;gap:6px;align-items:end;">' +
             '<div class="tg-field-group">' +
               "<label>Active Voice Name or Custom 20-char ElevenLabs Voice ID</label>" +
+              '<small style="display:block;color:var(--tg-muted);font-size:11.5px;margin:-2px 0 4px;">Through OpenRouter only the 21 voices in the list above work. Your own ElevenLabs voice ids need your ElevenLabs key (Extras → Voices).</small>' +
               '<input type="text" class="tg-input" id="drwCharVoiceCustom" value="' + esc(curVoice || (voices[0] ? voices[0].id : "sarah")) + '" placeholder="e.g. george, sarah, or JBFqnCBsd6RMkjVDRZzb">' +
             "</div>" +
             '<button type="button" class="tg-fmt-btn" style="height:36px;padding:0 12px;" onclick="TG.previewSelectedVoice(this)">🔊 Preview</button>' +
@@ -753,6 +761,13 @@
           "<label>This Chat's Scenario Override (optional)</label>" +
           '<textarea class="tg-textarea" id="drwThreadScenario">' + esc(t.scenario_override || "") + "</textarea>" +
         "</div>" +
+        '<div class="tg-field-group">' +
+          '<label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;cursor:pointer;">' +
+            '<input type="checkbox" id="drwThreadLeaveOnRead" ' + (t.leave_on_read ? "checked" : "") + ' style="margin-top:3px">' +
+            "<span>🙈 <b>They can leave me on read</b><br><small style=\"color:var(--tg-muted)\">Now and then, when it fits (they were busy, " +
+            "or teasing, annoyed, petty), they answer up to 5 real minutes later. Your message shows as Seen meanwhile.</small></span>" +
+          "</label>" +
+        "</div>" +
         '<div class="tg-save-bar">' +
           '<button type="button" class="tg-send-btn" style="flex:1;justify-content:center;" onclick="TG.saving(this, TG.saveThreadSettings)">💾 Save Chat & Look</button>' +
           '<button type="button" class="tg-fmt-btn" onclick="TG.pinCurrentThread()">📌 Pin Chat</button>' +
@@ -808,6 +823,14 @@
         '<input type="checkbox" id="drwMeAutoVoice" ' + (u.auto_voice ? "checked" : "") + ">" +
         "Automatically synthesize ElevenLabs audio when characters send [VOICE]" +
       "</label>" +
+      '<div class="tg-field-group"><label>🖼️ Picture model (photos, selfies and reference pictures in the messenger)</label>' +
+        '<select class="tg-select" id="drwMeImageModel">' +
+          [["", "Nano Banana (Google): the app's default"],
+           ["microsoft/mai-image-2.7", "MAI-Image-2.7 (Microsoft): precise, consistent"],
+           ["microsoft/mai-image-2.7-flash", "MAI-Image-2.7 Flash (Microsoft): faster, cheaper"]].map(function (o) {
+            return '<option value="' + o[0] + '"' + ((u.image_model || "") === o[0] ? " selected" : "") + ">" + esc(o[1]) + "</option>";
+          }).join("") +
+        "</select><small style=\"color:var(--tg-muted);font-size:11.5px;\">All three keep faces from the reference pictures. Through your OpenRouter key.</small></div>" +
       '<div class="tg-save-bar"><button type="button" class="tg-send-btn" style="flex:1;justify-content:center;" onclick="TG.saving(this, TG.saveUserProfile)">💾 Save My Profile & Alerts</button></div>';
   }
 
@@ -928,6 +951,22 @@
     box.innerHTML = html.join("");
   }
 
+  // --- ↻ One message again: its text (or a voice note's words) rewritten, or its photo redrawn, with a note ---
+  var redoFor = null;
+  function redoBox(m) {
+    var hasText = !!((m.voice && m.voice.transcript) || m.text), hasPhoto = !!m.photo;
+    var picks = hasPhoto && !hasText ? [["🎨 Other angle", "A different camera angle."], ["😏 Cheekier", "More playful."], ["🌙 Moodier light", "Moodier lighting."]]
+      : [["✂️ Shorter", "Shorter."], ["🔥 More feeling", "Let more feeling show."], ["😏 Teasing", "More teasing."], ["🧊 Colder", "Colder, more distant."]];
+    return '<div class="tg-regen tg-redo" id="tgRedo"><div class="tg-regen-box">' +
+      '<div class="tg-regen-picks">' + picks.map(function (p) {
+        return '<button type="button" onclick="TG.redoPick(this)" data-note="' + esc(p[1]) + '">' + esc(p[0]) + "</button>";
+      }).join("") + "</div>" +
+      '<div class="tg-regen-row"><input type="text" id="tgRedoNote" maxlength="600" placeholder="What should be different? (optional)">' +
+      (hasText ? '<button type="button" class="tg-regen-go" onclick="TG.redoMessage(\'' + esc(m.id) + '\')">↻ ' + (m.voice ? "New words" : "Rewrite") + "</button>" : "") +
+      (hasPhoto ? '<button type="button" class="tg-regen-go" onclick="TG.redoPhoto(\'' + esc(m.id) + '\')">🖼️ New picture</button>' : "") +
+      '<button type="button" class="tg-regen-x" onclick="TG.openRedo(null)" aria-label="Close">✕</button></div></div></div>';
+  }
+
   // --- 🥔 Bulba's setup: a character who isn't set up for texting yet gets an offer at the top of the chat ---
   var setupState = {};  // slug → {step: offer|busy|review|look|drawing|done, mode, hint, outfit, error}
   function setupSkipped(slug) { try { return localStorage.getItem("na-tg-setup-skip-" + slug) === "1"; } catch (e) { return false; } }
@@ -1021,6 +1060,7 @@
         }
         document.getElementById("tgSidebar").classList.add("mobile-hidden");
         document.getElementById("tgMain").classList.remove("mobile-hidden");
+        if (res.thread.waiting) TG.showTurn(res, (res.thread.messages || []).map(function (m) { return m.id; }));  // 🙈 a late reply on its way
       });
     },
 
@@ -1034,6 +1074,7 @@
       document.querySelectorAll(".tg-drawer-tab").forEach(function (b) {
         b.classList.toggle("active", b.getAttribute("data-tab") === currentDrawerTab);
       });
+      TG.closeBulba();  // one side panel at a time: both squeezed the chat into a sliver
       document.getElementById("tgDrawer").classList.add("open");
       renderDrawerNow();
       document.getElementById("tgDrawer").scrollTop = 0;  // a tab opens at its top
@@ -1140,6 +1181,7 @@
       var panel = document.getElementById("tgBulbaPanel"), frame = document.getElementById("tgBulbaFrame");
       var url = window.TG_CFG.bulba.replace(/\/0\/$/, "/" + t.id + "/");
       if (frame.getAttribute("data-thread") !== String(t.id)) { frame.src = url; frame.setAttribute("data-thread", String(t.id)); }
+      TG.closeDrawer();  // one side panel at a time
       panel.hidden = false;
       document.body.classList.add("tg-bulba-open");
     },
@@ -1185,6 +1227,54 @@
       box.querySelector("img").src = src;
       box.classList.add("open");
     },
+    // 📇 Their card: the texting profile on top, the roleplay card at a glance below (character_quick)
+    openCard: function (slug) {
+      var t = STATE.active_thread; if (!t) return;
+      var m = (t.members || []).find(function (x) { return x.slug === slug; }) || (t.members || [])[0];
+      if (!m) return;
+      var box = document.getElementById("tgCard");
+      if (!box) {
+        box = document.createElement("div");
+        box.id = "tgCard"; box.className = "tg-card-shade";
+        box.addEventListener("click", function (e) { if (e.target === box) box.classList.remove("open"); });
+        document.addEventListener("keydown", function (e) { if (e.key === "Escape") box.classList.remove("open"); });
+        document.body.appendChild(box);
+      }
+      var you = (STATE.user_profile && STATE.user_profile.display_name) || "you";
+      var fill = function (x) { return String(x || "").replace(/\{\{user\}\}/gi, you).replace(/\{\{char\}\}/gi, m.name); };
+      var row = function (label, text) { return text ? "<dt>" + esc(label) + "</dt><dd>" + esc(fill(text)) + "</dd>" : ""; };
+      var pics = [m.neutral_url].concat(m.extra_refs || []).filter(Boolean);
+      box.innerHTML = '<div class="tg-card" role="dialog" aria-label="' + esc(m.name) + '">' +
+        '<button type="button" class="tg-card-x" onclick="document.getElementById(\'tgCard\').classList.remove(\'open\')" aria-label="Close">✕</button>' +
+        '<div class="tg-card-top">' + (m.avatar_url || m.neutral_url ? '<img src="' + esc(m.avatar_url || m.neutral_url) + '" alt="" onclick="TG.viewImage(this.src)">' : '<div class="tg-card-noimg">' + esc((m.name || "?")[0]) + "</div>") +
+          '<div><h3>' + esc(m.display_name || m.name) + " " + esc(m.status_emoji || "") + "</h3>" +
+          '<div class="tg-card-handle">' + esc(m.handle || "") + ' · <span class="tg-card-mode">' + (m.mode === "modern_au" ? "🌆 Modern AU" : "🏰 Their own world") + "</span>" +
+          (m.set_up ? "" : ' · <span class="tg-card-warn">not set up for texting yet</span>') + "</div>" +
+          (m.bio ? '<p class="tg-card-bio">' + esc(m.bio) + "</p>" : "") + "</div></div>" +
+        '<h4>📱 On the phone</h4><dl class="tg-card-dl">' +
+          row("Why you text", m.scenario) + row("Who they are here", m.modern_persona) + row("How they text", m.texting_style) +
+          row("How they look", m.appearance_notes) + row("Voice", m.voice_id) + "</dl>" +
+        (pics.length ? '<div class="tg-card-pics">' + pics.map(function (u) { return '<img src="' + esc(u) + '" alt="" onclick="TG.viewImage(this.src)">'; }).join("") + "</div>" : "") +
+        '<h4>📖 Their roleplay card</h4><div id="tgCardRp" class="tg-card-rp">Loading…</div>' +
+        '<div class="tg-card-actions"><button type="button" class="tg-setup-go" onclick="document.getElementById(\'tgCard\').classList.remove(\'open\'); selectedDrawerCharSlugSet(\'' + esc(m.slug) + '\'); TG.openDrawer(\'char\')">⚙️ Edit texting setup</button>' +
+        '<button type="button" class="tg-setup-ghost" onclick="document.getElementById(\'tgCard\').classList.remove(\'open\'); TG.openBulba()">🥔 Ask Bulba</button></div>' +
+        "</div>";
+      box.classList.add("open");
+      fetch(window.TG_CFG.quick.replace("__slug__", encodeURIComponent(m.slug)), { credentials: "same-origin" })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (q) {
+          var el = document.getElementById("tgCardRp"); if (!el) return;
+          if (!q) { el.textContent = "Couldn't load the card."; return; }
+          var people = (q.people || []).map(function (p) {
+            return "<p><b>" + esc(p.name) + "</b>" + (p.identity ? ": " + esc(p.identity) : "") + "</p>" + (p.temperament ? '<p class="tg-card-small">' + esc(p.temperament) + "</p>" : "");
+          }).join("");
+          el.innerHTML = (q.tagline ? '<p class="tg-card-bio">' + esc(q.tagline) + "</p>" : "") + people +
+            (q.about ? "<p>" + esc(q.about) + "</p>" : "") +
+            '<a class="tg-card-link" href="' + esc(q.edit_url) + '" target="_blank" rel="noopener">Open the full card ↗</a>';
+        })
+        .catch(function () { var el = document.getElementById("tgCardRp"); if (el) el.textContent = "Couldn't load the card."; });
+    },
+
     setupType: function (slug, key, value) { if (setupState[slug]) setupState[slug][key] = value; },
     setupSkip: function (slug) {
       try { localStorage.setItem("na-tg-setup-skip-" + slug, "1"); } catch (e) { /* this visit only */ }
@@ -1225,6 +1315,39 @@
     setupDone: function (slug) { var st = setupState[slug]; if (st) { st.step = "done"; renderActiveThread(); } },
     setupClose: function (slug) { delete setupState[slug]; renderActiveThread(); },
 
+    openRedo: function (msgId) {
+      redoFor = redoFor === msgId ? null : msgId;
+      renderActiveThread();
+      var box = document.getElementById("tgRedo");
+      if (box) { box.scrollIntoView({ block: "nearest" }); var i = document.getElementById("tgRedoNote"); if (i) i.focus(); }
+    },
+    redoPick: function (btn) {
+      var inp = document.getElementById("tgRedoNote");
+      if (inp) { inp.value = inp.value.trim() ? inp.value.trim() + " " + btn.getAttribute("data-note") : btn.getAttribute("data-note"); inp.focus(); }
+    },
+    redoMessage: function (msgId) {
+      var t = STATE.active_thread; if (!t) return;
+      var inp = document.getElementById("tgRedoNote"), box = document.getElementById("tgRedo");
+      if (box) box.classList.add("busy");
+      apiPost({ action: "redo_message", thread_id: t.id, message_id: msgId, note: inp ? inp.value.trim() : "" })
+        .then(function (res) { redoFor = null; STATE.active_thread = res.thread; renderActiveThread(); })
+        .catch(function (e) { if (box) box.classList.remove("busy"); alert(e.message); });
+    },
+    redoPhoto: function (msgId) {
+      var t = STATE.active_thread; if (!t) return;
+      var m = (t.messages || []).find(function (x) { return x.id === msgId; }); if (!m || !m.photo) return;
+      var inp = document.getElementById("tgRedoNote"), note = inp ? inp.value.trim() : "", box = document.getElementById("tgRedo");
+      if (box) box.classList.add("busy");
+      var prompt = (m.photo.prompt || "") + (note ? " " + note : "");
+      apiPost({ action: "photo_bubble", thread_id: t.id, message_id: msgId, kind: m.photo.kind || "casual", prompt: prompt })
+        .then(function (res) {
+          var idx = t.messages.findIndex(function (x) { return x.id === msgId; });
+          if (idx !== -1 && res.message) t.messages[idx] = res.message;
+          redoFor = null; renderActiveThread();
+        })
+        .catch(function (e) { if (box) box.classList.remove("busy"); alert(e.message); });
+    },
+
     toggleRegen: function () {
       var box = document.querySelector("#tgRegen .tg-regen-box");
       if (!box) return;
@@ -1249,19 +1372,57 @@
       if (typRow) { typTxt.textContent = t.title + " is typing again…"; typRow.classList.add("visible"); }
       var box = document.getElementById("tgRegen");
       if (box) box.classList.add("busy");
+      var keep = (t.messages || []).map(function (m) { return m.id; });
       return apiPost({ action: "regenerate", thread_id: t.id, note: note })
         .then(function (res) {
           if (typRow) typRow.classList.remove("visible");
-          STATE.active_thread = res.thread;
-          if (res.threads) STATE.threads = res.threads;
-          renderSidebar();
-          renderActiveThread();
+          return TG.showTurn(res, keep);
         })
         .catch(function (err) {
           if (typRow) typRow.classList.remove("visible");
           if (box) box.classList.remove("busy");
           alert(err.message);
         });
+    },
+
+    // 💬 A turn's new messages arrive one by one (typing… → message → a pause), and a reply left on read later
+    showTurn: function (res, oldIds) {
+      var full = res.thread, fresh = (full.messages || []).filter(function (m) { return m.role !== "user" && oldIds.indexOf(m.id) === -1; });
+      if (res.threads) STATE.threads = res.threads;
+      clearTimeout(TG._waitTimer);
+      if (full.waiting) {  // 🙈 left on read: their reply arrives on its own (we look again when it's due)
+        var tid = full.id;
+        TG._waitTimer = setTimeout(function () {
+          if (!STATE.active_thread || STATE.active_thread.id !== tid) return;
+          var before = (STATE.active_thread.messages || []).map(function (m) { return m.id; });
+          apiPost({ action: "load_thread", thread_id: tid }).then(function (r) { TG.showTurn(r, before); });
+        }, full.waiting * 1000 + 500);
+      }
+      var calm = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (fresh.length < 2 || calm) {
+        STATE.active_thread = full; renderSidebar(); renderActiveThread(); return Promise.resolve();
+      }
+      var shown = (full.messages || []).filter(function (m) { return fresh.indexOf(m) === -1; });
+      STATE.active_thread = Object.assign({}, full, { messages: shown.slice() });
+      renderSidebar(); renderActiveThread();
+      var typRow = document.getElementById("tgTypingRow"), typTxt = document.getElementById("tgTypingText");
+      var i = 0;
+      return new Promise(function (done) {
+        (function next() {
+          if (!STATE.active_thread || STATE.active_thread.id !== full.id) return done();
+          if (i >= fresh.length) { if (typRow) typRow.classList.remove("visible"); STATE.active_thread = full; renderActiveThread(); return done(); }
+          var m = fresh[i], len = ((m.voice && m.voice.transcript) || m.text || "").length;
+          var typing = i === 0 ? 250 : Math.min(3200, 600 + len * 32);
+          if (typRow && i > 0) { typTxt.textContent = (m.voice ? "🎤 recording a voice note…" : m.photo ? "📷 sending a photo…" : (m.sender_name || full.title) + " is typing…"); typRow.classList.add("visible"); }
+          setTimeout(function () {
+            if (typRow) typRow.classList.remove("visible");
+            STATE.active_thread.messages.push(m);
+            renderActiveThread();
+            i += 1;
+            setTimeout(next, 350 + Math.random() * 500);  // a breath before the next one
+          }, typing);
+        })();
+      });
     },
 
     triggerAiTurn: function (instruction) {
@@ -1273,6 +1434,7 @@
         typTxt.textContent = t.title + " is typing…";
         typRow.classList.add("visible");
       }
+      var oldIds = (t.messages || []).map(function (m) { return m.id; });
       return apiPost({
         action: "generate_reply",
         thread_id: t.id,
@@ -1280,10 +1442,7 @@
       })
         .then(function (res) {
           if (typRow) typRow.classList.remove("visible");
-          STATE.active_thread = res.thread;
-          if (res.threads) STATE.threads = res.threads;
-          renderSidebar();
-          renderActiveThread();
+          return TG.showTurn(res, oldIds);
         })
         .catch(function (err) {
           if (typRow) typRow.classList.remove("visible");
@@ -1363,6 +1522,41 @@
           }
         })
         .catch(function (e) { alert(e.message); });
+    },
+
+    // 🎤 A real voice note: tap to record, tap again to send. It's turned into words (Scribe) so the character
+    // can read it; the recording plays in the chat. No microphone (blocked, or none): typed instead.
+    toggleRecording: function () {
+      var btn = document.getElementById("tgMicBtn");
+      if (TG._rec && TG._rec.state === "recording") { TG._rec.stop(); return; }
+      if (!navigator.mediaDevices || !window.MediaRecorder) return TG.sendVoiceNotePrompt();
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+        var chunks = [], started = Date.now(), rec = new MediaRecorder(stream);
+        TG._rec = rec;
+        rec.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
+        rec.onstop = function () {
+          stream.getTracks().forEach(function (tr) { tr.stop(); });
+          btn.classList.remove("recording"); btn.textContent = "🎤";
+          var secs = Math.round((Date.now() - started) / 1000);
+          if (secs < 1 || !chunks.length) return;
+          var type = rec.mimeType || "audio/webm", ext = type.indexOf("mp4") !== -1 ? "m4a" : type.indexOf("ogg") !== -1 ? "ogg" : "webm";
+          var fd = new FormData();
+          fd.append("kind", "voice_rec");
+          fd.append("file", new Blob(chunks, { type: type }), "voice." + ext);
+          btn.disabled = true; btn.textContent = "⏳";
+          fetch(window.TG_CFG.api, { method: "POST", headers: { "X-CSRFToken": window.TG_CFG.csrf }, body: fd })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+              btn.disabled = false; btn.textContent = "🎤";
+              if (res.error) throw new Error(res.error);
+              TG.sendUserMessage({ text: res.transcript, voice: { transcript: res.transcript, audio_url: res.url, duration: Math.max(1, secs) } });
+            })
+            .catch(function (e) { btn.disabled = false; btn.textContent = "🎤"; alert(e.message); });
+        };
+        rec.start();
+        btn.classList.add("recording"); btn.textContent = "⏹";
+        btn.title = "Recording… tap to send";
+      }).catch(function () { TG.sendVoiceNotePrompt(); });
     },
 
     sendVoiceNotePrompt: function () {
@@ -1761,6 +1955,7 @@
         custom_bg_url: document.getElementById("drwThreadCustomBg").value,
         title: document.getElementById("drwThreadTitle").value,
         scenario_override: document.getElementById("drwThreadScenario").value,
+        leave_on_read: !!(document.getElementById("drwThreadLeaveOnRead") || {}).checked,
         events: t.events || [],
       }).then(function (res) {
         STATE.active_thread = res.thread;
@@ -1833,6 +2028,7 @@
         spontaneous_minutes: parseInt(document.getElementById("drwMeSpontMins").value || "15", 10),
         auto_photos: document.getElementById("drwMeAutoPhoto").checked,
         auto_voice: document.getElementById("drwMeAutoVoice").checked,
+        image_model: (document.getElementById("drwMeImageModel") || {}).value || "",
       };
       return apiPost({
         action: "user_profile",
@@ -2071,6 +2267,15 @@
 
   renderSidebar();
   renderActiveThread();
+
+  // Touch screens have no hover: tapping a message shows its actions (reply, ↻, pin, edit, delete); tap again hides
+  var vpEl = document.getElementById("tgMessagesViewport");
+  if (vpEl) vpEl.addEventListener("click", function (e) {
+    if (e.target.closest("button, a, input, textarea, img, .tg-regen, .tg-setup, .tg-spoiler")) return;
+    var row = e.target.closest(".tg-msg-row");
+    vpEl.querySelectorAll(".tg-msg-row.show-actions").forEach(function (r) { if (r !== row) r.classList.remove("show-actions"); });
+    if (row) row.classList.toggle("show-actions");
+  });
 
   // Bulba's panel tells us when something changed (a card applied, a reply retried): reload this chat
   window.addEventListener("message", function (e) {
