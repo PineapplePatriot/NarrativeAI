@@ -384,3 +384,27 @@ class ChatFilesTests(MessengerActionTests):
         self.post(action="delete_thread", thread_id=branch["id"])
         self.assertFalse(MessengerThread.objects.filter(id=branch["id"]).exists())
         self.assertEqual(self.post(action="branch_chat", thread_id=tid, message_id="nope").status_code, 400)
+
+
+class BeforeYouStartTests(MessengerActionTests):
+    """🧭 Memory, leave-on-read and a persona for one chat, asked when it starts."""
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_the_chat_persona_and_memory_choice_reach_the_model(self):
+        from mainapp import ai_client
+        self.user.persona_name, self.user.persona_description = "Anna", "A night-shift nurse."
+        self.user.save()
+        tid = self.thread()
+        self.assertFalse(self.post(action="load_thread", thread_id=tid).json()["thread"]["started"])
+        out = self.post(action="thread_settings", thread_id=tid, started=True, share_memory=False, leave_on_read=True,
+                        persona={"name": "Mika", "description": "Rose's new upstairs neighbour, a violinist."}).json()
+        self.assertTrue(out["thread"]["started"])
+        self.assertEqual(out["thread"]["persona"]["name"], "Mika")
+        with mock.patch("mainapp.messenger.story_memory.story_text", return_value="They kissed at the festival.") as mem:
+            self.post(action="send_user_message", thread_id=tid, text="hi", generate=True)
+            mem.assert_not_called()  # this chat said no to sharing memory
+        prompt = json.dumps(ai_client.complete.call_args.args[2])
+        self.assertIn("upstairs neighbour, a violinist", prompt)
+        self.assertNotIn("night-shift nurse", prompt)
+        self.assertIn("Mika", prompt)

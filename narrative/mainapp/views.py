@@ -5126,6 +5126,10 @@ def messenger_api(request):
             td["share_memory"] = bool(body["share_memory"])
         if "leave_on_read" in body:  # 🙈 per chat: they may answer up to 5 minutes later, when it fits
             td["leave_on_read"] = bool(body["leave_on_read"])
+        if isinstance(body.get("persona"), dict):  # 🎭 who they are in this chat ({} = their usual persona)
+            td["persona"] = {k: str(body["persona"].get(k) or "").strip() for k in ("name", "description")}
+        if body.get("started"):  # 🧭 the "Before you start" card was answered
+            td["started"] = True
         if isinstance(body.get("events"), list):
             td["events"] = [e for e in body["events"] if isinstance(e, dict)][:30]
         if "title" in body and str(body["title"]).strip():

@@ -1556,3 +1556,11 @@ body.tg-bulba-open .tg-header-actions .tg-hdr-btn > span, body.tg-bulba-open #hd
 .tg-chat-file.on { border-color: rgba(167, 139, 250, .55); background: rgba(126, 58, 242, .1); }
 .tg-chat-file-main { flex: 1; min-width: 0; cursor: pointer; display: grid; gap: 2px; }
 .tg-chat-file-main small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #cbd5e1; font-size: 12.5px; }
+
+/* 🧭 Before you start */
+.tg-start-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.tg-start-opt { display: flex; gap: 8px; align-items: flex-start; padding: 8px 12px; border-radius: 12px; cursor: pointer; font-size: 13.5px;
+  background: rgba(255, 255, 255, .04); border: 1px solid var(--tg-border); margin-bottom: 8px; }
+.tg-start-opt.on { border-color: #a78bfa; background: rgba(167, 139, 250, .12); }
+.tg-start-opt input { margin-top: 3px; accent-color: #a78bfa; }
+.tg-start .tg-input { width: 100%; box-sizing: border-box; margin-bottom: 8px; }

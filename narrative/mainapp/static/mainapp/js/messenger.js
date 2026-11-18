@@ -289,6 +289,7 @@
 
     var setupCard = bulbaSetupCard(t);
     if (setupCard) out.push(setupCard);
+    else if (!t.started && !startSkipped[t.id]) out.push(startCard(t));
 
     if (!msgs.length) {
       out.push(
@@ -769,6 +770,14 @@
             "<span>🙈 <b>They can leave me on read</b><br><small style=\"color:var(--tg-muted)\">Now and then, when it fits (they were busy, " +
             "or teasing, annoyed, petty), they answer up to 5 real minutes later. Your message shows as Seen meanwhile.</small></span>" +
           "</label>" +
+          '<label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;cursor:pointer;margin-top:8px;">' +
+            '<input type="checkbox" id="drwThreadShare" ' + (t.share_memory !== false ? "checked" : "") + ' style="margin-top:3px">' +
+            "<span>🧠 <b>Share story memory with the roleplay chats</b></span></label>" +
+        "</div>" +
+        '<div class="tg-field-group">' +
+          "<label>🎭 Who you are in this chat (empty: your usual persona" + (t.usual_persona ? ", " + esc(t.usual_persona) : "") + ")</label>" +
+          '<input type="text" class="tg-input" id="drwThreadPersonaName" placeholder="Name" value="' + esc((t.persona || {}).name || "") + '">' +
+          '<textarea class="tg-textarea" id="drwThreadPersonaDesc" placeholder="Who you are here">' + esc((t.persona || {}).description || "") + "</textarea>" +
         "</div>" +
         '<div class="tg-save-bar">' +
           '<button type="button" class="tg-send-btn" style="flex:1;justify-content:center;" onclick="TG.saving(this, TG.saveThreadSettings)">💾 Save Chat & Look</button>' +
@@ -967,6 +976,32 @@
       (hasText ? '<button type="button" class="tg-regen-go" onclick="TG.redoMessage(\'' + esc(m.id) + '\')">↻ ' + (m.voice ? "New words" : "Rewrite") + "</button>" : "") +
       (hasPhoto ? '<button type="button" class="tg-regen-go" onclick="TG.redoPhoto(\'' + esc(m.id) + '\')">🖼️ New picture</button>' : "") +
       '<button type="button" class="tg-regen-x" onclick="TG.openRedo(null)" aria-label="Close">✕</button></div></div></div>';
+  }
+
+  // --- 🧭 Before you start: memory, leave-on-read, who you are in this chat (once per chat) ---
+  var startSkipped = {}, startState = {};
+  function startCard(t) {
+    var st = startState[t.id] || (startState[t.id] = { share: t.share_memory !== false, lor: !!t.leave_on_read,
+      own: !!(t.persona && (t.persona.name || t.persona.description)), name: (t.persona || {}).name || "", desc: (t.persona || {}).description || "" });
+    var who = t.is_group ? "them" : esc((t.members && t.members[0] && t.members[0].name) || "them");
+    var radio = function (name, val, on, label) {
+      return '<label class="tg-start-opt' + (on ? " on" : "") + '"><input type="radio" name="' + name + '" ' + (on ? "checked" : "") +
+        ' onchange="TG.startSet(' + t.id + ', \'' + name + '\', ' + val + ')">' + label + "</label>";
+    };
+    return '<div class="tg-setup tg-start" id="tgStart"><div class="tg-setup-head">🧭 <b>Before you start</b></div>' +
+      "<p><b>🧠 Memory.</b> Should " + who + " remember what happened in your roleplay chats?</p>" +
+      '<div class="tg-start-row">' + radio("share", "true", st.share, "Yes, share story memory") + radio("share", "false", !st.share, "No, texting stands apart") + "</div>" +
+      "<p><b>🙈 Realism.</b></p>" +
+      '<label class="tg-start-opt' + (st.lor ? " on" : "") + '"><input type="checkbox" ' + (st.lor ? "checked" : "") +
+        ' onchange="TG.startSet(' + t.id + ', \'lor\', this.checked)">They can leave me on read now and then (up to 5 minutes, when it fits: busy, teasing, annoyed, petty)</label>' +
+      "<p><b>🎭 Who are you here?</b></p>" +
+      '<div class="tg-start-row">' + radio("own", "false", !st.own, "My usual persona" + (t.usual_persona ? " (" + esc(t.usual_persona) + ")" : "")) +
+        radio("own", "true", st.own, "Someone else, for this chat only") + "</div>" +
+      (st.own ? '<input type="text" class="tg-input" placeholder="Name" value="' + esc(st.name) + '" oninput="TG.startSet(' + t.id + ', \'name\', this.value, true)">' +
+        '<textarea rows="3" placeholder="Who you are in this chat: age, job, how you know them, anything they should know" oninput="TG.startSet(' + t.id + ', \'desc\', this.value, true)">' + esc(st.desc) + "</textarea>" : "") +
+      '<div class="tg-setup-row"><button type="button" class="tg-setup-go" onclick="TG.startSave(' + t.id + ')">Start texting</button>' +
+      '<button type="button" class="tg-setup-ghost" onclick="TG.startLater(' + t.id + ')">Later</button></div>' +
+      '<p class="tg-card-small">All of it can be changed later in Time & Look.</p></div>';
   }
 
   // --- 🥔 Bulba's setup: a character who isn't set up for texting yet gets an offer at the top of the chat ---
@@ -1329,6 +1364,19 @@
       }).catch(function (e) { alert(e.message); });
     },
 
+    startSet: function (id, key, value, quiet) {
+      var st = startState[id]; if (!st) return;
+      st[key] = value;
+      if (!quiet) renderActiveThread();
+    },
+    startLater: function (id) { startSkipped[id] = true; renderActiveThread(); },
+    startSave: function (id) {
+      var st = startState[id]; if (!st) return;
+      apiPost({ action: "thread_settings", thread_id: id, started: true, share_memory: st.share, leave_on_read: st.lor,
+                persona: st.own ? { name: st.name, description: st.desc } : {} })
+        .then(function (res) { STATE.active_thread = res.thread; renderActiveThread(); })
+        .catch(function (e) { alert(e.message); });
+    },
     setupType: function (slug, key, value) { if (setupState[slug]) setupState[slug][key] = value; },
     setupSkip: function (slug) {
       try { localStorage.setItem("na-tg-setup-skip-" + slug, "1"); } catch (e) { /* this visit only */ }
@@ -2010,6 +2058,9 @@
         title: document.getElementById("drwThreadTitle").value,
         scenario_override: document.getElementById("drwThreadScenario").value,
         leave_on_read: !!(document.getElementById("drwThreadLeaveOnRead") || {}).checked,
+        share_memory: !!(document.getElementById("drwThreadShare") || {}).checked,
+        persona: { name: (document.getElementById("drwThreadPersonaName") || {}).value || "",
+                   description: (document.getElementById("drwThreadPersonaDesc") || {}).value || "" },
         events: t.events || [],
       }).then(function (res) {
         STATE.active_thread = res.thread;

@@ -643,7 +643,11 @@ def thread_data(thread):
         "scenario_override": str(raw.get("scenario_override") or "").strip()[:3000],
         "share_memory": raw.get("share_memory", True) is not False,
         "last_auto_at": raw.get("last_auto_at"),
-        "leave_on_read": bool(raw.get("leave_on_read", False)),  # 🙈 per chat: they may answer up to 5 minutes later
+        "leave_on_read": bool(raw.get("leave_on_read", False)),
+        # 🧭 the "Before you start" card was answered; 🎭 who the user is in this chat only (else their usual persona)
+        "started": bool(raw.get("started", False)),
+        "persona": {k: str((raw.get("persona") or {}).get(k) or "").strip()[:{"name": 80, "description": 3000}[k]]
+                    for k in ("name", "description")} if isinstance(raw.get("persona"), dict) else {},  # 🙈 per chat: they may answer up to 5 minutes later
         "regen_prev": [m for m in (raw.get("regen_prev") or []) if isinstance(m, dict)][:20],  # ↻ the take before
     }
 
@@ -913,9 +917,9 @@ def active_model_texting_rules(user):
     }
 
 
-def _character_block(character, user):
+def _character_block(character, user, u_name=None, share=None):
     from mainapp.cards import fill_names, user_name
-    u_name = user_name(user)
+    u_name = u_name or user_name(user)
     prof = char_profile(character)
     card_body = card_sections.compose(character.sections) if character.sections else (character.description or "")
     card_body = fill_names(card_body, character.name, u_name)
@@ -935,7 +939,7 @@ def _character_block(character, user):
         lines.append(f"Texting style & habits: {fill_names(prof['texting_style'], character.name, u_name)}")
     if prof["scenario"]:
         lines.append(f"Scenario: {fill_names(prof['scenario'], character.name, u_name)}")
-    if prof["share_memory"]:
+    if (prof["share_memory"] if share is None else share):  # the chat's own choice wins (asked when it starts)
         latest_chat = character.chats.first()
         if latest_chat:
             try:
@@ -957,6 +961,9 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
     if not chars:
         raise ValueError("This chat has no characters.")
     data = thread_data(thread)
+    chat_persona = data.get("persona") or {}
+    if chat_persona.get("name"):  # 🎭 someone else in this chat only
+        u_name = chat_persona["name"]
     rt = real_time_context(thread)
 
     all_moods = sorted({m for c in chars for m in sprites.emotions(c)})
@@ -969,8 +976,8 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
     )
     taste_block = "" if model_info.get("compact") else writing_quality.helper_taste(user, habits=True)
 
-    char_blocks = "\n\n".join(_character_block(c, user) for c in chars)
-    user_persona = (getattr(user, "persona_description", "") or "").strip()
+    char_blocks = "\n\n".join(_character_block(c, user, u_name=u_name, share=data["share_memory"]) for c in chars)
+    user_persona = (chat_persona.get("description") or getattr(user, "persona_description", "") or "").strip()
     user_stories = u_prof.get("stories") or []
     latest_user_story = f" | Latest status post: \"{user_stories[0].get('text', '')}\"" if user_stories else ""
     user_block = (
@@ -2007,6 +2014,9 @@ def serialize_thread_full(thread, user):
         "events": data["events"],
         "scenario_override": data["scenario_override"],
         "share_memory": data["share_memory"],
+        "started": data["started"],
+        "persona": data["persona"],
+        "usual_persona": (getattr(user, "persona_name", "") or "").strip(),
         "real_time": rt,
         "members": members,
         "stickers": stickers,
