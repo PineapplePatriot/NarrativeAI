@@ -427,6 +427,13 @@ Rules:
   Neutral: river (calm/gender-neutral)
   Male: george (warm British rasp), adam (deep/steady), bill (seasoned/crisp), brian (deep/comforting), callum (gravelly/edgy), charlie (casual Australian), chris (down-to-earth), daniel (authoritative British), eric (smooth/grounded), harry (fierce/dramatic), liam (youthful/energetic), roger (laid-back/confident), will (friendly/relaxed)
 - Write a realistic `first_text` (1-2 sentences, pure text message, NO *asterisks* or narration) they would send to open a chat.
+- TWO SEPARATE PROFILES: this texting profile is its own thing; the roleplay card stays as it is. `appearance_notes`
+  describe how {char} looks IN THIS SETUP: keep face, hair, eyes, skin, build and age; in "modern_au" translate
+  outfit, gear and accessories into what they'd wear in today's world (no armour, masks, weapons, robes or uniforms
+  of their world unless the directions keep them). Change lore only as far as the setup needs.
+- ASK, DON'T DECIDE: when a look or lore point is central to who they are (a mask they hide behind, a title, a
+  scar, a secret, who knows what), don't quietly keep or drop it: make your best choice and put a short question
+  about it in `questions` so {user} can say otherwise. List what differs from the roleplay card in `changes`.
 
 Original card of {char}:
 {card_text}
@@ -445,7 +452,9 @@ Answer with JSON only:
   "art_style_notes": "Visual art style to keep across all photos (e.g. 'semi-realistic painted anime illustration, warm cinematic lighting')",
   "voice_id": "one voice name from the list above",
   "scenario": "Why {char} and {user} have each other's contact and what is happening as the chat begins (2-4 sentences)",
-  "first_text": "Their opening text message (no stage directions)"
+  "first_text": "Their opening text message (no stage directions)",
+  "changes": ["What differs from the roleplay card in this setup, one short line each (job, look, lore)"],
+  "questions": ["Up to 3 short questions for {user} about choices that are theirs to make (e.g. keep the mask?)"]
 }}"""
 
 
@@ -530,11 +539,13 @@ def modernize_with_bulba(user, character, mode="modern_au", hint="", save=True):
         "scenario": parsed.get("scenario") or "",
         "first_text": parsed.get("first_text") or "",
     }
+    notes = {k: [str(x).strip()[:300] for x in (parsed.get(k) or []) if str(x).strip()][:6]
+             for k in ("changes", "questions") if isinstance(parsed.get(k), list)}  # shown with the draft, not saved
     if save:
-        return save_char_profile(character, updates)
+        return {**save_char_profile(character, updates), "setup_notes": notes}
     merged = char_profile(character)
     merged.update(updates)
-    return merged
+    return {**merged, "setup_notes": notes}
 
 
 def create_messenger_character_with_bulba(user, idea, name="", mode="modern_au", generate_pics=False):
@@ -715,6 +726,76 @@ def real_time_context(thread, now=None):
         "last_sender": last_sender,
         "events": active_events,
     }
+
+
+def group_scenario(user, thread, hint=""):
+    """🥔 A group chat's shared scenario, from its members' texting profiles: how they all know each other and the
+    user, and what's going on as the chat begins. The user's directions are binding. Saved as the chat's scenario."""
+    from mainapp.cards import user_name
+    u_name = (thread_data(thread).get("persona") or {}).get("name") or user_name(user)
+    people = []
+    for c in thread.characters.all():
+        prof = char_profile(c)
+        people.append(f"- {c.name} ({prof['handle']}): {prof['modern_persona'] or c.description[:500]}\n  Their own "
+                      f"scenario with {u_name}: {prof['scenario'] or '(none)'}")
+    hint = str(hint or "").strip()[:1500]
+    prompt = (f"You are Bulba, setting up a group chat in NarrativeAI's messenger. Members:\n" + "\n".join(people) +
+              f"\n\nWrite the group chat's shared scenario: why these people and {u_name} are in one group chat, how "
+              f"they know each other, and what's going on as the chat begins (3-5 sentences, no 'tonight' anchors). "
+              f"Keep each member's own setup true; where two disagree, find what makes both true."
+              + (f"\n\n=== {u_name}'S DIRECTIONS (binding) ===\n{hint}\nFollow every one of them exactly; only fill in "
+                 f"what they left open." if hint else "")
+              + '\n\nAnswer with JSON only: {"scenario": "...", "title": "a short group name, the kind people give '
+                'group chats"}')
+    data = ask_json(user, prompt, need=("scenario",), max_tokens=900)
+    raw = dict(thread.data or {})
+    raw["scenario_override"] = str(data["scenario"]).strip()[:3000]
+    thread.data = raw
+    if data.get("title"):
+        thread.title = str(data["title"]).strip()[:200]
+    thread.save(update_fields=["data", "title", "updated"])
+    return raw["scenario_override"]
+
+
+def card_people(character):
+    """The names on a card with several people (an ensemble card), else []."""
+    data = card_sections.clean(character.sections) if character.sections else None
+    if not data or data["kind"] != "ensemble":
+        return []
+    names = [p["name"] for p in data["people"] if p["name"]]
+    return names if len(names) > 1 else []
+
+
+def split_card(user, character):
+    """✂️ A card with several people as separate characters, one per person (their own sections; the ensemble's
+    setting goes into each one's background, what's between them into their relationships), and a group chat
+    with all of them. The original card stays as it is. Returns the group chat."""
+    from django.utils.text import slugify
+    from mainapp.cards import _unique_slug
+    from mainapp.models import Character
+    data = card_sections.clean(character.sections)
+    if not card_people(character):
+        raise ValueError("That card has one person: nothing to split.")
+    setting, between = (data["shared"].get(k, {}).get("text", "") for k in ("setting", "between"))
+    made = []
+    for p in data["people"]:
+        if not p["name"]:
+            continue
+        person = {**p, "sections": {k: dict(v) for k, v in p["sections"].items()}}
+        if setting:
+            bg = person["sections"].get("background", {"text": "", "on": True})
+            bg["text"] = (bg["text"] + "\n\nSetting: " + setting).strip()
+            person["sections"]["background"] = bg
+        if between:
+            rel = person["sections"].get("relationships", {"text": "", "on": True})
+            rel["text"] = (rel["text"] + "\n\nBetween them: " + between).strip()
+            person["sections"]["relationships"] = rel
+        one = Character(name=p["name"], author=user, initial_message="", scenario=character.scenario or "",
+                        slug=_unique_slug(Character, f"{user.username}-{slugify(p['name']) or 'character'}"))
+        card_sections.apply(one, {"kind": "character", "people": [person], "shared": {}})
+        one.save()
+        made.append(one)
+    return create_thread(user, made, title=character.name, is_group=True)
 
 
 def new_chat_like(user, thread):
@@ -1998,6 +2079,7 @@ def serialize_thread_full(thread, user):
             "color": NAME_COLORS[idx % len(NAME_COLORS)],
             "has_voice": bool(prof.get("voice_id") or c.eleven_voice_char_id),
             "set_up": is_set_up(c),
+            "card_people": card_people(c),  # ✂️ several people on one card: offered a split
             **prof,
         })
         stickers.extend(character_stickers(c))

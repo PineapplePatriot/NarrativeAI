@@ -239,7 +239,12 @@ Batch A as planned:
 - (22) Check: characters texting first while the user is on another page or away.
 - (23) Card preview: tap the name or picture → the texting profile on top, the roleplay card below.
 
-Batch B, setup and profiles:
+Batch B: done 18 November: chat files (💬 Chats: new chat, branches ⑂ from any message, rename, delete); Bulba's
+setup describes the look for the setup, lists what changed from the card and asks about what's central (a mask, a
+title); Before you start (memory sharing per chat, leave-on-read, a persona for this chat only); a card with
+several people split into characters + a group chat; a group's shared scenario by Bulba once everyone is set up.
+
+Batch B as planned:
 - (6) Two strictly separate profiles: Bulba's setup also proposes the look for this setup (a modern Dottore
   without the mask) and asks before changing lore; it says what it changed.
 - (7.2) Right away in a new chat: share memory with the roleplay chats (now on by default and hidden: ask), and

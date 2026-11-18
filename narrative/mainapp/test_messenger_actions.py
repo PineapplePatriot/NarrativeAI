@@ -408,3 +408,59 @@ class BeforeYouStartTests(MessengerActionTests):
         self.assertIn("upstairs neighbour, a violinist", prompt)
         self.assertNotIn("night-shift nurse", prompt)
         self.assertIn("Mika", prompt)
+
+
+class SetupLookAndLoreTests(TestCase):
+    def test_bulba_lists_what_changed_and_asks_what_is_theirs_to_decide(self):
+        from mainapp import messenger
+        user = get_user_model().objects.create_user(username="asker", password="pw12345!")
+        c = Character.objects.create(name="Dottore", slug="dottore-ask", author=user, initial_message="...",
+                                     description="Tall, pale blue hair, a beaked half-mask.")
+        reply = json.dumps({"bio": "b", "modern_persona": "A lab director.", "texting_style": "t",
+                            "appearance_notes": "Tall, pale blue hair, a charcoal turtleneck and lab coat.",
+                            "changes": ["Harbinger → biotech lab director", "No mask"],
+                            "questions": ["Keep the mask as something he wears in the lab?"]})
+        with mock.patch("mainapp.ai_client.resolve", return_value=(None, "test/model")), \
+             mock.patch("mainapp.ai_client.complete", return_value=reply) as complete:
+            prof = messenger.modernize_with_bulba(user, c, mode="modern_au")
+        self.assertIn("ASK, DON'T DECIDE", complete.call_args.args[2][0]["content"])
+        self.assertEqual(prof["setup_notes"]["questions"], ["Keep the mask as something he wears in the lab?"])
+        self.assertIn("No mask", prof["setup_notes"]["changes"])
+        c.refresh_from_db()
+        self.assertNotIn("setup_notes", c.messenger_profile)  # shown with the draft, not kept
+        self.assertEqual(c.description, "Tall, pale blue hair, a beaked half-mask.")  # the roleplay card stays
+
+
+class SplitAndGroupTests(MessengerActionTests):
+    """✂️ A card with several people → separate characters and a group chat; 🥔 the group's shared scenario."""
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_split_a_two_person_card_then_write_the_group_scenario(self):
+        from mainapp import ai_client, card_sections
+        duo = Character.objects.create(name="Twins", slug="twins-split", author=self.user, initial_message="...")
+        data = card_sections.empty("ensemble", names=("Ada", "Bea"))
+        data["people"][0]["sections"]["identity"]["text"] = "Ada, the older twin."
+        data["people"][1]["sections"]["identity"]["text"] = "Bea, the younger twin."
+        data["shared"]["setting"]["text"] = "A seaside town."
+        data["shared"]["between"]["text"] = "They share a flat and a grudge."
+        card_sections.apply(duo, data)
+        duo.save()
+        member = self.post(action="load_thread", thread_id=self.thread(duo)).json()["thread"]["members"][0]
+        self.assertEqual(member["card_people"], ["Ada", "Bea"])
+        out = self.post(action="split_card", char_slug=duo.slug).json()["thread"]
+        self.assertTrue(out["is_group"])
+        self.assertEqual(sorted(m["name"] for m in out["members"]), ["Ada", "Bea"])
+        ada = Character.objects.get(author=self.user, name="Ada")
+        self.assertIn("Ada, the older twin.", ada.description)
+        self.assertIn("A seaside town.", ada.description)
+        self.assertIn("They share a flat and a grudge.", ada.description)
+        self.assertNotIn("Bea, the younger twin.", ada.description)
+        duo.refresh_from_db()
+        self.assertEqual(duo.sections["kind"], "ensemble")  # the original card stays
+        ai_client.complete.side_effect = lambda *a, **k: json.dumps({"scenario": "The twins added you to their flat chat.",
+                                                                     "title": "flat 4B 🏠"})
+        g = self.post(action="group_scenario", thread_id=out["id"], hint="I'm their new flatmate").json()["thread"]
+        self.assertEqual((g["scenario_override"], g["title"]), ("The twins added you to their flat chat.", "flat 4B 🏠"))
+        self.assertIn("I'm their new flatmate", json.dumps(ai_client.complete.call_args.args[2]))
+        self.assertEqual(self.post(action="split_card", char_slug=ada.slug).status_code, 400)  # one person: nothing to split

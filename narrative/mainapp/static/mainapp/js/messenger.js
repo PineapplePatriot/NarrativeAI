@@ -288,7 +288,9 @@
     out.push('<div class="tg-sys-pill">🕒 ' + esc(rtClock) + "</div>");
 
     var setupCard = bulbaSetupCard(t);
+    var groupCard = setupCard ? "" : groupScenarioCard(t);
     if (setupCard) out.push(setupCard);
+    else if (groupCard) out.push(groupCard);
     else if (!t.started && !startSkipped[t.id]) out.push(startCard(t));
 
     if (!msgs.length) {
@@ -978,6 +980,31 @@
       '<button type="button" class="tg-regen-x" onclick="TG.openRedo(null)" aria-label="Close">✕</button></div></div></div>';
   }
 
+  // --- 🥔 A group chat's shared scenario, once everyone is set up for texting ---
+  var groupState = {};
+  function groupScenarioCard(t) {
+    if (!t.is_group) return "";
+    var gs = groupState[t.id];
+    if (!gs && (t.scenario_override || setupSkipped("group-" + t.id))) return "";
+    gs = gs || (groupState[t.id] = { step: "offer", hint: "" });
+    if (gs.step === "done") return "";
+    var err = gs.error ? '<p class="tg-setup-err">' + esc(gs.error) + "</p>" : "", body;
+    if (gs.step === "offer") {
+      body = "<p>Everyone's set up. Want me to write how you all ended up in one group chat, and what's going on as it starts?</p>" +
+        '<textarea rows="2" oninput="TG.groupType(' + t.id + ', this.value)" placeholder="Steer it (optional): how you all know each other, what the group is for… Empty: I\'ll suggest one.">' + esc(gs.hint) + "</textarea>" +
+        '<div class="tg-setup-row"><button type="button" class="tg-setup-go" onclick="TG.groupWrite(' + t.id + ')">🥔 Write it</button>' +
+        '<button type="button" class="tg-setup-ghost" onclick="TG.groupSkip(' + t.id + ')">Not now</button></div>';
+    } else if (gs.step === "busy") {
+      body = "<p>Working out how you all know each other… 🥔</p>";
+    } else {
+      body = "<p><b>" + esc(t.title) + "</b>: " + esc(t.scenario_override || "") + "</p>" +
+        '<textarea rows="2" oninput="TG.groupFixType(' + t.id + ', this.value)" placeholder="What\'s off? Tell me and I\'ll fix it">' + esc(gs.fix || "") + "</textarea>" +
+        '<div class="tg-setup-row"><button type="button" class="tg-setup-go" onclick="TG.groupDone(' + t.id + ')">👍 Keep it</button>' +
+        '<button type="button" class="tg-setup-ghost" onclick="TG.groupFix(' + t.id + ')">↻ Fix what I said / another take</button></div>';
+    }
+    return '<div class="tg-setup"><div class="tg-setup-head">🥔 <b>Bulba</b> · the group</div>' + body + err + "</div>";
+  }
+
   // --- 🧭 Before you start: memory, leave-on-read, who you are in this chat (once per chat) ---
   var startSkipped = {}, startState = {};
   function startCard(t) {
@@ -1011,10 +1038,20 @@
     var m = (t.members || []).find(function (x) { return !x.set_up && !setupSkipped(x.slug); }) ||
             (t.members || []).find(function (x) { return setupState[x.slug] && setupState[x.slug].step !== "done"; });
     if (!m) return "";
-    var st = setupState[m.slug] || (setupState[m.slug] = { step: "offer", mode: "modern_au", hint: "", outfit: "" });
+    var st = setupState[m.slug] || (setupState[m.slug] = { step: (m.card_people || []).length > 1 && !t.is_group ? "split" : "offer",
+                                                          mode: "modern_au", hint: "", outfit: "" });
     var n = esc(m.name), slug = esc(m.slug), body = "";
     var err = st.error ? '<p class="tg-setup-err">' + esc(st.error) + "</p>" : "";
-    if (st.step === "offer") {
+    if (st.step === "split") {  // ✂️ one contact, one person
+      var ppl = m.card_people.map(esc);
+      body = "<p><b>" + n + "</b> is a card with " + ppl.length + " people (" + ppl.join(", ") + "). On a phone each of them " +
+        "would be their own contact. Want me to split them into " + ppl.length + " characters and start a group chat with all of " +
+        "them? Each keeps their own sections; your card stays exactly as it is.</p>" +
+        '<div class="tg-setup-row"><button type="button" class="tg-setup-go" onclick="TG.splitCard(\'' + slug + '\')">✂️ Split into ' + ppl.length + " + a group chat</button>" +
+        '<button type="button" class="tg-setup-ghost" onclick="TG.setupStep(\'' + slug + '\', \'offer\')">Keep them as one contact</button></div>';
+    } else if (st.step === "splitting") {
+      body = "<p>Splitting them up… ✂️</p>";
+    } else if (st.step === "offer") {
       body = "<p><b>" + n + "</b> isn't set up for texting yet. Want me to bring them onto a phone? I'll write their @handle, bio, " +
         "how they text, and why you two have each other's number. Their roleplay card stays exactly as it is.</p>" +
         '<div class="tg-setup-modes">' +
@@ -1031,7 +1068,12 @@
         "<dt>Handle & bio</dt><dd>" + esc(m.handle || "") + " · " + esc(m.bio || "") + "</dd>" +
         "<dt>Why you text</dt><dd>" + esc(m.scenario || "") + "</dd>" +
         "<dt>Who they are here</dt><dd>" + esc(m.modern_persona || "") + "</dd>" +
-        "<dt>How they text</dt><dd>" + esc(m.texting_style || "") + "</dd></dl>" +
+        "<dt>How they text</dt><dd>" + esc(m.texting_style || "") + "</dd>" +
+        "<dt>How they look</dt><dd>" + esc(m.appearance_notes || "") + "</dd></dl>" +
+        (st.notes && st.notes.changes && st.notes.changes.length ? '<p class="tg-setup-sub">Changed from the roleplay card:</p><ul class="tg-setup-list">' +
+          st.notes.changes.map(function (c) { return "<li>" + esc(c) + "</li>"; }).join("") + "</ul>" : "") +
+        (st.notes && st.notes.questions && st.notes.questions.length ? '<p class="tg-setup-sub">🥔 Your call (answer below, or keep my choice):</p><ul class="tg-setup-list">' +
+          st.notes.questions.map(function (q) { return "<li>" + esc(q) + "</li>"; }).join("") + "</ul>" : "") +
         '<textarea id="tgSetupFix" rows="2" oninput="TG.setupType(\'' + slug + '\', \'fix\', this.value)" placeholder="What\'s off? Tell me and I\'ll fix it, e.g. we met at a night pharmacy, not at work">' + esc(st.fix || "") + "</textarea>" +
         '<div class="tg-setup-row"><button type="button" class="tg-setup-go" onclick="TG.setupKeep(\'' + slug + '\')">👍 Keep it</button>' +
         '<button type="button" class="tg-setup-ghost" onclick="TG.setupFix(\'' + slug + '\')">↻ Fix what I said / another take</button>' +
@@ -1377,6 +1419,35 @@
         .then(function (res) { STATE.active_thread = res.thread; renderActiveThread(); })
         .catch(function (e) { alert(e.message); });
     },
+    groupType: function (id, v) { if (groupState[id]) groupState[id].hint = v; },
+    groupFixType: function (id, v) { if (groupState[id]) groupState[id].fix = v; },
+    groupSkip: function (id) {
+      try { localStorage.setItem("na-tg-setup-skip-group-" + id, "1"); } catch (e) { /* this visit */ }
+      if (groupState[id]) groupState[id].step = "done";
+      renderActiveThread();
+    },
+    groupDone: function (id) { if (groupState[id]) groupState[id].step = "done"; renderActiveThread(); },
+    groupFix: function (id) {
+      var gs = groupState[id]; if (!gs) return;
+      if ((gs.fix || "").trim()) gs.hint = (gs.hint ? gs.hint + "\n" : "") + "Correction to the last draft: " + gs.fix.trim();
+      gs.fix = ""; TG.groupWrite(id);
+    },
+    groupWrite: function (id) {
+      var gs = groupState[id]; if (!gs) return;
+      gs.step = "busy"; gs.error = ""; renderActiveThread();
+      apiPost({ action: "group_scenario", thread_id: id, hint: gs.hint }).then(function (res) {
+        gs.step = "review"; STATE.threads = res.threads; STATE.active_thread = res.thread; renderSidebar(); renderActiveThread();
+      }).catch(function (e) { gs.step = "offer"; gs.error = e.message; renderActiveThread(); });
+    },
+    setupStep: function (slug, step) { var st = setupState[slug]; if (st) { st.step = step; renderActiveThread(); } },
+    splitCard: function (slug) {
+      var st = setupState[slug]; if (!st) return;
+      st.step = "splitting"; st.error = ""; renderActiveThread();
+      apiPost({ action: "split_card", char_slug: slug }).then(function (res) {
+        delete setupState[slug];
+        STATE.threads = res.threads; STATE.active_thread = res.thread; renderSidebar(); renderActiveThread();
+      }).catch(function (e) { st.step = "split"; st.error = e.message; renderActiveThread(); });
+    },
     setupType: function (slug, key, value) { if (setupState[slug]) setupState[slug][key] = value; },
     setupSkip: function (slug) {
       try { localStorage.setItem("na-tg-setup-skip-" + slug, "1"); } catch (e) { /* this visit only */ }
@@ -1389,6 +1460,7 @@
       apiPost({ action: "modernize_bulba", char_slug: slug, mode: st.mode, hint: st.hint })
         .then(function (res) {
           if (res.error) throw new Error(res.error);
+          st.notes = res.profile.setup_notes || {};
           syncCharCatalog(res.char_slug, Object.assign({}, res.profile, { set_up: true }));
           st.step = "review"; renderSidebar(); renderActiveThread();
         })

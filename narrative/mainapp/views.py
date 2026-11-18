@@ -4998,6 +4998,34 @@ def messenger_api(request):
             "threads": all_threads,
         })
 
+    if action == "group_scenario":  # 🥔 a group chat's shared scenario, written by Bulba
+        thread = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id")).prefetch_related("characters").first()
+        if not thread:
+            return JsonResponse({"error": "Chat not found."}, status=404)
+        try:
+            messenger.group_scenario(request.user, thread, hint=str(body.get("hint") or ""))
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({
+            "thread": messenger.serialize_thread_full(thread, request.user),
+            "threads": [messenger.serialize_thread_summary(t)
+                        for t in MessengerThread.objects.filter(user=request.user).prefetch_related("characters")],
+        })
+
+    if action == "split_card":  # ✂️ a card with several people → one character each, and a group chat
+        c_obj = char_by_slug.get(body.get("char_slug") or "")
+        if not c_obj:
+            return JsonResponse({"error": "Character not found."}, status=404)
+        try:
+            thread = messenger.split_card(request.user, c_obj)
+        except ValueError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({
+            "thread": messenger.serialize_thread_full(thread, request.user),
+            "threads": [messenger.serialize_thread_summary(t)
+                        for t in MessengerThread.objects.filter(user=request.user).prefetch_related("characters")],
+        })
+
     if action in ("new_chat", "branch_chat", "rename_chat"):  # 💬 chat files
         thread = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id")).prefetch_related("characters").first()
         if not thread:

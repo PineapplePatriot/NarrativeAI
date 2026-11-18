@@ -1564,3 +1564,5 @@ body.tg-bulba-open .tg-header-actions .tg-hdr-btn > span, body.tg-bulba-open #hd
 .tg-start-opt.on { border-color: #a78bfa; background: rgba(167, 139, 250, .12); }
 .tg-start-opt input { margin-top: 3px; accent-color: #a78bfa; }
 .tg-start .tg-input { width: 100%; box-sizing: border-box; margin-bottom: 8px; }
+.tg-setup-sub { margin: 6px 0 2px !important; font-weight: 600; color: #c4b5fd; font-size: 13px; }
+.tg-setup-list { margin: 0 0 10px; padding-left: 18px; font-size: 13.5px; }
