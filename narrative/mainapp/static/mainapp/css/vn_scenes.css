@@ -1,0 +1,386 @@
+/* Visual Novel Meet-Up Scene Mode & Event CG Gallery (Digital Screen Hub) */
+
+#app-scenes {
+  flex: 1;
+  overflow: hidden;
+  background: #070b14;
+  display: none;
+  flex-direction: column;
+}
+
+#app-scenes.active {
+  display: flex;
+}
+
+.vn-top-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 18px;
+  background: rgba(11, 18, 32, 0.92);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-wrap: wrap;
+  z-index: 5;
+}
+
+.vn-nav-tabs {
+  display: flex;
+  gap: 6px;
+}
+
+.vn-tab-btn {
+  padding: 6px 13px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(15, 23, 42, 0.8);
+  color: #cbd5e1;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.vn-tab-btn.active {
+  background: linear-gradient(135deg, #db2777, #7c3aed);
+  border-color: #ec4899;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(219, 39, 119, 0.25);
+}
+
+.vn-stage-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Main Visual Novel Stage */
+.vn-stage-wrap {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background-color: #0b1323;
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+}
+
+.vn-stage-overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 38%, rgba(7, 11, 20, 0.15) 0%, rgba(7, 11, 20, 0.72) 100%);
+  pointer-events: none;
+}
+
+/* Stage HUD (Location + Music Player + Auto-Sprite Toggle) */
+.vn-stage-hud {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 18px;
+  flex-wrap: wrap;
+}
+
+.vn-hud-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 13px;
+  border-radius: 999px;
+  background: rgba(11, 17, 30, 0.78);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #f1f5f9;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+/* Central Character Sprite Stage */
+.vn-sprite-stage {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 24px;
+  min-height: 240px;
+  overflow: hidden;
+}
+
+.vn-central-sprite-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-height: 100%;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+.vn-central-sprite-img {
+  max-height: min(47vh, 430px);
+  max-width: min(76vw, 420px);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 18px 18px 0 0;
+  filter: drop-shadow(0 16px 36px rgba(0, 0, 0, 0.75));
+  transition: all 0.22s ease;
+}
+
+.vn-sprite-mood-bar {
+  position: absolute;
+  top: 10px;
+  right: -12px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.vn-mood-badge {
+  padding: 4px 11px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(244, 114, 182, 0.45);
+  color: #fbcfe8;
+  font-size: 11.5px;
+  font-weight: 700;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+}
+
+.vn-gen-sprite-btn {
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid rgba(168, 85, 247, 0.65);
+  background: linear-gradient(135deg, rgba(147, 51, 234, 0.92), rgba(219, 39, 119, 0.92));
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(147, 51, 234, 0.4);
+}
+
+.vn-gen-sprite-btn:hover {
+  filter: brightness(1.1);
+}
+
+/* Classic Visual Novel Dialogue Box */
+.vn-dialogue-dock {
+  position: relative;
+  z-index: 4;
+  padding: 0 22px 18px;
+  max-width: 980px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.vn-dialogue-box {
+  position: relative;
+  background: linear-gradient(180deg, rgba(13, 21, 38, 0.93) 0%, rgba(8, 13, 25, 0.97) 100%);
+  backdrop-filter: blur(16px);
+  border: 1.5px solid rgba(148, 163, 184, 0.25);
+  border-radius: 18px;
+  padding: 20px 22px 16px;
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.72);
+}
+
+.vn-speaker-plate {
+  position: absolute;
+  top: -15px;
+  left: 22px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 16px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #db2777, #7c3aed);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: #fff;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  box-shadow: 0 6px 16px rgba(219, 39, 119, 0.35);
+}
+
+.vn-speaker-plate.narrator {
+  background: linear-gradient(135deg, #334155, #1e293b);
+  color: #cbd5e1;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.4);
+}
+
+.vn-beat-counter {
+  position: absolute;
+  top: 12px;
+  right: 18px;
+  font-size: 11.5px;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.vn-beat-text {
+  margin-top: 6px;
+  min-height: 58px;
+  font-size: 15.5px;
+  line-height: 1.58;
+  color: #f8fafc;
+  letter-spacing: 0.01em;
+}
+
+.vn-beat-text.narration-line {
+  font-style: italic;
+  color: #cbd5e1;
+}
+
+.vn-beat-nav-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  flex-wrap: wrap;
+}
+
+/* User Action / Short Dialogue & Quick Choices */
+.vn-turn-director {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.14);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.vn-choices-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.vn-choice-chip {
+  padding: 6px 13px;
+  border-radius: 999px;
+  border: 1px solid rgba(236, 72, 153, 0.4);
+  background: rgba(219, 39, 119, 0.14);
+  color: #fbcfe8;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.vn-choice-chip:hover {
+  background: rgba(219, 39, 119, 0.3);
+  border-color: #f472b6;
+}
+
+.vn-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.vn-short-input {
+  flex: 1;
+  min-width: 210px;
+  padding: 9px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(15, 23, 42, 0.85);
+  color: #f8fafc;
+  font-size: 13.5px;
+}
+
+.vn-short-input:focus {
+  outline: none;
+  border-color: #ec4899;
+}
+
+.vn-climax-btn {
+  padding: 9px 15px;
+  border-radius: 12px;
+  border: 1px solid rgba(250, 204, 21, 0.55);
+  background: linear-gradient(135deg, #d97706, #db2777);
+  color: #fff;
+  font-weight: 700;
+  font-size: 12.5px;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(217, 119, 6, 0.3);
+}
+
+.vn-climax-btn.pulse {
+  animation: vnPulseGlow 1.9s infinite;
+}
+
+@keyframes vnPulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0.55); }
+  50% { box-shadow: 0 0 0 8px rgba(236, 72, 153, 0); }
+}
+
+/* TeleChat Meet-Up Banner inside Messenger */
+.tg-meetup-banner {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 16px;
+  background: linear-gradient(90deg, rgba(124, 58, 237, 0.24), rgba(219, 39, 119, 0.24));
+  border-bottom: 1px solid rgba(236, 72, 153, 0.35);
+  font-size: 12.5px;
+  color: #fbcfe8;
+}
+
+/* Scene & CG Gallery Grid */
+.vn-gallery-pane {
+  flex: 1;
+  overflow-y: auto;
+  padding: 22px 26px;
+}
+
+.vn-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 18px;
+  margin-top: 16px;
+}
+
+.vn-cg-card {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.16s ease, border-color 0.16s ease;
+}
+
+.vn-cg-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(236, 72, 153, 0.45);
+}
+
+.vn-cg-thumb {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  background: #0f172a;
+  cursor: pointer;
+}
+
+.vn-cg-body {
+  padding: 13px 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}

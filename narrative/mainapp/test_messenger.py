@@ -439,5 +439,155 @@ class MessengerHubTests(TestCase):
         self.assertIn("Locked Burner Post", fwd_data["user_message"]["text"])
         self.assertEqual(fwd_data["turn"]["bubbles"][0]["text"], "Who gave you access to that account?")
 
+    def test_vn_meetup_scene_dynamic_sprites_and_finale_cg_gallery(self):
+        from . import sprites
+        thread = messenger.create_thread(self.user, [self.char1])
+        self.client.post(
+            reverse("messenger_api"),
+            data=json.dumps({
+                "action": "send_user_message",
+                "thread_id": thread.id,
+                "text": "Meet me at the cafe, I'm on my way!",
+                "generate": False,
+            }),
+            content_type="application/json",
+        )
+
+        url = reverse("vn_scenes_api")
+        cue_res = self.client.post(
+            url,
+            data=json.dumps({"action": "check_meetup", "thread_id": thread.id}),
+            content_type="application/json",
+        )
+        self.assertEqual(cue_res.status_code, 200)
+        self.assertTrue(cue_res.json()["meetup_cue"]["ready"])
+
+        fake_start = json.dumps({
+            "title": "Midnight Espresso Meet-Up",
+            "location": "Neon Corner Cafe",
+            "music_id": "builtin_music_0",
+            "background_id": "builtin_bg_0",
+            "beats": [
+                {
+                    "speaker": "narrator",
+                    "kind": "narration",
+                    "emotion": "neutral",
+                    "text": "Rain streaks the cafe window as the bell above the door chimes.",
+                },
+                {
+                    "speaker": self.char1.slug,
+                    "kind": "dialogue",
+                    "emotion": "flustered",
+                    "text": "You're actually early for once. Don't look at me like that.",
+                },
+            ],
+            "handoff": "user_turn",
+            "choices": [
+                "*slides a hot espresso across the booth* \"For you.\"",
+                "\"You ran here in the rain, didn't you?\"",
+            ],
+        })
+        with patch("mainapp.ai_client.complete", return_value=fake_start):
+            start_res = self.client.post(
+                url,
+                data=json.dumps({
+                    "action": "start_scene",
+                    "thread_id": thread.id,
+                    "location_hint": "Neon Corner Cafe",
+                    "auto_generate_sprites": False,
+                }),
+                content_type="application/json",
+            )
+        self.assertEqual(start_res.status_code, 200)
+        scene = start_res.json()["scene"]
+        self.assertEqual(scene["title"], "Midnight Espresso Meet-Up")
+        self.assertEqual(len(scene["beats"]), 2)
+        char_beat = scene["beats"][1]
+        self.assertEqual(char_beat["emotion"], "flustered")
+        self.assertTrue(char_beat["needs_sprite_gen"])
+
+        # Dynamically generate & permanently store the 'flustered' expression sprite
+        fake_png = b"\x89PNG\r\n\x1a\nflusteredsprite"
+        with patch("mainapp.messenger.make_picture", return_value=(fake_png, 0.02)):
+            sp_res = self.client.post(
+                url,
+                data=json.dumps({
+                    "action": "generate_sprite",
+                    "beat_id": char_beat["id"],
+                    "char_slug": self.char1.slug,
+                    "emotion": "flustered",
+                }),
+                content_type="application/json",
+            )
+        self.assertEqual(sp_res.status_code, 200)
+        sp_data = sp_res.json()
+        self.assertEqual(sp_data["emotion"], "flustered")
+        self.assertTrue(sp_data["sprite_url"].endswith(".png"))
+        self.char1.refresh_from_db()
+        self.assertIn("flustered", sprites.extras(self.char1))
+
+        # Step the scene forward with user action/dialogue
+        fake_step = json.dumps({
+            "beats": [
+                {
+                    "speaker": "narrator",
+                    "kind": "narration",
+                    "emotion": "neutral",
+                    "text": "He wraps both hands around the warm porcelain cup.",
+                },
+                {
+                    "speaker": self.char1.slug,
+                    "kind": "dialogue",
+                    "emotion": "flustered",
+                    "text": "...Acceptable. At least someone in this city knows how to pull a proper shot.",
+                },
+            ],
+            "handoff": "climax_ready",
+            "choices": ["*clinks cups together*"],
+        })
+        with patch("mainapp.ai_client.complete", return_value=fake_step):
+            step_res = self.client.post(
+                url,
+                data=json.dumps({
+                    "action": "step_scene",
+                    "user_input": "*slides a hot espresso across the booth* \"For you.\"",
+                }),
+                content_type="application/json",
+            )
+        self.assertEqual(step_res.status_code, 200)
+        stepped_scene = step_res.json()["scene"]
+        self.assertEqual(stepped_scene["handoff"], "climax_ready")
+        # Because 'flustered' was saved permanently on self.char1, the new beat reuses it without needing gen!
+        self.assertFalse(stepped_scene["beats"][-1]["needs_sprite_gen"])
+
+        # End the scene on a full generated Finale Event CG -> saved in gallery & logged to TeleChat
+        fake_cg_distill = json.dumps({
+            "visual_prompt": "Cinematic widescreen VN Event CG in a rainy neon cafe booth, Dottore holding a steaming espresso cup across from the viewer, warm amber reflections.",
+            "summary": "Met up at the Neon Corner Cafe during a rainstorm and shared late-night espresso.",
+            "quote": "At least someone in this city knows how to pull a proper shot.",
+        })
+        fake_cg_bytes = b"\x89PNG\r\n\x1a\nfinalecg"
+        with patch("mainapp.ai_client.complete", return_value=fake_cg_distill), \
+             patch("mainapp.messenger.make_picture", return_value=(fake_cg_bytes, 0.04)):
+            fin_res = self.client.post(
+                url,
+                data=json.dumps({"action": "finish_scene", "cg_hint": "Close-up across the rainy booth"}),
+                content_type="application/json",
+            )
+        self.assertEqual(fin_res.status_code, 200)
+        fin_data = fin_res.json()
+        entry = fin_data["gallery_entry"]
+        self.assertEqual(entry["title"], "Midnight Espresso Meet-Up")
+        self.assertTrue(entry["cg_url"].endswith(".png"))
+        self.assertEqual(len(fin_data["vn_scenes"]["gallery"]), 1)
+        self.assertIsNone(fin_data["vn_scenes"]["active_scene"])
+
+        # Verify the linked TeleChat thread received both the scene summary and the Finale CG photo bubble
+        thread.refresh_from_db()
+        td = messenger.thread_data(thread)
+        self.assertTrue(any("Meet-Up Scene Completed" in (m.get("text") or "") for m in td["messages"]))
+        self.assertTrue(any((m.get("photo") or {}).get("url") == entry["cg_url"] for m in td["messages"]))
+
+
 
 

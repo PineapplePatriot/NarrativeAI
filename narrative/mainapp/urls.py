@@ -54,5 +54,6 @@ path('worldbook_delete/<slug:slug>', views.worldbook_delete, name='worldbook_del
     path('screen/', views.screen_hub, name='screen_hub'),
     path('screen/api/', views.messenger_api, name='messenger_api'),
     path('screen/subtext/api/', views.subtext_api, name='subtext_api'),
+    path('screen/scenes/api/', views.vn_scenes_api, name='vn_scenes_api'),
     ]
 #handler404 = page_not_found

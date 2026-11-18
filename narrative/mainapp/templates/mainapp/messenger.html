@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="{% static 'css/topbar.css' %}?v=7">
   <link rel="stylesheet" href="{% static 'mainapp/css/messenger.css' %}?v=13">
   <link rel="stylesheet" href="{% static 'mainapp/css/subtext.css' %}?v=1">
+  <link rel="stylesheet" href="{% static 'mainapp/css/vn_scenes.css' %}?v=1">
 </head>
 <body class="tg-screen-body">
   {% include "partials/topbar.html" with active="screen" %}
@@ -22,6 +23,10 @@
         <span class="dock-ico">💬</span>
         <span>Chats</span>
         <span class="dock-badge" id="dockUnreadBadge" style="display:none">0</span>
+      </button>
+      <button type="button" class="dock-app-btn" data-app="scenes" onclick="TG.switchApp('scenes')" title="Visual Novel Meet-Up Scenes & Event CG Gallery">
+        <span class="dock-ico">🎬</span>
+        <span>Scenes</span>
       </button>
       <button type="button" class="dock-app-btn" data-app="subtext" onclick="TG.switchApp('subtext')" title="Subtext — Public Posts, Locked Burner Accounts & AITA Threads">
         <span class="dock-ico">🌐</span>
@@ -82,6 +87,9 @@
             <span class="tg-hdr-btn" id="hdrModelBadge" title="Active chat model — per-model texting rules & anti-slop counters adapt automatically when you switch models" style="cursor:default; opacity:0.88; font-size:11.5px;">
               🧠 <span id="hdrModelLabel">Auto Rules</span>
             </span>
+            <button type="button" class="tg-hdr-btn" style="background:linear-gradient(135deg,rgba(219,39,119,0.25),rgba(124,58,237,0.25)); border-color:rgba(236,72,153,0.45); color:#fbcfe8;" onclick="VN_SCENES.openLaunchModalFromChat()" title="Trigger a Visual Novel Meet-Up Scene with central character sprites, music, and Finale Event CG">
+              🎬 <span>Meet-Up</span>
+            </button>
             <button type="button" class="tg-hdr-btn tg-hdr-bulba" onclick="TG.openBulba()" title="Bulba, for this chat: how you met, how they text, their look, their voice">
               🥔 <span>Bulba</span>
             </button>
@@ -96,6 +104,12 @@
             </button>
           </div>
         </header>
+
+        <!-- Auto-Detected Meet-Up Scene Banner -->
+        <div class="tg-meetup-banner" id="tgMeetupBanner" style="display:none">
+          <div id="tgMeetupBannerText">🎬 Characters are talking about meeting up!</div>
+          <button type="button" class="tg-send-btn" style="padding:5px 12px; font-size:12px; background:linear-gradient(135deg,#db2777,#7c3aed);" onclick="VN_SCENES.launchFromActiveThread(this)">🎬 Enter Visual Novel Scene ➤</button>
+        </div>
 
         <!-- Pinned Message Banner -->
         <div class="tg-pinned-bar" id="tgPinnedBar" style="display:none" onclick="TG.scrollToPinned()">
@@ -396,6 +410,7 @@
     window.TG_CFG = {
       api: "{% url 'messenger_api' %}",
       subtext_api: "{% url 'subtext_api' %}",
+      vn_scenes_api: "{% url 'vn_scenes_api' %}",
       bulba: "{% url 'bulba_texting' 0 %}",
       quick: "{% url 'character_quick' '__slug__' %}",
       csrf: "{{ csrf_token }}"
@@ -403,5 +418,6 @@
   </script>
   <script src="{% static 'mainapp/js/messenger.js' %}?v=11"></script>
   <script src="{% static 'mainapp/js/subtext.js' %}?v=1"></script>
+  <script src="{% static 'mainapp/js/vn_scenes.js' %}?v=1"></script>
 </body>
 </html>

@@ -4611,7 +4611,7 @@ def screen_hub(request):
     serialized_threads = [messenger.serialize_thread_summary(t) for t in threads]
     serialized_active = messenger.serialize_thread_full(active_thread, request.user) if active_thread else None
 
-    from . import subtext
+    from . import subtext, vn_scenes
     char_catalog = []
     for c in chars:
         prof = messenger.char_profile(c)
@@ -4621,6 +4621,7 @@ def screen_hub(request):
             "edit_url": reverse("character", kwargs={"slug": c.slug}),
             "chat_url": reverse("chat", kwargs={"slug": c.slug}),
             "burner_handle": subtext.burner_handle_for(c),
+            "sprites": vn_scenes.all_character_sprites(c),
             **prof,
         })
 
@@ -4636,6 +4637,12 @@ def screen_hub(request):
         "tts_models": list(voice.OPENROUTER_TTS_MODELS),
         "active_model": messenger.active_model_texting_rules(request.user),
         "subtext": subtext.get_subtext_state(request.user, chars),
+        "vn_scenes": {
+            **vn_scenes.get_vn_state(request.user),
+            "music_tracks": vn_scenes.available_music_tracks(chars),
+            "backgrounds": vn_scenes.available_backgrounds(chars),
+            "meetup_cue": vn_scenes.detect_meetup_cue(active_thread) if active_thread else {"ready": False, "reason": ""},
+        },
     }
     return render(request, "mainapp/messenger.html", {
         "initial_json": json.dumps(initial_state, ensure_ascii=False),
@@ -5521,4 +5528,169 @@ def subtext_api(request):
         return JsonResponse({"subtext": state})
 
     return JsonResponse({"error": f"Unknown subtext action '{action}'."}, status=400)
+
+
+@login_required
+def vn_scenes_api(request):
+    """JSON endpoint for Visual Novel Meet-Up Scenes, Dynamic Sprite Generation, and Event CG Gallery."""
+    from . import messenger, vn_scenes
+    from .models import MessengerThread
+
+    chars = _user_characters(request.user)
+    char_by_slug = {c.slug: c for c in chars}
+
+    def _full_vn_payload(active_thread=None):
+        st = vn_scenes.get_vn_state(request.user)
+        return {
+            **st,
+            "music_tracks": vn_scenes.available_music_tracks(chars),
+            "backgrounds": vn_scenes.available_backgrounds(chars),
+            "meetup_cue": vn_scenes.detect_meetup_cue(active_thread) if active_thread else {"ready": False, "reason": ""},
+        }
+
+    if request.method == "GET":
+        tid = request.GET.get("thread_id")
+        t_obj = MessengerThread.objects.filter(user=request.user, id=tid).first() if (tid and str(tid).isdigit()) else None
+        return JsonResponse({"vn_scenes": _full_vn_payload(t_obj)})
+
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required."}, status=405)
+
+    try:
+        body = json.loads(request.body.decode("utf-8") or "{}")
+    except ValueError:
+        return JsonResponse({"error": "Invalid JSON."}, status=400)
+
+    action = body.get("action") or ""
+
+    if action == "check_meetup":
+        tid = body.get("thread_id")
+        t_obj = MessengerThread.objects.filter(user=request.user, id=tid).first() if tid else None
+        return JsonResponse({"meetup_cue": vn_scenes.detect_meetup_cue(t_obj)})
+
+    if action == "start_scene":
+        tid = body.get("thread_id")
+        t_obj = MessengerThread.objects.filter(user=request.user, id=tid).prefetch_related("characters").first() if tid else None
+        slugs = body.get("character_slugs") or []
+        picked = [char_by_slug[s] for s in slugs if s in char_by_slug]
+        if not picked and t_obj:
+            picked = list(t_obj.characters.all())
+        if not picked and chars:
+            picked = [chars[0]]
+        if not picked:
+            return JsonResponse({"error": "Pick at least one character for the scene."}, status=400)
+        hint = str(body.get("location_hint") or "").strip()
+        auto_sprites = bool(body.get("auto_generate_sprites", False))
+        try:
+            scene = vn_scenes.start_scene(
+                request.user,
+                thread=t_obj,
+                characters=picked,
+                location_hint=hint,
+                auto_generate_sprites=auto_sprites,
+            )
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        char_sprites = {c.slug: vn_scenes.all_character_sprites(c) for c in picked}
+        return JsonResponse({
+            "scene": scene,
+            "char_sprites": char_sprites,
+            "vn_scenes": _full_vn_payload(t_obj),
+        })
+
+    if action == "step_scene":
+        user_input = str(body.get("user_input") or "").strip()
+        auto_sprites = bool(body.get("auto_generate_sprites", False))
+        try:
+            scene, new_beats = vn_scenes.step_scene(
+                request.user,
+                user_input=user_input,
+                auto_generate_sprites=auto_sprites,
+            )
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        char_sprites = {
+            s: vn_scenes.all_character_sprites(char_by_slug[s])
+            for s in (scene.get("character_slugs") or [])
+            if s in char_by_slug
+        }
+        return JsonResponse({
+            "scene": scene,
+            "new_beats": new_beats,
+            "char_sprites": char_sprites,
+            "vn_scenes": _full_vn_payload(),
+        })
+
+    if action == "generate_sprite":
+        beat_id = str(body.get("beat_id") or "").strip()
+        slug = str(body.get("char_slug") or "").strip()
+        emotion = str(body.get("emotion") or "neutral").strip()
+        try:
+            scene, sprite_url, norm_emo, cost = vn_scenes.generate_beat_sprite(
+                request.user,
+                beat_id=beat_id,
+                char_slug=slug,
+                emotion=emotion,
+            )
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        c_obj = char_by_slug.get(slug)
+        return JsonResponse({
+            "scene": scene,
+            "sprite_url": sprite_url,
+            "emotion": norm_emo,
+            "char_slug": slug,
+            "sprites": vn_scenes.all_character_sprites(c_obj) if c_obj else {},
+            "cost": cost,
+        })
+
+    if action == "set_stage":
+        state = vn_scenes.get_vn_state(request.user)
+        scene = state.get("active_scene")
+        if not scene:
+            return JsonResponse({"error": "No active scene."}, status=400)
+        music_id = body.get("music_id")
+        bg_id = body.get("background_id")
+        if music_id:
+            tracks = vn_scenes.available_music_tracks(chars)
+            picked_m = next((t for t in tracks if t["id"] == music_id), None)
+            if picked_m:
+                scene["music"] = picked_m
+        if bg_id:
+            bgs = vn_scenes.available_backgrounds(chars)
+            picked_b = next((b for b in bgs if b["id"] == bg_id), None)
+            if picked_b:
+                scene["background"] = picked_b
+        vn_scenes.save_vn_state(request.user, {"active_scene": scene})
+        return JsonResponse({"scene": scene})
+
+    if action == "finish_scene":
+        cg_hint = str(body.get("cg_hint") or "").strip()
+        try:
+            entry, cost = vn_scenes.finish_scene_with_cg(request.user, cg_hint=cg_hint)
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        tid = entry.get("thread_id")
+        t_obj = MessengerThread.objects.filter(user=request.user, id=tid).prefetch_related("characters").first() if tid else None
+        all_threads = [
+            messenger.serialize_thread_summary(t)
+            for t in MessengerThread.objects.filter(user=request.user).prefetch_related("characters")
+        ]
+        return JsonResponse({
+            "gallery_entry": entry,
+            "cost": cost,
+            "vn_scenes": _full_vn_payload(t_obj),
+            "thread": messenger.serialize_thread_full(t_obj, request.user) if t_obj else None,
+            "threads": all_threads,
+        })
+
+    if action == "delete_gallery_item":
+        gid = body.get("id")
+        state = vn_scenes.get_vn_state(request.user)
+        gallery = [g for g in (state.get("gallery") or []) if g.get("id") != gid]
+        vn_scenes.save_vn_state(request.user, {"gallery": gallery})
+        return JsonResponse({"vn_scenes": _full_vn_payload()})
+
+    return JsonResponse({"error": f"Unknown scenes action '{action}'."}, status=400)
+
 
