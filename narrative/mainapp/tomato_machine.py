@@ -4,7 +4,9 @@
 Spins
 - One on the house (START_SPINS), then one for every SPIN_COST tomatoes thrown at chats and Bulba (TomatoScore.wild, mainapp/tomatoes.py), plus:
 - a free one for each golden splat (1 in 500) thrown at a chat or Bulba, and
-- one for every COMPOST_SPIN compost (what duplicates turn into).
+- one for every COMPOST_SPIN compost (what duplicates turn into), and
+- the garden's tomatoes: filled orders pay tomatoes ("earned", counted with the thrown ones toward spins, not on the
+  leaderboard), and a rare mutation is a free spin (mainapp/tomato_garden.py).
 
 A draw (all on the server, so nobody can rig it from the browser)
 - Tiers: common 75%, rare 21%, legendary 4% (ODDS).
@@ -117,21 +119,37 @@ PRIZES = [
      "note": "Little blue flames follow your cursor. Don't follow them back."},
     {"id": "companion_lantern", "tier": "rare", "kind": "companion", "emoji": "🏮", "name": "Corner lantern", "banner": "lantern",
      "note": "A small paper lantern hangs in the corner of every page and sways. Tap it."},
+    # --- ❄️ First Snow (the winter banner): only from its banner, while it runs ---
+    {"id": "globe_tomato", "tier": "legendary", "kind": "skin", "emoji": "🔮", "img": "/static/img/tomato/snow_globe.png",
+     "name": "Snow globe tomato", "banner": "winter",
+     "note": "A whole winter inside a tomato. Shake well before throwing."},
+    {"id": "gardener_babbo", "tier": "legendary", "kind": "gardener", "emoji": "🎅", "name": "Babbo Natale", "banner": "winter",
+     "note": "Not that other one. Once a day he leaves a present in the shed: seeds, wrapped badly, with love."},
+    {"id": "snowman", "tier": "rare", "kind": "decor", "emoji": "⛄", "name": "Snowman", "banner": "winter",
+     "note": "Carrot nose, coal smile, no opinions. Bulba is suspicious anyway."},
+    {"id": "trail_snow", "tier": "rare", "kind": "trail", "emoji": "❄️", "name": "Cursor trail: snowflakes", "banner": "winter",
+     "note": "Snowflakes drift down wherever your cursor goes."},
+    {"id": "companion_globe", "tier": "rare", "kind": "companion", "emoji": "🌨️", "name": "Corner snow globe", "banner": "winter",
+     "note": "A tiny snow globe sits in the corner of every page. Tap it, and it snows."},
 ]
 BY_ID = {p["id"]: p for p in PRIZES}
 STACKS = ("seed", "decor")          # you can own many
 EQUIP = ("badge", "trail", "hat", "companion")   # one of each worn at a time
 
-# Banners: the standard one holds everything that isn't a banner's own; a seasonal banner runs during its
-# months, with its featured things at a rate-up: a legendary from it is a featured one half the time (and surely
+# Banners: the standard one holds everything that isn't a banner's own; a seasonal banner runs for its month
+# (Lantern Night in November, First Snow in December), with its featured things at a rate-up: a legendary from it is a featured one half the time (and surely
 # the next time, after a miss); a rare is a featured one half the time too (surely after a miss). Bulba's Promise
 # there picks which featured legendary.
 BANNERS = {
     "standard": {"name": "Standard", "emoji": "🎰", "tagline": "Everything the machine always has.", "months": None},
-    "lantern": {"name": "Lantern Night", "emoji": "🏮", "months": (9, 10, 11),
+    "lantern": {"name": "Lantern Night", "emoji": "🏮", "months": (11,),
                 "tagline": "When the lanterns are lit, something tall and polite comes to tend the garden.",
                 "featured": {"legendary": ["lantern_tomato", "gardener_death"],
                              "rare": ["seed_monster", "trail_wisp", "companion_lantern"]}},
+    "winter": {"name": "First Snow", "emoji": "❄️", "months": (12,), "art": "/static/img/tomato/snow_globe.png",
+               "tagline": "The snow came early, and someone in a red coat is humming in the garden. Not that one. The other one.",
+               "featured": {"legendary": ["globe_tomato", "gardener_babbo"],
+                            "rare": ["snowman", "trail_snow", "companion_globe"]}},
 }
 
 
@@ -167,7 +185,7 @@ def banner_ends(bid, today=None):
 
 def _state(score):
     m = dict(score.machine or {})
-    for k in ("used", "bonus", "golden", "compost", "pity_rare", "pity_legend"):
+    for k in ("used", "bonus", "golden", "compost", "pity_rare", "pity_legend", "earned"):
         m[k] = int(m.get(k) or 0)
     m["items"] = dict(m.get("items") or {})
     m["equipped"] = dict(m.get("equipped") or {})
@@ -190,7 +208,7 @@ def _state(score):
 
 def spins_left(score, m=None):
     m = m or _state(score)
-    return max(0, START_SPINS + score.wild // SPIN_COST + m["bonus"] - m["used"])
+    return max(0, START_SPINS + (score.wild + m["earned"]) // SPIN_COST + m["bonus"] - m["used"])
 
 
 def add_golden(score, n):
@@ -390,7 +408,7 @@ def public(score, today=None):
     m = _state(score)
     now = season(today)
     return {
-        "spins": spins_left(score, m), "cost": SPIN_COST, "toward": score.wild % SPIN_COST,
+        "spins": spins_left(score, m), "cost": SPIN_COST, "toward": (score.wild + m["earned"]) % SPIN_COST, "earned": m["earned"],
         "compost": m["compost"], "compost_spin": COMPOST_SPIN, "golden": m["golden"],
         "pity": {"rare": m["pity_rare"], "rare_at": RARE_PITY, "legend": m["pity_legend"], "legend_at": LEGEND_PITY},
         "promise": m["promise"], "promise_sure": m["promise_sure"],
@@ -398,7 +416,7 @@ def public(score, today=None):
         "odds": ODDS, "season": now,
         "prizes": [{**p, "now": p.get("season") in (None, now) and (not p.get("banner") or banner_open(p["banner"], today))}
                    for p in PRIZES],
-        "banners": [{"id": bid, "name": b["name"], "emoji": b["emoji"], "tagline": b["tagline"],
+        "banners": [{"id": bid, "name": b["name"], "emoji": b["emoji"], "tagline": b["tagline"], "art": b.get("art", ""),
                      "featured": b.get("featured") or {}, "open": banner_open(bid, today),
                      "ends": (banner_ends(bid, today).isoformat() if banner_ends(bid, today) else None),
                      **({k: m["banners"][bid][k] for k in ("pity_rare", "pity_legend", "sure", "sure_rare", "promise")}

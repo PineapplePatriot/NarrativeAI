@@ -136,7 +136,7 @@ def synthesize_openrouter(user, text, voice_id="sarah", model=None):
     Accepts any of the 21 premade voice names (e.g. 'george', 'sarah') OR a custom 20-char ElevenLabs Voice ID.
     Supports inline audio delivery tags (`[whispering]`, `[laughing]`, `[sighs]`, `[curious]`) on v4, v4-turbo, and v3.
     """
-    from mainapp.models import ConnectionProfile
+    from users.models import ConnectionProfile
     raw = str(text or "").strip()
     if not raw:
         raise VoiceError("Nothing to read aloud.")
@@ -185,7 +185,7 @@ def synthesize_single(user, text, voice_id="sarah", model=None):
     2. If the user has a direct ElevenLabs API key and `voice_id` is a custom ElevenLabs Voice ID (or OpenRouter fails),
        uses direct ElevenLabs synthesis (`synthesize`).
     """
-    from mainapp.models import ConnectionProfile
+    from users.models import ConnectionProfile
     from mainapp.utils import get_elevenlabs_key
     raw = str(text or "").strip()
     if not raw:

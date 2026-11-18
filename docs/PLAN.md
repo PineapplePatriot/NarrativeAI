@@ -155,8 +155,18 @@ prizes; garden weather and seasons, rare plant mutations, visiting critters, sma
 Built: banners over the Sauce-o-Matic (tabs). 🏮 Lantern Night (September to November): Lantern tomato and Mr. Death
 (gardener: every third harvest +3 compost) as featured legendaries, Monstrous flower seeds, a will-o'-wisp cursor
 trail and a corner lantern companion as featured rares; 50% rate-up with a guarantee after a miss, its own pity,
-Bulba's Promise picks the featured legendary. Everything else is the standard banner. Next: a winter banner
-(December to February) and the rest of Phase E (garden weather and seasons, mutations, critters, orders).
+Bulba's Promise picks the featured legendary. Everything else is the standard banner.
+
+Decided 17 November: each seasonal banner lasts one month (Lantern Night is now November only).
+Built 17 November: ❄️ **First Snow** (December): the Snow globe tomato (the first skin drawn from a picture,
+static/img/tomato/snow_globe.png, also the banner's art) and Babbo Natale (gardener: once a day a present of seeds
+in the shed) as featured legendaries; the Snowman (garden decoration), a snowflake cursor trail and a corner snow
+globe (tap it: it snows over the page) as featured rares.
+Built 17 November: the **order board** (neighbours post one order a day, at most 3 open, each for 3 days; harvests
+count toward them by themselves and still make compost; a filled order pays 100-300 tomatoes toward spins, not the
+leaderboard) and **mutations** (1 harvest in 20; most triple the compost, the rare one of each crop is a free spin;
+all collected in the garden's almanac). Each mutation gives its seed: planted, it comes out as itself half the time
+(a rare one a quarter of the time) with its seed back, otherwise as an ordinary harvest. Next: the house quest (below).
 
 ## Next: story systems with story memory (ideas, 18 November, to choose from)
 
@@ -187,7 +197,14 @@ Bulba's Promise picks the featured legendary. Everything else is the standard ba
    sprouts); tap one for a small bonus.
 5. **Crew pairs:** two gardeners who work well together get a small extra (Basil + Mr. Death: the night shift).
 6. **A bigger plot** after enough harvests.
-7. **The winter banner** (December to February) before Lantern Night ends on 30 November.
+7. ~~The winter banner~~ built: First Snow (December).
+8. ~~A house by the garden~~ built 17 November: **the cottage quest** (mainapp/tomato_house.py). Il Dattore (a
+   scientist who over-engineers everything) builds it with Pantaleone's money (a banker who reads every receipt),
+   a cameo nod in small pixel art. Five stages, each a pinned builder's order (its seeds bought for you; harvests go
+   to it first) plus compost, then some hours of building: foundation → mailbox (4 orders), walls → a 6th row,
+   roof → rain barrel (+25% watering), chimney and kitchen → dish orders (several crops, paid double), porch (3
+   different mutations) → the cottage dresses for the seasons. Under budget (3 days): Pantaleone tips 100 tomatoes.
+   A short scene between the two after each stage. Later, maybe: a second building (a mill), house paint colours.
 
 ## Phase F: messenger mode
 

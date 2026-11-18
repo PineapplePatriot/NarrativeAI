@@ -216,6 +216,45 @@ def char_profile(character):
     }
 
 
+def is_set_up(character):
+    """Whether the character has been adapted for texting (Bulba's modernize, or written by hand): a texting persona
+    or texting style of their own. If not, the chat offers Bulba's setup."""
+    raw = character.messenger_profile if isinstance(getattr(character, "messenger_profile", None), dict) else {}
+    return bool(str(raw.get("modern_persona") or "").strip() or str(raw.get("texting_style") or "").strip())
+
+
+def redraw_setup_look(user, character, outfit=""):
+    """🥔 Bulba's second setup step: the character drawn again for this texting setup (modern clothes, say), from
+    their current pictures so the face stays theirs. The new portrait becomes their messenger picture (neutral and
+    avatar) with one waist-up reference of the outfit; the main roleplay card's pictures are left alone.
+    Returns (profile, cost)."""
+    prof = char_profile(character)
+    outfit = str(outfit or "").strip()[:600]
+    if outfit:  # their outfit for this setup goes into the notes every later photo reads
+        base = re.sub(r"\n?Outfit in this setup:.*$", "", prof.get("appearance_notes") or "", flags=re.S).strip()
+        prof = save_char_profile(character, {"appearance_notes": (base + "\nOutfit in this setup: " + outfit).strip()})
+    refs = load_character_references(character)
+    style = prof.get("art_style_notes") or "expressive digital character illustration, clean lines, rich atmospheric lighting"
+    setting = "a modern-day setting" if prof.get("mode") == "modern_au" else "their own world"
+    look = (prof.get("appearance_notes") or character.description or "")[:1200]
+    same = ("Keep them the SAME person as in the reference pictures: same face, hair, eyes, skin and build. "
+            if refs else "")
+    cost, out = 0.0, {}
+    for key, shot in (("neutral", "a clean chest-up three-quarter portrait, calm in-character expression"),
+                      ("outfit", "a relaxed waist-up candid shot that shows the whole outfit and their posture")):
+        prompt = (f"{same}Draw {character.name} as they are in {setting}, dressed for it. {shot.capitalize()}.\n"
+                  f"How they look now: {look}\nArt style: {style}.")
+        img, c = ai_client.generate_image(user, prompt, references=refs)
+        cost += float(c or 0)
+        saved = default_storage.save(f"messenger/refs/{character.slug}-{key}-{uuid.uuid4().hex[:8]}.png", ContentFile(img))
+        out[key] = default_storage.url(saved)
+        if key == "neutral":
+            refs = [(img, "image/png")] + refs[:3]  # the outfit shot follows the new portrait
+    extra = [out["outfit"]] + [u for u in prof.get("extra_refs") or [] if u != out["outfit"]]
+    prof = save_char_profile(character, {"neutral_url": out["neutral"], "avatar_url": out["neutral"], "extra_refs": extra[:4]})
+    return prof, round(cost, 4)
+
+
 def save_char_profile(character, updates):
     """Update `character.messenger_profile` without touching `character.description` or `character.scenario`."""
     current = char_profile(character)
@@ -542,6 +581,7 @@ def thread_data(thread):
         "scenario_override": str(raw.get("scenario_override") or "").strip()[:3000],
         "share_memory": raw.get("share_memory", True) is not False,
         "last_auto_at": raw.get("last_auto_at"),
+        "regen_prev": [m for m in (raw.get("regen_prev") or []) if isinstance(m, dict)][:20],  # ↻ the take before
     }
 
 
@@ -1502,6 +1542,26 @@ def generate_messenger_photo(user, character, description="", kind="casual", thr
 # Generating a Turn in a MessengerThread
 # ---------------------------------------------------------------------------
 
+def regenerate_turn(user, thread, note=""):
+    """↻ A different take on the characters' last reply: it comes off (everything after the user's last message;
+    kept in data["regen_prev"] for now), and the turn is written again, with the user's note if they gave one
+    ("send a voice note this time", "a selfie, please", "be meaner")."""
+    raw = thread.data if isinstance(thread.data, dict) else {}
+    msgs = [m for m in (raw.get("messages") or []) if isinstance(m, dict)]
+    last_user = max((i for i, m in enumerate(msgs) if m.get("role") == "user"), default=-1)
+    tail = msgs[last_user + 1:]
+    if not any(m.get("role") == "assistant" for m in tail):
+        raise ai_client.AIError("There's no reply after your last message to try again.")
+    data = dict(raw)
+    data["messages"], data["regen_prev"] = msgs[:last_user + 1], tail
+    thread.data = data
+    thread.save(update_fields=["data"])
+    note = str(note or "").strip()[:600]
+    instruction = ("Write your reply to the user's last message again, differently from before."
+                   + (f" The user's note for this take (follow it, in character): {note}" if note else ""))
+    return generate_turn(user, thread, extra_instruction=instruction)
+
+
 def generate_turn(user, thread, extra_instruction="", auto_check_in=False):
     """
     Call the user's chat model to produce the next Messenger turn (1..N bubbles, reactions, profile updates, etc.),
@@ -1710,6 +1770,7 @@ def serialize_thread_full(thread, user):
             "name": c.name,
             "color": NAME_COLORS[idx % len(NAME_COLORS)],
             "has_voice": bool(prof.get("voice_id") or c.eleven_voice_char_id),
+            "set_up": is_set_up(c),
             **prof,
         })
         stickers.extend(character_stickers(c))

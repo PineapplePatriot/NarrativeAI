@@ -8547,6 +8547,7 @@ class TomatoMachineTests(TestCase):
         self.user = get_user_model().objects.create_user(username="gambler", password="pw12345!")
         self.client.force_login(self.user)
         self.score = TomatoScore.objects.create(user=self.user, wild=0)
+        quiet_garden(self)
 
     def give(self, spins):
         from mainapp import tomato_machine as M
@@ -8687,6 +8688,16 @@ class TomatoMachineTests(TestCase):
         self.assertContains(self.client.get(reverse("tomato_pit")), "Sauce-o-Matic")
 
 
+def quiet_garden(test):
+    """No random mutations and no order board in tests about other things (OrderBoardTests covers them)."""
+    from unittest import mock
+    from mainapp import tomato_garden as G, tomato_house as H
+    for mod, name, value in ((G, "MUTATION_ODDS", 10 ** 12), (G, "ORDERS_OPEN", 0), (H, "ENABLED", False)):
+        patcher = mock.patch.object(mod, name, value)
+        patcher.start()
+        test.addCleanup(patcher.stop)
+
+
 class TomatoGardenTests(TestCase):
     """🌻 The garden: seeds from the machine grow over real time, chat tomatoes water them, harvests make compost."""
 
@@ -8695,6 +8706,7 @@ class TomatoGardenTests(TestCase):
         self.user = get_user_model().objects.create_user(username="gardener", password="pw12345!")
         self.client.force_login(self.user)
         self.score = TomatoScore.objects.create(user=self.user, machine={"items": {"seed_tomato": 2, "lantern": 1}})
+        quiet_garden(self)
 
     def do(self, **body):
         return self.client.post(reverse("tomato_garden_state"), json.dumps(body), content_type="application/json")
@@ -9608,6 +9620,7 @@ class LookPreviewAndOnboardingTests(ChatLookTests):
         self.script = [("Here.", [self.call("propose_chat_look", look=self.PURPL)])]
         p = self.api(action="say", text="purple please").json()["state"]["proposals"][-1]
         page = self.client.get(reverse("bulba_look_preview", args=[p["id"]]))
+        self.assertEqual(page["X-Frame-Options"], "SAMEORIGIN")  # Bulba's card frames it
         self.assertContains(page, "skin-custom")
         self.assertContains(page, "Ant")
         self.assertContains(page, "family=Gaegu")
@@ -9832,6 +9845,240 @@ class GardenCrewTests(TomatoMachineTests):
 for _name in [n for n in dir(TomatoMachineTests) if n.startswith("test_")]:
     if getattr(GardenCrewTests, _name, None) is getattr(TomatoMachineTests, _name, None):
         setattr(GardenCrewTests, _name, None)
+
+
+class FirstSnowBannerTests(TomatoMachineTests):
+    """❄️ First Snow, the December banner: the snow globe tomato, Babbo Natale, the snowman, snow trail and globe."""
+    from datetime import date
+    NOV, DEC, JAN = date(2026, 11, 20), date(2026, 12, 5), date(2027, 1, 10)
+
+    def test_each_banner_runs_for_its_month(self):
+        from mainapp import tomato_machine as M
+        self.assertEqual([b["id"] for b in M.public(self.score, self.NOV)["banners"]], ["lantern", "standard"])
+        self.assertEqual([b["id"] for b in M.public(self.score, self.DEC)["banners"]], ["winter", "standard"])
+        self.assertEqual([b["id"] for b in M.public(self.score, self.JAN)["banners"]], ["standard"])
+        self.assertEqual(M.banner_ends("winter", self.DEC).isoformat(), "2026-12-31")
+        winter = next(b for b in M.public(self.score, self.DEC)["banners"] if b["id"] == "winter")
+        self.assertTrue(winter["art"].endswith("snow_globe.png"))
+        standard = {p["id"] for t in ("common", "rare", "legendary") for p in M.pool(t, self.DEC)}
+        self.assertFalse(standard & {"globe_tomato", "gardener_babbo", "snowman", "trail_snow", "companion_globe"})
+        self.give(1)
+        out, _ = M.spin(self.user, 1, rng=self.Rolls(.01, .1), today=self.DEC, banner="winter")
+        self.assertIn(out[0]["id"], ("globe_tomato", "gardener_babbo"))
+
+    def test_babbo_natale_leaves_one_present_a_day_and_the_snowman_stands_in_the_garden(self):
+        from datetime import date
+        from mainapp import tomato_machine as M, tomato_garden as G
+        self.score.machine = {"items": {"gardener_babbo": 1, "snowman": 1}}
+        self.score.save()
+        m, g = M._state(self.score), G._state(self.score)
+        seed = G._babbo(g, m, today=date(2026, 12, 5))
+        self.assertIn(seed, G.CROPS)
+        self.assertEqual(m["items"][seed], 1)
+        self.assertIsNone(G._babbo(g, m, today=date(2026, 12, 5)))  # one a day
+        self.assertIsNotNone(G._babbo(g, m, today=date(2026, 12, 6)))
+        self.assertIn("Babbo Natale", g["log"][0]["text"])
+        state = G.act(self.user, {"action": "place", "x": 1, "y": 1, "id": "snowman"})
+        self.assertEqual([t["id"] for t in state["tiles"] if t["kind"] == "decor"], ["snowman"])
+        self.assertTrue(any(x["id"] == "gardener_babbo" for x in state["gardeners"]))
+        m["crew"] = []  # resting in the shed: no presents
+        self.assertIsNone(G._babbo(g, m, today=date(2026, 12, 7)))
+
+
+for _name in [n for n in dir(TomatoMachineTests) if n.startswith("test_")]:
+    if getattr(FirstSnowBannerTests, _name, None) is getattr(TomatoMachineTests, _name, None):
+        setattr(FirstSnowBannerTests, _name, None)
+
+
+class OrderBoardTests(TestCase):
+    """📋 The garden's order board and 🧬 mutations."""
+    class Rolls:
+        def __init__(self, *rolls, pick=0):
+            self.rolls, self.pick = list(rolls), pick
+
+        def random(self):
+            return self.rolls.pop(0) if self.rolls else .99
+
+        def choice(self, seq):
+            return seq[min(self.pick, len(seq) - 1)]
+
+    def setUp(self):
+        from mainapp.models import TomatoScore
+        self.user = get_user_model().objects.create_user(username="grocer", password="pw12345!")
+        self.score = TomatoScore.objects.create(user=self.user, wild=0, machine={"items": {"seed_tomato": 3}})
+        from unittest import mock
+        from mainapp import tomato_house as H
+        patcher = mock.patch.object(H, "ENABLED", False)  # the cottage has its own tests (CottageQuestTests)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_one_new_order_a_day_up_to_three_and_they_expire(self):
+        from datetime import date
+        from unittest import mock
+        from mainapp import tomato_machine as M, tomato_garden as G
+        m, g = M._state(self.score), G._state(self.score)
+        first = G._orders(g, m, rng=self.Rolls(), today=date(2026, 12, 1))
+        self.assertEqual((first["needs"], first["have"]), ({"seed_tomato": first["needs"]["seed_tomato"]}, {"seed_tomato": 0}))
+        self.assertTrue(100 <= first["reward"] <= 300)
+        self.assertIsNone(G._orders(g, m, rng=self.Rolls(), today=date(2026, 12, 1)))  # one a day
+        G._orders(g, m, rng=self.Rolls(), today=date(2026, 12, 2))
+        G._orders(g, m, rng=self.Rolls(), today=date(2026, 12, 3))
+        self.assertIsNone(G._orders(g, m, rng=self.Rolls(), today=date(2026, 12, 4)))  # the board is full
+        self.assertEqual(len(g["orders"]), 3)
+        with mock.patch.object(G, "_now", return_value=G._now() + 4 * 86400):
+            G._orders(g, m, rng=self.Rolls(), today=date(2026, 12, 5))
+        self.assertEqual(len(g["orders"]), 1)  # three gave up waiting, one new went up
+        self.assertIn("gave up waiting", " ".join(x["text"] for x in g["log"]))
+
+    def test_harvests_fill_orders_which_pay_tomatoes_toward_spins(self):
+        from mainapp import tomato_machine as M, tomato_garden as G
+        m, g = M._state(self.score), G._state(self.score)
+        g["orders"] = [{"id": 1, "needs": {"seed_tomato": 2}, "have": {"seed_tomato": 0}, "reward": 160,
+                        "from": "the bakery", "posted": 0, "due": G._now() + 3600}]
+        for i in range(2):
+            g["tiles"][f"{i},0"] = {"kind": "plant", "seed": "seed_tomato", "at": 0, "boost": 0}
+            self.assertEqual(G._harvest(g, m, f"{i},0", rng=self.Rolls()), 2)  # compost as usual
+        self.assertEqual((g["orders"], m["earned"], g["filled"]), ([], 160, 1))
+        self.score.machine, self.score.garden = m, g
+        self.score.wild = 200
+        self.score.save()
+        self.assertEqual(M.spins_left(self.score), 2)  # one on the house + (200 thrown + 160 earned) // 300
+        self.assertEqual(M.public(self.score)["toward"], 60)
+        from mainapp import tomatoes
+        self.assertEqual(tomatoes.board(self.user)["me"]["wild"], 200)  # the leaderboard counts throws only
+
+    def test_mutations_triple_compost_or_give_a_spin_and_go_in_the_almanac(self):
+        from mainapp import tomato_machine as M, tomato_garden as G
+        m, g = M._state(self.score), G._state(self.score)
+        g["tiles"]["0,0"] = {"kind": "plant", "seed": "seed_tomato", "at": 0, "boost": 0}
+        self.assertEqual(G._harvest(g, m, "0,0", rng=self.Rolls(.01, .9)), 6)  # a common one: triple compost
+        self.assertEqual(g["almanac"], {"heart_tomato": 1})
+        g["tiles"]["0,0"] = {"kind": "plant", "seed": "seed_tomato", "at": 0, "boost": 0}
+        self.assertEqual(G._harvest(g, m, "0,0", rng=self.Rolls(.01, .1)), 2)  # the rare one: a spin
+        self.assertEqual((g["almanac"]["golden_tomato"], m["bonus"], g["mutation"]["id"]), (1, 1, "golden_tomato"))
+        g["tiles"]["0,0"] = {"kind": "plant", "seed": "seed_tomato", "at": 0, "boost": 0}
+        self.assertEqual(G._harvest(g, m, "0,0", rng=self.Rolls(.06)), 2)  # 1 in 20: most harvests are plain
+        self.score.machine, self.score.garden = m, g
+        self.score.save()
+        state = G.public(self.score)
+        self.assertEqual(sum(1 for a in state["almanac"] if a["got"]), 2)
+        self.assertEqual(state["mutation_odds"], 20)
+
+    def test_a_mutation_gives_its_seed_and_a_planted_one_can_come_out_as_itself(self):
+        from mainapp import tomato_machine as M, tomato_garden as G
+        m, g = M._state(self.score), G._state(self.score)
+        g["tiles"]["0,0"] = {"kind": "plant", "seed": "seed_tomato", "at": 0, "boost": 0}
+        G._harvest(g, m, "0,0", rng=self.Rolls(.01, .1))  # a golden tomato
+        self.assertEqual(m["items"]["seed_golden_tomato"], 1)
+        self.score.machine, self.score.garden = m, g
+        self.score.save()
+        state = G.act(self.user, {"action": "plant", "x": 1, "y": 1, "id": "seed_golden_tomato"})
+        tile = state["tiles"][0]
+        self.assertEqual((tile["look"], tile["variant"]), ("seed_tomato", "golden_tomato"))
+        self.assertIn("seed_golden_tomato", state["prizes"])
+        self.score.refresh_from_db()
+        m, g = M._state(self.score), G._state(self.score)
+        g["orders"] = [{"id": 1, "seed": "seed_tomato", "n": 1, "got": 0, "reward": 100, "from": "the bakery",
+                        "posted": 0, "due": G._now() + 3600}]  # (an order saved before dishes: still understood)
+        self.score.garden = g
+        g = G._state(self.score)
+        spins = m["bonus"]
+        G._harvest(g, m, "1,1", rng=self.Rolls(.2))  # kept (rare: 25%): golden again, a spin and its seed back
+        self.assertEqual((m["bonus"], m["items"]["seed_golden_tomato"], g["almanac"]["golden_tomato"]), (spins + 1, 1, 2))
+        self.assertEqual(m["earned"], 100)  # it still counts as a tomato for orders
+        g["tiles"]["1,1"] = {"kind": "plant", "seed": "seed_golden_tomato", "at": 0, "boost": 0}
+        m["items"]["seed_golden_tomato"] = 0
+        self.assertEqual(G._harvest(g, m, "1,1", rng=self.Rolls(.5, .9)), 2)  # not kept, no new mutation: a plain one
+        self.assertEqual((m["bonus"], m["items"]["seed_golden_tomato"]), (spins + 1, 0))
+
+
+class CottageQuestTests(TestCase):
+    """🏡 The cottage: Il Dattore builds it in five stages with Pantaleone's money."""
+    def setUp(self):
+        from mainapp.models import TomatoScore
+        self.user = get_user_model().objects.create_user(username="tenant", password="pw12345!")
+        self.score = TomatoScore.objects.create(user=self.user, wild=0, machine={"items": {}})
+
+    def fresh(self):
+        from mainapp import tomato_machine as M, tomato_garden as G
+        self.score.refresh_from_db()
+        return M._state(self.score), G._state(self.score)
+
+    def harvest(self, g, m, seed, n):
+        from mainapp import tomato_garden as G
+
+        class Never:
+            def random(self):
+                return .99
+        for i in range(n):
+            g["tiles"]["0,0"] = {"kind": "plant", "seed": seed, "at": 0, "boost": 0}
+            G._harvest(g, m, "0,0", rng=Never())
+
+    def test_the_first_visit_starts_it_and_a_stage_is_built_and_unlocks(self):
+        from unittest import mock
+        from mainapp import tomato_garden as G, tomato_house as H
+        state = G.visit(self.user)
+        self.assertEqual(state["house"]["scene"]["key"], "intro")
+        self.assertEqual(state["house"]["current"]["id"], "foundation")
+        self.assertEqual(state["basket"]["seed_tomato"], 5)  # Il Dattore bought the seeds
+        with self.assertRaises(ValueError):
+            G.act(self.user, {"action": "build"})  # nothing harvested yet
+        m, g = self.fresh()
+        self.harvest(g, m, "seed_tomato", 5)
+        self.assertEqual(g["house"]["have"], {"seed_tomato": 5})
+        m["compost"] = 20
+        self.score.machine, self.score.garden = m, g
+        self.score.save()
+        state = G.act(self.user, {"action": "build"})
+        self.assertEqual((state["compost"], state["house"]["building"] > 0), (5, True))
+        self.score.refresh_from_db()
+        self.assertEqual(self.score.machine["earned"], H.BONUS)  # in within three days: Pantaleone tips
+        self.assertFalse(H.has(self.score.garden, "mailbox"))
+        with mock.patch.object(G, "_now", return_value=G._now() + 7 * 3600):
+            state = G.visit(self.user)
+        self.assertEqual((state["house"]["stage"], state["house"]["scene"]["key"]), (1, "foundation"))
+        self.assertEqual(state["orders_max"], 4)  # the mailbox
+        self.assertEqual(state["house"]["current"]["id"], "walls")
+        self.assertEqual((state["basket"]["seed_carrot"], state["basket"]["seed_sunflower"]), (6, 4))
+
+    def test_harvests_go_to_the_cottage_first_and_unlocks_change_the_garden(self):
+        from mainapp import tomato_garden as G, tomato_house as H
+        G.visit(self.user)
+        m, g = self.fresh()
+        g["orders"] = [{"id": 9, "needs": {"seed_tomato": 1}, "have": {"seed_tomato": 0}, "reward": 100,
+                        "from": "the bakery", "posted": 0, "due": G._now() + 3600}]
+        self.harvest(g, m, "seed_tomato", 6)
+        self.assertEqual((g["house"]["have"]["seed_tomato"], g["orders"], m["earned"]), (5, [], 100))  # 5 to the house, 1 to the bakery
+        g["house"]["stage"] = 4  # everything up to the kitchen built
+        self.assertTrue(all(H.has(g, u) for u in ("mailbox", "plot", "barrel", "kitchen")))
+        self.assertEqual(G.rows(g), 6)
+        self.score.machine, self.score.garden = m, g
+        self.score.save()
+        self.assertEqual(G.act(self.user, {"action": "plant", "x": 0, "y": 5, "id": "seed_tomato"})["rows"], 6)  # the sixth row
+        self.assertEqual(G.public(self.score)["water"], 150)  # the rain barrel
+
+    def test_the_kitchen_posts_dish_orders_paid_double_and_the_porch_wants_mutations(self):
+        from datetime import date
+        from mainapp import tomato_machine as M, tomato_garden as G, tomato_house as H
+
+        class Dish:
+            def random(self):
+                return .1
+
+            def choice(self, seq):
+                return seq[0]
+        m, g = M._state(self.score), G._state(self.score)
+        g["house"] = {"stage": 4, "begun": 1}
+        order = G._orders(g, m, rng=Dish(), today=date(2026, 12, 1))
+        self.assertEqual((order["dish"], order["needs"]), ("Tomato soup", {"seed_tomato": 3, "seed_carrot": 1}))
+        self.assertTrue(200 <= order["reward"] <= 600)
+        self.harvest(g, m, "seed_tomato", 3)
+        self.harvest(g, m, "seed_carrot", 1)
+        self.assertEqual((g["orders"], m["earned"]), ([], order["reward"]))
+        m["compost"] = 500
+        self.assertEqual(H.ready(g, m), (False, "Il Dattore needs 3 different mutations for it (0 found so far)."))
+        g["almanac"] = {"heart_tomato": 1, "giant_pumpkin": 2, "purple_carrot": 1}
+        self.assertTrue(H.ready(g, m)[0])
 
 
 class LookShelfTests(ChatLookTests):
