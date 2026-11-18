@@ -760,7 +760,8 @@ def image_models():
     if _IMAGE_MODELS["list"] and time.time() - _IMAGE_MODELS["at"] < 3600:
         return _IMAGE_MODELS["list"]
     try:
-        resp = requests.get(f"{ConnectionProfile.OPENROUTER_URL}/models", timeout=15)
+        # (the default list leaves out image-only models such as MAI-Image: ask for the picture makers by name)
+        resp = requests.get(f"{ConnectionProfile.OPENROUTER_URL}/models", params={"output_modalities": "image"}, timeout=15)
         data = resp.json().get("data", []) if resp.ok else []
     except (requests.RequestException, ValueError):
         data = []
@@ -803,14 +804,16 @@ def _normalize_references(reference=None, reference_type="image/png", references
     return out[:5]
 
 
-def _nanogpt_image(user, profile, prompt, reference, reference_type, timeout, references=None):
+def _nanogpt_image(user, profile, prompt, reference, reference_type, timeout, references=None, chosen=None):
     """One picture from NanoGPT's OpenAI-style image endpoint (Nano Banana: settings.NANOGPT_IMAGE_MODEL), with
     the reference picture(s) as data URLs for consistent moods. Returns (bytes, cost or None)."""
     import base64
     from django.conf import settings
     model = getattr(settings, "NANOGPT_IMAGE_MODEL", "nano-banana-2")
-    payload = {"model": model, "prompt": prompt, "n": 1, "response_format": "b64_json"}
     ref_list = _normalize_references(reference, reference_type, references)
+    if chosen and chosen.startswith("microsoft/mai-image"):  # NanoGPT carries MAI-Image 2.5 (an edit model for references)
+        model = "microsoft/mai-image-2.5/edit" if ref_list else "microsoft/mai-image-2.5/text-to-image"
+    payload = {"model": model, "prompt": prompt, "n": 1, "response_format": "b64_json"}
     if ref_list:
         urls = [f"data:{mime};base64,{base64.b64encode(raw).decode('ascii')}" for raw, mime in ref_list]
         payload["imageDataUrl"] = urls[0]  # NanoGPT's own name for the primary reference picture
@@ -858,7 +861,7 @@ def generate_image(user, prompt, reference=None, reference_type="image/png", tim
     check_limit(user)
     profile = main_profile(user)
     if profile is not None and profile.provider == ConnectionProfile.PROVIDER_NANOGPT and profile.api_key:
-        return _nanogpt_image(user, profile, prompt, reference, reference_type, timeout, references=references)
+        return _nanogpt_image(user, profile, prompt, reference, reference_type, timeout, references=references, chosen=model)
     if profile is None or profile.provider != ConnectionProfile.PROVIDER_OPENROUTER or not profile.api_key:
         raise AIError("Making pictures needs an OpenRouter or NanoGPT key (set it on the welcome page).")
     model = model or default_image_model()

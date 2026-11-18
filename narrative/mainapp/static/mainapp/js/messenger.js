@@ -366,7 +366,7 @@
                 (ph.kind === "tease" ? "Tease Snapshot" : "Camera Snapshot") +
               "</div>" +
               '<div class="tg-photo-prompt-text">"' + esc(ph.prompt || "Candid photo") + '"</div>' +
-              '<button type="button" class="tg-render-photo-btn" onclick="TG.renderBubblePhoto(\'' + esc(m.id) + '\', \'' + esc(ph.kind || "casual") + '\', this)">🍌 Render Photo (Nano Banana)</button>' +
+              '<button type="button" class="tg-render-photo-btn" onclick="TG.renderBubblePhoto(\'' + esc(m.id) + '\', \'' + esc(ph.kind || "casual") + '\', this)">🍌 Show the photo</button>' +
             "</div>"
           );
         }
@@ -830,7 +830,7 @@
       "</div>" +
       '<label style="display:flex;align-items:center;gap:8px;font-size:12.5px;cursor:pointer;">' +
         '<input type="checkbox" id="drwMeAutoPhoto" ' + (u.auto_photos ? "checked" : "") + ">" +
-        "Automatically render Nano Banana photos when characters send [PHOTO]" +
+        "Automatically make the picture when characters send a photo" +
       "</label>" +
       '<label style="display:flex;align-items:center;gap:8px;font-size:12.5px;cursor:pointer;">' +
         '<input type="checkbox" id="drwMeAutoVoice" ' + (u.auto_voice ? "checked" : "") + ">" +
@@ -1807,7 +1807,7 @@
       var orig = btn ? btn.textContent : "";
       if (btn) {
         btn.disabled = true;
-        btn.textContent = "🍌 Generating with Nano Banana…";
+        btn.textContent = "📸 Making the picture…";
       }
       apiPost({ action: "photo_bubble", thread_id: t.id, message_id: msgId, kind: kind || "casual" })
         .then(function (res) {
@@ -2301,12 +2301,13 @@
       var btn = document.getElementById("photoModalSubmitBtn");
       var orig = btn.textContent;
       btn.disabled = true;
-      btn.textContent = "🍌 Generating with Nano Banana…";
+      btn.textContent = "📸 Making the picture…";
       apiPost({
         action: "photo_bubble",
         thread_id: t.id,
         char_slug: document.getElementById("photoModalChar").value,
         kind: document.getElementById("photoModalKind").value,
+        subject: (document.getElementById("photoModalSubject") || {}).value || "",
         prompt: document.getElementById("photoModalPrompt").value,
       })
         .then(function (res) {

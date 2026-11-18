@@ -86,7 +86,7 @@
             <button type="button" class="tg-hdr-btn" onclick="TG.openDrawer('char')" title="Modernize Character (Modern AU), edit references, voice, texting style or scenario">
               ⚙️ <span>Card / Refs / Voice</span>
             </button>
-            <button type="button" class="tg-hdr-btn" onclick="TG.openPhotoModal()" title="Ask character for a Nano Banana casual selfie, food/scenery POV, or tease photo">
+            <button type="button" class="tg-hdr-btn" onclick="TG.openPhotoModal()" title="Ask them for a photo: a selfie, their food or a view, or a tease">
               📸 <span>Photo</span>
             </button>
             <button type="button" class="tg-hdr-btn" onclick="TG.openDrawer('clock')" title="Real-time clock, events & chat wallpaper">
@@ -269,7 +269,7 @@
   <div class="tg-modal-backdrop" id="modalPhoto">
     <div class="tg-modal">
       <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h3 style="margin:0;">📸 Nano Banana Character Photo</h3>
+        <h3 style="margin:0;">📸 Ask for a photo</h3>
         <button type="button" class="tg-fmt-btn" onclick="TG.closeModals()">✕</button>
       </div>
       <p style="margin:0; font-size:13px; color:var(--tg-muted);">Uses 1 Neutral + up to 4 Extra Reference pictures to keep art style & face locked—with varied selfie angles or style-matched food/scenery POV shots.</p>
@@ -280,8 +280,16 @@
       <div class="tg-field-group">
         <label>Kind of photo</label>
         <select class="tg-select" id="photoModalKind">
-          <option value="casual">📷 Casual snapshot / varied-angle selfie / food or scenery POV (reads recent chat context!)</option>
+          <option value="casual">📷 Casual snapshot (reads the recent chat)</option>
           <option value="tease">🔥 Tease / alluring candid photo</option>
+        </select>
+      </div>
+      <div class="tg-field-group">
+        <label>Who's in it</label>
+        <select class="tg-select" id="photoModalSubject">
+          <option value="">Let the moment decide</option>
+          <option value="them">📸 Them (a selfie or a shot of them)</option>
+          <option value="not_them">🍝 Not them: their food, a view, their desk, a thing</option>
         </select>
       </div>
       <div class="tg-field-group">
@@ -331,6 +339,6 @@
       csrf: "{{ csrf_token }}"
     };
   </script>
-  <script src="{% static 'mainapp/js/messenger.js' %}?v=13"></script>
+  <script src="{% static 'mainapp/js/messenger.js' %}?v=14"></script>
 </body>
 </html>

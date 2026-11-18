@@ -464,3 +464,51 @@ class SplitAndGroupTests(MessengerActionTests):
         self.assertEqual((g["scenario_override"], g["title"]), ("The twins added you to their flat chat.", "flat 4B 🏠"))
         self.assertIn("I'm their new flatmate", json.dumps(ai_client.complete.call_args.args[2]))
         self.assertEqual(self.post(action="split_card", char_slug=ada.slug).status_code, 400)  # one person: nothing to split
+
+
+class PictureFixesTests(TestCase):
+    def setUp(self):
+        from users.models import ConnectionProfile
+        self.user = get_user_model().objects.create_user(username="snapper", password="pw12345!")
+        self.profile = ConnectionProfile.objects.create(user=self.user, name="Main", api_key="sk-or-x", model="x/y")
+        self.c = Character.objects.create(name="Dottore", slug="dottore-snap", author=self.user, initial_message="...",
+                                          messenger_profile={"art_style_notes": "painted anime", "neutral_url": "/media/x.png"})
+
+    def test_the_model_list_asks_for_picture_makers(self):
+        from mainapp import ai_client
+        ai_client._IMAGE_MODELS.update(at=0, list=[])
+        resp = mock.Mock(ok=True)
+        resp.json.return_value = {"data": [{"id": "microsoft/mai-image-2.7", "name": "MAI",
+                                            "architecture": {"output_modalities": ["image"], "input_modalities": ["text", "image"]}}]}
+        with mock.patch("mainapp.ai_client.requests.get", return_value=resp) as get:
+            models = ai_client.image_models()
+        self.assertEqual(get.call_args.kwargs["params"], {"output_modalities": "image"})
+        self.assertEqual(models[0]["id"], "microsoft/mai-image-2.7")
+        ai_client._IMAGE_MODELS.update(at=0, list=[])
+
+    def test_a_photo_without_them_leaves_their_portraits_out(self):
+        from mainapp import messenger
+        with mock.patch("mainapp.messenger.make_picture", return_value=(png(), None)) as make, \
+             mock.patch("mainapp.messenger.load_character_references", return_value=[(png(), "image/png")]):
+            messenger.generate_messenger_photo(self.user, self.c, "a photo of your lunch, without you")
+        prompt, refs = make.call_args.args[1], make.call_args.kwargs["references"]
+        self.assertIn("NO PEOPLE", prompt)
+        self.assertEqual(refs, [])  # an art style in words: no portraits at all
+        with mock.patch("mainapp.messenger.make_picture", return_value=(png(), None)) as make, \
+             mock.patch("mainapp.messenger.load_character_references", return_value=[(png(), "image/png")]):
+            messenger.generate_messenger_photo(self.user, self.c, "No people: the rain on my lab window")
+        self.assertNotIn("No people:", make.call_args.args[1].split("Photo subject & scene:")[1])
+        self.assertTrue(messenger._wants_no_person("сфоткай обід без себе"))
+        self.assertFalse(messenger._wants_no_person("a selfie in the lab"))
+
+    def test_nanogpt_keys_use_mai_too(self):
+        from mainapp import ai_client
+        from users.models import ConnectionProfile
+        self.profile.provider = ConnectionProfile.PROVIDER_NANOGPT
+        self.profile.save()
+        import base64
+        resp = mock.Mock(status_code=200)
+        resp.json.return_value = {"data": [{"b64_json": base64.b64encode(png()).decode()}]}
+        with mock.patch("mainapp.ai_client.requests.post", return_value=resp) as post:
+            ai_client.generate_image(self.user, "x", references=[(png(), "image/png")], model="microsoft/mai-image-2.7")
+        self.assertEqual(post.call_args.kwargs["json"]["model"], "microsoft/mai-image-2.5/edit")

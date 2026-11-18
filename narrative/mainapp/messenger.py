@@ -55,9 +55,11 @@ PICTURE_MODELS = {
 def make_picture(user, prompt, references=None):
     """One picture for the messenger, on the user's chosen picture model (their profile tab)."""
     model = user_profile(user).get("image_model") or None
-    if model:
+    profile = ai_client.main_profile(user)
+    if model and profile is not None and profile.provider == ai_client.ConnectionProfile.PROVIDER_OPENROUTER:
         listed = [m["id"] for m in ai_client.image_models()]
         if listed and model not in listed:
+            log.warning("messenger: picture model %s isn't on OpenRouter's list; using the default", model)
             model = None
     return ai_client.generate_image(user, prompt, references=references, model=model)
 
@@ -927,7 +929,7 @@ TEXTING_SAFEGUARDS = """MESSENGER MEDIUM & FRANKENSTEIN DIALOGUE SAFEGUARDS:
    - React to {user}'s message: include `[REACT: ❤️]` (or 🔥 👍 😂 😮 😢 👀 😡 🤔) at the start or end.
    - Send a character mood sticker: include `[STICKER: mood_name]` choosing from their available moods ({moods}).
    - Send a voice message: wrap spoken audio in `[VOICE: [sighs] what they say out loud into the mic]` (supports delivery tags like `[laughs]`, `[whispers]`, `[sighs]`, `[sarcastic]`, `[curious]`).
-   - Send a casual or tease photo (Nano Banana): include `[PHOTO: concrete visual description of the selfie, food, desk, or scenery photo they snap right now, including camera angle]` (or `[TEASE: description]` when flirty/intimate fits the relationship).
+   - Send a casual or tease photo: include `[PHOTO: concrete visual description of the selfie, food, desk, or scenery photo they snap right now, including camera angle]` (or `[TEASE: description]` when flirty/intimate fits the relationship). When they are NOT in the photo (their food, a view, their desk, a thing), begin the description with `No people:`. When {user} asks for a photo without them in it, it has no people.
    - Send a file/document: include `[FILE: filename.txt | text content of the note, document, receipt, or schedule]`.
    - Update their own Telegram bio or post a status story when something changes: `[BIO: new bio text]` or `[STATUS: 🧪 | short status update]`.
    - Schedule a real-time event/reminder: `[EVENT: Title at HH:MM | short note]`."""
@@ -1669,6 +1671,17 @@ def describe_photo_scene(user, thread, character, kind="casual", hint=""):
     }
 
 
+NO_PERSON = re.compile(
+    r"^\s*no people\b|without (?:you|him|her|them|me|himself|herself|themselves|the character|anyone|people)\b|"
+    r"\bno (?:people|person|one|faces?|selfie)\b|\bnobody\b|\bnot (?:a )?selfie\b|don'?t (?:show|include) (?:you|him|her|them)|"
+    r"\bбез (?:тебе|нього|неї|них|людей|себе)\b|\bне селфі\b|\bбез тебя\b|\bне селфи\b", re.I)
+
+
+def _wants_no_person(desc):
+    """The photo is asked to leave the character (and everyone) out: "a photo of your lunch, without you"."""
+    return bool(NO_PERSON.search(str(desc or "")))
+
+
 def _looks_like_non_person_photo(desc):
     low = str(desc or "").lower()
     has_object = any(w in low for w in ("food", "coffee", "tea", "mug", "cup", "plate", "dinner", "lunch", "breakfast", "desk", "laptop", "window", "view", "street", "rain", "sky", "sunset", "cat", "dog", "book", "notes", "scenery", "room"))
@@ -1705,6 +1718,8 @@ def generate_messenger_photo(user, character, description="", kind="casual", thr
         shot_type = shot_type or scene["shot_type"]
         camera_angle = camera_angle or scene["camera_angle"]
 
+    if _wants_no_person(description) or _wants_no_person(desc_clean):  # asked for no people: no people, whatever else
+        shot_type = "pov_object"
     if not shot_type:
         shot_type = "pov_object" if (kind != "tease" and _looks_like_non_person_photo(desc_clean)) else "selfie"
     if not camera_angle:
@@ -1714,13 +1729,19 @@ def generate_messenger_photo(user, character, description="", kind="casual", thr
     setting_note = "modern-day setting" if prof["mode"] == "modern_au" else "in-world setting"
 
     if shot_type == "pov_object":
+        # No people in it: their portraits stay out (image models copy whoever is in a reference). With an art style in
+        # words, none at all; without one, a single picture labelled as style only.
+        refs = [] if prof.get("art_style_notes") else refs[:1]
+        subject = re.sub(r"^\s*no people\s*:\s*", "", desc_clean, flags=re.I)
         prompt = (
-            f"Create a candid smartphone photo taken by {character.name} in a {setting_note}.\n"
-            f"CRITICAL STYLE LOCK: Render this food, object, or scenery photo in the EXACT SAME visual art style, "
-            f"medium, brushwork/rendering, lighting aesthetic, and color temperature as the attached reference image(s) ({art_style}). "
-            f"Do NOT switch to stock photorealism if the reference is illustrated/anime, and vice versa.\n"
+            f"Create a candid smartphone photo taken by {character.name} in a {setting_note}, of what they're looking at.\n"
+            f"NO PEOPLE: nobody is in this photo. {character.name} does not appear (no face, no body, no reflection); "
+            f"at most a hand holding something, if that's natural.\n"
+            + (f"The attached picture is a STYLE REFERENCE ONLY: copy its art style, rendering, lighting and colours, and "
+               f"never the person in it.\n" if refs else "")
+            + f"Art style: {art_style}. Do NOT switch to stock photorealism if the style is illustrated/anime, and vice versa.\n"
             f"Camera angle & framing: {camera_angle}.\n"
-            f"Photo subject & scene: {desc_clean[:600]}"
+            f"Photo subject & scene: {subject[:600]}"
         )
     else:
         style_note = (

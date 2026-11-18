@@ -5298,6 +5298,8 @@ def messenger_api(request):
         mid = body.get("message_id")
         kind = "tease" if body.get("kind") == "tease" else "casual"
         prompt_desc = str(body.get("prompt") or "").strip()
+        if body.get("subject") == "not_them":  # 📷 asked for a photo without them in it
+            prompt_desc = "No people: " + (prompt_desc or "something from their day, what they're looking at right now")
         thread = MessengerThread.objects.filter(user=request.user, id=tid).prefetch_related("characters").first()
         if not thread:
             return JsonResponse({"error": "Chat not found."}, status=404)
@@ -5321,6 +5323,8 @@ def messenger_api(request):
             shot_type = None
             camera_angle = ""
 
+        if body.get("subject") == "them":  # 📸 a photo of them, asked for
+            shot_type = "selfie"
         try:
             img_url, cost = messenger.generate_messenger_photo(
                 request.user,
