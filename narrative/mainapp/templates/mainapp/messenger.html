@@ -1,0 +1,325 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Screen Hub · Messenger — Narrative AI</title>
+  <link rel="stylesheet" href="{% static 'css/topbar.css' %}?v=7">
+  <link rel="stylesheet" href="{% static 'mainapp/css/messenger.css' %}?v=1">
+</head>
+<body class="tg-screen-body">
+  {% include "partials/topbar.html" with active="screen" %}
+
+  <div class="screen-hub-shell">
+    <!-- Left Digital Screen App Dock -->
+    <aside class="screen-dock" aria-label="Digital Screen Apps">
+      <button type="button" class="dock-app-btn active" data-app="messenger" onclick="TG.switchApp('messenger')" title="Telegram Messenger (1-on-1 & Group Chats)">
+        <span class="dock-ico">💬</span>
+        <span>Chats</span>
+        <span class="dock-badge" id="dockUnreadBadge" style="display:none">0</span>
+      </button>
+      <button type="button" class="dock-app-btn" data-app="moments" onclick="TG.switchApp('moments')" title="Moments & Profile Status Updates">
+        <span class="dock-ico">✨</span>
+        <span>Moments</span>
+      </button>
+      <button type="button" class="dock-app-btn" data-app="files" onclick="TG.switchApp('files')" title="Shared Files & Personal Notes">
+        <span class="dock-ico">🗂️</span>
+        <span>Files</span>
+      </button>
+      <div class="dock-spacer"></div>
+      <button type="button" class="dock-app-btn" onclick="TG.openDrawer('me')" title="My Telegram Profile & Notification Settings">
+        <span class="dock-ico">🔔</span>
+        <span>Alerts</span>
+      </button>
+      <div class="dock-clock" id="dockClock">--:--</div>
+    </aside>
+
+    <!-- APP 1: TELEGRAM MESSENGER -->
+    <section class="screen-app-view active" id="app-messenger">
+      <!-- Left Sidebar -->
+      <aside class="tg-sidebar" id="tgSidebar">
+        <div class="tg-sidebar-top">
+          <div class="tg-sidebar-title-row">
+            <div class="tg-brand-title">
+              <span>✈️ TeleChat</span>
+            </div>
+            <div style="display:flex; gap:6px;">
+              <button type="button" class="tg-fmt-btn" onclick="TG.openCreateCharModal()" title="Create a brand-new Messenger character card directly with Bulba">🥔 + Character</button>
+              <button type="button" class="tg-btn-GroupNew" onclick="TG.openNewChatModal()">+ Chat / Group</button>
+            </div>
+          </div>
+          <input type="search" class="tg-search-input" id="tgSearchInput" placeholder="Search chats or @handles…" oninput="TG.renderSidebar()">
+        </div>
+
+        <!-- Stories / Status Strip -->
+        <div class="tg-stories-strip" id="tgStoriesStrip"></div>
+
+        <!-- Chat Threads List -->
+        <div class="tg-thread-list" id="tgThreadList"></div>
+      </aside>
+
+      <!-- Main Chat Column -->
+      <main class="tg-main" id="tgMain">
+        <header class="tg-chat-header" id="tgChatHeader">
+          <div class="tg-header-left" onclick="TG.openDrawer('char')">
+            <button type="button" class="tg-mobile-back" onclick="event.stopPropagation(); TG.showMobileSidebar()" aria-label="Back to chat list">←</button>
+            <div class="tg-avatar" id="hdrAvatar">💬</div>
+            <div class="tg-header-info">
+              <div class="tg-header-title" id="hdrTitle">Select or start a chat</div>
+              <div class="tg-header-sub" id="hdrSub">Real-time messenger</div>
+            </div>
+          </div>
+          <div class="tg-header-actions">
+            <span class="tg-hdr-btn" id="hdrModelBadge" title="Active chat model — per-model texting rules & anti-slop counters adapt automatically when you switch models" style="cursor:default; opacity:0.88; font-size:11.5px;">
+              🧠 <span id="hdrModelLabel">Auto Rules</span>
+            </span>
+            <button type="button" class="tg-hdr-btn" onclick="TG.openDrawer('char')" title="Modernize Character (Modern AU), edit references, voice, texting style or scenario">
+              🥔 <span>Card / Refs / Voice</span>
+            </button>
+            <button type="button" class="tg-hdr-btn" onclick="TG.openPhotoModal()" title="Ask character for a Nano Banana casual selfie, food/scenery POV, or tease photo">
+              📸 <span>Photo</span>
+            </button>
+            <button type="button" class="tg-hdr-btn" onclick="TG.openDrawer('clock')" title="Real-time clock, events & chat wallpaper">
+              ⏰ <span>Time & Look</span>
+            </button>
+          </div>
+        </header>
+
+        <!-- Pinned Message Banner -->
+        <div class="tg-pinned-bar" id="tgPinnedBar" style="display:none" onclick="TG.scrollToPinned()">
+          <div class="tg-pinned-bar-left">
+            <div class="tg-pinned-label">📌 Pinned Message</div>
+            <div class="tg-pinned-text" id="tgPinnedText"></div>
+          </div>
+          <button type="button" class="tg-fmt-btn" onclick="event.stopPropagation(); TG.unpinMessage()">Unpin</button>
+        </div>
+
+        <!-- Messages Viewport -->
+        <div class="tg-messages-viewport" id="tgMessagesViewport"></div>
+
+        <!-- Typing Indicator -->
+        <div class="tg-typing-row" id="tgTypingRow">
+          <span>💬</span>
+          <span id="tgTypingText">typing…</span>
+        </div>
+
+        <!-- Sticker & Emoji Tray -->
+        <div class="tg-sticker-tray" id="tgStickerTray">
+          <div class="tg-tray-header">
+            <span>🎭 Stickers & Moods</span>
+            <div style="display:flex; gap:6px;">
+              <button type="button" class="tg-fmt-btn" onclick="document.getElementById('customStickerUpload').click()">+ Upload Sticker</button>
+              <button type="button" class="tg-fmt-btn" onclick="TG.toggleStickerTray(false)">✕</button>
+            </div>
+          </div>
+          <div class="tg-tray-grid" id="tgStickerGrid"></div>
+          <input type="file" id="customStickerUpload" accept="image/*" style="display:none" onchange="TG.uploadCustomSticker(this)">
+        </div>
+
+        <!-- Composer -->
+        <div class="tg-composer-wrap">
+          <div class="tg-reply-preview-bar" id="tgReplyPreview">
+            <div>
+              <strong id="tgReplyPreviewSender" style="color:var(--tg-accent)"></strong>:
+              <span id="tgReplyPreviewText"></span>
+            </div>
+            <button type="button" class="tg-fmt-btn" onclick="TG.clearReplyTo()">✕</button>
+          </div>
+
+          <div class="tg-format-strip">
+            <button type="button" class="tg-fmt-btn" onclick="TG.wrapFormat('**', '**')" title="Bold"><b>B</b></button>
+            <button type="button" class="tg-fmt-btn" onclick="TG.wrapFormat('*', '*')" title="Italic"><i>I</i></button>
+            <button type="button" class="tg-fmt-btn" onclick="TG.wrapFormat('~~', '~~')" title="Strikethrough"><s>S</s></button>
+            <button type="button" class="tg-fmt-btn" onclick="TG.wrapFormat('||', '||')" title="Telegram Spoiler Blur">👁️ Spoiler</button>
+            <button type="button" class="tg-fmt-btn" onclick="TG.wrapFormat('`', '`')" title="Monospace">`Code`</button>
+            <button type="button" class="tg-fmt-btn" onclick="TG.openWriteFileModal()" title="Send a text file or note">📄 Note File</button>
+            <span style="flex:1"></span>
+            <button type="button" class="tg-fmt-btn" onclick="TG.triggerAiTurn()" title="Have the character(s) send the next text or continue group banter">🎲 Let them text</button>
+          </div>
+
+          <div class="tg-composer-row">
+            <button type="button" class="tg-icon-btn" onclick="document.getElementById('tgMediaUpload').click()" title="Attach photo or file">📎</button>
+            <input type="file" id="tgMediaUpload" style="display:none" onchange="TG.handleMediaUpload(this)">
+            <button type="button" class="tg-icon-btn" onclick="TG.toggleStickerTray()" title="Stickers & Character Moods">🎭</button>
+            <textarea class="tg-composer-input" id="tgMessageInput" rows="1" placeholder="Write a message… (||spoiler||, **bold**, Enter to send)" onkeydown="TG.onInputKey(event)"></textarea>
+            <button type="button" class="tg-icon-btn" onclick="TG.sendVoiceNotePrompt()" title="Send a Voice Message">🎤</button>
+            <button type="button" class="tg-send-btn" id="tgSendBtn" onclick="TG.sendUserMessage()">Send ➤</button>
+          </div>
+        </div>
+      </main>
+
+      <!-- Right Slide-Over Drawer -->
+      <aside class="tg-drawer" id="tgDrawer">
+        <div class="tg-drawer-header">
+          <strong id="tgDrawerTitle">Profile & Setup</strong>
+          <button type="button" class="tg-fmt-btn" onclick="TG.closeDrawer()">✕ Close</button>
+        </div>
+        <div class="tg-drawer-tabs">
+          <button type="button" class="tg-drawer-tab active" data-tab="char" onclick="TG.switchDrawerTab('char')">🥔 Card & Refs</button>
+          <button type="button" class="tg-drawer-tab" data-tab="clock" onclick="TG.switchDrawerTab('clock')">⏰ Time & Look</button>
+          <button type="button" class="tg-drawer-tab" data-tab="me" onclick="TG.switchDrawerTab('me')">👤 My Profile</button>
+        </div>
+        <div class="tg-drawer-body" id="tgDrawerBody"></div>
+      </aside>
+    </section>
+
+    <!-- APP 2: MOMENTS / PROFILE STATUS UPDATES FEED -->
+    <section class="screen-app-view" id="app-moments">
+      <div class="hub-secondary-pane">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+          <div>
+            <h2 style="margin:0 0 4px;">✨ Moments & Profile Updates</h2>
+            <p style="margin:0; color:var(--tg-muted); font-size:13.5px;">Status updates, bio changes, and snapshots shared by your characters and you.</p>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="tg-btn-GroupNew" onclick="TG.openStoryModal('user')">+ Post My Status</button>
+          </div>
+        </div>
+        <div class="moments-grid" id="momentsFeedList"></div>
+      </div>
+    </section>
+
+    <!-- APP 3: SHARED FILES & PERSONAL NOTES -->
+    <section class="screen-app-view" id="app-files">
+      <div class="hub-secondary-pane">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+          <div>
+            <h2 style="margin:0 0 4px;">🗂️ Shared Files & Notes</h2>
+            <p style="margin:0; color:var(--tg-muted); font-size:13.5px;">Every in-world document, note, or photo sent in your chats, plus your personal scratchpad.</p>
+          </div>
+          <button type="button" class="tg-btn-GroupNew" onclick="TG.addPersonalNote()">+ New Note</button>
+        </div>
+        <div id="hubFilesContainer" style="margin-top:18px; display:flex; flex-direction:column; gap:16px;"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- MODAL: New Chat / Group Chat -->
+  <div class="tg-modal-backdrop" id="modalNewChat">
+    <div class="tg-modal">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="margin:0;">💬 New Chat or Group</h3>
+        <button type="button" class="tg-fmt-btn" onclick="TG.closeModals()">✕</button>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+        <p style="margin:0; font-size:13px; color:var(--tg-muted);">Pick one character for 1-on-1, or tick several for a Group Chat.</p>
+        <button type="button" class="tg-fmt-btn" onclick="TG.closeModals(); TG.openCreateCharModal();">🥔 Create New Character with Bulba</button>
+      </div>
+      <div class="tg-char-pick-list" id="newChatCharList"></div>
+      <div class="tg-field-group">
+        <label>Group / Chat Title (optional — auto-named if blank)</label>
+        <input type="text" class="tg-input" id="newChatTitle" placeholder="e.g. Late Night Lab Crew">
+      </div>
+      <div class="tg-field-group">
+        <label>Starting Scenario / Topic (optional)</label>
+        <textarea class="tg-textarea" id="newChatScenario" placeholder="e.g. Everyone is stuck in the city during a power cut and texting in the group chat…"></textarea>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:8px;">
+        <button type="button" class="tg-fmt-btn" onclick="TG.closeModals()">Cancel</button>
+        <button type="button" class="tg-send-btn" onclick="TG.submitNewChat()">Start Chatting</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Create Messenger-First Character with Bulba -->
+  <div class="tg-modal-backdrop" id="modalCreateChar">
+    <div class="tg-modal">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="margin:0;">🥔 Create Messenger Character with Bulba</h3>
+        <button type="button" class="tg-fmt-btn" onclick="TG.closeModals()">✕</button>
+      </div>
+      <p style="margin:0; font-size:13px; color:var(--tg-muted);">Create a ready-to-text character directly (no normal roleplay card required first). Bulba will draft their @handle, bio, texting style, voice, appearance, art style, and opening text.</p>
+      <div class="tg-field-group">
+        <label>Name (optional — Bulba can invent one)</label>
+        <input type="text" class="tg-input" id="createCharName" placeholder="e.g. Dr. Kira Vance or Pantalone">
+      </div>
+      <div class="tg-field-group">
+        <label>Setting Mode</label>
+        <select class="tg-select" id="createCharMode">
+          <option value="modern_au">🏙️ Modern AU / Real-World Messenger</option>
+          <option value="canon">⚔️ Canon / Original World Communicator</option>
+        </select>
+      </div>
+      <div class="tg-field-group">
+        <label>Character Concept, Personality, Appearance & Texting Vibe</label>
+        <textarea class="tg-textarea" id="createCharIdea" style="min-height:110px;" placeholder="e.g. Grumpy night-shift ER surgeon with silver-streaked dark hair, sharp dark eyes, and a dry sense of humour. Texts in lowercase one-liners at 3am, sends photos of terrible hospital coffee, anime illustration style…"></textarea>
+      </div>
+      <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer;">
+        <input type="checkbox" id="createCharGenPics">
+        <span>🍌 Also generate their Neutral Reference Portrait + 1 Extra Reference Picture right now (for OCs)</span>
+      </label>
+      <div style="display:flex; justify-content:flex-end; gap:8px;">
+        <button type="button" class="tg-fmt-btn" onclick="TG.closeModals()">Cancel</button>
+        <button type="button" class="tg-bulba-btn" id="createCharSubmitBtn" onclick="TG.submitCreateCharBulba()">🥔 Create & Open Chat</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Request / Send Nano Banana Photo -->
+  <div class="tg-modal-backdrop" id="modalPhoto">
+    <div class="tg-modal">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="margin:0;">📸 Nano Banana Character Photo</h3>
+        <button type="button" class="tg-fmt-btn" onclick="TG.closeModals()">✕</button>
+      </div>
+      <p style="margin:0; font-size:13px; color:var(--tg-muted);">Uses 1 Neutral + up to 4 Extra Reference pictures to keep art style & face locked—with varied selfie angles or style-matched food/scenery POV shots.</p>
+      <div class="tg-field-group">
+        <label>Character</label>
+        <select class="tg-select" id="photoModalChar"></select>
+      </div>
+      <div class="tg-field-group">
+        <label>Kind of photo</label>
+        <select class="tg-select" id="photoModalKind">
+          <option value="casual">📷 Casual snapshot / varied-angle selfie / food or scenery POV (reads recent chat context!)</option>
+          <option value="tease">🔥 Tease / alluring candid photo</option>
+        </select>
+      </div>
+      <div class="tg-field-group">
+        <label>Scene / Prompt details (optional — leave blank to auto-extract essence from the current chat)</label>
+        <textarea class="tg-textarea" id="photoModalPrompt" placeholder="Leave blank to let the scene reader inspect the last messages, or describe a specific selfie, food, or scenery shot…"></textarea>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:8px;">
+        <button type="button" class="tg-fmt-btn" onclick="TG.closeModals()">Cancel</button>
+        <button type="button" class="tg-bulba-btn" id="photoModalSubmitBtn" onclick="TG.submitPhotoRequest()">🍌 Generate & Send Photo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: File Reader / Composer -->
+  <div class="tg-modal-backdrop" id="modalFile">
+    <div class="tg-modal">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="margin:0;" id="fileModalHeading">📄 File</h3>
+        <button type="button" class="tg-fmt-btn" onclick="TG.closeModals()">✕</button>
+      </div>
+      <div class="tg-field-group">
+        <label>Filename</label>
+        <input type="text" class="tg-input" id="fileModalName" placeholder="notes.txt">
+      </div>
+      <div class="tg-field-group">
+        <label>Contents</label>
+        <textarea class="tg-textarea" id="fileModalContent" style="min-height:160px; font-family:monospace;"></textarea>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:8px;" id="fileModalFooter">
+        <button type="button" class="tg-fmt-btn" onclick="TG.closeModals()">Close</button>
+        <button type="button" class="tg-send-btn" id="fileModalSendBtn" onclick="TG.submitFileMessage()">Send File</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Story Viewer / Poster -->
+  <div class="tg-modal-backdrop" id="modalStory">
+    <div class="tg-modal" id="modalStoryBody"></div>
+  </div>
+
+  <script id="tgInitialData" type="application/json">{{ initial_json|safe }}</script>
+  <script>
+    window.TG_CFG = {
+      api: "{% url 'messenger_api' %}",
+      csrf: "{{ csrf_token }}"
+    };
+  </script>
+  <script src="{% static 'mainapp/js/messenger.js' %}?v=2"></script>
+</body>
+</html>

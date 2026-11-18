@@ -1,0 +1,316 @@
+import io
+import json
+from unittest.mock import patch
+
+from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import TestCase
+from django.urls import reverse
+
+from mainapp import messenger
+from mainapp.models import Character, MessengerThread
+from users.models import ApiConfig, ConnectionProfile
+
+
+class MessengerHubTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(
+            username="anya",
+            password="pw123456!",
+            persona_name="Anya",
+            persona_description="Sharp analyst who drinks too much espresso.",
+        )
+        self.client.force_login(self.user)
+        ConnectionProfile.objects.create(
+            user=self.user,
+            name="Main OR",
+            provider=ConnectionProfile.PROVIDER_OPENROUTER,
+            api_key="sk-or-test-key",
+            model="xiaomi/mimo-v2.6-pro",
+        )
+        self.char1 = Character.objects.create(
+            author=self.user,
+            name="Il Dottore",
+            slug="anya-il-dottore",
+            description="Second of the Fatui Harbingers. Brilliant, ruthless scholar.",
+            personality="Cold, clinical, sardonic.",
+            scenario="Working late in the Sumeru lab.",
+            initial_message="State your business.",
+            eleven_voice_char_id="voice_dottore_1",
+        )
+        self.char2 = Character.objects.create(
+            author=self.user,
+            name="Pantalone",
+            slug="anya-pantalone",
+            description="Ninth Harbinger, banker of Snezhnaya.",
+            personality="Polite, calculating, Smiling.",
+            scenario="Reviewing ledgers.",
+        )
+
+    def test_screen_hub_creates_initial_thread_and_renders(self):
+        resp = self.client.get(reverse("screen_hub"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "TeleChat")
+        self.assertEqual(MessengerThread.objects.filter(user=self.user).count(), 1)
+
+    def test_group_chat_creation_and_multi_speaker_turn(self):
+        url = reverse("messenger_api")
+        res = self.client.post(
+            url,
+            data=json.dumps({
+                "action": "create_thread",
+                "character_slugs": [self.char1.slug, self.char2.slug],
+                "title": "Harbinger Budget Chat",
+                "scenario_override": "Arguing over lab funding at midnight.",
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(res.status_code, 200)
+        payload = res.json()
+        self.assertTrue(payload["thread"]["is_group"])
+        self.assertEqual(payload["thread"]["title"], "Harbinger Budget Chat")
+        tid = payload["thread"]["id"]
+
+        # Send user message
+        send_res = self.client.post(
+            url,
+            data=json.dumps({
+                "action": "send_user_message",
+                "thread_id": tid,
+                "text": "Who spent the entire quarter's budget on glass tubes?",
+                "generate": False,
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(send_res.status_code, 200)
+
+        fake_ai_reply = (
+            "Il Dottore: [REACT: 👀] They are precision quartz resonators, not 'glass tubes'.\n"
+            "|||BUBBLE|||\n"
+            "Pantalone: Whatever they are, the invoice has six zeroes. [FILE: invoice_402.txt | Total due: 4,200,000 Mora]"
+        )
+        with patch("mainapp.ai_client.complete", return_value=fake_ai_reply):
+            gen_res = self.client.post(
+                url,
+                data=json.dumps({"action": "generate_reply", "thread_id": tid}),
+                content_type="application/json",
+            )
+        self.assertEqual(gen_res.status_code, 200)
+        data = gen_res.json()
+        bubbles = data["turn"]["bubbles"]
+        self.assertEqual(len(bubbles), 2)
+        self.assertEqual(bubbles[0]["sender_slug"], self.char1.slug)
+        self.assertEqual(bubbles[1]["sender_slug"], self.char2.slug)
+        self.assertEqual(bubbles[1]["file"]["name"], "invoice_402.txt")
+        # Check reaction was applied to user's message
+        user_msg = data["thread"]["messages"][0]
+        self.assertIn("👀", user_msg["reactions"])
+
+    def test_bulba_modern_au_keeps_original_card_untouched(self):
+        url = reverse("messenger_api")
+        fake_bulba_json = json.dumps({
+            "handle": "@dr_zandik",
+            "status_emoji": "🧪",
+            "bio": "Head of Biotech R&D. Don't call before 10 AM.",
+            "modern_persona": "Director of a private biomedical institute in Zurich.",
+            "texting_style": "Dry, full punctuation, never uses exclamation marks.",
+            "scenario": "You are his newly hired lab ethics auditor.",
+            "first_text": "Did you sign off on protocol 14 yet?",
+        })
+        with patch("mainapp.ai_client.complete", return_value=fake_bulba_json):
+            res = self.client.post(
+                url,
+                data=json.dumps({
+                    "action": "modernize_bulba",
+                    "char_slug": self.char1.slug,
+                    "mode": "modern_au",
+                    "hint": "Biotech director",
+                }),
+                content_type="application/json",
+            )
+        self.assertEqual(res.status_code, 200)
+        prof = res.json()["profile"]
+        self.assertEqual(prof["mode"], "modern_au")
+        self.assertEqual(prof["handle"], "@dr_zandik")
+        self.assertIn(" Zurich", prof["modern_persona"])
+
+        # Original RP card must be untouched
+        self.char1.refresh_from_db()
+        self.assertEqual(self.char1.description, "Second of the Fatui Harbingers. Brilliant, ruthless scholar.")
+        self.assertEqual(self.char1.scenario, "Working late in the Sumeru lab.")
+
+    def test_profile_bio_and_status_updates_from_ai_and_user(self):
+        thread = messenger.create_thread(self.user, [self.char1])
+        fake_ai = (
+            "[BIO: Do not disturb — running diagnostics.] "
+            "[STATUS: ⚡ | Third coffee since midnight.] "
+            "I'm locked in the cleanroom until 4 AM."
+        )
+        with patch("mainapp.ai_client.complete", return_value=fake_ai):
+            turn = messenger.generate_turn(self.user, thread)
+        self.assertEqual(len(turn["bubbles"]), 1)
+        self.assertEqual(len(turn["system_notices"]), 2)
+        self.char1.refresh_from_db()
+        prof = messenger.char_profile(self.char1)
+        self.assertEqual(prof["bio"], "Do not disturb — running diagnostics.")
+        self.assertEqual(prof["stories"][0]["text"], "Third coffee since midnight.")
+
+    def test_voice_and_nano_banana_photo_bubbles(self):
+        ApiConfig.objects.create(user=self.user, eleven_key="el-test-key")
+        thread = messenger.create_thread(self.user, [self.char1])
+        td = messenger.thread_data(thread)
+        td["messages"].append({
+            "id": "m_voice1",
+            "role": "assistant",
+            "sender_slug": self.char1.slug,
+            "sender_name": self.char1.name,
+            "text": "[sighs] Listen carefully.",
+            "voice": {"transcript": "[sighs] Listen carefully.", "audio_url": "", "duration": 3},
+            "time": "02:15",
+            "ts": 1700000000,
+            "reactions": {},
+        })
+        messenger.save_thread_data(thread, td)
+
+        url = reverse("messenger_api")
+        with patch("mainapp.voice.synthesize_single", return_value=b"ID3-fake-mp3-bytes"):
+            v_res = self.client.post(
+                url,
+                data=json.dumps({"action": "voice_bubble", "thread_id": thread.id, "message_id": "m_voice1"}),
+                content_type="application/json",
+            )
+        self.assertEqual(v_res.status_code, 200)
+        self.assertTrue(v_res.json()["audio_url"].endswith(".mp3"))
+
+        with patch("mainapp.ai_client.generate_image", return_value=(b"\x89PNG\r\n\x1a\nfake", 0.02)) as mock_img:
+            p_res = self.client.post(
+                url,
+                data=json.dumps({
+                    "action": "photo_bubble",
+                    "thread_id": thread.id,
+                    "char_slug": self.char1.slug,
+                    "kind": "casual",
+                    "prompt": "Late night lab desk with glowing vials",
+                }),
+                content_type="application/json",
+            )
+        self.assertEqual(p_res.status_code, 200)
+        self.assertTrue(p_res.json()["url"].endswith(".png"))
+        # Food / desk / scenery photo must be detected as pov_object with style lock
+        called_prompt = mock_img.call_args[0][1]
+        self.assertIn("CRITICAL STYLE LOCK", called_prompt)
+        self.assertIn("Camera angle & framing:", called_prompt)
+
+    def test_voice_preview_with_custom_voice_id(self):
+        url = reverse("messenger_api")
+        with patch("mainapp.voice.synthesize_single", return_value=b"ID3-preview-bytes") as mock_tts:
+            res = self.client.post(
+                url,
+                data=json.dumps({
+                    "action": "preview_voice",
+                    "char_slug": self.char1.slug,
+                    "voice_id": "JBFqnCBsd6RMkjVDRZzb",
+                    "voice_model": "elevenlabs/eleven-v4-turbo",
+                }),
+                content_type="application/json",
+            )
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(res.json()["audio_url"].endswith(".mp3"))
+        self.assertEqual(mock_tts.call_args[1]["voice_id"], "JBFqnCBsd6RMkjVDRZzb")
+
+    def test_create_messenger_character_with_bulba_standalone(self):
+        url = reverse("messenger_api")
+        fake_bulba_char = json.dumps({
+            "name": "Kaveh",
+            "handle": "@light_of_kshahrewar",
+            "status_emoji": "📐",
+            "bio": "Independent architect. Commissions open (please).",
+            "modern_persona": "Freelance sustainable architect in Milan drowning in client revisions and espresso.",
+            "texting_style": "Expressive, rapid-fire double texts, dramatic punctuation, vents warmly.",
+            "appearance_notes": "Blonde hair with red geometric clips, carmine eyes, linen shirt with rolled sleeves, drafting pencil behind ear.",
+            "art_style_notes": "Crisp anime illustration, warm golden-hour lighting, cel-shaded detail.",
+            "voice_id": "liam",
+            "scenario": "Texting you at 1 AM because a client asked to remove a load-bearing column.",
+            "first_text": "Tell me honestly — if I scream into a throw pillow right now, does that count as structural engineering?",
+            "tags": ["architect", "roommate", "modern-au"],
+        })
+        with patch("mainapp.ai_client.complete", return_value=fake_bulba_char), \
+             patch("mainapp.ai_client.generate_image", return_value=(b"\x89PNG\r\n\x1a\nfake", 0.02)):
+            res = self.client.post(
+                url,
+                data=json.dumps({
+                    "action": "create_char_bulba",
+                    "name": "Kaveh",
+                    "idea": "Stressed architect friend in Milan",
+                    "mode": "modern_au",
+                    "generate_pics": True,
+                }),
+                content_type="application/json",
+            )
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data["character"]["name"], "Kaveh")
+        self.assertEqual(data["character"]["handle"], "@light_of_kshahrewar")
+        self.assertTrue(data["character"]["neutral_url"].endswith(".png"))
+        self.assertEqual(len(data["character"]["extra_refs"]), 1)
+        self.assertIn("thread", data)
+
+    def test_multi_reference_and_varied_selfie_angle_generation(self):
+        # Configure 1 neutral + 2 extra references on char1
+        messenger.save_char_profile(self.char1, {
+            "neutral_url": "/media/test_neutral.png",
+            "extra_refs": ["/media/test_ref1.png", "/media/test_ref2.png"],
+            "appearance_notes": "Pale skin, crimson eyes, blue-white hair, ear cuff.",
+            "art_style_notes": "Dark anime painting style.",
+        })
+        fake_refs = [
+            (b"neutral-bytes", "image/png"),
+            (b"ref1-bytes", "image/png"),
+            (b"ref2-bytes", "image/png"),
+        ]
+        with patch("mainapp.messenger.load_character_references", return_value=fake_refs), \
+             patch("mainapp.ai_client.generate_image", return_value=(b"\x89PNG\r\n\x1a\nfake", 0.02)) as mock_gen:
+            url, _ = messenger.generate_messenger_photo(
+                self.user,
+                self.char1,
+                description="Loosening tie in the elevator mirror after hours",
+                kind="tease",
+            )
+        self.assertTrue(url.endswith(".png"))
+        self.assertEqual(len(mock_gen.call_args[1]["references"]), 3)
+        prompt_sent = mock_gen.call_args[0][1]
+        self.assertIn("Camera angle & composition", prompt_sent)
+        self.assertIn("CRITICAL IDENTITY & STYLE LOCK", prompt_sent)
+        self.assertIn("Dark anime painting style.", prompt_sent)
+
+    def test_automatic_per_model_texting_rules_switch(self):
+        thread = messenger.create_thread(self.user, [self.char1])
+        # Initial profile in setUp is xiaomi/mimo-v2.6-pro
+        info_mimo = messenger.active_model_texting_rules(self.user)
+        self.assertIn("mimo", info_mimo["profile_id"])
+        self.assertIn("ANTI-RECAP & ANTI-ECHO", info_mimo["rules"])
+
+        # Switch user's active connection profile model to Gemini 2.5 Pro mid-chat
+        prof = ConnectionProfile.objects.filter(user=self.user).first()
+        prof.model = "google/gemini-2.5-pro"
+        prof.save()
+
+        info_gemini = messenger.active_model_texting_rules(self.user)
+        self.assertEqual(info_gemini["model_id"], "google/gemini-2.5-pro")
+        self.assertIn("Strict Phone Horizon", info_gemini["rules"])
+
+        # Prompt built for the very next message must automatically include Gemini rules
+        messages = messenger.build_messenger_prompt(self.user, thread)
+        sys_prompt = messages[0]["content"]
+        self.assertIn("ACTIVE MODEL TEXTING CALIBRATION (Gemini 4 Argon)", sys_prompt)
+        self.assertIn("Strict Phone Horizon", sys_prompt)
+
+    def test_frankenstein_stage_direction_stripping_and_poll(self):
+        cleaned = messenger.strip_stage_directions("*he sighs and looks down at his phone screen* Fine. Send me the file.")
+        self.assertEqual(cleaned, "Fine. Send me the file.")
+
+        poll_res = self.client.get(reverse("messenger_api") + "?action=poll")
+        self.assertEqual(poll_res.status_code, 200)
+        self.assertIn("total_unread", poll_res.json())
+

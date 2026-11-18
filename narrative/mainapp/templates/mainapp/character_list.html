@@ -96,6 +96,9 @@
                     <a href="{% url 'chat' character.slug %}" class="btn btn-primary">
                         {% if character.last_played %}Continue{% else %}Start chat{% endif %}
                     </a>
+                    <a href="{% url 'screen_hub' %}?char={{ character.slug }}" class="btn btn-secondary" title="Text {{ character.name }} in Telegram Messenger">
+                        📱 Text
+                    </a>
                     <a href="{% url 'character' character.slug %}" class="btn btn-secondary">
                         Edit
                     </a>

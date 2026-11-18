@@ -785,17 +785,33 @@ def default_image_model(models=None):
     return (banana or models)[0]["id"]
 
 
-def _nanogpt_image(user, profile, prompt, reference, reference_type, timeout):
+def _normalize_references(reference=None, reference_type="image/png", references=None):
+    """Return a list of (bytes, mime_type) up to 5 reference images (1 neutral + up to 4 extra references)."""
+    out = []
+    if reference:
+        out.append((reference, reference_type or "image/png"))
+    for item in (references or []):
+        if isinstance(item, (tuple, list)) and len(item) >= 2 and item[0]:
+            out.append((item[0], item[1] or "image/png"))
+        elif isinstance(item, (bytes, bytearray)) and item:
+            out.append((bytes(item), reference_type or "image/png"))
+        elif isinstance(item, dict) and item.get("bytes"):
+            out.append((item["bytes"], item.get("type") or "image/png"))
+    return out[:5]
+
+
+def _nanogpt_image(user, profile, prompt, reference, reference_type, timeout, references=None):
     """One picture from NanoGPT's OpenAI-style image endpoint (Nano Banana: settings.NANOGPT_IMAGE_MODEL), with
-    the reference picture as a data URL for consistent moods. Returns (bytes, cost or None)."""
+    the reference picture(s) as data URLs for consistent moods. Returns (bytes, cost or None)."""
     import base64
     from django.conf import settings
     model = getattr(settings, "NANOGPT_IMAGE_MODEL", "nano-banana-2")
     payload = {"model": model, "prompt": prompt, "n": 1, "response_format": "b64_json"}
-    if reference:
-        url = f"data:{reference_type};base64,{base64.b64encode(reference).decode('ascii')}"
-        payload["imageDataUrl"] = url  # NanoGPT's own name for a reference picture
-        payload["image"] = [url]       # the OpenAI-style edit field, for whichever it reads
+    ref_list = _normalize_references(reference, reference_type, references)
+    if ref_list:
+        urls = [f"data:{mime};base64,{base64.b64encode(raw).decode('ascii')}" for raw, mime in ref_list]
+        payload["imageDataUrl"] = urls[0]  # NanoGPT's own name for the primary reference picture
+        payload["image"] = urls            # the OpenAI-style edit field accepts 1..N reference pictures
     try:
         resp = requests.post(f"{profile.api_url}/images/generations", headers=_headers(profile), json=payload,
                              timeout=TEST_TIMEOUT or timeout)
@@ -829,23 +845,23 @@ def _nanogpt_image(user, profile, prompt, reference, reference_type, timeout):
     raise AIError("NanoGPT's image model answered without a picture.")
 
 
-def generate_image(user, prompt, reference=None, reference_type="image/png", timeout=180, model=None):
+def generate_image(user, prompt, reference=None, reference_type="image/png", timeout=180, model=None, references=None):
     """
     One picture from an image model on OpenRouter (Nano Banana: settings.SPRITE_IMAGE_MODEL), optionally
-    starting from a reference picture. Returns (PNG/JPEG bytes, cost or None). Uses the main connection's key.
+    starting from 1..5 reference pictures (1 neutral + up to 4 extra references). Returns (PNG/JPEG bytes, cost or None).
     """
     import base64
     from django.conf import settings
     check_limit(user)
     profile = main_profile(user)
     if profile is not None and profile.provider == ConnectionProfile.PROVIDER_NANOGPT and profile.api_key:
-        return _nanogpt_image(user, profile, prompt, reference, reference_type, timeout)
+        return _nanogpt_image(user, profile, prompt, reference, reference_type, timeout, references=references)
     if profile is None or profile.provider != ConnectionProfile.PROVIDER_OPENROUTER or not profile.api_key:
         raise AIError("Making pictures needs an OpenRouter or NanoGPT key (set it on the welcome page).")
     model = model or default_image_model()
     content = [{"type": "text", "text": prompt}]
-    if reference:
-        url = f"data:{reference_type};base64,{base64.b64encode(reference).decode('ascii')}"
+    for raw, mime in _normalize_references(reference, reference_type, references):
+        url = f"data:{mime};base64,{base64.b64encode(raw).decode('ascii')}"
         content.append({"type": "image_url", "image_url": {"url": url}})
     payload = {"model": model, "messages": [{"role": "user", "content": content}],
                "modalities": ["image", "text"], "usage": {"include": True}}
