@@ -693,3 +693,14 @@ class ChatMemoryTests(MessengerActionTests):
         self.assertIn("she owes him a coffee", prompt)
         self.assertNotIn("line 34", prompt)  # only the last 20 are read now
         self.assertIn("line 54", prompt)
+
+
+class ThemeTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_a_ready_theme_per_chat(self):
+        tid = self.thread()
+        self.assertEqual(self.post(action="thread_settings", thread_id=tid, theme="forest").json()["thread"]["theme"], "forest")
+        self.assertEqual(self.post(action="thread_settings", thread_id=tid, theme="neon-unknown").json()["thread"]["theme"], "forest")
+        self.assertEqual(self.post(action="thread_settings", thread_id=tid, theme="").json()["thread"]["theme"], "")

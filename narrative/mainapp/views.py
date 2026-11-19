@@ -5174,6 +5174,8 @@ def messenger_api(request):
             td["leave_on_read"] = bool(body["leave_on_read"])
         if isinstance(body.get("persona"), dict):  # 🎭 who they are in this chat ({} = their usual persona)
             td["persona"] = {k: str(body["persona"].get(k) or "").strip() for k in ("name", "description")}
+        if "theme" in body and (body["theme"] in messenger.THEMES or not body["theme"]):  # 🎨 a ready theme
+            td["theme"] = body["theme"] or ""
         if "memory" in body:  # 🧠 the chat's memory, edited by hand
             td["memory"] = str(body.get("memory") or "").strip()[:6000]
         if body.get("context_size") in messenger.CONTEXT_SIZES:

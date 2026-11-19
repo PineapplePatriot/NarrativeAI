@@ -275,7 +275,14 @@ Batch C as planned:
 - (8) Stickers: Telegram/Discord-style packs; generated custom packs (a character's texting look, one style);
   real Telegram packs by link through a bot token in a Railway variable (decided 18 November).
 
-Batch D, memory and the rest:
+Batch D: done 19 November: the chat's memory (a running summary of what fell out of view, editable, "update it
+now") and how many recent messages are read (20/30/60/100); Bulba Watch for texts (free checks on their latest
+text, short chats included, with a one-tap rewrite); four ready themes per chat (classic, forest, rose, sepia).
+Trackers: not in the messenger (the user checks with a few users).
+Later, maybe: sound effects (Lyria ambient beds through OpenRouter; ElevenLabs sound effects with the user's own
+key); characters texting while the browser is closed (a scheduled job + push notifications).
+
+Batch D as planned:
 - (12) Context window and story memory for messenger chats (the chat page's panel, per chat).
 - (10) Bulba Watch in short chats.
 - (18) Characters post their own statuses now and then; the user's button posts only theirs.

@@ -64,6 +64,10 @@ def make_picture(user, prompt, references=None):
     return ai_client.generate_image(user, prompt, references=references, model=model)
 
 
+# 🎨 Ready chat themes (bubbles, accent, a matching background), per chat; "" = the app's purple
+THEMES = {"classic": "Telegram classic", "forest": "Forest", "rose": "Rose", "sepia": "Sepia evening"}
+
+
 REACTIONS = ["❤️", "🔥", "👍", "😂", "😮", "😢", "👀", "🎉", "😡", "🤔"]
 
 BUILT_IN_STICKERS = [
@@ -744,6 +748,7 @@ def thread_data(thread):
         "memory": str(raw.get("memory") or "")[:6000],
         "memory_upto": max(0, int(raw.get("memory_upto") or 0)),
         "context_size": raw.get("context_size") if raw.get("context_size") in CONTEXT_SIZES else 30,
+        "theme": raw.get("theme") if raw.get("theme") in THEMES else "",
         "regen_prev": [m for m in (raw.get("regen_prev") or []) if isinstance(m, dict)][:20],  # ↻ the take before
     }
 
@@ -2447,6 +2452,7 @@ def serialize_thread_full(thread, user):
         "messages": delivered(data["messages"]),
         "watch": watch_notice(delivered(data["messages"])) if _watch_on(user) else None,  # 🥔 Bulba noticed…
         "memory": data["memory"], "context_size": data["context_size"], "memory_due": memory_due(data),
+        "theme": data["theme"],
         "waiting": waiting_reply(data),  # 🙈 seconds until a reply left on read arrives
         "leave_on_read": data["leave_on_read"],
         "bg": data["bg"],

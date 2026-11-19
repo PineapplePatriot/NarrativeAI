@@ -1627,3 +1627,13 @@ body.tg-bulba-open .tg-header-actions .tg-hdr-btn > span, body.tg-bulba-open #hd
 .tg-watch-fix { background: linear-gradient(135deg, #7e3af2, #9863ff); color: #fff; border: 0; border-radius: 99px; padding: 4px 10px; font: inherit; font-weight: 600; cursor: pointer; }
 .tg-watch-x { background: none; border: 1px solid var(--tg-border); color: var(--tg-muted); border-radius: 99px; padding: 4px 10px; font: inherit; cursor: pointer; }
 @media (max-width: 860px) { .tg-watch { margin-left: 8px; max-width: calc(100% - 16px); } }
+
+/* 🎨 Ready chat themes (per chat): bubbles, accent and, unless a wallpaper is picked, a matching background */
+.tg-theme-classic { --tg-out-bubble: #2b5278; --tg-in-bubble: #182533; --tg-accent: #5eb5f7; }
+.tg-theme-classic .tg-messages-viewport.tg-themed { background-image: linear-gradient(160deg, #0e1621, #17212b) !important; }
+.tg-theme-forest { --tg-out-bubble: #1f5f45; --tg-in-bubble: #1c2a24; --tg-accent: #6fd3a2; }
+.tg-theme-forest .tg-messages-viewport.tg-themed { background-image: linear-gradient(160deg, #0b1a14, #12261d) !important; }
+.tg-theme-rose { --tg-out-bubble: #7a2e52; --tg-in-bubble: #2a1e28; --tg-accent: #f59ac0; }
+.tg-theme-rose .tg-messages-viewport.tg-themed { background-image: linear-gradient(160deg, #1c0e17, #2b1522) !important; }
+.tg-theme-sepia { --tg-out-bubble: #6b4a2b; --tg-in-bubble: #2e2620; --tg-accent: #e8b86b; }
+.tg-theme-sepia .tg-messages-viewport.tg-themed { background-image: linear-gradient(160deg, #17110c, #261c14) !important; }

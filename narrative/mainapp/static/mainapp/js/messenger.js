@@ -215,9 +215,13 @@
       .join("");
   }
 
+  var THEMES = { "": "Purple (the app's)", classic: "Telegram classic", forest: "Forest", rose: "Rose", sepia: "Sepia evening" };
   function applyWallpaper(thread) {
     var vp = document.getElementById("tgMessagesViewport");
     if (!vp || !thread) return;
+    var main = document.getElementById("tgMain");  // 🎨 the chat's theme: bubbles, accent, background
+    if (main) { Object.keys(THEMES).forEach(function (k) { if (k) main.classList.remove("tg-theme-" + k); }); if (thread.theme) main.classList.add("tg-theme-" + thread.theme); }
+    vp.classList.toggle("tg-themed", !!thread.theme && (!thread.bg || thread.bg === "tg-night") && !thread.custom_bg_url);
     vp.classList.remove("light-wp");
     if (thread.custom_bg_url) {
       vp.style.backgroundImage = 'linear-gradient(rgba(10,15,26,0.55), rgba(10,15,26,0.55)), url("' + esc(thread.custom_bg_url) + '")';
@@ -825,6 +829,9 @@
             '<input type="checkbox" id="drwThreadShare" ' + (t.share_memory !== false ? "checked" : "") + ' style="margin-top:3px">' +
             "<span>🧠 <b>Share story memory with the roleplay chats</b></span></label>" +
         "</div>" +
+        '<div class="tg-field-group"><label>🎨 Theme</label><select class="tg-select" id="drwThreadTheme">' +
+          Object.keys(THEMES).map(function (k) { return '<option value="' + k + '"' + ((t.theme || "") === k ? " selected" : "") + ">" + esc(THEMES[k]) + "</option>"; }).join("") +
+        "</select></div>" +
         '<div class="tg-field-group">' +
           "<label>🧠 Memory of this chat <small style=\"font-weight:400;color:var(--tg-muted)\">(what happened before the recent messages; kept up to date as the chat grows; edit freely)</small></label>" +
           '<textarea class="tg-textarea" id="drwThreadMemory" style="min-height:90px" placeholder="Nothing yet: it starts once older messages fall out of view.">' + esc(t.memory || "") + "</textarea>" +
@@ -2383,6 +2390,7 @@
         share_memory: !!(document.getElementById("drwThreadShare") || {}).checked,
         memory: (document.getElementById("drwThreadMemory") || {}).value || "",
         context_size: parseInt((document.getElementById("drwThreadContext") || {}).value || "30", 10),
+        theme: (document.getElementById("drwThreadTheme") || {}).value || "",
         persona: { name: (document.getElementById("drwThreadPersonaName") || {}).value || "",
                    description: (document.getElementById("drwThreadPersonaDesc") || {}).value || "" },
         events: t.events || [],
