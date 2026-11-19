@@ -635,7 +635,8 @@
           (neutralUrl
             ? '<img class="tg-ref-img" src="' + esc(neutralUrl) + '" alt="Neutral" title="Tap to see it big" onclick="TG.viewImage(this.src)">'
             : '<div class="tg-ref-empty" style="background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:20px;">👤</div>') +
-          '<button type="button" class="tg-fmt-btn" style="font-size:10.5px;padding:3px 7px;" onclick="TG.triggerRefUpload(\'char_neutral\', -1)">Upload</button>' +
+          '<div style="display:flex;gap:3px;"><button type="button" class="tg-fmt-btn" style="font-size:10.5px;padding:3px 7px;" onclick="TG.triggerRefUpload(\'char_neutral\', -1)">Upload</button>' +
+          '<button type="button" class="tg-fmt-btn" style="font-size:10.5px;padding:3px 6px;" onclick="TG.makeOneRef(-1, this)" title="' + (neutralUrl ? "Draw it again" : "Draw it") + ', just this one">' + (neutralUrl ? "↻" : "✨") + "</button></div>" +
         "</div>"
       );
       // Slots 1..4: Up to 4 Extra References
@@ -649,6 +650,7 @@
               : '<div class="tg-ref-empty" style="background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--tg-muted);">+</div>') +
             '<div style="display:flex;gap:3px;">' +
               '<button type="button" class="tg-fmt-btn" style="font-size:10.5px;padding:3px 6px;" onclick="TG.triggerRefUpload(\'char_extra_ref\', ' + rIdx + ')">' + (rUrl ? "Swap" : "Add") + "</button>" +
+              '<button type="button" class="tg-fmt-btn" style="font-size:10.5px;padding:3px 6px;" onclick="TG.makeOneRef(' + rIdx + ', this)" title="' + (rUrl ? "Draw it again" : "Draw it") + ', just this one">' + (rUrl ? "↻" : "✨") + "</button>" +
               (rUrl ? '<button type="button" class="tg-fmt-btn" style="font-size:10.5px;padding:3px 5px;color:#f87171;" onclick="TG.removeExtraRef(' + rIdx + ')">✕</button>' : "") +
             "</div>" +
           "</div>"
@@ -1596,6 +1598,13 @@
       };
     },
 
+    makeOneRef: function (slot, btn) {
+      var slug = selectedDrawerCharSlug; if (!slug) return;
+      if (btn) { btn.disabled = true; btn.textContent = "⏳"; }
+      apiPost({ action: "one_reference", char_slug: slug, slot: slot }).then(function (res) {
+        syncCharCatalog(res.char_slug, res.profile); renderSidebar(); renderActiveThread(); renderDrawer();
+      }).catch(function (e) { if (btn) { btn.disabled = false; btn.textContent = slot < 0 ? "✨" : "✨"; } alert(e.message); });
+    },
     setupType: function (slug, key, value) { if (setupState[slug]) setupState[slug][key] = value; },
     setupSkip: function (slug) {
       try { localStorage.setItem("na-tg-setup-skip-" + slug, "1"); } catch (e) { /* this visit only */ }

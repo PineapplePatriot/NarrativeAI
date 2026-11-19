@@ -155,15 +155,20 @@ if (location.hash === '#spritesSection') {
         const m = name.match(/^(photo|photo_second)_(\w+)$/);
         if (!m || !MOODS.includes(m[2]) || groupEl.querySelector('.sprite-redo')) return;
         const b = document.createElement('button');
-        b.type = 'button'; b.className = 'sprite-redo'; b.textContent = '↻ Redo';
-        b.title = `Draw “${m[2]}” again from the neutral picture (a few cents)`;
+        b.type = 'button'; b.className = 'sprite-redo';
+        const label = () => {  // ✨ make just this one, or ↻ redo just this one
+            const has = hasPicture(name);
+            b.textContent = has ? '↻ Redo this one' : '✨ Make this one';
+            b.title = `${has ? 'Draw' : 'Make'} “${m[2]}” ${has ? 'again ' : ''}from the neutral picture, just this one (a few cents)`;
+        };
+        label();
         b.onclick = async () => {
             if (!hasPicture(`${m[1]}_neutral`)) { status.textContent = 'The moods are made from the neutral picture: add that first.'; return; }
             b.disabled = true; busy(true);
             status.textContent = `Drawing “${m[2]}” again… (about 15 seconds)`;
-            try { await make(m[2], m[1] === 'photo_second'); status.textContent = `“${m[2]}” redone and saved.`; }
-            catch (err) { status.textContent = `Couldn't redo “${m[2]}”: ${err.message}`; }
-            b.disabled = false; busy(false);
+            try { await make(m[2], m[1] === 'photo_second'); status.textContent = `“${m[2]}” made and saved.`; }
+            catch (err) { status.textContent = `Couldn't make “${m[2]}”: ${err.message}`; }
+            b.disabled = false; busy(false); label();
         };
         (groupEl.querySelector('.file-preview') || groupEl).after(b);
     }

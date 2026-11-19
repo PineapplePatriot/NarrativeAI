@@ -598,3 +598,22 @@ class UserPictureTests(MessengerActionTests):
         self.post(action="generate_reply", thread_id=tid)
         self.assertIn("It shows: Mika: at the bus stop in the rain", json.dumps(ai_client.complete.call_args.args[2]))
         self.assertEqual(self.post(action="user_picture", thread_id=tid, prompt="").status_code, 400)
+
+
+class OneReferenceTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_one_picture_at_a_time(self):
+        from mainapp import messenger
+        self.rose.messenger_profile = {"appearance_notes": "Red hair, green apron."}
+        self.rose.save()
+        self.assertEqual(self.post(action="one_reference", char_slug=self.rose.slug, slot=0).status_code, 400)  # neutral first
+        prof = self.post(action="one_reference", char_slug=self.rose.slug, slot=-1).json()["profile"]
+        self.assertTrue(prof["neutral_url"])
+        prof = self.post(action="one_reference", char_slug=self.rose.slug, slot=0).json()["profile"]
+        first = prof["extra_refs"][0]
+        prof = self.post(action="one_reference", char_slug=self.rose.slug, slot=0).json()["profile"]
+        self.assertEqual(len(prof["extra_refs"]), 1)  # redone in place
+        self.assertNotEqual(prof["extra_refs"][0], first)
+        self.assertTrue(messenger.char_profile(Character.objects.get(id=self.rose.id))["neutral_url"])

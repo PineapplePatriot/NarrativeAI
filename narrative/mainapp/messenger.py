@@ -1897,6 +1897,46 @@ def post_own_status(user, character, thread=None):
     return story
 
 
+ONE_REF_SHOTS = (
+    "a clean chest-up three-quarter portrait, calm in-character expression",
+    "a waist-up candid shot that shows their outfit and posture",
+    "a close-up with an expressive in-character look, dynamic light",
+    "a relaxed medium shot in their usual surroundings, hands and clothes visible",
+    "a three-quarter view from a slightly low angle, profile and hair visible",
+)
+
+
+def one_reference(user, character, slot):
+    """✨/↻ One reference picture, just this one: slot -1 is the neutral portrait (drawn from the description, the
+    face kept from any pictures they have), 0-3 an extra reference made from the neutral one. Returns the profile."""
+    prof = char_profile(character)
+    look = (prof.get("appearance_notes") or character.description or "")[:1200]
+    if not look.strip():
+        raise ai_client.AIError("Add how they look (Appearance) first: the picture is drawn from it.")
+    style = prof.get("art_style_notes") or "expressive digital character illustration, clean lines, rich atmospheric lighting"
+    setting = "a modern-day setting" if prof.get("mode") == "modern_au" else "their own world"
+    slot = int(slot)
+    if slot < 0:
+        refs, shot = load_character_references(character)[:3], ONE_REF_SHOTS[0]
+    else:
+        neutral = _read_storage_image(prof.get("neutral_url")) if prof.get("neutral_url") else None
+        if not neutral:
+            raise ai_client.AIError("Make the neutral portrait first: the other references are made from it.")
+        refs, shot = [neutral], ONE_REF_SHOTS[1 + min(slot, 3)]
+    same = "Keep them the SAME person as in the reference pictures: same face, hair, eyes, skin and build. " if refs else ""
+    img, _ = make_picture(user, f"{same}Draw {character.name} in {setting}: {shot}.\nHow they look: {look}\n"
+                                f"Art style: {style}.", references=refs)
+    url = default_storage.url(default_storage.save(f"messenger/refs/{character.slug}-{uuid.uuid4().hex[:8]}.png", ContentFile(img)))
+    if slot < 0:
+        return save_char_profile(character, {"neutral_url": url, "avatar_url": url})
+    extra = list(prof.get("extra_refs") or [])
+    if slot < len(extra):
+        extra[slot] = url
+    else:
+        extra.append(url)
+    return save_char_profile(character, {"extra_refs": extra[:4]})
+
+
 def user_picture(user, thread, description, ref_urls=(), with_me=True):
     """🎨 A picture the user sends: a photo of them (their persona picture as the reference) or of anything, with up
     to 5 references (their persona, the character's pictures for a photo of the two of them, uploads), in the chat's
