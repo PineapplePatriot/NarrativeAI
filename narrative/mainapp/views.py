@@ -3518,6 +3518,23 @@ def persona_sprite(request):
     if request.method != "POST":
         return JsonResponse({"error": "POST only"}, status=405)
     user = request.user
+    if request.FILES.get("file"):  # 📤 their own picture for one mood (any mood, not only neutral)
+        mood = request.POST.get("emotion") or ""
+        if mood not in ["neutral"] + SPRITE_EMOTIONS:
+            return JsonResponse({"error": "Which mood?"}, status=400)
+        upload = request.FILES["file"]
+        if upload.size > 15 * 1024 * 1024:
+            return JsonResponse({"error": "That picture is over 15 MB."}, status=400)
+        from PIL import Image, UnidentifiedImageError
+        try:
+            Image.open(upload).verify()
+        except (UnidentifiedImageError, OSError, SyntaxError):
+            return JsonResponse({"error": "That file isn't a picture."}, status=400)
+        upload.seek(0)
+        field = getattr(user, f"persona_photo_{mood}")
+        field.save(f"persona-{user.id}-{mood}-{upload.name[-40:]}", upload, save=False)
+        user.save(update_fields=[f"persona_photo_{mood}"])
+        return JsonResponse({"url": field.url, "field": f"persona_photo_{mood}"})
     who = user.persona_name or "the user's character"
     return _make_sprite(request, user, "persona_photo", who, (str(user.persona_description or "")[:2500],),
                         user.persona_name or user.username)
@@ -4630,6 +4647,7 @@ def screen_hub(request):
         "active_thread": serialized_active,
         "characters": char_catalog,
         "user_profile": messenger.user_profile(request.user),
+        "persona_photo": request.user.persona_photo_neutral.url if request.user.persona_photo_neutral else "",
         "wallpapers": messenger.WALLPAPERS,
         "reactions": messenger.REACTIONS,
         "built_in_stickers": messenger.BUILT_IN_STICKERS,
@@ -4671,11 +4689,11 @@ def messenger_api(request):
                 for t in threads:
                     td = messenger.thread_data(t)
                     msgs = td.get("messages") or []
-                    last_ts = msgs[-1].get("ts") if msgs else 0
+                    last_ts = messenger.ts_of(msgs[-1]) if msgs else 0
                     last_auto = td.get("last_auto_at") or 0
                     # one check-in per silence: not again until the user has answered the last one
-                    unanswered = msgs and msgs[-1].get("role") != "user" and last_auto and float(last_auto) >= float(
-                        next((m.get("ts") or 0 for m in reversed(msgs) if m.get("role") == "user"), 0) or 0)
+                    unanswered = msgs and msgs[-1].get("role") != "user" and last_auto and float(last_auto) >= \
+                        next((messenger.ts_of(m) for m in reversed(msgs) if m.get("role") == "user"), 0)
                     if unanswered or messenger.waiting_reply(td):
                         continue
                     if last_ts and (now_ts - float(last_ts) >= cooldown_sec) and (now_ts - float(last_auto) >= cooldown_sec):
@@ -4692,6 +4710,21 @@ def messenger_api(request):
                         except Exception:
                             pass
                         break
+
+            # ✨ now and then a character posts a status of their own (one per poll at most)
+            if u_prof.get("auto_statuses", True) and threads:
+                for t in threads:
+                    for c in t.characters.all():
+                        from django.core.cache import cache
+                        if messenger.is_set_up(c) and messenger.status_due(c) and cache.add(f"tg-status-try:{c.id}", 1, 3600):
+                            try:
+                                messenger.post_own_status(request.user, c, thread=t)
+                            except Exception as e:
+                                log.info("messenger: no status from %s: %s", c.name, e)
+                            break
+                    else:
+                        continue
+                    break
 
             total_unread = 0
             latest_unread = spawned
@@ -4786,7 +4819,7 @@ def messenger_api(request):
         text_preview = ""
         if kind == "file":
             try:
-                text_preview = raw_bytes.decode("utf-8", errors="replace")[:4000]
+                text_preview = raw_bytes.decode("utf-8", errors="replace")[:20000]
             except Exception:
                 text_preview = ""
         return JsonResponse({
@@ -5008,6 +5041,54 @@ def messenger_api(request):
             "threads": all_threads,
         })
 
+    if action == "group_scenario":  # 🥔 a group chat's shared scenario, written by Bulba
+        thread = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id")).prefetch_related("characters").first()
+        if not thread:
+            return JsonResponse({"error": "Chat not found."}, status=404)
+        try:
+            messenger.group_scenario(request.user, thread, hint=str(body.get("hint") or ""))
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({
+            "thread": messenger.serialize_thread_full(thread, request.user),
+            "threads": [messenger.serialize_thread_summary(t)
+                        for t in MessengerThread.objects.filter(user=request.user).prefetch_related("characters")],
+        })
+
+    if action == "split_card":  # ✂️ a card with several people → one character each, and a group chat
+        c_obj = char_by_slug.get(body.get("char_slug") or "")
+        if not c_obj:
+            return JsonResponse({"error": "Character not found."}, status=404)
+        try:
+            thread = messenger.split_card(request.user, c_obj)
+        except ValueError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({
+            "thread": messenger.serialize_thread_full(thread, request.user),
+            "threads": [messenger.serialize_thread_summary(t)
+                        for t in MessengerThread.objects.filter(user=request.user).prefetch_related("characters")],
+        })
+
+    if action in ("new_chat", "branch_chat", "rename_chat"):  # 💬 chat files
+        thread = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id")).prefetch_related("characters").first()
+        if not thread:
+            return JsonResponse({"error": "Chat not found."}, status=404)
+        try:
+            if action == "new_chat":
+                thread = messenger.new_chat_like(request.user, thread)
+            elif action == "branch_chat":
+                thread = messenger.branch_chat(request.user, thread, body.get("message_id"))
+            else:
+                thread.title = str(body.get("title") or "").strip()[:200] or thread.title
+                thread.save(update_fields=["title", "updated"])
+        except ValueError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({
+            "thread": messenger.serialize_thread_full(thread, request.user),
+            "threads": [messenger.serialize_thread_summary(t)
+                        for t in MessengerThread.objects.filter(user=request.user).prefetch_related("characters")],
+        })
+
     if action == "redo_message":  # ↻ one of their messages again (text or voice note), with an optional note
         thread = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id")).prefetch_related("characters").first()
         if not thread:
@@ -5069,6 +5150,8 @@ def messenger_api(request):
         target_m = next((m for m in td["messages"] if m.get("id") == mid), None)
         if not target_m:
             return JsonResponse({"error": "Message not found."}, status=404)
+        if target_m.get("role") == "user" and "edited_from" not in target_m:  # what they first said (the character may notice)
+            target_m["edited_from"] = target_m.get("text") or ""
         target_m["text"] = new_text
         target_m["edited"] = True
         if target_m.get("voice"):
@@ -5116,6 +5199,21 @@ def messenger_api(request):
             td["share_memory"] = bool(body["share_memory"])
         if "leave_on_read" in body:  # 🙈 per chat: they may answer up to 5 minutes later, when it fits
             td["leave_on_read"] = bool(body["leave_on_read"])
+        if isinstance(body.get("persona"), dict):  # 🎭 who they are in this chat ({} = their usual persona)
+            td["persona"] = {k: str(body["persona"].get(k) or "").strip() for k in ("name", "description")}
+        if body.get("clock"):  # 🕰️ the chat's own clock (real, resume, or a date and time)
+            try:
+                td["clock_offset"] = messenger.set_clock(thread, body["clock"])
+            except ValueError:
+                return JsonResponse({"error": "That isn't a date and time."}, status=400)
+        if "theme" in body and (body["theme"] in messenger.THEMES or not body["theme"]):  # 🎨 a ready theme
+            td["theme"] = body["theme"] or ""
+        if "memory" in body:  # 🧠 the chat's memory, edited by hand
+            td["memory"] = str(body.get("memory") or "").strip()[:6000]
+        if body.get("context_size") in messenger.CONTEXT_SIZES:
+            td["context_size"] = body["context_size"]
+        if body.get("started"):  # 🧭 the "Before you start" card was answered
+            td["started"] = True
         if isinstance(body.get("events"), list):
             td["events"] = [e for e in body["events"] if isinstance(e, dict)][:30]
         if "title" in body and str(body["title"]).strip():
@@ -5223,6 +5321,61 @@ def messenger_api(request):
         saved_c = messenger.save_char_profile(c_obj, {"stories": stories, "status_emoji": emoji})
         return JsonResponse({"story": story_item, "profile": saved_c, "char_slug": c_obj.slug})
 
+    if action in ("make_sticker", "telegram_pack"):  # 🎨 a sticker of their pack · 📥 a Telegram pack by link
+        try:
+            if action == "make_sticker":
+                c_obj = char_by_slug.get(body.get("char_slug") or "")
+                if not c_obj:
+                    return JsonResponse({"error": "Character not found."}, status=404)
+                prof = messenger.make_sticker(request.user, c_obj, body.get("mood"))
+                return JsonResponse({"profile": prof, "char_slug": c_obj.slug, "stickers": messenger.character_stickers(c_obj)})
+            title, added, skipped = messenger.telegram_pack(request.user, body.get("link"))
+        except (ValueError, ai_client.AIError) as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"title": title, "added": added, "skipped": skipped,
+                             "user_profile": messenger.user_profile(request.user)})
+
+    if action == "update_memory":  # 🧠 the chat's memory brought up to date (quietly after a turn, or "now")
+        thread = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id")).prefetch_related("characters").first()
+        if not thread:
+            return JsonResponse({"error": "Chat not found."}, status=404)
+        try:
+            memory = messenger.update_memory(request.user, thread, force=bool(body.get("now")))
+        except ai_client.AIError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"memory": memory, "thread": messenger.serialize_thread_full(thread, request.user)})
+
+    if action == "one_reference":  # ✨/↻ one reference picture, just this one
+        c_obj = char_by_slug.get(body.get("char_slug") or "")
+        if not c_obj:
+            return JsonResponse({"error": "Character not found."}, status=404)
+        try:
+            prof = messenger.one_reference(request.user, c_obj, body.get("slot", -1))
+        except (ValueError, TypeError, ai_client.AIError) as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"profile": prof, "char_slug": c_obj.slug})
+
+    if action == "user_picture":  # 🎨 a picture the user makes to send (made again as often as they like)
+        thread = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id")).prefetch_related("characters").first()
+        if not thread:
+            return JsonResponse({"error": "Chat not found."}, status=404)
+        refs = [str(u) for u in (body.get("refs") or []) if isinstance(u, str)][:5]
+        try:
+            url, seen = messenger.user_picture(request.user, thread, body.get("prompt"), refs, with_me=bool(body.get("with_me", True)))
+        except (ValueError, ai_client.AIError) as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"url": url, "seen": seen})
+
+    if action == "story_picture":  # 🖼️ a status's picture, made when it's first viewed
+        c_obj = char_by_slug.get(body.get("owner") or "")
+        if not c_obj:
+            return JsonResponse({"error": "Character not found."}, status=404)
+        try:
+            story = messenger.story_picture(request.user, c_obj, body.get("story_id"))
+        except (ValueError, ai_client.AIError) as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"story": story, "char_slug": c_obj.slug, "profile": messenger.char_profile(c_obj)})
+
     if action == "voice_bubble":
         tid = body.get("thread_id")
         mid = body.get("message_id")
@@ -5256,6 +5409,8 @@ def messenger_api(request):
         mid = body.get("message_id")
         kind = "tease" if body.get("kind") == "tease" else "casual"
         prompt_desc = str(body.get("prompt") or "").strip()
+        if body.get("subject") == "not_them":  # 📷 asked for a photo without them in it
+            prompt_desc = "No people: " + (prompt_desc or "something from their day, what they're looking at right now")
         thread = MessengerThread.objects.filter(user=request.user, id=tid).prefetch_related("characters").first()
         if not thread:
             return JsonResponse({"error": "Chat not found."}, status=404)
@@ -5279,6 +5434,8 @@ def messenger_api(request):
             shot_type = None
             camera_angle = ""
 
+        if body.get("subject") == "them":  # 📸 a photo of them, asked for
+            shot_type = "selfie"
         try:
             img_url, cost = messenger.generate_messenger_photo(
                 request.user,

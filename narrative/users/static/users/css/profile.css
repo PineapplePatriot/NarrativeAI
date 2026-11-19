@@ -179,3 +179,11 @@ select.form-input { width: 100%; box-sizing: border-box; }
 .persona-part { display: grid; gap: 3px; margin: 0; }
 .persona-part small { color: #94a3b8; font-size: .8rem; font-weight: 400; }
 .persona-part textarea { width: 100%; resize: vertical; }
+/* 📤 / ✨ one mood at a time */
+.persona-pic-one { display: flex; justify-content: center; gap: 4px; margin-top: 4px; }
+.persona-pic-one label, .persona-pic-one button { cursor: pointer; font-size: .85rem; padding: 2px 8px; border-radius: 8px; line-height: 1.4;
+    background: rgba(126, 58, 242, .16); border: 1px solid rgba(167, 139, 250, .45); color: inherit; }
+.persona-pic-one label:hover, .persona-pic-one button:hover { background: rgba(126, 58, 242, .3); }
+.persona-pic-one { align-items: center; }
+.persona-pic-one label, .persona-pic-one button { display: inline-flex !important; align-items: center; justify-content: center; width: auto !important;
+    height: 26px; margin: 0 !important; padding: 0 8px !important; font-size: .85rem !important; font-weight: 400; }

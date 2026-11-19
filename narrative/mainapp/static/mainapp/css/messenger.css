@@ -1545,3 +1545,95 @@ body.tg-bulba-open .tg-header-actions .tg-hdr-btn > span, body.tg-bulba-open #hd
 .tg-card-link { display: inline-block; margin-top: 6px; color: #c4b5fd; }
 .tg-card-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
 @media (max-width: 560px) { .tg-card-dl { grid-template-columns: 1fr; } .tg-card-dl dt { margin-top: 4px; } }
+
+/* 💬 Chat files */
+.tg-chat-name { display: block; font-weight: 500; font-size: 11.5px; color: var(--tg-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tg-chats h3 { margin: 0 0 10px; padding-right: 30px; }
+.tg-chats .tg-setup-go { margin-bottom: 6px; }
+.tg-chat-files { display: grid; gap: 8px; margin-top: 10px; }
+.tg-chat-file { display: flex; gap: 6px; align-items: center; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--tg-border);
+  background: rgba(255, 255, 255, .03); }
+.tg-chat-file.on { border-color: rgba(167, 139, 250, .55); background: rgba(126, 58, 242, .1); }
+.tg-chat-file-main { flex: 1; min-width: 0; cursor: pointer; display: grid; gap: 2px; }
+.tg-chat-file-main small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #cbd5e1; font-size: 12.5px; }
+
+/* 🧭 Before you start */
+.tg-start-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.tg-start-opt { display: flex; gap: 8px; align-items: flex-start; padding: 8px 12px; border-radius: 12px; cursor: pointer; font-size: 13.5px;
+  background: rgba(255, 255, 255, .04); border: 1px solid var(--tg-border); margin-bottom: 8px; }
+.tg-start-opt.on { border-color: #a78bfa; background: rgba(167, 139, 250, .12); }
+.tg-start-opt input { margin-top: 3px; accent-color: #a78bfa; }
+.tg-start .tg-input { width: 100%; box-sizing: border-box; margin-bottom: 8px; }
+.tg-setup-sub { margin: 6px 0 2px !important; font-weight: 600; color: #c4b5fd; font-size: 13px; }
+.tg-setup-list { margin: 0 0 10px; padding-left: 18px; font-size: 13.5px; }
+
+/* 📄 A text file read as a document */
+.tg-doc { max-height: 60vh; overflow: auto; padding: 12px 14px; border-radius: 12px; background: rgba(0, 0, 0, .2); border: 1px solid var(--tg-border);
+  font-size: 14px; line-height: 1.55; }
+.tg-doc p { margin: 0 0 6px; }
+.tg-doc h3, .tg-doc h4, .tg-doc h5 { margin: 10px 0 6px; color: #c4b5fd; }
+.tg-doc-gap { height: 8px; }
+.tg-doc table { border-collapse: collapse; margin: 8px 0; width: 100%; font-size: 13px; }
+.tg-doc th, .tg-doc td { border: 1px solid var(--tg-border); padding: 6px 8px; text-align: left; vertical-align: top; }
+.tg-doc th { background: rgba(167, 139, 250, .14); }
+.tg-failed { align-self: center; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; margin: 8px auto;
+  max-width: min(560px, 90%); padding: 8px 12px; border-radius: 12px; background: rgba(244, 63, 94, .1); border: 1px solid rgba(244, 63, 94, .35);
+  color: #fecdd3; font-size: 13px; }
+.tg-failed button { background: linear-gradient(135deg, #7e3af2, #9863ff); color: #fff; border: 0; border-radius: 99px; padding: 5px 12px;
+  font: inherit; font-weight: 600; cursor: pointer; }
+
+/* 🟢 Presence and ✨ statuses */
+.tg-online-dot.away { background: #f5c542; }
+.tg-online-dot.busy { background: #f43f5e; }
+.tg-online-dot.seen { background: #64748b; }
+.tg-story-ring.unseen { box-shadow: 0 0 0 2px var(--tg-panel), 0 0 0 4px #a78bfa; }
+.tg-story-ring.seen { box-shadow: 0 0 0 2px var(--tg-panel), 0 0 0 4px rgba(148, 163, 184, .45); }
+.tg-stories { position: fixed; inset: 0; z-index: 9450; display: none; flex-direction: column; background: #07080f; color: #fff; }
+.tg-stories.open { display: flex; }
+.tg-stories-bars { display: flex; gap: 4px; padding: 10px 12px 0; }
+.tg-stories-bars i { flex: 1; height: 3px; border-radius: 3px; background: rgba(255, 255, 255, .25); }
+.tg-stories-bars i.done, .tg-stories-bars i.now { background: #fff; }
+.tg-stories-head { display: flex; align-items: center; gap: 10px; padding: 10px 12px; position: relative; z-index: 2; }
+.tg-stories-head img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; }
+.tg-stories-head small { color: rgba(255, 255, 255, .6); }
+.tg-stories-head button { margin-left: auto; background: rgba(0, 0, 0, .4); color: #fff; border: 1px solid rgba(255, 255, 255, .2);
+  border-radius: 99px; width: 34px; height: 34px; cursor: pointer; }
+.tg-stories-pic { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 8px; position: relative; z-index: 2; }
+.tg-stories-pic img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 12px; }
+.tg-stories-emoji { font-size: 96px; }
+.tg-stories-text { padding: 14px 18px 28px; font-size: 17px; line-height: 1.45; text-align: center; background: linear-gradient(0deg, rgba(0,0,0,.7), transparent);
+  position: relative; z-index: 2; pointer-events: none; }
+.tg-stories-tap { position: absolute; top: 60px; bottom: 0; width: 40%; z-index: 1; cursor: pointer; }
+.tg-stories-tap.prev { left: 0; } .tg-stories-tap.next { right: 0; }
+.tg-stories-pic { pointer-events: none; } .tg-stories-pic button { pointer-events: auto; }
+
+/* 🎨 Make a picture to send */
+.tg-make h3 { margin: 0 0 10px; padding-right: 30px; }
+.tg-make textarea { width: 100%; box-sizing: border-box; background: rgba(0, 0, 0, .25); border: 1px solid var(--tg-border); border-radius: 10px;
+  color: var(--tg-text); padding: 8px 10px; font: inherit; margin-bottom: 8px; }
+.tg-make .tg-input { width: 100%; box-sizing: border-box; margin: 8px 0; }
+.tg-make-refs { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0 10px; }
+.tg-make-ref { width: 62px; height: 62px; padding: 0; border-radius: 10px; overflow: hidden; border: 2px solid transparent; background: rgba(255, 255, 255, .05);
+  cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--tg-muted); font-size: 22px; }
+.tg-make-ref img { width: 100%; height: 100%; object-fit: cover; opacity: .6; }
+.tg-make-ref.on { border-color: #a78bfa; } .tg-make-ref.on img { opacity: 1; }
+.tg-make-preview { display: flex; justify-content: center; margin: 6px 0; }
+.tg-make-preview img { max-width: 100%; max-height: 42vh; border-radius: 12px; cursor: zoom-in; }
+.tg-tray-status { padding: 6px 12px; font-size: 12.5px; color: #c4b5fd; }
+.tg-tray-item video, .tg-sticker-card video { width: 100%; max-width: 160px; height: auto; display: block; }
+.tg-watch { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 2px 0 10px 48px; max-width: min(560px, 85%); padding: 8px 12px;
+  border-radius: 12px; background: rgba(126, 58, 242, .1); border: 1px solid rgba(167, 139, 250, .35); font-size: 12.5px; color: #e2e8f0; }
+.tg-watch span { flex: 1 1 200px; }
+.tg-watch-fix { background: linear-gradient(135deg, #7e3af2, #9863ff); color: #fff; border: 0; border-radius: 99px; padding: 4px 10px; font: inherit; font-weight: 600; cursor: pointer; }
+.tg-watch-x { background: none; border: 1px solid var(--tg-border); color: var(--tg-muted); border-radius: 99px; padding: 4px 10px; font: inherit; cursor: pointer; }
+@media (max-width: 860px) { .tg-watch { margin-left: 8px; max-width: calc(100% - 16px); } }
+
+/* 🎨 Ready chat themes (per chat): bubbles, accent and, unless a wallpaper is picked, a matching background */
+.tg-theme-classic { --tg-out-bubble: #2b5278; --tg-in-bubble: #182533; --tg-accent: #5eb5f7; }
+.tg-theme-classic .tg-messages-viewport.tg-themed { background-image: linear-gradient(160deg, #0e1621, #17212b) !important; }
+.tg-theme-forest { --tg-out-bubble: #1f5f45; --tg-in-bubble: #1c2a24; --tg-accent: #6fd3a2; }
+.tg-theme-forest .tg-messages-viewport.tg-themed { background-image: linear-gradient(160deg, #0b1a14, #12261d) !important; }
+.tg-theme-rose { --tg-out-bubble: #7a2e52; --tg-in-bubble: #2a1e28; --tg-accent: #f59ac0; }
+.tg-theme-rose .tg-messages-viewport.tg-themed { background-image: linear-gradient(160deg, #1c0e17, #2b1522) !important; }
+.tg-theme-sepia { --tg-out-bubble: #6b4a2b; --tg-in-bubble: #2e2620; --tg-accent: #e8b86b; }
+.tg-theme-sepia .tg-messages-viewport.tg-themed { background-image: linear-gradient(160deg, #17110c, #261c14) !important; }

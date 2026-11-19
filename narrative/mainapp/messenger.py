@@ -55,11 +55,17 @@ PICTURE_MODELS = {
 def make_picture(user, prompt, references=None):
     """One picture for the messenger, on the user's chosen picture model (their profile tab)."""
     model = user_profile(user).get("image_model") or None
-    if model:
+    profile = ai_client.main_profile(user)
+    if model and profile is not None and profile.provider == ai_client.ConnectionProfile.PROVIDER_OPENROUTER:
         listed = [m["id"] for m in ai_client.image_models()]
         if listed and model not in listed:
+            log.warning("messenger: picture model %s isn't on OpenRouter's list; using the default", model)
             model = None
     return ai_client.generate_image(user, prompt, references=references, model=model)
+
+
+# 🎨 Ready chat themes (bubbles, accent, a matching background), per chat; "" = the app's purple
+THEMES = {"classic": "Telegram classic", "forest": "Forest", "rose": "Rose", "sepia": "Sepia evening"}
 
 
 REACTIONS = ["❤️", "🔥", "👍", "😂", "😮", "😢", "👀", "🎉", "😡", "🤔"]
@@ -113,7 +119,7 @@ def user_profile(user):
         "status_emoji": str(raw.get("status_emoji") or "✨").strip()[:12],
         "avatar_url": str(raw.get("avatar_url") or avatar),
         "stories": [s for s in (raw.get("stories") or []) if isinstance(s, dict)][:30],
-        "custom_stickers": [s for s in (raw.get("custom_stickers") or []) if isinstance(s, dict) and s.get("url")][:60],
+        "custom_stickers": [s for s in (raw.get("custom_stickers") or []) if isinstance(s, dict) and s.get("url")][-200:],
         "notes": [n for n in (raw.get("notes") or []) if isinstance(n, dict)][:100],
         "browser_notifications": bool(raw.get("browser_notifications", False)),
         "in_app_toasts": bool(raw.get("in_app_toasts", True)),
@@ -121,6 +127,7 @@ def user_profile(user):
         "spontaneous_minutes": max(2, min(1440, int(raw.get("spontaneous_minutes") or 15))),
         "auto_photos": bool(raw.get("auto_photos", False)),
         "auto_voice": bool(raw.get("auto_voice", False)),
+        "auto_statuses": bool(raw.get("auto_statuses", True)),  # ✨ characters post statuses on their own now and then
         "default_bg": raw.get("default_bg") if raw.get("default_bg") in WALLPAPERS else "tg-night",
         "image_model": raw.get("image_model") if raw.get("image_model") in PICTURE_MODELS else "",
     }
@@ -137,7 +144,7 @@ def save_user_profile(user, updates):
             if str_key == "handle" and val and not val.startswith("@"):
                 val = "@" + re.sub(r"[^a-zA-Z0-9_.]", "_", val)
             current[str_key] = val
-    for bool_key in ("browser_notifications", "in_app_toasts", "spontaneous_texts", "auto_photos", "auto_voice"):
+    for bool_key in ("browser_notifications", "in_app_toasts", "spontaneous_texts", "auto_photos", "auto_voice", "auto_statuses"):
         if bool_key in updates:
             current[bool_key] = bool(updates[bool_key])
     if "spontaneous_minutes" in updates:
@@ -151,7 +158,8 @@ def save_user_profile(user, updates):
         current["default_bg"] = updates["default_bg"]
     for list_key in ("stories", "custom_stickers", "notes"):
         if isinstance(updates.get(list_key), list):
-            current[list_key] = [x for x in updates[list_key] if isinstance(x, dict)][:100]
+            current[list_key] = [x for x in updates[list_key] if isinstance(x, dict)][-200:] if list_key == "custom_stickers" \
+                else [x for x in updates[list_key] if isinstance(x, dict)][:100]
 
     settings_obj, _ = ChatSettings.objects.get_or_create(author=user)
     app = dict(settings_obj.appearance or {})
@@ -229,6 +237,9 @@ def char_profile(character):
         "art_style_notes": str(raw.get("art_style_notes") or "").strip()[:600],
         "neutral_url": char_neutral_url(character),
         "extra_refs": extra_refs,
+        # 🎨 their own sticker pack in the texting look: [{"mood", "url"}] (else the roleplay moods are the stickers)
+        "sticker_pack": [{"mood": str(s.get("mood") or "")[:30], "url": str(s.get("url") or "")[:500]}
+                         for s in (raw.get("sticker_pack") or []) if isinstance(s, dict) and s.get("url")][:16],
         "voice_id": voice_id,
         "voice_model": voice_model,
         "share_memory": raw.get("share_memory", True) is not False,
@@ -357,6 +368,9 @@ def save_char_profile(character, updates):
         current["voice_model"] = voice.OPENROUTER_TTS_MODEL_DEFAULT
     if isinstance(updates.get("extra_refs"), list):
         current["extra_refs"] = [str(u).strip()[:500] for u in updates["extra_refs"] if str(u or "").strip()][:4]
+    if isinstance(updates.get("sticker_pack"), list):
+        current["sticker_pack"] = [{"mood": str(s.get("mood") or "")[:30], "url": str(s.get("url") or "")[:500]}
+                                   for s in updates["sticker_pack"] if isinstance(s, dict) and s.get("url")][:16]
     if "share_memory" in updates:
         current["share_memory"] = bool(updates["share_memory"])
     if isinstance(updates.get("stories"), list):
@@ -370,8 +384,79 @@ def save_char_profile(character, updates):
     return current
 
 
+STICKER_MOODS = ("happy", "smug", "angry", "sleepy", "shocked", "love", "crying", "thumbs up")
+
+
+def make_sticker(user, character, mood):
+    """🎨 One sticker of their pack, in their texting look: sticker style (bold white outline, plain background,
+    big expression), the face kept from their texting pictures. Replaces that mood's sticker. Returns the profile."""
+    mood = str(mood or "").strip().lower()[:30]
+    if not mood:
+        raise ValueError("Which mood?")
+    prof = char_profile(character)
+    refs = load_character_references(character)[:3]
+    style = prof.get("art_style_notes") or "clean cute illustration"
+    same = "The SAME person as in the reference pictures: same face, hair, eyes and outfit. " if refs else ""
+    prompt = (f"A messenger sticker of {character.name}, feeling {mood}. {same}Sticker style: one figure (head and "
+              f"shoulders or a small full body, slightly chibi), a big readable {mood} expression and pose, a thick white "
+              f"outline around the figure, a flat plain light background, no text, no frame. Art style: {style}.\n"
+              f"How they look: {(prof.get('appearance_notes') or character.description or '')[:600]}")
+    img, _ = make_picture(user, prompt, references=refs)
+    url = default_storage.url(default_storage.save(f"messenger/stickers/{character.slug}-{uuid.uuid4().hex[:8]}.png", ContentFile(img)))
+    pack = [s for s in prof.get("sticker_pack") or [] if s["mood"] != mood] + [{"mood": mood, "url": url}]
+    return save_char_profile(character, {"sticker_pack": pack})
+
+
+def telegram_pack(user, link):
+    """📥 A Telegram sticker pack by its link (t.me/addstickers/NAME) or name, into the user's own stickers, through
+    the bot token in settings (TELEGRAM_BOT_TOKEN). Still and video stickers; animated .tgs ones are skipped (they
+    need a special player). Returns (pack title, added, skipped)."""
+    import os
+    import requests
+    from django.conf import settings
+    token = getattr(settings, "TELEGRAM_BOT_TOKEN", "") or os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    if not token:
+        raise ValueError("Telegram packs need a bot token in the server's settings (TELEGRAM_BOT_TOKEN).")
+    name = re.sub(r"^.*addstickers/", "", str(link or "").strip()).strip("/ ").split("?")[0]
+    if not re.fullmatch(r"[A-Za-z0-9_]{1,64}", name):
+        raise ValueError("That doesn't look like a sticker pack link (t.me/addstickers/…).")
+    api = f"https://api.telegram.org/bot{token}"
+    try:
+        data = requests.get(f"{api}/getStickerSet", params={"name": name}, timeout=20).json()
+    except (requests.RequestException, ValueError):
+        raise ValueError("Telegram didn't answer. Try again in a moment.")
+    if not data.get("ok"):
+        raise ValueError("Telegram doesn't know that pack (check the link).")
+    pack = data["result"]
+    title = str(pack.get("title") or name)[:60]
+    added, skipped = [], 0
+    for st in (pack.get("stickers") or [])[:60]:
+        if st.get("is_animated"):
+            skipped += 1
+            continue
+        try:
+            f = requests.get(f"{api}/getFile", params={"file_id": st["file_id"]}, timeout=20).json()
+            path = f["result"]["file_path"]
+            raw = requests.get(f"https://api.telegram.org/file/bot{token}/{path}", timeout=30).content
+        except (requests.RequestException, ValueError, KeyError):
+            skipped += 1
+            continue
+        ext = ".webm" if st.get("is_video") else ".webp"
+        url = default_storage.url(default_storage.save(f"messenger/stickers/tg-{user.id}-{uuid.uuid4().hex[:8]}{ext}", ContentFile(raw)))
+        added.append({"id": f"tg_{uuid.uuid4().hex[:8]}", "pack": title, "name": st.get("emoji") or "sticker",
+                      "url": url, "video": bool(st.get("is_video"))})
+    u_prof = user_profile(user)
+    save_user_profile(user, {"custom_stickers": [*(u_prof.get("custom_stickers") or []), *added][-200:]})
+    return title, len(added), skipped
+
+
 def character_stickers(character):
-    """All mood sprites of a character packaged as a Telegram Sticker Pack."""
+    """All mood sprites of a character packaged as a Telegram Sticker Pack: their texting sticker pack when they
+    have one (their texting look), else the roleplay card's mood pictures."""
+    own = char_profile(character).get("sticker_pack") or []
+    if own:
+        return [{"id": f"char_{character.slug}_{s['mood'].replace(' ', '_')}", "pack": character.name, "char_slug": character.slug,
+                 "mood": s["mood"], "name": f"{character.name} — {s['mood']}", "url": s["url"]} for s in own]
     pack = []
     for mood in sprites.BUILT_IN:
         field = getattr(character, f"photo_{mood}", None)
@@ -427,6 +512,13 @@ Rules:
   Neutral: river (calm/gender-neutral)
   Male: george (warm British rasp), adam (deep/steady), bill (seasoned/crisp), brian (deep/comforting), callum (gravelly/edgy), charlie (casual Australian), chris (down-to-earth), daniel (authoritative British), eric (smooth/grounded), harry (fierce/dramatic), liam (youthful/energetic), roger (laid-back/confident), will (friendly/relaxed)
 - Write a realistic `first_text` (1-2 sentences, pure text message, NO *asterisks* or narration) they would send to open a chat.
+- TWO SEPARATE PROFILES: this texting profile is its own thing; the roleplay card stays as it is. `appearance_notes`
+  describe how {char} looks IN THIS SETUP: keep face, hair, eyes, skin, build and age; in "modern_au" translate
+  outfit, gear and accessories into what they'd wear in today's world (no armour, masks, weapons, robes or uniforms
+  of their world unless the directions keep them). Change lore only as far as the setup needs.
+- ASK, DON'T DECIDE: when a look or lore point is central to who they are (a mask they hide behind, a title, a
+  scar, a secret, who knows what), don't quietly keep or drop it: make your best choice and put a short question
+  about it in `questions` so {user} can say otherwise. List what differs from the roleplay card in `changes`.
 
 Original card of {char}:
 {card_text}
@@ -445,7 +537,9 @@ Answer with JSON only:
   "art_style_notes": "Visual art style to keep across all photos (e.g. 'semi-realistic painted anime illustration, warm cinematic lighting')",
   "voice_id": "one voice name from the list above",
   "scenario": "Why {char} and {user} have each other's contact and what is happening as the chat begins (2-4 sentences)",
-  "first_text": "Their opening text message (no stage directions)"
+  "first_text": "Their opening text message (no stage directions)",
+  "changes": ["What differs from the roleplay card in this setup, one short line each (job, look, lore)"],
+  "questions": ["Up to 3 short questions for {user} about choices that are theirs to make (e.g. keep the mask?)"]
 }}"""
 
 
@@ -530,11 +624,13 @@ def modernize_with_bulba(user, character, mode="modern_au", hint="", save=True):
         "scenario": parsed.get("scenario") or "",
         "first_text": parsed.get("first_text") or "",
     }
+    notes = {k: [str(x).strip()[:300] for x in (parsed.get(k) or []) if str(x).strip()][:6]
+             for k in ("changes", "questions") if isinstance(parsed.get(k), list)}  # shown with the draft, not saved
     if save:
-        return save_char_profile(character, updates)
+        return {**save_char_profile(character, updates), "setup_notes": notes}
     merged = char_profile(character)
     merged.update(updates)
-    return merged
+    return {**merged, "setup_notes": notes}
 
 
 def create_messenger_character_with_bulba(user, idea, name="", mode="modern_au", generate_pics=False):
@@ -644,11 +740,55 @@ def thread_data(thread):
         "share_memory": raw.get("share_memory", True) is not False,
         "last_auto_at": raw.get("last_auto_at"),
         "leave_on_read": bool(raw.get("leave_on_read", False)),  # 🙈 per chat: they may answer up to 5 minutes later
+        # 🧭 the "Before you start" card was answered; 🎭 who the user is in this chat only (else their usual persona)
+        "started": bool(raw.get("started", False)),
+        "persona": {k: str((raw.get("persona") or {}).get(k) or "").strip()[:{"name": 80, "description": 3000}[k]]
+                    for k in ("name", "description")} if isinstance(raw.get("persona"), dict) else {},
+        # 🧠 the chat's memory: a running summary of what fell out of view, and how many recent messages are read
+        "memory": str(raw.get("memory") or "")[:6000],
+        "memory_upto": max(0, int(raw.get("memory_upto") or 0)),
+        "context_size": raw.get("context_size") if raw.get("context_size") in CONTEXT_SIZES else 30,
+        "theme": raw.get("theme") if raw.get("theme") in THEMES else "",
+        # 🕰️ the chat's own clock: seconds from real time (0 = real time), to pick up a night chat the next day
+        "clock_offset": float(raw.get("clock_offset") or 0),
+        "branch_of": raw.get("branch_of") if isinstance(raw.get("branch_of"), dict) else None,  # ⑂ where it branched from
         "regen_prev": [m for m in (raw.get("regen_prev") or []) if isinstance(m, dict)][:20],  # ↻ the take before
     }
 
 
+def chat_now(data):
+    """🕰️ Now on the chat's clock, in seconds."""
+    return time.time() + float(data.get("clock_offset") or 0)
+
+
+def set_clock(thread, how):
+    """🕰️ The chat's clock: "real", "resume" (just after its last message: a night chat goes on the next day), or
+    an ISO date and time. Returns the offset in seconds."""
+    raw = dict(thread.data or {})
+    if how == "real":
+        offset = 0.0
+    elif how == "resume":
+        last = [ts_of(m) for m in delivered(thread_data(thread)["messages"]) if ts_of(m)]
+        offset = (max(last) + 60 - time.time()) if last else 0.0
+    else:
+        when = datetime.fromisoformat(str(how))
+        when = timezone.make_aware(when) if timezone.is_naive(when) else when
+        offset = when.timestamp() - time.time()
+    raw["clock_offset"] = offset
+    thread.data = raw
+    thread.save(update_fields=["data"])
+    return offset
+
+
 def save_thread_data(thread, data):
+    shift = float(data.get("clock_offset") or 0)
+    if shift:  # 🕰️ messages made just now carry the chat's time, not the real one
+        real = time.time()
+        for m in data.get("messages") or []:
+            if not m.get("clocked") and abs(ts_of(m) - real) < 300:
+                m["ts"] = ts_of(m) + shift
+                m["time"] = timezone.localtime(timezone.now() + timezone.timedelta(seconds=shift)).strftime("%H:%M")
+                m["clocked"] = True
     thread.data = data
     thread.save(update_fields=["data", "updated"])
 
@@ -685,19 +825,21 @@ def _human_elapsed(seconds):
 
 
 def real_time_context(thread, now=None):
-    """Real-world clock, time elapsed since the last message, and scheduled events for the thread."""
-    now = now or timezone.now()
-    local_now = timezone.localtime(now) if timezone.is_aware(now) else now
+    """Real-world clock (or the chat's own, when it was set: 🕰️), time elapsed since the last message, and
+    scheduled events for the thread."""
     data = thread_data(thread)
+    shift = data["clock_offset"]
+    now = (now or timezone.now()) + timezone.timedelta(seconds=shift)
+    local_now = timezone.localtime(now) if timezone.is_aware(now) else now
     msgs = data["messages"]
     elapsed_sec = None
     last_sender = None
     if msgs:
         last_msg = msgs[-1]
         last_sender = last_msg.get("sender_name") or last_msg.get("role")
-        ts = last_msg.get("ts")
-        if isinstance(ts, (int, float)) and ts > 0:
-            elapsed_sec = max(0, time.time() - float(ts))
+        ts = ts_of(last_msg)
+        if ts > 0:
+            elapsed_sec = max(0, time.time() + shift - ts)
     tod = _time_of_day_label(local_now.hour)
     clock_str = local_now.strftime("%A, %d %B %Y, %H:%M") + f" ({tod})"
     elapsed_str = _human_elapsed(elapsed_sec) if elapsed_sec is not None else "start of conversation"
@@ -711,6 +853,108 @@ def real_time_context(thread, now=None):
         "last_sender": last_sender,
         "events": active_events,
     }
+
+
+def group_scenario(user, thread, hint=""):
+    """🥔 A group chat's shared scenario, from its members' texting profiles: how they all know each other and the
+    user, and what's going on as the chat begins. The user's directions are binding. Saved as the chat's scenario."""
+    from mainapp.cards import user_name
+    u_name = (thread_data(thread).get("persona") or {}).get("name") or user_name(user)
+    people = []
+    for c in thread.characters.all():
+        prof = char_profile(c)
+        people.append(f"- {c.name} ({prof['handle']}): {prof['modern_persona'] or c.description[:500]}\n  Their own "
+                      f"scenario with {u_name}: {prof['scenario'] or '(none)'}")
+    hint = str(hint or "").strip()[:1500]
+    prompt = (f"You are Bulba, setting up a group chat in NarrativeAI's messenger. Members:\n" + "\n".join(people) +
+              f"\n\nWrite the group chat's shared scenario: why these people and {u_name} are in one group chat, how "
+              f"they know each other, and what's going on as the chat begins (3-5 sentences, no 'tonight' anchors). "
+              f"Keep each member's own setup true; where two disagree, find what makes both true."
+              + (f"\n\n=== {u_name}'S DIRECTIONS (binding) ===\n{hint}\nFollow every one of them exactly; only fill in "
+                 f"what they left open." if hint else "")
+              + '\n\nAnswer with JSON only: {"scenario": "...", "title": "a short group name, the kind people give '
+                'group chats"}')
+    data = ask_json(user, prompt, need=("scenario",), max_tokens=900)
+    raw = dict(thread.data or {})
+    raw["scenario_override"] = str(data["scenario"]).strip()[:3000]
+    thread.data = raw
+    if data.get("title"):
+        thread.title = str(data["title"]).strip()[:200]
+    thread.save(update_fields=["data", "title", "updated"])
+    return raw["scenario_override"]
+
+
+def card_people(character):
+    """The names on a card with several people (an ensemble card), else []."""
+    data = card_sections.clean(character.sections) if character.sections else None
+    if not data or data["kind"] != "ensemble":
+        return []
+    names = [p["name"] for p in data["people"] if p["name"]]
+    return names if len(names) > 1 else []
+
+
+def split_card(user, character):
+    """✂️ A card with several people as separate characters, one per person (their own sections; the ensemble's
+    setting goes into each one's background, what's between them into their relationships), and a group chat
+    with all of them. The original card stays as it is. Returns the group chat."""
+    from django.utils.text import slugify
+    from mainapp.cards import _unique_slug
+    from mainapp.models import Character
+    data = card_sections.clean(character.sections)
+    if not card_people(character):
+        raise ValueError("That card has one person: nothing to split.")
+    setting, between = (data["shared"].get(k, {}).get("text", "") for k in ("setting", "between"))
+    made = []
+    for p in data["people"]:
+        if not p["name"]:
+            continue
+        person = {**p, "sections": {k: dict(v) for k, v in p["sections"].items()}}
+        if setting:
+            bg = person["sections"].get("background", {"text": "", "on": True})
+            bg["text"] = (bg["text"] + "\n\nSetting: " + setting).strip()
+            person["sections"]["background"] = bg
+        if between:
+            rel = person["sections"].get("relationships", {"text": "", "on": True})
+            rel["text"] = (rel["text"] + "\n\nBetween them: " + between).strip()
+            person["sections"]["relationships"] = rel
+        one = Character(name=p["name"], author=user, initial_message="", scenario=character.scenario or "",
+                        slug=_unique_slug(Character, f"{user.username}-{slugify(p['name']) or 'character'}"))
+        card_sections.apply(one, {"kind": "character", "people": [person], "shared": {}})
+        one.save()
+        made.append(one)
+    return create_thread(user, made, title=character.name, is_group=True)
+
+
+def new_chat_like(user, thread):
+    """💬 A fresh chat with the same character(s) (their first text again), named so it can be told apart."""
+    chars = list(thread.characters.all())
+    if not chars:
+        raise ValueError("That chat has no characters.")
+    from mainapp.models import MessengerThread
+    same = [t for t in MessengerThread.objects.filter(user=user).prefetch_related("characters")
+            if {c.id for c in t.characters.all()} == {c.id for c in chars}]
+    base = ", ".join(c.name for c in chars[:4]) if thread.is_group else chars[0].name
+    return create_thread(user, chars, title=f"{base} · chat {len(same) + 1}", is_group=thread.is_group,
+                         scenario_override=thread_data(thread)["scenario_override"])
+
+
+def branch_chat(user, thread, message_id):
+    """⑂ A new chat that starts as this one up to (and with) one message; the original stays as it is."""
+    from mainapp.models import MessengerThread
+    data = thread_data(thread)
+    idx = next((i for i, m in enumerate(data["messages"]) if m.get("id") == message_id), None)
+    if idx is None:
+        raise ValueError("That message isn't in this chat.")
+    raw = dict(thread.data or {})
+    kept = [dict(m) for m in delivered(data["messages"][:idx + 1])]
+    for m in kept:
+        m.pop("deliver_at", None)
+    raw.update({"messages": kept, "unread": 0, "regen_prev": [], "last_auto_at": None,
+                "pinned_id": data["pinned_id"] if any(m.get("id") == data["pinned_id"] for m in kept) else None,
+                "branch_of": {"thread_id": thread.id, "message_id": message_id, "title": thread.title}})
+    branch = MessengerThread.objects.create(user=user, title=f"{thread.title or 'Chat'} · branch", is_group=thread.is_group, data=raw)
+    branch.characters.set(list(thread.characters.all()))
+    return branch
 
 
 def ensure_thread_for_character(user, character):
@@ -807,12 +1051,13 @@ TEXTING_SAFEGUARDS = """MESSENGER MEDIUM & FRANKENSTEIN DIALOGUE SAFEGUARDS:
 
 5. RICH TELEGRAM ACTIONS (OPTIONAL — USE WHEN NATURAL):
    - Multiple bubbles: put `|||BUBBLE|||` between separate text bubbles sent one after another.
-   - React to {user}'s message: include `[REACT: ❤️]` (or 🔥 👍 😂 😮 😢 👀 😡 🤔) at the start or end.
+   - React to {user}'s message: include `[REACT: ❤️]` (or 🔥 👍 😂 😮 😢 👀 😡 🤔) at the start or end. A reaction ALONE, with no text, is a complete answer when nothing needs saying (a 👍 to "ok see you tomorrow", a ❤️ to a goodnight): real people do that.
    - Send a character mood sticker: include `[STICKER: mood_name]` choosing from their available moods ({moods}).
    - Send a voice message: wrap spoken audio in `[VOICE: [sighs] what they say out loud into the mic]` (supports delivery tags like `[laughs]`, `[whispers]`, `[sighs]`, `[sarcastic]`, `[curious]`).
-   - Send a casual or tease photo (Nano Banana): include `[PHOTO: concrete visual description of the selfie, food, desk, or scenery photo they snap right now, including camera angle]` (or `[TEASE: description]` when flirty/intimate fits the relationship).
-   - Send a file/document: include `[FILE: filename.txt | text content of the note, document, receipt, or schedule]`.
-   - Update their own Telegram bio or post a status story when something changes: `[BIO: new bio text]` or `[STATUS: 🧪 | short status update]`.
+   - Send a casual or tease photo: include `[PHOTO: concrete visual description of the selfie, food, desk, or scenery photo they snap right now, including camera angle]` (or `[TEASE: description]` when flirty/intimate fits the relationship). When they are NOT in the photo (their food, a view, their desk, a thing), begin the description with `No people:`. When {user} asks for a photo without them in it, it has no people.
+   - Send a file/document: include `[FILE: filename.txt | text content of the note, document, receipt, or schedule]` (a markdown table is fine for lists, schedules, results).
+   - When {user} edited a message (marked "edited"), you may notice it if it matters (they softened something, took something back): real people do.
+   - Update their own Telegram bio or post a status story when something changes: `[BIO: new bio text]` or `[STATUS: 🧪 | short status update]`, with a picture if it fits: `[STATUS: 🧪 | short text | PHOTO: what the picture shows]`.
    - Schedule a real-time event/reminder: `[EVENT: Title at HH:MM | short note]`."""
 
 
@@ -881,9 +1126,9 @@ def active_model_texting_rules(user):
     }
 
 
-def _character_block(character, user):
+def _character_block(character, user, u_name=None, share=None):
     from mainapp.cards import fill_names, user_name
-    u_name = user_name(user)
+    u_name = u_name or user_name(user)
     prof = char_profile(character)
     card_body = card_sections.compose(character.sections) if character.sections else (character.description or "")
     card_body = fill_names(card_body, character.name, u_name)
@@ -903,7 +1148,7 @@ def _character_block(character, user):
         lines.append(f"Texting style & habits: {fill_names(prof['texting_style'], character.name, u_name)}")
     if prof["scenario"]:
         lines.append(f"Scenario: {fill_names(prof['scenario'], character.name, u_name)}")
-    if prof["share_memory"]:
+    if (prof["share_memory"] if share is None else share):  # the chat's own choice wins (asked when it starts)
         latest_chat = character.chats.first()
         if latest_chat:
             try:
@@ -925,6 +1170,9 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
     if not chars:
         raise ValueError("This chat has no characters.")
     data = thread_data(thread)
+    chat_persona = data.get("persona") or {}
+    if chat_persona.get("name"):  # 🎭 someone else in this chat only
+        u_name = chat_persona["name"]
     rt = real_time_context(thread)
 
     all_moods = sorted({m for c in chars for m in sprites.emotions(c)})
@@ -937,8 +1185,8 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
     )
     taste_block = "" if model_info.get("compact") else writing_quality.helper_taste(user, habits=True)
 
-    char_blocks = "\n\n".join(_character_block(c, user) for c in chars)
-    user_persona = (getattr(user, "persona_description", "") or "").strip()
+    char_blocks = "\n\n".join(_character_block(c, user, u_name=u_name, share=data["share_memory"]) for c in chars)
+    user_persona = (chat_persona.get("description") or getattr(user, "persona_description", "") or "").strip()
     user_stories = u_prof.get("stories") or []
     latest_user_story = f" | Latest status post: \"{user_stories[0].get('text', '')}\"" if user_stories else ""
     user_block = (
@@ -966,8 +1214,9 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
         time_block += ("\n- LEAVING ON READ IS ALLOWED in this chat: a character may decide not to answer right away, when "
                        "it truly fits: they were busy doing something, or for an emotional reason (teasing, annoyed, "
                        "petty, needing a minute). Then still write their reply now, as they'll send it when they get "
-                       "back to the phone, and put `[LATER: N]` at its very start, N = minutes before they answer (1 to "
-                       "5). Most replies come at once; don't use it twice in a row.")
+                       "back to the phone, and put `[LATER: N, why]` at its very start, N = minutes before they answer (1 "
+                       "to 5), why = a word or two (busy at work, asleep, petty). Most replies come at once; don't use it "
+                       "twice in a row.")
 
     if thread.is_group or len(chars) > 1:
         names_list = ", ".join(f"{c.name} (slug: {c.slug})" for c in chars)
@@ -987,10 +1236,12 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
         )
 
     sys_content = "\n\n".join(p for p in (safeguards, model_block, taste_block, group_rule, user_block, time_block, char_blocks) if p)
+    if data.get("memory"):  # 🧠 what happened before the messages below
+        sys_content += f"\n\nEARLIER IN THIS CHAT (a summary of what came before the messages below):\n{data['memory']}"
     messages = [{"role": "system", "content": sys_content}]
 
     # Recent conversation history (last 30 bubbles)
-    for m in data["messages"][-30:]:
+    for m in data["messages"][-data["context_size"]:]:
         role = m.get("role")
         if role == "system":
             messages.append({"role": "system", "content": f"[Messenger notice: {m.get('text', '')}]"})
@@ -1010,8 +1261,10 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
                 parts.append(f"[Sent a photo. It shows: {seen}" + (f" | caption: {ph['caption']}" if ph.get("caption") else "") + "]")
             else:
                 parts.append(f"[Sent photo: {ph.get('prompt') or ph.get('caption') or 'image'}]")
-        if m.get("file"):
-            parts.append(f"[Sent file {m['file'].get('name', 'file.txt')}: {(m['file'].get('content') or '')[:300]}]")
+        if m.get("file"):  # the whole text (a long one cut at 6000 characters)
+            parts.append(f"[Sent file {m['file'].get('name', 'file.txt')}:\n{(m['file'].get('content') or '')[:6000]}\n]")
+        if role == "user" and m.get("edited_from"):
+            parts.append(f"(edited; it first said: \"{str(m['edited_from'])[:300]}\")")
         if m.get("text") and not m.get("voice"):
             parts.append(m["text"])
         body = " ".join(parts).strip() or "..."
@@ -1091,6 +1344,38 @@ def check_texting_slop(text):
     return notes
 
 
+def watch_notice(messages):
+    """🥔 Bulba Watch for texts (free: no model reads them), on the characters' latest message: a phrase they keep
+    repeating (3 of their recent texts, so short chats count), stage directions, therapy-speak, a wall of text, or
+    texts that keep opening the same way. Returns {"message_id", "text", "note"} or None."""
+    from mainapp.bulba import watch
+    theirs = [m for m in messages if m.get("role") == "assistant" and (m.get("text") or (m.get("voice") or {}).get("transcript"))]
+    if not theirs:
+        return None
+    last = theirs[-1]
+    body = lambda m: m.get("text") or (m.get("voice") or {}).get("transcript") or ""
+    texts = {i: body(m) for i, m in enumerate(theirs[-12:])}
+    newest = len(texts) - 1
+    rep = watch.repeated_phrases(texts, newest)
+    if rep:
+        phrase, where = rep[0]
+        return {"message_id": last["id"], "text": f"they keep saying “{phrase}” ({len(where)} of their recent texts)",
+                "note": f"Don't use the phrase “{phrase}” or anything close to it."}
+    found = check_texting_slop(body(last))
+    if "stage_directions" in found:
+        return {"message_id": last["id"], "text": "stage directions in asterisks (it's a text, not a scene)",
+                "note": "No *actions in asterisks*: only what they'd type."}
+    if "therapy_voice" in found:
+        return {"message_id": last["id"], "text": "therapist talk", "note": "No therapy-speak: say it like they would."}
+    if "wall_of_text" in found:
+        return {"message_id": last["id"], "text": "a wall of text", "note": "Much shorter: one or two quick texts."}
+    starts = [re.split(r"\W+", body(m).strip().lower(), maxsplit=1)[0] for m in theirs[-5:] if body(m).strip()]
+    if len(starts) >= 4 and starts[-1] and starts.count(starts[-1]) >= 4:
+        return {"message_id": last["id"], "text": f"their texts keep opening with “{starts[-1]}”",
+                "note": f"Don't open with “{starts[-1]}”."}
+    return None
+
+
 def _match_speaker(chars, prefix_name):
     if not prefix_name or len(chars) == 1:
         return chars[0]
@@ -1160,9 +1445,14 @@ def parse_ai_reply(raw_text, chars, is_group=False):
         # Extract status/story updates
         for m in RE_STATUS.finditer(chunk):
             st_emo = (m.group(1) or "💬").strip()[:12]
-            st_txt = m.group(2).strip()[:280]
-            if st_txt:
-                profile_updates.append({"char": current_char, "kind": "status", "emoji": st_emo, "text": st_txt})
+            st_txt = m.group(2).strip()[:600]
+            st_photo = ""
+            pm = re.search(r"\|\s*PHOTO\s*:\s*(.+)$", st_txt, re.I | re.S)  # a status with a picture
+            if pm:
+                st_photo, st_txt = pm.group(1).strip()[:500], st_txt[:pm.start()].strip()
+            if st_txt or st_photo:
+                profile_updates.append({"char": current_char, "kind": "status", "emoji": st_emo, "text": st_txt[:280],
+                                        "photo_prompt": st_photo})
         chunk = RE_STATUS.sub("", chunk)
 
         # Extract scheduled events
@@ -1549,6 +1839,17 @@ def describe_photo_scene(user, thread, character, kind="casual", hint=""):
     }
 
 
+NO_PERSON = re.compile(
+    r"^\s*no people\b|without (?:you|him|her|them|me|himself|herself|themselves|the character|anyone|people)\b|"
+    r"\bno (?:people|person|one|faces?|selfie)\b|\bnobody\b|\bnot (?:a )?selfie\b|don'?t (?:show|include) (?:you|him|her|them)|"
+    r"\bбез (?:тебе|нього|неї|них|людей|себе)\b|\bне селфі\b|\bбез тебя\b|\bне селфи\b", re.I)
+
+
+def _wants_no_person(desc):
+    """The photo is asked to leave the character (and everyone) out: "a photo of your lunch, without you"."""
+    return bool(NO_PERSON.search(str(desc or "")))
+
+
 def _looks_like_non_person_photo(desc):
     low = str(desc or "").lower()
     has_object = any(w in low for w in ("food", "coffee", "tea", "mug", "cup", "plate", "dinner", "lunch", "breakfast", "desk", "laptop", "window", "view", "street", "rain", "sky", "sunset", "cat", "dog", "book", "notes", "scenery", "room"))
@@ -1585,6 +1886,8 @@ def generate_messenger_photo(user, character, description="", kind="casual", thr
         shot_type = shot_type or scene["shot_type"]
         camera_angle = camera_angle or scene["camera_angle"]
 
+    if _wants_no_person(description) or _wants_no_person(desc_clean):  # asked for no people: no people, whatever else
+        shot_type = "pov_object"
     if not shot_type:
         shot_type = "pov_object" if (kind != "tease" and _looks_like_non_person_photo(desc_clean)) else "selfie"
     if not camera_angle:
@@ -1594,13 +1897,19 @@ def generate_messenger_photo(user, character, description="", kind="casual", thr
     setting_note = "modern-day setting" if prof["mode"] == "modern_au" else "in-world setting"
 
     if shot_type == "pov_object":
+        # No people in it: their portraits stay out (image models copy whoever is in a reference). With an art style in
+        # words, none at all; without one, a single picture labelled as style only.
+        refs = [] if prof.get("art_style_notes") else refs[:1]
+        subject = re.sub(r"^\s*no people\s*:\s*", "", desc_clean, flags=re.I)
         prompt = (
-            f"Create a candid smartphone photo taken by {character.name} in a {setting_note}.\n"
-            f"CRITICAL STYLE LOCK: Render this food, object, or scenery photo in the EXACT SAME visual art style, "
-            f"medium, brushwork/rendering, lighting aesthetic, and color temperature as the attached reference image(s) ({art_style}). "
-            f"Do NOT switch to stock photorealism if the reference is illustrated/anime, and vice versa.\n"
+            f"Create a candid smartphone photo taken by {character.name} in a {setting_note}, of what they're looking at.\n"
+            f"NO PEOPLE: nobody is in this photo. {character.name} does not appear (no face, no body, no reflection); "
+            f"at most a hand holding something, if that's natural.\n"
+            + (f"The attached picture is a STYLE REFERENCE ONLY: copy its art style, rendering, lighting and colours, and "
+               f"never the person in it.\n" if refs else "")
+            + f"CRITICAL STYLE LOCK: art style: {art_style}. Do NOT switch to stock photorealism if the style is illustrated/anime, and vice versa.\n"
             f"Camera angle & framing: {camera_angle}.\n"
-            f"Photo subject & scene: {desc_clean[:600]}"
+            f"Photo subject & scene: {subject[:600]}"
         )
     else:
         style_note = (
@@ -1708,6 +2017,210 @@ def see_photo(user, url, their_words=""):
     return text.strip()[:1200]
 
 
+STATUS_EVERY = 6 * 3600  # a character's own statuses: at most one per 6-12 hours (a fixed jitter per character and day)
+
+
+def status_due(character, now=None):
+    """Whether it's time for this character's own next status."""
+    import hashlib
+    now = now or time.time()
+    last = max([ts_of(s) for s in char_profile(character).get("stories") or []] or [0])
+    jitter = int(hashlib.md5(f"{character.slug}{int(now // 86400)}".encode()).hexdigest(), 16) % STATUS_EVERY
+    return now - last >= STATUS_EVERY + jitter
+
+
+def post_own_status(user, character, thread=None):
+    """✨ A status the character posts on their own: something from their day that fits the hour, who they are here
+    and what's been happening in your texts; sometimes with a picture (made when it's viewed). Returns the story."""
+    prof = char_profile(character)
+    recent = ""
+    if thread is not None:
+        msgs = delivered(thread_data(thread)["messages"])[-12:]
+        recent = "\n".join(f"{'them' if m.get('role') == 'assistant' else 'the user'}: {(m.get('text') or '')[:200]}"
+                           for m in msgs if m.get("text"))
+    rt = real_time_context(thread) if thread is not None else {"clock": timezone.localtime(timezone.now()).strftime("%A %H:%M")}
+    prompt = (f"{character.name} posts a messenger status (like a Telegram story) on their own. It's {rt['clock']}.\n"
+              f"Who they are here: {(prof['modern_persona'] or character.description or '')[:900]}\n"
+              f"How they text: {prof['texting_style'][:300]}\nTheir scenario: {prof['scenario'][:400]}\n"
+              + (f"Recent texts with the user:\n{recent}\n" if recent else "")
+              + "Write one status that fits the hour and their life: short, in their voice, not addressed to the user "
+                "directly (it's for everyone). Add a picture only when it makes the status (their coffee, the view, a "
+                "mess on their desk); describe it, with 'No people:' first when they're not in it.\n"
+                'Answer with JSON only: {"emoji": "one emoji", "text": "the status", "photo": "what the picture shows, or empty"}')
+    data = ask_json(user, prompt, need=("text",), max_tokens=400, task="summary", temperature=0.9)
+    story = {"id": uuid.uuid4().hex[:8], "emoji": str(data.get("emoji") or "💬")[:12], "text": str(data["text"])[:280],
+             "photo_prompt": str(data.get("photo") or "")[:500], "image_url": "",
+             "at": timezone.localtime(timezone.now()).strftime("%H:%M"), "ts": time.time(), "own": True}
+    save_char_profile(character, {"stories": [story, *(prof.get("stories") or [])][:30], "status_emoji": story["emoji"]})
+    return story
+
+
+ONE_REF_SHOTS = (
+    "a clean chest-up three-quarter portrait, calm in-character expression",
+    "a waist-up candid shot that shows their outfit and posture",
+    "a close-up with an expressive in-character look, dynamic light",
+    "a relaxed medium shot in their usual surroundings, hands and clothes visible",
+    "a three-quarter view from a slightly low angle, profile and hair visible",
+)
+
+
+def one_reference(user, character, slot):
+    """✨/↻ One reference picture, just this one: slot -1 is the neutral portrait (drawn from the description, the
+    face kept from any pictures they have), 0-3 an extra reference made from the neutral one. Returns the profile."""
+    prof = char_profile(character)
+    look = (prof.get("appearance_notes") or character.description or "")[:1200]
+    if not look.strip():
+        raise ai_client.AIError("Add how they look (Appearance) first: the picture is drawn from it.")
+    style = prof.get("art_style_notes") or "expressive digital character illustration, clean lines, rich atmospheric lighting"
+    setting = "a modern-day setting" if prof.get("mode") == "modern_au" else "their own world"
+    slot = int(slot)
+    if slot < 0:
+        refs, shot = load_character_references(character)[:3], ONE_REF_SHOTS[0]
+    else:
+        neutral = _read_storage_image(prof.get("neutral_url")) if prof.get("neutral_url") else None
+        if not neutral:
+            raise ai_client.AIError("Make the neutral portrait first: the other references are made from it.")
+        refs, shot = [neutral], ONE_REF_SHOTS[1 + min(slot, 3)]
+    same = "Keep them the SAME person as in the reference pictures: same face, hair, eyes, skin and build. " if refs else ""
+    img, _ = make_picture(user, f"{same}Draw {character.name} in {setting}: {shot}.\nHow they look: {look}\n"
+                                f"Art style: {style}.", references=refs)
+    url = default_storage.url(default_storage.save(f"messenger/refs/{character.slug}-{uuid.uuid4().hex[:8]}.png", ContentFile(img)))
+    if slot < 0:
+        return save_char_profile(character, {"neutral_url": url, "avatar_url": url})
+    extra = list(prof.get("extra_refs") or [])
+    if slot < len(extra):
+        extra[slot] = url
+    else:
+        extra.append(url)
+    return save_char_profile(character, {"extra_refs": extra[:4]})
+
+
+def user_picture(user, thread, description, ref_urls=(), with_me=True):
+    """🎨 A picture the user sends: a photo of them (their persona picture as the reference) or of anything, with up
+    to 5 references (their persona, the character's pictures for a photo of the two of them, uploads), in the chat's
+    art style. Returns (url, the description the character reads)."""
+    description = str(description or "").strip()[:800]
+    if not description:
+        raise ValueError("Describe the picture first.")
+    persona = thread_data(thread).get("persona") or {}
+    me_name = persona.get("name") or (getattr(user, "persona_name", "") or "").strip() or "the user"
+    me_look = (persona.get("description") or getattr(user, "persona_description", "") or "")[:600]
+    refs = []
+    if with_me and getattr(user, "persona_photo_neutral", None):
+        item = _read_storage_image(user.persona_photo_neutral)
+        if item:
+            refs.append(item)
+    for u in list(ref_urls)[:5]:
+        item = _read_storage_image(u)
+        if item and len(refs) < 5:
+            refs.append(item)
+    first = thread.characters.first()
+    style = (char_profile(first).get("art_style_notes") if first else "") or "the same art style as the reference pictures"
+    people = (f"{me_name} is in it" + (" (the person in the first reference picture: keep their face, hair and build)"
+                                         if with_me and refs else "") + (f". How they look: {me_look}" if me_look else "")
+              if with_me else "NO PEOPLE unless the description names someone")
+    prompt = (f"A candid smartphone photo that {me_name} took and sends in a private chat. {people}.\n"
+              f"Other reference pictures, if any, show people or things that belong in the photo: keep them as they are.\n"
+              f"Art style: {style}.\nWhat the photo shows: {description}")
+    img, _ = make_picture(user, prompt, references=refs)
+    saved = default_storage.save(f"messenger/user/{user.id}-{uuid.uuid4().hex[:8]}.png", ContentFile(img))
+    return default_storage.url(saved), (f"{me_name}: " if with_me else "") + description
+
+
+def story_picture(user, character, story_id):
+    """🖼️ The picture of a status that has a description but no picture yet. Returns the story."""
+    prof = char_profile(character)
+    stories = list(prof.get("stories") or [])
+    story = next((s for s in stories if s.get("id") == story_id), None)
+    if story is None or not story.get("photo_prompt"):
+        raise ValueError("That status has no picture to make.")
+    if not story.get("image_url"):
+        url, _ = generate_messenger_photo(user, character, story["photo_prompt"], kind="casual")
+        story["image_url"] = url
+        save_char_profile(character, {"stories": stories})
+    return story
+
+
+def ts_of(m):
+    """A message's time as seconds (stored as a number, or as an ISO date by older code); 0 when unreadable."""
+    v = (m or {}).get("ts")
+    try:
+        return float(v or 0)
+    except (TypeError, ValueError):
+        try:
+            when = datetime.fromisoformat(str(v))
+            return (timezone.make_aware(when) if timezone.is_naive(when) else when).timestamp()
+        except ValueError:
+            return 0.0
+
+
+def presence(data, now=None):
+    """🟢 How they look in the list: "away" (yellow) while a reply left on read waits, "busy" (red) when it waits
+    for a busy reason (work, sleep, class...), "online" (green) when they texted in the last 20 minutes, else
+    "last seen" (grey) with the time."""
+    now = now or time.time()
+    waiting = [m for m in data["messages"] if m.get("deliver_at") and m["deliver_at"] > now]
+    if waiting:
+        busy = any(re.search(r"busy|work|meeting|class|sleep|asleep|shift|lab|driving|зайнят|робот|сплю|зайня",
+                             str(m.get("late_reason") or ""), re.I) for m in waiting)
+        return {"state": "busy" if busy else "away", "label": "busy" if busy else "away"}
+    last = next((m for m in reversed(delivered(data["messages"], now)) if m.get("role") == "assistant"), None)
+    if last and now - ts_of(last) < 20 * 60:
+        return {"state": "online", "label": "online"}
+    return {"state": "seen", "label": f"last seen {last.get('time')}" if last and last.get("time") else "last seen recently"}
+
+
+def _watch_on(user):
+    try:
+        from mainapp.bulba import watch
+        return watch.is_on(user)
+    except Exception:
+        return False
+
+
+CONTEXT_SIZES = (20, 30, 60, 100)
+MEMORY_EVERY = 20  # messages out of view before the summary is brought up to date
+
+
+def memory_due(data):
+    """Whether enough messages have fallen out of view since the last summary."""
+    out_of_view = len(delivered(data["messages"])) - data["context_size"]
+    return out_of_view - data["memory_upto"] >= MEMORY_EVERY
+
+
+def update_memory(user, thread, force=False):
+    """🧠 The chat's memory brought up to date: the messages that fell out of view since the last time, folded into
+    the running summary (on the background model). Returns the summary."""
+    data = thread_data(thread)
+    msgs = delivered(data["messages"])
+    end = max(0, len(msgs) - data["context_size"])
+    if force:
+        end = max(end, len(msgs) - 6)  # "update it now": everything but the last few
+    new = msgs[data["memory_upto"]:end]
+    if not new:
+        return data["memory"]
+    from mainapp.cards import user_name
+    u_name = (data.get("persona") or {}).get("name") or user_name(user)
+    lines = []
+    for m in new:
+        who = u_name if m.get("role") == "user" else (m.get("sender_name") or "them")
+        what = m.get("text") or (m.get("voice") or {}).get("transcript") or ((m.get("photo") or {}).get("seen") or (m.get("photo") or {}).get("prompt") or "")
+        if what:
+            lines.append(f"{who}: {what[:400]}")
+    prompt = ("You keep the memory of a messenger chat. Fold the new messages into the summary so far: what happened, "
+              "facts that matter later (names, plans, places, what each one shared), promises and when they're due, "
+              "and how they feel about each other now. Keep what still matters, drop what doesn't; at most 300 words, "
+              "plain sentences, in the language of the chat.\n\n"
+              f"Summary so far:\n{data['memory'] or '(nothing yet)'}\n\nNew messages:\n" + "\n".join(lines) +
+              '\n\nAnswer with JSON only: {"summary": "..."}')
+    out = ask_json(user, prompt, need=("summary",), max_tokens=900, task="summary", temperature=0.3)
+    raw = dict(thread.data or {})
+    raw["memory"], raw["memory_upto"] = str(out["summary"]).strip()[:6000], end
+    thread.data = raw
+    thread.save(update_fields=["data"])
+    return raw["memory"]
+
+
 def delivered(messages, now=None):
     """The messages the user can see: a reply left on read (deliver_at) shows only once its time has come."""
     now = now or time.time()
@@ -1740,7 +2253,8 @@ def generate_turn(user, thread, extra_instruction="", auto_check_in=False):
         rt = real_time_context(thread)
         extra_instruction = (
             f"{user.username} hasn't texted in {rt['elapsed_text']} (it is now {rt['clock']}) and is currently away/busy. "
-            f"Send ONE short, natural check-in or spontaneous text (or a status update) that fits your character and "
+            f"Send ONE short, natural check-in: a text, or a voice note ([VOICE: ...]) if that's how they'd do it, or "
+            f"a status update; whatever fits your character and "
             f"what was happening last. Do not be clingy if your character is aloof."
         )
 
@@ -1754,11 +2268,12 @@ def generate_turn(user, thread, extra_instruction="", auto_check_in=False):
     _, raw_reply = thinking.split(raw_reply or "")  # thinking written inside the reply isn't a text message
     if not raw_reply.strip():
         raise ai_client.AIError("The model used its whole answer thinking and sent no text. Press ↻ Try again.")
-    later = 0
+    later, late_reason = 0, ""
     if data.get("leave_on_read"):  # 🙈 [LATER: N] at the start: the reply waits N real minutes (1-5)
-        m_later = re.match(r"\s*\[\s*LATER\s*:\s*(\d+)[^\]]*\]", raw_reply, re.I)
+        m_later = re.match(r"\s*\[\s*LATER\s*:\s*(\d+)\s*,?\s*([^\]]*)\]", raw_reply, re.I)
         if m_later:
             later = max(1, min(5, int(m_later.group(1)))) * 60
+            late_reason = m_later.group(2).strip()[:80]  # "busy at the lab", "petty": red or yellow dot meanwhile
     raw_reply = re.sub(r"\[\s*LATER\s*:[^\]]*\]", "", raw_reply, flags=re.I)
     parsed = parse_ai_reply(raw_reply, chars, is_group=thread.is_group)
 
@@ -1798,6 +2313,8 @@ def generate_turn(user, thread, extra_instruction="", auto_check_in=False):
                 "id": uuid.uuid4().hex[:8],
                 "emoji": upd.get("emoji") or "💬",
                 "text": upd["text"],
+                "photo_prompt": upd.get("photo_prompt") or "",  # 🖼️ made when it's viewed (or at once with auto photos)
+                "image_url": "",
                 "at": now_hm,
                 "ts": time.time(),
             })
@@ -1852,6 +2369,7 @@ def generate_turn(user, thread, extra_instruction="", auto_check_in=False):
         at = time.time() + later
         for i, b in enumerate(parsed["bubbles"]):
             b["deliver_at"] = b["ts"] = at + i * 2
+            b["late_reason"] = late_reason
             b["time"] = timezone.localtime(timezone.now() + timezone.timedelta(seconds=later)).strftime("%H:%M")
     data["messages"].extend(parsed["bubbles"])
     if auto_check_in:
@@ -1934,8 +2452,14 @@ def serialize_thread_summary(thread):
         "unread": data.get("unread", 0),
         "preview": preview,
         "last_time": last_time,
+        "presence": presence(data),
         "member_slugs": [c.slug for c in chars],
         "member_names": [c.name for c in chars],
+        # 💬 chat files: this chat's own name (several chats with one character), a branch, when it was last used
+        "chat_name": thread.title or "",
+        "branch": bool((thread.data or {}).get("branch_of")),
+        "updated": timezone.localtime(thread.updated).strftime("%d %b, %H:%M") if thread.updated else "",
+        "count": len(msgs),
     }
 
 
@@ -1954,6 +2478,7 @@ def serialize_thread_full(thread, user):
             "color": NAME_COLORS[idx % len(NAME_COLORS)],
             "has_voice": bool(prof.get("voice_id") or c.eleven_voice_char_id),
             "set_up": is_set_up(c),
+            "card_people": card_people(c),  # ✂️ several people on one card: offered a split
             **prof,
         })
         stickers.extend(character_stickers(c))
@@ -1962,6 +2487,10 @@ def serialize_thread_full(thread, user):
     return {
         **serialize_thread_summary(thread),
         "messages": delivered(data["messages"]),
+        "watch": watch_notice(delivered(data["messages"])) if _watch_on(user) else None,  # 🥔 Bulba noticed…
+        "memory": data["memory"], "context_size": data["context_size"], "memory_due": memory_due(data),
+        "theme": data["theme"],
+        "clock_offset": data["clock_offset"],
         "waiting": waiting_reply(data),  # 🙈 seconds until a reply left on read arrives
         "leave_on_read": data["leave_on_read"],
         "bg": data["bg"],
@@ -1970,6 +2499,9 @@ def serialize_thread_full(thread, user):
         "events": data["events"],
         "scenario_override": data["scenario_override"],
         "share_memory": data["share_memory"],
+        "started": data["started"],
+        "persona": data["persona"],
+        "usual_persona": (getattr(user, "persona_name", "") or "").strip(),
         "real_time": rt,
         "members": members,
         "stickers": stickers,

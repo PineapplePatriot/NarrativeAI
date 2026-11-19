@@ -239,7 +239,12 @@ Batch A as planned:
 - (22) Check: characters texting first while the user is on another page or away.
 - (23) Card preview: tap the name or picture → the texting profile on top, the roleplay card below.
 
-Batch B, setup and profiles:
+Batch B: done 18 November: chat files (💬 Chats: new chat, branches ⑂ from any message, rename, delete); Bulba's
+setup describes the look for the setup, lists what changed from the card and asks about what's central (a mask, a
+title); Before you start (memory sharing per chat, leave-on-read, a persona for this chat only); a card with
+several people split into characters + a group chat; a group's shared scenario by Bulba once everyone is set up.
+
+Batch B as planned:
 - (6) Two strictly separate profiles: Bulba's setup also proposes the look for this setup (a modern Dottore
   without the mask) and asks before changing lore; it says what it changed.
 - (7.2) Right away in a new chat: share memory with the roleplay chats (now on by default and hidden: ask), and
@@ -251,7 +256,16 @@ Batch B, setup and profiles:
   (their `supported_voices`); custom ids need the user's own ElevenLabs key (Extras → Voices). The drawer says so.
   Later, maybe: OpenRouter's voice cloning from a short recording (HeyGen Voice and others), no ElevenLabs account.
 
-Batch C, pictures:
+Batch C: done 19 November: 🎨 the user makes pictures to send (their persona picture, up to 5 references, make it
+again, a caption); one picture at a time (✨ Make this one / ↻ Redo this one for moods; ✨/↻ per messenger
+reference slot); 🎨 sticker packs in the texting look (one at a time) and 📥 Telegram packs by link
+(TELEGRAM_BOT_TOKEN); the picture model really used (MAI-Image), no-people photos. Uploading moods beyond neutral
+worked in tests: waiting for the user's details on what fails live.
+Also done 19 November, the user's small list: reactions as replies, failed replies retried, edits noticed, text
+files read whole with tables, text with attachments, presence dots, voice check-ins, statuses with pictures in a
+story viewer, characters' own statuses.
+
+Batch C as planned:
 - (21) The user sends generated pictures: a small window (prompt, up to 5 references, regenerate) for "proof" or
   what's going on in their life; more variety in the characters' photos.
 - ~~(3) Image model choice~~ done 18 November: MAI-Image-2.7 and 2.7 Flash take reference pictures
@@ -261,7 +275,14 @@ Batch C, pictures:
 - (8) Stickers: Telegram/Discord-style packs; generated custom packs (a character's texting look, one style);
   real Telegram packs by link through a bot token in a Railway variable (decided 18 November).
 
-Batch D, memory and the rest:
+Batch D: done 19 November: the chat's memory (a running summary of what fell out of view, editable, "update it
+now") and how many recent messages are read (20/30/60/100); Bulba Watch for texts (free checks on their latest
+text, short chats included, with a one-tap rewrite); four ready themes per chat (classic, forest, rose, sepia).
+Trackers: not in the messenger (the user checks with a few users).
+Later, maybe: sound effects (Lyria ambient beds through OpenRouter; ElevenLabs sound effects with the user's own
+key); characters texting while the browser is closed (a scheduled job + push notifications).
+
+Batch D as planned:
 - (12) Context window and story memory for messenger chats (the chat page's panel, per chat).
 - (10) Bulba Watch in short chats.
 - (18) Characters post their own statuses now and then; the user's button posts only theirs.

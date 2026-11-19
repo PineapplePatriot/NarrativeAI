@@ -57,6 +57,30 @@
     return stripped.length === 0;
   }
 
+  // 📄 A text file as a document: markdown tables, headings, lists; the rest as chat formatting
+  function renderDoc(text) {
+    var lines = String(text || "").replace(/\r/g, "").split("\n"), out = [], i = 0;
+    var cells = function (row) { return row.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(function (c) { return c.trim(); }); };
+    while (i < lines.length) {
+      var ln = lines[i];
+      if (/^\s*\|.*\|\s*$/.test(ln) && i + 1 < lines.length && /^\s*\|?\s*:?-{2,}/.test(lines[i + 1])) {
+        var head = cells(ln), rows = [];
+        i += 2;
+        while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) { rows.push(cells(lines[i])); i++; }
+        out.push('<table><thead><tr>' + head.map(function (h) { return "<th>" + formatMessageHtml(h) + "</th>"; }).join("") + "</tr></thead><tbody>" +
+          rows.map(function (r) { return "<tr>" + r.map(function (c) { return "<td>" + formatMessageHtml(c) + "</td>"; }).join("") + "</tr>"; }).join("") + "</tbody></table>");
+        continue;
+      }
+      var h = ln.match(/^(#{1,3})\s+(.*)$/);
+      if (h) out.push("<h" + (h[1].length + 2) + ">" + formatMessageHtml(h[2]) + "</h" + (h[1].length + 2) + ">");
+      else if (/^\s*[-*]\s+/.test(ln)) out.push('<div class="tg-doc-li">• ' + formatMessageHtml(ln.replace(/^\s*[-*]\s+/, "")) + "</div>");
+      else if (!ln.trim()) out.push('<div class="tg-doc-gap"></div>');
+      else out.push("<p>" + formatMessageHtml(ln) + "</p>");
+      i++;
+    }
+    return out.join("");
+  }
+
   function formatMessageHtml(raw) {
     if (!raw) return "";
     var s = esc(raw);
@@ -85,6 +109,12 @@
     return '<div class="' + (extraClass || "tg-avatar") + '">' + esc(initial) + "</div>";
   }
 
+  // ✨ Statuses seen (this browser), for the rings
+  function storySeen(id) { try { return (JSON.parse(localStorage.getItem("na-tg-seen-stories") || "[]")).indexOf(id) !== -1; } catch (e) { return false; } }
+  function markStorySeen(id) {
+    try { var a = JSON.parse(localStorage.getItem("na-tg-seen-stories") || "[]"); if (a.indexOf(id) === -1) { a.push(id); localStorage.setItem("na-tg-seen-stories", JSON.stringify(a.slice(-400))); } } catch (e) { /* no memory here */ }
+  }
+
   function renderStoriesStrip() {
     var strip = document.getElementById("tgStoriesStrip");
     if (!strip) return;
@@ -102,10 +132,10 @@
     );
 
     (STATE.characters || []).forEach(function (c) {
-      var hasStories = (c.stories || []).length > 0;
+      var hasStories = (c.stories || []).length > 0, unseen = (c.stories || []).some(function (s) { return !storySeen(s.id); });
       html.push(
-        '<div class="tg-story-item" onclick="TG.openStoryModal(\'' + esc(c.slug) + '\')" title="' + esc(c.display_name) + ': ' + esc(c.bio || "View status") + '">' +
-          '<div class="tg-story-ring ' + (hasStories ? "" : "empty") + '">' +
+        '<div class="tg-story-item" onclick="' + (hasStories ? "TG.viewStories(\'" + esc(c.slug) + "\')" : "") + '" title="' + esc(c.display_name) + ': ' + esc(c.bio || "No status yet") + '">' +
+          '<div class="tg-story-ring ' + (hasStories ? (unseen ? "unseen" : "seen") : "empty") + '">' +
             (c.avatar_url
               ? '<img src="' + esc(c.avatar_url) + '" alt="">'
               : '<div class="tg-avatar-fallback" style="display:flex;align-items:center;justify-content:center;background:#2a2f4a;color:#fff;font-weight:700;">' + esc((c.display_name || "?")[0]) + "</div>") +
@@ -163,13 +193,14 @@
           '<div class="tg-thread-item ' + (isAct ? "active" : "") + '" onclick="TG.selectThread(' + t.id + ')">' +
             '<div class="tg-avatar">' +
               (t.avatar_url ? '<img src="' + esc(t.avatar_url) + '" alt="">' : esc(((t.title || "?")[0] || "?").toUpperCase())) +
-              '<span class="tg-online-dot"></span>' +
+              (t.is_group ? "" : '<span class="tg-online-dot ' + esc((t.presence || {}).state || "online") + '"></span>') +
             "</div>" +
             '<div class="tg-thread-meta">' +
               '<div class="tg-thread-row1">' +
                 '<div class="tg-thread-name">' +
-                  (t.pinned ? "📌 " : "") +
+                  (t.pinned ? "📌 " : "") + (t.branch ? "⑂ " : "") +
                   esc(t.title) + " " + modeBadge +
+                  (!t.is_group && t.chat_name && t.chat_name !== t.title ? '<small class="tg-chat-name">' + esc(t.chat_name) + "</small>" : "") +
                 "</div>" +
                 '<span class="tg-thread-time">' + esc(t.last_time || "") + "</span>" +
               "</div>" +
@@ -184,9 +215,13 @@
       .join("");
   }
 
+  var THEMES = { "": "Purple (the app's)", classic: "Telegram classic", forest: "Forest", rose: "Rose", sepia: "Sepia evening" };
   function applyWallpaper(thread) {
     var vp = document.getElementById("tgMessagesViewport");
     if (!vp || !thread) return;
+    var main = document.getElementById("tgMain");  // 🎨 the chat's theme: bubbles, accent, background
+    if (main) { Object.keys(THEMES).forEach(function (k) { if (k) main.classList.remove("tg-theme-" + k); }); if (thread.theme) main.classList.add("tg-theme-" + thread.theme); }
+    vp.classList.toggle("tg-themed", !!thread.theme && (!thread.bg || thread.bg === "tg-night") && !thread.custom_bg_url);
     vp.classList.remove("light-wp");
     if (thread.custom_bg_url) {
       vp.style.backgroundImage = 'linear-gradient(rgba(10,15,26,0.55), rgba(10,15,26,0.55)), url("' + esc(thread.custom_bg_url) + '")';
@@ -251,6 +286,7 @@
     if (hdrSub) {
       var rt = t.real_time || {};
       var subParts = [];
+      if (!t.is_group && t.presence) subParts.push((t.presence.state === "online" ? "🟢 " : t.presence.state === "away" ? "🟡 " : t.presence.state === "busy" ? "🔴 " : "") + t.presence.label);
       if (t.handle) subParts.push(t.handle);
       if (t.subtitle) subParts.push(t.subtitle);
       if (rt.elapsed_text) subParts.push("Last text: " + rt.elapsed_text);
@@ -287,7 +323,10 @@
     out.push('<div class="tg-sys-pill">🕒 ' + esc(rtClock) + "</div>");
 
     var setupCard = bulbaSetupCard(t);
+    var groupCard = setupCard ? "" : groupScenarioCard(t);
     if (setupCard) out.push(setupCard);
+    else if (groupCard) out.push(groupCard);
+    else if (!t.started && !startSkipped[t.id]) out.push(startCard(t));
 
     if (!msgs.length) {
       out.push(
@@ -332,7 +371,8 @@
         if (st.url) {
           inner.push(
             '<div class="tg-sticker-card">' +
-              '<img src="' + esc(st.url) + '" alt="' + esc(st.name || "Sticker") + '" title="' + esc(st.name || "") + '">' +
+              (st.video || /\.webm$/i.test(st.url) ? '<video src="' + esc(st.url) + '" autoplay loop muted playsinline title="' + esc(st.name || "") + '"></video>'
+                : '<img src="' + esc(st.url) + '" alt="' + esc(st.name || "Sticker") + '" title="' + esc(st.name || "") + '">') +
             "</div>"
           );
         } else {
@@ -362,7 +402,7 @@
                 (ph.kind === "tease" ? "Tease Snapshot" : "Camera Snapshot") +
               "</div>" +
               '<div class="tg-photo-prompt-text">"' + esc(ph.prompt || "Candid photo") + '"</div>' +
-              '<button type="button" class="tg-render-photo-btn" onclick="TG.renderBubblePhoto(\'' + esc(m.id) + '\', \'' + esc(ph.kind || "casual") + '\', this)">🍌 Render Photo (Nano Banana)</button>' +
+              '<button type="button" class="tg-render-photo-btn" onclick="TG.renderBubblePhoto(\'' + esc(m.id) + '\', \'' + esc(ph.kind || "casual") + '\', this)">🍌 Show the photo</button>' +
             "</div>"
           );
         }
@@ -456,6 +496,7 @@
           '<button type="button" class="tg-act-btn" onclick="TG.setReplyTo(\'' + esc(m.id) + '\')" title="Reply">↩</button>' +
           (!isUser ? '<button type="button" class="tg-act-btn" onclick="TG.playVoiceBubble(\'' + esc(m.id) + '\', this)" title="Voice with ElevenLabs">🔊</button>' : "") +
           (!isUser ? '<button type="button" class="tg-act-btn" onclick="TG.openRedo(\'' + esc(m.id) + '\')" title="Try this message again (a note optional)">↻</button>' : "") +
+          '<button type="button" class="tg-act-btn" onclick="TG.branchFrom(\'' + esc(m.id) + '\')" title="Branch: a new chat from here (this one stays as it is)">⑂</button>' +
           '<button type="button" class="tg-act-btn" onclick="TG.pinMessage(\'' + esc(m.id) + '\')" title="Pin">📌</button>' +
           '<button type="button" class="tg-act-btn" onclick="TG.editMessagePrompt(\'' + esc(m.id) + '\')" title="Edit">✏️</button>' +
           '<button type="button" class="tg-act-btn" onclick="TG.deleteMessage(\'' + esc(m.id) + '\')" title="Delete">🗑</button>' +
@@ -496,6 +537,21 @@
       );
     }
 
+    // 🥔 Bulba Watch: something it noticed in their latest text, with a one-tap fix (Not now hides it)
+    var wn = t.watch;
+    var wnSkipped = function (id) { try { return localStorage.getItem("na-tg-watch-" + id) === "1"; } catch (e) { return false; } };
+    if (wn && !wnSkipped(wn.message_id) && !(STATE.failed && STATE.failed.thread === t.id)) {
+      out.push('<div class="tg-watch"><span>🥔 <b>Bulba noticed:</b> ' + esc(wn.text) + "</span>" +
+        '<button type="button" class="tg-watch-fix" onclick="TG.watchFix()">↻ Rewrite without it</button>' +
+        '<button type="button" class="tg-watch-x" onclick="TG.watchSkip()">Not now</button></div>');
+    }
+
+    // ⚠️ Their reply didn't arrive (an error): say so here, with a way to try again
+    if (STATE.failed && STATE.failed.thread === t.id) {
+      out.push('<div class="tg-failed"><span>⚠️ Their reply didn\'t arrive: ' + esc(STATE.failed.error || "something went wrong") + "</span>" +
+        '<button type="button" onclick="TG.retryFailed()">↻ Try again</button></div>');
+    }
+
     vp.innerHTML = out.join("");
     vp.scrollTop = vp.scrollHeight;
     renderStickerTray();
@@ -511,7 +567,7 @@
         if (s.url) {
           return (
             '<div class="tg-tray-item" onclick="TG.sendStickerByIndex(' + idx + ')">' +
-              '<img src="' + esc(s.url) + '" alt="' + esc(s.name || "") + '">' +
+              (s.video || /\.webm$/i.test(s.url) ? '<video src="' + esc(s.url) + '" autoplay loop muted playsinline></video>' : '<img src="' + esc(s.url) + '" alt="' + esc(s.name || "") + '">') +
               '<span class="nm">' + esc(s.name || s.mood || "Sticker") + "</span>" +
             "</div>"
           );
@@ -593,7 +649,8 @@
           (neutralUrl
             ? '<img class="tg-ref-img" src="' + esc(neutralUrl) + '" alt="Neutral" title="Tap to see it big" onclick="TG.viewImage(this.src)">'
             : '<div class="tg-ref-empty" style="background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:20px;">👤</div>') +
-          '<button type="button" class="tg-fmt-btn" style="font-size:10.5px;padding:3px 7px;" onclick="TG.triggerRefUpload(\'char_neutral\', -1)">Upload</button>' +
+          '<div style="display:flex;gap:3px;"><button type="button" class="tg-fmt-btn" style="font-size:10.5px;padding:3px 7px;" onclick="TG.triggerRefUpload(\'char_neutral\', -1)">Upload</button>' +
+          '<button type="button" class="tg-fmt-btn" style="font-size:10.5px;padding:3px 6px;" onclick="TG.makeOneRef(-1, this)" title="' + (neutralUrl ? "Draw it again" : "Draw it") + ', just this one">' + (neutralUrl ? "↻" : "✨") + "</button></div>" +
         "</div>"
       );
       // Slots 1..4: Up to 4 Extra References
@@ -607,6 +664,7 @@
               : '<div class="tg-ref-empty" style="background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--tg-muted);">+</div>') +
             '<div style="display:flex;gap:3px;">' +
               '<button type="button" class="tg-fmt-btn" style="font-size:10.5px;padding:3px 6px;" onclick="TG.triggerRefUpload(\'char_extra_ref\', ' + rIdx + ')">' + (rUrl ? "Swap" : "Add") + "</button>" +
+              '<button type="button" class="tg-fmt-btn" style="font-size:10.5px;padding:3px 6px;" onclick="TG.makeOneRef(' + rIdx + ', this)" title="' + (rUrl ? "Draw it again" : "Draw it") + ', just this one">' + (rUrl ? "↻" : "✨") + "</button>" +
               (rUrl ? '<button type="button" class="tg-fmt-btn" style="font-size:10.5px;padding:3px 5px;color:#f87171;" onclick="TG.removeExtraRef(' + rIdx + ')">✕</button>' : "") +
             "</div>" +
           "</div>"
@@ -767,6 +825,35 @@
             "<span>🙈 <b>They can leave me on read</b><br><small style=\"color:var(--tg-muted)\">Now and then, when it fits (they were busy, " +
             "or teasing, annoyed, petty), they answer up to 5 real minutes later. Your message shows as Seen meanwhile.</small></span>" +
           "</label>" +
+          '<label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;cursor:pointer;margin-top:8px;">' +
+            '<input type="checkbox" id="drwThreadShare" ' + (t.share_memory !== false ? "checked" : "") + ' style="margin-top:3px">' +
+            "<span>🧠 <b>Share story memory with the roleplay chats</b></span></label>" +
+        "</div>" +
+        '<div class="tg-field-group"><label>🕰️ The chat\'s clock</label>' +
+          '<div style="font-size:13px;margin-bottom:6px;">' + (t.clock_offset ? "Set: it's <b>" + esc((t.real_time || {}).clock || "") + "</b> in this chat (it runs on from there)."
+            : "Real time: <b>" + esc((t.real_time || {}).clock || "") + "</b>.") + "</div>" +
+          '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">' +
+            '<button type="button" class="tg-fmt-btn" onclick="TG.setClock(\'resume\')" title="The clock jumps back to just after the last message">🌙 Continue where we left off</button>' +
+            '<input type="datetime-local" class="tg-input" id="drwClockAt" style="width:auto">' +
+            '<button type="button" class="tg-fmt-btn" onclick="TG.setClock(document.getElementById(\'drwClockAt\').value)">Set</button>' +
+            (t.clock_offset ? '<button type="button" class="tg-fmt-btn" onclick="TG.setClock(\'real\')">⏱ Back to real time</button>' : "") +
+          "</div></div>" +
+        '<div class="tg-field-group"><label>🎨 Theme</label><select class="tg-select" id="drwThreadTheme">' +
+          Object.keys(THEMES).map(function (k) { return '<option value="' + k + '"' + ((t.theme || "") === k ? " selected" : "") + ">" + esc(THEMES[k]) + "</option>"; }).join("") +
+        "</select></div>" +
+        '<div class="tg-field-group">' +
+          "<label>🧠 Memory of this chat <small style=\"font-weight:400;color:var(--tg-muted)\">(what happened before the recent messages; kept up to date as the chat grows; edit freely)</small></label>" +
+          '<textarea class="tg-textarea" id="drwThreadMemory" style="min-height:90px" placeholder="Nothing yet: it starts once older messages fall out of view.">' + esc(t.memory || "") + "</textarea>" +
+          '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;">' +
+            '<button type="button" class="tg-fmt-btn" onclick="TG.updateMemory(this)">🧠 Update it now</button>' +
+            '<label style="font-size:12.5px;">Recent messages the model reads <select class="tg-select" id="drwThreadContext" style="width:auto;display:inline-block">' +
+              [20, 30, 60, 100].map(function (n) { return '<option value="' + n + '"' + ((t.context_size || 30) === n ? " selected" : "") + ">" + n + "</option>"; }).join("") +
+            "</select></label></div>" +
+        "</div>" +
+        '<div class="tg-field-group">' +
+          "<label>🎭 Who you are in this chat (empty: your usual persona" + (t.usual_persona ? ", " + esc(t.usual_persona) : "") + ")</label>" +
+          '<input type="text" class="tg-input" id="drwThreadPersonaName" placeholder="Name" value="' + esc((t.persona || {}).name || "") + '">' +
+          '<textarea class="tg-textarea" id="drwThreadPersonaDesc" placeholder="Who you are here">' + esc((t.persona || {}).description || "") + "</textarea>" +
         "</div>" +
         '<div class="tg-save-bar">' +
           '<button type="button" class="tg-send-btn" style="flex:1;justify-content:center;" onclick="TG.saving(this, TG.saveThreadSettings)">💾 Save Chat & Look</button>' +
@@ -817,7 +904,11 @@
       "</div>" +
       '<label style="display:flex;align-items:center;gap:8px;font-size:12.5px;cursor:pointer;">' +
         '<input type="checkbox" id="drwMeAutoPhoto" ' + (u.auto_photos ? "checked" : "") + ">" +
-        "Automatically render Nano Banana photos when characters send [PHOTO]" +
+        "Automatically make the picture when characters send a photo" +
+      "</label>" +
+      '<label style="display:flex;align-items:center;gap:8px;font-size:12.5px;cursor:pointer;">' +
+        '<input type="checkbox" id="drwMeAutoStatuses" ' + (u.auto_statuses !== false ? "checked" : "") + ">" +
+        "Characters post statuses on their own now and then" +
       "</label>" +
       '<label style="display:flex;align-items:center;gap:8px;font-size:12.5px;cursor:pointer;">' +
         '<input type="checkbox" id="drwMeAutoVoice" ' + (u.auto_voice ? "checked" : "") + ">" +
@@ -967,6 +1058,57 @@
       '<button type="button" class="tg-regen-x" onclick="TG.openRedo(null)" aria-label="Close">✕</button></div></div></div>';
   }
 
+  // --- 🥔 A group chat's shared scenario, once everyone is set up for texting ---
+  var groupState = {};
+  function groupScenarioCard(t) {
+    if (!t.is_group) return "";
+    var gs = groupState[t.id];
+    if (!gs && (t.scenario_override || setupSkipped("group-" + t.id))) return "";
+    gs = gs || (groupState[t.id] = { step: "offer", hint: "" });
+    if (gs.step === "done") return "";
+    var err = gs.error ? '<p class="tg-setup-err">' + esc(gs.error) + "</p>" : "", body;
+    if (gs.step === "offer") {
+      body = "<p>Everyone's set up. Want me to write how you all ended up in one group chat, and what's going on as it starts?</p>" +
+        '<textarea rows="2" oninput="TG.groupType(' + t.id + ', this.value)" placeholder="Steer it (optional): how you all know each other, what the group is for… Empty: I\'ll suggest one.">' + esc(gs.hint) + "</textarea>" +
+        '<div class="tg-setup-row"><button type="button" class="tg-setup-go" onclick="TG.groupWrite(' + t.id + ')">🥔 Write it</button>' +
+        '<button type="button" class="tg-setup-ghost" onclick="TG.groupSkip(' + t.id + ')">Not now</button></div>';
+    } else if (gs.step === "busy") {
+      body = "<p>Working out how you all know each other… 🥔</p>";
+    } else {
+      body = "<p><b>" + esc(t.title) + "</b>: " + esc(t.scenario_override || "") + "</p>" +
+        '<textarea rows="2" oninput="TG.groupFixType(' + t.id + ', this.value)" placeholder="What\'s off? Tell me and I\'ll fix it">' + esc(gs.fix || "") + "</textarea>" +
+        '<div class="tg-setup-row"><button type="button" class="tg-setup-go" onclick="TG.groupDone(' + t.id + ')">👍 Keep it</button>' +
+        '<button type="button" class="tg-setup-ghost" onclick="TG.groupFix(' + t.id + ')">↻ Fix what I said / another take</button></div>';
+    }
+    return '<div class="tg-setup"><div class="tg-setup-head">🥔 <b>Bulba</b> · the group</div>' + body + err + "</div>";
+  }
+
+  // --- 🧭 Before you start: memory, leave-on-read, who you are in this chat (once per chat) ---
+  var startSkipped = {}, startState = {};
+  function startCard(t) {
+    var st = startState[t.id] || (startState[t.id] = { share: t.share_memory !== false, lor: !!t.leave_on_read,
+      own: !!(t.persona && (t.persona.name || t.persona.description)), name: (t.persona || {}).name || "", desc: (t.persona || {}).description || "" });
+    var who = t.is_group ? "them" : esc((t.members && t.members[0] && t.members[0].name) || "them");
+    var radio = function (name, val, on, label) {
+      return '<label class="tg-start-opt' + (on ? " on" : "") + '"><input type="radio" name="' + name + '" ' + (on ? "checked" : "") +
+        ' onchange="TG.startSet(' + t.id + ', \'' + name + '\', ' + val + ')">' + label + "</label>";
+    };
+    return '<div class="tg-setup tg-start" id="tgStart"><div class="tg-setup-head">🧭 <b>Before you start</b></div>' +
+      "<p><b>🧠 Memory.</b> Should " + who + " remember what happened in your roleplay chats?</p>" +
+      '<div class="tg-start-row">' + radio("share", "true", st.share, "Yes, share story memory") + radio("share", "false", !st.share, "No, texting stands apart") + "</div>" +
+      "<p><b>🙈 Realism.</b></p>" +
+      '<label class="tg-start-opt' + (st.lor ? " on" : "") + '"><input type="checkbox" ' + (st.lor ? "checked" : "") +
+        ' onchange="TG.startSet(' + t.id + ', \'lor\', this.checked)">They can leave me on read now and then (up to 5 minutes, when it fits: busy, teasing, annoyed, petty)</label>' +
+      "<p><b>🎭 Who are you here?</b></p>" +
+      '<div class="tg-start-row">' + radio("own", "false", !st.own, "My usual persona" + (t.usual_persona ? " (" + esc(t.usual_persona) + ")" : "")) +
+        radio("own", "true", st.own, "Someone else, for this chat only") + "</div>" +
+      (st.own ? '<input type="text" class="tg-input" placeholder="Name" value="' + esc(st.name) + '" oninput="TG.startSet(' + t.id + ', \'name\', this.value, true)">' +
+        '<textarea rows="3" placeholder="Who you are in this chat: age, job, how you know them, anything they should know" oninput="TG.startSet(' + t.id + ', \'desc\', this.value, true)">' + esc(st.desc) + "</textarea>" : "") +
+      '<div class="tg-setup-row"><button type="button" class="tg-setup-go" onclick="TG.startSave(' + t.id + ')">Start texting</button>' +
+      '<button type="button" class="tg-setup-ghost" onclick="TG.startLater(' + t.id + ')">Later</button></div>' +
+      '<p class="tg-card-small">All of it can be changed later in Time & Look.</p></div>';
+  }
+
   // --- 🥔 Bulba's setup: a character who isn't set up for texting yet gets an offer at the top of the chat ---
   var setupState = {};  // slug → {step: offer|busy|review|look|drawing|done, mode, hint, outfit, error}
   function setupSkipped(slug) { try { return localStorage.getItem("na-tg-setup-skip-" + slug) === "1"; } catch (e) { return false; } }
@@ -974,10 +1116,20 @@
     var m = (t.members || []).find(function (x) { return !x.set_up && !setupSkipped(x.slug); }) ||
             (t.members || []).find(function (x) { return setupState[x.slug] && setupState[x.slug].step !== "done"; });
     if (!m) return "";
-    var st = setupState[m.slug] || (setupState[m.slug] = { step: "offer", mode: "modern_au", hint: "", outfit: "" });
+    var st = setupState[m.slug] || (setupState[m.slug] = { step: (m.card_people || []).length > 1 && !t.is_group ? "split" : "offer",
+                                                          mode: "modern_au", hint: "", outfit: "" });
     var n = esc(m.name), slug = esc(m.slug), body = "";
     var err = st.error ? '<p class="tg-setup-err">' + esc(st.error) + "</p>" : "";
-    if (st.step === "offer") {
+    if (st.step === "split") {  // ✂️ one contact, one person
+      var ppl = m.card_people.map(esc);
+      body = "<p><b>" + n + "</b> is a card with " + ppl.length + " people (" + ppl.join(", ") + "). On a phone each of them " +
+        "would be their own contact. Want me to split them into " + ppl.length + " characters and start a group chat with all of " +
+        "them? Each keeps their own sections; your card stays exactly as it is.</p>" +
+        '<div class="tg-setup-row"><button type="button" class="tg-setup-go" onclick="TG.splitCard(\'' + slug + '\')">✂️ Split into ' + ppl.length + " + a group chat</button>" +
+        '<button type="button" class="tg-setup-ghost" onclick="TG.setupStep(\'' + slug + '\', \'offer\')">Keep them as one contact</button></div>';
+    } else if (st.step === "splitting") {
+      body = "<p>Splitting them up… ✂️</p>";
+    } else if (st.step === "offer") {
       body = "<p><b>" + n + "</b> isn't set up for texting yet. Want me to bring them onto a phone? I'll write their @handle, bio, " +
         "how they text, and why you two have each other's number. Their roleplay card stays exactly as it is.</p>" +
         '<div class="tg-setup-modes">' +
@@ -994,7 +1146,12 @@
         "<dt>Handle & bio</dt><dd>" + esc(m.handle || "") + " · " + esc(m.bio || "") + "</dd>" +
         "<dt>Why you text</dt><dd>" + esc(m.scenario || "") + "</dd>" +
         "<dt>Who they are here</dt><dd>" + esc(m.modern_persona || "") + "</dd>" +
-        "<dt>How they text</dt><dd>" + esc(m.texting_style || "") + "</dd></dl>" +
+        "<dt>How they text</dt><dd>" + esc(m.texting_style || "") + "</dd>" +
+        "<dt>How they look</dt><dd>" + esc(m.appearance_notes || "") + "</dd></dl>" +
+        (st.notes && st.notes.changes && st.notes.changes.length ? '<p class="tg-setup-sub">Changed from the roleplay card:</p><ul class="tg-setup-list">' +
+          st.notes.changes.map(function (c) { return "<li>" + esc(c) + "</li>"; }).join("") + "</ul>" : "") +
+        (st.notes && st.notes.questions && st.notes.questions.length ? '<p class="tg-setup-sub">🥔 Your call (answer below, or keep my choice):</p><ul class="tg-setup-list">' +
+          st.notes.questions.map(function (q) { return "<li>" + esc(q) + "</li>"; }).join("") + "</ul>" : "") +
         '<textarea id="tgSetupFix" rows="2" oninput="TG.setupType(\'' + slug + '\', \'fix\', this.value)" placeholder="What\'s off? Tell me and I\'ll fix it, e.g. we met at a night pharmacy, not at work">' + esc(st.fix || "") + "</textarea>" +
         '<div class="tg-setup-row"><button type="button" class="tg-setup-go" onclick="TG.setupKeep(\'' + slug + '\')">👍 Keep it</button>' +
         '<button type="button" class="tg-setup-ghost" onclick="TG.setupFix(\'' + slug + '\')">↻ Fix what I said / another take</button>' +
@@ -1275,6 +1432,278 @@
         .catch(function () { var el = document.getElementById("tgCardRp"); if (el) el.textContent = "Couldn't load the card."; });
     },
 
+    // 💬 Chat files: every chat with the same character(s), a new one, branches, rename, delete
+    openChats: function () {
+      var t = STATE.active_thread; if (!t) return;
+      var key = (t.members || []).map(function (m) { return m.slug; }).sort().join("|");
+      var same = (STATE.threads || []).filter(function (x) { return (x.member_slugs || []).slice().sort().join("|") === key; });
+      var box = document.getElementById("tgChats");
+      if (!box) {
+        box = document.createElement("div");
+        box.id = "tgChats"; box.className = "tg-card-shade";
+        box.addEventListener("click", function (e) { if (e.target === box) box.classList.remove("open"); });
+        document.body.appendChild(box);
+      }
+      box.innerHTML = '<div class="tg-card tg-chats" role="dialog" aria-label="Chats">' +
+        '<button type="button" class="tg-card-x" onclick="document.getElementById(\'tgChats\').classList.remove(\'open\')" aria-label="Close">✕</button>' +
+        "<h3>💬 Chats with " + esc(t.is_group ? t.title : (t.members && t.members[0] ? t.members[0].name : t.title)) + "</h3>" +
+        '<button type="button" class="tg-setup-go" onclick="TG.newChat()">+ New chat</button>' +
+        '<p class="tg-card-small">A new chat starts fresh (their first text again). ⑂ on any message makes a branch: a new chat from that point; the old one stays as it is.</p>' +
+        '<div class="tg-chat-files">' + same.map(function (x) {
+          return '<div class="tg-chat-file' + (x.id === t.id ? " on" : "") + '">' +
+            '<div class="tg-chat-file-main" onclick="document.getElementById(\'tgChats\').classList.remove(\'open\'); TG.selectThread(' + x.id + ')">' +
+              "<b>" + (x.branch ? "⑂ " : "") + esc(x.chat_name || x.title) + "</b>" + (x.id === t.id ? ' <span class="tg-card-mode">· open now</span>' : "") +
+              "<small>" + esc(x.preview || "") + "</small>" +
+              '<small class="tg-card-small">' + esc(x.updated || "") + " · " + (x.count || 0) + " messages</small></div>" +
+            '<button type="button" class="tg-fmt-btn" onclick="TG.renameChat(' + x.id + ')" title="Rename">✏️</button>' +
+            '<button type="button" class="tg-fmt-btn" style="color:#f87171" onclick="TG.deleteChat(' + x.id + ')" title="Delete">🗑</button></div>';
+        }).join("") + "</div></div>";
+      box.classList.add("open");
+    },
+    newChat: function () {
+      var t = STATE.active_thread; if (!t) return;
+      apiPost({ action: "new_chat", thread_id: t.id }).then(function (res) {
+        var box = document.getElementById("tgChats"); if (box) box.classList.remove("open");
+        STATE.threads = res.threads; STATE.active_thread = res.thread; renderSidebar(); renderActiveThread();
+      }).catch(function (e) { alert(e.message); });
+    },
+    branchFrom: function (msgId) {
+      var t = STATE.active_thread; if (!t) return;
+      apiPost({ action: "branch_chat", thread_id: t.id, message_id: msgId }).then(function (res) {
+        STATE.threads = res.threads; STATE.active_thread = res.thread; renderSidebar(); renderActiveThread();
+      }).catch(function (e) { alert(e.message); });
+    },
+    renameChat: function (id) {
+      var x = (STATE.threads || []).find(function (y) { return y.id === id; }); if (!x) return;
+      var name = prompt("A name for this chat:", x.chat_name || x.title);
+      if (!name || !name.trim()) return;
+      apiPost({ action: "rename_chat", thread_id: id, title: name.trim() }).then(function (res) {
+        STATE.threads = res.threads;
+        if (STATE.active_thread && STATE.active_thread.id === id) STATE.active_thread = res.thread;
+        renderSidebar(); renderActiveThread(); TG.openChats();
+      }).catch(function (e) { alert(e.message); });
+    },
+
+    startSet: function (id, key, value, quiet) {
+      var st = startState[id]; if (!st) return;
+      st[key] = value;
+      if (!quiet) renderActiveThread();
+    },
+    startLater: function (id) { startSkipped[id] = true; renderActiveThread(); },
+    startSave: function (id) {
+      var st = startState[id]; if (!st) return;
+      apiPost({ action: "thread_settings", thread_id: id, started: true, share_memory: st.share, leave_on_read: st.lor,
+                persona: st.own ? { name: st.name, description: st.desc } : {} })
+        .then(function (res) { STATE.active_thread = res.thread; renderActiveThread(); })
+        .catch(function (e) { alert(e.message); });
+    },
+    groupType: function (id, v) { if (groupState[id]) groupState[id].hint = v; },
+    groupFixType: function (id, v) { if (groupState[id]) groupState[id].fix = v; },
+    groupSkip: function (id) {
+      try { localStorage.setItem("na-tg-setup-skip-group-" + id, "1"); } catch (e) { /* this visit */ }
+      if (groupState[id]) groupState[id].step = "done";
+      renderActiveThread();
+    },
+    groupDone: function (id) { if (groupState[id]) groupState[id].step = "done"; renderActiveThread(); },
+    groupFix: function (id) {
+      var gs = groupState[id]; if (!gs) return;
+      if ((gs.fix || "").trim()) gs.hint = (gs.hint ? gs.hint + "\n" : "") + "Correction to the last draft: " + gs.fix.trim();
+      gs.fix = ""; TG.groupWrite(id);
+    },
+    groupWrite: function (id) {
+      var gs = groupState[id]; if (!gs) return;
+      gs.step = "busy"; gs.error = ""; renderActiveThread();
+      apiPost({ action: "group_scenario", thread_id: id, hint: gs.hint }).then(function (res) {
+        gs.step = "review"; STATE.threads = res.threads; STATE.active_thread = res.thread; renderSidebar(); renderActiveThread();
+      }).catch(function (e) { gs.step = "offer"; gs.error = e.message; renderActiveThread(); });
+    },
+    setupStep: function (slug, step) { var st = setupState[slug]; if (st) { st.step = step; renderActiveThread(); } },
+    splitCard: function (slug) {
+      var st = setupState[slug]; if (!st) return;
+      st.step = "splitting"; st.error = ""; renderActiveThread();
+      apiPost({ action: "split_card", char_slug: slug }).then(function (res) {
+        delete setupState[slug];
+        STATE.threads = res.threads; STATE.active_thread = res.thread; renderSidebar(); renderActiveThread();
+      }).catch(function (e) { st.step = "split"; st.error = e.message; renderActiveThread(); });
+    },
+    // ✨ A character's statuses, like Telegram stories: the picture (made on first view), the text over it; tap
+    // the right side for the next one, the left for the one before
+    viewStories: function (slug) {
+      var c = (STATE.characters || []).find(function (x) { return x.slug === slug; }); if (!c) return;
+      var stories = (c.stories || []).slice().reverse();  // oldest first, like a story
+      if (!stories.length) return;
+      var i = Math.max(0, stories.findIndex(function (s) { return !storySeen(s.id); }));
+      var box = document.getElementById("tgStories");
+      if (!box) { box = document.createElement("div"); box.id = "tgStories"; box.className = "tg-stories"; document.body.appendChild(box); }
+      var show = function () {
+        var s = stories[i]; markStorySeen(s.id);
+        box.innerHTML = '<div class="tg-stories-bars">' + stories.map(function (x, j) { return '<i class="' + (j < i ? "done" : j === i ? "now" : "") + '"></i>'; }).join("") + "</div>" +
+          '<div class="tg-stories-head"><img src="' + esc(c.avatar_url || "") + '" alt=""><b>' + esc(c.display_name || c.name) + "</b><small>" + esc(s.at || "") + "</small>" +
+          '<button type="button" aria-label="Close" data-x>✕</button></div>' +
+          '<div class="tg-stories-pic">' + (s.image_url ? '<img src="' + esc(s.image_url) + '" alt="">'
+            : s.photo_prompt ? '<button type="button" class="tg-setup-go" data-pic>🖼️ Show the picture</button>' : '<div class="tg-stories-emoji">' + esc(s.emoji || "✨") + "</div>") + "</div>" +
+          (s.text ? '<div class="tg-stories-text">' + esc(s.emoji || "") + " " + formatMessageHtml(s.text) + "</div>" : "") +
+          '<div class="tg-stories-tap prev" data-prev></div><div class="tg-stories-tap next" data-next></div>';
+        box.classList.add("open");
+        renderStoriesStrip();
+      };
+      box.onclick = function (e) {
+        if (e.target.closest("[data-x]")) { box.classList.remove("open"); return; }
+        if (e.target.closest("[data-pic]")) {
+          var b = e.target.closest("[data-pic]"); b.disabled = true; b.textContent = "📸 Making the picture…";
+          apiPost({ action: "story_picture", owner: slug, story_id: stories[i].id }).then(function (res) {
+            stories[i].image_url = res.story.image_url; syncCharCatalog(slug, res.profile); show();
+          }).catch(function (err) { b.disabled = false; b.textContent = "🖼️ Show the picture"; alert(err.message); });
+          return;
+        }
+        if (e.target.closest("[data-next]")) { if (i < stories.length - 1) { i++; show(); } else box.classList.remove("open"); }
+        else if (e.target.closest("[data-prev]")) { if (i > 0) { i--; show(); } }
+      };
+      show();
+    },
+
+    // 🎨 A picture to send: a photo of you (your persona picture as the reference) or of anything; up to 5
+    // references; make it again as often as you like, then send it with a caption
+    openMakePicture: function () {
+      var t = STATE.active_thread; if (!t) return;
+      var mk = TG._mk = TG._mk && TG._mk.thread === t.id ? TG._mk : { thread: t.id, withMe: !!STATE.persona_photo, refs: [], url: "", seen: "", busy: false };
+      var box = document.getElementById("tgMake");
+      if (!box) {
+        box = document.createElement("div"); box.id = "tgMake"; box.className = "tg-card-shade";
+        box.addEventListener("click", function (e) { if (e.target === box) box.classList.remove("open"); });
+        document.body.appendChild(box);
+      }
+      var options = [];
+      (t.members || []).forEach(function (m) {
+        [m.neutral_url].concat(m.extra_refs || []).filter(Boolean).forEach(function (u) { options.push({ url: u, label: m.name }); });
+      });
+      mk.uploads = mk.uploads || [];
+      mk.uploads.forEach(function (u) { options.push({ url: u, label: "yours" }); });
+      var count = mk.refs.length + (mk.withMe && STATE.persona_photo ? 1 : 0);
+      box.innerHTML = '<div class="tg-card tg-make" role="dialog" aria-label="Make a picture">' +
+        '<button type="button" class="tg-card-x" data-x aria-label="Close">✕</button>' +
+        "<h3>🎨 Make a picture to send</h3>" +
+        '<textarea id="tgMakeDesc" rows="3" placeholder="What the photo shows: me at the bus stop in the rain, holding the umbrella you lent me…">' + esc(mk.desc || "") + "</textarea>" +
+        (STATE.persona_photo ? '<label class="tg-start-opt' + (mk.withMe ? " on" : "") + '"><input type="checkbox" data-me ' + (mk.withMe ? "checked" : "") + '> I\'m in it (my persona picture as the reference)</label>'
+          : '<p class="tg-card-small">No persona picture yet: add one in your Profile to be in your photos.</p>') +
+        '<p class="tg-card-small">References (' + count + " of 5): tap to use. A character's picture puts them in it too.</p>" +
+        '<div class="tg-make-refs">' + options.map(function (o) {
+          var on = mk.refs.indexOf(o.url) !== -1;
+          return '<button type="button" class="tg-make-ref' + (on ? " on" : "") + '" data-ref="' + esc(o.url) + '" title="' + esc(o.label) + '"><img src="' + esc(o.url) + '" alt=""></button>';
+        }).join("") +
+        '<label class="tg-make-ref tg-make-add" title="Upload a reference">＋<input type="file" accept="image/*" hidden data-up></label></div>' +
+        '<div class="tg-make-preview">' + (mk.busy ? "<p>📸 Making the picture…</p>" : mk.url ? '<img src="' + esc(mk.url) + '" alt="" onclick="TG.viewImage(this.src)">' : "") + "</div>" +
+        (mk.url ? '<input type="text" class="tg-input" id="tgMakeCaption" placeholder="A caption (optional)" value="' + esc(mk.caption || "") + '">' : "") +
+        '<div class="tg-setup-row"><button type="button" class="tg-setup-go" data-make ' + (mk.busy ? "disabled" : "") + ">" + (mk.url ? "↻ Make it again" : "🎨 Make it") + "</button>" +
+        (mk.url ? '<button type="button" class="tg-setup-go" data-send>Send ➤</button>' : "") + "</div></div>";
+      box.classList.add("open");
+      box.onclick = function (e) {
+        var d = document.getElementById("tgMakeDesc"); if (d) mk.desc = d.value;
+        var c = document.getElementById("tgMakeCaption"); if (c) mk.caption = c.value;
+        if (e.target === box || e.target.closest("[data-x]")) { box.classList.remove("open"); return; }
+        var r = e.target.closest("[data-ref]");
+        if (r) {
+          var u = r.getAttribute("data-ref"), at = mk.refs.indexOf(u);
+          if (at !== -1) mk.refs.splice(at, 1); else if (count < 5) mk.refs.push(u);
+          return TG.openMakePicture();
+        }
+        if (e.target.closest("[data-make]")) {
+          if (!(mk.desc || "").trim()) return alert("Describe the picture first.");
+          mk.busy = true; TG.openMakePicture();
+          apiPost({ action: "user_picture", thread_id: t.id, prompt: mk.desc, refs: mk.refs, with_me: mk.withMe })
+            .then(function (res) { mk.busy = false; mk.url = res.url; mk.seen = res.seen; TG.openMakePicture(); })
+            .catch(function (err) { mk.busy = false; TG.openMakePicture(); alert(err.message); });
+          return;
+        }
+        if (e.target.closest("[data-send]")) {
+          box.classList.remove("open");
+          TG.sendUserMessage({ text: "", photo: { kind: "generated", url: mk.url, caption: mk.caption || "", seen: mk.seen, prompt: mk.desc } });
+          TG._mk = null;
+        }
+      };
+      box.onchange = function (e) {
+        if (e.target.matches("[data-me]")) { mk.withMe = e.target.checked; return TG.openMakePicture(); }
+        if (e.target.matches("[data-up]") && e.target.files[0]) {
+          var fd = new FormData(); fd.append("kind", "image"); fd.append("file", e.target.files[0]);
+          fetch(window.TG_CFG.api, { method: "POST", headers: { "X-CSRFToken": window.TG_CFG.csrf }, body: fd })
+            .then(function (r) { return r.json(); })
+            .then(function (res) { if (res.error) throw new Error(res.error); mk.uploads.push(res.url); if (count < 5) mk.refs.push(res.url); TG.openMakePicture(); })
+            .catch(function (err) { alert(err.message); });
+        }
+      };
+    },
+
+    makeOneRef: function (slot, btn) {
+      var slug = selectedDrawerCharSlug; if (!slug) return;
+      if (btn) { btn.disabled = true; btn.textContent = "⏳"; }
+      apiPost({ action: "one_reference", char_slug: slug, slot: slot }).then(function (res) {
+        syncCharCatalog(res.char_slug, res.profile); renderSidebar(); renderActiveThread(); renderDrawer();
+      }).catch(function (e) { if (btn) { btn.disabled = false; btn.textContent = slot < 0 ? "✨" : "✨"; } alert(e.message); });
+    },
+    // 🎨 A sticker pack in their texting look, one sticker at a time (stoppable; a sticker can be redone)
+    makeStickerPack: function () {
+      var t = STATE.active_thread; if (!t) return;
+      var m = (t.members || [])[0]; if (!m) return;
+      if (TG._packBusy) { TG._packBusy = false; return; }  // a second press stops it
+      var moods = ["happy", "smug", "angry", "sleepy", "shocked", "love", "crying", "thumbs up"];
+      var have = (m.sticker_pack || []).map(function (s) { return s.mood; });
+      var todo = moods.filter(function (x) { return have.indexOf(x) === -1; });
+      if (!todo.length) {
+        var redo = prompt("Their pack is complete. Redo one? Type its mood (" + moods.join(", ") + "):", "");
+        if (!redo) return; todo = [redo.trim().toLowerCase()];
+      } else if (!confirm("Draw " + todo.length + " stickers of " + m.name + " in their texting look? About a few cents each. Press 🎨 again to stop.")) return;
+      var st = document.getElementById("tgStickerStatus"); st.hidden = false;
+      TG._packBusy = true;
+      var i = 0;
+      (function next() {
+        if (!TG._packBusy || i >= todo.length) { TG._packBusy = false; st.textContent = "🎨 Done: " + i + " sticker" + (i === 1 ? "" : "s") + "."; return; }
+        st.textContent = "🎨 Drawing “" + todo[i] + "” (" + (i + 1) + " of " + todo.length + ")… press 🎨 to stop";
+        apiPost({ action: "make_sticker", char_slug: m.slug, mood: todo[i] }).then(function (res) {
+          syncCharCatalog(res.char_slug, res.profile);
+          t.stickers = (t.stickers || []).filter(function (s) { return s.char_slug !== res.char_slug; }).concat(res.stickers);
+          renderStickerTray(); i++; next();
+        }).catch(function (e) { TG._packBusy = false; st.textContent = "Stopped at “" + todo[i] + "”: " + e.message; });
+      })();
+    },
+    importTelegramPack: function () {
+      var link = prompt("A Telegram sticker pack link (t.me/addstickers/…):", "");
+      if (!link || !link.trim()) return;
+      var st = document.getElementById("tgStickerStatus"); st.hidden = false; st.textContent = "📥 Fetching the pack…";
+      apiPost({ action: "telegram_pack", link: link.trim() }).then(function (res) {
+        STATE.user_profile = res.user_profile;
+        var mine = res.user_profile.custom_stickers || [];
+        if (STATE.active_thread) STATE.active_thread.stickers = (STATE.active_thread.stickers || []).filter(function (s) { return !/^custom_|^tg_/.test(s.id || ""); }).concat(mine);
+        renderStickerTray();
+        st.textContent = "📥 “" + res.title + "”: " + res.added + " stickers added" + (res.skipped ? ", " + res.skipped + " animated ones skipped (they need a special player)" : "") + ".";
+      }).catch(function (e) { st.textContent = "📥 " + e.message; });
+    },
+    watchSkip: function () {
+      var t = STATE.active_thread; if (!t || !t.watch) return;
+      try { localStorage.setItem("na-tg-watch-" + t.watch.message_id, "1"); } catch (e) { /* this view */ }
+      t.watch = null; renderActiveThread();
+    },
+    watchFix: function () {
+      var t = STATE.active_thread; if (!t || !t.watch) return;
+      var wn = t.watch; t.watch = null; renderActiveThread();
+      apiPost({ action: "redo_message", thread_id: t.id, message_id: wn.message_id, note: wn.note })
+        .then(function (res) { STATE.active_thread = res.thread; renderActiveThread(); })
+        .catch(function (e) { alert(e.message); });
+    },
+    updateMemory: function (btn) {
+      var t = STATE.active_thread; if (!t) return;
+      if (btn) { btn.disabled = true; btn.textContent = "🧠 Updating…"; }
+      apiPost({ action: "update_memory", thread_id: t.id, now: true }).then(function (res) {
+        STATE.active_thread = res.thread;
+        var box = document.getElementById("drwThreadMemory"); if (box) box.value = res.memory || "";
+        if (btn) { btn.disabled = false; btn.textContent = "✓ Updated"; }
+      }).catch(function (e) { if (btn) { btn.disabled = false; btn.textContent = "🧠 Update it now"; } alert(e.message); });
+    },
+    setClock: function (how) {
+      var t = STATE.active_thread; if (!t || !how) return;
+      apiPost({ action: "thread_settings", thread_id: t.id, clock: how }).then(function (res) {
+        STATE.active_thread = res.thread; renderActiveThread(); renderDrawer();
+      }).catch(function (e) { alert(e.message); });
+    },
     setupType: function (slug, key, value) { if (setupState[slug]) setupState[slug][key] = value; },
     setupSkip: function (slug) {
       try { localStorage.setItem("na-tg-setup-skip-" + slug, "1"); } catch (e) { /* this visit only */ }
@@ -1287,6 +1716,7 @@
       apiPost({ action: "modernize_bulba", char_slug: slug, mode: st.mode, hint: st.hint })
         .then(function (res) {
           if (res.error) throw new Error(res.error);
+          st.notes = res.profile.setup_notes || {};
           syncCharCatalog(res.char_slug, Object.assign({}, res.profile, { set_up: true }));
           st.step = "review"; renderSidebar(); renderActiveThread();
         })
@@ -1381,12 +1811,16 @@
         .catch(function (err) {
           if (typRow) typRow.classList.remove("visible");
           if (box) box.classList.remove("busy");
-          alert(err.message);
+          STATE.failed = { thread: t.id, error: err.message, regen: true };
+          renderActiveThread();
         });
     },
 
     // 💬 A turn's new messages arrive one by one (typing… → message → a pause), and a reply left on read later
     showTurn: function (res, oldIds) {
+      if (res.thread && res.thread.memory_due) {  // 🧠 quietly bring the chat's memory up to date
+        apiPost({ action: "update_memory", thread_id: res.thread.id }).catch(function () { /* next time */ });
+      }
       var full = res.thread, fresh = (full.messages || []).filter(function (m) { return m.role !== "user" && oldIds.indexOf(m.id) === -1; });
       if (res.threads) STATE.threads = res.threads;
       clearTimeout(TG._waitTimer);
@@ -1442,12 +1876,22 @@
       })
         .then(function (res) {
           if (typRow) typRow.classList.remove("visible");
+          STATE.failed = null;
           return TG.showTurn(res, oldIds);
         })
         .catch(function (err) {
           if (typRow) typRow.classList.remove("visible");
-          alert(err.message);
+          STATE.failed = { thread: t.id, error: err.message, instruction: instruction || "" };
+          renderActiveThread();
         });
+    },
+
+    retryFailed: function () {
+      var f = STATE.failed; if (!f) return;
+      STATE.failed = null;
+      renderActiveThread();
+      if (f.regen) return TG.regenerate();
+      return TG.triggerAiTurn(f.instruction);
     },
 
     toggleStickerTray: function (force) {
@@ -1515,10 +1959,12 @@
             });
             document.getElementById("tgMessageInput").value = "";
           } else {
+            var said = document.getElementById("tgMessageInput").value.trim();  // what they typed goes with it
             TG.sendUserMessage({
-              text: "",
+              text: said,
               file: { name: res.name, size: res.size, content: res.content || "Uploaded file: " + res.url },
             });
+            document.getElementById("tgMessageInput").value = "";
           }
         })
         .catch(function (e) { alert(e.message); });
@@ -1633,7 +2079,7 @@
       var orig = btn ? btn.textContent : "";
       if (btn) {
         btn.disabled = true;
-        btn.textContent = "🍌 Generating with Nano Banana…";
+        btn.textContent = "📸 Making the picture…";
       }
       apiPost({ action: "photo_bubble", thread_id: t.id, message_id: msgId, kind: kind || "casual" })
         .then(function (res) {
@@ -1956,6 +2402,12 @@
         title: document.getElementById("drwThreadTitle").value,
         scenario_override: document.getElementById("drwThreadScenario").value,
         leave_on_read: !!(document.getElementById("drwThreadLeaveOnRead") || {}).checked,
+        share_memory: !!(document.getElementById("drwThreadShare") || {}).checked,
+        memory: (document.getElementById("drwThreadMemory") || {}).value || "",
+        context_size: parseInt((document.getElementById("drwThreadContext") || {}).value || "30", 10),
+        theme: (document.getElementById("drwThreadTheme") || {}).value || "",
+        persona: { name: (document.getElementById("drwThreadPersonaName") || {}).value || "",
+                   description: (document.getElementById("drwThreadPersonaDesc") || {}).value || "" },
         events: t.events || [],
       }).then(function (res) {
         STATE.active_thread = res.thread;
@@ -2000,8 +2452,13 @@
 
     deleteCurrentThread: function () {
       var t = STATE.active_thread;
-      if (!t || !confirm("Delete this chat thread?")) return;
-      apiPost({ action: "delete_thread", thread_id: t.id }).then(function (res) {
+      if (t) TG.deleteChat(t.id);
+    },
+    deleteChat: function (id) {
+      var t = (STATE.threads || []).find(function (x) { return x.id === id; }) || STATE.active_thread;
+      if (!t || !confirm("Delete “" + (t.chat_name || t.title) + "”? Its messages are gone for good (branches made from it stay).")) return;
+      apiPost({ action: "delete_thread", thread_id: id }).then(function (res) {
+        var box = document.getElementById("tgChats"); if (box) box.classList.remove("open");
         STATE.threads = res.threads || [];
         STATE.active_thread = res.active_thread || null;
         TG.closeDrawer();
@@ -2028,6 +2485,7 @@
         spontaneous_minutes: parseInt(document.getElementById("drwMeSpontMins").value || "15", 10),
         auto_photos: document.getElementById("drwMeAutoPhoto").checked,
         auto_voice: document.getElementById("drwMeAutoVoice").checked,
+        auto_statuses: !!(document.getElementById("drwMeAutoStatuses") || {}).checked,
         image_model: (document.getElementById("drwMeImageModel") || {}).value || "",
       };
       return apiPost({
@@ -2119,12 +2577,13 @@
       var btn = document.getElementById("photoModalSubmitBtn");
       var orig = btn.textContent;
       btn.disabled = true;
-      btn.textContent = "🍌 Generating with Nano Banana…";
+      btn.textContent = "📸 Making the picture…";
       apiPost({
         action: "photo_bubble",
         thread_id: t.id,
         char_slug: document.getElementById("photoModalChar").value,
         kind: document.getElementById("photoModalKind").value,
+        subject: (document.getElementById("photoModalSubject") || {}).value || "",
         prompt: document.getElementById("photoModalPrompt").value,
       })
         .then(function (res) {
@@ -2147,6 +2606,8 @@
       document.getElementById("fileModalName").readOnly = false;
       document.getElementById("fileModalContent").value = "";
       document.getElementById("fileModalContent").readOnly = false;
+      document.getElementById("fileModalContent").hidden = false;
+      var doc = document.getElementById("fileModalRendered"); if (doc) doc.hidden = true;
       document.getElementById("fileModalSendBtn").style.display = "inline-flex";
       document.getElementById("modalFile").classList.add("open");
     },
@@ -2161,6 +2622,9 @@
       document.getElementById("fileModalName").readOnly = true;
       document.getElementById("fileModalContent").value = m.file.content || "";
       document.getElementById("fileModalContent").readOnly = true;
+      document.getElementById("fileModalContent").hidden = true;  // read as a document (tables and all)
+      var doc = document.getElementById("fileModalRendered");
+      if (doc) { doc.hidden = false; doc.innerHTML = renderDoc(m.file.content || ""); }
       document.getElementById("fileModalSendBtn").style.display = "none";
       document.getElementById("modalFile").classList.add("open");
     },
@@ -2217,7 +2681,9 @@
             '<input type="text" class="tg-input" id="storyModalEmoji" style="width:52px;text-align:center;" value="' + esc(target.status_emoji || "✨") + '">' +
             '<input type="text" class="tg-input" id="storyModalText" placeholder="What\'s happening right now?">' +
           "</div>" +
-          '<div style="display:flex;justify-content:flex-end;gap:8px;">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">' +
+            '<label class="tg-fmt-btn" style="cursor:pointer;">🖼️ <span id="storyModalPicLabel">Add a picture</span>' +
+              '<input type="file" accept="image/*" id="storyModalPic" hidden onchange="document.getElementById(\'storyModalPicLabel\').textContent = this.files[0] ? this.files[0].name : \'Add a picture\'"></label>' +
             '<button type="button" class="tg-send-btn" onclick="TG.submitStory(\'' + esc(owner) + '\')">Post Status</button>' +
           "</div>" +
         "</div>";
@@ -2227,8 +2693,14 @@
     submitStory: function (owner) {
       var emoji = document.getElementById("storyModalEmoji").value.trim() || "✨";
       var text = document.getElementById("storyModalText").value.trim();
-      if (!text) return;
-      apiPost({ action: "post_story", owner: owner, emoji: emoji, text: text }).then(function (res) {
+      var pic = document.getElementById("storyModalPic"), file = pic && pic.files && pic.files[0];
+      if (!text && !file) return;
+      var upload = file ? (function () {  // the picture first (as any upload), then the status with it
+        var fd = new FormData(); fd.append("kind", "image"); fd.append("file", file);
+        return fetch(window.TG_CFG.api, { method: "POST", headers: { "X-CSRFToken": window.TG_CFG.csrf }, body: fd })
+          .then(function (r) { return r.json(); }).then(function (r) { if (r.error) throw new Error(r.error); return r.url; });
+      })() : Promise.resolve("");
+      upload.then(function (url) { return apiPost({ action: "post_story", owner: owner, emoji: emoji, text: text, image_url: url }); }).then(function (res) {
         if (owner === "user") {
           STATE.user_profile = res.user_profile;
         } else {
