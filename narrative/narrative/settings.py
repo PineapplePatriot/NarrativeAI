@@ -215,3 +215,7 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024
 # Replies are written in a background thread so leaving the page doesn't stop them (mainapp/live.py). Under the
 # test runner they run inline instead: a test's database lives in one transaction a thread can't see.
 LIVE_INLINE = sys.argv[1:2] == ["test"]
+
+
+# 📥 Telegram sticker packs in the messenger (Screen Hub): a bot token from @BotFather, set as a Railway variable
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")

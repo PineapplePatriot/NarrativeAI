@@ -44,6 +44,35 @@ photoInput.addEventListener("change", function () {
         } catch (e) { note.textContent = e.message; }
         finally { buttons.forEach(b => { b.disabled = false; }); }
     }
+    // Each mood on its own: 📤 upload your own picture, ✨ make just this one (or ↻ redo it)
+    box.querySelectorAll('figure[data-mood]').forEach(fig => {
+        const mood = fig.dataset.mood, bar = document.createElement('div');
+        bar.className = 'persona-pic-one';
+        const label = () => has(mood) ? '↻' : '✨';
+        bar.innerHTML = `<label title="Upload your own ${mood} picture">📤<input type="file" accept="image/png,image/jpeg,image/webp" hidden></label>` +
+                        `<button type="button" title="Make just this one from the neutral picture">${label()}</button>`;
+        fig.appendChild(bar);
+        bar.querySelector('input').addEventListener('change', async (e) => {
+            const file = e.target.files[0]; if (!file) return;
+            const fd = new FormData(); fd.append('emotion', mood); fd.append('file', file);
+            fig.classList.add('working');
+            try {
+                const resp = await fetch(box.dataset.url, { method: 'POST', headers: { 'X-CSRFToken': csrf }, body: fd });
+                const d = await resp.json();
+                if (!resp.ok) throw new Error(d.error || 'Could not upload it.');
+                fig.querySelector('img, span').outerHTML = `<img src="${d.url}?t=${Date.now()}" alt="">`;
+                note.textContent = `✓ Your ${mood} picture is saved.`;
+                bar.querySelector('button').textContent = label();
+            } catch (err) { note.textContent = err.message; }
+            finally { fig.classList.remove('working'); }
+        });
+        bar.querySelector('button').addEventListener('click', async () => {
+            if (mood !== 'neutral' && !has('neutral')) { note.textContent = 'Add or make the neutral picture first: the moods are made from it.'; return; }
+            await run(null, [mood]);
+            bar.querySelector('button').textContent = label();
+        });
+    });
+
     document.getElementById('personaMakeNeutral').addEventListener('click', e => {
         if (has('neutral') && !confirm('Replace your neutral picture with a new one?')) return;
         run(e.target, ['neutral']);

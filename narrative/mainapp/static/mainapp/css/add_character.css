@@ -267,3 +267,8 @@ body { margin: 0; }
 .sprite-redo { margin-top: 6px; font-size: .8rem; padding: 4px 10px; border-radius: 8px; cursor: pointer;
     background: transparent; color: inherit; border: 1px solid rgba(148, 163, 184, .35); }
 .sprite-redo:disabled { opacity: .5; }
+
+/* ✨/↻ one mood at a time: easy to see */
+.sprite-redo { background: rgba(126, 58, 242, .16) !important; border: 1px solid rgba(167, 139, 250, .5) !important; color: #e9e3ff !important;
+  font-weight: 600; }
+.sprite-redo:hover { background: rgba(126, 58, 242, .3) !important; }
