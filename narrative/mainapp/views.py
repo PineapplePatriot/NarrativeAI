@@ -3518,6 +3518,23 @@ def persona_sprite(request):
     if request.method != "POST":
         return JsonResponse({"error": "POST only"}, status=405)
     user = request.user
+    if request.FILES.get("file"):  # 📤 their own picture for one mood (any mood, not only neutral)
+        mood = request.POST.get("emotion") or ""
+        if mood not in ["neutral"] + SPRITE_EMOTIONS:
+            return JsonResponse({"error": "Which mood?"}, status=400)
+        upload = request.FILES["file"]
+        if upload.size > 15 * 1024 * 1024:
+            return JsonResponse({"error": "That picture is over 15 MB."}, status=400)
+        from PIL import Image, UnidentifiedImageError
+        try:
+            Image.open(upload).verify()
+        except (UnidentifiedImageError, OSError, SyntaxError):
+            return JsonResponse({"error": "That file isn't a picture."}, status=400)
+        upload.seek(0)
+        field = getattr(user, f"persona_photo_{mood}")
+        field.save(f"persona-{user.id}-{mood}-{upload.name[-40:]}", upload, save=False)
+        user.save(update_fields=[f"persona_photo_{mood}"])
+        return JsonResponse({"url": field.url, "field": f"persona_photo_{mood}"})
     who = user.persona_name or "the user's character"
     return _make_sprite(request, user, "persona_photo", who, (str(user.persona_description or "")[:2500],),
                         user.persona_name or user.username)

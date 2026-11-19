@@ -10207,3 +10207,20 @@ class WeeklyAndRetentionTests(TestCase):
         cohort = data["retention"]["cohorts"][0]
         # signed up on a Saturday: day 8 falls in calendar week 2 after the signup week (ann, not bob)
         self.assertEqual((cohort["people"], cohort["weeks"]), (2, [0, 50, 0, 0]))
+
+
+class PersonaMoodUploadTests(TestCase):
+    def test_any_persona_mood_can_be_uploaded(self):
+        import io
+        from PIL import Image
+        user = get_user_model().objects.create_user(username="moody", password="pw12345!")
+        self.client.force_login(user)
+        buf = io.BytesIO(); Image.new("RGB", (30, 40), "red").save(buf, "PNG"); buf.seek(0); buf.name = "angry.png"
+        out = self.client.post(reverse("persona_sprite"), {"emotion": "angry", "file": buf}).json()
+        user.refresh_from_db()
+        self.assertTrue(user.persona_photo_angry)
+        self.assertEqual(out["field"], "persona_photo_angry")
+        bad = io.BytesIO(b"not a picture"); bad.name = "x.png"
+        self.assertEqual(self.client.post(reverse("persona_sprite"), {"emotion": "sad", "file": bad}).status_code, 400)
+        buf.seek(0)
+        self.assertEqual(self.client.post(reverse("persona_sprite"), {"emotion": "hungry", "file": buf}).status_code, 400)
