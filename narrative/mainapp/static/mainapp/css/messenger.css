@@ -1637,3 +1637,11 @@ body.tg-bulba-open .tg-header-actions .tg-hdr-btn > span, body.tg-bulba-open #hd
 .tg-theme-rose .tg-messages-viewport.tg-themed { background-image: linear-gradient(160deg, #1c0e17, #2b1522) !important; }
 .tg-theme-sepia { --tg-out-bubble: #6b4a2b; --tg-in-bubble: #2e2620; --tg-accent: #e8b86b; }
 .tg-theme-sepia .tg-messages-viewport.tg-themed { background-image: linear-gradient(160deg, #17110c, #261c14) !important; }
+
+/* 🌐 a message's translation, under the original */
+.tg-translation { margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--tg-border, rgba(127,127,127,.35));
+  font-size: .93em; opacity: .9; }
+.tg-translation span { opacity: .7; margin-right: 2px; }
+.tg-translating .tg-bubble { opacity: .6; }
+/* ✍️ "typing…" in the header, like Telegram */
+.tg-typing-sub { color: var(--tg-accent, #8b5cf6) !important; font-style: italic; }

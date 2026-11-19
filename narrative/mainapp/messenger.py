@@ -1217,6 +1217,13 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
                        "back to the phone, and put `[LATER: N, why]` at its very start, N = minutes before they answer (1 "
                        "to 5), why = a word or two (busy at work, asleep, petty). Most replies come at once; don't use it "
                        "twice in a row.")
+        import random
+        last_was_late = any(m.get("late_reason") is not None and m.get("role") == "assistant"
+                            for m in data["messages"][-3:])
+        if not last_was_late and random.random() < 0.25:  # models rarely hold back unasked: this turn, invited to
+            time_block += ("\n- THIS REPLY: if anything in the situation allows it (they're busy, asleep, in class or "
+                           "at work, or they're teasing, annoyed, sulking, being petty), they don't answer right away: "
+                           "start with `[LATER: N, why]`. If nothing allows it, answer normally.")
 
     if thread.is_group or len(chars) > 1:
         names_list = ", ".join(f"{c.name} (slug: {c.slug})" for c in chars)
@@ -1259,10 +1266,15 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
             if role == "user":  # what the picture shows (looked at once when sent), and what they wrote with it
                 seen = ph.get("seen") or "a picture (couldn't be looked at)"
                 parts.append(f"[Sent a photo. It shows: {seen}" + (f" | caption: {ph['caption']}" if ph.get("caption") else "") + "]")
+            elif ph.get("seen"):  # 👁️ what their photo really shows (looked at once it was made)
+                parts.append(f"[Sent a photo. It shows: {ph['seen']}" + (f" | caption: {ph['caption']}" if ph.get("caption") else "") + "]")
             else:
                 parts.append(f"[Sent photo: {ph.get('prompt') or ph.get('caption') or 'image'}]")
         if m.get("file"):  # the whole text (a long one cut at 6000 characters)
             parts.append(f"[Sent file {m['file'].get('name', 'file.txt')}:\n{(m['file'].get('content') or '')[:6000]}\n]")
+        mine = [e for e, who in (m.get("reactions") or {}).items() if "You" in (who or [])]
+        if role != "user" and mine:  # 👍 the user's reaction to their message: an answer in itself
+            parts.append(f"({u_name} reacted {' '.join(mine)} to this)")
         if role == "user" and m.get("edited_from"):
             parts.append(f"(edited; it first said: \"{str(m['edited_from'])[:300]}\")")
         if m.get("text") and not m.get("voice"):
@@ -2124,7 +2136,9 @@ def user_picture(user, thread, description, ref_urls=(), with_me=True):
               f"Art style: {style}.\nWhat the photo shows: {description}")
     img, _ = make_picture(user, prompt, references=refs)
     saved = default_storage.save(f"messenger/user/{user.id}-{uuid.uuid4().hex[:8]}.png", ContentFile(img))
-    return default_storage.url(saved), (f"{me_name}: " if with_me else "") + description
+    url = default_storage.url(saved)
+    # 👁️ what really came out (the description it was made from, if it can't be looked at)
+    return url, see_photo(user, url, description) or ((f"{me_name}: " if with_me else "") + description)
 
 
 def story_picture(user, character, story_id):
@@ -2219,6 +2233,37 @@ def update_memory(user, thread, force=False):
     thread.data = raw
     thread.save(update_fields=["data"])
     return raw["memory"]
+
+
+def translate_message(user, thread, message_id):
+    """🌐 A message in the user's reading language (English when they read in English), on the translation model;
+    kept on the message so a second look costs nothing. Returns (text, language name)."""
+    from mainapp import translation
+    target = translation.reading_language(user) or "en"
+    name = translation.LANGUAGES.get(target, "English")
+    data = thread_data(thread)
+    m = next((x for x in data["messages"] if x.get("id") == message_id), None)
+    if m is None:
+        raise ValueError("That message is gone.")
+    text = m.get("text") or (m.get("voice") or {}).get("transcript") or ""
+    if not text.strip():
+        raise ValueError("There's no text in that message.")
+    done = (m.get("translated") or {}).get(target)
+    if done:
+        return done, name
+    raw = ai_client.complete(user, "translation", [
+        {"role": "system", "content": f"Translate the chat message the user sends into {name}. Keep its tone, slang, "
+                                      "emoji, line breaks and any [tags] exactly; names stay as they are. Answer with "
+                                      "the translation only. If it's already in that language, answer with it unchanged."},
+        {"role": "user", "content": text}], max_tokens=2000, temperature=0.2)
+    from mainapp import thinking
+    _, out = thinking.split(raw or "")
+    out = out.strip()
+    if not out:
+        raise ai_client.AIError("The translation came back empty. Try again.")
+    m["translated"] = {**(m.get("translated") or {}), target: out[:4000]}
+    save_thread_data(thread, data)
+    return m["translated"][target], name
 
 
 def delivered(messages, now=None):
@@ -2346,6 +2391,7 @@ def generate_turn(user, thread, extra_instruction="", auto_check_in=False):
             try:
                 url, _ = generate_messenger_photo(user, c_obj, b["photo"]["prompt"], b["photo"].get("kind", "casual"), thread=thread)
                 b["photo"]["url"] = url
+                b["photo"]["seen"] = see_photo(user, url)  # 👁️ what really came out
             except Exception as e:
                 log.info("Auto photo generation skipped: %s", e)
 

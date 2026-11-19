@@ -5325,6 +5325,16 @@ def messenger_api(request):
         return JsonResponse({"title": title, "added": added, "skipped": skipped,
                              "user_profile": messenger.user_profile(request.user)})
 
+    if action == "translate_message":  # 🌐 one message in the user's reading language
+        thread = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id")).first()
+        if not thread:
+            return JsonResponse({"error": "Chat not found."}, status=404)
+        try:
+            text, lang = messenger.translate_message(request.user, thread, body.get("message_id"))
+        except (ValueError, ai_client.AIError) as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"message_id": body.get("message_id"), "text": text, "language": lang})
+
     if action == "update_memory":  # 🧠 the chat's memory brought up to date (quietly after a turn, or "now")
         thread = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id")).prefetch_related("characters").first()
         if not thread:
@@ -5439,9 +5449,10 @@ def messenger_api(request):
         except ai_client.AIError as e:
             return JsonResponse({"error": str(e)}, status=400)
 
+        seen = messenger.see_photo(request.user, img_url)  # 👁️ what really came out, for the chat to read
         if target_m:
             p_dict = dict(target_m.get("photo") or {})
-            p_dict.update({"kind": kind, "prompt": prompt_desc, "url": img_url})
+            p_dict.update({"kind": kind, "prompt": prompt_desc, "url": img_url, "seen": seen})
             target_m["photo"] = p_dict
             messenger.save_thread_data(thread, td)
             return JsonResponse({"message": target_m, "url": img_url, "cost": cost})
@@ -5454,7 +5465,7 @@ def messenger_api(request):
                 "sender_slug": c_obj.slug,
                 "sender_name": c_prof["display_name"],
                 "text": cap,
-                "photo": {"kind": kind, "prompt": prompt_desc, "caption": cap, "url": img_url},
+                "photo": {"kind": kind, "prompt": prompt_desc, "caption": cap, "url": img_url, "seen": seen},
                 "time": timezone.localtime(timezone.now()).strftime("%H:%M"),
                 "ts": time.time(),
                 "reactions": {},

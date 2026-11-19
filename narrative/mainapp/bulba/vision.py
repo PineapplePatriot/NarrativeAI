@@ -54,6 +54,8 @@ def looker(user):
     """(model id, its name for people) that will look at the picture."""
     from users.models import ConnectionProfile
     profile, model = ai_client.resolve(user, "bulba")
+    if profile is None:
+        raise ai_client.AIError("No AI connection is set up to look at pictures.")
     if not profile.hosted:  # a custom server: its own model
         return model, model
     if "image" in _input_modalities().get(model, []):

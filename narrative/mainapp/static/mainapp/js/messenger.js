@@ -49,6 +49,17 @@
   }
   setInterval(updateClock, 15000);
   updateClock();
+  // 🟢 every 90 s, while the tab is open and nothing is happening, the chat refreshes quietly: their status dot
+  // (online / away / busy) changes as their day goes on, and a reply that arrived meanwhile shows up
+  setInterval(function () {
+    var T = window.TG, t = STATE.active_thread;
+    if (!T || !t || document.hidden || T._typing || T._busy) return;
+    var before = (t.messages || []).map(function (m) { return m.id; });
+    apiPost({ action: "load_thread", thread_id: t.id }).then(function (r) {
+      if (!STATE.active_thread || STATE.active_thread.id !== t.id || T._typing) return;
+      T.showTurn(r, before);
+    }).catch(function () { /* next time */ });
+  }, 90000);
 
   function isOnlyEmoji(str) {
     var s = (str || "").trim();
@@ -290,7 +301,9 @@
       if (t.handle) subParts.push(t.handle);
       if (t.subtitle) subParts.push(t.subtitle);
       if (rt.elapsed_text) subParts.push("Last text: " + rt.elapsed_text);
-      hdrSub.textContent = subParts.join(" · ") || "online";
+      TG._subLine = subParts.join(" · ") || "online";
+      hdrSub.textContent = (!t.is_group && TG._typing) || TG._subLine;
+      hdrSub.classList.toggle("tg-typing-sub", !t.is_group && !!TG._typing);
     }
     var am = (t && t.active_model) || STATE.active_model;
     var mdlLbl = document.getElementById("hdrModelLabel");
@@ -451,6 +464,8 @@
           "</div>"
         );
       }
+      var tr = TG._shownTr && TG._shownTr[m.id];  // 🌐 the translation, under the original
+      if (tr) inner.push('<div class="tg-translation"><span>🌐</span> ' + formatMessageHtml(tr) + "</div>");
 
       // Reactions under bubble
       var reacts = m.reactions || {};
@@ -494,6 +509,7 @@
         '<div class="tg-msg-actions">' +
           quickEmojis +
           '<button type="button" class="tg-act-btn" onclick="TG.setReplyTo(\'' + esc(m.id) + '\')" title="Reply">↩</button>' +
+          ((m.text || (m.voice && m.voice.transcript)) ? '<button type="button" class="tg-act-btn" onclick="TG.translateMessage(\'' + esc(m.id) + '\')" title="Translate (into your reading language from the profile; English if none)">🌐</button>' : "") +
           (!isUser ? '<button type="button" class="tg-act-btn" onclick="TG.playVoiceBubble(\'' + esc(m.id) + '\', this)" title="Voice with ElevenLabs">🔊</button>' : "") +
           (!isUser ? '<button type="button" class="tg-act-btn" onclick="TG.openRedo(\'' + esc(m.id) + '\')" title="Try this message again (a note optional)">↻</button>' : "") +
           '<button type="button" class="tg-act-btn" onclick="TG.branchFrom(\'' + esc(m.id) + '\')" title="Branch: a new chat from here (this one stays as it is)">⑂</button>' +
@@ -1833,7 +1849,7 @@
         }, full.waiting * 1000 + 500);
       }
       var calm = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
-      if (fresh.length < 2 || calm) {
+      if (!fresh.length || calm) {
         STATE.active_thread = full; renderSidebar(); renderActiveThread(); return Promise.resolve();
       }
       var shown = (full.messages || []).filter(function (m) { return fresh.indexOf(m) === -1; });
@@ -1843,13 +1859,23 @@
       var i = 0;
       return new Promise(function (done) {
         (function next() {
-          if (!STATE.active_thread || STATE.active_thread.id !== full.id) return done();
-          if (i >= fresh.length) { if (typRow) typRow.classList.remove("visible"); STATE.active_thread = full; renderActiveThread(); return done(); }
+          if (!STATE.active_thread || STATE.active_thread.id !== full.id) { TG.setTyping(""); return done(); }
+          if (i >= fresh.length) { TG.setTyping(""); if (typRow) typRow.classList.remove("visible"); STATE.active_thread = full; renderActiveThread(); return done(); }
           var m = fresh[i], len = ((m.voice && m.voice.transcript) || m.text || "").length;
-          var typing = i === 0 ? 250 : Math.min(3200, 600 + len * 32);
-          if (typRow && i > 0) { typTxt.textContent = (m.voice ? "🎤 recording a voice note…" : m.photo ? "📷 sending a photo…" : (m.sender_name || full.title) + " is typing…"); typRow.classList.add("visible"); }
+          // ⌨️ how long typing this takes them: their own pace (from how they text), a little different each time;
+          // the first one minus the time already spent waiting for the reply
+          var mem = (full.members || []).find(function (x) { return x.slug === m.sender_slug; }) || {};
+          var style = (mem.texting_style || "").toLowerCase();
+          var pace = /quick|fast|rapid|burst|impulsive|double-text|spam/.test(style) ? 0.6 : /slow|careful|formal|full punctuation|deliberate|measured|long/.test(style) ? 1.5 : 1;
+          var typing = Math.min(7000, (500 + len * 45) * pace * (0.8 + Math.random() * 0.45));
+          if (m.voice) typing = Math.min(8000, typing * 1.3);  // recording a voice note
+          if (m.photo) typing = 1800;
+          if (i === 0) typing = Math.max(250, typing - (Date.now() - (TG._turnStart || Date.now())));
+          if (typRow && typing > 300) { typTxt.textContent = (m.voice ? "🎤 recording a voice note…" : m.photo ? "📷 sending a photo…" : (m.sender_name || full.title) + " is typing…"); typRow.classList.add("visible"); }
+          TG.setTyping(m.voice ? "🎤 recording a voice note…" : m.photo ? "📷 sending a photo…" : "✍️ typing…");
           setTimeout(function () {
             if (typRow) typRow.classList.remove("visible");
+            if (i === fresh.length - 1) TG.setTyping("");
             STATE.active_thread.messages.push(m);
             renderActiveThread();
             i += 1;
@@ -1857,6 +1883,31 @@
           }, typing);
         })();
       });
+    },
+
+    translateMessage: function (msgId) {  // 🌐 tap again to hide it
+      var t = STATE.active_thread; if (!t) return;
+      TG._shownTr = TG._shownTr || {};
+      var m = (t.messages || []).filter(function (x) { return x.id === msgId; })[0];
+      if (!m) return;
+      if (TG._shownTr[msgId]) { delete TG._shownTr[msgId]; renderActiveThread(); return; }
+      var row = document.getElementById("msg-" + msgId);
+      if (row) row.classList.add("tg-translating");
+      apiPost({ action: "translate_message", thread_id: t.id, message_id: msgId }).then(function (res) {
+        TG._shownTr[msgId] = res.text;
+        renderActiveThread();
+      }).catch(function (err) {
+        if (row) row.classList.remove("tg-translating");
+        alert("Couldn't translate: " + err.message);
+      });
+    },
+
+    setTyping: function (label) {  // 🟢 the header says "typing…" (or "recording…") while they write, like Telegram
+      TG._typing = label || "";
+      var t = STATE.active_thread, hdrSub = document.getElementById("hdrSub");
+      if (hdrSub && t && !t.is_group) { hdrSub.textContent = TG._typing || TG._subLine || ""; hdrSub.classList.toggle("tg-typing-sub", !!TG._typing); }
+      var dot = document.querySelector(".tg-chat-item.active .tg-online-dot");
+      if (dot && TG._typing) dot.className = "tg-online-dot online";
     },
 
     triggerAiTurn: function (instruction) {
@@ -1868,7 +1919,10 @@
         typTxt.textContent = t.title + " is typing…";
         typRow.classList.add("visible");
       }
+      TG.setTyping("✍️ typing…");
       var oldIds = (t.messages || []).map(function (m) { return m.id; });
+      TG._turnStart = Date.now();
+      clearTimeout(TG._reactTimer);
       return apiPost({
         action: "generate_reply",
         thread_id: t.id,
@@ -1876,11 +1930,13 @@
       })
         .then(function (res) {
           if (typRow) typRow.classList.remove("visible");
+          TG.setTyping("");
           STATE.failed = null;
           return TG.showTurn(res, oldIds);
         })
         .catch(function (err) {
           if (typRow) typRow.classList.remove("visible");
+          TG.setTyping("");
           STATE.failed = { thread: t.id, error: err.message, instruction: instruction || "" };
           renderActiveThread();
         });
@@ -2103,6 +2159,19 @@
         var m = (t.messages || []).find(function (x) { return x.id === msgId; });
         if (m) m.reactions = res.reactions;
         renderActiveThread();
+        // 👍 A reaction to one of their latest messages is your answer: if you don't text within a few seconds,
+        // they respond to it (typing or sending cancels this)
+        var lastUser = -1;
+        (t.messages || []).forEach(function (x, i) { if (x.role === "user") lastUser = i; });
+        var idx = (t.messages || []).findIndex(function (x) { return x.id === msgId; });
+        clearTimeout(TG._reactTimer);
+        if (m && m.role !== "user" && idx > lastUser && ((res.reactions || {})[emoji] || []).indexOf("You") !== -1) {
+          TG._reactTimer = setTimeout(function () {
+            var inp = document.getElementById("tgMessageInput");
+            if ((inp && inp.value.trim()) || !STATE.active_thread || STATE.active_thread.id !== t.id) return;
+            TG.triggerAiTurn("The user reacted " + emoji + " to your message instead of texting back. Respond to that the way you would: a text, a reaction, or barely anything.");
+          }, 4000);
+        }
       });
     },
 
@@ -2748,6 +2817,10 @@
     vpEl.querySelectorAll(".tg-msg-row.show-actions").forEach(function (r) { if (r !== row) r.classList.remove("show-actions"); });
     if (row) row.classList.toggle("show-actions");
   });
+
+  // Typing in the message box cancels "they answer your reaction"
+  var inpEl = document.getElementById("tgMessageInput");
+  if (inpEl) inpEl.addEventListener("input", function () { clearTimeout(TG._reactTimer); });
 
   // Bulba's panel tells us when something changed (a card applied, a reply retried): reload this chat
   window.addEventListener("message", function (e) {

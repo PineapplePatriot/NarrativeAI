@@ -587,17 +587,22 @@ class UserPictureTests(MessengerActionTests):
         self.user.persona_photo_neutral.save("mika.png", ContentFile(png("green")), save=True)
         tid = self.thread()
         ref = self.files(kind="image", file=upload()).json()["url"]
-        out = self.post(action="user_picture", thread_id=tid, prompt="at the bus stop in the rain", refs=[ref], with_me=True).json()
+        from unittest import mock
+        with mock.patch("mainapp.bulba.vision.describe", return_value=("Mika at a rainy bus stop, hood up", {})):
+            out = self.post(action="user_picture", thread_id=tid, prompt="at the bus stop in the rain", refs=[ref], with_me=True).json()
         self.assertTrue(out["url"])
-        self.assertEqual(out["seen"], "Mika: at the bus stop in the rain")
+        self.assertEqual(out["seen"], "Mika at a rainy bus stop, hood up")  # what the vision model saw, not the prompt
         kwargs = ai_client.generate_image.call_args.kwargs
         self.assertEqual(len(kwargs["references"]), 2)  # my persona picture + the upload
         self.assertIn("Mika is in it", ai_client.generate_image.call_args.args[1])
         self.post(action="send_user_message", thread_id=tid, text="",
                   photo={"kind": "generated", "url": out["url"], "caption": "told you", "seen": out["seen"]})
         self.post(action="generate_reply", thread_id=tid)
-        self.assertIn("It shows: Mika: at the bus stop in the rain", json.dumps(ai_client.complete.call_args.args[2]))
+        self.assertIn("It shows: Mika at a rainy bus stop, hood up", json.dumps(ai_client.complete.call_args.args[2]))
         self.assertEqual(self.post(action="user_picture", thread_id=tid, prompt="").status_code, 400)
+        with mock.patch("mainapp.bulba.vision.describe", side_effect=ai_client.AIError("down")):
+            fallback = self.post(action="user_picture", thread_id=tid, prompt="at the bus stop in the rain", with_me=True).json()
+        self.assertEqual(fallback["seen"], "Mika: at the bus stop in the rain")  # vision down: the prompt stands in
 
 
 class OneReferenceTests(MessengerActionTests):
@@ -736,3 +741,25 @@ class ChatClockTests(MessengerActionTests):
         back = self.post(action="thread_settings", thread_id=tid, clock="real").json()["thread"]
         self.assertEqual(back["clock_offset"], 0)
         self.assertEqual(self.post(action="thread_settings", thread_id=tid, clock="not a date").status_code, 400)
+
+
+class TranslateMessageTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_translate_once_then_kept(self):
+        from mainapp import ai_client, messenger
+        from mainapp.models import MessengerThread
+        tid = self.thread()
+        self.post(action="send_user_message", thread_id=tid, text="see you tomorrow?")
+        msg = messenger.thread_data(MessengerThread.objects.get(id=tid))["messages"][-1]
+        self.user.display_language = "uk"
+        self.user.save()
+        ai_client.complete.side_effect = lambda *a, **k: "побачимось завтра?"
+        out = self.post(action="translate_message", thread_id=tid, message_id=msg["id"]).json()
+        self.assertEqual((out["text"], out["language"]), ("побачимось завтра?", "Ukrainian"))
+        calls = ai_client.complete.call_count
+        again = self.post(action="translate_message", thread_id=tid, message_id=msg["id"]).json()
+        self.assertEqual(again["text"], "побачимось завтра?")
+        self.assertEqual(ai_client.complete.call_count, calls)  # kept: the second look costs nothing
+        self.assertEqual(self.post(action="translate_message", thread_id=tid, message_id="nope").status_code, 400)

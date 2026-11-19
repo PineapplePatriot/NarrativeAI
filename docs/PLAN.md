@@ -289,6 +289,22 @@ Batch D as planned:
 - (19) A few ready chat themes (no custom ones yet).
 - (17) Trackers: not in the messenger (relationship and mood live in memory); the user checks with a few users.
 
+### The user's iteration-3 list (19 November, after onboarding a user), first 5
+
+1. Attachments: check text files are read; the characters' photos should be described from the actual picture
+   (not the prompt it was made from), for consistency.
+2. Older requests that didn't land: typing speed (single messages too), leaving on read (rarely happens),
+   the user's reaction to a message counting as their reply (the character responds), editing earlier messages
+   of a burst, a live status dot (typing…), translation of messages.
+3. Bulba: suggest the photo description from the scene; suggest replies when the user is stuck; ask about the
+   look after modernizing (old references stay otherwise); the setup card and the Bulba panel out of sync (the
+   card shows a stale draft); Bulba can't change the chat persona (and points to a pen menu that isn't there);
+   Bulba should offer answer options (and help with setup) in the messenger; check elsewhere too.
+4. Continuity monitoring (not only slop; slop never seen triggering); tease photos far too explicit; "Botox"
+   faces in realistic anime style (expressions too flat).
+5. Scene and clothes tracking for pictures on both sides; a modern lorebook for the texting setup.
+Backgrounds: the green screen is risky for sprites (contrast); maybe the rembg cut-out tool later.
+
 ## Later / parked
 
 - The guided tours in more languages.
