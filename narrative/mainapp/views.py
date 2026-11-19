@@ -5174,6 +5174,11 @@ def messenger_api(request):
             td["leave_on_read"] = bool(body["leave_on_read"])
         if isinstance(body.get("persona"), dict):  # 🎭 who they are in this chat ({} = their usual persona)
             td["persona"] = {k: str(body["persona"].get(k) or "").strip() for k in ("name", "description")}
+        if body.get("clock"):  # 🕰️ the chat's own clock (real, resume, or a date and time)
+            try:
+                td["clock_offset"] = messenger.set_clock(thread, body["clock"])
+            except ValueError:
+                return JsonResponse({"error": "That isn't a date and time."}, status=400)
         if "theme" in body and (body["theme"] in messenger.THEMES or not body["theme"]):  # 🎨 a ready theme
             td["theme"] = body["theme"] or ""
         if "memory" in body:  # 🧠 the chat's memory, edited by hand

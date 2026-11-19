@@ -704,3 +704,35 @@ class ThemeTests(MessengerActionTests):
         self.assertEqual(self.post(action="thread_settings", thread_id=tid, theme="forest").json()["thread"]["theme"], "forest")
         self.assertEqual(self.post(action="thread_settings", thread_id=tid, theme="neon-unknown").json()["thread"]["theme"], "forest")
         self.assertEqual(self.post(action="thread_settings", thread_id=tid, theme="").json()["thread"]["theme"], "")
+
+
+class ChatClockTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_continue_the_night_chat_the_next_day(self):
+        import time as _time
+        from mainapp import ai_client
+        tid = self.thread()
+        night = _time.time() - 9 * 3600
+        t = MessengerThread.objects.get(id=tid)
+        t.data = {"messages": [{"id": "u1", "role": "user", "text": "can't sleep", "ts": night, "time": "03:10"},
+                               {"id": "a1", "role": "assistant", "sender_slug": self.rose.slug, "text": "same", "ts": night + 60}],
+                  "branch_of": {"thread_id": 1, "message_id": "x"}}
+        t.save()
+        out = self.post(action="thread_settings", thread_id=tid, clock="resume", theme="forest").json()["thread"]
+        self.assertLess(abs(out["clock_offset"] + 9 * 3600 - 120), 30)  # back to just after the last message
+        self.assertEqual(out["theme"], "forest")  # other settings in the same save are kept
+        self.assertEqual(out["real_time"]["elapsed_seconds"] // 60, 1)  # a minute since, not nine hours
+        self.post(action="send_user_message", thread_id=tid, text="still up?", generate=True)
+        msgs = MessengerThread.objects.get(id=tid).data["messages"]
+        self.assertLess(msgs[-1]["ts"] - night, 600)  # stamped with the chat's time
+        from django.utils import timezone as _tz
+        chat_clock = _tz.localtime(_tz.now() + _tz.timedelta(seconds=out["clock_offset"])).strftime("%H:")
+        self.assertIn(f"Current real-world time: {_tz.localtime(_tz.now() + _tz.timedelta(seconds=out['clock_offset'])).strftime('%A')}",
+                      json.dumps(ai_client.complete.call_args.args[2]))
+        self.assertIn(f"[{chat_clock}", json.dumps(ai_client.complete.call_args.args[2]))  # the new text: the chat's hour
+        self.assertTrue(MessengerThread.objects.get(id=tid).data.get("branch_of"))  # the branch mark survives a save
+        back = self.post(action="thread_settings", thread_id=tid, clock="real").json()["thread"]
+        self.assertEqual(back["clock_offset"], 0)
+        self.assertEqual(self.post(action="thread_settings", thread_id=tid, clock="not a date").status_code, 400)

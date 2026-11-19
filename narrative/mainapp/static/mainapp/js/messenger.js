@@ -829,6 +829,15 @@
             '<input type="checkbox" id="drwThreadShare" ' + (t.share_memory !== false ? "checked" : "") + ' style="margin-top:3px">' +
             "<span>🧠 <b>Share story memory with the roleplay chats</b></span></label>" +
         "</div>" +
+        '<div class="tg-field-group"><label>🕰️ The chat\'s clock</label>' +
+          '<div style="font-size:13px;margin-bottom:6px;">' + (t.clock_offset ? "Set: it's <b>" + esc((t.real_time || {}).clock || "") + "</b> in this chat (it runs on from there)."
+            : "Real time: <b>" + esc((t.real_time || {}).clock || "") + "</b>.") + "</div>" +
+          '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">' +
+            '<button type="button" class="tg-fmt-btn" onclick="TG.setClock(\'resume\')" title="The clock jumps back to just after the last message">🌙 Continue where we left off</button>' +
+            '<input type="datetime-local" class="tg-input" id="drwClockAt" style="width:auto">' +
+            '<button type="button" class="tg-fmt-btn" onclick="TG.setClock(document.getElementById(\'drwClockAt\').value)">Set</button>' +
+            (t.clock_offset ? '<button type="button" class="tg-fmt-btn" onclick="TG.setClock(\'real\')">⏱ Back to real time</button>' : "") +
+          "</div></div>" +
         '<div class="tg-field-group"><label>🎨 Theme</label><select class="tg-select" id="drwThreadTheme">' +
           Object.keys(THEMES).map(function (k) { return '<option value="' + k + '"' + ((t.theme || "") === k ? " selected" : "") + ">" + esc(THEMES[k]) + "</option>"; }).join("") +
         "</select></div>" +
@@ -1688,6 +1697,12 @@
         var box = document.getElementById("drwThreadMemory"); if (box) box.value = res.memory || "";
         if (btn) { btn.disabled = false; btn.textContent = "✓ Updated"; }
       }).catch(function (e) { if (btn) { btn.disabled = false; btn.textContent = "🧠 Update it now"; } alert(e.message); });
+    },
+    setClock: function (how) {
+      var t = STATE.active_thread; if (!t || !how) return;
+      apiPost({ action: "thread_settings", thread_id: t.id, clock: how }).then(function (res) {
+        STATE.active_thread = res.thread; renderActiveThread(); renderDrawer();
+      }).catch(function (e) { alert(e.message); });
     },
     setupType: function (slug, key, value) { if (setupState[slug]) setupState[slug][key] = value; },
     setupSkip: function (slug) {

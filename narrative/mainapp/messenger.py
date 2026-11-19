@@ -749,11 +749,46 @@ def thread_data(thread):
         "memory_upto": max(0, int(raw.get("memory_upto") or 0)),
         "context_size": raw.get("context_size") if raw.get("context_size") in CONTEXT_SIZES else 30,
         "theme": raw.get("theme") if raw.get("theme") in THEMES else "",
+        # 🕰️ the chat's own clock: seconds from real time (0 = real time), to pick up a night chat the next day
+        "clock_offset": float(raw.get("clock_offset") or 0),
+        "branch_of": raw.get("branch_of") if isinstance(raw.get("branch_of"), dict) else None,  # ⑂ where it branched from
         "regen_prev": [m for m in (raw.get("regen_prev") or []) if isinstance(m, dict)][:20],  # ↻ the take before
     }
 
 
+def chat_now(data):
+    """🕰️ Now on the chat's clock, in seconds."""
+    return time.time() + float(data.get("clock_offset") or 0)
+
+
+def set_clock(thread, how):
+    """🕰️ The chat's clock: "real", "resume" (just after its last message: a night chat goes on the next day), or
+    an ISO date and time. Returns the offset in seconds."""
+    raw = dict(thread.data or {})
+    if how == "real":
+        offset = 0.0
+    elif how == "resume":
+        last = [ts_of(m) for m in delivered(thread_data(thread)["messages"]) if ts_of(m)]
+        offset = (max(last) + 60 - time.time()) if last else 0.0
+    else:
+        when = datetime.fromisoformat(str(how))
+        when = timezone.make_aware(when) if timezone.is_naive(when) else when
+        offset = when.timestamp() - time.time()
+    raw["clock_offset"] = offset
+    thread.data = raw
+    thread.save(update_fields=["data"])
+    return offset
+
+
 def save_thread_data(thread, data):
+    shift = float(data.get("clock_offset") or 0)
+    if shift:  # 🕰️ messages made just now carry the chat's time, not the real one
+        real = time.time()
+        for m in data.get("messages") or []:
+            if not m.get("clocked") and abs(ts_of(m) - real) < 300:
+                m["ts"] = ts_of(m) + shift
+                m["time"] = timezone.localtime(timezone.now() + timezone.timedelta(seconds=shift)).strftime("%H:%M")
+                m["clocked"] = True
     thread.data = data
     thread.save(update_fields=["data", "updated"])
 
@@ -790,10 +825,12 @@ def _human_elapsed(seconds):
 
 
 def real_time_context(thread, now=None):
-    """Real-world clock, time elapsed since the last message, and scheduled events for the thread."""
-    now = now or timezone.now()
-    local_now = timezone.localtime(now) if timezone.is_aware(now) else now
+    """Real-world clock (or the chat's own, when it was set: 🕰️), time elapsed since the last message, and
+    scheduled events for the thread."""
     data = thread_data(thread)
+    shift = data["clock_offset"]
+    now = (now or timezone.now()) + timezone.timedelta(seconds=shift)
+    local_now = timezone.localtime(now) if timezone.is_aware(now) else now
     msgs = data["messages"]
     elapsed_sec = None
     last_sender = None
@@ -802,7 +839,7 @@ def real_time_context(thread, now=None):
         last_sender = last_msg.get("sender_name") or last_msg.get("role")
         ts = ts_of(last_msg)
         if ts > 0:
-            elapsed_sec = max(0, time.time() - ts)
+            elapsed_sec = max(0, time.time() + shift - ts)
     tod = _time_of_day_label(local_now.hour)
     clock_str = local_now.strftime("%A, %d %B %Y, %H:%M") + f" ({tod})"
     elapsed_str = _human_elapsed(elapsed_sec) if elapsed_sec is not None else "start of conversation"
@@ -2453,6 +2490,7 @@ def serialize_thread_full(thread, user):
         "watch": watch_notice(delivered(data["messages"])) if _watch_on(user) else None,  # 🥔 Bulba noticed…
         "memory": data["memory"], "context_size": data["context_size"], "memory_due": memory_due(data),
         "theme": data["theme"],
+        "clock_offset": data["clock_offset"],
         "waiting": waiting_reply(data),  # 🙈 seconds until a reply left on read arrives
         "leave_on_read": data["leave_on_read"],
         "bg": data["bg"],
