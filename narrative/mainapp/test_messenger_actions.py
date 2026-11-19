@@ -763,3 +763,50 @@ class TranslateMessageTests(MessengerActionTests):
         self.assertEqual(again["text"], "побачимось завтра?")
         self.assertEqual(ai_client.complete.call_count, calls)  # kept: the second look costs nothing
         self.assertEqual(self.post(action="translate_message", thread_id=tid, message_id="nope").status_code, 400)
+
+
+class MemoryAfterDeleteTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_deleting_a_remembered_message_rebuilds_the_memory(self):
+        from mainapp import messenger
+        from mainapp.models import MessengerThread
+        tid = self.thread()
+        thread = MessengerThread.objects.get(id=tid)
+        data = messenger.thread_data(thread)
+        data["messages"] = [{"id": f"m{i}", "role": "user" if i % 2 else "assistant", "text": f"line {i}", "ts": i}
+                            for i in range(40)]
+        data["memory"], data["memory_upto"] = "They talked about the secret plan.", 10
+        messenger.save_thread_data(thread, data)
+        self.post(action="delete_message", thread_id=tid, message_id="m35")  # not remembered yet: nothing changes
+        data = messenger.thread_data(MessengerThread.objects.get(id=tid))
+        self.assertEqual((data["memory_upto"], data["memory_stale"]), (10, False))
+        self.post(action="delete_message", thread_id=tid, message_id="m3")  # remembered: rebuilt next time
+        data = messenger.thread_data(MessengerThread.objects.get(id=tid))
+        self.assertEqual((data["memory_upto"], data["memory_stale"]), (9, True))
+        self.assertTrue(messenger.memory_due(data))
+        with mock.patch("mainapp.messenger.ask_json", return_value={"summary": "Fresh summary."}) as ask:
+            messenger.update_memory(self.user, MessengerThread.objects.get(id=tid))
+        prompt = ask.call_args.args[1]
+        self.assertNotIn("secret plan", prompt)  # the old summary is set aside
+        self.assertIn("line 0", prompt)
+        self.assertNotIn("line 3\n", prompt)
+        data = messenger.thread_data(MessengerThread.objects.get(id=tid))
+        self.assertEqual((data["memory"], data["memory_stale"]), ("Fresh summary.", False))
+        self.post(action="edit_message", thread_id=tid, message_id="m1", text="changed")  # an edit too
+        self.assertTrue(messenger.thread_data(MessengerThread.objects.get(id=tid))["memory_stale"])
+
+
+class DeleteStoryTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_a_status_can_be_deleted(self):
+        out = self.post(action="post_story", owner=self.rose.slug, text="new pots!").json()
+        sid = out["story"]["id"]
+        prof = self.post(action="delete_story", owner=self.rose.slug, story_id=sid).json()["profile"]
+        self.assertFalse([s for s in prof.get("stories") or [] if s.get("id") == sid])
+        mine = self.post(action="post_story", owner="user", text="tired").json()["story"]["id"]
+        u = self.post(action="delete_story", owner="user", story_id=mine).json()["user_profile"]
+        self.assertFalse([s for s in u.get("stories") or [] if s.get("id") == mine])

@@ -955,6 +955,7 @@
         text: s.text,
         at: s.at || "",
         ts: s.ts || 0,
+        id: s.id, owner_key: "user", image_url: s.image_url || "",
       });
     });
     (STATE.characters || []).forEach(function (c) {
@@ -967,6 +968,7 @@
           text: s.text,
           at: s.at || "",
           ts: s.ts || 0,
+          id: s.id, owner_key: c.slug, image_url: s.image_url || "", photo_prompt: s.photo_prompt || "",
         });
       });
     });
@@ -985,9 +987,12 @@
             '<div style="flex:1;">' +
               '<div style="display:flex;justify-content:space-between;align-items:center;">' +
                 '<div><strong>' + esc(it.owner) + '</strong> <span style="color:var(--tg-muted);font-size:12px;">' + esc(it.handle) + "</span></div>" +
-                '<span style="color:var(--tg-muted);font-size:12px;">' + esc(it.at) + "</span>" +
+                '<span style="color:var(--tg-muted);font-size:12px;">' + esc(it.at) +
+                  (it.id ? ' <button type="button" class="tg-fmt-btn" title="Delete this status" onclick="TG.deleteStory(\'' + esc(it.owner_key) + '\', \'' + esc(it.id) + '\')">🗑</button>' : "") + "</span>" +
               "</div>" +
-              '<div style="margin-top:6px;font-size:14.5px;">' + esc(it.emoji) + " " + formatMessageHtml(it.text) + "</div>" +
+              (it.text ? '<div style="margin-top:6px;font-size:14.5px;">' + esc(it.emoji) + " " + formatMessageHtml(it.text) + "</div>" : "") +
+              (it.image_url ? '<img class="moment-pic" src="' + esc(it.image_url) + '" alt="" loading="lazy" onclick="TG.viewImage(this.src)">'
+                : it.photo_prompt ? '<button type="button" class="tg-setup-ghost moment-pic-btn" onclick="TG.momentPicture(this, \'' + esc(it.owner_key) + '\', \'' + esc(it.id) + '\')">🖼️ Show the picture</button>' : "") +
             "</div>" +
           "</div>"
         );
@@ -1331,11 +1336,12 @@
       TG.clearReplyTo();
       TG.toggleStickerTray(false);
 
+      clearTimeout(TG._replyTimer);
       apiPost(payload)
         .then(function (res) {
           STATE.active_thread = res.thread;
           renderActiveThread();
-          return TG.triggerAiTurn();
+          TG.replySoon();
         })
         .catch(function (err) {
           alert(err.message);
@@ -1576,6 +1582,21 @@
         else if (e.target.closest("[data-prev]")) { if (i > 0) { i--; show(); } }
       };
       show();
+    },
+
+    // ✨ Moments: a status's picture made on demand, and deleting a status (yours or a character's)
+    momentPicture: function (btn, slug, storyId) {
+      btn.disabled = true; btn.textContent = "📸 Making the picture…";
+      apiPost({ action: "story_picture", owner: slug, story_id: storyId }).then(function (res) {
+        syncCharCatalog(slug, res.profile); renderMomentsFeed();
+      }).catch(function (err) { btn.disabled = false; btn.textContent = "🖼️ Show the picture"; alert(err.message); });
+    },
+    deleteStory: function (owner, storyId) {
+      if (!confirm("Delete this status?")) return;
+      apiPost({ action: "delete_story", owner: owner, story_id: storyId }).then(function (res) {
+        if (owner === "user") STATE.user_profile = res.user_profile; else syncCharCatalog(owner, res.profile);
+        renderMomentsFeed(); renderStoriesStrip();
+      }).catch(function (err) { alert(err.message); });
     },
 
     // 🎨 A picture to send: a photo of you (your persona picture as the reference) or of anything; up to 5
@@ -1910,9 +1931,31 @@
       if (dot && TG._typing) dot.className = "tg-online-dot online";
     },
 
+    // 💬 Like a real chat, you can send several messages in a row: they answer once you've stopped for a moment
+    // (a few seconds, longer while you're still typing). Sent while they're already writing: they answer it after.
+    replySoon: function () {
+      clearTimeout(TG._replyTimer);
+      if (TG._busy) { TG._replyAfter = true; return; }
+      var inp = document.getElementById("tgMessageInput");
+      var wait = inp && inp.value.trim() ? 7000 : 3000;
+      TG._replyTimer = setTimeout(function () {
+        var still = document.getElementById("tgMessageInput");
+        if (still && still.value.trim() && Date.now() - (TG._lastKey || 0) < 6000) return TG.replySoon();  // still typing
+        TG.triggerAiTurn();
+      }, wait);
+    },
+
     triggerAiTurn: function (instruction) {
       var t = STATE.active_thread;
       if (!t) return;
+      clearTimeout(TG._replyTimer);
+      if (TG._busy) { TG._replyAfter = true; return Promise.resolve(); }
+      TG._busy = true; TG._replyAfter = false;
+      var tid = t.id;
+      var after = function () {
+        TG._busy = false;
+        if (TG._replyAfter && STATE.active_thread && STATE.active_thread.id === tid) { TG._replyAfter = false; TG.replySoon(); }
+      };
       var typRow = document.getElementById("tgTypingRow");
       var typTxt = document.getElementById("tgTypingText");
       if (typRow) {
@@ -1932,12 +1975,13 @@
           if (typRow) typRow.classList.remove("visible");
           TG.setTyping("");
           STATE.failed = null;
-          return TG.showTurn(res, oldIds);
+          return TG.showTurn(res, oldIds).then(after, after);
         })
         .catch(function (err) {
           if (typRow) typRow.classList.remove("visible");
           TG.setTyping("");
           STATE.failed = { thread: t.id, error: err.message, instruction: instruction || "" };
+          TG._busy = false;
           renderActiveThread();
         });
     },
@@ -2820,7 +2864,7 @@
 
   // Typing in the message box cancels "they answer your reaction"
   var inpEl = document.getElementById("tgMessageInput");
-  if (inpEl) inpEl.addEventListener("input", function () { clearTimeout(TG._reactTimer); });
+  if (inpEl) inpEl.addEventListener("input", function () { clearTimeout(TG._reactTimer); TG._lastKey = Date.now(); });
 
   // Bulba's panel tells us when something changed (a card applied, a reply retried): reload this chat
   window.addEventListener("message", function (e) {

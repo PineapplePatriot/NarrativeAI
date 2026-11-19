@@ -5144,6 +5144,7 @@ def messenger_api(request):
             target_m["edited_from"] = target_m.get("text") or ""
         target_m["text"] = new_text
         target_m["edited"] = True
+        messenger.touch_memory(td, mid)
         if target_m.get("voice"):
             target_m["voice"]["transcript"] = new_text
         messenger.save_thread_data(thread, td)
@@ -5156,6 +5157,7 @@ def messenger_api(request):
         if not thread:
             return JsonResponse({"error": "Chat not found."}, status=404)
         td = messenger.thread_data(thread)
+        messenger.touch_memory(td, mid, removed=True)
         td["messages"] = [m for m in td["messages"] if m.get("id") != mid]
         if td.get("pinned_id") == mid:
             td["pinned_id"] = None
@@ -5282,6 +5284,19 @@ def messenger_api(request):
                 })
                 messenger.save_thread_data(thread, td)
         return JsonResponse({"user_profile": saved_u})
+
+    if action == "delete_story":  # ✨ a status taken down (the user's own or a character's)
+        owner, sid = body.get("owner") or "user", str(body.get("story_id") or "")
+        if owner == "user":
+            u_prof = messenger.user_profile(request.user)
+            saved_u = messenger.save_user_profile(request.user, {"stories": [s for s in u_prof.get("stories") or [] if s.get("id") != sid]})
+            return JsonResponse({"user_profile": saved_u})
+        c_obj = char_by_slug.get(owner)
+        if not c_obj:
+            return JsonResponse({"error": "Character not found."}, status=404)
+        c_prof = messenger.char_profile(c_obj)
+        saved_c = messenger.save_char_profile(c_obj, {"stories": [s for s in c_prof.get("stories") or [] if s.get("id") != sid]})
+        return JsonResponse({"profile": saved_c, "char_slug": c_obj.slug})
 
     if action == "post_story":
         owner = body.get("owner") or "user"

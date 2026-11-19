@@ -747,6 +747,7 @@ def thread_data(thread):
         # 🧠 the chat's memory: a running summary of what fell out of view, and how many recent messages are read
         "memory": str(raw.get("memory") or "")[:6000],
         "memory_upto": max(0, int(raw.get("memory_upto") or 0)),
+        "memory_stale": bool(raw.get("memory_stale", False)),  # a remembered message was deleted or changed
         "context_size": raw.get("context_size") if raw.get("context_size") in CONTEXT_SIZES else 30,
         "theme": raw.get("theme") if raw.get("theme") in THEMES else "",
         # 🕰️ the chat's own clock: seconds from real time (0 = real time), to pick up a night chat the next day
@@ -2009,6 +2010,7 @@ def redo_message(user, thread, message_id, note=""):
     else:
         target["text"] = text
     target["edited_by_redo"] = True
+    touch_memory(data, message_id)
     save_thread_data(thread, data)
     return target
 
@@ -2197,9 +2199,22 @@ MEMORY_EVERY = 20  # messages out of view before the summary is brought up to da
 
 
 def memory_due(data):
-    """Whether enough messages have fallen out of view since the last summary."""
+    """Whether enough messages have fallen out of view since the last summary (or a remembered one changed)."""
     out_of_view = len(delivered(data["messages"])) - data["context_size"]
+    if data.get("memory_stale") and data["memory_upto"]:
+        return True
     return out_of_view - data["memory_upto"] >= MEMORY_EVERY
+
+
+def touch_memory(data, message_id, removed=False):
+    """🧠 A message was deleted, edited or rewritten: if the memory already covers it, the memory is rebuilt from the
+    chat as it is now the next time (like the main chat, which drops the summary pieces a deletion reaches).
+    Call before removing it. Changes `data` in place."""
+    ids = [m.get("id") for m in delivered(data["messages"])]
+    if message_id in ids and ids.index(message_id) < data["memory_upto"]:
+        data["memory_stale"] = True
+        if removed:
+            data["memory_upto"] -= 1
 
 
 def update_memory(user, thread, force=False):
@@ -2210,26 +2225,35 @@ def update_memory(user, thread, force=False):
     end = max(0, len(msgs) - data["context_size"])
     if force:
         end = max(end, len(msgs) - 6)  # "update it now": everything but the last few
-    new = msgs[data["memory_upto"]:end]
+    stale = data.get("memory_stale")
+    start = 0 if stale else data["memory_upto"]  # changed in the past: everything is read again, the old summary set aside
+    new = msgs[start:end]
     if not new:
+        if stale:
+            raw = dict(thread.data or {})
+            raw["memory"], raw["memory_upto"], raw["memory_stale"] = "", 0, False
+            thread.data = raw
+            thread.save(update_fields=["data"])
+            return ""
         return data["memory"]
     from mainapp.cards import user_name
     u_name = (data.get("persona") or {}).get("name") or user_name(user)
     lines = []
-    for m in new:
+    cap = 400 if len(new) <= 120 else 180  # a rebuild of a long chat: shorter lines so it fits
+    for m in new[-400:]:
         who = u_name if m.get("role") == "user" else (m.get("sender_name") or "them")
         what = m.get("text") or (m.get("voice") or {}).get("transcript") or ((m.get("photo") or {}).get("seen") or (m.get("photo") or {}).get("prompt") or "")
         if what:
-            lines.append(f"{who}: {what[:400]}")
+            lines.append(f"{who}: {what[:cap]}")
     prompt = ("You keep the memory of a messenger chat. Fold the new messages into the summary so far: what happened, "
               "facts that matter later (names, plans, places, what each one shared), promises and when they're due, "
               "and how they feel about each other now. Keep what still matters, drop what doesn't; at most 300 words, "
               "plain sentences, in the language of the chat.\n\n"
-              f"Summary so far:\n{data['memory'] or '(nothing yet)'}\n\nNew messages:\n" + "\n".join(lines) +
+              f"Summary so far:\n{('(nothing yet)' if stale else data['memory']) or '(nothing yet)'}\n\nNew messages:\n" + "\n".join(lines) +
               '\n\nAnswer with JSON only: {"summary": "..."}')
     out = ask_json(user, prompt, need=("summary",), max_tokens=900, task="summary", temperature=0.3)
     raw = dict(thread.data or {})
-    raw["memory"], raw["memory_upto"] = str(out["summary"]).strip()[:6000], end
+    raw["memory"], raw["memory_upto"], raw["memory_stale"] = str(out["summary"]).strip()[:6000], end, False
     thread.data = raw
     thread.save(update_fields=["data"])
     return raw["memory"]
