@@ -649,3 +649,18 @@ class StickerPackTests(MessengerActionTests):
         self.assertEqual([s["video"] for s in mine], [False, True])
         with self.settings(TELEGRAM_BOT_TOKEN=""):
             self.assertIn("TELEGRAM_BOT_TOKEN", self.post(action="telegram_pack", link="CatsPack").json()["error"])
+
+
+class TextingWatchTests(TestCase):
+    def test_bulba_notices_repeats_and_stage_directions_in_short_chats(self):
+        from mainapp import messenger
+        say = lambda i, t: {"id": f"a{i}", "role": "assistant", "text": t}
+        msgs = [say(1, "the centrifuge mocks my genius again"), {"id": "u", "role": "user", "text": "ok"},
+                say(2, "sleep? the centrifuge mocks my genius"), say(3, "no. the centrifuge mocks my genius tonight")]
+        n = messenger.watch_notice(msgs)
+        self.assertEqual(n["message_id"], "a3")
+        self.assertIn("centrifuge mocks my genius", n["text"])
+        self.assertIn("Don't use the phrase", n["note"])
+        n = messenger.watch_notice([say(1, "*sighs and looks at the phone for a while* fine")])
+        self.assertIn("stage directions", n["text"])
+        self.assertIsNone(messenger.watch_notice([say(1, "fine. come over.")]))

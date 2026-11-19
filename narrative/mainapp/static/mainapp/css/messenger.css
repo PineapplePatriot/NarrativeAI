@@ -1621,3 +1621,9 @@ body.tg-bulba-open .tg-header-actions .tg-hdr-btn > span, body.tg-bulba-open #hd
 .tg-make-preview img { max-width: 100%; max-height: 42vh; border-radius: 12px; cursor: zoom-in; }
 .tg-tray-status { padding: 6px 12px; font-size: 12.5px; color: #c4b5fd; }
 .tg-tray-item video, .tg-sticker-card video { width: 100%; max-width: 160px; height: auto; display: block; }
+.tg-watch { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 2px 0 10px 48px; max-width: min(560px, 85%); padding: 8px 12px;
+  border-radius: 12px; background: rgba(126, 58, 242, .1); border: 1px solid rgba(167, 139, 250, .35); font-size: 12.5px; color: #e2e8f0; }
+.tg-watch span { flex: 1 1 200px; }
+.tg-watch-fix { background: linear-gradient(135deg, #7e3af2, #9863ff); color: #fff; border: 0; border-radius: 99px; padding: 4px 10px; font: inherit; font-weight: 600; cursor: pointer; }
+.tg-watch-x { background: none; border: 1px solid var(--tg-border); color: var(--tg-muted); border-radius: 99px; padding: 4px 10px; font: inherit; cursor: pointer; }
+@media (max-width: 860px) { .tg-watch { margin-left: 8px; max-width: calc(100% - 16px); } }

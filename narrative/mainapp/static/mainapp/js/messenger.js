@@ -533,6 +533,15 @@
       );
     }
 
+    // 🥔 Bulba Watch: something it noticed in their latest text, with a one-tap fix (Not now hides it)
+    var wn = t.watch;
+    var wnSkipped = function (id) { try { return localStorage.getItem("na-tg-watch-" + id) === "1"; } catch (e) { return false; } };
+    if (wn && !wnSkipped(wn.message_id) && !(STATE.failed && STATE.failed.thread === t.id)) {
+      out.push('<div class="tg-watch"><span>🥔 <b>Bulba noticed:</b> ' + esc(wn.text) + "</span>" +
+        '<button type="button" class="tg-watch-fix" onclick="TG.watchFix()">↻ Rewrite without it</button>' +
+        '<button type="button" class="tg-watch-x" onclick="TG.watchSkip()">Not now</button></div>');
+    }
+
     // ⚠️ Their reply didn't arrive (an error): say so here, with a way to try again
     if (STATE.failed && STATE.failed.thread === t.id) {
       out.push('<div class="tg-failed"><span>⚠️ Their reply didn\'t arrive: ' + esc(STATE.failed.error || "something went wrong") + "</span>" +
@@ -1642,6 +1651,18 @@
         renderStickerTray();
         st.textContent = "📥 “" + res.title + "”: " + res.added + " stickers added" + (res.skipped ? ", " + res.skipped + " animated ones skipped (they need a special player)" : "") + ".";
       }).catch(function (e) { st.textContent = "📥 " + e.message; });
+    },
+    watchSkip: function () {
+      var t = STATE.active_thread; if (!t || !t.watch) return;
+      try { localStorage.setItem("na-tg-watch-" + t.watch.message_id, "1"); } catch (e) { /* this view */ }
+      t.watch = null; renderActiveThread();
+    },
+    watchFix: function () {
+      var t = STATE.active_thread; if (!t || !t.watch) return;
+      var wn = t.watch; t.watch = null; renderActiveThread();
+      apiPost({ action: "redo_message", thread_id: t.id, message_id: wn.message_id, note: wn.note })
+        .then(function (res) { STATE.active_thread = res.thread; renderActiveThread(); })
+        .catch(function (e) { alert(e.message); });
     },
     setupType: function (slug, key, value) { if (setupState[slug]) setupState[slug][key] = value; },
     setupSkip: function (slug) {

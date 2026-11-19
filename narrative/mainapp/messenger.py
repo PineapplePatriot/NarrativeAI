@@ -1296,6 +1296,38 @@ def check_texting_slop(text):
     return notes
 
 
+def watch_notice(messages):
+    """🥔 Bulba Watch for texts (free: no model reads them), on the characters' latest message: a phrase they keep
+    repeating (3 of their recent texts, so short chats count), stage directions, therapy-speak, a wall of text, or
+    texts that keep opening the same way. Returns {"message_id", "text", "note"} or None."""
+    from mainapp.bulba import watch
+    theirs = [m for m in messages if m.get("role") == "assistant" and (m.get("text") or (m.get("voice") or {}).get("transcript"))]
+    if not theirs:
+        return None
+    last = theirs[-1]
+    body = lambda m: m.get("text") or (m.get("voice") or {}).get("transcript") or ""
+    texts = {i: body(m) for i, m in enumerate(theirs[-12:])}
+    newest = len(texts) - 1
+    rep = watch.repeated_phrases(texts, newest)
+    if rep:
+        phrase, where = rep[0]
+        return {"message_id": last["id"], "text": f"they keep saying “{phrase}” ({len(where)} of their recent texts)",
+                "note": f"Don't use the phrase “{phrase}” or anything close to it."}
+    found = check_texting_slop(body(last))
+    if "stage_directions" in found:
+        return {"message_id": last["id"], "text": "stage directions in asterisks (it's a text, not a scene)",
+                "note": "No *actions in asterisks*: only what they'd type."}
+    if "therapy_voice" in found:
+        return {"message_id": last["id"], "text": "therapist talk", "note": "No therapy-speak: say it like they would."}
+    if "wall_of_text" in found:
+        return {"message_id": last["id"], "text": "a wall of text", "note": "Much shorter: one or two quick texts."}
+    starts = [re.split(r"\W+", body(m).strip().lower(), maxsplit=1)[0] for m in theirs[-5:] if body(m).strip()]
+    if len(starts) >= 4 and starts[-1] and starts.count(starts[-1]) >= 4:
+        return {"message_id": last["id"], "text": f"their texts keep opening with “{starts[-1]}”",
+                "note": f"Don't open with “{starts[-1]}”."}
+    return None
+
+
 def _match_speaker(chars, prefix_name):
     if not prefix_name or len(chars) == 1:
         return chars[0]
@@ -2090,6 +2122,14 @@ def presence(data, now=None):
     return {"state": "seen", "label": f"last seen {last.get('time')}" if last and last.get("time") else "last seen recently"}
 
 
+def _watch_on(user):
+    try:
+        from mainapp.bulba import watch
+        return watch.is_on(user)
+    except Exception:
+        return False
+
+
 def delivered(messages, now=None):
     """The messages the user can see: a reply left on read (deliver_at) shows only once its time has come."""
     now = now or time.time()
@@ -2356,6 +2396,7 @@ def serialize_thread_full(thread, user):
     return {
         **serialize_thread_summary(thread),
         "messages": delivered(data["messages"]),
+        "watch": watch_notice(delivered(data["messages"])) if _watch_on(user) else None,  # 🥔 Bulba noticed…
         "waiting": waiting_reply(data),  # 🙈 seconds until a reply left on read arrives
         "leave_on_read": data["leave_on_read"],
         "bg": data["bg"],
