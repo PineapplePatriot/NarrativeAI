@@ -305,6 +305,22 @@ Batch D as planned:
 5. Scene and clothes tracking for pictures on both sides; a modern lorebook for the texting setup.
 Backgrounds: the green screen is risky for sprites (contrast); maybe the rembg cut-out tool later.
 
+Done so far (pushed): 1 (photos read by the vision model; txt/md files), 2 (reactions count as a reply, typing
+pace, leave-on-read nudge, 🌐 translate, "typing…" in the header and a quiet 90 s refresh).
+
+Added on 19 November (second message):
+- Character bursts couldn't be edited or rewritten past the last one: on phones the actions bar covered the next
+  message (fixed: a strip at the bottom of the screen). Open question: should rewriting one message of a burst
+  touch the ones around it?
+- The user couldn't send several messages in a row (fixed: the reply waits a few seconds after the last one).
+- Moments: status pictures weren't shown, statuses couldn't be deleted (fixed). Open: should chat photos go to
+  Moments, and what happens to them when the chat message is deleted? Moments on a phone (only in the chat list's
+  bottom bar; hidden inside a chat).
+- Memory after deletion (fixed: a remembered message deleted/edited → the memory is rebuilt).
+- Attachments: txt/md + photos/screenshots are enough (no PDF/Word).
+- Reminder: the worldbook (lorebook) as a step of the texting setup; scene tracking for pictures (place and
+  surroundings + clothes, both sides).
+
 ## Later / parked
 
 - The guided tours in more languages.
