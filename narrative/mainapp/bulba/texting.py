@@ -53,6 +53,9 @@ they left open, and say what you filled in. When something they want is unclear,
    the texting style and persona are what the model reads every turn. Fix the cause, then offer a retry.
 5. Their roleplay card is never changed from here. The texting profile is separate and is what the messenger
    uses. If they want the roleplay card changed, tell them to open Bulba from the chat page.
+6. This chat has its own lorebook, also used by its VN episodes. Read chat_lore before changing it.
+   After modernization, help set up lore for the new setting; do not silently reuse the original world.
+   Use propose_texting_lore for a reviewable card. Preserve entries the user did not ask to change.
 
 ## What the fields mean
 {fields}
@@ -125,7 +128,7 @@ def opening(session):
 # ---------------------------------------------------------------------------
 
 def tool_read_texting_chat(session, args):
-    from mainapp import messenger
+    from mainapp import messenger, screen_lore
     thread = _thread(session)
     if thread is None:
         return {"error": "This chat is gone."}, []
@@ -151,7 +154,24 @@ def tool_read_texting_chat(session, args):
                      "events": data["events"], "messages_total": len(data["messages"])},
             "characters": profiles,
             "user_profile": {k: me.get(k) for k in ("display_name", "handle", "bio", "status_emoji")},
+            "chat_lore": {"selection": screen_lore.describe(thread), "books": screen_lore.books_for(thread),
+                          "saved_book": (thread.data or {}).get("lorebook")},
             "recent_messages": recent}, []
+
+
+def tool_propose_texting_lore(session, args):
+    from mainapp import lorebook
+    thread = _thread(session)
+    if thread is None or not isinstance(args.get("book"), dict):
+        return {"error": "Supply a lorebook for this chat."}, []
+    book = lorebook.normalize_book(args["book"])
+    summary = ["Lore for this chat only: " + (book["title"] or "Chat lore")]
+    summary += [f"• {e['comment'] or ', '.join(e['keys']) or 'Always included'}: {e['content']}" for e in book["entries"]]
+    if args.get("why"):
+        summary.append(str(args["why"]))
+    p = agent_mod._proposal(session, "texting_chat", "This chat's lorebook", summary,
+        {"thread_id": thread.pk, "changes": {"lorebook": book, "lore_mode": "local", "lore_pending": False}})
+    return {"proposal": p["id"], "status": "waiting for Apply"}, [{"type": "proposal", "id": p["id"]}]
 
 
 def tool_propose_texting_profile(session, args):
@@ -240,6 +260,13 @@ def tool_defs():
     STR = {"type": "string"}
     props = {k: {"type": "string", "description": v} for k, v in PROFILE_FIELDS.items()}
     return [
+        _fn("propose_texting_lore", "Create or replace this chat's own lorebook. Read chat_lore first and preserve "
+            "existing entries unless the user asked to remove them. The user reviews and Applies the card; "
+            "original character books are unchanged. Entries need searchable keywords or constant: true.",
+            {"book": {"type": "object", "properties": {"title": STR,
+                "entries": {"type": "array", "items": {"type": "object", "properties": {
+                    "comment": STR, "keys": {"type": "array", "items": STR}, "content": STR,
+                    "constant": {"type": "boolean"}, "enabled": {"type": "boolean"}}}}}}, "why": STR}, ("book",)),
         _fn("read_texting_chat", "This messenger chat: its characters' texting profiles, the chat's scenario and "
             "events, their own profile, and the last 30 messages. Read it before proposing anything.", {}),
         _fn("propose_texting_profile", "Change a character's texting profile (never the roleplay card). Give only the "
@@ -265,10 +292,10 @@ def tools():
     return [t for t in agent_mod.TOOLS if t["function"]["name"] in keep] + tool_defs()
 
 
-HANDLERS = {"read_texting_chat": tool_read_texting_chat, "propose_texting_profile": tool_propose_texting_profile,
+HANDLERS = {"propose_texting_lore": tool_propose_texting_lore, "read_texting_chat": tool_read_texting_chat, "propose_texting_profile": tool_propose_texting_profile,
             "propose_texting_chat": tool_propose_texting_chat, "propose_texting_look": tool_propose_texting_look,
             "retry_texting_reply": tool_retry_texting_reply}
-TURN_ENDING = {"propose_texting_profile", "propose_texting_chat", "propose_texting_look", "retry_texting_reply"}
+TURN_ENDING = {"propose_texting_lore", "propose_texting_profile", "propose_texting_chat", "propose_texting_look", "retry_texting_reply"}
 KINDS = ("texting_profile", "texting_chat", "texting_look")
 
 
@@ -286,6 +313,12 @@ def apply(session, p):
             raise ValueError("That character is gone.")
         p["undo"] = {"character_id": character.id, "profile": copy.deepcopy(character.messenger_profile or {})}
         if p["kind"] == "texting_profile":
+            current = messenger.char_profile(character)
+            changes = data["changes"]
+            if changes.get("mode", current["mode"]) == "modern_au" and any(
+                    k in changes and changes[k] != current.get(k) for k in ("mode", "modern_persona", "scenario")):
+                p["undo"]["lore_flags"] = [{"id": t.pk, "before": {k: t.data[k] for k in ("lore_mode", "lore_pending") if k in (t.data or {})}}
+                    for t in MessengerThread.objects.filter(user=session.user, characters=character)]
             messenger.save_char_profile(character, data["changes"])
             return f"{character.name}'s texting profile changed. The next text uses it."
         from mainapp import ai_client
@@ -303,7 +336,7 @@ def apply(session, p):
         raw.update(data["changes"])
         thread.data = raw
         thread.save(update_fields=["data"])
-        return "This chat's scenario and events changed."
+        return "This chat's lorebook changed." if "lorebook" in data["changes"] else "This chat's scenario and events changed."
     raise ValueError("Unknown proposal.")
 
 
@@ -313,6 +346,19 @@ def undo(session, p):
     if p["kind"] in ("texting_profile", "texting_look"):
         Character.objects.filter(author=session.user, id=before.get("character_id")).update(
             messenger_profile=before.get("profile") or {})
+        for saved in before.get("lore_flags", []):
+            from django.db import transaction
+            with transaction.atomic():
+                thread = MessengerThread.objects.select_for_update().filter(user=session.user, pk=saved["id"]).first()
+                if thread:
+                    raw = dict(thread.data or {})
+                    for key in ("lore_mode", "lore_pending"):
+                        if key in saved["before"]:
+                            raw[key] = saved["before"][key]
+                        else:
+                            raw.pop(key, None)
+                    thread.data = raw
+                    thread.save(update_fields=["data"])
     elif p["kind"] == "texting_chat":
         thread = MessengerThread.objects.filter(user=session.user, id=before.get("thread_id")).first()
         if thread is not None:

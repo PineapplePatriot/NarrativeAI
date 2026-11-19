@@ -7,7 +7,7 @@ from datetime import datetime
 from django.db.models import Q
 from django.utils import timezone
 
-from mainapp import ai_client, messenger, writing_quality
+from mainapp import ai_client, messenger
 from mainapp.models import Character, MessengerThread
 
 
@@ -28,14 +28,6 @@ def split_display_text(text, width=420):
         boxes.extend(textwrap.wrap(paragraph, width=width, break_long_words=False,
                                    break_on_hyphens=False, replace_whitespace=False))
     return boxes
-
-
-def model_rules(user):
-    from mainapp import model_profiles
-    profile = ai_client.main_profile(user)
-    model = model_profiles.for_style(profile.model) if profile and profile.model else None
-    counter = writing_quality.catalog().get("default_counters", {}).get((model or {}).get("id"), "")
-    return "\n\n".join(p for p in (counter, writing_quality.helper_taste(user)) if p)
 
 
 def scene_context(user, thread=None):

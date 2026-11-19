@@ -57,7 +57,7 @@
           "Content-Type": "application/json",
           "X-CSRFToken": (window.TG_CFG && window.TG_CFG.csrf) || "",
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({scene_id: this.activeScene()?.id, revision: this.activeScene()?.revision, ...payload}),
       });
       const data = await resp.json();
       if (!resp.ok || data.error) {
@@ -130,6 +130,8 @@
       const hint = hintEl ? hintEl.value.trim() : "";
       const direction = (document.getElementById("vnWritingDirection") || {}).value || "";
       const polishEnabled = !!(document.getElementById("vnPolishEnabled") || {}).checked;
+      const interactionMode = (document.getElementById("vnInteractionMode") || {}).value || "mixed";
+      const authoringMode = (document.getElementById("vnAuthoringMode") || {}).value || "roleplay";
       const orig = btnEl ? btnEl.textContent : "";
       if (btnEl) {
         btnEl.disabled = true;
@@ -145,6 +147,7 @@
           auto_generate_sprites: this.autoGenSprites,
           direction,
           polish_enabled: polishEnabled,
+          interaction_mode: interactionMode, authoring_mode: authoringMode,
         });
         TG.state.vn_scenes = data.vn_scenes;
         if (data.char_sprites) {
@@ -195,7 +198,7 @@
       const idx = Math.max(0, Math.min(this.beatIndex, sc.beats.length - 1));
       for (let i = idx; i >= 0; i--) {
         const b = sc.beats[i];
-        if (b && b.character_slug && b.speaker !== "user") {
+        if (b && b.character_slug) {
           // The camera may show the listener while somebody else is speaking.
           return { ...b, speaker: b.character_slug, speaker_name: b.character_name || b.speaker_name };
         }
@@ -322,7 +325,7 @@
     },
 
     async changeStageSetting(kind, val) {
-      const payload = { action: "set_stage" };
+      const payload = { action: "set_stage", beat_id: this.currentBeat()?.id };
       if (kind === "music") payload.music_id = val;
       if (kind === "bg") payload.background_id = val;
       try {
@@ -341,9 +344,12 @@
       const sc = this.activeScene();
       const audio = document.getElementById("vnAudioPlayer");
       if (!audio) return;
-      const url = sc && sc.music ? sc.music.url : "";
+      const music = this.currentBeat()?.stage?.music || sc?.music;
+      const url = music?.url || "";
       if (!url) {
         audio.pause();
+        audio.removeAttribute("src");
+        audio.removeAttribute("data-src");
         this.musicPlaying = false;
         return;
       }
@@ -366,6 +372,8 @@
     toggleMusic() {
       const audio = document.getElementById("vnAudioPlayer");
       if (!audio) return;
+      const music = this.currentBeat()?.stage?.music || this.activeScene()?.music;
+      if (!music?.url) { this.notify("This passage has no music selected."); return; }
       if (audio.paused) {
         audio.volume = 0.45;
         audio.play().then(() => {
@@ -382,8 +390,9 @@
     updateMusicBtnLabel() {
       const btn = document.getElementById("vnMusicToggleBtn");
       const sc = this.activeScene();
-      if (!btn || !sc || !sc.music) return;
-      btn.textContent = `${this.musicPlaying ? "🔊 Pause" : "🔈 Play"} · ${sc.music.name}`;
+      const music = this.currentBeat()?.stage?.music || sc?.music;
+      if (!btn || !music) return;
+      btn.textContent = `${this.musicPlaying ? "🔊 Pause" : "🔈 Play"} · ${music.name}`;
     },
 
     /* ----------------------------------------------------------------------
@@ -570,6 +579,10 @@
                 <input type="text" class="tg-input" id="vnLocationHintInput" placeholder="e.g. Rainy neon coffee shop at 11 PM, rooftop balcony, quiet library corner…">
               </div>
               <div class="tg-field-group">
+                <label for="vnInteractionMode">How you respond</label>
+                <select class="tg-select" id="vnInteractionMode"><option value="mixed">Choices and writing</option><option value="choices">Classic choices</option><option value="write">Write yourself</option></select>
+                <label for="vnAuthoringMode">Who writes the cast</label>
+                <select class="tg-select" id="vnAuthoringMode"><option value="roleplay">Roleplay — I control my character</option><option value="director">Directing — the model may write my character too</option></select>
                 <label for="vnWritingDirection">Writing preferences (optional)</label>
                 <textarea class="tg-textarea" id="vnWritingDirection" placeholder="Length, narration, dialogue, pacing, or anything you want this episode to follow."></textarea>
               </div>
@@ -595,22 +608,23 @@
       if (beat.id) localStorage.setItem("vn-cursor-" + sc.id, beat.id);
       const spBeat = this.activeSpriteBeat();
       const isLastBeat = idx >= beats.length - 1;
-      const bgUrl = (sc.background && sc.background.url) || "";
+      const visual = beat.stage || sc;
+      const bgUrl = (visual.background && visual.background.url) || "";
 
       const tracks = (TG.state.vn_scenes && TG.state.vn_scenes.music_tracks) || [];
       const bgs = (TG.state.vn_scenes && TG.state.vn_scenes.backgrounds) || [];
 
-      const musicOpts = tracks.map((t) =>
-        `<option value="${TG.esc(t.id)}" ${sc.music && sc.music.id === t.id ? "selected" : ""}>🎵 ${TG.esc(t.name)}</option>`
+      const musicOpts = [{id: "none", name: "Silence"}, ...tracks].map((t) =>
+        `<option value="${TG.esc(t.id)}" ${visual.music && visual.music.id === t.id ? "selected" : ""}>🎵 ${TG.esc(t.name)}</option>`
       ).join("");
 
-      const bgOpts = bgs.map((b) =>
-        `<option value="${TG.esc(b.id)}" ${sc.background && sc.background.id === b.id ? "selected" : ""}>🖼️ ${TG.esc(b.name)}</option>`
+      const bgOpts = [{id: "none", name: "No backdrop"}, ...bgs].map((b) =>
+        `<option value="${TG.esc(b.id)}" ${visual.background && visual.background.id === b.id ? "selected" : ""}>🖼️ ${TG.esc(b.name)}</option>`
       ).join("");
 
       const isNarrator = beat.kind === "narration" || beat.speaker === "narrator";
       const handoff = sc.handoff || "user_turn";
-      const choices = Array.isArray(sc.choices) ? sc.choices : [];
+      const choices = sc.interaction_mode === "write" ? [] : Array.isArray(sc.choices) ? sc.choices : [];
 
       root.innerHTML = `
         <div class="vn-stage-wrap" style="${bgUrl ? `background-image:url('${TG.esc(bgUrl)}');` : ""}">
@@ -619,9 +633,9 @@
           <!-- Top Stage HUD -->
           <div class="vn-stage-hud">
             <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-              <span class="vn-hud-pill">📍 ${TG.esc(sc.location || sc.title || "Meet-Up Scene")}</span>
+              <span class="vn-hud-pill">📍 ${TG.esc(visual.location || sc.title || "Meet-Up Scene")}</span>
               <button type="button" class="vn-hud-pill" id="vnMusicToggleBtn" style="cursor:pointer;" onclick="VN_SCENES.toggleMusic()">
-                ${this.musicPlaying ? "🔊 Pause" : "🔈 Play"} · ${TG.esc((sc.music && sc.music.name) || "BGM")}
+                ${this.musicPlaying ? "🔊 Pause" : "🔈 Play"} · ${TG.esc((visual.music && visual.music.name) || "BGM")}
               </button>
               <select class="tg-select" style="width:auto; padding:4px 9px; font-size:11.5px; background:rgba(11,17,30,0.82);" onchange="VN_SCENES.changeStageSetting('music', this.value)" title="Switch background music">
                 ${musicOpts}
@@ -655,7 +669,7 @@
                 `}
                 <div class="vn-sprite-mood-bar">
                   <span class="vn-mood-badge">🎭 ${TG.esc(spBeat.speaker_name)} · ${TG.esc(spBeat.emotion || "neutral")}</span>
-                  ${spBeat.needs_sprite_gen ? `
+                  ${spBeat.speaker === "user" ? "" : spBeat.needs_sprite_gen ? `
                     <button type="button" class="vn-gen-sprite-btn" onclick="VN_SCENES.generateSpriteForCurrentBeat(null, this)" title="Generate this expression for the current character">
                       Draw this expression
                     </button>
@@ -715,8 +729,10 @@
                     </div>
                   ` : ""}
                   <div class="vn-input-row">
+                    ${sc.interaction_mode !== "choices" ? `
                     <textarea class="vn-short-input" id="vnShortInput" placeholder="Your action, dialogue or direction…" onkeydown="if(event.key==='Enter' && (event.ctrlKey || event.metaKey)){event.preventDefault(); VN_SCENES.submitUserBeatInput();}"></textarea>
                     <button type="button" class="tg-send-btn" onclick="VN_SCENES.submitUserBeatInput(this)">Act / Speak ➤</button>
+                    ` : ""}
                     <button type="button" class="tg-bulba-btn" style="${handoff === "auto_continue" ? "box-shadow:0 0 14px rgba(168,85,247,0.65);" : ""}" onclick="VN_SCENES.stepScene('', this)" title="Let the characters continue the scene without user input">
                       Continue Scene ▶▶
                     </button>
@@ -731,6 +747,7 @@
           </div>
         </div>
       `;
+      this.syncAudioTrack(this.musicPlaying);
       root.querySelectorAll("[data-choice-index]").forEach((button) => {
         button.addEventListener("click", () => this.stepScene(choices[Number(button.dataset.choiceIndex)], button));
       });

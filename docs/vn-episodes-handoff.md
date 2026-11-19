@@ -1,86 +1,147 @@
-# VN episode integration
+# Screen lore and VN episodes
 
-Work branch: `codex/vn-scene-continuity`, based on Gemini's
+Integration branch: `codex/vn-scene-continuity`, based on Gemini's
 `feature/digital-screen-telechat` and master through `6c228d8`.
-TeleChat's current code and controls are retained. Subtext is carried over unchanged.
-The small addition to `messenger.js` exports live state, escaping/formatting and the
-chat renderer for other Screen apps, and emits `telechat-rendered`. VN previously
-expected those exports, but they did not exist on either source branch. VN notices
-have their own status area rather than depending on a nonexistent `TG.toast`.
 
-## What this pass changes
+## Chat-specific lore
 
-- Mount the missing Scenes screen and audio element; fix generated choice clicks.
-- Write complete narrative blocks without sentence or line quotas, then split them into
-  display boxes without dropping words. The launch form accepts episode writing preferences.
-- Carry the originating thread's persona, scenario, earlier memory, recent messages and
-  story clock into the episode. Include the core character cards and honour memory sharing.
-  VN uses general model counters and the user's writing tastes, without phone-only rules.
-- Retain the full transcript. A cumulative continuity record carries setting, time,
-  outfits, positions, unresolved matters and earlier events into later generation.
-- Keep dialogue attribution separate from the character shown on stage, so a listener's
-  reaction does not turn into their dialogue. Reject generated speech for the user or
-  unknown participants rather than silently attributing it to the first character.
-- Optional Bulba polish uses existing approved habits and checked find/replace repairs
-  before display splitting. Preserve the original changed block for inspection.
-- Use a separate sprite cache for scene outfits and shared/default characters. A costume
-  change cannot overwrite a regular character expression. Finale illustrations receive
-  primary references for each participant before extra references, within the existing
-  five-image provider limit, plus explicit outfit and setting information.
-- Resume at the saved reading position. Reject replacing an open episode and reject
-  stale scene-generation results after another request changes the episode.
-- Save an episode without an image. An image-provider error still archives the episode
-  and returns its summary to TeleChat, with a visible warning. Archive and phone handoff
-  commit in one database transaction.
+Each messenger chat can use its own lorebook, inherit character books, or disable lore.
+A copy from the user's library becomes independent of the source. Local entries use the
+existing lore matcher, including its settings, entry switches, keywords and token budgets.
+The same chat selection is used in phone replies and VN requests.
 
-## Verification
+Changing a modern character's setting immediately offers lore setup in each affected chat.
+The existing local book is preserved for review, but lore is suspended until the user
+chooses how to proceed. New chats for an already-modernized character also offer setup.
+Existing modernized chats without a lore selection are initialized on access. In-flight
+reply saves preserve later lore edits, and undoing a modernization restores its prior lore flags.
+Appearance-only and voice-only changes do not retrigger it.
+
+The phone's lore panel supports manual entries, copying a library book, reviewing a Bulba
+draft, and inspecting matched entries. Bulba's messenger conversation can also propose a
+chat lorebook through an Apply/Undo card. A generated draft does not apply itself. Neither
+path changes original character cards or library books.
+
+## VN writing and interaction
+
+VN requests now use the normal preset assembler: enabled blocks, macros, generation
+triggers, available character/persona/scenario/history slots, lore placement and samplers.
+The VN character slot receives the full card rather than the phone's shorter card excerpt.
+Its previous helper-writing baseline is not appended a second time: writing preferences
+and model counters come from the selected preset, while approved polish remains optional.
+The presentation contract supplies structured JSON and the explicit authorship/interaction
+mode. Disabled preset blocks remain disabled. The scene retains a prepared-request trace
+with model, preset, messages, parameters, source labels, lore matches and assembly notes.
+Connection credentials are not included.
+
+Interaction modes are independent of authorship:
+
+- **Classic choices:** select suggested options.
+- **Write yourself:** free input; suggested choices are suppressed.
+- **Mixed:** either options or free input.
+- **Roleplay authorship:** the model cannot speak or decide for the user's character.
+- **Directing authorship:** the user's persona joins the cast as `user`, with the user's
+  profile sprites; the model may write that character under the user's direction.
+
+Writing length follows the preset and episode directions. Complete narrative blocks are
+split into display pages after optional Bulba polish; there is no sentence or line quota.
+Changed blocks retain their pre-polish text for inspection. Episode directions, interaction
+mode and authorship can be changed under Episode preferences.
+
+## Passage-level continuity and revision
+
+Every generated passage has a visual state and a checkpoint before it. Changes to background,
+music, location, outfits, positions or continuity apply at their passage, including when
+reading backward. An ending summary is not applied to earlier passages. Unknown assets
+retain the previous state; an unknown opening asset uses silence/no backdrop rather than
+an arbitrary setting. Manual stage choices affect the selected passage.
+
+The speaking character and the character shown on stage are independent. Outfit-specific
+sprites use a separate cache and do not overwrite normal expressions. A custom expression
+updates the selected passage. Illustrations receive participant reference identities,
+including the user's character when a reference is available, within the provider's existing
+five-reference limit. Image identity and composition remain best effort and need live evaluation.
+
+Passage tools provide:
+
+- **Edit:** retain the typed text, ask Bulba to update continuity from the retained prefix,
+  and remove the old continuation. This uses Bulba tokens; the button states that explicitly.
+- **Regenerate from here:** restore the preceding checkpoint and use the active preset's
+  regeneration rules. This uses the chat model.
+- **Branch after this passage:** create a separate episode and phone thread without a model call.
+- **Versions:** recover the original before an edit, regeneration or branch. Restoring a
+  version creates a separate phone branch.
+- **Completed episodes:** reopen new-format episodes as a separate branch.
+
+Operations apply to complete passages, which may span multiple display pages. Failed edits
+or generations leave the original intact. Discarded future passages and their continuity
+are not sent to the replacement generation. Branches copy the lore configuration in force
+at the fork, independently, while phone history comes from the original transition snapshot.
+Stale tab/revision requests are rejected.
+
+Full transcripts are retained, and the former silent 60-episode gallery limit is removed.
+Completing an episode does not require an image. An image-provider error still saves the
+story and phone memory handoff, with a visible warning. Archive and handoff commit together.
+
+## Verification without model spending
+
+From `narrative`, run the affected backend tests:
 
 ```sh
-cd narrative
-../.venv-pinned/bin/python manage.py test mainapp.test_messenger mainapp.test_messenger_actions mainapp.test_vn_scenes
+../.venv-pinned/bin/python manage.py test mainapp.test_screen_lore mainapp.test_vn_workflow mainapp.test_vn_scenes mainapp.test_messenger mainapp.test_messenger_actions mainapp.tests.BulbaTextingTests
 ```
 
-With Playwright and Chromium installed, from the repository root:
+With Playwright and Chromium installed, the standalone production-renderer check is:
 
 ```sh
 CHROMIUM_PATH=/usr/bin/chromium node scripts/check_vn_ui.cjs
 ```
 
-The browser check uses local fixtures and production renderer/CSS at phone and desktop
-widths. Backend tests mock model and image calls. These checks establish application
-behaviour, not live model writing quality or image identity fidelity.
-The integrated Screen page was also checked in a local Django server with a disposable
-database and seeded episode at both widths: the Scenes tab, dialogue and choices render
-without JavaScript errors or horizontal page overflow.
+An integrated browser check uses a dedicated fixture in a disposable database. From
+`narrative`, create the data directory, migrate it, seed it, and run the local server:
 
-## Remaining work
+```sh
+mkdir -p /tmp/narrative-screen-check
+NARRATIVE_DATA_DIR=/tmp/narrative-screen-check ../.venv-pinned/bin/python manage.py migrate --noinput
+NARRATIVE_DATA_DIR=/tmp/narrative-screen-check ../.venv-pinned/bin/python manage.py shell -c 'exec(open("../scripts/seed_screen_workflow.py").read())'
+NARRATIVE_DATA_DIR=/tmp/narrative-screen-check ../.venv-pinned/bin/python manage.py runserver 127.0.0.1:8765 --noreload
+```
 
-- Continuity records and reference instructions improve conditioning; image identity,
-  anatomy, composition and compliance still need live provider evaluation. Multi-character
-  scenes exceeding five participants cannot give every character an image reference.
-- Only one active episode per user is currently supported. State and gallery still use
-  `ChatSettings.appearance`; a dedicated episode/asset model is the next storage step.
-  The existing gallery retains at most 60 entries; this pass removes transcript truncation
-  within an episode, not the gallery retention limit.
-- Bulba's existing approved polish and taste instructions are connected. A dedicated VN
-  conversation/tool interface for changing directions or repairing earlier turns is future work.
-- Scene changes select existing backgrounds; custom generated backgrounds and consistent
-  camera views of a location still need a location asset workflow.
-- Subtext's character knowledge boundaries and its prescribed gossip/conflict tone are
-  not changed by this VN pass.
+Then, from the repository root in another terminal:
 
-## Adult-content image provider
+```sh
+VN_TEST_URL=http://127.0.0.1:8765 VN_TEST_SESSION_FILE=/tmp/narrative-screen-check/browser-session.json CHROMIUM_PATH=/usr/bin/chromium node scripts/check_screen_workflow.cjs
+```
 
-No new provider or safety bypass is installed. Public provider-policy lookups failed
-with a cloud network proxy 403 during this pass, so no provider was verified or selected.
+The browser check exercises chat-lore editing, passage visuals, interaction modes and
+branching at 390px and 1280px. Model-generating actions are blocked by its request routes.
+Backend model/image responses are mocked. These checks establish application behaviour,
+not live model writing quality, lore authoring accuracy or visual fidelity.
 
-Before selecting one, verify both its API and its published policy: consensual adult
-erotica must be permitted; sexual depictions of minors, nonconsensual sexual content,
-and nonconsensual sexual likenesses must be prohibited. Distinguish fictional characters
-from identifiable real people. Check reference-image handling, retention, moderation
-behaviour and reporting mechanisms. A published prohibition is not evidence of reliable
-automatic detection: input and output safeguards need separate validation.
+## First small paid test
 
-Provider blocks should remain visible and should not trigger a fallback to a less
-restrictive provider. Saving the episode independently of its illustration avoids making
-a block or an outage destructive to story progress.
+Keep automatic image generation off. Use one character and a short chat-local book with a
+recognizable fact. Move phone → episode → phone, checking voice, remembered facts and lore.
+Try a location/outfit change midway through a turn; then edit or regenerate an earlier
+passage and inspect the request for discarded future facts. Test directing and multiple
+characters after that. Add illustration generation last.
+
+## Remaining boundaries
+
+- Language/translation integration remains in the backlog for both phone and VN.
+- Only one active episode per account is supported; versions can be switched explicitly.
+- Episodes, transcripts, request traces and versions still live in `ChatSettings.appearance`.
+  They need dedicated episode/asset storage before substantial account histories accumulate.
+  Removing silent retention is not a storage-scaling solution.
+- Earlier episodes without historical checkpoints remain readable. Unsafe historical edits
+  are rejected instead of pretending a past state can be reconstructed. New passages have checkpoints.
+- Scene changes select available backgrounds. Consistent generated locations and camera views
+  still need a separate location-asset workflow.
+- The small TeleChat JavaScript interface exports shared live state, formatting and rendering,
+  plus `telechat-rendered`. New lore/editor UI lives in separate scripts to ease Claude's UI work.
+- Subtext's knowledge boundaries and prescribed gossip/conflict tone are unchanged.
+- No adult-content image provider has been selected or enabled. Provider policy lookups in the
+  earlier pass failed with a proxy 403. A candidate must document permission for consensual adult
+  erotica and restrictions on minors, nonconsensual sexual content and nonconsensual likenesses;
+  policy wording alone does not establish reliable input/output safeguards. Provider blocks
+  must remain visible and must not cause fallback to a less restrictive provider.

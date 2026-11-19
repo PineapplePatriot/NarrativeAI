@@ -26,6 +26,7 @@ import time
 import uuid
 from datetime import datetime
 from django.core.files.base import ContentFile
+from django.db import transaction
 from django.core.files.storage import default_storage
 from django.utils import timezone
 
@@ -338,6 +339,7 @@ def redraw_setup_look(user, character, outfit=""):
 def save_char_profile(character, updates):
     """Update `character.messenger_profile` without touching `character.description` or `character.scenario`."""
     current = char_profile(character)
+    before_setting = tuple(current.get(k) for k in ("mode", "modern_persona", "scenario"))
     if not isinstance(updates, dict):
         return current
     if updates.get("mode") in ("canon", "modern_au"):
@@ -381,6 +383,9 @@ def save_char_profile(character, updates):
         update_fields.append("eleven_voice_char_id")
     character.messenger_profile = current
     character.save(update_fields=update_fields)
+    if current.get("mode") == "modern_au" and before_setting != tuple(current.get(k) for k in ("mode", "modern_persona", "scenario")):
+        from mainapp.screen_lore import mark_modernized
+        mark_modernized(character)
     return current
 
 
@@ -730,6 +735,7 @@ def create_messenger_character_with_bulba(user, idea, name="", mode="modern_au",
 def thread_data(thread):
     raw = thread.data if isinstance(thread.data, dict) else {}
     return {
+        **{k: raw[k] for k in ("lorebook", "lore_mode", "lore_pending", "lore_draft") if k in raw},
         "messages": [m for m in (raw.get("messages") or []) if isinstance(m, dict)],
         "bg": raw.get("bg") or "tg-night",
         "custom_bg_url": str(raw.get("custom_bg_url") or ""),
@@ -780,7 +786,17 @@ def set_clock(thread, how):
     return offset
 
 
+@transaction.atomic
 def save_thread_data(thread, data):
+    # A reply prepared before a lore edit must not overwrite that edit when it finishes.
+    baseline = thread.data or {}
+    current = MessengerThread.objects.select_for_update().get(pk=thread.pk).data or {}
+    for field in ("lorebook", "lore_mode", "lore_pending", "lore_draft"):
+        if field not in data or data[field] == baseline.get(field):
+            if field in current:
+                data[field] = current[field]
+            else:
+                data.pop(field, None)
     shift = float(data.get("clock_offset") or 0)
     if shift:  # 🕰️ messages made just now carry the chat's time, not the real one
         real = time.time()
@@ -1015,6 +1031,9 @@ def create_thread(user, characters, title="", is_group=None, scenario_override="
         },
     )
     thread.characters.set(chars)
+    if any(is_set_up(c) and char_profile(c)["mode"] == "modern_au" for c in chars):
+        thread.data.update(lore_mode="off", lore_pending=True)
+        thread.save(update_fields=["data"])
     return thread
 
 
@@ -1126,7 +1145,7 @@ def active_model_texting_rules(user):
     }
 
 
-def _character_block(character, user, u_name=None, share=None):
+def _character_block(character, user, u_name=None, share=None, card_limit=3500):
     from mainapp.cards import fill_names, user_name
     u_name = u_name or user_name(user)
     prof = char_profile(character)
@@ -1141,7 +1160,8 @@ def _character_block(character, user, u_name=None, share=None):
     if prof.get("appearance_notes"):
         lines.append(f"Visual appearance: {fill_names(prof['appearance_notes'], character.name, u_name)[:800]}")
     if card_body:
-        lines.append(f"Core Character Card (for voice, temperament, appearance & deeper traits):\n{card_body[:3500]}")
+        lines.append("Core Character Card (for voice, temperament, appearance & deeper traits):\n"
+                     + (card_body if card_limit is None else card_body[:card_limit]))
     if character.personality:
         lines.append(f"Personality summary: {fill_names(character.personality, character.name, u_name)[:800]}")
     if prof["texting_style"]:
@@ -1235,7 +1255,9 @@ def build_messenger_prompt(user, thread, extra_instruction=""):
             f"- Write as {chars[0].name}. Separate multiple short text bubbles in the same turn with `|||BUBBLE|||`."
         )
 
-    sys_content = "\n\n".join(p for p in (safeguards, model_block, taste_block, group_rule, user_block, time_block, char_blocks) if p)
+    from mainapp import screen_lore
+    chat_lore = screen_lore.activate_for(thread)
+    sys_content = "\n\n".join(p for p in (chat_lore["text"], safeguards, model_block, taste_block, group_rule, user_block, time_block, char_blocks) if p)
     if data.get("memory"):  # 🧠 what happened before the messages below
         sys_content += f"\n\nEARLIER IN THIS CHAT (a summary of what came before the messages below):\n{data['memory']}"
     messages = [{"role": "system", "content": sys_content}]
@@ -2465,6 +2487,7 @@ def serialize_thread_summary(thread):
 
 def serialize_thread_full(thread, user):
     """Full thread payload for the active chat pane."""
+    from mainapp import screen_lore
     chars = list(thread.characters.all())
     data = thread_data(thread)
     rt = real_time_context(thread)
@@ -2486,6 +2509,7 @@ def serialize_thread_full(thread, user):
     stickers.extend(u_prof.get("custom_stickers") or [])
     return {
         **serialize_thread_summary(thread),
+        "lore": screen_lore.describe(thread),
         "messages": delivered(data["messages"]),
         "watch": watch_notice(delivered(data["messages"])) if _watch_on(user) else None,  # 🥔 Bulba noticed…
         "memory": data["memory"], "context_size": data["context_size"], "memory_due": memory_due(data),

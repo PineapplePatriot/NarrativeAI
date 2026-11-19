@@ -402,3 +402,12 @@ textarea.vn-short-input { resize: vertical; min-height: 64px; }
   flex-direction: column;
   gap: 7px;
 }
+
+.vn-editor-settings { padding: 8px 14px; background: #121a2c; }
+.vn-editor-content { display: flex; flex-direction: column; gap: 10px; padding: 12px 0; }
+.vn-passage-tools { margin-top: 12px; padding-top: 10px; border-top: 1px solid #465063; }
+.vn-editor-settings pre { max-height: 50vh; overflow: auto; overflow-wrap: anywhere; }
+#vnScenesRoot { flex-direction: column; }
+.screen-lore-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.screen-lore-editor { display: flex; flex-direction: column; gap: 10px; padding: 10px 0; }
+.screen-lore-editor fieldset { min-width: 0; border: 1px solid #465063; border-radius: 8px; }

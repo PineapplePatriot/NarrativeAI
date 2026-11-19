@@ -5720,6 +5720,49 @@ def vn_scenes_api(request):
 
     action = body.get("action") or ""
 
+    if action not in ("check_meetup", "start_scene", "delete_gallery_item"):
+        active = vn_scenes.get_vn_state(request.user).get("active_scene") or {}
+        if body.get("scene_id") and (body["scene_id"] != active.get("id") or
+                ("revision" in body and body["revision"] != active.get("revision", 0))):
+            return JsonResponse({"error": "This episode changed in another tab. Reload it before continuing."}, status=409)
+
+    if action in ("edit_passage", "regenerate_passage", "branch_passage", "resume_draft", "reopen_completed", "episode_preferences", "inspect_request"):
+        from . import vn_history, vn_story
+        try:
+            if action == "inspect_request":
+                _, scene = vn_history.current(request.user)
+                return JsonResponse({"request": scene.get("last_request")})
+            if action == "edit_passage":
+                scene = vn_history.edit(request.user, str(body.get("beat_id") or ""), str(body.get("text") or ""))
+            elif action == "regenerate_passage":
+                scene = vn_history.regenerate(request.user, str(body.get("beat_id") or ""), str(body.get("direction") or ""))
+            elif action == "branch_passage":
+                scene = vn_history.branch(request.user, str(body.get("beat_id") or ""))
+            elif action == "resume_draft":
+                scene = vn_history.resume(request.user, str(body.get("draft_id") or ""))
+            elif action == "reopen_completed":
+                scene = vn_history.reopen_completed(request.user, str(body.get("episode_id") or ""))
+            else:
+                _, scene = vn_history.current(request.user)
+                expected = (scene["id"], scene.get("revision", 0))
+                if body.get("interaction_mode") in vn_story.INTERACTIONS:
+                    scene["interaction_mode"] = body["interaction_mode"]
+                if body.get("authoring_mode") in vn_story.AUTHORING:
+                    scene["authoring_mode"] = body["authoring_mode"]
+                if "direction" in body:
+                    scene["direction"] = str(body["direction"])[:4000]
+                if "polish_enabled" in body:
+                    scene["polish_enabled"] = bool(body["polish_enabled"])
+                if scene.get("interaction_mode") == "write":
+                    scene["choices"] = []
+                vn_scenes.save_vn_state(request.user, {"active_scene": scene}, expected=expected)
+        except ai_client.AIError as exc:
+            return JsonResponse({"error": str(exc)}, status=400)
+        linked = MessengerThread.objects.filter(user=request.user, id=scene.get("thread_id")).first()
+        return JsonResponse({"scene": scene, "vn_scenes": _full_vn_payload(),
+                             "thread": messenger.serialize_thread_full(linked, request.user) if linked else None,
+                             "threads": [messenger.serialize_thread_summary(t) for t in MessengerThread.objects.filter(user=request.user)]})
+
     if action == "check_meetup":
         tid = body.get("thread_id")
         t_obj = MessengerThread.objects.filter(user=request.user, id=tid).first() if tid else None
@@ -5747,6 +5790,8 @@ def vn_scenes_api(request):
                 auto_generate_sprites=auto_sprites,
                 direction=str(body.get("direction") or "").strip()[:4000],
                 polish_enabled=bool(body.get("polish_enabled", False)),
+                interaction_mode=body.get("interaction_mode", "mixed"),
+                authoring_mode=body.get("authoring_mode", "roleplay"),
             )
         except ai_client.AIError as e:
             return JsonResponse({"error": str(e)}, status=400)
@@ -5804,23 +5849,30 @@ def vn_scenes_api(request):
         })
 
     if action == "set_stage":
+        from . import vn_story
         state = vn_scenes.get_vn_state(request.user)
         scene = state.get("active_scene")
         if not scene:
             return JsonResponse({"error": "No active scene."}, status=400)
-        music_id = body.get("music_id")
-        bg_id = body.get("background_id")
-        if music_id:
-            tracks = vn_scenes.available_music_tracks(chars)
-            picked_m = next((t for t in tracks if t["id"] == music_id), None)
-            if picked_m:
-                scene["music"] = picked_m
-        if bg_id:
-            bgs = vn_scenes.available_backgrounds(chars)
-            picked_b = next((b for b in bgs if b["id"] == bg_id), None)
-            if picked_b:
-                scene["background"] = picked_b
-        vn_scenes.save_vn_state(request.user, {"active_scene": scene})
+        expected = (scene["id"], scene.get("revision", 0))
+        beat = next((b for b in scene.get("beats", []) if b.get("id") == body.get("beat_id")), None)
+        if not beat:
+            beat = (scene.get("beats") or [{}])[-1]
+        change = {k: body[src] for k, src in (("music", "music_id"), ("background", "background_id")) if body.get(src)}
+        stage = vn_story.advance_stage(beat.get("stage") or vn_story.stage_of(scene), change,
+                                      vn_scenes.available_music_tracks(chars), vn_scenes.available_backgrounds(chars))
+        group = beat.get("block_id") or beat.get("id")
+        for collection in (scene.get("beats", []), scene.get("history", []), scene.get("current_beats", [])):
+            for item in collection:
+                if (item.get("block_id") or item.get("id")) == group:
+                    item["stage"] = stage
+        if group == ((scene.get("beats") or [{}])[-1].get("block_id") or (scene.get("beats") or [{}])[-1].get("id")):
+            scene["current_stage"] = stage
+            scene.update({k: stage.get(k) for k in ("background", "music", "location", "continuity")})
+        try:
+            vn_scenes.save_vn_state(request.user, {"active_scene": scene}, expected=expected)
+        except ai_client.AIError as exc:
+            return JsonResponse({"error": str(exc)}, status=400)
         return JsonResponse({"scene": scene})
 
     if action == "finish_scene":

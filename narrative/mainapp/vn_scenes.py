@@ -16,6 +16,7 @@ the Digital Screen transitions into a Visual Novel environment:
 """
 
 import json
+import copy
 import hashlib
 import logging
 import re
@@ -27,7 +28,7 @@ from django.core.files.storage import default_storage
 from django.db import transaction
 from django.utils import timezone
 
-from mainapp import ai_client, media_library, messenger, sprites, thinking, vn_support
+from mainapp import ai_client, media_library, messenger, sprites, thinking, vn_support, vn_story
 from mainapp.models import ChatSettings, MessengerThread
 
 log = logging.getLogger(__name__)
@@ -58,7 +59,8 @@ def get_vn_state(user):
     gallery = [g for g in (raw.get("gallery") or []) if isinstance(g, dict)]
     return {
         "active_scene": active,
-        "gallery": gallery[:60],
+        "gallery": gallery,
+        "drafts": raw.get("drafts") or [],
         "music_catalog": available_music_tracks(),
         "bg_catalog": available_backgrounds(),
     }
@@ -76,8 +78,6 @@ def save_vn_state(user, updates, expected=None):
     if isinstance(updates.get("active_scene"), dict):
         updates["active_scene"]["revision"] = active.get("revision", 0) + 1
     cur.update(updates)
-    if "gallery" in cur and isinstance(cur["gallery"], list):
-        cur["gallery"] = cur["gallery"][:60]
     app["vn_scenes"] = cur
     settings_obj.appearance = app
     settings_obj.save(update_fields=["appearance"])
@@ -258,19 +258,21 @@ VISUAL NOVEL ENGINE RULES:
    - Never shorten or stretch a passage to reach a line count. There is no required number of blocks or sentences.
    - Keep each speaker's dialogue separate from narration; a block may contain multiple paragraphs.
    - Preserve each character's current intention, knowledge, voice and relationship. Do not add hostility, attraction or a confession to manufacture drama.
-   - Do not decide the user's actions, speech, thoughts or consent. Offer choices as suggestions, leaving room for free input.
+   - Follow the explicit interaction and authorship mode below; it defines who the model may write for.
    - You are in person now. Characters can perceive what is present, but cannot know private thoughts or events they did not witness.
    - Vary speech according to character and circumstance. Do not recycle the previous turn's sentence shape, accusation list or rhetorical exchange merely with synonyms.
    - Continue until the situation offers a meaningful opening for user input. Scene changes require narrative cause; preserve outfits, objects, injuries and positions until an event changes them.
+   - Top-level background, music and location describe the opening, not the end of the passage.
+   - For EACH block, include `stage` containing changes that take effect at that block: background/music IDs, location, and a continuity patch (outfits, positions, time, summary, open_threads). Do not apply later changes to earlier blocks. Copy unchanged outfit descriptions verbatim.
    - Update `continuity` cumulatively: retain earlier facts and unresolved matters, and record actual changes. Time follows the story clock, not the wall clock.
    - Each item in `beats` must be either narration or one character's spoken dialogue.
    - Format examples below describe speaker metadata only; they are not length requirements.
    - Just like a real visual novel, each item in `"beats"` must be EITHER:
      * A **Narration / Action block** (`"speaker_slug": "narrator"`, `"speaker": "Narrator"`, `"emotion": "neutral"`, `"text": "Complete narration or action, without dialogue quote marks"`), OR
-     * A **Character Dialogue beat** (`"speaker_slug": "<character slug>"`, `"speaker": "<character name>"`, `"emotion": "<specific expression mood>"`, `"text": "Their complete spoken dialogue without narration tags"`).
+     * A **Character Dialogue block** (`"speaker_slug": "<character slug>"`, `"speaker": "<character name>"`, `"emotion": "<specific expression mood>"`, `"text": "Their complete spoken dialogue without narration tags"`).
    - Write as much or as little as the scene and user directions call for.
 2. DYNAMIC EXPRESSION SPRITES:
-   - On every character beat (and whenever a character reacts silently in a beat), set `"emotion"` to the exact mood that matches their face right now.
+   - On every block with character speech or a silent reaction, set `"emotion"` to the exact mood that matches their face right now.
    - You can pick from their existing moods ({existing_moods}) OR invent a specific new mood (1-2 lowercase words like `"flustered"`, `"smug"`, `"tired"`, `"blushing"`, `"laughing"`, `"annoyed"`, `"lovestruck"`, `"drenched"`, `"scheming"`) — the engine can dynamically generate and store new expression sprites!
 3. MUSIC & BACKDROP SELECTION:
    - Choose `"music"` from the available music tracks list below that best matches the current emotional tone of the scene.
@@ -308,7 +310,7 @@ Return ONLY a valid JSON object matching this exact structure (no markdown fence
   "location": "Specific location & time label (e.g. 'Zurich Biotech Lab · 01:40 AM')",
   "background": "Exact name of chosen background from AVAILABLE BACKGROUNDS",
   "music": "Exact name of chosen music track from AVAILABLE MUSIC TRACKS",
-  "handoff": "user_turn" | "auto_continue" | "climax_ready",
+  "handoff": "user_turn",
   "handoff_prompt": "Short 4-10 word cue for {user}, e.g. 'How do you answer Il Dottore?' or 'Scene climax reached — capture Finale CG!'",
   "choices": [
     "Short action or dialogue option 1 (under 14 words)",
@@ -324,11 +326,12 @@ Return ONLY a valid JSON object matching this exact structure (no markdown fence
   }},
   "beats": [
     {{
-      "speaker_slug": "narrator" | "<character slug>",
-      "speaker": "Narrator" | "<character display name>",
+      "speaker_slug": "narrator",
+      "speaker": "Narrator",
       "character_slug": "<slug of the character currently visible center-stage>",
-      "emotion": "neutral" | "happy" | "smug" | "flustered" | "scheming" | "<any mood>",
-      "text": "The single narration beat OR single spoken dialogue line"
+      "emotion": "neutral",
+      "stage": {{}},
+      "text": "The complete narration block OR spoken dialogue"
     }}
   ]
 }}"""
@@ -361,19 +364,17 @@ Return ONLY a valid JSON object:
 }}"""
 
 
-def _call_vn_json(user, prompt):
+def _call_vn_json(user, prompt, scene=None, generation="normal"):
     _, model = ai_client.resolve(user, "chat")
     thinks = thinking.needs_leash(model, "default")
-    raw = ai_client.complete(
-        user,
-        "chat",
-        [{"role": "user", "content": prompt}],
-        max_tokens=4500 + (thinking.LEASH_ROOM if thinks else 0),
-        temperature=0.82,
-    )
+    pack = vn_story.prepare(user, scene, prompt, generation) if scene is not None else None
+    params = dict(pack["params"]) if pack else {}
+    params.setdefault("max_tokens", 4500 + (thinking.LEASH_ROOM if thinks else 0))
+    params.setdefault("temperature", 0.82)
+    raw = ai_client.complete(user, "chat", pack["messages"] if pack else [{"role": "user", "content": prompt}], **params)
     parsed = messenger._read_json(raw)
     if not isinstance(parsed, dict) or not parsed:
-        raise ai_client.AIError("Could not parse Visual Novel scene beats from model. Try again.")
+        raise ai_client.AIError("Could not parse Visual Novel scene blocks from model. Try again.")
     return parsed
 
 
@@ -404,7 +405,7 @@ def _match_track(tracks, name):
     for t in tracks:
         if t.get("id", "").lower() == key or t["name"].lower() == key or (key and key in t["name"].lower()):
             return t
-    return tracks[0]
+    return {"id": "none", "name": "Silence", "url": ""}
 
 
 def _match_bg(bgs, name):
@@ -414,71 +415,68 @@ def _match_bg(bgs, name):
     for b in bgs:
         if b.get("id", "").lower() == key or b["name"].lower() == key or (key and key in b["name"].lower()):
             return b
-    return bgs[0]
+    return {"id": "none", "name": "No backdrop", "url": ""}
 
 
-def _enrich_beats(user, chars, raw_beats, auto_generate_sprites=False, continuity=None, scene_assets=None):
+def _enrich_beats(user, chars, raw_beats, auto_generate_sprites=False, continuity=None, scene_assets=None,
+                  initial_stage=None, authoring_mode="roleplay", user_participant=None):
     if not isinstance(raw_beats, list):
         raise ai_client.AIError("The model returned invalid scene blocks. Try again.")
     char_by_slug = {c.slug: c for c in chars}
-    default_char = chars[0]
-    enriched = []
-    for rb in (raw_beats or []):
-        if not isinstance(rb, dict):
+    current = copy.deepcopy(initial_stage or {"continuity": continuity or {}})
+    user_participant = user_participant or vn_story.user_participant(user, vn_support.scene_context(user))
+    tracks, bgs = available_music_tracks(chars), available_backgrounds(chars)
+    boxes = []
+    for rb in raw_beats:
+        if not isinstance(rb, dict) or not str(rb.get("text") or "").strip():
             continue
-        txt = str(rb.get("text") or "").strip()
-        if not txt:
-            continue
+        txt = str(rb["text"]).strip()
+        before = copy.deepcopy(current)
+        current = vn_story.advance_stage(current, rb.get("stage"), tracks, bgs)
         sp_raw = str(rb.get("speaker_slug") or rb.get("speaker") or "").strip()
         sp_low = sp_raw.lower()
-        kind_raw = str(rb.get("kind") or "").strip().lower()
-        is_narrator = kind_raw == "narration" or sp_low in ("narrator", "narration", "system", "")
-        speaker_char = char_by_slug.get(sp_raw) or next(
-            (c for c in chars if sp_low in (c.slug.lower(), c.name.lower(),
-                                           messenger.char_profile(c)["display_name"].lower())), None)
-        if not is_narrator and speaker_char is None:
-            raise ai_client.AIError("The model wrote dialogue for an unknown participant. The previous scene is saved; try again.")
-        c_slug = str(rb.get("character_slug") or ("" if is_narrator else sp_raw)).strip()
-        stage_char = char_by_slug.get(c_slug) or speaker_char or default_char
-        stage_prof = messenger.char_profile(stage_char)
-        speaker_prof = messenger.char_profile(speaker_char) if speaker_char else None
-
-        emo = sprites.clean_name(rb.get("emotion") or "neutral") or "neutral"
-        outfits = (continuity or {}).get("outfits") or {}
-        outfit = str(outfits.get(stage_char.slug) or "") if isinstance(outfits, dict) else ""
-        sp_info = resolve_or_generate_sprite(user, stage_char, emo,
-                                             auto_generate=auto_generate_sprites and not is_narrator,
-                                             outfit=outfit, scene_assets=scene_assets)
-
-        enriched.append({
-            "id": "vnb_" + uuid.uuid4().hex[:8],
-            "kind": "narration" if is_narrator else "dialogue",
-            "speaker": "narrator" if is_narrator else speaker_char.slug,
-            "speaker_slug": "narrator" if is_narrator else speaker_char.slug,
-            "speaker_name": "Narrator" if is_narrator else speaker_prof["display_name"],
-            "character_slug": stage_char.slug,
-            "character_name": stage_prof["display_name"],
-            "emotion": sp_info["emotion"],
-            "sprite_url": sp_info["url"],
-            "is_new_sprite": sp_info.get("is_new", False),
-            "needs_sprite_gen": False if is_narrator else sp_info.get("needs_gen", False),
-            "text": txt,
-            "original_text": rb.get("original_text") or "",
-        })
-    # Split presentation after writing and optional repairs. Never discard prose to fit a box.
-    boxes = []
-    for block in enriched:
-        for i, part in enumerate(vn_support.split_display_text(block["text"])):
-            boxes.append({**block, "id": "vnb_" + uuid.uuid4().hex[:8], "block_id": block["id"],
-                          "text": part, "original_text": block["original_text"] if i == 0 else ""})
+        narrator = rb.get("kind") == "narration" or sp_low in ("narrator", "narration", "system", "")
+        user_speaks = sp_low == "user" and not narrator
+        speaker_char = char_by_slug.get(sp_raw) or next((c for c in chars if sp_low in (
+            c.slug.lower(), c.name.lower(), messenger.char_profile(c)["display_name"].lower())), None)
+        if user_speaks and authoring_mode != "director":
+            raise ai_client.AIError("The model wrote for your character. Your previous scene is saved; try again.")
+        if not narrator and not user_speaks and speaker_char is None:
+            raise ai_client.AIError("The model wrote dialogue for an unknown participant. Your previous scene is saved; try again.")
+        stage_slug = str(rb.get("character_slug") or ("user" if user_speaks else speaker_char.slug if speaker_char else chars[0].slug))
+        emotion = sprites.clean_name(rb.get("emotion") or "neutral") or "neutral"
+        if stage_slug == "user":
+            stage_name = user_participant["name"]
+            sp_info = {"emotion": emotion, "url": user_participant["sprites"].get(emotion) or user_participant["avatar_url"], "needs_gen": False}
+        else:
+            stage_char = char_by_slug.get(stage_slug) or speaker_char or chars[0]
+            stage_slug = stage_char.slug
+            stage_name = messenger.char_profile(stage_char)["display_name"]
+            outfits = (current.get("continuity") or {}).get("outfits") or {}
+            outfit = str(outfits.get(stage_slug) or "") if isinstance(outfits, dict) else ""
+            sp_info = resolve_or_generate_sprite(user, stage_char, emotion, auto_generate=auto_generate_sprites and not narrator,
+                                                 outfit=outfit, scene_assets=scene_assets)
+        block_id = "vnb_" + uuid.uuid4().hex[:8]
+        speaker = "narrator" if narrator else "user" if user_speaks else speaker_char.slug
+        speaker_name = "Narrator" if narrator else user_participant["name"] if user_speaks else messenger.char_profile(speaker_char)["display_name"]
+        for i, part in enumerate(vn_support.split_display_text(txt)):
+            boxes.append({"id": "vnb_" + uuid.uuid4().hex[:8], "block_id": block_id,
+                          "kind": "narration" if narrator else "dialogue", "generated": True,
+                          "speaker": speaker, "speaker_slug": speaker, "speaker_name": speaker_name,
+                          "character_slug": stage_slug, "character_name": stage_name, "emotion": sp_info["emotion"],
+                          "sprite_url": sp_info["url"], "is_new_sprite": sp_info.get("is_new", False),
+                          "needs_sprite_gen": False if narrator else sp_info.get("needs_gen", False),
+                          "text": part, "block_text": txt if i == 0 else "",
+                          "original_text": (rb.get("original_text") or "") if i == 0 else "",
+                          "stage": copy.deepcopy(current), "stage_before": before})
     return boxes
 
 
 def start_scene(user, thread=None, characters=None, location_hint="", auto_generate_sprites=False,
-                direction="", polish_enabled=False):
+                direction="", polish_enabled=False, interaction_mode="mixed", authoring_mode="roleplay"):
     """
     Launch a new Visual Novel Meet-Up Scene from a TeleChat `thread` (or selected `characters`).
-    Selects music & backdrop, generates the opening 3–5 VN beats, resolves or generates character sprites,
+    Selects music & backdrop, generates the opening narrative, resolves or generates character sprites,
     and saves `active_scene` into the user's VN state.
     """
     if get_vn_state(user).get("active_scene"):
@@ -499,8 +497,14 @@ def start_scene(user, thread=None, characters=None, location_hint="", auto_gener
     telechat_context = ("Earlier memory:\n" + context["memory"] + "\nThread scenario:\n" + context["scenario"]
                         + "\nConversation:\n" + context["conversation"])
 
-    model_rules = vn_support.model_rules(user)
+    model_rules = ""  # Writing instructions come from the selected preset, without a second hidden baseline.
 
+    seed = {"thread_id": thread.id if thread else None, "context": context, "direction": direction,
+            "character_slugs": [c.slug for c in chars], "beats": [],
+            "interaction_mode": interaction_mode if interaction_mode in vn_story.INTERACTIONS else "mixed",
+            "authoring_mode": authoring_mode if authoring_mode in vn_story.AUTHORING else "roleplay",
+            "user_participant": vn_story.user_participant(user, context),
+            "phone_snapshot": copy.deepcopy(thread.data or {}) if thread else {}}
     prompt = VN_SCENE_PROMPT.format(
         user=u_name,
         clock=clock_str,
@@ -516,19 +520,22 @@ def start_scene(user, thread=None, characters=None, location_hint="", auto_gener
                    + "\nUser's writing directions: " + direction,
     )
 
-    parsed = _call_vn_json(user, prompt)
+    parsed = _call_vn_json(user, prompt, seed)
     chosen_music = _match_track(tracks, parsed.get("music_id") or parsed.get("music"))
     chosen_bg = _match_bg(bgs, parsed.get("background_id") or parsed.get("background"))
     raw_blocks = parsed.get("blocks") or parsed.get("beats") or []
     raw_blocks, polish_error = vn_support.polish_blocks(user, raw_blocks, telechat_context, polish_enabled)
-    continuity = vn_support.continuity_update({}, parsed.get("continuity"))
+    continuity = {"time": context["clock"]}
     scene_assets = {}
     beats = _enrich_beats(user, chars, raw_blocks, auto_generate_sprites=auto_generate_sprites,
-                        continuity=continuity, scene_assets=scene_assets)
+                        continuity=continuity, scene_assets=scene_assets,
+                        initial_stage={"background": chosen_bg, "music": chosen_music, "location": parsed.get("location") or location_hint, "continuity": continuity},
+                        authoring_mode=seed["authoring_mode"], user_participant=seed["user_participant"])
     if not beats:
         raise ai_client.AIError("The model returned no scene text. Try starting the episode again.")
 
     scene = {
+        **seed,
         "id": "vns_" + uuid.uuid4().hex[:8],
         "thread_id": thread.id if thread else None,
         "context": context,
@@ -553,17 +560,22 @@ def start_scene(user, thread=None, characters=None, location_hint="", auto_gener
         "started_at": now_local.strftime("%d %b %H:%M"),
         "ts": time.time(),
     }
+    scene["initial_stage"] = copy.deepcopy(beats[0]["stage_before"])
+    scene["current_stage"] = vn_story.finish_timeline(beats, parsed.get("continuity"))
+    scene["continuity"] = scene["current_stage"]["continuity"]
+    scene.update({k: scene["current_stage"].get(k) for k in ("background", "music", "location")})
+    if scene["interaction_mode"] == "write": scene["choices"] = []
     save_vn_state(user, {"active_scene": scene}, expected=("", 0))
     return scene
 
 
-def step_scene(user, user_input="", auto_generate_sprites=None):
+def step_scene(user, user_input="", auto_generate_sprites=None, base_scene=None, generation="normal", turn_direction="", save_updates=None):
     """
     Advance the active Visual Novel scene by one turn (either with `user_input` action/dialogue or
     continuing automatically when `user_input` is empty).
     """
     state = get_vn_state(user)
-    scene = state.get("active_scene")
+    scene = copy.deepcopy(base_scene or state.get("active_scene"))
     if not scene:
         raise ai_client.AIError("No active Visual Novel scene. Start a scene first.")
     expected = (scene["id"], scene.get("revision", 0))
@@ -578,6 +590,7 @@ def step_scene(user, user_input="", auto_generate_sprites=None):
         scene["auto_generate_sprites"] = bool(auto_generate_sprites)
 
     context = scene.get("context") or vn_support.scene_context(user, vn_support.linked_thread(user, scene))
+    scene["context"] = context
     u_name = context["user_name"]
     clock_str = (scene.get("continuity") or {}).get("time") or context["clock"]
 
@@ -598,6 +611,7 @@ def step_scene(user, user_input="", auto_generate_sprites=None):
             "is_new_sprite": False,
             "needs_sprite_gen": False,
             "text": user_input.strip(),
+            "generated": False, "stage": vn_story.stage_of(scene), "stage_before": vn_story.stage_of(scene),
         }
         history.append(user_beat)
 
@@ -609,7 +623,7 @@ def step_scene(user, user_input="", auto_generate_sprites=None):
     tracks = available_music_tracks(chars)
     bgs = available_backgrounds(chars)
     roster_text, moods_list = _build_char_roster(chars, user, context)
-    model_rules = vn_support.model_rules(user)
+    model_rules = ""  # Writing instructions come from the selected preset, without a second hidden baseline.
 
     step_dir = (
         f"{u_name} just did/said: \"{user_input.strip()}\". Respond until the next natural opportunity for input."
@@ -633,32 +647,31 @@ def step_scene(user, user_input="", auto_generate_sprites=None):
         step_input=step_dir + "\nUser's writing directions: " + scene.get("direction", ""),
     )
 
-    parsed = _call_vn_json(user, prompt)
-    if parsed.get("music_id") or parsed.get("music"):
-        scene["music"] = _match_track(tracks, parsed.get("music_id") or parsed.get("music"))
-    if parsed.get("background_id") or parsed.get("background"):
-        scene["background"] = _match_bg(bgs, parsed.get("background_id") or parsed.get("background"))
-    if parsed.get("location"):
-        scene["location"] = str(parsed.get("location")).strip()[:120]
-
+    scene["beats"] = history
+    parsed = _call_vn_json(user, prompt + "\n" + turn_direction, scene, generation)
     raw_blocks = parsed.get("blocks") or parsed.get("beats") or []
     raw_blocks, scene["polish_error"] = vn_support.polish_blocks(
         user, raw_blocks, prompt, scene.get("polish_enabled", False))
     continuity = vn_support.continuity_update(scene.get("continuity"), parsed.get("continuity"))
     new_beats = _enrich_beats(user, chars, raw_blocks, auto_generate_sprites=auto_generate_sprites,
-                            continuity=continuity, scene_assets=scene.setdefault("sprite_cache", {}))
+                            continuity=continuity, scene_assets=scene.setdefault("sprite_cache", {}),
+                            initial_stage=vn_story.stage_of(scene), authoring_mode=scene.get("authoring_mode", "roleplay"),
+                            user_participant=scene.get("user_participant"))
     if not new_beats:
         raise ai_client.AIError("The model returned no scene text. Your previous turn is still saved; try again.")
     history.extend(new_beats)
     scene["current_beats"] = new_beats
     scene["beats"] = history
     scene["history"] = history
-    scene["continuity"] = continuity
+    scene["current_stage"] = vn_story.finish_timeline(new_beats, parsed.get("continuity"))
+    scene["continuity"] = scene["current_stage"]["continuity"]
+    scene.update({k: scene["current_stage"].get(k) for k in ("background", "music", "location")})
     scene["handoff"] = parsed.get("handoff") if parsed.get("handoff") in ("user_turn", "auto_continue", "climax_ready") else "user_turn"
     scene["handoff_prompt"] = str(parsed.get("handoff_prompt") or "What do you do or say?").strip()[:140]
     scene["choices"] = [str(ch).strip()[:120] for ch in (parsed.get("choices") or []) if str(ch or "").strip()][:3]
 
-    save_vn_state(user, {"active_scene": scene}, expected=expected)
+    if scene.get("interaction_mode") == "write": scene["choices"] = []
+    save_vn_state(user, {**(save_updates or {}), "active_scene": scene}, expected=expected)
     return scene, new_beats
 
 
@@ -680,7 +693,10 @@ def generate_beat_sprite(user, beat_id="", char_slug="", emotion=""):
     if not target_char:
         raise ai_client.AIError("Character not found for sprite generation.")
 
-    outfits = (scene.get("continuity") or {}).get("outfits") or {}
+    expected = (scene["id"], scene.get("revision", 0))
+    target_beat = next((b for b in scene.get("beats", []) if b.get("id") == beat_id), {})
+    target_state = target_beat.get("stage") or vn_story.stage_of(scene)
+    outfits = (target_state.get("continuity") or {}).get("outfits") or {}
     outfit = str(outfits.get(target_char.slug) or "") if isinstance(outfits, dict) else ""
     sp_info = resolve_or_generate_sprite(user, target_char, emotion or "neutral", auto_generate=True,
                                        outfit=outfit, scene_assets=scene.setdefault("sprite_cache", {}))
@@ -688,11 +704,17 @@ def generate_beat_sprite(user, beat_id="", char_slug="", emotion=""):
     if scene:
         for collection in (scene.get("beats") or [], scene.get("current_beats") or [], scene.get("history") or []):
             for b in collection:
-                if b.get("character_slug") == target_char.slug and b.get("emotion") == sp_info["emotion"]:
+                selected = bool(target_beat) and (b.get("block_id") or b.get("id")) == (target_beat.get("block_id") or target_beat.get("id"))
+                if b.get("character_slug") == target_char.slug and (selected or b.get("emotion") == sp_info["emotion"]):
+                    other_outfits = ((b.get("stage") or {}).get("continuity") or {}).get("outfits") or {}
+                    other_outfit = str(other_outfits.get(target_char.slug) or "") if isinstance(other_outfits, dict) else ""
+                    if other_outfit != outfit:
+                        continue
                     b["sprite_url"] = sp_info["url"]
+                    b["emotion"] = sp_info["emotion"]
                     b["is_new_sprite"] = True
                     b["needs_sprite_gen"] = False
-        save_vn_state(user, {"active_scene": scene})
+        save_vn_state(user, {"active_scene": scene}, expected=expected)
 
     return scene, sp_info["url"], sp_info["emotion"], float(sp_info.get("cost") or 0.0)
 
@@ -771,6 +793,14 @@ def finish_scene_with_cg(user, cg_hint="", capture_image=True):
             refs.append(images[0])
             ref_labels.append(f"Reference {len(refs)}: {messenger.char_profile(c)['display_name']}")
             extra_refs.extend(images[1:])
+    player = scene.get("user_participant") or {}
+    if player:
+        char_visuals.append(f"- {player.get('name')}: {player.get('persona') or 'match their reference portrait'}")
+        if player.get("avatar_url") and len(refs) < 5:
+            reference = messenger._read_storage_image(player["avatar_url"])
+            if reference:
+                refs.append(reference)
+                ref_labels.append(f"Reference {len(refs)}: {player['name']} (the user's character)")
     refs.extend(extra_refs[:max(0, 5 - len(refs))])
 
     full_cg_prompt = (
@@ -798,6 +828,7 @@ def finish_scene_with_cg(user, cg_hint="", capture_image=True):
     all_beats = scene.get("beats") or scene.get("history") or []
     gallery_entry = {
         "id": scene["id"],
+        "episode": copy.deepcopy(scene),
         "thread_id": scene.get("thread_id"),
         "title": scene.get("title"),
         "location": scene.get("location"),
