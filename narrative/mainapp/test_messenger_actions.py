@@ -574,3 +574,27 @@ class StatusAndPresenceTests(MessengerActionTests):
         self.assertEqual(messenger.presence(data, now)["state"], "busy")
         data["messages"][-1]["late_reason"] = "petty"
         self.assertEqual(messenger.presence(data, now)["state"], "away")
+
+
+class UserPictureTests(MessengerActionTests):
+    test_the_page_opens = test_uploads_answer_json = test_texting_and_message_actions = None
+    test_group_chats_profiles_and_settings = None
+
+    def test_a_picture_of_me_with_references_then_sent(self):
+        from django.core.files.base import ContentFile
+        from mainapp import ai_client
+        self.user.persona_name = "Mika"
+        self.user.persona_photo_neutral.save("mika.png", ContentFile(png("green")), save=True)
+        tid = self.thread()
+        ref = self.files(kind="image", file=upload()).json()["url"]
+        out = self.post(action="user_picture", thread_id=tid, prompt="at the bus stop in the rain", refs=[ref], with_me=True).json()
+        self.assertTrue(out["url"])
+        self.assertEqual(out["seen"], "Mika: at the bus stop in the rain")
+        kwargs = ai_client.generate_image.call_args.kwargs
+        self.assertEqual(len(kwargs["references"]), 2)  # my persona picture + the upload
+        self.assertIn("Mika is in it", ai_client.generate_image.call_args.args[1])
+        self.post(action="send_user_message", thread_id=tid, text="",
+                  photo={"kind": "generated", "url": out["url"], "caption": "told you", "seen": out["seen"]})
+        self.post(action="generate_reply", thread_id=tid)
+        self.assertIn("It shows: Mika: at the bus stop in the rain", json.dumps(ai_client.complete.call_args.args[2]))
+        self.assertEqual(self.post(action="user_picture", thread_id=tid, prompt="").status_code, 400)

@@ -4627,6 +4627,7 @@ def screen_hub(request):
         "active_thread": serialized_active,
         "characters": char_catalog,
         "user_profile": messenger.user_profile(request.user),
+        "persona_photo": request.user.persona_photo_neutral.url if request.user.persona_photo_neutral else "",
         "wallpapers": messenger.WALLPAPERS,
         "reactions": messenger.REACTIONS,
         "built_in_stickers": messenger.BUILT_IN_STICKERS,
@@ -5281,6 +5282,17 @@ def messenger_api(request):
         stories = [story_item, *(c_prof.get("stories") or [])][:30]
         saved_c = messenger.save_char_profile(c_obj, {"stories": stories, "status_emoji": emoji})
         return JsonResponse({"story": story_item, "profile": saved_c, "char_slug": c_obj.slug})
+
+    if action == "user_picture":  # 🎨 a picture the user makes to send (made again as often as they like)
+        thread = MessengerThread.objects.filter(user=request.user, id=body.get("thread_id")).prefetch_related("characters").first()
+        if not thread:
+            return JsonResponse({"error": "Chat not found."}, status=404)
+        refs = [str(u) for u in (body.get("refs") or []) if isinstance(u, str)][:5]
+        try:
+            url, seen = messenger.user_picture(request.user, thread, body.get("prompt"), refs, with_me=bool(body.get("with_me", True)))
+        except (ValueError, ai_client.AIError) as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"url": url, "seen": seen})
 
     if action == "story_picture":  # 🖼️ a status's picture, made when it's first viewed
         c_obj = char_by_slug.get(body.get("owner") or "")

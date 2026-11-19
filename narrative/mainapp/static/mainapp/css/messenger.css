@@ -1606,3 +1606,16 @@ body.tg-bulba-open .tg-header-actions .tg-hdr-btn > span, body.tg-bulba-open #hd
 .tg-stories-tap { position: absolute; top: 60px; bottom: 0; width: 40%; z-index: 1; cursor: pointer; }
 .tg-stories-tap.prev { left: 0; } .tg-stories-tap.next { right: 0; }
 .tg-stories-pic { pointer-events: none; } .tg-stories-pic button { pointer-events: auto; }
+
+/* 🎨 Make a picture to send */
+.tg-make h3 { margin: 0 0 10px; padding-right: 30px; }
+.tg-make textarea { width: 100%; box-sizing: border-box; background: rgba(0, 0, 0, .25); border: 1px solid var(--tg-border); border-radius: 10px;
+  color: var(--tg-text); padding: 8px 10px; font: inherit; margin-bottom: 8px; }
+.tg-make .tg-input { width: 100%; box-sizing: border-box; margin: 8px 0; }
+.tg-make-refs { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0 10px; }
+.tg-make-ref { width: 62px; height: 62px; padding: 0; border-radius: 10px; overflow: hidden; border: 2px solid transparent; background: rgba(255, 255, 255, .05);
+  cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--tg-muted); font-size: 22px; }
+.tg-make-ref img { width: 100%; height: 100%; object-fit: cover; opacity: .6; }
+.tg-make-ref.on { border-color: #a78bfa; } .tg-make-ref.on img { opacity: 1; }
+.tg-make-preview { display: flex; justify-content: center; margin: 6px 0; }
+.tg-make-preview img { max-width: 100%; max-height: 42vh; border-radius: 12px; cursor: zoom-in; }

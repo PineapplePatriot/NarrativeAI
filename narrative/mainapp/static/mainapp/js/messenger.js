@@ -1525,6 +1525,77 @@
       show();
     },
 
+    // 🎨 A picture to send: a photo of you (your persona picture as the reference) or of anything; up to 5
+    // references; make it again as often as you like, then send it with a caption
+    openMakePicture: function () {
+      var t = STATE.active_thread; if (!t) return;
+      var mk = TG._mk = TG._mk && TG._mk.thread === t.id ? TG._mk : { thread: t.id, withMe: !!STATE.persona_photo, refs: [], url: "", seen: "", busy: false };
+      var box = document.getElementById("tgMake");
+      if (!box) {
+        box = document.createElement("div"); box.id = "tgMake"; box.className = "tg-card-shade";
+        box.addEventListener("click", function (e) { if (e.target === box) box.classList.remove("open"); });
+        document.body.appendChild(box);
+      }
+      var options = [];
+      (t.members || []).forEach(function (m) {
+        [m.neutral_url].concat(m.extra_refs || []).filter(Boolean).forEach(function (u) { options.push({ url: u, label: m.name }); });
+      });
+      mk.uploads = mk.uploads || [];
+      mk.uploads.forEach(function (u) { options.push({ url: u, label: "yours" }); });
+      var count = mk.refs.length + (mk.withMe && STATE.persona_photo ? 1 : 0);
+      box.innerHTML = '<div class="tg-card tg-make" role="dialog" aria-label="Make a picture">' +
+        '<button type="button" class="tg-card-x" data-x aria-label="Close">✕</button>' +
+        "<h3>🎨 Make a picture to send</h3>" +
+        '<textarea id="tgMakeDesc" rows="3" placeholder="What the photo shows: me at the bus stop in the rain, holding the umbrella you lent me…">' + esc(mk.desc || "") + "</textarea>" +
+        (STATE.persona_photo ? '<label class="tg-start-opt' + (mk.withMe ? " on" : "") + '"><input type="checkbox" data-me ' + (mk.withMe ? "checked" : "") + '> I\'m in it (my persona picture as the reference)</label>'
+          : '<p class="tg-card-small">No persona picture yet: add one in your Profile to be in your photos.</p>') +
+        '<p class="tg-card-small">References (' + count + " of 5): tap to use. A character's picture puts them in it too.</p>" +
+        '<div class="tg-make-refs">' + options.map(function (o) {
+          var on = mk.refs.indexOf(o.url) !== -1;
+          return '<button type="button" class="tg-make-ref' + (on ? " on" : "") + '" data-ref="' + esc(o.url) + '" title="' + esc(o.label) + '"><img src="' + esc(o.url) + '" alt=""></button>';
+        }).join("") +
+        '<label class="tg-make-ref tg-make-add" title="Upload a reference">＋<input type="file" accept="image/*" hidden data-up></label></div>' +
+        '<div class="tg-make-preview">' + (mk.busy ? "<p>📸 Making the picture…</p>" : mk.url ? '<img src="' + esc(mk.url) + '" alt="" onclick="TG.viewImage(this.src)">' : "") + "</div>" +
+        (mk.url ? '<input type="text" class="tg-input" id="tgMakeCaption" placeholder="A caption (optional)" value="' + esc(mk.caption || "") + '">' : "") +
+        '<div class="tg-setup-row"><button type="button" class="tg-setup-go" data-make ' + (mk.busy ? "disabled" : "") + ">" + (mk.url ? "↻ Make it again" : "🎨 Make it") + "</button>" +
+        (mk.url ? '<button type="button" class="tg-setup-go" data-send>Send ➤</button>' : "") + "</div></div>";
+      box.classList.add("open");
+      box.onclick = function (e) {
+        var d = document.getElementById("tgMakeDesc"); if (d) mk.desc = d.value;
+        var c = document.getElementById("tgMakeCaption"); if (c) mk.caption = c.value;
+        if (e.target === box || e.target.closest("[data-x]")) { box.classList.remove("open"); return; }
+        var r = e.target.closest("[data-ref]");
+        if (r) {
+          var u = r.getAttribute("data-ref"), at = mk.refs.indexOf(u);
+          if (at !== -1) mk.refs.splice(at, 1); else if (count < 5) mk.refs.push(u);
+          return TG.openMakePicture();
+        }
+        if (e.target.closest("[data-make]")) {
+          if (!(mk.desc || "").trim()) return alert("Describe the picture first.");
+          mk.busy = true; TG.openMakePicture();
+          apiPost({ action: "user_picture", thread_id: t.id, prompt: mk.desc, refs: mk.refs, with_me: mk.withMe })
+            .then(function (res) { mk.busy = false; mk.url = res.url; mk.seen = res.seen; TG.openMakePicture(); })
+            .catch(function (err) { mk.busy = false; TG.openMakePicture(); alert(err.message); });
+          return;
+        }
+        if (e.target.closest("[data-send]")) {
+          box.classList.remove("open");
+          TG.sendUserMessage({ text: "", photo: { kind: "generated", url: mk.url, caption: mk.caption || "", seen: mk.seen, prompt: mk.desc } });
+          TG._mk = null;
+        }
+      };
+      box.onchange = function (e) {
+        if (e.target.matches("[data-me]")) { mk.withMe = e.target.checked; return TG.openMakePicture(); }
+        if (e.target.matches("[data-up]") && e.target.files[0]) {
+          var fd = new FormData(); fd.append("kind", "image"); fd.append("file", e.target.files[0]);
+          fetch(window.TG_CFG.api, { method: "POST", headers: { "X-CSRFToken": window.TG_CFG.csrf }, body: fd })
+            .then(function (r) { return r.json(); })
+            .then(function (res) { if (res.error) throw new Error(res.error); mk.uploads.push(res.url); if (count < 5) mk.refs.push(res.url); TG.openMakePicture(); })
+            .catch(function (err) { alert(err.message); });
+        }
+      };
+    },
+
     setupType: function (slug, key, value) { if (setupState[slug]) setupState[slug][key] = value; },
     setupSkip: function (slug) {
       try { localStorage.setItem("na-tg-setup-skip-" + slug, "1"); } catch (e) { /* this visit only */ }

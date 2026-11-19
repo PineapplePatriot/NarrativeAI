@@ -1897,6 +1897,38 @@ def post_own_status(user, character, thread=None):
     return story
 
 
+def user_picture(user, thread, description, ref_urls=(), with_me=True):
+    """🎨 A picture the user sends: a photo of them (their persona picture as the reference) or of anything, with up
+    to 5 references (their persona, the character's pictures for a photo of the two of them, uploads), in the chat's
+    art style. Returns (url, the description the character reads)."""
+    description = str(description or "").strip()[:800]
+    if not description:
+        raise ValueError("Describe the picture first.")
+    persona = thread_data(thread).get("persona") or {}
+    me_name = persona.get("name") or (getattr(user, "persona_name", "") or "").strip() or "the user"
+    me_look = (persona.get("description") or getattr(user, "persona_description", "") or "")[:600]
+    refs = []
+    if with_me and getattr(user, "persona_photo_neutral", None):
+        item = _read_storage_image(user.persona_photo_neutral)
+        if item:
+            refs.append(item)
+    for u in list(ref_urls)[:5]:
+        item = _read_storage_image(u)
+        if item and len(refs) < 5:
+            refs.append(item)
+    first = thread.characters.first()
+    style = (char_profile(first).get("art_style_notes") if first else "") or "the same art style as the reference pictures"
+    people = (f"{me_name} is in it" + (" (the person in the first reference picture: keep their face, hair and build)"
+                                         if with_me and refs else "") + (f". How they look: {me_look}" if me_look else "")
+              if with_me else "NO PEOPLE unless the description names someone")
+    prompt = (f"A candid smartphone photo that {me_name} took and sends in a private chat. {people}.\n"
+              f"Other reference pictures, if any, show people or things that belong in the photo: keep them as they are.\n"
+              f"Art style: {style}.\nWhat the photo shows: {description}")
+    img, _ = make_picture(user, prompt, references=refs)
+    saved = default_storage.save(f"messenger/user/{user.id}-{uuid.uuid4().hex[:8]}.png", ContentFile(img))
+    return default_storage.url(saved), (f"{me_name}: " if with_me else "") + description
+
+
 def story_picture(user, character, story_id):
     """🖼️ The picture of a status that has a description but no picture yet. Returns the story."""
     prof = char_profile(character)
