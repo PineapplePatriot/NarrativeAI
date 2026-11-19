@@ -9,12 +9,14 @@ the Digital Screen transitions into a Visual Novel environment:
   expression mood (`emotion`) to every line and deciding when to hand input to the user (`handoff`).
 - Dynamically generates new expression sprites when a beat calls for a mood the character doesn't have yet,
   and stores them permanently on the character (`Character.photo_<mood>` or `sprites.save`).
-- Ends the scene by generating a full Visual Novel Finale CG image (anchored to the character's 1 neutral
-  + up to 4 extra reference images and art style lock), saves the scene + CG to the Gallery, writes a
-  memory summary back to the TeleChat thread, and lets the user return to the phone or start a new scene.
+- Saves a completed episode and its full transcript independently of optional illustration generation,
+  writes its summary back to the originating TeleChat thread, and lets the user return to the phone.
+- Carries an explicit continuity record and participant references into image requests; outfit-specific
+  expression assets are kept with the episode rather than replacing the character's regular sprites.
 """
 
 import json
+import hashlib
 import logging
 import re
 import time
@@ -22,10 +24,11 @@ import uuid
 
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
+from django.db import transaction
 from django.utils import timezone
 
-from mainapp import ai_client, media_library, messenger, sprites, thinking
-from mainapp.models import Character, ChatSettings, MessengerThread
+from mainapp import ai_client, media_library, messenger, sprites, thinking, vn_support
+from mainapp.models import ChatSettings, MessengerThread
 
 log = logging.getLogger(__name__)
 
@@ -61,10 +64,17 @@ def get_vn_state(user):
     }
 
 
-def save_vn_state(user, updates):
+@transaction.atomic
+def save_vn_state(user, updates, expected=None):
     settings_obj = _get_settings_obj(user)
+    settings_obj = ChatSettings.objects.select_for_update().get(pk=settings_obj.pk)
     app = dict(settings_obj.appearance or {})
     cur = dict(app.get("vn_scenes") or {})
+    active = cur.get("active_scene") or {}
+    if expected is not None and (active.get("id", ""), active.get("revision", 0)) != expected:
+        raise ai_client.AIError("This episode changed in another request. Reload it before continuing.")
+    if isinstance(updates.get("active_scene"), dict):
+        updates["active_scene"]["revision"] = active.get("revision", 0) + 1
     cur.update(updates)
     if "gallery" in cur and isinstance(cur["gallery"], list):
         cur["gallery"] = cur["gallery"][:60]
@@ -158,7 +168,7 @@ def all_character_sprites(character):
     return out
 
 
-def resolve_or_generate_sprite(user, character, emotion, auto_generate=False):
+def resolve_or_generate_sprite(user, character, emotion, auto_generate=False, outfit="", scene_assets=None):
     """
     Look up the character's sprite URL for `emotion`.
     - If `character` already has a sprite for `emotion`, return `{url, emotion, is_new: False, needs_gen: False}`.
@@ -170,7 +180,11 @@ def resolve_or_generate_sprite(user, character, emotion, auto_generate=False):
     """
     emo_clean = sprites.clean_name(emotion) or "neutral"
     existing = all_character_sprites(character)
-    if emo_clean in existing:
+    scoped = scene_assets is not None and (bool(outfit) or character.author_id != user.pk)
+    asset_key = hashlib.sha256(f"{character.slug}|{emo_clean}|{outfit}".encode()).hexdigest()[:24]
+    if scoped and asset_key in scene_assets:
+        return {**scene_assets[asset_key], "is_new": False, "needs_gen": False}
+    if emo_clean in existing and not scoped:
         return {
             "url": existing[emo_clean],
             "emotion": emo_clean,
@@ -197,13 +211,18 @@ def resolve_or_generate_sprite(user, character, emotion, auto_generate=False):
 
     prompt = (
         f"Create a Visual Novel character expression sprite of {character.name} ({setting_note}) showing a clear '{emo_clean}' expression and body language.\n"
-        f"CRITICAL IDENTITY & STYLE LOCK: Keep the EXACT same face, hair, eyes, outfit design, and visual art style ({art_style}) as the attached reference image(s).\n"
+        f"IDENTITY & STYLE: Preserve face, hair, eyes, proportions and visual art style ({art_style}) from the references.\n"
+        f"Outfit for this scene: {outfit or 'keep the reference outfit design'}. Outfit directions override reference clothing, not identity.\n"
         f"Composition: clean waist-up centered Visual Novel character sprite portrait facing the viewer, expressive '{emo_clean}' emotion, clean simple subtle backdrop.\n"
         f"Character appearance: {appearance[:550]}"
     )
     img_bytes, cost = messenger.make_picture(user, prompt, references=refs)
 
-    if emo_clean in sprites.BUILT_IN:
+    if scoped:
+        path = default_storage.save(f"messenger/vn_sprites/{user.pk}/{asset_key}-{uuid.uuid4().hex[:8]}.png", ContentFile(img_bytes))
+        new_url = default_storage.url(path)
+        scene_assets[asset_key] = {"url": new_url, "emotion": emo_clean, "cost": cost}
+    elif emo_clean in sprites.BUILT_IN:
         field_name = f"photo_{emo_clean}"
         rel_path = f"photos/vn/{character.slug}-{emo_clean}-{uuid.uuid4().hex[:6]}.png"
         saved_path = default_storage.save(rel_path, ContentFile(img_bytes))
@@ -234,11 +253,22 @@ Current Real-World Clock: {clock}
 {model_rules}
 
 VISUAL NOVEL ENGINE RULES:
-1. SPLIT NARRATION & DIALOGUE ONTO SEPARATE BEATS:
+1. WRITE COMPLETE NARRATIVE BLOCKS; DISPLAY SPLITTING IS THE ENGINE'S JOB:
+   - Let the user's requested length and style guide the prose. Descriptive narration, asides and substantial dialogue are welcome when they fit.
+   - Never shorten or stretch a passage to reach a line count. There is no required number of blocks or sentences.
+   - Keep each speaker's dialogue separate from narration; a block may contain multiple paragraphs.
+   - Preserve each character's current intention, knowledge, voice and relationship. Do not add hostility, attraction or a confession to manufacture drama.
+   - Do not decide the user's actions, speech, thoughts or consent. Offer choices as suggestions, leaving room for free input.
+   - You are in person now. Characters can perceive what is present, but cannot know private thoughts or events they did not witness.
+   - Vary speech according to character and circumstance. Do not recycle the previous turn's sentence shape, accusation list or rhetorical exchange merely with synonyms.
+   - Continue until the situation offers a meaningful opening for user input. Scene changes require narrative cause; preserve outfits, objects, injuries and positions until an event changes them.
+   - Update `continuity` cumulatively: retain earlier facts and unresolved matters, and record actual changes. Time follows the story clock, not the wall clock.
+   - Each item in `beats` must be either narration or one character's spoken dialogue.
+   - Format examples below describe speaker metadata only; they are not length requirements.
    - Just like a real visual novel, each item in `"beats"` must be EITHER:
-     * A concise **Narration / Action beat** (`"speaker_slug": "narrator"`, `"speaker": "Narrator"`, `"emotion": "neutral"`, `"text": "1-2 vivid sentences of physical action, atmosphere, or movement — no quote marks"`), OR
-     * A **Character Dialogue beat** (`"speaker_slug": "<character slug>"`, `"speaker": "<character name>"`, `"emotion": "<specific expression mood>"`, `"text": "What they say out loud (1-2 sentences, pure spoken dialogue without narration tags)"`).
-   - Generate 3 to 5 beats for this step of the scene.
+     * A **Narration / Action block** (`"speaker_slug": "narrator"`, `"speaker": "Narrator"`, `"emotion": "neutral"`, `"text": "Complete narration or action, without dialogue quote marks"`), OR
+     * A **Character Dialogue beat** (`"speaker_slug": "<character slug>"`, `"speaker": "<character name>"`, `"emotion": "<specific expression mood>"`, `"text": "Their complete spoken dialogue without narration tags"`).
+   - Write as much or as little as the scene and user directions call for.
 2. DYNAMIC EXPRESSION SPRITES:
    - On every character beat (and whenever a character reacts silently in a beat), set `"emotion"` to the exact mood that matches their face right now.
    - You can pick from their existing moods ({existing_moods}) OR invent a specific new mood (1-2 lowercase words like `"flustered"`, `"smug"`, `"tired"`, `"blushing"`, `"laughing"`, `"annoyed"`, `"lovestruck"`, `"drenched"`, `"scheming"`) — the engine can dynamically generate and store new expression sprites!
@@ -284,6 +314,14 @@ Return ONLY a valid JSON object matching this exact structure (no markdown fence
     "Short action or dialogue option 1 (under 14 words)",
     "Short action or dialogue option 2 (under 14 words)"
   ],
+  "continuity": {{
+    "summary": "Cumulative events and relationship changes; retain earlier consequential facts",
+    "location": "Current setting, lighting, weather and relevant objects",
+    "time": "Current story date and time; advance only as the scene warrants",
+    "outfits": {{"<character slug>": "Current clothes and changes from their reference"}},
+    "positions": {{"<character slug>": "Current position and action"}},
+    "open_threads": ["Unresolved plans, promises, questions or injuries"]
+  }},
   "beats": [
     {{
       "speaker_slug": "narrator" | "<character slug>",
@@ -330,24 +368,26 @@ def _call_vn_json(user, prompt):
         user,
         "chat",
         [{"role": "user", "content": prompt}],
-        max_tokens=1800 + (thinking.LEASH_ROOM if thinks else 0),
+        max_tokens=4500 + (thinking.LEASH_ROOM if thinks else 0),
         temperature=0.82,
     )
     parsed = messenger._read_json(raw)
-    if not parsed:
+    if not isinstance(parsed, dict) or not parsed:
         raise ai_client.AIError("Could not parse Visual Novel scene beats from model. Try again.")
     return parsed
 
 
-def _build_char_roster(chars):
+def _build_char_roster(chars, user=None, context=None):
     lines = []
     all_moods = set(sprites.BUILT_IN + sprites.SUGGESTED)
     for c in chars:
         p = messenger.char_profile(c)
         c_sprites = all_character_sprites(c)
         all_moods.update(c_sprites.keys())
-        persona = p.get("modern_persona") or c.personality or (c.description or "")[:400]
-        app = p.get("appearance_notes") or (c.description or "")[:350]
+        context = context or {}
+        persona = messenger._character_block(c, user or c.author, u_name=context.get("user_name"),
+                                             share=context.get("share_memory") if c.author_id == (user or c.author).pk else False)
+        app = p.get("appearance_notes") or (c.description or "")
         lines.append(
             f"- {p['display_name']} (slug: `{c.slug}`, mode: {p['mode']})\n"
             f"  Existing sprite moods ready: {', '.join(sorted(c_sprites.keys())) or 'neutral'}\n"
@@ -377,11 +417,13 @@ def _match_bg(bgs, name):
     return bgs[0]
 
 
-def _enrich_beats(user, chars, raw_beats, auto_generate_sprites=False):
+def _enrich_beats(user, chars, raw_beats, auto_generate_sprites=False, continuity=None, scene_assets=None):
+    if not isinstance(raw_beats, list):
+        raise ai_client.AIError("The model returned invalid scene blocks. Try again.")
     char_by_slug = {c.slug: c for c in chars}
     default_char = chars[0]
     enriched = []
-    for rb in (raw_beats or [])[:6]:
+    for rb in (raw_beats or []):
         if not isinstance(rb, dict):
             continue
         txt = str(rb.get("text") or "").strip()
@@ -391,65 +433,73 @@ def _enrich_beats(user, chars, raw_beats, auto_generate_sprites=False):
         sp_low = sp_raw.lower()
         kind_raw = str(rb.get("kind") or "").strip().lower()
         is_narrator = kind_raw == "narration" or sp_low in ("narrator", "narration", "system", "")
+        speaker_char = char_by_slug.get(sp_raw) or next(
+            (c for c in chars if sp_low in (c.slug.lower(), c.name.lower(),
+                                           messenger.char_profile(c)["display_name"].lower())), None)
+        if not is_narrator and speaker_char is None:
+            raise ai_client.AIError("The model wrote dialogue for an unknown participant. The previous scene is saved; try again.")
         c_slug = str(rb.get("character_slug") or ("" if is_narrator else sp_raw)).strip()
-        stage_char = char_by_slug.get(c_slug) or char_by_slug.get(sp_low) or next(
-            (c for c in chars if c.name.lower() == sp_low), default_char
-        )
+        stage_char = char_by_slug.get(c_slug) or speaker_char or default_char
         stage_prof = messenger.char_profile(stage_char)
+        speaker_prof = messenger.char_profile(speaker_char) if speaker_char else None
 
         emo = sprites.clean_name(rb.get("emotion") or "neutral") or "neutral"
-        sp_info = resolve_or_generate_sprite(user, stage_char, emo, auto_generate=auto_generate_sprites)
+        outfits = (continuity or {}).get("outfits") or {}
+        outfit = str(outfits.get(stage_char.slug) or "") if isinstance(outfits, dict) else ""
+        sp_info = resolve_or_generate_sprite(user, stage_char, emo,
+                                             auto_generate=auto_generate_sprites and not is_narrator,
+                                             outfit=outfit, scene_assets=scene_assets)
 
         enriched.append({
             "id": "vnb_" + uuid.uuid4().hex[:8],
             "kind": "narration" if is_narrator else "dialogue",
-            "speaker": "narrator" if is_narrator else stage_char.slug,
-            "speaker_slug": "narrator" if is_narrator else stage_char.slug,
-            "speaker_name": "Narrator" if is_narrator else stage_prof["display_name"],
+            "speaker": "narrator" if is_narrator else speaker_char.slug,
+            "speaker_slug": "narrator" if is_narrator else speaker_char.slug,
+            "speaker_name": "Narrator" if is_narrator else speaker_prof["display_name"],
             "character_slug": stage_char.slug,
             "character_name": stage_prof["display_name"],
             "emotion": sp_info["emotion"],
             "sprite_url": sp_info["url"],
             "is_new_sprite": sp_info.get("is_new", False),
             "needs_sprite_gen": False if is_narrator else sp_info.get("needs_gen", False),
-            "text": txt[:500],
+            "text": txt,
+            "original_text": rb.get("original_text") or "",
         })
-    return enriched
+    # Split presentation after writing and optional repairs. Never discard prose to fit a box.
+    boxes = []
+    for block in enriched:
+        for i, part in enumerate(vn_support.split_display_text(block["text"])):
+            boxes.append({**block, "id": "vnb_" + uuid.uuid4().hex[:8], "block_id": block["id"],
+                          "text": part, "original_text": block["original_text"] if i == 0 else ""})
+    return boxes
 
 
-def start_scene(user, thread=None, characters=None, location_hint="", auto_generate_sprites=False):
+def start_scene(user, thread=None, characters=None, location_hint="", auto_generate_sprites=False,
+                direction="", polish_enabled=False):
     """
     Launch a new Visual Novel Meet-Up Scene from a TeleChat `thread` (or selected `characters`).
     Selects music & backdrop, generates the opening 3–5 VN beats, resolves or generates character sprites,
     and saves `active_scene` into the user's VN state.
     """
+    if get_vn_state(user).get("active_scene"):
+        raise ai_client.AIError("An episode is already open. Resume or finish it before starting another.")
     chars = list(characters or (thread.characters.all() if thread else []))
     if not chars:
         raise ai_client.AIError("Pick at least one character for the scene.")
 
-    from mainapp.cards import user_name
-    u_name = user_name(user)
+    context = vn_support.scene_context(user, thread)
+    u_name = context["user_name"]
     now_local = timezone.localtime(timezone.now())
-    clock_str = now_local.strftime("%A, %d %B %Y, %H:%M")
+    clock_str = context["clock"]
 
     tracks = available_music_tracks(chars)
     bgs = available_backgrounds(chars)
-    roster_text, moods_list = _build_char_roster(chars)
+    roster_text, moods_list = _build_char_roster(chars, user, context)
 
-    telechat_lines = []
-    if thread:
-        td = messenger.thread_data(thread)
-        for m in (td.get("messages") or [])[-10:]:
-            if m.get("role") == "system":
-                continue
-            sp = m.get("sender_name") or m.get("role")
-            txt = (m.get("text") or "").strip()
-            if txt:
-                telechat_lines.append(f"- [{m.get('time', '')}] {sp}: {txt[:200]}")
-    telechat_context = "\n".join(telechat_lines) if telechat_lines else "(Characters agreed to meet up in person.)"
+    telechat_context = ("Earlier memory:\n" + context["memory"] + "\nThread scenario:\n" + context["scenario"]
+                        + "\nConversation:\n" + context["conversation"])
 
-    model_info = messenger.active_model_texting_rules(user)
-    model_rules = f"ACTIVE MODEL CALIBRATION ({model_info['label']}):\n{model_info['rules']}" if model_info.get("rules") else ""
+    model_rules = vn_support.model_rules(user)
 
     prompt = VN_SCENE_PROMPT.format(
         user=u_name,
@@ -458,39 +508,35 @@ def start_scene(user, thread=None, characters=None, location_hint="", auto_gener
         existing_moods=moods_list,
         music_list="\n".join(f"- {t['name']} (id: {t['id']})" for t in tracks) or "- Default Theme",
         bg_list="\n".join(f"- {b['name']} (id: {b['id']})" for b in bgs) or "- Default Backdrop",
-        user_persona=(getattr(user, "persona_description", "") or "")[:400],
+        user_persona=context["persona"],
         char_roster=roster_text,
         telechat_context=telechat_context,
         scene_history="(Scene is just beginning — set the stage as they meet!)",
-        step_input=location_hint or "Begin the in-person meet-up scene right where the latest texts left off.",
+        step_input=(location_hint or "Begin the in-person scene right where the latest texts left off.")
+                   + "\nUser's writing directions: " + direction,
     )
 
     parsed = _call_vn_json(user, prompt)
     chosen_music = _match_track(tracks, parsed.get("music_id") or parsed.get("music"))
     chosen_bg = _match_bg(bgs, parsed.get("background_id") or parsed.get("background"))
-    beats = _enrich_beats(user, chars, parsed.get("beats"), auto_generate_sprites=auto_generate_sprites)
+    raw_blocks = parsed.get("blocks") or parsed.get("beats") or []
+    raw_blocks, polish_error = vn_support.polish_blocks(user, raw_blocks, telechat_context, polish_enabled)
+    continuity = vn_support.continuity_update({}, parsed.get("continuity"))
+    scene_assets = {}
+    beats = _enrich_beats(user, chars, raw_blocks, auto_generate_sprites=auto_generate_sprites,
+                        continuity=continuity, scene_assets=scene_assets)
     if not beats:
-        c0 = chars[0]
-        p0 = messenger.char_profile(c0)
-        sp0 = resolve_or_generate_sprite(user, c0, "neutral", auto_generate=False)
-        beats = [{
-            "id": "vnb_" + uuid.uuid4().hex[:8],
-            "kind": "dialogue",
-            "speaker": c0.slug,
-            "speaker_slug": c0.slug,
-            "speaker_name": p0["display_name"],
-            "character_slug": c0.slug,
-            "character_name": p0["display_name"],
-            "emotion": "neutral",
-            "sprite_url": sp0["url"],
-            "is_new_sprite": False,
-            "needs_sprite_gen": sp0["needs_gen"],
-            "text": str(parsed.get("title") or "You finally made it."),
-        }]
+        raise ai_client.AIError("The model returned no scene text. Try starting the episode again.")
 
     scene = {
         "id": "vns_" + uuid.uuid4().hex[:8],
         "thread_id": thread.id if thread else None,
+        "context": context,
+        "direction": direction,
+        "polish_enabled": bool(polish_enabled),
+        "polish_error": polish_error,
+        "continuity": continuity,
+        "sprite_cache": scene_assets,
         "character_slugs": [c.slug for c in chars],
         "character_names": [messenger.char_profile(c)["display_name"] for c in chars],
         "title": str(parsed.get("title") or f"Meet-Up with {chars[0].name}").strip()[:120],
@@ -507,7 +553,7 @@ def start_scene(user, thread=None, characters=None, location_hint="", auto_gener
         "started_at": now_local.strftime("%d %b %H:%M"),
         "ts": time.time(),
     }
-    save_vn_state(user, {"active_scene": scene})
+    save_vn_state(user, {"active_scene": scene}, expected=("", 0))
     return scene
 
 
@@ -520,8 +566,9 @@ def step_scene(user, user_input="", auto_generate_sprites=None):
     scene = state.get("active_scene")
     if not scene:
         raise ai_client.AIError("No active Visual Novel scene. Start a scene first.")
+    expected = (scene["id"], scene.get("revision", 0))
 
-    chars = list(Character.objects.filter(author=user, slug__in=scene.get("character_slugs") or []))
+    chars = vn_support.scene_characters(user, scene.get("character_slugs") or [])
     if not chars:
         raise ai_client.AIError("Scene characters not found.")
 
@@ -530,10 +577,9 @@ def step_scene(user, user_input="", auto_generate_sprites=None):
     else:
         scene["auto_generate_sprites"] = bool(auto_generate_sprites)
 
-    from mainapp.cards import user_name
-    u_name = user_name(user)
-    now_local = timezone.localtime(timezone.now())
-    clock_str = now_local.strftime("%A, %d %B %Y, %H:%M")
+    context = scene.get("context") or vn_support.scene_context(user, vn_support.linked_thread(user, scene))
+    u_name = context["user_name"]
+    clock_str = (scene.get("continuity") or {}).get("time") or context["clock"]
 
     history = list(scene.get("beats") or scene.get("history") or [])
     if user_input and user_input.strip():
@@ -551,25 +597,24 @@ def step_scene(user, user_input="", auto_generate_sprites=None):
             "sprite_url": last_beat.get("sprite_url") or "",
             "is_new_sprite": False,
             "needs_sprite_gen": False,
-            "text": user_input.strip()[:500],
+            "text": user_input.strip(),
         }
         history.append(user_beat)
 
     hist_lines = []
-    for b in history[-14:]:
+    for b in history[-40:]:
         emo_tag = f" [{b.get('emotion')}]" if b.get("speaker_slug") not in ("narrator", "user") else ""
         hist_lines.append(f"- {b.get('speaker_name') or b.get('speaker')}{emo_tag}: {b.get('text')}")
 
     tracks = available_music_tracks(chars)
     bgs = available_backgrounds(chars)
-    roster_text, moods_list = _build_char_roster(chars)
-    model_info = messenger.active_model_texting_rules(user)
-    model_rules = f"ACTIVE MODEL CALIBRATION ({model_info['label']}):\n{model_info['rules']}" if model_info.get("rules") else ""
+    roster_text, moods_list = _build_char_roster(chars, user, context)
+    model_rules = vn_support.model_rules(user)
 
     step_dir = (
-        f"{u_name} just did/said: \"{user_input.strip()}\". React and advance the scene 3 to 5 beats."
+        f"{u_name} just did/said: \"{user_input.strip()}\". Respond until the next natural opportunity for input."
         if (user_input and user_input.strip())
-        else "Continue unfolding the scene for the next 3 to 5 beats."
+        else "Continue unfolding the scene until the next natural opportunity for input."
     )
 
     prompt = VN_SCENE_PROMPT.format(
@@ -579,11 +624,13 @@ def step_scene(user, user_input="", auto_generate_sprites=None):
         existing_moods=moods_list,
         music_list="\n".join(f"- {t['name']} (id: {t['id']})" for t in tracks) or "- Default Theme",
         bg_list="\n".join(f"- {b['name']} (id: {b['id']})" for b in bgs) or "- Default Backdrop",
-        user_persona=(getattr(user, "persona_description", "") or "")[:400],
+        user_persona=context["persona"],
         char_roster=roster_text,
-        telechat_context=f"Location: {scene.get('location')}",
-        scene_history="\n".join(hist_lines) or "(Start of scene)",
-        step_input=step_dir,
+        telechat_context=json.dumps(context, ensure_ascii=False),
+        scene_history=("Continuity record (carry earlier facts forward):\n"
+                       + json.dumps(scene.get("continuity") or {}, ensure_ascii=False)
+                       + "\nRecent transcript:\n" + "\n".join(hist_lines)),
+        step_input=step_dir + "\nUser's writing directions: " + scene.get("direction", ""),
     )
 
     parsed = _call_vn_json(user, prompt)
@@ -594,17 +641,24 @@ def step_scene(user, user_input="", auto_generate_sprites=None):
     if parsed.get("location"):
         scene["location"] = str(parsed.get("location")).strip()[:120]
 
-    new_beats = _enrich_beats(user, chars, parsed.get("beats"), auto_generate_sprites=auto_generate_sprites)
-    if new_beats:
-        history.extend(new_beats)
-        scene["current_beats"] = new_beats
-    scene["beats"] = history[-60:]
-    scene["history"] = history[-60:]
+    raw_blocks = parsed.get("blocks") or parsed.get("beats") or []
+    raw_blocks, scene["polish_error"] = vn_support.polish_blocks(
+        user, raw_blocks, prompt, scene.get("polish_enabled", False))
+    continuity = vn_support.continuity_update(scene.get("continuity"), parsed.get("continuity"))
+    new_beats = _enrich_beats(user, chars, raw_blocks, auto_generate_sprites=auto_generate_sprites,
+                            continuity=continuity, scene_assets=scene.setdefault("sprite_cache", {}))
+    if not new_beats:
+        raise ai_client.AIError("The model returned no scene text. Your previous turn is still saved; try again.")
+    history.extend(new_beats)
+    scene["current_beats"] = new_beats
+    scene["beats"] = history
+    scene["history"] = history
+    scene["continuity"] = continuity
     scene["handoff"] = parsed.get("handoff") if parsed.get("handoff") in ("user_turn", "auto_continue", "climax_ready") else "user_turn"
     scene["handoff_prompt"] = str(parsed.get("handoff_prompt") or "What do you do or say?").strip()[:140]
     scene["choices"] = [str(ch).strip()[:120] for ch in (parsed.get("choices") or []) if str(ch or "").strip()][:3]
 
-    save_vn_state(user, {"active_scene": scene})
+    save_vn_state(user, {"active_scene": scene}, expected=expected)
     return scene, new_beats
 
 
@@ -615,17 +669,21 @@ def generate_beat_sprite(user, beat_id="", char_slug="", emotion=""):
     """
     state = get_vn_state(user)
     scene = state.get("active_scene")
-    target_char = Character.objects.filter(author=user, slug=char_slug).first()
+    candidates = vn_support.scene_characters(user, scene.get("character_slugs") or []) if scene else []
+    target_char = next((c for c in candidates if c.slug == char_slug), None)
     if not target_char and scene:
         for b in (scene.get("beats") or scene.get("current_beats") or []):
             if b.get("id") == beat_id:
-                target_char = Character.objects.filter(author=user, slug=b.get("character_slug")).first()
+                target_char = next((c for c in candidates if c.slug == b.get("character_slug")), None)
                 emotion = emotion or b.get("emotion")
                 break
     if not target_char:
         raise ai_client.AIError("Character not found for sprite generation.")
 
-    sp_info = resolve_or_generate_sprite(user, target_char, emotion or "neutral", auto_generate=True)
+    outfits = (scene.get("continuity") or {}).get("outfits") or {}
+    outfit = str(outfits.get(target_char.slug) or "") if isinstance(outfits, dict) else ""
+    sp_info = resolve_or_generate_sprite(user, target_char, emotion or "neutral", auto_generate=True,
+                                       outfit=outfit, scene_assets=scene.setdefault("sprite_cache", {}))
 
     if scene:
         for collection in (scene.get("beats") or [], scene.get("current_beats") or [], scene.get("history") or []):
@@ -639,7 +697,7 @@ def generate_beat_sprite(user, beat_id="", char_slug="", emotion=""):
     return scene, sp_info["url"], sp_info["emotion"], float(sp_info.get("cost") or 0.0)
 
 
-def finish_scene_with_cg(user, cg_hint=""):
+def finish_scene_with_cg(user, cg_hint="", capture_image=True):
     """
     End the active Visual Novel scene by generating a full widescreen Finale Event CG image
     (using the character's 1 neutral + up to 4 extra references and art style lock),
@@ -649,18 +707,20 @@ def finish_scene_with_cg(user, cg_hint=""):
     scene = state.get("active_scene")
     if not scene:
         raise ai_client.AIError("No active Visual Novel scene to finish.")
+    expected = (scene["id"], scene.get("revision", 0))
 
-    chars = list(Character.objects.filter(author=user, slug__in=scene.get("character_slugs") or []))
+    chars = vn_support.scene_characters(user, scene.get("character_slugs") or [])
     if not chars:
         raise ai_client.AIError("Scene character not found.")
     lead_char = chars[0]
     lead_prof = messenger.char_profile(lead_char)
 
     from mainapp.cards import user_name
-    u_name = user_name(user)
+    u_name = (scene.get("context") or {}).get("user_name") or user_name(user)
 
     transcript_lines = []
-    for b in (scene.get("beats") or scene.get("history") or [])[-20:]:
+    transcript_lines.append("Cumulative continuity: " + json.dumps(scene.get("continuity") or {}, ensure_ascii=False))
+    for b in (scene.get("beats") or scene.get("history") or [])[-40:]:
         transcript_lines.append(f"{b.get('speaker_name') or b.get('speaker')}: {b.get('text')}")
 
     char_visuals = []
@@ -696,29 +756,46 @@ def finish_scene_with_cg(user, cg_hint=""):
     chat_summary = str(
         cg_meta.get("chat_summary")
         or cg_meta.get("summary")
+        or (scene.get("continuity") or {}).get("summary")
         or f"Met up in person at {scene.get('location')} ({scene.get('title')})."
-    ).strip()[:360]
+    ).strip()
 
     art_style = lead_prof.get("art_style_notes") or "exact same visual art style, brushwork, linework, shading, and color palette as the attached reference image(s)"
-    appearance = lead_prof.get("appearance_notes") or (lead_char.description or "")[:550]
-    refs = messenger.load_character_references(lead_char)
+    # Give every participant a primary reference before filling the remaining slots.
+    refs = []
+    extra_refs = []
+    ref_labels = []
+    for c in chars:
+        images = messenger.load_character_references(c)
+        if images and len(refs) < 5:
+            refs.append(images[0])
+            ref_labels.append(f"Reference {len(refs)}: {messenger.char_profile(c)['display_name']}")
+            extra_refs.extend(images[1:])
+    refs.extend(extra_refs[:max(0, 5 - len(refs))])
 
     full_cg_prompt = (
         f"Create a full-scene Visual Novel Event CG illustration featuring {', '.join(scene.get('character_names') or [lead_char.name])} at {scene.get('location')}.\n"
         f"CRITICAL IDENTITY & STYLE LOCK: Keep the EXACT same face, hair, eyes, proportions, and visual art style ({art_style}) as the attached reference image(s).\n"
         f"Camera angle & framing: {camera_angle}.\n"
-        f"Character appearance: {appearance}\n"
-        f"Event CG scene: {visual_prompt[:650]}"
+        f"Reference identities: {'; '.join(ref_labels)}. Additional references support these same identities.\n"
+        f"Participant appearances: {'; '.join(char_visuals)}\n"
+        f"Established setting, clothing, positions and story time (override reference outfits where changed): {json.dumps(scene.get('continuity') or {}, ensure_ascii=False)}\n"
+        f"Event CG scene: {visual_prompt}"
     )
 
-    img_bytes, cost = messenger.make_picture(user, full_cg_prompt, references=refs)
-    rel_path = f"messenger/vn_cg/{lead_char.slug}-cg-{uuid.uuid4().hex[:8]}.png"
-    saved_path = default_storage.save(rel_path, ContentFile(img_bytes))
-    cg_url = default_storage.url(saved_path)
+    cg_url, cost, image_error = "", 0, ""
+    if capture_image:
+        try:
+            img_bytes, cost = messenger.make_picture(user, full_cg_prompt, references=refs)
+            rel_path = f"messenger/vn_cg/{lead_char.slug}-cg-{uuid.uuid4().hex[:8]}.png"
+            saved_path = default_storage.save(rel_path, ContentFile(img_bytes))
+            cg_url = default_storage.url(saved_path)
+        except ai_client.AIError as exc:
+            image_error = str(exc)
 
     now_hm = timezone.localtime(timezone.now()).strftime("%H:%M")
     finished_str = timezone.localtime(timezone.now()).strftime("%d %b %Y · %H:%M")
-    all_beats = (scene.get("beats") or scene.get("history") or [])[-40:]
+    all_beats = scene.get("beats") or scene.get("history") or []
     gallery_entry = {
         "id": scene["id"],
         "thread_id": scene.get("thread_id"),
@@ -727,6 +804,8 @@ def finish_scene_with_cg(user, cg_hint=""):
         "character_slugs": scene.get("character_slugs"),
         "character_names": scene.get("character_names"),
         "cg_url": cg_url,
+        "image_error": image_error,
+        "continuity": scene.get("continuity") or {},
         "cg_prompt": visual_prompt,
         "quote": finale_quote,
         "finale_quote": finale_quote,
@@ -742,37 +821,39 @@ def finish_scene_with_cg(user, cg_hint=""):
         "cost": cost,
     }
 
-    gallery = [gallery_entry] + [g for g in state["gallery"] if g.get("id") != scene["id"]]
-    save_vn_state(user, {"active_scene": None, "gallery": gallery})
+    with transaction.atomic():
+        gallery = [gallery_entry] + [g for g in state["gallery"] if g.get("id") != scene["id"]]
+        save_vn_state(user, {"active_scene": None, "gallery": gallery}, expected=expected)
 
-    # Write a scene completion notice & CG bubble into the linked TeleChat thread so phone chat remembers the meet-up!
-    if scene.get("thread_id"):
-        thread = MessengerThread.objects.filter(user=user, id=scene["thread_id"]).prefetch_related("characters").first()
-        if thread:
-            td = messenger.thread_data(thread)
-            td["messages"].append({
-                "id": uuid.uuid4().hex[:10],
-                "role": "system",
-                "text": f"🎬 Meet-Up Scene Completed: \"{scene.get('title')}\" ({scene.get('location')}) — {chat_summary}",
-                "time": now_hm,
-                "ts": time.time(),
-            })
-            td["messages"].append({
-                "id": uuid.uuid4().hex[:10],
-                "role": "assistant",
-                "sender_slug": lead_char.slug,
-                "sender_name": lead_prof["display_name"],
-                "text": f"🎬 *{finale_quote}*",
-                "photo": {
-                    "kind": "casual",
-                    "prompt": visual_prompt,
-                    "caption": f"🎬 Scene Finale CG · {scene.get('title')}",
-                    "url": cg_url,
-                },
-                "time": now_hm,
-                "ts": time.time(),
-                "reactions": {"❤️": [lead_prof["display_name"]]},
-            })
-            messenger.save_thread_data(thread, td)
+        # Write a scene completion notice & CG bubble into the linked TeleChat thread so phone chat remembers the meet-up!
+        if scene.get("thread_id"):
+            thread = MessengerThread.objects.select_for_update().filter(user=user, id=scene["thread_id"]).prefetch_related("characters").first()
+            if thread:
+                td = messenger.thread_data(thread)
+                td["messages"].append({
+                    "id": uuid.uuid4().hex[:10],
+                    "role": "system",
+                    "text": f"🎬 Meet-Up Scene Completed: \"{scene.get('title')}\" ({scene.get('location')}) — {chat_summary}",
+                    "time": now_hm,
+                    "ts": time.time(),
+                })
+                if cg_url:
+                    td["messages"].append({
+                        "id": uuid.uuid4().hex[:10],
+                        "role": "assistant",
+                        "sender_slug": lead_char.slug,
+                        "sender_name": lead_prof["display_name"],
+                        "text": f"🎬 *{finale_quote}*",
+                        "photo": {
+                            "kind": "casual",
+                            "prompt": visual_prompt,
+                            "caption": f"🎬 Scene Finale CG · {scene.get('title')}",
+                            "url": cg_url,
+                        },
+                        "time": now_hm,
+                        "ts": time.time(),
+                        "reactions": {"❤️": [lead_prof["display_name"]]},
+                    })
+                messenger.save_thread_data(thread, td)
 
     return gallery_entry, float(cost or 0.0)

@@ -5745,6 +5745,8 @@ def vn_scenes_api(request):
                 characters=picked,
                 location_hint=hint,
                 auto_generate_sprites=auto_sprites,
+                direction=str(body.get("direction") or "").strip()[:4000],
+                polish_enabled=bool(body.get("polish_enabled", False)),
             )
         except ai_client.AIError as e:
             return JsonResponse({"error": str(e)}, status=400)
@@ -5824,7 +5826,8 @@ def vn_scenes_api(request):
     if action == "finish_scene":
         cg_hint = str(body.get("cg_hint") or "").strip()
         try:
-            entry, cost = vn_scenes.finish_scene_with_cg(request.user, cg_hint=cg_hint)
+            entry, cost = vn_scenes.finish_scene_with_cg(request.user, cg_hint=cg_hint,
+                                                       capture_image=bool(body.get("capture_image", True)))
         except ai_client.AIError as e:
             return JsonResponse({"error": str(e)}, status=400)
         tid = entry.get("thread_id")

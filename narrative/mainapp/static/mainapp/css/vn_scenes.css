@@ -12,6 +12,24 @@
   display: flex;
 }
 
+#vnScenesRoot {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+#vnScenesRoot > * { width: 100%; }
+#vnNotice { padding: 10px 16px; background: #203341; color: #fff; }
+#vnNotice[data-error="true"] { background: #572c38; }
+.vn-short-input { min-width: 0; }
+textarea.vn-short-input { resize: vertical; min-height: 64px; }
+@media (max-width: 700px) {
+  .vn-stage-wrap { overflow: visible; min-height: 100%; flex-shrink: 0; }
+  .vn-input-row { flex-wrap: wrap; }
+  .vn-input-row .vn-short-input { flex-basis: 100%; }
+}
+
 .vn-top-nav {
   display: flex;
   align-items: center;

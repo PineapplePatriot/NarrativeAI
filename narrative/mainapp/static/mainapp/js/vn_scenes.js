@@ -9,6 +9,7 @@
     autoGenSprites: false,
     musicPlaying: false,
     lastFinaleEntry: null,
+    busy: false,
 
     init() {
       if (!window.TG || !TG.state) return;
@@ -17,7 +18,10 @@
       }
       const sc = TG.state.vn_scenes.active_scene;
       if (sc && Array.isArray(sc.beats) && sc.beats.length) {
-        this.beatIndex = Math.max(0, sc.beats.length - 1);
+        const saved = localStorage.getItem("vn-cursor-" + sc.id);
+        const index = sc.beats.findIndex((b) => b.id === saved);
+        this.beatIndex = index >= 0 ? index : Math.max(0, sc.beats.length - ((sc.current_beats || []).length || 1));
+        this.autoGenSprites = !!sc.auto_generate_sprites;
       }
 
       const origSwitchApp = TG.switchApp.bind(TG);
@@ -28,19 +32,24 @@
         }
       };
 
-      const origRenderMainChat = TG.renderMainChat ? TG.renderMainChat.bind(TG) : null;
-      if (origRenderMainChat) {
-        TG.renderMainChat = () => {
-          origRenderMainChat();
-          this.checkAndRenderMeetupBanner();
-        };
-      }
+      window.addEventListener("telechat-rendered", () => this.checkAndRenderMeetupBanner());
 
       this.render();
       this.checkAndRenderMeetupBanner();
     },
 
+    notify(message, isError = false) {
+      const notice = document.getElementById("vnNotice");
+      if (!notice) return;
+      notice.textContent = message;
+      notice.dataset.error = String(isError);
+      notice.hidden = false;
+    },
+
     async apiPost(payload) {
+      if (this.busy) throw new Error("The episode is still working on your previous request.");
+      this.busy = true;
+      try {
       const url = (window.TG_CFG && window.TG_CFG.vn_scenes_api) || "/main/screen/scenes/api/";
       const resp = await fetch(url, {
         method: "POST",
@@ -55,6 +64,9 @@
         throw new Error(data.error || `HTTP ${resp.status}`);
       }
       return data;
+      } finally {
+        this.busy = false;
+      }
     },
 
     switchTab(tab) {
@@ -111,11 +123,13 @@
     async launchFromActiveThread(btnEl) {
       const t = TG.state.active_thread;
       if (!t) {
-        TG.toast("Select a TeleChat conversation first.");
+        this.notify("Select a TeleChat conversation first.");
         return;
       }
       const hintEl = document.getElementById("vnLocationHintInput");
       const hint = hintEl ? hintEl.value.trim() : "";
+      const direction = (document.getElementById("vnWritingDirection") || {}).value || "";
+      const polishEnabled = !!(document.getElementById("vnPolishEnabled") || {}).checked;
       const orig = btnEl ? btnEl.textContent : "";
       if (btnEl) {
         btnEl.disabled = true;
@@ -129,6 +143,8 @@
           thread_id: t.id,
           location_hint: hint,
           auto_generate_sprites: this.autoGenSprites,
+          direction,
+          polish_enabled: polishEnabled,
         });
         TG.state.vn_scenes = data.vn_scenes;
         if (data.char_sprites) {
@@ -137,10 +153,11 @@
         this.beatIndex = 0;
         this.lastFinaleEntry = null;
         this.render();
+        if (data.scene.polish_error) this.notify(data.scene.polish_error, true);
         this.syncAudioTrack(true);
-        TG.toast(`🎬 Scene started: ${data.scene.title}`);
+        this.notify(`🎬 Scene started: ${data.scene.title}`);
       } catch (e) {
-        TG.toast(e.message, true);
+        this.notify(e.message, true);
       } finally {
         if (btnEl) {
           btnEl.disabled = false;
@@ -178,8 +195,9 @@
       const idx = Math.max(0, Math.min(this.beatIndex, sc.beats.length - 1));
       for (let i = idx; i >= 0; i--) {
         const b = sc.beats[i];
-        if (b && b.speaker && b.speaker !== "narrator" && b.speaker !== "user") {
-          return b;
+        if (b && b.character_slug && b.speaker !== "user") {
+          // The camera may show the listener while somebody else is speaking.
+          return { ...b, speaker: b.character_slug, speaker_name: b.character_name || b.speaker_name };
         }
       }
       const firstCharSlug = (sc.character_slugs || [])[0];
@@ -219,7 +237,7 @@
       const orig = btnEl ? btnEl.textContent : "";
       if (btnEl) {
         btnEl.disabled = true;
-        btnEl.textContent = "⏳ Directing next beats…";
+        btnEl.textContent = "Writing the next part…";
       }
       try {
         const data = await this.apiPost({
@@ -232,10 +250,14 @@
           this.mergeCharSprites(data.char_sprites);
         }
         const newBeats = (data.scene && data.scene.beats) || [];
-        this.beatIndex = Math.min(prevLen, Math.max(0, newBeats.length - 1));
+        this.beatIndex = data.new_beats && data.new_beats.length
+          ? newBeats.findIndex((b) => b.id === data.new_beats[0].id)
+          : Math.min(prevLen, Math.max(0, newBeats.length - 1));
         this.renderStageOnly();
+        this.syncAudioTrack(this.musicPlaying);
+        if (data.scene.polish_error) this.notify(data.scene.polish_error, true);
       } catch (e) {
-        TG.toast(e.message, true);
+        this.notify(e.message, true);
       } finally {
         if (btnEl) {
           btnEl.disabled = false;
@@ -248,7 +270,7 @@
       const inp = document.getElementById("vnShortInput");
       const val = inp ? inp.value.trim() : "";
       if (!val) {
-        TG.toast("Write a short action or dialogue line, or click Continue Scene.");
+        this.notify("Write a short action or dialogue line, or click Continue Scene.");
         return;
       }
       this.stepScene(val, btnEl);
@@ -277,9 +299,9 @@
           this.mergeCharSprites({ [data.char_slug]: data.sprites });
         }
         this.renderStageOnly();
-        TG.toast(`🎨 Saved '${data.emotion}' sprite permanently for ${spBeat.speaker_name}!`);
+        this.notify(`🎨 Saved '${data.emotion}' sprite permanently for ${spBeat.speaker_name}!`);
       } catch (e) {
-        TG.toast(e.message, true);
+        this.notify(e.message, true);
       } finally {
         if (btnEl) {
           btnEl.disabled = false;
@@ -311,7 +333,7 @@
         this.renderStageOnly();
         if (kind === "music") this.syncAudioTrack(true);
       } catch (e) {
-        TG.toast(e.message, true);
+        this.notify(e.message, true);
       }
     },
 
@@ -367,7 +389,7 @@
     /* ----------------------------------------------------------------------
        Finale Event CG Generation & Scene Completion
        ---------------------------------------------------------------------- */
-    async finishScene(btnEl) {
+    async finishScene(btnEl, captureImage = false) {
       const sc = this.activeScene();
       if (!sc) return;
       const hintEl = document.getElementById("vnShortInput");
@@ -381,6 +403,7 @@
         const data = await this.apiPost({
           action: "finish_scene",
           cg_hint: cgHint,
+          capture_image: captureImage,
         });
         TG.state.vn_scenes = data.vn_scenes;
         if (data.threads) {
@@ -393,9 +416,11 @@
         }
         this.lastFinaleEntry = data.gallery_entry;
         this.render();
-        TG.toast("🖼️ Finale Event CG saved to Gallery & shared in TeleChat!");
+        this.notify(data.gallery_entry.image_error
+          ? "Episode saved. The illustration failed: " + data.gallery_entry.image_error
+          : "Episode saved and remembered in TeleChat.", !!data.gallery_entry.image_error);
       } catch (e) {
-        TG.toast(e.message, true);
+        this.notify(e.message, true);
       } finally {
         if (btnEl) {
           btnEl.disabled = false;
@@ -424,7 +449,7 @@
         TG.state.vn_scenes = data.vn_scenes;
         this.render();
       } catch (e) {
-        TG.toast(e.message, true);
+        this.notify(e.message, true);
       }
     },
 
@@ -492,7 +517,7 @@
             <div style="max-width:760px; width:100%; background:rgba(15,23,42,0.92); border:1.5px solid rgba(236,72,153,0.45); border-radius:20px; padding:22px; box-shadow:0 24px 60px rgba(0,0,0,0.75); display:flex; flex-direction:column; gap:14px;">
               <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
                 <div>
-                  <span style="font-size:11.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:#f472b6;">🌟 Scene Complete · Saved to CG Gallery</span>
+                  <span style="font-size:11.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:#f472b6;">Episode saved</span>
                   <h2 style="margin:3px 0 0; font-size:21px;">${TG.esc(e.title)}</h2>
                 </div>
                 <span style="font-size:12px; color:#94a3b8;">📍 ${TG.esc(e.location)}</span>
@@ -507,7 +532,7 @@
                 ${TG.esc(e.summary || "")}
               </div>
               <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; padding-top:4px;">
-                <button type="button" class="tg-fmt-btn" onclick="VN_SCENES.switchTab('gallery')">🖼️ View in CG Gallery</button>
+                <button type="button" class="tg-fmt-btn" onclick="VN_SCENES.switchTab('gallery')">Saved episodes</button>
                 <div style="display:flex; gap:10px; flex-wrap:wrap;">
                   <button type="button" class="tg-bulba-btn" onclick="VN_SCENES.startAnotherScene()">🎬 Start Next Scene</button>
                   <button type="button" class="tg-send-btn" onclick="VN_SCENES.returnToPhone()">📱 Back to TeleChat Phone ➤</button>
@@ -529,10 +554,10 @@
           <div class="vn-gallery-pane" style="display:flex; align-items:center; justify-content:center;">
             <div style="max-width:620px; width:100%; background:rgba(15,23,42,0.9); border:1px solid rgba(255,255,255,0.12); border-radius:20px; padding:26px; display:flex; flex-direction:column; gap:16px; box-shadow:0 20px 50px rgba(0,0,0,0.6);">
               <div>
-                <span style="font-size:11.5px; font-weight:700; color:#f472b6; text-transform:uppercase; letter-spacing:0.05em;">🎬 Visual Novel Meet-Up Engine</span>
+                <span style="font-size:11.5px; font-weight:700; color:#f472b6; text-transform:uppercase; letter-spacing:0.05em;">In-person episode</span>
                 <h2 style="margin:4px 0 6px; font-size:22px;">Step Out of the Phone & Meet In Person</h2>
                 <p style="margin:0; font-size:13.5px; color:#94a3b8; line-height:1.55;">
-                  Transition from texting in <strong>${TG.esc(threadTitle)}</strong> into a full Visual Novel stage: central character expression sprites, background music & scenery chosen by the model, dynamic new sprite generation, and a widescreen Finale Event CG saved to your gallery.
+                  Continue your conversation in <strong>${TG.esc(threadTitle)}</strong> in person. Save the episode when you finish, with an illustration if you like.
                 </p>
               </div>
               ${cue.ready ? `
@@ -544,9 +569,14 @@
                 <label>Where are you meeting up? (optional — leave blank for the model to pick from your chat)</label>
                 <input type="text" class="tg-input" id="vnLocationHintInput" placeholder="e.g. Rainy neon coffee shop at 11 PM, rooftop balcony, quiet library corner…">
               </div>
+              <div class="tg-field-group">
+                <label for="vnWritingDirection">Writing preferences (optional)</label>
+                <textarea class="tg-textarea" id="vnWritingDirection" placeholder="Length, narration, dialogue, pacing, or anything you want this episode to follow."></textarea>
+              </div>
+              <label><input type="checkbox" id="vnPolishEnabled"> Let Bulba polish the habits I approved before displaying each turn</label>
               <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; color:#cbd5e1; cursor:pointer;">
                 <input type="checkbox" ${this.autoGenSprites ? "checked" : ""} onchange="VN_SCENES.autoGenSprites = this.checked">
-                <span>🎨 Automatically generate & permanently save new expression sprites whenever a scene calls for a mood the character doesn't have yet</span>
+                <span>🎨 Generate missing expressions automatically (uses your image provider; scene outfits are saved with this episode)</span>
               </label>
               <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
                 <button type="button" class="tg-fmt-btn" onclick="TG.switchApp('messenger')">← Back to TeleChat</button>
@@ -562,6 +592,7 @@
       const beats = sc.beats || [];
       const idx = Math.max(0, Math.min(this.beatIndex, Math.max(0, beats.length - 1)));
       const beat = beats[idx] || { speaker: "narrator", speaker_name: "Narrator", kind: "narration", text: "…" };
+      if (beat.id) localStorage.setItem("vn-cursor-" + sc.id, beat.id);
       const spBeat = this.activeSpriteBeat();
       const isLastBeat = idx >= beats.length - 1;
       const bgUrl = (sc.background && sc.background.url) || "";
@@ -625,12 +656,12 @@
                 <div class="vn-sprite-mood-bar">
                   <span class="vn-mood-badge">🎭 ${TG.esc(spBeat.speaker_name)} · ${TG.esc(spBeat.emotion || "neutral")}</span>
                   ${spBeat.needs_sprite_gen ? `
-                    <button type="button" class="vn-gen-sprite-btn" onclick="VN_SCENES.generateSpriteForCurrentBeat('${TG.esc(spBeat.emotion)}', this)" title="Generate and permanently store this '${TG.esc(spBeat.emotion)}' expression sprite on ${TG.esc(spBeat.speaker_name)}">
-                      🎨 Generate & Save '${TG.esc(spBeat.emotion)}' Sprite
+                    <button type="button" class="vn-gen-sprite-btn" onclick="VN_SCENES.generateSpriteForCurrentBeat(null, this)" title="Generate this expression for the current character">
+                      Draw this expression
                     </button>
                   ` : `
                     <button type="button" class="vn-gen-sprite-btn" style="opacity:0.86; font-size:11px;" onclick="VN_SCENES.promptCustomMoodSprite(this)" title="Dynamically generate & store a new expression sprite for ${TG.esc(spBeat.speaker_name)}">
-                      🎨 + New Mood Sprite
+                      Draw another expression
                     </button>
                   `}
                 </div>
@@ -645,23 +676,24 @@
                 <span>${isNarrator ? "📖 Narration" : `💬 ${TG.esc(beat.speaker_name || beat.speaker)}`}</span>
                 ${!isNarrator && beat.emotion ? `<span style="font-weight:500; opacity:0.88; font-size:11.5px;">· ${TG.esc(beat.emotion)}</span>` : ""}
               </div>
-              <div class="vn-beat-counter">Beat ${idx + 1} / ${beats.length}</div>
+              <div class="vn-beat-counter">Page ${idx + 1} / ${beats.length}</div>
 
               <div class="vn-beat-text ${isNarrator ? "narration-line" : ""}">
                 ${TG.formatText ? TG.formatText(beat.text || "") : TG.esc(beat.text || "")}
               </div>
+              ${beat.original_text ? `<details class="vn-original"><summary>Before Bulba's edits</summary><div style="white-space:pre-wrap;">${TG.esc(beat.original_text)}</div></details>` : ""}
 
               <div class="vn-beat-nav-row">
                 <div style="display:flex; gap:8px; align-items:center;">
-                  <button type="button" class="tg-fmt-btn" ${idx <= 0 ? "disabled style='opacity:0.4'" : ""} onclick="VN_SCENES.prevBeat()">◀ Prev Beat</button>
+                  <button type="button" class="tg-fmt-btn" ${idx <= 0 ? "disabled style='opacity:0.4'" : ""} onclick="VN_SCENES.prevBeat()">◀ Back</button>
                   ${!isLastBeat ? `
-                    <button type="button" class="tg-send-btn" onclick="VN_SCENES.nextBeat()">Next Beat ▶ (${idx + 2}/${beats.length})</button>
+                    <button type="button" class="tg-send-btn" onclick="VN_SCENES.nextBeat()">Next ▶ (${idx + 2}/${beats.length})</button>
                   ` : `
                     <span style="font-size:12px; color:#fbcfe8; font-weight:600;">
                       ${handoff === "climax_ready"
-                        ? "🌟 Scene climax reached — ready to capture Finale Event CG or keep going!"
+                        ? "You can finish here, or keep going."
                         : handoff === "auto_continue"
-                        ? "🎬 Characters are in the middle of the moment — click Continue Scene or jump in!"
+                        ? "Continue, or respond when you’re ready."
                         : "✍️ Characters paused for your action or dialogue:"}
                     </span>
                   `}
@@ -675,21 +707,22 @@
                 <div class="vn-turn-director">
                   ${choices.length ? `
                     <div class="vn-choices-row">
-                      ${choices.map((c) => `
-                        <button type="button" class="vn-choice-chip" onclick="VN_SCENES.stepScene(${JSON.stringify(c)}, this)">
+                      ${choices.map((c, i) => `
+                        <button type="button" class="vn-choice-chip" data-choice-index="${i}">
                           ✨ ${TG.esc(c)}
                         </button>
                       `).join("")}
                     </div>
                   ` : ""}
                   <div class="vn-input-row">
-                    <input type="text" class="vn-short-input" id="vnShortInput" placeholder="Short action or dialogue (e.g. *smiles and takes the cup* &quot;Thanks for meeting me.&quot;)…" onkeydown="if(event.key==='Enter'){event.preventDefault(); VN_SCENES.submitUserBeatInput();}">
+                    <textarea class="vn-short-input" id="vnShortInput" placeholder="Your action, dialogue or direction…" onkeydown="if(event.key==='Enter' && (event.ctrlKey || event.metaKey)){event.preventDefault(); VN_SCENES.submitUserBeatInput();}"></textarea>
                     <button type="button" class="tg-send-btn" onclick="VN_SCENES.submitUserBeatInput(this)">Act / Speak ➤</button>
                     <button type="button" class="tg-bulba-btn" style="${handoff === "auto_continue" ? "box-shadow:0 0 14px rgba(168,85,247,0.65);" : ""}" onclick="VN_SCENES.stepScene('', this)" title="Let the characters continue the scene without user input">
                       Continue Scene ▶▶
                     </button>
-                    <button type="button" class="vn-climax-btn ${handoff === "climax_ready" ? "pulse" : ""}" onclick="VN_SCENES.finishScene(this)" title="End the scene on a full widescreen generated Event CG and save it to your Gallery">
-                      🖼️ End & Capture Finale CG
+                    <button type="button" class="tg-fmt-btn" onclick="VN_SCENES.finishScene(this)">Finish & Save</button>
+                    <button type="button" class="vn-climax-btn ${handoff === "climax_ready" ? "pulse" : ""}" onclick="VN_SCENES.finishScene(this, true)" title="Finish the episode and request an optional illustration">
+                      Finish & Illustrate
                     </button>
                   </div>
                 </div>
@@ -698,6 +731,9 @@
           </div>
         </div>
       `;
+      root.querySelectorAll("[data-choice-index]").forEach((button) => {
+        button.addEventListener("click", () => this.stepScene(choices[Number(button.dataset.choiceIndex)], button));
+      });
     },
 
     renderGallery(root) {
@@ -709,7 +745,7 @@
               <div style="font-size:40px; margin-bottom:8px;">🖼️</div>
               <h3 style="margin:0 0 6px;">Your Event CG & Scene Gallery is Empty</h3>
               <p style="margin:0 0 16px; font-size:13px; color:#94a3b8;">
-                Launch a Meet-Up Scene from TeleChat and click <strong>"🖼️ End & Capture Finale CG"</strong> when the scene peaks to save widescreen Event CG artwork and replayable scene transcripts here.
+                Launch a Meet-Up Scene from TeleChat and click <strong>"Finish & Illustrate"</strong> when the scene peaks to save widescreen Event CG artwork and replayable scene transcripts here.
               </p>
               <button type="button" class="tg-send-btn" onclick="VN_SCENES.switchTab('stage')">🎬 Go to Visual Novel Stage</button>
             </div>
@@ -736,7 +772,7 @@
             ${item.quote ? `<div style="font-size:12px; font-style:italic; color:#fbcfe8;">"${TG.esc(item.quote)}"</div>` : ""}
             <p style="margin:0; font-size:12.5px; color:#cbd5e1; line-height:1.45;">${TG.esc(item.summary || "")}</p>
             <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:6px;">
-              <button type="button" class="tg-fmt-btn" onclick="VN_SCENES.viewGalleryTranscript('${TG.esc(item.id)}')">📖 Replay Scene (${(item.beats || []).length} beats)</button>
+              <button type="button" class="tg-fmt-btn" onclick="VN_SCENES.viewGalleryTranscript('${TG.esc(item.id)}')">📖 Read episode (${(item.beats || []).length} pages)</button>
               <button type="button" class="tg-fmt-btn" style="color:#f87171;" onclick="VN_SCENES.deleteGalleryItem('${TG.esc(item.id)}')" title="Remove from gallery">🗑</button>
             </div>
           </div>
@@ -748,7 +784,7 @@
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
             <div>
               <h2 style="margin:0 0 3px; font-size:19px;">🖼️ Visual Novel Event CG & Scene Gallery</h2>
-              <p style="margin:0; font-size:12.5px; color:#94a3b8;">Every completed in-person meet-up scene, its widescreen Finale Event CG, and full replayable transcript.</p>
+              <p style="margin:0; font-size:12.5px; color:#94a3b8;">Your completed episodes, illustrations and full transcripts.</p>
             </div>
             <button type="button" class="tg-send-btn" onclick="VN_SCENES.switchTab('stage')">🎬 Back to VN Stage</button>
           </div>

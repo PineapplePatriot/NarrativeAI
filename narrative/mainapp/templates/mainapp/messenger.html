@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="{% static 'css/topbar.css' %}?v=7">
   <link rel="stylesheet" href="{% static 'mainapp/css/messenger.css' %}?v=22">
   <link rel="stylesheet" href="{% static 'mainapp/css/subtext.css' %}?v=1">
-  <link rel="stylesheet" href="{% static 'mainapp/css/vn_scenes.css' %}?v=1">
+  <link rel="stylesheet" href="{% static 'mainapp/css/vn_scenes.css' %}?v=2">
 </head>
 <body class="tg-screen-body">
   {% include "partials/topbar.html" with active="screen" %}
@@ -194,6 +194,19 @@
         </div>
         <div class="tg-drawer-body" id="tgDrawerBody"></div>
       </aside>
+    </section>
+
+    <section class="screen-app-view" id="app-scenes" aria-label="Visual novel episodes">
+      <div class="vn-top-nav">
+        <div class="vn-nav-tabs">
+          <button type="button" class="vn-tab-btn active" data-vn-tab="stage" onclick="VN_SCENES.switchTab('stage')">Episode</button>
+          <button type="button" class="vn-tab-btn" data-vn-tab="gallery" onclick="VN_SCENES.switchTab('gallery')">Saved episodes <span id="vnGalleryCountBadge">0</span></button>
+        </div>
+        <button type="button" class="tg-fmt-btn" onclick="VN_SCENES.returnToPhone()">Back to phone</button>
+      </div>
+      <div id="vnNotice" role="status" hidden></div>
+      <div id="vnScenesRoot" aria-live="polite"></div>
+      <audio id="vnAudioPlayer" loop preload="none"></audio>
     </section>
 
     <!-- APP 2: SUBTEXT / CHIRP (PUBLIC TIMELINE, LOCKED BURNERS & AITA THREADS) -->
@@ -432,8 +445,8 @@
       csrf: "{{ csrf_token }}"
     };
   </script>
-  <script src="{% static 'mainapp/js/messenger.js' %}?v=23"></script>
+  <script src="{% static 'mainapp/js/messenger.js' %}?v=24"></script>
   <script src="{% static 'mainapp/js/subtext.js' %}?v=1"></script>
-  <script src="{% static 'mainapp/js/vn_scenes.js' %}?v=1"></script>
+  <script src="{% static 'mainapp/js/vn_scenes.js' %}?v=2"></script>
 </body>
 </html>

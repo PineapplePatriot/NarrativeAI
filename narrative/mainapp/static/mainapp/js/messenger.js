@@ -254,6 +254,7 @@
 
   function renderActiveThread() {
     var t = STATE.active_thread;
+    window.dispatchEvent(new Event("telechat-rendered"));
     var hdrTitle = document.getElementById("hdrTitle");
     var hdrSub = document.getElementById("hdrSub");
     var hdrAvatar = document.getElementById("hdrAvatar");
@@ -1193,6 +1194,11 @@
 
   // Expose public handlers on window.TG
   window.TG = {
+    // Shared Screen apps use the same live state; generation and phone behaviour stay here.
+    state: STATE,
+    esc: esc,
+    formatText: formatMessageHtml,
+    renderMainChat: renderActiveThread,
     switchApp: function (appName) {
       document.querySelectorAll(".dock-app-btn[data-app]").forEach(function (b) {
         b.classList.toggle("active", b.getAttribute("data-app") === appName);
